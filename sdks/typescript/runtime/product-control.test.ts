@@ -23,26 +23,18 @@ import {
   parseNimiProductControlSelectedDataRootProjectionJson,
   parseNimiProductControlState,
   parseNimiProductDataRootStatus,
-  projectNimiFirstRunExecutionEvidenceToAIConfigTargets,
   projectNimiProductControlAdmission,
   projectNimiProductControlFirstRunScreen,
   projectNimiProductControlStorageDirs,
   projectUnavailableNimiProductControlRecord,
   projectUnavailableNimiProductControlSelectedDataRoot,
-  recordNimiRuntimeProductControlAccountDefaultProfileEvidence,
-  recordNimiRuntimeProductControlFirstRunLocalAiReadyEvidence,
   reconcileNimiRuntimeProductControlFirstRunSetupState,
   selectNimiRuntimeProductControlDataRoot,
   setNimiRuntimeProductControlFirstRunInstallLevel,
-  type NimiFirstRunExecutionEvidenceForAIConfig,
   type NimiProductDataRootStatus,
   type NimiRuntimeProductControlClientFor,
   type NimiProductControlState,
 } from './index';
-import {
-  RoutePolicy,
-  ScenarioType,
-} from '../core-generated/runtime-typed-client';
 import { ReasonCode } from '../types';
 
 test('Runtime product-control projection parses first-run state and storage dirs', async () => {
@@ -73,7 +65,6 @@ test('Runtime product-control projection parses first-run state and storage dirs
                 installLevel: 'recommended',
                 aiProfileAlias: 'recommended',
                 completed: false,
-                builtInAiConfigRefs: [],
               },
               pointers: {},
               repair: {
@@ -146,14 +137,6 @@ test('Runtime product-control client maps all local read and write operations', 
         calls.push({ method: 'admit', request, options });
         return productControlEnvelope('ready_for_use');
       },
-      async recordProductControlAccountDefaultProfileEvidence(request: unknown, options?: unknown) {
-        calls.push({ method: 'account-profile', request, options });
-        return productControlEnvelope('local_ai_ready');
-      },
-      async recordProductControlFirstRunLocalAiReadyEvidence(request: unknown, options?: unknown) {
-        calls.push({ method: 'local-ai-ready', request, options });
-        return productControlEnvelope('local_ai_ready');
-      },
       async reconcileProductControlFirstRunSetupState(request: unknown, options?: unknown) {
         calls.push({ method: 'reconcile', request, options });
         return productControlEnvelope('ready_for_use');
@@ -166,8 +149,6 @@ test('Runtime product-control client maps all local read and write operations', 
     & NimiRuntimeProductControlClientFor<'setProductControlFirstRunInstallLevel'>
     & NimiRuntimeProductControlClientFor<'completeProductControlFirstRunDeviceEnvironmentScan'>
     & NimiRuntimeProductControlClientFor<'admitProductControlReadyForUse'>
-    & NimiRuntimeProductControlClientFor<'recordProductControlAccountDefaultProfileEvidence'>
-    & NimiRuntimeProductControlClientFor<'recordProductControlFirstRunLocalAiReadyEvidence'>
     & NimiRuntimeProductControlClientFor<'reconcileProductControlFirstRunSetupState'>;
 
   assert.equal((await getNimiRuntimeProductControlRecord(client, { callOptions })).state, 'ready_for_use');
@@ -182,23 +163,8 @@ test('Runtime product-control client maps all local read and write operations', 
   assert.equal((await completeNimiRuntimeProductControlFirstRunDeviceEnvironmentScan(client, { callOptions })).state, 'local_ai_assets_downloaded_environment_not_ready');
   assert.equal((await admitNimiRuntimeProductControlReadyForUse(
     client,
-    { accountDefaultProfileEvidenceJson: '{"ok":true}', builtInAiConfigEvidenceJson: '{"ready":true}' },
     { callOptions },
   )).state, 'ready_for_use');
-  assert.equal((await recordNimiRuntimeProductControlAccountDefaultProfileEvidence(
-    client,
-    { accountDefaultProfileEvidenceJson: '{"profile":true}' },
-    { callOptions },
-  )).state, 'local_ai_ready');
-  assert.equal((await recordNimiRuntimeProductControlFirstRunLocalAiReadyEvidence(
-    client,
-    {
-      runtimeBaselineRef: 'baseline',
-      builtInAiConfigEvidenceJson: '{"config":true}',
-      executionEvidenceRef: 'execution',
-    },
-    { callOptions },
-  )).state, 'local_ai_ready');
   assert.equal((await reconcileNimiRuntimeProductControlFirstRunSetupState(client, { callOptions })).state, 'ready_for_use');
 
   assert.deepEqual(calls.map((call) => [call.method, call.request, call.options]), [
@@ -208,47 +174,9 @@ test('Runtime product-control client maps all local read and write operations', 
     ['select-root', { dataRoot: '/selected' }, callOptions],
     ['install-level', { installLevel: 'recommended', aiProfileAlias: 'balanced' }, callOptions],
     ['device-scan', {}, callOptions],
-    ['admit', { accountDefaultProfileEvidenceJson: '{"ok":true}', builtInAiConfigEvidenceJson: '{"ready":true}' }, callOptions],
-    ['account-profile', { accountDefaultProfileEvidenceJson: '{"profile":true}' }, callOptions],
-    ['local-ai-ready', { runtimeBaselineRef: 'baseline', builtInAiConfigEvidenceJson: '{"config":true}', executionEvidenceRef: 'execution' }, callOptions],
+    ['admit', {}, callOptions],
     ['reconcile', {}, callOptions],
   ]);
-});
-
-test('First-run execution evidence projects to vNext AIConfig local-runtime targets', () => {
-  const evidence: NimiFirstRunExecutionEvidenceForAIConfig = {
-    executionEvidenceRef: 'execution-evidence',
-    runtimeBaselineRef: 'runtime-baseline',
-    terminalResult: 'local_ai_ready',
-    selectedBaselineCapabilityProof: [
-      capabilityProof(ScenarioType.TEXT_GENERATE, 'tester.runtime.text', 'tester-text-model'),
-      capabilityProof(ScenarioType.SPEECH_TRANSCRIBE, 'tester.runtime.stt', 'tester-stt-model'),
-      capabilityProof(ScenarioType.SPEECH_SYNTHESIZE, 'tester.runtime.tts', 'tester-tts-model'),
-    ],
-  };
-
-  const projected = projectNimiFirstRunExecutionEvidenceToAIConfigTargets(evidence);
-
-  assert.deepEqual(Object.fromEntries(projected.map((item) => [
-    item.capability,
-    item.targetRef,
-  ])), {
-    'audio.synthesize': {
-      kind: 'local-runtime',
-      version: 'v2',
-      readinessRef: 'execution-evidence',
-    },
-    'audio.transcribe': {
-      kind: 'local-runtime',
-      version: 'v2',
-      readinessRef: 'execution-evidence',
-    },
-    'text.generate': {
-      kind: 'local-runtime',
-      version: 'v2',
-      readinessRef: 'execution-evidence',
-    },
-  });
 });
 
 test('Runtime product-control projection covers all admitted states and storage path branches', () => {
@@ -402,115 +330,6 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
   );
 });
 
-test('First-run execution evidence fails closed on incomplete or non-local capability proofs', () => {
-  const completeEvidence: NimiFirstRunExecutionEvidenceForAIConfig = {
-    executionEvidenceRef: 'execution-evidence',
-    runtimeBaselineRef: 'runtime-baseline',
-    terminalResult: 'local_ai_ready',
-    selectedBaselineCapabilityProof: [
-      capabilityProof(ScenarioType.TEXT_GENERATE, 'tester.runtime.text', 'tester-text-model'),
-      {
-        ...capabilityProof(ScenarioType.SPEECH_TRANSCRIBE, 'tester.runtime.stt', 'tester-stt-model'),
-        modelResolved: '',
-      },
-      capabilityProof(ScenarioType.SPEECH_SYNTHESIZE, 'tester.runtime.tts', 'tester-tts-model'),
-    ],
-  };
-  assert.equal(
-    projectNimiFirstRunExecutionEvidenceToAIConfigTargets(completeEvidence)
-      .find((target) => target.capability === 'audio.transcribe')
-      ?.runtime.modelResolved,
-    'tester-stt-model',
-  );
-
-  assert.throws(
-    () => projectNimiFirstRunExecutionEvidenceToAIConfigTargets({
-      ...completeEvidence,
-      executionEvidenceRef: '',
-    }),
-    hasReasonCode('SDK_FIRST_RUN_EXECUTION_EVIDENCE_INVALID'),
-  );
-  assert.throws(
-    () => projectNimiFirstRunExecutionEvidenceToAIConfigTargets({
-      ...completeEvidence,
-      terminalResult: 'not_ready',
-    }),
-    hasReasonCode('SDK_FIRST_RUN_EXECUTION_TERMINAL_NOT_READY'),
-  );
-  assert.throws(
-    () => projectNimiFirstRunExecutionEvidenceToAIConfigTargets({
-      ...completeEvidence,
-      selectedBaselineCapabilityProof: [
-        { ...capabilityProof(ScenarioType.TEXT_GENERATE, 'tester.runtime.text', 'tester-text-model'), routePolicy: RoutePolicy.CLOUD },
-        capabilityProof(ScenarioType.SPEECH_TRANSCRIBE, 'tester.runtime.stt', 'tester-stt-model'),
-        capabilityProof(ScenarioType.SPEECH_SYNTHESIZE, 'tester.runtime.tts', 'tester-tts-model'),
-      ],
-    }),
-    hasReasonCode('SDK_FIRST_RUN_EXECUTION_ROUTE_NOT_LOCAL'),
-  );
-  assert.throws(
-    () => projectNimiFirstRunExecutionEvidenceToAIConfigTargets({
-      ...completeEvidence,
-      selectedBaselineCapabilityProof: [
-        { ...capabilityProof(ScenarioType.TEXT_GENERATE, 'tester.runtime.text', 'tester-text-model'), terminalResult: 'skipped' },
-        capabilityProof(ScenarioType.SPEECH_TRANSCRIBE, 'tester.runtime.stt', 'tester-stt-model'),
-        capabilityProof(ScenarioType.SPEECH_SYNTHESIZE, 'tester.runtime.tts', 'tester-tts-model'),
-      ],
-    }),
-    hasReasonCode('SDK_FIRST_RUN_EXECUTION_CAPABILITY_NOT_EXECUTED'),
-  );
-  assert.throws(
-    () => projectNimiFirstRunExecutionEvidenceToAIConfigTargets({
-      ...completeEvidence,
-      selectedBaselineCapabilityProof: [
-        capabilityProof(ScenarioType.TEXT_GENERATE, 'tester.runtime.text.one', 'tester-text-model'),
-        capabilityProof(ScenarioType.TEXT_GENERATE, 'tester.runtime.text.two', 'tester-text-model-2'),
-        capabilityProof(ScenarioType.SPEECH_TRANSCRIBE, 'tester.runtime.stt', 'tester-stt-model'),
-        capabilityProof(ScenarioType.SPEECH_SYNTHESIZE, 'tester.runtime.tts', 'tester-tts-model'),
-      ],
-    }),
-    hasReasonCode('SDK_FIRST_RUN_EXECUTION_CAPABILITY_DUPLICATE'),
-  );
-  assert.throws(
-    () => projectNimiFirstRunExecutionEvidenceToAIConfigTargets({
-      ...completeEvidence,
-      selectedBaselineCapabilityProof: [
-        capabilityProof(ScenarioType.TEXT_GENERATE, 'tester.runtime.text', 'tester-text-model'),
-      ],
-    }),
-    hasReasonCode('SDK_FIRST_RUN_EXECUTION_CAPABILITY_INCOMPLETE'),
-  );
-  assert.throws(
-    () => projectNimiFirstRunExecutionEvidenceToAIConfigTargets({
-      ...completeEvidence,
-      selectedBaselineCapabilityProof: [
-        { ...capabilityProof(999 as ScenarioType, 'tester.runtime.unsupported', 'tester-model') },
-        capabilityProof(ScenarioType.SPEECH_TRANSCRIBE, 'tester.runtime.stt', 'tester-stt-model'),
-        capabilityProof(ScenarioType.SPEECH_SYNTHESIZE, 'tester.runtime.tts', 'tester-tts-model'),
-      ],
-    }),
-    hasReasonCode('SDK_FIRST_RUN_EXECUTION_SCENARIO_UNSUPPORTED'),
-  );
-});
-
-function capabilityProof(
-  scenarioType: ScenarioType,
-  boundConsumerId: string,
-  boundAssetId: string,
-) {
-  return {
-    capability: boundConsumerId,
-    scenarioType,
-    boundConsumerId,
-    boundAssetId,
-    localRouteTarget: 'tester-local-route',
-    routePolicy: RoutePolicy.LOCAL,
-    modelResolved: boundAssetId,
-    terminalResult: 'local_executed',
-    traceId: `${boundConsumerId}:trace`,
-  };
-}
-
 function productControlEnvelope(state: NimiProductControlState) {
   return {
     json: JSON.stringify({
@@ -534,7 +353,7 @@ function productControlEnvelope(state: NimiProductControlState) {
           installLevel: 'recommended',
           aiProfileAlias: 'recommended',
           completed: state === 'ready_for_use',
-          builtInAiConfigRefs: [],
+          completedAt: state === 'ready_for_use' ? '2026-06-01T00:00:00.000Z' : null,
         },
         pointers: {},
         repair: {

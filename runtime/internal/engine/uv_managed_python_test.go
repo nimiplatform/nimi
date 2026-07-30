@@ -109,11 +109,14 @@ func TestDiscoverManagedPythonRuntimeRequiresCanonicalPayloadFiles(t *testing.T)
 	if err := os.MkdirAll(candidate, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	required := []string{filepath.Join(candidate, executableName("python"))}
+	required := []string{managedPythonInterpreterPath(candidate)}
 	if currentGOOS() == "windows" {
 		required = append(required, filepath.Join(candidate, "python3.dll"), filepath.Join(candidate, "python312.dll"))
 	}
 	for _, file := range required {
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
 		if err := os.WriteFile(file, []byte("verified fixture"), 0o755); err != nil {
 			t.Fatal(err)
 		}

@@ -153,8 +153,10 @@ func (s *Service) executeModelCompanionEnvironmentDependencyJob(ctx context.Cont
 // id (DependencyID `<asset_id>`, or `asset_id=<id>|parent_asset_id=<p>` for a
 // companion). When that asset is not yet installed on this host, this downloads
 // + installs it from the verified catalog descriptor via the shared
-// installVerifiedAssetByTemplateID path; an already-installed asset is left for
-// the verify step.
+// installVerifiedAssetByTemplateID path. An already-installed asset is reused
+// only when its bundle verifies under the current configured models root. A
+// stale registry row left by a data-root change is rebound in place after the
+// asset has been materialized successfully under the current root.
 //
 // A non-asset-specific DependencyID (e.g. a resolver fail-close pack-placeholder
 // id) is left untouched: nothing is downloaded and the verify step projects the
@@ -178,9 +180,16 @@ func (s *Service) ensureLocalEnvironmentModelAssetInstalled(ctx context.Context,
 		return nil
 	}
 	if s.installedAssetRecordForAssetID(assetID) != nil {
-		// Already installed (or installed by a sibling job in this plan);
-		// leave the bundle for the verify step.
-		return nil
+		model, err := s.localEnvironmentAssetByDependencyID(dependencyID)
+		if err == nil {
+			_, _, err = s.validateLocalEnvironmentModelAssetBundle(model)
+		}
+		if err == nil {
+			// The registry row and its bundle agree under the current configured
+			// models root. Leave engine synchronization and the final projection
+			// to the caller's verify step.
+			return nil
+		}
 	}
 	// Idempotent materialization: the in-memory asset registry is rehydrated
 	// only from `~/.nimi`, but the model bundles live under the user data
@@ -195,7 +204,12 @@ func (s *Service) ensureLocalEnvironmentModelAssetInstalled(ctx context.Context,
 	} else if adopted {
 		return nil
 	}
-	if _, err := s.installVerifiedAssetByTemplateID(ctx, assetID, ""); err != nil {
+	if _, err := s.installVerifiedAssetByTemplateIDWithExistingPolicy(
+		ctx,
+		assetID,
+		"",
+		localAssetExistingPolicyRebind,
+	); err != nil {
 		return fmt.Errorf("install resolved model asset %q: %w", assetID, err)
 	}
 	return nil
@@ -242,17 +256,16 @@ func (s *Service) verifiedAssetDescriptorForAssetID(assetID string) *runtimev1.L
 }
 
 // adoptExistingResolvedModelBundle reconciles disk → registry for a model.asset
-// / model.companion-asset that has no in-memory registry record. When the
-// canonical resolved bundle directory already holds a valid, hash-verified
-// bundle (the catalog descriptor's admitted sha256 are the verification
-// authority), it adopts the bundle by registering its `asset.manifest.json`
-// through the shared ImportLocalAsset path — the same manifest-schema
+// / model.companion-asset. When the canonical resolved bundle directory already
+// holds a valid, hash-verified bundle (the catalog descriptor's admitted sha256
+// are the verification authority), it adopts the bundle by registering its
+// `asset.manifest.json` through the shared import path — the same manifest-schema
 // validation, managed-entry validation, and asset registration a completed
-// download's activation performs — and returns true so the materializer skips
-// the download. It returns false (download as today) when the bundle is absent,
-// incomplete, corrupt, or fails hash verification: a present-but-invalid bundle
-// is never adopted as success (no pseudo-success). It fails closed with an
-// error only on an unresolvable models root.
+// download's activation performs. An existing row is rebound in place, while an
+// empty registry receives a normal insert. It returns false (download as today)
+// when the bundle is absent, incomplete, corrupt, or fails hash verification: a
+// present-but-invalid bundle is never adopted as success (no pseudo-success).
+// It fails closed with an error only on an unresolvable models root.
 func (s *Service) adoptExistingResolvedModelBundle(ctx context.Context, assetID string) (bool, error) {
 	descriptor := s.verifiedAssetDescriptorForAssetID(assetID)
 	if descriptor == nil {
@@ -315,11 +328,17 @@ func (s *Service) adoptExistingResolvedModelBundle(ctx context.Context, assetID 
 		}
 	}
 	// All artifacts verified against the catalog-admitted hashes. Register the
-	// on-disk bundle through the shared ImportLocalAsset machinery — manifest
-	// schema validation, managed-entry validation, and asset registration. A
-	// registration failure (e.g. a manifest schema drift) falls through to the
+	// on-disk bundle through the shared import machinery — manifest schema
+	// validation, managed-entry validation, and asset registration. Rebind
+	// preserves the existing local asset identity when the registry row still
+	// points at a previous data root; with no existing row it inserts normally.
+	// A registration failure (e.g. a manifest schema drift) falls through to the
 	// download path rather than failing the job.
-	if _, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath}); err != nil {
+	if _, err := s.importLocalAsset(
+		ctx,
+		&runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath},
+		localAssetExistingPolicyRebind,
+	); err != nil {
 		return false, nil
 	}
 	return true, nil
@@ -342,18 +361,9 @@ func (s *Service) verifyLocalEnvironmentModelAsset(ctx context.Context, dependen
 	if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return nil, "", "", localEnvironmentSourceManaged, errors.New("model asset record removed")
 	}
-	modelsRoot := s.resolvedLocalModelsPath()
-	entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, model)
+	_, entryPath, err := s.validateLocalEnvironmentModelAssetBundle(model)
 	if err != nil {
-		return model, "", "", localEnvironmentSourceKindForAsset(model), err
-	}
-	if err := s.validateManagedModelEntryForModel(entryPath, model); err != nil {
 		return model, entryPath, "", localEnvironmentSourceKindForAsset(model), err
-	}
-	if isManagedSupervisedSpeechModel(model, s.modelRuntimeMode(model.GetLocalAssetId())) {
-		if err := validateManagedSpeechBundleFiles(modelsRoot, model); err != nil {
-			return model, entryPath, "", localEnvironmentSourceKindForAsset(model), err
-		}
 	}
 	if isManagedSupervisedLlamaModel(model, s.modelRuntimeMode(model.GetLocalAssetId())) {
 		if err := s.SyncManagedLlamaAssets(ctx); err != nil {
@@ -365,6 +375,31 @@ func (s *Service) verifyLocalEnvironmentModelAsset(ctx context.Context, dependen
 		return model, entryPath, "", localEnvironmentSourceKindForAsset(model), err
 	}
 	return model, entryPath, hash, localEnvironmentSourceKindForAsset(model), nil
+}
+
+// validateLocalEnvironmentModelAssetBundle verifies the registry row against
+// the bundle rooted at the currently configured models path. It intentionally
+// excludes engine synchronization: the materializer uses this static check to
+// decide whether an existing row can be reused, while the final verify step
+// performs any required engine mutation exactly once.
+func (s *Service) validateLocalEnvironmentModelAssetBundle(model *runtimev1.LocalAssetRecord) (string, string, error) {
+	if model == nil {
+		return "", "", errors.New("model asset record missing")
+	}
+	modelsRoot := s.resolvedLocalModelsPath()
+	entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, model)
+	if err != nil {
+		return modelsRoot, "", err
+	}
+	if err := s.validateManagedModelEntryForModel(entryPath, model); err != nil {
+		return modelsRoot, entryPath, err
+	}
+	if isManagedSupervisedSpeechModel(model, s.modelRuntimeMode(model.GetLocalAssetId())) {
+		if err := validateManagedSpeechBundleFiles(modelsRoot, model); err != nil {
+			return modelsRoot, entryPath, err
+		}
+	}
+	return modelsRoot, entryPath, nil
 }
 
 func (s *Service) localEnvironmentAssetByDependencyID(dependencyID string) (*runtimev1.LocalAssetRecord, error) {

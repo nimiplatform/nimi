@@ -46,17 +46,10 @@ type productDataRootRecord struct {
 }
 
 type productFirstRunRecord struct {
-	InstallLevel             *string  `json:"installLevel"`
-	AIProfileAlias           *string  `json:"aiProfileAlias"`
-	Completed                bool     `json:"completed"`
-	CompletedAt              *string  `json:"completedAt"`
-	InitializationPlanID     *string  `json:"initializationPlanId"`
-	BaselineProfileRef       *string  `json:"baselineProfileRef"`
-	BaselineCommitID         *string  `json:"baselineCommitId"`
-	AccountDefaultProfileRef *string  `json:"accountDefaultProfileRef"`
-	BuiltInAIConfigRefs      []string `json:"builtInAiConfigRefs"`
-	RuntimeBaselineRef       *string  `json:"runtimeBaselineRef"`
-	ExecutionEvidenceRef     *string  `json:"executionEvidenceRef"`
+	InstallLevel   *string `json:"installLevel"`
+	AIProfileAlias *string `json:"aiProfileAlias"`
+	Completed      bool    `json:"completed"`
+	CompletedAt    *string `json:"completedAt"`
 }
 
 type productPointersRecord struct {
@@ -89,54 +82,4 @@ type productControlSelectedDataRootProjection struct {
 	State    productControlState    `json:"state"`
 	DataRoot *productDataRootRecord `json:"dataRoot"`
 	Error    *string                `json:"error"`
-}
-
-type accountDefaultProfileAdmissionEvidence struct {
-	AccountDefaultProfileRef string `json:"accountDefaultProfileRef"`
-	AccountID                string `json:"accountId"`
-	DataRootRef              string `json:"dataRootRef"`
-	ProfileID                string `json:"profileId"`
-	ContentHash              string `json:"contentHash"`
-	SourcePolicyRef          string `json:"sourcePolicyRef"`
-	SourceCatalogID          string `json:"sourceCatalogId"`
-	SourceCatalogVersion     int    `json:"sourceCatalogVersion"`
-	CreatedAt                string `json:"createdAt"`
-	UpdatedAt                string `json:"updatedAt"`
-	AIProfileAlias           string `json:"aiProfileAlias"`
-	ProfilePayloadHash       string `json:"profilePayloadHash"`
-	FactoryProvenanceHash    string `json:"factoryProvenanceHash"`
-}
-
-type builtInAIConfigAdmissionEvidenceSet struct {
-	Nimi  builtInAIConfigAdmissionEvidence `json:"nimi"`
-	Agent builtInAIConfigAdmissionEvidence `json:"agent"`
-}
-
-type builtInAIConfigAdmissionEvidence struct {
-	BuiltInAIConfigRef  string                       `json:"builtInAiConfigRef"`
-	AccountID           string                       `json:"accountId"`
-	DataRootRef         string                       `json:"dataRootRef"`
-	ScopeRef            builtInChatScopeAdmissionRef `json:"scopeRef"`
-	AIProfileRef        builtInAIProfileAdmissionRef `json:"aiProfileRef"`
-	AIConfigVersion     uint64                       `json:"aiConfigVersion"`
-	AIConfigContentHash string                       `json:"aiConfigContentHash"`
-	WriterIdentity      string                       `json:"writerIdentity"`
-	CommittedAt         string                       `json:"committedAt"`
-}
-
-type builtInChatScopeAdmissionRef struct {
-	Kind      string `json:"kind"`
-	OwnerID   string `json:"ownerId"`
-	SurfaceID string `json:"surfaceId"`
-}
-
-type builtInAIProfileAdmissionRef struct {
-	ProfileID            string `json:"profileId"`
-	AIProfileAlias       string `json:"aiProfileAlias"`
-	InstallLevel         string `json:"installLevel"`
-	SourcePolicyRef      string `json:"sourcePolicyRef"`
-	SourceCatalogID      string `json:"sourceCatalogId"`
-	SourceCatalogVersion int    `json:"sourceCatalogVersion"`
-	ProfilePayloadHash   string `json:"profilePayloadHash"`
-	AppliedAt            string `json:"appliedAt"`
 }

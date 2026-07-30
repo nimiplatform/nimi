@@ -59,6 +59,7 @@ type managedDownloadedModelSpec struct {
 	mode               runtimev1.LocalEngineRuntimeMode
 	engineConfig       *structpb.Struct
 	projectionOverride *modelregistry.NativeProjection
+	existingPolicy     localAssetExistingPolicy
 }
 
 func (s *Service) installManagedDownloadedModel(
@@ -248,7 +249,7 @@ func (s *Service) installManagedDownloadedModel(
 		projectionOverride,
 		"runtime_model_ready_after_install",
 		"model installed",
-		localAssetExistingPolicyFail,
+		spec.existingPolicy,
 	)
 	if err != nil {
 		if quarantinePath, rollbackErr := activation.Rollback(

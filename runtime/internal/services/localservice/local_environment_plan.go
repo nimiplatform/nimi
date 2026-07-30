@@ -22,6 +22,22 @@ const (
 	localEnvironmentStateCancelled         = "cancelled"
 )
 
+const (
+	localEnvironmentInstallLevelMinimal     = "minimal"
+	localEnvironmentInstallLevelRecommended = "recommended"
+)
+
+func normalizeLocalEnvironmentInstallLevel(installLevel string) string {
+	switch strings.ToLower(strings.TrimSpace(installLevel)) {
+	case localEnvironmentInstallLevelMinimal:
+		return localEnvironmentInstallLevelMinimal
+	case localEnvironmentInstallLevelRecommended:
+		return localEnvironmentInstallLevelRecommended
+	default:
+		return ""
+	}
+}
+
 // localResolverCapability* are the precise K-MCAT-033 preset-slot capability
 // identifiers a compute pack may host a model asset for (design/05 §3). They
 // are matched verbatim against the resolver's ResolvedSlot.Capability.

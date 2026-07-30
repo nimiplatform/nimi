@@ -198,18 +198,6 @@ services:
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs
       - name: ResolveLocalEnvironmentActivationGate
         type: unary
-      - name: MintRuntimeBaselineReadiness
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness
-      - name: ResolveRuntimeBaselineReadiness
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness
-      - name: MintFirstRunExecutionEvidence
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence
-      - name: ResolveFirstRunExecutionEvidence
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence
       - name: GetProductControlRecord
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
@@ -231,12 +219,6 @@ services:
       - name: AdmitProductControlReadyForUse
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
-      - name: RecordProductControlAccountDefaultProfileEvidence
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence
-      - name: RecordProductControlFirstRunLocalAiReadyEvidence
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence
       - name: ReconcileProductControlFirstRunSetupState
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState

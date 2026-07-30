@@ -1838,8 +1838,7 @@ type AddLinkResponse struct {
 }
 
 type AdmitProductControlReadyForUseRequest struct {
-	AccountDefaultProfileEvidenceJson string `json:"account_default_profile_evidence_json,omitempty"`
-	BuiltInAiConfigEvidenceJson string `json:"built_in_ai_config_evidence_json,omitempty"`
+
 }
 
 type AgentAutonomyConfig struct {
@@ -3186,43 +3185,6 @@ type ExecuteScenarioResponse struct {
 	TraceId string `json:"trace_id,omitempty"`
 	IgnoredExtensions []IgnoredScenarioExtension `json:"ignored_extensions,omitempty"`
 	ResolvedExecutionBinding *RuntimeResolvedExecutionBinding `json:"resolved_execution_binding,omitempty"`
-}
-
-type ExecutionBaselineCapabilityProof struct {
-	Capability string `json:"capability,omitempty"`
-	ScenarioType ScenarioType `json:"scenario_type,omitempty"`
-	BoundConsumerId string `json:"bound_consumer_id,omitempty"`
-	BoundAssetId string `json:"bound_asset_id,omitempty"`
-	LocalRouteTarget string `json:"local_route_target,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	ModelResolved string `json:"model_resolved,omitempty"`
-	TerminalResult string `json:"terminal_result,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	TraceId string `json:"trace_id,omitempty"`
-	ExecutedAt string `json:"executed_at,omitempty"`
-}
-
-type ExecutionEvidenceRef struct {
-	ExecutionEvidenceRef string `json:"execution_evidence_ref,omitempty"`
-	SelectedLocalFactoryAiProfileRef string `json:"selected_local_factory_ai_profile_ref,omitempty"`
-	InstallLevel string `json:"install_level,omitempty"`
-	RuntimeBaselineRef string `json:"runtime_baseline_ref,omitempty"`
-	DataRootRef string `json:"data_root_ref,omitempty"`
-	LocalExecutionTargetEvidence []string `json:"local_execution_target_evidence,omitempty"`
-	SelectedBaselineCapabilityProof []ExecutionBaselineCapabilityProof `json:"selected_baseline_capability_proof,omitempty"`
-	SubmitSpecificSchedulingJudgement *ExecutionSchedulingJudgement `json:"submit_specific_scheduling_judgement,omitempty"`
-	TerminalResult string `json:"terminal_result,omitempty"`
-	ObservedAt string `json:"observed_at,omitempty"`
-	RuntimeAuditSequence []string `json:"runtime_audit_sequence,omitempty"`
-	RuntimeVerifierIdentity string `json:"runtime_verifier_identity,omitempty"`
-}
-
-type ExecutionSchedulingJudgement struct {
-	Evaluated bool `json:"evaluated,omitempty"`
-	Capability string `json:"capability,omitempty"`
-	SchedulingState string `json:"scheduling_state,omitempty"`
-	Detail string `json:"detail,omitempty"`
-	EvaluatedAt string `json:"evaluated_at,omitempty"`
 }
 
 type ExportAuditEventsRequest struct {
@@ -5553,38 +5515,6 @@ type MemoryRequestContext struct {
 	SubjectUserId string `json:"subject_user_id,omitempty"`
 }
 
-type MintFirstRunExecutionEvidenceRequest struct {
-	RuntimeBaselineRef string `json:"runtime_baseline_ref,omitempty"`
-	SelectedLocalFactoryAiProfileRef string `json:"selected_local_factory_ai_profile_ref,omitempty"`
-	InstallLevel string `json:"install_level,omitempty"`
-	DataRootRef string `json:"data_root_ref,omitempty"`
-	HostProfile *LocalDeviceProfile `json:"host_profile,omitempty"`
-	RecommendedCapabilities []string `json:"recommended_capabilities,omitempty"`
-	SubmitSchedulingEvaluated bool `json:"submit_scheduling_evaluated,omitempty"`
-}
-
-type MintFirstRunExecutionEvidenceResponse struct {
-	Ref *ExecutionEvidenceRef `json:"ref,omitempty"`
-	State string `json:"state,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	Detail string `json:"detail,omitempty"`
-}
-
-type MintRuntimeBaselineReadinessRequest struct {
-	SelectedLocalFactoryAiProfileRef string `json:"selected_local_factory_ai_profile_ref,omitempty"`
-	InstallLevel string `json:"install_level,omitempty"`
-	RuntimeDataRootOrDataRootRef string `json:"runtime_data_root_or_data_root_ref,omitempty"`
-	HostProfile *LocalDeviceProfile `json:"host_profile,omitempty"`
-	BaselineConsumers []RuntimeBaselineConsumerBinding `json:"baseline_consumers,omitempty"`
-}
-
-type MintRuntimeBaselineReadinessResponse struct {
-	Ref *RuntimeBaselineReadinessRef `json:"ref,omitempty"`
-	State string `json:"state,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	Detail string `json:"detail,omitempty"`
-}
-
 type ModelCapabilityProfile struct {
 	SupportsTextGenerate bool `json:"supports_text_generate,omitempty"`
 	SupportsTextStream bool `json:"supports_text_stream,omitempty"`
@@ -6008,16 +5938,6 @@ type ReconcileProductControlFirstRunSetupStateRequest struct {
 
 }
 
-type RecordProductControlAccountDefaultProfileEvidenceRequest struct {
-	AccountDefaultProfileEvidenceJson string `json:"account_default_profile_evidence_json,omitempty"`
-}
-
-type RecordProductControlFirstRunLocalAiReadyEvidenceRequest struct {
-	RuntimeBaselineRef string `json:"runtime_baseline_ref,omitempty"`
-	BuiltInAiConfigEvidenceJson string `json:"built_in_ai_config_evidence_json,omitempty"`
-	ExecutionEvidenceRef string `json:"execution_evidence_ref,omitempty"`
-}
-
 type RefreshSessionRequest struct {
 	SessionId string `json:"session_id,omitempty"`
 	TtlSeconds int32 `json:"ttl_seconds,omitempty"`
@@ -6253,21 +6173,6 @@ type ResolveAvatarLiveInstanceBindingResponse struct {
 	Snapshot *ConversationAnchorSnapshot `json:"snapshot,omitempty"`
 }
 
-type ResolveFirstRunExecutionEvidenceRequest struct {
-	ExecutionEvidenceRef string `json:"execution_evidence_ref,omitempty"`
-	ExpectedRuntimeBaselineRef string `json:"expected_runtime_baseline_ref,omitempty"`
-	ExpectedDataRootRef string `json:"expected_data_root_ref,omitempty"`
-	ExpectedInstallLevel string `json:"expected_install_level,omitempty"`
-	HostProfile *LocalDeviceProfile `json:"host_profile,omitempty"`
-}
-
-type ResolveFirstRunExecutionEvidenceResponse struct {
-	Ref *ExecutionEvidenceRef `json:"ref,omitempty"`
-	State string `json:"state,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	Detail string `json:"detail,omitempty"`
-}
-
 type ResolveLocalEnvironmentActivationGateRequest struct {
 	ConsumerId string `json:"consumer_id,omitempty"`
 	PackId string `json:"pack_id,omitempty"`
@@ -6338,18 +6243,6 @@ type ResolveProfileRequest struct {
 
 type ResolveProfileResponse struct {
 	Plan *LocalProfileResolutionPlan `json:"plan,omitempty"`
-}
-
-type ResolveRuntimeBaselineReadinessRequest struct {
-	RuntimeBaselineRef string `json:"runtime_baseline_ref,omitempty"`
-	HostProfile *LocalDeviceProfile `json:"host_profile,omitempty"`
-}
-
-type ResolveRuntimeBaselineReadinessResponse struct {
-	Ref *RuntimeBaselineReadinessRef `json:"ref,omitempty"`
-	State string `json:"state,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	Detail string `json:"detail,omitempty"`
 }
 
 type ResourceSelectors struct {
@@ -6468,46 +6361,6 @@ type RuntimeAgentAIConfigReadinessSnapshot struct {
 	AgentInstanceId string `json:"agent_instance_id,omitempty"`
 	ConfigRevision uint64 `json:"config_revision,omitempty"`
 	Capabilities []RuntimeAgentAIConfigCapabilityReadiness `json:"capabilities,omitempty"`
-}
-
-type RuntimeBaselineActivationConsumerEvidence struct {
-	ConsumerId string `json:"consumer_id,omitempty"`
-	PackId string `json:"pack_id,omitempty"`
-	ActivationState string `json:"activation_state,omitempty"`
-	ReasonCode string `json:"reason_code,omitempty"`
-	Dependencies []RuntimeBaselineActivationDependencyEvidence `json:"dependencies,omitempty"`
-	BoundAssetId string `json:"bound_asset_id,omitempty"`
-}
-
-type RuntimeBaselineActivationDependencyEvidence struct {
-	DependencyFamily string `json:"dependency_family,omitempty"`
-	DependencyId string `json:"dependency_id,omitempty"`
-	EnvironmentKey string `json:"environment_key,omitempty"`
-	SelectedSourceRecordId string `json:"selected_source_record_id,omitempty"`
-	SourceKind string `json:"source_kind,omitempty"`
-	DependencyState string `json:"dependency_state,omitempty"`
-	CanonicalRoot string `json:"canonical_root,omitempty"`
-	MaterializationOrSystemSourceVerificationEvidence string `json:"materialization_or_system_source_verification_evidence,omitempty"`
-}
-
-type RuntimeBaselineConsumerBinding struct {
-	ConsumerId string `json:"consumer_id,omitempty"`
-	AssetId string `json:"asset_id,omitempty"`
-	LocalAssetId string `json:"local_asset_id,omitempty"`
-}
-
-type RuntimeBaselineReadinessRef struct {
-	RuntimeBaselineRef string `json:"runtime_baseline_ref,omitempty"`
-	SelectedLocalFactoryAiProfileRef string `json:"selected_local_factory_ai_profile_ref,omitempty"`
-	InstallLevel string `json:"install_level,omitempty"`
-	RuntimeDataRootOrDataRootRef string `json:"runtime_data_root_or_data_root_ref,omitempty"`
-	RequiredDependencyFamilies []string `json:"required_dependency_families,omitempty"`
-	SelectedSourceRecordIds []string `json:"selected_source_record_ids,omitempty"`
-	ActivationReadyResponses []RuntimeBaselineActivationConsumerEvidence `json:"activation_ready_responses,omitempty"`
-	MaterializationOrSystemSourceVerificationEvidence []string `json:"materialization_or_system_source_verification_evidence,omitempty"`
-	ObservedAt string `json:"observed_at,omitempty"`
-	RuntimeVerifierIdentity string `json:"runtime_verifier_identity,omitempty"`
-	RuntimeAuditSequence []string `json:"runtime_audit_sequence,omitempty"`
 }
 
 type RuntimeDurableCloudTargetRef struct {
@@ -9358,22 +9211,6 @@ func (c RuntimeTypedClient) ListVerifiedAssets(ctx context.Context, request List
 	return decodeRuntimeTypedResponse[ListVerifiedAssetsResponse](raw, "ListVerifiedAssetsResponse")
 }
 
-func (c RuntimeTypedClient) MintFirstRunExecutionEvidence(ctx context.Context, request MintFirstRunExecutionEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MintFirstRunExecutionEvidenceResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence", request, metadata, timeoutMS)
-	if err != nil {
-		return MintFirstRunExecutionEvidenceResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[MintFirstRunExecutionEvidenceResponse](raw, "MintFirstRunExecutionEvidenceResponse")
-}
-
-func (c RuntimeTypedClient) MintRuntimeBaselineReadiness(ctx context.Context, request MintRuntimeBaselineReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MintRuntimeBaselineReadinessResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness", request, metadata, timeoutMS)
-	if err != nil {
-		return MintRuntimeBaselineReadinessResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[MintRuntimeBaselineReadinessResponse](raw, "MintRuntimeBaselineReadinessResponse")
-}
-
 func (c RuntimeTypedClient) PauseLocalTransfer(ctx context.Context, request PauseLocalTransferRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PauseLocalTransferResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer", request, metadata, timeoutMS)
 	if err != nil {
@@ -9392,22 +9229,6 @@ func (c RuntimeTypedClient) PrepareProfileRuntimeDescriptor(ctx context.Context,
 
 func (c RuntimeTypedClient) ReconcileProductControlFirstRunSetupState(ctx context.Context, request ReconcileProductControlFirstRunSetupStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", request, metadata, timeoutMS)
-	if err != nil {
-		return ProductControlProjectionJson{}, err
-	}
-	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
-}
-
-func (c RuntimeTypedClient) RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, request RecordProductControlAccountDefaultProfileEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", request, metadata, timeoutMS)
-	if err != nil {
-		return ProductControlProjectionJson{}, err
-	}
-	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
-}
-
-func (c RuntimeTypedClient) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, request RecordProductControlFirstRunLocalAiReadyEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -9444,14 +9265,6 @@ func (c RuntimeTypedClient) RescanLocalAssetBundle(ctx context.Context, request 
 		return RescanLocalAssetBundleResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RescanLocalAssetBundleResponse](raw, "RescanLocalAssetBundleResponse")
-}
-
-func (c RuntimeTypedClient) ResolveFirstRunExecutionEvidence(ctx context.Context, request ResolveFirstRunExecutionEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveFirstRunExecutionEvidenceResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence", request, metadata, timeoutMS)
-	if err != nil {
-		return ResolveFirstRunExecutionEvidenceResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ResolveFirstRunExecutionEvidenceResponse](raw, "ResolveFirstRunExecutionEvidenceResponse")
 }
 
 func (c RuntimeTypedClient) ResolveLocalEnvironmentActivationGate(ctx context.Context, request ResolveLocalEnvironmentActivationGateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalEnvironmentActivationGateResponse, error) {
@@ -9492,14 +9305,6 @@ func (c RuntimeTypedClient) ResolveProfile(ctx context.Context, request ResolveP
 		return ResolveProfileResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ResolveProfileResponse](raw, "ResolveProfileResponse")
-}
-
-func (c RuntimeTypedClient) ResolveRuntimeBaselineReadiness(ctx context.Context, request ResolveRuntimeBaselineReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveRuntimeBaselineReadinessResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness", request, metadata, timeoutMS)
-	if err != nil {
-		return ResolveRuntimeBaselineReadinessResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ResolveRuntimeBaselineReadinessResponse](raw, "ResolveRuntimeBaselineReadinessResponse")
 }
 
 func (c RuntimeTypedClient) ResumeLocalTransfer(ctx context.Context, request ResumeLocalTransferRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResumeLocalTransferResponse, error) {

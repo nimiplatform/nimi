@@ -605,6 +605,25 @@ func (s *Service) InstallVerifiedAsset(ctx context.Context, req *runtimev1.Insta
 // fails closed in resolveManagedBundleModelsRoot rather than staging into the
 // runtime process CWD.
 func (s *Service) installVerifiedAssetByTemplateID(ctx context.Context, templateIDRaw string, endpointRaw string) (*runtimev1.LocalAssetRecord, error) {
+	return s.installVerifiedAssetByTemplateIDWithExistingPolicy(
+		ctx,
+		templateIDRaw,
+		endpointRaw,
+		localAssetExistingPolicyFail,
+	)
+}
+
+// installVerifiedAssetByTemplateIDWithExistingPolicy keeps the public verified
+// install path fail-on-duplicate while allowing the first-run materializer to
+// replace an existing registry row after the configured data root changes.
+// The bundle activation remains transactional; the registry is rebound only
+// after the new bundle has downloaded, verified, and activated successfully.
+func (s *Service) installVerifiedAssetByTemplateIDWithExistingPolicy(
+	ctx context.Context,
+	templateIDRaw string,
+	endpointRaw string,
+	existingPolicy localAssetExistingPolicy,
+) (*runtimev1.LocalAssetRecord, error) {
 	templateID := strings.TrimSpace(templateIDRaw)
 	if templateID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND)
@@ -682,6 +701,7 @@ func (s *Service) installVerifiedAssetByTemplateID(ctx context.Context, template
 			endpoint:       binding.endpoint,
 			mode:           binding.mode,
 			engineConfig:   matched.GetEngineConfig(),
+			existingPolicy: existingPolicy,
 			projectionOverride: &modelregistry.NativeProjection{
 				LogicalModelID:  strings.TrimSpace(matched.GetLogicalModelId()),
 				ArtifactRoles:   append([]string(nil), matched.GetArtifactRoles()...),
@@ -716,7 +736,7 @@ func (s *Service) installVerifiedAssetByTemplateID(ctx context.Context, template
 		},
 		"runtime_model_ready_after_install",
 		"model installed",
-		localAssetExistingPolicyFail,
+		existingPolicy,
 	)
 	if err != nil {
 		return nil, err

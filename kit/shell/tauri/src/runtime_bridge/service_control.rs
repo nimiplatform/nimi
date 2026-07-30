@@ -1,9 +1,7 @@
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 use nimi_shell_protected_local::LinuxUnixSocketCarrier;
 #[cfg(target_os = "macos")]
-use nimi_shell_protected_local::{
-    invalidate_verified_desktop_runtime_channel, MacOsUnixSocketCarrier,
-};
+use nimi_shell_protected_local::MacOsUnixSocketCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::{
     invalidate_verified_desktop_runtime_channel, WindowsNamedPipeCarrier,
@@ -664,7 +662,8 @@ async fn clear_desktop_control_if_same(control: Arc<dyn NimiDesktopControl>) {
     });
     if cleared {
         super::channel_pool::invalidate_channel();
-        invalidate_platform_desktop_runtime_channel().await;
+        #[cfg(target_os = "windows")]
+        invalidate_verified_desktop_runtime_channel().await;
     }
     drop(control);
 }
@@ -678,17 +677,10 @@ async fn clear_desktop_control() {
         .get()
         .and_then(|slot| slot.lock().ok())
         .and_then(|mut slot| slot.take());
-    invalidate_platform_desktop_runtime_channel().await;
+    #[cfg(target_os = "windows")]
+    invalidate_verified_desktop_runtime_channel().await;
     drop(removed);
 }
-
-#[cfg(any(target_os = "windows", target_os = "macos"))]
-async fn invalidate_platform_desktop_runtime_channel() {
-    invalidate_verified_desktop_runtime_channel().await;
-}
-
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
-async fn invalidate_platform_desktop_runtime_channel() {}
 
 fn desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
     DESKTOP_CONTROL

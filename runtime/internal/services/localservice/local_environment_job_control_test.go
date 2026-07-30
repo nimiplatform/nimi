@@ -926,25 +926,146 @@ func TestStartPythonUVDependencyJobRepairRequiredWithoutVersion(t *testing.T) {
 	}
 }
 
-// TestEnsureLocalEnvironmentModelAssetInstalledSkipsInstalledAsset is the
-// regression guard for the first-run model.asset materializer install seam: an
-// already-installed resolved asset must not be re-downloaded — the install seam
-// returns without error so the verify step can run.
-func TestEnsureLocalEnvironmentModelAssetInstalledSkipsInstalledAsset(t *testing.T) {
+// TestEnsureLocalEnvironmentModelAssetInstalledSkipsVerifiedInstalledAsset is
+// the regression guard for the first-run model.asset materializer install seam:
+// an installed asset whose bundle verifies under the current configured models
+// root must not be re-downloaded.
+func TestEnsureLocalEnvironmentModelAssetInstalledSkipsVerifiedInstalledAsset(t *testing.T) {
 	svc := newTestService(t)
-	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "image/test-installed-asset",
-		capabilities: []string{"image"},
-		engine:       "media",
-		entry:        "model.safetensors",
-		hashes:       map[string]string{"model.safetensors": "sha256:b899bf805912441a8767d3e01859281ab3a1cd7b18edea93f5e54c18b648b54c"},
-	})
+	server := failingHFDownloadServerForTest(t)
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
 
-	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), ""+model.GetAssetId()); err != nil {
+	const assetID = "local/embed-installed"
+	const logicalModelID = "nimi/embed-installed"
+	const entry = "model.gguf"
+	payload := validTestGGUF()
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
+		verifiedEmbeddingDescriptorForTest(assetID, logicalModelID, entry, payload),
+	}
+	bundleDir := writeResolvedModelBundleForTest(
+		t,
+		svc.resolvedLocalModelsPath(),
+		logicalModelID,
+		assetID,
+		entry,
+		payload,
+	)
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: filepath.Join(bundleDir, "asset.manifest.json"),
+	})
+	if err != nil {
+		t.Fatalf("ImportLocalAsset: %v", err)
+	}
+	model := imported.GetAsset()
+
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), model.GetAssetId()); err != nil {
 		t.Fatalf("ensureLocalEnvironmentModelAssetInstalled for an installed asset: %v", err)
 	}
 	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), model.GetLocalAssetId()); err == nil {
 		t.Fatal("local_asset_id must not be accepted as a model.asset dependency id")
+	}
+}
+
+// TestEnsureLocalEnvironmentModelAssetInstalledRebindsAfterDataRootChange is
+// the regression for a real macOS first-run failure: Product Control selected a
+// new empty data root while the Runtime registry retained an installed asset
+// row sourced from the previous root. The materializer must not treat that row
+// as proof that the current root contains the model. It downloads into the
+// current root, then rebinds the existing row in place so verification succeeds
+// without creating an ambiguous duplicate asset.
+func TestEnsureLocalEnvironmentModelAssetInstalledRebindsAfterDataRootChange(t *testing.T) {
+	svc := newTestService(t)
+
+	const assetID = "local/embed-data-root-rebind"
+	const logicalModelID = "nimi/embed-data-root-rebind"
+	const entry = "model.gguf"
+	payload := validTestGGUF()
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
+		verifiedEmbeddingDescriptorForTest(assetID, logicalModelID, entry, payload),
+	}
+
+	oldModelsRoot := svc.resolvedLocalModelsPath()
+	oldBundleDir := writeResolvedModelBundleForTest(
+		t,
+		oldModelsRoot,
+		logicalModelID,
+		assetID,
+		entry,
+		payload,
+	)
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: filepath.Join(oldBundleDir, "asset.manifest.json"),
+	})
+	if err != nil {
+		t.Fatalf("ImportLocalAsset from old data root: %v", err)
+	}
+	oldLocalAssetID := imported.GetAsset().GetLocalAssetId()
+	svc.mu.Lock()
+	svc.assets[oldLocalAssetID].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY
+	svc.assets[oldLocalAssetID].HealthDetail = "entry missing under newly selected data root"
+	svc.mu.Unlock()
+
+	newModelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.localModelsPath = newModelsRoot
+	if _, _, _, _, err := svc.verifyLocalEnvironmentModelAsset(context.Background(), assetID); err == nil {
+		t.Fatal("precondition: stale registry row unexpectedly verified under the new empty data root")
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/Qwen/Qwen3-Embedding-8B-GGUF/resolve/main/"+entry {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), assetID); err != nil {
+		t.Fatalf("ensureLocalEnvironmentModelAssetInstalled after data-root change: %v", err)
+	}
+
+	rebound := svc.installedAssetRecordForAssetID(assetID)
+	if rebound == nil {
+		t.Fatal("materializer did not retain an installed asset record")
+	}
+	if got := rebound.GetLocalAssetId(); got != oldLocalAssetID {
+		t.Fatalf("materializer replaced local asset identity: got=%q want=%q", got, oldLocalAssetID)
+	}
+	if got := rebound.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		t.Fatalf("rebound status = %s, want INSTALLED", got)
+	}
+	if got := strings.TrimSpace(rebound.GetHealthDetail()); got != "" {
+		t.Fatalf("rebound health detail was not cleared: %q", got)
+	}
+	if repo := strings.TrimSpace(rebound.GetSource().GetRepo()); strings.HasPrefix(repo, "file://"+oldModelsRoot) {
+		t.Fatalf("materializer retained the old data-root source after rebind: %q", repo)
+	}
+
+	model, entryPath, entryHash, _, err := svc.verifyLocalEnvironmentModelAsset(context.Background(), assetID)
+	if err != nil {
+		t.Fatalf("verifyLocalEnvironmentModelAsset after rebind: %v", err)
+	}
+	if model == nil || entryHash == "" {
+		t.Fatalf("verified rebound asset is incomplete: model=%v hash=%q", model, entryHash)
+	}
+	if !strings.HasPrefix(entryPath, newModelsRoot+string(filepath.Separator)) {
+		t.Fatalf("rebound entry path = %q, want it under %q", entryPath, newModelsRoot)
+	}
+
+	activeRecords := 0
+	svc.mu.RLock()
+	for _, candidate := range svc.assets {
+		if candidate != nil &&
+			candidate.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED &&
+			candidate.GetAssetId() == assetID {
+			activeRecords++
+		}
+	}
+	svc.mu.RUnlock()
+	if activeRecords != 1 {
+		t.Fatalf("active records for %q = %d, want exactly one rebound record", assetID, activeRecords)
 	}
 }
 

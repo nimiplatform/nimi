@@ -1655,22 +1655,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListVerifiedAssetsResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-    "service": "RuntimeLocalService",
-    "method": "MintFirstRunExecutionEvidence",
-    "kind": "unary",
-    "requestType": "MintFirstRunExecutionEvidenceRequest",
-    "responseType": "MintFirstRunExecutionEvidenceResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
-    "service": "RuntimeLocalService",
-    "method": "MintRuntimeBaselineReadiness",
-    "kind": "unary",
-    "requestType": "MintRuntimeBaselineReadinessRequest",
-    "responseType": "MintRuntimeBaselineReadinessResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
     "service": "RuntimeLocalService",
     "method": "PauseLocalTransfer",
@@ -1692,22 +1676,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "method": "ReconcileProductControlFirstRunSetupState",
     "kind": "unary",
     "requestType": "ReconcileProductControlFirstRunSetupStateRequest",
-    "responseType": "ProductControlProjectionJson"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
-    "service": "RuntimeLocalService",
-    "method": "RecordProductControlAccountDefaultProfileEvidence",
-    "kind": "unary",
-    "requestType": "RecordProductControlAccountDefaultProfileEvidenceRequest",
-    "responseType": "ProductControlProjectionJson"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
-    "service": "RuntimeLocalService",
-    "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
-    "kind": "unary",
-    "requestType": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
     "responseType": "ProductControlProjectionJson"
   },
   {
@@ -1741,14 +1709,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RescanLocalAssetBundleRequest",
     "responseType": "RescanLocalAssetBundleResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
-    "service": "RuntimeLocalService",
-    "method": "ResolveFirstRunExecutionEvidence",
-    "kind": "unary",
-    "requestType": "ResolveFirstRunExecutionEvidenceRequest",
-    "responseType": "ResolveFirstRunExecutionEvidenceResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
@@ -1789,14 +1749,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ResolveProfileRequest",
     "responseType": "ResolveProfileResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
-    "service": "RuntimeLocalService",
-    "method": "ResolveRuntimeBaselineReadiness",
-    "kind": "unary",
-    "requestType": "ResolveRuntimeBaselineReadinessRequest",
-    "responseType": "ResolveRuntimeBaselineReadinessResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",

@@ -37,14 +37,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence":
-			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot":
@@ -58,10 +50,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState":
 			return FirstPartyMethodUnary, true
@@ -337,10 +325,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", Kind: FirstPartyMethodUnary},
@@ -348,8 +332,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog", Kind: FirstPartyMethodUnary},

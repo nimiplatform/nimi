@@ -21,10 +21,10 @@ import (
 // model.asset is 1:N (one resolved-slot asset per entry). A family absent from
 // the map keeps its prior explicit-identity resolution path.
 //
-// The same deterministic resolver also serves the MintRuntimeBaselineReadiness
-// activation path (resolveBaselineConsumerBindings); both seams resolve
-// identical assets for the same (install_level, host_posture) — neither
-// re-decides (K-MCAT-034 determinism, design/05 consistency invariant).
+// The same deterministic resolver also serves Product Control first-run model
+// selection; both seams resolve identical assets for the same
+// (install_level, host_posture) — neither re-decides (K-MCAT-034 determinism,
+// design/05 consistency invariant).
 //
 // Fail-close: a resolver FailClose leaves each model family with a single
 // `unsupported` dependency carrying the typed resolver reason code — never an
@@ -44,7 +44,7 @@ func (s *Service) resolvePlanModelAssetDependencies(
 	req localEnvironmentPlanRequest,
 	hostProfile *runtimev1.LocalDeviceProfile,
 ) map[string][]localEnvironmentPlanDependency {
-	installLevel := normalizeRuntimeBaselineInstallLevel(req.InstallLevel)
+	installLevel := normalizeLocalEnvironmentInstallLevel(req.InstallLevel)
 	// Install-level resolution applies only when an install_level is supplied
 	// and the caller passes no explicit AssetID. An explicit AssetID always
 	// wins: the user-driven install/import path is unchanged (design/05 §2).

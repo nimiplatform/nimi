@@ -121,8 +121,8 @@ func TestProbePythonProfileSkipsWindowsStoreAlias(t *testing.T) {
 // TestHostProfileOrCollectedSelfCollectsWhenRequestOmitsProfile is the
 // deterministic unit guard for the desktop first-run `blocked` defect: when a
 // resolver entry point receives a nil request host_profile (the desktop
-// ResolveLocalEnvironmentPlan / runtime baseline mint calls carry none), the
-// host posture must be collected on this host rather than left nil. A nil
+// ResolveLocalEnvironmentPlan and Product Control first-run calls carry none),
+// the host posture must be collected on this host rather than left nil. A nil
 // profile reaching the K-MCAT-034 resolver zeroes the RAM budget and
 // fail-closes every cpu variant even on a 128 GiB Apple M-series host.
 func TestHostProfileOrCollectedSelfCollectsWhenRequestOmitsProfile(t *testing.T) {

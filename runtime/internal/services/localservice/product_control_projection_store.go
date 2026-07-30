@@ -3,8 +3,6 @@ package localservice
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +10,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -48,13 +45,6 @@ var productControlFirstRunFields = []string{
 	"aiProfileAlias",
 	"completed",
 	"completedAt",
-	"initializationPlanId",
-	"baselineProfileRef",
-	"baselineCommitId",
-	"accountDefaultProfileRef",
-	"builtInAiConfigRefs",
-	"runtimeBaselineRef",
-	"executionEvidenceRef",
 }
 
 var productControlPointerFields = []string{"factoryProfileIndex"}
@@ -115,19 +105,11 @@ func productControlRecordWithoutSelectedDataRoot(record *productControlRecord) *
 }
 
 func (s *Service) verifyProductControlReadyRecord(ctx context.Context, record *productControlRecord) (productControlState, string) {
-	dataRootPath := selectedProductDataRootPath(record)
-	installLevel := strings.TrimSpace(valueOrEmpty(record.FirstRun.InstallLevel))
-	if dataRootPath == "" || installLevel == "" {
-		return productControlStateLocalAIReady, "product-control ready_for_use requires Runtime product-control admission; Desktop projection is not admission"
+	if err := validateReadyForUseShape(record); err != nil {
+		return productControlStateLocalAIReady, err.Error()
 	}
-	selectedFactoryRef := firstRunFactoryProfileRef(installLevel)
-	runtimeBaselineRef := strings.TrimSpace(valueOrEmpty(record.FirstRun.RuntimeBaselineRef))
-	if _, state, failure := s.resolveProductControlRuntimeBaseline(ctx, runtimeBaselineRef, selectedFactoryRef, installLevel, dataRootPath); failure != "" {
-		return state, "Runtime product-control ready read failed owner verification: " + failure
-	}
-	executionEvidenceRef := strings.TrimSpace(valueOrEmpty(record.FirstRun.ExecutionEvidenceRef))
-	if _, state, failure := s.resolveProductControlExecutionEvidence(ctx, executionEvidenceRef, runtimeBaselineRef, selectedFactoryRef, installLevel, dataRootPath); failure != "" {
-		return state, "Runtime product-control ready read failed owner verification: " + failure
+	if state, failure := s.verifyProductControlReadyAdmission(ctx, record); failure != "" {
+		return state, "Runtime product-control ready read failed admission verification: " + failure
 	}
 	return "", ""
 }
@@ -196,7 +178,7 @@ var retiredNimiDataRootDirectories = []string{
 
 // verifyProductControlSelectedDataRoot re-evaluates the owner-selected path
 // without mutating either the durable record or the filesystem. Before any
-// first-run evidence exists, an invalid selection can safely return to the
+// first-run setup advances beyond root selection, an invalid selection can safely return to the
 // Storage phase. Once selection is no longer allowed, the same failure is a
 // repair condition and must not silently reopen first-run selection.
 func verifyProductControlSelectedDataRoot(record *productControlRecord, security ProductControlDataRootSecurityBinding) (productControlState, string) {
@@ -440,67 +422,11 @@ func decodeProductControlRawFirstRun(raw json.RawMessage) (productFirstRunRecord
 	if err != nil {
 		return productFirstRunRecord{}, err
 	}
-	initializationPlanID, err := decodeProductControlRawNullableText(
-		fields["initializationPlanId"],
-		"firstRun.initializationPlanId",
-	)
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
-	baselineProfileRef, err := decodeProductControlRawNullableText(
-		fields["baselineProfileRef"],
-		"firstRun.baselineProfileRef",
-	)
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
-	baselineCommitID, err := decodeProductControlRawNullableText(
-		fields["baselineCommitId"],
-		"firstRun.baselineCommitId",
-	)
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
-	accountDefaultProfileRef, err := decodeProductControlRawNullableText(
-		fields["accountDefaultProfileRef"],
-		"firstRun.accountDefaultProfileRef",
-	)
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
-	builtInAIConfigRefs, err := decodeProductControlRawTextArray(
-		fields["builtInAiConfigRefs"],
-		"firstRun.builtInAiConfigRefs",
-	)
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
-	runtimeBaselineRef, err := decodeProductControlRawNullableText(
-		fields["runtimeBaselineRef"],
-		"firstRun.runtimeBaselineRef",
-	)
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
-	executionEvidenceRef, err := decodeProductControlRawNullableText(
-		fields["executionEvidenceRef"],
-		"firstRun.executionEvidenceRef",
-	)
-	if err != nil {
-		return productFirstRunRecord{}, err
-	}
 	return productFirstRunRecord{
-		InstallLevel:             installLevel,
-		AIProfileAlias:           aiProfileAlias,
-		Completed:                completed,
-		CompletedAt:              completedAt,
-		InitializationPlanID:     initializationPlanID,
-		BaselineProfileRef:       baselineProfileRef,
-		BaselineCommitID:         baselineCommitID,
-		AccountDefaultProfileRef: accountDefaultProfileRef,
-		BuiltInAIConfigRefs:      builtInAIConfigRefs,
-		RuntimeBaselineRef:       runtimeBaselineRef,
-		ExecutionEvidenceRef:     executionEvidenceRef,
+		InstallLevel:   installLevel,
+		AIProfileAlias: aiProfileAlias,
+		Completed:      completed,
+		CompletedAt:    completedAt,
 	}, nil
 }
 
@@ -628,25 +554,6 @@ func decodeProductControlRawInteger(raw json.RawMessage, label string) (int64, e
 	return int64(value), nil
 }
 
-func decodeProductControlRawTextArray(raw json.RawMessage, label string) ([]string, error) {
-	if len(raw) == 0 || productControlRawIsNull(raw) {
-		return nil, fmt.Errorf("%s must be a string array", label)
-	}
-	var values []json.RawMessage
-	if err := json.Unmarshal(raw, &values); err != nil || values == nil {
-		return nil, fmt.Errorf("%s must be a string array", label)
-	}
-	out := make([]string, 0, len(values))
-	for _, rawValue := range values {
-		value, err := decodeProductControlRawText(rawValue, label+" entry")
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, value)
-	}
-	return out, nil
-}
-
 func validateProductControlRecord(record *productControlRecord) error {
 	if record == nil {
 		return errors.New("product-control record is required")
@@ -702,12 +609,6 @@ func validateProductControlRecord(record *productControlRecord) error {
 	}{
 		{"firstRun.aiProfileAlias", record.FirstRun.AIProfileAlias},
 		{"firstRun.completedAt", record.FirstRun.CompletedAt},
-		{"firstRun.initializationPlanId", record.FirstRun.InitializationPlanID},
-		{"firstRun.baselineProfileRef", record.FirstRun.BaselineProfileRef},
-		{"firstRun.baselineCommitId", record.FirstRun.BaselineCommitID},
-		{"firstRun.accountDefaultProfileRef", record.FirstRun.AccountDefaultProfileRef},
-		{"firstRun.runtimeBaselineRef", record.FirstRun.RuntimeBaselineRef},
-		{"firstRun.executionEvidenceRef", record.FirstRun.ExecutionEvidenceRef},
 		{"pointers.factoryProfileIndex", record.Pointers.FactoryProfileIndex},
 		{"repair.reason", record.Repair.Reason},
 	}
@@ -715,14 +616,6 @@ func validateProductControlRecord(record *productControlRecord) error {
 		if field.value != nil &&
 			(*field.value == "" || strings.TrimSpace(*field.value) != *field.value) {
 			return fmt.Errorf("product-control %s must be non-empty text or null", field.label)
-		}
-	}
-	if record.FirstRun.BuiltInAIConfigRefs == nil {
-		return errors.New("product-control firstRun.builtInAiConfigRefs must be an array")
-	}
-	for _, ref := range record.FirstRun.BuiltInAIConfigRefs {
-		if ref == "" || strings.TrimSpace(ref) != ref {
-			return errors.New("product-control firstRun.builtInAiConfigRefs entries must be non-empty text")
 		}
 	}
 	failClosedState := record.State == productControlStateRepairRequired ||
@@ -786,21 +679,9 @@ func validateReadyForUseShape(record *productControlRecord) error {
 	}
 	required := firstRun.CompletedAt != nil && strings.TrimSpace(*firstRun.CompletedAt) != "" &&
 		firstRun.InstallLevel != nil && strings.TrimSpace(*firstRun.InstallLevel) != "" &&
-		firstRun.AIProfileAlias != nil && strings.TrimSpace(*firstRun.AIProfileAlias) != "" &&
-		firstRun.InitializationPlanID != nil && strings.TrimSpace(*firstRun.InitializationPlanID) != "" &&
-		firstRun.BaselineProfileRef != nil && strings.TrimSpace(*firstRun.BaselineProfileRef) != "" &&
-		firstRun.BaselineCommitID != nil && strings.TrimSpace(*firstRun.BaselineCommitID) != "" &&
-		firstRun.AccountDefaultProfileRef != nil && strings.TrimSpace(*firstRun.AccountDefaultProfileRef) != "" &&
-		len(firstRun.BuiltInAIConfigRefs) > 0 &&
-		firstRun.RuntimeBaselineRef != nil && strings.TrimSpace(*firstRun.RuntimeBaselineRef) != "" &&
-		firstRun.ExecutionEvidenceRef != nil && strings.TrimSpace(*firstRun.ExecutionEvidenceRef) != ""
+		firstRun.AIProfileAlias != nil && strings.TrimSpace(*firstRun.AIProfileAlias) != ""
 	if !required {
-		return errors.New("product-control ready_for_use requires the full first-run ready evidence field set")
-	}
-	for _, ref := range firstRun.BuiltInAIConfigRefs {
-		if strings.TrimSpace(ref) == "" {
-			return errors.New("product-control ready_for_use requires non-empty builtInAiConfigRefs")
-		}
+		return errors.New("product-control ready_for_use requires completed firstRun selection")
 	}
 	return nil
 }
@@ -826,40 +707,6 @@ func valueOrEmpty(value *string) string {
 	return *value
 }
 
-func firstRunFactoryProfileRef(installLevel string) string {
-	return fmt.Sprintf("aiprofile/nimi.first-run.local-factory.%s@1", strings.ToLower(strings.TrimSpace(installLevel)))
-}
-
-func productControlDataRootRef(dataRootPath string) string {
-	sum := sha256.Sum256([]byte(filepath.Clean(dataRootPath)))
-	return "data-root:sha256:" + hex.EncodeToString(sum[:])
-}
-
-func sameStringSet(left []string, right []string) bool {
-	normalize := func(values []string) []string {
-		out := make([]string, 0, len(values))
-		for _, value := range values {
-			trimmed := strings.TrimSpace(value)
-			if trimmed != "" {
-				out = append(out, trimmed)
-			}
-		}
-		sort.Strings(out)
-		return out
-	}
-	l := normalize(left)
-	r := normalize(right)
-	if len(l) != len(r) {
-		return false
-	}
-	for i := range l {
-		if l[i] != r[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func ensureProductControlDataRootSelectionAllowed(record *productControlRecord) error {
 	switch record.State {
 	case productControlStateConfigMissing, productControlStateDataRootMissing, productControlStateDataRootSelected, productControlStateAIEnvironmentUnconfigured:
@@ -870,8 +717,8 @@ func ensureProductControlDataRootSelectionAllowed(record *productControlRecord) 
 		return errors.New("nimi_data data root is already ready; data-root selection is first-run only")
 	}
 	firstRun := record.FirstRun
-	if firstRun.Completed || firstRun.CompletedAt != nil || firstRun.InitializationPlanID != nil || firstRun.BaselineProfileRef != nil || firstRun.BaselineCommitID != nil || firstRun.AccountDefaultProfileRef != nil || len(firstRun.BuiltInAIConfigRefs) > 0 || firstRun.RuntimeBaselineRef != nil || firstRun.ExecutionEvidenceRef != nil {
-		return errors.New("nimi_data data root cannot be changed after first-run evidence exists")
+	if firstRun.Completed || firstRun.CompletedAt != nil {
+		return errors.New("nimi_data data root cannot be changed after first-run completion")
 	}
 	return nil
 }
@@ -886,7 +733,7 @@ func (s *Service) emptyProductControlRecord(state productControlState) (*product
 		InstallID:      fmt.Sprintf("local-%d-%d", nowProductControlUnixMS(), os.Getpid()),
 		ProductVersion: productVersion,
 		State:          state,
-		FirstRun:       productFirstRunRecord{BuiltInAIConfigRefs: []string{}},
+		FirstRun:       productFirstRunRecord{},
 		Pointers:       s.resolveProductControlPointers(),
 		Repair:         productRepairRecord{},
 	}, nil
@@ -1059,7 +906,7 @@ func (s *Service) SetProductControlRoot(root string) error {
 	return nil
 }
 
-// SetProductControlDataRootSecurityBinding binds the verified Windows
+// SetProductControlDataRootSecurityBinding binds the verified platform
 // interactive-user and fixed Runtime service identities before Product
 // Control is first read. It never supplies a path.
 func (s *Service) SetProductControlDataRootSecurityBinding(binding ProductControlDataRootSecurityBinding) error {
@@ -1068,8 +915,16 @@ func (s *Service) SetProductControlDataRootSecurityBinding(binding ProductContro
 	}
 	binding.InteractiveUserSID = strings.TrimSpace(binding.InteractiveUserSID)
 	binding.RuntimeServiceSID = strings.TrimSpace(binding.RuntimeServiceSID)
+	sidBound := binding.InteractiveUserSID != "" || binding.RuntimeServiceSID != ""
+	uidBound := binding.InteractiveUserUID != 0 || binding.RuntimeServiceUID != 0
 	if (binding.InteractiveUserSID == "") != (binding.RuntimeServiceSID == "") {
 		return errors.New("Product Control data-root security binding requires both interactive-user and Runtime service SIDs")
+	}
+	if (binding.InteractiveUserUID == 0) != (binding.RuntimeServiceUID == 0) {
+		return errors.New("Product Control data-root security binding requires both interactive-user and Runtime service UIDs")
+	}
+	if sidBound && uidBound {
+		return errors.New("Product Control data-root security binding cannot mix SID and UID identities")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1114,7 +969,9 @@ func (s *Service) resolveProductControlPointers() productPointersRecord {
 
 func ensureNimiDataRootLayout(root string, security ProductControlDataRootSecurityBinding) error {
 	if strings.TrimSpace(security.InteractiveUserSID) != "" ||
-		strings.TrimSpace(security.RuntimeServiceSID) != "" {
+		strings.TrimSpace(security.RuntimeServiceSID) != "" ||
+		security.InteractiveUserUID != 0 ||
+		security.RuntimeServiceUID != 0 {
 		if err := validateProductControlDataRootPlatform(filepath.Clean(root), security); err != nil {
 			return fmt.Errorf("validate prepared nimi_data root before layout mutation: %w", err)
 		}

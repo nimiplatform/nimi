@@ -13,10 +13,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob
       - method_id: /nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob
       - method_id: /nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot
       - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated
@@ -24,8 +20,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
       - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAssets
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog

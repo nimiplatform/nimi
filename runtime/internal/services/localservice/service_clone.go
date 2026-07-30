@@ -87,13 +87,14 @@ func cloneDeviceProfile(input *runtimev1.LocalDeviceProfile) *runtimev1.LocalDev
 // non-nil LocalDeviceProfile: it returns a clone of the caller's profile, or a
 // freshly collected profile for this host when the request omitted one.
 //
-// Every K-MCAT-034 resolver entry point (install-level plan resolution, the
-// first-run runtime baseline mint) must route its host posture through this
-// helper. A nil profile reaching resolveHostBudget zeroes the RAM/VRAM budget,
-// which makes classifyVariant rule every cpu variant tierIneligible and the
-// resolver fail-close — projecting a fully capable host into the first-run
-// `blocked`/`unsupported` state. The collected profile keeps the resolver's
-// fail-close semantics intact for genuinely under-resourced hosts.
+// Every K-MCAT-034 resolver entry point (install-level plan resolution and
+// Product Control first-run model selection) must route its host posture
+// through this helper. A nil profile reaching resolveHostBudget zeroes the
+// RAM/VRAM budget, which makes classifyVariant rule every cpu variant
+// tierIneligible and the resolver fail-close — projecting a fully capable host
+// into the first-run `blocked`/`unsupported` state. The collected profile keeps
+// the resolver's fail-close semantics intact for genuinely under-resourced
+// hosts.
 func hostProfileOrCollected(input *runtimev1.LocalDeviceProfile) *runtimev1.LocalDeviceProfile {
 	if profile := cloneDeviceProfile(input); profile != nil {
 		return profile

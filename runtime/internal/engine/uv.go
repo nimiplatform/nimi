@@ -138,6 +138,13 @@ func managedPythonInstallationDir(root string) string {
 	return filepath.Join(parent, "_python-installations")
 }
 
+func managedPythonInterpreterPath(installationRoot string) string {
+	if currentGOOS() == "windows" {
+		return filepath.Join(installationRoot, executableName("python"))
+	}
+	return filepath.Join(installationRoot, "bin", executableName("python"))
+}
+
 func managedPythonTempDir(root string) string {
 	parent := filepath.Dir(filepath.Clean(root))
 	return filepath.Join(parent, "_tmp")
@@ -308,7 +315,7 @@ func discoverManagedPythonRuntime(root string, pythonVersion string) (string, bo
 	sort.Sort(sort.Reverse(sort.StringSlice(candidates)))
 	var rejected []string
 	for _, candidate := range candidates {
-		interpreterPath := filepath.Join(candidate, executableName("python"))
+		interpreterPath := managedPythonInterpreterPath(candidate)
 		requiredPaths := []string{interpreterPath}
 		if currentGOOS() == "windows" {
 			requiredPaths = append(requiredPaths,

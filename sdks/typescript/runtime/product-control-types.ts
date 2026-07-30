@@ -6,8 +6,6 @@ import type {
   GetProductControlSelectedDataRootRequest,
   ProductControlProjectionJson,
   ReconcileProductControlFirstRunSetupStateRequest,
-  RecordProductControlAccountDefaultProfileEvidenceRequest,
-  RecordProductControlFirstRunLocalAiReadyEvidenceRequest,
   RuntimeTypedCallOptions,
   SelectProductControlDataRootRequest,
   SetProductControlFirstRunInstallLevelRequest,
@@ -72,13 +70,6 @@ export interface NimiProductControlRecord {
     readonly aiProfileAlias?: string | null;
     readonly completed: boolean;
     readonly completedAt?: string | null;
-    readonly initializationPlanId?: string | null;
-    readonly baselineProfileRef?: string | null;
-    readonly baselineCommitId?: string | null;
-    readonly accountDefaultProfileRef?: string | null;
-    readonly builtInAiConfigRefs: readonly string[];
-    readonly runtimeBaselineRef?: string | null;
-    readonly executionEvidenceRef?: string | null;
   };
   readonly pointers: {
     readonly factoryProfileIndex?: string | null;
@@ -170,14 +161,6 @@ export interface NimiRuntimeProductControlLocalClient {
     request: AdmitProductControlReadyForUseRequest,
     options?: RuntimeTypedCallOptions,
   ): Promise<ProductControlProjectionJson>;
-  recordProductControlAccountDefaultProfileEvidence(
-    request: RecordProductControlAccountDefaultProfileEvidenceRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<ProductControlProjectionJson>;
-  recordProductControlFirstRunLocalAiReadyEvidence(
-    request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<ProductControlProjectionJson>;
   reconcileProductControlFirstRunSetupState(
     request: ReconcileProductControlFirstRunSetupStateRequest,
     options?: RuntimeTypedCallOptions,
@@ -203,19 +186,4 @@ export interface NimiRuntimeProductControlDataRootSelectionInput {
 export interface NimiRuntimeProductControlFirstRunInstallLevelInput {
   readonly installLevel: 'minimal' | 'recommended';
   readonly aiProfileAlias: string;
-}
-
-export interface NimiRuntimeProductControlReadyForUseAdmissionInput {
-  readonly accountDefaultProfileEvidenceJson: string;
-  readonly builtInAiConfigEvidenceJson: string;
-}
-
-export interface NimiRuntimeProductControlAccountDefaultProfileEvidenceInput {
-  readonly accountDefaultProfileEvidenceJson: string;
-}
-
-export interface NimiRuntimeProductControlFirstRunLocalAiReadyEvidenceInput {
-  readonly runtimeBaselineRef: string;
-  readonly builtInAiConfigEvidenceJson: string;
-  readonly executionEvidenceRef: string;
 }

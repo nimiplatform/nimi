@@ -88,13 +88,6 @@ function record(dataRoot, overrides = {}) {
       aiProfileAlias: null,
       completed: false,
       completedAt: null,
-      initializationPlanId: null,
-      baselineProfileRef: null,
-      baselineCommitId: null,
-      accountDefaultProfileRef: null,
-      builtInAiConfigRefs: [],
-      runtimeBaselineRef: null,
-      executionEvidenceRef: null,
     },
     pointers: { factoryProfileIndex: null },
     repair: { required: false, reason: null },
@@ -118,13 +111,6 @@ function readyRecord(dataRoot) {
       aiProfileAlias: 'local-default',
       completed: true,
       completedAt: '2026-07-26T00:00:02.000Z',
-      initializationPlanId: 'plan',
-      baselineProfileRef: 'profile',
-      baselineCommitId: 'commit',
-      accountDefaultProfileRef: 'account-profile',
-      builtInAiConfigRefs: ['ai-config'],
-      runtimeBaselineRef: 'runtime-baseline',
-      executionEvidenceRef: 'execution-evidence',
     },
   });
 }
@@ -332,12 +318,6 @@ test('shared raw-record vectors reject missing, null, wrong-type, and unknown fi
   });
   addMutation('object firstRun.completedAt', (value) => {
     value.firstRun.completedAt = {};
-  });
-  addMutation('null firstRun.builtInAiConfigRefs', (value) => {
-    value.firstRun.builtInAiConfigRefs = null;
-  });
-  addMutation('non-string builtInAiConfigRefs entry', (value) => {
-    value.firstRun.builtInAiConfigRefs = [1];
   });
   addMutation('number pointers.factoryProfileIndex', (value) => {
     value.pointers.factoryProfileIndex = 1;

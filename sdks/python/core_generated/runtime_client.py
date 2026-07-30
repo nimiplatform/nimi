@@ -1648,22 +1648,6 @@ RUNTIME_METHODS = [
     "response_type": "ListVerifiedAssetsResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-    "service": "RuntimeLocalService",
-    "method": "MintFirstRunExecutionEvidence",
-    "kind": "unary",
-    "request_type": "MintFirstRunExecutionEvidenceRequest",
-    "response_type": "MintFirstRunExecutionEvidenceResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
-    "service": "RuntimeLocalService",
-    "method": "MintRuntimeBaselineReadiness",
-    "kind": "unary",
-    "request_type": "MintRuntimeBaselineReadinessRequest",
-    "response_type": "MintRuntimeBaselineReadinessResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
     "service": "RuntimeLocalService",
     "method": "PauseLocalTransfer",
@@ -1685,22 +1669,6 @@ RUNTIME_METHODS = [
     "method": "ReconcileProductControlFirstRunSetupState",
     "kind": "unary",
     "request_type": "ReconcileProductControlFirstRunSetupStateRequest",
-    "response_type": "ProductControlProjectionJson"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
-    "service": "RuntimeLocalService",
-    "method": "RecordProductControlAccountDefaultProfileEvidence",
-    "kind": "unary",
-    "request_type": "RecordProductControlAccountDefaultProfileEvidenceRequest",
-    "response_type": "ProductControlProjectionJson"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
-    "service": "RuntimeLocalService",
-    "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
-    "kind": "unary",
-    "request_type": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
     "response_type": "ProductControlProjectionJson"
   },
   {
@@ -1734,14 +1702,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "RescanLocalAssetBundleRequest",
     "response_type": "RescanLocalAssetBundleResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
-    "service": "RuntimeLocalService",
-    "method": "ResolveFirstRunExecutionEvidence",
-    "kind": "unary",
-    "request_type": "ResolveFirstRunExecutionEvidenceRequest",
-    "response_type": "ResolveFirstRunExecutionEvidenceResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
@@ -1782,14 +1742,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ResolveProfileRequest",
     "response_type": "ResolveProfileResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
-    "service": "RuntimeLocalService",
-    "method": "ResolveRuntimeBaselineReadiness",
-    "kind": "unary",
-    "request_type": "ResolveRuntimeBaselineReadinessRequest",
-    "response_type": "ResolveRuntimeBaselineReadinessResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",

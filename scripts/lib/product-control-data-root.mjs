@@ -59,13 +59,6 @@ const FIRST_RUN_KEYS = Object.freeze([
   'aiProfileAlias',
   'completed',
   'completedAt',
-  'initializationPlanId',
-  'baselineProfileRef',
-  'baselineCommitId',
-  'accountDefaultProfileRef',
-  'builtInAiConfigRefs',
-  'runtimeBaselineRef',
-  'executionEvidenceRef',
 ]);
 const POINTER_KEYS = Object.freeze(['factoryProfileIndex']);
 const REPAIR_KEYS = Object.freeze(['required', 'reason']);
@@ -251,12 +244,6 @@ function validateRecordShape(record, recordPath, platform) {
     'installLevel',
     'aiProfileAlias',
     'completedAt',
-    'initializationPlanId',
-    'baselineProfileRef',
-    'baselineCommitId',
-    'accountDefaultProfileRef',
-    'runtimeBaselineRef',
-    'executionEvidenceRef',
   ]) {
     requireNullableNonEmptyText(firstRun[key], `firstRun.${key}`);
   }
@@ -264,10 +251,7 @@ function validateRecordShape(record, recordPath, platform) {
     && !['minimal', 'recommended'].includes(firstRun.installLevel)) {
     throw new Error('Product Control firstRun.installLevel is invalid');
   }
-  if (typeof firstRun.completed !== 'boolean' || !Array.isArray(firstRun.builtInAiConfigRefs)
-    || firstRun.builtInAiConfigRefs.some(
-      (value) => typeof value !== 'string' || value.length === 0 || value.trim() !== value,
-    )) {
+  if (typeof firstRun.completed !== 'boolean') {
     throw new Error('Product Control firstRun fields are invalid');
   }
 
@@ -292,12 +276,6 @@ function validateRecordShape(record, recordPath, platform) {
     const requiredReadyFields = [
       'aiProfileAlias',
       'completedAt',
-      'initializationPlanId',
-      'baselineProfileRef',
-      'baselineCommitId',
-      'accountDefaultProfileRef',
-      'runtimeBaselineRef',
-      'executionEvidenceRef',
     ];
     if (!firstRun.completed
       || !['minimal', 'recommended'].includes(firstRun.installLevel)
@@ -305,9 +283,8 @@ function validateRecordShape(record, recordPath, platform) {
       || requiredReadyFields.some(
         (key) => typeof firstRun[key] !== 'string' || firstRun[key].length === 0,
       )
-      || firstRun.builtInAiConfigRefs.length === 0
     ) {
-      throw new Error(`Product Control ready_for_use evidence is invalid at ${recordPath}`);
+      throw new Error(`Product Control ready_for_use fields are invalid at ${recordPath}`);
     }
   }
 }

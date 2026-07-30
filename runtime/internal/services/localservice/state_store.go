@@ -30,8 +30,6 @@ type localStateSnapshot struct {
 	LocalEnvironmentDependencyJobs      []localEnvironmentDependencyJobState                `json:"localEnvironmentDependencyJobs,omitempty"`
 	LocalEnvironmentPlanContracts       []localEnvironmentPlanDependencyContractState       `json:"localEnvironmentPlanDependencyContracts,omitempty"`
 	ManagedImageProfileMaterializations []localStateManagedImageProfileMaterializationState `json:"managedImageProfileMaterializations,omitempty"`
-	RuntimeBaselineReadinessRecords     []runtimeBaselineReadinessRecord                    `json:"runtimeBaselineReadinessRecords,omitempty"`
-	FirstRunExecutionEvidenceRecords    []firstRunExecutionEvidenceRecord                   `json:"firstRunExecutionEvidenceRecords,omitempty"`
 }
 
 // localStateAssetState is the unified persistence row for all asset kinds.
@@ -360,20 +358,6 @@ func (s *Service) restoreState() error {
 	if s.failOrphanedLocalEnvironmentDependencyJobsLocked() > 0 {
 		healedSnapshot = true
 	}
-	s.runtimeBaselineReadinessRecords = make(map[string]runtimeBaselineReadinessRecord, len(snapshot.RuntimeBaselineReadinessRecords))
-	for _, item := range snapshot.RuntimeBaselineReadinessRecords {
-		if strings.TrimSpace(item.RuntimeBaselineRef) == "" {
-			continue
-		}
-		s.runtimeBaselineReadinessRecords[item.RuntimeBaselineRef] = item
-	}
-	s.firstRunExecutionEvidenceRecords = make(map[string]firstRunExecutionEvidenceRecord, len(snapshot.FirstRunExecutionEvidenceRecords))
-	for _, item := range snapshot.FirstRunExecutionEvidenceRecords {
-		if strings.TrimSpace(item.ExecutionEvidenceRef) == "" {
-			continue
-		}
-		s.firstRunExecutionEvidenceRecords[item.ExecutionEvidenceRef] = item
-	}
 	if healedSnapshot {
 		s.persistStateLocked()
 	}
@@ -399,8 +383,6 @@ func (s *Service) persistStateLocked() {
 		LocalEnvironmentDependencyJobs:      make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
 		LocalEnvironmentPlanContracts:       make([]localEnvironmentPlanDependencyContractState, 0, len(s.localEnvironmentPlanDependencyContracts)),
 		ManagedImageProfileMaterializations: make([]localStateManagedImageProfileMaterializationState, 0, len(s.managedImageProfiles)),
-		RuntimeBaselineReadinessRecords:     make([]runtimeBaselineReadinessRecord, 0, len(s.runtimeBaselineReadinessRecords)),
-		FirstRunExecutionEvidenceRecords:    make([]firstRunExecutionEvidenceRecord, 0, len(s.firstRunExecutionEvidenceRecords)),
 	}
 
 	assetIDs := make([]string, 0, len(s.assets))
@@ -584,24 +566,6 @@ func (s *Service) persistStateLocked() {
 			MaterializationResolved: true,
 			MaterializationBindings: bindings,
 		})
-	}
-
-	runtimeBaselineRefs := make([]string, 0, len(s.runtimeBaselineReadinessRecords))
-	for ref := range s.runtimeBaselineReadinessRecords {
-		runtimeBaselineRefs = append(runtimeBaselineRefs, ref)
-	}
-	sort.Strings(runtimeBaselineRefs)
-	for _, ref := range runtimeBaselineRefs {
-		snapshot.RuntimeBaselineReadinessRecords = append(snapshot.RuntimeBaselineReadinessRecords, s.runtimeBaselineReadinessRecords[ref])
-	}
-
-	executionEvidenceRefs := make([]string, 0, len(s.firstRunExecutionEvidenceRecords))
-	for ref := range s.firstRunExecutionEvidenceRecords {
-		executionEvidenceRefs = append(executionEvidenceRefs, ref)
-	}
-	sort.Strings(executionEvidenceRefs)
-	for _, ref := range executionEvidenceRefs {
-		snapshot.FirstRunExecutionEvidenceRecords = append(snapshot.FirstRunExecutionEvidenceRecords, s.firstRunExecutionEvidenceRecords[ref])
 	}
 
 	if err := saveLocalStateSnapshot(path, snapshot); err != nil {

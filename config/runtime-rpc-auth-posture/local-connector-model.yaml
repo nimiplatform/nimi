@@ -90,14 +90,6 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate
     posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence
-    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot
@@ -111,10 +103,6 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
     posture: protected_origin_required

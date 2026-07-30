@@ -379,25 +379,6 @@ test('Nimi AI scope and target validation fail closed across admitted families',
       },
     },
   }).issues, 'AI_FIELD_FORBIDDEN', 'config.capabilities.targetRefs.text.generate.secret');
-  assertValidationIssue(validateNimiAIConfig({
-    scopeRef: SCOPE,
-    capabilities: {
-      targetRefs: {
-        'text.generate': {
-          kind: 'local-runtime',
-          version: 'v2',
-          readinessRef: 'readiness:text',
-          runtime: {
-            runtimeBaselineRef: 'baseline',
-            runtimeConsumerId: 'llama.cpp.cpu',
-            boundAssetId: 'asset:text',
-            modelResolved: 'asset:text',
-            runtimeExecutionTraceId: 'trace-runtime',
-          },
-        },
-      },
-    },
-  }).issues, 'AI_FIELD_FORBIDDEN', 'config.capabilities.targetRefs.text.generate.runtime.runtimeBaselineRef');
 });
 
 test('Nimi AI profile validation rejects hidden Runtime/private payloads', () => {

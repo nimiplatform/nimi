@@ -168,18 +168,10 @@ pub async fn desktop_bundled_avatar_unary(
 }
 
 fn machine_product_timeout_allowed(
-    method: DesktopMachineProductUnaryMethod,
+    _method: DesktopMachineProductUnaryMethod,
     timeout: Option<std::time::Duration>,
 ) -> bool {
-    let maximum = if method == DesktopMachineProductUnaryMethod::MintFirstRunExecutionEvidence {
-        // One First Run mint performs the admitted text, STT, and TTS
-        // executions serially. Their Runtime budgets total 255 seconds before
-        // cold activation and carrier overhead, so the Desktop host's bounded
-        // ten-minute deadline must remain admissible end to end.
-        std::time::Duration::from_secs(600)
-    } else {
-        std::time::Duration::from_secs(300)
-    };
+    let maximum = std::time::Duration::from_secs(300);
     timeout.is_none_or(|value| !value.is_zero() && value <= maximum)
 }
 
@@ -188,25 +180,17 @@ mod first_party_product_timeout_tests {
     use super::*;
 
     #[test]
-    fn first_run_execution_mint_accepts_the_host_ten_minute_deadline() {
+    fn machine_product_methods_keep_the_five_minute_bound() {
         assert!(machine_product_timeout_allowed(
-            DesktopMachineProductUnaryMethod::MintFirstRunExecutionEvidence,
-            Some(std::time::Duration::from_secs(600)),
+            DesktopMachineProductUnaryMethod::GetProductControlRecord,
+            Some(std::time::Duration::from_secs(300)),
         ));
-    }
-
-    #[test]
-    fn ordinary_product_control_methods_keep_the_five_minute_bound() {
         assert!(!machine_product_timeout_allowed(
             DesktopMachineProductUnaryMethod::GetProductControlRecord,
             Some(std::time::Duration::from_secs(301)),
         ));
         assert!(!machine_product_timeout_allowed(
-            DesktopMachineProductUnaryMethod::MintFirstRunExecutionEvidence,
-            Some(std::time::Duration::from_secs(601)),
-        ));
-        assert!(!machine_product_timeout_allowed(
-            DesktopMachineProductUnaryMethod::MintFirstRunExecutionEvidence,
+            DesktopMachineProductUnaryMethod::GetProductControlRecord,
             Some(std::time::Duration::ZERO),
         ));
     }
@@ -409,6 +393,7 @@ pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
     account_events::close_all_account_event_streams().await;
     bundled_avatar_streams::close_all_bundled_avatar_streams().await;
     first_party_streams::close_all_first_party_product_streams().await;
+    #[cfg(target_os = "windows")]
     nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
     match result {
         Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
@@ -718,6 +703,7 @@ async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
         account_events::close_all_account_event_streams().await;
         bundled_avatar_streams::close_all_bundled_avatar_streams().await;
         first_party_streams::close_all_first_party_product_streams().await;
+        #[cfg(target_os = "windows")]
         nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
     }
 }

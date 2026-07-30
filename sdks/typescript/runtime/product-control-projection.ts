@@ -1,9 +1,6 @@
 import {
-  RoutePolicy,
-  ScenarioType,
   type ProductControlProjectionJson,
 } from '../core-generated/runtime-typed-client';
-import type { NimiAIConfigTargetRef } from '../core/ai';
 import { createNimiError, ReasonCode } from '../types';
 import type {
   NimiFirstRunScreen,
@@ -20,56 +17,11 @@ import {
   NIMI_PRODUCT_DATA_ROOT_STATUSES,
 } from './product-control-types';
 
-export type NimiFirstRunExecutionCapabilityProof = {
-  readonly capability: string;
-  readonly scenarioType: ScenarioType;
-  readonly boundConsumerId: string;
-  readonly boundAssetId: string;
-  readonly localRouteTarget: string;
-  readonly routePolicy: RoutePolicy;
-  readonly modelResolved: string;
-  readonly terminalResult: string;
-  readonly traceId: string;
-};
-
-export interface NimiFirstRunExecutionEvidenceForAIConfig {
-  readonly executionEvidenceRef: string;
-  readonly runtimeBaselineRef: string;
-  readonly terminalResult: string;
-  readonly selectedBaselineCapabilityProof: readonly NimiFirstRunExecutionCapabilityProof[];
-}
-
-export type NimiFirstRunAIConfigCapability =
-  | 'text.generate'
-  | 'audio.transcribe'
-  | 'audio.synthesize';
-
-export interface NimiFirstRunExecutionAIConfigCapabilityTarget {
-  readonly capability: NimiFirstRunAIConfigCapability;
-  readonly targetRef: Extract<NimiAIConfigTargetRef, { readonly kind: 'local-runtime' }>;
-  readonly runtime: {
-    readonly executionEvidenceRef: string;
-    readonly runtimeBaselineRef: string;
-    readonly boundConsumerId: string;
-    readonly boundAssetId: string;
-    readonly localRouteTarget: string;
-    readonly modelResolved: string;
-    readonly traceId: string;
-  };
-}
-
 const PRODUCT_CONTROL_STATE_SET = new Set<string>(NIMI_PRODUCT_CONTROL_STATES);
 const PRODUCT_DATA_ROOT_STATUS_SET = new Set<string>(NIMI_PRODUCT_DATA_ROOT_STATUSES);
 const DEGRADED_PRODUCT_CONTROL_STATES = new Set<NimiProductControlState>(
   NIMI_PRODUCT_CONTROL_STATES.filter((state) => state !== 'ready_for_use'),
 );
-const FIRST_RUN_EXECUTION_TERMINAL_READY = 'local_ai_ready';
-const FIRST_RUN_CAPABILITY_TERMINAL_EXECUTED = 'local_executed';
-const FIRST_RUN_BUILT_IN_AI_CONFIG_CAPABILITY_FLOOR: readonly NimiFirstRunAIConfigCapability[] = [
-  'audio.synthesize',
-  'audio.transcribe',
-  'text.generate',
-];
 
 function productControlError(input: {
   readonly reasonCode: string;
@@ -119,20 +71,6 @@ function joinProjectionPath(base: string, ...parts: string[]): string {
   return [trimmedBase, ...parts.map((part) => String(part || '').replace(/^[\\/]+|[\\/]+$/g, ''))]
     .filter(Boolean)
     .join(separator);
-}
-
-function requireNimiRuntimeProofString(value: unknown, field: string, capability?: string): string {
-  const trimmed = normalizeText(value);
-  if (!trimmed) {
-    throw productControlError({
-      reasonCode: 'SDK_FIRST_RUN_EXECUTION_EVIDENCE_INVALID',
-      message: capability
-        ? `Runtime execution proof for ${capability} is missing ${field}.`
-        : `Runtime execution evidence is missing ${field}.`,
-      actionHint: 'repair_first_run_execution_evidence',
-    });
-  }
-  return trimmed;
 }
 
 export function isNimiProductControlState(value: unknown): value is NimiProductControlState {
@@ -203,15 +141,6 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
       aiProfileAlias: parseOptionalString(firstRun.aiProfileAlias),
       completed: firstRun.completed === true,
       completedAt: parseOptionalString(firstRun.completedAt),
-      initializationPlanId: parseOptionalString(firstRun.initializationPlanId),
-      baselineProfileRef: parseOptionalString(firstRun.baselineProfileRef),
-      baselineCommitId: parseOptionalString(firstRun.baselineCommitId),
-      accountDefaultProfileRef: parseOptionalString(firstRun.accountDefaultProfileRef),
-      builtInAiConfigRefs: Array.isArray(firstRun.builtInAiConfigRefs)
-        ? firstRun.builtInAiConfigRefs.map((item) => String(item || '')).filter(Boolean)
-        : [],
-      runtimeBaselineRef: parseOptionalString(firstRun.runtimeBaselineRef),
-      executionEvidenceRef: parseOptionalString(firstRun.executionEvidenceRef),
     },
     pointers: {
       factoryProfileIndex: parseOptionalString(pointers.factoryProfileIndex),
@@ -411,105 +340,4 @@ export function projectNimiProductControlAdmission(
     return { kind: 'login' };
   }
   return { kind: 'first-run', state };
-}
-
-function aiConfigCapabilityForExecutionScenario(
-  scenarioType: ScenarioType,
-): NimiFirstRunAIConfigCapability {
-  switch (scenarioType) {
-    case ScenarioType.TEXT_GENERATE:
-      return 'text.generate';
-    case ScenarioType.SPEECH_TRANSCRIBE:
-      return 'audio.transcribe';
-    case ScenarioType.SPEECH_SYNTHESIZE:
-      return 'audio.synthesize';
-    default:
-      throw productControlError({
-        reasonCode: 'SDK_FIRST_RUN_EXECUTION_SCENARIO_UNSUPPORTED',
-        message: `Runtime execution proof scenario ${ScenarioType[scenarioType] || scenarioType} is not admitted for first-run built-in AIConfig.`,
-        actionHint: 'provide_admitted_first_run_execution_scenarios',
-      });
-  }
-}
-
-export function projectNimiFirstRunExecutionEvidenceToAIConfigTargets(
-  evidence: NimiFirstRunExecutionEvidenceForAIConfig,
-): NimiFirstRunExecutionAIConfigCapabilityTarget[] {
-  const executionEvidenceRef = requireNimiRuntimeProofString(
-    evidence.executionEvidenceRef,
-    'executionEvidenceRef',
-  );
-  const runtimeBaselineRef = requireNimiRuntimeProofString(
-    evidence.runtimeBaselineRef,
-    'runtimeBaselineRef',
-  );
-  if (normalizeText(evidence.terminalResult) !== FIRST_RUN_EXECUTION_TERMINAL_READY) {
-    throw productControlError({
-      reasonCode: 'SDK_FIRST_RUN_EXECUTION_TERMINAL_NOT_READY',
-      message: 'Runtime execution evidence terminalResult is not local_ai_ready.',
-      actionHint: 'complete_first_run_runtime_execution_evidence',
-    });
-  }
-
-  const seen = new Set<NimiFirstRunAIConfigCapability>();
-  const missing = new Set(FIRST_RUN_BUILT_IN_AI_CONFIG_CAPABILITY_FLOOR);
-  const targets: NimiFirstRunExecutionAIConfigCapabilityTarget[] = [];
-  for (const proof of evidence.selectedBaselineCapabilityProof || []) {
-    if (proof.routePolicy !== RoutePolicy.LOCAL) {
-      throw productControlError({
-        reasonCode: 'SDK_FIRST_RUN_EXECUTION_ROUTE_NOT_LOCAL',
-        message: `Runtime execution proof for ${normalizeText(proof.capability)} is not a local route.`,
-        actionHint: 'provide_local_first_run_execution_evidence',
-      });
-    }
-    if (normalizeText(proof.terminalResult) !== FIRST_RUN_CAPABILITY_TERMINAL_EXECUTED) {
-      throw productControlError({
-        reasonCode: 'SDK_FIRST_RUN_EXECUTION_CAPABILITY_NOT_EXECUTED',
-        message: `Runtime execution proof for ${normalizeText(proof.capability)} was not locally executed.`,
-        actionHint: 'complete_first_run_runtime_execution_evidence',
-      });
-    }
-    const capability = aiConfigCapabilityForExecutionScenario(proof.scenarioType);
-    if (seen.has(capability)) {
-      throw productControlError({
-        reasonCode: 'SDK_FIRST_RUN_EXECUTION_CAPABILITY_DUPLICATE',
-        message: `Runtime execution proof contains duplicate AIConfig capability ${capability}.`,
-        actionHint: 'deduplicate_first_run_execution_evidence',
-      });
-    }
-    seen.add(capability);
-    missing.delete(capability);
-
-    const boundAssetId = requireNimiRuntimeProofString(proof.boundAssetId, 'boundAssetId', capability);
-    const boundConsumerId = requireNimiRuntimeProofString(proof.boundConsumerId, 'boundConsumerId', capability);
-    const localRouteTarget = requireNimiRuntimeProofString(proof.localRouteTarget, 'localRouteTarget', capability);
-    const modelResolved = normalizeText(proof.modelResolved) || boundAssetId;
-    const traceId = normalizeText(proof.traceId);
-    targets.push({
-      capability,
-      targetRef: {
-        kind: 'local-runtime',
-        version: 'v2',
-        readinessRef: executionEvidenceRef,
-      },
-      runtime: {
-        executionEvidenceRef,
-        runtimeBaselineRef,
-        boundConsumerId,
-        boundAssetId,
-        localRouteTarget,
-        modelResolved,
-        traceId,
-      },
-    });
-  }
-
-  if (missing.size > 0) {
-    throw productControlError({
-      reasonCode: 'SDK_FIRST_RUN_EXECUTION_CAPABILITY_INCOMPLETE',
-      message: `Runtime execution proof is incomplete for first-run built-in AIConfig: missing ${[...missing].join(',')}.`,
-      actionHint: 'complete_first_run_runtime_execution_evidence',
-    });
-  }
-  return targets.sort((a, b) => a.capability.localeCompare(b.capability));
 }

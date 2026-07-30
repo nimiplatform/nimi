@@ -83,7 +83,7 @@ func TestResolveLocalEnvironmentPlanInstallLevelResolvesTextModelAsset(t *testin
 		ConsumerScope:   "desktop.first-run",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		InstallLevel:    runtimeBaselineInstallLevelMinimal,
+		InstallLevel:    localEnvironmentInstallLevelMinimal,
 	})
 
 	modelDeps := planDependenciesByFamily(plan, localEnvironmentFamilyModelAsset)
@@ -125,7 +125,7 @@ func TestResolveLocalEnvironmentPlanInstallLevelResolvesSpeechModelAssetsOnePerS
 		ConsumerScope:   "desktop.first-run",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		InstallLevel:    runtimeBaselineInstallLevelMinimal,
+		InstallLevel:    localEnvironmentInstallLevelMinimal,
 	})
 
 	modelDeps := planDependenciesByFamily(plan, localEnvironmentFamilyModelAsset)
@@ -172,7 +172,7 @@ func TestResolveLocalEnvironmentPlanSplitsSpeechPythonEnvironmentByConsumer(t *t
 		ConsumerScope:   "desktop.first-run",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		InstallLevel:    runtimeBaselineInstallLevelMinimal,
+		InstallLevel:    localEnvironmentInstallLevelMinimal,
 	})
 
 	uvDeps := planDependenciesByFamily(plan, localEnvironmentFamilyPythonUV)
@@ -252,7 +252,7 @@ func TestResolveLocalEnvironmentPlanInstallLevelFailsClosedOnWeakHost(t *testing
 		ConsumerScope:   "desktop.first-run",
 		HostProfile:     localEnvironmentTooWeakProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		InstallLevel:    runtimeBaselineInstallLevelMinimal,
+		InstallLevel:    localEnvironmentInstallLevelMinimal,
 	})
 
 	modelDeps := planDependenciesByFamily(plan, localEnvironmentFamilyModelAsset)
@@ -287,7 +287,7 @@ func TestResolveLocalEnvironmentPlanExplicitAssetIDWinsOverInstallLevel(t *testi
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
 		AssetID:         "explicit/caller-asset",
-		InstallLevel:    runtimeBaselineInstallLevelMinimal,
+		InstallLevel:    localEnvironmentInstallLevelMinimal,
 	})
 
 	modelDeps := planDependenciesByFamily(plan, localEnvironmentFamilyModelAsset)
@@ -317,7 +317,7 @@ func TestResolveLocalEnvironmentPlanInstallLevelOmittedHostProfileSelfCollects(t
 		ConsumerScope:   "desktop.first-run",
 		HostProfile:     nil, // desktop sends no host_profile on this RPC
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		InstallLevel:    runtimeBaselineInstallLevelMinimal,
+		InstallLevel:    localEnvironmentInstallLevelMinimal,
 	})
 
 	modelDeps := planDependenciesByFamily(plan, localEnvironmentFamilyModelAsset)
@@ -348,7 +348,7 @@ func TestResolveLocalEnvironmentPlanRPCThreadsInstallLevel(t *testing.T) {
 		ConsumerScope:   "desktop.first-run",
 		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
 		RuntimeDataRoot: svc.localEnvironmentRuntimeDataRoot(),
-		InstallLevel:    runtimeBaselineInstallLevelMinimal,
+		InstallLevel:    localEnvironmentInstallLevelMinimal,
 	})
 	if err != nil {
 		t.Fatalf("ResolveLocalEnvironmentPlan RPC transport error: %v", err)

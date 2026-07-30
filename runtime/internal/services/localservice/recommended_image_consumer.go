@@ -80,8 +80,8 @@ func recommendedImageConsumerByAccelerator(accelerator string) (string, bool) {
 // over the recommended preset + host posture and projects the host-conditional
 // image slot + its companions into K-LENV activation/plan requests
 // (design/04 seam). Image is a recommended-only, host_conditional slot and is
-// not part of the runtimeBaselineConsumerSet first-run readiness gate; this
-// seam is consumed on the recommended/confirmed-plan path.
+// not part of the Product Control first-run required consumer set; this seam
+// is consumed on the recommended/confirmed-plan path.
 //
 // A host that cannot run the optional image slot yields state=omitted (not a
 // fail-close) — the required slots still ship. A resolver fail-close (a
@@ -94,7 +94,7 @@ func (s *Service) resolveRecommendedImageConsumer(hostProfile *runtimev1.LocalDe
 			Detail:     "local provider catalog is not loaded; cannot resolve the recommended image slot",
 		}
 	}
-	outcome := s.localProviderCatalog.ResolveLocalModelSet(runtimeBaselineInstallLevelRecommended, hostProfile)
+	outcome := s.localProviderCatalog.ResolveLocalModelSet(localEnvironmentInstallLevelRecommended, hostProfile)
 	switch outcome.Kind {
 	case catalog.LocalResolveFailClose:
 		return recommendedImageConsumerResolution{

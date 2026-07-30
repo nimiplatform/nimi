@@ -34,11 +34,11 @@ func (s *Service) ReconcileProductControlFirstRunSetupState(ctx context.Context,
 	if err := s.verifyFirstRunFactoryAIProfile(aiProfileAlias, installLevel); err != nil {
 		return nil, err
 	}
-	if record.State == productControlStateLocalAIReady || record.State == productControlStateReadyForUse {
+	if record.State == productControlStateReadyForUse {
 		if _, failure := s.verifyProductControlReadyRecord(ctx, record); failure == "" {
 			return productControlJSON(s.readProductControlProjection(ctx))
 		}
-		resetProductControlReadyEvidenceForReconciliation(record)
+		resetProductControlReadyState(record)
 	}
 	reconciliation := s.deriveProductControlFirstRunSetupReconciliation(installLevel, selectedProductDataRootPath(record))
 	if reconciliation.LocalAIReady {
@@ -53,20 +53,6 @@ func (s *Service) ReconcileProductControlFirstRunSetupState(ctx context.Context,
 	return productControlJSON(s.readProductControlProjection(ctx))
 }
 
-func resetProductControlReadyEvidenceForReconciliation(record *productControlRecord) {
-	record.FirstRun.Completed = false
-	record.FirstRun.CompletedAt = nil
-	record.FirstRun.InitializationPlanID = nil
-	record.FirstRun.BaselineProfileRef = nil
-	record.FirstRun.BaselineCommitID = nil
-	record.FirstRun.BuiltInAIConfigRefs = []string{}
-	record.FirstRun.RuntimeBaselineRef = nil
-	record.FirstRun.ExecutionEvidenceRef = nil
-	if record.DataRoot != nil {
-		record.DataRoot.Status = productDataRootStatusSelected
-	}
-}
-
 type productControlFirstRunSetupReconciliation struct {
 	State        productControlState
 	Reason       string
@@ -74,7 +60,7 @@ type productControlFirstRunSetupReconciliation struct {
 }
 
 func (s *Service) deriveProductControlFirstRunSetupReconciliation(installLevel string, dataRootPath string) productControlFirstRunSetupReconciliation {
-	level := normalizeRuntimeBaselineInstallLevel(installLevel)
+	level := normalizeLocalEnvironmentInstallLevel(installLevel)
 	if level == "" {
 		return productControlFirstRunSetupBlocked("first-run install level must be minimal or recommended: " + strings.TrimSpace(installLevel))
 	}
@@ -82,20 +68,20 @@ func (s *Service) deriveProductControlFirstRunSetupReconciliation(installLevel s
 	if dataRoot == "" {
 		return productControlFirstRunSetupBlocked("selected runtime_data_root is required before Runtime setup state")
 	}
-	consumers, ok := runtimeBaselineConsumerSet(level)
+	consumers, ok := productControlFirstRunConsumerSet(level)
 	if !ok || len(consumers) == 0 {
-		return productControlFirstRunSetupBlocked("no canonical first-run baseline consumer set for install level: " + level)
+		return productControlFirstRunSetupBlocked("no first-run consumer set for install level: " + level)
 	}
 	hostProfile := hostProfileOrCollected(nil)
-	bindings, outcome := s.resolveBaselineConsumerBindings(level, hostProfile, consumers)
-	if outcome.State != runtimeBaselineStateReady {
-		return productControlFirstRunSetupBlocked("first-run baseline model resolution failed: " + strings.TrimSpace(outcome.Detail))
+	bindings, err := s.resolveProductControlFirstRunConsumerBindings(level, hostProfile, consumers)
+	if err != nil {
+		return productControlFirstRunSetupBlocked("first-run model resolution failed: " + err.Error())
 	}
 	gates := make([]localEnvironmentConsumerActivationGate, 0, len(bindings))
 	for _, binding := range bindings {
 		requirement, ok := localEnvironmentConsumerRequirementByID(binding.ConsumerID)
 		if !ok {
-			return productControlFirstRunSetupBlocked("first-run baseline consumer is unsupported: " + strings.TrimSpace(binding.ConsumerID))
+			return productControlFirstRunSetupBlocked("first-run consumer is unsupported: " + strings.TrimSpace(binding.ConsumerID))
 		}
 		gates = append(gates, s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
 			ConsumerID:      binding.ConsumerID,
@@ -103,7 +89,6 @@ func (s *Service) deriveProductControlFirstRunSetupReconciliation(installLevel s
 			HostProfile:     hostProfile,
 			RuntimeDataRoot: dataRoot,
 			AssetID:         binding.AssetID,
-			LocalAssetID:    binding.LocalAssetID,
 		}))
 	}
 	return productControlFirstRunSetupReconciliationFromActivationGates(gates)
@@ -111,7 +96,7 @@ func (s *Service) deriveProductControlFirstRunSetupReconciliation(installLevel s
 
 func productControlFirstRunSetupReconciliationFromActivationGates(gates []localEnvironmentConsumerActivationGate) productControlFirstRunSetupReconciliation {
 	if len(gates) == 0 {
-		return productControlFirstRunSetupBlocked("Runtime resolved no first-run baseline activation gates")
+		return productControlFirstRunSetupBlocked("Runtime resolved no first-run activation gates")
 	}
 	if productControlActivationGatesAnyState(gates, localEnvironmentActivationStateUnsupported) {
 		return productControlFirstRunSetupBlocked(productControlActivationGateReason("runtime_materialization_unsupported", gates))
@@ -138,7 +123,7 @@ func productControlFirstRunSetupReconciliationFromActivationGates(gates []localE
 	}
 	return productControlFirstRunSetupReconciliation{
 		State:        productControlStateLocalAIReady,
-		Reason:       "runtime_local_ai_ready_evidence_projected",
+		Reason:       "runtime_local_ai_ready",
 		LocalAIReady: true,
 	}
 }

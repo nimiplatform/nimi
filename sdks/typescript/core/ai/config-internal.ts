@@ -36,7 +36,6 @@ const FORBIDDEN_AI_CONFIG_FIELD_NAMES = new Set([
   'localModelId',
   'goRuntimeLocalModelId',
   'goRuntimeStatus',
-  'runtimeBaselineRef',
   'boundAssetId',
   'runtimeLocalRouteTarget',
   'runtimeExecutionTraceId',

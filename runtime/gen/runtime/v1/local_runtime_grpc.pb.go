@@ -48,10 +48,6 @@ const (
 	RuntimeLocalService_ListLocalEnvironmentSelectedSources_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources"
 	RuntimeLocalService_ListLocalEnvironmentDependencyJobs_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs"
 	RuntimeLocalService_ResolveLocalEnvironmentActivationGate_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate"
-	RuntimeLocalService_MintRuntimeBaselineReadiness_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness"
-	RuntimeLocalService_ResolveRuntimeBaselineReadiness_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness"
-	RuntimeLocalService_MintFirstRunExecutionEvidence_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence"
-	RuntimeLocalService_ResolveFirstRunExecutionEvidence_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence"
 	RuntimeLocalService_StartLocalEnvironmentDependencyJob_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob"
 	RuntimeLocalService_CancelLocalEnvironmentDependencyJob_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob"
 	RuntimeLocalService_RetryLocalEnvironmentDependencyJob_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob"
@@ -65,8 +61,6 @@ const (
 	RuntimeLocalService_SetProductControlFirstRunInstallLevel_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel"
 	RuntimeLocalService_CompleteProductControlFirstRunDeviceEnvironmentScan_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan"
 	RuntimeLocalService_AdmitProductControlReadyForUse_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse"
-	RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence"
-	RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence"
 	RuntimeLocalService_ReconcileProductControlFirstRunSetupState_FullMethodName           = "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState"
 	RuntimeLocalService_CollectDeviceProfile_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
 	RuntimeLocalService_ResolveProfile_FullMethodName                                      = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
@@ -126,10 +120,6 @@ type RuntimeLocalServiceClient interface {
 	ListLocalEnvironmentSelectedSources(ctx context.Context, in *ListLocalEnvironmentSelectedSourcesRequest, opts ...grpc.CallOption) (*ListLocalEnvironmentSelectedSourcesResponse, error)
 	ListLocalEnvironmentDependencyJobs(ctx context.Context, in *ListLocalEnvironmentDependencyJobsRequest, opts ...grpc.CallOption) (*ListLocalEnvironmentDependencyJobsResponse, error)
 	ResolveLocalEnvironmentActivationGate(ctx context.Context, in *ResolveLocalEnvironmentActivationGateRequest, opts ...grpc.CallOption) (*ResolveLocalEnvironmentActivationGateResponse, error)
-	MintRuntimeBaselineReadiness(ctx context.Context, in *MintRuntimeBaselineReadinessRequest, opts ...grpc.CallOption) (*MintRuntimeBaselineReadinessResponse, error)
-	ResolveRuntimeBaselineReadiness(ctx context.Context, in *ResolveRuntimeBaselineReadinessRequest, opts ...grpc.CallOption) (*ResolveRuntimeBaselineReadinessResponse, error)
-	MintFirstRunExecutionEvidence(ctx context.Context, in *MintFirstRunExecutionEvidenceRequest, opts ...grpc.CallOption) (*MintFirstRunExecutionEvidenceResponse, error)
-	ResolveFirstRunExecutionEvidence(ctx context.Context, in *ResolveFirstRunExecutionEvidenceRequest, opts ...grpc.CallOption) (*ResolveFirstRunExecutionEvidenceResponse, error)
 	StartLocalEnvironmentDependencyJob(ctx context.Context, in *StartLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*StartLocalEnvironmentDependencyJobResponse, error)
 	CancelLocalEnvironmentDependencyJob(ctx context.Context, in *CancelLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*CancelLocalEnvironmentDependencyJobResponse, error)
 	RetryLocalEnvironmentDependencyJob(ctx context.Context, in *RetryLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*RetryLocalEnvironmentDependencyJobResponse, error)
@@ -145,8 +135,6 @@ type RuntimeLocalServiceClient interface {
 	SetProductControlFirstRunInstallLevel(ctx context.Context, in *SetProductControlFirstRunInstallLevelRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	CompleteProductControlFirstRunDeviceEnvironmentScan(ctx context.Context, in *CompleteProductControlFirstRunDeviceEnvironmentScanRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	AdmitProductControlReadyForUse(ctx context.Context, in *AdmitProductControlReadyForUseRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
-	RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, in *RecordProductControlAccountDefaultProfileEvidenceRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
-	RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, in *RecordProductControlFirstRunLocalAiReadyEvidenceRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	ReconcileProductControlFirstRunSetupState(ctx context.Context, in *ReconcileProductControlFirstRunSetupStateRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	// Device
 	CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error)
@@ -481,46 +469,6 @@ func (c *runtimeLocalServiceClient) ResolveLocalEnvironmentActivationGate(ctx co
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) MintRuntimeBaselineReadiness(ctx context.Context, in *MintRuntimeBaselineReadinessRequest, opts ...grpc.CallOption) (*MintRuntimeBaselineReadinessResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MintRuntimeBaselineReadinessResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_MintRuntimeBaselineReadiness_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ResolveRuntimeBaselineReadiness(ctx context.Context, in *ResolveRuntimeBaselineReadinessRequest, opts ...grpc.CallOption) (*ResolveRuntimeBaselineReadinessResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResolveRuntimeBaselineReadinessResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveRuntimeBaselineReadiness_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) MintFirstRunExecutionEvidence(ctx context.Context, in *MintFirstRunExecutionEvidenceRequest, opts ...grpc.CallOption) (*MintFirstRunExecutionEvidenceResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MintFirstRunExecutionEvidenceResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_MintFirstRunExecutionEvidence_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ResolveFirstRunExecutionEvidence(ctx context.Context, in *ResolveFirstRunExecutionEvidenceRequest, opts ...grpc.CallOption) (*ResolveFirstRunExecutionEvidenceResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResolveFirstRunExecutionEvidenceResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveFirstRunExecutionEvidence_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeLocalServiceClient) StartLocalEnvironmentDependencyJob(ctx context.Context, in *StartLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*StartLocalEnvironmentDependencyJobResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StartLocalEnvironmentDependencyJobResponse)
@@ -645,26 +593,6 @@ func (c *runtimeLocalServiceClient) AdmitProductControlReadyForUse(ctx context.C
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ProductControlProjectionJson)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_AdmitProductControlReadyForUse_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, in *RecordProductControlAccountDefaultProfileEvidenceRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ProductControlProjectionJson)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, in *RecordProductControlFirstRunLocalAiReadyEvidenceRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ProductControlProjectionJson)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -899,10 +827,6 @@ type RuntimeLocalServiceServer interface {
 	ListLocalEnvironmentSelectedSources(context.Context, *ListLocalEnvironmentSelectedSourcesRequest) (*ListLocalEnvironmentSelectedSourcesResponse, error)
 	ListLocalEnvironmentDependencyJobs(context.Context, *ListLocalEnvironmentDependencyJobsRequest) (*ListLocalEnvironmentDependencyJobsResponse, error)
 	ResolveLocalEnvironmentActivationGate(context.Context, *ResolveLocalEnvironmentActivationGateRequest) (*ResolveLocalEnvironmentActivationGateResponse, error)
-	MintRuntimeBaselineReadiness(context.Context, *MintRuntimeBaselineReadinessRequest) (*MintRuntimeBaselineReadinessResponse, error)
-	ResolveRuntimeBaselineReadiness(context.Context, *ResolveRuntimeBaselineReadinessRequest) (*ResolveRuntimeBaselineReadinessResponse, error)
-	MintFirstRunExecutionEvidence(context.Context, *MintFirstRunExecutionEvidenceRequest) (*MintFirstRunExecutionEvidenceResponse, error)
-	ResolveFirstRunExecutionEvidence(context.Context, *ResolveFirstRunExecutionEvidenceRequest) (*ResolveFirstRunExecutionEvidenceResponse, error)
 	StartLocalEnvironmentDependencyJob(context.Context, *StartLocalEnvironmentDependencyJobRequest) (*StartLocalEnvironmentDependencyJobResponse, error)
 	CancelLocalEnvironmentDependencyJob(context.Context, *CancelLocalEnvironmentDependencyJobRequest) (*CancelLocalEnvironmentDependencyJobResponse, error)
 	RetryLocalEnvironmentDependencyJob(context.Context, *RetryLocalEnvironmentDependencyJobRequest) (*RetryLocalEnvironmentDependencyJobResponse, error)
@@ -918,8 +842,6 @@ type RuntimeLocalServiceServer interface {
 	SetProductControlFirstRunInstallLevel(context.Context, *SetProductControlFirstRunInstallLevelRequest) (*ProductControlProjectionJson, error)
 	CompleteProductControlFirstRunDeviceEnvironmentScan(context.Context, *CompleteProductControlFirstRunDeviceEnvironmentScanRequest) (*ProductControlProjectionJson, error)
 	AdmitProductControlReadyForUse(context.Context, *AdmitProductControlReadyForUseRequest) (*ProductControlProjectionJson, error)
-	RecordProductControlAccountDefaultProfileEvidence(context.Context, *RecordProductControlAccountDefaultProfileEvidenceRequest) (*ProductControlProjectionJson, error)
-	RecordProductControlFirstRunLocalAiReadyEvidence(context.Context, *RecordProductControlFirstRunLocalAiReadyEvidenceRequest) (*ProductControlProjectionJson, error)
 	ReconcileProductControlFirstRunSetupState(context.Context, *ReconcileProductControlFirstRunSetupStateRequest) (*ProductControlProjectionJson, error)
 	// Device
 	CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error)
@@ -1041,18 +963,6 @@ func (UnimplementedRuntimeLocalServiceServer) ListLocalEnvironmentDependencyJobs
 func (UnimplementedRuntimeLocalServiceServer) ResolveLocalEnvironmentActivationGate(context.Context, *ResolveLocalEnvironmentActivationGateRequest) (*ResolveLocalEnvironmentActivationGateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveLocalEnvironmentActivationGate not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) MintRuntimeBaselineReadiness(context.Context, *MintRuntimeBaselineReadinessRequest) (*MintRuntimeBaselineReadinessResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method MintRuntimeBaselineReadiness not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ResolveRuntimeBaselineReadiness(context.Context, *ResolveRuntimeBaselineReadinessRequest) (*ResolveRuntimeBaselineReadinessResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResolveRuntimeBaselineReadiness not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) MintFirstRunExecutionEvidence(context.Context, *MintFirstRunExecutionEvidenceRequest) (*MintFirstRunExecutionEvidenceResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method MintFirstRunExecutionEvidence not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ResolveFirstRunExecutionEvidence(context.Context, *ResolveFirstRunExecutionEvidenceRequest) (*ResolveFirstRunExecutionEvidenceResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResolveFirstRunExecutionEvidence not implemented")
-}
 func (UnimplementedRuntimeLocalServiceServer) StartLocalEnvironmentDependencyJob(context.Context, *StartLocalEnvironmentDependencyJobRequest) (*StartLocalEnvironmentDependencyJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartLocalEnvironmentDependencyJob not implemented")
 }
@@ -1091,12 +1001,6 @@ func (UnimplementedRuntimeLocalServiceServer) CompleteProductControlFirstRunDevi
 }
 func (UnimplementedRuntimeLocalServiceServer) AdmitProductControlReadyForUse(context.Context, *AdmitProductControlReadyForUseRequest) (*ProductControlProjectionJson, error) {
 	return nil, status.Error(codes.Unimplemented, "method AdmitProductControlReadyForUse not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) RecordProductControlAccountDefaultProfileEvidence(context.Context, *RecordProductControlAccountDefaultProfileEvidenceRequest) (*ProductControlProjectionJson, error) {
-	return nil, status.Error(codes.Unimplemented, "method RecordProductControlAccountDefaultProfileEvidence not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) RecordProductControlFirstRunLocalAiReadyEvidence(context.Context, *RecordProductControlFirstRunLocalAiReadyEvidenceRequest) (*ProductControlProjectionJson, error) {
-	return nil, status.Error(codes.Unimplemented, "method RecordProductControlFirstRunLocalAiReadyEvidence not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) ReconcileProductControlFirstRunSetupState(context.Context, *ReconcileProductControlFirstRunSetupStateRequest) (*ProductControlProjectionJson, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReconcileProductControlFirstRunSetupState not implemented")
@@ -1690,78 +1594,6 @@ func _RuntimeLocalService_ResolveLocalEnvironmentActivationGate_Handler(srv inte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_MintRuntimeBaselineReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MintRuntimeBaselineReadinessRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).MintRuntimeBaselineReadiness(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_MintRuntimeBaselineReadiness_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).MintRuntimeBaselineReadiness(ctx, req.(*MintRuntimeBaselineReadinessRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ResolveRuntimeBaselineReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResolveRuntimeBaselineReadinessRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ResolveRuntimeBaselineReadiness(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ResolveRuntimeBaselineReadiness_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ResolveRuntimeBaselineReadiness(ctx, req.(*ResolveRuntimeBaselineReadinessRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_MintFirstRunExecutionEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MintFirstRunExecutionEvidenceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).MintFirstRunExecutionEvidence(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_MintFirstRunExecutionEvidence_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).MintFirstRunExecutionEvidence(ctx, req.(*MintFirstRunExecutionEvidenceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ResolveFirstRunExecutionEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResolveFirstRunExecutionEvidenceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ResolveFirstRunExecutionEvidence(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ResolveFirstRunExecutionEvidence_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ResolveFirstRunExecutionEvidence(ctx, req.(*ResolveFirstRunExecutionEvidenceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeLocalService_StartLocalEnvironmentDependencyJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StartLocalEnvironmentDependencyJobRequest)
 	if err := dec(in); err != nil {
@@ -1992,42 +1824,6 @@ func _RuntimeLocalService_AdmitProductControlReadyForUse_Handler(srv interface{}
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).AdmitProductControlReadyForUse(ctx, req.(*AdmitProductControlReadyForUseRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RecordProductControlAccountDefaultProfileEvidenceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).RecordProductControlAccountDefaultProfileEvidence(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).RecordProductControlAccountDefaultProfileEvidence(ctx, req.(*RecordProductControlAccountDefaultProfileEvidenceRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RecordProductControlFirstRunLocalAiReadyEvidenceRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).RecordProductControlFirstRunLocalAiReadyEvidence(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).RecordProductControlFirstRunLocalAiReadyEvidence(ctx, req.(*RecordProductControlFirstRunLocalAiReadyEvidenceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2494,22 +2290,6 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeLocalService_ResolveLocalEnvironmentActivationGate_Handler,
 		},
 		{
-			MethodName: "MintRuntimeBaselineReadiness",
-			Handler:    _RuntimeLocalService_MintRuntimeBaselineReadiness_Handler,
-		},
-		{
-			MethodName: "ResolveRuntimeBaselineReadiness",
-			Handler:    _RuntimeLocalService_ResolveRuntimeBaselineReadiness_Handler,
-		},
-		{
-			MethodName: "MintFirstRunExecutionEvidence",
-			Handler:    _RuntimeLocalService_MintFirstRunExecutionEvidence_Handler,
-		},
-		{
-			MethodName: "ResolveFirstRunExecutionEvidence",
-			Handler:    _RuntimeLocalService_ResolveFirstRunExecutionEvidence_Handler,
-		},
-		{
 			MethodName: "StartLocalEnvironmentDependencyJob",
 			Handler:    _RuntimeLocalService_StartLocalEnvironmentDependencyJob_Handler,
 		},
@@ -2560,14 +2340,6 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AdmitProductControlReadyForUse",
 			Handler:    _RuntimeLocalService_AdmitProductControlReadyForUse_Handler,
-		},
-		{
-			MethodName: "RecordProductControlAccountDefaultProfileEvidence",
-			Handler:    _RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_Handler,
-		},
-		{
-			MethodName: "RecordProductControlFirstRunLocalAiReadyEvidence",
-			Handler:    _RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_Handler,
 		},
 		{
 			MethodName: "ReconcileProductControlFirstRunSetupState",

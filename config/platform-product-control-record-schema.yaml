@@ -1,6 +1,5 @@
 # Non-authoritative machine configuration.
 # Normative authority: .nimi/spec/platform/product-lifecycle.authority.yaml
-# Authority: .nimi/spec/platform/product-lifecycle.authority.yaml
 version: 2
 table_family: product_record_schema
 owner: platform
@@ -10,7 +9,7 @@ path_binding:
   fixed_user_control: os_verified_interactive_user_profile_dot_nimi
   profile_to_control_boundary:
     dot_nimi: direct_non_symlink_non_junction_non_reparse_directory
-    nimi_json: direct_regular_non_symlink_non_reparse_file
+    nimi_json: direct_regular_non_symlink_non_junction_non_reparse_file
   runtime_protected_state: derived_security_and_verification_only
   caller_or_environment_override: forbidden
   dual_read_or_migration_fallback: forbidden
@@ -41,31 +40,17 @@ first_run_wire_shape:
     - aiProfileAlias
     - completed
     - completedAt
-    - initializationPlanId
-    - baselineProfileRef
-    - baselineCommitId
-    - accountDefaultProfileRef
-    - builtInAiConfigRefs
-    - runtimeBaselineRef
-    - executionEvidenceRef
   pre_selection_values:
     nullable_fields:
       - installLevel
       - aiProfileAlias
       - completedAt
-      - initializationPlanId
-      - baselineProfileRef
-      - baselineCommitId
-      - accountDefaultProfileRef
-      - runtimeBaselineRef
-      - executionEvidenceRef
-    builtInAiConfigRefs: empty_array_admitted
     completed: false
   ready_values:
     installLevel: [minimal, recommended]
+    aiProfileAlias: non_empty
     completed: true
-    required_evidence_strings: non_empty
-    builtInAiConfigRefs: non_empty_string_array
+    completedAt: non_empty
 state_field:
   owner: platform_cold_start
   enum_ref: P-COLD-009
@@ -74,25 +59,23 @@ invariants:
   - id: product-control-record-owner
     requirement: <OS-verified-interactive-user-profile>/.nimi/nimi.json is the only installed product readiness and dataRoot.path discovery record; its location is fixed and not user-configurable, .nimi is a direct non-symlink non-junction non-reparse directory, nimi.json is a direct regular non-symlink non-reparse file, and Runtime protected state is derived security and verification state rather than a second record.
   - id: selected-data-root-required-before-heavy-setup
-    requirement: dataRoot.path must be an absolute ordinary non-volume-root user-selected nimi_data directory before downloads, dependency installation, app package install, model materialization, or environment setup; Windows drive roots, UNC share roots, extended-path volume roots, the POSIX filesystem root, and equivalent volume roots are forbidden while ordinary absolute subdirectories are admitted.
-  - id: first-run-field-presence-and-preselection-values
-    requirement: Every firstRun field is present with its exact type; fields without a selected value or evidence may use their admitted null value, builtInAiConfigRefs may be empty before selection, and ready_for_use retains the complete non-empty ready evidence requirements.
-  - id: selected-data-root-evidence
-    requirement: dataRoot selectedAt and verifiedAt evidence must exist after native-host OS service-principal access preparation and Runtime verification; ready_for_use requires dataRoot.status=ready. On Windows the user remains root owner, only the exact fixed NimiRuntime service SID receives inherited selected-tree access, and reparse-point roots fail closed.
+    requirement: dataRoot.path must be an absolute ordinary non-volume-root user-selected nimi_data directory before downloads, dependency installation, app package install, model materialization, or environment setup; volume roots are forbidden while ordinary absolute subdirectories are admitted.
+  - id: first-run-wire-shape
+    requirement: firstRun contains exactly installLevel, aiProfileAlias, completed, and completedAt with their admitted nullable or concrete values.
+  - id: selected-data-root-verification
+    requirement: dataRoot selectedAt and verifiedAt must exist after native-host service-principal access preparation and Runtime verification; ready_for_use requires dataRoot.status=ready.
   - id: local-install-level-only
-    requirement: firstRun.installLevel is null before a local install level is selected, otherwise it must be minimal or recommended, and ready_for_use requires it to be non-null; cloud, hybrid, connector, video, and app-specific levels are invalid.
-  - id: ready-evidence-required
-    requirement: ready_for_use requires firstRun.completed=true, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, non-empty builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef.
-  - id: ready-evidence-owner-verification
-    requirement: every first-run ready evidence ref must be resolved by its canonical owner/verifier; string shape, field presence, renderer-provided refs, or localStorage values are not verification.
-  - id: backend-admission-only
-    requirement: ready_for_use may be written only by the product-control backend admission operation after composing all owner evidence in the canonical order.
+    requirement: firstRun.installLevel is null before selection, otherwise minimal or recommended, and ready_for_use requires it to be non-null.
+  - id: current-runtime-readiness-required
+    requirement: ready_for_use requires firstRun.completed=true, completedAt, a selected admitted first-run factory profile, an authenticated Runtime account, the canonical selected writable data root, and current Runtime materialization, dependency, and activation gates.
+  - id: runtime-admission-only
+    requirement: ready_for_use may be written only by the Runtime Product Control admission operation after evaluating current readiness gates in canonical order.
   - id: runtime-config-pointer-non-owner
-    requirement: pointers.runtimeConfigPath is forbidden; Product Control projects selected dataRoot only through an exact typed protected Runtime operation, never stores or exposes a service config path, and ProgramData state cannot select or override dataRoot.path.
+    requirement: pointers.runtimeConfigPath is forbidden; Product Control projects selected dataRoot only through an exact typed protected Runtime operation.
   - id: app-projection-pointer-non-owner
-    requirement: pointers.appRegistry and pointers.appPackages are forbidden; product control cannot point at, recreate, migrate, or treat user-local app registry/package projections as discovery, identity, package, grant, inventory, or readiness truth.
+    requirement: pointers.appRegistry and pointers.appPackages are forbidden; product control cannot use app-local projections as readiness truth.
   - id: repair-fail-closed
-    requirement: repair.required or invalid product-control shape routes to repair_required or blocked, never ordinary ready.
+    requirement: repair.required or invalid Product Control shape routes to repair_required or blocked, never ordinary ready.
 ready_admission:
   source_rule: P-COLD-016
   logical_operation: AdmitProductReadyForUse
@@ -111,11 +94,8 @@ ready_admission:
   composition_order:
     - product_control_record_shape_and_selected_data_root
     - authenticated_runtime_account_session
-    - account_default_profile_library_evidence
     - selected_local_first_run_factory_profile
-    - runtime_baseline_readiness
-    - built_in_ai_config_evidence
-    - runtime_baseline_execution_evidence
+    - current_runtime_materialization_dependency_and_activation_gates
     - atomic_ready_for_use_record_write
   forbidden_positive_inputs:
     - renderer_provided_string_refs
@@ -132,133 +112,12 @@ ready_admission:
     - script_exit
     - transfer_completion
     - cloud_api
-    - cloud_only_profile
-    - cloud_first_profile
-    - hybrid_profile
-    - video_generation_pack
-    - connector_setup
-    - app_specific_pack
     - provider_model_constants
   record_write_rules:
     - ready_for_use writes must be atomic and include firstRun.completed=true and completedAt.
-    - failed verification must leave state at the earliest affected non-ready product-control state.
-    - idempotent retries may reuse owner evidence only while each owner verifier still resolves the ref as valid.
-    - repair or invalidation of any required evidence after ready_for_use must route to repair_required, blocked, or not_logged_in according to the failed owner.
-evidence_contracts:
-  accountDefaultProfileRef:
-    owner_rule_ref: P-AIPS-013
-    owner: account_profile_library
-    verifier: local_product_profile_library
-    ref_semantics: durable local Account Default Profile library record bound to authenticated account_id and selected dataRootRef
-    required_projection:
-      - account_id
-      - dataRootRef
-      - profile_id_default
-      - profile_version_or_hash
-      - source_policy_ref
-      - source_catalog_version
-      - createdAt_or_updatedAt
-    prerequisite_evidence:
-      - authenticated_runtime_account_session
-    failure_projection: local_ai_ready_or_blocked
-    forbidden_as_truth:
-      - renderer_profile_state
-      - sdk_cache
-      - app_local_cache
-      - realm_oauth_token
-      - realm_profile_projection
-      - subject_user_id
-      - decoded_token_claims
-      - string_only_ref
-  builtInAiConfigRefs:
-    owner_rule_ref: D-AIPC-013
-    owner: desktop_chat_feature_scope_owner
-    verifier: Desktop host AIConfig authority plus SDK Runtime / Kit projection from Runtime executionEvidenceRef proof
-    required_scopes:
-      - scope_id: desktop.chat.nimi
-        scopeRef:
-          kind: feature
-          ownerId: desktop.chat
-          surfaceId: nimi
-      - scope_id: desktop.chat.agent
-        scopeRef:
-          kind: feature
-          ownerId: desktop.chat
-          surfaceId: agent
-    ref_semantics: durable refs to committed full materialized AIConfig records for every required built-in chat scope
-    required_projection:
-      - scopeRef
-      - aiProfileRef_or_hash
-      - aiConfigVersion_or_hash
-      - writer_identity
-      - committedAt
-    failure_projection: local_ai_ready_or_blocked
-    forbidden_as_truth:
-      - generic_chat_scope
-      - renderer_local_state
-      - localStorage
-      - current_tab
-      - route_health
-      - string_only_scopeRef
-  runtimeBaselineRef:
-    owner_rule_ref: K-LENV-ACT-011
-    owner: runtime_local_service
-    verifier: RuntimeLocalService
-    ref_semantics: durable activation-readiness evidence for the selected local first-run baseline
-    required_projection:
-      - selected_local_factory_aiProfile_ref
-      - install_level
-      - runtime_data_root_or_dataRootRef
-      - required_dependency_families
-      - selected_source_record_ids
-      - activation_ready_responses
-      - materialization_or_system_source_verification_evidence
-      - observed_at
-      - runtime_audit_sequence
-    failure_projection: local_ai_profile_selected_environment_not_ready_or_repair_required
-    forbidden_as_truth:
-      - materialization_success_alone
-      - file_existence
-      - endpoint_probe
-      - route_health
-      - process_liveness
-      - import_success
-      - previous_health_success
-  executionEvidenceRef:
-    owner_rule_ref: K-AIEXEC-007
-    owner: runtime_execution
-    verifier: Runtime execution audit/evidence record
-    ref_semantics: durable execution proof for the selected local first-run baseline capability set
-    required_projection:
-      - selected_local_factory_aiProfile_ref
-      - install_level
-      - runtimeBaselineRef
-      - dataRootRef
-      - local_execution_target_evidence
-      - selected_baseline_capability_proof
-      - submit_specific_scheduling_judgement_when_evaluated
-      - terminal_result
-      - timestamps
-      - runtime_audit_sequence
-    selected_local_first_run_baseline_proof:
-      minimal:
-        - local_text_chat_execution
-        - local_basic_stt_execution
-        - local_basic_tts_execution
-      recommended: selected local recommended capabilities from confirmed plan
-    failure_projection: local_ai_ready_or_blocked
-    forbidden_as_truth:
-      - desktop_snapshot_alone
-      - scope_aggregate_probe
-      - route_health
-      - warmup_only_check
-      - cloud_api
-      - cloud_only
-      - cloud_first
-      - hybrid
-      - video_generation
-      - connector_setup
-      - app_specific_pack
+    - failed verification must leave state at the earliest affected non-ready Product Control state.
+    - idempotent retries must re-evaluate the current Runtime gates.
+    - degradation after ready_for_use must route to the precise current non-ready, repair, blocked, or not_logged_in state.
 fields:
   dataRoot:
     required_when_states:
@@ -280,10 +139,3 @@ fields:
       aiProfileAlias: required field; null before selection, otherwise an admitted first-run local factory AIProfile alias, and non-null in ready_for_use
       completed: required boolean; false before completion and true in ready_for_use
       completedAt: required field; null before completion and a non-empty timestamp in ready_for_use
-      initializationPlanId: required field; null before evidence exists and a non-empty Runtime/Desktop initialization plan evidence ref in ready_for_use
-      baselineProfileRef: required field; null before evidence exists and a non-empty selected local baseline profile ref in ready_for_use
-      baselineCommitId: required field; null before evidence exists and a non-empty baseline profile commit ref in ready_for_use
-      accountDefaultProfileRef: required field; null before evidence exists and a non-empty Account Default Profile evidence ref in ready_for_use
-      builtInAiConfigRefs: required array; empty before selection and a non-empty array of non-empty built-in AIConfig refs in ready_for_use
-      runtimeBaselineRef: required field; null before evidence exists and a non-empty Runtime baseline readiness evidence ref in ready_for_use
-      executionEvidenceRef: required field; null before evidence exists and a non-empty baseline execution evidence ref in ready_for_use

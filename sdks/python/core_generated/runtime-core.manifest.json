@@ -1929,42 +1929,6 @@
           "response_stream": false
         },
         {
-          "name": "MintRuntimeBaselineReadiness",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
-          "kind": "unary",
-          "request_type": "MintRuntimeBaselineReadinessRequest",
-          "response_type": "MintRuntimeBaselineReadinessResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ResolveRuntimeBaselineReadiness",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
-          "kind": "unary",
-          "request_type": "ResolveRuntimeBaselineReadinessRequest",
-          "response_type": "ResolveRuntimeBaselineReadinessResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "MintFirstRunExecutionEvidence",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-          "kind": "unary",
-          "request_type": "MintFirstRunExecutionEvidenceRequest",
-          "response_type": "MintFirstRunExecutionEvidenceResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ResolveFirstRunExecutionEvidence",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
-          "kind": "unary",
-          "request_type": "ResolveFirstRunExecutionEvidenceRequest",
-          "response_type": "ResolveFirstRunExecutionEvidenceResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "StartLocalEnvironmentDependencyJob",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
           "kind": "unary",
@@ -2077,24 +2041,6 @@
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
           "kind": "unary",
           "request_type": "AdmitProductControlReadyForUseRequest",
-          "response_type": "ProductControlProjectionJson",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RecordProductControlAccountDefaultProfileEvidence",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
-          "kind": "unary",
-          "request_type": "RecordProductControlAccountDefaultProfileEvidenceRequest",
-          "response_type": "ProductControlProjectionJson",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RecordProductControlFirstRunLocalAiReadyEvidence",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
-          "kind": "unary",
-          "request_type": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
           "response_type": "ProductControlProjectionJson",
           "request_stream": false,
           "response_stream": false
@@ -2536,24 +2482,18 @@
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers",
     "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
     "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
-    "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-    "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
     "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
     "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
     "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
-    "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
-    "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
     "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService",
     "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
     "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
-    "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
-    "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
     "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
     "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
     "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
@@ -4218,22 +4158,6 @@
       "response_type": "ListVerifiedAssetsResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-      "service": "RuntimeLocalService",
-      "method": "MintFirstRunExecutionEvidence",
-      "kind": "unary",
-      "request_type": "MintFirstRunExecutionEvidenceRequest",
-      "response_type": "MintFirstRunExecutionEvidenceResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
-      "service": "RuntimeLocalService",
-      "method": "MintRuntimeBaselineReadiness",
-      "kind": "unary",
-      "request_type": "MintRuntimeBaselineReadinessRequest",
-      "response_type": "MintRuntimeBaselineReadinessResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
       "service": "RuntimeLocalService",
       "method": "PauseLocalTransfer",
@@ -4255,22 +4179,6 @@
       "method": "ReconcileProductControlFirstRunSetupState",
       "kind": "unary",
       "request_type": "ReconcileProductControlFirstRunSetupStateRequest",
-      "response_type": "ProductControlProjectionJson"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
-      "service": "RuntimeLocalService",
-      "method": "RecordProductControlAccountDefaultProfileEvidence",
-      "kind": "unary",
-      "request_type": "RecordProductControlAccountDefaultProfileEvidenceRequest",
-      "response_type": "ProductControlProjectionJson"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
-      "service": "RuntimeLocalService",
-      "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
-      "kind": "unary",
-      "request_type": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
       "response_type": "ProductControlProjectionJson"
     },
     {
@@ -4304,14 +4212,6 @@
       "kind": "unary",
       "request_type": "RescanLocalAssetBundleRequest",
       "response_type": "RescanLocalAssetBundleResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
-      "service": "RuntimeLocalService",
-      "method": "ResolveFirstRunExecutionEvidence",
-      "kind": "unary",
-      "request_type": "ResolveFirstRunExecutionEvidenceRequest",
-      "response_type": "ResolveFirstRunExecutionEvidenceResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
@@ -4352,14 +4252,6 @@
       "kind": "unary",
       "request_type": "ResolveProfileRequest",
       "response_type": "ResolveProfileResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
-      "service": "RuntimeLocalService",
-      "method": "ResolveRuntimeBaselineReadiness",
-      "kind": "unary",
-      "request_type": "ResolveRuntimeBaselineReadinessRequest",
-      "response_type": "ResolveRuntimeBaselineReadinessResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
@@ -6172,22 +6064,6 @@
       "response_type": "ListVerifiedAssetsResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-      "service": "RuntimeLocalService",
-      "method": "MintFirstRunExecutionEvidence",
-      "kind": "unary",
-      "request_type": "MintFirstRunExecutionEvidenceRequest",
-      "response_type": "MintFirstRunExecutionEvidenceResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
-      "service": "RuntimeLocalService",
-      "method": "MintRuntimeBaselineReadiness",
-      "kind": "unary",
-      "request_type": "MintRuntimeBaselineReadinessRequest",
-      "response_type": "MintRuntimeBaselineReadinessResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
       "service": "RuntimeLocalService",
       "method": "PauseLocalTransfer",
@@ -6209,22 +6085,6 @@
       "method": "ReconcileProductControlFirstRunSetupState",
       "kind": "unary",
       "request_type": "ReconcileProductControlFirstRunSetupStateRequest",
-      "response_type": "ProductControlProjectionJson"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
-      "service": "RuntimeLocalService",
-      "method": "RecordProductControlAccountDefaultProfileEvidence",
-      "kind": "unary",
-      "request_type": "RecordProductControlAccountDefaultProfileEvidenceRequest",
-      "response_type": "ProductControlProjectionJson"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
-      "service": "RuntimeLocalService",
-      "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
-      "kind": "unary",
-      "request_type": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
       "response_type": "ProductControlProjectionJson"
     },
     {
@@ -6258,14 +6118,6 @@
       "kind": "unary",
       "request_type": "RescanLocalAssetBundleRequest",
       "response_type": "RescanLocalAssetBundleResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
-      "service": "RuntimeLocalService",
-      "method": "ResolveFirstRunExecutionEvidence",
-      "kind": "unary",
-      "request_type": "ResolveFirstRunExecutionEvidenceRequest",
-      "response_type": "ResolveFirstRunExecutionEvidenceResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
@@ -6306,14 +6158,6 @@
       "kind": "unary",
       "request_type": "ResolveProfileRequest",
       "response_type": "ResolveProfileResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
-      "service": "RuntimeLocalService",
-      "method": "ResolveRuntimeBaselineReadiness",
-      "kind": "unary",
-      "request_type": "ResolveRuntimeBaselineReadinessRequest",
-      "response_type": "ResolveRuntimeBaselineReadinessResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
@@ -6662,9 +6506,6 @@
       "ExecuteLocalStateCutoverResponse",
       "ExecuteScenarioRequest",
       "ExecuteScenarioResponse",
-      "ExecutionBaselineCapabilityProof",
-      "ExecutionEvidenceRef",
-      "ExecutionSchedulingJudgement",
       "ExportAuditEventsRequest",
       "ExternalAgentActionScope",
       "ExternalAgentGatewayStatusRequest",
@@ -6977,10 +6818,6 @@
       "MemoryReplicationState",
       "MemoryReplicationSynced",
       "MemoryRequestContext",
-      "MintFirstRunExecutionEvidenceRequest",
-      "MintFirstRunExecutionEvidenceResponse",
-      "MintRuntimeBaselineReadinessRequest",
-      "MintRuntimeBaselineReadinessResponse",
       "ModelCapabilityProfile",
       "ModelCatalogProviderEntry",
       "ModelDescriptor",
@@ -7043,8 +6880,6 @@
       "RecallRequest",
       "RecallResponse",
       "ReconcileProductControlFirstRunSetupStateRequest",
-      "RecordProductControlAccountDefaultProfileEvidenceRequest",
-      "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
       "RefreshSessionRequest",
       "RefreshSessionResponse",
       "RegisterAppRequest",
@@ -7085,8 +6920,6 @@
       "RescanLocalAssetBundleResponse",
       "ResolveAvatarLiveInstanceBindingRequest",
       "ResolveAvatarLiveInstanceBindingResponse",
-      "ResolveFirstRunExecutionEvidenceRequest",
-      "ResolveFirstRunExecutionEvidenceResponse",
       "ResolveLocalEnvironmentActivationGateRequest",
       "ResolveLocalEnvironmentActivationGateResponse",
       "ResolveLocalEnvironmentPlanRequest",
@@ -7097,8 +6930,6 @@
       "ResolveModelInstallPlanResponse",
       "ResolveProfileRequest",
       "ResolveProfileResponse",
-      "ResolveRuntimeBaselineReadinessRequest",
-      "ResolveRuntimeBaselineReadinessResponse",
       "ResourceSelectors",
       "ResponseFormat",
       "ResumeLocalTransferRequest",
@@ -7119,10 +6950,6 @@
       "RuntimeAgentAIConfigCapabilityReadiness",
       "RuntimeAgentAIConfigIntent",
       "RuntimeAgentAIConfigReadinessSnapshot",
-      "RuntimeBaselineActivationConsumerEvidence",
-      "RuntimeBaselineActivationDependencyEvidence",
-      "RuntimeBaselineConsumerBinding",
-      "RuntimeBaselineReadinessRef",
       "RuntimeDurableCloudTargetRef",
       "RuntimeDurableLocalTargetRef",
       "RuntimeDurableTargetRef",
@@ -7731,22 +7558,7 @@
       },
       {
         "name": "AdmitProductControlReadyForUseRequest",
-        "fields": [
-          {
-            "name": "account_default_profile_evidence_json",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "built_in_ai_config_evidence_json",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
+        "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
@@ -14821,220 +14633,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "ExecutionBaselineCapabilityProof",
-        "fields": [
-          {
-            "name": "capability",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "scenario_type",
-            "type": "ScenarioType",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "bound_consumer_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "bound_asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "local_route_target",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "model_resolved",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "terminal_result",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "trace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "executed_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
-      },
-      {
-        "name": "ExecutionEvidenceRef",
-        "fields": [
-          {
-            "name": "execution_evidence_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "selected_local_factory_ai_profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "install_level",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "runtime_baseline_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "data_root_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "local_execution_target_evidence",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "selected_baseline_capability_proof",
-            "type": "ExecutionBaselineCapabilityProof",
-            "repeated": true,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "submit_specific_scheduling_judgement",
-            "type": "ExecutionSchedulingJudgement",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "terminal_result",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "observed_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "runtime_audit_sequence",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "runtime_verifier_identity",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
-      },
-      {
-        "name": "ExecutionSchedulingJudgement",
-        "fields": [
-          {
-            "name": "evaluated",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "capability",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "scheduling_state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "evaluated_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "ExportAuditEventsRequest",
@@ -26549,170 +26147,6 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
-        "name": "MintFirstRunExecutionEvidenceRequest",
-        "fields": [
-          {
-            "name": "runtime_baseline_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "selected_local_factory_ai_profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "install_level",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "data_root_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "host_profile",
-            "type": "LocalDeviceProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "recommended_capabilities",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "submit_scheduling_evaluated",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "MintFirstRunExecutionEvidenceResponse",
-        "fields": [
-          {
-            "name": "ref",
-            "type": "ExecutionEvidenceRef",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "MintRuntimeBaselineReadinessRequest",
-        "fields": [
-          {
-            "name": "selected_local_factory_ai_profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "install_level",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "runtime_data_root_or_data_root_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "host_profile",
-            "type": "LocalDeviceProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "baseline_consumers",
-            "type": "RuntimeBaselineConsumerBinding",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "MintRuntimeBaselineReadinessResponse",
-        "fields": [
-          {
-            "name": "ref",
-            "type": "RuntimeBaselineReadinessRef",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
         "name": "ModelCapabilityProfile",
         "fields": [
           {
@@ -28720,46 +28154,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "RecordProductControlAccountDefaultProfileEvidenceRequest",
-        "fields": [
-          {
-            "name": "account_default_profile_evidence_json",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
-        "fields": [
-          {
-            "name": "runtime_baseline_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "built_in_ai_config_evidence_json",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "execution_evidence_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
         "name": "RefreshSessionRequest",
         "fields": [
           {
@@ -29789,81 +29183,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "ResolveFirstRunExecutionEvidenceRequest",
-        "fields": [
-          {
-            "name": "execution_evidence_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "expected_runtime_baseline_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "expected_data_root_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "expected_install_level",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "host_profile",
-            "type": "LocalDeviceProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "ResolveFirstRunExecutionEvidenceResponse",
-        "fields": [
-          {
-            "name": "ref",
-            "type": "ExecutionEvidenceRef",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
         "name": "ResolveLocalEnvironmentActivationGateRequest",
         "fields": [
           {
@@ -30214,60 +29533,6 @@
             "repeated": false,
             "optional": false,
             "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "ResolveRuntimeBaselineReadinessRequest",
-        "fields": [
-          {
-            "name": "runtime_baseline_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "host_profile",
-            "type": "LocalDeviceProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "ResolveRuntimeBaselineReadinessResponse",
-        "fields": [
-          {
-            "name": "ref",
-            "type": "RuntimeBaselineReadinessRef",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -30798,226 +30063,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "RuntimeBaselineActivationConsumerEvidence",
-        "fields": [
-          {
-            "name": "consumer_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "pack_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "activation_state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "dependencies",
-            "type": "RuntimeBaselineActivationDependencyEvidence",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "bound_asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
-      },
-      {
-        "name": "RuntimeBaselineActivationDependencyEvidence",
-        "fields": [
-          {
-            "name": "dependency_family",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "dependency_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "environment_key",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "selected_source_record_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "source_kind",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "dependency_state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "canonical_root",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "materialization_or_system_source_verification_evidence",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
-      },
-      {
-        "name": "RuntimeBaselineConsumerBinding",
-        "fields": [
-          {
-            "name": "consumer_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "local_asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "RuntimeBaselineReadinessRef",
-        "fields": [
-          {
-            "name": "runtime_baseline_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "selected_local_factory_ai_profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "install_level",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "runtime_data_root_or_data_root_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "required_dependency_families",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "selected_source_record_ids",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "activation_ready_responses",
-            "type": "RuntimeBaselineActivationConsumerEvidence",
-            "repeated": true,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "materialization_or_system_source_verification_evidence",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "observed_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "runtime_verifier_identity",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "runtime_audit_sequence",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "RuntimeDurableCloudTargetRef",

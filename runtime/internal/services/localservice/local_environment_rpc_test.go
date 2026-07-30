@@ -68,15 +68,6 @@ func TestLocalEnvironmentRPCRejectsRootDifferentFromProductControl(t *testing.T)
 				return err
 			},
 		},
-		{
-			name: "baseline mint",
-			call: func() error {
-				_, err := svc.MintRuntimeBaselineReadiness(context.Background(), &runtimev1.MintRuntimeBaselineReadinessRequest{
-					RuntimeDataRootOrDataRootRef: divergent,
-				})
-				return err
-			},
-		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

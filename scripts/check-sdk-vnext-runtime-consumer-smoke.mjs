@@ -247,7 +247,7 @@ const localIdentity: RuntimeLocalAgentIdentityProjection = buildRuntimeAgentRequ
 const firstRunMaterialization: NimiFirstRunMaterializationProjection = {
   status: 'local_ai_ready',
   productState: 'local_ai_ready',
-  reason: 'runtime_local_ai_ready_evidence_projected',
+  reason: 'runtime_local_ai_ready',
   missingDependencyFamilies: [],
   dependencies: [],
 };

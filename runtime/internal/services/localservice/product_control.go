@@ -63,6 +63,9 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
+	if err := validateProductControlDataRootBoundary(normalized, filepath.Dir(path)); err != nil {
+		return nil, err
+	}
 	record, err := readProductControlRecord(path)
 	if err != nil {
 		return nil, err
@@ -71,7 +74,7 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 		if err := ensureProductControlDataRootSelectionAllowed(record); err != nil {
 			return nil, err
 		}
-		record.FirstRun = productFirstRunRecord{BuiltInAIConfigRefs: []string{}}
+		record.FirstRun = productFirstRunRecord{}
 	} else {
 		record, err = s.emptyProductControlRecord(productControlStateDataRootMissing)
 		if err != nil {
@@ -167,13 +170,6 @@ func (s *Service) SetProductControlFirstRunInstallLevel(_ context.Context, req *
 	record.FirstRun.AIProfileAlias = stringPtr(alias)
 	record.FirstRun.Completed = false
 	record.FirstRun.CompletedAt = nil
-	record.FirstRun.InitializationPlanID = nil
-	record.FirstRun.BaselineProfileRef = nil
-	record.FirstRun.BaselineCommitID = nil
-	record.FirstRun.AccountDefaultProfileRef = nil
-	record.FirstRun.BuiltInAIConfigRefs = []string{}
-	record.FirstRun.RuntimeBaselineRef = nil
-	record.FirstRun.ExecutionEvidenceRef = nil
 	if record.State == productControlStateDataRootSelected {
 		record.State = productControlStateAIEnvironmentUnconfigured
 	} else if record.State == productControlStateAIEnvironmentUnconfigured {
@@ -224,7 +220,7 @@ func (s *Service) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx contex
 	return productControlJSON(s.readProductControlProjection(ctx))
 }
 
-func (s *Service) AdmitProductControlReadyForUse(ctx context.Context, req *runtimev1.AdmitProductControlReadyForUseRequest) (*runtimev1.ProductControlProjectionJson, error) {
+func (s *Service) AdmitProductControlReadyForUse(ctx context.Context, _ *runtimev1.AdmitProductControlReadyForUseRequest) (*runtimev1.ProductControlProjectionJson, error) {
 	path, err := s.productControlRecordPath()
 	if err != nil {
 		return nil, err
@@ -236,111 +232,14 @@ func (s *Service) AdmitProductControlReadyForUse(ctx context.Context, req *runti
 	if record == nil {
 		return nil, errors.New("product-control record is missing; product readiness cannot be admitted")
 	}
-	evidence, failedState, failure := s.composeProductControlReadyAdmission(ctx, record, req)
+	failedState, failure := s.verifyProductControlReadyAdmission(ctx, record)
 	if failure != "" {
 		if err := routeProductControlAdmissionFailure(path, record, failedState, failure); err != nil {
 			return nil, err
 		}
 		return productControlJSON(s.readProductControlProjection(ctx))
 	}
-	applyProductControlReadyEvidence(record, evidence)
-	if err := writeProductControlRecord(path, record); err != nil {
-		return nil, err
-	}
-	return productControlJSON(s.readProductControlProjection(ctx))
-}
-
-func (s *Service) RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, req *runtimev1.RecordProductControlAccountDefaultProfileEvidenceRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	path, record, dataRootPath, installLevel, aiProfileAlias, accountID, err := s.productControlHostEvidenceInputs(ctx, "Account Default Profile")
-	if err != nil {
-		return nil, err
-	}
-	evidence, state, failure := parseAndVerifyAccountDefaultProfileEvidence(
-		req.GetAccountDefaultProfileEvidenceJson(),
-		accountID,
-		productControlDataRootRef(dataRootPath),
-		aiProfileAlias,
-	)
-	if failure != "" {
-		if err := routeProductControlAdmissionFailure(path, record, state, failure); err != nil {
-			return nil, err
-		}
-		return productControlJSON(s.readProductControlProjection(ctx))
-	}
-	if strings.TrimSpace(evidence.AccountDefaultProfileRef) == "" {
-		return nil, errors.New("Account Default Profile evidence ref is required")
-	}
-	if strings.TrimSpace(evidence.AIProfileAlias) != aiProfileAlias {
-		return nil, errors.New("Account Default Profile evidence is bound to a different AI profile")
-	}
-	if strings.TrimSpace(installLevel) == "" {
-		return nil, errors.New("first-run install level is required before Account Default Profile")
-	}
-	record.FirstRun.AccountDefaultProfileRef = stringPtr(evidence.AccountDefaultProfileRef)
-	if err := writeProductControlRecord(path, record); err != nil {
-		return nil, err
-	}
-	return productControlJSON(s.readProductControlProjection(ctx))
-}
-
-func (s *Service) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, req *runtimev1.RecordProductControlFirstRunLocalAiReadyEvidenceRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	path, record, dataRootPath, installLevel, aiProfileAlias, accountID, err := s.productControlHostEvidenceInputs(ctx, "local AI finalization")
-	if err != nil {
-		return nil, err
-	}
-	wasReadyForUse := record.State == productControlStateReadyForUse
-	selectedFactoryRef := firstRunFactoryProfileRef(installLevel)
-	runtimeBaselineRef := strings.TrimSpace(req.GetRuntimeBaselineRef())
-	if runtimeBaselineRef == "" {
-		return nil, errors.New("runtimeBaselineRef is required before local AI finalization")
-	}
-	runtimeBaseline, state, failure := s.resolveProductControlRuntimeBaseline(ctx, runtimeBaselineRef, selectedFactoryRef, installLevel, dataRootPath)
-	if failure != "" {
-		if err := routeProductControlAdmissionFailure(path, record, state, failure); err != nil {
-			return nil, err
-		}
-		return productControlJSON(s.readProductControlProjection(ctx))
-	}
-	builtInRefs, state, failure := parseAndVerifyBuiltInAIConfigAdmissionEvidence(
-		req.GetBuiltInAiConfigEvidenceJson(),
-		record,
-		accountID,
-		productControlDataRootRef(dataRootPath),
-		aiProfileAlias,
-		installLevel,
-		false,
-	)
-	if failure != "" {
-		if err := routeProductControlAdmissionFailure(path, record, state, failure); err != nil {
-			return nil, err
-		}
-		return productControlJSON(s.readProductControlProjection(ctx))
-	}
-	executionEvidenceRef := strings.TrimSpace(req.GetExecutionEvidenceRef())
-	if executionEvidenceRef == "" {
-		return nil, errors.New("executionEvidenceRef is required before local AI finalization")
-	}
-	executionEvidence, state, failure := s.resolveProductControlExecutionEvidence(ctx, executionEvidenceRef, runtimeBaseline.GetRuntimeBaselineRef(), selectedFactoryRef, installLevel, dataRootPath)
-	if failure != "" {
-		if err := routeProductControlAdmissionFailure(path, record, state, failure); err != nil {
-			return nil, err
-		}
-		return productControlJSON(s.readProductControlProjection(ctx))
-	}
-	record.FirstRun.RuntimeBaselineRef = stringPtr(runtimeBaseline.GetRuntimeBaselineRef())
-	record.FirstRun.BuiltInAIConfigRefs = builtInRefs
-	record.FirstRun.ExecutionEvidenceRef = stringPtr(executionEvidence.GetExecutionEvidenceRef())
-	if wasReadyForUse {
-		record.State = productControlStateReadyForUse
-	} else {
-		record.State = productControlStateLocalAIReady
-	}
-	record.Repair = productRepairRecord{}
-	if record.DataRoot != nil {
-		record.DataRoot.Status = productDataRootStatusReady
-		record.DataRoot.VerifiedAt = nowProductControlISO()
-		record.DataRoot.VerifiedAtUnixMs = nowProductControlUnixMS()
-	}
+	applyProductControlReady(record)
 	if err := writeProductControlRecord(path, record); err != nil {
 		return nil, err
 	}

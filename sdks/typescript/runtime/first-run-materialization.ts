@@ -461,7 +461,7 @@ function reasonForNimiFirstRunMaterializationStatus(
     case 'starting': return 'runtime_materialization_jobs_started';
     case 'in_progress': return 'runtime_materialization_jobs_in_progress';
     case 'activation_pending': return 'runtime_activation_gate_not_ready';
-    case 'local_ai_ready': return 'runtime_local_ai_ready_evidence_projected';
+    case 'local_ai_ready': return 'runtime_local_ai_ready';
     case 'repair_required': return 'runtime_materialization_repair_required';
     case 'failed': return 'runtime_materialization_job_failed';
     case 'cancelled': return 'runtime_materialization_job_cancelled';

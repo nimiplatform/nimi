@@ -2960,25 +2960,19 @@ impl AddLinkResponse {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AdmitProductControlReadyForUseRequest {
-    pub account_default_profile_evidence_json: Option<String>,
-    pub built_in_ai_config_evidence_json: Option<String>,
+
 }
 
 impl AdmitProductControlReadyForUseRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.account_default_profile_evidence_json { pairs.push(format!("account_default_profile_evidence_json={}", value)); }
-        if let Some(value) = &self.built_in_ai_config_evidence_json { pairs.push(format!("built_in_ai_config_evidence_json={}", value)); }
-        pairs.join(";").into_bytes()
+        Vec::new()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.account_default_profile_evidence_json = pairs.get("account_default_profile_evidence_json").cloned();
-        out.built_in_ai_config_evidence_json = pairs.get("built_in_ai_config_evidence_json").cloned();
-        out
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
     }
 }
 
@@ -8954,150 +8948,6 @@ impl ExecuteScenarioResponse {
 
         out.model_resolved = pairs.get("model_resolved").cloned();
         out.trace_id = pairs.get("trace_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExecutionBaselineCapabilityProof {
-    pub capability: Option<String>,
-    pub scenario_type: Option<ScenarioType>,
-    pub bound_consumer_id: Option<String>,
-    pub bound_asset_id: Option<String>,
-    pub local_route_target: Option<String>,
-    pub route_policy: Option<RoutePolicy>,
-    pub model_resolved: Option<String>,
-    pub terminal_result: Option<String>,
-    pub reason_code: Option<String>,
-    pub trace_id: Option<String>,
-    pub executed_at: Option<String>,
-}
-
-impl ExecutionBaselineCapabilityProof {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.capability { pairs.push(format!("capability={}", value)); }
-        if let Some(value) = &self.scenario_type { pairs.push(format!("scenario_type={:?}", value)); }
-        if let Some(value) = &self.bound_consumer_id { pairs.push(format!("bound_consumer_id={}", value)); }
-        if let Some(value) = &self.bound_asset_id { pairs.push(format!("bound_asset_id={}", value)); }
-        if let Some(value) = &self.local_route_target { pairs.push(format!("local_route_target={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.model_resolved { pairs.push(format!("model_resolved={}", value)); }
-        if let Some(value) = &self.terminal_result { pairs.push(format!("terminal_result={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
-        if let Some(value) = &self.executed_at { pairs.push(format!("executed_at={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["scenario_type", "route_policy"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.capability = pairs.get("capability").cloned();
-        out.bound_consumer_id = pairs.get("bound_consumer_id").cloned();
-        out.bound_asset_id = pairs.get("bound_asset_id").cloned();
-        out.local_route_target = pairs.get("local_route_target").cloned();
-        out.model_resolved = pairs.get("model_resolved").cloned();
-        out.terminal_result = pairs.get("terminal_result").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.trace_id = pairs.get("trace_id").cloned();
-        out.executed_at = pairs.get("executed_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExecutionEvidenceRef {
-    pub execution_evidence_ref: Option<String>,
-    pub selected_local_factory_ai_profile_ref: Option<String>,
-    pub install_level: Option<String>,
-    pub runtime_baseline_ref: Option<String>,
-    pub data_root_ref: Option<String>,
-    pub local_execution_target_evidence: Vec<String>,
-    pub selected_baseline_capability_proof: Vec<Box<ExecutionBaselineCapabilityProof>>,
-    pub submit_specific_scheduling_judgement: Option<Box<ExecutionSchedulingJudgement>>,
-    pub terminal_result: Option<String>,
-    pub observed_at: Option<String>,
-    pub runtime_audit_sequence: Vec<String>,
-    pub runtime_verifier_identity: Option<String>,
-}
-
-impl ExecutionEvidenceRef {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.execution_evidence_ref { pairs.push(format!("execution_evidence_ref={}", value)); }
-        if let Some(value) = &self.selected_local_factory_ai_profile_ref { pairs.push(format!("selected_local_factory_ai_profile_ref={}", value)); }
-        if let Some(value) = &self.install_level { pairs.push(format!("install_level={}", value)); }
-        if let Some(value) = &self.runtime_baseline_ref { pairs.push(format!("runtime_baseline_ref={}", value)); }
-        if let Some(value) = &self.data_root_ref { pairs.push(format!("data_root_ref={}", value)); }
-        for value in &self.local_execution_target_evidence { pairs.push(format!("local_execution_target_evidence={}", value)); }
-        if !self.selected_baseline_capability_proof.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode selected_baseline_capability_proof"); }
-        if self.submit_specific_scheduling_judgement.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode submit_specific_scheduling_judgement"); }
-        if let Some(value) = &self.terminal_result { pairs.push(format!("terminal_result={}", value)); }
-        if let Some(value) = &self.observed_at { pairs.push(format!("observed_at={}", value)); }
-        for value in &self.runtime_audit_sequence { pairs.push(format!("runtime_audit_sequence={}", value)); }
-        if let Some(value) = &self.runtime_verifier_identity { pairs.push(format!("runtime_verifier_identity={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["selected_baseline_capability_proof", "submit_specific_scheduling_judgement"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.execution_evidence_ref = pairs.get("execution_evidence_ref").cloned();
-        out.selected_local_factory_ai_profile_ref = pairs.get("selected_local_factory_ai_profile_ref").cloned();
-        out.install_level = pairs.get("install_level").cloned();
-        out.runtime_baseline_ref = pairs.get("runtime_baseline_ref").cloned();
-        out.data_root_ref = pairs.get("data_root_ref").cloned();
-        out.local_execution_target_evidence = parse_repeated_string(raw, "local_execution_target_evidence");
-        out.terminal_result = pairs.get("terminal_result").cloned();
-        out.observed_at = pairs.get("observed_at").cloned();
-        out.runtime_audit_sequence = parse_repeated_string(raw, "runtime_audit_sequence");
-        out.runtime_verifier_identity = pairs.get("runtime_verifier_identity").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExecutionSchedulingJudgement {
-    pub evaluated: Option<bool>,
-    pub capability: Option<String>,
-    pub scheduling_state: Option<String>,
-    pub detail: Option<String>,
-    pub evaluated_at: Option<String>,
-}
-
-impl ExecutionSchedulingJudgement {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.evaluated { pairs.push(format!("evaluated={}", value)); }
-        if let Some(value) = &self.capability { pairs.push(format!("capability={}", value)); }
-        if let Some(value) = &self.scheduling_state { pairs.push(format!("scheduling_state={}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        if let Some(value) = &self.evaluated_at { pairs.push(format!("evaluated_at={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.evaluated = pairs.get("evaluated").and_then(|value| value.parse().ok());
-        out.capability = pairs.get("capability").cloned();
-        out.scheduling_state = pairs.get("scheduling_state").cloned();
-        out.detail = pairs.get("detail").cloned();
-        out.evaluated_at = pairs.get("evaluated_at").cloned();
         out
     }
 }
@@ -19848,153 +19698,6 @@ impl MemoryRequestContext {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct MintFirstRunExecutionEvidenceRequest {
-    pub runtime_baseline_ref: Option<String>,
-    pub selected_local_factory_ai_profile_ref: Option<String>,
-    pub install_level: Option<String>,
-    pub data_root_ref: Option<String>,
-    pub host_profile: Option<Box<LocalDeviceProfile>>,
-    pub recommended_capabilities: Vec<String>,
-    pub submit_scheduling_evaluated: Option<bool>,
-}
-
-impl MintFirstRunExecutionEvidenceRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.runtime_baseline_ref { pairs.push(format!("runtime_baseline_ref={}", value)); }
-        if let Some(value) = &self.selected_local_factory_ai_profile_ref { pairs.push(format!("selected_local_factory_ai_profile_ref={}", value)); }
-        if let Some(value) = &self.install_level { pairs.push(format!("install_level={}", value)); }
-        if let Some(value) = &self.data_root_ref { pairs.push(format!("data_root_ref={}", value)); }
-        if self.host_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_profile"); }
-        for value in &self.recommended_capabilities { pairs.push(format!("recommended_capabilities={}", value)); }
-        if let Some(value) = &self.submit_scheduling_evaluated { pairs.push(format!("submit_scheduling_evaluated={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["host_profile"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.runtime_baseline_ref = pairs.get("runtime_baseline_ref").cloned();
-        out.selected_local_factory_ai_profile_ref = pairs.get("selected_local_factory_ai_profile_ref").cloned();
-        out.install_level = pairs.get("install_level").cloned();
-        out.data_root_ref = pairs.get("data_root_ref").cloned();
-        out.recommended_capabilities = parse_repeated_string(raw, "recommended_capabilities");
-        out.submit_scheduling_evaluated = pairs.get("submit_scheduling_evaluated").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MintFirstRunExecutionEvidenceResponse {
-    pub r#ref: Option<Box<ExecutionEvidenceRef>>,
-    pub state: Option<String>,
-    pub reason_code: Option<String>,
-    pub detail: Option<String>,
-}
-
-impl MintFirstRunExecutionEvidenceResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.r#ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ref"); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["ref"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.state = pairs.get("state").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.detail = pairs.get("detail").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MintRuntimeBaselineReadinessRequest {
-    pub selected_local_factory_ai_profile_ref: Option<String>,
-    pub install_level: Option<String>,
-    pub runtime_data_root_or_data_root_ref: Option<String>,
-    pub host_profile: Option<Box<LocalDeviceProfile>>,
-    pub baseline_consumers: Vec<Box<RuntimeBaselineConsumerBinding>>,
-}
-
-impl MintRuntimeBaselineReadinessRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.selected_local_factory_ai_profile_ref { pairs.push(format!("selected_local_factory_ai_profile_ref={}", value)); }
-        if let Some(value) = &self.install_level { pairs.push(format!("install_level={}", value)); }
-        if let Some(value) = &self.runtime_data_root_or_data_root_ref { pairs.push(format!("runtime_data_root_or_data_root_ref={}", value)); }
-        if self.host_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_profile"); }
-        if !self.baseline_consumers.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode baseline_consumers"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["host_profile", "baseline_consumers"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.selected_local_factory_ai_profile_ref = pairs.get("selected_local_factory_ai_profile_ref").cloned();
-        out.install_level = pairs.get("install_level").cloned();
-        out.runtime_data_root_or_data_root_ref = pairs.get("runtime_data_root_or_data_root_ref").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MintRuntimeBaselineReadinessResponse {
-    pub r#ref: Option<Box<RuntimeBaselineReadinessRef>>,
-    pub state: Option<String>,
-    pub reason_code: Option<String>,
-    pub detail: Option<String>,
-}
-
-impl MintRuntimeBaselineReadinessResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.r#ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ref"); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["ref"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.state = pairs.get("state").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.detail = pairs.get("detail").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ModelCapabilityProfile {
     pub supports_text_generate: Option<bool>,
     pub supports_text_stream: Option<bool>,
@@ -22004,54 +21707,6 @@ impl ReconcileProductControlFirstRunSetupStateRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RecordProductControlAccountDefaultProfileEvidenceRequest {
-    pub account_default_profile_evidence_json: Option<String>,
-}
-
-impl RecordProductControlAccountDefaultProfileEvidenceRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.account_default_profile_evidence_json { pairs.push(format!("account_default_profile_evidence_json={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.account_default_profile_evidence_json = pairs.get("account_default_profile_evidence_json").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
-    pub runtime_baseline_ref: Option<String>,
-    pub built_in_ai_config_evidence_json: Option<String>,
-    pub execution_evidence_ref: Option<String>,
-}
-
-impl RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.runtime_baseline_ref { pairs.push(format!("runtime_baseline_ref={}", value)); }
-        if let Some(value) = &self.built_in_ai_config_evidence_json { pairs.push(format!("built_in_ai_config_evidence_json={}", value)); }
-        if let Some(value) = &self.execution_evidence_ref { pairs.push(format!("execution_evidence_ref={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.runtime_baseline_ref = pairs.get("runtime_baseline_ref").cloned();
-        out.built_in_ai_config_evidence_json = pairs.get("built_in_ai_config_evidence_json").cloned();
-        out.execution_evidence_ref = pairs.get("execution_evidence_ref").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RefreshSessionRequest {
     pub session_id: Option<String>,
     pub ttl_seconds: Option<i32>,
@@ -23254,77 +22909,6 @@ impl ResolveAvatarLiveInstanceBindingResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResolveFirstRunExecutionEvidenceRequest {
-    pub execution_evidence_ref: Option<String>,
-    pub expected_runtime_baseline_ref: Option<String>,
-    pub expected_data_root_ref: Option<String>,
-    pub expected_install_level: Option<String>,
-    pub host_profile: Option<Box<LocalDeviceProfile>>,
-}
-
-impl ResolveFirstRunExecutionEvidenceRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.execution_evidence_ref { pairs.push(format!("execution_evidence_ref={}", value)); }
-        if let Some(value) = &self.expected_runtime_baseline_ref { pairs.push(format!("expected_runtime_baseline_ref={}", value)); }
-        if let Some(value) = &self.expected_data_root_ref { pairs.push(format!("expected_data_root_ref={}", value)); }
-        if let Some(value) = &self.expected_install_level { pairs.push(format!("expected_install_level={}", value)); }
-        if self.host_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_profile"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["host_profile"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.execution_evidence_ref = pairs.get("execution_evidence_ref").cloned();
-        out.expected_runtime_baseline_ref = pairs.get("expected_runtime_baseline_ref").cloned();
-        out.expected_data_root_ref = pairs.get("expected_data_root_ref").cloned();
-        out.expected_install_level = pairs.get("expected_install_level").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResolveFirstRunExecutionEvidenceResponse {
-    pub r#ref: Option<Box<ExecutionEvidenceRef>>,
-    pub state: Option<String>,
-    pub reason_code: Option<String>,
-    pub detail: Option<String>,
-}
-
-impl ResolveFirstRunExecutionEvidenceResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.r#ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ref"); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["ref"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.state = pairs.get("state").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.detail = pairs.get("detail").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResolveLocalEnvironmentActivationGateRequest {
     pub consumer_id: Option<String>,
     pub pack_id: Option<String>,
@@ -23679,68 +23263,6 @@ impl ResolveProfileResponse {
         }
 
 
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResolveRuntimeBaselineReadinessRequest {
-    pub runtime_baseline_ref: Option<String>,
-    pub host_profile: Option<Box<LocalDeviceProfile>>,
-}
-
-impl ResolveRuntimeBaselineReadinessRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.runtime_baseline_ref { pairs.push(format!("runtime_baseline_ref={}", value)); }
-        if self.host_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_profile"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["host_profile"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.runtime_baseline_ref = pairs.get("runtime_baseline_ref").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResolveRuntimeBaselineReadinessResponse {
-    pub r#ref: Option<Box<RuntimeBaselineReadinessRef>>,
-    pub state: Option<String>,
-    pub reason_code: Option<String>,
-    pub detail: Option<String>,
-}
-
-impl ResolveRuntimeBaselineReadinessResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.r#ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ref"); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["ref"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.state = pairs.get("state").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -24354,170 +23876,6 @@ impl RuntimeAgentAIConfigReadinessSnapshot {
 
         out.agent_instance_id = pairs.get("agent_instance_id").cloned();
         out.config_revision = pairs.get("config_revision").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeBaselineActivationConsumerEvidence {
-    pub consumer_id: Option<String>,
-    pub pack_id: Option<String>,
-    pub activation_state: Option<String>,
-    pub reason_code: Option<String>,
-    pub dependencies: Vec<Box<RuntimeBaselineActivationDependencyEvidence>>,
-    pub bound_asset_id: Option<String>,
-}
-
-impl RuntimeBaselineActivationConsumerEvidence {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.consumer_id { pairs.push(format!("consumer_id={}", value)); }
-        if let Some(value) = &self.pack_id { pairs.push(format!("pack_id={}", value)); }
-        if let Some(value) = &self.activation_state { pairs.push(format!("activation_state={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if !self.dependencies.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode dependencies"); }
-        if let Some(value) = &self.bound_asset_id { pairs.push(format!("bound_asset_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["dependencies"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.consumer_id = pairs.get("consumer_id").cloned();
-        out.pack_id = pairs.get("pack_id").cloned();
-        out.activation_state = pairs.get("activation_state").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.bound_asset_id = pairs.get("bound_asset_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeBaselineActivationDependencyEvidence {
-    pub dependency_family: Option<String>,
-    pub dependency_id: Option<String>,
-    pub environment_key: Option<String>,
-    pub selected_source_record_id: Option<String>,
-    pub source_kind: Option<String>,
-    pub dependency_state: Option<String>,
-    pub canonical_root: Option<String>,
-    pub materialization_or_system_source_verification_evidence: Option<String>,
-}
-
-impl RuntimeBaselineActivationDependencyEvidence {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.dependency_family { pairs.push(format!("dependency_family={}", value)); }
-        if let Some(value) = &self.dependency_id { pairs.push(format!("dependency_id={}", value)); }
-        if let Some(value) = &self.environment_key { pairs.push(format!("environment_key={}", value)); }
-        if let Some(value) = &self.selected_source_record_id { pairs.push(format!("selected_source_record_id={}", value)); }
-        if let Some(value) = &self.source_kind { pairs.push(format!("source_kind={}", value)); }
-        if let Some(value) = &self.dependency_state { pairs.push(format!("dependency_state={}", value)); }
-        if let Some(value) = &self.canonical_root { pairs.push(format!("canonical_root={}", value)); }
-        if let Some(value) = &self.materialization_or_system_source_verification_evidence { pairs.push(format!("materialization_or_system_source_verification_evidence={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.dependency_family = pairs.get("dependency_family").cloned();
-        out.dependency_id = pairs.get("dependency_id").cloned();
-        out.environment_key = pairs.get("environment_key").cloned();
-        out.selected_source_record_id = pairs.get("selected_source_record_id").cloned();
-        out.source_kind = pairs.get("source_kind").cloned();
-        out.dependency_state = pairs.get("dependency_state").cloned();
-        out.canonical_root = pairs.get("canonical_root").cloned();
-        out.materialization_or_system_source_verification_evidence = pairs.get("materialization_or_system_source_verification_evidence").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeBaselineConsumerBinding {
-    pub consumer_id: Option<String>,
-    pub asset_id: Option<String>,
-    pub local_asset_id: Option<String>,
-}
-
-impl RuntimeBaselineConsumerBinding {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.consumer_id { pairs.push(format!("consumer_id={}", value)); }
-        if let Some(value) = &self.asset_id { pairs.push(format!("asset_id={}", value)); }
-        if let Some(value) = &self.local_asset_id { pairs.push(format!("local_asset_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.consumer_id = pairs.get("consumer_id").cloned();
-        out.asset_id = pairs.get("asset_id").cloned();
-        out.local_asset_id = pairs.get("local_asset_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeBaselineReadinessRef {
-    pub runtime_baseline_ref: Option<String>,
-    pub selected_local_factory_ai_profile_ref: Option<String>,
-    pub install_level: Option<String>,
-    pub runtime_data_root_or_data_root_ref: Option<String>,
-    pub required_dependency_families: Vec<String>,
-    pub selected_source_record_ids: Vec<String>,
-    pub activation_ready_responses: Vec<Box<RuntimeBaselineActivationConsumerEvidence>>,
-    pub materialization_or_system_source_verification_evidence: Vec<String>,
-    pub observed_at: Option<String>,
-    pub runtime_verifier_identity: Option<String>,
-    pub runtime_audit_sequence: Vec<String>,
-}
-
-impl RuntimeBaselineReadinessRef {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.runtime_baseline_ref { pairs.push(format!("runtime_baseline_ref={}", value)); }
-        if let Some(value) = &self.selected_local_factory_ai_profile_ref { pairs.push(format!("selected_local_factory_ai_profile_ref={}", value)); }
-        if let Some(value) = &self.install_level { pairs.push(format!("install_level={}", value)); }
-        if let Some(value) = &self.runtime_data_root_or_data_root_ref { pairs.push(format!("runtime_data_root_or_data_root_ref={}", value)); }
-        for value in &self.required_dependency_families { pairs.push(format!("required_dependency_families={}", value)); }
-        for value in &self.selected_source_record_ids { pairs.push(format!("selected_source_record_ids={}", value)); }
-        if !self.activation_ready_responses.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode activation_ready_responses"); }
-        for value in &self.materialization_or_system_source_verification_evidence { pairs.push(format!("materialization_or_system_source_verification_evidence={}", value)); }
-        if let Some(value) = &self.observed_at { pairs.push(format!("observed_at={}", value)); }
-        if let Some(value) = &self.runtime_verifier_identity { pairs.push(format!("runtime_verifier_identity={}", value)); }
-        for value in &self.runtime_audit_sequence { pairs.push(format!("runtime_audit_sequence={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["activation_ready_responses"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.runtime_baseline_ref = pairs.get("runtime_baseline_ref").cloned();
-        out.selected_local_factory_ai_profile_ref = pairs.get("selected_local_factory_ai_profile_ref").cloned();
-        out.install_level = pairs.get("install_level").cloned();
-        out.runtime_data_root_or_data_root_ref = pairs.get("runtime_data_root_or_data_root_ref").cloned();
-        out.required_dependency_families = parse_repeated_string(raw, "required_dependency_families");
-        out.selected_source_record_ids = parse_repeated_string(raw, "selected_source_record_ids");
-        out.materialization_or_system_source_verification_evidence = parse_repeated_string(raw, "materialization_or_system_source_verification_evidence");
-        out.observed_at = pairs.get("observed_at").cloned();
-        out.runtime_verifier_identity = pairs.get("runtime_verifier_identity").cloned();
-        out.runtime_audit_sequence = parse_repeated_string(raw, "runtime_audit_sequence");
         out
     }
 }
@@ -30801,24 +30159,6 @@ impl From<Vec<u8>> for ExecuteScenarioResponse {
     }
 }
 
-impl From<Vec<u8>> for ExecutionBaselineCapabilityProof {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ExecutionEvidenceRef {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ExecutionSchedulingJudgement {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ExportAuditEventsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32691,30 +32031,6 @@ impl From<Vec<u8>> for MemoryRequestContext {
     }
 }
 
-impl From<Vec<u8>> for MintFirstRunExecutionEvidenceRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for MintFirstRunExecutionEvidenceResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for MintRuntimeBaselineReadinessRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for MintRuntimeBaselineReadinessResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ModelCapabilityProfile {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33087,18 +32403,6 @@ impl From<Vec<u8>> for ReconcileProductControlFirstRunSetupStateRequest {
     }
 }
 
-impl From<Vec<u8>> for RecordProductControlAccountDefaultProfileEvidenceRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for RefreshSessionRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33339,18 +32643,6 @@ impl From<Vec<u8>> for ResolveAvatarLiveInstanceBindingResponse {
     }
 }
 
-impl From<Vec<u8>> for ResolveFirstRunExecutionEvidenceRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ResolveFirstRunExecutionEvidenceResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ResolveLocalEnvironmentActivationGateRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33406,18 +32698,6 @@ impl From<Vec<u8>> for ResolveProfileRequest {
 }
 
 impl From<Vec<u8>> for ResolveProfileResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ResolveRuntimeBaselineReadinessRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ResolveRuntimeBaselineReadinessResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33538,30 +32818,6 @@ impl From<Vec<u8>> for RuntimeAgentAIConfigIntent {
 }
 
 impl From<Vec<u8>> for RuntimeAgentAIConfigReadinessSnapshot {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeBaselineActivationConsumerEvidence {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeBaselineActivationDependencyEvidence {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeBaselineConsumerBinding {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeBaselineReadinessRef {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36615,26 +35871,6 @@ where
         Ok(ListVerifiedAssetsResponse::from_transport(&raw))
     }
 
-    pub fn mint_first_run_execution_evidence(&self, request: MintFirstRunExecutionEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MintFirstRunExecutionEvidenceResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(MintFirstRunExecutionEvidenceResponse::from_transport(&raw))
-    }
-
-    pub fn mint_runtime_baseline_readiness(&self, request: MintRuntimeBaselineReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MintRuntimeBaselineReadinessResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(MintRuntimeBaselineReadinessResponse::from_transport(&raw))
-    }
-
     pub fn pause_local_transfer(&self, request: PauseLocalTransferRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PauseLocalTransferResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer".to_string(),
@@ -36658,26 +35894,6 @@ where
     pub fn reconcile_product_control_first_run_setup_state(&self, request: ReconcileProductControlFirstRunSetupStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
-    }
-
-    pub fn record_product_control_account_default_profile_evidence(&self, request: RecordProductControlAccountDefaultProfileEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
-    }
-
-    pub fn record_product_control_first_run_local_ai_ready_evidence(&self, request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -36723,16 +35939,6 @@ where
             timeout,
         })?;
         Ok(RescanLocalAssetBundleResponse::from_transport(&raw))
-    }
-
-    pub fn resolve_first_run_execution_evidence(&self, request: ResolveFirstRunExecutionEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveFirstRunExecutionEvidenceResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ResolveFirstRunExecutionEvidenceResponse::from_transport(&raw))
     }
 
     pub fn resolve_local_environment_activation_gate(&self, request: ResolveLocalEnvironmentActivationGateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveLocalEnvironmentActivationGateResponse, T::Error> {
@@ -36783,16 +35989,6 @@ where
             timeout,
         })?;
         Ok(ResolveProfileResponse::from_transport(&raw))
-    }
-
-    pub fn resolve_runtime_baseline_readiness(&self, request: ResolveRuntimeBaselineReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveRuntimeBaselineReadinessResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ResolveRuntimeBaselineReadinessResponse::from_transport(&raw))
     }
 
     pub fn resume_local_transfer(&self, request: ResumeLocalTransferRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResumeLocalTransferResponse, T::Error> {

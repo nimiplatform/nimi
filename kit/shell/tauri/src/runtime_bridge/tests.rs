@@ -247,20 +247,6 @@ fn host_typed_unary_metadata_bypasses_renderer_trusted_metadata_hook_before_over
 }
 
 #[test]
-fn first_run_ready_admission_resolve_methods_are_not_publicly_allowlisted() {
-    // P-COLD-016 product ready admission steps 5 and 7 consume these two
-    // RuntimeLocalService RPCs only through the protected desktop transport.
-    // The ordinary Runtime bridge must never admit them.
-    let baseline = "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness";
-    let execution = "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence";
-    assert!(!is_allowlisted_method(baseline));
-    assert!(!is_allowlisted_method(execution));
-    // Both are unary resolve calls, not streams.
-    assert!(!is_stream_method(baseline));
-    assert!(!is_stream_method(execution));
-}
-
-#[test]
 fn account_presence_verification_is_not_exposed_through_generic_bridge() {
     let method = "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification";
 

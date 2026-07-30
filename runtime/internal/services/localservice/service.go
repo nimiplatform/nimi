@@ -114,9 +114,6 @@ type Service struct {
 	localEnvironmentPrerequisiteWaitTimeout time.Duration
 	jobLifetimeCtx                          context.Context
 	jobLifetimeCancel                       context.CancelFunc
-	runtimeBaselineReadinessRecords         map[string]runtimeBaselineReadinessRecord
-	firstRunExecutionEvidenceRecords        map[string]firstRunExecutionEvidenceRecord
-	firstRunLocalExecutor                   FirstRunLocalExecution
 	localProviderEndpointSink               LocalProviderEndpointSink
 	managedLlamaLoadMu                      sync.Mutex
 
@@ -221,8 +218,6 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		localEnvironmentDependencyJobs:          make(map[string]localEnvironmentDependencyJobState),
 		localEnvironmentPlanDependencyContracts: make(map[string]localEnvironmentPlanDependencyContractState),
 		localEnvironmentJobCancels:              make(map[string]context.CancelFunc),
-		runtimeBaselineReadinessRecords:         make(map[string]runtimeBaselineReadinessRecord),
-		firstRunExecutionEvidenceRecords:        make(map[string]firstRunExecutionEvidenceRecord),
 		profileRegistry:                         NewProfileRegistry(),
 		endpointProbe:                           defaultEndpointProbe,
 		hfCatalogSearch:                         defaultHFCatalogSearch,

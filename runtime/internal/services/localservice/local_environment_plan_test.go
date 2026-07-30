@@ -438,7 +438,7 @@ func TestResolveLocalEnvironmentPlanDemotesSelectedSourceWithMissingLocalArtifac
 	defer func() { svc.Close() }()
 
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
-	profile := runtimeBaselineCPUProfile()
+	profile := localEnvironmentCPUProfileForTest()
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-speech",
 		ConsumerScope:   "speech.qwen3-tts.python",

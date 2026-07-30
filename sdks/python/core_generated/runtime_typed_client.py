@@ -334,8 +334,7 @@ class AddLinkResponse:
 
 @dataclass(frozen=True)
 class AdmitProductControlReadyForUseRequest:
-    account_default_profile_evidence_json: str | None = None
-    built_in_ai_config_evidence_json: str | None = None
+    pass
 
 @dataclass(frozen=True)
 class AgentAutonomyConfig:
@@ -1682,43 +1681,6 @@ class ExecuteScenarioResponse:
     trace_id: str | None = None
     ignored_extensions: tuple[IgnoredScenarioExtension, ...] = field(default_factory=tuple)
     resolved_execution_binding: RuntimeResolvedExecutionBinding | None = None
-
-@dataclass(frozen=True)
-class ExecutionBaselineCapabilityProof:
-    capability: str | None = None
-    scenario_type: ScenarioType | None = None
-    bound_consumer_id: str | None = None
-    bound_asset_id: str | None = None
-    local_route_target: str | None = None
-    route_policy: RoutePolicy | None = None
-    model_resolved: str | None = None
-    terminal_result: str | None = None
-    reason_code: str | None = None
-    trace_id: str | None = None
-    executed_at: str | None = None
-
-@dataclass(frozen=True)
-class ExecutionEvidenceRef:
-    execution_evidence_ref: str | None = None
-    selected_local_factory_ai_profile_ref: str | None = None
-    install_level: str | None = None
-    runtime_baseline_ref: str | None = None
-    data_root_ref: str | None = None
-    local_execution_target_evidence: tuple[str, ...] = field(default_factory=tuple)
-    selected_baseline_capability_proof: tuple[ExecutionBaselineCapabilityProof, ...] = field(default_factory=tuple)
-    submit_specific_scheduling_judgement: ExecutionSchedulingJudgement | None = None
-    terminal_result: str | None = None
-    observed_at: str | None = None
-    runtime_audit_sequence: tuple[str, ...] = field(default_factory=tuple)
-    runtime_verifier_identity: str | None = None
-
-@dataclass(frozen=True)
-class ExecutionSchedulingJudgement:
-    evaluated: bool | None = None
-    capability: str | None = None
-    scheduling_state: str | None = None
-    detail: str | None = None
-    evaluated_at: str | None = None
 
 @dataclass(frozen=True)
 class ExportAuditEventsRequest:
@@ -4049,38 +4011,6 @@ class MemoryRequestContext:
     subject_user_id: str | None = None
 
 @dataclass(frozen=True)
-class MintFirstRunExecutionEvidenceRequest:
-    runtime_baseline_ref: str | None = None
-    selected_local_factory_ai_profile_ref: str | None = None
-    install_level: str | None = None
-    data_root_ref: str | None = None
-    host_profile: LocalDeviceProfile | None = None
-    recommended_capabilities: tuple[str, ...] = field(default_factory=tuple)
-    submit_scheduling_evaluated: bool | None = None
-
-@dataclass(frozen=True)
-class MintFirstRunExecutionEvidenceResponse:
-    ref: ExecutionEvidenceRef | None = None
-    state: str | None = None
-    reason_code: str | None = None
-    detail: str | None = None
-
-@dataclass(frozen=True)
-class MintRuntimeBaselineReadinessRequest:
-    selected_local_factory_ai_profile_ref: str | None = None
-    install_level: str | None = None
-    runtime_data_root_or_data_root_ref: str | None = None
-    host_profile: LocalDeviceProfile | None = None
-    baseline_consumers: tuple[RuntimeBaselineConsumerBinding, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class MintRuntimeBaselineReadinessResponse:
-    ref: RuntimeBaselineReadinessRef | None = None
-    state: str | None = None
-    reason_code: str | None = None
-    detail: str | None = None
-
-@dataclass(frozen=True)
 class ModelCapabilityProfile:
     supports_text_generate: bool | None = None
     supports_text_stream: bool | None = None
@@ -4504,16 +4434,6 @@ class ReconcileProductControlFirstRunSetupStateRequest:
     pass
 
 @dataclass(frozen=True)
-class RecordProductControlAccountDefaultProfileEvidenceRequest:
-    account_default_profile_evidence_json: str | None = None
-
-@dataclass(frozen=True)
-class RecordProductControlFirstRunLocalAiReadyEvidenceRequest:
-    runtime_baseline_ref: str | None = None
-    built_in_ai_config_evidence_json: str | None = None
-    execution_evidence_ref: str | None = None
-
-@dataclass(frozen=True)
 class RefreshSessionRequest:
     session_id: str | None = None
     ttl_seconds: int | None = None
@@ -4749,21 +4669,6 @@ class ResolveAvatarLiveInstanceBindingResponse:
     snapshot: ConversationAnchorSnapshot | None = None
 
 @dataclass(frozen=True)
-class ResolveFirstRunExecutionEvidenceRequest:
-    execution_evidence_ref: str | None = None
-    expected_runtime_baseline_ref: str | None = None
-    expected_data_root_ref: str | None = None
-    expected_install_level: str | None = None
-    host_profile: LocalDeviceProfile | None = None
-
-@dataclass(frozen=True)
-class ResolveFirstRunExecutionEvidenceResponse:
-    ref: ExecutionEvidenceRef | None = None
-    state: str | None = None
-    reason_code: str | None = None
-    detail: str | None = None
-
-@dataclass(frozen=True)
 class ResolveLocalEnvironmentActivationGateRequest:
     consumer_id: str | None = None
     pack_id: str | None = None
@@ -4834,18 +4739,6 @@ class ResolveProfileRequest:
 @dataclass(frozen=True)
 class ResolveProfileResponse:
     plan: LocalProfileResolutionPlan | None = None
-
-@dataclass(frozen=True)
-class ResolveRuntimeBaselineReadinessRequest:
-    runtime_baseline_ref: str | None = None
-    host_profile: LocalDeviceProfile | None = None
-
-@dataclass(frozen=True)
-class ResolveRuntimeBaselineReadinessResponse:
-    ref: RuntimeBaselineReadinessRef | None = None
-    state: str | None = None
-    reason_code: str | None = None
-    detail: str | None = None
 
 @dataclass(frozen=True)
 class ResourceSelectors:
@@ -4964,46 +4857,6 @@ class RuntimeAgentAIConfigReadinessSnapshot:
     agent_instance_id: str | None = None
     config_revision: int | None = None
     capabilities: tuple[RuntimeAgentAIConfigCapabilityReadiness, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RuntimeBaselineActivationConsumerEvidence:
-    consumer_id: str | None = None
-    pack_id: str | None = None
-    activation_state: str | None = None
-    reason_code: str | None = None
-    dependencies: tuple[RuntimeBaselineActivationDependencyEvidence, ...] = field(default_factory=tuple)
-    bound_asset_id: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeBaselineActivationDependencyEvidence:
-    dependency_family: str | None = None
-    dependency_id: str | None = None
-    environment_key: str | None = None
-    selected_source_record_id: str | None = None
-    source_kind: str | None = None
-    dependency_state: str | None = None
-    canonical_root: str | None = None
-    materialization_or_system_source_verification_evidence: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeBaselineConsumerBinding:
-    consumer_id: str | None = None
-    asset_id: str | None = None
-    local_asset_id: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeBaselineReadinessRef:
-    runtime_baseline_ref: str | None = None
-    selected_local_factory_ai_profile_ref: str | None = None
-    install_level: str | None = None
-    runtime_data_root_or_data_root_ref: str | None = None
-    required_dependency_families: tuple[str, ...] = field(default_factory=tuple)
-    selected_source_record_ids: tuple[str, ...] = field(default_factory=tuple)
-    activation_ready_responses: tuple[RuntimeBaselineActivationConsumerEvidence, ...] = field(default_factory=tuple)
-    materialization_or_system_source_verification_evidence: tuple[str, ...] = field(default_factory=tuple)
-    observed_at: str | None = None
-    runtime_verifier_identity: str | None = None
-    runtime_audit_sequence: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class RuntimeDurableCloudTargetRef:
@@ -6924,14 +6777,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListVerifiedAssetsResponse, raw)
 
-    async def mint_first_run_execution_evidence(self, request: MintFirstRunExecutionEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> MintFirstRunExecutionEvidenceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(MintFirstRunExecutionEvidenceResponse, raw)
-
-    async def mint_runtime_baseline_readiness(self, request: MintRuntimeBaselineReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> MintRuntimeBaselineReadinessResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(MintRuntimeBaselineReadinessResponse, raw)
-
     async def pause_local_transfer(self, request: PauseLocalTransferRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PauseLocalTransferResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PauseLocalTransferResponse, raw)
@@ -6942,14 +6787,6 @@ class RuntimeTypedClient:
 
     async def reconcile_product_control_first_run_setup_state(self, request: ReconcileProductControlFirstRunSetupStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ProductControlProjectionJson, raw)
-
-    async def record_product_control_account_default_profile_evidence(self, request: RecordProductControlAccountDefaultProfileEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ProductControlProjectionJson, raw)
-
-    async def record_product_control_first_run_local_ai_ready_evidence(self, request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def remove_local_asset(self, request: RemoveLocalAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RemoveLocalAssetResponse:
@@ -6967,10 +6804,6 @@ class RuntimeTypedClient:
     async def rescan_local_asset_bundle(self, request: RescanLocalAssetBundleRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RescanLocalAssetBundleResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RescanLocalAssetBundleResponse, raw)
-
-    async def resolve_first_run_execution_evidence(self, request: ResolveFirstRunExecutionEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveFirstRunExecutionEvidenceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ResolveFirstRunExecutionEvidenceResponse, raw)
 
     async def resolve_local_environment_activation_gate(self, request: ResolveLocalEnvironmentActivationGateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveLocalEnvironmentActivationGateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6991,10 +6824,6 @@ class RuntimeTypedClient:
     async def resolve_profile(self, request: ResolveProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveProfileResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveProfileResponse, raw)
-
-    async def resolve_runtime_baseline_readiness(self, request: ResolveRuntimeBaselineReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveRuntimeBaselineReadinessResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ResolveRuntimeBaselineReadinessResponse, raw)
 
     async def resume_local_transfer(self, request: ResumeLocalTransferRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResumeLocalTransferResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

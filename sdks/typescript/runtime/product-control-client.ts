@@ -5,14 +5,11 @@ import {
 import type {
   NimiProductControlRecordProjection,
   NimiProductControlSelectedDataRootProjection,
-  NimiRuntimeProductControlAccountDefaultProfileEvidenceInput,
   NimiRuntimeProductControlCallOptions,
   NimiRuntimeProductControlClientFor,
   NimiRuntimeProductControlDataRootSelectionInput,
   NimiRuntimeProductControlFirstRunInstallLevelInput,
-  NimiRuntimeProductControlFirstRunLocalAiReadyEvidenceInput,
   NimiRuntimeProductControlLocalClient,
-  NimiRuntimeProductControlReadyForUseAdmissionInput,
 } from './product-control-types';
 
 function runtimeNimiProductControlLocalClient<Method extends keyof NimiRuntimeProductControlLocalClient>(
@@ -85,40 +82,10 @@ export async function completeNimiRuntimeProductControlFirstRunDeviceEnvironment
 
 export async function admitNimiRuntimeProductControlReadyForUse(
   client: NimiRuntimeProductControlClientFor<'admitProductControlReadyForUse'>,
-  input: NimiRuntimeProductControlReadyForUseAdmissionInput,
   options?: NimiRuntimeProductControlCallOptions,
 ): Promise<NimiProductControlRecordProjection> {
   const response = await runtimeNimiProductControlLocalClient(client)
-    .admitProductControlReadyForUse({
-      accountDefaultProfileEvidenceJson: input.accountDefaultProfileEvidenceJson,
-      builtInAiConfigEvidenceJson: input.builtInAiConfigEvidenceJson,
-    }, options?.callOptions);
-  return parseNimiProductControlProjectionJson(response);
-}
-
-export async function recordNimiRuntimeProductControlAccountDefaultProfileEvidence(
-  client: NimiRuntimeProductControlClientFor<'recordProductControlAccountDefaultProfileEvidence'>,
-  input: NimiRuntimeProductControlAccountDefaultProfileEvidenceInput,
-  options?: NimiRuntimeProductControlCallOptions,
-): Promise<NimiProductControlRecordProjection> {
-  const response = await runtimeNimiProductControlLocalClient(client)
-    .recordProductControlAccountDefaultProfileEvidence({
-      accountDefaultProfileEvidenceJson: input.accountDefaultProfileEvidenceJson,
-    }, options?.callOptions);
-  return parseNimiProductControlProjectionJson(response);
-}
-
-export async function recordNimiRuntimeProductControlFirstRunLocalAiReadyEvidence(
-  client: NimiRuntimeProductControlClientFor<'recordProductControlFirstRunLocalAiReadyEvidence'>,
-  input: NimiRuntimeProductControlFirstRunLocalAiReadyEvidenceInput,
-  options?: NimiRuntimeProductControlCallOptions,
-): Promise<NimiProductControlRecordProjection> {
-  const response = await runtimeNimiProductControlLocalClient(client)
-    .recordProductControlFirstRunLocalAiReadyEvidence({
-      runtimeBaselineRef: input.runtimeBaselineRef,
-      builtInAiConfigEvidenceJson: input.builtInAiConfigEvidenceJson,
-      executionEvidenceRef: input.executionEvidenceRef,
-    }, options?.callOptions);
+    .admitProductControlReadyForUse({}, options?.callOptions);
   return parseNimiProductControlProjectionJson(response);
 }
 
