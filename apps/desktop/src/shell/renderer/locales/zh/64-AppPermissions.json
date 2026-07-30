@@ -1,15 +1,33 @@
 {
   "approval": {
     "title": "{{app}} 请求与你账户内的全部 Agent 交互",
+    "combinedTitle": "{{app}} 请求 {{count}} 项 Agent 权限",
     "subtitle": "授权后，此 App 可访问你账户内当前及未来创建的全部 Agent。",
-    "queue": "还有 {{count}} 个授权请求等待处理。"
+    "combinedSubtitle": "请逐项审查并单独决定；一项的决定不会替其他项目作出决定。",
+    "queue": "还有 {{count}} 组授权请求等待处理。"
   },
   "intent": {
-    "agentsInteract": "与你账户内的全部 Agent 交互"
+    "agentsInteract": "与你账户内的全部 Agent 交互",
+    "agentsConfigure": "配置你的 Agent",
+    "memoryRead": "读取 Agent 记忆",
+    "agentsVoice": "使用 Agent 语音与转写",
+    "agentsDelegate": "委托 Agent 执行操作"
+  },
+  "intentDescription": {
+    "agentsInteract": "为当前及未来创建的 Agent 打开会话、发送消息并接收会话更新。",
+    "agentsConfigure": "读取和修改模型、行为、自主性、默认语音引用及外观设置。",
+    "memoryRead": "读取当前及未来创建的 Agent 的记忆内容。",
+    "agentsVoice": "为当前及未来创建的 Agent 使用语音与转写执行能力。",
+    "agentsDelegate": "让当前及未来创建的 Agent 执行委托操作。"
+  },
+  "dependency": {
+    "interactRequired": "需要此账户中有效的“与 Agent 交互”授权。",
+    "interactMissing": "请先批准“与 Agent 交互”。该授权生效前，无法批准此项目。",
+    "interactIneffective": "由于此账户尚未授权“与 Agent 交互”，此授权当前不会生效。"
   },
   "scope": {
     "title": "此账户内的全部 Agent",
-    "description": "当前及未来创建的 Agent 会自动纳入；撤销后将同时失去对全部 Agent 的访问。"
+    "description": "当前及未来创建的 Agent 会自动纳入；撤销某项权限后，全部 Agent 都将失去对应访问。"
   },
   "field": {
     "app": "App",
@@ -20,19 +38,24 @@
     "pending": "等待处理",
     "granted": "已授权",
     "denied": "已拒绝",
+    "revoked": "已撤销",
     "unavailable": "暂不可用"
   },
   "state": {
     "loading": "正在加载…",
     "denied": "请求已拒绝。",
-    "error": "授权管理暂不可用，请重试。"
+    "error": "授权管理暂不可用，请重试。",
+    "ambiguousOwner": "无法确定此 App 的唯一权限归属。",
+    "unsafeRevoke": "无法安全撤销此权限。"
   },
   "settings": {
     "title": "App 权限",
-    "description": "管理此 App 对 Nimi 所有能力的访问。",
+    "description": "独立管理每一项已授权的 Agent 能力。",
     "currentAgents": "当前覆盖的 Agent",
     "noCurrentAgents": "此账户目前还没有 Agent；未来创建的 Agent 会自动纳入。",
-    "revokeConfirm": "撤销对此账户内当前及未来全部 Agent 的访问？"
+    "noPermissions": "此 App 没有 Agent 权限记录。",
+    "revokeConfirm": "撤销“{{permission}}”对当前及未来全部 Agent 的访问？",
+    "interactCascadeWarning": "撤销“与 Agent 交互”后，此账户中的“配置 Agent”“Agent 语音”及“委托操作”授权会立即失效；“读取 Agent 记忆”仍保持独立。"
   },
   "action": {
     "approve": "批准",

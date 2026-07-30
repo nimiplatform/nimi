@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import {
   app,
   BrowserWindow,
@@ -64,6 +64,11 @@ import {
   type MenuBarFixedRuntimeStatus,
 } from './menu-bar-host.js';
 import {
+  createDesktopAppOriginProtocol,
+  NIMI_DESKTOP_APP_PROTOCOL_PRIVILEGES,
+  NIMI_DESKTOP_APP_PROTOCOL_SCHEME,
+} from './app-origin-protocol.js';
+import {
   MENU_BAR_OPEN_TAB_EVENT,
   type MenuBarOpenTabPayload,
 } from '../src/shell/shared/menu-bar-types.js';
@@ -83,9 +88,14 @@ const currentDir = path.dirname(currentFilePath);
 const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
-const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererDistAvatarIndex = path.join(appRoot, 'avatar', 'dist', 'index.html');
-const rendererDistAvatarUrl = pathToFileURL(rendererDistAvatarIndex).toString();
+const appOriginProtocol = createDesktopAppOriginProtocol({
+  protocol,
+  roots: {
+    desktop: path.dirname(rendererDistIndex),
+    avatar: path.dirname(rendererDistAvatarIndex),
+  },
+});
 const rendererUrl = MACOS_LOCAL_DEVELOPMENT_BUILD
   ? MACOS_LOCAL_DEVELOPMENT_RENDERER_URL
   : ELECTRON_DEVELOPMENT_BUILD
@@ -93,7 +103,7 @@ const rendererUrl = MACOS_LOCAL_DEVELOPMENT_BUILD
     : '';
 const bundledAvatarRendererUrl = ELECTRON_DEVELOPMENT_BUILD
   ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL) || 'http://127.0.0.1:1427'
-  : rendererDistAvatarUrl;
+  : appOriginProtocol.rendererUrl('avatar');
 const AVATAR_ONLY_DEVELOPMENT_MODE = ELECTRON_DEVELOPMENT_BUILD
   && normalizeText(process.env.NIMI_DESKTOP_ELECTRON_AVATAR_ONLY) === '1';
 // Nimi Desktop has no public Runtime TCP endpoint. Kit uses this non-endpoint
@@ -145,6 +155,10 @@ if (!ownsDesktopInstanceLock) {
       scheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.scheme,
       privileges: { ...NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.privileges },
     },
+    {
+      scheme: NIMI_DESKTOP_APP_PROTOCOL_SCHEME,
+      privileges: { ...NIMI_DESKTOP_APP_PROTOCOL_PRIVILEGES },
+    },
   ]);
 
   void bootstrapDesktopElectronHost();
@@ -154,6 +168,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
     localAssetProtocolHost.registerProtocolHandler();
+    appOriginProtocol.register();
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
       homeDirectory: app.getPath('home'),
       focusMainWindow: focusDesktopMainWindow,
@@ -219,6 +234,8 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     });
     bundledAvatarHost = await createDesktopElectronBundledAvatarHost({
       rendererUrl: bundledAvatarRendererUrl,
+      packagedRendererIndexPath: ELECTRON_DEVELOPMENT_BUILD ? undefined : rendererDistAvatarIndex,
+      publishPreviewImage: (bytes) => appOriginProtocol.publishAvatarPreview(bytes),
       preloadPath,
       resolveAppPrivateDataRoot: async () => path.join(
         await resolveProductControlDataRoot(),
@@ -431,7 +448,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     menuBarHost?.setWindowVisible(false);
   });
   secureDesktopWindow(window);
-  await window.loadURL(rendererUrl || rendererDistUrl);
+  await window.loadURL(rendererUrl || appOriginProtocol.rendererUrl('desktop'));
   return window;
 }
 
@@ -486,7 +503,7 @@ function allowedRendererOrigins(): string[] {
 }
 
 function allowedRendererUrls(): string[] {
-  const urls = new Set<string>([rendererUrl || rendererDistUrl]);
+  const urls = new Set<string>([rendererUrl || appOriginProtocol.rendererUrl('desktop')]);
   const configured = ELECTRON_DEVELOPMENT_BUILD
     ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_RENDERER_URLS)
     : '';

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, stat } from 'node:fs/promises';
 import {
   BrowserWindow,
   screen,
@@ -26,6 +26,22 @@ import { createBundledAvatarWindowOptions } from './bundled-avatar-window-option
 
 const AVATAR_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
 const AVATAR_NAS_CHANGED_EVENT = 'avatar://nas-handlers-changed';
+const AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview-request';
+const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_center_preview_complete';
+const AVATAR_AGENT_CENTER_PREVIEW_TIMEOUT_MS = 5_000;
+
+type AvatarPreviewProjectionRequest = {
+  readonly requestId: string;
+  readonly agentId: string;
+  readonly avatarAssetRef: string;
+  readonly backendKind: 'live2d' | 'vrm';
+  readonly previewMaterialRef: string;
+  readonly backendCapabilityProfileRef: string | null;
+};
+
+type AvatarPreviewProjectionResult = Readonly<Record<string, unknown>> & {
+  readonly state: 'ready' | 'failed' | 'unavailable' | 'loading';
+};
 
 type AvatarWindowRecord = {
   readonly window: BrowserWindow;
@@ -46,6 +62,8 @@ export type CreateDesktopElectronBundledAvatarHostInput = {
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
   readonly resolveSelectedDataRoot: () => Promise<string>;
   readonly devRendererRoot?: string;
+  readonly packagedRendererIndexPath?: string;
+  readonly publishPreviewImage?: (bytes: Uint8Array) => string;
 };
 
 export async function createDesktopElectronBundledAvatarHost(
@@ -65,11 +83,18 @@ export async function createDesktopElectronBundledAvatarHost(
   });
   const windows = new Map<string, AvatarWindowRecord>();
   const nasWatchers = new Map<string, FSWatcher>();
+  const pendingPreviewRequests = new Map<string, {
+    readonly record: AvatarWindowRecord;
+    readonly request: AvatarPreviewProjectionRequest;
+    readonly resolve: (value: Readonly<Record<string, unknown>>) => void;
+    readonly timeout: ReturnType<typeof setTimeout>;
+  }>();
   const senderInvalidationListeners = new Set<(sender: object) => void>();
   let devRendererProcess: ChildProcess | undefined;
   const ensureRendererReady = () => ensureBundledAvatarDevRenderer(
     rendererUrl,
     input.devRendererRoot,
+    input.packagedRendererIndexPath,
     () => devRendererProcess,
     (process) => { devRendererProcess = process; },
   );
@@ -90,6 +115,26 @@ export async function createDesktopElectronBundledAvatarHost(
     nasWatchers.delete(watcherId);
   };
 
+  const completePendingPreview = (
+    requestId: string,
+    value: Readonly<Record<string, unknown>>,
+  ): void => {
+    const pending = pendingPreviewRequests.get(requestId);
+    if (!pending) return;
+    clearTimeout(pending.timeout);
+    pendingPreviewRequests.delete(requestId);
+    pending.resolve(value);
+  };
+
+  const releasePendingPreviewsForRecord = (record: AvatarWindowRecord, reason: string): void => {
+    for (const [requestId, pending] of pendingPreviewRequests) {
+      if (pending.record !== record) continue;
+      completePendingPreview(requestId, {
+        result: unavailablePreviewResult(pending.request, reason),
+      });
+    }
+  };
+
   const createWindow = async (launchContext: AvatarLaunchHandoffPayload): Promise<BrowserWindow> => {
     await ensureRendererReady();
     const existing = launchContext.avatarInstanceId ? windows.get(launchContext.avatarInstanceId) : undefined;
@@ -102,12 +147,14 @@ export async function createDesktopElectronBundledAvatarHost(
     const avatarInstanceId = launchContext.avatarInstanceId || `desktop-avatar-${randomUUID()}`;
     const canonicalContext = { ...launchContext, avatarInstanceId };
     const window = new BrowserWindow(createBundledAvatarWindowOptions(input.preloadPath));
-    windows.set(avatarInstanceId, { window, launchContext: canonicalContext });
+    const windowRecord: AvatarWindowRecord = { window, launchContext: canonicalContext };
+    windows.set(avatarInstanceId, windowRecord);
     const sender = window.webContents;
     let senderReleased = false;
     const releaseWindow = (): void => {
       const current = windows.get(avatarInstanceId);
       if (current?.window === window) windows.delete(avatarInstanceId);
+      releasePendingPreviewsForRecord(windowRecord, 'Avatar preview renderer window closed before projection completed.');
       if (!senderReleased) {
         senderReleased = true;
         invalidateSender(sender);
@@ -168,12 +215,89 @@ export async function createDesktopElectronBundledAvatarHost(
           launchSource: record.launchContext.launchSource,
         }));
     },
+    desktop_avatar_preview_projection: ({ payload }) => {
+      const nested = exactNestedPayload(payload, 'desktop_avatar_preview_projection');
+      assertOnlyKeys(
+        nested,
+        ['agentId', 'avatarAssetRef', 'backendKind', 'previewMaterialRef', 'backendCapabilityProfileRef'],
+        'desktop_avatar_preview_projection',
+      );
+      const agentId = requiredLocalAgentRef(nested.agentId, 'agentId');
+      const backendKind = requiredPreviewBackendKind(nested.backendKind);
+      const request: AvatarPreviewProjectionRequest = {
+        requestId: randomUUID(),
+        agentId,
+        avatarAssetRef: requiredText(nested.avatarAssetRef, 'avatarAssetRef'),
+        backendKind,
+        previewMaterialRef: requiredText(nested.previewMaterialRef, 'previewMaterialRef'),
+        backendCapabilityProfileRef: optionalText(nested.backendCapabilityProfileRef),
+      };
+      const record = [...windows.values()].find((candidate) => (
+        !candidate.window.isDestroyed()
+        && candidate.launchContext.agentId === agentId
+      ));
+      if (!record) {
+        return {
+          result: unavailablePreviewResult(request, 'No live Desktop-supervised Avatar renderer is available for this Local Agent.'),
+        };
+      }
+      return new Promise<Readonly<Record<string, unknown>>>((resolve) => {
+        const timeout = setTimeout(() => {
+          completePendingPreview(request.requestId, {
+            result: unavailablePreviewResult(request, 'Avatar preview renderer did not answer before the carrier timeout.'),
+          });
+        }, AVATAR_AGENT_CENTER_PREVIEW_TIMEOUT_MS);
+        pendingPreviewRequests.set(request.requestId, { record, request, resolve, timeout });
+        record.window.webContents.send(
+          `${AVATAR_EVENT_CHANNEL_PREFIX}${AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT}`,
+          request,
+        );
+      });
+    },
   };
 
   const avatarCommandHandlers: Readonly<Record<string, NimiElectronCommandHandler>> = {
     nimi_avatar_get_launch_context: ({ payload, event }) => {
       requireEmptyPayload(payload, 'nimi_avatar_get_launch_context');
       return recordForSender(asElectronEvent(event)).launchContext;
+    },
+    [AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND]: async ({ payload, event }) => {
+      assertOnlyKeys(payload, ['requestId', 'result'], AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND);
+      const requestId = requiredText(payload.requestId, 'requestId');
+      const pending = pendingPreviewRequests.get(requestId);
+      if (!pending) return { accepted: false };
+      const record = recordForSender(asElectronEvent(event));
+      if (record !== pending.record) {
+        throw new Error('desktop-bundled-avatar-preview-sender-mismatch');
+      }
+      const result = parseAvatarPreviewProjectionResult(payload.result, pending.request);
+      if (result.state !== 'ready') {
+        completePendingPreview(requestId, { result });
+        return { accepted: true };
+      }
+      try {
+        const image = await record.window.webContents.capturePage();
+        if (image.isEmpty()) throw new Error('Avatar preview capture produced an empty image.');
+        const png = image.toPNG();
+        if (png.length < 8 || png.length > 8 * 1024 * 1024) {
+          throw new Error('Avatar preview capture produced an invalid PNG payload.');
+        }
+        const previewImageRef = input.publishPreviewImage?.(png);
+        completePendingPreview(requestId, previewImageRef ? {
+          result: { ...result, previewImageRef },
+        } : {
+          result,
+          previewPngBase64: png.toString('base64'),
+        });
+      } catch (error) {
+        completePendingPreview(requestId, {
+          result: failedPreviewResult(
+            pending.request,
+            error instanceof Error ? error.message : 'Avatar preview capture failed.',
+          ),
+        });
+      }
+      return { accepted: true };
     },
     [NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND]: async ({ payload }) => (
       assetHost.resolve(exactNestedPayload(payload, NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND))
@@ -286,6 +410,11 @@ export async function createDesktopElectronBundledAvatarHost(
       if (shuttingDown) return;
       shuttingDown = true;
       for (const watcherId of [...nasWatchers.keys()]) closeWatcher(watcherId);
+      for (const [requestId, pending] of pendingPreviewRequests) {
+        completePendingPreview(requestId, {
+          result: unavailablePreviewResult(pending.request, 'Desktop Avatar host is shutting down.'),
+        });
+      }
       for (const record of [...windows.values()]) {
         if (!record.window.isDestroyed()) record.window.destroy();
       }
@@ -301,10 +430,11 @@ export async function createDesktopElectronBundledAvatarHost(
 async function ensureBundledAvatarDevRenderer(
   rendererUrl: string,
   devRendererRoot: string | undefined,
+  packagedRendererIndexPath: string | undefined,
   currentProcess: () => ChildProcess | undefined,
   setProcess: (process: ChildProcess) => void,
 ): Promise<void> {
-  if (await rendererResponds(rendererUrl)) return;
+  if (await rendererResponds(rendererUrl, packagedRendererIndexPath)) return;
   const root = normalizeText(devRendererRoot);
   if (!root) throw new Error('desktop-bundled-avatar-renderer-unavailable');
   const existing = currentProcess();
@@ -323,7 +453,14 @@ async function ensureBundledAvatarDevRenderer(
   throw new Error('desktop-bundled-avatar-renderer-start-failed');
 }
 
-async function rendererResponds(url: string): Promise<boolean> {
+async function rendererResponds(url: string, packagedRendererIndexPath?: string): Promise<boolean> {
+  const packagedIndex = normalizeText(packagedRendererIndexPath);
+  if (packagedIndex) {
+    return stat(packagedIndex).then((metadata) => metadata.isFile(), () => false);
+  }
+  if (new URL(url).protocol === 'file:') {
+    return false;
+  }
   try {
     const response = await fetch(url);
     return response.ok || response.status < 500;
@@ -405,6 +542,113 @@ function assertOnlyKeys(
   }
 }
 
+function parseAvatarPreviewProjectionResult(
+  value: unknown,
+  request: AvatarPreviewProjectionRequest,
+): AvatarPreviewProjectionResult {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Avatar preview renderer returned an invalid result.');
+  }
+  const record = value as Readonly<Record<string, unknown>>;
+  const state = record.state;
+  if (state !== 'ready' && state !== 'failed' && state !== 'unavailable' && state !== 'loading') {
+    throw new Error('Avatar preview renderer returned an invalid state.');
+  }
+  if (record.tier !== 'avatar_preview_service') {
+    throw new Error('Avatar preview renderer returned an invalid service tier.');
+  }
+  const warnings = record.warnings;
+  if (!Array.isArray(warnings) || warnings.some((entry) => typeof entry !== 'string')) {
+    throw new Error('Avatar preview renderer returned invalid warnings.');
+  }
+  if (state === 'ready') {
+    assertOnlyKeys(record, [
+      'state',
+      'tier',
+      'avatarAssetRef',
+      'backendKind',
+      'previewMaterialRef',
+      'previewImageRef',
+      'visiblePixels',
+      'nonPlaceholder',
+      'warnings',
+    ], 'Avatar preview renderer ready result');
+    if (record.avatarAssetRef !== request.avatarAssetRef
+      || record.backendKind !== request.backendKind
+      || record.previewMaterialRef !== request.previewMaterialRef
+      || record.nonPlaceholder !== true) {
+      throw new Error('Avatar preview renderer result does not match the requested material.');
+    }
+    const visiblePixels = requiredNumber(record.visiblePixels, 'visiblePixels');
+    if (visiblePixels <= 0) throw new Error('Avatar preview renderer returned no visible pixels.');
+    const previewImageRef = requiredText(record.previewImageRef, 'previewImageRef');
+    if (!previewImageRef.startsWith('/__nimi/avatar-preview/')
+      || previewImageRef.startsWith('//')
+      || previewImageRef.includes('\\')) {
+      throw new Error('Avatar preview renderer returned an uncontrolled surface ref.');
+    }
+    return { ...record, state };
+  }
+  assertOnlyKeys(record, [
+    'state',
+    'tier',
+    'avatarAssetRef',
+    'backendKind',
+    'previewMaterialRef',
+    'previewImageRef',
+    'visiblePixels',
+    'nonPlaceholder',
+    'reasonCode',
+    'reason',
+    'warnings',
+  ], 'Avatar preview renderer non-ready result');
+  if (record.previewImageRef !== null
+    || record.visiblePixels !== null
+    || record.nonPlaceholder !== false) {
+    throw new Error('Avatar preview renderer non-ready result claimed render output.');
+  }
+  requiredText(record.reasonCode, 'reasonCode');
+  requiredText(record.reason, 'reason');
+  return { ...record, state };
+}
+
+function unavailablePreviewResult(
+  request: Pick<AvatarPreviewProjectionRequest, 'avatarAssetRef' | 'backendKind' | 'previewMaterialRef'>,
+  reason: string,
+): Readonly<Record<string, unknown>> {
+  return {
+    state: 'unavailable',
+    tier: 'avatar_preview_service',
+    avatarAssetRef: request.avatarAssetRef,
+    backendKind: request.backendKind,
+    previewMaterialRef: request.previewMaterialRef,
+    previewImageRef: null,
+    visiblePixels: null,
+    nonPlaceholder: false,
+    reasonCode: 'capability_unavailable',
+    reason,
+    warnings: [],
+  };
+}
+
+function failedPreviewResult(
+  request: Pick<AvatarPreviewProjectionRequest, 'avatarAssetRef' | 'backendKind' | 'previewMaterialRef'>,
+  reason: string,
+): Readonly<Record<string, unknown>> {
+  return {
+    ...unavailablePreviewResult(request, reason),
+    state: 'failed',
+    reasonCode: 'host_internal_error',
+  };
+}
+
+function requiredPreviewBackendKind(value: unknown): 'live2d' | 'vrm' {
+  if (value !== 'live2d' && value !== 'vrm') {
+    throw new Error('backendKind must be live2d or vrm');
+  }
+  return value;
+}
+
 function normalizeAbsoluteUrl(value: unknown, field: string): string {
   const normalized = requiredText(value, field);
   return new URL(normalized).toString();
@@ -432,6 +676,10 @@ function optionalNumber(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function optionalText(value: unknown): string | null {
+  return normalizeText(value) || null;
 }
 
 function normalizeText(value: unknown): string {

@@ -3,6 +3,7 @@ import {
   type NimiHostRuntimeAgentPresentationProfileClient,
   type NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
   type NimiRuntimeAgentPresentationProfileInput,
+  type NimiRuntimeAgentPresentationAssetMaterialInput,
   type NimiRuntimeAgentPresentationProfileMutationResult,
   type NimiRuntimeAgentPresentationProfilePatchInput,
   type NimiRuntimeAgentScopeRunner,
@@ -33,15 +34,21 @@ export function createRuntimeAgentPresentationProfileAdapter(
       identity: RuntimeLocalAgentIdentityInput,
       profile: NimiRuntimeAgentPresentationProfileInput | null,
       expectedRevision: string,
+      importedAssets?: readonly NimiRuntimeAgentPresentationAssetMaterialInput[],
     ): Promise<NimiRuntimeAgentPresentationProfileMutationResult> {
-      return surface.setPresentationProfile(identity, profile, expectedRevision);
+      const result = await surface.setPresentationProfile(identity, profile, expectedRevision, importedAssets);
+      if (result.outcome === 'committed') return result.projection;
+      throw result.outcome === 'conflict' ? result.conflict : result.failure;
     },
     async patchPresentationProfile(
       identity: RuntimeLocalAgentIdentityInput,
       patch: NimiRuntimeAgentPresentationProfilePatchInput,
       expectedRevision: string,
+      importedAssets?: readonly NimiRuntimeAgentPresentationAssetMaterialInput[],
     ): Promise<NimiRuntimeAgentPresentationProfileMutationResult> {
-      return surface.patchPresentationProfile(identity, patch, expectedRevision);
+      const result = await surface.patchPresentationProfile(identity, patch, expectedRevision, importedAssets);
+      if (result.outcome === 'committed') return result.projection;
+      throw result.outcome === 'conflict' ? result.conflict : result.failure;
     },
   };
 }

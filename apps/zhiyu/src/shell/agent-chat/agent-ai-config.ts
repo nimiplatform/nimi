@@ -3,8 +3,6 @@ import {
   type NimiRuntimeAgentAIConfigModule,
   type NimiRuntimeAgentAIConfigSnapshot,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-  type NimiRuntimeAgentInspectSurface,
-  type NimiRuntimeAgentPresentationProfileSurface,
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence, ZhiyuExecutionCapabilityEvidence, ZhiyuAgentAIConfigReadinessState } from '../app/evidence';
@@ -22,13 +20,6 @@ export const ZHIYU_AGENT_AI_CONFIG_WRITE_SCOPES = [
   'runtime.agent.ai_config.read',
   'runtime.agent.ai_config.write',
 ] as const;
-export const ZHIYU_AGENT_INSPECT_READ_SCOPES = [
-  'runtime.agent.read',
-] as const;
-export const ZHIYU_AGENT_PRESENTATION_WRITE_SCOPES = [
-  'runtime.agent.write',
-] as const;
-
 export type ZhiyuRuntimeRouteStatus = ZhiyuEvidence['route'];
 
 export type ZhiyuAgentAIConfigCallInput = RuntimeLocalAgentIdentityInput & {
@@ -66,20 +57,6 @@ export function subscribeZhiyuAgentAIConfigReadiness(
   input: ZhiyuAgentAIConfigCallInput,
 ): AsyncIterable<NimiRuntimeAgentAIConfigReadinessSnapshotProjection> {
   return zhiyuAgentAIConfigModule(input.subjectUserId).subscribeReadiness(input);
-}
-
-export function createZhiyuAgentInspectSurface(
-  subjectUserId: string,
-): NimiRuntimeAgentInspectSurface {
-  void subjectUserId;
-  return requireZhiyuLocalAppCapability('agent-inspect');
-}
-
-export function createZhiyuAgentPresentationProfileSurface(
-  subjectUserId: string,
-): NimiRuntimeAgentPresentationProfileSurface {
-  void subjectUserId;
-  return requireZhiyuLocalAppCapability('agent-presentation-profile');
 }
 
 // Startup + on-demand refresh: one committed-config read plus one readiness

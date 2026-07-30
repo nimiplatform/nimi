@@ -16,13 +16,12 @@ test.after(async () => {
   }
 });
 
-test('Zhiyu chat turn apply guard accepts only the submitted conversation identity', async () => {
+test('Zhiyu chat turn apply guard accepts only the submitted opaque conversation tuple', async () => {
   const module = await importGuardModule();
   const submitted = identity({
-    ownerUserId: 'acct_1',
-    runtimeSourceRef: 'runtime-source:1',
-    localAgentRef: 'local-agent:1',
-    conversationAnchorId: 'agent_anchor_1',
+    agentHandle: 'agent-handle:opaque-1',
+    conversationAnchorId: 'agent-anchor:opaque-1',
+    threadId: 'runtime-thread:opaque-1',
   });
 
   assert.equal(module.shouldApplyZhiyuRuntimeChatUpdate({
@@ -30,26 +29,29 @@ test('Zhiyu chat turn apply guard accepts only the submitted conversation identi
     submittedConversation: submitted,
   }), true);
   assert.equal(module.shouldApplyZhiyuRuntimeChatUpdate({
-    currentConversation: identity({ ...submitted, conversationAnchorId: 'agent_anchor_2' }),
+    currentConversation: identity({ ...submitted, agentHandle: 'agent-handle:opaque-2' }),
     submittedConversation: submitted,
   }), false);
   assert.equal(module.shouldApplyZhiyuRuntimeChatUpdate({
-    currentConversation: identity({ ...submitted, localAgentRef: 'local-agent:2' }),
+    currentConversation: identity({ ...submitted, conversationAnchorId: 'agent-anchor:opaque-2' }),
+    submittedConversation: submitted,
+  }), false);
+  assert.equal(module.shouldApplyZhiyuRuntimeChatUpdate({
+    currentConversation: identity({ ...submitted, threadId: 'runtime-thread:opaque-2' }),
     submittedConversation: submitted,
   }), false);
   assert.equal(module.shouldApplyZhiyuRuntimeChatUpdate({
     currentConversation: identity({ ...submitted }),
-    submittedConversation: identity({ ...submitted, conversationAnchorId: null }),
+    submittedConversation: identity({ ...submitted, threadId: null }),
   }), false);
 });
 
-test('Zhiyu chat turn submit continuation guard stops after abort or conversation change', async () => {
+test('Zhiyu chat turn submit continuation guard stops after abort or opaque tuple change', async () => {
   const module = await importGuardModule();
   const submitted = identity({
-    ownerUserId: 'acct_1',
-    runtimeSourceRef: 'runtime-source:1',
-    localAgentRef: 'local-agent:1',
-    conversationAnchorId: 'agent_anchor_1',
+    agentHandle: 'agent-handle:opaque-1',
+    conversationAnchorId: 'agent-anchor:opaque-1',
+    threadId: 'runtime-thread:opaque-1',
   });
   const activeAbort = new AbortController();
   const aborted = new AbortController();
@@ -66,7 +68,7 @@ test('Zhiyu chat turn submit continuation guard stops after abort or conversatio
     signal: aborted.signal,
   }), false);
   assert.equal(module.shouldContinueZhiyuRuntimeChatSubmit({
-    currentConversation: identity({ ...submitted, localAgentRef: 'local-agent:2' }),
+    currentConversation: identity({ ...submitted, agentHandle: 'agent-handle:opaque-2' }),
     submittedConversation: submitted,
     signal: activeAbort.signal,
   }), false);
@@ -96,10 +98,9 @@ async function buildGuardModule() {
 
 function identity(overrides) {
   return {
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
+    agentHandle: null,
     conversationAnchorId: null,
+    threadId: null,
     ...overrides,
   };
 }

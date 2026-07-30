@@ -181,8 +181,15 @@ async function submitRuntimeAvatarDebugResult(input: {
   }
 }
 
+export type AvatarCommittedPresentationSelection = {
+  readonly avatarAssetRef: string;
+  readonly backendKind: 'live2d' | 'vrm';
+  readonly previewMaterialRef: string;
+};
+
 export type AvatarRuntimeCarrier = {
   model: AvatarModelManifest;
+  committedPresentationSelection: AvatarCommittedPresentationSelection | null;
   registry: HandlerRegistry;
   backend: BackendBranch;
   createDebugSession(input: {
@@ -276,10 +283,12 @@ function createBackendCueProjection(branch: BackendBranch): EmbodimentProjection
 export async function startAvatarRuntimeCarrier(input: {
   driver: AgentDataDriver;
   modelManifest: AvatarModelManifest;
+  committedPresentationSelection?: AvatarCommittedPresentationSelection | null;
   submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope) => Promise<void>;
 }): Promise<AvatarRuntimeCarrier> {
   const carrier = await startAvatarVisualCarrier({
     modelManifest: input.modelManifest,
+    committedPresentationSelection: input.committedPresentationSelection,
     submitDebugProbeResult: input.submitDebugProbeResult,
   });
   await carrier.attachRuntimeDriver(input.driver);
@@ -288,6 +297,7 @@ export async function startAvatarRuntimeCarrier(input: {
 
 export async function startAvatarVisualCarrier(input: {
   modelManifest: AvatarModelManifest;
+  committedPresentationSelection?: AvatarCommittedPresentationSelection | null;
   submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope) => Promise<void>;
 }): Promise<AvatarRuntimeCarrier> {
   const modelPath = input.modelManifest.runtimeDir.trim();
@@ -371,6 +381,7 @@ export async function startAvatarVisualCarrier(input: {
 
   return {
     model,
+    committedPresentationSelection: input.committedPresentationSelection ?? null,
     registry,
     backend: backendHandle.branch,
     submitDebugProbeResult: input.submitDebugProbeResult,

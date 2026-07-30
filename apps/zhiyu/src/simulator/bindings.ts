@@ -256,42 +256,8 @@ function simulatedVoiceUnavailable(readiness: ZhiyuVoiceCaptureEvidence): ZhiyuV
   };
 }
 
-function simulatedAgentCenterAdapters(
-  evidence: ZhiyuEvidence,
-): ReturnType<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterAdapters']> {
-  return {
-    appearance: {
-      async load() {
-        return {
-          status: 'not_configured',
-          backendKind: evidence.avatar.backendKind || null,
-          avatarAssetRef: null,
-          avatarAssetValid: false,
-          avatarAssetChecking: false,
-          validationStatus: 'selection_missing',
-          validationMessage: 'Avatar asset mutation is intentionally unavailable in the Simulator.',
-          validationIssueRows: [],
-          backendCapabilityProfileRef: null,
-          backgroundRef: null,
-          backgroundValid: false,
-          backgroundChecking: false,
-          backgroundValidationStatus: 'selection_missing',
-          backgroundValidationMessage: null,
-          previewState: null,
-          previewTier: null,
-          previewImageRef: null,
-          previewFailureReason: null,
-          previewWarnings: [],
-          defaultVoiceReference: null,
-          avatarAutoplay: false,
-          avatarImportDisabled: true,
-          backgroundImportDisabled: true,
-          disabledReason: 'zhiyu-agent-center-simulator-effect-forbidden',
-        };
-      },
-    },
-    runtime: null,
-  };
+function simulatedAgentCenterSession(): null {
+  return null;
 }
 
 export function createZhiyuSimulatorBindings(
@@ -376,7 +342,7 @@ export function createZhiyuSimulatorBindings(
     sdk: Object.freeze({}),
     app: {
       projection: Object.freeze({
-        agentCenterAdapters: simulatedAgentCenterAdapters,
+        agentCenterSession: simulatedAgentCenterSession,
         loadHome: ({ selectedAgentHandle }: { readonly selectedAgentHandle: string | null }) => (
           Promise.resolve(simulatedHome(context, selectedAgentHandle))
         ),

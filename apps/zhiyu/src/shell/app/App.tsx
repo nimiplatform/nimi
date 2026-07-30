@@ -224,8 +224,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
 
   const product = useMemo(() => projectZhiyuHomeProductState(renderEvidence), [renderEvidence]);
   const avatarLaunchAction = useMemo(() => projectZhiyuAvatarLaunchAction(renderEvidence), [renderEvidence]);
-  const agentCenterAdapters = useMemo(
-    () => bindings.app.projection.agentCenterAdapters(renderEvidence),
+  const agentCenterSession = useMemo(
+    () => bindings.app.projection.agentCenterSession(renderEvidence),
     [bindings, renderEvidence],
   );
 
@@ -245,6 +245,11 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     const activeChatAbort = new AbortController();
     activeChatAbortRef.current = activeChatAbort;
     const submittedConversation = zhiyuRuntimeChatApplyIdentity(evidence.conversation);
+    const submittedSourceContext = {
+      ownerUserId: evidence.conversation.ownerUserId,
+      runtimeSourceRef: evidence.conversation.runtimeSourceRef,
+      localAgentRef: evidence.conversation.localAgentRef,
+    };
     const submitStillCurrent = () => activeChatAbortRef.current === activeChatAbort
       && shouldContinueZhiyuRuntimeChatSubmit({
         currentConversation: latestConversationIdentityRef.current,
@@ -351,8 +356,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
           const companion = projectZhiyuCompanionFromRuntimeProjectionEvents({
             current: current.companion,
             chat,
-            ownerUserId: submittedConversation.ownerUserId || current.conversation.ownerUserId || '',
-            runtimeSourceRef: submittedConversation.runtimeSourceRef || current.conversation.runtimeSourceRef || '',
+            ownerUserId: current.conversation.ownerUserId || '',
+            runtimeSourceRef: current.conversation.runtimeSourceRef || '',
             observedAt: new Date(bindings.clock.now()).toISOString(),
           });
           return {
@@ -400,8 +405,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       const companion = projectZhiyuCompanionFromRuntimeProjectionEvents({
         current: current.companion,
         chat,
-        ownerUserId: submittedConversation.ownerUserId || current.conversation.ownerUserId || '',
-        runtimeSourceRef: submittedConversation.runtimeSourceRef || current.conversation.runtimeSourceRef || '',
+        ownerUserId: current.conversation.ownerUserId || '',
+        runtimeSourceRef: current.conversation.runtimeSourceRef || '',
         observedAt: new Date(bindings.clock.now()).toISOString(),
       });
       return {
@@ -422,6 +427,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     });
     if (
       submitted.ready
+      && submittedSourceContext.ownerUserId
+      && submittedSourceContext.runtimeSourceRef
+      && submittedSourceContext.localAgentRef
+      && submittedConversation.conversationAnchorId
       && shouldApplyZhiyuRuntimeChatUpdate({
         currentConversation: latestConversationIdentityRef.current,
         submittedConversation,
@@ -429,10 +438,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     ) {
       try {
         const source = await bindings.app.projection.loadSourceContext({
-          ownerUserId: submittedConversation.ownerUserId!,
-          runtimeSourceRef: submittedConversation.runtimeSourceRef!,
-          localAgentRef: submittedConversation.localAgentRef!,
-          conversationAnchorId: submittedConversation.conversationAnchorId!,
+          ownerUserId: submittedSourceContext.ownerUserId,
+          runtimeSourceRef: submittedSourceContext.runtimeSourceRef,
+          localAgentRef: submittedSourceContext.localAgentRef,
+          conversationAnchorId: submittedConversation.conversationAnchorId,
         });
         if (shouldApplyZhiyuRuntimeChatUpdate({
           currentConversation: latestConversationIdentityRef.current,
@@ -601,7 +610,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       submitEnabled={submitEnabled}
       composerState={composerState}
       avatarLaunchAction={avatarLaunchAction}
-      agentCenterAdapters={agentCenterAdapters}
+      agentCenterSession={agentCenterSession}
       onDraftChange={setDraft}
       onSubmit={handleSubmit}
       onStopChat={handleStopChat}

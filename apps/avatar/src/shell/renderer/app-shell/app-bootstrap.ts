@@ -22,7 +22,7 @@ import {
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
-import { resolveRuntimePresentationAvatarAssetManifest } from '../carrier/model-resolver.js';
+import { resolveRuntimePresentationAvatarAsset } from '../carrier/model-resolver.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { ulid } from '../infra/ids.js';
 import { readAvatarShellSettings } from '../settings-state.js';
@@ -375,9 +375,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           return buildHandle();
         }
 
-        const modelManifest = await runFirstPartyStage(
+        const resolvedAvatarAsset = await runFirstPartyStage(
           'local_avatar_asset_manifest',
-          () => resolveRuntimePresentationAvatarAssetManifest({
+          () => resolveRuntimePresentationAvatarAsset({
             accountId,
             ownerUserId,
             runtimeSourceRef,
@@ -385,6 +385,12 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             presentationProfile: presentation.profile,
           }),
         );
+        const modelManifest = resolvedAvatarAsset.manifest;
+        if (resolvedAvatarAsset.reference.backendKind !== 'live2d'
+          && resolvedAvatarAsset.reference.backendKind !== 'vrm') {
+          throw new Error('Runtime presentation Avatar preview supports only Live2D or VRM assets.');
+        }
+        const previewBackendKind = resolvedAvatarAsset.reference.backendKind;
         const runtimeAgentTurns = createNimiRuntimeAgentTurnsModule({
           runtime: {
             appId: AVATAR_FIRST_PARTY_APP_ID,
@@ -533,6 +539,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         carrier = await runFirstPartyStage('runtime_carrier_start', () => startAvatarRuntimeCarrier({
           driver: activeDriver,
           modelManifest,
+          committedPresentationSelection: {
+            avatarAssetRef: resolvedAvatarAsset.reference.localAvatarAssetRef,
+            backendKind: previewBackendKind,
+            previewMaterialRef: resolvedAvatarAsset.reference.materializationRef,
+          },
           submitDebugProbeResult: async (result: AvatarDebugProbeResultEnvelope) => {
             await runtime!.withAgentScopes(
               ['runtime.agent.avatar_debug.write'],

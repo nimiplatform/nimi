@@ -3,10 +3,7 @@ import type {
   NimiRendererHostFacadeV1,
   NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
-import type {
-  AgentCenterAppearanceAdapter,
-  AgentCenterRuntimeAdapter,
-} from '@nimiplatform/kit/features/agent-center';
+import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 
 import type { ZhiyuRuntimeAgentChatTurnInput, ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import type { ZhiyuVoiceCaptureEvidence } from '../shell/agent-chat/voice-capture-evidence.js';
@@ -32,10 +29,7 @@ export type ZhiyuHomeProjection = Pick<
 >;
 
 export interface ZhiyuRendererProjectionPort {
-  agentCenterAdapters(evidence: ZhiyuEvidence): {
-    readonly appearance: AgentCenterAppearanceAdapter;
-    readonly runtime: AgentCenterRuntimeAdapter | null;
-  };
+  agentCenterSession(evidence: ZhiyuEvidence): AgentCenterSession | null;
   loadHome(input: { readonly selectedAgentHandle: string | null }): Promise<ZhiyuHomeProjection>;
   loadAgentInventory(): Promise<ZhiyuEvidence['inventory']>;
   loadExecutionRoute(input: ZhiyuAgentAIConfigRouteEvidenceInput): Promise<ZhiyuEvidence['route']>;

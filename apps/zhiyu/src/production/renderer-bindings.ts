@@ -42,7 +42,7 @@ import {
 } from '../shell/desktop-open/desktop-open-action.js';
 import { probeZhiyuRuntimeStatus } from '../shell/runtime/runtime-status.js';
 import { createZhiyuProductionTurnRequestId } from './turn-request-id.js';
-import { createZhiyuProductionAgentCenterAdapters } from './agent-center-adapters.js';
+import { createZhiyuProductionAgentCenterSession } from './agent-center-adapters.js';
 
 function productionRoutePort(): ZhiyuCanonicalRendererBindings['route'] {
   return Object.freeze({
@@ -107,7 +107,7 @@ export function createZhiyuProductionBindings(
     sdk: Object.freeze({}),
     app: {
       projection: Object.freeze({
-        agentCenterAdapters: createZhiyuProductionAgentCenterAdapters,
+        agentCenterSession: createZhiyuProductionAgentCenterSession,
         loadHome: ({ selectedAgentHandle }: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0]) => loadHome(selectedAgentHandle),
         loadAgentInventory: probeZhiyuRuntimeAgentInventory,
         loadExecutionRoute: fetchZhiyuAgentAIConfigRouteEvidence,

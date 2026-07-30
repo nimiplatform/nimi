@@ -41,8 +41,6 @@ type ChatSettingsPanelProps = {
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   showPresenceContent?: boolean;
   showDiagnosticsFooter?: boolean;
-  /** When set, the AI Model Hub is rendered in a 2-col grouped grid (used by Agent Center). */
-  superSections?: ReadonlyArray<import('@nimiplatform/kit/features/model-config').ModelConfigSuperSection>;
 };
 
 const SCHEDULING_STYLE: Record<string, { border: string; bg: string; text: string; icon: string }> = {
@@ -286,7 +284,6 @@ function AiModeSettings(props: {
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   showPresenceContent?: boolean;
   showDiagnosticsFooter?: boolean;
-  superSections?: ReadonlyArray<import('@nimiplatform/kit/features/model-config').ModelConfigSuperSection>;
 }) {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
@@ -386,7 +383,7 @@ function AiModeSettings(props: {
       {props.showPresenceContent !== false && props.presenceContent ? (
         <div data-chat-settings-module="avatar">{props.presenceContent}</div>
       ) : null}
-      <ModelConfigAiModelHub surface={surface} profile={profile} footer={footer} superSections={props.superSections} />
+      <ModelConfigAiModelHub surface={surface} profile={profile} footer={footer} />
     </div>
   );
 }
@@ -405,7 +402,6 @@ export function ChatSettingsPanel({
   onDiagnosticsVisibilityChange,
   showPresenceContent,
   showDiagnosticsFooter,
-  superSections,
 }: ChatSettingsPanelProps) {
   const { t } = useTranslation();
   const resolvedUnavailableReason = unavailableReason || t('Chat.settingsUnavailableReason', {
@@ -422,7 +418,6 @@ export function ChatSettingsPanel({
         onDiagnosticsVisibilityChange={onDiagnosticsVisibilityChange}
         showPresenceContent={showPresenceContent}
         showDiagnosticsFooter={showDiagnosticsFooter}
-        superSections={superSections}
       />
     );
   }

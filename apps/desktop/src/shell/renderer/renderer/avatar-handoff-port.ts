@@ -1,3 +1,8 @@
+import type {
+  DesktopAvatarPreviewProjectionInput,
+  DesktopAvatarPreviewProjectionResult,
+} from '../bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
+
 export type DesktopAvatarLiveInstance = {
   readonly avatarInstanceId: string;
   readonly agentId: string;
@@ -7,6 +12,9 @@ export type DesktopAvatarLiveInstance = {
 export interface DesktopRendererAvatarHandoffPort {
   available(): boolean;
   list(agentId: string): Promise<DesktopAvatarLiveInstance[]>;
+  preview?: (
+    input: DesktopAvatarPreviewProjectionInput,
+  ) => Promise<DesktopAvatarPreviewProjectionResult>;
   launch(input: {
     readonly agentId: string;
     readonly avatarInstanceId: string;

@@ -1,15 +1,33 @@
 {
   "approval": {
     "title": "{{app}} requests to interact with your Agents",
+    "combinedTitle": "{{app}} requests {{count}} Agent permissions",
     "subtitle": "This grants access to every Agent in your account, including Agents you create later.",
-    "queue": "{{count}} permission requests are waiting."
+    "combinedSubtitle": "Review and decide each permission separately. A decision for one item does not decide the others.",
+    "queue": "{{count}} permission request groups are waiting."
   },
   "intent": {
-    "agentsInteract": "Interact with all Agents in your account"
+    "agentsInteract": "Interact with all Agents in your account",
+    "agentsConfigure": "Configure your Agents",
+    "memoryRead": "Read Agent memory",
+    "agentsVoice": "Use Agent voice and transcription",
+    "agentsDelegate": "Delegate actions to your Agents"
+  },
+  "intentDescription": {
+    "agentsInteract": "Open conversations, send turns, and receive conversation updates for current and future Agents.",
+    "agentsConfigure": "Read and change model, behavior, autonomy, voice reference, and appearance settings.",
+    "memoryRead": "Read memory content for current and future Agents.",
+    "agentsVoice": "Use voice and transcription execution for current and future Agents.",
+    "agentsDelegate": "Ask current and future Agents to perform delegated actions."
+  },
+  "dependency": {
+    "interactRequired": "Requires an effective Interact with Agents grant for this account.",
+    "interactMissing": "Approve Interact with Agents first. Until that grant is effective, this item cannot be approved.",
+    "interactIneffective": "This grant is currently ineffective because Interact with Agents is not granted for this account."
   },
   "scope": {
     "title": "All Agents in this account",
-    "description": "Current and future Agents are included automatically. Revoking this permission removes access to all of them."
+    "description": "Current and future Agents are included automatically. Revoking a permission removes that access from all of them."
   },
   "field": {
     "app": "App",
@@ -20,19 +38,24 @@
     "pending": "Pending",
     "granted": "Granted",
     "denied": "Denied",
+    "revoked": "Revoked",
     "unavailable": "Unavailable"
   },
   "state": {
     "loading": "Loading…",
     "denied": "Request denied.",
-    "error": "Permission management is unavailable. Try again."
+    "error": "Permission management is unavailable. Try again.",
+    "ambiguousOwner": "Permission ownership is ambiguous for this app.",
+    "unsafeRevoke": "This permission cannot be safely revoked."
   },
   "settings": {
     "title": "App permissions",
-    "description": "Manage access to Nimi-owned capabilities.",
+    "description": "Manage each granted Agent capability independently.",
     "currentAgents": "Agents currently covered",
     "noCurrentAgents": "No Agents exist in this account yet; future Agents are included automatically.",
-    "revokeConfirm": "Revoke access to all current and future Agents?"
+    "noPermissions": "This app has no Agent permission records.",
+    "revokeConfirm": "Revoke “{{permission}}” for all current and future Agents?",
+    "interactCascadeWarning": "Revoking Interact with Agents immediately makes Configure Agents, Agent Voice, and Delegate Actions grants ineffective for this account. Read Agent Memory remains independent."
   },
   "action": {
     "approve": "Approve",

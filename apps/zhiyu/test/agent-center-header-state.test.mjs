@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { transform } from 'esbuild';
+import { build, transform } from 'esbuild';
 
 const appRoot = path.resolve(import.meta.dirname, '..');
 
@@ -49,6 +49,38 @@ test('Agent Center world metadata stays absent from the bounded local-app invent
   assert.equal(labels.agentCenterWorldLabel(evidence), null);
 });
 
+test('Zhiyu Agent Center panel renders the Manager Session without caller posture', async () => {
+  const { renderPanel } = await importRightPanelModule();
+  let html = '';
+  assert.doesNotThrow(() => {
+    html = renderPanel({
+      mode: 'agent',
+      evidence: { companion: { currentEmotion: null, executionState: null } },
+      currentPartnerName: '伙伴',
+      activeTab: 'overview',
+      onActiveTabChange() {},
+      onClose() {},
+      onOpenDesktopAgentConfig() {},
+      session: { getSnapshot: () => ({ availability: { updateModelSettings: { state: 'unavailable', reason: 'reserved-not-admitted' } } }) },
+    });
+  });
+  assert.match(html, /data-test-action-reason="reserved-not-admitted"/);
+  assert.match(html, /data-test-chrome="standalone"/);
+  assert.match(html, /data-test-identity="伙伴"/);
+});
+
+test('Zhiyu adopts Kit canonical Agent Center chrome and keeps host context outside it', async () => {
+  const source = await readFile(path.join(appRoot, 'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx'), 'utf8');
+
+  assert.match(source, /chrome="standalone"/);
+  assert.match(source, /identity=\{\{/);
+  assert.match(source, /placementActions=\{\{/);
+  assert.match(source, /session=\{props\.session\}/);
+  assert.match(source, /data-zhiyu-agent-center-host-context="true"/);
+  assert.doesNotMatch(source, /data-zhiyu-agent-center-owner|IconToggleAction|onOpenModelConfig/);
+  assert.doesNotMatch(source, /runtimeError:/);
+});
+
 test('Agent Center world metadata fails closed when Runtime does not project a world name', async () => {
   const labels = await importTypescriptModule('src/shell/agent-chat/ZhiyuAgentChatLabels.ts');
   const evidence = {
@@ -66,6 +98,74 @@ test('Agent Center world metadata fails closed when Runtime does not project a w
 
   assert.equal(labels.agentCenterWorldLabel(evidence), null);
 });
+
+async function importRightPanelModule() {
+  const output = (await build({
+    stdin: {
+      contents: `
+        import { createElement } from 'react';
+        import { renderToStaticMarkup } from 'react-dom/server.edge';
+        import { RightAgentPanel } from './src/shell/agent-chat/ZhiyuAgentRightPanel.tsx';
+        export function renderPanel(props) {
+          return renderToStaticMarkup(createElement(RightAgentPanel, props));
+        }
+      `,
+      resolveDir: appRoot,
+      sourcefile: 'agent-center-panel-test-entry.ts',
+      loader: 'ts',
+    },
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    target: 'node22',
+    write: false,
+    logLevel: 'silent',
+    plugins: [{
+      name: 'agent-center-panel-stubs',
+      setup(buildApi) {
+        buildApi.onResolve({ filter: /^react$/, namespace: 'panel-stub' }, () => ({
+          path: path.join(appRoot, 'node_modules/react/index.js'),
+        }));
+        buildApi.onResolve({ filter: /^@nimiplatform\/kit\/features\/agent-center$/ }, () => ({ path: 'agent-center', namespace: 'panel-stub' }));
+        buildApi.onLoad({ filter: /^agent-center$/, namespace: 'panel-stub' }, () => ({
+          loader: 'jsx',
+          contents: `
+            import { createElement } from 'react';
+            export function createAgentCenterI18n(input = {}) {
+              return { language: input.language, t: input.t || ((key) => key) };
+            }
+            export function AgentCenter(props) {
+              return createElement('div', {
+                'data-test-chrome': props.chrome,
+                'data-test-identity': props.identity?.displayName,
+                'data-test-action-reason': props.session.getSnapshot().availability.updateModelSettings.reason,
+              });
+            }
+          `,
+        }));
+        buildApi.onResolve({ filter: /^@nimiplatform\/kit\/ui$/ }, () => ({ path: 'kit-ui', namespace: 'panel-stub' }));
+        buildApi.onLoad({ filter: /^kit-ui$/, namespace: 'panel-stub' }, () => ({
+          loader: 'jsx',
+          contents: `
+            import { createElement } from 'react';
+            export function AppCardSurface({ children, as: Tag = 'div', ...props }) {
+              return createElement(Tag, props, children);
+            }
+          `,
+        }));
+        buildApi.onResolve({ filter: /^lucide-react$/ }, () => ({ path: 'lucide', namespace: 'panel-stub' }));
+        buildApi.onLoad({ filter: /^lucide$/, namespace: 'panel-stub' }, () => ({
+          loader: 'jsx',
+          contents: `
+            import { createElement } from 'react';
+            export function Globe2() { return createElement('svg'); }
+          `,
+        }));
+      },
+    }],
+  })).outputFiles[0].text;
+  return import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}#${Math.random()}`);
+}
 
 async function importTypescriptModule(relativePath) {
   const source = await readFile(path.join(appRoot, relativePath), 'utf8');

@@ -474,8 +474,6 @@ export default defineConfig(({ mode }) => {
               }
               if (matchesAny(normalizedId, [
                 '/chat-agent-shell-presentation',
-                '/chat-agent-center-panel',
-                '/chat-agent-center-avatar-debug-workbench',
                 '/chat-agent-mode-content',
                 '/chat-agent-scene-background',
               ])) {
@@ -491,8 +489,6 @@ export default defineConfig(({ mode }) => {
               }
               if (matchesAny(normalizedId, [
                 '/chat-agent-behavior',
-                '/chat-agent-center-avatar-config',
-                '/chat-agent-center-local-config',
                 '/chat-agent-voice-playback',
               ])) {
                 return 'desktop-runtime-shell-core';

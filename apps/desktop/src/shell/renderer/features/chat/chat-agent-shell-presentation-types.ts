@@ -9,7 +9,7 @@ import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThread
 import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import type { AgentCenterRuntimeAdapter } from '@nimiplatform/kit/features/agent-center';
+import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
@@ -70,7 +70,7 @@ export type UseAgentConversationPresentationInput = {
   runtimeAgentAIConfigReadiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null;
   runtimeAgentAIConfigLoading: boolean;
   runtimeAgentAIConfigError: string | null;
-  runtimeAgentCenterAdapter: AgentCenterRuntimeAdapter | null;
+  runtimeAgentCenterAdapter: AgentCenterSession | null;
   runtimeAgentTextReady: boolean;
   runtimeAgentTextDisabledReason: string | null;
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;

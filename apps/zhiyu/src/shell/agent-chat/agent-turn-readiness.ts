@@ -54,6 +54,9 @@ export function probeZhiyuAgentTurnReadiness(
     actionHint: 'send_runtime_agent_turn',
     source: 'renderer',
     message: 'Runtime Agent turn channel is ready.',
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
     ...identity,
     requestId: null,
     runtimeTurnId: null,
@@ -64,9 +67,6 @@ export function probeZhiyuAgentTurnReadiness(
 
 function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
   readonly agentHandle: string;
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
   readonly conversationAnchorId: string;
   readonly threadId: string;
 } | null {
@@ -74,19 +74,13 @@ function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
     return null;
   }
   const agentHandle = stringOr(conversation.agentHandle, '');
-  const ownerUserId = stringOr(conversation.ownerUserId, '');
-  const runtimeSourceRef = stringOr(conversation.runtimeSourceRef, '');
-  const localAgentRef = stringOr(conversation.localAgentRef, '');
   const conversationAnchorId = stringOr(conversation.conversationAnchorId, '');
   const threadId = stringOr(conversation.threadId, '');
-  if (!agentHandle || !ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId || !threadId) {
+  if (!agentHandle || !conversationAnchorId || !threadId) {
     return null;
   }
   return {
     agentHandle,
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
     conversationAnchorId,
     threadId,
   };

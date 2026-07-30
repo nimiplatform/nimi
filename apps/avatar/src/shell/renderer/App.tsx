@@ -50,6 +50,8 @@ import type { AvatarVoiceCaptureSession } from './voice-capture.js';
 import { normalizeText, toErrorMessage } from './avatar-shell-utils.js';
 import { useAvatarShellScale } from './use-avatar-shell-scale.js';
 import { useAvatarShellOverlays } from './use-avatar-shell-overlays.js';
+import { hasAvatarHostRuntime } from './app-shell/avatar-host-bridge.js';
+import { installAvatarAgentCenterPreviewHandoff } from './agent-center-preview/agent-center-preview-handoff.js';
 
 export function App() {
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
@@ -97,6 +99,28 @@ export function App() {
       void handle?.shutdown();
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasAvatarHostRuntime()) return;
+    let cancelled = false;
+    let unlisten: (() => void) | null = null;
+    void installAvatarAgentCenterPreviewHandoff({
+      getContext: () => ({
+        agentId: useAvatarStore.getState().consume.agentId,
+        carrier: bootstrapHandle?.carrier ?? null,
+      }),
+    }).then((release) => {
+      if (cancelled) {
+        release();
+        return;
+      }
+      unlisten = release;
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [bootstrapHandle]);
 
   // ── Wave 3 lipsync state subscription ────────────────────────────────────────
   // The avatar-voice-lipsync pipeline (wired from carrier/avatar-carrier.ts)

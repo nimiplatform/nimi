@@ -275,10 +275,7 @@ export function useAgentConversationPresentation(
     stagePanelProps: undefined,
     topContent: schedulingFeedbackNode,
     settingsContent: (
-      <AgentConversationSettingsContent
-        input={input}
-        appearanceAdapter={localAvatar.appearanceAdapter}
-      />
+      <AgentConversationSettingsContent input={input} />
     ),
     settingsDrawerTitle: input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' }),
     settingsDrawerSubtitle: resolvedAgentDisplayName,

@@ -61,7 +61,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly submitEnabled: boolean;
   readonly composerState: string;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
-  readonly agentCenterAdapters: ReturnType<ZhiyuRendererProjectionPort['agentCenterAdapters']>;
+  readonly agentCenterSession: ReturnType<ZhiyuRendererProjectionPort['agentCenterSession']>;
   readonly onDraftChange: (value: string) => void;
   readonly onSubmit: (text: string) => Promise<void> | void;
   readonly onStopChat: () => void;
@@ -83,7 +83,7 @@ export function ZhiyuAgentChatSurface({
   submitEnabled,
   composerState,
   avatarLaunchAction,
-  agentCenterAdapters,
+  agentCenterSession,
   onDraftChange,
   onSubmit,
   onStopChat,
@@ -495,11 +495,9 @@ export function ZhiyuAgentChatSurface({
             activeTab={activeAgentTab}
             onActiveTabChange={setActiveAgentTab}
             onClose={() => setRightPanelMode('closed')}
-            onOpenModelConfig={openModelConfig}
             onOpenDesktopAgentConfig={() => { void onDesktopOpenAgentConfig(); }}
             onAvatarLaunch={onAvatarLaunch}
-            appearanceAdapter={agentCenterAdapters.appearance}
-            runtimeAdapter={agentCenterAdapters.runtime}
+            session={agentCenterSession}
           />
         ) : null}
       </div>

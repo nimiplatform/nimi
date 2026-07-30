@@ -7,14 +7,19 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
-import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiRuntimeAgentConsumeClient,
+  createNimiRuntimeAgentModelSettingsModule,
+} from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
-  createRuntimeAgentCenterAdapter,
-  type AgentCenterRuntimeAdapter,
+  createFirstPartyAgentCenterSession,
+  createAgentCenterShellAppearanceAdapter,
+  type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
+import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { ensureRuntimeAgentExists } from './chat-agent-shell-host-actions-helpers';
@@ -42,6 +47,11 @@ import {
   type AutonomyConfigInput,
   type RuntimeStateInput,
 } from './chat-agent-shell-adapter-runtime-mutations';
+import { useDesktopRouteModelPickerProviderResolver } from '../runtime-config/desktop-route-model-picker-provider';
+import { useLocalAssets } from './capability-settings-shared';
+import { createDesktopAgentCenterAutonomyAdapter } from './chat-agent-center-autonomy-adapter.js';
+import { createDesktopAgentCenterAvatarPreviewAdapter } from './chat-agent-center-avatar-preview-adapter.js';
+import { createRuntimeAgentPresentationProfileAdapter } from '../../infra/runtime-agent-presentation-profile';
 
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,
@@ -73,7 +83,7 @@ type AgentConversationRuntimeController = {
   runtimeAgentAIConfigReadiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null;
   runtimeAgentAIConfigLoading: boolean;
   runtimeAgentAIConfigError: string | null;
-  runtimeAgentCenterAdapter: AgentCenterRuntimeAdapter | null;
+  runtimeAgentCenterAdapter: AgentCenterSession | null;
   runtimeAgentTextReady: boolean;
   runtimeAgentTextDisabledReason: string | null;
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
@@ -114,6 +124,12 @@ export function useAgentConversationRuntimeController(
 ): AgentConversationRuntimeController {
   const anchorBindings = useAgentConversationAnchorBindings();
   const bindings = useDesktopRendererBindings();
+  const providerResolver = useDesktopRouteModelPickerProviderResolver();
+  const localAssetsQuery = useLocalAssets();
+  const localAssetSource = useMemo(() => ({
+    loading: localAssetsQuery.isFetching,
+    list: () => localAssetsQuery.data || [],
+  }), [localAssetsQuery.data, localAssetsQuery.isFetching]);
   const subjectUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
   const getSubjectUserId = useCallback(() => {
     if (!subjectUserId) {
@@ -171,8 +187,17 @@ export function useAgentConversationRuntimeController(
     getSubjectUserId,
     withScopes: bindings.sdk.withRuntimeProtectedScopes,
   }), [bindings, getSubjectUserId]);
+  const runtimeAgentModelSettings = useMemo(() => createNimiRuntimeAgentModelSettingsModule({
+    runtime: {
+      get appId() { return bindings.sdk.appId(); },
+      get auth() { return bindings.sdk.accountRuntime().auth; },
+      get agent() { return bindings.sdk.accountProduct().agents; },
+    },
+    getSubjectUserId,
+    withScopes: bindings.sdk.withRuntimeProtectedScopes,
+  }), [bindings, getSubjectUserId]);
   const runtimeAgentCenterAdapter = useMemo(() => {
-    if (authStatus !== 'authenticated' || !activeTarget) {
+    if (authStatus !== 'authenticated' || !activeTarget || !subjectUserId) {
       return null;
     }
     const lifecycle = bindings.sdk.runtimeAgentDiscovery(getSubjectUserId);
@@ -180,10 +205,33 @@ export function useAgentConversationRuntimeController(
       runtime: { agents: bindings.sdk.accountProduct().agents },
       runtimeAppId: bindings.sdk.appId(),
     });
-    return createRuntimeAgentCenterAdapter({
-      identity: toRuntimeIdentityInput(activeTarget),
-      agentAIConfig: runtimeAgentAIConfigAdapter,
+    const identity = toRuntimeIdentityInput(activeTarget);
+    const runtimePresentation = createRuntimeAgentPresentationProfileAdapter({
+      getRuntime: bindings.sdk.hostRuntimeAgent,
+      getSubjectUserId: () => subjectUserId,
+      withScopes: bindings.sdk.withRuntimeProtectedScopes,
+    });
+    const appearance = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: subjectUserId,
+      runtimePresentation,
+      shell: hasElectronInvoke() ? createAgentCenterShellBridge() : null,
+      avatarPreview: createDesktopAgentCenterAvatarPreviewAdapter({
+        avatarHandoff: bindings.app.commands.avatarHandoff,
+      }),
+      snapshot: { inspect: runtimeInspect as never },
+      loadPresentation: () => runtimeAgentInspect.getPresentationProfile(identity),
+    });
+    return createFirstPartyAgentCenterSession({
+      identity,
+      appearance,
+      modelSettings: runtimeAgentModelSettings,
+      autonomy: createDesktopAgentCenterAutonomyAdapter(runtimeAgentInspect),
       inspect: runtimeAgentInspect,
+      modelConfig: {
+        localAssetSource,
+        providerResolver,
+      },
       async loadSourceContextStatus(identity) {
         const discovered = await lifecycle.discoverLocalAgentsBySource({
           ownerUserId: identity.ownerUserId,
@@ -207,7 +255,7 @@ export function useAgentConversationRuntimeController(
         return snapshot.turnContextSummary ?? null;
       },
     });
-  }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, runtimeAgentAIConfigAdapter, runtimeAgentInspect]);
+  }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, localAssetSource, providerResolver, runtimeAgentInspect, runtimeAgentModelSettings, runtimeInspect, subjectUserId]);
 
   const requireActiveRuntimeIdentity = useCallback(() => {
     if (!activeTarget) {

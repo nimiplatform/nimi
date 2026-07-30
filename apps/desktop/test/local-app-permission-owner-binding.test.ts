@@ -91,9 +91,60 @@ test('owner binding filters the admitted intent and keeps Runtime authority fiel
   assert.deepEqual(await port.listPending(), [{
     requestKey: 'principal-1',
     displayAppId: 'com.example.zhiyu',
+    permissionId: 'agents.interact',
     reason: 'Continue this conversation with my Agent',
     ownerRevision: '7',
   }]);
+});
+
+test('synthetic five-item inbox rows preserve each permission through independent decision plumbing', async () => {
+  const permissionIds = [
+    'agents.interact',
+    'agents.configure',
+    'memory.read',
+    'agents.voice',
+    'agents.delegate',
+  ] as const;
+  const { runtime, calls } = createRuntime({
+    listLocalAppPermissionRequests: async () => ({
+      accepted: true,
+      reasonCode: 1,
+      requests: permissionIds.map((permissionId) => ({
+        localAppPrincipalId: 'principal-1',
+        displayAppId: 'com.example.zhiyu',
+        permissionId,
+        reason: `Synthetic reason for ${permissionId}`,
+        ownerRevision: '7',
+      })),
+    }),
+    getLocalAppPermissionOwnerProjection: async () => ({
+      accepted: true,
+      reasonCode: 1,
+      permissions: [{
+        localAppPrincipalId: 'principal-1',
+        displayAppId: 'com.example.zhiyu',
+        permissionId: 'agents.configure',
+        posture: LocalAppPermissionOwnerPosture.REVOKED,
+        coveredAgents: [],
+        ownerRevision: '8',
+      }],
+    }),
+  });
+  const port = createDesktopLocalAppPermissionOwnerPort({ runtime: () => runtime, caller: () => caller });
+
+  assert.deepEqual((await port.listPending()).map((row) => row.permissionId), permissionIds);
+  await port.approve({
+    requestKey: 'principal-1',
+    permissionId: 'agents.configure',
+    expectedOwnerRevision: '7',
+  });
+  assert.deepEqual(calls.find((call) => call.name === 'decide')?.input, {
+    caller,
+    localAppPrincipalId: 'principal-1',
+    permissionId: 'agents.configure',
+    approved: true,
+    expectedOwnerRevision: '7',
+  });
 });
 
 test('approve grants the account Agent scope without an Agent selector', async () => {
@@ -102,6 +153,7 @@ test('approve grants the account Agent scope without an Agent selector', async (
 
   const projection = await port.approve({
     requestKey: 'principal-1',
+    permissionId: 'agents.interact',
     expectedOwnerRevision: '7',
   });
 
@@ -113,7 +165,7 @@ test('approve grants the account Agent scope without an Agent selector', async (
     approved: true,
     expectedOwnerRevision: '7',
   });
-  assert.equal(projection.posture, 'denied');
+  assert.equal(projection.posture, 'revoked');
   assert.deepEqual(projection.coveredAgents, []);
 });
 
@@ -124,6 +176,7 @@ test('owner binding lists durable app ownership with display-only Agent projecti
   assert.deepEqual(await port.listProjections(), [{
     requestKey: 'principal-1',
     displayAppId: 'com.example.zhiyu',
+    permissionId: 'agents.interact',
     posture: 'granted',
     coveredAgents: [{ agentKey: 'agent-1', displayName: 'Mira' }],
     ownerRevision: '8',
@@ -210,7 +263,10 @@ test('revoke removes the whole account Agent scope without an Agent selector', a
   const { runtime, calls } = createRuntime();
   const port = createDesktopLocalAppPermissionOwnerPort({ runtime: () => runtime, caller: () => caller });
 
-  const projection = await port.revoke({ requestKey: 'principal-1' });
+  const projection = await port.revoke({
+    requestKey: 'principal-1',
+    permissionId: 'agents.interact',
+  });
 
   assert.deepEqual(calls.map((call) => call.name), ['revoke', 'projection']);
   assert.deepEqual(calls[0]?.input, {
@@ -218,7 +274,7 @@ test('revoke removes the whole account Agent scope without an Agent selector', a
     localAppPrincipalId: 'principal-1',
     permissionId: 'agents.interact',
   });
-  assert.equal(projection.posture, 'denied');
+  assert.equal(projection.posture, 'revoked');
   assert.deepEqual(projection.coveredAgents, []);
 });
 

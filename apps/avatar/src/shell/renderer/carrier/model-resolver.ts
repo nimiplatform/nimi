@@ -26,6 +26,23 @@ export async function resolveAgentCenterAvatarAssetManifest(
   return fromTauriAvatarModelManifest(raw);
 }
 
+export async function resolveRuntimePresentationAvatarAsset(input: {
+  readonly accountId: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
+  readonly presentationProfile: NimiRuntimeAgentPresentationProfileProjection | null | undefined;
+}): Promise<{
+  readonly manifest: AvatarModelManifest;
+  readonly reference: AgentCenterLocalAvatarAssetReference;
+}> {
+  const reference = await runtimePresentationToAgentCenterReference(input);
+  return {
+    reference,
+    manifest: await resolveAgentCenterAvatarAssetManifest(reference),
+  };
+}
+
 export async function resolveRuntimePresentationAvatarAssetManifest(input: {
   readonly accountId: string;
   readonly ownerUserId: string;
@@ -33,8 +50,7 @@ export async function resolveRuntimePresentationAvatarAssetManifest(input: {
   readonly localAgentRef: string;
   readonly presentationProfile: NimiRuntimeAgentPresentationProfileProjection | null | undefined;
 }): Promise<AvatarModelManifest> {
-  const reference = await runtimePresentationToAgentCenterReference(input);
-  return resolveAgentCenterAvatarAssetManifest(reference);
+  return (await resolveRuntimePresentationAvatarAsset(input)).manifest;
 }
 
 async function runtimePresentationToAgentCenterReference(input: {

@@ -196,6 +196,7 @@ async function buildConversationHome() {
     plugins: [
       workspaceKitSourceAliasPlugin(),
       workspaceKitCapabilitiesAliasPlugin(),
+      zhiyuLocalAppStorageStubPlugin(),
       workspaceSdkSourceAliasPlugin(),
       zhiyuRuntimePlatformStubPlugin(),
     ],
@@ -207,7 +208,7 @@ function zhiyuRuntimePlatformStubPlugin() {
   return {
     name: 'zhiyu-runtime-platform-stub',
     setup(buildApi) {
-      buildApi.onResolve({ filter: /auth\/runtime-platform$/ }, () => ({
+      buildApi.onResolve({ filter: /auth\/runtime-platform(?:\.js)?$/ }, () => ({
         path: 'zhiyu-runtime-platform-stub',
         namespace: 'zhiyu-runtime-platform-stub',
       }));
@@ -233,6 +234,33 @@ function zhiyuRuntimePlatformStubPlugin() {
               },
             };
           }
+        `,
+      }));
+    },
+  };
+}
+
+function zhiyuLocalAppStorageStubPlugin() {
+  return {
+    name: 'zhiyu-local-app-storage-stub',
+    setup(buildApi) {
+      buildApi.onResolve({ filter: /app\/local-app-storage(?:\.js)?$/ }, () => ({
+        path: 'zhiyu-local-app-storage-stub', namespace: 'zhiyu-local-app-storage-stub',
+      }));
+      buildApi.onLoad({ filter: /.*/, namespace: 'zhiyu-local-app-storage-stub' }, () => ({
+        loader: 'js',
+        contents: `
+          export const zhiyuLocalAppStorage = {
+            async readJson() {
+              if (globalThis.__zhiyuConversationAnchorStorageValue == null) {
+                const error = new Error('not found'); error.code = 'not-found'; throw error;
+              }
+              return { value: globalThis.__zhiyuConversationAnchorStorageValue };
+            },
+            async writeJson(_path, value) {
+              globalThis.__zhiyuConversationAnchorStorageValue = value; return { value };
+            },
+          };
         `,
       }));
     },

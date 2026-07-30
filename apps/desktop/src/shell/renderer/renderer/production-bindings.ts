@@ -95,6 +95,7 @@ import {
   launchDesktopAvatarHandoff,
 } from '../bridge/runtime-bridge/chat-agent-avatar-launcher.js';
 import { listDesktopAvatarLiveInstances } from '../bridge/runtime-bridge/chat-agent-avatar-instance-registry.js';
+import { requestDesktopAvatarPreviewProjection } from '../bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
 import { getDesktopAIConfigService } from '../app-shell/providers/desktop-ai-config-service.js';
 import { getProductionConversationCapabilityRouteRuntime } from '../features/chat/production-conversation-route-runtime-state.js';
 import {
@@ -272,6 +273,7 @@ export function createDesktopProductionBindings(
         avatarHandoff: Object.freeze({
           available: hasElectronInvoke,
           list: (agentId: string) => listDesktopAvatarLiveInstances({ agentId }),
+          preview: requestDesktopAvatarPreviewProjection,
           launch: launchDesktopAvatarHandoff,
           close: closeDesktopAvatarHandoff,
         }),

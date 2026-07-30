@@ -2,17 +2,16 @@ import type { ZhiyuEvidence } from './evidence';
 
 export type ZhiyuRuntimeChatApplyIdentity = Pick<
   ZhiyuEvidence['conversation'],
-  'ownerUserId' | 'runtimeSourceRef' | 'localAgentRef' | 'conversationAnchorId'
+  'agentHandle' | 'conversationAnchorId' | 'threadId'
 >;
 
 export function zhiyuRuntimeChatApplyIdentity(
   conversation: ZhiyuRuntimeChatApplyIdentity,
 ): ZhiyuRuntimeChatApplyIdentity {
   return {
-    ownerUserId: normalizedText(conversation.ownerUserId),
-    runtimeSourceRef: normalizedText(conversation.runtimeSourceRef),
-    localAgentRef: normalizedText(conversation.localAgentRef),
+    agentHandle: normalizedText(conversation.agentHandle),
     conversationAnchorId: normalizedText(conversation.conversationAnchorId),
+    threadId: normalizedText(conversation.threadId),
   };
 }
 
@@ -23,14 +22,12 @@ export function shouldApplyZhiyuRuntimeChatUpdate(input: {
   const current = zhiyuRuntimeChatApplyIdentity(input.currentConversation);
   const submitted = zhiyuRuntimeChatApplyIdentity(input.submittedConversation);
   return Boolean(
-    submitted.ownerUserId
-    && submitted.runtimeSourceRef
-    && submitted.localAgentRef
+    submitted.agentHandle
     && submitted.conversationAnchorId
-    && current.ownerUserId === submitted.ownerUserId
-    && current.runtimeSourceRef === submitted.runtimeSourceRef
-    && current.localAgentRef === submitted.localAgentRef
-    && current.conversationAnchorId === submitted.conversationAnchorId,
+    && submitted.threadId
+    && current.agentHandle === submitted.agentHandle
+    && current.conversationAnchorId === submitted.conversationAnchorId
+    && current.threadId === submitted.threadId,
   );
 }
 

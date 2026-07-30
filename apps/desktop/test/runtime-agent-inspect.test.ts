@@ -631,6 +631,7 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
       avatarAutoplay: false,
       backgroundAssetRef: null,
     },
+    previousProfile: null,
   });
   assert.equal(calls.getAgent.length, 1);
   assert.equal(calls.getAgentState.length, 0);
@@ -677,6 +678,7 @@ test('runtime agent inspect adapter accepts live2d presentation profiles', async
       avatarAutoplay: false,
       backgroundAssetRef: null,
     },
+    previousProfile: null,
   });
 });
 
