@@ -476,9 +476,9 @@ units:
     kind: rule
     title: Current public permission admission is bounded
     modality: must
-    statement: The currently admitted third-party LocalAgent interaction permission covers only the open-conversation, send-turn, subscribe-turn, and conversation-snapshot families over an owner-granted account scope that Runtime dynamically materializes as opaque handles; Runtime owns its durable revocable decision lifecycle and enforcement, pre-grant and zero-permission sessions cannot enumerate LocalAgents or build selectors, and the declared history, projection, event, delegation-read, Avatar-handoff, derived-image, agents.configure closed operation family, voice, and delegation-decision extensions remain unavailable until each complete atomic slice is admitted.
+    statement: The currently admitted third-party LocalAgent interaction permission covers only the open-conversation, send-turn, turn-interrupt, subscribe-turn, and conversation-snapshot families over an owner-granted account scope that Runtime dynamically materializes as opaque handles, with turn-interrupt bounded to an active turn in a conversation opened by that app principal through its handle; Runtime owns its durable revocable decision lifecycle and enforcement, pre-grant and zero-permission sessions cannot enumerate LocalAgents or build selectors, and the declared history, projection, event, delegation-read, Avatar-handoff, derived-image, agents.configure closed operation family, voice, and delegation-decision extensions remain unavailable until each complete atomic slice is admitted.
     condition: Whenever a third-party public permission, decision, selector, or protected operation is evaluated.
-    failure: Admit only the complete P-PERM-017 agents.interact four-operation slice and return permission-id-preserving typed unavailable for every incomplete extension or denied, expired, revoked, mismatched, or out-of-subset access.
+    failure: Admit only the complete P-PERM-017 agents.interact five-operation slice and return permission-id-preserving typed unavailable for every incomplete extension or denied, expired, revoked, mismatched, foreign-conversation, inactive-turn, or out-of-subset access.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.grant-service-plane

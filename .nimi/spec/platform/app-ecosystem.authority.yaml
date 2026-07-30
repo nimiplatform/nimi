@@ -235,7 +235,7 @@ units:
     kind: rule
     title: P-PERM-002 closed catalog and current admission
     modality: must
-    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for Runtime session-derived access through an owner-granted account scope dynamically materialized as opaque LocalAgent handle projections and the open-conversation, send-turn, subscribe-turn, and conversation-snapshot operation families, all agents.interact scope extensions and the other eighteen catalog rows remain reserved pending their own atomic admission slices, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
+    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for Runtime session-derived access through an owner-granted account scope dynamically materialized as opaque LocalAgent handle projections and the open-conversation, send-turn, turn-interrupt, subscribe-turn, and conversation-snapshot operation families, with turn-interrupt bounded to an active turn in a conversation opened by that app principal through its handle, all agents.interact scope extensions and the other eighteen catalog rows remain reserved pending their own atomic admission slices, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
     condition: Whenever manifest permission eligibility or requestability is evaluated.
     failure: Deny unknown, reserved, legacy-scope, Runtime-operation, and endpoint-string identifiers without preventing a zero-permission app from running.
     relations:
@@ -265,9 +265,9 @@ units:
     kind: rule
     title: P-PERM-003 durable owner lifecycle
     modality: must
-    statement: An admitted durable owner lifecycle uses monotonic revisions and only pending, granted, denied, expired, or revoked internal states; expired and revoked history remains owner and audit truth rather than app workflow API, each permission is independently revocable except that revoking agents.interact immediately invalidates the effective agents.configure, agents.voice, and agents.delegate grants that depend on its Agent scope while preserving their owner history, and no positive Runtime-local permission lifecycle or store exists until admitted.
-    condition: Whenever durable permission decision state is implemented or projected.
-    failure: Deny use of non-monotonic, non-canonical, app-owned, or unadmitted Runtime-local lifecycle state.
+    statement: An admitted durable owner lifecycle uses monotonic revisions and current permission state is only an active grant or none; pending is request workflow rather than permission state, accept adds the active grant, owner revoke removes it, and reject leaves none, while accept, reject, and revoke each append immutable authorization history that never feeds current posture or blocks a later request; decided requests never block re-request, request identifiers alone provide bounded-TTL idempotent deduplication with no principal-plus-permission cooldown, denied and revoked are not persistent app postures, each permission is independently revocable except that removing active agents.interact immediately invalidates the effective agents.configure, agents.voice, and agents.delegate grants that depend on its Agent scope while preserving their owner history, and no positive Runtime-local permission lifecycle or store exists until admitted.
+    condition: Whenever durable permission request, decision, current grant, or history state is implemented or projected.
+    failure: Deny use of non-monotonic, non-canonical, app-owned, or unadmitted Runtime-local lifecycle state, any history-derived current posture or re-request block, any deduplication key other than request id, or any persistent denied or revoked posture.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.permission-grant
