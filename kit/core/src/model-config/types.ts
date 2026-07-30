@@ -40,6 +40,41 @@ export type SharedAIConfigUnsubscribe = () => void;
 
 export type SharedAIConfigSubscribeListener = (config: NimiAIConfig) => void;
 
+export interface ModelConfigRouteIntent {
+  readonly capability: string;
+  readonly provider: string;
+  readonly model: string;
+  readonly routePolicy: 'local' | 'cloud';
+}
+
+export interface ModelConfigSettingsReadiness {
+  readonly capability: string;
+  readonly state: 'ready' | 'blocked' | 'unavailable' | 'failed';
+  readonly reason: string;
+  readonly observedAt: string | null;
+}
+
+/** Dedicated Runtime/SDK model-settings projection. It is not NimiAIConfig. */
+export interface ModelConfigSettingsProjection {
+  readonly scopeRef: NimiAIScopeRef;
+  readonly capabilities: readonly string[];
+  readonly routeIntents: readonly ModelConfigRouteIntent[];
+  readonly readiness: readonly ModelConfigSettingsReadiness[];
+  readonly configurationRevision: string;
+}
+
+export type ModelConfigSettingsSubscribeListener = (projection: ModelConfigSettingsProjection) => void;
+
+export interface ModelConfigSettingsService {
+  get(scopeRef: NimiAIScopeRef): ModelConfigSettingsProjection;
+  update(input: {
+    readonly scopeRef: NimiAIScopeRef;
+    readonly expectedConfigurationRevision: string;
+    readonly routeIntents: readonly ModelConfigRouteIntent[];
+  }): Promise<ModelConfigSettingsProjection>;
+  subscribe(scopeRef: NimiAIScopeRef, listener: ModelConfigSettingsSubscribeListener): SharedAIConfigUnsubscribe;
+}
+
 export interface SharedAIConfigService {
   readonly aiConfig: {
     get(scopeRef: NimiAIScopeRef): NimiAIConfig;
@@ -151,9 +186,8 @@ export interface CapabilityItemOverride {
   }>;
 }
 
-export interface AppModelConfigSurface {
+interface AppModelConfigSurfaceBase {
   readonly scopeRef: NimiAIScopeRef;
-  readonly aiConfigService: SharedAIConfigService;
   readonly requirementDeclaration: NimiAICapabilityRequirementDeclaration;
   readonly providerResolver: ModelConfigProviderResolver;
   readonly projectionResolver: ModelConfigProjectionResolver;
@@ -162,6 +196,12 @@ export interface AppModelConfigSurface {
   readonly runtimeNotReadyLabel?: string;
   readonly i18n: ModelConfigI18nBinding;
 }
+
+/** Existing host-owned AIConfig surfaces and dedicated Runtime model-settings are mutually exclusive. */
+export type AppModelConfigSurface = AppModelConfigSurfaceBase & (
+  | { readonly aiConfigService: SharedAIConfigService; readonly modelSettingsService?: ModelConfigSettingsService }
+  | { readonly modelSettingsService: ModelConfigSettingsService; readonly aiConfigService?: SharedAIConfigService }
+);
 
 export interface ModelConfigRequirementEvaluation {
   readonly capabilityId: string;

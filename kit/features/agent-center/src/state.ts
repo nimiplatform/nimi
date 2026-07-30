@@ -1,4 +1,5 @@
-import { AGENT_CENTER_CAPABILITY_LABELS, AGENT_CENTER_SECTIONS } from './sections.js';
+import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-capabilities';
+import { AGENT_CENTER_SECTIONS } from './sections.js';
 import { projectAgentCenterSourceContext } from './source-context-projection.js';
 import type {
   AgentCenterAppearanceProjection,
@@ -10,14 +11,24 @@ import type {
   AgentCenterSourceContextStatus,
 } from './types.js';
 
-const CAPABILITIES: readonly AgentCenterCapabilityId[] = [
-  'text.generate',
-  'text.embed',
-  'image.generate',
-  'audio.synthesize',
-  'voice_workflow.voice_clone',
-  'voice_workflow.voice_design',
-];
+function capabilityLabel(capability: AgentCenterCapabilityId): string {
+  return capability
+    .split(/[._-]/gu)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
+function projectedCapabilities(input: AgentCenterStateInput): readonly AgentCenterCapabilityId[] {
+  const reported = new Set<string>([
+    ...(input.modelSettings?.capabilities || []),
+    ...(input.modelSettings?.readiness.map((entry) => entry.capability) || []),
+    ...(input.modelSettings?.routeIntents.map((entry) => entry.capability) || []),
+  ]);
+  return CANONICAL_CAPABILITY_CATALOG
+    .map((descriptor) => descriptor.capabilityId)
+    .filter((capability) => reported.has(capability));
+}
 
 const DEFAULT_APPEARANCE: AgentCenterAppearanceProjection = {
   status: 'not_configured',
@@ -26,39 +37,35 @@ const DEFAULT_APPEARANCE: AgentCenterAppearanceProjection = {
   backgroundRef: null,
   defaultVoiceReference: null,
   avatarAutoplay: false,
+  disabledReasonCode: 'avatar-not-configured',
   disabledReason: 'appearance asset not configured',
 };
 
 function readinessSummary(state: AgentCenterCapabilityState): string {
-  if (state.readinessState === 'ready') {
-    return `${state.label} ready`;
-  }
+  if (state.readinessState === 'ready') return 'Ready';
   if (state.readinessState === 'not_configured') {
-    return state.required
-      ? `${state.label} not configured`
-      : `${state.label} optional route not configured`;
+    return state.required ? 'Not configured' : 'Optional route not configured';
   }
-  if (state.readinessState === 'unavailable') {
-    return `${state.label} unavailable`;
-  }
-  return `${state.label} readiness unknown`;
+  if (state.readinessState === 'unavailable') return 'Unavailable';
+  return 'Readiness unknown';
 }
 
 function buildCapabilityState(
   input: AgentCenterStateInput,
   capability: AgentCenterCapabilityId,
 ): AgentCenterCapabilityState {
-  const readiness = input.readiness?.capabilities.find((entry) => entry.capability === capability);
-  const binding = input.agentAIConfig?.intents[capability] || null;
-  const required = capability === 'text.generate' || capability === 'text.embed';
+  const readiness = input.modelSettings?.readiness.find((entry) => entry.capability === capability);
+  const binding = input.modelSettings?.routeIntents.find((entry) => entry.capability === capability) ?? null;
+  const required = false;
+  const readinessState = readiness?.state === 'blocked' ? 'not_configured' : readiness?.state ?? 'unknown';
   const state: AgentCenterCapabilityState = {
     capability,
-    label: AGENT_CENTER_CAPABILITY_LABELS[capability],
+    label: capabilityLabel(capability),
     required,
-    readinessState: readiness?.state || 'unknown',
-    probedAt: readiness?.probedAt || null,
+    readinessState,
+    probedAt: readiness?.observedAt ?? null,
     binding,
-    blocksTextTurns: required && readiness?.state !== 'ready',
+    blocksTextTurns: required && readinessState !== 'ready',
     editable: true,
     summary: '',
   };
@@ -82,8 +89,7 @@ function statusTone(
   if (sourceContextStatus === 'blocked') {
     return 'attention';
   }
-  if (!input.readiness && !input.agentAIConfig && !input.inspect
-    && !input.sourceContextStatus && !input.turnContextSummary) {
+  if (!input.modelSettings && !input.inspect && !input.sourceContextStatus && !input.turnContextSummary) {
     return 'disabled';
   }
   if (!baseTextReady) {
@@ -93,42 +99,55 @@ function statusTone(
 }
 
 export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenterState {
-  const capabilities = CAPABILITIES.map((capability) => buildCapabilityState(input, capability));
+  const capabilities = projectedCapabilities(input).map((capability) => buildCapabilityState(input, capability));
   const text = capabilities.find((capability) => capability.capability === 'text.generate');
-  const baseTextReady = text?.readinessState === 'ready';
+  const baseTextReady = text?.readinessState === 'ready' && text.binding !== null;
   const sourceContext = projectAgentCenterSourceContext(input);
   const tone = statusTone(input, baseTextReady, sourceContext.status);
   const inspect = input.inspect || null;
   const memory = input.memory || null;
-  const autonomyMutationAvailable = input.autonomyMutationAvailable === true;
-  const autonomyDisabledReason = typeof input.autonomyDisabledReason === 'string'
-    ? input.autonomyDisabledReason.trim()
-    : '';
+  const autonomyProjection = input.autonomy || null;
+  const autonomyRevision = autonomyProjection?.revision || null;
+  const presentationRevision = input.appearance?.presentationRevision
+    ?? inspect?.presentationProfileRevision
+    ?? null;
+  const configRevisionCandidate = input.modelSettings?.configurationRevision;
+  const configRevision = typeof configRevisionCandidate === 'string' && /^(?:0|[1-9]\d*)$/u.test(configRevisionCandidate)
+    ? configRevisionCandidate
+    : null;
+  const agentAIConfigMutationDisabledReason: AgentCenterState['agentAIConfigMutationDisabledReason'] = !input.modelSettings
+    ? 'agent-ai-config-snapshot-unavailable'
+    : configRevision === null
+      ? 'agent-ai-config-revision-unavailable'
+      : null;
 
   return {
     runtimeStatus: input.runtimeError
       ? 'failed'
-      : (!input.readiness && !input.agentAIConfig && !inspect
-          && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
+      : (!input.modelSettings && !inspect && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
     statusTone: tone,
     baseTextReady,
-    runtimeAgentAIConfigIntents: input.agentAIConfig?.intents || {},
+    modelSettings: input.modelSettings ?? null,
     baseTextDisabledReason: baseTextReady ? null : (text?.summary || 'Text readiness unavailable'),
-    configRevision: input.readiness?.configRevision ?? input.agentAIConfig?.revision ?? null,
+    configRevision,
+    autonomyRevision,
+    presentationRevision,
+    agentAIConfigMutationDisabledReason,
     capabilities,
     autonomy: {
-      enabled: inspect?.autonomyEnabled ?? null,
-      mode: inspect?.autonomyMode ?? null,
-      usedTokensInWindow: inspect?.autonomyUsedTokensInWindow ?? null,
-      dailyTokenBudget: inspect?.autonomyDailyTokenBudget ?? null,
-      maxTokensPerHook: inspect?.autonomyMaxTokensPerHook ?? null,
-      windowStartedAt: inspect?.autonomyWindowStartedAt ?? null,
-      suspendedUntil: inspect?.autonomySuspendedUntil ?? null,
-      budgetExhausted: inspect?.autonomyBudgetExhausted ?? null,
-      controlsDisabled: !inspect || !autonomyMutationAvailable,
-      disabledReason: !inspect
-        ? (input.runtimeError || autonomyDisabledReason || 'runtime inspect unavailable')
-        : (!autonomyMutationAvailable ? autonomyDisabledReason || 'runtime autonomy mutation unavailable' : null),
+      revision: autonomyRevision,
+      enabled: autonomyProjection?.enabled ?? inspect?.autonomyEnabled ?? null,
+      mode: autonomyProjection?.mode ?? inspect?.autonomyMode ?? null,
+      usedTokensInWindow: autonomyProjection?.usedTokensInWindow ?? inspect?.autonomyUsedTokensInWindow ?? null,
+      dailyTokenBudget: autonomyProjection?.dailyTokenBudget ?? inspect?.autonomyDailyTokenBudget ?? null,
+      maxTokensPerHook: autonomyProjection?.maxTokensPerHook ?? inspect?.autonomyMaxTokensPerHook ?? null,
+      windowStartedAt: autonomyProjection?.windowStartedAt ?? inspect?.autonomyWindowStartedAt ?? null,
+      suspendedUntil: autonomyProjection?.suspendedUntil ?? inspect?.autonomySuspendedUntil ?? null,
+      budgetExhausted: autonomyProjection?.budgetExhausted ?? inspect?.autonomyBudgetExhausted ?? null,
+      controlsDisabled: autonomyRevision === null,
+      disabledReason: autonomyRevision === null
+        ? 'runtime autonomy revision unavailable'
+        : null,
     },
     cognition: {
       lifecycleStatus: inspect?.lifecycleStatus ?? null,
@@ -138,10 +157,11 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
       memoryState: inspect
         ? (inspect.recentCanonicalMemories.length > 0 || memory?.recordCount ? 'ready' : 'empty')
         : 'unavailable',
-      recentCanonicalMemories: inspect?.recentCanonicalMemories || [],
+      recentCanonicalMemoryCount: inspect?.recentCanonicalMemories.length ?? 0,
     },
     appearance: input.appearance || inspect?.presentationProfile ? {
       ...DEFAULT_APPEARANCE,
+      presentationRevision,
       ...(inspect?.presentationProfile ? {
         backendKind: inspect.presentationProfile.backendKind,
         avatarAssetRef: inspect.presentationProfile.avatarAssetRef,
@@ -149,15 +169,15 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
         defaultVoiceReference: inspect.presentationProfile.defaultVoiceReference,
         avatarAutoplay: inspect.presentationProfile.avatarAutoplay,
         status: inspect.presentationProfile.avatarAssetRef ? 'ready' : 'not_configured',
+        disabledReasonCode: inspect.presentationProfile.avatarAssetRef ? null : DEFAULT_APPEARANCE.disabledReasonCode,
         disabledReason: inspect.presentationProfile.avatarAssetRef ? null : DEFAULT_APPEARANCE.disabledReason,
       } satisfies Partial<AgentCenterAppearanceProjection> : {}),
       ...(input.appearance || {}),
     } : DEFAULT_APPEARANCE,
     diagnostics: {
       source: input.runtimeError ? 'unavailable' : 'runtime-projection',
-      configRevision: input.readiness?.configRevision ?? input.agentAIConfig?.revision ?? null,
+      configRevision,
       runtimeTurnId: sourceContext.context?.turnId || null,
-      runtimeStreamId: null,
       runtimeError: input.runtimeError || null,
     },
     sourceContext,

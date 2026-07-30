@@ -1,26 +1,23 @@
-import { X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { PlayCircle, Settings, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-capabilities';
 import { AGENT_CENTER_SECTION_LABELS } from '../sections.js';
-import { isAgentCenterAvatarPreviewReady } from '../appearance-preview-readiness.js';
-import { isAgentCenterState, resolveAgentCenterState } from '../state.js';
+import { isAgentCenterCommittedAppearanceReady } from '../appearance-render-readiness.js';
+import { translateAgentCenter } from '../i18n.js';
+import { agentCenterEnCatalog, getAgentCenterCatalogRecord } from '../locales/index.js';
+import { useAgentCenterStore } from '../store.js';
 import type {
   AgentCenterAdvancedCopy,
-  AgentCenterAppearanceAdapter,
-  AgentCenterAppearanceCopy,
-  AgentCenterAppearanceProjection,
-  AgentCenterBehaviorCopy,
   AgentCenterChromeCopy,
-  AgentCenterCopy,
   AgentCenterIdentityProjection,
-  AgentCenterModelCopy,
   AgentCenterOverviewCopy,
   AgentCenterProgressCopy,
   AgentCenterProps,
-  AgentCenterRuntimeAdapter,
-  AgentCenterRuntimeSnapshot,
   AgentCenterSectionId,
+  AgentCenterSession,
+  AgentCenterSnapshot,
   AgentCenterState,
-  AgentCenterStateInput,
 } from '../types.js';
 import { AgentCenterAppearanceSection } from './AgentCenterAppearanceSection.js';
 import { AgentCenterBehaviorSection } from './AgentCenterBehaviorSection.js';
@@ -32,6 +29,7 @@ import {
   ChecklistItem,
   Kv,
   KvGrid,
+  Notice,
   ProgressHero,
   SECTION_ICONS,
   SectionHeader,
@@ -48,11 +46,23 @@ function checklistTone(done: boolean, attention: boolean) {
 }
 
 function agentCenterSetupProgress(state: AgentCenterState) {
-  const requiredModelReady = state.capabilities
-    .filter((capability) => capability.required)
-    .every((capability) => capability.readinessState === 'ready');
+  const requiredCapabilities = state.capabilities.filter((capability) => capability.required);
+  const canonicalEmbeddingCapabilities = new Set(
+    CANONICAL_CAPABILITY_CATALOG
+      .filter((descriptor) => descriptor.section === 'embed')
+      .map((descriptor) => descriptor.capabilityId),
+  );
+  const projectedEmbeddingCapabilities = state.capabilities
+    .filter((capability) => canonicalEmbeddingCapabilities.has(capability.capability));
+  const requiredModelReady = requiredCapabilities.length > 0
+    ? requiredCapabilities.every((capability) => capability.readinessState === 'ready' && capability.binding !== null)
+    : state.baseTextReady
+      && projectedEmbeddingCapabilities.length > 0
+      && projectedEmbeddingCapabilities.every((capability) => (
+        capability.readinessState === 'ready' && capability.binding !== null
+      ));
   const checklistDone = [
-    isAgentCenterAvatarPreviewReady(state.appearance),
+    isAgentCenterCommittedAppearanceReady(state.appearance),
     requiredModelReady,
     state.autonomy.enabled === true,
     state.cognition.memoryState !== 'unavailable',
@@ -67,88 +77,13 @@ function agentCenterSetupProgress(state: AgentCenterState) {
   };
 }
 
-const DEFAULT_CHROME_COPY: Required<AgentCenterChromeCopy> = {
-  title: 'Agent Center',
-  eyebrow: 'Agent Center',
-  closeLabel: 'Close Agent Center',
-  navLabel: 'Agent Center sections',
-  textReadyLabel: 'Runtime text turns ready',
-  avatarFallback: 'A',
-  projectionLoadFailed: 'Runtime Agent Center projection load failed.',
-};
+const DEFAULT_CHROME_COPY = getAgentCenterCatalogRecord('AgentCenter.chrome.') as Required<AgentCenterChromeCopy>;
 
-const DEFAULT_PROGRESS_COPY: Required<AgentCenterProgressCopy> = {
-  configLabel: 'Config',
-};
+const DEFAULT_PROGRESS_COPY = getAgentCenterCatalogRecord('AgentCenter.progress.') as Required<AgentCenterProgressCopy>;
 
-const DEFAULT_OVERVIEW_COPY: Required<AgentCenterOverviewCopy> = {
-  readyTitle: 'Runtime local agent ready',
-  attentionTitle: 'Configuration needs attention',
-  checklistTitle: 'Configuration checklist',
-  appearanceReadyDescription: 'Runtime appearance projection admitted.',
-  appearancePendingDescription: 'Avatar and appearance admission are pending.',
-  modelReadyDescription: 'Required Runtime Agent AI Config intents are ready.',
-  modelPendingDescription: 'Required text and embedding routes need Runtime config.',
-  behaviorReadyDescriptionPrefix: 'Autonomy is enabled.',
-  behaviorReadyEnabledFallback: 'enabled',
-  behaviorOffDescription: 'Autonomy is available as Runtime-owned configuration.',
-  cognitionFallbackDescription: 'Runtime memory and lifecycle projection.',
-  readyPill: 'Ready',
-  needsSetupPill: 'Needs setup',
-  enabledPill: 'Enabled',
-  offPill: 'Off',
-  projectedPill: 'Projected',
-  readOnlyPill: 'Read-only',
-  sourceContextTitle: 'Source and conversation context',
-  sourceContextReadyDescription: 'Realm source and the latest turn context are ready.',
-  sourceContextBlockedDescription: 'Runtime needs source or context capacity attention.',
-  sourceContextTruncatedDescription: 'The latest turn is ready with bounded omissions.',
-  sourceContextFailedDescription: 'Runtime could not verify the bounded source and context status.',
-  sourceContextUnknownDescription: 'Source or conversation context has not been projected yet.',
-  sourceContextReadyPill: 'Ready',
-  sourceContextBlockedPill: 'Needs attention',
-  sourceContextTruncatedPill: 'Bounded',
-  sourceContextFailedPill: 'Unavailable',
-  sourceContextUnknownPill: 'Not projected',
-};
+const DEFAULT_OVERVIEW_COPY = getAgentCenterCatalogRecord('AgentCenter.overview.') as Required<AgentCenterOverviewCopy>;
 
-const DEFAULT_ADVANCED_COPY: Required<AgentCenterAdvancedCopy> = {
-  title: AGENT_CENTER_SECTION_LABELS.advanced,
-  descriptionRuntimeProjection: 'Read-only diagnostics provided by Runtime.',
-  descriptionUnavailable: 'Runtime diagnostics are not available yet.',
-  configRevisionLabel: 'Config revision',
-  runtimeTurnLabel: 'Runtime turn',
-  runtimeStreamLabel: 'Runtime stream',
-  runtimeErrorLabel: 'Runtime error',
-  unavailableValue: 'unavailable',
-  notProjectedValue: 'not projected',
-  noneValue: 'none',
-  sourceContextStatusLabel: 'Source and context',
-  sourceKindLabel: 'Source kind',
-  sourceReferenceLabel: 'Source reference',
-  sourceSchemaLabel: 'Source schema',
-  sourceHashLabel: 'Source hash',
-  sourceSnapshotLabel: 'Source snapshot',
-  sourceCoverageLabel: 'Source coverage',
-  contextLanesLabel: 'Context lanes',
-  contextBudgetLabel: 'Context budget',
-  contextTruncationLabel: 'Context omissions',
-  contextInputsLabel: 'Context inputs',
-  routeDigestLabel: 'Route digest',
-  catalogDigestLabel: 'Catalog digest',
-  sourceContextReadyValue: 'Ready',
-  sourceContextBlockedValue: 'Needs attention',
-  sourceContextTruncatedValue: 'Ready with bounded omissions',
-  sourceContextFailedValue: 'Unavailable',
-  sourceContextUnknownValue: 'Not projected',
-  worldCharacterValue: 'World character',
-  personaCharacterValue: 'Persona character',
-  sourceCoverageFormat: '{{complete}} of {{total}} sections complete',
-  contextLanesFormat: '{{included}} included, {{total}} total',
-  contextBudgetFormat: '{{used}} of {{budget}} tokens used',
-  contextTruncationFormat: '{{omitted}} omitted, {{truncated}} truncated',
-  contextInputsFormat: '{{transcript}} transcript, {{memory}} memory, {{media}} media, {{tools}} tools',
-};
+const DEFAULT_ADVANCED_COPY = getAgentCenterCatalogRecord('AgentCenter.advanced.') as Required<AgentCenterAdvancedCopy>;
 
 function formatProjectionCopy(
   template: string,
@@ -175,39 +110,35 @@ function sourceContextOverviewStatus(
   }
 }
 
-function resolveSectionLabels(copy: AgentCenterCopy | undefined): Record<AgentCenterSectionId, string> {
-  return {
-    ...AGENT_CENTER_SECTION_LABELS,
-    ...(copy?.sectionLabels || {}),
-  };
+function translateCopyRecord<T extends Readonly<Record<string, string>>>(
+  i18n: AgentCenterProps['i18n'],
+  namespace: string,
+  record: T,
+): T {
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [
+    key,
+    translateAgentCenter(i18n, `${namespace}.${key}`, value),
+  ])) as T;
 }
 
-function resolveChromeCopy(copy: AgentCenterCopy | undefined): Required<AgentCenterChromeCopy> {
-  return {
-    ...DEFAULT_CHROME_COPY,
-    ...(copy?.chrome || {}),
-  };
+function resolveSectionLabels(): Record<AgentCenterSectionId, string> {
+  return { ...AGENT_CENTER_SECTION_LABELS };
 }
 
-function resolveProgressCopy(copy: AgentCenterCopy | undefined): Required<AgentCenterProgressCopy> {
-  return {
-    ...DEFAULT_PROGRESS_COPY,
-    ...(copy?.progress || {}),
-  };
+function resolveChromeCopy(): Required<AgentCenterChromeCopy> {
+  return { ...DEFAULT_CHROME_COPY };
 }
 
-function resolveOverviewCopy(copy: AgentCenterCopy | undefined): Required<AgentCenterOverviewCopy> {
-  return {
-    ...DEFAULT_OVERVIEW_COPY,
-    ...(copy?.overview || {}),
-  };
+function resolveProgressCopy(): Required<AgentCenterProgressCopy> {
+  return { ...DEFAULT_PROGRESS_COPY };
 }
 
-function resolveAdvancedCopy(copy: AgentCenterCopy | undefined): Required<AgentCenterAdvancedCopy> {
-  return {
-    ...DEFAULT_ADVANCED_COPY,
-    ...(copy?.advanced || {}),
-  };
+function resolveOverviewCopy(): Required<AgentCenterOverviewCopy> {
+  return { ...DEFAULT_OVERVIEW_COPY };
+}
+
+function resolveAdvancedCopy(): Required<AgentCenterAdvancedCopy> {
+  return { ...DEFAULT_ADVANCED_COPY };
 }
 
 function AgentCenterOverview({
@@ -224,7 +155,7 @@ function AgentCenterOverview({
   readonly onSectionSelect: (section: AgentCenterSectionId) => void;
 }) {
   const setup = agentCenterSetupProgress(state);
-  const appearanceReady = isAgentCenterAvatarPreviewReady(state.appearance);
+  const appearanceReady = isAgentCenterCommittedAppearanceReady(state.appearance);
   const behaviorReady = state.autonomy.enabled === true;
   const cognitionReady = state.cognition.memoryState !== 'unavailable';
   const sourceContext = sourceContextOverviewStatus(state, copy);
@@ -337,7 +268,6 @@ function AgentCenterAdvanced({
         <KvGrid>
           <Kv label={copy.configRevisionLabel} value={state.diagnostics.configRevision ?? copy.unavailableValue} />
           <Kv label={copy.runtimeTurnLabel} value={state.diagnostics.runtimeTurnId || copy.notProjectedValue} mono />
-          <Kv label={copy.runtimeStreamLabel} value={state.diagnostics.runtimeStreamId || copy.notProjectedValue} mono />
           <Kv label={copy.runtimeErrorLabel} value={state.diagnostics.runtimeError || copy.noneValue} muted={!state.diagnostics.runtimeError} />
         </KvGrid>
       </Card>
@@ -404,94 +334,70 @@ function AgentCenterAdvanced({
 }
 
 function renderSection(
-  section: AgentCenterSectionId,
-  state: AgentCenterState,
-  runtimeAdapter: AgentCenterRuntimeAdapter | null | undefined,
-  appearanceAdapter: AgentCenterAppearanceAdapter | null | undefined,
-  appearanceCopy: AgentCenterAppearanceCopy | undefined,
-  behaviorCopy: AgentCenterBehaviorCopy | undefined,
-  modelCopy: AgentCenterModelCopy | undefined,
+  section: Exclude<AgentCenterSectionId, 'overview'>,
+  session: AgentCenterSession,
+  snapshot: AgentCenterSnapshot,
   advancedCopy: Required<AgentCenterAdvancedCopy>,
-  overviewCopy: Required<AgentCenterOverviewCopy>,
-  progressCopy: Required<AgentCenterProgressCopy>,
-  sectionLabels: Record<AgentCenterSectionId, string>,
+  i18n: AgentCenterProps['i18n'],
 ) {
   switch (section) {
     case 'model':
-      return <AgentCenterModelSection copy={modelCopy} runtimeAdapter={runtimeAdapter} state={state} />;
+      return <AgentCenterModelSection i18n={i18n} session={session} snapshot={snapshot} />;
     case 'behavior':
-      return <AgentCenterBehaviorSection copy={behaviorCopy} runtimeAdapter={runtimeAdapter} state={state} />;
+      return <AgentCenterBehaviorSection i18n={i18n} session={session} snapshot={snapshot} />;
     case 'cognition':
-      return <AgentCenterCognitionSection state={state} />;
+      return <AgentCenterCognitionSection i18n={i18n} session={session} snapshot={snapshot} />;
     case 'appearance':
-      return <AgentCenterAppearanceSection appearanceAdapter={appearanceAdapter} copy={appearanceCopy} state={state} />;
+      return <AgentCenterAppearanceSection i18n={i18n} session={session} snapshot={snapshot} />;
     case 'advanced':
-      return <AgentCenterAdvanced copy={advancedCopy} state={state} />;
-    default:
-      return (
-        <AgentCenterOverview
-          copy={overviewCopy}
-          onSectionSelect={() => undefined}
-          progressCopy={progressCopy}
-          sectionLabels={sectionLabels}
-          state={state}
-        />
-      );
+      return <AgentCenterAdvanced copy={advancedCopy} state={snapshot.state} />;
   }
 }
 
-function normalizeLoadError(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message.trim();
-  }
-  if (error && typeof error === 'object') {
-    const record = error as Record<string, unknown>;
-    const message = typeof record.message === 'string' ? record.message.trim() : '';
-    if (message) {
-      return message;
-    }
-  }
-  return fallback;
-}
-
-function agentCenterAvatarFallback(identity: AgentCenterIdentityProjection): string {
+function agentCenterAvatarFallback(identity: AgentCenterIdentityProjection, defaultFallback: string): string {
   const explicit = identity.avatarFallback?.trim();
   if (explicit) {
     return explicit.slice(0, 2);
   }
   const displayName = identity.displayName.trim();
-  return (displayName.charAt(0) || 'A').toUpperCase();
+  return (displayName.charAt(0) || defaultFallback).toUpperCase();
 }
 
-function hasSuppliedRuntimeProjection(state: AgentCenterProps['state']): boolean {
-  if (isAgentCenterState(state)) {
-    return true;
-  }
-  return Object.prototype.hasOwnProperty.call(state, 'agentAIConfig')
-    || Object.prototype.hasOwnProperty.call(state, 'readiness')
-    || Object.prototype.hasOwnProperty.call(state, 'inspect')
-    || Object.prototype.hasOwnProperty.call(state, 'memory')
-    || Object.prototype.hasOwnProperty.call(state, 'sourceContextStatus')
-    || Object.prototype.hasOwnProperty.call(state, 'turnContextSummary')
-    || Boolean(state.runtimeError);
-}
-
-function hasSuppliedAppearanceProjection(state: AgentCenterProps['state']): boolean {
-  if (isAgentCenterState(state)) {
-    return true;
-  }
-  return Boolean((state as AgentCenterStateInput).appearance);
+function AgentCenterChromeActions(props: {
+  readonly copy: Required<AgentCenterChromeCopy>;
+  readonly actions?: AgentCenterProps['placementActions'];
+}) {
+  if (!props.actions?.openRuntimeSettings && !props.actions?.launchAvatar && !props.actions?.close) return null;
+  return (
+    <div className="flex shrink-0 items-center gap-1.5" data-agent-center-chrome-actions="true">
+      {props.actions?.openRuntimeSettings ? (
+        <AgentButton ariaLabel={props.copy.openRuntimeSettingsLabel} className="h-9 w-9 px-0" onClick={props.actions.openRuntimeSettings} variant="default">
+          <Settings aria-hidden="true" className="h-4 w-4" />
+        </AgentButton>
+      ) : null}
+      {props.actions?.launchAvatar ? (
+        <AgentButton ariaLabel={props.copy.launchAvatarLabel} className="h-9 w-9 px-0" onClick={props.actions.launchAvatar} variant="default">
+          <PlayCircle aria-hidden="true" className="h-4 w-4" />
+        </AgentButton>
+      ) : null}
+      {props.actions?.close ? (
+        <AgentButton ariaLabel={props.copy.closeLabel} className="h-9 w-9 px-0 shadow-[0_8px_18px_rgba(15,23,42,0.08)]" onClick={props.actions.close} variant="default">
+          <X aria-hidden="true" className="h-4 w-4" />
+        </AgentButton>
+      ) : null}
+    </div>
+  );
 }
 
 function AgentCenterChromeHeader(props: {
   readonly copy: Required<AgentCenterChromeCopy>;
   readonly identity?: AgentCenterIdentityProjection | null;
   readonly state: AgentCenterState;
-  readonly onClose?: (() => void) | undefined;
+  readonly actions?: AgentCenterProps['placementActions'];
 }) {
   if (props.identity?.displayName.trim()) {
     const identity = props.identity;
-    const fallback = agentCenterAvatarFallback(identity);
+    const fallback = agentCenterAvatarFallback(identity, props.copy.avatarFallback);
     return (
       <header className="flex min-w-0 items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -512,14 +418,6 @@ function AgentCenterChromeHeader(props: {
               {identity.displayName}
             </h1>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-              {identity.localAgentRef ? (
-                <small
-                  className="max-w-[260px] truncate font-mono text-[11.5px] leading-[1.35] text-slate-500"
-                  title={identity.localAgentRef}
-                >
-                  {identity.localAgentRef}
-                </small>
-              ) : null}
               {identity.badgeLabel ? (
                 <em className="inline-flex max-w-full shrink-0 rounded-full border border-violet-300/60 bg-violet-500/10 px-2 py-px text-[10.5px] font-semibold not-italic text-violet-700">
                   {identity.badgeLabel}
@@ -528,11 +426,7 @@ function AgentCenterChromeHeader(props: {
             </div>
           </div>
         </div>
-        {props.onClose ? (
-          <AgentButton ariaLabel={props.copy.closeLabel} className="h-9 w-9 px-0 shadow-[0_8px_18px_rgba(15,23,42,0.08)]" onClick={props.onClose} variant="default">
-            <X aria-hidden="true" className="h-4 w-4" />
-          </AgentButton>
-        ) : null}
+        <AgentCenterChromeActions actions={props.actions} copy={props.copy} />
       </header>
     );
   }
@@ -551,110 +445,40 @@ function AgentCenterChromeHeader(props: {
           {props.state.baseTextReady ? props.copy.textReadyLabel : props.state.baseTextDisabledReason}
         </p>
       </div>
-      {props.onClose ? (
-        <AgentButton ariaLabel={props.copy.closeLabel} className="h-9 w-9 px-0" onClick={props.onClose} variant="default">
-          <X aria-hidden="true" className="h-4 w-4" />
-        </AgentButton>
-      ) : null}
+      <AgentCenterChromeActions actions={props.actions} copy={props.copy} />
     </header>
   );
 }
 
 export function AgentCenter(props: AgentCenterProps) {
-  const [loadedSnapshot, setLoadedSnapshot] = useState<AgentCenterRuntimeSnapshot | null>(null);
-  const [loadedAppearance, setLoadedAppearance] = useState<AgentCenterAppearanceProjection | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [appearanceLoadError, setAppearanceLoadError] = useState<string | null>(null);
-  const runtimeAutonomyMutationAvailable = typeof props.runtimeAdapter?.setAutonomyConfig === 'function';
-  const runtimeProjectionSupplied = hasSuppliedRuntimeProjection(props.state);
-  const appearanceProjectionSupplied = hasSuppliedAppearanceProjection(props.state);
-  const chromeCopy = useMemo(() => resolveChromeCopy(props.copy), [props.copy]);
-  useEffect(() => {
-    const adapter = props.runtimeAdapter;
-    if (!adapter || runtimeProjectionSupplied) {
-      setLoadedSnapshot(null);
-      setLoadError(null);
-      return;
-    }
-    let cancelled = false;
-    setLoadError(null);
-    void adapter.loadSnapshot(props.runtimeLoadInput).then((snapshot) => {
-      if (!cancelled) {
-        setLoadedSnapshot(snapshot);
-      }
-    }).catch((error: unknown) => {
-      if (!cancelled) {
-        setLoadedSnapshot(null);
-        setLoadError(normalizeLoadError(error, chromeCopy.projectionLoadFailed));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [chromeCopy.projectionLoadFailed, props.runtimeAdapter, props.runtimeLoadInput, runtimeProjectionSupplied]);
-  const appearanceLoader = props.appearanceAdapter?.load;
-  useEffect(() => {
-    if (!appearanceLoader || appearanceProjectionSupplied) {
-      setLoadedAppearance(null);
-      setAppearanceLoadError(null);
-      return;
-    }
-    let cancelled = false;
-    setAppearanceLoadError(null);
-    void appearanceLoader().then((projection) => {
-      if (!cancelled) {
-        setLoadedAppearance(projection);
-      }
-    }).catch((error: unknown) => {
-      if (!cancelled) {
-        setLoadedAppearance(null);
-        setAppearanceLoadError(normalizeLoadError(error, chromeCopy.projectionLoadFailed));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [appearanceLoader, appearanceProjectionSupplied, chromeCopy.projectionLoadFailed]);
-  const state = useMemo(() => {
-    if (isAgentCenterState(props.state)) {
-      return {
-        ...props.state,
-        ...(loadedAppearance ? { appearance: loadedAppearance } : {}),
-        ...(appearanceLoadError ? {
-          appearance: {
-            ...props.state.appearance,
-            status: 'invalid' as const,
-            disabledReason: appearanceLoadError,
-          },
-        } : {}),
-      };
-    }
-    const placementState = props.state as AgentCenterStateInput;
-    return resolveAgentCenterState({
-      ...placementState,
-      ...(loadedSnapshot || {}),
-      autonomyMutationAvailable: placementState.autonomyMutationAvailable ?? runtimeAutonomyMutationAvailable,
-      ...(loadedAppearance ? { appearance: loadedAppearance } : {}),
-      ...(appearanceLoadError ? {
-        appearance: {
-          ...(placementState.appearance || {}),
-          status: 'invalid' as const,
-          disabledReason: appearanceLoadError,
-        },
-      } : {}),
-      runtimeError: loadError || loadedSnapshot?.runtimeError || placementState.runtimeError || null,
-    });
-  }, [appearanceLoadError, loadError, loadedAppearance, loadedSnapshot, props.state, runtimeAutonomyMutationAvailable]);
+  const chromeCopy = useMemo(
+    () => translateCopyRecord(props.i18n, 'AgentCenter.chrome', resolveChromeCopy()),
+    [props.i18n],
+  );
+  const store = useAgentCenterStore(props.session);
+  const state = store.snapshot.state;
   const [uncontrolledSection, setUncontrolledSection] = useState<AgentCenterSectionId>(
     props.defaultSection || 'overview',
   );
   const activeSection = props.activeSection || uncontrolledSection;
   const chrome = props.chrome || 'standalone';
   const setup = agentCenterSetupProgress(state);
-  const sectionLabels = useMemo(() => resolveSectionLabels(props.copy), [props.copy]);
-  const overviewCopy = useMemo(() => resolveOverviewCopy(props.copy), [props.copy]);
-  const progressCopy = useMemo(() => resolveProgressCopy(props.copy), [props.copy]);
-  const advancedCopy = useMemo(() => resolveAdvancedCopy(props.copy), [props.copy]);
+  const sectionLabels = useMemo(
+    () => translateCopyRecord(props.i18n, 'AgentCenter.section', resolveSectionLabels()),
+    [props.i18n],
+  );
+  const overviewCopy = useMemo(
+    () => translateCopyRecord(props.i18n, 'AgentCenter.overview', resolveOverviewCopy()),
+    [props.i18n],
+  );
+  const progressCopy = useMemo(
+    () => translateCopyRecord(props.i18n, 'AgentCenter.progress', resolveProgressCopy()),
+    [props.i18n],
+  );
+  const advancedCopy = useMemo(
+    () => translateCopyRecord(props.i18n, 'AgentCenter.advanced', resolveAdvancedCopy()),
+    [props.i18n],
+  );
   const setSection = (section: AgentCenterSectionId) => {
     if (!props.activeSection) {
       setUncontrolledSection(section);
@@ -664,27 +488,40 @@ export function AgentCenter(props: AgentCenterProps) {
 
   return (
     <section
-      aria-label={props.ariaLabel || chromeCopy.title}
+      aria-label={chromeCopy.title}
       className={cnAgentCenter(
         'grid min-w-0 max-w-full text-slate-950',
         chrome === 'standalone'
           ? 'gap-4 rounded-[18px] border border-slate-200/80 bg-white/80 p-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]'
           : 'gap-3',
       )}
+      data-agent-center-density={props.density || 'regular'}
+      data-agent-center-layout={props.layout || 'stacked'}
       data-chat-agent-center="true"
     >
       {chrome === 'standalone' ? (
         <AgentCenterChromeHeader
           copy={chromeCopy}
+          actions={props.placementActions}
           identity={props.identity}
-          onClose={props.placementActions?.close}
           state={state}
         />
+      ) : null}
+      {store.snapshot.error ? (
+        <Notice tone="warn">
+          <div className="flex min-w-0 items-center justify-between gap-3" data-agent-center-load-error="true">
+            <span>{store.snapshot.error}</span>
+            <AgentButton onClick={() => { void store.refresh(); }}>
+              {translateAgentCenter(props.i18n, 'AgentCenter.error.retry', agentCenterEnCatalog["AgentCenter.error.retry"])}
+            </AgentButton>
+          </div>
+        </Notice>
       ) : null}
       <nav
         aria-label={chromeCopy.navLabel}
         className="flex shrink-0 items-center gap-1 overflow-x-auto px-1.5 pb-1 pt-2.5"
         data-agent-center-nav-style="desktop-dynamic-expand"
+        role="tablist"
       >
         {state.sections.map((section) => {
           const Icon = SECTION_ICONS[section];
@@ -692,9 +529,9 @@ export function AgentCenter(props: AgentCenterProps) {
           const badge = section === 'overview' && setup.remaining > 0 ? setup.remaining : null;
           return (
             <button
+              aria-controls={`agent-center-panel-${section}`}
               aria-label={sectionLabels[section]}
-              aria-current={selected ? 'page' : undefined}
-              aria-pressed={selected}
+              aria-selected={selected}
               className={cnAgentCenter(
                 'group relative flex h-9 min-w-[36px] shrink-0 items-center rounded-[12px] text-[12px] font-medium',
                 'transition-[width,background-color,color,padding] duration-300 ease-[cubic-bezier(0.32,0.72,0.0,1)]',
@@ -706,8 +543,10 @@ export function AgentCenter(props: AgentCenterProps) {
                     : 'w-9 justify-center px-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900',
               )}
               data-testid={`chat-agent-center-section:${section}`}
+              id={`agent-center-tab-${section}`}
               key={section}
               onClick={() => setSection(section)}
+              role="tab"
               style={{
                 outline: 'none',
                 ...(selected
@@ -717,6 +556,7 @@ export function AgentCenter(props: AgentCenterProps) {
                   }
                   : {}),
               }}
+              tabIndex={selected ? 0 : -1}
               type="button"
             >
               <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
@@ -743,7 +583,15 @@ export function AgentCenter(props: AgentCenterProps) {
           );
         })}
       </nav>
-      <div className="min-w-0">
+      {store.snapshot.phase === 'loading' ? (
+        <LoadingSkeleton data-agent-center-loading="true" lines={3} />
+      ) : null}
+      <div
+        aria-labelledby={`agent-center-tab-${activeSection}`}
+        className="min-w-0"
+        id={`agent-center-panel-${activeSection}`}
+        role="tabpanel"
+      >
         {activeSection === 'overview'
           ? (
             <AgentCenterOverview
@@ -756,16 +604,10 @@ export function AgentCenter(props: AgentCenterProps) {
           )
           : renderSection(
             activeSection,
-            state,
-            props.runtimeAdapter,
-            props.appearanceAdapter,
-            props.appearanceCopy,
-            props.behaviorCopy,
-            props.copy?.model,
+            props.session,
+            store.snapshot,
             advancedCopy,
-            overviewCopy,
-            progressCopy,
-            sectionLabels,
+            props.i18n,
           )}
       </div>
     </section>

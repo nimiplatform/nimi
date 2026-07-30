@@ -2,14 +2,9 @@ import type {
   NimiRuntimeAgentAutonomyConfigInput,
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentAutonomySnapshot,
-  NimiRuntimeAgentAIConfigBinding,
-  NimiRuntimeAgentAIConfigIntents,
-  NimiRuntimeAgentAIConfigModule,
   NimiRuntimeAgentAIConfigReadinessCapabilityState,
-  NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-  NimiRuntimeAgentAIConfigSnapshot,
-  NimiRuntimeAgentAIConfigUpsertInput,
-  NimiRuntimeAgentCanonicalMemoryInspect,
+  NimiRuntimeAgentModelSettingsRouteIntent,
+  NimiAIScopeRef,
   NimiRuntimeAgentInspectSnapshot,
   NimiRuntimeAgentInspectSurface,
   NimiRuntimeAgentMemoryObservatorySnapshot,
@@ -25,18 +20,10 @@ import type {
   ModelConfigLocalAssetSource,
   ModelConfigProviderResolver,
 } from '@nimiplatform/kit/core/model-config';
+import type { AgentCenterAvatarPreviewServiceResult } from '@nimiplatform/kit/features/avatar/headless';
 
-export type AgentCenterCapabilityId =
-  | 'text.generate'
-  | 'text.embed'
-  | 'image.generate'
-  | 'audio.synthesize'
-  | 'voice_workflow.voice_clone'
-  | 'voice_workflow.voice_design';
-
-export type AgentCenterRuntimeAIConfigUpsertInput =
-  Omit<NimiRuntimeAgentAIConfigUpsertInput, keyof RuntimeLocalAgentIdentityInput>
-  & Partial<RuntimeLocalAgentIdentityInput>;
+/** Capability identities are runtime-projected and admitted by the canonical Kit catalog. */
+export type AgentCenterCapabilityId = string;
 
 export type AgentCenterRuntimeAutonomyConfigInput =
   Omit<NimiRuntimeAgentAutonomyConfigInput, keyof RuntimeLocalAgentIdentityInput>
@@ -64,7 +51,10 @@ export type AgentCenterHostScope =
   | 'account'
   | 'local-agent';
 
-export type AgentCenterModelConfigCopyKey =
+export type AgentCenterModelConfigCopyKey = string;
+
+/** @deprecated Use AgentCenterI18n. Retained as a pre-1.0 copy compatibility layer. */
+export type AgentCenterLegacyModelConfigCopyKey =
   | 'ModelConfig.hub.title'
   | 'ModelConfig.hub.aggregateReady'
   | 'ModelConfig.hub.aggregateAttention'
@@ -141,6 +131,8 @@ export type AgentCenterChromeCopy = Partial<{
   readonly title: string;
   readonly eyebrow: string;
   readonly closeLabel: string;
+  readonly openRuntimeSettingsLabel: string;
+  readonly launchAvatarLabel: string;
   readonly navLabel: string;
   readonly textReadyLabel: string;
   readonly avatarFallback: string;
@@ -188,6 +180,7 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly descriptionUnavailable: string;
   readonly configRevisionLabel: string;
   readonly runtimeTurnLabel: string;
+  /** @deprecated Runtime stream is not part of Agent Center diagnostics. */
   readonly runtimeStreamLabel: string;
   readonly runtimeErrorLabel: string;
   readonly unavailableValue: string;
@@ -248,6 +241,15 @@ export type AgentCenterModelCopy = Partial<{
   readonly modelSelectionUnresolvedSuffix: string;
 }>;
 
+export interface AgentCenterI18n {
+  /** BCP 47 language tag used to select the shipped Kit catalog before English fallback. */
+  readonly language?: string;
+  readonly t: (
+    key: string,
+    values?: Readonly<Record<string, string | number | boolean | null | undefined>>,
+  ) => string;
+}
+
 export type AgentCenterCopy = Partial<{
   readonly sectionLabels: Partial<Record<AgentCenterSectionId, string>>;
   readonly capabilityLabels: Partial<Record<AgentCenterCapabilityId, string>>;
@@ -264,17 +266,150 @@ export type AgentCenterRuntimeStatus =
   | 'loading'
   | 'failed';
 
-export interface AgentCenterRuntimeAdapter {
-  readonly agentAIConfig: NimiRuntimeAgentAIConfigModule;
-  readonly inspect?: NimiRuntimeAgentInspectSurface | null;
-  readonly modelConfig?: AgentCenterRuntimeModelConfigAdapter | null;
-  loadSnapshot(input?: AgentCenterRuntimeLoadInput): Promise<AgentCenterRuntimeSnapshot>;
-  upsertAgentAIConfig?(
-    input: AgentCenterRuntimeAIConfigUpsertInput,
-  ): Promise<NimiRuntimeAgentAIConfigSnapshot>;
-  setAutonomyConfig?(
-    input: AgentCenterRuntimeAutonomyConfigInput,
-  ): Promise<NimiRuntimeAgentAutonomySnapshot>;
+export type AgentCenterAIConfigMutationDisabledReason =
+  | 'agent-ai-config-snapshot-unavailable'
+  | 'agent-ai-config-revision-unavailable'
+  | 'action-unavailable';
+
+export type AgentCenterProductAction =
+  | 'readModelSettings'
+  | 'updateModelSettings'
+  | 'readAutonomy'
+  | 'updateAutonomy'
+  | 'readMemorySummary'
+  | 'replaceAppearance'
+  | 'restorePreviousAppearance'
+  | 'requestPermission'
+  | 'openPermissionSettings';
+
+export type AgentCenterActionUnavailableReason =
+  | 'needs-grant'
+  | 'request-pending'
+  | 'denied'
+  | 'revoked'
+  | 'runtime-offline'
+  | 'reserved-not-admitted'
+  | 'unknown';
+
+export type AgentCenterNextStepAction =
+  | 'requestPermission'
+  | 'openPermissionSettings'
+  | 'retry'
+  | 'wait';
+
+export type AgentCenterActionAvailability =
+  | { readonly state: 'available'; readonly reason: null; readonly nextStep: null }
+  | {
+      readonly state: 'unavailable';
+      readonly reason: AgentCenterActionUnavailableReason;
+      readonly nextStep: AgentCenterNextStepAction;
+    };
+
+export type AgentCenterActionAvailabilityProjection = Readonly<
+  Record<AgentCenterProductAction, AgentCenterActionAvailability>
+>;
+
+export type AgentCenterTransportActionReason =
+  | 'reserved_not_admitted'
+  | 'unknown'
+  | 'not_granted'
+  | 'request_pending'
+  | 'grant_denied'
+  | 'grant_revoked'
+  | 'runtime_offline';
+
+export interface AgentCenterTransportActionPosture {
+  readonly state: 'available' | 'unavailable';
+  readonly reason: AgentCenterTransportActionReason | null;
+}
+
+export type AgentCenterTransportActionProjection = Readonly<
+  Record<AgentCenterProductAction, AgentCenterTransportActionPosture>
+>;
+
+export interface AgentCenterAutonomyProjection extends NimiRuntimeAgentAutonomySnapshot {
+  readonly revision: string | null;
+}
+
+export type AgentCenterAutonomyMutationInput = Omit<
+  AgentCenterRuntimeAutonomyConfigInput,
+  keyof RuntimeLocalAgentIdentityInput
+> & {
+  readonly expectedRevision: string;
+};
+
+declare const AGENT_CENTER_OPAQUE_HANDLE: unique symbol;
+export type AgentCenterOpaqueHandle = string & {
+  readonly [AGENT_CENTER_OPAQUE_HANDLE]: true;
+};
+
+export interface AgentCenterPermissionedLoadOptions {
+  readonly conversationAnchor?: string;
+}
+
+export interface AgentCenterPermissionedConfigurationMutation {
+  readonly expectedConfigurationRevision: string;
+  readonly routeIntents: readonly NimiRuntimeAgentModelSettingsRouteIntent[];
+}
+
+export type AgentCenterPermissionedAutonomyMutation = AgentCenterAutonomyMutationInput;
+
+export interface AgentCenterPermissionedPresentationIntent {
+  readonly backendKind?: string | null;
+  readonly avatarAssetReference?: string | null;
+  readonly defaultVoiceReference?: string | null;
+  readonly avatarAutoplay?: boolean;
+  readonly backgroundAssetReference?: string | null;
+}
+
+export interface AgentCenterPresentationAssetMaterial {
+  readonly role: 'avatar' | 'background';
+  readonly fileName: string;
+  readonly mediaType: string;
+  readonly content: Uint8Array;
+  readonly sha256: string;
+}
+
+export interface AgentCenterPermissionedPresentationCommitInput {
+  readonly expectedRevision: string;
+  readonly intent: AgentCenterPermissionedPresentationIntent;
+  readonly importedAssets: readonly AgentCenterPresentationAssetMaterial[];
+}
+
+export interface AgentCenterPermissionedSdkSurfaceInput {
+  actionPosture(handle: AgentCenterOpaqueHandle): Promise<AgentCenterTransportActionProjection>;
+  read(
+    handle: AgentCenterOpaqueHandle,
+    options?: AgentCenterPermissionedLoadOptions,
+  ): Promise<AgentCenterStateInput>;
+  updateConfiguration(
+    handle: AgentCenterOpaqueHandle,
+    input: AgentCenterPermissionedConfigurationMutation,
+  ): Promise<AgentCenterStateInput>;
+  updateAutonomy(
+    handle: AgentCenterOpaqueHandle,
+    input: AgentCenterPermissionedAutonomyMutation,
+  ): Promise<AgentCenterStateInput>;
+  subscribeReadiness?(
+    handle: AgentCenterOpaqueHandle,
+  ): AsyncIterable<AgentCenterStateInput>;
+  subscribeActionPosture?(
+    handle: AgentCenterOpaqueHandle,
+    listener: (projection: AgentCenterTransportActionProjection) => void,
+  ): () => void;
+  replaceAppearance(
+    handle: AgentCenterOpaqueHandle,
+    input: AgentCenterPermissionedPresentationCommitInput,
+  ): Promise<AgentCenterStateInput>;
+  restorePreviousAppearance(handle: AgentCenterOpaqueHandle): Promise<AgentCenterStateInput>;
+  requestPermission?(handle: AgentCenterOpaqueHandle): Promise<void>;
+  openPermissionSettings?(handle: AgentCenterOpaqueHandle): Promise<void> | void;
+}
+
+declare const AGENT_CENTER_PERMISSIONED_SURFACE: unique symbol;
+
+export interface AgentCenterPermissionedSdkSurface extends AgentCenterPermissionedSdkSurfaceInput {
+  readonly [AGENT_CENTER_PERMISSIONED_SURFACE]: true;
 }
 
 export interface AgentCenterRuntimeModelConfigAdapter {
@@ -292,9 +427,22 @@ export interface AgentCenterTurnContextLoadInput extends RuntimeLocalAgentIdenti
   readonly conversationAnchorId?: string;
 }
 
+export interface AgentCenterRuntimeModelSettingsProjection {
+  readonly scopeRef: NimiAIScopeRef;
+  readonly capabilities: readonly string[];
+  readonly routeIntents: readonly NimiRuntimeAgentModelSettingsRouteIntent[];
+  readonly readiness: readonly {
+    readonly capability: string;
+    readonly state: 'ready' | 'blocked' | 'unavailable' | 'failed';
+    readonly reason: string;
+    readonly observedAt: string | null;
+  }[];
+  readonly configurationRevision: string;
+}
+
 export interface AgentCenterRuntimeSnapshot {
-  readonly agentAIConfig?: NimiRuntimeAgentAIConfigSnapshot | null;
-  readonly readiness?: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null;
+  readonly modelSettings?: AgentCenterRuntimeModelSettingsProjection | null;
+  readonly autonomy?: AgentCenterAutonomyProjection | null;
   readonly inspect?: NimiRuntimeAgentInspectSnapshot | null;
   readonly memory?: NimiRuntimeAgentMemoryObservatorySnapshot | null;
   readonly sourceContextStatus?: NimiRuntimeAgentSourceContextStatus | null;
@@ -379,8 +527,16 @@ export interface AgentCenterSourceContextProjection {
   readonly context: AgentCenterTurnContextProjectionSummary | null;
 }
 
+export type AgentCenterAppearanceDisabledReasonCode =
+  | 'avatar-not-configured'
+  | 'scope-required'
+  | 'bridge-unavailable'
+  | 'configuration-unavailable'
+  | 'validation-unavailable';
+
 export interface AgentCenterAppearanceProjection {
   readonly status: 'ready' | 'not_configured' | 'invalid' | 'loading';
+  readonly presentationRevision?: string | null;
   readonly backendKind?: string | null;
   readonly avatarAssetRef?: string | null;
   readonly avatarAssetValid?: boolean;
@@ -399,13 +555,14 @@ export interface AgentCenterAppearanceProjection {
   readonly backgroundValidationMessage?: string | null;
   readonly backgroundImportError?: string | null;
   readonly resourceCleanupError?: string | null;
-  readonly previewMaterialRef?: string | null;
-  readonly previewState?: 'ready' | 'failed' | 'loading' | 'unavailable' | null;
-  readonly previewTier?: 'avatar_preview_service' | string | null;
-  readonly previewImageRef?: string | null;
-  readonly previewVisiblePixels?: number | null;
-  readonly previewFailureReason?: string | null;
-  readonly previewWarnings?: readonly string[];
+  readonly renderMaterialRef?: string | null;
+  readonly renderState?: 'ready' | 'failed' | 'loading' | 'unavailable' | null;
+  readonly renderTier?: 'avatar_preview_service' | string | null;
+  readonly renderImageRef?: string | null;
+  readonly renderVisiblePixels?: number | null;
+  readonly renderFailureReason?: string | null;
+  readonly renderWarnings?: readonly string[];
+  readonly previousSelection?: AgentCenterPermissionedPresentationIntent | null;
   readonly defaultVoiceReference?: string | null;
   readonly avatarAutoplay?: boolean;
   readonly avatarImportDisabled?: boolean;
@@ -420,13 +577,17 @@ export interface AgentCenterAppearanceProjection {
   readonly clearBackgroundPending?: boolean;
   readonly avatarImportError?: string | null;
   readonly developerModeEnabled?: boolean;
+  /** Closed category used for behavior; disabledReason is presentation copy only. */
+  readonly disabledReasonCode?: AgentCenterAppearanceDisabledReasonCode | null;
   readonly disabledReason?: string | null;
 }
 
 export interface AgentCenterAppearanceAdapter {
   readonly load: () => Promise<AgentCenterAppearanceProjection>;
-  readonly admitAsset?: (input: AgentCenterAppearanceAssetAdmissionInput) => Promise<AgentCenterAppearanceProjection>;
-  readonly importAvatarAsset?: (kind: 'live2d' | 'vrm') => Promise<AgentCenterAppearanceProjection>;
+  readonly replaceAppearance?: (
+    input: AgentCenterPermissionedPresentationCommitInput,
+  ) => Promise<AgentCenterAppearanceProjection>;
+  readonly replaceAvatar?: (kind: 'live2d' | 'vrm') => Promise<AgentCenterAppearanceProjection>;
   readonly linkLive2dAdapterManifest?: () => Promise<AgentCenterAppearanceProjection>;
   readonly clearAvatarAsset?: () => Promise<AgentCenterAppearanceProjection>;
   readonly importBackground?: () => Promise<AgentCenterAppearanceProjection>;
@@ -434,6 +595,7 @@ export interface AgentCenterAppearanceAdapter {
   readonly removeAgentResources?: () => Promise<AgentCenterAppearanceProjection>;
   readonly cleanupGeneratedVoiceArtifacts?: () => Promise<AgentCenterAppearanceProjection>;
   readonly setAvatarAutoplay?: (enabled: boolean) => Promise<AgentCenterAppearanceProjection>;
+  readonly restorePreviousAppearance?: () => Promise<AgentCenterAppearanceProjection>;
 }
 
 export interface AgentCenterAvatarPreviewResolveInput {
@@ -445,29 +607,25 @@ export interface AgentCenterAvatarPreviewResolveInput {
   readonly backendCapabilityProfileRef?: string | null;
 }
 
+type AgentCenterAvatarPreviewServiceReadyResult = Extract<
+  AgentCenterAvatarPreviewServiceResult,
+  { readonly state: 'ready' }
+>;
+type AgentCenterAvatarPreviewServiceNonReadyResult = Exclude<
+  AgentCenterAvatarPreviewServiceResult,
+  { readonly state: 'ready' }
+>;
+
 export type AgentCenterAvatarPreviewAdapterResult =
-  | {
-      readonly state: 'ready';
-      readonly tier: 'avatar_preview_service';
+  | Omit<AgentCenterAvatarPreviewServiceReadyResult, 'backendKind'> & {
       readonly backendKind: 'live2d' | 'vrm';
-      readonly avatarAssetRef: string;
       readonly previewMaterialRef: string;
-      readonly previewImageRef: string;
-      readonly visiblePixels: number;
-      readonly nonPlaceholder: true;
-      readonly warnings?: readonly string[];
     }
-  | {
-      readonly state: 'failed' | 'unavailable' | 'loading';
-      readonly tier: 'avatar_preview_service';
+  | Omit<AgentCenterAvatarPreviewServiceNonReadyResult, 'backendKind'> & {
       readonly backendKind?: 'live2d' | 'vrm' | null;
-      readonly avatarAssetRef?: string | null;
       readonly previewMaterialRef?: string | null;
       readonly previewImageRef?: string | null;
       readonly visiblePixels?: number | null;
-      readonly nonPlaceholder: false;
-      readonly reason: string;
-      readonly warnings?: readonly string[];
     };
 
 export interface AgentCenterAvatarPreviewAdapter {
@@ -488,20 +646,23 @@ export interface AgentCenterRuntimePresentationProfilePatch {
 }
 
 export interface AgentCenterRuntimePresentationProfileSurface {
+  readonly setPresentationProfile: (
+    input: RuntimeLocalAgentIdentityInput,
+    profile: AgentCenterRuntimePresentationProfilePatch | null,
+    expectedRevision: string,
+    importedAssets?: readonly AgentCenterPresentationAssetMaterial[],
+  ) => Promise<AgentCenterRuntimePresentationProfileMutationResult>;
   readonly patchPresentationProfile: (
     input: RuntimeLocalAgentIdentityInput,
     patch: AgentCenterRuntimePresentationProfilePatch,
     expectedRevision: string,
-  ) => Promise<AgentCenterRuntimePresentationProfileMutationResult>;
-  readonly setPresentationProfile?: (
-    input: RuntimeLocalAgentIdentityInput,
-    profile: AgentCenterRuntimePresentationProfilePatch | null,
-    expectedRevision: string,
+    importedAssets?: readonly AgentCenterPresentationAssetMaterial[],
   ) => Promise<AgentCenterRuntimePresentationProfileMutationResult>;
 }
 
 export interface AgentCenterRuntimePresentationProfileMutationResult {
   readonly profile: NimiRuntimeAgentPresentationProfileProjection | null;
+  readonly previousProfile: NimiRuntimeAgentPresentationProfileProjection | null;
   readonly committedRevision: string;
 }
 
@@ -562,8 +723,14 @@ export type AgentCenterAppearanceCopy = Partial<{
   readonly chatBackgroundDescription: string;
   readonly backgroundUnset: string;
   readonly backgroundReady: string;
+  readonly backgroundReferenceLabel: string;
   readonly uploadBackground: string;
+  readonly clearBackground: string;
+  /** @deprecated The unsupported recommended-background affordance was removed. */
   readonly chooseRecommendedBackground: string;
+  readonly defaultVoiceTitle: string;
+  readonly defaultVoiceDescription: string;
+  readonly defaultVoiceUnset: string;
   readonly technicalDetailsTitle: string;
   readonly technicalDetailsDescription: string;
   readonly diagnosticsEvidenceTitle: string;
@@ -656,7 +823,6 @@ export interface AgentCenterPlacementActions {
 
 export interface AgentCenterIdentityProjection {
   readonly displayName: string;
-  readonly localAgentRef?: string | null;
   readonly avatarUrl?: string | null;
   readonly avatarFallback?: string | null;
   readonly badgeLabel?: string | null;
@@ -666,15 +832,16 @@ export interface AgentCenterCapabilityState {
   readonly capability: AgentCenterCapabilityId;
   readonly label: string;
   readonly required: boolean;
-  readonly readinessState: NimiRuntimeAgentAIConfigReadinessCapabilityState | 'unknown';
+  readonly readinessState: NimiRuntimeAgentAIConfigReadinessCapabilityState | 'blocked' | 'failed' | 'unknown';
   readonly probedAt: string | null;
-  readonly binding: NimiRuntimeAgentAIConfigBinding | null;
+  readonly binding: NimiRuntimeAgentModelSettingsRouteIntent | null;
   readonly blocksTextTurns: boolean;
   readonly editable: boolean;
   readonly summary: string;
 }
 
 export interface AgentCenterAutonomyState {
+  readonly revision: string | null;
   readonly enabled: boolean | null;
   readonly mode: NimiRuntimeAgentAutonomyMode | null;
   readonly usedTokensInWindow: number | null;
@@ -693,14 +860,13 @@ export interface AgentCenterCognitionState {
   readonly statusText: string | null;
   readonly currentEmotion: string | null;
   readonly memoryState: 'ready' | 'empty' | 'unavailable';
-  readonly recentCanonicalMemories: readonly NimiRuntimeAgentCanonicalMemoryInspect[];
+  readonly recentCanonicalMemoryCount: number;
 }
 
 export interface AgentCenterAdvancedDiagnosticsState {
   readonly source: 'runtime-projection' | 'unavailable';
-  readonly configRevision: number | null;
+  readonly configRevision: string | null;
   readonly runtimeTurnId: string | null;
-  readonly runtimeStreamId: string | null;
   readonly runtimeError: string | null;
 }
 
@@ -708,10 +874,12 @@ export interface AgentCenterState {
   readonly runtimeStatus: AgentCenterRuntimeStatus;
   readonly statusTone: AgentCenterStatusTone;
   readonly baseTextReady: boolean;
-  /** Complete Runtime-owned intent set, including capabilities not rendered by Agent Center. */
-  readonly runtimeAgentAIConfigIntents?: AgentCenterAgentAIConfigIntents;
+  readonly modelSettings: AgentCenterRuntimeModelSettingsProjection | null;
   readonly baseTextDisabledReason: string | null;
-  readonly configRevision: number | null;
+  readonly configRevision: string | null;
+  readonly autonomyRevision: string | null;
+  readonly presentationRevision: string | null;
+  readonly agentAIConfigMutationDisabledReason: AgentCenterAIConfigMutationDisabledReason | null;
   readonly capabilities: readonly AgentCenterCapabilityState[];
   readonly autonomy: AgentCenterAutonomyState;
   readonly cognition: AgentCenterCognitionState;
@@ -723,26 +891,62 @@ export interface AgentCenterState {
 
 export interface AgentCenterStateInput extends AgentCenterRuntimeSnapshot {
   readonly appearance?: AgentCenterAppearanceProjection | null;
-  readonly autonomyMutationAvailable?: boolean;
-  readonly autonomyDisabledReason?: string | null;
+}
+
+export type AgentCenterStorePhase = 'loading' | 'ready' | 'degraded';
+
+export interface AgentCenterSnapshot {
+  readonly phase: AgentCenterStorePhase;
+  readonly state: AgentCenterState;
+  readonly availability: AgentCenterActionAvailabilityProjection;
+  readonly error: string | null;
+}
+
+declare const AGENT_CENTER_SESSION: unique symbol;
+
+export interface AgentCenterSession {
+  readonly [AGENT_CENTER_SESSION]: true;
+  getSnapshot(): AgentCenterSnapshot;
+  subscribe(listener: () => void): () => void;
+  refresh(): Promise<void>;
+  updateModelSettings(input: AgentCenterPermissionedConfigurationMutation): Promise<void>;
+  updateAutonomy(input: AgentCenterPermissionedAutonomyMutation): Promise<void>;
+  replaceAppearance(input: AgentCenterPermissionedPresentationCommitInput): Promise<void>;
+  restorePreviousAppearance(): Promise<void>;
+  requestPermission(): Promise<void>;
+  openPermissionSettings(): Promise<void>;
+  readonly modelConfig: AgentCenterRuntimeModelConfigAdapter | null;
+  readonly appearance: Readonly<{
+    replaceAvatar?: (kind: 'live2d' | 'vrm') => Promise<void>;
+    linkLive2dAdapterManifest?: () => Promise<void>;
+    clearAvatarAsset?: () => Promise<void>;
+    importBackground?: () => Promise<void>;
+    clearBackground?: () => Promise<void>;
+    removeAgentResources?: () => Promise<void>;
+    cleanupGeneratedVoiceArtifacts?: () => Promise<void>;
+    setAvatarAutoplay?: (enabled: boolean) => Promise<void>;
+  }>;
 }
 
 export interface AgentCenterProps {
-  readonly state: AgentCenterState | AgentCenterStateInput;
+  readonly session: AgentCenterSession;
   readonly activeSection?: AgentCenterSectionId;
   readonly defaultSection?: AgentCenterSectionId;
   readonly onSectionChange?: (section: AgentCenterSectionId) => void;
-  readonly runtimeAdapter?: AgentCenterRuntimeAdapter | null;
-  readonly runtimeLoadInput?: AgentCenterRuntimeLoadInput;
-  readonly appearanceAdapter?: AgentCenterAppearanceAdapter | null;
-  readonly copy?: AgentCenterCopy;
-  readonly appearanceCopy?: AgentCenterAppearanceCopy;
-  readonly behaviorCopy?: AgentCenterBehaviorCopy;
+  readonly i18n?: AgentCenterI18n;
   readonly placementActions?: AgentCenterPlacementActions;
   readonly identity?: AgentCenterIdentityProjection | null;
   readonly chrome?: 'standalone' | 'embedded';
-  readonly ariaLabel?: string;
+  readonly layout?: 'stacked' | 'split';
+  readonly density?: 'compact' | 'regular';
 }
 
-export type AgentCenterAgentAIConfigIntents = NimiRuntimeAgentAIConfigIntents;
-export type AgentCenterRuntimeAIConfigBinding = NimiRuntimeAgentAIConfigBinding;
+export interface AgentCenterModelSettingsModule {
+  snapshot(input: RuntimeLocalAgentIdentityInput & { readonly subjectUserId?: string }): Promise<AgentCenterRuntimeModelSettingsProjection>;
+  update(input: RuntimeLocalAgentIdentityInput & {
+    readonly subjectUserId?: string;
+    readonly expectedConfigurationRevision: string;
+    readonly routeIntents: readonly NimiRuntimeAgentModelSettingsRouteIntent[];
+  }): Promise<AgentCenterRuntimeModelSettingsProjection>;
+}
+export type AgentCenterModelSettingsRouteIntent = NimiRuntimeAgentModelSettingsRouteIntent;

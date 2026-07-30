@@ -26,6 +26,19 @@ export type ModelConfigModelPickerCopy = Partial<{
   noModelsAvailable: string;
 }>;
 
+export type ModelConfigRouteSelection = {
+  source: 'local' | 'cloud';
+  connectorId: string;
+  model: string;
+  provider?: string;
+  remoteModelCatalogId?: string;
+  providerModelId?: string;
+  localModelId?: string;
+  profileBindingId?: string;
+  readinessRef?: string;
+  modelLabel?: string;
+};
+
 export type ModelConfigCapabilityItem = {
   capabilityId: string;
   routeCapability: string;
@@ -40,8 +53,11 @@ export type ModelConfigCapabilityItem = {
   activeModelConfiguredLabel?: string;
   activeModelSetupPendingLabel?: string;
   targetRef: ModelConfigTargetRef | null;
+  /** Dedicated model-settings selection; carries SDK provider/model identity without inventing connector identity. */
+  routeSelection?: ModelConfigRouteSelection | null;
   provider?: RouteModelPickerDataProvider | null;
   onTargetRefChange: (targetRef: ModelConfigTargetRef | null) => void;
+  onRouteSelectionChange?: (selection: ModelConfigRouteSelection | null) => void;
   status?: ModelConfigCapabilityStatus | null;
   editor?: ReactNode;
   showEditorWhen?: 'always' | 'local';

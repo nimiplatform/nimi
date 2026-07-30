@@ -11,6 +11,61 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Agent Center now accepts exactly one nominal
+  `AgentCenterSession` plus UI-only chrome/layout/density/section/i18n/placement/
+  display-identity props. The session owns snapshot refresh, independent
+  revisions, all mutations, readiness subscription, and the closed
+  product-action availability projection. Removed public exports:
+  `createRuntimeAgentCenterAdapter`, `createPermissionedAgentCenterAdapter`,
+  `CreateRuntimeAgentCenterAdapterInput`,
+  `CreatePermissionedAgentCenterAdapterInput`, `createGrantedAgentCenterPosture`, `createUnavailableAgentCenterPosture`,
+  `isAgentCenterPostureGranted`, `agentCenterPostureReasonText`,
+  `AgentCenterRuntimeAdapter`, `AgentCenterFirstPartyCarrierAdapter`,
+  `AgentCenterPermissionedCarrierAdapter`, `AgentCenterCapabilityGroup`,
+  `AgentCenterPermissionPostureState`, `AgentCenterPermissionReasonCode`,
+  `AgentCenterPermissionPostureReason`, `AgentCenterCapabilityPosture`,
+  `AgentCenterPermissionPosture`,
+  `AgentCenterPermissionedPresentationPreviewInput`, and
+  `AgentCenterPermissionedPresentationPreview`. Removed `AgentCenter` props:
+  `state`, `runtimeAdapter`, `permissionedAdapter`, `runtimeLoadInput`,
+  `appearanceAdapter`, `copy`, `appearanceCopy`, `behaviorCopy`, and `ariaLabel`; removed
+  `localAgentRef` from `AgentCenterIdentityProjection`. Use
+  `createFirstPartyAgentCenterSession` or
+  `createPermissionedAgentCenterSession({ handle, surface })` and the canonical
+  `i18n` seam. This is a pre-1.0 hard cut with no compatibility path.
+- **Breaking (0.x):** Agent Center autonomy writes require their independent
+  `expectedRevision` and return through the Manager Session's revised snapshot;
+  `autonomyMutationAvailable` and `autonomyDisabledReason` placement inputs are
+  removed.
+- Agent Center permissioned sessions may now consume live product-action posture
+  subscriptions. Manager Sessions degrade in place on denied/revoked events and
+  render typed request-permission/open-settings recovery actions without exposing
+  permission vocabulary to the feature.
+- Agent Center adds an opaque-handle permissioned session factory, one
+  component-level `i18n.t` binding, dynamic canonical capability projection
+  including `audio.transcribe`, visible loading and embedded load-error states,
+  and cross-section mutation write-back. The unsupported AI Profile import
+  affordance is hidden.
+- **Breaking (0.x):** Agent Center capability ids are dynamic catalog strings
+  rather than a handwritten union, and autonomy/presentation revisions are
+  separate from Agent AI Config revision.
+- **Breaking (0.x):** Agent Center cognition state replaces
+  `recentCanonicalMemories` with the content-free
+  `recentCanonicalMemoryCount`; consumers must use memory state/counts rather
+  than private canonical Memory summaries, classes, or policy reasons.
+- **Breaking (0.x):** Agent Center model state now consumes the dedicated Runtime
+  Agent model-settings projection and its decimal CAS revision. The fabricated
+  `NimiAIConfig` conversion path, fixed scope constant, and numeric revision
+  bridge are removed; hosts inject `AgentCenterModelSettingsModule`.
+- **Breaking (0.x):** Agent Center Appearance is now warning → pick → automatic
+  Runtime commit. Candidate preview/apply state and public preview resolver
+  helpers are removed. Imported bytes cross the Shell boundary in the same
+  commit; validation and save failures preserve current appearance, committed
+  renderer failure is distinct, and a successful replacement exposes one-step
+  restore of the Runtime-projected previous profile.
+- Agent Center's Avatar adapter now renders committed-effect evidence only and
+  continues to share the Avatar-owned controlled-surface predicate.
+
 - Avatar activity routing and generated-motion contracts are no longer
   duplicated as public Kit exports. Their concrete execution owner remains the
   Avatar app. This is a breaking pre-1.0 API cut.

@@ -139,7 +139,8 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
     || item.targetRef?.kind === 'local-runtime'
   );
   const targetSummary = summarizeTargetRef(item.targetRef);
-  const selection = targetRefToPickerSelection(item.targetRef);
+  const selection: Partial<RouteModelPickerSelection> = item.routeSelection
+    ?? targetRefToPickerSelection(item.targetRef);
   const displayLabel = hydratedTargetSummary?.label
     || selection.modelLabel
     || selection.model
@@ -261,7 +262,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
 
       <ModelSelectorTrigger
         source={source}
-        modelLabel={item.targetRef ? triggerLabel : null}
+        modelLabel={(item.targetRef || item.routeSelection) ? triggerLabel : null}
         detail={visibleDetail}
         detailStatus={item.activeModelLabel ? activeModelDetailStatus : null}
         detailTone={item.activeModelLabel && activeModelDetailStatus
@@ -290,7 +291,11 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
           initialSelection={selection}
           copy={item.modelPickerCopy}
           onSelect={(pickerSelection: RouteModelPickerSelection) => {
-            item.onTargetRefChange(pickerSelectionToTargetRef(pickerSelection));
+            if (item.onRouteSelectionChange) {
+              item.onRouteSelectionChange(pickerSelection);
+            } else {
+              item.onTargetRefChange(pickerSelectionToTargetRef(pickerSelection));
+            }
           }}
         />
       ) : null}
@@ -310,10 +315,10 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
         </div>
       ) : null}
 
-      {item.showClearButton && item.targetRef ? (
+      {item.showClearButton && (item.targetRef || item.routeSelection) ? (
         <button
           type="button"
-          onClick={() => item.onTargetRefChange(null)}
+          onClick={() => item.onRouteSelectionChange ? item.onRouteSelectionChange(null) : item.onTargetRefChange(null)}
           className="text-xs text-[var(--nimi-text-muted,#94a3b8)] transition-colors hover:text-[var(--nimi-action-primary-bg,#10b981)]"
         >
           {item.clearSelectionLabel || 'Clear selection'}

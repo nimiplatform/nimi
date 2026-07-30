@@ -5,6 +5,10 @@ import {
   AgentCenterAvatarPreview,
   resolveAgentCenterAvatarPreviewServiceResult,
 } from '../src/agent-center-preview.js';
+import {
+  isAvatarControlledPreviewSurfaceRef,
+  normalizeAvatarControlledPreviewSurfaceRef,
+} from '../src/headless.js';
 
 (
   globalThis as typeof globalThis & {
@@ -84,6 +88,17 @@ describe('AgentCenterAvatarPreview', () => {
 
     expect(blank).toMatchObject({ state: 'unavailable', nonPlaceholder: false });
     expect(external).toMatchObject({ state: 'unavailable', nonPlaceholder: false });
+  });
+
+  it('normalizes only Avatar-controlled same-origin preview surfaces', () => {
+    const blobRef = `blob:${globalThis.location.origin}/avatar-preview/123`;
+    expect(normalizeAvatarControlledPreviewSurfaceRef(' /__nimi/avatar-preview/live2d/123 '))
+      .toBe('/__nimi/avatar-preview/live2d/123');
+    expect(normalizeAvatarControlledPreviewSurfaceRef(blobRef)).toBe(blobRef);
+    expect(isAvatarControlledPreviewSurfaceRef(blobRef)).toBe(true);
+    expect(isAvatarControlledPreviewSurfaceRef('//example.com/preview.png')).toBe(false);
+    expect(isAvatarControlledPreviewSurfaceRef('https://example.com/preview.png')).toBe(false);
+    expect(isAvatarControlledPreviewSurfaceRef('blob:https://example.com/preview.png')).toBe(false);
   });
 
   it('renders the typed non-ready state without a placeholder success claim', () => {

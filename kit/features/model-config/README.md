@@ -10,7 +10,8 @@ that unifies how apps present the canonical capability catalog.
 - `@nimiplatform/kit/features/model-config/headless`
 - `@nimiplatform/kit/features/model-config/ui`
 - `@nimiplatform/kit/core/model-config` (pure-logic seam; shared
-  `SharedAIConfigService` / `AppModelConfigSurface` / controller factory)
+  `SharedAIConfigService` / `AppModelConfigSurface` /
+  `ModelSettingsService` / controller factory)
 
 ## Canonical Ownership
 
@@ -33,6 +34,10 @@ This module owns the following shared Nimi app surfaces:
   SectionCards + `ModelConfigCapabilityDetail` detail router. Import AI
   Profile renders exactly once inside the hub header action slot via
   `ProfileConfigSection variant='import-button'`.
+- The `ModelSettingsService` contract for Runtime Agent consumers that already
+  receive the dedicated model-settings projection. It preserves provider/model
+  route identity and decimal configuration revisions without reconstructing an
+  app-level `AIConfig`.
 - The `AppModelConfigSurface` consumer-injection contract wiring `AIScopeRef`,
   `SharedAIConfigService`, provider resolver, projection resolver, optional
   local asset source, and capability overrides.

@@ -11,6 +11,8 @@ import {
 import type {
   AppModelConfigSurface,
   CapabilityItemOverride,
+  ModelConfigRouteIntent,
+  ModelConfigSettingsProjection,
   SharedAIConfigService,
 } from '@nimiplatform/kit/core/model-config';
 import type { NimiAIConfig, NimiJsonValue } from '@nimiplatform/kit/core/sdk-contract';
@@ -35,6 +37,7 @@ import type {
   ImageParamsState,
   LocalAssetEntry,
   ModelConfigCapabilityItem,
+  ModelConfigRouteSelection,
   ModelConfigTargetRef,
   TextGenerateParamsState,
   VideoParamsState,
@@ -64,7 +67,8 @@ import { VideoParamsEditor } from './video-params-editor.js';
 export type ModelConfigCapabilityDetailProps = {
   capabilityId: string;
   surface: AppModelConfigSurface;
-  config: NimiAIConfig;
+  config: NimiAIConfig | null;
+  modelSettings?: ModelConfigSettingsProjection | null;
   activeModelLabel?: string | null;
   activeModelHint?: string | null;
 };
@@ -212,20 +216,19 @@ function sameSpeechVoiceReference(
 function renderEditor(
   descriptor: CanonicalCapabilityDescriptor,
   surface: AppModelConfigSurface,
-  config: NimiAIConfig,
+  config: NimiAIConfig | null,
   writePatch: CapabilityPatchWriter,
 ): {
   editor: ReturnType<typeof Object> | null;
   showEditorWhen: 'always' | 'local';
 } {
-  const storedParams = readParams(config, descriptor.capabilityId);
   const override = resolveOverride(surface, descriptor.capabilityId);
   const showEditorWhen = override.showEditorWhen
     ?? (descriptor.editorKind === 'image' || descriptor.editorKind === 'video' ? 'local' : 'always');
-  if (override.hideEditor) {
+  if (override.hideEditor || !config) {
     return { showEditorWhen, editor: null };
   }
-
+  const storedParams = readParams(config, descriptor.capabilityId);
   const t = surface.i18n.t;
 
   switch (descriptor.editorKind) {
@@ -402,12 +405,23 @@ export function ModelConfigCapabilityDetail({
   capabilityId,
   surface,
   config,
+  modelSettings = null,
   activeModelLabel,
   activeModelHint,
 }: ModelConfigCapabilityDetailProps) {
   const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[capabilityId];
   const override = resolveOverride(surface, capabilityId);
-  const targetRef = readModelConfigTargetRef(config, capabilityId);
+  const targetRef = config ? readModelConfigTargetRef(config, capabilityId) : null;
+  const routeIntent = modelSettings?.routeIntents.find((intent) => intent.capability === capabilityId) ?? null;
+  const routeSelection: ModelConfigRouteSelection | null = routeIntent ? {
+    source: routeIntent.routePolicy,
+    connectorId: '',
+    model: routeIntent.model,
+    modelLabel: routeIntent.model,
+    ...(routeIntent.routePolicy === 'cloud'
+      ? { provider: routeIntent.provider, providerModelId: routeIntent.model }
+      : { localModelId: routeIntent.model }),
+  } : null;
   const [writeError, setWriteError] = useState<string | null>(null);
   const writeQueueRef = useRef<Promise<void>>(Promise.resolve());
   const writeSequenceRef = useRef(0);
@@ -423,7 +437,12 @@ export function ModelConfigCapabilityDetail({
     setWriteError(null);
     const commit = writeQueueRef.current
       .catch(() => undefined)
-      .then(() => writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, patch));
+      .then(() => {
+        if (!('aiConfigService' in surface) || !surface.aiConfigService) {
+          throw new Error('AI Config patching is unavailable on the dedicated model-settings projection.');
+        }
+        return writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, patch);
+      });
     writeQueueRef.current = commit;
     void commit
       .then(() => {
@@ -437,11 +456,42 @@ export function ModelConfigCapabilityDetail({
         }
         setWriteError(error instanceof Error ? error.message : String(error || 'AI config save failed.'));
       });
-  }, [capabilityId, surface.aiConfigService, surface.scopeRef]);
+  }, [capabilityId, surface, surface.scopeRef]);
 
   const handleTargetRefChange = useCallback((next: ModelConfigTargetRef | null) => {
     writePatch({ targetRef: next });
   }, [writePatch]);
+
+  const handleRouteSelectionChange = useCallback((selection: ModelConfigRouteSelection | null) => {
+    if (!('modelSettingsService' in surface) || !surface.modelSettingsService || !modelSettings) {
+      throw new Error('Dedicated model-settings mutation is unavailable.');
+    }
+    let nextIntent: ModelConfigRouteIntent | null = null;
+    if (selection) {
+      const model = normalizeText(selection.source === 'cloud'
+        ? (selection.providerModelId || selection.model)
+        : (selection.localModelId || selection.profileBindingId || selection.readinessRef || selection.model));
+      const provider = selection.source === 'cloud' ? normalizeText(selection.provider) : '';
+      if (!model || (selection.source === 'cloud' && !provider)) {
+        throw new Error('The selected model route does not carry canonical provider/model identity.');
+      }
+      nextIntent = { capability: capabilityId, provider, model, routePolicy: selection.source };
+    }
+    const routeIntents = modelSettings.routeIntents
+      .filter((intent) => intent.capability !== capabilityId)
+      .concat(nextIntent ? [nextIntent] : []);
+    if (routeIntents.length === 0) {
+      throw new Error('At least one model route intent is required.');
+    }
+    setWriteError(null);
+    void surface.modelSettingsService.update({
+      scopeRef: surface.scopeRef,
+      expectedConfigurationRevision: modelSettings.configurationRevision,
+      routeIntents,
+    }).catch((error: unknown) => {
+      setWriteError(error instanceof Error ? error.message : String(error || 'Model settings save failed.'));
+    });
+  }, [capabilityId, modelSettings, surface]);
 
   const provider = useMemo(
     () => (descriptor ? resolveProvider(surface, descriptor.sourceRef.capability) : null),
@@ -480,8 +530,12 @@ export function ModelConfigCapabilityDetail({
     activeModelConfiguredLabel: translateWithDefault(t, 'ModelConfig.hub.activeModelConfiguredLabel', 'configured'),
     activeModelSetupPendingLabel: translateWithDefault(t, 'ModelConfig.hub.activeModelSetupPendingLabel', 'setup pending'),
     targetRef,
+    routeSelection,
     provider,
     onTargetRefChange: handleTargetRefChange,
+    ...(('modelSettingsService' in surface && surface.modelSettingsService)
+      ? { onRouteSelectionChange: handleRouteSelectionChange }
+      : {}),
     status: projection,
     editor,
     showEditorWhen,

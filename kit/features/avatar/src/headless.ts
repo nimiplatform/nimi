@@ -369,6 +369,10 @@ export function inferAvatarToneFromEmotion(emotion: AvatarInteractionState['emot
 }
 
 export {
+  isAvatarControlledPreviewSurfaceRef,
+  normalizeAvatarControlledPreviewSurfaceRef,
+} from './preview-surface-ref.js';
+export {
   resolveAgentCenterAvatarPreviewServiceResult,
 } from './agent-center-preview.js';
 export type {

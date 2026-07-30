@@ -13,6 +13,7 @@ import {
   summarizeAiModelAggregate,
   type AppModelConfigSurface,
   type CapabilityEvaluation,
+  type ModelConfigSettingsProjection,
   type ModelConfigStatusTone,
 } from '@nimiplatform/kit/core/model-config';
 import type { ModelConfigCapabilityStatus, ModelConfigProfileController } from '../types.js';
@@ -48,7 +49,8 @@ export type ModelConfigSuperSection = {
 
 export type ModelConfigAiModelHubProps = {
   surface: AppModelConfigSurface;
-  profile: ModelConfigProfileController;
+  /** Omit until a real typed AI Profile backend is admitted for the surface. */
+  profile?: ModelConfigProfileController;
   footer?: ReactNode;
   className?: string;
   superSections?: ReadonlyArray<ModelConfigSuperSection>;
@@ -200,15 +202,35 @@ function groupDescriptorsBySection(
   return map;
 }
 
-function useLiveConfig(surface: AppModelConfigSurface): NimiAIConfig {
-  const [config, setConfig] = useState<NimiAIConfig>(() => surface.aiConfigService.aiConfig.get(surface.scopeRef));
+type ModelConfigLiveProjection = {
+  readonly config: NimiAIConfig | null;
+  readonly settings: ModelConfigSettingsProjection | null;
+};
+
+function readLiveProjection(surface: AppModelConfigSurface): ModelConfigLiveProjection {
+  if ('modelSettingsService' in surface && surface.modelSettingsService) {
+    return { config: null, settings: surface.modelSettingsService.get(surface.scopeRef) };
+  }
+  if (!surface.aiConfigService) throw new Error('Model Config surface has no settings service.');
+  return { config: surface.aiConfigService.aiConfig.get(surface.scopeRef), settings: null };
+}
+
+function useLiveProjection(surface: AppModelConfigSurface): ModelConfigLiveProjection {
+  const [projection, setProjection] = useState<ModelConfigLiveProjection>(() => readLiveProjection(surface));
   useEffect(() => {
-    setConfig(surface.aiConfigService.aiConfig.get(surface.scopeRef));
-    return surface.aiConfigService.aiConfig.subscribe(surface.scopeRef, (next) => {
-      setConfig(next);
+    setProjection(readLiveProjection(surface));
+    if ('modelSettingsService' in surface && surface.modelSettingsService) {
+      return surface.modelSettingsService.subscribe(surface.scopeRef, (settings) => {
+        setProjection({ config: null, settings });
+      });
+    }
+    const aiConfigService = surface.aiConfigService;
+    if (!aiConfigService) throw new Error('Model Config surface has no settings service.');
+    return aiConfigService.aiConfig.subscribe(surface.scopeRef, (config) => {
+      setProjection({ config, settings: null });
     });
-  }, [surface.aiConfigService, surface.scopeRef]);
-  return config;
+  }, [surface, surface.scopeRef]);
+  return projection;
 }
 
 export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
@@ -224,7 +246,8 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
     detailHeaderAction,
     detailActiveModelHint,
   } = props;
-  const config = useLiveConfig(surface);
+  const liveProjection = useLiveProjection(surface);
+  const { config, settings } = liveProjection;
   const t = surface.i18n.t;
   const [activeSection, setActiveSectionState] = useState<CanonicalCapabilitySectionId | null>(initialSection);
 
@@ -254,7 +277,9 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
     const out: CapabilityEvaluation[] = [];
     for (const descriptor of descriptors) {
       const projection = surface.projectionResolver(descriptor.capabilityId);
-      const bindingPresent = hasModelConfigTargetRef(config, descriptor.capabilityId);
+      const bindingPresent = config
+        ? hasModelConfigTargetRef(config, descriptor.capabilityId)
+        : Boolean(settings?.routeIntents.some((intent) => intent.capability === descriptor.capabilityId));
       out.push({
         capabilityId: descriptor.capabilityId,
         descriptor,
@@ -263,7 +288,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
       });
     }
     return out;
-  }, [config, descriptors, surface]);
+  }, [config, descriptors, settings, surface]);
 
   const aggregate = useMemo(
     () => summarizeAiModelAggregate(evaluations, {
@@ -334,9 +359,11 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
           </div>
         </div>
 
-        <div>
-          <ProfileConfigSection controller={profile} variant="import-button" />
-        </div>
+        {profile ? (
+          <div>
+            <ProfileConfigSection controller={profile} variant="import-button" />
+          </div>
+        ) : null}
 
         {superSections.map((group) => {
           const visibleSections = group.sections.filter((s) => sectionMap.has(s));
@@ -394,6 +421,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
           capabilityId={descriptor.capabilityId}
           surface={surface}
           config={config}
+          modelSettings={settings}
           activeModelLabel={detailDescriptors.length > 1 && index === 0 ? t(descriptor.i18nKeys.title) : detailDescriptors.length > 1 ? null : undefined}
           activeModelHint={index === 0 ? detailActiveModelHint : null}
         />
@@ -481,9 +509,11 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
             </span>
           </div>
         </div>
-        <div className="w-56 shrink-0">
-          <ProfileConfigSection controller={profile} variant="import-button" />
-        </div>
+        {profile ? (
+          <div className="w-56 shrink-0">
+            <ProfileConfigSection controller={profile} variant="import-button" />
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-2">

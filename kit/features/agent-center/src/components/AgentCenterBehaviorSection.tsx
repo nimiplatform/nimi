@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
 import {
   Check,
-  ChevronDown,
   ChevronRight,
   Info,
 } from 'lucide-react';
-import type { AgentCenterBehaviorCopy, AgentCenterRuntimeAdapter, AgentCenterState } from '../types.js';
+import { translateAgentCenter } from '../i18n.js';
+import { getAgentCenterCatalogRecord } from '../locales/index.js';
+import type {
+  AgentCenterAutonomyProjection,
+  AgentCenterBehaviorCopy,
+  AgentCenterI18n,
+  AgentCenterSession,
+  AgentCenterSnapshot,
+} from '../types.js';
 import {
   AgentButton,
   Card,
@@ -15,47 +22,17 @@ import {
   agentCenterInputClassName,
   cnAgentCenter,
 } from './AgentCenterPrimitives.js';
+import { AgentCenterProductActionNotice } from './AgentCenterProductActionNotice.js';
 
 type AgentCenterAutonomyMode = 'off' | 'low' | 'medium' | 'high';
 
 export interface AgentCenterBehaviorSectionProps {
-  readonly state: AgentCenterState;
-  readonly runtimeAdapter?: AgentCenterRuntimeAdapter | null;
-  readonly copy?: AgentCenterBehaviorCopy;
+  readonly session: AgentCenterSession;
+  readonly snapshot: AgentCenterSnapshot;
+  readonly i18n?: AgentCenterI18n;
 }
 
-const DEFAULT_BEHAVIOR_COPY: Required<AgentCenterBehaviorCopy> = {
-  eyebrow: 'Proactive companion',
-  title: 'Let the agent appear at the right time',
-  description: 'When enabled, the agent can check in during daily rhythm, long silence, or important changes.',
-  enableTitle: 'Allow proactive companion',
-  enableDescription: 'When off, the agent only responds after you start a conversation.',
-  enabledStatus: 'Enabled',
-  disabledStatus: 'Off',
-  modeTitle: 'Proactive level',
-  quietTitle: 'Quiet',
-  quietDescription: 'Only replies when you speak',
-  occasionalTitle: 'Occasional',
-  occasionalDescription: 'Reminds after long silence',
-  dailyTitle: 'Daily',
-  dailyDescription: 'Natural greetings and company',
-  activeTitle: 'Active',
-  activeDescription: 'Joins interaction more often',
-  budgetTitle: 'Usage protection',
-  budgetDescription: 'Set a token limit for proactive behavior to avoid unexpected background usage.',
-  todayUsedLabel: 'Used today',
-  dailyLimitLabel: 'Daily limit',
-  singleLimitLabel: 'Per hook limit',
-  reachedLimitLabel: 'After limit',
-  reachedLimitAction: 'Pause proactive behavior',
-  adjustLimitLabel: 'Adjust usage limit',
-  applyLimitLabel: 'Save usage limit',
-  tokensUnit: 'tokens',
-  approxPrefix: 'about',
-  savingLabel: 'Saving autonomy config.',
-  savedLabel: 'Saved autonomy config.',
-  unavailableLabel: 'Runtime autonomy mutation unavailable.',
-};
+const DEFAULT_BEHAVIOR_COPY = getAgentCenterCatalogRecord('AgentCenter.behavior.') as Required<AgentCenterBehaviorCopy>;
 
 function normalizeError(error: unknown, labels: Required<AgentCenterBehaviorCopy>): string {
   return error instanceof Error && error.message ? error.message : labels.unavailableLabel;
@@ -113,10 +90,19 @@ function ModeSignalMark({
   );
 }
 
-export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: AgentCenterBehaviorSectionProps) {
-  const labels = resolveCopy(copy);
+export function AgentCenterBehaviorSection({ session, snapshot, i18n }: AgentCenterBehaviorSectionProps) {
+  const state = snapshot.state;
+  const compatibilityLabels = resolveCopy(undefined);
+  const labels = Object.fromEntries(
+    Object.entries(compatibilityLabels).map(([key, value]) => [
+      key,
+      translateAgentCenter(i18n, `AgentCenter.behavior.${key}`, value),
+    ]),
+  ) as Required<AgentCenterBehaviorCopy>;
   const autonomy = state.autonomy;
-  const mutationAvailable = !autonomy.controlsDisabled && typeof runtimeAdapter?.setAutonomyConfig === 'function';
+  const availability = snapshot.availability.updateAutonomy;
+  const actionAvailable = availability.state === 'available';
+  const mutationAvailable = actionAvailable && !autonomy.controlsDisabled;
   const [enabled, setEnabled] = useState(autonomy.enabled === true);
   const [mode, setMode] = useState<AgentCenterAutonomyMode>(
     (autonomy.mode || 'off') as AgentCenterAutonomyMode,
@@ -147,10 +133,29 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
     { id: 'medium', title: labels.dailyTitle, description: labels.dailyDescription },
     { id: 'high', title: labels.activeTitle, description: labels.activeDescription },
   ];
-  const disabledNotice = autonomy.disabledReason
-    && !['runtime inspect unavailable', 'runtime autonomy mutation unavailable'].includes(autonomy.disabledReason)
-    ? autonomy.disabledReason
-    : labels.unavailableLabel;
+  const disabledNotice = actionAvailable
+    ? autonomy.disabledReason || labels.unavailableLabel
+    : availability.reason;
+
+  if (!actionAvailable) {
+    return (
+      <SectionShell labelledBy="agent-center-behavior-title" className="gap-3.5">
+        <div data-agent-center-behavior-page="proactive-companion">
+          <SectionHeader
+            description={labels.description}
+            id="agent-center-behavior-title"
+            title={labels.title}
+          />
+        </div>
+        <AgentCenterProductActionNotice
+          action="updateAutonomy"
+          availability={availability}
+          i18n={i18n}
+          session={session}
+        />
+      </SectionShell>
+    );
+  }
 
   const commit = async (patch: Partial<{
     readonly enabled: boolean;
@@ -158,7 +163,7 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
     readonly dailyTokenBudget: number;
     readonly maxTokensPerHook: number;
   }>) => {
-    if (!runtimeAdapter?.setAutonomyConfig || !mutationAvailable) {
+    if (!mutationAvailable) {
       setMutationStatus(autonomy.disabledReason || labels.unavailableLabel);
       return;
     }
@@ -185,16 +190,21 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
     setMutationStatus(labels.savingLabel);
 
     try {
-      const snapshot = await runtimeAdapter.setAutonomyConfig({
+      if (!autonomy.revision) {
+        throw new Error(labels.unavailableLabel);
+      }
+      await session.updateAutonomy({
+        expectedRevision: autonomy.revision,
         enabled: nextEnabled,
         mode: nextMode,
         dailyTokenBudget: nextDailyBudget,
         maxTokensPerHook: nextPerHookBudget,
       });
-      setEnabled(snapshot.enabled ?? nextEnabled);
-      setMode((snapshot.mode || nextMode) as AgentCenterAutonomyMode);
-      setDailyTokenBudget(String(snapshot.dailyTokenBudget ?? nextDailyBudget));
-      setMaxTokensPerHook(String(snapshot.maxTokensPerHook ?? nextPerHookBudget));
+      const committed = session.getSnapshot().state.autonomy;
+      setEnabled(committed.enabled ?? nextEnabled);
+      setMode((committed.mode || nextMode) as AgentCenterAutonomyMode);
+      setDailyTokenBudget(String(committed.dailyTokenBudget ?? nextDailyBudget));
+      setMaxTokensPerHook(String(committed.maxTokensPerHook ?? nextPerHookBudget));
       setMutationStatus(labels.savedLabel);
     } catch (error: unknown) {
       setEnabled(previous.enabled);
@@ -218,8 +228,12 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
         />
       </div>
 
-      {autonomy.controlsDisabled ? (
-        <Notice tone="warn">{disabledNotice}</Notice>
+      {!mutationAvailable ? (
+        <Notice tone="warn">
+          <span data-agent-center-action="updateAutonomy" data-agent-center-action-state={availability.state}>
+            {disabledNotice}
+          </span>
+        </Notice>
       ) : null}
 
       <Card className="rounded-[14px] border-slate-200/80 bg-white/95 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
@@ -268,12 +282,12 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
 
       <Card className="rounded-[14px] border-slate-200/80 bg-white/95 p-3.5 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
         <h3 className="m-0 mb-2.5 text-[15px] font-semibold leading-[1.35] text-slate-950">{labels.modeTitle}</h3>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div aria-label={labels.modeTitle} className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup">
           {modeOptions.map((option) => {
             const selected = mode === option.id;
             return (
               <button
-                aria-pressed={selected}
+                aria-checked={selected}
                 className={cnAgentCenter(
                   'relative flex min-h-[72px] min-w-0 items-center gap-3 rounded-[12px] border p-3 text-left transition-colors',
                   'disabled:cursor-not-allowed disabled:opacity-55',
@@ -287,6 +301,7 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
                 onClick={() => {
                   void commit({ mode: option.id });
                 }}
+                role="radio"
                 type="button"
               >
                 <ModeSignalMark mode={option.id} selected={selected} />
@@ -349,20 +364,6 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
           </div>
           <button
             aria-expanded={budgetEditing}
-            className="flex min-h-[44px] w-full min-w-0 items-center justify-between gap-3 border-t border-slate-200/90 px-4 py-3 text-left text-[13px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-            data-agent-center-budget-policy="true"
-            disabled={!mutationAvailable}
-            onClick={() => setBudgetEditing((value) => !value)}
-            type="button"
-          >
-            <span className="min-w-0 truncate">{labels.reachedLimitLabel}</span>
-            <span className="inline-flex shrink-0 items-center gap-2 text-slate-700">
-              {labels.reachedLimitAction}
-              <ChevronDown aria-hidden="true" className={cnAgentCenter('h-4 w-4 text-slate-400 transition-transform', budgetEditing && 'rotate-180')} />
-            </span>
-          </button>
-          <button
-            aria-expanded={budgetEditing}
             className="flex min-h-[44px] w-full min-w-0 items-center justify-between gap-3 border-t border-slate-200/90 px-4 py-3 text-left text-[13px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-50/40 disabled:cursor-not-allowed disabled:opacity-55"
             data-agent-center-budget-adjust="true"
             disabled={!mutationAvailable}
@@ -418,7 +419,7 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
         <div className="h-4" />
       </Card>
       {mutationStatus ? (
-        <Notice>{mutationStatus}</Notice>
+        <Notice ariaLive="polite">{mutationStatus}</Notice>
       ) : null}
     </SectionShell>
   );

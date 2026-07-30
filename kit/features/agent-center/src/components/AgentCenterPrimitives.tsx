@@ -11,11 +11,8 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { cn } from '@nimiplatform/kit/ui';
-import type {
-  AgentCenterCapabilityState,
-  AgentCenterSectionId,
-  AgentCenterStatusTone,
-} from '../types.js';
+import { agentCenterEnCatalog } from '../locales/index.js';
+import type { AgentCenterSectionId } from '../types.js';
 
 export type AgentCenterPillTone = 'ready' | 'warn' | 'muted' | 'checking' | 'err';
 export type AgentCenterChecklistTone = 'done' | 'todo' | 'attn';
@@ -51,43 +48,10 @@ export const agentCenterInputClassName = cn(
   'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
 );
 
-export const agentCenterSelectClassName = cn(
-  agentCenterInputClassName,
-  'appearance-auto',
-);
-
 export { SECTION_ICONS };
 
 export function cnAgentCenter(...inputs: Parameters<typeof cn>) {
   return cn(...inputs);
-}
-
-export function pillToneForStatus(tone: AgentCenterStatusTone): AgentCenterPillTone {
-  switch (tone) {
-    case 'ready':
-      return 'ready';
-    case 'attention':
-      return 'warn';
-    case 'failed':
-      return 'err';
-    case 'loading':
-      return 'checking';
-    default:
-      return 'muted';
-  }
-}
-
-export function pillToneForCapability(capability: AgentCenterCapabilityState): AgentCenterPillTone {
-  switch (capability.readinessState) {
-    case 'ready':
-      return 'ready';
-    case 'unavailable':
-      return 'err';
-    case 'not_configured':
-      return capability.required ? 'warn' : 'muted';
-    default:
-      return 'checking';
-  }
 }
 
 export function StatusPill(props: {
@@ -153,59 +117,6 @@ export function Card(props: {
   );
 }
 
-export function SoftCard(props: {
-  readonly children: ReactNode;
-  readonly className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        'min-w-0 rounded-[18px] border border-slate-200/80 bg-white/80 shadow-[0_16px_34px_rgba(15,23,42,0.05)]',
-        props.className,
-      )}
-    >
-      {props.children}
-    </div>
-  );
-}
-
-export function StateRow(props: {
-  readonly label: string;
-  readonly value?: ReactNode;
-  readonly right?: ReactNode;
-  readonly valueTone?: 'plain' | 'attn';
-}) {
-  return (
-    <div className="flex min-w-0 items-center justify-between gap-3 border-t border-slate-200/90 px-4 py-3.5 first:border-t-0">
-      <span className="min-w-0 text-[13px] font-medium text-slate-600">{props.label}</span>
-      {props.right ? props.right : (
-        <span className={cn(
-          'min-w-0 truncate text-right text-[13px] font-semibold tabular-nums',
-          props.valueTone === 'attn' ? 'text-amber-700' : 'text-slate-950',
-        )}>
-          {props.value}
-        </span>
-      )}
-    </div>
-  );
-}
-
-export function Row(props: {
-  readonly label: string;
-  readonly desc?: ReactNode;
-  readonly right?: ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 items-center justify-between gap-3 border-t border-slate-200/90 px-4 py-3.5 first:border-t-0">
-      <div className="grid min-w-0 gap-1">
-        <span className="min-w-0 truncate text-[13px] font-semibold text-slate-950">{props.label}</span>
-        {props.desc ? <span className="text-[12.5px] leading-[1.45] text-slate-600">{props.desc}</span> : null}
-      </div>
-      {props.right ? <div className="shrink-0">{props.right}</div> : null}
-    </div>
-  );
-}
-
 export function KvGrid(props: {
   readonly children: ReactNode;
   readonly className?: string;
@@ -250,11 +161,13 @@ export function AgentButton(props: {
   readonly type?: 'button' | 'submit';
   readonly className?: string;
   readonly ariaLabel?: string;
+  readonly ariaDescribedBy?: string;
   readonly title?: string;
   readonly dataAttrs?: Record<string, string | boolean>;
 }) {
   return (
     <button
+      aria-describedby={props.ariaDescribedBy}
       aria-label={props.ariaLabel}
       className={cn(
         'inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border px-3 text-[12.5px] font-semibold transition-colors',
@@ -276,15 +189,19 @@ export function AgentButton(props: {
 export function Notice(props: {
   readonly tone?: 'warn' | 'info';
   readonly children: ReactNode;
+  readonly ariaLive?: 'polite' | 'assertive' | 'off';
 }) {
   const tone = props.tone ?? 'info';
   return (
-    <div className={cn(
+    <div
+      aria-live={props.ariaLive}
+      className={cn(
       'flex min-w-0 items-start gap-2.5 rounded-[12px] border p-3 text-[12.5px] leading-[1.45]',
       tone === 'warn'
         ? 'border-amber-300/50 bg-amber-50 text-amber-900'
         : 'border-slate-200 bg-slate-50 text-slate-700',
-    )}>
+      )}
+    >
       <AlertTriangle className={cn('mt-0.5 h-4 w-4 shrink-0', tone === 'warn' ? 'text-amber-600' : 'text-slate-500')} />
       <div className="min-w-0">{props.children}</div>
     </div>
@@ -328,7 +245,7 @@ export function ProgressHero(props: {
               {props.setupDone}
               <span className="text-[14px] text-slate-400">/{props.setupTotal}</span>
             </div>
-            <div className="mt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">{props.configLabel || 'Config'}</div>
+            <div className="mt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">{props.configLabel || agentCenterEnCatalog['AgentCenter.progress.configLabel']}</div>
           </div>
         </div>
       </div>
@@ -370,52 +287,5 @@ export function ChecklistItem(props: {
         <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
       </span>
     </button>
-  );
-}
-
-export function ModePicker(props: {
-  readonly value: string;
-  readonly disabled?: boolean;
-  readonly onChange: (value: string) => void;
-}) {
-  const labels: Record<string, { title: string; sub: string; bars: number }> = {
-    off: { title: 'Off', sub: 'manual', bars: 0 },
-    low: { title: 'Low', sub: 'light', bars: 1 },
-    medium: { title: 'Medium', sub: 'balanced', bars: 2 },
-    high: { title: 'High', sub: 'active', bars: 4 },
-  };
-  return (
-    <div className="grid grid-cols-4 gap-1.5 p-3.5">
-      {Object.entries(labels).map(([mode, meta]) => {
-        const selected = props.value === mode;
-        return (
-          <button
-            className={cn(
-              'grid min-h-[66px] place-items-center gap-1 rounded-[10px] border px-2 py-2 text-center transition-colors',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              selected
-                ? 'border-emerald-400 bg-emerald-500/10 text-emerald-700'
-                : 'border-slate-200/90 bg-white text-slate-900 hover:border-emerald-300 hover:bg-emerald-50/50',
-            )}
-            disabled={props.disabled}
-            key={mode}
-            onClick={() => props.onChange(mode)}
-            type="button"
-          >
-            <span className="mb-0.5 flex h-4 items-end gap-0.5">
-              {[4, 8, 11, 14].map((height, index) => (
-                <i
-                  className={cn('block w-[3px] rounded-[2px] bg-current', index < meta.bars ? 'opacity-100' : 'opacity-35')}
-                  key={height}
-                  style={{ height }}
-                />
-              ))}
-            </span>
-            <span className="text-[12px] font-semibold">{meta.title}</span>
-            <span className={cn('text-[10.5px]', selected ? 'text-emerald-700/80' : 'text-slate-500')}>{meta.sub}</span>
-          </button>
-        );
-      })}
-    </div>
   );
 }

@@ -2,8 +2,10 @@ import type {
   AgentCenterAppearanceCopy,
   AgentCenterAppearanceProjection,
 } from '../types.js';
-import { isAgentCenterAvatarPreviewReady } from '../appearance-preview-readiness.js';
+import { isAgentCenterCommittedAppearanceReady } from '../appearance-render-readiness.js';
+import { getAgentCenterCatalogRecord } from '../locales/index.js';
 export type EvidenceState = 'ready' | 'pending' | 'missing' | 'blocked';
+export type AgentCenterResolvedAppearanceBackendKind = 'live2d' | 'vrm' | 'nimi2d' | 'unknown';
 type SetupStepState = 'ready' | 'active' | 'idle' | 'blocked';
 
 export type SetupStep = {
@@ -30,110 +32,7 @@ export type Live2dEvidenceItem = {
   readonly evidenceRef?: string | null;
 };
 
-const DEFAULT_APPEARANCE_COPY: Required<AgentCenterAppearanceCopy> = {
-  appearanceTitle: 'Appearance',
-  appearanceDescription: 'Configure this partner avatar and chat background.',
-  avatarCardTitle: 'Partner avatar',
-  avatarUnsetTitle: 'Avatar is not set',
-  avatarUnsetDescription: 'Import Live2D or VRM to show the partner preview here.',
-  importLive2dButton: 'Import Live2D',
-  importVrmButton: 'Import VRM',
-  supportedFormatsLabel: 'Supports model3.json + textures, or .vrm files',
-  viewSupportedFormats: 'View supported formats',
-  currentAvatarPrefix: 'Current avatar',
-  assetImported: 'Asset imported',
-  avatarReadyHint: '1 step left before it can appear in chat.',
-  avatarSetupHint: 'Import an avatar asset to show it in chat.',
-  avatarMissingTitle: 'No avatar imported',
-  avatarImportPrimary: 'Import avatar asset',
-  blockedScopeTitle: 'Select a local partner before configuring appearance.',
-  blockedScopeDescription: 'Appearance imports are scoped to one local partner, so choose a partner first.',
-  blockedScopeHint: 'Live2D and VRM import controls will appear after the partner scope is available.',
-  blockedBridgeTitle: 'Appearance configuration is unavailable.',
-  blockedBridgeDescription: 'The local configuration bridge is not connected, so avatar imports cannot be written.',
-  blockedBridgeHint: 'Restore the desktop runtime bridge before changing this partner appearance.',
-  blockedGenericTitle: 'Appearance configuration is unavailable.',
-  blockedGenericDescription: 'This state cannot safely write avatar configuration yet.',
-  blockedGenericHint: 'Try again after selecting a ready local partner.',
-  continueSetup: 'Continue setup',
-  changeAvatar: 'Change avatar',
-  progressTitle: 'Make the avatar visible',
-  progressCompleteLabel: 'Complete',
-  stepAssetTitle: 'Avatar asset imported',
-  stepAssetReady: 'Live2D resource has been imported.',
-  stepAssetMissing: 'Choose a Live2D folder or VRM file.',
-  stepValidationTitle: 'File format verified',
-  stepValidationReady: 'Model and config file format look correct.',
-  stepValidationMissing: 'Validation will run after an avatar is selected.',
-  stepSidecarTitle: 'Choose Live2D sidecar config',
-  stepSidecarReady: 'Sidecar config is linked.',
-  stepSidecarPending: 'Choose a sidecar file to enable the avatar.',
-  stepDisplayTitle: 'Enable chat display',
-  stepDisplayReady: 'Avatar can appear in chat.',
-  stepDisplayPending: 'Enable after setup is complete.',
-  doneLabel: 'Done',
-  pendingLabel: 'Pending',
-  notStartedLabel: 'Not started',
-  selectSidecar: 'Select sidecar file',
-  assetManagementTitle: 'Avatar management',
-  importLive2dTitle: 'Import Live2D folder',
-  importLive2dSubtitle: 'Supports model3.json + textures',
-  live2dImported: 'Currently imported',
-  importVrmTitle: 'Import VRM file',
-  importVrmSubtitle: 'Supports a single .vrm file',
-  importOtherFormat: 'Import another format',
-  removeAvatar: 'Remove current avatar',
-  chatBackgroundTitle: 'Chat background',
-  chatBackgroundDescription: 'Set a dedicated background for this partner to make chat feel fresher.',
-  backgroundUnset: 'Not set',
-  backgroundReady: 'Ready',
-  uploadBackground: 'Import background image',
-  chooseRecommendedBackground: 'Choose recommended background',
-  technicalDetailsTitle: 'Technical details',
-  technicalDetailsDescription: 'View avatar resources, config, and diagnostic information.',
-  diagnosticsEvidenceTitle: 'Evidence',
-  selectedAssetLabel: 'Selected asset',
-  validationLabel: 'Validation',
-  capabilityProfileLabel: 'Capability profile',
-  live2dManifestLabel: 'Live2D adapter manifest',
-  linkedLabel: 'Linked',
-  pendingEvidenceLabel: 'Pending evidence',
-  missingLabel: 'Missing',
-  avatarAutoplayLabel: 'Avatar autoplay',
-  avatarAutoplayDescription: 'Launch handoff uses Runtime appearance projection.',
-  enableLabel: 'Enable',
-  disableLabel: 'Disable',
-  voiceArtifactsLabel: 'Generated voice artifacts',
-  voiceArtifactsDescription: 'Cleanup remains a typed Runtime/Avatar maintenance action.',
-  cleanupLabel: 'Cleanup',
-  cleaningLabel: 'Cleaning...',
-  appearanceUpdateFailed: 'Runtime appearance update failed.',
-  live2dStatusProbeRequired: 'Probe required',
-  live2dStatusNotAdmitted: 'Not admitted',
-  live2dStatusEffectPending: 'Effect pending',
-  live2dStatusChecking: 'Checking',
-  live2dStatusReady: 'Ready',
-  live2dStatusPending: 'Pending',
-  live2dStatusMissing: 'Missing',
-  live2dStatusBlocked: 'Blocked',
-  live2dPreviewOutputLabel: 'Rendered preview',
-  live2dModelFramingLabel: 'Model framing',
-  live2dRenderPolicyLabel: 'Render policy',
-  live2dExpressionInventoryLabel: 'Expression inventory',
-  live2dAdapterManifestEvidenceLabel: 'Adapter manifest',
-  live2dEvidenceRequired: 'Local asset and backend capability evidence are required.',
-  live2dPreviewReadyDetail: 'The Avatar renderer produced visible non-placeholder output.',
-  live2dCalibrationPendingDetail: 'Calibration ref is projected as evidence; Avatar effect waits for payload/effect projection.',
-  live2dEmotionReadyDetail: 'Review through Runtime emotion probe evidence.',
-  live2dBackendRequiredDetail: 'Backend capability profile evidence is required.',
-  live2dExternalSidecarSelected: 'External sidecar ref is selected.',
-  live2dEmbeddedManifestSelected: 'Embedded creator manifest is selected.',
-  live2dNoAdapterManifestSelected: 'No adapter manifest is selected.',
-  evidenceRefLabel: 'Evidence ref',
-  calibrationRefLabel: 'Calibration ref',
-  custodyNotice: 'Kit stores opaque Avatar/Runtime refs only. Avatar and Runtime own model digest, framing, scale, FPS, expression inventory, preview refs, and effect materialization.',
-  adapterUnavailableFormat: '{{label}} adapter unavailable.',
-};
+const DEFAULT_APPEARANCE_COPY = getAgentCenterCatalogRecord('AgentCenter.appearance.') as Required<AgentCenterAppearanceCopy>;
 
 export function normalizeError(error: unknown, copy: Required<AgentCenterAppearanceCopy>): string {
   return error instanceof Error && error.message ? error.message : copy.appearanceUpdateFailed;
@@ -146,8 +45,14 @@ export function resolveCopy(copy: AgentCenterAppearanceCopy | undefined): Requir
   };
 }
 
-export function backendKind(appearance: AgentCenterAppearanceProjection): string {
-  return (appearance.backendKind || 'live2d').toString().trim().toLowerCase() || 'live2d';
+export function backendKind(
+  appearance: AgentCenterAppearanceProjection,
+): AgentCenterResolvedAppearanceBackendKind {
+  const normalized = (appearance.backendKind ?? '').toString().trim().toLowerCase();
+  if (normalized === 'live2d' || normalized === 'vrm' || normalized === 'nimi2d') {
+    return normalized;
+  }
+  return 'unknown';
 }
 
 export function backendLabel(appearance: AgentCenterAppearanceProjection): string {
@@ -155,17 +60,20 @@ export function backendLabel(appearance: AgentCenterAppearanceProjection): strin
 }
 
 export function blockedSetupReason(appearance: AgentCenterAppearanceProjection): AppearanceSetupBlockedReason | null {
-  const disabledReason = (appearance.disabledReason || '').trim();
-  if (appearance.avatarAssetRef || !appearance.avatarImportDisabled || !disabledReason) {
+  if (appearance.avatarAssetRef || !appearance.avatarImportDisabled) {
     return null;
   }
-  if (disabledReason.includes('local-config-scope-required')) {
-    return 'scope-required';
+  switch (appearance.disabledReasonCode) {
+    case 'scope-required':
+      return 'scope-required';
+    case 'bridge-unavailable':
+      return 'bridge-unavailable';
+    case 'configuration-unavailable':
+    case 'validation-unavailable':
+      return 'configuration-unavailable';
+    default:
+      return null;
   }
-  if (disabledReason.includes('local-config-bridge-unavailable')) {
-    return 'bridge-unavailable';
-  }
-  return 'configuration-unavailable';
 }
 
 export function blockedSetupCopy(
@@ -194,17 +102,11 @@ export function blockedSetupCopy(
 }
 
 export function visibleDisabledReason(appearance: AgentCenterAppearanceProjection): string | null {
-  const disabledReason = (appearance.disabledReason || '').trim();
-  if (!disabledReason) {
+  if (!appearance.disabledReasonCode || appearance.disabledReasonCode === 'avatar-not-configured') {
     return null;
   }
-  if (!appearance.avatarAssetRef && disabledReason === 'Avatar asset is not configured.') {
-    return null;
-  }
-  if (disabledReason.startsWith('zhiyu-agent-center-')) {
-    return null;
-  }
-  return disabledReason;
+  const message = appearance.disabledReason?.trim();
+  return message || null;
 }
 
 export function evidenceTone(state: EvidenceState): string {
@@ -265,11 +167,11 @@ export function live2dStatusLabel(
 function live2dProbeStatus(appearance: AgentCenterAppearanceProjection): Live2dEvidenceStatus {
   if (appearance.avatarAssetChecking) return 'checking';
   if (!appearance.avatarAssetRef || !appearance.avatarAssetValid || !appearance.backendCapabilityProfileRef) return 'blocked';
-  if (isAgentCenterAvatarPreviewReady(appearance)) {
+  if (isAgentCenterCommittedAppearanceReady(appearance)) {
     return 'ready';
   }
-  if (appearance.previewState === 'failed') return 'blocked';
-  if (appearance.previewState === 'loading') return 'checking';
+  if (appearance.renderState === 'failed') return 'blocked';
+  if (appearance.renderState === 'loading') return 'checking';
   return 'probe_required';
 }
 
@@ -296,13 +198,13 @@ export function buildLive2dEvidenceItems(
       && appearance.avatarAssetValid
       && appearance.backendCapabilityProfileRef,
   );
-  const previewReady = isAgentCenterAvatarPreviewReady(appearance);
+  const renderReady = isAgentCenterCommittedAppearanceReady(appearance);
   const evidenceRequired = labels.live2dEvidenceRequired;
   return [
     {
       id: 'preview_output',
       label: labels.live2dPreviewOutputLabel,
-      detail: previewReady ? labels.live2dPreviewReadyDetail : appearance.previewFailureReason || (launchEvidenceReady ? labels.live2dPreviewReadyDetail : evidenceRequired),
+      detail: renderReady ? labels.live2dPreviewReadyDetail : appearance.renderFailureReason || (launchEvidenceReady ? labels.live2dPreviewReadyDetail : evidenceRequired),
       status: live2dProbeStatus(appearance),
     },
     {
@@ -344,11 +246,15 @@ export function buildSetupSteps(
   appearance: AgentCenterAppearanceProjection,
   copy: Required<AgentCenterAppearanceCopy>,
 ): readonly SetupStep[] {
-  const avatarReady = Boolean(appearance.avatarAssetRef && appearance.avatarAssetValid);
+  const resolvedBackendKind = backendKind(appearance);
+  const backendConfigured = resolvedBackendKind !== 'unknown';
+  const avatarReady = Boolean(backendConfigured && appearance.avatarAssetRef && appearance.avatarAssetValid);
   const validationReady = avatarReady && assetStatus(appearance) === 'ready';
-  const sidecarReady = backendKind(appearance) !== 'live2d' || live2dManifestStatus(appearance) === 'ready';
+  const sidecarReady = resolvedBackendKind === 'vrm'
+    || resolvedBackendKind === 'nimi2d'
+    || (resolvedBackendKind === 'live2d' && live2dManifestStatus(appearance) === 'ready');
   const sidecarActive = avatarReady && !sidecarReady;
-  const displayReady = avatarReady && sidecarReady && isAgentCenterAvatarPreviewReady(appearance);
+  const displayReady = avatarReady && sidecarReady && isAgentCenterCommittedAppearanceReady(appearance);
   return [
     {
       label: copy.stepAssetTitle,

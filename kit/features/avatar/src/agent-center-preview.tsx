@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AvatarStage } from './components/avatar-stage.js';
 import { createAvatarStageSnapshot } from './headless.js';
+import { normalizeAvatarControlledPreviewSurfaceRef } from './preview-surface-ref.js';
 import type {
   AvatarBackendKind,
   AvatarStageSize,
@@ -45,7 +46,7 @@ export function resolveAgentCenterAvatarPreviewServiceResult(
   const backendKind = normalizeBackendKind(input.backendKind);
   const avatarAssetRef = normalizeText(input.avatarAssetRef);
   const previewMaterialRef = normalizeText(input.previewMaterialRef);
-  const previewImageRef = normalizePreviewSurfaceRef(input.previewImageRef);
+  const previewImageRef = normalizeAvatarControlledPreviewSurfaceRef(input.previewImageRef);
   const visiblePixels = normalizePositiveNumber(input.previewVisiblePixels);
   if (
     input.previewState === 'ready'
@@ -143,21 +144,6 @@ function normalizeBackendKind(value: unknown): AvatarBackendKind | null {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function normalizePreviewSurfaceRef(value: unknown): string {
-  const text = normalizeText(value);
-  if (text.startsWith('/') && !text.startsWith('//') && !text.includes('\\')) return text;
-  if (text.startsWith('blob:')) {
-    const currentOrigin = normalizeText(globalThis.location?.origin);
-    if (!currentOrigin || currentOrigin === 'null') return '';
-    try {
-      return new URL(text.slice('blob:'.length)).origin === currentOrigin ? text : '';
-    } catch {
-      return '';
-    }
-  }
-  return '';
 }
 
 function normalizePositiveNumber(value: unknown): number | null {
