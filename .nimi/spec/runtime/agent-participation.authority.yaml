@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.presentation-profile-plane
     kind: definition
     title: Runtime LocalAgent presentation configuration plane
-    meaning: Runtime owns the durable LocalAgent presentation inputs needed by authorized first-party projections, while Avatar owns visual rendering and backend-local state and no presentation profile becomes a LocalAgent or Avatar owner.
+    meaning: Runtime owns durable LocalAgent presentation selections including the current official asset and default voice references plus validation-before-replace, revisioned atomic commit, persistence, and explicit restore-previous semantics needed by authorized projections, while Avatar owns visual rendering and backend-local state and no presentation profile becomes a LocalAgent or Avatar owner.
   - id: definition.nimi.runtime.agent-participation.presentation-stream-plane
     kind: definition
     title: Runtime LocalAgent presentation stream plane
@@ -33,7 +33,11 @@ units:
   - id: definition.nimi.runtime.agent-participation.ai-config-plane
     kind: definition
     title: Runtime LocalAgent AI configuration plane
-    meaning: Runtime owns the LocalAgent AI route, readiness, Token, Quota, Budget, metering, and resource admission used by LocalAgent execution; Apps may observe bounded status but never own or bypass those decisions.
+    meaning: Runtime owns LocalAgent AI route intents, dedicated typed model-settings projection, readiness, Token, Quota, Budget, metering, and resource admission used by LocalAgent execution; Apps may observe bounded status but never fabricate NimiAIConfig or own or bypass those decisions.
+  - id: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
+    kind: definition
+    title: Runtime LocalAgent autonomy configuration plane
+    meaning: Runtime owns LocalAgent autonomy configuration as one independently revisioned state with atomic compare-and-swap mutation semantics.
   - id: definition.nimi.runtime.agent-participation.app-consume-plane
     kind: definition
     title: Runtime LocalAgent App consume plane
@@ -118,9 +122,9 @@ units:
     kind: rule
     title: Persistent presentation inputs are Runtime-owned
     modality: must
-    statement: Runtime owns durable LocalAgent presentation selections and voice policy needed for authorized projections, while current emotion, activity, renderer motion, camera, physics, lipsync, and window state remain transient Runtime projection or Avatar-local rendering facts according to their owners.
-    condition: Whenever durable LocalAgent presentation configuration is read or changed.
-    failure: Reject App-local durable truth, renderer state promoted into Runtime truth, or presentation ownership transferred to Avatar.
+    statement: Runtime owns durable LocalAgent presentation selections and the default voice reference needed for authorized projections, while voice generation and artifacts remain Runtime-owned execution outputs and current emotion, activity, renderer motion, camera, physics, lipsync, and window state remain transient Runtime projection or Avatar-local rendering facts according to their owners.
+    condition: Whenever durable LocalAgent presentation configuration or default voice is read or changed.
+    failure: Reject App-local durable truth, an AI-config-owned default voice, renderer state promoted into Runtime truth, or presentation ownership transferred to Avatar.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.presentation-profile-plane
@@ -331,6 +335,46 @@ units:
     statement: Explicit recorded voice input is transcribed through the Runtime-selected local STT route under current authorization, Quota, Budget, and readiness before text intent reaches a LocalAgent Conversation.
     condition: Whenever recorded voice input is submitted to a LocalAgent.
     failure: Return typed unavailable or failed state without App-local provider calls or fabricated transcript.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r166
+    kind: rule
+    title: Presentation validation and atomic replacement are Runtime-owned
+    modality: must
+    statement: Runtime validates protected-Shell-imported asset material for type, size, structure, dependencies, integrity, backend compatibility, current authorization, and expected presentation revision before replacement, then performs official asset import, presentation-profile update, and revision advance as one atomic commit; failed validation or a stale revision changes nothing, no pre-commit candidate or preview-persistence concept exists at product level, and internal temporary storage remains an implementation detail that never enters the contract.
+    condition: Whenever a LocalAgent presentation replacement is validated or committed.
+    failure: Reject client-owned validation or compatibility, raw local paths, stale revision, partial import or profile update, product-level candidate or preview state, or a commit outside Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r167
+    kind: rule
+    title: Render evidence and post-save failure do not rewrite Runtime truth
+    modality: must_not
+    statement: Runtime accepts client-asserted visible-pixel, renderer-success, or render-failure evidence as presentation commit authority, a validation substitute, or a security input, or automatically rolls back a committed replacement because rendering later fails.
+    condition: Whenever Runtime validates or commits a LocalAgent presentation selection or a renderer reports a post-save result.
+    failure: Ignore client render evidence as authority, retain a committed replacement after later render failure, surface that failure as a typed render failure distinct from save failure, and admit recovery only through an explicit restore-previous operation that creates a new revisioned commit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r168
+    kind: rule
+    title: Autonomy mutation is atomic and revisioned
+    modality: must
+    statement: Runtime reads LocalAgent autonomy with its independent revision and applies each typed autonomy intent as one atomic compare-and-swap mutation that returns a revised projection or typed conflict.
+    condition: Whenever LocalAgent autonomy configuration is read or changed.
+    failure: Reject a missing or stale expected revision, partial write, or Kit-side multi-RPC mutation sequence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
+  - id: rule.nimi.runtime.agent-participation.r169
+    kind: rule
+    title: Model settings v1 projection is closed and typed
+    modality: must
+    statement: Runtime and SDK project model settings v1 as a dedicated typed projection containing dynamic capabilities from the canonical capability catalog, provider and model route intents, readiness, and audio.transcribe configuration, and every AIScopeRef resolves through the canonical factory or registry; typed per-capability parameters and AI Profile flows remain unavailable until typed Runtime and SDK schema and real backends are admitted.
+    condition: Whenever LocalAgent model settings are projected or mutated.
+    failure: Reject a fabricated NimiAIConfig value, hand-enumerated capability set, caller-fabricated AIScopeRef, unsupported parameter or AI Profile flow, or stub success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.ai-config-plane

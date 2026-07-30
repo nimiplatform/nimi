@@ -192,6 +192,10 @@ units:
     kind: definition
     title: Permission grant
     meaning: A permission grant is owner-held decision truth whose positive use remains bound to the protected-carrier-derived app principal, current account and OS-user anchor where applicable, canonical public permission, owner-issued selector, exact internal mapping, current owner policy, and lifecycle revision.
+  - id: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
+    kind: definition
+    title: Reserved agents.configure operation family
+    meaning: The agents.configure operation family is the closed Runtime-owned mapping of exactly seven operations—configuration-snapshot, update-configuration, readiness-snapshot, autonomy-snapshot, update-autonomy, presentation-snapshot, and commit-presentation—over the effective agents.interact account scope materialized as opaque Agent handles.
   - id: definition.nimi.platform.app-ecosystem.app-authority-class
     kind: definition
     title: App action authority class
@@ -250,9 +254,9 @@ units:
     kind: rule
     title: P-PERM-003 public posture and app request boundary
     modality: must
-    statement: App-facing posture is exactly prompt, pending, granted, denied, or unavailable; an app may inspect only its own posture and request each admitted permission with a user-facing reason, an owner may present multiple requested recognizable intents as separately identified items in one just-in-time consent surface while issuing independent decisions, and the app cannot approve, revoke, mint, carry, or inspect owner-internal decision records.
+    statement: App-facing posture is exactly unavailable, prompt, pending, granted, denied, or revoked; an app may inspect only its own posture and request each admitted permission with a user-facing reason, unavailable preserves typed distinction among reserved-but-not-admitted and unknown while prompt, denied, and revoked remain distinct not-granted outcomes, an owner may present multiple requested recognizable intents as separately identified items in one just-in-time consent surface while issuing independent decisions, and the app cannot approve, revoke, mint, carry, or inspect owner-internal decision records.
     condition: Whenever permission posture or request controls are exposed to an app.
-    failure: Reject a posture outside the closed set or any app attempt to exercise owner decision authority.
+    failure: Reject a posture outside the closed set, a collapsed unavailability reason, or any app attempt to exercise owner decision authority.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.permission-grant
@@ -264,6 +268,18 @@ units:
     condition: Whenever durable permission decision state is implemented or projected.
     failure: Deny use of non-monotonic, non-canonical, app-owned, or unadmitted Runtime-local lifecycle state.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.permission-grant
+  - id: rule.nimi.platform.app-ecosystem.p-perm-003c
+    kind: rule
+    title: P-PERM-003 denial carrier precision
+    modality: must
+    statement: Every public carrier preserves the canonical permission id with a typed permission denial, revocation, pending, or unavailability reason through SDK and Kit projection without exposing owner-internal decision or selector material.
+    condition: Whenever permission failure or non-granted posture crosses a public carrier.
+    failure: Fail the projection closed rather than dropping the permission id, collapsing the reason, or exposing internal authority material.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-permission
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-perm-004a
@@ -342,7 +358,7 @@ units:
     kind: rule
     title: P-PERM-007 no internal authorization fields on public surfaces
     modality: must_not
-    statement: Public manifests, SDKs, Kit bridges, or ordinary UI expose scope family or name, qualifier, operation id, resource ref, selector digest, decision id, account, principal, session identity, token, or credential.
+    statement: Public manifests, SDKs, Kit bridges, ordinary UI, or permissioned Local Apps expose scope family or name, qualifier, operation id, resource ref, selector digest, decision id, account, principal, session identity, ownerUserId, runtimeSourceRef, localAgentRef, subjectUserId, token, or credential.
     condition: Whenever a public permission surface is defined or rendered.
     failure: Remove the internal field and fail closed rather than accepting it from the app.
     relations:
@@ -500,12 +516,50 @@ units:
     kind: rule
     title: P-PERM-017 bounded permission UX
     modality: must
-    statement: Permission UX preserves one independent decision per recognizable intent and owner-selected resource scope, may combine interact, configure, memory, voice, and delegation as separately described items in one just-in-time surface using the same account scope without per-Agent authorization, gives a normal app using only its own data zero Nimi permission prompts, and forbids install-time permission walls, method-level prompts, hidden scope or qualifier editors, raw resource ids, and duplicate Runtime and Realm approvals.
+    statement: Permission UX preserves one independent decision per recognizable intent and owner-selected resource scope, may combine exactly agents.interact, agents.configure, memory.read, agents.voice, and agents.delegate as five separately described, independently decidable, and independently revocable items in one just-in-time surface using the same account scope without per-Agent authorization, gives a normal app using only its own data zero Nimi permission prompts, and forbids install-time permission walls, method-level prompts, hidden scope or qualifier editors, raw resource ids, and duplicate Runtime and Realm approvals.
     condition: Whenever install, launch, or just-in-time permission UX is rendered.
-    failure: Reject an over-broad, duplicated, internalized, or unnecessary prompt flow.
+    failure: Reject a missing or merged item, coupled decision, over-broad, duplicated, internalized, or unnecessary prompt flow.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.app-permission
+  - id: rule.nimi.platform.app-ecosystem.p-perm-019a
+    kind: rule
+    title: P-PERM-019 agents.configure dependency and semantic boundary
+    modality: must
+    statement: agents.configure requires a current agents.interact grant for the same account scope and covers LocalAgent AI configuration read and revisioned write for model and provider route intents including audio.transcribe configuration, typed readiness, atomic revisioned autonomy configuration, and revisioned presentation or appearance commit including the default voice reference, while excluding Provider Credentials, turn execution, raw Avatar control, Memory content governed by memory.read, and voice or transcription execution governed by agents.voice.
+    condition: Whenever agents.configure eligibility, scope, or protected behavior is evaluated.
+    failure: Deny absent or mismatched effective agents.interact scope, excluded behavior, caller credentials, raw identity, or authority beyond the closed configure intent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-permission
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.permission-grant
+  - id: rule.nimi.platform.app-ecosystem.p-perm-019b
+    kind: rule
+    title: P-PERM-019 closed configure operation mapping
+    modality: must
+    statement: The closed agents.configure mapping is configuration-snapshot from opaque Agent handle to dedicated typed model-settings projection and configuration revision; update-configuration from opaque handle, expected configuration revision, and supported route intents to atomic revised projection or typed conflict; readiness-snapshot from opaque handle to typed current readiness without mutation; autonomy-snapshot from opaque handle to autonomy projection and its independent revision; update-autonomy from opaque handle, expected autonomy revision, and typed intent to one atomic revised projection or typed conflict; presentation-snapshot from opaque handle to the durable current presentation profile, default voice reference, and presentation revision; and commit-presentation from opaque handle, protected-Shell-imported asset material, and expected presentation revision to Runtime validation of type, size, structure, dependencies, integrity, backend compatibility, and current authorization followed by one atomic official-asset import, presentation-profile update, and revision advance that returns the committed projection or a typed conflict or validation failure. No non-persistent presentation preview operation exists.
+    condition: Whenever a protected operation is mapped to agents.configure.
+    failure: Deny an operation outside the closed seven-operation family, raw Agent identity, unrevisioned mutation, Kit-side multi-call mutation, a non-persistent presentation preview operation, non-atomic asset publication and profile update, or mutation lacking typed conflict or validation failure behavior.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
+  - id: rule.nimi.platform.app-ecosystem.p-perm-019c
+    kind: rule
+    title: P-PERM-019 atomic configure publication
+    modality: must
+    statement: agents.configure remains reserved until one atomic publication includes its closed catalog and operation mapping, same-scope agents.interact dependency and revocation cascade, endpoint enforcement, public carrier and SDK and Kit surfaces, the five-item combined just-in-time consent surface, settings, independent revoke, audit, and permission-id-preserving typed failures.
+    condition: Whenever agents.configure is proposed for publication or manifest eligibility.
+    failure: Keep agents.configure reserved and every mapped operation unavailable until every conjunct lands in one publication flip.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-permission
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.permission-grant
   - id: rule.nimi.platform.app-ecosystem.p-napp-030a
     kind: rule
     title: P-NAPP-030 complete listing-closure field set

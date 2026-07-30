@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.agent-center-surface
     kind: definition
     title: LocalAgent Center surface
-    meaning: LocalAgent Center is the current first-party Kit composition used only where a concrete Nimi Home or Avatar journey needs to present or edit admitted Runtime LocalAgent projections, without owning execution, lifecycle, Conversation, Memory, Knowledge, AI resources, configuration persistence, or semantic presentation truth and without becoming a mandatory public module catalog.
+    meaning: Agent Center is the reusable public Kit surface for first-party Apps and permissioned Third-party Local Apps to present and edit admitted Runtime LocalAgent projections without owning execution, lifecycle, Conversation, Memory or Knowledge content, AI resources, configuration persistence, or semantic presentation truth.
   - id: definition.nimi.platform.ui-design-system.runtime-projection
     kind: definition
     title: Runtime-owned UI projection
@@ -458,11 +458,11 @@ units:
         target: definition.nimi.platform.ui-design-system.density-system
   - id: rule.nimi.platform.ui-design-system.p-agent-center-001a
     kind: rule
-    title: P-AGENT-CENTER-001 current Kit composition ownership
+    title: P-AGENT-CENTER-001 public Kit surface ownership
     modality: must
-    statement: Kit owns the shared LocalAgent Center layout, typed controls, loading, failure, disabled, and responsive behavior required by its current first-party consumers while combining Runtime-owned LocalAgent projection with bounded host asset custody.
-    condition: Whenever LocalAgent Center is rendered by a current first-party consumer.
-    failure: Reject duplicated shared behavior or ownership transfer of Runtime LocalAgent truth.
+    statement: Kit owns the public AgentCenter component's shared layout, typed controls, loading, failure, disabled, and responsive behavior for first-party Apps and permissioned Third-party Local Apps while combining Runtime-owned LocalAgent projections with bounded Kit Shell asset custody.
+    condition: Whenever AgentCenter is rendered or integrated.
+    failure: Reject an app fork of shared behavior, a first-party-only contraction, or ownership transfer of Runtime LocalAgent truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
@@ -472,8 +472,8 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 Runtime and resource ownership boundary
     modality: must_not
-    statement: Kit LocalAgent Center owns LocalAgent execution, lifecycle, Conversation, Memory, Knowledge, events, AI configuration persistence, authorization, semantic presentation selection, Avatar lifecycle, render truth, backend readiness, calibration, or launch truth.
-    condition: Whenever LocalAgent Center consumes or edits LocalAgent state.
+    statement: AgentCenter owns LocalAgent execution, lifecycle, Conversation, Memory or Knowledge content, events, AI resources, configuration persistence, authorization, semantic presentation selection, Avatar lifecycle, render truth, backend readiness, calibration, or launch truth.
+    condition: Whenever AgentCenter consumes or edits LocalAgent state.
     failure: Keep the truth with Runtime, SDK custody, Avatar, or Kit Shell as applicable and expose only a typed bounded projection.
     relations:
       - type: applies_to
@@ -482,18 +482,35 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 bounded app integration
     modality: must
-    statement: Current first-party Apps may place LocalAgent Center and inject only admitted typed adapters, host capabilities, copy, navigation, and placement callbacks, while arbitrary feature panels, private bridges, raw context, prompts, Memory, Knowledge, proof, provider, credential, or tool payloads remain outside Kit.
-    condition: Whenever an App integrates LocalAgent Center.
-    failure: Reject untyped, App-authoritative, raw-data, or speculative integration.
+    statement: First-party Apps and permissioned Third-party Local Apps may place AgentCenter and supply presentation-tier inputs for standalone or embedded chrome, layout, density, and active semantic area plus admitted typed adapters, copy, navigation, and placement callbacks, while permission facts, arbitrary feature panels, private bridges, raw context, prompts, Memory or Knowledge content, proof, provider, credential, and tool payloads remain outside component props.
+    condition: Whenever an App integrates AgentCenter.
+    failure: Reject a permission-bearing prop, untyped or App-authoritative input, raw data, or speculative integration.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
+  - id: rule.nimi.platform.ui-design-system.p-agent-center-002a
+    kind: rule
+    lifecycle: removed
+    title: P-AGENT-CENTER-002 complete generic sections
+    reason: Superseded by the public successor contract of 2026-07-29; deleted without tombstone in d1e7034d8.
+  - id: rule.nimi.platform.ui-design-system.p-agent-center-002c
+    kind: rule
+    title: P-AGENT-CENTER-002 complete semantic areas and identity chrome
+    modality: must
+    statement: A complete AgentCenter provides Overview, Appearance, Behavior, Model, Cognition, and Diagnostics or Advanced as required semantic areas and supplies canonical Agent identity chrome, while concrete tabs, ordering, layout, and responsive collapse remain presentational and host-configurable without allowing an App to hand-copy the identity chrome.
+    condition: Whenever the complete AgentCenter surface is presented.
+    failure: Reject a missing semantic area, app-owned identity-chrome copy, or hardcoded tab structure presented as semantic authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.agent-center-surface
+      - type: supersedes
+        target: rule.nimi.platform.ui-design-system.p-agent-center-002a
   - id: rule.nimi.platform.ui-design-system.p-agent-center-002b
     kind: rule
     title: P-AGENT-CENTER-002 bounded context summary
     modality: must
-    statement: LocalAgent Center may render only bounded read-only state, reason, readiness, budget, truncation, count, and safe correlation facts without rendering or reconstructing source, prompt, Conversation, private Memory or Knowledge, proof, provider, credential, or tool context.
-    condition: Whenever LocalAgent Center presents LocalAgent context status.
+    statement: AgentCenter may render only bounded read-only state, reason, readiness, budget, truncation, count, and safe correlation facts without rendering or reconstructing source, prompt, Conversation, private Memory or Knowledge, proof, provider, credential, or tool context.
+    condition: Whenever AgentCenter presents LocalAgent context status.
     failure: Treat unknown or raw context as unavailable and do not reconstruct execution input.
     relations:
       - type: applies_to
@@ -502,19 +519,19 @@ units:
     kind: rule
     title: P-AGENT-CENTER-003 no local persisted config
     modality: must_not
-    statement: LocalAgent Center persists App-local or Kit-local Runtime configuration, selected-but-uncommitted success, Conversation history, Memory, Knowledge, authorization, or private host bridges; Runtime owns LocalAgent and presentation selections while Kit Shell owns only bounded local asset custody.
-    condition: Whenever LocalAgent Center reads, changes, imports, or persists state.
-    failure: Remove the local record or bridge and require committed Runtime presentation truth plus bounded Kit Shell custody.
+    statement: AgentCenter persists App-local or Kit-local Runtime configuration, temporary import or renderer state as committed success, Conversation history, Memory, Knowledge, authorization, or private host bridges; Runtime owns LocalAgent and presentation selections while Kit Shell owns only bounded temporary import custody.
+    condition: Whenever AgentCenter reads, changes, imports, renders, or persists state.
+    failure: Remove the local record or bridge and require committed Runtime presentation truth plus bounded temporary Kit Shell custody.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
   - id: rule.nimi.platform.ui-design-system.p-agent-center-004
     kind: rule
-    title: P-AGENT-CENTER-004 Runtime-owned optional audio
+    title: P-AGENT-CENTER-004 Runtime-owned voice split
     modality: must
-    statement: LocalAgent Center renders and edits admitted voice intent only through the Runtime AI configuration adapter, Runtime owns voice generation and artifacts, and Apps do not fabricate playable artifacts or independent voice or general Workflow truth.
-    condition: Whenever optional LocalAgent audio is configured, generated, or presented.
-    failure: Reject app-local audio truth or pseudo artifacts and retain Runtime ownership.
+    statement: AgentCenter reads and commits the default voice reference through the Runtime presentation-profile path, configures the audio.transcribe route through the Runtime AI configuration path, and invokes neither voice generation nor transcription execution because those Runtime-owned operations require agents.voice.
+    condition: Whenever LocalAgent voice, transcription, or audio configuration is read, changed, generated, or executed.
+    failure: Reject an AI-config-owned default voice, app-local audio truth, direct execution, or pseudo artifact and retain the applicable Runtime owner path.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.runtime-projection
@@ -522,8 +539,8 @@ units:
     kind: rule
     title: P-AGENT-CENTER-005 typed dependency boundary
     modality: must_not
-    statement: Production LocalAgent Center imports Runtime internals, App code, SDK-private modules, or App aliases instead of the public Kit SDK contract or explicitly injected typed adapters.
-    condition: Whenever LocalAgent Center obtains Runtime or App capability.
+    statement: Production AgentCenter imports Runtime internals, App code, SDK-private modules, or App aliases instead of the public Kit SDK contract or explicitly injected typed adapters.
+    condition: Whenever AgentCenter obtains Runtime or App capability.
     failure: Remove the private dependency and consume only the typed public projection or adapter.
     relations:
       - type: applies_to
@@ -532,12 +549,29 @@ units:
     kind: rule
     title: P-AGENT-CENTER-005 closed LocalAgent inputs
     modality: must
-    statement: LocalAgent Center accepts only bounded source readiness and turn-context status; unknown or partial state becomes unavailable or failed, and no adapter assembles, overrides, or attaches LocalAgent context.
-    condition: Whenever LocalAgent Center receives a LocalAgent projection.
+    statement: AgentCenter accepts only bounded source readiness and turn-context status; unknown or partial state becomes unavailable or failed, and no adapter assembles, overrides, or attaches LocalAgent context.
+    condition: Whenever AgentCenter receives a LocalAgent projection.
     failure: Fail closed in the UI and reject raw, partial, or context-authoring input.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.runtime-projection
+  - id: rule.nimi.platform.ui-design-system.p-agent-center-006a
+    kind: rule
+    lifecycle: removed
+    title: P-AGENT-CENTER-006 surface ownership mapping
+    reason: Superseded by the public successor contract of 2026-07-29; deleted without tombstone in d1e7034d8.
+  - id: rule.nimi.platform.ui-design-system.p-agent-center-006c
+    kind: rule
+    title: P-AGENT-CENTER-006 single Manager Session and transport-only factories
+    modality: must
+    statement: Each mounted AgentCenter has exactly one Manager Session that owns its snapshot, refresh, mutation, readiness subscription, commit, and one section model; sealed first-party and permissioned factories construct transport only and own no state logic; React props are limited to UI and UX inputs for chrome, layout, density, active section, locale, and placement callbacks; and the pre-1.0 hard cut admits no legacy seed-authority, per-adapter props, compatibility copy objects, caller-owned authority, or parallel state path.
+    condition: Whenever AgentCenter state, sections, sessions, transports, factories, or React props are constructed.
+    failure: Reject a missing or second Manager Session, divergent store, stateful factory, authority-bearing prop, caller-assembled authority, legacy compatibility input, or carrier distinction implemented inside presentation state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.agent-center-surface
+      - type: supersedes
+        target: rule.nimi.platform.ui-design-system.p-agent-center-006a
   - id: rule.nimi.platform.ui-design-system.p-agent-center-006b
     kind: rule
     title: P-AGENT-CENTER-006 intent presentation and truth separation
@@ -548,6 +582,40 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.runtime-projection
+  - id: rule.nimi.platform.ui-design-system.p-agent-center-007
+    kind: rule
+    title: P-AGENT-CENTER-007 closed product-action availability projection
+    modality: must
+    statement: The single Manager Session materializes from Runtime or SDK truth the only authority projection AgentCenter consumes, consisting of a closed product-action availability projection for read model settings, update model settings, read autonomy, update autonomy, read Memory summary, replace appearance, restore previous appearance, and request permission or open permission-settings navigation; each action is available, or unavailable with exactly one typed reason from needs-grant, request-pending, denied, revoked, runtime-offline, reserved-not-admitted, and unknown, and carries an admitted next-step action. AgentCenter never receives permission ids, operation ids, grant scope, posture objects, carrier discriminators, or raw Agent identity through props or state; permission scope is explained to humans only in owner consent and settings surfaces; and callers cannot assemble or override availability.
+    condition: Whenever AgentCenter action availability, degraded state, permission recovery, props, or state are materialized.
+    failure: Fail closed and reject caller-supplied authority facts, an action outside the closed projection, an untyped or collapsed unavailable reason, a non-admitted next step, leaked authority material or identity, or a misleading enabled state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.agent-center-surface
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.runtime-projection
+  - id: rule.nimi.platform.ui-design-system.p-agent-center-008
+    kind: rule
+    title: P-AGENT-CENTER-008 presentation auto-save custody and rendering boundary
+    modality: must
+    statement: Before file selection AgentCenter warns that a successful selection immediately replaces the current appearance; Kit Shell owns file selection and bounded temporary import custody only and never long-term Avatar asset custody; the Runtime asset subsystem owns validation, official storage, integrity, and cleanup; the Runtime LocalAgent presentation profile owns the current selection; AgentCenter shows saving state, the committed current effect, typed render failure distinct from save failure, and restore-previous recovery; and Avatar renders only the committed asset, while a failed save leaves the current selection unchanged.
+    condition: Whenever an appearance file is selected, imported, saved, rendered, fails after save, or is explicitly restored.
+    failure: Reject a missing pre-selection warning, raw-path transfer, long-term Kit custody, Kit-owned validation or persistence, a product-level pre-commit candidate or preview, rendering of an uncommitted asset, fabricated render success, or automatic rollback after render failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.agent-center-surface
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.runtime-projection
+  - id: rule.nimi.platform.ui-design-system.p-agent-center-009
+    kind: rule
+    title: P-AGENT-CENTER-009 canonical localization catalog
+    modality: must
+    statement: Kit AgentCenter owns its canonical localization key catalog and ships base translations for every supported language as package data; Apps may override individual keys only through the injected localization seam and neither fork nor re-own the catalog; and a missing active-language translation falls back to the Kit base language rather than a raw key.
+    condition: Whenever AgentCenter copy is published, resolved, translated, or overridden.
+    failure: Reject an App-owned catalog fork, missing shipped base translation, bypassed localization seam, or raw-key fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.agent-center-surface
   - id: rule.nimi.platform.ui-design-system.p-design-022d
     kind: rule
     title: P-DESIGN-022 material token interface and radii
@@ -668,6 +736,42 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.motion-system
+  - id: definition.nimi.platform.ui-design-system.model-config-surface
+    kind: definition
+    title: Public Kit model-config surface
+    meaning: Model-config is the public Kit feature module and single shared model-configuration UI surface composed by AgentCenter and other admitted consumers through typed adapters without app-owned or feature-local model-configuration truth.
+  - id: definition.nimi.platform.ui-design-system.model-picker-surface
+    kind: definition
+    title: Public Kit model-picker surface
+    meaning: Model-picker is the public Kit feature module for selecting admitted capability-compatible provider and model route intents from the Kit-core code-generated canonical capability catalog through typed adapters.
+  - id: rule.nimi.platform.ui-design-system.p-model-config-001
+    kind: rule
+    title: P-MODEL-CONFIG-001 public shared configuration surface
+    modality: must
+    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, is the sole shared model-configuration UI composed by AgentCenter, consumes the Kit-core code-generated canonical capability catalog and dedicated typed model-settings projections through typed adapters only, and renders no typed per-capability parameter, AI Profile, stub, or other unsupported affordance before its Runtime and SDK schema and real backend are admitted.
+    condition: Whenever model-config is published, integrated, or rendered.
+    failure: Reject a private or parallel model-config surface, catalog shadow, fabricated NimiAIConfig value, direct app seam, or unsupported control.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-family
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-public-surface
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.model-config-surface
+  - id: rule.nimi.platform.ui-design-system.p-model-picker-001
+    kind: rule
+    title: P-MODEL-PICKER-001 public catalog consumer
+    modality: must
+    statement: Model-picker follows the Kit public-module, dependency, and portable-feature rules, consumes but never redeclares or shadows the Kit-core code-generated canonical capability catalog, accepts app data and capability only through typed adapters, and uses only AIScopeRef values resolved by the canonical factory or registry.
+    condition: Whenever model-picker is published, integrated, or resolves a selection.
+    failure: Reject a private module, handwritten capability catalog, direct app seam, provider or model hardcoding, or caller-fabricated AIScopeRef.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-family
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-public-surface
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.model-picker-surface
   - id: definition.nimi.platform.ui-design-system.kit-module-family
     kind: definition
     title: Kit module family

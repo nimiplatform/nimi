@@ -476,9 +476,9 @@ units:
     kind: rule
     title: Current public permission admission is bounded
     modality: must
-    statement: The currently admitted third-party LocalAgent interaction permission covers only the open-conversation, send-turn, subscribe-turn, and conversation-snapshot families over an owner-granted account scope that Runtime dynamically materializes as opaque handles; Runtime owns its durable revocable decision lifecycle and enforcement, pre-grant and zero-permission sessions cannot enumerate LocalAgents or build selectors, and the declared history, projection, event, delegation-read, Avatar-handoff, derived-image, configure, voice, and delegation-decision extensions remain unavailable until each complete atomic slice is admitted.
+    statement: The currently admitted third-party LocalAgent interaction permission covers only the open-conversation, send-turn, subscribe-turn, and conversation-snapshot families over an owner-granted account scope that Runtime dynamically materializes as opaque handles; Runtime owns its durable revocable decision lifecycle and enforcement, pre-grant and zero-permission sessions cannot enumerate LocalAgents or build selectors, and the declared history, projection, event, delegation-read, Avatar-handoff, derived-image, agents.configure closed operation family, voice, and delegation-decision extensions remain unavailable until each complete atomic slice is admitted.
     condition: Whenever a third-party public permission, decision, selector, or protected operation is evaluated.
-    failure: Admit only the complete P-PERM-017 agents.interact four-operation slice and return typed unavailable for every incomplete extension or denied, expired, revoked, mismatched, or out-of-subset access.
+    failure: Admit only the complete P-PERM-017 agents.interact four-operation slice and return permission-id-preserving typed unavailable for every incomplete extension or denied, expired, revoked, mismatched, or out-of-subset access.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.grant-service-plane
@@ -486,9 +486,9 @@ units:
     kind: rule
     title: Future permission identity is owner-bound
     modality: must
-    statement: Any future Runtime-owned public permission lifecycle binds local_os_user_anchor, account_id, local_app_principal_id, permission_id, and owner_selector_digest; the canonical owner may issue an account scope covering all current and future local Agents, Runtime dynamically materializes that scope into opaque handle projections, dependent permissions evaluate only their intersection with the effective agents.interact scope, and no app-supplied Agent identity or selector carries authority.
+    statement: Any future Runtime-owned public permission lifecycle binds local_os_user_anchor, account_id, local_app_principal_id, permission_id, and owner_selector_digest; the canonical owner may issue an account scope covering all current and future LocalAgents, Runtime dynamically materializes that scope into opaque handle projections, dependent agents.configure, agents.voice, and agents.delegate permissions evaluate only their intersection with the effective agents.interact scope and become ineffective immediately when interact is revoked, and permissioned Local Apps neither supply nor receive ownerUserId, runtimeSourceRef, localAgentRef, subjectUserId, an Agent selector, or another raw identity field.
     condition: Whenever a Runtime-owned public permission is atomically admitted.
-    failure: Deny creation or use when any binding is missing, mismatched, or app-authored.
+    failure: Deny creation or use when any binding or effective interact dependency is missing, mismatched, revoked, or app-authored, and expose no raw identity field.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.grant-service-plane
