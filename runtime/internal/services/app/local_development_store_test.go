@@ -178,6 +178,44 @@ func TestLocalDevelopmentStoreCurrentActiveAuthorizationWinsTimestampTiedHistory
 	}
 }
 
+func TestLocalDevelopmentStoreEndRunCleansReplacedAuthorization(t *testing.T) {
+	ctx := context.Background()
+	store := openLocalDevelopmentStoreForTest(t, time.Date(2026, time.July, 12, 10, 0, 0, 0, time.UTC))
+	project := localDevelopmentTestProject(t)
+	runID := localDevelopmentTestIdentifier(0x41)
+
+	first, err := store.Evaluate(ctx, project, runID)
+	if err != nil {
+		t.Fatalf("Evaluate first project: %v", err)
+	}
+	replaced, err := store.Decide(ctx, first.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, project.AccountID, project.AccountGeneration)
+	if err != nil {
+		t.Fatalf("Decide first project authorization: %v", err)
+	}
+
+	expanded := project
+	expanded.PermissionRequirements = []localDevelopmentPermissionRequirement{{PermissionID: "agents.interact", Reason: "Talk with an Agent selected by me."}}
+	expanded.PermissionRequirementFingerprint = localDevelopmentPermissionRequirementFingerprint(expanded.PermissionRequirements)
+	reapproval, err := store.Evaluate(ctx, expanded, localDevelopmentTestIdentifier(0x42))
+	if err != nil {
+		t.Fatalf("Evaluate expanded project: %v", err)
+	}
+	if _, err := store.Decide(ctx, reapproval.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, expanded.AccountID, expanded.AccountGeneration); err != nil {
+		t.Fatalf("Decide replacement authorization: %v", err)
+	}
+
+	previous, err := store.GetAuthorization(ctx, replaced.ID)
+	if err != nil {
+		t.Fatalf("Get replaced authorization: %v", err)
+	}
+	if previous.State != localDevelopmentAuthorizationRevoked {
+		t.Fatalf("replaced authorization state = %q, want revoked", previous.State)
+	}
+	if err := store.EndRun(ctx, replaced.ID, runID); err != nil {
+		t.Fatalf("EndRun must remain idempotent after project reapproval: %v", err)
+	}
+}
+
 func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("positive project-Electron host fixture belongs to the Windows carrier")

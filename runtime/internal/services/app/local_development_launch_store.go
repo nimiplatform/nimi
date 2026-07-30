@@ -450,7 +450,9 @@ func (store *localDevelopmentStore) EndRun(ctx context.Context, authorizationID 
 	}
 	defer func() { _ = tx.Rollback() }()
 	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
-	if err != nil || authorization.State != localDevelopmentAuthorizationActive || (authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID != runID) {
+	if err != nil ||
+		(authorization.State != localDevelopmentAuthorizationActive && authorization.State != localDevelopmentAuthorizationRevoked) ||
+		(authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID != runID) {
 		return errLocalDevelopmentAuthorization
 	}
 	now := store.now().UTC()

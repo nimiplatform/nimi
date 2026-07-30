@@ -478,12 +478,18 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
     authorization: null,
     evaluationExpiresAtUnixMs: Date.now() + 30_000,
   };
+  const currentAuthorization = authorization('active');
+  const timestampTiedRevokedHistory = {
+    ...authorization('revoked', 'electron', '55'.repeat(32)),
+    updatedAtUnixMs: currentAuthorization.updatedAtUnixMs,
+  };
   const control: NimiElectronLocalDevelopmentControl = {
     getAuthoritySummary: async () => authoritySummary(),
     evaluate: async () => evaluation,
     decide: async () => authorization('denied'),
     listAuthorizations: async () => [
-      authorization('active'),
+      timestampTiedRevokedHistory,
+      currentAuthorization,
       authorization('revoked', 'tauri', '44'.repeat(32)),
     ],
     revokeAuthorization: async () => authorization('revoked'),

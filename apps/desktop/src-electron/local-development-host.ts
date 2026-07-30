@@ -463,8 +463,15 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private async listAuthorizations(): Promise<RendererAuthorization[]> {
-    const rows = await this.control.listAuthorizations();
-    return rows.filter((authorization) => authorization.project.shell === 'electron').map((authorization) => {
+    const rows = currentLocalDevelopmentAuthorizations(
+      (await this.control.listAuthorizations())
+        .filter((authorization) => authorization.project.shell === 'electron'),
+    );
+    const currentIds = new Set(rows.map((authorization) => authorization.authorizationId));
+    for (const [selectorValue, authorizationId] of this.authorizationSelectors) {
+      if (!currentIds.has(authorizationId)) this.authorizationSelectors.delete(selectorValue);
+    }
+    return rows.map((authorization) => {
       let selectorValue = [...this.authorizationSelectors].find(([, id]) => id === authorization.authorizationId)?.[0];
       selectorValue ??= randomSelector('dev-project');
       this.authorizationSelectors.set(selectorValue, authorization.authorizationId);
@@ -826,6 +833,37 @@ function projectAuthorization(selectorValue: string, authorization: NimiElectron
     state: authorization.state,
     updatedAtUnixMs: authorization.updatedAtUnixMs,
   };
+}
+
+function currentLocalDevelopmentAuthorizations(
+  rows: readonly NimiElectronLocalDevelopmentAuthorization[],
+): NimiElectronLocalDevelopmentAuthorization[] {
+  const current: NimiElectronLocalDevelopmentAuthorization[] = [];
+  for (const candidate of rows) {
+    const index = current.findIndex((authorization) => (
+      authorization.project.accountId === candidate.project.accountId
+      && (
+        authorization.project.appId === candidate.project.appId
+        || comparableCanonicalProjectPath(authorization.project.canonicalProjectRoot)
+          === comparableCanonicalProjectPath(candidate.project.canonicalProjectRoot)
+      )
+    ));
+    if (index < 0) {
+      current.push(candidate);
+      continue;
+    }
+    const selected = current[index]!;
+    const candidateIsActive = candidate.state === 'active';
+    const selectedIsActive = selected.state === 'active';
+    if (
+      (candidateIsActive && !selectedIsActive)
+      || (candidateIsActive === selectedIsActive
+        && candidate.updatedAtUnixMs > selected.updatedAtUnixMs)
+    ) {
+      current[index] = candidate;
+    }
+  }
+  return current;
 }
 
 function sameLocalDevelopmentPlan(
