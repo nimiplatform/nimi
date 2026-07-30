@@ -59,6 +59,7 @@ test('binding composes revisions and preserves blocked, failed, and unavailable 
     const projection = await surface.read('opaque-handle');
     assert.equal(projection.modelSettings.configurationRevision, '7');
     assert.equal(projection.modelSettings.readiness[0].state, state);
+    assert.equal(projection.modelSettings.routeOptions[0].model, 'local/model-b');
     assert.equal(projection.autonomy.revision, '11');
     assert.equal(projection.appearance.presentationRevision, '13');
   }
@@ -100,6 +101,9 @@ test('configure request action uses the public SDK permission request shape', as
   const actionCalls = calls.filter((call) => typeof call !== 'string' || !call.includes('Snapshot'));
   assert.equal(actionCalls[0].permissionId, 'agents.configure');
   assert.equal(actionCalls[0].reason, ZHIYU_AGENTS_CONFIGURE_REASON);
+  const manifest = await readFile(path.join(root, 'nimi.app.yaml'), 'utf8');
+  const manifestReason = manifest.match(/- id: agents\.configure\r?\n\s+reason:\s*(.+)$/mu)?.[1]?.trim();
+  assert.equal(manifestReason, ZHIYU_AGENTS_CONFIGURE_REASON);
   assert.deepEqual(Object.keys(actionCalls[0]).sort(), ['permissionId', 'reason']);
   assert.equal(actionCalls.length, 1);
 });
@@ -201,6 +205,10 @@ function configureClient(calls, readinessState = 'ready') {
   const configuration = {
     capabilities: ['text.generate'],
     routeIntents: [{ capability: 'text.generate', provider: 'connector-a', model: 'model-a', routePolicy: 'cloud' }],
+    routeOptions: [{
+      capability: 'text.generate', provider: '', model: 'local/model-b',
+      routePolicy: 'local', label: 'Local model B', availability: 'ready',
+    }],
     readiness: [], configurationRevision: '7',
   };
   const readiness = {

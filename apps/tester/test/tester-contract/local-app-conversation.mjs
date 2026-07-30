@@ -16,7 +16,32 @@ test('agents.interact journey uses one current Agent handle as the operation tar
       async subscribe(input) {
         calls.push(['subscribe', input]);
         return {
-          async *[Symbol.asyncIterator]() {},
+          async *[Symbol.asyncIterator]() {
+            yield {
+              messageType: 'runtime.agent.turn.accepted',
+              reasonCode: '',
+              payload: {
+                turn_id: 'turn-1',
+                detail: { request_id: 'request-1' },
+              },
+            };
+            yield {
+              messageType: 'runtime.agent.turn.message_committed',
+              reasonCode: '',
+              payload: {
+                turn_id: 'turn-1',
+                detail: { text: 'terminal reply' },
+              },
+            };
+            yield {
+              messageType: 'runtime.agent.turn.completed',
+              reasonCode: '',
+              payload: {
+                turn_id: 'turn-1',
+                detail: { terminal_reason: 'stop' },
+              },
+            };
+          },
           async cancel() { calls.push(['cancel']); },
         };
       },
@@ -27,6 +52,9 @@ test('agents.interact journey uses one current Agent handle as the operation tar
     conversationAnchorId: 'anchor-1',
     messageId: 'message-1',
     subscribed: true,
+    terminalMessageType: 'runtime.agent.turn.completed',
+    terminalReason: 'stop',
+    assistantText: 'terminal reply',
     snapshot: { messages: [] },
   });
   assert.deepEqual(calls.map(([operation]) => operation), ['open', 'subscribe', 'send', 'snapshot', 'cancel']);
@@ -49,5 +77,36 @@ test('journey cancels subscription when a later operation returns typed denial',
       async snapshot() { return {}; },
     },
   }), (error) => error.reasonCode === 'local-app-permission-revoked');
+  assert.equal(cancelled, 1);
+});
+
+test('journey fails closed when the matching turn stream ends without terminal evidence', async () => {
+  const { runTesterConversationJourney } = await importBehaviorModule('tester/local-app-conversation-journey.js');
+  let cancelled = 0;
+  await assert.rejects(() => runTesterConversationJourney({
+    agentHandle: 'opaque-current-agent',
+    requestId: 'request-3',
+    text: 'hello',
+    conversation: {
+      async open() { return { conversationAnchorId: 'anchor-3' }; },
+      async subscribe() {
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield {
+              messageType: 'runtime.agent.turn.accepted',
+              reasonCode: '',
+              payload: {
+                turnId: 'turn-3',
+                detail: { requestId: 'request-3' },
+              },
+            };
+          },
+          async cancel() { cancelled += 1; },
+        };
+      },
+      async send() { return { messageId: 'message-3' }; },
+      async snapshot() { return { messages: [] }; },
+    },
+  }), (error) => error.reasonCode === 'tester-conversation-terminal-missing');
   assert.equal(cancelled, 1);
 });

@@ -100,7 +100,7 @@ export function TesterLocalAppPermissionLab() {
       setConversation({
         kind: 'success',
         reasonCode: 'conversation-four-operation-journey-succeeded',
-        message: `open/send/subscribe/snapshot 成功；anchor=${result.conversationAnchorId}，message=${result.messageId}。`,
+        message: `open/subscribe/send/terminal/snapshot 成功；terminal=${result.terminalMessageType}/${result.terminalReason}；回复：${result.assistantText}`,
       });
     } catch (error) {
       setConversation({ kind: 'failure', ...normalizeBoundaryError(error) });

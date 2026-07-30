@@ -77,6 +77,7 @@ export function ComposerModeTools({
   onOpenModelConfig,
   onOpenAgentPanel,
   onOpenSettings,
+  modelRouteReasonCode,
 }: {
   readonly evidence: ZhiyuEvidence;
   readonly onVoiceCaptureToggle: () => Promise<void> | void;
@@ -84,6 +85,7 @@ export function ComposerModeTools({
   readonly onOpenModelConfig: () => void;
   readonly onOpenAgentPanel: () => void;
   readonly onOpenSettings: () => void;
+  readonly modelRouteReasonCode?: string;
 }) {
   const voicePlayback = projectZhiyuVoicePlayback({
     voiceOutputMode: evidence.companion.voiceOutputMode,
@@ -170,7 +172,7 @@ export function ComposerModeTools({
       <button type="button" aria-label="主动模式" title="主动模式" data-zhiyu-composer-tool="proactive" onClick={onOpenSettings}>
         <Lightbulb size={15} aria-hidden="true" />
       </button>
-      <button type="button" aria-label="模型路线" title={`模型路线：${evidence.route.reasonCode}`} data-zhiyu-composer-tool="model" onClick={onOpenModelConfig}>
+      <button type="button" aria-label="模型路线" title={`模型路线：${modelRouteReasonCode || evidence.route.reasonCode}`} data-zhiyu-composer-tool="model" onClick={onOpenModelConfig}>
         <SlidersHorizontal size={15} aria-hidden="true" />
       </button>
     </>

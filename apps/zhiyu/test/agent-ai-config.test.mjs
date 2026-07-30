@@ -301,6 +301,45 @@ test('Zhiyu composer copy distinguishes empty local partner inventory from unsel
   );
 });
 
+test('Zhiyu composer projects the configured model from the permissioned Agent Center snapshot', async () => {
+  const module = await importLabelsModule();
+  const evidence = {
+    route: {
+      ready: false,
+      executionBinding: null,
+      reasonCode: 'zhiyu-agent-ai-config-auth-required',
+    },
+  };
+  const presentation = module.chatModelPresentation(evidence, {
+    routeIntents: [{
+      capability: 'text.generate',
+      provider: '',
+      model: 'gemma-4-e2b-it-local',
+      routePolicy: 'local',
+    }],
+    routeOptions: [{
+      capability: 'text.generate',
+      provider: '',
+      model: 'gemma-4-e2b-it-local',
+      routePolicy: 'local',
+      label: 'Gemma Local',
+      availability: 'ready',
+    }],
+    readiness: [{
+      capability: 'text.generate',
+      state: 'ready',
+      reason: '',
+      observedAt: null,
+    }],
+  });
+
+  assert.deepEqual(presentation, {
+    label: 'Gemma Local',
+    ready: true,
+    reasonCode: 'runtime-agent-ai-config-ready',
+  });
+});
+
 async function importAgentAIConfigModule() {
   const outputPath = path.join(await buildModules(), 'agent-ai-config.mjs');
   return import(pathToFileURL(outputPath).href);

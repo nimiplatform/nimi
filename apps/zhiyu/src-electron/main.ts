@@ -6,7 +6,6 @@ import {
   isAllowedElectronRendererUrl,
   registerNimiElectronAppBridge,
 } from '@nimiplatform/kit/shell/electron/main';
-import { openZhiyuAppOwnedStore, type ZhiyuAppOwnedStore } from './app-owned-store.js';
 
 const APP_ID = 'nimi.zhiyu';
 
@@ -20,7 +19,6 @@ const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = readArgument('--nimi-dev-renderer-url')
   || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
 let mainWindow: BrowserWindow | undefined;
-let appOwnedStore: ZhiyuAppOwnedStore | undefined;
 
 app.setName('织羽 Zhiyu');
 const applicationMenu = Menu.buildFromTemplate(
@@ -32,7 +30,6 @@ Menu.setApplicationMenu(applicationMenu);
 configureZhiyuElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
-  appOwnedStore = await openZhiyuAppOwnedStore({ userDataRoot: app.getPath('userData') });
   registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
@@ -49,14 +46,8 @@ void app.whenReady().then(async () => {
   });
 });
 
-app.on('before-quit', () => {
-  appOwnedStore?.close();
-  appOwnedStore = undefined;
-});
-
 function configureZhiyuElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
-  app.commandLine.appendSwitch('remote-debugging-port', '9333');
 }
 
 app.on('window-all-closed', () => {

@@ -5,8 +5,9 @@ import {
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { ChatComposerAdapter } from '@nimiplatform/kit/features/chat/headless';
+import type { AgentCenterSnapshot } from '@nimiplatform/kit/features/agent-center';
 import {
   CanonicalComposer,
   CanonicalTranscriptView,
@@ -31,7 +32,7 @@ import {
 } from './ZhiyuAgentPanel';
 import {
   chatBlockedHint,
-  chatPrimaryBindingLabel,
+  chatModelPresentation,
   chatReplyChipLabel,
   conversationMessagesForDisplay,
   currentPartnerDisplayName,
@@ -53,6 +54,9 @@ import {
   CompanionEmotionStatus,
   formatReasonLabel,
 } from '../app/home-surface-sections';
+
+const subscribeToNoAgentCenter = (): (() => void) => () => undefined;
+const getNoAgentCenterSnapshot = (): AgentCenterSnapshot | null => null;
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -96,7 +100,16 @@ export function ZhiyuAgentChatSurface({
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
-  const modelConfigLabel = chatPrimaryBindingLabel(evidence);
+  const agentCenterSnapshot = useSyncExternalStore<AgentCenterSnapshot | null>(
+    agentCenterSession?.subscribe ?? subscribeToNoAgentCenter,
+    agentCenterSession?.getSnapshot ?? getNoAgentCenterSnapshot,
+    agentCenterSession?.getSnapshot ?? getNoAgentCenterSnapshot,
+  );
+  const modelPresentation = chatModelPresentation(
+    evidence,
+    agentCenterSnapshot?.state.modelSettings ?? null,
+  );
+  const modelConfigLabel = modelPresentation.label;
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
@@ -457,6 +470,7 @@ export function ZhiyuAgentChatSurface({
                       setActiveAgentTab('overview');
                     }}
                     onOpenSettings={openBehaviorConfig}
+                    modelRouteReasonCode={modelPresentation.reasonCode}
                   />
                 )}
                 layout="stacked"
@@ -473,8 +487,8 @@ export function ZhiyuAgentChatSurface({
             </span>
             <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="route">
               <span className="zhiyu-chat-canvas__chip-label">模型</span>
-              <StatusBadge tone={evidence.route.ready ? 'success' : 'warning'} shape="dot">
-                {formatReasonLabel(evidence.route.ready, evidence.route.reasonCode)}
+              <StatusBadge tone={modelPresentation.ready ? 'success' : 'warning'} shape="dot">
+                {formatReasonLabel(modelPresentation.ready, modelPresentation.reasonCode)}
               </StatusBadge>
             </span>
             <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="chat">

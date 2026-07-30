@@ -4,6 +4,8 @@ display_name: 织羽 Zhiyu
 permissions:
   - id: agents.interact
     reason: 与您账户中当前及未来的全部 Agent 开始和继续对话。
+  - id: agents.configure
+    reason: 管理您账户中 Agent 的模型、行为、自主性、语音引用和外观设置。
 disposition: bundled_component_with_isolated_integration_build
 local_development:
   electron:

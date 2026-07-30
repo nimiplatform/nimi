@@ -1,15 +1,61 @@
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
+import type { AgentCenterRuntimeModelSettingsProjection } from '@nimiplatform/kit/features/agent-center';
 
-export function chatPrimaryBindingLabel(evidence: ZhiyuEvidence): string {
+export type ZhiyuChatModelPresentation = {
+  readonly label: string;
+  readonly ready: boolean;
+  readonly reasonCode: string;
+};
+
+export function chatModelPresentation(
+  evidence: ZhiyuEvidence,
+  modelSettings: AgentCenterRuntimeModelSettingsProjection | null = null,
+): ZhiyuChatModelPresentation {
+  if (modelSettings) {
+    const binding = modelSettings.routeIntents.find((intent) => intent.capability === 'text.generate') ?? null;
+    const readiness = modelSettings.readiness.find((entry) => entry.capability === 'text.generate') ?? null;
+    if (!binding) {
+      return {
+        label: '未绑定模型',
+        ready: false,
+        reasonCode: 'zhiyu-agent-ai-config-not-configured',
+      };
+    }
+    const option = modelSettings.routeOptions?.find((candidate) => (
+      candidate.capability === binding.capability
+      && candidate.routePolicy === binding.routePolicy
+      && candidate.provider === binding.provider
+      && candidate.model === binding.model
+    ));
+    const ready = readiness?.state === 'ready';
+    return {
+      label: option?.label.trim() || binding.model.trim() || (binding.routePolicy === 'local' ? '本地对话已就绪' : '对话已就绪'),
+      ready,
+      reasonCode: ready
+        ? 'runtime-agent-ai-config-ready'
+        : readiness?.state === 'blocked'
+          ? 'zhiyu-agent-ai-config-not-configured'
+          : 'zhiyu-agent-ai-config-readiness-unavailable',
+    };
+  }
   const binding = evidence.route.executionBinding;
   if (!binding) {
-    return '未绑定模型';
+    return {
+      label: '未绑定模型',
+      ready: evidence.route.ready,
+      reasonCode: evidence.route.reasonCode,
+    };
   }
-  if (binding.route === 'local') {
-    return '本地对话已就绪';
-  }
-  return '对话已就绪';
+  return {
+    label: binding.route === 'local' ? '本地对话已就绪' : '对话已就绪',
+    ready: evidence.route.ready,
+    reasonCode: evidence.route.reasonCode,
+  };
+}
+
+export function chatPrimaryBindingLabel(evidence: ZhiyuEvidence): string {
+  return chatModelPresentation(evidence).label;
 }
 
 export function chatReplyChipLabel(evidence: ZhiyuEvidence): string {

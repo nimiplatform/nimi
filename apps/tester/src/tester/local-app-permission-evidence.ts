@@ -3,14 +3,14 @@ export type TesterBoundaryError = {
   readonly message: string;
 };
 
-const EXPECTED_REVOKED_REASON_CODES = new Set([
+const EXPECTED_REVOKED_REASON_CODES = [
   'permission-revoked',
   'local-app-permission-revoked',
-]);
+] as const;
 
-const EXPECTED_RESERVED_REASON_CODES = new Set([
+const EXPECTED_RESERVED_REASON_CODES = [
   'sdk-permission-not-admitted',
-]);
+] as const;
 
 export function normalizeTesterBoundaryError(error: unknown): TesterBoundaryError {
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
@@ -32,10 +32,10 @@ export function isExpectedReservedPermissionError(error: unknown): boolean {
   return hasExpectedReasonCode(error, EXPECTED_RESERVED_REASON_CODES);
 }
 
-function hasExpectedReasonCode(error: unknown, expected: ReadonlySet<string>): boolean {
+function hasExpectedReasonCode(error: unknown, expected: readonly string[]): boolean {
   if (!error || typeof error !== 'object') return false;
   const reasonCode = nonEmptyText((error as { readonly reasonCode?: unknown }).reasonCode);
-  return reasonCode !== '' && expected.has(canonicalReasonCode(reasonCode));
+  return reasonCode !== '' && expected.includes(canonicalReasonCode(reasonCode));
 }
 
 function canonicalReasonCode(value: string): string {

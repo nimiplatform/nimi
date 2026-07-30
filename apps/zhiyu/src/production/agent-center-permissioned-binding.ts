@@ -50,7 +50,7 @@ const REASONS: Readonly<Record<Exclude<NimiAgentCapabilityPostureReason, null>, 
   grant_revoked: 'grant_revoked',
 };
 
-export const ZHIYU_AGENTS_CONFIGURE_REASON = '管理此 Agent 的模型、行为、自主性、语音引用和外观设置。';
+export const ZHIYU_AGENTS_CONFIGURE_REASON = '管理您账户中 Agent 的模型、行为、自主性、语音引用和外观设置。';
 
 export interface CreateZhiyuAgentCenterPermissionedSurfaceInput {
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
@@ -228,6 +228,7 @@ function composeAgentCenterProjection(
       scopeRef: createNimiRuntimeAgentModelSettingsScopeRef(String(handle)),
       capabilities: snapshots.configuration.capabilities,
       routeIntents: snapshots.configuration.routeIntents,
+      routeOptions: snapshots.configuration.routeOptions,
       readiness: snapshots.readiness.capabilities.map((capability) => ({
         capability: capability.capability,
         state: readinessState(capability.state),
