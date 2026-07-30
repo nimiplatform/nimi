@@ -64,7 +64,7 @@ units:
     kind: rule
     title: Local catalog intake dependency and audit families stay Runtime owned
     modality: must
-    statement: RuntimeLocalService owns verified catalog reads, install-plan resolution, unregistered asset scan and adoption, bundle intake, recommendation feeds, transfers, local services, node catalog and profile resolution, selected source records, environment dependency jobs, activation gates, baseline and first-run evidence, and local audit append and list operations.
+    statement: RuntimeLocalService owns verified catalog reads, install-plan resolution, unregistered asset scan and adoption, bundle intake, recommendation feeds, transfers, local services, node catalog and profile resolution, selected source records, environment dependency jobs, activation gates, and local audit append and list operations.
     condition: Whenever a Tier 2 or Tier 3 local operation executes.
     failure: Reject a consumer-side substitute or a result not derived from Runtime-owned records.
     relations:

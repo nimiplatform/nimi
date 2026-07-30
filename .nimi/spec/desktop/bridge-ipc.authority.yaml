@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.desktop.bridge-ipc.protected-account-carrier
     kind: definition
     title: Protected Home host carrier
-    meaning: The protected Home host carrier is established and held by the verified native host; Runtime derives the current caller, App, process, account, session, and authorization rather than accepting renderer claims.
+    meaning: The protected Home host carrier is a native-host-private connection admitted by the platform's direct operating-system peer check; Runtime derives the current App, account, and operation authorization rather than accepting renderer claims or synthetic carrier records.
   - id: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
     kind: definition
     title: Runtime service-control projection
@@ -58,7 +58,7 @@ units:
     modality: must_not
     statement: App id, accountId, subject, caller kind, host role, endpoint, session, permission, grant, executable path, renderer metadata, or a request field establishes protected origin or owner authorization.
     condition: Whenever the native host receives renderer input.
-    failure: Derive protected identity and authorization from the verified host and Runtime session or reject the request.
+    failure: Derive protected identity and authorization from the native-admitted host connection and current Runtime state or reject the request.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
@@ -76,9 +76,9 @@ units:
     kind: rule
     title: Protected carrier material stays host private
     modality: must_not
-    statement: Renderer or App code receives protected endpoints, process proof, session proof, service identity, Realm JWT, Provider Credential, account principal, authorization decision, or host security material.
+    statement: Renderer or App code receives protected endpoints, native peer handles, service secrets, service identity, Realm JWT, Provider Credential, account principal, authorization decision, or host security material.
     condition: Whenever the protected carrier is opened or used.
-    failure: Keep material inside the verified native host and expose only bounded typed results.
+    failure: Keep material inside the native host and expose only bounded typed results.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
@@ -96,9 +96,9 @@ units:
     kind: rule
     title: Scaffolded Local Apps use host-injected SDK access
     modality: must
-    statement: A Desktop-hosted App Tools scaffolded Local App receives standard SDK access through its verified host session and never obtains Realm JWT, Provider Credential, Runtime proof, account identity, or generic bridge access.
+    statement: A Desktop-hosted App Tools scaffolded Local App receives standard SDK access through its native-admitted host connection and never obtains Realm JWT, Provider Credential, native peer or internal authorization material, account identity, or generic bridge access.
     condition: Whenever the Desktop host launches or serves a scaffolded Local App.
-    failure: Fail closed when the verified App session or owner authorization is unavailable.
+    failure: Fail closed when native peer admission, current App identity, or owner authorization is unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
@@ -124,11 +124,11 @@ units:
         target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
   - id: rule.nimi.desktop.bridge-ipc.r009
     kind: rule
-    title: Service control is protected and observational
+    title: Service control reports platform lifecycle truth
     modality: must
-    statement: Runtime status, start, restart, repair, and update intent use the bounded protected host boundary, and UI reports success only after observing the requested verified service state.
+    statement: Runtime status, start, restart, repair, and update intent use the bounded native host boundary, and UI reports only the current platform's observed lifecycle state or the exact operation failure; the fixed macOS local-development path uses installed, running, stopped, or absent and never reports healthy, product readiness, or protected-operation success.
     condition: Whenever Desktop requests or presents Runtime service state.
-    failure: Reject renderer service control, direct stop, executable selection, and acknowledgement-only success.
+    failure: Reject renderer service control, direct stop, executable selection, acknowledgement-only success, and lifecycle-to-product-readiness inference.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
@@ -196,7 +196,7 @@ units:
     kind: rule
     title: Errors remain typed and scrubbed
     modality: must
-    statement: Bridge failures preserve owner category and actionable state while removing credentials, protected paths, session material, process proof, and other authority-bearing diagnostics from renderer-visible output.
+    statement: Bridge failures preserve owner category and actionable state while removing credentials, protected paths, native peer material, and other authority-bearing diagnostics from renderer-visible output.
     condition: Whenever a native or owner operation fails.
     failure: Return a typed scrubbed error without local success fallback.
     relations:

@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.runtime.protected-session.protected-local-session-plane
     kind: definition
     title: Runtime protected local session plane
-    meaning: The Runtime protected local session plane establishes a verified local caller, live process, App, account, and session for protected operations without trusting localhost, caller fields, renderer metadata, portable bearers, or implementation-specific transport names.
+    meaning: The Runtime protected local session plane admits a native local connection through the current platform's direct operating-system peer check and derives current App, account, and operation authorization without trusting localhost, caller fields, renderer metadata, same-user assumptions, portable bearers, synthetic carrier records, or implementation-specific transport names.
   - id: definition.nimi.runtime.protected-session.account-session-plane
     kind: definition
     title: Runtime account session plane
@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.runtime.protected-session.rpc-plane
     kind: definition
     title: Protected Runtime operation plane
-    meaning: The protected Runtime operation plane exposes typed owner operations only after the verified session and operation owner admit them; concrete transport, method membership, framing, and operating-system mechanisms remain implementation details.
+    meaning: The protected Runtime operation plane exposes typed owner operations only after native peer admission and the current operation owner admit them; concrete transport, method membership, framing, and operating-system mechanisms remain implementation details.
   - id: rule.nimi.runtime.protected-session.r001
     kind: rule
     title: Runtime owns protected session truth
@@ -34,7 +34,7 @@ units:
     modality: must_not
     statement: A loopback address, local user, App id, caller enum, manifest, source-host string, renderer metadata, request field, or portable bearer proves protected origin.
     condition: Whenever a protected caller is admitted.
-    failure: Fail closed unless Runtime verifies the protected connection, live caller, App, session, and owner authorization.
+    failure: Fail closed unless the platform admits the native peer and Runtime derives the current App, account, and owner authorization.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
@@ -80,11 +80,11 @@ units:
         target: definition.nimi.runtime.protected-session.config-plane
   - id: rule.nimi.runtime.protected-session.r007
     kind: rule
-    title: Service-control success requires observed state
+    title: Service control reports platform lifecycle truth
     modality: must
-    statement: A service-control acknowledgement is not product success; the Home host projects success only after observing the requested Runtime state through a fresh verified protected session.
+    statement: Service control reports only the current platform's observed Runtime lifecycle state or the exact operation failure; the fixed macOS local-development path uses installed, running, stopped, or absent and never reports healthy, product readiness, protected-session success, or other product success from installation, launch, process presence, or a command acknowledgement.
     condition: Whenever service start, restart, repair, or status is projected.
-    failure: Keep the operation pending or failed rather than synthesize success.
+    failure: Return the observed lifecycle state or exact failure rather than synthesize product success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -102,7 +102,7 @@ units:
     kind: rule
     title: Renderer code receives no protected authority
     modality: must_not
-    statement: Renderer code receives or constructs protected endpoints, service identity, process proof, session proof, Realm JWT, Provider Credential, account principal, authorization decision, service-control authority, or generic Runtime forwarding.
+    statement: Renderer code receives or constructs protected endpoints, native peer handles, service identity or secrets, Realm JWT, Provider Credential, account principal, authorization decision, service-control authority, or generic Runtime forwarding.
     condition: Whenever a host exposes protected functionality to UI code.
     failure: Keep authority in the verified native host and expose only typed bounded results.
     relations:
@@ -122,7 +122,7 @@ units:
     kind: rule
     title: Scaffolded Realm access is mediated
     modality: must
-    statement: A Desktop-hosted App Tools scaffolded Local App uses the standard SDK and Runtime-mediated Realm access without receiving, reading, storing, or refreshing a Realm JWT or maintaining a Runtime session proof.
+    statement: A Desktop-hosted App Tools scaffolded Local App uses the standard SDK and Runtime-mediated Realm access without receiving, reading, storing, or refreshing a Realm JWT or maintaining native peer or internal authorization material.
     condition: Whenever a scaffolded Local App requests Realm data.
     failure: Fail closed when the current Runtime account, App session, authorization, or Realm access is unavailable.
     relations:
@@ -140,9 +140,9 @@ units:
         target: definition.nimi.runtime.protected-session.account-session-plane
   - id: rule.nimi.runtime.protected-session.r013
     kind: rule
-    title: Caller identity is session derived
+    title: Caller identity is Runtime derived
     modality: must
-    statement: Runtime derives the current account, App identity, and authorization state from the active verified session; an App cannot declare accountId, subject, App privilege, grant, permission state, or trusted host identity through an ordinary request.
+    statement: Runtime derives the current account, App identity, and authorization state for the native-admitted connection; an App cannot declare accountId, subject, App privilege, grant, permission state, or trusted host identity through an ordinary request.
     condition: Whenever Runtime authorizes a protected App operation.
     failure: Reject caller-supplied identity or authorization as non-authoritative.
     relations:
@@ -170,9 +170,9 @@ units:
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
   - id: rule.nimi.runtime.protected-session.r017
     kind: rule
-    title: Fresh sessions do not restore prior authority
+    title: Reconnection does not restore prior authority
     modality: must
-    statement: Reconnection establishes a fresh verified session and re-evaluates current owner authorization; it never copies, revives, or infers prior account, App, permission, LocalAgent, or operation authority.
+    statement: Reconnection repeats current native peer admission and current owner authorization; it never copies, revives, or infers prior account, App, permission, LocalAgent, or operation authority.
     condition: Whenever a caller reconnects after invalidation.
     failure: Reject restored authority based only on previous success or cached session state.
     relations:
@@ -182,7 +182,7 @@ units:
     kind: rule
     title: Protected operations are owner bounded
     modality: must
-    statement: A verified session is necessary but not sufficient for a protected operation; the current App authorization, target ownership or access, and owning product policy must also admit the operation.
+    statement: Native peer admission is necessary but not sufficient for a protected operation; the current App authorization, target ownership or access, and owning product policy must also admit the operation.
     condition: Whenever Runtime dispatches a protected operation.
     failure: Return typed unavailable or permission failure before owner mutation.
     relations:
@@ -232,7 +232,7 @@ units:
     kind: rule
     title: Avatar is an independent first-party projection
     modality: must
-    statement: Avatar may use its own verified first-party host session to consume Runtime-authorized LocalAgent state, voice, and presentation projections without a live Desktop process, Desktop account-control privilege, Realm JWT, Provider Credential, or caller-supplied account truth.
+    statement: Avatar may use its own native-admitted first-party host connection to consume Runtime-authorized LocalAgent state, voice, and presentation projections without a live Desktop process, Desktop account-control privilege, Realm JWT, Provider Credential, or caller-supplied account truth.
     condition: Whenever Avatar opens protected Runtime access.
     failure: Reject Desktop identity inheritance, independent account truth, or direct LocalAgent execution.
     relations:

@@ -308,29 +308,24 @@ units:
     kind: rule
     title: Built-in chat config materializes through atomic apply
     modality: must
-    statement: First run applies the selected local baseline factory AIProfile independently to desktop.chat.nimi and desktop.chat.agent through the scope owner's SDK and Runtime boundary only after every required consumer slice is ready.
-    condition: Whenever first-run built-in chat configuration is materialized.
-    failure: Fail first-run finalization closed if either exact scope cannot commit a full materialized AIConfig.
+    statement: Desktop initializes desktop.chat.nimi and desktop.chat.agent independently through the scope owner's SDK and Runtime boundary from the selected local factory AIProfile and current Runtime-resolved live bindings only after every required consumer slice is ready.
+    condition: Whenever either built-in chat scope is initialized or reconfigured.
+    failure: Leave only the affected scope setup-required without changing Product Control readiness or synthesizing a partial live AIConfig.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r031
     kind: rule
+    lifecycle: removed
     title: Built-in config evidence is backend-verifiable
-    modality: must
-    statement: Each built-in evidence item binds exact scopeRef, applied profile ref and hash, committed AIConfig version or content hash, responsible scope owner or SDK writer identity, and committedAt, and product-control refs resolve through SDK, Runtime, or Kit projection to that full config and exact Runtime readiness evidence.
-    condition: Whenever built-in AIConfig evidence is recorded or verified.
-    failure: Reject string-only, unresolved, partial, mismatched-scope, or renderer-local evidence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.profile-config
+    reason: Built-in AIConfig is ordinary scope configuration and no longer produces a second proof record for Product Control admission.
   - id: rule.nimi.desktop.ai-consumption.r032
     kind: rule
     title: Built-in config has no inferred success or fallback scope
     modality: must_not
-    statement: Desktop derives built-in AIConfig success from renderer state, localStorage, route health, selected tab, conversation state, runtimeBaselineRef, execution evidence payloads, or route-shaped selected bindings; shares a fallback scope between built-in chats; or hardcodes provider, connector, engine, or model identity.
-    condition: Whenever built-in first-run configuration or readiness is evaluated.
-    failure: Preserve setup-required with no live config and keep first-run non-finalized.
+    statement: Desktop synthesizes a built-in AIConfig live target from renderer state, selected tab, conversation state, route health, or caller-provided references; shares a fallback scope between built-in chats; or hardcodes provider, connector, engine, or model identity.
+    condition: Whenever built-in chat configuration or readiness is evaluated.
+    failure: Preserve setup-required with no live config for the affected scope.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config

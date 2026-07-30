@@ -120,14 +120,9 @@ units:
         target: definition.nimi.runtime.ai-provider.profile-execution-plane
   - id: rule.nimi.runtime.ai-provider.r010
     kind: rule
+    lifecycle: removed
     title: First-run execution evidence is real local proof
-    modality: must
-    statement: A first-run executionEvidenceRef is valid only when it resolves to a Runtime execution evidence record that binds the selected first-run local factory profile ref, install level, runtime baseline ref, data root ref, and local execution target evidence, proves execution of the selected local baseline capability set through the admitted Runtime local execution path, records any submit-specific scheduling judgement without aggregate substitution, and records terminal result, timestamps, verifier identity, and audit sequence.
-    condition: Whenever product first-run ready admission consumes executionEvidenceRef.
-    failure: Reject cloud, hybrid, connector setup, synthetic snapshot, warmup-only, or route probe results as first-run execution evidence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+    reason: First-run admission now consumes current Runtime materialization and activation-gate state and no longer executes capabilities to mint a durable readiness proof.
   - id: rule.nimi.runtime.ai-provider.r011
     kind: rule
     title: Apply eligibility states are closed

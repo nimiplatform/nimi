@@ -321,7 +321,7 @@ units:
     kind: rule
     title: P-COLD-015 readiness transition schema invariants
     modality: must
-    statement: Every transition to ready_for_use validates selected nimi_data, local install level, Account Default Profile, built-in AI configuration references, Runtime baseline reference, and execution verification reference against the canonical product-control record schema.
+    statement: Every transition to ready_for_use validates the canonical Product Control record shape, authenticated Runtime account, selected writable nimi_data root, selected first-run local factory profile, and current Runtime materialization, dependency, and activation gates.
     condition: When a product-control transition targets ready_for_use.
     failure: Reject the transition and retain or enter the precise repair or first-run state.
     relations:
@@ -331,7 +331,7 @@ units:
     kind: rule
     title: P-COLD-015 no readiness proxy
     modality: must_not
-    statement: Runtime config, Desktop path cache, file existence, transfer completion, import success, endpoint probe, script exit, or renderer-local state satisfies product readiness without the ready_for_use product-control record and its required verification references.
+    statement: Runtime config, Desktop path cache, file existence, transfer completion, import success, endpoint probe, script exit, or renderer-local state satisfies product readiness without the ready_for_use Product Control record produced from the current Runtime-owned readiness gates.
     condition: When product readiness is evaluated.
     failure: Reject the proxy and remain non-ready.
     relations:
@@ -383,7 +383,7 @@ units:
     kind: rule
     title: P-COLD-016 Runtime-owned finalization operation
     modality: must_not
-    statement: Renderer or Desktop shell writes ready_for_use, mints verification references, declares references valid, performs product-control validation, or writes the canonical product-control record; bounded native operating-system helpers do not transfer this authority from the Runtime-owned typed product-control finalization operation.
+    statement: Renderer or Desktop shell writes ready_for_use, declares Runtime-owned readiness gates satisfied, performs Product Control validation, or writes the canonical Product Control record; bounded native operating-system helpers do not transfer this authority from the Runtime-owned typed Product Control finalization operation.
     condition: When final readiness is requested, validated, or persisted.
     failure: Reject the non-Runtime finalization and leave the product non-ready.
     relations:
@@ -1166,7 +1166,7 @@ units:
     kind: rule
     title: P-COLD-014 data_root_selected transition closure from first-run-state-machine
     modality: must
-    statement: The data_root_selected state is entered only when nimi_data is recorded and writable but no default AI-environment proposal exists, permits only waiting, scan retry, and pre-heavy-setup nimi_data change, exits only when device, operating-system, storage, and Runtime-managed-environment evidence is collected or fails closed, and presents copy no weaker than Nimi is checking this device.
+    statement: The data_root_selected state is entered only when nimi_data is recorded and writable but no default AI-environment proposal exists, permits only waiting, scan retry, and pre-heavy-setup nimi_data change, exits only when the current device, operating system, storage, and Runtime-managed-environment capabilities are resolved or fail closed, and presents copy no weaker than Nimi is checking this device.
     condition: Whenever first run evaluates or renders data_root_selected.
     failure: Reject any other entry, action, exit, or weaker copy and remain data_root_selected or enter the precise failure state.
     relations:
@@ -1176,7 +1176,7 @@ units:
     kind: rule
     title: P-COLD-014 ai_environment_unconfigured transition closure from first-run-state-machine
     modality: must
-    statement: The ai_environment_unconfigured state is entered only when evidence supports a local baseline but no materialization plan is confirmed, permits only Minimal or Recommended choice, size-time-capability review, confirmation, and pre-heavy-setup data-root change, exits only when the user confirms a concrete initialization plan, and presents copy no weaker than Choose how much of the local Nimi environment to install.
+    statement: The ai_environment_unconfigured state is entered only when the current device supports a local baseline but no materialization plan is confirmed, permits only Minimal or Recommended choice, size-time-capability review, confirmation, and pre-heavy-setup data-root change, exits only when the user confirms a concrete initialization plan, and presents copy no weaker than Choose how much of the local Nimi environment to install.
     condition: Whenever first run evaluates or renders ai_environment_unconfigured.
     failure: Reject any other entry, action, exit, or weaker copy and remain ai_environment_unconfigured.
     relations:
@@ -1196,7 +1196,7 @@ units:
     kind: rule
     title: P-COLD-014 local_ai_profile_selected_environment_not_ready transition closure from first-run-state-machine
     modality: must
-    statement: The local_ai_profile_selected_environment_not_ready state is entered only when the profile and asset plan are known but managed environment or dependencies are absent or unverified, permits only retry, repair, and detail viewing, exits only after Runtime verifies managed environment, dependencies, and activation evidence, and presents copy no weaker than Nimi is preparing its managed local environment.
+    statement: The local_ai_profile_selected_environment_not_ready state is entered only when the profile and asset plan are known but managed environment or dependencies are absent or not ready, permits only retry, repair, and detail viewing, exits only after Runtime reports every required managed-environment dependency and activation gate ready, and presents copy no weaker than Nimi is preparing its managed local environment.
     condition: Whenever first run evaluates or renders local_ai_profile_selected_environment_not_ready.
     failure: Reject any other entry, action, exit, or weaker copy and remain in the precise non-ready state.
     relations:
@@ -1216,7 +1216,7 @@ units:
     kind: rule
     title: P-COLD-014 local_ai_ready transition closure from first-run-state-machine
     modality: must
-    statement: The local_ai_ready state is entered only when Runtime baseline evidence exists but required account-profile, built-in AI-configuration, or execution evidence remains unverified, permits only waiting and failed-finalization retry, exits only after every named owner resolves account, data-root, AI-configuration, Runtime-baseline, and execution references, and presents copy no weaker than Nimi is finishing your default AI setup.
+    statement: The local_ai_ready state is entered only when Runtime reports every required dependency and activation gate for the selected first-run local factory profile ready, permits only waiting and atomic admission retry, exits to ready_for_use after the backend confirms the authenticated account session and current Product Control inputs, and presents copy no weaker than Nimi is finishing setup.
     condition: Whenever first run evaluates or renders local_ai_ready.
     failure: Reject any other entry, action, exit, or weaker copy and remain local_ai_ready or enter blocked.
     relations:
@@ -1226,7 +1226,7 @@ units:
     kind: rule
     title: P-COLD-014 repair_required transition closure from first-run-state-machine
     modality: must
-    statement: The repair_required state is entered only when a previously valid required component is missing, stale, corrupted, unverifiable, or inconsistent, permits only repair, retry, log export, and admitted data-root migration, exits only to the appropriate setup state or ready_for_use after evidence restoration, and presents copy no weaker than Nimi needs to repair a required local component before normal use.
+    statement: The repair_required state is entered only when a previously valid required component is missing, stale, corrupted, unverifiable, or inconsistent, permits only repair, retry, log export, and admitted data-root migration, exits only to the appropriate setup state or ready_for_use after the component is restored and rechecked, and presents copy no weaker than Nimi needs to repair a required local component before normal use.
     condition: Whenever first run evaluates or renders repair_required.
     failure: Reject any other entry, action, exit, or weaker copy and remain repair_required.
     relations:
@@ -1246,7 +1246,7 @@ units:
     kind: rule
     title: P-COLD-014 ready_for_use transition closure from first-run-state-machine
     modality: must
-    statement: The ready_for_use state is entered only by atomic backend product-control admission after canonical owner-order verification of login, config, nimi_data, accountDefaultProfileRef, builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef, permits only ordinary Nimi use and optional Runtime changes, exits only when invalid owner evidence routes to repair_required, blocked, or not_logged_in, and presents copy no weaker than Nimi is ready.
+    statement: The ready_for_use state is entered only by atomic backend Product Control admission after validating the record shape, authenticated Runtime account session, selected writable nimi_data, selected first-run local factory profile, and current Runtime dependency and activation-gate readiness, permits ordinary Nimi use and optional Runtime changes, exits when a required current input routes to the precise setup, repair_required, blocked, or not_logged_in state, and presents copy no weaker than Nimi is ready.
     condition: Whenever first run evaluates or renders ready_for_use.
     failure: Reject any other entry, action, exit, or weaker copy and retain or enter the precise non-ready state.
     relations:
@@ -1286,7 +1286,7 @@ units:
     kind: rule
     title: P-COLD-015 product-control-record-schema firstRun wire shape
     modality: must
-    statement: The firstRun object always carries installLevel, aiProfileAlias, boolean completed, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef with exact field presence and types; before the corresponding selection or evidence exists, installLevel, aiProfileAlias, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, runtimeBaselineRef, and executionEvidenceRef may be null and builtInAiConfigRefs may be empty, while ready_for_use requires installLevel to be minimal or recommended, completed=true, every required evidence string to be non-empty, and builtInAiConfigRefs to be a non-empty string list.
+    statement: The firstRun object always carries installLevel, aiProfileAlias, boolean completed, and completedAt with exact field presence and types; installLevel and aiProfileAlias may be null before selection, completedAt may be null before completion, and ready_for_use requires installLevel to be minimal or recommended, aiProfileAlias to name the selected first-run local factory profile, completed=true, and completedAt to be non-empty.
     condition: Whenever the product-control firstRun object is created, validated, or persisted.
     failure: Reject the invalid object and remain in or enter the precise first-run or repair state.
     relations:
@@ -1306,7 +1306,7 @@ units:
     kind: rule
     title: P-COLD-015 product-control-record-schema atomic readiness writes
     modality: must
-    statement: A ready_for_use write is atomic with firstRun.completed true and completedAt, failed verification leaves the earliest affected non-ready state, retries reuse evidence only while every owner still validates it, and later invalidation routes to repair_required, blocked, or not_logged_in according to the failed owner.
+    statement: A ready_for_use write is atomic with firstRun.completed true and completedAt, failed validation leaves the earliest affected non-ready state, and later loss of the authenticated account session, selected data root, selected factory profile, or required Runtime activation readiness routes to the precise setup, repair_required, blocked, or not_logged_in state.
     condition: Whenever readiness is written, retried, repaired, or invalidated.
     failure: Reject the write or retry and preserve the precise non-ready state.
     relations:
@@ -1316,7 +1316,7 @@ units:
     kind: rule
     title: P-COLD-016 product-control-record-schema readiness composition order
     modality: must
-    statement: Readiness admission composes product-control shape and selected data root, authenticated Runtime account session, account default-profile evidence, selected local first-run factory profile, Runtime baseline readiness, built-in AI-configuration evidence, Runtime baseline execution evidence, and atomic record write in that order.
+    statement: Readiness admission validates Product Control shape and selected data root, authenticated Runtime account session, selected local first-run factory profile, current Runtime dependency and activation-gate readiness, and the atomic record write in that order.
     condition: Whenever the backend admits ready_for_use.
     failure: Reject out-of-order or incomplete admission and retain the earliest affected non-ready state.
     relations:
@@ -1336,44 +1336,24 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-account-profile-ref
     kind: rule
+    lifecycle: removed
     title: P-COLD-015 product-control-record-schema accountDefaultProfileRef projection
-    modality: must
-    statement: accountDefaultProfileRef resolves as a durable local Account Default Profile record bound to authenticated account_id and selected dataRootRef and projects account_id, dataRootRef, profile_id_default, profile version or hash, source_policy_ref, source_catalog_version, and createdAt or updatedAt.
-    condition: Whenever accountDefaultProfileRef contributes to ready_for_use.
-    failure: Reject unresolved, string-only, renderer, SDK-cache, app-cache, Realm-token, Realm-profile, subject-id, or decoded-claim evidence and remain local_ai_ready or blocked.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.product-control-record
+    reason: Product readiness no longer stores or verifies an Account Default Profile proof reference; profiles remain ordinary product configuration outside Product Control admission.
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-built-in-config-refs
     kind: rule
+    lifecycle: removed
     title: P-COLD-015 product-control-record-schema builtInAiConfigRefs projection
-    modality: must
-    statement: builtInAiConfigRefs contains durable committed full AIConfig records for desktop.chat.nimi and desktop.chat.agent and each projects scopeRef, AI-profile reference or hash, AIConfig version or hash, writer identity, and committedAt.
-    condition: Whenever builtInAiConfigRefs contributes to ready_for_use.
-    failure: Reject generic scope, renderer, localStorage, current-tab, route-health, or string-only scope evidence and remain local_ai_ready or blocked.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.product-control-record
+    reason: Product readiness no longer stores or verifies built-in AIConfig proof references; scope configuration is initialized and validated by its ordinary product owner when consumed.
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-runtime-baseline-ref
     kind: rule
+    lifecycle: removed
     title: P-COLD-015 product-control-record-schema runtimeBaselineRef projection
-    modality: must
-    statement: runtimeBaselineRef resolves as durable RuntimeLocalService activation-readiness evidence and projects selected local factory AIProfile reference, install level, Runtime data root or dataRootRef, required dependency families, selected source-record ids, activation-ready responses, materialization or system-source verification, observed_at, and Runtime audit sequence.
-    condition: Whenever runtimeBaselineRef contributes to ready_for_use.
-    failure: Reject materialization success, file existence, endpoint or route health, process liveness, import success, or previous health alone and remain environment-not-ready or repair_required.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.product-control-record
+    reason: Product readiness consumes current Runtime materialization and activation-gate state directly and no longer mints or persists a duplicate baseline proof reference.
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-execution-evidence-ref
     kind: rule
+    lifecycle: removed
     title: P-COLD-015 product-control-record-schema executionEvidenceRef projection
-    modality: must
-    statement: executionEvidenceRef resolves as durable Runtime execution proof and projects selected local factory AIProfile reference, install level, runtimeBaselineRef, dataRootRef, local execution-target evidence, selected baseline-capability proof, submit-specific scheduling judgment when evaluated, terminal result, timestamps, and Runtime audit sequence, with Minimal proving local text chat, basic speech-to-text, and basic text-to-speech execution.
-    condition: Whenever executionEvidenceRef contributes to ready_for_use.
-    failure: Reject Desktop snapshot, aggregate probe, route health, warmup-only, cloud, hybrid, video, connector, or app-pack evidence and remain local_ai_ready or blocked.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.product-control-record
+    reason: Product readiness no longer runs baseline capabilities to mint a durable proof; ordinary execution failures are handled by the owning feature after current Runtime activation readiness is admitted.
   - id: rule.nimi.platform.product-lifecycle.p-mig-006-directory-declarations
     kind: rule
     title: P-MIG-006 nimi-data-directory-ownership declaration closure

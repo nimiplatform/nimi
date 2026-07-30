@@ -506,8 +506,8 @@ units:
     kind: rule
     title: P-AISC-006 exact built-in chat scopes
     modality: must
-    statement: First-run builtInAiConfigRefs contains exactly the two required desktop.chat feature scopes with nimi and agent surfaceId values.
-    condition: Whenever first-run built-in chat AIConfig references are produced or consumed.
+    statement: Built-in chat configuration uses exactly two independent desktop.chat feature scopes with nimi and agent surfaceId values.
+    condition: Whenever built-in chat AIConfig is initialized, stored, or consumed.
     failure: Reject an incomplete, additional, merged, or differently shaped required built-in chat scope set.
     relations:
       - type: applies_to
@@ -907,7 +907,7 @@ units:
   - id: definition.nimi.platform.core-protocol.account-default-profile
     kind: definition
     title: Account Default Profile
-    meaning: The Account Default Profile is the durable account-scoped local profile-library record at <dataRoot>/accounts/<account-id>/profiles/default.json, where dataRoot is resolved only from ~/.nimi/nimi.json, seeded or restored during first-run, and never sourced from Realm identity material, an ambient projection, or a caller-supplied root.
+    meaning: The Account Default Profile is the optional durable account-scoped local profile-library record at <dataRoot>/accounts/<account-id>/profiles/default.json, where dataRoot is resolved only from ~/.nimi/nimi.json; it is created or restored only by an explicit account profile operation, remains outside Product Control readiness, and is never sourced from Realm identity material, an ambient projection, or a caller-supplied root.
   - id: definition.nimi.platform.core-protocol.capability-governance
     kind: definition
     title: Canonical capability governance metadata
@@ -1204,19 +1204,19 @@ units:
     kind: rule
     title: P-AIPS-013 durable account profile binding
     modality: must
-    statement: accountDefaultProfileRef resolves to the durable local account profile record, exactly matches the authenticated Runtime account_id and selected dataRootRef, and the record contains profileId default, a profile version or content hash, source policy reference, source catalog version, and createdAt or updatedAt.
-    condition: Whenever Account Default Profile evidence is admitted for product readiness.
-    failure: Fail closed on a missing field, unresolved record, account mismatch, or data-root mismatch.
+    statement: An Account Default Profile, when configured, is one durable local account profile record bound to the authenticated Runtime account_id and selected data root and contains profileId default, its portable AIProfile content, and createdAt or updatedAt.
+    condition: Whenever Account Default Profile is created, read, edited, or used to initialize a scope.
+    failure: Reject the profile operation on a missing field, unresolved record, account mismatch, or data-root mismatch without changing Product Control readiness.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.account-default-profile
   - id: rule.nimi.platform.core-protocol.p-aips-013b
     kind: rule
-    title: P-AIPS-013 first-run seed and restore boundary
+    title: P-AIPS-013 explicit create and restore boundary
     modality: must
-    statement: First-run seeds Account Default Profile from machine capability, install level, factory selection policy, catalog row, and user-confirmed plan or restores it explicitly, source is a resolvable Platform factory seed or explicit restore, and an official factory update never silently overwrites an existing record.
+    statement: Account Default Profile is created or restored only by an explicit profile operation from a resolvable Platform factory profile or supplied portable profile, and an official factory update never silently overwrites an existing record.
     condition: Whenever Account Default Profile is created, restored, or a factory catalog is updated.
-    failure: Reject an unconfirmed or unresolved source and preserve the existing account record from silent overwrite.
+    failure: Reject an unrequested or unresolved source and preserve the existing account record from silent overwrite.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.account-default-profile
@@ -1224,10 +1224,10 @@ units:
         target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
   - id: rule.nimi.platform.core-protocol.p-aips-013c
     kind: rule
-    title: P-AIPS-013 forbidden profile evidence and independent scopes
+    title: P-AIPS-013 forbidden profile inputs and independent scopes
     modality: must_not
-    statement: A missing, stale, unhashable, wrong-account, wrong-data-root, caller-provided, string-only, or unresolved-source reference passes product readiness, Realm OAuth tokens or profile projections, decoded claims, subject_user_id, RuntimeAccountService, renderer state, SDK cache, or app cache supplies profile content, or editing the default profile mutates an existing scope-bound AIConfig.
-    condition: Whenever Account Default Profile content evidence or edits are evaluated.
+    statement: Realm OAuth tokens or profile projections, decoded claims, subject_user_id, renderer state, SDK cache, or app cache supplies Account Default Profile content, a caller-provided string is treated as a complete profile, or editing the default profile mutates an existing scope-bound AIConfig.
+    condition: Whenever Account Default Profile content or edits are evaluated.
     failure: Fail closed, treat Realm account-session material only as an account_id reference, and require explicit atomic apply before any scope changes.
     relations:
       - type: applies_to
