@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -29,6 +30,13 @@ const (
 	protectedSendConversationTurnMethod        = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
 	protectedSubscribeConversationMethod       = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
 	protectedConversationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	protectedConfigurationSnapshotMethod       = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot"
+	protectedUpdateConfigurationMethod         = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration"
+	protectedReadinessSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot"
+	protectedAutonomySnapshotMethod            = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
+	protectedUpdateAutonomyMethod              = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
+	protectedPresentationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
+	protectedCommitPresentationMethod          = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
 )
 
 type protectedLocalAppMethodPolicy struct {
@@ -56,6 +64,13 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedOpenConversationMethod:            localAppSessionMethodPolicy(),
 	protectedSendConversationTurnMethod:        localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:        localAppSessionMethodPolicy(),
+	protectedConfigurationSnapshotMethod:       localAppSessionMethodPolicy(),
+	protectedUpdateConfigurationMethod:         localAppSessionMethodPolicy(),
+	protectedReadinessSnapshotMethod:           localAppSessionMethodPolicy(),
+	protectedAutonomySnapshotMethod:            localAppSessionMethodPolicy(),
+	protectedUpdateAutonomyMethod:              localAppSessionMethodPolicy(),
+	protectedPresentationSnapshotMethod:        localAppSessionMethodPolicy(),
+	protectedCommitPresentationMethod:          localAppSessionMethodPolicy(),
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
@@ -198,12 +213,12 @@ func newUnaryProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Unar
 		protectedContext := protectedlocal.ContextWithLocalAppConnection(ctx, connection)
 		if operation, selector, selected := selectedLocalAppUnaryOperation(info.FullMethod, req); selected {
 			if operationAuthorizer == nil {
-				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+				return nil, protectedLocalAppOperationFailure(operation, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 			}
 			decision, authorizeErr := operationAuthorizer.AuthorizeLocalAppProtectedOperation(protectedContext, operation, selector)
 			if authorizeErr != nil {
 				reason := accountservice.LocalAppOperationAuthorizationReason(authorizeErr)
-				return nil, protectedLocalAppOperationFailure(reason)
+				return nil, protectedLocalAppOperationFailure(operation, reason)
 			}
 			protectedContext = accountservice.ContextWithAuthorizedLocalAppDecision(protectedContext, decision)
 		}
@@ -233,11 +248,11 @@ func (stream *protectedLocalAppServerStream) RecvMsg(message any) error {
 		return nil
 	}
 	if stream.operationAuthorizer == nil {
-		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		return protectedLocalAppOperationFailure(operation, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	decision, err := stream.operationAuthorizer.AuthorizeLocalAppProtectedOperation(stream.ctx, operation, selector)
 	if err != nil {
-		return protectedLocalAppOperationFailure(accountservice.LocalAppOperationAuthorizationReason(err))
+		return protectedLocalAppOperationFailure(operation, accountservice.LocalAppOperationAuthorizationReason(err))
 	}
 	stream.ctx = accountservice.ContextWithAuthorizedLocalAppDecision(stream.ctx, decision)
 	stream.authorized = true
@@ -312,6 +327,48 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 			return "", localappop.Selector{}, true
 		}
 		return accountservice.LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: req.GetAgentId(), ConversationAnchorID: req.GetConversationAnchorId()}, true
+	case protectedConfigurationSnapshotMethod:
+		req, ok := request.(*runtimev1.GetLocalAppAgentConfigurationSnapshotRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationConfigurationSnapshot, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedUpdateConfigurationMethod:
+		req, ok := request.(*runtimev1.UpdateLocalAppAgentConfigurationRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationUpdateConfiguration, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedReadinessSnapshotMethod:
+		req, ok := request.(*runtimev1.GetLocalAppAgentReadinessSnapshotRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationReadinessSnapshot, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedAutonomySnapshotMethod:
+		req, ok := request.(*runtimev1.GetLocalAppAgentAutonomySnapshotRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationAutonomySnapshot, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedUpdateAutonomyMethod:
+		req, ok := request.(*runtimev1.UpdateLocalAppAgentAutonomyRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationUpdateAutonomy, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedPresentationSnapshotMethod:
+		req, ok := request.(*runtimev1.GetLocalAppAgentPresentationSnapshotRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationPresentationSnapshot, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedCommitPresentationMethod:
+		req, ok := request.(*runtimev1.CommitLocalAppAgentPresentationRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationCommitPresentation, localappop.Selector{AgentID: req.GetAgentHandle()}, true
 	default:
 		return "", localappop.Selector{}, false
 	}
@@ -330,11 +387,34 @@ func selectedLocalAppStreamOperation(method string, request any) (accountservice
 	}, true
 }
 
-func protectedLocalAppOperationFailure(reason runtimev1.ReasonCode) error {
+func protectedLocalAppOperationFailure(operation accountservice.LocalAppOperation, reason runtimev1.ReasonCode) error {
+	code := codes.PermissionDenied
 	if reason == runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, reason)
+		code = codes.InvalidArgument
+	} else if reason == runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED || reason == runtimev1.ReasonCode_LOCAL_APP_PERMISSION_UNKNOWN {
+		code = codes.Unavailable
 	}
-	return grpcerr.WithReasonCode(codes.PermissionDenied, reason)
+	metadata := map[string]string{}
+	if permission, ok := apppermission.ForOperation(string(operation)); ok {
+		metadata["permission_id"] = permission.ID
+	}
+	switch reason {
+	case runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED:
+		metadata["permission_reason"] = "reserved_not_admitted"
+	case runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED:
+		metadata["permission_reason"] = "not_granted"
+	case runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED:
+		metadata["permission_reason"] = "denied"
+	case runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED:
+		metadata["permission_reason"] = "revoked"
+	case runtimev1.ReasonCode_LOCAL_APP_PERMISSION_UNKNOWN:
+		metadata["permission_reason"] = "unknown"
+	case runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE:
+		if metadata["permission_id"] != "" {
+			metadata["permission_reason"] = "unavailable"
+		}
+	}
+	return grpcerr.WithReasonCodeOptions(code, reason, grpcerr.ReasonOptions{Metadata: metadata})
 }
 
 func protectedLocalAppConnectionFromPeer(ctx context.Context) (*protectedlocal.LocalAppConnection, error) {

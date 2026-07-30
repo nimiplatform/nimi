@@ -105,6 +105,53 @@ func TestLocalDevelopmentStoreErrorPreservesCauseWithoutLeakingDetail(t *testing
 	}
 }
 
+func TestLocalDevelopmentStoreErrorMapsManifestPermissionReasons(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		reason        localDevelopmentManifestPermissionReason
+		permissionID  string
+		wantAdmission string
+		wantAction    string
+	}{
+		{
+			name:          "reserved",
+			reason:        localDevelopmentManifestPermissionReserved,
+			permissionID:  "agents.configure",
+			wantAdmission: "reserved",
+			wantAction:    "wait_for_permission_admission",
+		},
+		{
+			name:          "unknown",
+			reason:        localDevelopmentManifestPermissionUnknown,
+			permissionID:  "runtime.agent.turn.write",
+			wantAdmission: "unknown",
+			wantAction:    "use_known_permission_id",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cause := localDevelopmentManifestPermissionFailure(test.reason, test.permissionID)
+			mapped := localDevelopmentStoreError(cause)
+			if !errors.Is(mapped, cause) {
+				t.Fatal("mapped manifest permission error does not preserve its cause")
+			}
+			reason, ok := grpcerr.ExtractReasonCode(mapped)
+			if status.Code(mapped) != codes.FailedPrecondition || !ok || reason != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED {
+				t.Fatalf("mapped manifest permission error = code=%s reason=%s present=%v", status.Code(mapped), reason, ok)
+			}
+			metadata, ok := grpcerr.ExtractReasonMetadata(mapped)
+			if !ok || metadata["local_development_reason_code"] != string(test.reason) ||
+				metadata["permission_id"] != test.permissionID || metadata["permission_admission"] != test.wantAdmission ||
+				metadata["diagnostic_stage"] != "manifest-permission" || metadata["action_hint"] != test.wantAction {
+				t.Fatalf("mapped manifest permission metadata = %#v present=%v", metadata, ok)
+			}
+			message, ok := grpcerr.ExtractPublicMessage(mapped)
+			if !ok || !strings.Contains(message, test.permissionID) {
+				t.Fatalf("mapped manifest permission message = %q present=%v", message, ok)
+			}
+		})
+	}
+}
+
 func TestLocalDevelopmentFailureAtStagePreservesCauseAndMetadata(t *testing.T) {
 	cause := &appMapperPrivateCause{
 		detail: `resolve local development project at C:\workspace\private`,

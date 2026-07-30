@@ -2,6 +2,20 @@
 // @generated from protobuf file "runtime/v1/agent_service.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
+import { LocalAppAgentCommitPresentationResponse } from "./agent_configure";
+import { CommitLocalAppAgentPresentationRequest } from "./agent_configure";
+import { LocalAppAgentPresentationSnapshotResponse } from "./agent_configure";
+import { GetLocalAppAgentPresentationSnapshotRequest } from "./agent_configure";
+import { LocalAppAgentUpdateAutonomyResponse } from "./agent_configure";
+import { UpdateLocalAppAgentAutonomyRequest } from "./agent_configure";
+import { LocalAppAgentAutonomySnapshotResponse } from "./agent_configure";
+import { GetLocalAppAgentAutonomySnapshotRequest } from "./agent_configure";
+import { LocalAppAgentReadinessSnapshotResponse } from "./agent_configure";
+import { GetLocalAppAgentReadinessSnapshotRequest } from "./agent_configure";
+import { LocalAppAgentUpdateConfigurationResponse } from "./agent_configure";
+import { UpdateLocalAppAgentConfigurationRequest } from "./agent_configure";
+import { LocalAppAgentConfigurationSnapshotResponse } from "./agent_configure";
+import { GetLocalAppAgentConfigurationSnapshotRequest } from "./agent_configure";
 import { GetDelegatedControlSurfaceSnapshotResponse } from "./delegated_control";
 import { GetDelegatedControlSurfaceSnapshotRequest } from "./delegated_control";
 import { GetDelegatedReplayTraceResponse } from "./delegated_control";
@@ -41,6 +55,7 @@ import { VoiceOutputMode } from "./voice";
 import { MemoryEmbeddingProfile } from "./memory";
 import { NarrativeRecallHit } from "./memory";
 import { MemoryRecordKind } from "./memory";
+import { AgentPresentationAssetMaterial } from "./agent_presentation";
 import { AgentPresentationProfilePatch } from "./agent_presentation";
 import { ClearAgentPresentationProfile } from "./agent_presentation";
 import { Ack } from "./common";
@@ -114,6 +129,10 @@ export interface AgentAutonomyState {
      * @generated from protobuf field: google.protobuf.Timestamp suspended_until = 6
      */
     suspendedUntil?: Timestamp;
+    /**
+     * @generated from protobuf field: uint64 revision = 7
+     */
+    revision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAgentRecord
@@ -167,6 +186,14 @@ export interface LocalAgentRecord {
      * @generated from protobuf field: nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status = 23
      */
     sourceContextStatus?: LocalAgentSourceContextStatus;
+    /**
+     * Exactly one previous committed selection is retained for explicit
+     * restore-as-new-commit. Its embedded revision records where it came from;
+     * clients must commit the selection against the current profile revision.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfile previous_presentation_profile = 24
+     */
+    previousPresentationProfile?: AgentPresentationProfile;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentStateProjection
@@ -1326,6 +1353,17 @@ export interface SetAutonomyConfigRequest {
      * @generated from protobuf field: nimi.runtime.v1.AgentAutonomyConfig config = 3
      */
     config?: AgentAutonomyConfig;
+    /**
+     * When present, this request is the first-party atomic autonomy CAS path.
+     * Omission retains the pre-r168 config-only mutation for compatibility.
+     *
+     * @generated from protobuf field: optional uint64 expected_autonomy_revision = 4
+     */
+    expectedAutonomyRevision?: string;
+    /**
+     * @generated from protobuf field: optional bool enabled = 5
+     */
+    enabled?: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SetAutonomyConfigResponse
@@ -1376,6 +1414,10 @@ export interface SetAgentPresentationProfileRequest {
      * @generated from protobuf field: optional uint64 expected_revision = 6
      */
     expectedRevision?: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AgentPresentationAssetMaterial imported_assets = 7
+     */
+    importedAssets: AgentPresentationAssetMaterial[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SetAgentPresentationProfileResponse
@@ -1389,6 +1431,10 @@ export interface SetAgentPresentationProfileResponse {
      * @generated from protobuf field: uint64 committed_revision = 2
      */
     committedRevision: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfile previous_profile = 3
+     */
+    previousProfile?: AgentPresentationProfile;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListPendingHooksRequest
@@ -2463,6 +2509,10 @@ export interface RuntimeAgentAIConfigIntent {
      * @generated from protobuf field: string image_policy_ref = 7
      */
     imagePolicyRef: string;
+    /**
+     * @generated from protobuf field: string provider = 8
+     */
+    provider: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfig
@@ -3403,7 +3453,8 @@ class AgentAutonomyState$Type extends MessageType<AgentAutonomyState> {
             { no: 3, name: "used_tokens_in_window", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 4, name: "window_started_at", kind: "message", T: () => Timestamp },
             { no: 5, name: "budget_exhausted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 6, name: "suspended_until", kind: "message", T: () => Timestamp }
+            { no: 6, name: "suspended_until", kind: "message", T: () => Timestamp },
+            { no: 7, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<AgentAutonomyState>): AgentAutonomyState {
@@ -3411,6 +3462,7 @@ class AgentAutonomyState$Type extends MessageType<AgentAutonomyState> {
         message.enabled = false;
         message.usedTokensInWindow = "0";
         message.budgetExhausted = false;
+        message.revision = "0";
         if (value !== undefined)
             reflectionMergePartial<AgentAutonomyState>(this, message, value);
         return message;
@@ -3437,6 +3489,9 @@ class AgentAutonomyState$Type extends MessageType<AgentAutonomyState> {
                     break;
                 case /* google.protobuf.Timestamp suspended_until */ 6:
                     message.suspendedUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.suspendedUntil);
+                    break;
+                case /* uint64 revision */ 7:
+                    message.revision = reader.uint64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3468,6 +3523,9 @@ class AgentAutonomyState$Type extends MessageType<AgentAutonomyState> {
         /* google.protobuf.Timestamp suspended_until = 6; */
         if (message.suspendedUntil)
             Timestamp.internalBinaryWrite(message.suspendedUntil, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 revision = 7; */
+        if (message.revision !== "0")
+            writer.tag(7, WireType.Varint).uint64(message.revision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3493,7 +3551,8 @@ class LocalAgentRecord$Type extends MessageType<LocalAgentRecord> {
             { no: 9, name: "presentation_profile_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 22, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 23, name: "source_context_status", kind: "message", T: () => LocalAgentSourceContextStatus }
+            { no: 23, name: "source_context_status", kind: "message", T: () => LocalAgentSourceContextStatus },
+            { no: 24, name: "previous_presentation_profile", kind: "message", T: () => AgentPresentationProfile }
         ]);
     }
     create(value?: PartialMessage<LocalAgentRecord>): LocalAgentRecord {
@@ -3549,6 +3608,9 @@ class LocalAgentRecord$Type extends MessageType<LocalAgentRecord> {
                 case /* nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status */ 23:
                     message.sourceContextStatus = LocalAgentSourceContextStatus.internalBinaryRead(reader, reader.uint32(), options, message.sourceContextStatus);
                     break;
+                case /* nimi.runtime.v1.AgentPresentationProfile previous_presentation_profile */ 24:
+                    message.previousPresentationProfile = AgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, message.previousPresentationProfile);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3597,6 +3659,9 @@ class LocalAgentRecord$Type extends MessageType<LocalAgentRecord> {
         /* nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status = 23; */
         if (message.sourceContextStatus)
             LocalAgentSourceContextStatus.internalBinaryWrite(message.sourceContextStatus, writer.tag(23, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentPresentationProfile previous_presentation_profile = 24; */
+        if (message.previousPresentationProfile)
+            AgentPresentationProfile.internalBinaryWrite(message.previousPresentationProfile, writer.tag(24, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7020,7 +7085,9 @@ class SetAutonomyConfigRequest$Type extends MessageType<SetAutonomyConfigRequest
         super("nimi.runtime.v1.SetAutonomyConfigRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "config", kind: "message", T: () => AgentAutonomyConfig }
+            { no: 3, name: "config", kind: "message", T: () => AgentAutonomyConfig },
+            { no: 4, name: "expected_autonomy_revision", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "enabled", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<SetAutonomyConfigRequest>): SetAutonomyConfigRequest {
@@ -7044,6 +7111,12 @@ class SetAutonomyConfigRequest$Type extends MessageType<SetAutonomyConfigRequest
                 case /* nimi.runtime.v1.AgentAutonomyConfig config */ 3:
                     message.config = AgentAutonomyConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
                     break;
+                case /* optional uint64 expected_autonomy_revision */ 4:
+                    message.expectedAutonomyRevision = reader.uint64().toString();
+                    break;
+                case /* optional bool enabled */ 5:
+                    message.enabled = reader.bool();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7065,6 +7138,12 @@ class SetAutonomyConfigRequest$Type extends MessageType<SetAutonomyConfigRequest
         /* nimi.runtime.v1.AgentAutonomyConfig config = 3; */
         if (message.config)
             AgentAutonomyConfig.internalBinaryWrite(message.config, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* optional uint64 expected_autonomy_revision = 4; */
+        if (message.expectedAutonomyRevision !== undefined)
+            writer.tag(4, WireType.Varint).uint64(message.expectedAutonomyRevision);
+        /* optional bool enabled = 5; */
+        if (message.enabled !== undefined)
+            writer.tag(5, WireType.Varint).bool(message.enabled);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7130,13 +7209,15 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
             { no: 3, name: "profile", kind: "message", oneof: "mutation", T: () => AgentPresentationProfile },
             { no: 4, name: "clear", kind: "message", oneof: "mutation", T: () => ClearAgentPresentationProfile },
             { no: 5, name: "patch", kind: "message", oneof: "mutation", T: () => AgentPresentationProfilePatch },
-            { no: 6, name: "expected_revision", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ }
+            { no: 6, name: "expected_revision", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "imported_assets", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AgentPresentationAssetMaterial }
         ]);
     }
     create(value?: PartialMessage<SetAgentPresentationProfileRequest>): SetAgentPresentationProfileRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.agentId = "";
         message.mutation = { oneofKind: undefined };
+        message.importedAssets = [];
         if (value !== undefined)
             reflectionMergePartial<SetAgentPresentationProfileRequest>(this, message, value);
         return message;
@@ -7173,6 +7254,9 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
                 case /* optional uint64 expected_revision */ 6:
                     message.expectedRevision = reader.uint64().toString();
                     break;
+                case /* repeated nimi.runtime.v1.AgentPresentationAssetMaterial imported_assets */ 7:
+                    message.importedAssets.push(AgentPresentationAssetMaterial.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7203,6 +7287,9 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
         /* optional uint64 expected_revision = 6; */
         if (message.expectedRevision !== undefined)
             writer.tag(6, WireType.Varint).uint64(message.expectedRevision);
+        /* repeated nimi.runtime.v1.AgentPresentationAssetMaterial imported_assets = 7; */
+        for (let i = 0; i < message.importedAssets.length; i++)
+            AgentPresentationAssetMaterial.internalBinaryWrite(message.importedAssets[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7218,7 +7305,8 @@ class SetAgentPresentationProfileResponse$Type extends MessageType<SetAgentPrese
     constructor() {
         super("nimi.runtime.v1.SetAgentPresentationProfileResponse", [
             { no: 1, name: "profile", kind: "message", T: () => AgentPresentationProfile },
-            { no: 2, name: "committed_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+            { no: 2, name: "committed_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "previous_profile", kind: "message", T: () => AgentPresentationProfile }
         ]);
     }
     create(value?: PartialMessage<SetAgentPresentationProfileResponse>): SetAgentPresentationProfileResponse {
@@ -7239,6 +7327,9 @@ class SetAgentPresentationProfileResponse$Type extends MessageType<SetAgentPrese
                 case /* uint64 committed_revision */ 2:
                     message.committedRevision = reader.uint64().toString();
                     break;
+                case /* nimi.runtime.v1.AgentPresentationProfile previous_profile */ 3:
+                    message.previousProfile = AgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, message.previousProfile);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7257,6 +7348,9 @@ class SetAgentPresentationProfileResponse$Type extends MessageType<SetAgentPrese
         /* uint64 committed_revision = 2; */
         if (message.committedRevision !== "0")
             writer.tag(2, WireType.Varint).uint64(message.committedRevision);
+        /* nimi.runtime.v1.AgentPresentationProfile previous_profile = 3; */
+        if (message.previousProfile)
+            AgentPresentationProfile.internalBinaryWrite(message.previousProfile, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10659,7 +10753,8 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
             { no: 4, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef },
             { no: 6, name: "voice_reference_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "image_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "image_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<RuntimeAgentAIConfigIntent>): RuntimeAgentAIConfigIntent {
@@ -10670,6 +10765,7 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
         message.connectorId = "";
         message.voiceReferenceRef = "";
         message.imagePolicyRef = "";
+        message.provider = "";
         if (value !== undefined)
             reflectionMergePartial<RuntimeAgentAIConfigIntent>(this, message, value);
         return message;
@@ -10699,6 +10795,9 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
                     break;
                 case /* string image_policy_ref */ 7:
                     message.imagePolicyRef = reader.string();
+                    break;
+                case /* string provider */ 8:
+                    message.provider = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10733,6 +10832,9 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
         /* string image_policy_ref = 7; */
         if (message.imagePolicyRef !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.imagePolicyRef);
+        /* string provider = 8; */
+        if (message.provider !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.provider);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

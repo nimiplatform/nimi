@@ -6,6 +6,7 @@
     "proto/runtime/v1/account.proto",
     "proto/runtime/v1/agent_common.proto",
     "proto/runtime/v1/agent_companion.proto",
+    "proto/runtime/v1/agent_configure.proto",
     "proto/runtime/v1/agent_presentation.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/agent_source_materialization.proto",
@@ -618,6 +619,69 @@
           "response_type": "RuntimeAgentAIConfigReadinessSnapshot",
           "request_stream": false,
           "response_stream": true
+        },
+        {
+          "name": "GetLocalAppAgentConfigurationSnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentConfigurationSnapshotRequest",
+          "response_type": "LocalAppAgentConfigurationSnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "UpdateLocalAppAgentConfiguration",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration",
+          "kind": "unary",
+          "request_type": "UpdateLocalAppAgentConfigurationRequest",
+          "response_type": "LocalAppAgentUpdateConfigurationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppAgentReadinessSnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentReadinessSnapshotRequest",
+          "response_type": "LocalAppAgentReadinessSnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppAgentAutonomySnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentAutonomySnapshotRequest",
+          "response_type": "LocalAppAgentAutonomySnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "UpdateLocalAppAgentAutonomy",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+          "kind": "unary",
+          "request_type": "UpdateLocalAppAgentAutonomyRequest",
+          "response_type": "LocalAppAgentUpdateAutonomyResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppAgentPresentationSnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentPresentationSnapshotRequest",
+          "response_type": "LocalAppAgentPresentationSnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CommitLocalAppAgentPresentation",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+          "kind": "unary",
+          "request_type": "CommitLocalAppAgentPresentationRequest",
+          "response_type": "LocalAppAgentCommitPresentationResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     },
@@ -2287,6 +2351,7 @@
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
     "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
+    "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
@@ -2299,6 +2364,10 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
@@ -2328,6 +2397,8 @@
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration",
     "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
@@ -2667,6 +2738,14 @@
       "response_type": "CancelHookResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+      "service": "RuntimeAgentService",
+      "method": "CommitLocalAppAgentPresentation",
+      "kind": "unary",
+      "request_type": "CommitLocalAppAgentPresentationRequest",
+      "response_type": "LocalAppAgentCommitPresentationResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
       "service": "RuntimeAgentService",
       "method": "DisableAutonomy",
@@ -2761,6 +2840,38 @@
       "kind": "unary",
       "request_type": "GetDelegatedReplayTraceRequest",
       "response_type": "GetDelegatedReplayTraceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentAutonomySnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentAutonomySnapshotRequest",
+      "response_type": "LocalAppAgentAutonomySnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentConfigurationSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentConfigurationSnapshotRequest",
+      "response_type": "LocalAppAgentConfigurationSnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentPresentationSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentPresentationSnapshotRequest",
+      "response_type": "LocalAppAgentPresentationSnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentReadinessSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentReadinessSnapshotRequest",
+      "response_type": "LocalAppAgentReadinessSnapshotResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
@@ -2993,6 +3104,22 @@
       "kind": "unary",
       "request_type": "UpdateAgentStateRequest",
       "response_type": "UpdateAgentStateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentAutonomy",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentAutonomyRequest",
+      "response_type": "LocalAppAgentUpdateAutonomyResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentConfiguration",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentConfigurationRequest",
+      "response_type": "LocalAppAgentUpdateConfigurationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
@@ -4565,6 +4692,14 @@
       "response_type": "CancelHookResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+      "service": "RuntimeAgentService",
+      "method": "CommitLocalAppAgentPresentation",
+      "kind": "unary",
+      "request_type": "CommitLocalAppAgentPresentationRequest",
+      "response_type": "LocalAppAgentCommitPresentationResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
       "service": "RuntimeAgentService",
       "method": "DisableAutonomy",
@@ -4659,6 +4794,38 @@
       "kind": "unary",
       "request_type": "GetDelegatedReplayTraceRequest",
       "response_type": "GetDelegatedReplayTraceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentAutonomySnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentAutonomySnapshotRequest",
+      "response_type": "LocalAppAgentAutonomySnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentConfigurationSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentConfigurationSnapshotRequest",
+      "response_type": "LocalAppAgentConfigurationSnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentPresentationSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentPresentationSnapshotRequest",
+      "response_type": "LocalAppAgentPresentationSnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentReadinessSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentReadinessSnapshotRequest",
+      "response_type": "LocalAppAgentReadinessSnapshotResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
@@ -4891,6 +5058,22 @@
       "kind": "unary",
       "request_type": "UpdateAgentStateRequest",
       "response_type": "UpdateAgentStateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentAutonomy",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentAutonomyRequest",
+      "response_type": "LocalAppAgentUpdateAutonomyResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentConfiguration",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentConfigurationRequest",
+      "response_type": "LocalAppAgentUpdateConfigurationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
@@ -6328,6 +6511,7 @@
       "AgentLifecycleEventDetail",
       "AgentMemoryEventDetail",
       "AgentPostureProjection",
+      "AgentPresentationAssetMaterial",
       "AgentPresentationEventDetail",
       "AgentPresentationProfile",
       "AgentPresentationProfilePatch",
@@ -6416,6 +6600,7 @@
       "CloseRealtimeSessionResponse",
       "CollectDeviceProfileRequest",
       "CollectDeviceProfileResponse",
+      "CommitLocalAppAgentPresentationRequest",
       "CompanionParticipationProjection",
       "CompleteLoginRequest",
       "CompleteLoginResponse",
@@ -6528,6 +6713,10 @@
       "GetIngestTaskResponse",
       "GetKnowledgeBankRequest",
       "GetKnowledgeBankResponse",
+      "GetLocalAppAgentAutonomySnapshotRequest",
+      "GetLocalAppAgentConfigurationSnapshotRequest",
+      "GetLocalAppAgentPresentationSnapshotRequest",
+      "GetLocalAppAgentReadinessSnapshotRequest",
       "GetLocalAppPermissionOwnerProjectionRequest",
       "GetLocalAppPermissionOwnerProjectionResponse",
       "GetLocalAppPermissionStatusRequest",
@@ -6678,6 +6867,22 @@
       "LocalAgentRecord",
       "LocalAgentSourceContextStatus",
       "LocalAgentSourceCoverageSectionStatus",
+      "LocalAppAgentAutonomyConfig",
+      "LocalAppAgentAutonomyIntent",
+      "LocalAppAgentAutonomyProjection",
+      "LocalAppAgentAutonomySnapshotResponse",
+      "LocalAppAgentCapabilityReadiness",
+      "LocalAppAgentCommitPresentationResponse",
+      "LocalAppAgentConfigurationSnapshotResponse",
+      "LocalAppAgentModelSettingsProjection",
+      "LocalAppAgentPresentationIntent",
+      "LocalAppAgentPresentationProjection",
+      "LocalAppAgentPresentationSnapshotResponse",
+      "LocalAppAgentReadinessProjection",
+      "LocalAppAgentReadinessSnapshotResponse",
+      "LocalAppAgentRouteIntent",
+      "LocalAppAgentUpdateAutonomyResponse",
+      "LocalAppAgentUpdateConfigurationResponse",
       "LocalAppPermissionAgentHandle",
       "LocalAppPermissionCoveredAgent",
       "LocalAppPermissionInboxEvent",
@@ -7025,6 +7230,8 @@
       "UpdateAgentStateResponse",
       "UpdateConnectorRequest",
       "UpdateConnectorResponse",
+      "UpdateLocalAppAgentAutonomyRequest",
+      "UpdateLocalAppAgentConfigurationRequest",
       "UploadArtifactChunk",
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
@@ -7093,6 +7300,7 @@
       "AgentLocalSourceCoverageSection",
       "AgentLocalSourceCoverageState",
       "AgentLocalSourceSnapshotSchemaVersion",
+      "AgentPresentationAssetRole",
       "AgentPresentationBackendKind",
       "AgentPresentationEventFamily",
       "AgentProactiveDeliveryChannel",
@@ -7155,6 +7363,8 @@
       "HookTriggerFamily",
       "KnowledgeBankScope",
       "KnowledgeIngestTaskStatus",
+      "LocalAppAgentAutonomyMode",
+      "LocalAppAgentReadinessState",
       "LocalAppPermissionOwnerPosture",
       "LocalAppPermissionPosture",
       "LocalAppSessionState",
@@ -7631,6 +7841,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -8161,6 +8378,47 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AgentPresentationAssetMaterial",
+        "fields": [
+          {
+            "name": "role",
+            "type": "AgentPresentationAssetRole",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "file_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "media_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "content",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "sha256",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
         "name": "AgentPresentationEventDetail",
@@ -12291,6 +12549,40 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "CommitLocalAppAgentPresentationRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_presentation_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "intent",
+            "type": "LocalAppAgentPresentationIntent",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "imported_assets",
+            "type": "AgentPresentationAssetMaterial",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "CompanionParticipationProjection",
         "fields": [
           {
@@ -15911,6 +16203,58 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "GetLocalAppAgentAutonomySnapshotRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "GetLocalAppAgentConfigurationSnapshotRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "GetLocalAppAgentPresentationSnapshotRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "GetLocalAppAgentReadinessSnapshotRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "GetLocalAppPermissionOwnerProjectionRequest",
@@ -20032,6 +20376,13 @@
             "repeated": false,
             "optional": false,
             "number": 23
+          },
+          {
+            "name": "previous_presentation_profile",
+            "type": "AgentPresentationProfile",
+            "repeated": false,
+            "optional": false,
+            "number": 24
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -20173,6 +20524,431 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
+        "name": "LocalAppAgentAutonomyConfig",
+        "fields": [
+          {
+            "name": "daily_token_budget",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "max_tokens_per_hook",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "min_hook_interval",
+            "type": "google.protobuf.Duration",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "suspend_until",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "mode",
+            "type": "LocalAppAgentAutonomyMode",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentAutonomyIntent",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 1
+          },
+          {
+            "name": "config",
+            "type": "LocalAppAgentAutonomyConfig",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentAutonomyProjection",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "config",
+            "type": "LocalAppAgentAutonomyConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "used_tokens_in_window",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "window_started_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "budget_exhausted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "suspended_until",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "autonomy_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentAutonomySnapshotResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentAutonomyProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentCapabilityReadiness",
+        "fields": [
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "LocalAppAgentReadinessState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentCommitPresentationResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentPresentationProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentConfigurationSnapshotResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentModelSettingsProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentModelSettingsProjection",
+        "fields": [
+          {
+            "name": "capabilities",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "route_intents",
+            "type": "LocalAppAgentRouteIntent",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "readiness",
+            "type": "LocalAppAgentCapabilityReadiness",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "configuration_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentPresentationIntent",
+        "fields": [
+          {
+            "name": "backend_kind",
+            "type": "AgentPresentationBackendKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "avatar_asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expression_profile_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "idle_preset",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "interaction_policy_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "default_voice_reference",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "avatar_autoplay",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "background_asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentPresentationProjection",
+        "fields": [
+          {
+            "name": "profile",
+            "type": "AgentPresentationProfile",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "default_voice_reference",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "presentation_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "previous_profile",
+            "type": "AgentPresentationProfile",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentPresentationSnapshotResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentPresentationProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentReadinessProjection",
+        "fields": [
+          {
+            "name": "capabilities",
+            "type": "LocalAppAgentCapabilityReadiness",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "configuration_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentReadinessSnapshotResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentReadinessProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentRouteIntent",
+        "fields": [
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "provider",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "model",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "route_policy",
+            "type": "RoutePolicy",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentUpdateAutonomyResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentAutonomyProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentUpdateConfigurationResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "LocalAppAgentModelSettingsProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "LocalAppPermissionAgentHandle",
@@ -29985,6 +30761,13 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "provider",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -31816,6 +32599,13 @@
             "repeated": false,
             "optional": true,
             "number": 6
+          },
+          {
+            "name": "imported_assets",
+            "type": "AgentPresentationAssetMaterial",
+            "repeated": true,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -31836,6 +32626,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "previous_profile",
+            "type": "AgentPresentationProfile",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -31863,6 +32660,20 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "expected_autonomy_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          },
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -33780,6 +34591,60 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "UpdateLocalAppAgentAutonomyRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_autonomy_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "intent",
+            "type": "LocalAppAgentAutonomyIntent",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "UpdateLocalAppAgentConfigurationRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_configuration_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "route_intents",
+            "type": "LocalAppAgentRouteIntent",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
         "name": "UploadArtifactChunk",
@@ -35730,6 +36595,15 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
+        "name": "AgentPresentationAssetRole",
+        "values": [
+          "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED",
+          "AGENT_PRESENTATION_ASSET_ROLE_AVATAR",
+          "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND"
+        ],
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
+      },
+      {
         "name": "AgentPresentationBackendKind",
         "values": [
           "AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED",
@@ -36313,6 +37187,28 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "LocalAppAgentAutonomyMode",
+        "values": [
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED",
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF",
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW",
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM",
+          "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentReadinessState",
+        "values": [
+          "LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED",
+          "LOCAL_APP_AGENT_READINESS_STATE_READY",
+          "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED",
+          "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE",
+          "LOCAL_APP_AGENT_READINESS_STATE_FAILED"
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "LocalAppPermissionOwnerPosture",
         "values": [
           "LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED",
@@ -36332,7 +37228,8 @@
           "LOCAL_APP_PERMISSION_POSTURE_PENDING",
           "LOCAL_APP_PERMISSION_POSTURE_GRANTED",
           "LOCAL_APP_PERMISSION_POSTURE_DENIED",
-          "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"
+          "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE",
+          "LOCAL_APP_PERMISSION_POSTURE_REVOKED"
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },
@@ -36976,7 +37873,18 @@
           "REALM_RATE_LIMITED",
           "REALM_REQUEST_REJECTED",
           "REALM_CONTRACT_INVALID",
-          "REALM_OPERATION_FAILED"
+          "REALM_OPERATION_FAILED",
+          "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED",
+          "LOCAL_APP_PERMISSION_UNKNOWN",
+          "AGENT_AI_CONFIG_REVISION_CONFLICT",
+          "AGENT_AUTONOMY_REVISION_CONFLICT",
+          "AGENT_PRESENTATION_ASSET_TYPE_INVALID",
+          "AGENT_PRESENTATION_ASSET_TOO_LARGE",
+          "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID",
+          "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING",
+          "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH",
+          "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE",
+          "AGENT_PRESENTATION_ASSET_NOT_VALIDATED"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

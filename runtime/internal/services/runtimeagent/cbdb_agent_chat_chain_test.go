@@ -47,7 +47,7 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 		t.Fatalf("expected CBDB owner_user_id %q, got %q", cbdbChainVerifierOwnerID, got)
 	}
 	upsertPublicChatTestAgentAIConfigForContext(t, svc, ctx, publicChatTestAudioSynthesizeBinding())
-	if _, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	if _, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          ctx,
 		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{Profile: &runtimev1.AgentPresentationProfile{

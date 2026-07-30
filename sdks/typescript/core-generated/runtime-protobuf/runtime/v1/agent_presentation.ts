@@ -14,6 +14,31 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { VoicePlaybackState } from "./voice";
 import { VoiceOutputMode } from "./voice";
 /**
+ * @generated from protobuf message nimi.runtime.v1.AgentPresentationAssetMaterial
+ */
+export interface AgentPresentationAssetMaterial {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentPresentationAssetRole role = 1
+     */
+    role: AgentPresentationAssetRole;
+    /**
+     * @generated from protobuf field: string file_name = 2
+     */
+    fileName: string;
+    /**
+     * @generated from protobuf field: string media_type = 3
+     */
+    mediaType: string;
+    /**
+     * @generated from protobuf field: bytes content = 4
+     */
+    content: Uint8Array;
+    /**
+     * @generated from protobuf field: string sha256 = 5
+     */
+    sha256: string;
+}
+/**
  * K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
  * intentionally narrow and stable; renderer-local execution state must remain
  * on transient app/runtime seams rather than being smuggled here.
@@ -284,6 +309,26 @@ export interface AgentPresentationEventDetail {
     finalArtifactId: string;
 }
 /**
+ * Runtime receives protected-Shell-imported bytes, validates them, and mints
+ * official refs. A material is never durable candidate/preview state.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AgentPresentationAssetRole
+ */
+export enum AgentPresentationAssetRole {
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_ROLE_AVATAR = 1;
+     */
+    AVATAR = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND = 2;
+     */
+    BACKGROUND = 2
+}
+/**
  * K-AGCORE-037 AgentPresentationEventFamily discriminates
  * runtime.agent.presentation.* families. Mapping is 1:1 to
  * runtime.agent.presentation.{activity_requested|motion_requested|
@@ -364,6 +409,85 @@ export enum AgentPresentationBackendKind {
      */
     VIDEO = 5
 }
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentPresentationAssetMaterial$Type extends MessageType<AgentPresentationAssetMaterial> {
+    constructor() {
+        super("nimi.runtime.v1.AgentPresentationAssetMaterial", [
+            { no: 1, name: "role", kind: "enum", T: () => ["nimi.runtime.v1.AgentPresentationAssetRole", AgentPresentationAssetRole, "AGENT_PRESENTATION_ASSET_ROLE_"] },
+            { no: 2, name: "file_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "media_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "content", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 5, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentPresentationAssetMaterial>): AgentPresentationAssetMaterial {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.role = 0;
+        message.fileName = "";
+        message.mediaType = "";
+        message.content = new Uint8Array(0);
+        message.sha256 = "";
+        if (value !== undefined)
+            reflectionMergePartial<AgentPresentationAssetMaterial>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentPresentationAssetMaterial): AgentPresentationAssetMaterial {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentPresentationAssetRole role */ 1:
+                    message.role = reader.int32();
+                    break;
+                case /* string file_name */ 2:
+                    message.fileName = reader.string();
+                    break;
+                case /* string media_type */ 3:
+                    message.mediaType = reader.string();
+                    break;
+                case /* bytes content */ 4:
+                    message.content = reader.bytes();
+                    break;
+                case /* string sha256 */ 5:
+                    message.sha256 = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentPresentationAssetMaterial, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentPresentationAssetRole role = 1; */
+        if (message.role !== 0)
+            writer.tag(1, WireType.Varint).int32(message.role);
+        /* string file_name = 2; */
+        if (message.fileName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.fileName);
+        /* string media_type = 3; */
+        if (message.mediaType !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.mediaType);
+        /* bytes content = 4; */
+        if (message.content.length)
+            writer.tag(4, WireType.LengthDelimited).bytes(message.content);
+        /* string sha256 = 5; */
+        if (message.sha256 !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sha256);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentPresentationAssetMaterial
+ */
+export const AgentPresentationAssetMaterial = new AgentPresentationAssetMaterial$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile> {
     constructor() {

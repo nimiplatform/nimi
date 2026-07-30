@@ -93,7 +93,7 @@ func setPublicChatTestPresentationProfile(t *testing.T, svc *Service, agentID st
 	t.Helper()
 	ctx := testLocalAgentContext(subjectUserID, agentID)
 	ctx.AppId = callerAppID
-	_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          ctx,
 		AgentId:          ctx.GetLocalAgentRef(),
 		ExpectedRevision: proto.Uint64(0),

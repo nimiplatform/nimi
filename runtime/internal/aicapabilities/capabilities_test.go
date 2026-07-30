@@ -1,6 +1,13 @@
 package aicapabilities
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
+
+	"gopkg.in/yaml.v3"
+)
 
 func TestNormalizeCatalogCapability(t *testing.T) {
 	tests := []struct {
@@ -14,6 +21,7 @@ func TestNormalizeCatalogCapability(t *testing.T) {
 		{TextGenerateVideo, TextGenerateVideo, true},
 		{TextEmbed, TextEmbed, true},
 		{ImageGenerate, ImageGenerate, true},
+		{ImageEdit, ImageEdit, true},
 		{VideoGenerate, VideoGenerate, true},
 		{AudioSynthesize, AudioSynthesize, true},
 		{AudioTranscribe, AudioTranscribe, true},
@@ -34,6 +42,33 @@ func TestNormalizeCatalogCapability(t *testing.T) {
 		if (err == nil) != tt.ok {
 			t.Errorf("NormalizeCatalogCapability(%q) err = %v, ok=%v", tt.input, err, tt.ok)
 		}
+	}
+}
+
+func TestCanonicalCatalogMatchesPlatformCatalog(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "config", "platform-canonical-capability-catalog.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var source struct {
+		Capabilities []struct {
+			CapabilityID string `yaml:"capabilityId"`
+		} `yaml:"capabilities"`
+	}
+	if err := yaml.Unmarshal(raw, &source); err != nil {
+		t.Fatal(err)
+	}
+	want := make([]string, 0, len(source.Capabilities))
+	for _, item := range source.Capabilities {
+		want = append(want, item.CapabilityID)
+	}
+	if got := CanonicalCatalog(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("Runtime canonical capability registry = %v, want config catalog %v", got, want)
+	}
+	got := CanonicalCatalog()
+	got[0] = "mutated"
+	if CanonicalCatalog()[0] == "mutated" {
+		t.Fatal("canonical catalog returned mutable registry storage")
 	}
 }
 

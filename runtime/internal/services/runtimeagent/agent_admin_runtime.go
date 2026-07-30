@@ -178,40 +178,25 @@ func (r agentAdminRuntime) setPresentationProfile(ctx context.Context, req *runt
 	if err != nil {
 		return nil, err
 	}
-	existing, err := r.svc.agentStateRuntime().snapshotAgentPresentationProfile(identity, req.GetExpectedRevision())
-	if err != nil {
-		return nil, err
-	}
-	var profile *runtimev1.AgentPresentationProfile
-	switch mutation := req.GetMutation().(type) {
+	mutation := agentPresentationMutation{importedAssets: req.GetImportedAssets()}
+	switch input := req.GetMutation().(type) {
 	case *runtimev1.SetAgentPresentationProfileRequest_Profile:
-		profile, err = normalizeAgentPresentationProfile(mutation.Profile)
+		mutation.profile = input.Profile
 	case *runtimev1.SetAgentPresentationProfileRequest_Clear:
-		profile = nil
+		mutation.clear = true
 	case *runtimev1.SetAgentPresentationProfileRequest_Patch:
-		profile, err = normalizeAgentPresentationProfilePatch(existing, mutation.Patch)
+		mutation.patch = input.Patch
 	default:
-		err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if err != nil {
-		return nil, err
-	}
-	if err := validateAgentPresentationVoiceAssetBinding(
-		ctx,
-		r.svc.currentVoiceAssetResolver(),
-		identity,
-		req.GetContext().GetAppId(),
-		profile,
-	); err != nil {
-		return nil, err
-	}
-	profile, committedRevision, err := r.svc.agentStateRuntime().commitAgentPresentationProfile(identity, req.GetExpectedRevision(), profile)
+	profile, previous, committedRevision, err := r.svc.commitAgentPresentation(
+		ctx, identity, req.GetContext().GetAppId(), req.GetExpectedRevision(), mutation,
+	)
 	if err != nil {
 		return nil, err
 	}
 	return &runtimev1.SetAgentPresentationProfileResponse{
-		Profile:           profile,
-		CommittedRevision: committedRevision,
+		Profile: profile, PreviousProfile: previous, CommittedRevision: committedRevision,
 	}, nil
 }
 
@@ -349,6 +334,9 @@ func (r agentAdminRuntime) enableAutonomy(req *runtimev1.EnableAutonomyRequest) 
 		return &runtimev1.EnableAutonomyResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}, nil
 	}
 	entry.Agent.Autonomy.Enabled = true
+	if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
+		return nil, err
+	}
 	if entry.Agent.Autonomy.WindowStartedAt == nil {
 		entry.Agent.Autonomy.WindowStartedAt = timestamppb.New(now)
 	}
@@ -377,6 +365,9 @@ func (r agentAdminRuntime) disableAutonomy(req *runtimev1.DisableAutonomyRequest
 	}
 	entry.Agent.Autonomy.Enabled = false
 	entry.Agent.Autonomy.BudgetExhausted = false
+	if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
+		return nil, err
+	}
 	entry.Agent.UpdatedAt = timestamppb.New(now)
 	event := r.svc.newEventForIdentity(identity, runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
 		Budget: &runtimev1.AgentBudgetEventDetail{
@@ -407,6 +398,9 @@ func (r agentAdminRuntime) setAutonomyConfig(req *runtimev1.SetAutonomyConfigReq
 		entry.Agent.Autonomy.Config = config
 	}
 	entry.Agent.Autonomy.SuspendedUntil = cloneTimestamp(config.GetSuspendUntil())
+	if err := advanceAutonomyRevision(entry.Agent.Autonomy); err != nil {
+		return nil, err
+	}
 	if autonomyMode(config) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
 		entry.Agent.Autonomy.Enabled = false
 		entry.Agent.Autonomy.BudgetExhausted = false
@@ -426,6 +420,18 @@ func (r agentAdminRuntime) setAutonomyConfig(req *runtimev1.SetAutonomyConfigReq
 		return nil, err
 	}
 	return &runtimev1.SetAutonomyConfigResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}, nil
+}
+
+func advanceAutonomyRevision(state *runtimev1.AgentAutonomyState) error {
+	if state == nil || state.GetRevision() == ^uint64(0) {
+		return status.Error(codes.FailedPrecondition, "agent autonomy revision exhausted")
+	}
+	if state.GetRevision() == 0 {
+		state.Revision = 1
+	} else {
+		state.Revision++
+	}
+	return nil
 }
 
 func (r agentAdminRuntime) listPendingHooks(req *runtimev1.ListPendingHooksRequest) (*runtimev1.ListPendingHooksResponse, error) {

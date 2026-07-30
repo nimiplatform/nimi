@@ -75,7 +75,7 @@ func initializePresentationVoiceTestAgent(t *testing.T, svc *Service, runtimeSou
 }
 
 func setPresentationVoiceReference(ctx context.Context, svc *Service, requestContext *runtimev1.AgentRequestContext, expectedRevision uint64, voiceReference string) (*runtimev1.SetAgentPresentationProfileResponse, error) {
-	return svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	return setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          requestContext,
 		ExpectedRevision: proto.Uint64(expectedRevision),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{
@@ -104,7 +104,7 @@ func TestSetAgentPresentationProfileVoiceAssetFailsClosedWithoutResolver(t *test
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
-	_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          requestContext,
 		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{
@@ -512,7 +512,7 @@ func TestSetAgentPresentationProfileRevalidatesMergedVoiceAndClearSkipsResolver(
 		asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED
 		return asset, nil
 	}))
-	_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          requestContext,
 		ExpectedRevision: proto.Uint64(1),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{
@@ -571,7 +571,7 @@ func TestSetAgentPresentationProfileResolvesOutsideStateLockAndRechecksCAS(t *te
 
 	secondDone := make(chan error, 1)
 	go func() {
-		_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+		_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 			Context:          requestContext,
 			ExpectedRevision: proto.Uint64(1),
 			Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{

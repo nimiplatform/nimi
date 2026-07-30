@@ -144,6 +144,15 @@ public_permissions:
     selector_owner: runtime
     selector_shape: account_local_agents_scope_intersect_agents_interact
     user_semantics: read complete public Agent Center state and change AI configuration, model configuration, autonomy, and appearance for Agents in the effective agents.interact scope
+    internal_operation_families:
+      - configuration-snapshot
+      - update-configuration
+      - readiness-snapshot
+      - autonomy-snapshot
+      - update-autonomy
+      - presentation-snapshot
+      - preview-presentation
+      - commit-presentation
     invariants:
       - no_provider_credentials
       - no_turn_execution

@@ -94,8 +94,15 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		caller, binding, err = s.localAppBaseEntitlementCallerBinding(ctx, string(operation), resourceRef)
 	case localappop.AuthorityClassUserPermission:
 		permission, mapped := apppermission.ForOperation(string(operation))
-		if !mapped || s.permissionAdmitted == nil || !s.permissionAdmitted(permission.ID) || !permission.ManifestAllowed {
-			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		if !mapped {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_UNKNOWN)
+		}
+		if s.permissionAdmitted == nil || !s.permissionAdmitted(permission.ID) || !permission.ManifestAllowed {
+			reason := runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE
+			if permission.Admission == apppermission.AdmissionReserved {
+				reason = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED
+			}
+			return LocalAppCallerDecision{}, localAppOperationDenied(reason)
 		}
 		caller, err = s.AuthorizeLocalAppOperation(ctx, operation)
 		if err != nil {
@@ -103,7 +110,14 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		}
 		resolvedAgent, resolveErr := s.ResolveLocalAppAgentHandle(ctx, selector.AgentID, permission.ID)
 		if resolveErr != nil {
-			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
+			switch {
+			case errors.Is(resolveErr, ErrLocalAppAgentScopeRequired):
+				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED)
+			case errors.Is(resolveErr, ErrLocalAppAgentScopeRevoked):
+				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED)
+			default:
+				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
+			}
 		}
 		selector.AgentID = resolvedAgent.LocalAgentID
 		resourceRef, err = localAppOperationResourceRef(operation, selector)
@@ -120,13 +134,19 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		}
 		posture := apppermission.EvaluatePosture(s.now().UTC(), true, true, grantKey, &grant)
 		if !posture.Usable {
-			reason := runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED
-			if posture.Reason == apppermission.PostureReasonGrantRevoked {
-				reason = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED
-			} else if posture.Posture == apppermission.PosturePending || posture.Posture == apppermission.PosturePrompt {
-				reason = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
+			return LocalAppCallerDecision{}, localAppOperationDenied(localAppPermissionPostureReason(posture))
+		}
+		if permission.ID == "agents.configure" {
+			interactKey := grantKey
+			interactKey.PermissionID = localAppAgentPermissionID
+			interactGrant, interactErr := s.localAppKernel.PermissionGrants().Get(ctx, interactKey)
+			if interactErr != nil {
+				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED)
 			}
-			return LocalAppCallerDecision{}, localAppOperationDenied(reason)
+			interactPosture := apppermission.EvaluatePosture(s.now().UTC(), true, true, interactKey, &interactGrant)
+			if !interactPosture.Usable {
+				return LocalAppCallerDecision{}, localAppOperationDenied(localAppPermissionPostureReason(interactPosture))
+			}
 		}
 		binding = localAppOperationBinding{operationID: string(operation), resourceRef: resourceRef, capability: permission.ID, fingerprint: resolvedAgent.OwnerSelectorDigest}
 		caller.LocalAgentID = resolvedAgent.LocalAgentID
@@ -213,6 +233,18 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		if grantErr != nil {
 			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
 		}
+		if permission.ID == "agents.configure" {
+			interactKey := grantKey
+			interactKey.PermissionID = localAppAgentPermissionID
+			interactGrant, interactErr := s.localAppKernel.PermissionGrants().Get(ctx, interactKey)
+			if interactErr != nil {
+				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED)
+			}
+			interactPosture := apppermission.EvaluatePosture(s.now().UTC(), true, true, interactKey, &interactGrant)
+			if !interactPosture.Usable {
+				return LocalAppCallerDecision{}, localAppOperationDenied(localAppPermissionPostureReason(interactPosture))
+			}
+		}
 		auditBinding := apppermission.AuditBinding{
 			OwnerSubjectID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID, DisplayAppID: caller.AppID,
 			PermissionID: permission.ID, SelectorDigest: binding.fingerprint, OldPosture: apppermission.PostureGranted,
@@ -225,6 +257,16 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		}
 	}
 	return caller, nil
+}
+
+func localAppPermissionPostureReason(posture apppermission.PostureEvaluation) runtimev1.ReasonCode {
+	if posture.Reason == apppermission.PostureReasonGrantRevoked {
+		return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED
+	}
+	if posture.Posture == apppermission.PosturePending || posture.Posture == apppermission.PosturePrompt {
+		return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
+	}
+	return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED
 }
 
 func localAppOperationRuntimeReason(reason localappop.Reason) runtimev1.ReasonCode {
@@ -270,7 +312,11 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "artifact:" + selector.ArtifactID, nil
-	case LocalAppOperationOpenConversation:
+	case LocalAppOperationOpenConversation,
+		LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
+		LocalAppOperationReadinessSnapshot, LocalAppOperationAutonomySnapshot,
+		LocalAppOperationUpdateAutonomy, LocalAppOperationPresentationSnapshot,
+		LocalAppOperationCommitPresentation:
 		if !require(selector.AgentID) || selector.ArtifactID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
 			return "", ErrLocalAppOperationNotAdmitted
 		}

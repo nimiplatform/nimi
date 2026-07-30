@@ -6,6 +6,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 import "runtime/v1/agent_companion.proto";
+import "runtime/v1/agent_configure.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/agent_source_materialization.proto";
 import "runtime/v1/ai.proto";
@@ -94,6 +95,7 @@ message AgentAutonomyState {
   google.protobuf.Timestamp window_started_at = 4;
   bool budget_exhausted = 5;
   google.protobuf.Timestamp suspended_until = 6;
+  uint64 revision = 7;
 }
 message LocalAgentRecord {
   reserved 20;
@@ -110,6 +112,10 @@ message LocalAgentRecord {
   string owner_user_id = 21;
   string runtime_source_ref = 22;
   LocalAgentSourceContextStatus source_context_status = 23;
+  // Exactly one previous committed selection is retained for explicit
+  // restore-as-new-commit. Its embedded revision records where it came from;
+  // clients must commit the selection against the current profile revision.
+  AgentPresentationProfile previous_presentation_profile = 24;
 }
 message AgentStateProjection {
   AgentExecutionState execution_state = 1;
@@ -410,6 +416,10 @@ message SetAutonomyConfigRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
   AgentAutonomyConfig config = 3;
+  // When present, this request is the first-party atomic autonomy CAS path.
+  // Omission retains the pre-r168 config-only mutation for compatibility.
+  optional uint64 expected_autonomy_revision = 4;
+  optional bool enabled = 5;
 }
 message SetAutonomyConfigResponse {
   AgentAutonomyState autonomy = 1;
@@ -423,10 +433,12 @@ message SetAgentPresentationProfileRequest {
     AgentPresentationProfilePatch patch = 5;
   }
   optional uint64 expected_revision = 6;
+  repeated AgentPresentationAssetMaterial imported_assets = 7;
 }
 message SetAgentPresentationProfileResponse {
   AgentPresentationProfile profile = 1;
   uint64 committed_revision = 2;
+  AgentPresentationProfile previous_profile = 3;
 }
 message ListPendingHooksRequest {
   AgentRequestContext context = 1;
@@ -699,6 +711,7 @@ message RuntimeAgentAIConfigIntent {
   RuntimeDurableTargetRef target_ref = 5;
   string voice_reference_ref = 6;
   string image_policy_ref = 7;
+  string provider = 8;
 }
 message RuntimeAgentAIConfig {
   string agent_instance_id = 1;
@@ -781,4 +794,13 @@ service RuntimeAgentService {
   rpc UpsertRuntimeAgentAIConfig(UpsertRuntimeAgentAIConfigRequest) returns (UpsertRuntimeAgentAIConfigResponse);
   rpc GetRuntimeAgentAIConfigReadiness(GetRuntimeAgentAIConfigReadinessRequest) returns (GetRuntimeAgentAIConfigReadinessResponse);
   rpc SubscribeRuntimeAgentAIConfigReadiness(SubscribeRuntimeAgentAIConfigReadinessRequest) returns (stream RuntimeAgentAIConfigReadinessSnapshot);
+  // Reserved agents.configure carrier. Protected-local admission remains
+  // fail-closed until the owner-complete publication flip.
+  rpc GetLocalAppAgentConfigurationSnapshot(GetLocalAppAgentConfigurationSnapshotRequest) returns (LocalAppAgentConfigurationSnapshotResponse);
+  rpc UpdateLocalAppAgentConfiguration(UpdateLocalAppAgentConfigurationRequest) returns (LocalAppAgentUpdateConfigurationResponse);
+  rpc GetLocalAppAgentReadinessSnapshot(GetLocalAppAgentReadinessSnapshotRequest) returns (LocalAppAgentReadinessSnapshotResponse);
+  rpc GetLocalAppAgentAutonomySnapshot(GetLocalAppAgentAutonomySnapshotRequest) returns (LocalAppAgentAutonomySnapshotResponse);
+  rpc UpdateLocalAppAgentAutonomy(UpdateLocalAppAgentAutonomyRequest) returns (LocalAppAgentUpdateAutonomyResponse);
+  rpc GetLocalAppAgentPresentationSnapshot(GetLocalAppAgentPresentationSnapshotRequest) returns (LocalAppAgentPresentationSnapshotResponse);
+  rpc CommitLocalAppAgentPresentation(CommitLocalAppAgentPresentationRequest) returns (LocalAppAgentCommitPresentationResponse);
 }

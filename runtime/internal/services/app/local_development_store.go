@@ -213,8 +213,11 @@ func (store *localDevelopmentStore) Close() error {
 }
 
 func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localDevelopmentProjectSnapshot, runID protectedlocal.Identifier) (localDevelopmentEvaluation, error) {
-	if store == nil || store.db == nil || runID == (protectedlocal.Identifier{}) || validateLocalDevelopmentProject(project) != nil {
+	if store == nil || store.db == nil || runID == (protectedlocal.Identifier{}) {
 		return localDevelopmentEvaluation{}, errLocalDevelopmentInvalid
+	}
+	if err := validateLocalDevelopmentProject(project); err != nil {
+		return localDevelopmentEvaluation{}, err
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -445,7 +448,16 @@ func validateLocalDevelopmentProject(project localDevelopmentProjectSnapshot) er
 			return errLocalDevelopmentInvalid
 		}
 		descriptor, known := apppermission.Lookup(requirement.PermissionID)
-		if !known || descriptor.ID != requirement.PermissionID || descriptor.Admission != apppermission.AdmissionAdmitted || !descriptor.ManifestAllowed {
+		if !known {
+			return localDevelopmentManifestPermissionFailure(localDevelopmentManifestPermissionUnknown, requirement.PermissionID)
+		}
+		if descriptor.ID != requirement.PermissionID {
+			return errLocalDevelopmentInvalid
+		}
+		if descriptor.Admission == apppermission.AdmissionReserved {
+			return localDevelopmentManifestPermissionFailure(localDevelopmentManifestPermissionReserved, requirement.PermissionID)
+		}
+		if descriptor.Admission != apppermission.AdmissionAdmitted || !descriptor.ManifestAllowed {
 			return errLocalDevelopmentInvalid
 		}
 		if _, duplicate := seen[requirement.PermissionID]; duplicate {

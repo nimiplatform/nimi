@@ -278,10 +278,13 @@ func (s *Service) upsertRuntimeAgentAIConfig(ctx *runtimev1.AgentRequestContext,
 }
 
 func runtimeAgentAIConfigRevisionConflictError(expected uint64, committed uint64) error {
-	return status.Errorf(
+	return grpcerr.WithReasonCodeOptions(
 		codes.Aborted,
-		"runtime agent ai config concurrent modification: expected_revision=%d committed_revision=%d; re-read the committed config and retry",
-		expected, committed,
+		runtimev1.ReasonCode_AGENT_AI_CONFIG_REVISION_CONFLICT,
+		grpcerr.ReasonOptions{Metadata: map[string]string{
+			"expected_revision":  fmt.Sprintf("%d", expected),
+			"committed_revision": fmt.Sprintf("%d", committed),
+		}},
 	)
 }
 
@@ -336,6 +339,16 @@ func normalizeRuntimeAgentAIConfigIntents(intents []*runtimev1.RuntimeAgentAICon
 		cloned.ConnectorId = strings.TrimSpace(intent.GetConnectorId())
 		cloned.VoiceReferenceRef = strings.TrimSpace(intent.GetVoiceReferenceRef())
 		cloned.ImagePolicyRef = strings.TrimSpace(intent.GetImagePolicyRef())
+		cloned.Provider = strings.TrimSpace(intent.GetProvider())
+		if cloud := cloned.GetTargetRef().GetCloud(); cloud != nil {
+			targetProvider := strings.TrimSpace(cloud.GetProvider())
+			if cloned.Provider != "" && targetProvider != "" && cloned.Provider != targetProvider {
+				return nil, status.Errorf(codes.InvalidArgument, "runtime agent ai config intent for %q has mismatched provider route intent", capability)
+			}
+			if cloned.Provider == "" {
+				cloned.Provider = targetProvider
+			}
+		}
 		out = append(out, cloned)
 	}
 	for required := range requiredRuntimeAgentAIConfigCapabilities {

@@ -203,6 +203,13 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		if err := validatePersistedAgentPresentationProfile(agent); err != nil {
 			return fmt.Errorf("persisted runtime agent %s presentation profile invalid: %w", localAgentRef, err)
 		}
+		if agent.GetAutonomy() == nil {
+			agent.Autonomy = buildInitialAutonomyState(nil, time.Now().UTC())
+		} else if agent.GetAutonomy().GetRevision() == 0 {
+			// Pre-r168 records have no independent autonomy revision. Revision 1
+			// is the deterministic migration baseline; no configured value changes.
+			agent.Autonomy.Revision = 1
+		}
 		s.agents[localAgentRef] = &agentEntry{
 			Agent: agent,
 			State: &runtimev1.AgentStateProjection{},

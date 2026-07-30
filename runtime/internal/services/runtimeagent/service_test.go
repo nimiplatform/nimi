@@ -381,6 +381,26 @@ func TestRuntimeAgentAutonomyDefaultsOffWithoutImplicitEnable(t *testing.T) {
 	}
 }
 
+func TestRuntimeAgentSetAutonomyConfigRejectsOmittedCASRevision(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-cas-required"),
+	}); err != nil {
+		t.Fatalf("RealmSourceMaterialization: %v", err)
+	}
+	_, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
+		Context: testRuntimeAgentIdentityContext("agent-autonomy-cas-required"),
+		AgentId: "agent-autonomy-cas-required",
+		Config:  &runtimev1.AgentAutonomyConfig{Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("omitted autonomy revision code = %s, err=%v", status.Code(err), err)
+	}
+}
+
 func TestRuntimeAgentSetAutonomyConfigDoesNotImplicitlyEnable(t *testing.T) {
 	t.Parallel()
 
@@ -393,8 +413,9 @@ func TestRuntimeAgentSetAutonomyConfigDoesNotImplicitlyEnable(t *testing.T) {
 	}
 
 	resp, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
-		Context: testRuntimeAgentIdentityContext("agent-autonomy-config"),
-		AgentId: "agent-autonomy-config",
+		Context:                  testRuntimeAgentIdentityContext("agent-autonomy-config"),
+		AgentId:                  "agent-autonomy-config",
+		ExpectedAutonomyRevision: proto.Uint64(1),
 		Config: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 10,
@@ -422,7 +443,7 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsTypedFields(t *testi
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
-	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	resp, err := setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile"),
 		AgentId:          "agent-presentation-profile",
 		ExpectedRevision: proto.Uint64(0),
@@ -474,7 +495,7 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsTypedFields(t *testi
 		t.Fatalf("unexpected typed record revision: %d", agentResp.GetAgent().GetPresentationProfileRevision())
 	}
 
-	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	clearResp, err := setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile"),
 		AgentId:          "agent-presentation-profile",
 		ExpectedRevision: proto.Uint64(1),
@@ -513,7 +534,7 @@ func TestRuntimeAgentPatchPresentationProfileAllowsNonAvatarFields(t *testing.T)
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
-	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	resp, err := setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
 		AgentId:          "agent-presentation-profile-patch",
 		ExpectedRevision: proto.Uint64(0),
@@ -562,7 +583,7 @@ func TestRuntimeAgentPatchPresentationProfileAllowsNonAvatarFields(t *testing.T)
 		t.Fatal("expected typed avatar autoplay")
 	}
 
-	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	clearResp, err := setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
 		AgentId:          "agent-presentation-profile-patch",
 		ExpectedRevision: proto.Uint64(1),
@@ -593,7 +614,7 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
-	_, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	_, err := setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId:          "agent-presentation-profile-invalid",
 		ExpectedRevision: proto.Uint64(0),
@@ -608,7 +629,7 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 		t.Fatalf("expected invalid backend to fail with InvalidArgument, got %v", err)
 	}
 
-	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	_, err = setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId:          "agent-presentation-profile-invalid",
 		ExpectedRevision: proto.Uint64(0),
@@ -623,7 +644,7 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 		t.Fatalf("expected empty avatar_asset_ref to fail with InvalidArgument, got %v", err)
 	}
 
-	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	_, err = setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId:          "agent-presentation-profile-invalid",
 		ExpectedRevision: proto.Uint64(0),
@@ -639,7 +660,7 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 		t.Fatalf("expected non-VoiceReference default voice to fail with InvalidArgument, got %v", err)
 	}
 
-	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	_, err = setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId:          "agent-presentation-profile-invalid",
 		ExpectedRevision: proto.Uint64(0),
@@ -655,7 +676,7 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 		t.Fatalf("expected empty VoiceReference id to fail with InvalidArgument, got %v", err)
 	}
 
-	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+	_, err = setTestAgentPresentationProfile(svc, ctx, &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
 		AgentId:          "agent-presentation-profile-invalid",
 		ExpectedRevision: proto.Uint64(0),
@@ -709,8 +730,9 @@ func TestRuntimeAgentEnableAutonomyActivatesConfiguredMode(t *testing.T) {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	if _, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
-		Context: testRuntimeAgentIdentityContext("agent-autonomy-enable"),
-		AgentId: "agent-autonomy-enable",
+		Context:                  testRuntimeAgentIdentityContext("agent-autonomy-enable"),
+		AgentId:                  "agent-autonomy-enable",
+		ExpectedAutonomyRevision: proto.Uint64(1),
 		Config: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM,
 			DailyTokenBudget: 20,

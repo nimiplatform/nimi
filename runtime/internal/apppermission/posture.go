@@ -15,6 +15,7 @@ const (
 	PosturePending     Posture = "pending"
 	PostureGranted     Posture = "granted"
 	PostureDenied      Posture = "denied"
+	PostureRevoked     Posture = "revoked"
 	PostureUnavailable Posture = "unavailable"
 )
 
@@ -37,9 +38,9 @@ type PostureEvaluation struct {
 	Usable  bool
 }
 
-// EvaluatePosture projects owner truth without exposing expired/revoked as app
-// workflow states. A missing decision is prompt only when all current bindings
-// and catalog facts are present; every mismatch fails closed as denied.
+// EvaluatePosture projects owner truth into the closed public posture set. A
+// missing decision is prompt only when all current bindings and catalog facts
+// are present; every mismatch fails closed and revocation remains distinct.
 func EvaluatePosture(now time.Time, admitted bool, manifestAllowed bool, expected localappkernel.PermissionGrantKey, grant *localappkernel.PermissionGrant) PostureEvaluation {
 	if !admitted || !manifestAllowed {
 		return PostureEvaluation{Posture: PostureUnavailable, Reason: PostureReasonPermissionClosed}
@@ -71,7 +72,7 @@ func EvaluatePosture(now time.Time, admitted bool, manifestAllowed bool, expecte
 	case localappkernel.PermissionGrantStateExpired:
 		return PostureEvaluation{Posture: PostureDenied, Reason: PostureReasonGrantExpired}
 	case localappkernel.PermissionGrantStateRevoked:
-		return PostureEvaluation{Posture: PostureDenied, Reason: PostureReasonGrantRevoked}
+		return PostureEvaluation{Posture: PostureRevoked, Reason: PostureReasonGrantRevoked}
 	default:
 		return PostureEvaluation{Posture: PostureDenied, Reason: PostureReasonBindingInvalid}
 	}

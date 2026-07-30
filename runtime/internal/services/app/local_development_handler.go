@@ -123,7 +123,7 @@ func (s *Service) EvaluateLocalDevelopmentProject(ctx context.Context, req *runt
 	}
 	project, err := resolveLocalDevelopmentProject(req.GetProjectRoot(), req.GetExpectedAppId(), req.GetShellKind(), account.GetAccountId(), generation)
 	if err != nil {
-		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "project-authority", err)
+		return nil, localDevelopmentProjectAuthorityError(err)
 	}
 	evaluation, err := s.localDevelopment.Evaluate(ctx, project, runID)
 	if err != nil {
@@ -292,7 +292,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		if s.logger != nil {
 			s.logger.Warn("local development launch rejected", "stage", "project-authority", "app_id", authorization.Project.AppID, "error", err)
 		}
-		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "project-authority", err)
+		return nil, localDevelopmentProjectAuthorityError(err)
 	}
 	if !localDevelopmentProjectsMatch(authorization.Project, project) {
 		if s.logger != nil {
@@ -657,7 +657,85 @@ func sameLocalDevelopmentPath(left string, right string) bool {
 	return left == right
 }
 
+func localDevelopmentProjectAuthorityError(err error) error {
+	if _, ok := localDevelopmentManifestPermissionFailureFromError(err); ok {
+		return localDevelopmentManifestPermissionStatusError(err)
+	}
+	return localDevelopmentFailureAtStageFromCause(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE,
+		"project-authority",
+		err,
+	)
+}
+
+func localDevelopmentManifestPermissionStatusError(err error) error {
+	failure, ok := localDevelopmentManifestPermissionFailureFromError(err)
+	if !ok {
+		return localDevelopmentFailureAtStageFromCause(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE,
+			"project-authority",
+			err,
+		)
+	}
+
+	message := "local development manifest permission is not admitted"
+	actionHint := "use_an_admitted_permission_id"
+	admission := "unknown"
+	switch failure.Reason() {
+	case localDevelopmentManifestPermissionReserved:
+		message = "local development manifest permission is reserved pending admission"
+		actionHint = "wait_for_permission_admission"
+		admission = "reserved"
+	case localDevelopmentManifestPermissionUnknown:
+		message = "local development manifest permission id is unknown to the public catalog"
+		actionHint = "use_known_permission_id"
+	}
+
+	metadata := map[string]string{
+		"diagnostic_stage":              "manifest-permission",
+		"local_development_reason_code": string(failure.Reason()),
+		"permission_admission":          admission,
+	}
+	if permissionID := localDevelopmentPublicPermissionID(failure.PermissionID()); permissionID != "" {
+		metadata["permission_id"] = permissionID
+		if failure.Reason() == localDevelopmentManifestPermissionReserved {
+			message = "local development manifest permission \"" + permissionID + "\" is reserved pending admission"
+		} else {
+			message = "local development manifest permission id \"" + permissionID + "\" is unknown to the public catalog"
+		}
+	}
+	return grpcerr.WrapWithReasonCode(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED,
+		err,
+		grpcerr.ReasonOptions{
+			ActionHint: actionHint,
+			Message:    message,
+			Metadata:   metadata,
+		},
+	)
+}
+
+func localDevelopmentPublicPermissionID(value string) string {
+	if value == "" || len([]byte(value)) > 240 {
+		return ""
+	}
+	for _, character := range value {
+		if character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' ||
+			character >= '0' && character <= '9' || character == '.' || character == '-' || character == '_' {
+			continue
+		}
+		return ""
+	}
+	return value
+}
+
 func localDevelopmentStoreError(err error) error {
+	if _, ok := localDevelopmentManifestPermissionFailureFromError(err); ok {
+		return localDevelopmentManifestPermissionStatusError(err)
+	}
 	switch {
 	case errors.Is(err, errLocalDevelopmentProjectChanged), errors.Is(err, errLocalDevelopmentProjectUnstable):
 		return localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, err)

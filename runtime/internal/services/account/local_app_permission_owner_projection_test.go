@@ -155,7 +155,7 @@ func TestLocalAppPermissionOwnerProjectionPreservesLifecycleAndCurrentAgentSnaps
 		t.Fatalf("revoked owner projection = %+v", revokedProjection)
 	}
 	appStatus, err = fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{PermissionId: "agents.interact"})
-	if err != nil || appStatus.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED {
+	if err != nil || appStatus.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_REVOKED {
 		t.Fatalf("revoked app projection = (%+v, %v)", appStatus, err)
 	}
 }

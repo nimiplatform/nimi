@@ -77,6 +77,89 @@ func TestLocalDevelopmentAuthoritySummaryIsProtectedBoundedAndSideEffectFree(t *
 	}
 }
 
+func TestLocalDevelopmentHandlerSurfacesManifestPermissionFailuresTruthfully(t *testing.T) {
+	for index, test := range []struct {
+		name          string
+		permissionID  string
+		wantReason    localDevelopmentManifestPermissionReason
+		wantAdmission string
+		wantMessage   string
+	}{
+		{
+			name:          "reserved",
+			permissionID:  "agents.configure",
+			wantReason:    localDevelopmentManifestPermissionReserved,
+			wantAdmission: "reserved",
+			wantMessage:   "reserved pending admission",
+		},
+		{
+			name:          "unknown",
+			permissionID:  "runtime.agent.turn.write",
+			wantReason:    localDevelopmentManifestPermissionUnknown,
+			wantAdmission: "unknown",
+			wantMessage:   "unknown to the public catalog",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			boot := localDevelopmentTestIdentifier(byte(0xa1 + index))
+			store, err := openLocalDevelopmentStore(filepath.Join(t.TempDir(), "local-development.db"), boot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = store.Close() })
+
+			projectRoot := filepath.Join(t.TempDir(), "permission-failure-app")
+			if err := os.MkdirAll(projectRoot, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			manifest := "app_id: permission.failure.app\ndisplay_name: Permission Failure App\npermissions:\n  - id: " + test.permissionID + "\n    reason: Explain this permission request\n"
+			if err := os.WriteFile(filepath.Join(projectRoot, "nimi.app.yaml"), []byte(manifest), 0o600); err != nil {
+				t.Fatal(err)
+			}
+
+			account := &localDevelopmentHandlerAccount{accountID: "account-development", generation: 12}
+			service := New(
+				slog.New(slog.NewTextHandler(io.Discard, nil)),
+				WithRuntimeAccountProjectionProvider(account),
+				WithLocalDevelopmentAuthority(store, nil, &localDevelopmentHandlerProcessVerifier{}, nil),
+			)
+			if _, err := store.SetDeveloperMode(ctx, true, account.accountID, account.generation); err != nil {
+				t.Fatalf("enable Developer Mode: %v", err)
+			}
+			desktopConnection := newLocalDevelopmentHandlerDesktopConnection(t, boot)
+			t.Cleanup(desktopConnection.Revoke)
+			desktopContext := protectedlocal.ContextWithDesktopConnection(ctx, desktopConnection)
+			runID := localDevelopmentTestIdentifier(byte(0xb1 + index))
+
+			_, err = service.EvaluateLocalDevelopmentProject(desktopContext, &runtimev1.EvaluateLocalDevelopmentProjectRequest{
+				ExpectedAppId:   "permission.failure.app",
+				ProjectRoot:     projectRoot,
+				ShellKind:       runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+				SupervisorRunId: runID[:],
+			})
+			var typedFailure *localDevelopmentManifestPermissionError
+			if !errors.As(err, &typedFailure) || typedFailure.Reason() != test.wantReason || typedFailure.PermissionID() != test.permissionID {
+				t.Fatalf("handler cause = (%#v, %v), want reason=%s permission=%s", typedFailure, err, test.wantReason, test.permissionID)
+			}
+			reason, reasonOK := grpcerr.ExtractReasonCode(err)
+			if status.Code(err) != codes.FailedPrecondition || !reasonOK || reason != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED {
+				t.Fatalf("handler status = code=%s reason=%s present=%v error=%v", status.Code(err), reason, reasonOK, err)
+			}
+			metadata, metadataOK := grpcerr.ExtractReasonMetadata(err)
+			if !metadataOK || metadata["local_development_reason_code"] != string(test.wantReason) ||
+				metadata["permission_id"] != test.permissionID || metadata["permission_admission"] != test.wantAdmission ||
+				metadata["diagnostic_stage"] != "manifest-permission" {
+				t.Fatalf("handler metadata = %#v present=%v", metadata, metadataOK)
+			}
+			message, messageOK := grpcerr.ExtractPublicMessage(err)
+			if !messageOK || !strings.Contains(message, test.permissionID) || !strings.Contains(message, test.wantMessage) {
+				t.Fatalf("handler public message = %q present=%v", message, messageOK)
+			}
+		})
+	}
+}
+
 func TestLocalDevelopmentHandlerRejectsAllowAfterAccountSwitchAndConsumesEvaluation(t *testing.T) {
 	ctx := context.Background()
 	boot := localDevelopmentTestIdentifier(0x81)

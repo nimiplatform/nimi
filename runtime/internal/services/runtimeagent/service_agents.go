@@ -5,6 +5,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -77,10 +79,34 @@ func (s *Service) DisableAutonomy(ctx context.Context, req *runtimev1.DisableAut
 }
 
 func (s *Service) SetAutonomyConfig(ctx context.Context, req *runtimev1.SetAutonomyConfigRequest) (*runtimev1.SetAutonomyConfigResponse, error) {
+	if req == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	if _, err := s.authorizeProtectedAccountAgent(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.write"); err != nil {
 		return nil, err
 	}
-	return s.agentAdminRuntime().setAutonomyConfig(req)
+	if req.ExpectedAutonomyRevision == nil || req.GetExpectedAutonomyRevision() == 0 || (req.GetConfig() == nil && req.Enabled == nil) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	identity, err := localAgentIdentityFromContext(req.GetContext())
+	if err != nil {
+		return nil, err
+	}
+	var config *runtimev1.AgentAutonomyConfig
+	if req.GetConfig() != nil {
+		config, err = validateAgentAutonomyMutationConfig(req.GetConfig())
+		if err != nil {
+			return nil, err
+		}
+	}
+	autonomy, err := s.updateAgentAutonomyCAS(identity, req.GetExpectedAutonomyRevision(), agentAutonomyMutationIntent{
+		enabled: req.Enabled,
+		config:  config,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.SetAutonomyConfigResponse{Autonomy: autonomy}, nil
 }
 
 func (s *Service) ListPendingHooks(ctx context.Context, req *runtimev1.ListPendingHooksRequest) (*runtimev1.ListPendingHooksResponse, error) {
@@ -101,6 +127,7 @@ func buildInitialAutonomyState(cfg *runtimev1.AgentAutonomyConfig, now time.Time
 	config := normalizeAutonomyConfig(cfg)
 	state := &runtimev1.AgentAutonomyState{
 		Enabled:            false,
+		Revision:           1,
 		Config:             config,
 		UsedTokensInWindow: 0,
 		WindowStartedAt:    timestamppb.New(now),

@@ -20,20 +20,38 @@ func TestNormalizeLocalDevelopmentPermissionRequestsAcceptsZeroPermissionApp(t *
 	}
 }
 
-func TestNormalizeLocalDevelopmentPermissionRequestsRejectsReservedAndInvalidIDs(t *testing.T) {
+func TestNormalizeLocalDevelopmentPermissionRequestsReturnsTypedReservedAndUnknownReasons(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		permissionID string
+		wantReason   localDevelopmentManifestPermissionReason
+	}{
+		{name: "reserved", permissionID: "agents.configure", wantReason: localDevelopmentManifestPermissionReserved},
+		{name: "unknown", permissionID: "runtime.agent.turn.write", wantReason: localDevelopmentManifestPermissionUnknown},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			request := localAppManifestPermissionRequest{PermissionID: test.permissionID, Reason: "Explain the requested permission"}
+			_, err := normalizeLocalDevelopmentPermissionRequests([]localAppManifestPermissionRequest{request}, nil)
+			failure, ok := localDevelopmentManifestPermissionFailureFromError(err)
+			if !ok || failure.Reason() != test.wantReason || failure.PermissionID() != test.permissionID {
+				t.Fatalf("typed permission failure = (%#v, %v), want reason=%s permission=%s", failure, err, test.wantReason, test.permissionID)
+			}
+		})
+	}
+}
+
+func TestNormalizeLocalDevelopmentPermissionRequestsRejectsMalformedRequests(t *testing.T) {
 	for _, test := range []struct {
 		name    string
 		request localAppManifestPermissionRequest
 	}{
-		{name: "reserved", request: localAppManifestPermissionRequest{PermissionID: "artifacts.open", Reason: "Open an artifact"}},
-		{name: "unknown", request: localAppManifestPermissionRequest{PermissionID: "runtime.agent.turn.write", Reason: "Internal operation is not a permission"}},
 		{name: "whitespace", request: localAppManifestPermissionRequest{PermissionID: " agents.interact", Reason: "Not canonical"}},
 		{name: "missing reason", request: localAppManifestPermissionRequest{PermissionID: "agents.interact"}},
 		{name: "long reason", request: localAppManifestPermissionRequest{PermissionID: "agents.interact", Reason: strings.Repeat("界", 81)}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			if _, err := normalizeLocalDevelopmentPermissionRequests([]localAppManifestPermissionRequest{test.request}, nil); err == nil {
-				t.Fatal("non-admitted permission request was accepted")
+				t.Fatal("malformed permission request was accepted")
 			}
 		})
 	}

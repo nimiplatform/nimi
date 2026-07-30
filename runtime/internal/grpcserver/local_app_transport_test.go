@@ -257,6 +257,13 @@ func TestProtectedLocalAppPoliciesExposeOnlyNamedLocalAppOperations(t *testing.T
 		protectedOpenConversationMethod,
 		protectedSendConversationTurnMethod,
 		protectedConversationSnapshotMethod,
+		protectedConfigurationSnapshotMethod,
+		protectedUpdateConfigurationMethod,
+		protectedReadinessSnapshotMethod,
+		protectedAutonomySnapshotMethod,
+		protectedUpdateAutonomyMethod,
+		protectedPresentationSnapshotMethod,
+		protectedCommitPresentationMethod,
 	} {
 		if !protectedLocalAppUnaryMethodAllowed(method) {
 			t.Fatalf("admitted local-app unary operation is missing: %s", method)
@@ -310,6 +317,64 @@ func TestSelectedProtectedLocalAppStorageOperationsCarryOnlyExactPath(t *testing
 	})
 	if handlerCalled || status.Code(err) != codes.InvalidArgument || localAppTransportReason(err) != runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID {
 		t.Fatalf("invalid storage path transport = called=%v code=%s reason=%s err=%v", handlerCalled, status.Code(err), localAppTransportReason(err), err)
+	}
+}
+
+func TestProtectedLocalAppConfigureOperationsRemainReservedWithPermissionMetadata(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0xcf)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0xd0), SessionProof: grpcLocalAppIdentifier(0xd1)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	interceptor := newUnaryProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{err: localAppTransportReasonError{reason: runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED}})
+	tests := []struct {
+		method    string
+		request   any
+		operation accountservice.LocalAppOperation
+	}{
+		{protectedConfigurationSnapshotMethod, &runtimev1.GetLocalAppAgentConfigurationSnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationConfigurationSnapshot},
+		{protectedUpdateConfigurationMethod, &runtimev1.UpdateLocalAppAgentConfigurationRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationUpdateConfiguration},
+		{protectedReadinessSnapshotMethod, &runtimev1.GetLocalAppAgentReadinessSnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationReadinessSnapshot},
+		{protectedAutonomySnapshotMethod, &runtimev1.GetLocalAppAgentAutonomySnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationAutonomySnapshot},
+		{protectedUpdateAutonomyMethod, &runtimev1.UpdateLocalAppAgentAutonomyRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationUpdateAutonomy},
+		{protectedPresentationSnapshotMethod, &runtimev1.GetLocalAppAgentPresentationSnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationPresentationSnapshot},
+		{protectedCommitPresentationMethod, &runtimev1.CommitLocalAppAgentPresentationRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationCommitPresentation},
+	}
+	for _, test := range tests {
+		operation, selector, selected := selectedLocalAppUnaryOperation(test.method, test.request)
+		if !selected || operation != test.operation || selector != (localappop.Selector{AgentID: "lah_v1_opaque"}) {
+			t.Fatalf("configure selector for %s = (%q, %+v, %v)", test.method, operation, selector, selected)
+		}
+		handlerCalled := false
+		_, err := interceptor(ctx, test.request, &grpc.UnaryServerInfo{FullMethod: test.method}, func(context.Context, any) (any, error) {
+			handlerCalled = true
+			return nil, nil
+		})
+		if handlerCalled || status.Code(err) != codes.Unavailable || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED {
+			t.Fatalf("reserved configure transport %s = called:%v code:%s reason:%s err:%v", test.method, handlerCalled, status.Code(err), localAppTransportReason(err), err)
+		}
+		metadata, ok := grpcerr.ExtractReasonMetadata(err)
+		if !ok || metadata["permission_id"] != "agents.configure" || metadata["permission_reason"] != "reserved_not_admitted" {
+			t.Fatalf("reserved configure metadata for %s = %#v, %v", test.method, metadata, ok)
+		}
+	}
+	for _, test := range []struct {
+		reason runtimev1.ReasonCode
+		label  string
+	}{
+		{runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED, "not_granted"},
+		{runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED, "denied"},
+		{runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED, "revoked"},
+	} {
+		interceptor := newUnaryProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{err: localAppTransportReasonError{reason: test.reason}})
+		_, err := interceptor(ctx, &runtimev1.GetLocalAppAgentConfigurationSnapshotRequest{AgentHandle: "lah_v1_opaque"}, &grpc.UnaryServerInfo{FullMethod: protectedConfigurationSnapshotMethod}, func(context.Context, any) (any, error) {
+			t.Fatal("non-granted configure operation reached handler")
+			return nil, nil
+		})
+		metadata, ok := grpcerr.ExtractReasonMetadata(err)
+		if !ok || localAppTransportReason(err) != test.reason || metadata["permission_id"] != "agents.configure" || metadata["permission_reason"] != test.label {
+			t.Fatalf("configure failure %s metadata = %#v, reason=%s", test.reason, metadata, localAppTransportReason(err))
+		}
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const sourceMaterializationTransportTestRuntimeID = "runtime-instance-materializer-1"
@@ -147,8 +148,10 @@ func materializeRealmSourceTestAgent(
 func configureRealmSourceTestAgent(ctx context.Context, svc *Service, input *realmSourceTestAgentInput) error {
 	if input.AutonomyConfig != nil {
 		if _, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
-			Context: input.Context,
-			Config:  input.AutonomyConfig,
+			Context:                  input.Context,
+			AgentId:                  input.Context.GetLocalAgentRef(),
+			ExpectedAutonomyRevision: proto.Uint64(1),
+			Config:                   normalizeAutonomyConfig(input.AutonomyConfig),
 		}); err != nil {
 			return err
 		}

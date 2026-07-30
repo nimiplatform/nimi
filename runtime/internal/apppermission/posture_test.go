@@ -20,7 +20,7 @@ func TestEvaluatePostureMapsOwnerStatesWithoutExposingTerminalWorkflow(t *testin
 		{name: "granted", state: localappkernel.PermissionGrantStateGranted, posture: PostureGranted, usable: true},
 		{name: "denied", state: localappkernel.PermissionGrantStateDenied, posture: PostureDenied},
 		{name: "expired", state: localappkernel.PermissionGrantStateExpired, posture: PostureDenied},
-		{name: "revoked", state: localappkernel.PermissionGrantStateRevoked, posture: PostureDenied},
+		{name: "revoked", state: localappkernel.PermissionGrantStateRevoked, posture: PostureRevoked},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

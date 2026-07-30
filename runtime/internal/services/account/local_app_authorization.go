@@ -28,6 +28,13 @@ const (
 	LocalAppOperationSendConversationTurn  LocalAppOperation = "runtime_agent.conversation.turn_send"
 	LocalAppOperationSubscribeConversation LocalAppOperation = "runtime_agent.conversation.turn_subscribe"
 	LocalAppOperationConversationSnapshot  LocalAppOperation = "runtime_agent.conversation.snapshot"
+	LocalAppOperationConfigurationSnapshot LocalAppOperation = "runtime_agent.configuration.snapshot"
+	LocalAppOperationUpdateConfiguration   LocalAppOperation = "runtime_agent.configuration.update"
+	LocalAppOperationReadinessSnapshot     LocalAppOperation = "runtime_agent.readiness.snapshot"
+	LocalAppOperationAutonomySnapshot      LocalAppOperation = "runtime_agent.autonomy.snapshot"
+	LocalAppOperationUpdateAutonomy        LocalAppOperation = "runtime_agent.autonomy.update"
+	LocalAppOperationPresentationSnapshot  LocalAppOperation = "runtime_agent.presentation.snapshot"
+	LocalAppOperationCommitPresentation    LocalAppOperation = "runtime_agent.presentation.commit"
 	LocalAppOperationStorageJSONRead       LocalAppOperation = "app_storage.json.read"
 	LocalAppOperationStorageJSONWrite      LocalAppOperation = "app_storage.json.write"
 	LocalAppOperationStorageJSONRemove     LocalAppOperation = "app_storage.json.remove"
@@ -269,6 +276,11 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 	case LocalAppOperationOpenConversation, LocalAppOperationSendConversationTurn,
 		LocalAppOperationSubscribeConversation, LocalAppOperationConversationSnapshot:
 		return localAppAgentPermissionID, true
+	case LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
+		LocalAppOperationReadinessSnapshot, LocalAppOperationAutonomySnapshot,
+		LocalAppOperationUpdateAutonomy, LocalAppOperationPresentationSnapshot,
+		LocalAppOperationCommitPresentation:
+		return "agents.configure", true
 	case LocalAppOperationStorageJSONRead, LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
 		return appstorage.LocalAppPrivateStorageEntitlement, true
 	case LocalAppOperationVoiceTranscribe:

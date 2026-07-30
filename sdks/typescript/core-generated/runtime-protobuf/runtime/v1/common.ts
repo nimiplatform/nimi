@@ -1055,7 +1055,59 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: REALM_OPERATION_FAILED = 667;
      */
-    REALM_OPERATION_FAILED = 667
+    REALM_OPERATION_FAILED = 667,
+    /**
+     * Permission admission precision and agents.configure optimistic
+     * concurrency. These values preserve reserved/unknown distinction across
+     * protected-local carriers without exposing owner-internal records.
+     *
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED = 668;
+     */
+    LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED = 668,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_UNKNOWN = 669;
+     */
+    LOCAL_APP_PERMISSION_UNKNOWN = 669,
+    /**
+     * @generated from protobuf enum value: AGENT_AI_CONFIG_REVISION_CONFLICT = 670;
+     */
+    AGENT_AI_CONFIG_REVISION_CONFLICT = 670,
+    /**
+     * @generated from protobuf enum value: AGENT_AUTONOMY_REVISION_CONFLICT = 671;
+     */
+    AGENT_AUTONOMY_REVISION_CONFLICT = 671,
+    /**
+     * Runtime-owned presentation asset intake validation. These reasons remain
+     * distinct so protected carriers can preserve the actionable validation
+     * category and bounded ErrorInfo metadata.
+     *
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_TYPE_INVALID = 672;
+     */
+    AGENT_PRESENTATION_ASSET_TYPE_INVALID = 672,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_TOO_LARGE = 673;
+     */
+    AGENT_PRESENTATION_ASSET_TOO_LARGE = 673,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID = 674;
+     */
+    AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID = 674,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING = 675;
+     */
+    AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING = 675,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH = 676;
+     */
+    AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH = 676,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_BACKEND_INCOMPATIBLE = 677;
+     */
+    AGENT_PRESENTATION_BACKEND_INCOMPATIBLE = 677,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_NOT_VALIDATED = 678;
+     */
+    AGENT_PRESENTATION_ASSET_NOT_VALIDATED = 678
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

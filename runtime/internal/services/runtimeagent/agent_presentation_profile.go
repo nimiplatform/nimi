@@ -294,10 +294,23 @@ func validatePersistedAgentPresentationProfile(agent *runtimev1.LocalAgentRecord
 		return nil
 	}
 	if metadata := agent.GetMetadata(); metadata != nil {
-		for _, key := range []string{"presentationProfile", "presentationProfileRevision"} {
+		for _, key := range []string{"presentationProfile", "presentationProfileRevision", "previousPresentationProfile"} {
 			if _, exists := metadata.GetFields()[key]; exists {
 				return invalidAgentPresentationProfile()
 			}
+		}
+	}
+	if previous := agent.GetPreviousPresentationProfile(); previous != nil {
+		if previous.GetRevision() == 0 {
+			return invalidAgentPresentationProfile()
+		}
+		normalized, err := normalizeMergedAgentPresentationProfile(previous)
+		if err != nil || normalized == nil {
+			return invalidAgentPresentationProfile()
+		}
+		normalized.Revision = previous.GetRevision()
+		if !proto.Equal(normalized, previous) {
+			return invalidAgentPresentationProfile()
 		}
 	}
 	if agent.GetPresentationProfile() == nil {

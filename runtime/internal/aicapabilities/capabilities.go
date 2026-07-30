@@ -12,6 +12,7 @@ const (
 	TextGenerateVideo        = "text.generate.video"
 	TextEmbed                = "text.embed"
 	ImageGenerate            = "image.generate"
+	ImageEdit                = "image.edit"
 	VideoGenerate            = "video.generate"
 	WorldGenerate            = "world.generate"
 	AudioSynthesize          = "audio.synthesize"
@@ -23,6 +24,27 @@ const (
 )
 
 var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
+
+// canonicalCatalog is the Runtime registry projection of the closed Platform
+// canonical capability catalog. Consumers obtain a fresh snapshot rather than
+// maintaining feature-local capability lists.
+var canonicalCatalog = []string{
+	TextGenerate,
+	TextGenerateVision,
+	TextEmbed,
+	AudioSynthesize,
+	AudioTranscribe,
+	VoiceWorkflowVoiceClone,
+	VoiceWorkflowVoiceDesign,
+	ImageGenerate,
+	ImageEdit,
+	VideoGenerate,
+	WorldGenerate,
+}
+
+func CanonicalCatalog() []string {
+	return append([]string(nil), canonicalCatalog...)
+}
 
 // NormalizeCatalogCapability returns the canonical catalog capability token.
 // Unknown values are rejected rather than auto-mapped to preserve hard-cut semantics.
@@ -40,6 +62,8 @@ func NormalizeCatalogCapability(value string) (string, error) {
 		return TextEmbed, nil
 	case ImageGenerate:
 		return ImageGenerate, nil
+	case ImageEdit:
+		return ImageEdit, nil
 	case VideoGenerate:
 		return VideoGenerate, nil
 	case WorldGenerate:

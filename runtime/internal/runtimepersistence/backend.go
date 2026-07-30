@@ -581,6 +581,19 @@ func (b *Backend) ensureSchema() error {
 			updated_at TEXT NOT NULL,
 			updated_by_app_id TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_agent_presentation_asset (
+			asset_ref TEXT PRIMARY KEY,
+			local_agent_ref TEXT NOT NULL,
+			asset_role INTEGER NOT NULL,
+			backend_kind INTEGER NOT NULL,
+			file_name TEXT NOT NULL,
+			media_type TEXT NOT NULL,
+			sha256 TEXT NOT NULL,
+			byte_length INTEGER NOT NULL,
+			content BLOB NOT NULL,
+			created_at TEXT NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_runtime_agent_presentation_asset_agent ON runtime_agent_presentation_asset(local_agent_ref)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {

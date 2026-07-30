@@ -237,6 +237,14 @@ const (
 	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV2 AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2"
 )
 
+type AgentPresentationAssetRole string
+
+const (
+	AGENTPRESENTATIONASSETROLEUNSPECIFIED AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED"
+	AGENTPRESENTATIONASSETROLEAVATAR AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_AVATAR"
+	AGENTPRESENTATIONASSETROLEBACKGROUND AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND"
+)
+
 type AgentPresentationBackendKind string
 
 const (
@@ -758,6 +766,26 @@ const (
 	KNOWLEDGEINGESTTASKSTATUSFAILED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
 )
 
+type LocalAppAgentAutonomyMode string
+
+const (
+	LOCALAPPAGENTAUTONOMYMODEUNSPECIFIED LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED"
+	LOCALAPPAGENTAUTONOMYMODEOFF LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF"
+	LOCALAPPAGENTAUTONOMYMODELOW LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW"
+	LOCALAPPAGENTAUTONOMYMODEMEDIUM LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM"
+	LOCALAPPAGENTAUTONOMYMODEHIGH LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"
+)
+
+type LocalAppAgentReadinessState string
+
+const (
+	LOCALAPPAGENTREADINESSSTATEUNSPECIFIED LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED"
+	LOCALAPPAGENTREADINESSSTATEREADY LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_READY"
+	LOCALAPPAGENTREADINESSSTATEBLOCKED LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED"
+	LOCALAPPAGENTREADINESSSTATEUNAVAILABLE LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE"
+	LOCALAPPAGENTREADINESSSTATEFAILED LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_FAILED"
+)
+
 type LocalAppPermissionOwnerPosture string
 
 const (
@@ -778,6 +806,7 @@ const (
 	LOCALAPPPERMISSIONPOSTUREGRANTED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_GRANTED"
 	LOCALAPPPERMISSIONPOSTUREDENIED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_DENIED"
 	LOCALAPPPERMISSIONPOSTUREUNAVAILABLE LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"
+	LOCALAPPPERMISSIONPOSTUREREVOKED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_REVOKED"
 )
 
 type LocalAppSessionState string
@@ -1382,6 +1411,17 @@ const (
 	REALMREQUESTREJECTED ReasonCode = "REALM_REQUEST_REJECTED"
 	REALMCONTRACTINVALID ReasonCode = "REALM_CONTRACT_INVALID"
 	REALMOPERATIONFAILED ReasonCode = "REALM_OPERATION_FAILED"
+	LOCALAPPPERMISSIONRESERVEDNOTADMITTED ReasonCode = "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED"
+	LOCALAPPPERMISSIONUNKNOWN ReasonCode = "LOCAL_APP_PERMISSION_UNKNOWN"
+	AGENTAICONFIGREVISIONCONFLICT ReasonCode = "AGENT_AI_CONFIG_REVISION_CONFLICT"
+	AGENTAUTONOMYREVISIONCONFLICT ReasonCode = "AGENT_AUTONOMY_REVISION_CONFLICT"
+	AGENTPRESENTATIONASSETTYPEINVALID ReasonCode = "AGENT_PRESENTATION_ASSET_TYPE_INVALID"
+	AGENTPRESENTATIONASSETTOOLARGE ReasonCode = "AGENT_PRESENTATION_ASSET_TOO_LARGE"
+	AGENTPRESENTATIONASSETSTRUCTUREINVALID ReasonCode = "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID"
+	AGENTPRESENTATIONASSETDEPENDENCYMISSING ReasonCode = "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING"
+	AGENTPRESENTATIONASSETINTEGRITYMISMATCH ReasonCode = "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH"
+	AGENTPRESENTATIONBACKENDINCOMPATIBLE ReasonCode = "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE"
+	AGENTPRESENTATIONASSETNOTVALIDATED ReasonCode = "AGENT_PRESENTATION_ASSET_NOT_VALIDATED"
 )
 
 type ReasoningMode string
@@ -1818,6 +1858,7 @@ type AgentAutonomyState struct {
 	WindowStartedAt string `json:"window_started_at,omitempty"`
 	BudgetExhausted bool `json:"budget_exhausted,omitempty"`
 	SuspendedUntil string `json:"suspended_until,omitempty"`
+	Revision uint64 `json:"revision,omitempty"`
 }
 
 type AgentAvatarDebugEventDetail struct {
@@ -1919,6 +1960,14 @@ type AgentMemoryEventDetail struct {
 type AgentPostureProjection struct {
 	ActionFamily string `json:"action_family,omitempty"`
 	InterruptMode string `json:"interrupt_mode,omitempty"`
+}
+
+type AgentPresentationAssetMaterial struct {
+	Role AgentPresentationAssetRole `json:"role,omitempty"`
+	FileName string `json:"file_name,omitempty"`
+	MediaType string `json:"media_type,omitempty"`
+	Content []byte `json:"content,omitempty"`
+	Sha256 string `json:"sha256,omitempty"`
 }
 
 type AgentPresentationEventDetail struct {
@@ -2677,6 +2726,13 @@ type CollectDeviceProfileRequest struct {
 
 type CollectDeviceProfileResponse struct {
 	Profile *LocalDeviceProfile `json:"profile,omitempty"`
+}
+
+type CommitLocalAppAgentPresentationRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ExpectedPresentationRevision uint64 `json:"expected_presentation_revision,omitempty"`
+	Intent *LocalAppAgentPresentationIntent `json:"intent,omitempty"`
+	ImportedAssets []AgentPresentationAssetMaterial `json:"imported_assets,omitempty"`
 }
 
 type CompanionParticipationProjection struct {
@@ -3439,6 +3495,22 @@ type GetKnowledgeBankRequest struct {
 
 type GetKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
+}
+
+type GetLocalAppAgentAutonomySnapshotRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type GetLocalAppAgentConfigurationSnapshotRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type GetLocalAppAgentPresentationSnapshotRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type GetLocalAppAgentReadinessSnapshotRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
 }
 
 type GetLocalAppPermissionOwnerProjectionRequest struct {
@@ -4359,6 +4431,7 @@ type LocalAgentRecord struct {
 	OwnerUserId string `json:"owner_user_id,omitempty"`
 	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
+	PreviousPresentationProfile *AgentPresentationProfile `json:"previous_presentation_profile,omitempty"`
 }
 
 type LocalAgentSourceContextStatus struct {
@@ -4383,6 +4456,101 @@ type LocalAgentSourceCoverageSectionStatus struct {
 	RequiredCount uint32 `json:"required_count,omitempty"`
 	ResolvedCount uint32 `json:"resolved_count,omitempty"`
 	OmittedCount uint32 `json:"omitted_count,omitempty"`
+}
+
+type LocalAppAgentAutonomyConfig struct {
+	DailyTokenBudget int64 `json:"daily_token_budget,omitempty"`
+	MaxTokensPerHook int64 `json:"max_tokens_per_hook,omitempty"`
+	MinHookInterval string `json:"min_hook_interval,omitempty"`
+	SuspendUntil string `json:"suspend_until,omitempty"`
+	Mode LocalAppAgentAutonomyMode `json:"mode,omitempty"`
+}
+
+type LocalAppAgentAutonomyIntent struct {
+	Enabled *bool `json:"enabled,omitempty"`
+	Config *LocalAppAgentAutonomyConfig `json:"config,omitempty"`
+}
+
+type LocalAppAgentAutonomyProjection struct {
+	Enabled bool `json:"enabled,omitempty"`
+	Config *LocalAppAgentAutonomyConfig `json:"config,omitempty"`
+	UsedTokensInWindow int64 `json:"used_tokens_in_window,omitempty"`
+	WindowStartedAt string `json:"window_started_at,omitempty"`
+	BudgetExhausted bool `json:"budget_exhausted,omitempty"`
+	SuspendedUntil string `json:"suspended_until,omitempty"`
+	AutonomyRevision uint64 `json:"autonomy_revision,omitempty"`
+}
+
+type LocalAppAgentAutonomySnapshotResponse struct {
+	Projection *LocalAppAgentAutonomyProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentCapabilityReadiness struct {
+	Capability string `json:"capability,omitempty"`
+	State LocalAppAgentReadinessState `json:"state,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	ObservedAt string `json:"observed_at,omitempty"`
+}
+
+type LocalAppAgentCommitPresentationResponse struct {
+	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentConfigurationSnapshotResponse struct {
+	Projection *LocalAppAgentModelSettingsProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentModelSettingsProjection struct {
+	Capabilities []string `json:"capabilities,omitempty"`
+	RouteIntents []LocalAppAgentRouteIntent `json:"route_intents,omitempty"`
+	Readiness []LocalAppAgentCapabilityReadiness `json:"readiness,omitempty"`
+	ConfigurationRevision uint64 `json:"configuration_revision,omitempty"`
+}
+
+type LocalAppAgentPresentationIntent struct {
+	BackendKind AgentPresentationBackendKind `json:"backend_kind,omitempty"`
+	AvatarAssetRef string `json:"avatar_asset_ref,omitempty"`
+	ExpressionProfileRef string `json:"expression_profile_ref,omitempty"`
+	IdlePreset string `json:"idle_preset,omitempty"`
+	InteractionPolicyRef string `json:"interaction_policy_ref,omitempty"`
+	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
+	AvatarAutoplay bool `json:"avatar_autoplay,omitempty"`
+	BackgroundAssetRef string `json:"background_asset_ref,omitempty"`
+}
+
+type LocalAppAgentPresentationProjection struct {
+	Profile *AgentPresentationProfile `json:"profile,omitempty"`
+	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
+	PresentationRevision uint64 `json:"presentation_revision,omitempty"`
+	PreviousProfile *AgentPresentationProfile `json:"previous_profile,omitempty"`
+}
+
+type LocalAppAgentPresentationSnapshotResponse struct {
+	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentReadinessProjection struct {
+	Capabilities []LocalAppAgentCapabilityReadiness `json:"capabilities,omitempty"`
+	ConfigurationRevision uint64 `json:"configuration_revision,omitempty"`
+}
+
+type LocalAppAgentReadinessSnapshotResponse struct {
+	Projection *LocalAppAgentReadinessProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentRouteIntent struct {
+	Capability string `json:"capability,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	Model string `json:"model,omitempty"`
+	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
+}
+
+type LocalAppAgentUpdateAutonomyResponse struct {
+	Projection *LocalAppAgentAutonomyProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentUpdateConfigurationResponse struct {
+	Projection *LocalAppAgentModelSettingsProjection `json:"projection,omitempty"`
 }
 
 type LocalAppPermissionAgentHandle struct {
@@ -6293,6 +6461,7 @@ type RuntimeAgentAIConfigIntent struct {
 	TargetRef *RuntimeDurableTargetRef `json:"target_ref,omitempty"`
 	VoiceReferenceRef string `json:"voice_reference_ref,omitempty"`
 	ImagePolicyRef string `json:"image_policy_ref,omitempty"`
+	Provider string `json:"provider,omitempty"`
 }
 
 type RuntimeAgentAIConfigReadinessSnapshot struct {
@@ -6650,17 +6819,21 @@ type SetAgentPresentationProfileRequest struct {
 	Clear *ClearAgentPresentationProfile `json:"clear,omitempty"`
 	Patch *AgentPresentationProfilePatch `json:"patch,omitempty"`
 	ExpectedRevision *uint64 `json:"expected_revision,omitempty"`
+	ImportedAssets []AgentPresentationAssetMaterial `json:"imported_assets,omitempty"`
 }
 
 type SetAgentPresentationProfileResponse struct {
 	Profile *AgentPresentationProfile `json:"profile,omitempty"`
 	CommittedRevision uint64 `json:"committed_revision,omitempty"`
+	PreviousProfile *AgentPresentationProfile `json:"previous_profile,omitempty"`
 }
 
 type SetAutonomyConfigRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
 	Config *AgentAutonomyConfig `json:"config,omitempty"`
+	ExpectedAutonomyRevision *uint64 `json:"expected_autonomy_revision,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 type SetAutonomyConfigResponse struct {
@@ -7078,6 +7251,18 @@ type UpdateConnectorRequest struct {
 
 type UpdateConnectorResponse struct {
 	Connector *Connector `json:"connector,omitempty"`
+}
+
+type UpdateLocalAppAgentAutonomyRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ExpectedAutonomyRevision uint64 `json:"expected_autonomy_revision,omitempty"`
+	Intent *LocalAppAgentAutonomyIntent `json:"intent,omitempty"`
+}
+
+type UpdateLocalAppAgentConfigurationRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ExpectedConfigurationRevision uint64 `json:"expected_configuration_revision,omitempty"`
+	RouteIntents []LocalAppAgentRouteIntent `json:"route_intents,omitempty"`
 }
 
 type UploadArtifactChunk struct {
@@ -7697,6 +7882,14 @@ func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRe
 	return decodeRuntimeTypedResponse[CancelHookResponse](raw, "CancelHookResponse")
 }
 
+func (c RuntimeTypedClient) CommitLocalAppAgentPresentation(ctx context.Context, request CommitLocalAppAgentPresentationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentCommitPresentationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentCommitPresentationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentCommitPresentationResponse](raw, "LocalAppAgentCommitPresentationResponse")
+}
+
 func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request DisableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DisableAutonomyResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", request, metadata, timeoutMS)
 	if err != nil {
@@ -7791,6 +7984,38 @@ func (c RuntimeTypedClient) GetDelegatedReplayTrace(ctx context.Context, request
 		return GetDelegatedReplayTraceResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetDelegatedReplayTraceResponse](raw, "GetDelegatedReplayTraceResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalAppAgentAutonomySnapshot(ctx context.Context, request GetLocalAppAgentAutonomySnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentAutonomySnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentAutonomySnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentAutonomySnapshotResponse](raw, "LocalAppAgentAutonomySnapshotResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalAppAgentConfigurationSnapshot(ctx context.Context, request GetLocalAppAgentConfigurationSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentConfigurationSnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentConfigurationSnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentConfigurationSnapshotResponse](raw, "LocalAppAgentConfigurationSnapshotResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalAppAgentPresentationSnapshot(ctx context.Context, request GetLocalAppAgentPresentationSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentPresentationSnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentPresentationSnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentPresentationSnapshotResponse](raw, "LocalAppAgentPresentationSnapshotResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalAppAgentReadinessSnapshot(ctx context.Context, request GetLocalAppAgentReadinessSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentReadinessSnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentReadinessSnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentReadinessSnapshotResponse](raw, "LocalAppAgentReadinessSnapshotResponse")
 }
 
 func (c RuntimeTypedClient) GetPublicChatSessionSnapshot(ctx context.Context, request GetPublicChatSessionSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPublicChatSessionSnapshotResponse, error) {
@@ -8023,6 +8248,22 @@ func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request Update
 		return UpdateAgentStateResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UpdateAgentStateResponse](raw, "UpdateAgentStateResponse")
+}
+
+func (c RuntimeTypedClient) UpdateLocalAppAgentAutonomy(ctx context.Context, request UpdateLocalAppAgentAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentUpdateAutonomyResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentUpdateAutonomyResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentUpdateAutonomyResponse](raw, "LocalAppAgentUpdateAutonomyResponse")
+}
+
+func (c RuntimeTypedClient) UpdateLocalAppAgentConfiguration(ctx context.Context, request UpdateLocalAppAgentConfigurationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentUpdateConfigurationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentUpdateConfigurationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentUpdateConfigurationResponse](raw, "LocalAppAgentUpdateConfigurationResponse")
 }
 
 func (c RuntimeTypedClient) UpsertRuntimeAgentAIConfig(ctx context.Context, request UpsertRuntimeAgentAIConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertRuntimeAgentAIConfigResponse, error) {

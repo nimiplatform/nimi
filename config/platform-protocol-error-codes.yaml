@@ -30,6 +30,8 @@ values:
   - LOCAL_APP_PERMISSION_REQUIRED
   - LOCAL_APP_PERMISSION_DENIED
   - LOCAL_APP_PERMISSION_REVOKED
+  - LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED
+  - LOCAL_APP_PERMISSION_UNKNOWN
   - LOCAL_APP_ACCOUNT_CHANGED
   - LOCAL_APP_OPERATION_UNAVAILABLE
   - LOCAL_APP_PRESENCE_REQUIRED
@@ -110,6 +112,8 @@ codes:
   - { name: LOCAL_APP_PERMISSION_REQUIRED, group: local_app, source_rule: P-PROTO-040 }
   - { name: LOCAL_APP_PERMISSION_DENIED, group: local_app, source_rule: P-PROTO-040 }
   - { name: LOCAL_APP_PERMISSION_REVOKED, group: local_app, source_rule: P-PROTO-040 }
+  - { name: LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED, group: local_app, source_rule: P-PROTO-040 }
+  - { name: LOCAL_APP_PERMISSION_UNKNOWN, group: local_app, source_rule: P-PROTO-040 }
   - { name: LOCAL_APP_ACCOUNT_CHANGED, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_OPERATION_UNAVAILABLE, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_PRESENCE_REQUIRED, group: local_app, source_rule: P-PROTO-020 }

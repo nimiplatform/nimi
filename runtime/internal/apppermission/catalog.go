@@ -47,6 +47,13 @@ var operationPermissions = map[string]string{
 	"runtime_agent.conversation.turn_send":      "agents.interact",
 	"runtime_agent.conversation.turn_subscribe": "agents.interact",
 	"runtime_agent.conversation.snapshot":       "agents.interact",
+	"runtime_agent.configuration.snapshot":      "agents.configure",
+	"runtime_agent.configuration.update":        "agents.configure",
+	"runtime_agent.readiness.snapshot":          "agents.configure",
+	"runtime_agent.autonomy.snapshot":           "agents.configure",
+	"runtime_agent.autonomy.update":             "agents.configure",
+	"runtime_agent.presentation.snapshot":       "agents.configure",
+	"runtime_agent.presentation.commit":         "agents.configure",
 }
 
 func Lookup(id string) (Descriptor, bool) {

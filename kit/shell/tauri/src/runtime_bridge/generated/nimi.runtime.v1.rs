@@ -321,6 +321,23 @@ pub enum ReasonCode {
     RealmRequestRejected = 665,
     RealmContractInvalid = 666,
     RealmOperationFailed = 667,
+    /// Permission admission precision and agents.configure optimistic
+    /// concurrency. These values preserve reserved/unknown distinction across
+    /// protected-local carriers without exposing owner-internal records.
+    LocalAppPermissionReservedNotAdmitted = 668,
+    LocalAppPermissionUnknown = 669,
+    AgentAiConfigRevisionConflict = 670,
+    AgentAutonomyRevisionConflict = 671,
+    /// Runtime-owned presentation asset intake validation. These reasons remain
+    /// distinct so protected carriers can preserve the actionable validation
+    /// category and bounded ErrorInfo metadata.
+    AgentPresentationAssetTypeInvalid = 672,
+    AgentPresentationAssetTooLarge = 673,
+    AgentPresentationAssetStructureInvalid = 674,
+    AgentPresentationAssetDependencyMissing = 675,
+    AgentPresentationAssetIntegrityMismatch = 676,
+    AgentPresentationBackendIncompatible = 677,
+    AgentPresentationAssetNotValidated = 678,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -587,6 +604,31 @@ impl ReasonCode {
             Self::RealmRequestRejected => "REALM_REQUEST_REJECTED",
             Self::RealmContractInvalid => "REALM_CONTRACT_INVALID",
             Self::RealmOperationFailed => "REALM_OPERATION_FAILED",
+            Self::LocalAppPermissionReservedNotAdmitted => {
+                "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED"
+            }
+            Self::LocalAppPermissionUnknown => "LOCAL_APP_PERMISSION_UNKNOWN",
+            Self::AgentAiConfigRevisionConflict => "AGENT_AI_CONFIG_REVISION_CONFLICT",
+            Self::AgentAutonomyRevisionConflict => "AGENT_AUTONOMY_REVISION_CONFLICT",
+            Self::AgentPresentationAssetTypeInvalid => {
+                "AGENT_PRESENTATION_ASSET_TYPE_INVALID"
+            }
+            Self::AgentPresentationAssetTooLarge => "AGENT_PRESENTATION_ASSET_TOO_LARGE",
+            Self::AgentPresentationAssetStructureInvalid => {
+                "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID"
+            }
+            Self::AgentPresentationAssetDependencyMissing => {
+                "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING"
+            }
+            Self::AgentPresentationAssetIntegrityMismatch => {
+                "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH"
+            }
+            Self::AgentPresentationBackendIncompatible => {
+                "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE"
+            }
+            Self::AgentPresentationAssetNotValidated => {
+                "AGENT_PRESENTATION_ASSET_NOT_VALIDATED"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -888,6 +930,37 @@ impl ReasonCode {
             "REALM_REQUEST_REJECTED" => Some(Self::RealmRequestRejected),
             "REALM_CONTRACT_INVALID" => Some(Self::RealmContractInvalid),
             "REALM_OPERATION_FAILED" => Some(Self::RealmOperationFailed),
+            "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED" => {
+                Some(Self::LocalAppPermissionReservedNotAdmitted)
+            }
+            "LOCAL_APP_PERMISSION_UNKNOWN" => Some(Self::LocalAppPermissionUnknown),
+            "AGENT_AI_CONFIG_REVISION_CONFLICT" => {
+                Some(Self::AgentAiConfigRevisionConflict)
+            }
+            "AGENT_AUTONOMY_REVISION_CONFLICT" => {
+                Some(Self::AgentAutonomyRevisionConflict)
+            }
+            "AGENT_PRESENTATION_ASSET_TYPE_INVALID" => {
+                Some(Self::AgentPresentationAssetTypeInvalid)
+            }
+            "AGENT_PRESENTATION_ASSET_TOO_LARGE" => {
+                Some(Self::AgentPresentationAssetTooLarge)
+            }
+            "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID" => {
+                Some(Self::AgentPresentationAssetStructureInvalid)
+            }
+            "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING" => {
+                Some(Self::AgentPresentationAssetDependencyMissing)
+            }
+            "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH" => {
+                Some(Self::AgentPresentationAssetIntegrityMismatch)
+            }
+            "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE" => {
+                Some(Self::AgentPresentationBackendIncompatible)
+            }
+            "AGENT_PRESENTATION_ASSET_NOT_VALIDATED" => {
+                Some(Self::AgentPresentationAssetNotValidated)
+            }
             _ => None,
         }
     }
@@ -2932,6 +3005,7 @@ pub enum LocalAppPermissionPosture {
     Granted = 3,
     Denied = 4,
     Unavailable = 5,
+    Revoked = 6,
 }
 impl LocalAppPermissionPosture {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2946,6 +3020,7 @@ impl LocalAppPermissionPosture {
             Self::Granted => "LOCAL_APP_PERMISSION_POSTURE_GRANTED",
             Self::Denied => "LOCAL_APP_PERMISSION_POSTURE_DENIED",
             Self::Unavailable => "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE",
+            Self::Revoked => "LOCAL_APP_PERMISSION_POSTURE_REVOKED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2957,6 +3032,7 @@ impl LocalAppPermissionPosture {
             "LOCAL_APP_PERMISSION_POSTURE_GRANTED" => Some(Self::Granted),
             "LOCAL_APP_PERMISSION_POSTURE_DENIED" => Some(Self::Denied),
             "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE" => Some(Self::Unavailable),
+            "LOCAL_APP_PERMISSION_POSTURE_REVOKED" => Some(Self::Revoked),
             _ => None,
         }
     }
@@ -15731,6 +15807,19 @@ impl DelegatedTraceStageKind {
         }
     }
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentPresentationAssetMaterial {
+    #[prost(enumeration = "AgentPresentationAssetRole", tag = "1")]
+    pub role: i32,
+    #[prost(string, tag = "2")]
+    pub file_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub media_type: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "4")]
+    pub content: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "5")]
+    pub sha256: ::prost::alloc::string::String,
+}
 /// K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
 /// intentionally narrow and stable; renderer-local execution state must remain
 /// on transient app/runtime seams rather than being smuggled here.
@@ -15871,6 +15960,37 @@ pub struct AgentPresentationEventDetail {
     pub deadline_offset_ms: i64,
     #[prost(string, tag = "75")]
     pub final_artifact_id: ::prost::alloc::string::String,
+}
+/// Runtime receives protected-Shell-imported bytes, validates them, and mints
+/// official refs. A material is never durable candidate/preview state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentPresentationAssetRole {
+    Unspecified = 0,
+    Avatar = 1,
+    Background = 2,
+}
+impl AgentPresentationAssetRole {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED",
+            Self::Avatar => "AGENT_PRESENTATION_ASSET_ROLE_AVATAR",
+            Self::Background => "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PRESENTATION_ASSET_ROLE_AVATAR" => Some(Self::Avatar),
+            "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND" => Some(Self::Background),
+            _ => None,
+        }
+    }
 }
 /// K-AGCORE-037 AgentPresentationEventFamily discriminates
 /// runtime.agent.presentation.\* families. Mapping is 1:1 to
@@ -16264,6 +16384,270 @@ impl CompanionParticipationStatus {
             }
             "COMPANION_PARTICIPATION_STATUS_FAILED" => Some(Self::Failed),
             "COMPANION_PARTICIPATION_STATUS_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
+/// The local-app agents.configure carrier accepts only Runtime-issued opaque
+/// Agent handles. Raw Runtime/Realm identity and authorization fields are
+/// intentionally absent from every request and response.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRouteIntent {
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub model: ::prost::alloc::string::String,
+    #[prost(enumeration = "RoutePolicy", tag = "4")]
+    pub route_policy: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentCapabilityReadiness {
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppAgentReadinessState", tag = "2")]
+    pub state: i32,
+    #[prost(string, tag = "3")]
+    pub reason: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentModelSettingsProjection {
+    #[prost(string, repeated, tag = "1")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "2")]
+    pub route_intents: ::prost::alloc::vec::Vec<LocalAppAgentRouteIntent>,
+    #[prost(message, repeated, tag = "3")]
+    pub readiness: ::prost::alloc::vec::Vec<LocalAppAgentCapabilityReadiness>,
+    #[prost(uint64, tag = "4")]
+    pub configuration_revision: u64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentReadinessProjection {
+    #[prost(message, repeated, tag = "1")]
+    pub capabilities: ::prost::alloc::vec::Vec<LocalAppAgentCapabilityReadiness>,
+    #[prost(uint64, tag = "2")]
+    pub configuration_revision: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentConfigurationSnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentConfigurationSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentModelSettingsProjection>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateLocalAppAgentConfigurationRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub expected_configuration_revision: u64,
+    #[prost(message, repeated, tag = "3")]
+    pub route_intents: ::prost::alloc::vec::Vec<LocalAppAgentRouteIntent>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentUpdateConfigurationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentModelSettingsProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentReadinessSnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentReadinessSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentReadinessProjection>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentAutonomyConfig {
+    #[prost(int64, tag = "1")]
+    pub daily_token_budget: i64,
+    #[prost(int64, tag = "2")]
+    pub max_tokens_per_hook: i64,
+    #[prost(message, optional, tag = "3")]
+    pub min_hook_interval: ::core::option::Option<::prost_types::Duration>,
+    #[prost(message, optional, tag = "4")]
+    pub suspend_until: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "LocalAppAgentAutonomyMode", tag = "5")]
+    pub mode: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentAutonomyProjection {
+    #[prost(bool, tag = "1")]
+    pub enabled: bool,
+    #[prost(message, optional, tag = "2")]
+    pub config: ::core::option::Option<LocalAppAgentAutonomyConfig>,
+    #[prost(int64, tag = "3")]
+    pub used_tokens_in_window: i64,
+    #[prost(message, optional, tag = "4")]
+    pub window_started_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "5")]
+    pub budget_exhausted: bool,
+    #[prost(message, optional, tag = "6")]
+    pub suspended_until: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint64, tag = "7")]
+    pub autonomy_revision: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentAutonomyIntent {
+    #[prost(bool, optional, tag = "1")]
+    pub enabled: ::core::option::Option<bool>,
+    #[prost(message, optional, tag = "2")]
+    pub config: ::core::option::Option<LocalAppAgentAutonomyConfig>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentAutonomySnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentAutonomySnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppAgentAutonomyRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub expected_autonomy_revision: u64,
+    #[prost(message, optional, tag = "3")]
+    pub intent: ::core::option::Option<LocalAppAgentAutonomyIntent>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUpdateAutonomyResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentAutonomyProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentPresentationProjection {
+    #[prost(message, optional, tag = "1")]
+    pub profile: ::core::option::Option<AgentPresentationProfile>,
+    #[prost(string, tag = "2")]
+    pub default_voice_reference: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub presentation_revision: u64,
+    #[prost(message, optional, tag = "4")]
+    pub previous_profile: ::core::option::Option<AgentPresentationProfile>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentPresentationIntent {
+    #[prost(enumeration = "AgentPresentationBackendKind", tag = "1")]
+    pub backend_kind: i32,
+    #[prost(string, tag = "2")]
+    pub avatar_asset_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expression_profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub idle_preset: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub interaction_policy_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub default_voice_reference: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub avatar_autoplay: bool,
+    #[prost(string, tag = "8")]
+    pub background_asset_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentPresentationSnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentPresentationSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommitLocalAppAgentPresentationRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub expected_presentation_revision: u64,
+    #[prost(message, optional, tag = "3")]
+    pub intent: ::core::option::Option<LocalAppAgentPresentationIntent>,
+    #[prost(message, repeated, tag = "4")]
+    pub imported_assets: ::prost::alloc::vec::Vec<AgentPresentationAssetMaterial>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentCommitPresentationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentReadinessState {
+    Unspecified = 0,
+    Ready = 1,
+    Blocked = 2,
+    Unavailable = 3,
+    Failed = 4,
+}
+impl LocalAppAgentReadinessState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED",
+            Self::Ready => "LOCAL_APP_AGENT_READINESS_STATE_READY",
+            Self::Blocked => "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED",
+            Self::Unavailable => "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE",
+            Self::Failed => "LOCAL_APP_AGENT_READINESS_STATE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_AGENT_READINESS_STATE_READY" => Some(Self::Ready),
+            "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED" => Some(Self::Blocked),
+            "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE" => Some(Self::Unavailable),
+            "LOCAL_APP_AGENT_READINESS_STATE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentAutonomyMode {
+    Unspecified = 0,
+    Off = 1,
+    Low = 2,
+    Medium = 3,
+    High = 4,
+}
+impl LocalAppAgentAutonomyMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED",
+            Self::Off => "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF",
+            Self::Low => "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW",
+            Self::Medium => "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM",
+            Self::High => "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF" => Some(Self::Off),
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW" => Some(Self::Low),
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM" => Some(Self::Medium),
+            "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH" => Some(Self::High),
             _ => None,
         }
     }
@@ -17255,6 +17639,8 @@ pub struct AgentAutonomyState {
     pub budget_exhausted: bool,
     #[prost(message, optional, tag = "6")]
     pub suspended_until: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint64, tag = "7")]
+    pub revision: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAgentRecord {
@@ -17282,6 +17668,11 @@ pub struct LocalAgentRecord {
     pub runtime_source_ref: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "23")]
     pub source_context_status: ::core::option::Option<LocalAgentSourceContextStatus>,
+    /// Exactly one previous committed selection is retained for explicit
+    /// restore-as-new-commit. Its embedded revision records where it came from;
+    /// clients must commit the selection against the current profile revision.
+    #[prost(message, optional, tag = "24")]
+    pub previous_presentation_profile: ::core::option::Option<AgentPresentationProfile>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentStateProjection {
@@ -17902,13 +18293,19 @@ pub struct SetAutonomyConfigRequest {
     pub agent_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
     pub config: ::core::option::Option<AgentAutonomyConfig>,
+    /// When present, this request is the first-party atomic autonomy CAS path.
+    /// Omission retains the pre-r168 config-only mutation for compatibility.
+    #[prost(uint64, optional, tag = "4")]
+    pub expected_autonomy_revision: ::core::option::Option<u64>,
+    #[prost(bool, optional, tag = "5")]
+    pub enabled: ::core::option::Option<bool>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetAutonomyConfigResponse {
     #[prost(message, optional, tag = "1")]
     pub autonomy: ::core::option::Option<AgentAutonomyState>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetAgentPresentationProfileRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
@@ -17916,6 +18313,8 @@ pub struct SetAgentPresentationProfileRequest {
     pub agent_id: ::prost::alloc::string::String,
     #[prost(uint64, optional, tag = "6")]
     pub expected_revision: ::core::option::Option<u64>,
+    #[prost(message, repeated, tag = "7")]
+    pub imported_assets: ::prost::alloc::vec::Vec<AgentPresentationAssetMaterial>,
     #[prost(
         oneof = "set_agent_presentation_profile_request::Mutation",
         tags = "3, 4, 5"
@@ -17942,6 +18341,8 @@ pub struct SetAgentPresentationProfileResponse {
     pub profile: ::core::option::Option<AgentPresentationProfile>,
     #[prost(uint64, tag = "2")]
     pub committed_revision: u64,
+    #[prost(message, optional, tag = "3")]
+    pub previous_profile: ::core::option::Option<AgentPresentationProfile>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListPendingHooksRequest {
@@ -18509,6 +18910,8 @@ pub struct RuntimeAgentAiConfigIntent {
     pub voice_reference_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub image_policy_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub provider: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RuntimeAgentAiConfig {
@@ -21077,6 +21480,223 @@ pub mod runtime_agent_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
+        }
+        /// Reserved agents.configure carrier. Protected-local admission remains
+        /// fail-closed until the owner-complete publication flip.
+        pub async fn get_local_app_agent_configuration_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentConfigurationSnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentConfigurationSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentConfigurationSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_app_agent_configuration(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UpdateLocalAppAgentConfigurationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentUpdateConfigurationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateLocalAppAgentConfiguration",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_readiness_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentReadinessSnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentReadinessSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentReadinessSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_autonomy_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentAutonomySnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentAutonomySnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentAutonomySnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_app_agent_autonomy(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateLocalAppAgentAutonomyRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentUpdateAutonomyResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateLocalAppAgentAutonomy",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_presentation_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentPresentationSnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentPresentationSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentPresentationSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn commit_local_app_agent_presentation(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::CommitLocalAppAgentPresentationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::LocalAppAgentCommitPresentationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "CommitLocalAppAgentPresentation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }

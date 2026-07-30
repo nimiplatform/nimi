@@ -45,6 +45,13 @@ func TestCoordinatorKeepsReservedUserPermissionOperationsUnavailable(t *testing.
 		OperationConversationTurnSend,
 		OperationConversationSubscribe,
 		OperationConversationSnapshot,
+		OperationConfigurationSnapshot,
+		OperationUpdateConfiguration,
+		OperationReadinessSnapshot,
+		OperationAutonomySnapshot,
+		OperationUpdateAutonomy,
+		OperationPresentationSnapshot,
+		OperationCommitPresentation,
 		OperationVoiceTranscribe,
 		OperationVoiceStreamSubscribe,
 	}
@@ -427,7 +434,9 @@ func selectorFor(operation Operation) Selector {
 	switch operation {
 	case OperationArtifactRead:
 		return Selector{ArtifactID: "artifact:1"}
-	case OperationConversationOpen:
+	case OperationConversationOpen, OperationConfigurationSnapshot, OperationUpdateConfiguration,
+		OperationReadinessSnapshot, OperationAutonomySnapshot, OperationUpdateAutonomy,
+		OperationPresentationSnapshot, OperationCommitPresentation:
 		return Selector{AgentID: "agent:1"}
 	case OperationConversationTurnSend:
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1", TurnID: "turn:1"}

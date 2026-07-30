@@ -82,11 +82,24 @@ func TestLocalDevelopmentStoreReusesAllowedProjectAndRequiresReapprovalOnAuthori
 		t.Fatalf("admitted permission expansion must require reapproval: %#v", expanded)
 	}
 
-	reservedPermission := project
-	reservedPermission.PermissionRequirements = []localDevelopmentPermissionRequirement{{PermissionID: "artifacts.open", Reason: "Open an artifact selected by me."}}
-	reservedPermission.PermissionRequirementFingerprint = localDevelopmentPermissionRequirementFingerprint(reservedPermission.PermissionRequirements)
-	if _, err := store.Evaluate(ctx, reservedPermission, localDevelopmentTestIdentifier(0x13)); !errors.Is(err, errLocalDevelopmentInvalid) {
-		t.Fatalf("reserved permission requirement must fail before reapproval: %v", err)
+	for _, test := range []struct {
+		name         string
+		permissionID string
+		wantReason   localDevelopmentManifestPermissionReason
+	}{
+		{name: "reserved", permissionID: "agents.configure", wantReason: localDevelopmentManifestPermissionReserved},
+		{name: "unknown", permissionID: "runtime.agent.turn.write", wantReason: localDevelopmentManifestPermissionUnknown},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			invalidPermission := project
+			invalidPermission.PermissionRequirements = []localDevelopmentPermissionRequirement{{PermissionID: test.permissionID, Reason: "Explain this permission request."}}
+			invalidPermission.PermissionRequirementFingerprint = localDevelopmentPermissionRequirementFingerprint(invalidPermission.PermissionRequirements)
+			_, err := store.Evaluate(ctx, invalidPermission, localDevelopmentTestIdentifier(0x13))
+			failure, ok := localDevelopmentManifestPermissionFailureFromError(err)
+			if !ok || failure.Reason() != test.wantReason || failure.PermissionID() != test.permissionID {
+				t.Fatalf("permission requirement failure = (%#v, %v), want reason=%s permission=%s", failure, err, test.wantReason, test.permissionID)
+			}
+		})
 	}
 	projectChanged := project
 	projectChanged.ManifestPath = filepath.Join(project.ProjectRoot, "nimi.changed.yaml")

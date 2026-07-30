@@ -24,7 +24,7 @@ func TestAgentPresentationProfileRevisionIsMonotonicAcrossSetPatchAndClear(t *te
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
-	setResp, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	setResp, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext(agentID),
 		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{Profile: &runtimev1.AgentPresentationProfile{
@@ -39,7 +39,7 @@ func TestAgentPresentationProfileRevisionIsMonotonicAcrossSetPatchAndClear(t *te
 		t.Fatalf("set revisions = response:%d profile:%d, want 1/1", setResp.GetCommittedRevision(), setResp.GetProfile().GetRevision())
 	}
 
-	_, staleErr := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	_, staleErr := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext(agentID),
 		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{
@@ -53,7 +53,7 @@ func TestAgentPresentationProfileRevisionIsMonotonicAcrossSetPatchAndClear(t *te
 		t.Fatalf("stale mutation reason = %s, %v; want AGENT_PRESENTATION_REVISION_CONFLICT", reason, ok)
 	}
 
-	patchResp, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	patchResp, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext(agentID),
 		ExpectedRevision: proto.Uint64(1),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{
@@ -70,7 +70,7 @@ func TestAgentPresentationProfileRevisionIsMonotonicAcrossSetPatchAndClear(t *te
 		t.Fatalf("patch lost committed avatar ref: %q", got)
 	}
 
-	clearResp, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	clearResp, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext(agentID),
 		ExpectedRevision: proto.Uint64(2),
 		Mutation:         &runtimev1.SetAgentPresentationProfileRequest_Clear{Clear: &runtimev1.ClearAgentPresentationProfile{}},
@@ -108,7 +108,7 @@ func TestAgentPresentationProfileConcurrentPatchesUseSingleCASBoundary(t *testin
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
-	if _, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	if _, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext(agentID),
 		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{Profile: &runtimev1.AgentPresentationProfile{
@@ -129,7 +129,7 @@ func TestAgentPresentationProfileConcurrentPatchesUseSingleCASBoundary(t *testin
 		patch := patch
 		go func() {
 			<-start
-			_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+			_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 				Context:          testRuntimeAgentIdentityContext(agentID),
 				ExpectedRevision: proto.Uint64(1),
 				Mutation:         &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: patch},
@@ -186,7 +186,7 @@ func TestSetAgentPresentationProfileRequiresExpectedRevision(t *testing.T) {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 
-	_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context: testRuntimeAgentIdentityContext(agentID),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
@@ -199,7 +199,7 @@ func TestSetAgentPresentationProfileRequiresExpectedRevision(t *testing.T) {
 		t.Fatalf("omitted expected_revision code = %s, want InvalidArgument", status.Code(err))
 	}
 
-	resp, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	resp, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          testRuntimeAgentIdentityContext(agentID),
 		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
@@ -279,7 +279,7 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 				if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
 					t.Fatalf("RealmSourceMaterialization: %v", err)
 				}
-				_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+				_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 					Context:          ctx,
 					ExpectedRevision: proto.Uint64(0),
 					Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{Profile: &runtimev1.AgentPresentationProfile{
@@ -295,7 +295,7 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 				if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
 					t.Fatalf("RealmSourceMaterialization: %v", err)
 				}
-				_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+				_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 					Context:          ctx,
 					ExpectedRevision: proto.Uint64(0),
 					Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{
@@ -354,7 +354,7 @@ func TestAgentPresentationOpaqueRefGrammarAcceptsKitAndProfileMediaRefs(t *testi
 			if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: ctx}); err != nil {
 				t.Fatalf("RealmSourceMaterialization: %v", err)
 			}
-			resp, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+			resp, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 				Context:          ctx,
 				ExpectedRevision: proto.Uint64(0),
 				Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{Profile: &runtimev1.AgentPresentationProfile{
@@ -386,7 +386,7 @@ func TestClearedAgentPresentationProfileDoesNotFallbackToAnchorMetadataPolicy(t 
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, agentID, "desktop.app", "user-1", publicChatVoicePolicyMetadata(t, true))
-	if _, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	if _, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          ctx,
 		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{Profile: &runtimev1.AgentPresentationProfile{
@@ -398,7 +398,7 @@ func TestClearedAgentPresentationProfileDoesNotFallbackToAnchorMetadataPolicy(t 
 	}); err != nil {
 		t.Fatalf("set profile: %v", err)
 	}
-	if _, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+	if _, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
 		Context:          ctx,
 		ExpectedRevision: proto.Uint64(1),
 		Mutation:         &runtimev1.SetAgentPresentationProfileRequest_Clear{Clear: &runtimev1.ClearAgentPresentationProfile{}},

@@ -55,6 +55,22 @@ func TestLocalAppPublicPermissionStatusKeepsReservedCatalogUnavailable(t *testin
 	}
 }
 
+func TestLocalAppPermissionPostureDistinguishesReservedAndUnknown(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	for _, test := range []struct {
+		permissionID string
+		reason       runtimev1.ReasonCode
+	}{
+		{permissionID: "agents.configure", reason: runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED},
+		{permissionID: "agents.unknown", reason: runtimev1.ReasonCode_LOCAL_APP_PERMISSION_UNKNOWN},
+	} {
+		response, err := fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{PermissionId: test.permissionID})
+		if err != nil || response.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE || response.GetProjection().GetReasonCode() != test.reason {
+			t.Fatalf("permission posture %q = (%+v, %v), want %s", test.permissionID, response, err, test.reason)
+		}
+	}
+}
+
 func TestAdmittedLocalAppPermissionRequestPersistsAndRefreshesPending(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	fixture.service.permissionAdmitted = func(id string) bool { return id == "agents.interact" }
@@ -209,7 +225,7 @@ func TestAdmittedLocalAppPermissionManagementGrantUseAndRevoke(t *testing.T) {
 		t.Fatalf("revoked operation reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
 	}
 	statusResponse, err = fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{PermissionId: "agents.interact"})
-	if err != nil || statusResponse.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED ||
+	if err != nil || statusResponse.GetProjection().GetPosture() != runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_REVOKED ||
 		len(statusResponse.GetProjection().GetAgents()) != 0 {
 		t.Fatalf("revoked public status = (%+v, %v)", statusResponse, err)
 	}
@@ -332,7 +348,7 @@ func TestPermissionDecisionFailsClosedWhenAuditStoreUnavailable(t *testing.T) {
 func TestLocalAppPublicPermissionRejectsInternalIDsAndAuthorityFields(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	status, err := fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{PermissionId: "runtime_agent.conversation.open"})
-	if err != nil || status.GetProjection().GetReasonCode() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+	if err != nil || status.GetProjection().GetReasonCode() != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_UNKNOWN {
 		t.Fatalf("internal operation id must fail closed: response=%+v err=%v", status, err)
 	}
 	request, err := fixture.service.RequestLocalAppPermission(context.Background(), &runtimev1.RequestLocalAppPermissionRequest{PermissionId: "agents.interact", Reason: " leading whitespace"})

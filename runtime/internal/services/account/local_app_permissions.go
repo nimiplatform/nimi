@@ -100,11 +100,16 @@ func (s *Service) localAppPermissionProjection(ctx context.Context, permissionID
 	}
 	descriptor, known := apppermission.Lookup(permissionID)
 	if !known {
-		projection.ReasonCode = runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID
+		projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_UNKNOWN
 		return projection
 	}
-	if !descriptor.ManifestAllowed || s.permissionAdmitted == nil || !s.permissionAdmitted(permissionID) ||
-		!containsLocalAppCapability(s.currentLocalAppCapabilities(ctx, caller.AccountGeneration), permissionID) || s.localAppKernel == nil {
+	if s.permissionAdmitted == nil || !s.permissionAdmitted(permissionID) {
+		if descriptor.Admission == apppermission.AdmissionReserved {
+			projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED
+		}
+		return projection
+	}
+	if !descriptor.ManifestAllowed || !containsLocalAppCapability(s.currentLocalAppCapabilities(ctx, caller.AccountGeneration), permissionID) || s.localAppKernel == nil {
 		return projection
 	}
 	decision, decisionErr := s.localAppKernel.PermissionGrants().GetPermissionRequestDecision(
@@ -148,6 +153,22 @@ func (s *Service) localAppPermissionProjection(ctx context.Context, permissionID
 	}
 	evaluation := apppermission.EvaluatePosture(s.now().UTC(), true, true, grantKey, &grant)
 	projection.Posture = runtimePermissionPosture(evaluation.Posture)
+	if evaluation.Posture == apppermission.PostureGranted && permissionID == "agents.configure" {
+		interactKey := grantKey
+		interactKey.PermissionID = localAppAgentPermissionID
+		interactGrant, interactErr := s.localAppKernel.PermissionGrants().Get(ctx, interactKey)
+		if interactErr != nil {
+			projection.Posture = runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED
+			projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
+			return projection
+		}
+		interactEvaluation := apppermission.EvaluatePosture(s.now().UTC(), true, true, interactKey, &interactGrant)
+		if !interactEvaluation.Usable {
+			projection.Posture = runtimePermissionPosture(interactEvaluation.Posture)
+			projection.ReasonCode = runtimePermissionReason(interactEvaluation)
+			return projection
+		}
+	}
 	if evaluation.Posture == apppermission.PostureGranted {
 		agents, materializeErr := s.materializeAccountAgentHandles(ctx, caller, permissionID, accountScopeDigest)
 		if materializeErr != nil {
@@ -171,16 +192,7 @@ func (s *Service) localAppPermissionProjection(ctx context.Context, permissionID
 			evaluation = latestEvaluation
 		}
 	}
-	switch evaluation.Reason {
-	case apppermission.PostureReasonGranted:
-		projection.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
-	case apppermission.PostureReasonGrantRevoked:
-		projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED
-	case apppermission.PostureReasonOwnerDenied, apppermission.PostureReasonGrantExpired, apppermission.PostureReasonBindingInvalid:
-		projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED
-	default:
-		projection.ReasonCode = runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
-	}
+	projection.ReasonCode = runtimePermissionReason(evaluation)
 	return projection
 }
 
@@ -205,8 +217,23 @@ func runtimePermissionPosture(posture apppermission.Posture) runtimev1.LocalAppP
 		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_GRANTED
 	case apppermission.PostureDenied:
 		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_DENIED
+	case apppermission.PostureRevoked:
+		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_REVOKED
 	default:
 		return runtimev1.LocalAppPermissionPosture_LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE
+	}
+}
+
+func runtimePermissionReason(evaluation apppermission.PostureEvaluation) runtimev1.ReasonCode {
+	switch evaluation.Reason {
+	case apppermission.PostureReasonGranted:
+		return runtimev1.ReasonCode_ACTION_EXECUTED
+	case apppermission.PostureReasonGrantRevoked:
+		return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED
+	case apppermission.PostureReasonOwnerDenied, apppermission.PostureReasonGrantExpired, apppermission.PostureReasonBindingInvalid:
+		return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED
+	default:
+		return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
 	}
 }
 

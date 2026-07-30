@@ -40,6 +40,13 @@ func TestProtectedOperationsMapToTheirPublishedProductPermission(t *testing.T) {
 		"runtime_agent.conversation.turn_send":      "agents.interact",
 		"runtime_agent.conversation.turn_subscribe": "agents.interact",
 		"runtime_agent.conversation.snapshot":       "agents.interact",
+		"runtime_agent.configuration.snapshot":      "agents.configure",
+		"runtime_agent.configuration.update":        "agents.configure",
+		"runtime_agent.readiness.snapshot":          "agents.configure",
+		"runtime_agent.autonomy.snapshot":           "agents.configure",
+		"runtime_agent.autonomy.update":             "agents.configure",
+		"runtime_agent.presentation.snapshot":       "agents.configure",
+		"runtime_agent.presentation.commit":         "agents.configure",
 	}
 	for operationID, permissionID := range operations {
 		descriptor, ok := ForOperation(operationID)
@@ -60,9 +67,10 @@ func TestProtectedOperationsMapToTheirPublishedProductPermission(t *testing.T) {
 
 type permissionCatalogFile struct {
 	PublicPermissions []struct {
-		PermissionID    string `yaml:"permission_id"`
-		Admission       string `yaml:"admission"`
-		ManifestAllowed bool   `yaml:"manifest_allowed"`
+		PermissionID              string   `yaml:"permission_id"`
+		Admission                 string   `yaml:"admission"`
+		ManifestAllowed           bool     `yaml:"manifest_allowed"`
+		InternalOperationFamilies []string `yaml:"internal_operation_families"`
 	} `yaml:"public_permissions"`
 }
 
@@ -91,6 +99,9 @@ func TestRuntimeCatalogMatchesPublishedProductCatalog(t *testing.T) {
 		}
 		if descriptor.Admission != Admission(row.Admission) {
 			t.Fatalf("admission drift for %q: Runtime=%s config=%s", row.PermissionID, descriptor.Admission, row.Admission)
+		}
+		if row.PermissionID == "agents.configure" && descriptor.Admission != AdmissionReserved {
+			t.Fatalf("agents.configure admission drift: %s", descriptor.Admission)
 		}
 	}
 }
