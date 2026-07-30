@@ -26,8 +26,8 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
 		"WorldPublicController_listWorlds":                   {method: http.MethodGet, path: "/api/world"},
 	}
-	if len(realmBrokerOperations) != 75 {
-		t.Fatalf("Realm broker operation count = %d, want 75", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 77 {
+		t.Fatalf("Realm broker operation count = %d, want 77", len(realmBrokerOperations))
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]
@@ -51,6 +51,112 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 			!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) {
 			t.Fatalf("%s must admit only Desktop shell: %+v", operationID, operation)
 		}
+	}
+	for operationID, method := range map[string]string{
+		"WorldCoreController_listWorldCores":  http.MethodGet,
+		"WorldCoreController_createWorldCore": http.MethodPost,
+	} {
+		operation, ok := realmBrokerOperations[operationID]
+		if !ok {
+			t.Fatalf("protected Local App Realm broker operation missing: %s", operationID)
+		}
+		if operation.method != method || operation.path != "/api/realm/core/worlds" ||
+			operation.authorizationProfile != realmBrokerProtectedLocalAppWorldCoreProfile ||
+			len(operation.allowedCallerModes) != 1 ||
+			!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP) ||
+			operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) {
+			t.Fatalf("%s must admit only the exact protected Local App profile: %+v", operationID, operation)
+		}
+	}
+}
+
+func TestInvokeRealmUnaryMediatesExactProtectedLocalAppWorldCoreOperations(t *testing.T) {
+	var observed []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		observed = append(observed, r.Method+" "+r.URL.RequestURI())
+		w.Header().Set("content-type", "application/json")
+		if r.Method == http.MethodPost {
+			_, _ = w.Write([]byte(`{"id":"world-created"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`[{"id":"world-1"}]`))
+	}))
+	defer server.Close()
+
+	svc := newRealmUnaryHarnessService(t, server.URL)
+	completeLogin(t, svc)
+	for _, test := range []struct {
+		operation   LocalAppOperation
+		methodID    string
+		requestJSON string
+	}{
+		{
+			operation:   LocalAppOperationRealmWorldCoreList,
+			methodID:    "WorldCoreController_listWorldCores",
+			requestJSON: `{"path":{},"query":{"take":20,"visibility":"private"}}`,
+		},
+		{
+			operation:   LocalAppOperationRealmWorldCoreCreate,
+			methodID:    "WorldCoreController_createWorldCore",
+			requestJSON: `{"path":{},"query":{},"body":{"core":{},"origin":{"kind":"manual"},"visibility":"private"}}`,
+		},
+	} {
+		ctx := ContextWithAuthorizedLocalAppDecision(context.Background(), LocalAppCallerDecision{
+			LocalAppPrincipalID: "lap_world_studio",
+			LocalAppRecordID:    "lar_world_studio",
+			Operation:           test.operation,
+		})
+		resp, err := svc.InvokeRealmUnary(ctx, &runtimev1.InvokeRealmUnaryRequest{
+			MethodId:    test.methodID,
+			RequestJson: test.requestJSON,
+		})
+		if err != nil {
+			t.Fatalf("%s InvokeRealmUnary: %v", test.operation, err)
+		}
+		if !resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+			t.Fatalf("%s protected Local App response = %+v", test.operation, resp)
+		}
+	}
+	if len(observed) != 2 ||
+		observed[0] != "GET /api/realm/core/worlds?take=20&visibility=private" ||
+		observed[1] != "POST /api/realm/core/worlds" {
+		t.Fatalf("protected Local App Realm requests = %#v", observed)
+	}
+}
+
+func TestInvokeRealmUnaryRejectsProtectedLocalAppAuthorityAndOperationSelection(t *testing.T) {
+	svc := newRealmUnaryHarnessService(t, "https://realm.example.test")
+	completeLogin(t, svc)
+	ctx := ContextWithAuthorizedLocalAppDecision(context.Background(), LocalAppCallerDecision{
+		LocalAppPrincipalID: "lap_world_studio",
+		LocalAppRecordID:    "lar_world_studio",
+		Operation:           LocalAppOperationRealmWorldCoreList,
+	})
+	for name, request := range map[string]*runtimev1.InvokeRealmUnaryRequest{
+		"caller": {
+			Caller:      realmDesktopShellCaller(),
+			MethodId:    "WorldCoreController_listWorldCores",
+			RequestJson: `{}`,
+		},
+		"realm base": {
+			MethodId:     "WorldCoreController_listWorldCores",
+			RealmBaseUrl: "https://realm.foreign.test",
+			RequestJson:  `{}`,
+		},
+		"operation mismatch": {
+			MethodId:    "WorldCoreController_createWorldCore",
+			RequestJson: `{}`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			resp, err := svc.InvokeRealmUnary(ctx, request)
+			if err != nil {
+				t.Fatalf("InvokeRealmUnary: %v", err)
+			}
+			if resp.GetAccepted() {
+				t.Fatalf("protected Local App authority input reached Realm: %+v", resp)
+			}
+		})
 	}
 }
 

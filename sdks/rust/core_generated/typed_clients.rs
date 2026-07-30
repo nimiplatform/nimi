@@ -1237,6 +1237,19 @@ impl Default for LocalAppAgentReadinessState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAgentRouteOptionAvailability {
+    LOCALAPPAGENTROUTEOPTIONAVAILABILITYUNSPECIFIED,
+    LOCALAPPAGENTROUTEOPTIONAVAILABILITYREADY,
+    LOCALAPPAGENTROUTEOPTIONAVAILABILITYINSTALLED,
+}
+
+impl Default for LocalAppAgentRouteOptionAvailability {
+    fn default() -> Self {
+        Self::LOCALAPPAGENTROUTEOPTIONAVAILABILITYUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppPermissionOwnerPosture {
     LOCALAPPPERMISSIONOWNERPOSTUREUNSPECIFIED,
     LOCALAPPPERMISSIONOWNERPOSTUREPENDING,
@@ -15431,6 +15444,7 @@ pub struct LocalAppAgentModelSettingsProjection {
     pub route_intents: Vec<Box<LocalAppAgentRouteIntent>>,
     pub readiness: Vec<Box<LocalAppAgentCapabilityReadiness>>,
     pub configuration_revision: Option<u64>,
+    pub route_options: Vec<Box<LocalAppAgentRouteOption>>,
 }
 
 impl LocalAppAgentModelSettingsProjection {
@@ -15440,13 +15454,14 @@ impl LocalAppAgentModelSettingsProjection {
         if !self.route_intents.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode route_intents"); }
         if !self.readiness.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode readiness"); }
         if let Some(value) = &self.configuration_revision { pairs.push(format!("configuration_revision={}", value)); }
+        if !self.route_options.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode route_options"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["route_intents", "readiness"] {
+        for key in ["route_intents", "readiness", "route_options"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -15653,6 +15668,45 @@ impl LocalAppAgentRouteIntent {
         out.capability = pairs.get("capability").cloned();
         out.provider = pairs.get("provider").cloned();
         out.model = pairs.get("model").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRouteOption {
+    pub capability: Option<String>,
+    pub provider: Option<String>,
+    pub model: Option<String>,
+    pub route_policy: Option<RoutePolicy>,
+    pub label: Option<String>,
+    pub availability: Option<LocalAppAgentRouteOptionAvailability>,
+}
+
+impl LocalAppAgentRouteOption {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability { pairs.push(format!("capability={}", value)); }
+        if let Some(value) = &self.provider { pairs.push(format!("provider={}", value)); }
+        if let Some(value) = &self.model { pairs.push(format!("model={}", value)); }
+        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
+        if let Some(value) = &self.label { pairs.push(format!("label={}", value)); }
+        if let Some(value) = &self.availability { pairs.push(format!("availability={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["route_policy", "availability"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.capability = pairs.get("capability").cloned();
+        out.provider = pairs.get("provider").cloned();
+        out.model = pairs.get("model").cloned();
+        out.label = pairs.get("label").cloned();
         out
     }
 }
@@ -31449,6 +31503,12 @@ impl From<Vec<u8>> for LocalAppAgentReadinessSnapshotResponse {
 }
 
 impl From<Vec<u8>> for LocalAppAgentRouteIntent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppAgentRouteOption {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }

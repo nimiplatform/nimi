@@ -3005,7 +3005,6 @@ pub enum LocalAppPermissionPosture {
     Granted = 3,
     Denied = 4,
     Unavailable = 5,
-    Revoked = 6,
 }
 impl LocalAppPermissionPosture {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -3020,7 +3019,6 @@ impl LocalAppPermissionPosture {
             Self::Granted => "LOCAL_APP_PERMISSION_POSTURE_GRANTED",
             Self::Denied => "LOCAL_APP_PERMISSION_POSTURE_DENIED",
             Self::Unavailable => "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE",
-            Self::Revoked => "LOCAL_APP_PERMISSION_POSTURE_REVOKED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -3032,7 +3030,6 @@ impl LocalAppPermissionPosture {
             "LOCAL_APP_PERMISSION_POSTURE_GRANTED" => Some(Self::Granted),
             "LOCAL_APP_PERMISSION_POSTURE_DENIED" => Some(Self::Denied),
             "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE" => Some(Self::Unavailable),
-            "LOCAL_APP_PERMISSION_POSTURE_REVOKED" => Some(Self::Revoked),
             _ => None,
         }
     }
@@ -15840,6 +15837,24 @@ pub struct LocalAppAgentCapabilityReadiness {
     #[prost(message, optional, tag = "4")]
     pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
 }
+/// A bounded, selectable route candidate for the current caller. Runtime keeps
+/// inventory identities, endpoints, credentials, and account/Agent identities
+/// behind the agents.configure boundary.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRouteOption {
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub model: ::prost::alloc::string::String,
+    #[prost(enumeration = "RoutePolicy", tag = "4")]
+    pub route_policy: i32,
+    #[prost(string, tag = "5")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppAgentRouteOptionAvailability", tag = "6")]
+    pub availability: i32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppAgentModelSettingsProjection {
     #[prost(string, repeated, tag = "1")]
@@ -15850,6 +15865,8 @@ pub struct LocalAppAgentModelSettingsProjection {
     pub readiness: ::prost::alloc::vec::Vec<LocalAppAgentCapabilityReadiness>,
     #[prost(uint64, tag = "4")]
     pub configuration_revision: u64,
+    #[prost(message, repeated, tag = "5")]
+    pub route_options: ::prost::alloc::vec::Vec<LocalAppAgentRouteOption>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppAgentReadinessProjection {
@@ -16040,6 +16057,39 @@ impl LocalAppAgentReadinessState {
             "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED" => Some(Self::Blocked),
             "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE" => Some(Self::Unavailable),
             "LOCAL_APP_AGENT_READINESS_STATE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentRouteOptionAvailability {
+    Unspecified = 0,
+    Ready = 1,
+    Installed = 2,
+}
+impl LocalAppAgentRouteOptionAvailability {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED",
+            Self::Ready => "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY",
+            Self::Installed => "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY" => Some(Self::Ready),
+            "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED" => {
+                Some(Self::Installed)
+            }
             _ => None,
         }
     }

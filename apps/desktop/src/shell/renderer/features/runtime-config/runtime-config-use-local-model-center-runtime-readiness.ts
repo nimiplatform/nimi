@@ -34,7 +34,14 @@ function isImageRuntimeMainAsset(asset: NimiRuntimeLocalAssetRecord): boolean {
   return !artifactRoles.has('uncond_diffusion_model');
 }
 
-function dependencyBlocksSetup(dependency: NimiRuntimeLocalEnvironmentPlanDependency): boolean {
+export function localModelCenterDependencyBlocksSetup(
+  dependency: NimiRuntimeLocalEnvironmentPlanDependency,
+): boolean {
+  // Model Center resolves one asset at a time and has no AI Config workflow
+  // context. Companion selections are validated later from profile_entries.
+  if (dependency.reasonCode === 'LOCAL_ENVIRONMENT_IMAGE_PROFILE_BINDINGS_REQUIRED') {
+    return false;
+  }
   if (!dependency.required) {
     return false;
   }
@@ -42,7 +49,7 @@ function dependencyBlocksSetup(dependency: NimiRuntimeLocalEnvironmentPlanDepend
 }
 
 function firstBlockingDependency(plan: NimiRuntimeLocalEnvironmentPlan | undefined): NimiRuntimeLocalEnvironmentPlanDependency | undefined {
-  return plan?.dependencies.find(dependencyBlocksSetup);
+  return plan?.dependencies.find(localModelCenterDependencyBlocksSetup);
 }
 
 function dependencyStartable(

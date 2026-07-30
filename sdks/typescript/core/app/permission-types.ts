@@ -8,12 +8,14 @@ export interface NimiAppScopeRef {
   readonly surfaceId?: string;
 }
 
-// agents.interact is the first complete public permission slice. Runtime's
-// publication row remains the final fail-closed gate during staged rollout.
-export const ADMITTED_PERMISSION_IDS = ['agents.interact'] as const;
+// These permission slices have complete Runtime owner, protected carrier,
+// SDK, Kit, consent, settings, revoke, and audit paths.
+export const ADMITTED_PERMISSION_IDS = [
+  'agents.interact',
+  'agents.configure',
+] as const;
 
 export const RESERVED_PERMISSION_IDS = [
-  'agents.configure',
   'agents.voice',
   'agents.delegate',
   'artifacts.open',

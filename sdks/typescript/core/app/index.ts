@@ -115,6 +115,7 @@ export type {
   NimiLocalAppConversationSubscription,
   NimiLocalAppAgent,
   NimiLocalAppAgentHandle,
+  NimiLocalAppWorldCoreListInput,
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform.js';

@@ -197,6 +197,25 @@ func TestResolvePublicChatTextBindingResolvesLocalDefaultAlias(t *testing.T) {
 	}
 }
 
+func TestResolvePublicChatTextBindingResolvesProtectedDefaultFromSupervisedAsset(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	svc.localModel = &fakeLocalModelLister{
+		managedNames: map[string]string{"": "local.chat.gemma-4-e2b-it.q8-0"},
+	}
+
+	route, modelResolved, err := svc.ResolvePublicChatTextBinding(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		"local/default",
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextBinding protected local/default: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || modelResolved != "local.chat.gemma-4-e2b-it.q8-0" {
+		t.Fatalf("unexpected supervised public chat default resolution: route=%v model=%q", route, modelResolved)
+	}
+}
+
 func TestResolvePublicChatTextContextMetadataResolvesLocalDefaultAliasWithoutPinnedTarget(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		DefaultLocalTextModel: "gemma-4-e2b-it-local",

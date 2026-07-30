@@ -24,6 +24,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 )
 
 const (
@@ -261,6 +262,19 @@ func (s *Service) ResolvePublicChatTextBinding(
 ) (runtimev1.RoutePolicy, string, error) {
 	if s == nil || s.selector == nil {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if routeHint == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL &&
+		strings.EqualFold(strings.TrimSpace(modelID), texttarget.InternalDefaultLocalTextModelAlias) &&
+		strings.TrimSpace(s.config.DefaultLocalTextModel) == "" {
+		if resolver, ok := s.localModel.(managedLlamaModelResolver); ok && resolver != nil {
+			if resolved, found := resolver.ResolveManagedLlamaModelByCapabilities("", "text.generate"); found {
+				return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, strings.TrimSpace(resolved), nil
+			}
+		}
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+		)
 	}
 	routeDecision, modelResolved, err := s.selector.resolveCommittedBindingRouteModel(routeHint, modelID)
 	if err != nil {

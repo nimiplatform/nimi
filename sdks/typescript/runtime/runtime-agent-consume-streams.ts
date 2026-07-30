@@ -28,12 +28,12 @@ export function normalizeCursor(value: unknown): string {
 
 export function projectAppMessageStream(
   stream: AsyncIterable<AppMessageEvent>,
-  request: { readonly conversationAnchorId?: unknown },
+  request: { readonly conversationAnchorId?: unknown; readonly localAgentRef?: unknown },
   liveStartedAtMs?: number,
 ): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
   return projectRuntimeAgentConsumeEventStream(stream, (event) => {
     if (!eventIsAtOrAfterLiveBoundary(event, liveStartedAtMs)) return null;
-    const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+    const projected = projectNimiRuntimeAgentAppMessageEvent(event, request.localAgentRef);
     if (!projected) return null;
     const expectedAnchorId = normalizeText(request.conversationAnchorId);
     if (expectedAnchorId && projected.conversationAnchorId !== expectedAnchorId) {

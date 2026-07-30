@@ -52,9 +52,10 @@ import {
   type NimiRuntimeAgentSessionTurnSnapshot,
 } from './runtime-agent-consume.test-helper';
 
+const CALLER_SCOPED_AGENT_REF = 'local-agent:test-owner-1-agent-1';
+
 test('Runtime Agent consume parses turn app messages and validates timelines', () => {
   const payload = {
-    local_agent_ref: 'local-agent:test-owner-1-agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -84,7 +85,7 @@ test('Runtime Agent consume parses turn app messages and validates timelines', (
     payload: toNimiRuntimeProtoStruct(payload),
   };
 
-  const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+  const projected = projectNimiRuntimeAgentAppMessageEvent(event, CALLER_SCOPED_AGENT_REF);
 
   assert.equal(projected?.eventName, 'runtime.agent.turn.text_delta');
   assert.equal(projected?.detail.text, 'hi');
@@ -96,7 +97,7 @@ test('Runtime Agent consume parses turn app messages and validates timelines', (
       ...canonicalPayloadBase,
       timeline: runtimeTimeline,
     }),
-  });
+  }, CALLER_SCOPED_AGENT_REF);
   assert.equal(canonicalTimelineProjected?.timeline?.projectionRuleId, 'K-AGCORE-051');
   assert.throws(
     () => parseNimiRuntimeAgentTimeline({ ...payload.runtime_timeline, channel: 'voice' }, 'runtime.agent.turn.text_delta', 'turn-1', 'stream-1'),
@@ -106,7 +107,6 @@ test('Runtime Agent consume parses turn app messages and validates timelines', (
 
 test('Runtime Agent consume preserves reasoning delta text as a typed text-channel event', () => {
   const payload = {
-    local_agent_ref: 'local-agent:test-owner-1-agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -138,7 +138,7 @@ test('Runtime Agent consume preserves reasoning delta text as a typed text-chann
     payload: toNimiRuntimeProtoStruct(payload),
   };
 
-  const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+  const projected = projectNimiRuntimeAgentAppMessageEvent(event, CALLER_SCOPED_AGENT_REF);
 
   assert.equal(projected?.eventName, 'runtime.agent.turn.reasoning_delta');
   assert.equal(projected?.detail.text, 'checking Runtime route');
@@ -213,7 +213,6 @@ test('Runtime Agent consume preserves structured app message payload for the tur
     actions: [],
   };
   const payload = {
-    local_agent_ref: 'local-agent:test-owner-1-agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -235,7 +234,7 @@ test('Runtime Agent consume preserves structured app message payload for the tur
     traceId: '',
   };
 
-  const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+  const projected = projectNimiRuntimeAgentAppMessageEvent(event, CALLER_SCOPED_AGENT_REF);
 
   assert.equal(projected?.eventName, 'runtime.agent.turn.structured');
   assert.equal((projected?.detail.payload as { message?: { text?: string } })?.message?.text, 'structured hello');
@@ -248,19 +247,17 @@ test('Runtime Agent consume preserves structured app message payload for the tur
   const legacyProjected = projectNimiRuntimeAgentAppMessageEvent({
     ...event,
     payload: toNimiRuntimeProtoStruct({
-      local_agent_ref: 'local-agent:test-owner-1-agent-1',
       conversation_anchor_id: 'anchor-1',
       turn_id: 'turn-1',
       stream_id: 'stream-1',
       structured,
     }),
-  });
+  }, CALLER_SCOPED_AGENT_REF);
   assert.equal((legacyProjected?.detail.payload as { message?: { text?: string } })?.message?.text, 'structured hello');
 });
 
 test('Runtime Agent consume preserves accepted request id for backlog filtering', () => {
   const payload = {
-    local_agent_ref: 'local-agent:test-owner-1-agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -281,7 +278,7 @@ test('Runtime Agent consume preserves accepted request id for backlog filtering'
     traceId: '',
   };
 
-  const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+  const projected = projectNimiRuntimeAgentAppMessageEvent(event, CALLER_SCOPED_AGENT_REF);
 
   assert.equal(projected?.eventName, 'runtime.agent.turn.accepted');
   assert.equal(projected?.detail.requestId, 'request-1');

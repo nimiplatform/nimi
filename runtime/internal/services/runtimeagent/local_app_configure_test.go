@@ -33,6 +33,23 @@ func localAppConfigureContext(operation accountservice.LocalAppOperation, localA
 	})
 }
 
+type localAppRouteOptionInventoryStub struct {
+	assets []*runtimev1.LocalAssetRecord
+}
+
+func (s localAppRouteOptionInventoryStub) ListLocalAssets(
+	_ context.Context,
+	request *runtimev1.ListLocalAssetsRequest,
+) (*runtimev1.ListLocalAssetsResponse, error) {
+	assets := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
+	for _, asset := range s.assets {
+		if asset != nil && asset.GetStatus() == request.GetStatusFilter() {
+			assets = append(assets, proto.Clone(asset).(*runtimev1.LocalAssetRecord))
+		}
+	}
+	return &runtimev1.ListLocalAssetsResponse{Assets: assets}, nil
+}
+
 func TestLocalAppConfigureHandlerDenialPreservesPermissionID(t *testing.T) {
 	svc, _, _ := newLocalAppConfigureTestAgent(t)
 	_, err := svc.GetLocalAppAgentConfigurationSnapshot(context.Background(), &runtimev1.GetLocalAppAgentConfigurationSnapshotRequest{AgentHandle: "lah_v1_opaque"})
@@ -65,6 +82,65 @@ func TestLocalAppConfigurationSnapshotIsDedicatedTypedProjection(t *testing.T) {
 	}
 	if !foundTranscribe {
 		t.Fatalf("canonical audio.transcribe missing from %v", projection.GetCapabilities())
+	}
+	if len(projection.GetRouteOptions()) != 2 {
+		t.Fatalf("seeded selectable route options = %+v", projection.GetRouteOptions())
+	}
+}
+
+func TestLocalAppConfigurationSnapshotProjectsOnlyBoundedSelectableRouteOptions(t *testing.T) {
+	svc, localAgentRef, accountID := newLocalAppConfigureTestAgent(t)
+	svc.SetLocalAppRouteOptionInventory(localAppRouteOptionInventoryStub{assets: []*runtimev1.LocalAssetRecord{
+		{
+			LocalAssetId:   "private-local-asset-id",
+			AssetId:        "private-asset-id",
+			LogicalModelId: "local.chat.gemma-test",
+			DisplayName:    "Gemma Test",
+			Endpoint:       "http://127.0.0.1:9999/private",
+			Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			Capabilities:   []string{aicapabilities.TextGenerate},
+		},
+		{
+			LogicalModelId: "local.embed.test",
+			DisplayName:    "Embedding Test",
+			Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			Capabilities:   []string{aicapabilities.TextEmbed},
+		},
+		{
+			LogicalModelId: "local.unhealthy",
+			Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+			Capabilities:   []string{aicapabilities.TextGenerate},
+		},
+	}})
+	response, err := svc.GetLocalAppAgentConfigurationSnapshot(
+		localAppConfigureContext(accountservice.LocalAppOperationConfigurationSnapshot, localAgentRef, accountID),
+		&runtimev1.GetLocalAppAgentConfigurationSnapshotRequest{AgentHandle: "lah_v1_opaque"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	options := response.GetProjection().GetRouteOptions()
+	if len(options) != 4 {
+		t.Fatalf("bounded route options = %+v", options)
+	}
+	var foundActive, foundInstalled bool
+	for _, option := range options {
+		if option.GetProvider() != "" || option.GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+			t.Fatalf("local option exposed non-local route material: %+v", option)
+		}
+		switch option.GetModel() {
+		case "local.chat.gemma-test":
+			foundActive = option.GetLabel() == "Gemma Test" &&
+				option.GetAvailability() == runtimev1.LocalAppAgentRouteOptionAvailability_LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY
+		case "local.embed.test":
+			foundInstalled = option.GetLabel() == "Embedding Test" &&
+				option.GetAvailability() == runtimev1.LocalAppAgentRouteOptionAvailability_LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED
+		case "local.unhealthy", "private-local-asset-id", "private-asset-id", "http://127.0.0.1:9999/private":
+			t.Fatalf("private or unselectable inventory material escaped: %+v", option)
+		}
+	}
+	if !foundActive || !foundInstalled {
+		t.Fatalf("selectable inventory candidates missing: %+v", options)
 	}
 }
 
@@ -186,6 +262,9 @@ func TestLocalAppConfigureProtoTypesExposeNoRawIdentityFields(t *testing.T) {
 	forbidden := map[protoreflect.Name]bool{
 		"owner_user_id": true, "runtime_source_ref": true, "local_agent_ref": true,
 		"subject_user_id": true, "account_id": true, "principal_id": true, "session_id": true,
+		"endpoint": true, "credential": true, "has_credential": true,
+		"local_asset_id": true, "connector_id": true, "remote_model_catalog_id": true,
+		"snapshot_id": true, "profile_binding_id": true, "readiness_ref": true,
 		"render_evidence": true, "visible_pixel_evidence": true, "renderer_success": true, "render_failure": true,
 	}
 	var inspectMessages func(protoreflect.MessageDescriptors)

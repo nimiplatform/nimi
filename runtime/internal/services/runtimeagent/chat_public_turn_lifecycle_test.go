@@ -88,6 +88,22 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 	postTurn := capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	completed := capture.waitForMessageType(t, publicChatTurnCompletedType)
 	assertPublicChatDeltaPrecedesCommit(t, capture)
+	for _, turnEvent := range []*runtimev1.SendAppMessageRequest{
+		accepted,
+		started,
+		delta,
+		structured,
+		committed,
+		postTurn,
+		completed,
+	} {
+		payload := publicChatPayloadMap(t, turnEvent)
+		for _, rawIdentityField := range []string{"agent_id", "local_agent_ref"} {
+			if _, present := payload[rawIdentityField]; present {
+				t.Fatalf("%s public envelope must not expose raw Runtime identity field %q: %v", turnEvent.GetMessageType(), rawIdentityField, payload)
+			}
+		}
+	}
 	acceptedPayload := publicChatPayloadMap(t, accepted)
 	gotAnchorID := acceptedPayload["conversation_anchor_id"].(string)
 	turnID := acceptedPayload["turn_id"].(string)

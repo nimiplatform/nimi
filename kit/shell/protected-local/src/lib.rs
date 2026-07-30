@@ -81,8 +81,9 @@ pub use carrier::{
     LocalAppPermissionState, LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
     LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiDesktopControl,
-    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreListRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
+    NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,

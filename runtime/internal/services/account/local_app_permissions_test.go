@@ -61,7 +61,7 @@ func TestLocalAppPermissionPostureDistinguishesReservedAndUnknown(t *testing.T) 
 		permissionID string
 		reason       runtimev1.ReasonCode
 	}{
-		{permissionID: "agents.configure", reason: runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED},
+		{permissionID: "agents.voice", reason: runtimev1.ReasonCode_LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED},
 		{permissionID: "agents.unknown", reason: runtimev1.ReasonCode_LOCAL_APP_PERMISSION_UNKNOWN},
 	} {
 		response, err := fixture.service.GetLocalAppPermissionStatus(context.Background(), &runtimev1.GetLocalAppPermissionStatusRequest{PermissionId: test.permissionID})

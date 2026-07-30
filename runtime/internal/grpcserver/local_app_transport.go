@@ -38,6 +38,7 @@ const (
 	protectedUpdateAutonomyMethod              = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	protectedPresentationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
 	protectedCommitPresentationMethod          = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
+	protectedInvokeRealmUnaryMethod            = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 )
 
 type protectedLocalAppMethodPolicy struct {
@@ -72,6 +73,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedUpdateAutonomyMethod:              localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:        localAppSessionMethodPolicy(),
 	protectedCommitPresentationMethod:          localAppSessionMethodPolicy(),
+	protectedInvokeRealmUnaryMethod:            localAppSessionMethodPolicy(),
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
@@ -379,6 +381,19 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 			return "", localappop.Selector{}, true
 		}
 		return accountservice.LocalAppOperationCommitPresentation, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedInvokeRealmUnaryMethod:
+		req, ok := request.(*runtimev1.InvokeRealmUnaryRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		switch strings.TrimSpace(req.GetMethodId()) {
+		case "WorldCoreController_listWorldCores":
+			return accountservice.LocalAppOperationRealmWorldCoreList, localappop.Selector{}, true
+		case "WorldCoreController_createWorldCore":
+			return accountservice.LocalAppOperationRealmWorldCoreCreate, localappop.Selector{}, true
+		default:
+			return "", localappop.Selector{}, true
+		}
 	default:
 		return "", localappop.Selector{}, false
 	}

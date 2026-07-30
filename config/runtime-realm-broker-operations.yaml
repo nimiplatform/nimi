@@ -6,11 +6,13 @@ table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_realm_broker_operations
 surfaces:
+  - WorldCoreController_createWorldCore
   - WorldCoreController_discoverPersonaCharacters
   - WorldCoreController_getPersonaCharacter
   - WorldCoreController_getWorldCharacter
   - WorldCoreController_getWorldEntity
   - WorldCoreController_listPersonaCharacters
+  - WorldCoreController_listWorldCores
   - WorldCoreController_listWorldRelationships
   - WorldPublicController_getCharacterSource
   - WorldPublicController_getWorld
@@ -82,15 +84,16 @@ surfaces:
   - EconomyController_sendGift
   - ReviewController_createReview
 source_rule: K-ACCSVC-023
-authority_status: admitted_exact_protected_desktop_operations
+authority_status: admitted_exact_protected_runtime_operations
 production_consumption: admitted_exact_rows_only
 generic_proxy: forbidden
 unlisted_operation_disposition: deny_broker_operation_not_admitted
 description: >
   Exact RuntimeAccountService.InvokeRealmUnary admission for protected
-  Desktop product journeys. Every row requires either the verified protected
-  Desktop account host or the fixed independent bundled Avatar native-host profile,
-  plus the current
+  Desktop product journeys and the two Desktop-supervised Local App WorldCore
+  operations. Every row requires either the verified protected Desktop account
+  host, the fixed independent bundled Avatar native-host profile, or the
+  verified Local App carrier with a current Runtime-derived operation decision, plus the current
   authenticated account, Runtime-only Realm bearer custody, the configured
   canonical Realm base, and the row-specific OpenAPI request shape. No other
   Realm operation is admitted by this table. Sensitive account and commerce rows remain
@@ -118,6 +121,7 @@ operation_schema:
     - protected_desktop_product
     - protected_desktop_sensitive
     - protected_desktop_commerce
+    - protected_local_app_world_core
   credential_response_policy_values:
     - forbidden
 
@@ -164,7 +168,31 @@ policy_templates:
     response_max_bytes: 1048576
     credential_response_policy: forbidden
     source_rule: K-ACCSVC-023
+  local_app_world_core: &local_app_world_core
+    authorization_profile: protected_local_app_world_core
+    allowed_runtime_caller_modes: [ACCOUNT_CALLER_MODE_LOCAL_APP]
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
 operations:
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_listWorldCores
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.r011
+    http_method: GET
+    path_template: /api/realm/core/worlds
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldCores/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listWorldCores/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_createWorldCore
+    authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.r011
+    http_method: POST
+    path_template: /api/realm/core/worlds
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCore/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCore/response
+
   - <<: *desktop_source_read
     operation_id: WorldPublicController_getCharacterSource
     authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r004

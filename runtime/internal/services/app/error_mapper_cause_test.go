@@ -116,7 +116,7 @@ func TestLocalDevelopmentStoreErrorMapsManifestPermissionReasons(t *testing.T) {
 		{
 			name:          "reserved",
 			reason:        localDevelopmentManifestPermissionReserved,
-			permissionID:  "agents.configure",
+			permissionID:  "agents.voice",
 			wantAdmission: "reserved",
 			wantAction:    "wait_for_permission_admission",
 		},

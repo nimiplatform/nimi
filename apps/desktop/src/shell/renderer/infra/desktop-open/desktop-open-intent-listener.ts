@@ -8,7 +8,7 @@ import {
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { setDesktopOpenIntentReady } from '../../bridge/runtime-bridge';
 import { applyDesktopOpenIntentToAppStore } from './desktop-open-intent-navigation';
-import { productionAppStore } from '../../app-shell/providers/production-app-store.js';
+import type { DesktopOpenIntentStore } from './desktop-open-intent-navigation';
 import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 
 const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
@@ -16,6 +16,7 @@ const DESKTOP_OPEN_READY_HEARTBEAT_INTERVAL_MS = 3_000;
 
 export function connectDesktopOpenIntentListener(
   runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort,
+  store: DesktopOpenIntentStore,
 ): () => void {
     if (!hasNimiShellRuntime()) return () => undefined;
     let active = true;
@@ -50,7 +51,7 @@ export function connectDesktopOpenIntentListener(
         return;
       }
       applyDesktopOpenIntentToAppStore(parsed.value.intent, {
-        store: productionAppStore.getState(),
+        store,
         runtimeConfigNavigation,
       });
     }));

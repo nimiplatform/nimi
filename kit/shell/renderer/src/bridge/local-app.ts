@@ -11,6 +11,7 @@ const MAX_IDENTIFIER_LENGTH = 512;
 const MAX_PERMISSION_REASON_BYTES = 240;
 const MAX_STORAGE_PATH_BYTES = 240;
 const MAX_STORAGE_DOCUMENT_BYTES = 256 * 1024;
+const MAX_WORLD_CORE_REQUEST_BYTES = 2 * 1024 * 1024;
 
 const FORBIDDEN_PROJECTION_KEYS = new Set([
   'endpoint', 'authorization', 'token', 'localappprincipalid', 'localapprecordid',
@@ -60,6 +61,11 @@ export type NimiLocalAppStorageDocument = {
 
 export type NimiLocalAppStorageRemoveResult = {
   readonly removed: boolean;
+};
+
+export type NimiLocalAppWorldCoreListInput = {
+  readonly take?: number;
+  readonly visibility?: 'private' | 'unlisted' | 'public' | 'system';
 };
 
 export type NimiLocalAppConversationScopeInput = {
@@ -114,6 +120,12 @@ export type NimiLocalAppStandardShellSurface = {
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<NimiLocalAppStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiLocalAppStorageRemoveResult>;
   };
+  readonly realm: {
+    readonly worldCore: {
+      readonly list: (input?: NimiLocalAppWorldCoreListInput) => Promise<readonly JsonObject[]>;
+      readonly create: (input: unknown) => Promise<JsonObject>;
+    };
+  };
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
   readonly conversation: {
     readonly open: (input: {
@@ -141,6 +153,12 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       readJson: readNimiLocalAppStorageJson,
       writeJson: writeNimiLocalAppStorageJson,
       removeJson: removeNimiLocalAppStorageJson,
+    },
+    realm: {
+      worldCore: {
+        list: listNimiLocalAppWorldCores,
+        create: createNimiLocalAppWorldCore,
+      },
     },
     agentConfigure: {
       configurationSnapshot: getNimiLocalAppAgentConfigurationSnapshot,
@@ -193,6 +211,52 @@ export function requestNimiLocalAppPermission(
       requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
     } },
     (value) => parsePermissionStatus(value, permissionId, command),
+  );
+}
+
+export function listNimiLocalAppWorldCores(
+  input: NimiLocalAppWorldCoreListInput = {},
+): Promise<readonly JsonObject[]> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'];
+  assertAllowedInputKeys(input, ['take', 'visibility'], [], command);
+  const payload: JsonObject = {};
+  if (input.take !== undefined) payload.take = nonNegativeInteger(input.take, command, 'take');
+  if (input.visibility !== undefined) payload.visibility = worldVisibility(input.visibility, command);
+  return invokeChecked(command, { payload }, (value) => {
+    if (!Array.isArray(value)) throw new Error(`${command}: result must be an array`);
+    return Object.freeze(value.map((entry) => Object.freeze(parseSafeProjection(entry, command))));
+  });
+}
+
+export function createNimiLocalAppWorldCore(input: unknown): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'];
+  const record = assertRecord(input, `${command}: input must be an object`);
+  assertAllowedInputKeys(record, ['core', 'id', 'origin', 'visibility'], ['core', 'origin'], command);
+  const core = assertRecord(record.core, `${command}: core must be an object`);
+  const origin = assertRecord(record.origin, `${command}: origin must be an object`);
+  assertAllowedInputKeys(
+    origin,
+    ['kind', 'parentCharacterId', 'parentWorldId', 'sourceContentHash', 'sourceId', 'sourceVersion'],
+    ['kind'],
+    command,
+  );
+  if (!['manual', 'forge', 'worldCharacterDerivation', 'import', 'system'].includes(String(origin.kind))) {
+    throw invalidInput(command, 'origin.kind is invalid');
+  }
+  for (const key of ['parentCharacterId', 'parentWorldId', 'sourceContentHash', 'sourceId', 'sourceVersion']) {
+    if (origin[key] !== undefined) requiredText(origin[key], `origin.${key}`, command, MAX_IDENTIFIER_LENGTH);
+  }
+  if (record.id !== undefined) requiredText(record.id, 'id', command, MAX_IDENTIFIER_LENGTH);
+  if (record.visibility !== undefined) worldVisibility(record.visibility, command);
+  validateStorageJsonValue(core, command);
+  const encoded = JSON.stringify(record);
+  if (new TextEncoder().encode(encoded).byteLength > MAX_WORLD_CORE_REQUEST_BYTES) {
+    throw invalidInput(command, 'world core exceeds the request bound');
+  }
+  return invokeChecked(
+    command,
+    { payload: record },
+    (value) => Object.freeze(parseSafeProjection(value, command)),
   );
 }
 
@@ -709,6 +773,27 @@ function assertExactInput<T extends object>(input: T, keys: readonly (keyof T & 
   if (JSON.stringify(Object.keys(input).sort()) !== JSON.stringify([...keys].sort())) {
     throw invalidInput(command, `input fields must be exactly ${keys.join(', ')}`);
   }
+}
+
+function assertAllowedInputKeys(
+  input: object,
+  allowedKeys: readonly string[],
+  requiredKeys: readonly string[],
+  command: string,
+): void {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw invalidInput(command, 'input must be an object');
+  const keys = Object.keys(input);
+  if (keys.some((key) => !allowedKeys.includes(key))
+    || requiredKeys.some((key) => !Object.hasOwn(input, key))) {
+    throw invalidInput(command, `input fields must be limited to ${allowedKeys.join(', ')}`);
+  }
+}
+
+function worldVisibility(value: unknown, command: string): 'private' | 'unlisted' | 'public' | 'system' {
+  if (value !== 'private' && value !== 'unlisted' && value !== 'public' && value !== 'system') {
+    throw invalidInput(command, 'visibility is invalid');
+  }
+  return value;
 }
 
 function requiredText(value: unknown, field: string, command: string, maxLength: number): string {

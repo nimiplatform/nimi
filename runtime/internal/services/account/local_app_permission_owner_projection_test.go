@@ -93,6 +93,49 @@ func TestListLocalAppPermissionOwnerProjectionsRejectsNonOwnerCaller(t *testing.
 	}
 }
 
+func TestListLocalAppPermissionOwnerProjectionsOmitsTombstonedPrincipalGrant(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	fixture.service.permissionAdmitted = func(id string) bool { return id == "agents.interact" }
+	fixture.service.auditStore = auditlog.New(32, 32)
+	fixture.service.SetLocalAgentOwnershipResolver(localAgentOwnershipFixture{accountID: "acct-1", agentID: "agent-owned"})
+	fixture.resolver.binding.Capabilities = []string{"agents.interact"}
+
+	if _, err := fixture.service.RequestLocalAppPermission(permissionRequestContext("test-local_app_permission_owner_projection_test-tombstoned"), &runtimev1.RequestLocalAppPermissionRequest{
+		PermissionId: "agents.interact",
+		Reason:       "Open conversations with my Agents",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	approved, err := fixture.service.DecideLocalAppPermission(context.Background(), &runtimev1.DecideLocalAppPermissionRequest{
+		Caller:                desktopAccountControlCaller(),
+		LocalAppPrincipalId:   fixture.resolver.binding.LocalAppPrincipalID,
+		PermissionId:          "agents.interact",
+		Approved:              true,
+		ExpectedOwnerRevision: 1,
+	})
+	if err != nil || !approved.GetAccepted() {
+		t.Fatalf("approve = (%+v, %v)", approved, err)
+	}
+	if _, err := fixture.kernel.Principals().Tombstone(context.Background(), fixture.resolver.binding.LocalAppPrincipalID); err != nil {
+		t.Fatalf("tombstone principal: %v", err)
+	}
+	grants, err := fixture.kernel.PermissionGrants().ListActive(
+		context.Background(),
+		fixture.kernel.LocalOSUserAnchor(),
+		"acct-1",
+	)
+	if err != nil || len(grants) != 1 || grants[0].Key.LocalAppPrincipalID != fixture.resolver.binding.LocalAppPrincipalID {
+		t.Fatalf("retained tombstoned principal grant = (%+v, %v)", grants, err)
+	}
+
+	response, err := fixture.service.ListLocalAppPermissionOwnerProjections(context.Background(), &runtimev1.ListLocalAppPermissionOwnerProjectionsRequest{
+		Caller: desktopAccountControlCaller(),
+	})
+	if err != nil || !response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || len(response.GetPermissions()) != 0 {
+		t.Fatalf("owner list with tombstoned principal grant = (%+v, %v)", response, err)
+	}
+}
+
 func TestLocalAppPermissionOwnerProjectionPreservesLifecycleAndCurrentAgentSnapshot(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	fixture.service.permissionAdmitted = func(id string) bool { return id == "agents.interact" }

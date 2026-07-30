@@ -87,7 +87,7 @@ func TestLocalDevelopmentHandlerSurfacesManifestPermissionFailuresTruthfully(t *
 	}{
 		{
 			name:          "reserved",
-			permissionID:  "agents.configure",
+			permissionID:  "agents.voice",
 			wantReason:    localDevelopmentManifestPermissionReserved,
 			wantAdmission: "reserved",
 			wantMessage:   "reserved pending admission",

@@ -6722,6 +6722,7 @@
       "LocalAppAgentReadinessProjection",
       "LocalAppAgentReadinessSnapshotResponse",
       "LocalAppAgentRouteIntent",
+      "LocalAppAgentRouteOption",
       "LocalAppAgentUpdateAutonomyResponse",
       "LocalAppAgentUpdateConfigurationResponse",
       "LocalAppPermissionAgentHandle",
@@ -7192,6 +7193,7 @@
       "KnowledgeIngestTaskStatus",
       "LocalAppAgentAutonomyMode",
       "LocalAppAgentReadinessState",
+      "LocalAppAgentRouteOptionAvailability",
       "LocalAppPermissionOwnerPosture",
       "LocalAppPermissionPosture",
       "LocalAppSessionState",
@@ -20342,6 +20344,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "route_options",
+            "type": "LocalAppAgentRouteOption",
+            "repeated": true,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -20518,6 +20527,54 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentRouteOption",
+        "fields": [
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "provider",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "model",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "route_policy",
+            "type": "RoutePolicy",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "availability",
+            "type": "LocalAppAgentRouteOptionAvailability",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -36250,6 +36307,15 @@
           "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED",
           "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE",
           "LOCAL_APP_AGENT_READINESS_STATE_FAILED"
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentRouteOptionAvailability",
+        "values": [
+          "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED",
+          "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY",
+          "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED"
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },

@@ -23,6 +23,12 @@ export enum LocalAppAgentReadinessState {
   FAILED = 4,
 }
 
+export enum LocalAppAgentRouteOptionAvailability {
+  UNSPECIFIED = 0,
+  READY = 1,
+  INSTALLED = 2,
+}
+
 export enum LocalAppPermissionOwnerPosture {
   UNSPECIFIED = 0,
   PENDING = 1,

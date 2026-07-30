@@ -482,6 +482,7 @@ test('select field retains content until its symmetric exit completes', async ()
   await vi.waitFor(() => {
     expect(document.querySelector('[role="listbox"]')).toBeNull();
   });
+  expect(document.querySelector('[role="combobox"]')?.textContent).toContain('OpenAI');
 });
 
 test('toggle primitive renders canonical switch slots and states', () => {

@@ -5,6 +5,34 @@ package account
 import runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 
 var realmBrokerOperations = map[string]realmUnaryOperation{
+	"WorldCoreController_listWorldCores": {
+		method: "GET",
+		path:   "/api/realm/core/worlds",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP: {},
+		},
+		authorizationProfile:   "protected_local_app_world_core",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{},
+		requiredPathParameters: map[string]struct{}{},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{"take": realmUnaryParameterNumber, "visibility": realmUnaryParameterString},
+		requestBodyAllowed:     false,
+		requestBodyRequired:    false,
+		responseMaxBytes:       1048576,
+	},
+	"WorldCoreController_createWorldCore": {
+		method: "POST",
+		path:   "/api/realm/core/worlds",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP: {},
+		},
+		authorizationProfile:   "protected_local_app_world_core",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{},
+		requiredPathParameters: map[string]struct{}{},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     true,
+		requestBodyRequired:    true,
+		responseMaxBytes:       1048576,
+	},
 	"WorldPublicController_getCharacterSource": {
 		method: "POST",
 		path:   "/api/world/character-sources/public-projection",

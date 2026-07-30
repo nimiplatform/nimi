@@ -105,9 +105,11 @@ export type {
 } from './floating-window.js';
 export {
   createNimiLocalAppStandardShellSurface,
+  createNimiLocalAppWorldCore,
   getNimiLocalAppConversationSnapshot,
   getNimiLocalAppPermissionStatus,
   getNimiLocalAppSessionStatus,
+  listNimiLocalAppWorldCores,
   openNimiLocalAppConversation,
   readNimiLocalAppStorageJson,
   removeNimiLocalAppStorageJson,
@@ -180,6 +182,7 @@ export type {
   NimiLocalAppStorageDocument,
   NimiLocalAppStorageRemoveResult,
   NimiLocalAppStandardShellSurface,
+  NimiLocalAppWorldCoreListInput,
 } from './local-app.js';
 export type {
   JsonPrimitive,

@@ -26,7 +26,7 @@ func TestNormalizeLocalDevelopmentPermissionRequestsReturnsTypedReservedAndUnkno
 		permissionID string
 		wantReason   localDevelopmentManifestPermissionReason
 	}{
-		{name: "reserved", permissionID: "agents.configure", wantReason: localDevelopmentManifestPermissionReserved},
+		{name: "reserved", permissionID: "agents.voice", wantReason: localDevelopmentManifestPermissionReserved},
 		{name: "unknown", permissionID: "runtime.agent.turn.write", wantReason: localDevelopmentManifestPermissionUnknown},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -57,10 +57,15 @@ func TestNormalizeLocalDevelopmentPermissionRequestsRejectsMalformedRequests(t *
 	}
 }
 
-func TestNormalizeLocalDevelopmentPermissionRequestsAcceptsPublishedAgentsInteract(t *testing.T) {
-	request := localAppManifestPermissionRequest{PermissionID: "agents.interact", Reason: "Talk with selected Agents"}
-	permissions, err := normalizeLocalDevelopmentPermissionRequests([]localAppManifestPermissionRequest{request}, nil)
-	if err != nil || len(permissions) != 1 || permissions[0].PermissionID != request.PermissionID {
+func TestNormalizeLocalDevelopmentPermissionRequestsAcceptsPublishedAgentPermissions(t *testing.T) {
+	requests := []localAppManifestPermissionRequest{
+		{PermissionID: "agents.interact", Reason: "Talk with selected Agents"},
+		{PermissionID: "agents.configure", Reason: "Configure selected Agents"},
+	}
+	permissions, err := normalizeLocalDevelopmentPermissionRequests(requests, nil)
+	if err != nil || len(permissions) != 2 ||
+		permissions[0].PermissionID != "agents.configure" ||
+		permissions[1].PermissionID != "agents.interact" {
 		t.Fatalf("published permission request = (%+v, %v)", permissions, err)
 	}
 }
@@ -72,6 +77,8 @@ display_name: Permission Test
 permissions:
   - id: agents.interact
     reason: Talk with selected Agents
+  - id: agents.configure
+    reason: Configure selected Agents
 `)
 	if err := os.WriteFile(filepath.Join(root, "nimi.app.yaml"), manifest, 0o600); err != nil {
 		t.Fatalf("write local app manifest: %v", err)
@@ -87,7 +94,9 @@ permissions:
 	if err != nil {
 		t.Fatalf("resolve admitted manifest permission: %v", err)
 	}
-	if len(project.PermissionRequirements) != 1 || project.PermissionRequirements[0].PermissionID != "agents.interact" {
+	if len(project.PermissionRequirements) != 2 ||
+		project.PermissionRequirements[0].PermissionID != "agents.configure" ||
+		project.PermissionRequirements[1].PermissionID != "agents.interact" {
 		t.Fatalf("resolved permission requirements = %+v", project.PermissionRequirements)
 	}
 }

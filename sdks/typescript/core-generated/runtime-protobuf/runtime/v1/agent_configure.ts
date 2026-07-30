@@ -64,6 +64,39 @@ export interface LocalAppAgentCapabilityReadiness {
     observedAt?: Timestamp;
 }
 /**
+ * A bounded, selectable route candidate for the current caller. Runtime keeps
+ * inventory identities, endpoints, credentials, and account/Agent identities
+ * behind the agents.configure boundary.
+ *
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRouteOption
+ */
+export interface LocalAppAgentRouteOption {
+    /**
+     * @generated from protobuf field: string capability = 1
+     */
+    capability: string;
+    /**
+     * @generated from protobuf field: string provider = 2
+     */
+    provider: string;
+    /**
+     * @generated from protobuf field: string model = 3
+     */
+    model: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_policy = 4
+     */
+    routePolicy: RoutePolicy;
+    /**
+     * @generated from protobuf field: string label = 5
+     */
+    label: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRouteOptionAvailability availability = 6
+     */
+    availability: LocalAppAgentRouteOptionAvailability;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppAgentModelSettingsProjection
  */
 export interface LocalAppAgentModelSettingsProjection {
@@ -83,6 +116,10 @@ export interface LocalAppAgentModelSettingsProjection {
      * @generated from protobuf field: uint64 configuration_revision = 4
      */
     configurationRevision: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentRouteOption route_options = 5
+     */
+    routeOptions: LocalAppAgentRouteOption[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppAgentReadinessProjection
@@ -406,6 +443,23 @@ export enum LocalAppAgentReadinessState {
     FAILED = 4
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppAgentRouteOptionAvailability
+ */
+export enum LocalAppAgentRouteOptionAvailability {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY = 1;
+     */
+    READY = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED = 2;
+     */
+    INSTALLED = 2
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.LocalAppAgentAutonomyMode
  */
 export enum LocalAppAgentAutonomyMode {
@@ -572,13 +626,101 @@ class LocalAppAgentCapabilityReadiness$Type extends MessageType<LocalAppAgentCap
  */
 export const LocalAppAgentCapabilityReadiness = new LocalAppAgentCapabilityReadiness$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRouteOption$Type extends MessageType<LocalAppAgentRouteOption> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRouteOption", [
+            { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "model", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 5, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "availability", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppAgentRouteOptionAvailability", LocalAppAgentRouteOptionAvailability, "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_"] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRouteOption>): LocalAppAgentRouteOption {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capability = "";
+        message.provider = "";
+        message.model = "";
+        message.routePolicy = 0;
+        message.label = "";
+        message.availability = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRouteOption>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRouteOption): LocalAppAgentRouteOption {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability */ 1:
+                    message.capability = reader.string();
+                    break;
+                case /* string provider */ 2:
+                    message.provider = reader.string();
+                    break;
+                case /* string model */ 3:
+                    message.model = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_policy */ 4:
+                    message.routePolicy = reader.int32();
+                    break;
+                case /* string label */ 5:
+                    message.label = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRouteOptionAvailability availability */ 6:
+                    message.availability = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRouteOption, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability = 1; */
+        if (message.capability !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capability);
+        /* string provider = 2; */
+        if (message.provider !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.provider);
+        /* string model = 3; */
+        if (message.model !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.model);
+        /* nimi.runtime.v1.RoutePolicy route_policy = 4; */
+        if (message.routePolicy !== 0)
+            writer.tag(4, WireType.Varint).int32(message.routePolicy);
+        /* string label = 5; */
+        if (message.label !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.label);
+        /* nimi.runtime.v1.LocalAppAgentRouteOptionAvailability availability = 6; */
+        if (message.availability !== 0)
+            writer.tag(6, WireType.Varint).int32(message.availability);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRouteOption
+ */
+export const LocalAppAgentRouteOption = new LocalAppAgentRouteOption$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppAgentModelSettingsProjection$Type extends MessageType<LocalAppAgentModelSettingsProjection> {
     constructor() {
         super("nimi.runtime.v1.LocalAppAgentModelSettingsProjection", [
             { no: 1, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "route_intents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentRouteIntent },
             { no: 3, name: "readiness", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentCapabilityReadiness },
-            { no: 4, name: "configuration_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+            { no: 4, name: "configuration_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "route_options", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentRouteOption }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentModelSettingsProjection>): LocalAppAgentModelSettingsProjection {
@@ -587,6 +729,7 @@ class LocalAppAgentModelSettingsProjection$Type extends MessageType<LocalAppAgen
         message.routeIntents = [];
         message.readiness = [];
         message.configurationRevision = "0";
+        message.routeOptions = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAppAgentModelSettingsProjection>(this, message, value);
         return message;
@@ -607,6 +750,9 @@ class LocalAppAgentModelSettingsProjection$Type extends MessageType<LocalAppAgen
                     break;
                 case /* uint64 configuration_revision */ 4:
                     message.configurationRevision = reader.uint64().toString();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppAgentRouteOption route_options */ 5:
+                    message.routeOptions.push(LocalAppAgentRouteOption.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -632,6 +778,9 @@ class LocalAppAgentModelSettingsProjection$Type extends MessageType<LocalAppAgen
         /* uint64 configuration_revision = 4; */
         if (message.configurationRevision !== "0")
             writer.tag(4, WireType.Varint).uint64(message.configurationRevision);
+        /* repeated nimi.runtime.v1.LocalAppAgentRouteOption route_options = 5; */
+        for (let i = 0; i < message.routeOptions.length; i++)
+            LocalAppAgentRouteOption.internalBinaryWrite(message.routeOptions[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

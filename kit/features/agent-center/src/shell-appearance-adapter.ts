@@ -132,9 +132,6 @@ export function createAgentCenterShellAppearanceAdapter(
             input.identity,
             {
               backendKind: kind,
-              defaultVoiceReference: committedProfile.defaultVoiceReference,
-              avatarAutoplay: committedProfile.avatarAutoplay,
-              backgroundAssetRef: committedProfile.backgroundAssetRef,
             },
             committedRevision,
             [{

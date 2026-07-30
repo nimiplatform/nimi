@@ -165,12 +165,14 @@ describe('standard shell capabilities', () => {
       'local-app.agentUpdateAutonomy',
       'local-app.agentPresentationSnapshot',
       'local-app.agentCommitPresentation',
+      'local-app.realmWorldCoreList',
+      'local-app.realmWorldCoreCreate',
       'storage.readJson',
       'storage.writeJson',
       'storage.removeJson',
       'desktop-open.openIntent',
     ]);
-    expect(localAppSet?.authorityStatus).toBe('permission_model_v1_base_entitlement_only');
+    expect(localAppSet?.authorityStatus).toBe('permission_model_v1_with_exact_world_core_operations');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');
     expect(readCapabilitySetList('planned_operations', catalog)).toEqual(expect.arrayContaining([
       'ai-config.get',

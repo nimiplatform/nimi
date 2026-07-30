@@ -45,7 +45,21 @@ function recoveryProjection(
 function emptyProjection(revision = '1'): AgentCenterStateInput {
   return {
     modelSettings: {
-      scopeRef, capabilities: [], routeIntents: [], readiness: [], configurationRevision: revision,
+      scopeRef,
+      capabilities: ['text.generate'],
+      routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/default', routePolicy: 'local' }],
+      routeOptions: [
+        {
+          capability: 'text.generate', provider: '', model: 'local/default',
+          routePolicy: 'local', label: 'Default local model', availability: 'ready',
+        },
+        {
+          capability: 'text.generate', provider: '', model: 'local/model-b',
+          routePolicy: 'local', label: 'Local model B', availability: 'installed',
+        },
+      ],
+      readiness: [],
+      configurationRevision: revision,
     },
     autonomy: {
       revision: `autonomy:${revision}`, enabled: true, mode: 'low', budgetExhausted: false,
@@ -165,6 +179,22 @@ describe('AgentCenterSession', () => {
     await flush();
     expect(session.getSnapshot().state.configRevision).toBe('9007199254740993');
     unsubscribe();
+  });
+
+  it('builds the permissioned model picker from bounded configuration-snapshot options', async () => {
+    const session = createPermissionedAgentCenterSession({
+      handle: 'opaque' as AgentCenterOpaqueHandle,
+      surface: permissionedSurface(),
+    });
+    await session.refresh();
+    const provider = session.modelConfig?.providerResolver?.('text.generate') as {
+      listLocalModels(): Promise<Array<{ localModelId: string; label: string; status: string }>>;
+    } | null;
+    expect(provider).toBeTruthy();
+    await expect(provider!.listLocalModels()).resolves.toEqual([
+      expect.objectContaining({ localModelId: 'local/default', label: 'Default local model', status: 'active' }),
+      expect.objectContaining({ localModelId: 'local/model-b', label: 'Local model B', status: 'installed' }),
+    ]);
   });
 
   it('recomputes granted posture live as prompt and requestable without remounting', async () => {

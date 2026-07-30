@@ -37,6 +37,12 @@ function standardShell(overrides: Record<string, unknown> = {}) {
       writeJson: async (_path: string, value: unknown) => ({ value, sizeBytes: 13 }),
       removeJson: async () => ({ removed: false }),
     },
+    realm: {
+      worldCore: {
+        list: async () => [{ id: 'world-1' }],
+        create: async () => ({ id: 'world-1' }),
+      },
+    },
     conversation: {
       open: async () => ({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }),
       send: async () => ({ messageId: 'message-1' }),
@@ -62,7 +68,7 @@ function standardShell(overrides: Record<string, unknown> = {}) {
 
 test('local-app client exposes only admitted typed namespaces', async () => {
   const client = createLocalAppClient({ standardShell: standardShell() });
-  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'auth', 'conversation', 'permissions', 'storage']);
+  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'auth', 'conversation', 'permissions', 'realm', 'storage']);
   assert.deepEqual(await client.auth.status(), {
     mode: 'local-app',
     state: 'session-bound',
@@ -73,6 +79,39 @@ test('local-app client exposes only admitted typed namespaces', async () => {
   });
   assert.equal('agent' in client, false);
   assert.equal('artifacts' in client, false);
+});
+
+test('exact WorldCore list/create carrier exposes no Runtime selector or authority material', async () => {
+  const calls: unknown[] = [];
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      realm: {
+        worldCore: {
+          list: async (input: unknown) => {
+            calls.push(['list', input]);
+            return [{ id: 'world-1', core: {}, visibility: 'private' }];
+          },
+          create: async (input: unknown) => {
+            calls.push(['create', input]);
+            return { id: 'world-2', core: {}, visibility: 'private' };
+          },
+        },
+      },
+    }),
+  });
+  assert.equal((await client.realm.worldCore.list({ take: 20, visibility: 'private' }))[0]?.id, 'world-1');
+  assert.equal((await client.realm.worldCore.create({
+    core: {},
+    origin: { kind: 'manual' },
+    visibility: 'private',
+  })).id, 'world-2');
+  assert.deepEqual(calls, [
+    ['list', { take: 20, visibility: 'private' }],
+    ['create', { core: {}, origin: { kind: 'manual' }, visibility: 'private' }],
+  ]);
+  for (const forbidden of ['methodId', 'realmBaseUrl', 'caller', 'token', 'authorization']) {
+    assert.equal(JSON.stringify(calls).includes(forbidden), false);
+  }
 });
 
 test('admitted SDK permission remains fail-closed while Runtime publication is held', async () => {
@@ -151,16 +190,16 @@ test('Agent capability posture subscription emits the SDK projection and release
       resolve(posture);
     }, reject);
   });
-  assert.equal((await firstPosture).configure.reason, 'reserved_not_admitted');
+  assert.equal((await firstPosture).configure.reason, 'not_granted');
 });
 
-test('agent capability posture pins reserved configure as unavailable/reserved_not_admitted', async () => {
+test('agent capability posture exposes admitted configure as unavailable/not_granted', async () => {
   const client = createLocalAppClient({ standardShell: standardShell() });
   const posture = await client.permissions.agentCapabilityPosture();
   assert.deepEqual(posture.configure, {
     permissionId: 'agents.configure',
     posture: 'unavailable',
-    reason: 'reserved_not_admitted',
+    reason: 'not_granted',
     agents: [],
   });
   assert.equal(posture.interact.reason, 'not_granted');
@@ -184,10 +223,10 @@ test('agent capability posture keeps unknown distinct from reserved and not-gran
   });
   const posture = await client.permissions.agentCapabilityPosture();
   assert.equal(posture.interact.reason, 'unknown');
-  assert.equal(posture.configure.reason, 'reserved_not_admitted');
+  assert.equal(posture.configure.reason, 'not_granted');
 });
 
-test('local-app reserved permission IDs remain observable but not requestable', async () => {
+test('local-app configure is requestable while reserved permission IDs are not', async () => {
   let requestCalls = 0;
   const client = createLocalAppClient({
     standardShell: standardShell({
@@ -199,34 +238,52 @@ test('local-app reserved permission IDs remain observable but not requestable', 
           reasonCode: 'LOCAL_APP_PERMISSION_DENIED',
           agents: [],
         }),
-        request: async () => {
+        request: async ({ permissionId }: { permissionId: string }) => {
           requestCalls += 1;
-          return {};
+          return {
+            permissionId,
+            state: 'unavailable',
+            canRequest: false,
+            reasonCode: 'LOCAL_APP_PERMISSION_DENIED',
+            agents: [],
+          };
         },
       },
     }),
   });
 
-  assert.deepEqual(await client.permissions.status('agents.configure'), {
+  assert.deepEqual(await client.permissions.status('agents.voice'), {
+    permissionId: 'agents.voice',
+    posture: 'unavailable',
+    canRequest: false,
+    agents: [],
+    detail: 'LOCAL_APP_PERMISSION_DENIED',
+  });
+  assert.deepEqual(await client.permissions.request({
+    permissionId: 'agents.configure',
+    reason: 'Configure this Agent',
+  }), {
     permissionId: 'agents.configure',
     posture: 'unavailable',
     canRequest: false,
     agents: [],
     detail: 'LOCAL_APP_PERMISSION_DENIED',
   });
+  assert.equal(requestCalls, 1);
+
   await assert.rejects(
     () => client.permissions.request({
-      permissionId: 'agents.configure',
-      reason: 'Configure this Agent',
+      permissionId: 'agents.voice',
+      reason: 'Use Agent voice',
     }),
     (error: unknown) => {
       const typed = error as { reasonCode?: string; actionHint?: string; message?: string };
       return typed.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED'
         && typed.actionHint === 'wait_for_permission_admission'
-        && String(typed.message).includes('agents.configure');
+        && String(typed.message).includes('agents.voice');
     },
   );
-  assert.equal(requestCalls, 0);
+  assert.equal(requestCalls, 1);
 });
 
 test('granted account permission projects only branded opaque Agent handles', async () => {

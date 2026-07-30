@@ -118,7 +118,6 @@ class StubPermissionTransport implements PermissionTransport {
 describe('vNext app surface', () => {
   it('exports the full public permission catalog with an exact admitted/reserved partition', () => {
     const expectedReserved = [
-      'agents.configure',
       'agents.voice',
       'agents.delegate',
       'artifacts.open',
@@ -137,10 +136,10 @@ describe('vNext app surface', () => {
       'ai.background',
       'shared_resources.open',
     ];
-    assert.deepEqual(ADMITTED_PERMISSION_IDS, ['agents.interact']);
+    assert.deepEqual(ADMITTED_PERMISSION_IDS, ['agents.interact', 'agents.configure']);
     assert.deepEqual(RESERVED_PERMISSION_IDS, expectedReserved);
-    assert.deepEqual(KNOWN_PERMISSION_IDS, ['agents.interact', ...expectedReserved]);
-    assert.equal(isReservedPermissionID('agents.configure'), true);
+    assert.deepEqual(KNOWN_PERMISSION_IDS, ['agents.interact', 'agents.configure', ...expectedReserved]);
+    assert.equal(isReservedPermissionID('agents.configure'), false);
     assert.equal(isReservedPermissionID('agents.voice'), true);
     assert.equal(isReservedPermissionID('agents.delegate'), true);
     assert.equal(KNOWN_PERMISSION_IDS.includes('realm_source.snapshot.consume' as never), false);
@@ -195,7 +194,7 @@ describe('vNext app surface', () => {
     })).posture, 'pending');
   });
 
-  it('names reserved permissions but rejects their requests before transport', async () => {
+  it('admits configure requests while reserved permissions fail before transport', async () => {
     let requestCalls = 0;
     const client = createPermissionClient({
       status: async (permissionId) => permissionStatus({ permissionId }),
@@ -207,27 +206,33 @@ describe('vNext app surface', () => {
     });
 
     assert.equal((await client.status('agents.configure')).posture, 'unavailable');
+    assert.equal((await client.request({
+      permissionId: 'agents.configure',
+      reason: 'Configure selected Agents',
+    })).posture, 'pending');
+    assert.equal(requestCalls, 1);
+
     await assert.rejects(
       client.request({
-        permissionId: 'agents.configure',
-        reason: '',
+        permissionId: 'agents.voice',
+        reason: 'Use Agent voice',
       }),
       (error: unknown) => {
         const typed = error as { reasonCode?: string; actionHint?: string; message?: string };
         return typed.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED'
           && typed.actionHint === 'wait_for_permission_admission'
-          && String(typed.message).includes('agents.configure');
+          && String(typed.message).includes('agents.voice');
       },
     );
-    assert.equal(requestCalls, 0);
+    assert.equal(requestCalls, 1);
 
     await assert.rejects(
       createPermissionClient(new StubPermissionTransport({
         status: permissionStatus({
-          permissionId: 'agents.configure',
+          permissionId: 'agents.voice',
           posture: 'granted',
         }),
-      })).status('agents.configure'),
+      })).status('agents.voice'),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_RESPONSE_INVALID',
     );
   });

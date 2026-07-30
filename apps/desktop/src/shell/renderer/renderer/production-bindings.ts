@@ -461,7 +461,11 @@ export function createDesktopProductionBindings(
             window.removeEventListener('focus', refresh);
           };
         },
-        connectDesktopOpenIntents: () => connectDesktopOpenIntentListener(runtimeConfigNavigation),
+        connectDesktopOpenIntents: (
+          store: Parameters<
+            DesktopCanonicalRendererBindings['app']['events']['connectDesktopOpenIntents']
+          >[0],
+        ) => connectDesktopOpenIntentListener(runtimeConfigNavigation, store),
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {

@@ -11,8 +11,9 @@ use crate::generated::{
     LocalAppAgentAutonomyProjection, LocalAppAgentCapabilityReadiness,
     LocalAppAgentModelSettingsProjection, LocalAppAgentPresentationIntent,
     LocalAppAgentPresentationProjection, LocalAppAgentReadinessProjection,
-    LocalAppAgentReadinessState, LocalAppAgentRouteIntent, RoutePolicy,
-    UpdateLocalAppAgentAutonomyRequest, UpdateLocalAppAgentConfigurationRequest,
+    LocalAppAgentReadinessState, LocalAppAgentRouteIntent, LocalAppAgentRouteOption,
+    LocalAppAgentRouteOptionAvailability, RoutePolicy, UpdateLocalAppAgentAutonomyRequest,
+    UpdateLocalAppAgentConfigurationRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -153,6 +154,7 @@ fn project_configuration(
         "routeIntents": projection.route_intents.into_iter().map(project_route_intent).collect::<Result<Vec<_>, _>>()?,
         "readiness": projection.readiness.into_iter().map(project_capability_readiness).collect::<Result<Vec<_>, _>>()?,
         "configurationRevision": projection.configuration_revision.to_string(),
+        "routeOptions": projection.route_options.into_iter().map(project_route_option).collect::<Result<Vec<_>, _>>()?,
     }))
 }
 
@@ -178,6 +180,31 @@ fn project_route_intent(
         "provider": intent.provider,
         "model": intent.model,
         "routePolicy": route_policy,
+    }))
+}
+
+fn project_route_option(
+    option: LocalAppAgentRouteOption,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let route_policy = match RoutePolicy::try_from(option.route_policy).map_err(|_| untrusted())? {
+        RoutePolicy::Local => "local",
+        RoutePolicy::Cloud => "cloud",
+        RoutePolicy::Unspecified => return Err(untrusted()),
+    };
+    let availability = match LocalAppAgentRouteOptionAvailability::try_from(option.availability)
+        .map_err(|_| untrusted())?
+    {
+        LocalAppAgentRouteOptionAvailability::Ready => "ready",
+        LocalAppAgentRouteOptionAvailability::Installed => "installed",
+        LocalAppAgentRouteOptionAvailability::Unspecified => return Err(untrusted()),
+    };
+    Ok(json!({
+        "capability": option.capability,
+        "provider": option.provider,
+        "model": option.model,
+        "routePolicy": route_policy,
+        "label": option.label,
+        "availability": availability,
     }))
 }
 
@@ -238,6 +265,7 @@ fn project_presentation(
 ) -> Result<JsonValue, LocalAppOperationError> {
     Ok(json!({
         "profile": projection.profile.map(project_presentation_profile).transpose()?,
+        "previousProfile": projection.previous_profile.map(project_presentation_profile).transpose()?,
         "defaultVoiceReference": projection.default_voice_reference,
         "presentationRevision": projection.presentation_revision.to_string(),
     }))
@@ -550,6 +578,50 @@ mod tests {
         })
         .expect("fresh presentation projection");
         assert_eq!(projected["presentationRevision"], "0");
+        assert!(projected["profile"].is_null());
+        assert!(projected["previousProfile"].is_null());
+        assert_eq!(
+            projected.as_object().map(|record| record.len()),
+            Some(4),
+            "fresh projection keeps the exact public SDK shape",
+        );
+    }
+
+    #[test]
+    fn configuration_projects_only_the_bounded_route_option_shape() {
+        let projected = project_configuration(LocalAppAgentModelSettingsProjection {
+            capabilities: vec!["text.generate".to_string()],
+            route_intents: vec![LocalAppAgentRouteIntent {
+                capability: "text.generate".to_string(),
+                provider: String::new(),
+                model: "local/default".to_string(),
+                route_policy: RoutePolicy::Local as i32,
+            }],
+            readiness: Vec::new(),
+            configuration_revision: 1,
+            route_options: vec![LocalAppAgentRouteOption {
+                capability: "text.generate".to_string(),
+                provider: String::new(),
+                model: "local.chat.gemma-test".to_string(),
+                route_policy: RoutePolicy::Local as i32,
+                label: "Gemma Test".to_string(),
+                availability: LocalAppAgentRouteOptionAvailability::Ready as i32,
+            }],
+        })
+        .expect("configuration projection");
+        assert_eq!(
+            projected.as_object().map(|record| record.len()),
+            Some(5),
+            "configuration keeps the exact public SDK shape",
+        );
+        let option = &projected["routeOptions"][0];
+        assert_eq!(option["model"], "local.chat.gemma-test");
+        assert_eq!(option["availability"], "ready");
+        assert_eq!(
+            option.as_object().map(|record| record.len()),
+            Some(6),
+            "route option omits private inventory material",
+        );
     }
 
     #[test]

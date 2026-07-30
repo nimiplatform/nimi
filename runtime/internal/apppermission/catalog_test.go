@@ -8,13 +8,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestPublicPermissionCatalogIsClosedWithOnlyAgentsInteractAdmitted(t *testing.T) {
-	descriptor, ok := Lookup("agents.interact")
-	if !ok || descriptor.Admission != AdmissionAdmitted || !descriptor.ManifestAllowed || !IsAdmitted("agents.interact") {
-		t.Fatalf("agents.interact publication = %+v, known=%v", descriptor, ok)
+func TestPublicPermissionCatalogIsClosedWithAgentPermissionsAdmitted(t *testing.T) {
+	for _, id := range []string{"agents.interact", "agents.configure"} {
+		descriptor, ok := Lookup(id)
+		if !ok || descriptor.Admission != AdmissionAdmitted || !descriptor.ManifestAllowed || !IsAdmitted(id) {
+			t.Fatalf("%s publication = %+v, known=%v", id, descriptor, ok)
+		}
 	}
 	reserved := []string{
-		"agents.configure", "agents.voice", "agents.delegate",
+		"agents.voice", "agents.delegate",
 		"artifacts.open", "account.profile.read", "memory.read", "memory.write",
 		"knowledge.read", "knowledge.write", "notifications.send", "notifications.receive",
 		"files.open", "files.save", "realm.library.read", "realm.library.manage",
@@ -52,7 +54,7 @@ func TestProtectedOperationsMapToTheirPublishedProductPermission(t *testing.T) {
 	for operationID, permissionID := range operations {
 		descriptor, ok := ForOperation(operationID)
 		expectedAdmission := AdmissionReserved
-		if permissionID == "agents.interact" {
+		if permissionID == "agents.interact" || permissionID == "agents.configure" {
 			expectedAdmission = AdmissionAdmitted
 		}
 		if !ok || descriptor.ID != permissionID || descriptor.Admission != expectedAdmission {
@@ -101,7 +103,7 @@ func TestRuntimeCatalogMatchesPublishedProductCatalog(t *testing.T) {
 		if descriptor.Admission != Admission(row.Admission) {
 			t.Fatalf("admission drift for %q: Runtime=%s config=%s", row.PermissionID, descriptor.Admission, row.Admission)
 		}
-		if row.PermissionID == "agents.configure" && descriptor.Admission != AdmissionReserved {
+		if row.PermissionID == "agents.configure" && descriptor.Admission != AdmissionAdmitted {
 			t.Fatalf("agents.configure admission drift: %s", descriptor.Admission)
 		}
 	}

@@ -8,6 +8,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionRenew',
   'localAppPermissionStatus',
   'localAppPermissionRequest',
+  'localAppRealmWorldCoreList',
+  'localAppRealmWorldCoreCreate',
   'localAppStorageReadJson',
   'localAppStorageWriteJson',
   'localAppStorageRemoveJson',
@@ -132,6 +134,8 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -156,6 +160,8 @@ export type NimiElectronLocalAppHost = {
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
   readonly permissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
   readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
+  readonly realmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
+  readonly realmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -223,6 +229,14 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
       () => this.binding.localAppPermissionRequest(input),
       exactText(input.permissionId),
     );
+  }
+
+  realmWorldCoreList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return invokeWorldCoreList(() => this.binding.localAppRealmWorldCoreList(input));
+  }
+
+  realmWorldCoreCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCore(() => this.binding.localAppRealmWorldCoreCreate({ body: input }));
   }
 
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -317,6 +331,14 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
     return this.resolve().permissionRequest(input);
+  }
+
+  realmWorldCoreList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return this.resolve().realmWorldCoreList(input);
+  }
+
+  realmWorldCoreCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldCoreCreate(input);
   }
 
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -557,6 +579,27 @@ async function invokePermissionStatus(
     reasonCode: value.reasonCode,
     agents: Object.freeze(agents),
   });
+}
+
+async function invokeWorldCoreList(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<readonly NimiElectronLocalAppRecord[]> {
+  const value = await invoke(call);
+  if (!Array.isArray(value)) throw untrustedRuntimeError();
+  return Object.freeze(value.map((entry) => validateWorldCore(entry)));
+}
+
+async function invokeWorldCore(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  return validateWorldCore(await invoke(call));
+}
+
+function validateWorldCore(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value)) throw untrustedRuntimeError();
+  validateJsonValue(value);
+  validateProjectionValue(value);
+  return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
 }
 
 async function invokeStorageDocument(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {

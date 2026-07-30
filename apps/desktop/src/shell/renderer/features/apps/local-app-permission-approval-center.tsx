@@ -236,6 +236,30 @@ export interface LocalAppPermissionApprovalViewProps {
   readonly onClose: () => void;
 }
 
+export function LocalAppPermissionApprovalTitle({
+  requestGroup,
+}: {
+  readonly requestGroup: DesktopLocalAppPermissionRequestGroup;
+}): ReactElement {
+  const { t } = useTranslation();
+  const singleItem = requestGroup.items.length === 1;
+  const onlyRequest = requestGroup.items[0];
+  const onlyRequestSegment = onlyRequest
+    ? DESKTOP_AGENT_PERMISSION_I18N_SEGMENTS[onlyRequest.permissionId]
+    : null;
+  return (
+    <NimiText as="h2" role="section-title" className="min-w-0">
+      {t(singleItem ? 'AppPermissions.approval.title' : 'AppPermissions.approval.combinedTitle', {
+        app: requestGroup.displayAppId,
+        count: requestGroup.items.length,
+        permission: onlyRequestSegment
+          ? t(`AppPermissions.intent.${onlyRequestSegment}`)
+          : '',
+      })}
+    </NimiText>
+  );
+}
+
 export function LocalAppPermissionApprovalView({
   requestGroup,
   waitingGroupCount,
@@ -265,12 +289,7 @@ export function LocalAppPermissionApprovalView({
       contentClassName="min-h-0 flex flex-1 overflow-hidden"
       title={(
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <NimiText as="h2" role="section-title" className="min-w-0">
-            {t(singleItem ? 'AppPermissions.approval.title' : 'AppPermissions.approval.combinedTitle', {
-              app: requestGroup.displayAppId,
-              count: requestGroup.items.length,
-            })}
-          </NimiText>
+          <LocalAppPermissionApprovalTitle requestGroup={requestGroup} />
           <StatusBadge aria-hidden="true" tone="warning" shape="soft" className="shrink-0">
             {t('AppPermissions.posture.pending')}
           </StatusBadge>

@@ -8,6 +8,9 @@ import {
   retryableInterruptedRuntimeDependencyJobs,
   runtimeDependencyAutoRetryKey,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-dependency-recovery';
+import {
+  localModelCenterDependencyBlocksSetup,
+} from '../src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-readiness';
 
 function dependency(
   state: string,
@@ -46,6 +49,20 @@ function job(
     ...overrides,
   } as NimiRuntimeLocalEnvironmentDependencyJob;
 }
+
+test('local model center does not treat missing workflow profile context as Runtime setup failure', () => {
+  assert.equal(localModelCenterDependencyBlocksSetup(dependency('unsupported', {
+    reasonCode: 'LOCAL_ENVIRONMENT_IMAGE_PROFILE_BINDINGS_REQUIRED',
+  })), false);
+});
+
+test('local model center still blocks genuine required Runtime dependencies', () => {
+  assert.equal(localModelCenterDependencyBlocksSetup(dependency('unsupported', {
+    dependencyFamily: 'native-engine-package.stablediffusion-ggml',
+    dependencyId: 'stable-diffusion.cpp.package',
+    reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED',
+  })), true);
+});
 
 test('local model center retries interrupted companion jobs while dependency is still blocking', () => {
   const interrupted = job('failed');

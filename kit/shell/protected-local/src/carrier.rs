@@ -236,6 +236,17 @@ pub struct LocalAppStorageRemoveResult {
     pub removed: bool,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LocalAppWorldCoreListRequest {
+    pub take: Option<u32>,
+    pub visibility: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldCoreCreateRequest {
+    pub body: JsonValue,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationOpenRequest {
     pub agent_handle: String,
@@ -604,6 +615,16 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn realm_world_core_list(
+        &self,
+        request: LocalAppWorldCoreListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_core_create(
+        &self,
+        request: LocalAppWorldCoreCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn storage_read_json(
         &self,

@@ -31,6 +31,8 @@ const (
 	OperationStorageJSONRead       Operation = "app_storage.json.read"
 	OperationStorageJSONWrite      Operation = "app_storage.json.write"
 	OperationStorageJSONRemove     Operation = "app_storage.json.remove"
+	OperationRealmWorldCoreList    Operation = "realm.world_core.list"
+	OperationRealmWorldCoreCreate  Operation = "realm.world_core.create"
 	OperationVoiceTranscribe       Operation = "runtime_agent.voice.transcribe"
 	OperationVoiceStreamSubscribe  Operation = "runtime_agent.voice.stream_subscribe"
 )

@@ -19,6 +19,7 @@ authority_refs:
   - P-PERM-015
   - P-PERM-016
   - P-PERM-017
+  - P-PERM-019
 
 authority_classes:
   - id: base_entitlement
@@ -137,7 +138,7 @@ public_permissions:
       - ai_usage_remains_metered
     atomic_publication_requirement: P-PERM-017 applies independently to the currently admitted five-operation slice and every reserved scope extension
   - permission_id: agents.configure
-    admission: reserved
+    admission: admitted
     authority_class: user_permission
     decision_owner: runtime
     manifest_allowed: true
@@ -152,7 +153,6 @@ public_permissions:
       - autonomy-snapshot
       - update-autonomy
       - presentation-snapshot
-      - preview-presentation
       - commit-presentation
     invariants:
       - no_provider_credentials
@@ -161,7 +161,6 @@ public_permissions:
       - no_third_party_realm_character_materialization
       - revision_aware_settings
       - agents_interact_revoke_invalidates_effective_grant_but_preserves_owner_history
-    admission_blocker: complete closed operation mapping, endpoint enforcement, carrier and SDK surface, combined JIT item, settings, revoke, audit, and atomic publication are not admitted
   - permission_id: agents.voice
     admission: reserved
     authority_class: user_permission

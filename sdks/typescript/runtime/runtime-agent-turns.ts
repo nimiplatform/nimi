@@ -309,7 +309,7 @@ function appMessageEvents(
 ): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
   return projectRuntimeAgentEventStream(stream, (event) => {
     if (!eventIsAtOrAfterLiveBoundary(event, liveStartedAtMs)) return null;
-    const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+    const projected = projectNimiRuntimeAgentAppMessageEvent(event, request.localAgentRef);
     if (!projected) return null;
     const expectedAnchorId = optionalString(request.conversationAnchorId);
     if (expectedAnchorId && projected.conversationAnchorId !== expectedAnchorId) {

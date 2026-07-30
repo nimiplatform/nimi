@@ -19,7 +19,10 @@ func (r publicChatRuntime) reserveTurn(
 ) (publicChatAnchorState, publicChatTurnState, context.Context, error) {
 	identity, err := validateLocalAgentIdentity(req.OwnerUserID, req.RuntimeSourceRef, req.LocalAgentRef)
 	if err != nil {
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, publicChatDiagnosticError(
+			err,
+			"runtime_agent_public_chat_identity",
+		)
 	}
 	localAgentRef := identity.LocalAgentRef
 	anchorID := strings.TrimSpace(req.ConversationAnchorID)
@@ -31,10 +34,16 @@ func (r publicChatRuntime) reserveTurn(
 	}
 	entry, err := r.svc.agentByID(localAgentRef)
 	if err != nil {
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, publicChatDiagnosticError(
+			err,
+			"runtime_agent_public_chat_agent_lookup",
+		)
 	}
 	if err := validateLocalAgentRecordIdentity(entry.Agent, identity); err != nil {
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, publicChatDiagnosticError(
+			err,
+			"runtime_agent_public_chat_agent_identity",
+		)
 	}
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent is not active")
@@ -46,7 +55,10 @@ func (r publicChatRuntime) reserveTurn(
 	}
 	resolvedBindings, configRevision, err := r.svc.resolveExecutionBindingsFromConfig(parent, localAgentRef, subjectUserID, req)
 	if err != nil {
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, publicChatDiagnosticError(
+			err,
+			"runtime_agent_public_chat_binding_resolution",
+		)
 	}
 	_, hasImageBinding := resolvedBindings[runtimeAgentAIConfigCapabilityImageGenerate]
 	availableActions := publicChatAvailableActions{

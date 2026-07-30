@@ -72,4 +72,40 @@ describe('Agent Center state projection', () => {
     expect(state.cognition.recentCanonicalMemoryCount).toBe(1);
     expect(JSON.stringify(state.cognition)).not.toContain('private canary');
   });
+
+  it('keeps text generation and embedding required while other capabilities remain optional', () => {
+    const current = input().modelSettings!;
+    const state = buildAgentCenterState(input({
+      modelSettings: {
+        ...current,
+        capabilities: [...current.capabilities, 'audio.transcribe'],
+        routeIntents: [
+          ...current.routeIntents,
+          { capability: 'audio.transcribe', provider: '', model: 'stt', routePolicy: 'local' },
+        ],
+        readiness: [
+          { capability: 'text.generate', state: 'blocked', reason: 'missing', observedAt: null },
+          { capability: 'text.embed', state: 'blocked', reason: 'missing', observedAt: null },
+          { capability: 'audio.transcribe', state: 'blocked', reason: 'missing', observedAt: null },
+        ],
+      },
+    }));
+    const capabilities = new Map(state.capabilities.map((entry) => [entry.capability, entry]));
+
+    expect(capabilities.get('text.generate')).toMatchObject({
+      required: true,
+      blocksTextTurns: true,
+      summary: 'Not configured',
+    });
+    expect(capabilities.get('text.embed')).toMatchObject({
+      required: true,
+      blocksTextTurns: true,
+      summary: 'Not configured',
+    });
+    expect(capabilities.get('audio.transcribe')).toMatchObject({
+      required: false,
+      blocksTextTurns: false,
+      summary: 'Optional route not configured',
+    });
+  });
 });

@@ -960,11 +960,10 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       subjectUserId: 'owner-1',
       messageType: 'runtime.agent.turn.completed',
       payload: toNimiRuntimeProtoStruct({
-        local_agent_ref: 'local-agent:owner-1:agent-1',
         turn_id: 'turn-1',
         stream_id: 'stream-1',
       }),
-    }),
+    }, 'local-agent:owner-1:agent-1'),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_INPUT_INVALID');
       return true;

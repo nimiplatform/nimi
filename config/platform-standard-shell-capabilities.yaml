@@ -235,7 +235,7 @@ capability_sets:
     app_package_kind: nimi-app
     launch_resolution: runtime_prepare_local_app_launch_and_verified_process_binding
     auth_binding: runtime_owned_request_empty_local_app_session
-    authority_status: permission_model_v1_base_entitlement_only
+    authority_status: permission_model_v1_with_exact_world_core_operations
     allowed_operations:
       - local-app.sessionStatus
       - local-app.permissionStatus
@@ -252,6 +252,8 @@ capability_sets:
       - local-app.agentUpdateAutonomy
       - local-app.agentPresentationSnapshot
       - local-app.agentCommitPresentation
+      - local-app.realmWorldCoreList
+      - local-app.realmWorldCoreCreate
       - storage.readJson
       - storage.writeJson
       - storage.removeJson
@@ -377,6 +379,24 @@ local_app_operation_contract:
       request_fields: [relativePath]
       response_fields: [removed]
       owner: runtime_app_service
+    realmWorldCoreList:
+      command: local-app.realmWorldCoreList
+      operation_id: realm.world_core.list
+      authority_class: base_entitlement
+      request_fields: [take, visibility]
+      response_fields: [worldCores]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmWorldCoreCreate:
+      command: local-app.realmWorldCoreCreate
+      operation_id: realm.world_core.create
+      authority_class: base_entitlement
+      request_fields: [core, id, origin, visibility]
+      response_fields: [worldCore]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: write
+      owner: runtime_account_service
     conversationOpen:
       command: local-app.conversationOpen
       operation_id: runtime_agent.conversation.open
@@ -680,6 +700,12 @@ capabilities:
       - id: permissionRequest
         command: nimi.shell.localApp.permissionRequest
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-error-unclassified, runtime-unauthenticated, invalid-payload, permission-unavailable, request-pending, account-changed, runtime-restarted]
+      - id: realmWorldCoreList
+        command: nimi.shell.localApp.realmWorldCoreList
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-payload, resource-exhausted, host-internal-error]
+      - id: realmWorldCoreCreate
+        command: nimi.shell.localApp.realmWorldCoreCreate
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-payload, not-found, resource-exhausted, host-internal-error]
       - id: conversationOpen
         command: nimi.shell.localApp.conversationOpen
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, permission-unavailable, permission-denied, permission-revoked, invalid-payload, resource-exhausted, host-internal-error]

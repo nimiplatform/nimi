@@ -22,7 +22,7 @@ func TestCompileAgentTurnSourceSnapshotV3OfficialVectorsProduceReferenceEquivale
 		"world-character": {
 			PacketHash:               "4feafc11dd697f0338874eb653c9df732fd4c45efd916eccfa3cbe2eb6508c2c",
 			ReferenceSourceLanesHash: "dab0d1cbe33dfcc89584ef8dd312ac7ff1a8fa925eafba12398281982f0292c6",
-			CompiledContentHash:      "ff27c241d88cee9d58d70f9bb76ce5e73431fbf4341a371661e99cff4bd45398",
+			CompiledContentHash:      "6ef180fc1220efb990ec2755b4dedbe77a06a0bef5bc572f7ad93f1ea98dbf7e",
 			LaneItemCounts: map[agentTurnContextLaneID]int{
 				agentTurnContextLaneSourceIdentity: 3, agentTurnContextLaneSourceBehavior: 5,
 				agentTurnContextLaneWorldContext: 8, agentTurnContextLaneRelationshipContext: 3,
@@ -225,6 +225,53 @@ func TestCompileRealmSourceClosureV3RecordsNoRelationshipsAsNonProviderOmission(
 	}
 	if _, err := applyAgentTurnContextBudget(malformed, agentTurnContextBudgetInput{ContextWindowTokens: 1_000_000}); err == nil {
 		t.Fatal("malformed omission record with provider content was admitted")
+	}
+}
+
+func TestCompileRealmSourceClosureV3KeepsDependencyRelationshipsBudgetTruncatable(t *testing.T) {
+	t.Parallel()
+	snapshot := agentTurnContextTestSnapshot(t, "worldCharacter")
+	items, err := compileAgentTurnSourceSnapshotV3(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lanes, err := makeAgentTurnContextLanes(items)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var required uint64
+	for _, lane := range lanes {
+		for _, item := range lane.Items {
+			if item.Mandatory {
+				required += item.TokenEstimate
+			}
+		}
+	}
+	if required == 0 {
+		t.Fatal("source fixture has no mandatory baseline")
+	}
+	if _, err := applyAgentTurnContextBudget(lanes, agentTurnContextBudgetInput{ContextWindowTokens: required}); err != nil {
+		t.Fatal(err)
+	}
+
+	relationshipLane := agentTurnContextTestLane(t, lanes, agentTurnContextLaneRelationshipContext)
+	var profileIncluded, closureTruncated bool
+	for _, item := range relationshipLane.Items {
+		switch {
+		case strings.HasPrefix(item.StableID, "source.relationship.profile."):
+			profileIncluded = profileIncluded || item.Mandatory && item.Included && !item.Truncated &&
+				item.TruncationClass == agentTurnContextTruncationNone
+		case strings.HasPrefix(item.StableID, "source.relationship.world."):
+			if item.Mandatory || item.TruncationClass != agentTurnContextTruncationWorldDetail {
+				t.Fatalf("dependency-closure relationship is not optional world detail: %+v", item)
+			}
+			closureTruncated = closureTruncated || !item.Included && item.Truncated
+		}
+	}
+	if !profileIncluded || !closureTruncated {
+		t.Fatalf("relationship budget posture mismatch: profile_included=%t closure_truncated=%t lane=%+v",
+			profileIncluded, closureTruncated, relationshipLane)
 	}
 }
 

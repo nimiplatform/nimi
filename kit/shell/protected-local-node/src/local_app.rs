@@ -95,6 +95,31 @@ pub async fn local_app_permission_request(
     }
 }
 
+#[napi(js_name = "localAppRealmWorldCoreList")]
+pub async fn local_app_realm_world_core_list(input: NativeWorldCoreListInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_core_list(LocalAppWorldCoreListRequest {
+                take: input.take,
+                visibility: input.visibility,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldCoreCreate")]
+pub async fn local_app_realm_world_core_create(
+    input: NativeWorldCoreCreateInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_core_create(LocalAppWorldCoreCreateRequest { body: input.body })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppAgentConfigurationSnapshot")]
 pub async fn local_app_agent_configuration_snapshot(
     input: NativeAgentHandleInput,

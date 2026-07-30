@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { i18n, initI18n } from '../src/shell/renderer/i18n/index.js';
 import {
   groupDesktopLocalAppPermissionRequests,
+  LocalAppPermissionApprovalTitle,
   LocalAppPermissionApprovalItems,
   LocalAppPermissionDecisionActions,
   resolveLocalAppPermissionApprovalViewState,
@@ -82,11 +83,22 @@ test('five pending Agent items form one surface with a separate decision pair fo
   assert.match(markup, /Delegate actions to your Agents/u);
 });
 
-test('single-item request keeps the original title and decision controls', () => {
+test('single-item request title names the actual permission and keeps decision controls', () => {
   assert.equal(
-    i18n.t('AppPermissions.approval.title', { app: 'Zhiyu' }),
-    'Zhiyu requests to interact with your Agents',
+    i18n.t('AppPermissions.approval.title', {
+      app: 'Zhiyu',
+      permission: i18n.t('AppPermissions.intent.agentsInteract'),
+    }),
+    'Zhiyu requests “Interact with all Agents in your account”',
   );
+  const configureGroup = groupDesktopLocalAppPermissionRequests([request('agents.configure')])[0];
+  assert.ok(configureGroup);
+  const configureMarkup = renderToStaticMarkup(React.createElement(LocalAppPermissionApprovalTitle, {
+    requestGroup: configureGroup,
+  }));
+  assert.match(configureMarkup, /Zhiyu requests “Configure your Agents”/u);
+  assert.doesNotMatch(configureMarkup, /requests “Interact with all Agents/u);
+
   const markup = renderToStaticMarkup(React.createElement(LocalAppPermissionDecisionActions, {
     request: request('agents.interact'),
     compact: false,

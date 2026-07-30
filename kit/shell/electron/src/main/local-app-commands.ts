@@ -25,6 +25,8 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'], 'permissionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'], 'realmWorldCoreList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'], 'realmWorldCoreCreate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
@@ -111,6 +113,36 @@ function validatePayload(
         reason: requiredUtf8Text(payload.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
         requestId: requiredText(payload.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
       };
+    case 'realmWorldCoreList': {
+      assertAllowedKeys(payload, ['take', 'visibility'], [], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = {};
+      if (payload.take !== undefined) result.take = nonNegativeInteger(payload.take, command, 'take');
+      if (payload.visibility !== undefined) result.visibility = worldVisibility(payload.visibility, command);
+      return result;
+    }
+    case 'realmWorldCoreCreate':
+      assertAllowedKeys(payload, ['core', 'id', 'origin', 'visibility'], ['core', 'origin'], command);
+      if (!isPlainRecord(payload.core) || !isPlainRecord(payload.origin)) {
+        throw invalidPayload(command, 'core and origin must be objects');
+      }
+      assertAllowedKeys(
+        payload.origin,
+        ['kind', 'parentCharacterId', 'parentWorldId', 'sourceContentHash', 'sourceId', 'sourceVersion'],
+        ['kind'],
+        command,
+      );
+      if (!['manual', 'forge', 'worldCharacterDerivation', 'import', 'system'].includes(String(payload.origin.kind))) {
+        throw invalidPayload(command, 'origin.kind is invalid');
+      }
+      for (const key of ['parentCharacterId', 'parentWorldId', 'sourceContentHash', 'sourceId', 'sourceVersion']) {
+        if (payload.origin[key] !== undefined) {
+          requiredText(payload.origin[key], `origin.${key}`, command, MAX_IDENTIFIER_LENGTH);
+        }
+      }
+      if (payload.id !== undefined) requiredText(payload.id, 'id', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.visibility !== undefined) worldVisibility(payload.visibility, command);
+      validateJsonValue(payload, command, 2 * 1024 * 1024);
+      return payload as NimiElectronLocalAppRecord;
     case 'conversationOpen':
       assertExactKeys(payload, ['agentHandle', 'disposition'], command);
       if (payload.disposition !== 'create-or-resume' && payload.disposition !== 'create-new') {
@@ -229,6 +261,10 @@ function isCanonicalStoragePath(value: string): boolean {
 }
 
 function validateStorageJsonValue(value: unknown, command: string): void {
+  validateJsonValue(value, command, 256 * 1024);
+}
+
+function validateJsonValue(value: unknown, command: string, maxBytes: number): void {
   const state = { nodes: 0, ancestors: new Set<object>() };
   const visit = (entry: unknown, depth = 0): void => {
     state.nodes += 1;
@@ -252,7 +288,7 @@ function validateStorageJsonValue(value: unknown, command: string): void {
   };
   visit(value);
   const encoded = JSON.stringify(value);
-  if (typeof encoded !== 'string' || Buffer.byteLength(encoded, 'utf8') > 256 * 1024) {
+  if (typeof encoded !== 'string' || Buffer.byteLength(encoded, 'utf8') > maxBytes) {
     throw invalidPayload(command, 'value exceeds the JSON document bound');
   }
 }
@@ -283,6 +319,38 @@ function assertExactKeys(payload: Readonly<Record<string, unknown>>, keys: reado
   if (JSON.stringify(Object.keys(payload).sort()) !== JSON.stringify([...keys].sort())) {
     throw invalidPayload(command, `payload fields must be exactly ${keys.join(', ') || '<empty>'}`);
   }
+}
+
+function assertAllowedKeys(
+  payload: Readonly<Record<string, unknown>>,
+  allowedKeys: readonly string[],
+  requiredKeys: readonly string[],
+  command: string,
+): void {
+  const keys = Object.keys(payload);
+  if (keys.some((key) => !allowedKeys.includes(key))
+    || requiredKeys.some((key) => !Object.hasOwn(payload, key))) {
+    throw invalidPayload(command, `payload fields must be limited to ${allowedKeys.join(', ')}`);
+  }
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+    && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+}
+
+function nonNegativeInteger(value: unknown, command: string, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    throw invalidPayload(command, `${field} is invalid`);
+  }
+  return value;
+}
+
+function worldVisibility(value: unknown, command: string): 'private' | 'unlisted' | 'public' | 'system' {
+  if (value !== 'private' && value !== 'unlisted' && value !== 'public' && value !== 'system') {
+    throw invalidPayload(command, 'visibility is invalid');
+  }
+  return value;
 }
 
 function requiredText(value: unknown, field: string, command: string, maxLength: number): string {

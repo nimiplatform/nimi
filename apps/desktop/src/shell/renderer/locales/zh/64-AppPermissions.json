@@ -1,6 +1,6 @@
 {
   "approval": {
-    "title": "{{app}} 请求与你账户内的全部 Agent 交互",
+    "title": "{{app}} 请求“{{permission}}”",
     "combinedTitle": "{{app}} 请求 {{count}} 项 Agent 权限",
     "subtitle": "授权后，此 App 可访问你账户内当前及未来创建的全部 Agent。",
     "combinedSubtitle": "请逐项审查并单独决定；一项的决定不会替其他项目作出决定。",

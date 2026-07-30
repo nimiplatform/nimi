@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppStore, type AppTab } from '../providers/app-store';
+import { useAppStore, useAppStoreApi, type AppTab } from '../providers/app-store';
 import {
   logoutAndClearSession,
   switchAccountAndClearSession,
@@ -56,6 +56,7 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 export function MainLayout() {
   const navigate = useNavigate();
   const bindings = useDesktopRendererBindings();
+  const appStore = useAppStoreApi();
   const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
@@ -79,7 +80,10 @@ export function MainLayout() {
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
     () => bindings.app.projection.developerModeEnabled(),
   );
-  useEffect(() => bindings.app.events.connectDesktopOpenIntents(), [bindings]);
+  useEffect(
+    () => bindings.app.events.connectDesktopOpenIntents(appStore.getState()),
+    [appStore, bindings],
+  );
   useEffect(() => {
     return bindings.app.events.subscribeDeveloperMode((next) => {
       setDeveloperModeEnabled(next);

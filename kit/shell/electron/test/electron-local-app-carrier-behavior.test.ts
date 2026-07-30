@@ -19,6 +19,8 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.agentUpdateAutonomy',
   'nimi.shell.localApp.agentPresentationSnapshot',
   'nimi.shell.localApp.agentCommitPresentation',
+  'nimi.shell.localApp.realmWorldCoreList',
+  'nimi.shell.localApp.realmWorldCoreCreate',
   'nimi.shell.storage.readJson',
   'nimi.shell.storage.writeJson',
   'nimi.shell.storage.removeJson',

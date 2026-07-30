@@ -446,7 +446,6 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
   const appStream = new CancellableStream<AppMessageEvent>([{
     messageType: 'runtime.agent.turn.started',
     payload: toNimiRuntimeProtoStruct({
-      local_agent_ref: LOCAL_AGENT_REF,
       conversation_anchor_id: 'anchor-1',
       turn_id: 'turn-1',
       stream_id: 'stream-1',
@@ -487,6 +486,7 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
   });
   for await (const event of stream) {
     assert.equal(event.eventName, 'runtime.agent.turn.started');
+    assert.equal(event.localAgentRef, LOCAL_AGENT_REF);
     break;
   }
 

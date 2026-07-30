@@ -143,11 +143,23 @@ test('settings projection keeps only active granted rows', () => {
 
 test('public permission copy is complete in English and Chinese', async () => {
   await changeLocale('en');
-  assert.equal(i18n.t('AppPermissions.approval.title', { app: 'Zhiyu' }), 'Zhiyu requests to interact with your Agents');
+  assert.equal(
+    i18n.t('AppPermissions.approval.title', {
+      app: 'Zhiyu',
+      permission: i18n.t('AppPermissions.intent.agentsInteract'),
+    }),
+    'Zhiyu requests “Interact with all Agents in your account”',
+  );
   assert.match(render(), /Interact with all Agents in your account/u);
 
   await changeLocale('zh');
-  assert.equal(i18n.t('AppPermissions.approval.title', { app: '知遇' }), '知遇 请求与你账户内的全部 Agent 交互');
+  assert.equal(
+    i18n.t('AppPermissions.approval.title', {
+      app: '知遇',
+      permission: i18n.t('AppPermissions.intent.agentsInteract'),
+    }),
+    '知遇 请求“与你账户内的全部 Agent 交互”',
+  );
   assert.match(render(), /与你账户内的全部 Agent 交互/u);
   await changeLocale('en');
 });

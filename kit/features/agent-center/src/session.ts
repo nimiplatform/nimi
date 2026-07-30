@@ -5,6 +5,12 @@ import type {
   NimiRuntimeAgentTurnContextSummary,
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
+import type {
+  RouteConnector,
+  RouteConnectorModel,
+  RouteLocalModel,
+  RouteModelPickerDataProvider,
+} from '@nimiplatform/kit/features/model-picker/headless';
 import { buildAgentCenterState } from './state.js';
 import type {
   AgentCenterActionAvailability,
@@ -25,6 +31,7 @@ import type {
   AgentCenterProductAction,
   AgentCenterRuntimeLoadInput,
   AgentCenterRuntimeModelConfigAdapter,
+  AgentCenterRuntimeModelSettingsProjection,
   AgentCenterSession,
   AgentCenterSnapshot,
   AgentCenterState,
@@ -417,12 +424,81 @@ export interface CreatePermissionedAgentCenterSessionInput {
   readonly loadOptions?: { readonly conversationAnchor?: string };
 }
 
+function createPermissionedModelConfigAdapter(
+  loadProjection: () => Promise<AgentCenterRuntimeModelSettingsProjection | null>,
+): AgentCenterRuntimeModelConfigAdapter {
+  const providers = new Map<string, RouteModelPickerDataProvider>();
+  const optionsFor = async (capability: string) => {
+    const projection = await loadProjection();
+    if (!projection) {
+      throw new Error('Agent Center model route options are unavailable.');
+    }
+    return (projection.routeOptions || []).filter((option) => option.capability === capability);
+  };
+  return Object.freeze({
+    providerResolver(routeCapability: string): RouteModelPickerDataProvider | null {
+      const capability = String(routeCapability || '').trim();
+      if (!capability) return null;
+      const existing = providers.get(capability);
+      if (existing) return existing;
+      const provider: RouteModelPickerDataProvider = {
+        async listLocalModels(): Promise<RouteLocalModel[]> {
+          return (await optionsFor(capability))
+            .filter((option) => option.routePolicy === 'local')
+            .map((option) => ({
+              localModelId: option.model,
+              modelId: option.model,
+              label: option.label,
+              engine: 'local',
+              status: option.availability === 'ready' ? 'active' : 'installed',
+              capabilities: [option.capability],
+            }));
+        },
+        async listConnectors(): Promise<RouteConnector[]> {
+          const byProvider = new Map<string, RouteConnector>();
+          for (const option of await optionsFor(capability)) {
+            if (option.routePolicy !== 'cloud' || !option.provider || byProvider.has(option.provider)) continue;
+            byProvider.set(option.provider, {
+              connectorId: option.provider,
+              provider: option.provider,
+              label: option.provider,
+              status: option.availability,
+            });
+          }
+          return [...byProvider.values()];
+        },
+        async listConnectorModels(connectorId: string): Promise<RouteConnectorModel[]> {
+          return (await optionsFor(capability))
+            .filter((option) => option.routePolicy === 'cloud' && option.provider === connectorId)
+            .map((option) => ({
+              modelId: option.model,
+              remoteModelCatalogId: option.model,
+              providerModelId: option.model,
+              provider: option.provider,
+              modelLabel: option.label,
+              available: true,
+              capabilities: [option.capability],
+            }));
+        },
+      };
+      providers.set(capability, provider);
+      return provider;
+    },
+  });
+}
+
 export function createPermissionedAgentCenterSession(
   input: CreatePermissionedAgentCenterSessionInput,
 ): AgentCenterSession {
   if (!String(input.handle).trim()) throw new Error('Agent Center requires an opaque Agent handle.');
+  let manager: ManagerSession | null = null;
   const transport: SessionTransport = {
-    modelConfig: null,
+    modelConfig: createPermissionedModelConfigAdapter(async () => {
+      const current = manager?.getSnapshot().state.modelSettings;
+      if (current) return current;
+      const state = await input.surface.read(input.handle, input.loadOptions);
+      return state.modelSettings || null;
+    }),
     appearanceAdapter: null,
     async actionAvailability() {
       return projectAgentCenterActionAvailability(await input.surface.actionPosture(input.handle));
@@ -445,5 +521,6 @@ export function createPermissionedAgentCenterSession(
       ),
     } : {}),
   };
-  return new ManagerSession(transport) as unknown as AgentCenterSession;
+  manager = new ManagerSession(transport);
+  return manager as unknown as AgentCenterSession;
 }

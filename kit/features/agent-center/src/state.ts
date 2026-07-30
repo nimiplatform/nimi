@@ -56,7 +56,7 @@ function buildCapabilityState(
 ): AgentCenterCapabilityState {
   const readiness = input.modelSettings?.readiness.find((entry) => entry.capability === capability);
   const binding = input.modelSettings?.routeIntents.find((entry) => entry.capability === capability) ?? null;
-  const required = false;
+  const required = capability === 'text.generate' || capability === 'text.embed';
   const readinessState = readiness?.state === 'blocked' ? 'not_configured' : readiness?.state ?? 'unknown';
   const state: AgentCenterCapabilityState = {
     capability,

@@ -18,6 +18,7 @@ import {
 
 export type NimiLocalAppAgentRoutePolicy = 'local' | 'cloud';
 export type NimiLocalAppAgentReadinessState = 'ready' | 'blocked' | 'unavailable' | 'failed';
+export type NimiLocalAppAgentRouteOptionAvailability = 'ready' | 'installed';
 export type NimiLocalAppAgentAutonomyMode = 'off' | 'low' | 'medium' | 'high';
 export type NimiLocalAppAgentPresentationBackendKind = 'vrm' | 'live2d' | 'sprite2d' | 'canvas2d' | 'video';
 export type NimiLocalAppRevision = string;
@@ -46,11 +47,21 @@ export interface NimiLocalAppAgentCapabilityReadiness {
   readonly observedAt?: NimiLocalAppTimestamp;
 }
 
+export interface NimiLocalAppAgentRouteOption {
+  readonly capability: string;
+  readonly provider: string;
+  readonly model: string;
+  readonly routePolicy: NimiLocalAppAgentRoutePolicy;
+  readonly label: string;
+  readonly availability: NimiLocalAppAgentRouteOptionAvailability;
+}
+
 export interface NimiLocalAppAgentConfigurationProjection {
   readonly capabilities: readonly string[];
   readonly routeIntents: readonly NimiLocalAppAgentRouteIntent[];
   readonly readiness: readonly NimiLocalAppAgentCapabilityReadiness[];
   readonly configurationRevision: NimiLocalAppRevision;
+  readonly routeOptions: readonly NimiLocalAppAgentRouteOption[];
 }
 
 export interface NimiLocalAppAgentReadinessProjection {
@@ -403,7 +414,7 @@ function configureHandle(input: unknown, keys: readonly string[], label: string)
 
 function projectConfiguration(value: unknown): NimiLocalAppAgentConfigurationProjection {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['capabilities', 'routeIntents', 'readiness', 'configurationRevision'], 'configuration');
+  assertExactProjectionKeys(record, ['capabilities', 'routeIntents', 'readiness', 'configurationRevision', 'routeOptions'], 'configuration');
   if (!Array.isArray(record.capabilities) || !Array.isArray(record.readiness)) localAppProjectionError('configuration');
   const capabilities = record.capabilities.map((entry) => projectionText(entry, 'capability'));
   if (new Set(capabilities).size !== capabilities.length) localAppProjectionError('configuration capabilities');
@@ -412,7 +423,31 @@ function projectConfiguration(value: unknown): NimiLocalAppAgentConfigurationPro
     routeIntents: projectRouteIntents(record.routeIntents, false),
     readiness: Object.freeze(record.readiness.map(projectCapabilityReadiness)),
     configurationRevision: positiveRevisionProjection(record.configurationRevision, 'configurationRevision'),
+    routeOptions: projectRouteOptions(record.routeOptions),
   });
+}
+
+function projectRouteOptions(value: unknown): readonly NimiLocalAppAgentRouteOption[] {
+  if (!Array.isArray(value) || value.length === 0) localAppProjectionError('route options');
+  const seen = new Set<string>();
+  return Object.freeze(value.map((entry) => {
+    const record = asRecord(entry);
+    assertExactProjectionKeys(record, [
+      'capability', 'provider', 'model', 'routePolicy', 'label', 'availability',
+    ], 'route option');
+    const capability = projectionText(record.capability, 'route option capability');
+    const provider = canonicalString(record.provider, 'route option provider');
+    const model = projectionText(record.model, 'route option model');
+    const routePolicy = enumText(record.routePolicy, ['local', 'cloud'], 'route option policy');
+    const label = projectionText(record.label, 'route option label');
+    const availability = enumText(record.availability, ['ready', 'installed'], 'route option availability');
+    const key = `${capability}\u0000${routePolicy}\u0000${provider}\u0000${model}`;
+    if (seen.has(key) || (routePolicy === 'local' && provider) || (routePolicy === 'cloud' && !provider)) {
+      localAppProjectionError('route option');
+    }
+    seen.add(key);
+    return Object.freeze({ capability, provider, model, routePolicy, label, availability });
+  }));
 }
 
 function projectReadiness(value: unknown): NimiLocalAppAgentReadinessProjection {

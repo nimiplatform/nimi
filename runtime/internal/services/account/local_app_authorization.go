@@ -39,6 +39,8 @@ const (
 	LocalAppOperationStorageJSONRead       LocalAppOperation = "app_storage.json.read"
 	LocalAppOperationStorageJSONWrite      LocalAppOperation = "app_storage.json.write"
 	LocalAppOperationStorageJSONRemove     LocalAppOperation = "app_storage.json.remove"
+	LocalAppOperationRealmWorldCoreList    LocalAppOperation = "realm.world_core.list"
+	LocalAppOperationRealmWorldCoreCreate  LocalAppOperation = "realm.world_core.create"
 	LocalAppOperationVoiceTranscribe       LocalAppOperation = "runtime_agent.voice.transcribe"
 	LocalAppOperationVoiceStreamSubscribe  LocalAppOperation = "runtime_agent.voice.stream_subscribe"
 )
@@ -298,6 +300,10 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 		return "agents.configure", true
 	case LocalAppOperationStorageJSONRead, LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
 		return appstorage.LocalAppPrivateStorageEntitlement, true
+	case LocalAppOperationRealmWorldCoreList:
+		return "realm.world-core.list", true
+	case LocalAppOperationRealmWorldCoreCreate:
+		return "realm.world-core.create", true
 	case LocalAppOperationVoiceTranscribe:
 		return "runtime.agent.voice.transcribe", true
 	case LocalAppOperationVoiceStreamSubscribe:

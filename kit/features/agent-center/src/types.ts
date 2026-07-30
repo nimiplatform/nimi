@@ -417,6 +417,15 @@ export interface AgentCenterRuntimeModelConfigAdapter {
   readonly localAssetSource?: ModelConfigLocalAssetSource | null;
 }
 
+export interface AgentCenterModelRouteOption {
+  readonly capability: string;
+  readonly provider: string;
+  readonly model: string;
+  readonly routePolicy: 'local' | 'cloud';
+  readonly label: string;
+  readonly availability: 'ready' | 'installed';
+}
+
 export interface AgentCenterRuntimeLoadInput {
   readonly identity?: RuntimeLocalAgentIdentityInput;
   readonly subjectUserId?: string;
@@ -431,6 +440,7 @@ export interface AgentCenterRuntimeModelSettingsProjection {
   readonly scopeRef: NimiAIScopeRef;
   readonly capabilities: readonly string[];
   readonly routeIntents: readonly NimiRuntimeAgentModelSettingsRouteIntent[];
+  readonly routeOptions?: readonly AgentCenterModelRouteOption[];
   readonly readiness: readonly {
     readonly capability: string;
     readonly state: 'ready' | 'blocked' | 'unavailable' | 'failed';

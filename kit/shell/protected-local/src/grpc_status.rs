@@ -132,6 +132,14 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         567 => LocalAppReasonCode::NotFound,
         568 => LocalAppReasonCode::ResourceExhausted,
         569 => LocalAppReasonCode::RuntimeServiceUnavailable,
+        300 => LocalAppReasonCode::RuntimeUnauthenticated,
+        503 => LocalAppReasonCode::RuntimePermissionDenied,
+        661 => LocalAppReasonCode::RuntimeServiceUnavailable,
+        662 => LocalAppReasonCode::NotFound,
+        663 | 665 => LocalAppReasonCode::InvalidPayload,
+        664 => LocalAppReasonCode::ResourceExhausted,
+        666 => LocalAppReasonCode::RuntimeServiceUntrusted,
+        667 => LocalAppReasonCode::RuntimeServiceUnavailable,
         _ => return None,
     })
 }

@@ -7,7 +7,7 @@ import {
 import { dispatchSettingsOpenSection } from '../../features/settings/settings-storage';
 import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 
-type DesktopOpenIntentStore = Pick<AppStoreState,
+export type DesktopOpenIntentStore = Pick<AppStoreState,
   | 'setActiveTab'
   | 'setExploreActiveSection'
   | 'setExploreSearchText'

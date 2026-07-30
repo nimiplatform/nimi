@@ -5,7 +5,8 @@ import "strings"
 type selectorShape uint8
 
 const (
-	selectorArtifact selectorShape = iota + 1
+	selectorNone selectorShape = iota + 1
+	selectorArtifact
 	selectorAgent
 	selectorAgentAnchor
 	selectorAgentAnchorTurn
@@ -34,6 +35,8 @@ var operationSpecs = map[Operation]operationSpec{
 	OperationStorageJSONRead:       {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
 	OperationStorageJSONWrite:      {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
 	OperationStorageJSONRemove:     {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
+	OperationRealmWorldCoreList:    {selector: selectorNone, authorityClass: AuthorityClassBaseEntitlement},
+	OperationRealmWorldCoreCreate:  {selector: selectorNone, authorityClass: AuthorityClassBaseEntitlement},
 }
 
 // AuthorityClassForOperation returns the Runtime-owned authority path for an
@@ -75,6 +78,8 @@ func selectorMatches(shape selectorShape, selector Selector) bool {
 	storage := selector.StorageRelativePath != ""
 
 	switch shape {
+	case selectorNone:
+		return !artifact && !agent && !anchor && !turn && !voiceStream && !storage
 	case selectorArtifact:
 		return artifact && !agent && !anchor && !turn && !voiceStream && !storage
 	case selectorAgent:

@@ -71,7 +71,10 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 	}
 	routeDecision, modelResolved, err := r.ai.ResolvePublicChatTextBinding(ctx, req.RouteHint, req.ModelID)
 	if err != nil {
-		return PublicChatBindingResolution{}, err
+		return PublicChatBindingResolution{}, publicChatDiagnosticError(
+			err,
+			"runtime_agent_public_chat_route_resolution",
+		)
 	}
 	contextWindow, catalogRevision, modelRevision, providerID, resolvedTargetRef, err := r.ai.ResolvePublicChatTextContextMetadata(
 		ctx,
@@ -80,7 +83,10 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 		clonePublicChatTargetRef(req.TargetRef),
 	)
 	if err != nil {
-		return PublicChatBindingResolution{}, err
+		return PublicChatBindingResolution{}, publicChatDiagnosticError(
+			err,
+			"runtime_agent_public_chat_context_metadata",
+		)
 	}
 	resolution := PublicChatBindingResolution{
 		BindingAlias:        strings.TrimSpace(req.BindingAlias),
@@ -95,7 +101,10 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 	}
 	resolution.RouteDigest = publicChatResolvedRouteDigest(resolution, resolution.TargetRef)
 	if resolution.TargetRef == nil || resolution.TargetRef.GetTarget() == nil || resolution.ContextWindowTokens == 0 || resolution.CatalogRevision == "" || resolution.ModelRevision == "" || resolution.ProviderID == "" || resolution.RouteDigest == "" {
-		return PublicChatBindingResolution{}, status.Error(codes.FailedPrecondition, "runtime public chat catalog context metadata incomplete")
+		return PublicChatBindingResolution{}, publicChatDiagnosticError(
+			status.Error(codes.FailedPrecondition, "runtime public chat catalog context metadata incomplete"),
+			"runtime_agent_public_chat_context_metadata_incomplete",
+		)
 	}
 	return resolution, nil
 }

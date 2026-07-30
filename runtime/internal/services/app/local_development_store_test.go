@@ -87,7 +87,7 @@ func TestLocalDevelopmentStoreReusesAllowedProjectAndRequiresReapprovalOnAuthori
 		permissionID string
 		wantReason   localDevelopmentManifestPermissionReason
 	}{
-		{name: "reserved", permissionID: "agents.configure", wantReason: localDevelopmentManifestPermissionReserved},
+		{name: "reserved", permissionID: "agents.voice", wantReason: localDevelopmentManifestPermissionReserved},
 		{name: "unknown", permissionID: "runtime.agent.turn.write", wantReason: localDevelopmentManifestPermissionUnknown},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -139,6 +139,42 @@ func TestLocalDevelopmentStoreReusesAllowedProjectAndRequiresReapprovalOnAuthori
 	}
 	if afterLogout.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE || afterLogout.Authorization.ID != authorization.ID {
 		t.Fatalf("logout/switch must preserve exact account-bound project consent: %#v", afterLogout)
+	}
+}
+
+func TestLocalDevelopmentStoreCurrentActiveAuthorizationWinsTimestampTiedHistory(t *testing.T) {
+	ctx := context.Background()
+	store := openLocalDevelopmentStoreForTest(t, time.Date(2026, time.July, 12, 10, 0, 0, 0, time.UTC))
+	project := localDevelopmentTestProject(t)
+
+	first, err := store.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x31))
+	if err != nil {
+		t.Fatalf("Evaluate first project: %v", err)
+	}
+	if _, err := store.Decide(ctx, first.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, project.AccountID, project.AccountGeneration); err != nil {
+		t.Fatalf("Decide first project authorization: %v", err)
+	}
+
+	expanded := project
+	expanded.PermissionRequirements = []localDevelopmentPermissionRequirement{{PermissionID: "agents.interact", Reason: "Talk with an Agent selected by me."}}
+	expanded.PermissionRequirementFingerprint = localDevelopmentPermissionRequirementFingerprint(expanded.PermissionRequirements)
+	reapproval, err := store.Evaluate(ctx, expanded, localDevelopmentTestIdentifier(0x32))
+	if err != nil {
+		t.Fatalf("Evaluate expanded project: %v", err)
+	}
+	replacement, err := store.Decide(ctx, reapproval.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, expanded.AccountID, expanded.AccountGeneration)
+	if err != nil {
+		t.Fatalf("Decide replacement authorization: %v", err)
+	}
+
+	reused, err := store.Evaluate(ctx, expanded, localDevelopmentTestIdentifier(0x33))
+	if err != nil {
+		t.Fatalf("Evaluate replacement authorization: %v", err)
+	}
+	if reused.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE ||
+		reused.Authorization.ID != replacement.ID ||
+		reused.EvaluationID != (protectedlocal.Identifier{}) {
+		t.Fatalf("current active authorization must win over timestamp-tied revoked history: %#v", reused)
 	}
 }
 

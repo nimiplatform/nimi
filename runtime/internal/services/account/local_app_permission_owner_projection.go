@@ -47,7 +47,13 @@ func (s *Service) ListLocalAppPermissionOwnerProjections(ctx context.Context, re
 	}
 	for _, grant := range grants {
 		principal, principalErr := s.localAppKernel.Principals().Get(ctx, grant.Key.LocalAppPrincipalID)
-		if principalErr != nil || principal.State != localappkernel.PrincipalStateActive {
+		if principalErr != nil {
+			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+		}
+		if principal.State == localappkernel.PrincipalStateTombstoned {
+			continue
+		}
+		if principal.State != localappkernel.PrincipalStateActive {
 			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 		}
 		projection, projectionErr := s.projectActiveOwnerPermission(ctx, accountID, principal, grant)

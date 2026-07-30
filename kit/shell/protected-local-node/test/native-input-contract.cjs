@@ -23,6 +23,10 @@ const addon = nativeModule.exports;
 const agentHandle = 'lah_contract_nonexistent';
 
 const calls = [
+  ['localAppRealmWorldCoreList', { take: 1, visibility: 'private' }],
+  ['localAppRealmWorldCoreCreate', {
+    body: { core: {}, origin: { kind: 'manual' }, visibility: 'private' },
+  }],
   ['localAppConversationOpen', { agentHandle, disposition: 'create-new' }],
   ['localAppConversationSendTurn', {
     agentHandle,

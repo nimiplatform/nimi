@@ -49,11 +49,7 @@ func TestAuthorizeLocalAppProtectedOperationsFailClosedUntilProductPermissionAdm
 
 func apppermissionForTestOperation(operation LocalAppOperation) (string, bool) {
 	switch operation {
-	case LocalAppOperationReadArtifactBytes,
-		LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
-		LocalAppOperationReadinessSnapshot, LocalAppOperationAutonomySnapshot,
-		LocalAppOperationUpdateAutonomy, LocalAppOperationPresentationSnapshot,
-		LocalAppOperationCommitPresentation:
+	case LocalAppOperationReadArtifactBytes:
 		return "reserved", true
 	default:
 		return "", false
@@ -230,6 +226,34 @@ func TestAuthorizeLocalAppStorageUsesBaseEntitlementWithoutPermission(t *testing
 		decision.OperationCapability != "app.private_storage" ||
 		decision.LocalAppPrincipalID != fixture.resolver.binding.LocalAppPrincipalID {
 		t.Fatalf("app-private storage decision = %+v", decision)
+	}
+}
+
+func TestAuthorizeLocalAppWorldCoreUsesExactBaseEntitlementsWithoutPermission(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	fixture.resolver.binding.Capabilities = nil
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	for _, test := range []struct {
+		operation  LocalAppOperation
+		capability string
+	}{
+		{LocalAppOperationRealmWorldCoreList, "realm.world-core.list"},
+		{LocalAppOperationRealmWorldCoreCreate, "realm.world-core.create"},
+	} {
+		decision, err := fixture.service.AuthorizeLocalAppProtectedOperation(
+			ctx,
+			test.operation,
+			localappop.Selector{},
+		)
+		if err != nil {
+			t.Fatalf("%s base-entitlement authorization failed: %v", test.operation, err)
+		}
+		if decision.AuthorityClass != localappop.AuthorityClassBaseEntitlement ||
+			decision.Operation != test.operation ||
+			decision.OperationCapability != test.capability ||
+			decision.LocalAppPrincipalID != fixture.resolver.binding.LocalAppPrincipalID {
+			t.Fatalf("%s base-entitlement decision = %+v", test.operation, decision)
+		}
 	}
 }
 

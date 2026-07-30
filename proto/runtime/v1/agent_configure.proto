@@ -32,11 +32,31 @@ message LocalAppAgentCapabilityReadiness {
   string reason = 3;
   google.protobuf.Timestamp observed_at = 4;
 }
+
+enum LocalAppAgentRouteOptionAvailability {
+  LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY = 1;
+  LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED = 2;
+}
+
+// A bounded, selectable route candidate for the current caller. Runtime keeps
+// inventory identities, endpoints, credentials, and account/Agent identities
+// behind the agents.configure boundary.
+message LocalAppAgentRouteOption {
+  string capability = 1;
+  string provider = 2;
+  string model = 3;
+  RoutePolicy route_policy = 4;
+  string label = 5;
+  LocalAppAgentRouteOptionAvailability availability = 6;
+}
+
 message LocalAppAgentModelSettingsProjection {
   repeated string capabilities = 1;
   repeated LocalAppAgentRouteIntent route_intents = 2;
   repeated LocalAppAgentCapabilityReadiness readiness = 3;
   uint64 configuration_revision = 4;
+  repeated LocalAppAgentRouteOption route_options = 5;
 }
 
 message LocalAppAgentReadinessProjection {

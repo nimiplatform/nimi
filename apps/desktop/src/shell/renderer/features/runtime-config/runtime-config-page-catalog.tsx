@@ -10,6 +10,7 @@ import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives'
 import { RuntimePageShell } from './runtime-config-page-shell';
 import {
   createRuntimeConfigCatalogClient,
+  type RuntimeConfigCatalogClient,
   type NimiRuntimeCatalogModelDetail,
   type NimiRuntimeCatalogModelOverlayInput,
   type NimiRuntimeCatalogProviderModelsResponse,
@@ -322,7 +323,12 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
           </div>
         </Card>
       ) : (
-        <ModelSection providerId={selectedProviderId} onDeleteModel={onDeleteModel} deletingModelId={deletingModelId} />
+        <ModelSection
+          providerId={selectedProviderId}
+          catalogService={runtimeConfigCatalogClient}
+          onDeleteModel={onDeleteModel}
+          deletingModelId={deletingModelId}
+        />
       )}
 
       {/* YAML panel */}
@@ -338,9 +344,16 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
   );
 }
 
-function ModelSection(props: { providerId: string; onDeleteModel: (modelId: string) => void; deletingModelId: string }) {
+function ModelSection(props: {
+  providerId: string;
+  catalogService: RuntimeConfigCatalogClient;
+  onDeleteModel: (modelId: string) => void;
+  deletingModelId: string;
+}) {
   const state = useRuntimeModelPickerPanel({
     provider: props.providerId,
+    service: props.catalogService,
+    detailService: props.catalogService,
   });
 
   return (

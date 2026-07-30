@@ -39,18 +39,27 @@ describe('Agent Center appearance auto-save adapter', () => {
   it('forwards picked bytes into the one Runtime commit and renders only its committed ref', async () => {
     const setPresentationProfile = vi.fn(async (
       _identity: RuntimeLocalAgentIdentityInput,
-      _profile: AgentCenterRuntimePresentationProfilePatch | null,
+      profile: AgentCenterRuntimePresentationProfilePatch | null,
       expectedRevision: string,
       importedAssets = [],
     ) => {
       expect(expectedRevision).toBe('0');
+      expect(profile).toEqual({ backendKind: 'vrm' });
       expect(importedAssets).toEqual([{ role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary', content: material.content, sha256: material.sha256 }]);
       return committed({ ref: 'vrm_runtime_official', revision: '1' });
     });
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account',
-      snapshot: { inspect: { presentationProfile: null, presentationProfileRevision: '0' } as never },
+      snapshot: { inspect: {
+        presentationProfile: {
+          ...emptyProfile,
+          defaultVoiceReference: 'provider_voice_ref:legacy-source-default',
+          avatarAutoplay: true,
+          backgroundAssetRef: 'background:legacy-source-default',
+        },
+        presentationProfileRevision: '0',
+      } as never },
       runtimePresentation: { setPresentationProfile, async patchPresentationProfile() { throw new Error('two-step patch must not run'); } },
       shell: { async pickAvatarAssetMaterial() { return material; } },
       avatarPreview: {

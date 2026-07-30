@@ -129,6 +129,9 @@ type Service struct {
 	agentAIConfigReadinessMu sync.RWMutex
 	agentAIConfigReadiness   map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot
 
+	localAppRouteOptionsMu sync.RWMutex
+	localAppRouteOptions   localAppRouteOptionInventory
+
 	execSubMu     sync.Mutex
 	execNextSubID uint64
 	execSubs      map[uint64]runtimeAgentAIConfigReadinessSubscriber

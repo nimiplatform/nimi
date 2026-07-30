@@ -19,9 +19,10 @@ import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-l
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
 type CloudPageProps = { model: RuntimeConfigPanelControllerModel; state: RuntimeConfigStateV11 };
 const SectionTitle = SharedSectionTitle;
+const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
+const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
+
 export function CloudPage({ model, state }: CloudPageProps) {
-  const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
-  const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const {
@@ -151,6 +152,39 @@ export function CloudPage({ model, state }: CloudPageProps) {
     });
     clearPageErrorByLabel(CONNECTORS_LOAD_ERROR_LABEL);
   }, [clearPageErrorByLabel, updateState, CONNECTORS_LOAD_ERROR_LABEL]);
+  const connectorLoadCallbacksRef = useRef({
+    clearPageErrorByLabel,
+    reportError,
+    updateState,
+  });
+  const connectorListFromSdkRef = useRef(sdkListConnectors);
+  connectorLoadCallbacksRef.current = {
+    clearPageErrorByLabel,
+    reportError,
+    updateState,
+  };
+  connectorListFromSdkRef.current = sdkListConnectors;
+  useEffect(() => {
+    let cancelled = false;
+    void connectorListFromSdkRef.current()
+      .then((connectors) => {
+        if (cancelled) return;
+        const callbacks = connectorLoadCallbacksRef.current;
+        callbacks.updateState((prev) => {
+          const drafts = prev.connectors.filter((c) => c.isDraft);
+          return replaceConnectorsInState(prev, [...connectors, ...drafts]);
+        });
+        callbacks.clearPageErrorByLabel(CONNECTORS_LOAD_ERROR_LABEL);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          connectorLoadCallbacksRef.current.reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   useEffect(() => {
     let cancelled = false;
     void loadProviderCatalog()

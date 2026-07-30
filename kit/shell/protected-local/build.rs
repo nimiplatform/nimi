@@ -60,6 +60,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/account.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/development.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_service.proto");
+    println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_configure.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/local_runtime.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/common.proto");
 }

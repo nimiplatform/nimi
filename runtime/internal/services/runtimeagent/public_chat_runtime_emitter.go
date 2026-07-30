@@ -26,7 +26,6 @@ func (r publicChatRuntime) emitTurnEvent(session publicChatAnchorState, turnID s
 		return err
 	}
 	out := map[string]any{
-		"agent_id":               session.AgentID,
 		"conversation_anchor_id": session.ConversationAnchorID,
 		"turn_id":                trimmedTurnID,
 		"stream_id":              streamID,
@@ -78,7 +77,6 @@ func (r publicChatRuntime) emitTurnMessageCommitted(session publicChatAnchorStat
 		return err
 	}
 	out := map[string]any{
-		"agent_id":               session.AgentID,
 		"conversation_anchor_id": session.ConversationAnchorID,
 		"turn_id":                trimmedTurnID,
 		"stream_id":              streamID,

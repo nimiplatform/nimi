@@ -170,6 +170,7 @@ KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
 LocalAppAgentReadinessState = Literal["LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED", "LOCAL_APP_AGENT_READINESS_STATE_READY", "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED", "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE", "LOCAL_APP_AGENT_READINESS_STATE_FAILED"]
+LocalAppAgentRouteOptionAvailability = Literal["LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED", "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY", "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED"]
 LocalAppPermissionOwnerPosture = Literal["LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING", "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED"]
 LocalAppPermissionPosture = Literal["LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED", "LOCAL_APP_PERMISSION_POSTURE_PROMPT", "LOCAL_APP_PERMISSION_POSTURE_PENDING", "LOCAL_APP_PERMISSION_POSTURE_GRANTED", "LOCAL_APP_PERMISSION_POSTURE_DENIED", "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"]
 LocalAppSessionState = Literal["LOCAL_APP_SESSION_STATE_UNSPECIFIED", "LOCAL_APP_SESSION_STATE_READY", "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE", "LOCAL_APP_SESSION_STATE_REVOKED", "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED", "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED"]
@@ -2963,6 +2964,7 @@ class LocalAppAgentModelSettingsProjection:
     route_intents: tuple[LocalAppAgentRouteIntent, ...] = field(default_factory=tuple)
     readiness: tuple[LocalAppAgentCapabilityReadiness, ...] = field(default_factory=tuple)
     configuration_revision: int | None = None
+    route_options: tuple[LocalAppAgentRouteOption, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationIntent:
@@ -3001,6 +3003,15 @@ class LocalAppAgentRouteIntent:
     provider: str | None = None
     model: str | None = None
     route_policy: RoutePolicy | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRouteOption:
+    capability: str | None = None
+    provider: str | None = None
+    model: str | None = None
+    route_policy: RoutePolicy | None = None
+    label: str | None = None
+    availability: LocalAppAgentRouteOptionAvailability | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentUpdateAutonomyResponse:

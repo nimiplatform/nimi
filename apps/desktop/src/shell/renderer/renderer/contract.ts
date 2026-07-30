@@ -40,6 +40,7 @@ import type {
   DesktopLocalAppPermissionOwnerPort,
   DesktopLocalAppPermissionRequest,
 } from '../features/apps/local-app-permission-owner.js';
+import type { DesktopOpenIntentStore } from '../infra/desktop-open/desktop-open-intent-navigation.js';
 
 export type DesktopRendererInitialState = {
   readonly aiConfig: NimiAIConfig;
@@ -167,7 +168,7 @@ export interface DesktopRendererEventPort {
       | { readonly ok: false; readonly error: string }
     ) => void,
   ): () => void;
-  connectDesktopOpenIntents(): () => void;
+  connectDesktopOpenIntents(store: DesktopOpenIntentStore): () => void;
   connectLifecycle(lifecycle: DesktopRendererLifecyclePort): () => void;
 }
 

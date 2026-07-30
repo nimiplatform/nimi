@@ -1,6 +1,7 @@
 mod configure;
 mod conversation;
 mod permission;
+mod realm_world_core;
 mod storage;
 
 use std::future::Future;
@@ -30,7 +31,8 @@ use crate::{
     LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
     LocalAppSessionState, LocalAppSessionStatus, LocalAppStorageDocument,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
-    LocalAppStorageWriteRequest, NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppStorageWriteRequest, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
+    NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
 #[cfg(target_os = "windows")]
@@ -146,6 +148,28 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             permission::request_local_app_permission(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_core_list(
+        &self,
+        request: LocalAppWorldCoreListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::list(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_core_create(
+        &self,
+        request: LocalAppWorldCoreCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::create(self.checked_channel()?, request).await
         })
     }
 

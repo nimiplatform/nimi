@@ -1,4 +1,5 @@
 import type { JsonValue } from '../../types';
+import type { RealmModel } from '../../realm/generated.js';
 import {
   materializeNimiAgentCapabilityPosture,
   type NimiAgentCapabilityPosture,
@@ -30,6 +31,7 @@ import {
   assertExactKeys,
   assertExactMethodNamespace,
   assertExactProjectionKeys,
+  assertSafeProjection,
   localAppError,
   localAppProjectionError,
   normalizeFieldName,
@@ -104,6 +106,11 @@ export type NimiAppPermissionStatusInput = PermissionID;
 export type NimiAppPermissionRequestInput = PermissionRequestInput;
 export type NimiAppPermissionStatus = PermissionStatus;
 
+export type NimiLocalAppWorldCoreListInput = {
+  readonly take?: number;
+  readonly visibility?: 'private' | 'unlisted' | 'public' | 'system';
+};
+
 /**
  * Host-neutral structural contract implemented directly by Kit's local-app
  * shell surface. It exposes session status, product permission status, and
@@ -121,6 +128,12 @@ export type NimiLocalAppStandardShell = {
     readonly readJson: (relativePath: string) => Promise<unknown>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<unknown>;
     readonly removeJson: (relativePath: string) => Promise<unknown>;
+  };
+  readonly realm: {
+    readonly worldCore: {
+      readonly list: (input?: NimiLocalAppWorldCoreListInput) => Promise<unknown>;
+      readonly create: (input: unknown) => Promise<unknown>;
+    };
   };
   readonly conversation: NimiLocalAppConversationShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
@@ -156,6 +169,16 @@ export type NimiLocalAppClient = {
     ) => Promise<NimiAppRuntimeStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiAppRuntimeStorageRemoveResult>;
   };
+  readonly realm: {
+    readonly worldCore: {
+      readonly list: (
+        input?: NimiLocalAppWorldCoreListInput,
+      ) => Promise<readonly RealmModel<'WorldCoreDto'>[]>;
+      readonly create: (
+        input: RealmModel<'CreateWorldCoreDto'>,
+      ) => Promise<RealmModel<'WorldCoreDto'>>;
+    };
+  };
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
   readonly conversation: {
     readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
@@ -171,10 +194,26 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  assertExactKeys(standardShell, ['session', 'permission', 'storage', 'conversation', 'agentConfigure'], 'local-app standardShell');
+  assertExactKeys(standardShell, ['session', 'permission', 'storage', 'realm', 'conversation', 'agentConfigure'], 'local-app standardShell');
+  if (Object.keys(standardShell).length !== 6) {
+    return localAppError(
+      'Host-injected local-app standardShell namespaces are incomplete.',
+      'SDK_LOCAL_APP_CARRIER_REQUIRED',
+      'use_host_injected_standard_shell',
+    );
+  }
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   assertExactMethodNamespace(standardShell.permission, ['status', 'request'], 'permission');
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
+  const realm = asRecord(standardShell.realm);
+  if (!realm || Object.keys(realm).length !== 1 || !Object.hasOwn(realm, 'worldCore')) {
+    return localAppError(
+      'Host-injected local-app standardShell realm namespace is invalid.',
+      'SDK_LOCAL_APP_CARRIER_REQUIRED',
+      'use_host_injected_standard_shell',
+    );
+  }
+  assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
 
   const permissionStatus = async (permissionId: NimiAppPermissionStatusInput): Promise<NimiAppPermissionStatus> => {
@@ -237,9 +276,143 @@ export function createNimiLocalAppClient(
       ),
     }),
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
+    realm: Object.freeze({
+      worldCore: createWorldCoreClient(standardShell.realm.worldCore),
+    }),
     agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
   });
+}
+
+function createWorldCoreClient(
+  shell: NimiLocalAppStandardShell['realm']['worldCore'],
+): NimiLocalAppClient['realm']['worldCore'] {
+  return Object.freeze({
+    list: async (
+      input: NimiLocalAppWorldCoreListInput = {},
+    ): Promise<readonly RealmModel<'WorldCoreDto'>[]> => {
+      assertExactKeys(input, ['take', 'visibility'], 'WorldCore list input');
+      const normalized: NimiLocalAppWorldCoreListInput = {
+        ...(input.take === undefined ? {} : { take: requireWorldCoreTake(input.take) }),
+        ...(input.visibility === undefined ? {} : { visibility: requireWorldVisibility(input.visibility) }),
+      };
+      const value = await shell.list(normalized);
+      if (!Array.isArray(value)) localAppProjectionError('WorldCore list');
+      return Object.freeze(value.map((entry) => projectWorldCore(entry)));
+    },
+    create: async (
+      input: RealmModel<'CreateWorldCoreDto'>,
+    ): Promise<RealmModel<'WorldCoreDto'>> => {
+      const record = asRecord(input);
+      assertExactKeys(record, ['core', 'id', 'origin', 'visibility'], 'WorldCore create input');
+      if (!record || !Object.hasOwn(record, 'core') || !Object.hasOwn(record, 'origin')) {
+        return localAppError(
+          'WorldCore create input requires core and origin.',
+          'SDK_LOCAL_APP_INPUT_INVALID',
+          'provide_world_core_create_fields',
+        );
+      }
+      const core = asRecord(record.core);
+      const origin = asRecord(record.origin);
+      if (!core || !origin) {
+        return localAppError(
+          'WorldCore create core and origin must be objects.',
+          'SDK_LOCAL_APP_INPUT_INVALID',
+          'provide_world_core_create_fields',
+        );
+      }
+      assertExactKeys(
+        origin,
+        ['kind', 'parentCharacterId', 'parentWorldId', 'sourceContentHash', 'sourceId', 'sourceVersion'],
+        'WorldCore origin',
+      );
+      if (!Object.hasOwn(origin, 'kind')
+        || !['manual', 'forge', 'worldCharacterDerivation', 'import', 'system'].includes(String(origin.kind))) {
+        return localAppError(
+          'WorldCore origin kind is invalid.',
+          'SDK_LOCAL_APP_INPUT_INVALID',
+          'provide_world_core_origin',
+        );
+      }
+      if (record.id !== undefined) requireText(record.id, 'world_core_id');
+      if (record.visibility !== undefined) requireWorldVisibility(record.visibility);
+      for (const key of ['parentCharacterId', 'parentWorldId', 'sourceContentHash', 'sourceId', 'sourceVersion']) {
+        if (origin[key] !== undefined) requireText(origin[key], `world_core_origin_${key}`);
+      }
+      assertWorldCoreInputJson(record);
+      return projectWorldCore(await shell.create(input));
+    },
+  });
+}
+
+function projectWorldCore(value: unknown): RealmModel<'WorldCoreDto'> {
+  const record = asRecord(value);
+  if (!record) localAppProjectionError('WorldCore');
+  assertSafeProjection(record);
+  return Object.freeze({ ...record }) as unknown as RealmModel<'WorldCoreDto'>;
+}
+
+function requireWorldCoreTake(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    return localAppError(
+      'WorldCore list take is invalid.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'provide_world_core_take',
+    );
+  }
+  return value;
+}
+
+function requireWorldVisibility(
+  value: unknown,
+): 'private' | 'unlisted' | 'public' | 'system' {
+  if (value !== 'private' && value !== 'unlisted' && value !== 'public' && value !== 'system') {
+    return localAppError(
+      'WorldCore visibility is invalid.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'provide_world_core_visibility',
+    );
+  }
+  return value;
+}
+
+function assertWorldCoreInputJson(
+  value: unknown,
+  depth = 0,
+  state = { nodes: 0, ancestors: new Set<object>() },
+): void {
+  state.nodes += 1;
+  if (depth > 32 || state.nodes > 100_000) {
+    return localAppError(
+      'WorldCore create input exceeds structural bounds.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'reduce_world_core_input',
+    );
+  }
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'number' && Number.isFinite(value)) return;
+  if (!value || typeof value !== 'object' || state.ancestors.has(value)) {
+    return localAppError(
+      'WorldCore create input is not JSON-compatible.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'provide_json_world_core_input',
+    );
+  }
+  state.ancestors.add(value);
+  if (Array.isArray(value)) {
+    for (const entry of value) assertWorldCoreInputJson(entry, depth + 1, state);
+  } else {
+    const record = asRecord(value);
+    if (!record) {
+      return localAppError(
+        'WorldCore create input is not a plain JSON object.',
+        'SDK_LOCAL_APP_INPUT_INVALID',
+        'provide_json_world_core_input',
+      );
+    }
+    for (const entry of Object.values(record)) assertWorldCoreInputJson(entry, depth + 1, state);
+  }
+  state.ancestors.delete(value);
 }
 
 const PERMISSION_POSTURE_OBSERVE_INTERVAL_MS = 1_000;

@@ -18,11 +18,12 @@ use nimi_shell_protected_local::{
     LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
     LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
     LocalAppSessionStatus, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageWriteRequest, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecision, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchRequest,
-    LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiDesktopControl,
-    NimiHostError, NimiHostErrorReasonCode, NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppStorageWriteRequest, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
+    LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization, LocalDevelopmentDecision,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchRequest, LocalDevelopmentShellKind,
+    LocalDevelopmentSummaryAvailability, NimiDesktopControl, NimiHostError,
+    NimiHostErrorReasonCode, NimiLocalAppCarrier, NimiLocalAppSession,
     NimiProtectedLocalHostCarrier, ProtectedCarrierError, RuntimeServiceActionOutcome,
 };
 #[cfg(target_os = "macos")]

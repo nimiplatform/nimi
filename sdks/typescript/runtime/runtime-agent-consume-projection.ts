@@ -74,12 +74,12 @@ const TURN_EVENT_TYPES = new Set([
 
 function projectAppMessageStream(
   stream: AsyncIterable<AppMessageEvent>,
-  request: { readonly conversationAnchorId?: unknown },
+  request: { readonly conversationAnchorId?: unknown; readonly localAgentRef?: unknown },
 ): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
   return {
     async *[Symbol.asyncIterator]() {
       for await (const event of stream) {
-        const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+        const projected = projectNimiRuntimeAgentAppMessageEvent(event, request.localAgentRef);
         if (!projected) continue;
         const expectedAnchorId = normalizeText(request.conversationAnchorId);
         if (expectedAnchorId && projected.conversationAnchorId !== expectedAnchorId) {
@@ -108,14 +108,19 @@ function projectAgentEventStream(
   };
 }
 
-export function projectNimiRuntimeAgentAppMessageEvent(event: AppMessageEvent): NimiRuntimeAgentConsumeEvent | null {
+export function projectNimiRuntimeAgentAppMessageEvent(
+  event: AppMessageEvent,
+  callerScopedAgentRef?: unknown,
+): NimiRuntimeAgentConsumeEvent | null {
   const messageType = normalizeText(event.messageType);
   if (!TURN_EVENT_TYPES.has(messageType)) {
     return null;
   }
   const payload = event.payload ? fromNimiRuntimeProtoStruct(event.payload) : {};
   const localAgentRef = requireText(
-    payload.local_agent_ref ?? payload.localAgentRef ?? payload.agent_id ?? payload.agentId,
+    messageType.startsWith('runtime.agent.turn.')
+      ? callerScopedAgentRef
+      : payload.local_agent_ref ?? payload.localAgentRef ?? payload.agent_id ?? payload.agentId,
     'localAgentRef',
   );
   if (messageType.startsWith('runtime.agent.state.')) {

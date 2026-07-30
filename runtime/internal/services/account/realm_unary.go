@@ -63,18 +63,30 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	if !s.isActivated() {
 		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller()); !ok {
-		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
-	}
 	if invalidTimeout {
 		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, "realm operation timeout is outside the admitted bound", 0), nil
 	}
-	operation, ok := realmBrokerOperations[strings.TrimSpace(req.GetMethodId())]
+	methodID := strings.TrimSpace(req.GetMethodId())
+	operation, ok := realmBrokerOperations[methodID]
 	if !ok {
 		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for Runtime mediation", 0), nil
 	}
-	if !operation.admitsProtectedDesktopCaller(req.GetCaller()) {
-		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for this Runtime caller mode", 0), nil
+	caller := req.GetCaller()
+	if localAppDecision, protectedLocalApp := AuthorizedLocalAppDecisionFromContext(ctx); protectedLocalApp {
+		expectedMethodID, admitted := localAppRealmMethodID(localAppDecision.Operation)
+		if !admitted || methodID != expectedMethodID || !operation.admitsProtectedLocalAppCaller() {
+			return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for this protected Local App operation", 0), nil
+		}
+		if caller != nil || strings.TrimSpace(req.GetRealmBaseUrl()) != "" {
+			return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, "protected Local App Realm requests cannot supply caller or Realm base authority", 0), nil
+		}
+	} else {
+		if reason, admitted := s.validateRuntimeAdmittedCaller(ctx, caller); !admitted {
+			return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
+		}
+		if !operation.admitsProtectedDesktopCaller(caller) {
+			return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for this Runtime caller mode", 0), nil
+		}
 	}
 	realmBaseURL, err := s.resolveRealmUnaryBaseURL(req.GetRealmBaseUrl())
 	if err != nil {
@@ -147,6 +159,17 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		}
 	}
 	return projectRealmUnaryHTTPResult(result), nil
+}
+
+func localAppRealmMethodID(operation LocalAppOperation) (string, bool) {
+	switch operation {
+	case LocalAppOperationRealmWorldCoreList:
+		return "WorldCoreController_listWorldCores", true
+	case LocalAppOperationRealmWorldCoreCreate:
+		return "WorldCoreController_createWorldCore", true
+	default:
+		return "", false
+	}
 }
 
 type realmUnaryHTTPResult struct {

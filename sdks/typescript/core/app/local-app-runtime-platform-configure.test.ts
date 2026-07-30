@@ -20,6 +20,14 @@ const configuration = {
   routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }],
   readiness: [readiness],
   configurationRevision: '3',
+  routeOptions: [{
+    capability: 'text.generate',
+    provider: '',
+    model: 'local/model',
+    routePolicy: 'local',
+    label: 'Local model',
+    availability: 'ready',
+  }],
 };
 const autonomy = {
   enabled: true,
@@ -81,7 +89,9 @@ test('agents.configure exposes exactly seven opaque-handle-only typed operations
     'presentationSnapshot',
     'commitPresentation',
   ]);
-  assert.equal((await client.configurationSnapshot({ agentHandle: handle })).configurationRevision, '3');
+  const snapshot = await client.configurationSnapshot({ agentHandle: handle });
+  assert.equal(snapshot.configurationRevision, '3');
+  assert.deepEqual(snapshot.routeOptions, configuration.routeOptions);
   assert.equal((await client.updateConfiguration({
     agentHandle: handle,
     expectedConfigurationRevision: '2',
@@ -293,4 +303,29 @@ test('configure input rejects raw identity fields before transport', async () =>
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
   );
   assert.equal(calls, 0);
+});
+
+test('configuration route options reject private inventory material and unknown availability', async () => {
+  const transport = shell([]);
+  transport.configurationSnapshot = async () => ({
+    ...configuration,
+    routeOptions: [{
+      ...configuration.routeOptions[0],
+      endpoint: 'http://127.0.0.1:9999/private',
+    }],
+  });
+  const client = createNimiLocalAppAgentConfigureClient(transport);
+  await assert.rejects(
+    () => client.configurationSnapshot({ agentHandle: handle }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+
+  transport.configurationSnapshot = async () => ({
+    ...configuration,
+    routeOptions: [{ ...configuration.routeOptions[0], availability: 'unhealthy' }],
+  });
+  await assert.rejects(
+    () => client.configurationSnapshot({ agentHandle: handle }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
 });

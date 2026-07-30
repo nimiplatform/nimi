@@ -1,6 +1,6 @@
 {
   "approval": {
-    "title": "{{app}} requests to interact with your Agents",
+    "title": "{{app}} requests “{{permission}}”",
     "combinedTitle": "{{app}} requests {{count}} Agent permissions",
     "subtitle": "This grants access to every Agent in your account, including Agents you create later.",
     "combinedSubtitle": "Review and decide each permission separately. A decision for one item does not decide the others.",

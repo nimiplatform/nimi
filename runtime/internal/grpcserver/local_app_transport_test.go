@@ -264,6 +264,7 @@ func TestProtectedLocalAppPoliciesExposeOnlyNamedLocalAppOperations(t *testing.T
 		protectedUpdateAutonomyMethod,
 		protectedPresentationSnapshotMethod,
 		protectedCommitPresentationMethod,
+		protectedInvokeRealmUnaryMethod,
 	} {
 		if !protectedLocalAppUnaryMethodAllowed(method) {
 			t.Fatalf("admitted local-app unary operation is missing: %s", method)
@@ -285,6 +286,31 @@ func TestProtectedLocalAppPoliciesExposeOnlyNamedLocalAppOperations(t *testing.T
 	}
 	if !protectedLocalAppStreamMethodAllowed(protectedSubscribeConversationMethod) {
 		t.Fatalf("admitted local-app stream operation is missing: %s", protectedSubscribeConversationMethod)
+	}
+}
+
+func TestSelectedProtectedLocalAppRealmOperationsAreExactAndSelectorFree(t *testing.T) {
+	for _, test := range []struct {
+		methodID  string
+		operation accountservice.LocalAppOperation
+	}{
+		{"WorldCoreController_listWorldCores", accountservice.LocalAppOperationRealmWorldCoreList},
+		{"WorldCoreController_createWorldCore", accountservice.LocalAppOperationRealmWorldCoreCreate},
+	} {
+		operation, selector, selected := selectedLocalAppUnaryOperation(
+			protectedInvokeRealmUnaryMethod,
+			&runtimev1.InvokeRealmUnaryRequest{MethodId: test.methodID},
+		)
+		if !selected || operation != test.operation || selector != (localappop.Selector{}) {
+			t.Fatalf("%s selection = (%q, %+v, %v)", test.methodID, operation, selector, selected)
+		}
+	}
+	operation, selector, selected := selectedLocalAppUnaryOperation(
+		protectedInvokeRealmUnaryMethod,
+		&runtimev1.InvokeRealmUnaryRequest{MethodId: "WorldCoreController_replaceWorldCore"},
+	)
+	if !selected || operation != "" || selector != (localappop.Selector{}) {
+		t.Fatalf("unknown Realm operation selection = (%q, %+v, %v)", operation, selector, selected)
 	}
 }
 

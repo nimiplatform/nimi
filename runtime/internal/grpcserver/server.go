@@ -644,6 +644,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	// change evidence.
 	agentSvc.SetProviderHealthTracker(aiHealth)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
+	agentSvc.SetLocalAppRouteOptionInventory(localSvc)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	agentSvc.SetVoiceAssetResolver(runtimeagentservice.NewAIBackedVoiceAssetResolver(aiSvc))
 	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)

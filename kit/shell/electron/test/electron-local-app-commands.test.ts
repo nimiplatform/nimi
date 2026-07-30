@@ -48,6 +48,28 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([]);
   });
 
+  it('routes only the two exact WorldCore operations without a renderer method selector', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'],
+      payload: { payload: { take: 20, visibility: 'private' } },
+    })).resolves.toEqual([{ id: 'world-1' }]);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'],
+      payload: { payload: { core: {}, origin: { kind: 'manual' }, visibility: 'private' } },
+    })).resolves.toEqual({ id: 'world-2' });
+    expect(calls).toEqual([
+      ['realmWorldCoreList', { take: 20, visibility: 'private' }],
+      ['realmWorldCoreCreate', { core: {}, origin: { kind: 'manual' }, visibility: 'private' }],
+    ]);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'],
+      payload: { payload: { methodId: 'WorldCoreController_listWorldCores' } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+  });
+
   it('reaches all five conversation operations but preserves typed failures', async () => {
     const requests = [
       ['local-app.conversationOpen', { agentHandle: 'lash_one', disposition: 'create-new' }],
@@ -235,6 +257,14 @@ function localAppHost(calls: unknown[]) {
         state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
         reasonCode: 'local-app-operation-unavailable', agents: [],
       };
+    },
+    realmWorldCoreList: async (input: unknown) => {
+      calls.push(['realmWorldCoreList', input]);
+      return [{ id: 'world-1' }];
+    },
+    realmWorldCoreCreate: async (input: unknown) => {
+      calls.push(['realmWorldCoreCreate', input]);
+      return { id: 'world-2' };
     },
     storageReadJson: async (input: unknown) => { calls.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },
     storageWriteJson: async (input: unknown) => { calls.push(['storageWriteJson', input]); return { value: { version: 2 }, sizeBytes: 13 }; },

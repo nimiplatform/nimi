@@ -34,6 +34,7 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 
 const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
 - Return APML only; begin <message id="message-0">, put reply and optional cue children inside <message>, then close </message>. No Markdown, JSON, fences, <think>, or prefix prose.
+- Ordinary text-only reply exact shape: <message id="message-0">reply text</message>. Never self-close <message>.
 - Optional cues (omit if unsure): never top-level; at most one each; <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, never emotion.
 - Optional voice sibling: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
 %s

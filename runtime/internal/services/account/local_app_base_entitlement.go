@@ -58,20 +58,32 @@ func localAppBaseEntitlementOperation(operationID, resourceRef string) (localApp
 	if operationID == "" || operationID != strings.TrimSpace(operationID) || resourceRef == "" || resourceRef != strings.TrimSpace(resourceRef) {
 		return localAppOperationBinding{}, localappkernel.ErrInvalidArgument
 	}
+	capability := ""
 	switch operationID {
 	case appstorage.LocalAppJSONReadOperationID, appstorage.LocalAppJSONWriteOperationID, appstorage.LocalAppJSONRemoveOperationID:
 		if _, err := appstorage.ParseLocalAppJSONResourceRef(resourceRef); err != nil {
 			return localAppOperationBinding{}, localappkernel.ErrInvalidArgument
 		}
+		capability = appstorage.LocalAppPrivateStorageEntitlement
+	case string(LocalAppOperationRealmWorldCoreList):
+		if resourceRef != "realm:world-core:list" {
+			return localAppOperationBinding{}, localappkernel.ErrInvalidArgument
+		}
+		capability = "realm.world-core.list"
+	case string(LocalAppOperationRealmWorldCoreCreate):
+		if resourceRef != "realm:world-core:create" {
+			return localAppOperationBinding{}, localappkernel.ErrInvalidArgument
+		}
+		capability = "realm.world-core.create"
 	default:
 		return localAppOperationBinding{}, ErrLocalAppOperationNotAdmitted
 	}
-	fingerprintInput := operationID + "\x00" + appstorage.LocalAppPrivateStorageEntitlement + "\x00" + resourceRef
+	fingerprintInput := operationID + "\x00" + capability + "\x00" + resourceRef
 	digest := sha256.Sum256([]byte("nimi.local-app-base-entitlement-resource.v1\x00" + fingerprintInput))
 	return localAppOperationBinding{
 		operationID: operationID,
 		resourceRef: resourceRef,
-		capability:  appstorage.LocalAppPrivateStorageEntitlement,
+		capability:  capability,
 		fingerprint: "laberf_v1_" + base64.RawURLEncoding.EncodeToString(digest[:]),
 	}, nil
 }

@@ -356,6 +356,16 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return appstorage.LocalAppJSONResourceRef(selector.StorageRelativePath)
+	case LocalAppOperationRealmWorldCoreList:
+		if selector != (localappop.Selector{}) {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return "realm:world-core:list", nil
+	case LocalAppOperationRealmWorldCoreCreate:
+		if selector != (localappop.Selector{}) {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return "realm:world-core:create", nil
 	case LocalAppOperationVoiceTranscribe:
 		if !require(selector.AgentID) || selector.ArtifactID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
 			return "", ErrLocalAppOperationNotAdmitted

@@ -96,6 +96,9 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
 ) {
   // Radix reserves the empty string for clearing selection and showing the placeholder.
   const safeOptions = options.filter((option) => option.value !== '');
+  const controlledValueLabel = value === undefined
+    ? undefined
+    : safeOptions.find((option) => option.value === value)?.label;
   const [internalOpen, setInternalOpen] = React.useState(false);
   const requestedOpen = open ?? internalOpen;
   const requestedOpenRef = React.useRef(requestedOpen);
@@ -153,7 +156,9 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
         <SelectPrimitive.Value
           placeholder={placeholder}
           className="min-w-0 flex-1 truncate text-sm"
-        />
+        >
+          {controlledValueLabel}
+        </SelectPrimitive.Value>
         <SelectPrimitive.Icon asChild>
           <span className="shrink-0 text-[var(--nimi-text-muted)]">{CHEVRON_ICON}</span>
         </SelectPrimitive.Icon>

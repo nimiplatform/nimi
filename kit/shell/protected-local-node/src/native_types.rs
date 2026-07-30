@@ -155,6 +155,17 @@ pub struct NativePermissionRequestInput {
 }
 
 #[napi(object)]
+pub struct NativeWorldCoreListInput {
+    pub take: Option<u32>,
+    pub visibility: Option<String>,
+}
+
+#[napi(object)]
+pub struct NativeWorldCoreCreateInput {
+    pub body: JsonValue,
+}
+
+#[napi(object)]
 pub struct NativeStorageReadInput {
     pub relative_path: String,
 }

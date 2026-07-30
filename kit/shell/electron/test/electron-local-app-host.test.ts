@@ -66,7 +66,7 @@ describe('Electron protected local-app host', () => {
     }
   });
 
-  it('forwards only session, product permission, app-private storage, and typed conversation operations', async () => {
+  it('forwards only session, product permission, exact WorldCore, app-private storage, and typed conversation operations', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
 
@@ -76,6 +76,10 @@ describe('Electron protected local-app host', () => {
     });
     await expect(host.permissionRequest({ permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-electron-1' }))
       .resolves.toMatchObject({ state: 'unavailable', permissionId: 'agents.interact', canRequest: false });
+    await expect(host.realmWorldCoreList({ take: 20, visibility: 'private' }))
+      .resolves.toEqual([{ id: 'world-1', visibility: 'private' }]);
+    await expect(host.realmWorldCoreCreate({ core: {}, origin: { kind: 'manual' }, visibility: 'private' }))
+      .resolves.toEqual({ id: 'world-2', visibility: 'private' });
     await expect(host.storageReadJson({ relativePath: 'agent-chat/state.json' }))
       .resolves.toEqual({ value: { version: 1 }, sizeBytes: 13 });
     await expect(host.storageWriteJson({ relativePath: 'agent-chat/state.json', value: { version: 2 } }))
@@ -101,6 +105,8 @@ describe('Electron protected local-app host', () => {
       'localAppSessionStatus',
       'localAppPermissionStatus',
       'localAppPermissionRequest',
+      'localAppRealmWorldCoreList',
+      'localAppRealmWorldCoreCreate',
       'localAppStorageReadJson',
       'localAppStorageWriteJson',
       'localAppStorageRemoveJson',
@@ -238,6 +244,8 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppPermissionStatus: record('localAppPermissionStatus', unavailable),
     localAppPermissionRequest: record('localAppPermissionRequest', unavailable),
+    localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
+    localAppRealmWorldCoreCreate: record('localAppRealmWorldCoreCreate', { id: 'world-2', visibility: 'private' }),
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),
     localAppStorageWriteJson: record('localAppStorageWriteJson', { value: { version: 2 }, sizeBytes: 13 }),
     localAppStorageRemoveJson: record('localAppStorageRemoveJson', { removed: false }),

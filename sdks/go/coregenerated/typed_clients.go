@@ -786,6 +786,14 @@ const (
 	LOCALAPPAGENTREADINESSSTATEFAILED LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_FAILED"
 )
 
+type LocalAppAgentRouteOptionAvailability string
+
+const (
+	LOCALAPPAGENTROUTEOPTIONAVAILABILITYUNSPECIFIED LocalAppAgentRouteOptionAvailability = "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED"
+	LOCALAPPAGENTROUTEOPTIONAVAILABILITYREADY LocalAppAgentRouteOptionAvailability = "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY"
+	LOCALAPPAGENTROUTEOPTIONAVAILABILITYINSTALLED LocalAppAgentRouteOptionAvailability = "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED"
+)
+
 type LocalAppPermissionOwnerPosture string
 
 const (
@@ -4466,6 +4474,7 @@ type LocalAppAgentModelSettingsProjection struct {
 	RouteIntents []LocalAppAgentRouteIntent `json:"route_intents,omitempty"`
 	Readiness []LocalAppAgentCapabilityReadiness `json:"readiness,omitempty"`
 	ConfigurationRevision uint64 `json:"configuration_revision,omitempty"`
+	RouteOptions []LocalAppAgentRouteOption `json:"route_options,omitempty"`
 }
 
 type LocalAppAgentPresentationIntent struct {
@@ -4504,6 +4513,15 @@ type LocalAppAgentRouteIntent struct {
 	Provider string `json:"provider,omitempty"`
 	Model string `json:"model,omitempty"`
 	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
+}
+
+type LocalAppAgentRouteOption struct {
+	Capability string `json:"capability,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	Model string `json:"model,omitempty"`
+	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
+	Label string `json:"label,omitempty"`
+	Availability LocalAppAgentRouteOptionAvailability `json:"availability,omitempty"`
 }
 
 type LocalAppAgentUpdateAutonomyResponse struct {

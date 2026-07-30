@@ -100,6 +100,38 @@ describe('renderer local-app standard-shell surface', () => {
     });
   });
 
+  it('projects exact WorldCore list/create commands without transport authority fields', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return command.endsWith('realmWorldCoreList')
+          ? [{ id: 'world-1', visibility: 'private' }]
+          : { id: 'world-2', visibility: 'private' };
+      },
+      listen: () => () => {},
+    };
+    const worldCore = createNimiLocalAppStandardShellSurface().realm.worldCore;
+    await expect(worldCore.list({ take: 20, visibility: 'private' }))
+      .resolves.toEqual([{ id: 'world-1', visibility: 'private' }]);
+    await expect(worldCore.create({
+      core: {},
+      origin: { kind: 'manual' },
+      visibility: 'private',
+    })).resolves.toEqual({ id: 'world-2', visibility: 'private' });
+    expect(invocations).toEqual([
+      {
+        command: 'nimi.shell.localApp.realmWorldCoreList',
+        payload: { payload: { take: 20, visibility: 'private' } },
+      },
+      {
+        command: 'nimi.shell.localApp.realmWorldCoreCreate',
+        payload: { payload: { core: {}, origin: { kind: 'manual' }, visibility: 'private' } },
+      },
+    ]);
+    expect(JSON.stringify(invocations)).not.toMatch(/methodId|realmBaseUrl|caller|authorization/u);
+  });
+
   it('exposes exactly seven configure operations and preserves decimal revision strings', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

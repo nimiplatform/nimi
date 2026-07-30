@@ -617,7 +617,7 @@ func compileRealmSourceClosureV3(snapshot localAgentSourceSnapshotV2, items map[
 		for _, relationship := range realmSourceCompilerSortedByIDV3(*closure.IncidentRelationships, func(value sourceMaterializationRelationshipRecordV3) string { return value.ID }) {
 			if err := appendRealmSourceCompilerRelationshipV3(items, relationship,
 				"semanticPayload.materializationContext.dependencyClosure.relationships."+relationship.ID,
-				"source.relationship.world.", true); err != nil {
+				"source.relationship.world.", false); err != nil {
 				return err
 			}
 		}
@@ -628,7 +628,7 @@ func compileRealmSourceClosureV3(snapshot localAgentSourceSnapshotV2, items map[
 		for _, relationship := range realmSourceCompilerSortedByIDV3(*closure.ExplicitRelationships, func(value sourceMaterializationRelationshipRecordV3) string { return value.ID }) {
 			if err := appendRealmSourceCompilerRelationshipV3(items, relationship,
 				"semanticPayload.materializationContext.dependencyClosure.relationships."+relationship.ID,
-				"source.relationship.world.", true); err != nil {
+				"source.relationship.world.", false); err != nil {
 				return err
 			}
 		}
