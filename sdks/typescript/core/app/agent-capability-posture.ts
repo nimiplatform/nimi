@@ -68,7 +68,6 @@ function postureReason(status: PermissionStatus): NimiAgentCapabilityPostureReas
     case 'granted': return null;
     case 'pending': return 'request_pending';
     case 'denied': return 'grant_denied';
-    case 'revoked': return 'grant_revoked';
     case 'prompt': return 'not_granted';
     case 'unavailable': {
       if (RESERVED_PERMISSION_IDS.includes(status.permissionId as never)) return 'reserved_not_admitted';

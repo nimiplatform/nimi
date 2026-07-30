@@ -43,15 +43,16 @@ describe('Electron local-app standard-shell operations', () => {
     registerBridge(ipcMain, calls);
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'],
-      payload: { payload: { permissionId: 'agents.interact', reason: '需'.repeat(81) } },
+      payload: { payload: { permissionId: 'agents.interact', reason: '需'.repeat(81), requestId: 'permission-request-electron-long-reason' } },
     })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
     expect(calls).toEqual([]);
   });
 
-  it('reaches all four conversation operations but preserves reserved typed-unavailable', async () => {
+  it('reaches all five conversation operations but preserves typed failures', async () => {
     const requests = [
       ['local-app.conversationOpen', { agentHandle: 'lash_one', disposition: 'create-new' }],
       ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }],
+      ['local-app.conversationInterruptTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSubscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSnapshot', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
     ] as const;
@@ -240,6 +241,7 @@ function localAppHost(calls: unknown[]) {
     storageRemoveJson: async (input: unknown) => { calls.push(['storageRemoveJson', input]); return { removed: true }; },
     conversationOpen: unavailable('conversationOpen', calls),
     conversationSendTurn: unavailable('conversationSendTurn', calls),
+    conversationInterruptTurn: unavailable('conversationInterruptTurn', calls),
     conversationSubscribe: unavailable('conversationSubscribe', calls),
     conversationSnapshot: unavailable('conversationSnapshot', calls),
     agentConfigurationSnapshot: unavailable('agentConfigurationSnapshot', calls),

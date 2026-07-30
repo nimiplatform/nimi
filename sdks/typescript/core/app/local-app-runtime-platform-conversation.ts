@@ -36,6 +36,10 @@ export type NimiLocalAppConversationSendResult = {
   readonly messageId: string;
 };
 
+export type NimiLocalAppConversationInterruptResult = {
+  readonly messageId: string;
+};
+
 export type NimiLocalAppConversationScopeInput = {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
@@ -73,6 +77,10 @@ export type NimiLocalAppConversationShell = {
     readonly conversationAnchorId: string;
     readonly requestId: string;
     readonly text: string;
+  }) => Promise<unknown>;
+  readonly interruptTurn: (input: {
+    readonly agentHandle: string;
+    readonly conversationAnchorId: string;
   }) => Promise<unknown>;
   readonly subscribe: (input: {
     readonly agentHandle: string;
@@ -122,6 +130,14 @@ export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversa
       });
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['messageId'], 'conversation send');
+      return Object.freeze({ messageId: projectionText(record.messageId, 'messageId') });
+    },
+    interruptTurn: async (
+      input: NimiLocalAppConversationScopeInput,
+    ): Promise<NimiLocalAppConversationInterruptResult> => {
+      const value = await shell.interruptTurn(conversationScope(input, 'interrupt turn'));
+      const record = asRecord(value);
+      assertExactProjectionKeys(record, ['messageId'], 'conversation interrupt turn');
       return Object.freeze({ messageId: projectionText(record.messageId, 'messageId') });
     },
     subscribe: async (

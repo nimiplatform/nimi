@@ -405,28 +405,44 @@ fn parse_presentation_assets(
     if values.len() > 2 {
         return Err(invalid_payload());
     }
-    values.iter().map(|value| {
-        let object = exact_object(value, &["role", "fileName", "mediaType", "content", "sha256"])?;
-        let role = match text(object, "role")? {
-            "avatar" => AgentPresentationAssetRole::Avatar,
-            "background" => AgentPresentationAssetRole::Background,
-            _ => return Err(invalid_payload()),
-        };
-        let content_values = object.get("content").and_then(JsonValue::as_array).ok_or_else(invalid_payload)?;
-        if content_values.is_empty() || content_values.len() > 64 * 1024 * 1024 {
-            return Err(invalid_payload());
-        }
-        let content = content_values.iter().map(|value| {
-            value.as_u64().filter(|byte| *byte <= 255).map(|byte| byte as u8).ok_or_else(invalid_payload)
-        }).collect::<Result<Vec<_>, _>>()?;
-        Ok(AgentPresentationAssetMaterial {
-            role: role as i32,
-            file_name: text(object, "fileName")?.to_string(),
-            media_type: text(object, "mediaType")?.to_string(),
-            content,
-            sha256: text(object, "sha256")?.to_string(),
+    values
+        .iter()
+        .map(|value| {
+            let object = exact_object(
+                value,
+                &["role", "fileName", "mediaType", "content", "sha256"],
+            )?;
+            let role = match text(object, "role")? {
+                "avatar" => AgentPresentationAssetRole::Avatar,
+                "background" => AgentPresentationAssetRole::Background,
+                _ => return Err(invalid_payload()),
+            };
+            let content_values = object
+                .get("content")
+                .and_then(JsonValue::as_array)
+                .ok_or_else(invalid_payload)?;
+            if content_values.is_empty() || content_values.len() > 64 * 1024 * 1024 {
+                return Err(invalid_payload());
+            }
+            let content = content_values
+                .iter()
+                .map(|value| {
+                    value
+                        .as_u64()
+                        .filter(|byte| *byte <= 255)
+                        .map(|byte| byte as u8)
+                        .ok_or_else(invalid_payload)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(AgentPresentationAssetMaterial {
+                role: role as i32,
+                file_name: text(object, "fileName")?.to_string(),
+                media_type: text(object, "mediaType")?.to_string(),
+                content,
+                sha256: text(object, "sha256")?.to_string(),
+            })
         })
-    }).collect()
+        .collect()
 }
 
 fn allowed_object<'a>(
@@ -544,7 +560,8 @@ mod tests {
             "mediaType": "model/gltf-binary",
             "content": [1, 2, 255],
             "sha256": "abc123"
-        }])).expect("imported presentation asset");
+        }]))
+        .expect("imported presentation asset");
         assert_eq!(assets.len(), 1);
         assert_eq!(assets[0].role, AgentPresentationAssetRole::Avatar as i32);
         assert_eq!(assets[0].content, vec![1, 2, 255]);

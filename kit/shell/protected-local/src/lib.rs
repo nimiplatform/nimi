@@ -73,6 +73,7 @@ pub use carrier::{
     DesktopControlFuture, LocalAppAgentCommitPresentationRequest, LocalAppAgentHandle,
     LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest,
     LocalAppAgentUpdateConfigurationRequest, LocalAppConversationEvent,
+    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
     LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
     LocalAppConversationSendRequest, LocalAppConversationSendResult,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,

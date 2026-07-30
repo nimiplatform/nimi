@@ -47,7 +47,6 @@ export const PERMISSION_POSTURES = [
   'pending',
   'granted',
   'denied',
-  'revoked',
   'unavailable',
 ] as const;
 
@@ -75,6 +74,7 @@ export interface PermissionRequestInput {
 export interface AdmittedPermissionRequestInput {
   readonly permissionId: AdmittedPermissionID;
   readonly reason: string;
+  readonly requestId: string;
 }
 
 export interface PermissionStatus {

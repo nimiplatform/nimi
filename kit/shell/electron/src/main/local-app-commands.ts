@@ -27,6 +27,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentConfigurationSnapshot'], 'agentConfigurationSnapshot'],
@@ -104,10 +105,11 @@ function validatePayload(
     case 'permissionStatus':
       return identifiers(payload, ['permissionId'], command);
     case 'permissionRequest':
-      assertExactKeys(payload, ['permissionId', 'reason'], command);
+      assertExactKeys(payload, ['permissionId', 'reason', 'requestId'], command);
       return {
         permissionId: requiredText(payload.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH),
         reason: requiredUtf8Text(payload.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
+        requestId: requiredText(payload.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
       };
     case 'conversationOpen':
       assertExactKeys(payload, ['agentHandle', 'disposition'], command);
@@ -125,6 +127,8 @@ function validatePayload(
           new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'text']),
         text: requiredUtf8Text(payload.text, 'text', command, 64 * 1024),
       };
+    case 'conversationInterruptTurn':
+      return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSubscribe':
       if (payload.action === 'cancel') {
         return {

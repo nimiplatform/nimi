@@ -40,6 +40,7 @@ function standardShell(overrides: Record<string, unknown> = {}) {
     conversation: {
       open: async () => ({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }),
       send: async () => ({ messageId: 'message-1' }),
+      interruptTurn: async () => ({ messageId: 'interrupt-message-1' }),
       subscribe: async () => ({
         events: { async *[Symbol.asyncIterator]() {} },
         cancel: async () => undefined,
@@ -114,11 +115,14 @@ test('admitted SDK permission remains fail-closed while Runtime publication is h
     permissionId: 'agents.interact',
     reason: 'Continue the conversation',
   })).posture, 'unavailable');
+  assert.equal((calls[1] as { permissionId?: string }).permissionId, 'agents.interact');
+  assert.equal((calls[1] as { reason?: string }).reason, 'Continue the conversation');
+  assert.match((calls[1] as { requestId: string }).requestId, /^[0-9a-f-]{36}$/u);
   assert.equal(JSON.stringify(calls).includes('operationId'), false);
   assert.equal(JSON.stringify(calls).includes('resourceRef'), false);
 });
 
-test('permission projection preserves revoked as a distinct wire posture', async () => {
+test('permission projection rejects the reserved revoked wire posture', async () => {
   const client = createLocalAppClient({
     standardShell: standardShell({
       permission: {
@@ -133,11 +137,10 @@ test('permission projection preserves revoked as a distinct wire posture', async
       },
     }),
   });
-  await assert.doesNotReject(async () => {
-    const status = await client.permissions.status('agents.interact');
-    assert.equal(status.posture, 'revoked');
-    assert.equal(status.detail, 'LOCAL_APP_PERMISSION_REVOKED');
-  });
+  await assert.rejects(
+    () => client.permissions.status('agents.interact'),
+    /permission state/u,
+  );
 });
 
 test('Agent capability posture subscription emits the SDK projection and releases its observer', async () => {
@@ -394,6 +397,7 @@ test('conversation namespace preserves opaque Agent handles and reserved typed f
       conversation: {
         open: unavailable,
         send: unavailable,
+        interruptTurn: unavailable,
         subscribe: unavailable,
         snapshot: unavailable,
       },
@@ -407,6 +411,7 @@ test('conversation namespace preserves opaque Agent handles and reserved typed f
       requestId: 'request-1',
       text: 'hello',
     }),
+    () => client.conversation.interruptTurn({ agentHandle: handle, conversationAnchorId: 'anchor-1' }),
     () => client.conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'anchor-1' }),
     () => client.conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor-1' }),
   ];
@@ -417,7 +422,7 @@ test('conversation namespace preserves opaque Agent handles and reserved typed f
     );
   }
   assert.equal(JSON.stringify(calls).includes('localAgentId'), false);
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 5);
 });
 
 test('conversation subscription validates events and cancels exactly once', async () => {
@@ -428,6 +433,7 @@ test('conversation subscription validates events and cancels exactly once', asyn
       conversation: {
         open: async () => ({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }),
         send: async () => ({ messageId: 'message-1' }),
+        interruptTurn: async () => ({ messageId: 'interrupt-message-1' }),
         snapshot: async () => ({ anchor: { conversationAnchorId: 'anchor-1' } }),
         subscribe: async () => ({
           events: {
@@ -452,6 +458,10 @@ test('conversation subscription validates events and cancels exactly once', asyn
   assert.deepEqual(await client.conversation.open({ agentHandle: handle, disposition: 'create-new' }), {
     conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null,
   });
+  assert.deepEqual(await client.conversation.interruptTurn({
+    agentHandle: handle,
+    conversationAnchorId: 'anchor-1',
+  }), { messageId: 'interrupt-message-1' });
   const subscription = await client.conversation.subscribe({
     agentHandle: handle,
     conversationAnchorId: 'anchor-1',

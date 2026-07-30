@@ -1551,11 +1551,7 @@ export enum LocalAppPermissionPosture {
     /**
      * @generated from protobuf enum value: LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE = 5;
      */
-    UNAVAILABLE = 5,
-    /**
-     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_POSTURE_REVOKED = 6;
-     */
-    REVOKED = 6
+    UNAVAILABLE = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.LocalAppPermissionOwnerPosture

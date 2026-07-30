@@ -9,6 +9,7 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.permissionRequest',
   'nimi.shell.localApp.conversationOpen',
   'nimi.shell.localApp.conversationSendTurn',
+  'nimi.shell.localApp.conversationInterruptTurn',
   'nimi.shell.localApp.conversationSubscribe',
   'nimi.shell.localApp.conversationSnapshot',
   'nimi.shell.localApp.agentConfigurationSnapshot',

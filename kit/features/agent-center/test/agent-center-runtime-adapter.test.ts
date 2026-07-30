@@ -34,11 +34,9 @@ function transportProjection(reason: AgentCenterTransportActionReason | null = n
 function recoveryProjection(
   reason: AgentCenterTransportActionReason,
 ): AgentCenterTransportActionProjection {
-  const recoveryAction = reason === 'not_granted'
+  const recoveryAction = reason === 'not_granted' || reason === 'grant_denied' || reason === 'grant_revoked'
     ? 'requestPermission'
-    : reason === 'grant_denied' || reason === 'grant_revoked'
-      ? 'openPermissionSettings'
-      : null;
+    : null;
   return Object.fromEntries(ACTIONS.map((action) => [action, action === recoveryAction
     ? { state: 'available', reason: null }
     : { state: 'unavailable', reason }])) as AgentCenterTransportActionProjection;
@@ -128,8 +126,8 @@ describe('AgentCenterSession', () => {
   it.each([
     ['not_granted', 'needs-grant', 'requestPermission'],
     ['request_pending', 'request-pending', 'wait'],
-    ['grant_denied', 'denied', 'openPermissionSettings'],
-    ['grant_revoked', 'revoked', 'openPermissionSettings'],
+    ['grant_denied', 'denied', 'requestPermission'],
+    ['grant_revoked', 'revoked', 'requestPermission'],
     ['runtime_offline', 'runtime-offline', 'retry'],
     ['reserved_not_admitted', 'reserved-not-admitted', 'wait'],
     ['unknown', 'unknown', 'retry'],
@@ -169,7 +167,7 @@ describe('AgentCenterSession', () => {
     unsubscribe();
   });
 
-  it('recomputes granted posture live for revoked and denied events without remounting', async () => {
+  it('recomputes granted posture live as prompt and requestable without remounting', async () => {
     let emit!: (projection: AgentCenterTransportActionProjection) => void;
     let unsubscribed = false;
     const session = createPermissionedAgentCenterSession({
@@ -186,16 +184,12 @@ describe('AgentCenterSession', () => {
     await flush();
     expect(session.getSnapshot().availability.updateAutonomy.state).toBe('available');
 
-    emit(recoveryProjection('grant_revoked'));
+    emit(recoveryProjection('not_granted'));
     expect(session.getSnapshot().availability.updateAutonomy)
-      .toEqual({ state: 'unavailable', reason: 'revoked', nextStep: 'openPermissionSettings' });
+      .toEqual({ state: 'unavailable', reason: 'needs-grant', nextStep: 'requestPermission' });
+    expect(session.getSnapshot().availability.requestPermission.state).toBe('available');
     expect(session.getSnapshot().state.autonomy.controlsDisabled).toBe(true);
-    expect(session.getSnapshot().state.autonomy.disabledReason).toBe('revoked');
-
-    emit(recoveryProjection('grant_denied'));
-    expect(session.getSnapshot().availability.updateAutonomy)
-      .toEqual({ state: 'unavailable', reason: 'denied', nextStep: 'openPermissionSettings' });
-    expect(session.getSnapshot().state.autonomy.disabledReason).toBe('denied');
+    expect(session.getSnapshot().state.autonomy.disabledReason).toBe('needs-grant');
     unsubscribe();
     expect(unsubscribed).toBe(true);
   });

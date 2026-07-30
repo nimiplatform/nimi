@@ -12,6 +12,7 @@ import {
   createNimiLocalAppConversationClient,
   type NimiLocalAppConversationOpenInput,
   type NimiLocalAppConversationOpenResult,
+  type NimiLocalAppConversationInterruptResult,
   type NimiLocalAppConversationScopeInput,
   type NimiLocalAppConversationSendInput,
   type NimiLocalAppConversationSendResult,
@@ -53,6 +54,7 @@ export type {
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
+  NimiLocalAppConversationInterruptResult,
   NimiLocalAppConversationScopeInput,
   NimiLocalAppConversationSendInput,
   NimiLocalAppConversationSendResult,
@@ -158,6 +160,7 @@ export type NimiLocalAppClient = {
   readonly conversation: {
     readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
     readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
+    readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationInterruptResult>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
   };
@@ -172,7 +175,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   assertExactMethodNamespace(standardShell.permission, ['status', 'request'], 'permission');
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
-  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'subscribe', 'snapshot'], 'conversation');
+  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
 
   const permissionStatus = async (permissionId: NimiAppPermissionStatusInput): Promise<NimiAppPermissionStatus> => {
     const normalized = requireKnownPermissionID(permissionId);
@@ -208,8 +211,9 @@ export function createNimiLocalAppClient(
           );
         }
         const reason = requirePermissionReason(requestInput.reason);
+        const requestId = createPermissionRequestID();
         return projectPermissionStatus(
-          await standardShell.permission.request({ permissionId, reason }),
+          await standardShell.permission.request({ permissionId, reason, requestId }),
           permissionId,
         );
       },
@@ -424,6 +428,18 @@ function requireKnownPermissionID(value: unknown): PermissionID {
     );
   }
   return value;
+}
+
+function createPermissionRequestID(): string {
+  const requestId = globalThis.crypto?.randomUUID?.();
+  if (!requestId) {
+    return localAppError(
+      'Permission request-id generation is unavailable.',
+      'SDK_PERMISSION_REQUEST_INVALID',
+      'restore_secure_random_source',
+    );
+  }
+  return requestId;
 }
 
 function requirePermissionReason(value: unknown): string {

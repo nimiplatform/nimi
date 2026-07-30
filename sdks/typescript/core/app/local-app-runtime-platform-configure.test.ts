@@ -156,7 +156,7 @@ test('ReasonCodes 668-671 and permission denial metadata map without collapse', 
     [671, 'AGENT_AUTONOMY_REVISION_CONFLICT', 'autonomy-revision-conflict'],
     [651, 'LOCAL_APP_PERMISSION_REQUIRED', 'not-granted'],
     [652, 'LOCAL_APP_PERMISSION_DENIED', 'denied'],
-    [653, 'LOCAL_APP_PERMISSION_REVOKED', 'revoked'],
+    [653, 'LOCAL_APP_PERMISSION_REVOKED', 'not-granted'],
   ] as const;
   for (const [raw, reasonCode, category] of cases) {
     const error = mapNimiLocalAppConfigureError({

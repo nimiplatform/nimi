@@ -83,6 +83,7 @@ pub async fn local_app_permission_request(
         .permission_request(LocalAppPermissionRequest {
             permission_id: input.permission_id,
             reason: input.reason,
+            request_id: input.request_id,
         })
         .await
     {
@@ -280,6 +281,22 @@ pub async fn local_app_conversation_send_turn(
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
                 text: input.text,
+            })
+            .await
+            .map(|result| json!({ "messageId": result.message_id }))
+    })
+    .await
+}
+
+#[napi(js_name = "localAppConversationInterruptTurn")]
+pub async fn local_app_conversation_interrupt_turn(
+    input: NativeConversationScopeInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .conversation_interrupt_turn(LocalAppConversationInterruptRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
             })
             .await
             .map(|result| json!({ "messageId": result.message_id }))

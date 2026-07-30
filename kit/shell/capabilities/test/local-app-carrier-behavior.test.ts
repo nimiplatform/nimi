@@ -11,6 +11,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.permissionRequest',
   'local-app.conversationOpen',
   'local-app.conversationSendTurn',
+  'local-app.conversationInterruptTurn',
   'local-app.conversationSubscribe',
   'local-app.conversationSnapshot',
   'local-app.agentConfigurationSnapshot',

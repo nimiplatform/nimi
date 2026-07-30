@@ -170,6 +170,7 @@ pub struct LocalAppPermissionStatusRequest {
 pub struct LocalAppPermissionRequest {
     pub permission_id: String,
     pub reason: String,
+    pub request_id: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -178,7 +179,6 @@ pub enum LocalAppPermissionState {
     Pending,
     Granted,
     Denied,
-    Revoked,
     Unavailable,
 }
 
@@ -189,7 +189,6 @@ impl LocalAppPermissionState {
             Self::Pending => "pending",
             Self::Granted => "granted",
             Self::Denied => "denied",
-            Self::Revoked => "revoked",
             Self::Unavailable => "unavailable",
         }
     }
@@ -260,6 +259,17 @@ pub struct LocalAppConversationSendRequest {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSendResult {
+    pub message_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationInterruptRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationInterruptResult {
     pub message_id: String,
 }
 
@@ -645,6 +655,17 @@ pub trait NimiLocalAppSession: Send + Sync {
     ) -> Pin<
         Box<
             dyn Future<Output = Result<LocalAppConversationSendResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn conversation_interrupt_turn(
+        &self,
+        request: LocalAppConversationInterruptRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppConversationInterruptResult, LocalAppOperationError>>
                 + Send
                 + '_,
         >,

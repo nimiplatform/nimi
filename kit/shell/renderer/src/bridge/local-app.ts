@@ -22,7 +22,7 @@ const LOCAL_APP_STATUS_STATES = new Set([
   'authorizing', 'ready', 'denied', 'runtime-unavailable', 'revoked', 'project-changed',
 ]);
 const LOCAL_APP_PERMISSION_STATES = new Set([
-  'prompt', 'pending', 'granted', 'denied', 'revoked', 'unavailable',
+  'prompt', 'pending', 'granted', 'denied', 'unavailable',
 ]);
 
 export type NimiLocalAppSessionStatus = {
@@ -37,6 +37,7 @@ export type NimiLocalAppPermissionStatusInput = {
 
 export type NimiLocalAppPermissionRequestInput = NimiLocalAppPermissionStatusInput & {
   readonly reason: string;
+  readonly requestId: string;
 };
 
 export type NimiLocalAppAgentHandle = {
@@ -45,7 +46,7 @@ export type NimiLocalAppAgentHandle = {
 };
 
 export type NimiLocalAppPermissionStatus = {
-  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'revoked' | 'unavailable';
+  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'unavailable';
   readonly permissionId: string;
   readonly canRequest: boolean;
   readonly reasonCode: string;
@@ -123,6 +124,7 @@ export type NimiLocalAppStandardShellSurface = {
       readonly requestId: string;
       readonly text: string;
     }) => Promise<JsonObject>;
+    readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
   };
@@ -152,6 +154,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     conversation: {
       open: openNimiLocalAppConversation,
       send: sendNimiLocalAppConversationTurn,
+      interruptTurn: interruptNimiLocalAppConversationTurn,
       subscribe: subscribeNimiLocalAppConversation,
       snapshot: getNimiLocalAppConversationSnapshot,
     },
@@ -180,13 +183,14 @@ export function requestNimiLocalAppPermission(
   input: NimiLocalAppPermissionRequestInput,
 ): Promise<NimiLocalAppPermissionStatus> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'];
-  assertExactInput(input, ['permissionId', 'reason'], command);
+  assertExactInput(input, ['permissionId', 'reason', 'requestId'], command);
   const permissionId = requiredText(input.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH);
   return invokeChecked(
     command,
     { payload: {
       permissionId,
       reason: requiredUtf8Text(input.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
+      requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
     } },
     (value) => parsePermissionStatus(value, permissionId, command),
   );
@@ -308,6 +312,16 @@ export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversation
     requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
     text: requiredUtf8Text(input.text, 'text', command, 64 * 1024),
   });
+}
+
+export function interruptNimiLocalAppConversationTurn(
+  input: NimiLocalAppConversationScopeInput,
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'];
+  return invokeLocalAppRecord(
+    command,
+    identifiers(input, ['agentHandle', 'conversationAnchorId'], command),
+  );
 }
 
 export async function subscribeNimiLocalAppConversation(

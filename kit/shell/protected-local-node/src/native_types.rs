@@ -151,6 +151,7 @@ pub struct NativePermissionStatusInput {
 pub struct NativePermissionRequestInput {
     pub permission_id: String,
     pub reason: String,
+    pub request_id: String,
 }
 
 #[napi(object)]

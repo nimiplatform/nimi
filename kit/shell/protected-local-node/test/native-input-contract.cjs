@@ -30,6 +30,7 @@ const calls = [
     requestId: 'contract-request',
     text: 'contract',
   }],
+  ['localAppConversationInterruptTurn', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSubscribe', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppAgentConfigurationSnapshot', { agentHandle }],
@@ -87,6 +88,10 @@ async function main() {
       conversationAnchorId: 'contract-anchor',
       requestId: 'contract-request',
       text: 'contract',
+    }],
+    ['localAppConversationInterruptTurn', {
+      selectedAgentHandle: agentHandle,
+      conversationAnchorId: 'contract-anchor',
     }],
     ['localAppConversationSnapshot', {
       selectedAgentHandle: agentHandle,

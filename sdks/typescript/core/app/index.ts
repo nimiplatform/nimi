@@ -106,6 +106,7 @@ export type {
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
+  NimiLocalAppConversationInterruptResult,
   NimiLocalAppConversationScopeInput,
   NimiLocalAppConversationSendInput,
   NimiLocalAppConversationSendResult,
@@ -312,7 +313,15 @@ function validatePermissionRequest(input: PermissionRequestInput | null | undefi
   if (reason !== input.reason || new TextEncoder().encode(reason).length === 0 || new TextEncoder().encode(reason).length > 240) {
     appError('SDK_PERMISSION_REQUEST_INVALID', 'permission reason must be canonical and at most 240 UTF-8 bytes', 'provide_permission_reason');
   }
-  return { permissionId: input.permissionId, reason };
+  return { permissionId: input.permissionId, reason, requestId: createPermissionRequestID() };
+}
+
+function createPermissionRequestID(): string {
+  const requestId = globalThis.crypto?.randomUUID?.();
+  if (!requestId) {
+    appError('SDK_PERMISSION_REQUEST_INVALID', 'permission request-id generation is unavailable', 'restore_secure_random_source');
+  }
+  return requestId;
 }
 
 function validatePermissionStatus(status: PermissionStatus | null | undefined, expectedPermissionId: PermissionID): void {

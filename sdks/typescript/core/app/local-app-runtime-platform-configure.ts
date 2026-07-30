@@ -139,7 +139,6 @@ export type NimiLocalAppConfigureReasonCode =
 export type NimiLocalAppConfigureErrorCategory =
   | 'not-granted'
   | 'denied'
-  | 'revoked'
   | 'reserved-not-admitted'
   | 'unknown-permission'
   | 'configuration-revision-conflict'
@@ -665,7 +664,7 @@ function configureErrorCategory(reason: NimiLocalAppConfigureReasonCode): NimiLo
   switch (reason) {
     case 'LOCAL_APP_PERMISSION_REQUIRED': return 'not-granted';
     case 'LOCAL_APP_PERMISSION_DENIED': return 'denied';
-    case 'LOCAL_APP_PERMISSION_REVOKED': return 'revoked';
+    case 'LOCAL_APP_PERMISSION_REVOKED': return 'not-granted';
     case 'LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED': return 'reserved-not-admitted';
     case 'LOCAL_APP_PERMISSION_UNKNOWN': return 'unknown-permission';
     case 'AGENT_AI_CONFIG_REVISION_CONFLICT': return 'configuration-revision-conflict';

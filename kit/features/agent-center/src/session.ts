@@ -50,9 +50,9 @@ const AVAILABLE: AgentCenterActionAvailability = Object.freeze({
 
 function nextStep(reason: AgentCenterActionUnavailableReason): AgentCenterNextStepAction {
   switch (reason) {
-    case 'needs-grant': return 'requestPermission';
+    case 'needs-grant':
     case 'denied':
-    case 'revoked': return 'openPermissionSettings';
+    case 'revoked': return 'requestPermission';
     case 'request-pending':
     case 'reserved-not-admitted': return 'wait';
     case 'runtime-offline':

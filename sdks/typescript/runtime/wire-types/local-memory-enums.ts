@@ -39,7 +39,6 @@ export enum LocalAppPermissionPosture {
   GRANTED = 3,
   DENIED = 4,
   UNAVAILABLE = 5,
-  REVOKED = 6,
 }
 
 export enum LocalAppSessionState {

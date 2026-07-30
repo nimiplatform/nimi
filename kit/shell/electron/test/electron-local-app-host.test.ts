@@ -74,7 +74,7 @@ describe('Electron protected local-app host', () => {
     await expect(host.permissionStatus({ permissionId: 'agents.interact' })).resolves.toMatchObject({
       state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
     });
-    await expect(host.permissionRequest({ permissionId: 'agents.interact', reason: 'Continue the conversation' }))
+    await expect(host.permissionRequest({ permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-electron-1' }))
       .resolves.toMatchObject({ state: 'unavailable', permissionId: 'agents.interact', canRequest: false });
     await expect(host.storageReadJson({ relativePath: 'agent-chat/state.json' }))
       .resolves.toEqual({ value: { version: 1 }, sizeBytes: 13 });
@@ -86,6 +86,8 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null });
     await expect(host.conversationSendTurn({ agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }))
       .resolves.toEqual({ messageId: 'message-1' });
+    await expect(host.conversationInterruptTurn({ agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
+      .resolves.toEqual({ messageId: 'interrupt-message-1' });
     await expect(host.conversationSubscribe({ agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
       .resolves.toEqual({ streamId: 'conversation-1' });
     await expect(host.conversationStreamNext({ streamId: 'conversation-1' }))
@@ -104,6 +106,7 @@ describe('Electron protected local-app host', () => {
       'localAppStorageRemoveJson',
       'localAppConversationOpen',
       'localAppConversationSendTurn',
+      'localAppConversationInterruptTurn',
       'localAppConversationSubscribe',
       'localAppConversationStreamNext',
       'localAppConversationStreamClose',
@@ -242,6 +245,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null,
     }),
     localAppConversationSendTurn: record('localAppConversationSendTurn', { messageId: 'message-1' }),
+    localAppConversationInterruptTurn: record('localAppConversationInterruptTurn', { messageId: 'interrupt-message-1' }),
     localAppConversationSubscribe: record('localAppConversationSubscribe', { streamId: 'conversation-1' }),
     localAppConversationStreamNext: record('localAppConversationStreamNext', { completed: true }),
     localAppConversationStreamClose: record('localAppConversationStreamClose', { closed: true }),

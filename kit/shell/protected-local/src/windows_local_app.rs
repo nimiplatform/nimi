@@ -22,6 +22,7 @@ use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConfigurationRequest,
+    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
     LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
     LocalAppConversationSendRequest, LocalAppConversationSendResult,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
@@ -225,6 +226,22 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             conversation::send_turn(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_interrupt_turn(
+        &self,
+        request: LocalAppConversationInterruptRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppConversationInterruptResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::interrupt_turn(self.checked_channel()?, request).await
         })
     }
 

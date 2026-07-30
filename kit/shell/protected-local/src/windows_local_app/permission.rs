@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use tonic::transport::Channel;
+use tonic::{transport::Channel, Request};
 
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::{
@@ -39,11 +39,17 @@ pub(super) async fn request_local_app_permission(
 ) -> Result<LocalAppPermissionStatus, LocalAppOperationError> {
     require_text(&request.permission_id)?;
     require_text(&request.reason)?;
+    require_text(&request.request_id)?;
+    let mut runtime_request = Request::new(RequestLocalAppPermissionRequest {
+        permission_id: request.permission_id.clone(),
+        reason: request.reason,
+    });
+    runtime_request.metadata_mut().insert(
+        "x-nimi-trace-id",
+        request.request_id.parse().map_err(|_| untrusted())?,
+    );
     let response = RuntimeAccountServiceClient::new(channel)
-        .request_local_app_permission(RequestLocalAppPermissionRequest {
-            permission_id: request.permission_id.clone(),
-            reason: request.reason,
-        })
+        .request_local_app_permission(runtime_request)
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
@@ -66,7 +72,6 @@ fn project_permission_status(
         ProtoPermissionPosture::Pending => LocalAppPermissionState::Pending,
         ProtoPermissionPosture::Granted => LocalAppPermissionState::Granted,
         ProtoPermissionPosture::Denied => LocalAppPermissionState::Denied,
-        ProtoPermissionPosture::Revoked => LocalAppPermissionState::Revoked,
         ProtoPermissionPosture::Unavailable => LocalAppPermissionState::Unavailable,
         ProtoPermissionPosture::Unspecified => return Err(untrusted()),
     };
@@ -123,21 +128,15 @@ mod tests {
     }
 
     #[test]
-    fn revoked_permission_projects_as_a_distinct_public_state() {
+    fn reserved_revoked_wire_value_is_rejected() {
         let projection = LocalAppPermissionProjection {
             permission_id: "agents.interact".to_string(),
-            posture: ProtoPermissionPosture::Revoked as i32,
+            posture: 6,
             can_request: false,
             reason_code: ReasonCode::LocalAppPermissionRevoked as i32,
             agents: Vec::new(),
         };
-        let status = project_permission_status(projection, "agents.interact".to_string())
-            .expect("revoked posture");
-        assert_eq!(status.state, LocalAppPermissionState::Revoked);
-        assert_eq!(
-            status.reason_code,
-            crate::LocalAppReasonCode::PermissionRevoked
-        );
+        assert!(project_permission_status(projection, "agents.interact".to_string()).is_err());
     }
 
     #[test]

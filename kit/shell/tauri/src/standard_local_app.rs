@@ -21,6 +21,7 @@ pub struct LocalAppPermissionStatusPayload {
 pub struct LocalAppPermissionRequestPayload {
     permission_id: String,
     reason: String,
+    request_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -93,6 +94,11 @@ pub async fn permission_request_for_host(
         reason: required_text(
             payload.reason,
             MAX_PERMISSION_REASON_BYTES,
+            "local_app_permission_request",
+        )?,
+        request_id: required_text(
+            payload.request_id,
+            MAX_IDENTIFIER_LENGTH,
             "local_app_permission_request",
         )?,
     };

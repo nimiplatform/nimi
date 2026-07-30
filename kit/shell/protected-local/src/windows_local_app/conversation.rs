@@ -13,10 +13,12 @@ use crate::generated::{
 };
 use crate::grpc_status::{local_app_error_from_status, local_app_reason_from_proto};
 use crate::{
-    LocalAppConversationEvent, LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
-    LocalAppConversationSendRequest, LocalAppConversationSendResult,
-    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppReasonCode,
+    LocalAppConversationEvent, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
+    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
+    LocalAppOperationError, LocalAppReasonCode,
 };
 
 use super::{invalid_payload, require_text, untrusted};
@@ -123,6 +125,49 @@ pub(super) async fn send_turn(
     }
     require_runtime_text(&response.message_id)?;
     Ok(LocalAppConversationSendResult {
+        message_id: response.message_id,
+    })
+}
+
+pub(super) async fn interrupt_turn(
+    channel: Channel,
+    request: LocalAppConversationInterruptRequest,
+) -> Result<LocalAppConversationInterruptResult, LocalAppOperationError> {
+    require_text(&request.agent_handle)?;
+    require_text(&request.conversation_anchor_id)?;
+    let payload = Struct {
+        fields: BTreeMap::from([
+            (
+                "local_agent_ref".to_string(),
+                string_value(request.agent_handle),
+            ),
+            (
+                "conversation_anchor_id".to_string(),
+                string_value(request.conversation_anchor_id),
+            ),
+            (
+                "reason".to_string(),
+                string_value("user_cancel".to_string()),
+            ),
+        ]),
+    };
+    let response = RuntimeAppServiceClient::new(channel)
+        .send_app_message(SendAppMessageRequest {
+            from_app_id: String::new(),
+            to_app_id: "runtime.agent".to_string(),
+            subject_user_id: String::new(),
+            message_type: "runtime.agent.turn.interrupt".to_string(),
+            payload: Some(payload),
+            require_ack: true,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    if !response.accepted || response.reason_code != ACTION_EXECUTED {
+        return Err(untrusted());
+    }
+    require_runtime_text(&response.message_id)?;
+    Ok(LocalAppConversationInterruptResult {
         message_id: response.message_id,
     })
 }

@@ -50,11 +50,9 @@ const PRODUCT_ACTIONS: readonly AgentCenterProductAction[] = [
 function actionProjection(
   reason: AgentCenterTransportActionReason | null,
 ): AgentCenterTransportActionProjection {
-  const recoveryAction = reason === 'not_granted'
+  const recoveryAction = reason === 'not_granted' || reason === 'grant_denied' || reason === 'grant_revoked'
     ? 'requestPermission'
-    : reason === 'grant_denied' || reason === 'grant_revoked'
-      ? 'openPermissionSettings'
-      : null;
+    : null;
   return Object.fromEntries(PRODUCT_ACTIONS.map((action) => [action, !reason || action === recoveryAction
     ? { state: 'available', reason: null }
     : { state: 'unavailable', reason }])) as AgentCenterTransportActionProjection;
@@ -192,28 +190,25 @@ describe('AgentCenter UI session contract', () => {
     expect(node.textContent).toContain('Wait for permission availability');
   });
 
-  it('re-renders live revoked and denied postures with settings recovery', async () => {
+  it('re-renders live grant removal as prompt with request affordance', async () => {
     let emit!: (projection: AgentCenterTransportActionProjection) => void;
-    let settingsCalls = 0;
+    let requestCalls = 0;
     const session = permissionedSession({
       initialReason: null,
-      onOpenSettings: () => { settingsCalls += 1; },
+      onRequest: () => { requestCalls += 1; },
       onSubscribe: (listener) => { emit = listener; },
     });
     const node = render(<AgentCenter activeSection="behavior" session={session} />);
     await flush();
     expect(node.querySelector('[data-agent-center-proactive-toggle="true"]')).not.toBeNull();
 
-    act(() => emit(actionProjection('grant_revoked')));
-    expect(node.querySelector('[data-agent-center-action-reason="revoked"]')).not.toBeNull();
-    let settings = node.querySelector('[data-agent-center-next-step-action="openPermissionSettings"]') as HTMLButtonElement;
-    expect(settings).not.toBeNull();
-
-    act(() => emit(actionProjection('grant_denied')));
-    expect(node.querySelector('[data-agent-center-action-reason="denied"]')).not.toBeNull();
-    settings = node.querySelector('[data-agent-center-next-step-action="openPermissionSettings"]') as HTMLButtonElement;
-    await act(async () => { settings.click(); await Promise.resolve(); });
-    expect(settingsCalls).toBe(1);
+    act(() => emit(actionProjection('not_granted')));
+    expect(node.querySelector('[data-agent-center-action-reason="needs-grant"]')).not.toBeNull();
+    const request = node.querySelector('[data-agent-center-next-step-action="requestPermission"]') as HTMLButtonElement;
+    expect(request).not.toBeNull();
+    expect(node.querySelector('[data-agent-center-next-step-action="openPermissionSettings"]')).toBeNull();
+    await act(async () => { request.click(); await Promise.resolve(); });
+    expect(requestCalls).toBe(1);
   });
 
   it('renders model, behavior, and appearance sections through session-owned state', async () => {

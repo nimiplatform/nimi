@@ -13,6 +13,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppStorageRemoveJson',
   'localAppConversationOpen',
   'localAppConversationSendTurn',
+  'localAppConversationInterruptTurn',
   'localAppConversationSubscribe',
   'localAppConversationStreamNext',
   'localAppConversationStreamClose',
@@ -71,7 +72,6 @@ const PERMISSION_STATES: ReadonlySet<string> = new Set([
   'pending',
   'granted',
   'denied',
-  'revoked',
   'unavailable',
 ] as const);
 
@@ -111,7 +111,7 @@ export type NimiElectronLocalAppAgentHandle = NimiElectronLocalAppRecord & {
 };
 
 export type NimiElectronLocalAppPermissionStatus = NimiElectronLocalAppRecord & {
-  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'revoked' | 'unavailable';
+  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'unavailable';
   readonly permissionId: string;
   readonly canRequest: boolean;
   readonly reasonCode: string;
@@ -137,6 +137,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppStorageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationInterruptTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -160,6 +161,7 @@ export type NimiElectronLocalAppHost = {
   readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationInterruptTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -241,6 +243,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   conversationSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeExactTextRecord(() => this.binding.localAppConversationSendTurn(input), ['messageId']);
+  }
+
+  conversationInterruptTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppConversationInterruptTurn(input), ['messageId']);
   }
 
   conversationSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -331,6 +337,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   conversationSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationSendTurn(input);
+  }
+
+  conversationInterruptTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationInterruptTurn(input);
   }
 
   conversationSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {

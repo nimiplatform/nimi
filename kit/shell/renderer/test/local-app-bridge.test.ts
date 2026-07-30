@@ -51,7 +51,7 @@ describe('renderer local-app standard-shell surface', () => {
       state: 'granted',
       agents: [{ agentHandle: 'lash_owner_issued', displayName: 'Owned Agent' }],
     });
-    await surface.permission.request({ permissionId: 'agents.interact', reason: 'Continue the conversation' });
+    await surface.permission.request({ permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-renderer-1' });
     expect(invocations).toEqual([
       {
         command: 'nimi.shell.localApp.permissionStatus',
@@ -59,7 +59,7 @@ describe('renderer local-app standard-shell surface', () => {
       },
       {
         command: 'nimi.shell.localApp.permissionRequest',
-        payload: { payload: { permissionId: 'agents.interact', reason: 'Continue the conversation' } },
+        payload: { payload: { permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-renderer-1' } },
       },
     ]);
     expect(surface).not.toHaveProperty('agent');
@@ -75,6 +75,7 @@ describe('renderer local-app standard-shell surface', () => {
     expect(() => createNimiLocalAppStandardShellSurface().permission.request({
       permissionId: 'agents.interact',
       reason: '需'.repeat(81),
+      requestId: 'permission-request-renderer-long-reason',
     })).toThrowError(/reason is invalid/u);
     expect(invocations).toEqual([]);
   });
@@ -126,6 +127,25 @@ describe('renderer local-app standard-shell surface', () => {
       command: 'nimi.shell.localApp.agentCommitPresentation',
       payload: { payload: { agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent, importedAssets: [] } },
     });
+  });
+
+  it('sends turn interrupt with only the opaque handle and conversation anchor', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { messageId: 'interrupt-message-1' };
+      },
+      listen: () => () => {},
+    };
+    await expect(createNimiLocalAppStandardShellSurface().conversation.interruptTurn({
+      agentHandle: 'lash_owner_issued',
+      conversationAnchorId: 'anchor-1',
+    })).resolves.toEqual({ messageId: 'interrupt-message-1' });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.conversationInterruptTurn',
+      payload: { payload: { agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1' } },
+    }]);
   });
 
   it('projects conversation events through a cancellable bounded async subscription', async () => {
