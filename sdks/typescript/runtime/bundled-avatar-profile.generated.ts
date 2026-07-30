@@ -10,7 +10,7 @@ export const NIMI_BUNDLED_AVATAR_DEVICE_ID = "avatar-native-host" as const;
 export const NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS = {
   audit: ["getRuntimeHealth"],
   account: ["getAccountSessionStatus","subscribeAccountSessionEvents","invokeRealmUnary"],
-  agents: ["listAgents","getAgent","resolveAvatarLiveInstanceBinding","registerAvatarLiveInstanceBinding","openConversationAnchor","getConversationAnchorSnapshot","getPublicChatSessionSnapshot","getCompanionParticipationProjection","requestCompanionParticipation","cancelCompanionParticipation","openCompanionParticipationReplay","interruptAgentVoicePlayback","getAvatarDebugSnapshot","requestAvatarDebugProbe","submitAvatarDebugProbeResult","listAvatarDebugProbeResults","getAvatarDebugReplay","subscribeAgentEvents","subscribeAgentVoiceStream"],
+  agents: ["listAgents","getAgent","getAgentPresentationAsset","resolveAvatarLiveInstanceBinding","registerAvatarLiveInstanceBinding","openConversationAnchor","getConversationAnchorSnapshot","getPublicChatSessionSnapshot","getCompanionParticipationProjection","requestCompanionParticipation","cancelCompanionParticipation","openCompanionParticipationReplay","interruptAgentVoicePlayback","getAvatarDebugSnapshot","requestAvatarDebugProbe","submitAvatarDebugProbeResult","listAvatarDebugProbeResults","getAvatarDebugReplay","subscribeAgentEvents","subscribeAgentVoiceStream"],
   artifacts: ["readArtifactBytes"],
   ai: ["submitScenarioJob","getScenarioJob","cancelScenarioJob","getScenarioArtifacts","subscribeScenarioJobEvents"],
   appMessages: ["sendAppMessage","subscribeAppMessages"],

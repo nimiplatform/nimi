@@ -49,6 +49,7 @@ type presentationAssetRecord struct {
 	FileName      string
 	MediaType     string
 	SHA256        string
+	ByteLength    int
 	Content       []byte
 }
 
@@ -306,10 +307,10 @@ func (s *Service) presentationAssetByRef(ctx context.Context, localAgentRef, ass
 	if s == nil || s.backend == nil {
 		return nil, false, fmt.Errorf("presentation asset store unavailable")
 	}
-	row := s.backend.DB().QueryRowContext(ctx, `SELECT asset_ref, local_agent_ref, asset_role, backend_kind, file_name, media_type, sha256, content FROM runtime_agent_presentation_asset WHERE asset_ref = ? AND local_agent_ref = ?`, assetRef, localAgentRef)
+	row := s.backend.DB().QueryRowContext(ctx, `SELECT asset_ref, local_agent_ref, asset_role, backend_kind, file_name, media_type, sha256, byte_length, content FROM runtime_agent_presentation_asset WHERE asset_ref = ? AND local_agent_ref = ?`, assetRef, localAgentRef)
 	record := &presentationAssetRecord{}
 	var role, backend int32
-	if err := row.Scan(&record.Ref, &record.LocalAgentRef, &role, &backend, &record.FileName, &record.MediaType, &record.SHA256, &record.Content); err != nil {
+	if err := row.Scan(&record.Ref, &record.LocalAgentRef, &role, &backend, &record.FileName, &record.MediaType, &record.SHA256, &record.ByteLength, &record.Content); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
 		}

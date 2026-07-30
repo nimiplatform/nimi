@@ -567,6 +567,8 @@ services:
         type: unary
       - name: SetAgentPresentationProfile
         type: unary
+      - name: GetAgentPresentationAsset
+        type: unary
       - name: EnableAutonomy
         type: unary
       - name: DisableAutonomy

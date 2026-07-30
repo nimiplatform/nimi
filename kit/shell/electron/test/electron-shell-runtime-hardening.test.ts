@@ -138,13 +138,17 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
 
   it('accepts only strict base64 Runtime byte payloads', async () => {
     const ipcMain = new FakeIpcMain();
+    let observedRequestByteLength = 0;
     registerNimiElectronRuntimeBridge({
       appId: 'nimi.tester',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
       createGrpcClient: async () => ({
-        unary: async () => ({ responseBytes: new Uint8Array() }),
+        unary: async (request) => {
+          observedRequestByteLength = request.requestBytes.byteLength;
+          return { responseBytes: new Uint8Array() };
+        },
         serverStream: () => {
           throw new Error('not used');
         },
@@ -159,6 +163,16 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
         requestBytesBase64: 'not base64!',
       },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
+
+    const avatarSizedPayload = 'A'.repeat(10_504_952);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
+        requestBytesBase64: avatarSizedPayload,
+      },
+    })).resolves.toEqual({ responseBytesBase64: '' });
+    expect(observedRequestByteLength).toBe(7_878_714);
   });
 
   it('dispatches app-owned Electron shell commands through the same narrowed bridge', async () => {

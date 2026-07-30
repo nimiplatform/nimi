@@ -224,6 +224,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAgentCanonicalMemoryReviewStatusResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
+        service: "RuntimeAgentService",
+        method: "GetAgentPresentationAsset",
+        kind: "unary",
+        request_type: "GetAgentPresentationAssetRequest",
+        response_type: "GetAgentPresentationAssetResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
         service: "RuntimeAgentService",
         method: "GetAgentState",

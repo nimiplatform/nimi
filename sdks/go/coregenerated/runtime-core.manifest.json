@@ -414,6 +414,15 @@
           "response_stream": false
         },
         {
+          "name": "GetAgentPresentationAsset",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
+          "kind": "unary",
+          "request_type": "GetAgentPresentationAssetRequest",
+          "response_type": "GetAgentPresentationAssetResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "EnableAutonomy",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
           "kind": "unary",
@@ -2303,6 +2312,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
+    "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
@@ -2724,6 +2734,14 @@
       "kind": "unary",
       "request_type": "GetAgentCanonicalMemoryReviewStatusRequest",
       "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
+      "service": "RuntimeAgentService",
+      "method": "GetAgentPresentationAsset",
+      "kind": "unary",
+      "request_type": "GetAgentPresentationAssetRequest",
+      "response_type": "GetAgentPresentationAssetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
@@ -4632,6 +4650,14 @@
       "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
+      "service": "RuntimeAgentService",
+      "method": "GetAgentPresentationAsset",
+      "kind": "unary",
+      "request_type": "GetAgentPresentationAssetRequest",
+      "response_type": "GetAgentPresentationAssetResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
       "service": "RuntimeAgentService",
       "method": "GetAgentState",
@@ -6522,6 +6548,8 @@
       "GetAgentCanonicalMemoryBankStatusResponse",
       "GetAgentCanonicalMemoryReviewStatusRequest",
       "GetAgentCanonicalMemoryReviewStatusResponse",
+      "GetAgentPresentationAssetRequest",
+      "GetAgentPresentationAssetResponse",
       "GetAgentRequest",
       "GetAgentResponse",
       "GetAgentStateRequest",
@@ -15140,6 +15168,88 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetAgentPresentationAssetRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetAgentPresentationAssetResponse",
+        "fields": [
+          {
+            "name": "asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "role",
+            "type": "AgentPresentationAssetRole",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "backend_kind",
+            "type": "AgentPresentationBackendKind",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "file_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "media_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "content",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "sha256",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"

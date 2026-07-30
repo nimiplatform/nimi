@@ -37,6 +37,8 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgent":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding":

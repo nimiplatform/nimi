@@ -141,6 +141,8 @@ profiles:
         capability: runtime.agent.read
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent
         capability: runtime.agent.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset
+        capability: runtime.agent.read
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
         capability: runtime.agent.read
       - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding

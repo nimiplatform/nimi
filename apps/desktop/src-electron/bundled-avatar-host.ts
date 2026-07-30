@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
@@ -11,13 +11,17 @@ import {
 import {
   NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
   createNimiElectronBundledAvatarAssetHost,
+  createNimiElectronDesktopControlHost,
   isAllowedElectronRendererUrl,
   type NimiElectronBundledAvatarHost,
+  type NimiElectronBundledAvatarRuntimeAsset,
   type NimiElectronCommandHandler,
+  type NimiElectronDesktopControlHost,
   type NimiElectronShellFileProtocolHost,
   type NimiElectronShellUiCommandInput,
 } from '@nimiplatform/kit/shell/electron/main';
 import { NIMI_BUNDLED_AVATAR_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
+import { getRuntimeWireCodec } from '@nimiplatform/sdk/runtime/generated';
 import {
   buildAvatarLaunchHandoffPayload,
   type AvatarLaunchHandoffPayload,
@@ -29,6 +33,11 @@ const AVATAR_NAS_CHANGED_EVENT = 'avatar://nas-handlers-changed';
 const AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview-request';
 const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_center_preview_complete';
 const AVATAR_AGENT_CENTER_PREVIEW_TIMEOUT_MS = 5_000;
+const GET_AGENT_PRESENTATION_ASSET_METHOD_ID =
+  '/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset';
+const BUNDLED_AVATAR_APP_ID = 'nimi.avatar';
+const RUNTIME_AVATAR_ASSET_TIMEOUT_MS = 30_000;
+const MAX_RUNTIME_AVATAR_ASSET_BYTES = 64 * 1024 * 1024;
 
 type AvatarPreviewProjectionRequest = {
   readonly requestId: string;
@@ -60,11 +69,38 @@ export type CreateDesktopElectronBundledAvatarHostInput = {
   readonly preloadPath: string;
   readonly resolveAppPrivateDataRoot: () => Promise<string>;
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
-  readonly resolveSelectedDataRoot: () => Promise<string>;
   readonly devRendererRoot?: string;
   readonly packagedRendererIndexPath?: string;
   readonly publishPreviewImage?: (bytes: Uint8Array) => string;
 };
+
+export type DesktopBundledAvatarRuntimeAssetTransport = Pick<
+  NimiElectronDesktopControlHost,
+  'bundledAvatarUnary'
+>;
+
+export function createDesktopBundledAvatarRuntimeAssetResolver(
+  control: DesktopBundledAvatarRuntimeAssetTransport = createNimiElectronDesktopControlHost(),
+): (input: {
+  readonly agentId: string;
+  readonly assetRef: string;
+}) => Promise<NimiElectronBundledAvatarRuntimeAsset> {
+  const codec = getRuntimeWireCodec(GET_AGENT_PRESENTATION_ASSET_METHOD_ID);
+  return async ({ agentId: rawAgentId, assetRef: rawAssetRef }) => {
+    const agentId = requiredLocalAgentRef(rawAgentId, 'agentId');
+    const assetRef = requiredAvatarAssetRef(rawAssetRef, 'assetRef');
+    const responseBytes = await control.bundledAvatarUnary({
+      methodId: GET_AGENT_PRESENTATION_ASSET_METHOD_ID,
+      requestBytes: codec.encodeRequest({
+        context: { appId: BUNDLED_AVATAR_APP_ID },
+        agentId,
+        assetRef,
+      }),
+      timeoutMs: RUNTIME_AVATAR_ASSET_TIMEOUT_MS,
+    });
+    return projectRuntimeAvatarAsset(codec.decodeResponse(responseBytes), assetRef);
+  };
+}
 
 export async function createDesktopElectronBundledAvatarHost(
   input: CreateDesktopElectronBundledAvatarHostInput,
@@ -77,7 +113,8 @@ export async function createDesktopElectronBundledAvatarHost(
   };
   const localAssetRoots: string[] = [];
   const assetHost = createNimiElectronBundledAvatarAssetHost({
-    resolveSelectedDataRoot: input.resolveSelectedDataRoot,
+    resolveAppPrivateDataRoot,
+    resolveRuntimeAsset: createDesktopBundledAvatarRuntimeAssetResolver(),
     localAssetProtocolHost: input.localAssetProtocolHost,
     localAssetRoots,
   });
@@ -299,9 +336,14 @@ export async function createDesktopElectronBundledAvatarHost(
       }
       return { accepted: true };
     },
-    [NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND]: async ({ payload }) => (
-      assetHost.resolve(exactNestedPayload(payload, NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND))
-    ),
+    [NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND]: async ({ payload, event }) => {
+      const reference = exactNestedPayload(
+        payload,
+        NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
+      );
+      const boundAgentId = recordForSender(asElectronEvent(event)).launchContext.agentId;
+      return assetHost.resolve(reference, boundAgentId);
+    },
     nimi_avatar_scan_nas_handlers: ({ payload }) => {
       assertOnlyKeys(payload, ['nimiDir'], 'nimi_avatar_scan_nas_handlers');
       return assetHost.scanNasHandlers(payload.nimiDir);
@@ -422,7 +464,7 @@ export async function createDesktopElectronBundledAvatarHost(
       senderInvalidationListeners.clear();
       if (devRendererProcess && devRendererProcess.exitCode === null) devRendererProcess.kill();
       devRendererProcess = undefined;
-      assetHost.close();
+      await assetHost.close();
     },
   };
 }
@@ -481,7 +523,10 @@ function secureAvatarWindow(
   });
   window.webContents.on('will-navigate', (event, url) => {
     if (!isAllowedElectronRendererUrl(url, [rendererUrl])) event.preventDefault();
-    if (initialNavigationComplete) invalidate();
+    if (!initialNavigationComplete) return;
+    event.preventDefault();
+    invalidate();
+    if (!window.isDestroyed()) window.close();
   });
 }
 
@@ -658,6 +703,99 @@ function requiredLocalAgentRef(value: unknown, field: string): string {
   const normalized = requiredText(value, field);
   if (!normalized.startsWith('local-agent:')) throw new Error(`${field} must be a local-agent ref`);
   return normalized;
+}
+
+function requiredAvatarAssetRef(value: unknown, field: string): string {
+  const normalized = requiredText(value, field);
+  if (!/^(?:live2d|vrm)_[a-f0-9]{12}$/u.test(normalized)) {
+    throw new Error(`${field} must be an Avatar asset ref`);
+  }
+  return normalized;
+}
+
+function projectRuntimeAvatarAsset(
+  value: unknown,
+  expectedAssetRef: string,
+): NimiElectronBundledAvatarRuntimeAsset {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
+  }
+  const response = value as Readonly<Record<string, unknown>>;
+  assertExactKeys(response, [
+    'assetRef',
+    'role',
+    'backendKind',
+    'fileName',
+    'mediaType',
+    'content',
+    'sha256',
+  ], 'desktop-bundled-avatar-runtime-asset-response');
+  const assetRef = requiredAvatarAssetRef(response.assetRef, 'assetRef');
+  if (assetRef !== expectedAssetRef || response.role !== 1) {
+    throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
+  }
+  const backendKind = runtimeAvatarBackendKind(response.backendKind);
+  if (!assetRef.startsWith(`${backendKind}_`)) {
+    throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
+  }
+  const fileName = requiredRuntimeAvatarFileName(response.fileName);
+  const mediaType = requiredText(response.mediaType, 'mediaType');
+  if ((backendKind === 'vrm' && (path.extname(fileName).toLowerCase() !== '.vrm'
+      || mediaType !== 'model/gltf-binary'))
+    || (backendKind === 'live2d' && (path.extname(fileName).toLowerCase() !== '.zip'
+      || mediaType !== 'application/zip'))) {
+    throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
+  }
+  if (!(response.content instanceof Uint8Array)
+    || response.content.byteLength <= 0
+    || response.content.byteLength > MAX_RUNTIME_AVATAR_ASSET_BYTES) {
+    throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
+  }
+  const sha256 = requiredText(response.sha256, 'sha256');
+  if (!/^[a-f0-9]{64}$/u.test(sha256)
+    || createHash('sha256').update(response.content).digest('hex') !== sha256) {
+    throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
+  }
+  return {
+    assetRef,
+    role: 'avatar',
+    backendKind,
+    fileName,
+    mediaType,
+    content: response.content,
+    sha256,
+  };
+}
+
+function runtimeAvatarBackendKind(value: unknown): 'vrm' | 'live2d' {
+  if (value === 1) return 'vrm';
+  if (value === 2) return 'live2d';
+  throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
+}
+
+function requiredRuntimeAvatarFileName(value: unknown): string {
+  const fileName = requiredText(value, 'fileName');
+  if (fileName !== path.basename(fileName)
+    || fileName !== path.win32.basename(fileName)
+    || path.isAbsolute(fileName)
+    || path.win32.isAbsolute(fileName)
+    || /[\u0000-\u001f\u007f]/u.test(fileName)
+    || fileName.length > 255) {
+    throw new Error('desktop-bundled-avatar-runtime-asset-response-invalid');
+  }
+  return fileName;
+}
+
+function assertExactKeys(
+  payload: Readonly<Record<string, unknown>>,
+  expectedKeys: readonly string[],
+  command: string,
+): void {
+  const actual = Object.keys(payload).sort();
+  const expected = [...expectedKeys].sort();
+  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
+    throw new Error(`${command} keys are invalid`);
+  }
 }
 
 function requiredText(value: unknown, field: string): string {

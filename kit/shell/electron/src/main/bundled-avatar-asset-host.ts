@@ -1,5 +1,15 @@
 import path from 'node:path';
-import { lstat, readFile, readdir, realpath } from 'node:fs/promises';
+import {
+  lstat,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import type {
   AgentCenterLocalAvatarAssetReference,
   TauriAvatarModelManifest,
@@ -17,16 +27,8 @@ import {
   type AgentCenterScope,
   type AvatarBackendKind,
 } from './agent-center-contract.js';
-import { validateAvatarAssetAt } from './agent-center-avatar-validation.js';
-import {
-  assertManagedPath,
-  avatarMaterializationRef,
-  custodySegment,
-  managedPathExists,
-  readManifest,
-  resolveBoundDataRoot,
-  resolveManagedFile,
-} from './agent-center-paths.js';
+import { validateVrmGlb } from './agent-center-content.js';
+import { avatarMaterializationRef, sha256 } from './agent-center-paths.js';
 import { isSameOrChildPath } from './paths.js';
 import type { NimiElectronShellFileProtocolHost } from './types.js';
 
@@ -44,11 +46,6 @@ const REFERENCE_KEYS = [
   'materializationRef',
 ] as const;
 
-type AvatarAssetManifestProjection = {
-  readonly entry_file: string;
-  readonly files: readonly { readonly path: string }[];
-};
-
 export type NimiElectronBundledAvatarNasHandlerManifest = {
   readonly activity: readonly NimiElectronBundledAvatarNasHandlerEntry[];
   readonly event: readonly NimiElectronBundledAvatarNasHandlerEntry[];
@@ -62,31 +59,82 @@ export type NimiElectronBundledAvatarNasHandlerEntry = {
 };
 
 export type NimiElectronBundledAvatarAssetHost = {
-  readonly resolve: (reference: unknown) => Promise<TauriAvatarModelManifest>;
+  readonly resolve: (reference: unknown, agentId: string) => Promise<TauriAvatarModelManifest>;
   readonly readTextFile: (filePath: unknown) => Promise<string>;
   readonly scanNasHandlers: (nimiDir: unknown) => Promise<NimiElectronBundledAvatarNasHandlerManifest>;
   readonly assertAdmittedDirectory: (directoryPath: unknown) => Promise<string>;
-  readonly close: () => void;
+  readonly close: () => Promise<void>;
+};
+
+export type NimiElectronBundledAvatarRuntimeAsset = {
+  readonly assetRef: string;
+  readonly role: 'avatar';
+  readonly backendKind: AvatarBackendKind;
+  readonly fileName: string;
+  readonly mediaType: string;
+  readonly content: Uint8Array;
+  readonly sha256: string;
 };
 
 export type CreateNimiElectronBundledAvatarAssetHostInput = {
-  /** Runtime-validated canonical Product Control projection; never renderer input. */
-  readonly resolveSelectedDataRoot: () => Promise<string>;
+  /** Desktop-bound app-private data root; never renderer input. */
+  readonly resolveAppPrivateDataRoot: () => Promise<string>;
+  /** Exact protected Runtime read for the Desktop-bound Local Agent. */
+  readonly resolveRuntimeAsset: (input: {
+    readonly agentId: string;
+    readonly assetRef: string;
+  }) => Promise<NimiElectronBundledAvatarRuntimeAsset>;
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
   /** The same mutable root list supplied to the bundled Avatar standard host. */
   readonly localAssetRoots: string[];
 };
 
 /**
- * Desktop-owned adapter for the existing Agent Center Avatar materialization.
- * It admits a root only after the complete Kit manifest validator passes, then
- * registers every declared file with the Electron file protocol. Renderer code
- * cannot select a data root or broaden the admitted filesystem boundary.
+ * Desktop-owned adapter for Runtime-custodied Agent presentation assets.
+ * Runtime returns only the current committed asset for the Desktop-bound Local
+ * Agent. This host revalidates and temporarily materializes that exact content
+ * below the Avatar app-private root for renderer-local file loading.
  */
 export function createNimiElectronBundledAvatarAssetHost(
   input: CreateNimiElectronBundledAvatarAssetHostInput,
 ): NimiElectronBundledAvatarAssetHost {
   const admittedAssetRoots = new Set<string>();
+  const materializations = new Map<string, Promise<TauriAvatarModelManifest>>();
+  const sessionId = randomUUID();
+  let sessionRoot: string | undefined;
+  let closed = false;
+
+  const ensureSessionRoot = async (): Promise<string> => {
+    if (sessionRoot) return sessionRoot;
+    const rawAppPrivateRoot = requiredAbsolutePath(
+      await input.resolveAppPrivateDataRoot(),
+      'appPrivateDataRoot',
+    );
+    await mkdir(rawAppPrivateRoot, { recursive: true });
+    const appPrivateRoot = await realpath(rawAppPrivateRoot);
+    const appPrivateMetadata = await lstat(appPrivateRoot);
+    if (appPrivateMetadata.isSymbolicLink() || !appPrivateMetadata.isDirectory()) {
+      throw invalidPath(
+        NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
+        'Avatar app-private data root must be a real directory.',
+      );
+    }
+    const candidate = path.join(
+      appPrivateRoot,
+      'runtime-presentation-materialization',
+      sessionId,
+    );
+    await mkdir(candidate, { recursive: true });
+    const canonical = await realpath(candidate);
+    if (!isSameOrChildPath(appPrivateRoot, canonical)) {
+      throw invalidPath(
+        NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
+        'Avatar temporary materialization escaped the app-private data root.',
+      );
+    }
+    sessionRoot = canonical;
+    return canonical;
+  };
 
   const assertAdmittedPath = async (value: unknown, requireDirectory: boolean): Promise<string> => {
     const raw = requiredAbsolutePath(value, requireDirectory ? 'nimiDir' : 'path');
@@ -113,11 +161,20 @@ export function createNimiElectronBundledAvatarAssetHost(
   };
 
   return {
-    resolve: async (value) => {
+    resolve: async (value, agentId) => {
+      if (closed) {
+        throw notFound(
+          NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
+          'Avatar temporary materialization host is closed.',
+        );
+      }
       const reference = parseReference(value);
       const command = NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND;
-      const dataRoot = await resolveBoundDataRoot(await input.resolveSelectedDataRoot(), command);
       const scope = referenceScope(reference, command);
+      const boundAgentId = requiredLocalAgentId(agentId, command);
+      if (boundAgentId !== scope.localAgentRef) {
+        throw invalidPayload(command, 'Bundled Avatar launch Agent does not match the requested asset scope.');
+      }
       if (scope.accountId !== scope.ownerUserId) {
         throw invalidPayload(command, 'Bundled Avatar asset owner must match the current Runtime account.');
       }
@@ -133,28 +190,25 @@ export function createNimiElectronBundledAvatarAssetHost(
         throw invalidPayload(command, 'materializationRef does not match the validated Avatar asset scope.');
       }
 
-      const assetRoot = selectedDataRootAvatarAssetDir(dataRoot, scope, kind, avatarAssetRef);
-      if (!await managedPathExists(dataRoot, assetRoot, command)) {
-        throw notFound(command, `Avatar asset is unavailable: ${avatarAssetRef}`);
-      }
-      const validation = await validateAvatarAssetAt(dataRoot, assetRoot, scope, avatarAssetRef, kind, command);
-      if (validation.validationStatus !== 'valid') {
-        throw invalidAsset(command, validation.validationMessage ?? 'Avatar asset validation failed.');
-      }
-      const canonicalAssetRoot = await assertManagedPath(dataRoot, assetRoot, command);
-      const manifest = asAvatarAssetManifest(await readManifest(dataRoot, canonicalAssetRoot, command), command);
-      const entryPath = await resolveManagedFile(dataRoot, canonicalAssetRoot, manifest.entry_file, command);
-      const declaredFiles = await Promise.all(manifest.files.map((file) => (
-        resolveManagedFile(dataRoot, canonicalAssetRoot, file.path, command)
-      )));
-      for (const filePath of declaredFiles) {
-        await input.localAssetProtocolHost.registerReadableFile(filePath);
-      }
-      admittedAssetRoots.add(canonicalAssetRoot);
-      if (!input.localAssetRoots.some((root) => path.resolve(root) === path.resolve(canonicalAssetRoot))) {
-        input.localAssetRoots.push(canonicalAssetRoot);
-      }
-      return projectModelManifest(kind, entryPath, canonicalAssetRoot);
+      const cacheKey = `${boundAgentId}\0${avatarAssetRef}`;
+      const existing = materializations.get(cacheKey);
+      if (existing) return existing;
+      const pending = materializeRuntimeAsset({
+        command,
+        agentId: boundAgentId,
+        assetRef: avatarAssetRef,
+        expectedKind: kind,
+        ensureSessionRoot,
+        resolveRuntimeAsset: input.resolveRuntimeAsset,
+        localAssetProtocolHost: input.localAssetProtocolHost,
+        localAssetRoots: input.localAssetRoots,
+        admittedAssetRoots,
+      }).catch((error) => {
+        materializations.delete(cacheKey);
+        throw error;
+      });
+      materializations.set(cacheKey, pending);
+      return pending;
     },
     readTextFile: async (value) => {
       const filePath = await assertAdmittedPath(value, false);
@@ -177,14 +231,135 @@ export function createNimiElectronBundledAvatarAssetHost(
       };
     },
     assertAdmittedDirectory: (value) => assertAdmittedPath(value, true),
-    close: () => {
+    close: async () => {
+      if (closed) return;
+      closed = true;
+      await Promise.allSettled([...materializations.values()]);
       for (const root of admittedAssetRoots) {
         const index = input.localAssetRoots.findIndex((candidate) => path.resolve(candidate) === path.resolve(root));
         if (index >= 0) input.localAssetRoots.splice(index, 1);
       }
       admittedAssetRoots.clear();
+      materializations.clear();
+      if (sessionRoot) {
+        await rm(sessionRoot, { recursive: true, force: true });
+        sessionRoot = undefined;
+      }
     },
   };
+}
+
+async function materializeRuntimeAsset(input: {
+  readonly command: string;
+  readonly agentId: string;
+  readonly assetRef: string;
+  readonly expectedKind: AvatarBackendKind;
+  readonly ensureSessionRoot: () => Promise<string>;
+  readonly resolveRuntimeAsset: CreateNimiElectronBundledAvatarAssetHostInput['resolveRuntimeAsset'];
+  readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
+  readonly localAssetRoots: string[];
+  readonly admittedAssetRoots: Set<string>;
+}): Promise<TauriAvatarModelManifest> {
+  const asset = await input.resolveRuntimeAsset({
+    agentId: input.agentId,
+    assetRef: input.assetRef,
+  });
+  validateRuntimeAsset(asset, input.assetRef, input.expectedKind, input.command);
+  if (asset.backendKind === 'live2d') {
+    throw invalidAsset(
+      input.command,
+      'Runtime-custodied Live2D ZIP materialization is not admitted by the current Electron Avatar host.',
+    );
+  }
+
+  const root = await input.ensureSessionRoot();
+  const stagingRoot = path.join(root, `.${asset.assetRef}.${randomUUID()}.staging`);
+  const finalRoot = path.join(root, asset.assetRef);
+  if (!isSameOrChildPath(root, stagingRoot) || !isSameOrChildPath(root, finalRoot)) {
+    throw invalidPath(input.command, 'Avatar temporary materialization path escaped its session root.');
+  }
+  await mkdir(stagingRoot, { recursive: false });
+  let finalized = false;
+  try {
+    const entryPath = path.join(stagingRoot, asset.fileName);
+    await writeFile(entryPath, asset.content, { flag: 'wx' });
+    const metadata = await lstat(entryPath);
+    if (metadata.isSymbolicLink() || !metadata.isFile() || metadata.size !== asset.content.byteLength) {
+      throw invalidAsset(input.command, 'Avatar temporary materialization did not preserve exact Runtime bytes.');
+    }
+    await rename(stagingRoot, finalRoot);
+    finalized = true;
+    const canonicalAssetRoot = await realpath(finalRoot);
+    const canonicalEntryPath = await realpath(path.join(finalRoot, asset.fileName));
+    if (!isSameOrChildPath(root, canonicalAssetRoot)
+      || !isSameOrChildPath(canonicalAssetRoot, canonicalEntryPath)) {
+      throw invalidPath(input.command, 'Avatar temporary materialization escaped its admitted root.');
+    }
+    await input.localAssetProtocolHost.registerReadableFile(canonicalEntryPath);
+    input.admittedAssetRoots.add(canonicalAssetRoot);
+    if (!input.localAssetRoots.some((candidate) => path.resolve(candidate) === path.resolve(canonicalAssetRoot))) {
+      input.localAssetRoots.push(canonicalAssetRoot);
+    }
+    return projectModelManifest(asset.backendKind, canonicalEntryPath, canonicalAssetRoot);
+  } catch (error) {
+    if (finalized) await rm(finalRoot, { recursive: true, force: true });
+    throw error;
+  } finally {
+    if (!finalized) await rm(stagingRoot, { recursive: true, force: true });
+  }
+}
+
+function validateRuntimeAsset(
+  asset: NimiElectronBundledAvatarRuntimeAsset,
+  expectedRef: string,
+  expectedKind: AvatarBackendKind,
+  command: string,
+): void {
+  if (!asset || typeof asset !== 'object') {
+    throw invalidAsset(command, 'Runtime returned an invalid Avatar presentation asset.');
+  }
+  if (asset.assetRef !== expectedRef
+    || asset.role !== 'avatar'
+    || asset.backendKind !== expectedKind
+    || !asset.assetRef.startsWith(`${asset.backendKind}_`)) {
+    throw invalidAsset(command, 'Runtime Avatar presentation asset does not match the committed reference.');
+  }
+  if (!(asset.content instanceof Uint8Array)
+    || asset.content.byteLength <= 0
+    || asset.content.byteLength > MAX_AVATAR_ASSET_FILE_BYTES) {
+    throw invalidAsset(command, 'Runtime Avatar presentation bytes are outside the admitted byte cap.');
+  }
+  if (!/^[a-f0-9]{64}$/u.test(asset.sha256) || sha256(asset.content) !== asset.sha256) {
+    throw invalidAsset(command, 'Runtime Avatar presentation digest does not match its content.');
+  }
+  const fileName = safeRuntimeFileName(asset.fileName, command);
+  if (asset.backendKind === 'vrm') {
+    if (path.extname(fileName).toLowerCase() !== '.vrm'
+      || asset.mediaType !== 'model/gltf-binary') {
+      throw invalidAsset(command, 'Runtime VRM presentation metadata is invalid.');
+    }
+    const validationError = validateVrmGlb(asset.content);
+    if (validationError) throw invalidAsset(command, validationError);
+    return;
+  }
+  if (path.extname(fileName).toLowerCase() !== '.zip' || asset.mediaType !== 'application/zip') {
+    throw invalidAsset(command, 'Runtime Live2D presentation metadata is invalid.');
+  }
+}
+
+function safeRuntimeFileName(value: unknown, command: string): string {
+  const fileName = typeof value === 'string' ? value : '';
+  if (!fileName
+    || fileName.trim() !== fileName
+    || fileName.length > 255
+    || fileName !== path.basename(fileName)
+    || fileName !== path.win32.basename(fileName)
+    || path.isAbsolute(fileName)
+    || path.win32.isAbsolute(fileName)
+    || /[\u0000-\u001f\u007f]/u.test(fileName)) {
+    throw invalidPath(command, 'Runtime Avatar presentation file name is unsafe.');
+  }
+  return fileName;
 }
 
 function parseReference(value: unknown): AgentCenterLocalAvatarAssetReference {
@@ -211,43 +386,6 @@ function referenceScope(reference: AgentCenterLocalAvatarAssetReference, command
     runtimeSourceRef: reference.runtimeSourceRef,
     localAgentRef: reference.localAgentRef,
   }, command);
-}
-
-function selectedDataRootAvatarAssetDir(
-  dataRoot: string,
-  scope: AgentCenterScope,
-  kind: AvatarBackendKind,
-  avatarAssetRef: string,
-): string {
-  return path.join(
-    dataRoot,
-    'accounts',
-    custodySegment(scope.accountId),
-    'agents',
-    custodySegment(scope.localAgentRef),
-    'agent-center',
-    'modules',
-    'avatar_asset',
-    'packages',
-    kind,
-    avatarAssetRef,
-  );
-}
-
-function asAvatarAssetManifest(
-  value: Readonly<Record<string, unknown>>,
-  command: string,
-): AvatarAssetManifestProjection {
-  if (typeof value.entry_file !== 'string' || !Array.isArray(value.files)) {
-    throw invalidAsset(command, 'Validated Avatar manifest projection is incomplete.');
-  }
-  const files = value.files.map((file) => {
-    if (!file || typeof file !== 'object' || Array.isArray(file) || typeof (file as { path?: unknown }).path !== 'string') {
-      throw invalidAsset(command, 'Validated Avatar manifest file projection is incomplete.');
-    }
-    return { path: (file as { path: string }).path };
-  });
-  return { entry_file: value.entry_file, files };
 }
 
 async function projectModelManifest(
@@ -339,4 +477,12 @@ function requiredAbsolutePath(value: unknown, field: string): string {
     );
   }
   return path.resolve(normalized);
+}
+
+function requiredLocalAgentId(value: unknown, command: string): string {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized || normalized.length > 256 || !normalized.startsWith('local-agent:')) {
+    throw invalidPayload(command, 'Bundled Avatar launch Agent must be a Local Agent ref.');
+  }
+  return normalized;
 }

@@ -241,7 +241,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         'data',
       ),
       localAssetProtocolHost,
-      resolveSelectedDataRoot: resolveProductControlDataRoot,
       devRendererRoot: ELECTRON_DEVELOPMENT_BUILD
         ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
         : undefined,

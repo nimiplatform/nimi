@@ -440,6 +440,20 @@ message SetAgentPresentationProfileResponse {
   uint64 committed_revision = 2;
   AgentPresentationProfile previous_profile = 3;
 }
+message GetAgentPresentationAssetRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string asset_ref = 3;
+}
+message GetAgentPresentationAssetResponse {
+  string asset_ref = 1;
+  AgentPresentationAssetRole role = 2;
+  AgentPresentationBackendKind backend_kind = 3;
+  string file_name = 4;
+  string media_type = 5;
+  bytes content = 6;
+  string sha256 = 7;
+}
 message ListPendingHooksRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -770,6 +784,7 @@ service RuntimeAgentService {
   rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);
   rpc UpdateAgentState(UpdateAgentStateRequest) returns (UpdateAgentStateResponse);
   rpc SetAgentPresentationProfile(SetAgentPresentationProfileRequest) returns (SetAgentPresentationProfileResponse);
+  rpc GetAgentPresentationAsset(GetAgentPresentationAssetRequest) returns (GetAgentPresentationAssetResponse);
   rpc EnableAutonomy(EnableAutonomyRequest) returns (EnableAutonomyResponse);
   rpc DisableAutonomy(DisableAutonomyRequest) returns (DisableAutonomyResponse);
   rpc SetAutonomyConfig(SetAutonomyConfigRequest) returns (SetAutonomyConfigResponse);

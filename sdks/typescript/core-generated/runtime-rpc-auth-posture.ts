@@ -29,6 +29,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/GetAgent": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus": "authenticated_required",
+  "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/GetAgentState": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot": "anonymous_read",

@@ -46,6 +46,8 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile
     posture: authenticated_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/EnableAutonomy
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/DisableAutonomy

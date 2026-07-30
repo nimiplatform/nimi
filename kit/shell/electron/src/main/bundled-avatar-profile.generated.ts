@@ -13,6 +13,7 @@ export const NIMI_ELECTRON_BUNDLED_AVATAR_METHODS = {
   "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary": { kind: "unary", capability: "account.realm.read" },
   "/nimi.runtime.v1.RuntimeAgentService/ListAgents": { kind: "unary", capability: "runtime.agent.read" },
   "/nimi.runtime.v1.RuntimeAgentService/GetAgent": { kind: "unary", capability: "runtime.agent.read" },
+  "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset": { kind: "unary", capability: "runtime.agent.read" },
   "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding": { kind: "unary", capability: "runtime.agent.read" },
   "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding": { kind: "unary", capability: "runtime.agent.write" },
   "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor": { kind: "unary", capability: "runtime.agent.write" },

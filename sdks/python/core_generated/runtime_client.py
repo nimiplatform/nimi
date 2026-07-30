@@ -216,6 +216,14 @@ RUNTIME_METHODS = [
     "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentPresentationAsset",
+    "kind": "unary",
+    "request_type": "GetAgentPresentationAssetRequest",
+    "response_type": "GetAgentPresentationAssetResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",

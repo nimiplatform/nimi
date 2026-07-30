@@ -9479,6 +9479,78 @@ impl GetAgentCanonicalMemoryReviewStatusResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentPresentationAssetRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub agent_id: Option<String>,
+    pub asset_ref: Option<String>,
+}
+
+impl GetAgentPresentationAssetRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.asset_ref { pairs.push(format!("asset_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.asset_ref = pairs.get("asset_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentPresentationAssetResponse {
+    pub asset_ref: Option<String>,
+    pub role: Option<AgentPresentationAssetRole>,
+    pub backend_kind: Option<AgentPresentationBackendKind>,
+    pub file_name: Option<String>,
+    pub media_type: Option<String>,
+    pub content: Option<Vec<u8>>,
+    pub sha256: Option<String>,
+}
+
+impl GetAgentPresentationAssetResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.asset_ref { pairs.push(format!("asset_ref={}", value)); }
+        if let Some(value) = &self.role { pairs.push(format!("role={:?}", value)); }
+        if let Some(value) = &self.backend_kind { pairs.push(format!("backend_kind={:?}", value)); }
+        if let Some(value) = &self.file_name { pairs.push(format!("file_name={}", value)); }
+        if let Some(value) = &self.media_type { pairs.push(format!("media_type={}", value)); }
+        if self.content.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode content"); }
+        if let Some(value) = &self.sha256 { pairs.push(format!("sha256={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["role", "backend_kind", "content"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.asset_ref = pairs.get("asset_ref").cloned();
+        out.file_name = pairs.get("file_name").cloned();
+        out.media_type = pairs.get("media_type").cloned();
+        out.sha256 = pairs.get("sha256").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAgentRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -30308,6 +30380,18 @@ impl From<Vec<u8>> for GetAgentCanonicalMemoryReviewStatusResponse {
     }
 }
 
+impl From<Vec<u8>> for GetAgentPresentationAssetRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentPresentationAssetResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for GetAgentRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34111,6 +34195,16 @@ where
             timeout,
         })?;
         Ok(GetAgentCanonicalMemoryReviewStatusResponse::from_transport(&raw))
+    }
+
+    pub fn get_agent_presentation_asset(&self, request: GetAgentPresentationAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentPresentationAssetResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAgentPresentationAssetResponse::from_transport(&raw))
     }
 
     pub fn get_agent_state(&self, request: GetAgentStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentStateResponse, T::Error> {

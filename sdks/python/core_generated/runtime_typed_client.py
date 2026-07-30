@@ -1792,6 +1792,22 @@ class GetAgentCanonicalMemoryReviewStatusResponse:
     status: AgentCanonicalMemoryReviewStatus | None = None
 
 @dataclass(frozen=True)
+class GetAgentPresentationAssetRequest:
+    context: AgentRequestContext | None = None
+    agent_id: str | None = None
+    asset_ref: str | None = None
+
+@dataclass(frozen=True)
+class GetAgentPresentationAssetResponse:
+    asset_ref: str | None = None
+    role: AgentPresentationAssetRole | None = None
+    backend_kind: AgentPresentationBackendKind | None = None
+    file_name: str | None = None
+    media_type: str | None = None
+    content: bytes | None = None
+    sha256: str | None = None
+
+@dataclass(frozen=True)
 class GetAgentRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -6083,6 +6099,10 @@ class RuntimeTypedClient:
     async def get_agent_canonical_memory_review_status(self, request: GetAgentCanonicalMemoryReviewStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentCanonicalMemoryReviewStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentCanonicalMemoryReviewStatusResponse, raw)
+
+    async def get_agent_presentation_asset(self, request: GetAgentPresentationAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentPresentationAssetResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetAgentPresentationAssetResponse, raw)
 
     async def get_agent_state(self, request: GetAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

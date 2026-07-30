@@ -3302,6 +3302,22 @@ type GetAgentCanonicalMemoryReviewStatusResponse struct {
 	Status *AgentCanonicalMemoryReviewStatus `json:"status,omitempty"`
 }
 
+type GetAgentPresentationAssetRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	AssetRef string `json:"asset_ref,omitempty"`
+}
+
+type GetAgentPresentationAssetResponse struct {
+	AssetRef string `json:"asset_ref,omitempty"`
+	Role AgentPresentationAssetRole `json:"role,omitempty"`
+	BackendKind AgentPresentationBackendKind `json:"backend_kind,omitempty"`
+	FileName string `json:"file_name,omitempty"`
+	MediaType string `json:"media_type,omitempty"`
+	Content []byte `json:"content,omitempty"`
+	Sha256 string `json:"sha256,omitempty"`
+}
+
 type GetAgentRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -7798,6 +7814,14 @@ func (c RuntimeTypedClient) GetAgentCanonicalMemoryReviewStatus(ctx context.Cont
 		return GetAgentCanonicalMemoryReviewStatusResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetAgentCanonicalMemoryReviewStatusResponse](raw, "GetAgentCanonicalMemoryReviewStatusResponse")
+}
+
+func (c RuntimeTypedClient) GetAgentPresentationAsset(ctx context.Context, request GetAgentPresentationAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentPresentationAssetResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAgentPresentationAssetResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAgentPresentationAssetResponse](raw, "GetAgentPresentationAssetResponse")
 }
 
 func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentStateResponse, error) {

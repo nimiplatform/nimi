@@ -133,6 +133,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ListAgents": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/GetAgent": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor": { kind: "unary" },

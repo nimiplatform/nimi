@@ -17822,6 +17822,32 @@ pub struct SetAgentPresentationProfileResponse {
     pub previous_profile: ::core::option::Option<AgentPresentationProfile>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAgentPresentationAssetRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub asset_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAgentPresentationAssetResponse {
+    #[prost(string, tag = "1")]
+    pub asset_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "AgentPresentationAssetRole", tag = "2")]
+    pub role: i32,
+    #[prost(enumeration = "AgentPresentationBackendKind", tag = "3")]
+    pub backend_kind: i32,
+    #[prost(string, tag = "4")]
+    pub file_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub media_type: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "6")]
+    pub content: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "7")]
+    pub sha256: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListPendingHooksRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
@@ -20273,6 +20299,35 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "SetAgentPresentationProfile",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_agent_presentation_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAgentPresentationAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAgentPresentationAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetAgentPresentationAsset",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -195,7 +195,7 @@ function normalizeBase64Text(value: unknown, field: string): string {
   if (!text) {
     return '';
   }
-  if (!BASE64_PATTERN.test(text)) {
+  if (!isStrictBase64Text(text)) {
     throw new NimiElectronShellHostError({
       code: 'invalid-payload',
       message: `${field} must be base64`,
@@ -205,6 +205,37 @@ function normalizeBase64Text(value: unknown, field: string): string {
     });
   }
   return text;
+}
+
+function isStrictBase64Text(value: string): boolean {
+  if (value.length % 4 !== 0) {
+    return false;
+  }
+  let payloadLength = value.length;
+  if (value.endsWith('==')) {
+    payloadLength -= 2;
+  } else if (value.endsWith('=')) {
+    payloadLength -= 1;
+  }
+  for (let index = 0; index < payloadLength; index += 1) {
+    const code = value.charCodeAt(index);
+    if (
+      (code >= 65 && code <= 90)
+      || (code >= 97 && code <= 122)
+      || (code >= 48 && code <= 57)
+      || code === 43
+      || code === 47
+    ) {
+      continue;
+    }
+    return false;
+  }
+  for (let index = payloadLength; index < value.length; index += 1) {
+    if (value.charCodeAt(index) !== 61) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function parseRuntimeBridgeMetadata(value: unknown): ElectronRuntimeBridgeMetadata | undefined {
@@ -339,7 +370,6 @@ const GENERIC_BRIDGE_BLOCKED_RPC_POSTURES = new Set([
   'blocked_pending_authority',
   'deny_all_tombstone',
 ]);
-const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
 const RENDERER_FORBIDDEN_IDENTITY_METADATA_KEYS = new Set([
   'appid',
   'participantid',

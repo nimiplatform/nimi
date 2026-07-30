@@ -41,6 +41,7 @@ const (
 	RuntimeAgentService_GetAgentState_FullMethodName                          = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
 	RuntimeAgentService_UpdateAgentState_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
 	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
+	RuntimeAgentService_GetAgentPresentationAsset_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset"
 	RuntimeAgentService_EnableAutonomy_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
 	RuntimeAgentService_DisableAutonomy_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
 	RuntimeAgentService_SetAutonomyConfig_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
@@ -102,6 +103,7 @@ type RuntimeAgentServiceClient interface {
 	GetAgentState(ctx context.Context, in *GetAgentStateRequest, opts ...grpc.CallOption) (*GetAgentStateResponse, error)
 	UpdateAgentState(ctx context.Context, in *UpdateAgentStateRequest, opts ...grpc.CallOption) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(ctx context.Context, in *SetAgentPresentationProfileRequest, opts ...grpc.CallOption) (*SetAgentPresentationProfileResponse, error)
+	GetAgentPresentationAsset(ctx context.Context, in *GetAgentPresentationAssetRequest, opts ...grpc.CallOption) (*GetAgentPresentationAssetResponse, error)
 	EnableAutonomy(ctx context.Context, in *EnableAutonomyRequest, opts ...grpc.CallOption) (*EnableAutonomyResponse, error)
 	DisableAutonomy(ctx context.Context, in *DisableAutonomyRequest, opts ...grpc.CallOption) (*DisableAutonomyResponse, error)
 	SetAutonomyConfig(ctx context.Context, in *SetAutonomyConfigRequest, opts ...grpc.CallOption) (*SetAutonomyConfigResponse, error)
@@ -359,6 +361,16 @@ func (c *runtimeAgentServiceClient) SetAgentPresentationProfile(ctx context.Cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetAgentPresentationProfileResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_SetAgentPresentationProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetAgentPresentationAsset(ctx context.Context, in *GetAgentPresentationAssetRequest, opts ...grpc.CallOption) (*GetAgentPresentationAssetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAgentPresentationAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentPresentationAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -721,6 +733,7 @@ type RuntimeAgentServiceServer interface {
 	GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error)
 	UpdateAgentState(context.Context, *UpdateAgentStateRequest) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(context.Context, *SetAgentPresentationProfileRequest) (*SetAgentPresentationProfileResponse, error)
+	GetAgentPresentationAsset(context.Context, *GetAgentPresentationAssetRequest) (*GetAgentPresentationAssetResponse, error)
 	EnableAutonomy(context.Context, *EnableAutonomyRequest) (*EnableAutonomyResponse, error)
 	DisableAutonomy(context.Context, *DisableAutonomyRequest) (*DisableAutonomyResponse, error)
 	SetAutonomyConfig(context.Context, *SetAutonomyConfigRequest) (*SetAutonomyConfigResponse, error)
@@ -828,6 +841,9 @@ func (UnimplementedRuntimeAgentServiceServer) UpdateAgentState(context.Context, 
 }
 func (UnimplementedRuntimeAgentServiceServer) SetAgentPresentationProfile(context.Context, *SetAgentPresentationProfileRequest) (*SetAgentPresentationProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetAgentPresentationProfile not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetAgentPresentationAsset(context.Context, *GetAgentPresentationAssetRequest) (*GetAgentPresentationAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAgentPresentationAsset not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) EnableAutonomy(context.Context, *EnableAutonomyRequest) (*EnableAutonomyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method EnableAutonomy not implemented")
@@ -1331,6 +1347,24 @@ func _RuntimeAgentService_SetAgentPresentationProfile_Handler(srv interface{}, c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).SetAgentPresentationProfile(ctx, req.(*SetAgentPresentationProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetAgentPresentationAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentPresentationAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetAgentPresentationAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetAgentPresentationAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetAgentPresentationAsset(ctx, req.(*GetAgentPresentationAssetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1948,6 +1982,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetAgentPresentationProfile",
 			Handler:    _RuntimeAgentService_SetAgentPresentationProfile_Handler,
+		},
+		{
+			MethodName: "GetAgentPresentationAsset",
+			Handler:    _RuntimeAgentService_GetAgentPresentationAsset_Handler,
 		},
 		{
 			MethodName: "EnableAutonomy",

@@ -223,6 +223,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAgentCanonicalMemoryReviewStatusResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentPresentationAsset",
+    "kind": "unary",
+    "requestType": "GetAgentPresentationAssetRequest",
+    "responseType": "GetAgentPresentationAssetResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",
