@@ -34,6 +34,7 @@ import {
 import {
   exactLocalDevelopmentObject as exact,
   exactNestedLocalDevelopmentPayload as exactNestedPayload,
+  localDevelopmentCdpPort as cdpPort,
   localDevelopmentDecision as localDecision,
   localDevelopmentSelector as selector,
   localDevelopmentText as text,
@@ -50,6 +51,14 @@ const COMMANDS = new Set([
 ]);
 const HEALTH_MS = 2_000;
 const REBUILD_DEBOUNCE_MS = 450;
+const RESTARTABLE_RUN_STATES = new Set([
+  'authorization-required',
+  'denied',
+  'failed',
+  'project-changed',
+  'revoked',
+  'stopped',
+]);
 
 type RunStatus = {
   readonly schemaVersion: 1;
@@ -71,6 +80,7 @@ type RunStatus = {
 type RunContext = {
   readonly status: RunStatus;
   readonly plan: ElectronLocalDevelopmentPlan;
+  readonly cdpPort?: number;
   readonly supervisorRunId: string;
   authorizationId?: string;
   pendingEndRunAuthorizationId?: string;
@@ -248,9 +258,20 @@ export class ElectronLocalDevelopmentHost {
       }
       const body = await readJsonBody(request);
       if (request.url === '/v1/start') {
-        const value = exact(body, ['appId', 'projectRoot', 'schemaVersion', 'shell']);
+        const hasCdpPort = Object.prototype.hasOwnProperty.call(body, 'cdpPort');
+        const value = exact(
+          body,
+          hasCdpPort
+            ? ['appId', 'cdpPort', 'projectRoot', 'schemaVersion', 'shell']
+            : ['appId', 'projectRoot', 'schemaVersion', 'shell'],
+        );
         if (value.schemaVersion !== 1) throw new Error('local-development-intent-invalid');
-        const run = await this.startIntent(text(value.appId), text(value.projectRoot), text(value.shell));
+        const run = await this.startIntent(
+          text(value.appId),
+          text(value.projectRoot),
+          text(value.shell),
+          hasCdpPort ? cdpPort(value.cdpPort) : undefined,
+        );
         return json(response, { status: 'ok', run });
       }
       if (request.url === '/v1/status' || request.url === '/v1/cancel') {
@@ -271,7 +292,12 @@ export class ElectronLocalDevelopmentHost {
     }
   }
 
-  private async startIntent(appId: string, projectRoot: string, shell: string): Promise<RunStatus> {
+  private async startIntent(
+    appId: string,
+    projectRoot: string,
+    shell: string,
+    requestedCdpPort?: number,
+  ): Promise<RunStatus> {
     let plan: ElectronLocalDevelopmentPlan;
     try {
       plan = await resolveElectronLocalDevelopmentPlan(projectRoot, appId, shell);
@@ -279,9 +305,28 @@ export class ElectronLocalDevelopmentHost {
       if (error instanceof ElectronLocalDevelopmentPlanError) throw error;
       throw new Error('local-development-project-changed', { cause: error });
     }
+    const activeRuns = [...this.runs.values()].filter((candidate) => (
+      !candidate.stopped
+      && (
+        candidate.status.retryable
+        || !RESTARTABLE_RUN_STATES.has(candidate.status.state)
+      )
+    ));
+    const existing = activeRuns.find((candidate) => sameLocalDevelopmentPlan(candidate.plan, plan));
+    if (existing) {
+      if (existing.cdpPort !== requestedCdpPort) {
+        throw new Error('local-development-cdp-configuration-conflict');
+      }
+      return existing.status;
+    }
+    if (requestedCdpPort !== undefined
+      && activeRuns.some((candidate) => candidate.cdpPort === requestedCdpPort)) {
+      throw new Error('local-development-cdp-port-in-use');
+    }
     const runId = randomSelector('dev-run');
     const run: RunContext = {
       plan,
+      cdpPort: requestedCdpPort,
       supervisorRunId: randomIdentifier(),
       stopped: false,
       tearingDown: false,
@@ -471,7 +516,7 @@ export class ElectronLocalDevelopmentHost {
       this.ensureHealthTimer(run);
       const renderer = run.renderer;
       renderer.once('exit', (code) => {
-        if (run.stopped || run.renderer !== renderer) return;
+        if (run.stopped || run.tearingDown || run.renderer !== renderer) return;
         run.renderer = undefined;
         void this.handleUnexpectedRendererExit(run, code);
       });
@@ -523,6 +568,7 @@ export class ElectronLocalDevelopmentHost {
         mainEntry,
         rendererOrigin: run.plan.rendererOrigin,
         userDataArguments,
+        cdpPort: run.cdpPort,
       }),
       workingDirectory: run.plan.projectRoot,
     });
@@ -550,9 +596,14 @@ export class ElectronLocalDevelopmentHost {
         supervisorRunId: run.supervisorRunId,
       });
       if (evaluation.confirmationRequired) {
-        await this.control.terminateHost(run.supervisorRunId);
-        run.authorizationId = undefined;
-        await this.queueApproval(run, evaluation);
+        run.tearingDown = true;
+        try {
+          await this.stopRunProcesses(run);
+          run.authorizationId = undefined;
+          await this.queueApproval(run, evaluation);
+        } finally {
+          run.tearingDown = false;
+        }
         return;
       }
       if (!evaluation.authorization || evaluation.authorization.state !== 'active') {
@@ -656,6 +707,9 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private async teardownRun(run: RunContext, endAuthorization: boolean): Promise<void> {
+    for (const [requestId, row] of this.pending) {
+      if (row.run === run) this.pending.delete(requestId);
+    }
     if (endAuthorization && run.authorizationId) {
       run.pendingEndRunAuthorizationId ??= run.authorizationId;
     }
@@ -772,6 +826,18 @@ function projectAuthorization(selectorValue: string, authorization: NimiElectron
     state: authorization.state,
     updatedAtUnixMs: authorization.updatedAtUnixMs,
   };
+}
+
+function sameLocalDevelopmentPlan(
+  left: ElectronLocalDevelopmentPlan,
+  right: ElectronLocalDevelopmentPlan,
+): boolean {
+  return left.appId === right.appId
+    && left.displayName === right.displayName
+    && comparableCanonicalProjectPath(left.projectRoot) === comparableCanonicalProjectPath(right.projectRoot)
+    && left.rendererOrigin === right.rendererOrigin
+    && comparableCanonicalProjectPath(left.electronExecutable) === comparableCanonicalProjectPath(right.electronExecutable)
+    && comparableCanonicalProjectPath(left.mainEntry) === comparableCanonicalProjectPath(right.mainEntry);
 }
 
 export function sameLocalDevelopmentProject(

@@ -48,6 +48,13 @@ export function localDevelopmentText(value: unknown): string {
   return value;
 }
 
+export function localDevelopmentCdpPort(value: unknown): number {
+  if (!Number.isSafeInteger(value) || Number(value) < 1024 || Number(value) > 65535) {
+    throw new Error('local-development-cdp-port-invalid');
+  }
+  return Number(value);
+}
+
 export function localDevelopmentSelector(value: unknown, prefix: string): string {
   const selected = localDevelopmentText(value);
   if (!selected.startsWith(`${prefix}-`) || selected.length > 160

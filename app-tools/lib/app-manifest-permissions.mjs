@@ -2,6 +2,7 @@ import { parse as parseYaml } from 'yaml';
 
 const KNOWN_PERMISSION_IDS = new Set([
   'agents.interact',
+  'agents.configure',
   'artifacts.open',
   'account.profile.read',
   'memory.read',
@@ -18,7 +19,10 @@ const KNOWN_PERMISSION_IDS = new Set([
   'ai.background',
   'shared_resources.open',
 ]);
-const ADMITTED_PERMISSION_IDS = new Set();
+const ADMITTED_PERMISSION_IDS = new Set([
+  'agents.interact',
+  'agents.configure',
+]);
 const MAX_REASON_BYTES = 240;
 
 export function normalizePermissionRequirements(input) {

@@ -6,6 +6,7 @@ export function resolveLocalDevelopmentElectronHostArguments(input: {
   readonly mainEntry: string;
   readonly rendererOrigin: string;
   readonly userDataArguments: readonly string[];
+  readonly cdpPort?: number;
   readonly platform?: NodeJS.Platform;
 }): string[] {
   const platform = input.platform ?? process.platform;
@@ -15,10 +16,24 @@ export function resolveLocalDevelopmentElectronHostArguments(input: {
   const applicationArgument = platform === 'darwin'
     ? `--nimi-local-app-main=${input.mainEntry}`
     : input.mainEntry;
+  const cdpArguments = input.cdpPort === undefined
+    ? []
+    : localDevelopmentCdpArguments(input.cdpPort);
   return [
     ...input.userDataArguments,
+    ...cdpArguments,
     applicationArgument,
     `--nimi-dev-renderer-url=${input.rendererOrigin}`,
+  ];
+}
+
+function localDevelopmentCdpArguments(value: number): string[] {
+  if (!Number.isSafeInteger(value) || value < 1024 || value > 65535) {
+    throw new Error('local-development-cdp-port-invalid');
+  }
+  return [
+    '--remote-debugging-address=127.0.0.1',
+    `--remote-debugging-port=${value}`,
   ];
 }
 

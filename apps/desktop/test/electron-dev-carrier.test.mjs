@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 
 import {
   resolveDesktopDevObservationArguments,
@@ -8,8 +13,52 @@ import {
   resolveSignedDesktopDevCarrier,
   resolveWorkspaceElectronDevCarrier,
 } from '../scripts/lib/electron-dev-carrier.mjs';
+import {
+  acquireDesktopDevSessionLock,
+  resolveDesktopDevSessionEndpoint,
+} from '../scripts/lib/electron-dev-session-lock.mjs';
 
 const workspaceRoot = path.resolve(import.meta.dirname, '..', '..', '..');
+
+function waitForChildOutput(child, marker, timeoutMs = 5_000) {
+  return new Promise((resolve, reject) => {
+    let stdout = '';
+    let stderr = '';
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Timed out waiting for child output ${marker}; stderr: ${stderr}`));
+    }, timeoutMs);
+    const onStdout = (chunk) => {
+      stdout += chunk.toString();
+      if (stdout.includes(marker)) {
+        cleanup();
+        resolve();
+      }
+    };
+    const onStderr = (chunk) => {
+      stderr += chunk.toString();
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const onExit = (code) => {
+      cleanup();
+      reject(new Error(`Child exited before ${marker} (code=${String(code)}); stderr: ${stderr}`));
+    };
+    const cleanup = () => {
+      clearTimeout(timeout);
+      child.stdout.off('data', onStdout);
+      child.stderr.off('data', onStderr);
+      child.off('error', onError);
+      child.off('exit', onExit);
+    };
+    child.stdout.on('data', onStdout);
+    child.stderr.on('data', onStderr);
+    child.once('error', onError);
+    child.once('exit', onExit);
+  });
+}
 
 test('Desktop dev resolves the signed external Electron carrier and persistent profile', () => {
   const carrier = resolveSignedDesktopDevCarrier({
@@ -93,4 +142,69 @@ test('Desktop dev CDP observation is explicit, loopback-only, and fail-closed', 
     () => resolveDesktopDevObservationArguments({ NIMI_DESKTOP_DEV_CDP_PORT: '80' }),
     (error) => error.reasonCode === 'desktop-dev-observation-port-invalid',
   );
+});
+
+test('Windows Desktop dev session lock rejects a duplicate before it can rebuild shared SDK output', {
+  skip: process.platform !== 'win32',
+}, async (context) => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-desktop-dev-session-'));
+  context.after(() => {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+  const profileRoot = path.join(tempRoot, 'desktop');
+  const first = await acquireDesktopDevSessionLock(profileRoot);
+
+  assert.deepEqual(first.endpoint, resolveDesktopDevSessionEndpoint(profileRoot));
+  await assert.rejects(
+    acquireDesktopDevSessionLock(profileRoot),
+    (error) => error.reasonCode === 'desktop-dev-session-active'
+      && error.actionHint === 'stop_the_existing_desktop_dev_session',
+  );
+
+  await first.release();
+  const relaunched = await acquireDesktopDevSessionLock(profileRoot);
+  await relaunched.release();
+});
+
+test('Windows Desktop dev session lock is released by the kernel when its owner exits', {
+  skip: process.platform !== 'win32',
+}, async (context) => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-desktop-dev-session-exit-'));
+  context.after(() => {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+  const profileRoot = path.join(tempRoot, 'desktop');
+  const helperUrl = pathToFileURL(path.resolve(
+    import.meta.dirname,
+    '../scripts/lib/electron-dev-session-lock.mjs',
+  )).href;
+  const child = spawn(process.execPath, [
+    '--input-type=module',
+    '--eval',
+    [
+      `const { acquireDesktopDevSessionLock } = await import(${JSON.stringify(helperUrl)});`,
+      `await acquireDesktopDevSessionLock(${JSON.stringify(profileRoot)});`,
+      `process.stdout.write('desktop-dev-session-ready\\n');`,
+      'setInterval(() => {}, 60_000);',
+    ].join('\n'),
+  ], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  context.after(() => {
+    if (child.exitCode === null) {
+      child.kill('SIGKILL');
+    }
+  });
+
+  await waitForChildOutput(child, 'desktop-dev-session-ready');
+  await assert.rejects(
+    acquireDesktopDevSessionLock(profileRoot),
+    (error) => error.reasonCode === 'desktop-dev-session-active',
+  );
+
+  const childExit = once(child, 'exit');
+  child.kill('SIGKILL');
+  await childExit;
+  const session = await acquireDesktopDevSessionLock(profileRoot);
+  await session.release();
 });

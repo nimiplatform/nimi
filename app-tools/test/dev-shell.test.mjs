@@ -81,6 +81,66 @@ test('official dev launcher sends only project intent and keeps technical materi
   }
 });
 
+test('official dev launcher forwards one validated loopback CDP observation port', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  const requests = [];
+  const controller = new AbortController();
+  controller.abort();
+  try {
+    const fetch = async (url, init) => {
+      requests.push({ url, body: JSON.parse(init.body) });
+      if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus() });
+      if (url.endsWith('/v1/cancel')) return response({ status: 'ok', run: runStatus('stopped') });
+      throw new Error(`unexpected route: ${url}`);
+    };
+    await runDevShell(input.project, {
+      cdpPort: '9334',
+      descriptorPath: input.descriptorPath,
+      now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+      fetch,
+      signal: controller.signal,
+      installSignalHandlers: false,
+      output: { write() {} },
+      errorOutput: { write() {} },
+    });
+    assert.deepEqual(requests[0].body, {
+      schemaVersion: 1,
+      appId: 'acme.widget',
+      projectRoot: await import('node:fs/promises').then(({ realpath }) => realpath(input.project)),
+      shell: 'electron',
+      cdpPort: 9334,
+    });
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('official dev launcher rejects invalid CDP ports before contacting Desktop', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  try {
+    for (const cdpPort of ['01024', '1023', '65536', '9334.5', '9334x', -1]) {
+      let called = false;
+      await assert.rejects(
+        runDevShell(input.project, {
+          cdpPort,
+          descriptorPath: input.descriptorPath,
+          now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+          fetch: async () => { called = true; },
+          installSignalHandlers: false,
+        }),
+        (error) => error?.reasonCode === 'local-development-cdp-port-invalid',
+      );
+      assert.equal(called, false);
+    }
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
 test('official dev launcher stays attached while Desktop recovers a Runtime restart', {
   skip: !['win32', 'darwin'].includes(process.platform),
 }, async () => {

@@ -156,6 +156,50 @@ test('Electron local-development authority refresh failure terminates the host a
   }
 });
 
+test('Electron local-development reapproval tears down current run processes before requesting another decision', async () => {
+  const terminateCalls: string[] = [];
+  const endRunCalls: Array<readonly [string, string]> = [];
+  const evaluation: NimiElectronLocalDevelopmentEvaluation = {
+    evaluationId,
+    project: project(),
+    state: 'reapproval-required',
+    confirmationRequired: true,
+    authorization: null,
+    evaluationExpiresAtUnixMs: Date.now() + 30_000,
+  };
+  const control = {
+    getAuthoritySummary: async () => authoritySummary(),
+    evaluate: async () => evaluation,
+    decide: async () => { throw new Error('not-called'); },
+    listAuthorizations: async () => [],
+    revokeAuthorization: async () => { throw new Error('not-called'); },
+    launch: async () => { throw new Error('not-called'); },
+    hostRunning: async () => false,
+    terminateHost: async (supervisorRunId: string) => { terminateCalls.push(supervisorRunId); },
+    endRun: async (id: string, supervisorRunId: string) => { endRunCalls.push([id, supervisorRunId]); },
+  } satisfies NimiElectronLocalDevelopmentControl;
+  const host = new ElectronLocalDevelopmentHost(control, os.tmpdir(), async () => {});
+  const run = activeRun();
+  let watcherClosed = 0;
+  run.watcher = { close: () => { watcherClosed += 1; } };
+  run.healthTimer = setInterval(() => {}, 60_000);
+  try {
+    await invokeHostMethod(host, 'refreshAuthority', run);
+    assert.deepEqual(terminateCalls, [run.supervisorRunId]);
+    assert.deepEqual(endRunCalls, []);
+    assert.equal(run.authorizationId, undefined);
+    assert.equal(run.watcher, undefined);
+    assert.equal(watcherClosed, 1);
+    assert.equal(run.healthTimer, undefined);
+    assert.equal(run.stopped, false);
+    assert.equal(run.status.state, 'pending-approval');
+    const pending = Reflect.get(host, 'pending') as Map<string, unknown>;
+    assert.equal(pending.size, 1);
+  } finally {
+    if (run.healthTimer) clearInterval(run.healthTimer);
+  }
+});
+
 test('Electron local-development renderer exit tears down its host and ends the active run', async () => {
   const terminateCalls: string[] = [];
   const endRunCalls: Array<readonly [string, string]> = [];
@@ -240,6 +284,186 @@ test('Electron local-development shutdown retains failed cleanup targets for ret
   await host.shutdown();
   assert.equal(endRunCalls, 2);
   assert.equal(watcherCloseCalls, 2);
+});
+
+test('Electron local-development coalesces duplicate starts for the same active project run', {
+  skip: process.platform !== 'win32' && !existsSync(macosLocalAppHost),
+}, async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-local-development-duplicate-')));
+  let evaluationCount = 0;
+  let focusCount = 0;
+  const evaluation: NimiElectronLocalDevelopmentEvaluation = {
+    evaluationId,
+    project: project(),
+    state: 'confirmation-required',
+    confirmationRequired: true,
+    authorization: null,
+    evaluationExpiresAtUnixMs: Date.now() + 30_000,
+  };
+  const control: NimiElectronLocalDevelopmentControl = {
+    getAuthoritySummary: async () => authoritySummary(),
+    evaluate: async () => {
+      evaluationCount += 1;
+      return evaluation;
+    },
+    decide: async () => { throw new Error('not-called'); },
+    listAuthorizations: async () => [],
+    revokeAuthorization: async () => { throw new Error('not-called'); },
+    launch: async () => { throw new Error('not-called'); },
+    hostRunning: async () => false,
+    terminateHost: async () => {},
+    endRun: async () => {},
+  };
+  const host = await createDesktopElectronLocalDevelopmentHost({
+    homeDirectory: home,
+    focusMainWindow: async () => { focusCount += 1; },
+    control,
+  });
+  try {
+    const descriptor = JSON.parse(await readFile(path.join(
+      home, '.nimi', 'run', 'desktop', 'local-development', 'presence.v1.json',
+    ), 'utf8')) as { endpoint: string };
+    const start = async (cdpPort?: number) => {
+      const response = await fetch(`${descriptor.endpoint}/v1/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schemaVersion: 1,
+          appId: 'nimi.zhiyu',
+          projectRoot,
+          shell: 'electron',
+          ...(cdpPort === undefined ? {} : { cdpPort }),
+        }),
+      });
+      return response.json() as Promise<{
+        status: string;
+        reasonCode?: string;
+        run?: { runId: string; state: string };
+      }>;
+    };
+    const first = await start(9334);
+    const duplicate = await start(9334);
+    const conflicting = await start(9335);
+    assert.equal(first.status, 'ok', JSON.stringify(first));
+    assert.equal(duplicate.status, 'ok', JSON.stringify(duplicate));
+    assert.equal(conflicting.status, 'error', JSON.stringify(conflicting));
+    assert.equal(conflicting.reasonCode, 'local-development-cdp-configuration-conflict');
+    assert.equal(first.run?.state, 'pending-approval');
+    assert.equal(duplicate.run?.runId, first.run?.runId);
+    assert.equal(evaluationCount, 1);
+    assert.equal(focusCount, 1);
+
+    const pending = await host.commandHandlers.local_development_pending_approvals!({
+      command: 'local_development_pending_approvals',
+      payload: {},
+    }) as Array<Record<string, unknown>>;
+    const runs = await host.commandHandlers.local_development_runs_list!({
+      command: 'local_development_runs_list',
+      payload: {},
+    }) as Array<Record<string, unknown>>;
+    assert.equal(pending.length, 1);
+    assert.equal(runs.length, 1);
+
+    const cancelled = await fetch(`${descriptor.endpoint}/v1/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schemaVersion: 1,
+        runId: first.run?.runId,
+      }),
+    }).then((response) => response.json()) as {
+      status: string;
+      run?: { state: string };
+    };
+    assert.equal(cancelled.status, 'ok', JSON.stringify(cancelled));
+    assert.equal(cancelled.run?.state, 'stopped');
+    const pendingAfterCancel = await host.commandHandlers.local_development_pending_approvals!({
+      command: 'local_development_pending_approvals',
+      payload: {},
+    }) as Array<Record<string, unknown>>;
+    assert.equal(pendingAfterCancel.length, 0);
+  } finally {
+    await host.shutdown();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('Electron local-development coalesces duplicate starts while Runtime project evaluation is retryable', {
+  skip: process.platform !== 'win32' && !existsSync(macosLocalAppHost),
+}, async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-local-development-retry-')));
+  let evaluationCount = 0;
+  const control: NimiElectronLocalDevelopmentControl = {
+    getAuthoritySummary: async () => authoritySummary(),
+    evaluate: async () => {
+      evaluationCount += 1;
+      throw Object.assign(new Error('local-development-project-changed'), {
+        reasonCode: 'local-development-project-changed',
+        retryable: true,
+      });
+    },
+    decide: async () => { throw new Error('not-called'); },
+    listAuthorizations: async () => [],
+    revokeAuthorization: async () => { throw new Error('not-called'); },
+    launch: async () => { throw new Error('not-called'); },
+    hostRunning: async () => false,
+    terminateHost: async () => {},
+    endRun: async () => {},
+  };
+  const host = await createDesktopElectronLocalDevelopmentHost({
+    homeDirectory: home,
+    focusMainWindow: async () => {},
+    control,
+  });
+  try {
+    const descriptor = JSON.parse(await readFile(path.join(
+      home, '.nimi', 'run', 'desktop', 'local-development', 'presence.v1.json',
+    ), 'utf8')) as { endpoint: string };
+    const start = async (cdpPort: number) => {
+      const response = await fetch(`${descriptor.endpoint}/v1/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schemaVersion: 1,
+          appId: 'nimi.zhiyu',
+          projectRoot,
+          shell: 'electron',
+          cdpPort,
+        }),
+      });
+      return response.json() as Promise<{
+        status: string;
+        reasonCode?: string;
+        run?: { runId: string; state: string; retryable: boolean };
+      }>;
+    };
+
+    const first = await start(9334);
+    const duplicate = await start(9334);
+    const conflicting = await start(9335);
+    assert.equal(first.status, 'ok', JSON.stringify(first));
+    assert.equal(first.run?.state, 'authorization-required');
+    assert.equal(first.run?.retryable, true);
+    assert.equal(duplicate.status, 'ok', JSON.stringify(duplicate));
+    assert.equal(duplicate.run?.runId, first.run?.runId);
+    assert.equal(conflicting.status, 'error', JSON.stringify(conflicting));
+    assert.equal(conflicting.reasonCode, 'local-development-cdp-configuration-conflict');
+    assert.equal(evaluationCount, 1);
+
+    const pending = await host.commandHandlers.local_development_pending_approvals!({
+      command: 'local_development_pending_approvals',
+      payload: {},
+    }) as Array<Record<string, unknown>>;
+    const runs = await host.commandHandlers.local_development_runs_list!({
+      command: 'local_development_runs_list',
+      payload: {},
+    }) as Array<Record<string, unknown>>;
+    assert.equal(pending.length, 0);
+    assert.equal(runs.length, 1);
+  } finally {
+    await host.shutdown();
+    await rm(home, { recursive: true, force: true });
+  }
 });
 
 test('Electron local-development host keeps Runtime identifiers behind approval and project selectors', {
@@ -518,6 +742,33 @@ test('Windows Electron launch uses the canonical app entry as the positional app
     '--nimi-dev-renderer-url=http://127.0.0.1:1426',
   ]);
   assert.equal(arguments_.some((value) => value.startsWith('--nimi-local-app-main=')), false);
+});
+
+test('Desktop-supervised Electron CDP is explicit, loopback-only, and precedes the app entry', () => {
+  const mainEntry = 'D:\\nimi-apps\\tester\\dist-electron\\main.js';
+  assert.deepEqual(resolveLocalDevelopmentElectronHostArguments({
+    mainEntry,
+    rendererOrigin: 'http://127.0.0.1:1468',
+    userDataArguments: ['--user-data-dir=D:\\profiles\\tester'],
+    cdpPort: 9334,
+    platform: 'win32',
+  }), [
+    '--user-data-dir=D:\\profiles\\tester',
+    '--remote-debugging-address=127.0.0.1',
+    '--remote-debugging-port=9334',
+    mainEntry,
+    '--nimi-dev-renderer-url=http://127.0.0.1:1468',
+  ]);
+  assert.throws(
+    () => resolveLocalDevelopmentElectronHostArguments({
+      mainEntry,
+      rendererOrigin: 'http://127.0.0.1:1468',
+      userDataArguments: [],
+      cdpPort: 80,
+      platform: 'win32',
+    }),
+    /local-development-cdp-port-invalid/u,
+  );
 });
 
 test('macOS protected local-app carrier retains its exact main-entry switch contract', () => {

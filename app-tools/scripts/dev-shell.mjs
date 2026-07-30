@@ -20,6 +20,7 @@ const TERMINAL_STATES = new Set([
 
 export async function runDevShell(cwd, options = {}) {
   const shell = normalizeShell(options.shell || 'electron');
+  const cdpPort = normalizeCdpPort(options.cdpPort);
   assertLocalDevelopmentPlatform(process.platform, shell);
   const projectRoot = await canonicalProjectRoot(cwd, options.dir);
   const appId = await readAppId(projectRoot);
@@ -32,12 +33,14 @@ export async function runDevShell(cwd, options = {}) {
     throw new DevShellError('local-development-launcher-unavailable', 'This Node.js runtime does not provide fetch.');
   }
 
-  const start = await postJson(fetchImpl, descriptor.endpoint, '/v1/start', {
+  const startIntent = {
     schemaVersion: 1,
     appId,
     projectRoot,
     shell,
-  });
+    ...(cdpPort === undefined ? {} : { cdpPort }),
+  };
+  const start = await postJson(fetchImpl, descriptor.endpoint, '/v1/start', startIntent);
   const initial = parseBridgeRun(start);
   if (!initial.runId) {
     throw bridgeError(start, initial);
@@ -325,6 +328,27 @@ function normalizeShell(value) {
     );
   }
   return value;
+}
+
+function normalizeCdpPort(value) {
+  if (value === undefined || value === null || value === '') return undefined;
+  const raw = typeof value === 'number' ? String(value) : value;
+  if (typeof raw !== 'string'
+    || raw.trim() !== raw
+    || !/^(?:0|[1-9][0-9]*)$/u.test(raw)) {
+    throw new DevShellError(
+      'local-development-cdp-port-invalid',
+      '--cdp-port must be a canonical decimal integer from 1024 through 65535.',
+    );
+  }
+  const port = Number(raw);
+  if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) {
+    throw new DevShellError(
+      'local-development-cdp-port-invalid',
+      '--cdp-port must be a canonical decimal integer from 1024 through 65535.',
+    );
+  }
+  return port;
 }
 
 function normalizeLoopbackEndpoint(value) {

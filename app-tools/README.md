@@ -66,12 +66,16 @@ pnpm add @nimiplatform/sdk @nimiplatform/kit
 
 ```bash
 nimi-app create [--dir path] [--profile standalone|workspace-app|tester-reference] [--app-id id] [--title title] [--package-name name] [--author author]
-nimi-app dev [--dir path] [--shell electron]
+nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535]
 nimi-app init [--dir path] [--json]
 nimi-app doctor [--dir path] [--json]
 nimi-app doctor [--dir path] --conformance simulator
 nimi-app update [--dir path] [--json]
 ```
+
+`dev --cdp-port <port>` asks the Desktop supervisor to expose that App's
+Electron DevTools protocol on `127.0.0.1` for the current run. The option is
+explicit and development-only; omitting it keeps CDP disabled.
 
 `doctor --conformance simulator` validates the current closed
 `nimi.simulator.module/v1` input, canonical renderer-factory reachability,

@@ -15,6 +15,7 @@ import {
   resolveSignedDesktopDevCarrier,
   resolveWorkspaceElectronDevCarrier,
 } from './lib/electron-dev-carrier.mjs';
+import { acquireDesktopDevSessionLock } from './lib/electron-dev-session-lock.mjs';
 
 const require = createRequire(import.meta.url);
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -29,6 +30,15 @@ const unknownArgument = process.argv.slice(2).find((value) => value !== '--avata
 if (unknownArgument) throw new Error(`Unsupported Desktop Electron dev argument: ${unknownArgument}`);
 const electronVersion = String(require('electron/package.json').version || '').trim();
 const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
+let desktopDevSession;
+if (process.platform === 'win32') {
+  try {
+    desktopDevSession = await acquireDesktopDevSessionLock(profileRoot);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error || 'Desktop Electron dev session lock failed'));
+    process.exit(1);
+  }
+}
 const localAssetRoot = path.join(profileRoot, 'local-assets');
 const children = new Set();
 const SIGNAL_EXIT_CODES = new Map([

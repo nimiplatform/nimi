@@ -18,6 +18,8 @@ function parseArgs(argv) {
   let packageName = '';
   let author = '';
   let shell = '';
+  let cdpPort;
+  let cdpPortSeen = false;
   let conformance = '';
   let json = false;
   for (let index = 0; index < rest.length; index += 1) {
@@ -59,6 +61,16 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (rest[index] === '--cdp-port') {
+      if (cdpPortSeen) throw new Error('Duplicate option: --cdp-port');
+      if (rest[index + 1] === undefined || String(rest[index + 1]).startsWith('--')) {
+        throw new Error('--cdp-port requires a value');
+      }
+      cdpPortSeen = true;
+      cdpPort = String(rest[index + 1]);
+      index += 1;
+      continue;
+    }
     if (rest[index] === '--conformance') {
       conformance = String(rest[index + 1] || '').trim();
       index += 1;
@@ -79,6 +91,7 @@ function parseArgs(argv) {
     packageName,
     author,
     shell,
+    cdpPort,
     conformance,
     json,
   };
@@ -93,7 +106,7 @@ function printUsage() {
       '  nimi-app doctor [--dir path] [--json]',
       '  nimi-app doctor [--dir path] --conformance simulator',
       '  nimi-app update [--dir path] [--json]',
-      '  nimi-app dev [--dir path] [--shell electron]',
+      '  nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535]',
       '',
     ].join('\n'),
   );
@@ -102,10 +115,25 @@ function printUsage() {
 let parsedArgs = null;
 try {
   parsedArgs = parseArgs(process.argv.slice(2));
-  const { command, dir, profile, appId, title, packageName, author, shell, conformance, json } = parsedArgs;
+  const {
+    command,
+    dir,
+    profile,
+    appId,
+    title,
+    packageName,
+    author,
+    shell,
+    cdpPort,
+    conformance,
+    json,
+  } = parsedArgs;
   if (!command || command === '--help' || command === '-h') {
     printUsage();
     process.exit(0);
+  }
+  if (command !== 'dev' && cdpPort !== undefined) {
+    throw new Error('--cdp-port is available only for nimi-app dev');
   }
   switch (command) {
     case 'create':
@@ -141,6 +169,7 @@ try {
       await runDevShell(process.cwd(), {
         dir,
         shell: shell || 'electron',
+        cdpPort,
       });
       break;
     default:

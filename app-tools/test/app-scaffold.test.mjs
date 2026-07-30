@@ -186,8 +186,8 @@ function fakePnpmEnv(tempRoot) {
   };
 }
 
-function cliScaffold(profile, extraArgs = []) {
-  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-cli-'));
+function cliScaffold(profile, extraArgs = [], tempRootParent = os.tmpdir()) {
+  const tempRoot = mkdtempSync(path.join(tempRootParent, 'nimi-app-scaffold-cli-'));
   const target = path.join(tempRoot, 'app');
   const env = fakePnpmEnv(tempRoot);
   const result = runNimiApp(['create', '--dir', target, '--profile', profile, ...extraArgs], tempRoot, { env });
@@ -653,15 +653,37 @@ test('unknown create flags are rejected', () => {
 test('dev accepts the package-manager argument separator used by dev:shell', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-separator-'));
   try {
-    const result = runNimiApp(['dev', '--', '--shell', 'electron'], tempRoot);
+    const result = runNimiApp(['dev', '--', '--shell', 'electron', '--cdp-port', '9334'], tempRoot);
     assert.notEqual(result.status, 0);
     assert.doesNotMatch(result.stderr, /Unknown option: --/);
+    assert.doesNotMatch(result.stderr, /Unknown option: --cdp-port/);
     assert.match(
       result.stderr,
       process.platform === 'win32' || process.platform === 'darwin'
         ? /nimi\.app\.yaml is required/
         : /not admitted on this platform/,
     );
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('dev accepts only one explicit CDP port value', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-cdp-'));
+  try {
+    const duplicate = runNimiApp([
+      'dev',
+      '--cdp-port',
+      '9334',
+      '--cdp-port',
+      '9335',
+    ], tempRoot);
+    assert.notEqual(duplicate.status, 0);
+    assert.match(duplicate.stderr, /Duplicate option: --cdp-port/u);
+
+    const missing = runNimiApp(['dev', '--cdp-port'], tempRoot);
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /--cdp-port requires a value/u);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -743,19 +765,44 @@ test('update regenerates an empty admitted permission requirement list from scaf
   }
 });
 
-test('update rejects reserved permission ids before generating a manifest', () => {
-  const generated = cliScaffold('standalone');
+test('update regenerates canonical admitted Agent permission requirements', () => {
+  const generated = cliScaffold('standalone', [], testDir);
   try {
     const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
     const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
-    intent.permissionRequirements = [{
-      id: 'agents.interact',
-      reason: 'Talk with an Agent selected by me.',
-    }];
+    intent.permissionRequirements = [
+      {
+        id: 'agents.interact',
+        reason: 'Talk with an Agent selected by me.',
+      },
+      {
+        id: 'agents.configure',
+        reason: 'Configure an Agent selected by me.',
+      },
+    ];
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
-    const result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Reserved permission requirement: agents\.interact/);
+    let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(
+      generated.read('nimi.app.yaml'),
+      /^permissions:\n  - id: "agents\.interact"\n    reason: "Talk with an Agent selected by me\."\n  - id: "agents\.configure"\n    reason: "Configure an Agent selected by me\."$/m,
+    );
+    const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
+    assert.deepEqual(lock.permissionRequirements, intent.permissionRequirements);
+
+    const validatorPath = path.join(generated.target, 'scripts/validate.mjs');
+    let validation = runGeneratedNodeScript(generated, validatorPath);
+    assert.equal(validation.status, 0, validation.stderr);
+    assert.match(validation.stdout, /validate local-development checks passed/);
+
+    const manifestPath = path.join(generated.target, 'nimi.app.yaml');
+    const unknownManifest = generated.read('nimi.app.yaml').replace('agents.interact', 'agents.unknown');
+    writeFileSync(manifestPath, unknownManifest);
+    validation = runGeneratedNodeScript(generated, validatorPath);
+    assert.notEqual(validation.status, 0);
+    assert.match(validation.stderr, /unknown permission id: agents\.unknown/);
   } finally {
     generated.cleanup();
   }
@@ -976,7 +1023,7 @@ test('doctor requires official Desktop-supervised development scripts', () => {
   }
 });
 
-test('doctor fails closed on legacy, reserved, and authority-bearing permission requirements', () => {
+test('doctor fails closed on legacy, unknown, and authority-bearing permission requirements', () => {
   const cases = [
     {
       replace: 'permissions: []',
@@ -985,8 +1032,8 @@ test('doctor fails closed on legacy, reserved, and authority-bearing permission 
     },
     {
       replace: 'permissions: []',
-      with: 'permissions:\n  - id: agents.interact\n    reason: Talk with an Agent selected by me.',
-      pattern: /reserved permission id: agents\.interact/,
+      with: 'permissions:\n  - id: agents.unknown\n    reason: Request an unknown capability.',
+      pattern: /unknown permission id: agents\.unknown/,
     },
     {
       replace: 'permissions: []',
