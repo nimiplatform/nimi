@@ -388,6 +388,9 @@ function toAIConfigIntentMessage(
     }
   }
   const connectorId = normalizeNimiRuntimeAgentText(binding.connectorId);
+  const provider = binding.targetRef?.kind === 'cloud-connector'
+    ? normalizeNimiRuntimeAgentText(binding.targetRef.provider)
+    : '';
   const voiceReferenceRef = normalizeNimiRuntimeAgentText(binding.voiceReferenceRef);
   const imagePolicyRef = normalizeNimiRuntimeAgentText(binding.imagePolicyRef);
   return {
@@ -395,6 +398,7 @@ function toAIConfigIntentMessage(
     modelId,
     routePolicy: route === 'local' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD,
     connectorId,
+    provider,
     voiceReferenceRef,
     imagePolicyRef,
     ...(binding.targetRef ? { targetRef: toRuntimeDurableTargetRef(binding.targetRef) } : {}),

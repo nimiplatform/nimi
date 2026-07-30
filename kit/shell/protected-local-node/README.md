@@ -23,6 +23,8 @@ by the named native entrypoint; renderer input cannot select them. Unrelated,
 wrong-profile, and wrong-kind Runtime methods fail closed.
 
 Every call returns either `{ status: "ok", value }` or
-`{ status: "error", reasonCode, retryable }`. The addon has no arbitrary Runtime
+`{ status: "error", reasonCode, retryable, reasonMetadata? }`. Error metadata is
+a bounded allowlisted diagnostic projection; unclassified bare gRPC failures carry
+the numeric `grpc_status_code` without exposing the status message. The addon has no arbitrary Runtime
 proxy and never returns an endpoint, token, principal, record, permission decision, launch,
 process, session proof, account identifier, or Runtime boot epoch.

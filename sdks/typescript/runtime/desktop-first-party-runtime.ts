@@ -204,7 +204,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
   );
   const accountAgents: NimiDesktopAccountProductRuntimeClient['agents'] = Object.freeze({
     listAgents: runtime.agents.listAgents,
-    getAgent: runtime.agents.getAgent,
+    getAgent: protectedAgent(runtime.agents.getAgent),
     openConversationAnchor: runtime.agents.openConversationAnchor,
     getConversationAnchorSnapshot: runtime.agents.getConversationAnchorSnapshot,
     listAgentConversationSummaries: runtime.agents.listAgentConversationSummaries,

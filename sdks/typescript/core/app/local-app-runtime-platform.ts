@@ -1,5 +1,14 @@
 import type { JsonValue } from '../../types';
 import {
+  materializeNimiAgentCapabilityPosture,
+  type NimiAgentCapabilityPosture,
+} from './agent-capability-posture.js';
+import {
+  createNimiLocalAppAgentConfigureClient,
+  type NimiLocalAppAgentConfigureClient,
+  type NimiLocalAppAgentConfigureShell,
+} from './local-app-runtime-platform-configure.js';
+import {
   createNimiLocalAppConversationClient,
   type NimiLocalAppConversationOpenInput,
   type NimiLocalAppConversationOpenResult,
@@ -30,9 +39,12 @@ import {
   isAdmittedPermissionID,
   isKnownPermissionID,
   isPermissionPosture,
+  isReservedPermissionID,
+  type AdmittedPermissionRequestInput,
   type NimiLocalAppAgent,
   type NimiLocalAppAgentHandle,
   type PermissionID,
+  type PermissionPostureEvent,
   type PermissionRequestInput,
   type PermissionStatus,
 } from './permission-types.js';
@@ -101,7 +113,7 @@ export type NimiLocalAppStandardShell = {
   };
   readonly permission: {
     readonly status: (input: { readonly permissionId: PermissionID }) => Promise<unknown>;
-    readonly request: (input: NimiAppPermissionRequestInput) => Promise<unknown>;
+    readonly request: (input: AdmittedPermissionRequestInput) => Promise<unknown>;
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<unknown>;
@@ -109,6 +121,7 @@ export type NimiLocalAppStandardShell = {
     readonly removeJson: (relativePath: string) => Promise<unknown>;
   };
   readonly conversation: NimiLocalAppConversationShell;
+  readonly agentConfigure: NimiLocalAppAgentConfigureShell;
 };
 
 export type NimiLocalAppClientInput = {
@@ -122,6 +135,16 @@ export type NimiLocalAppClient = {
   readonly permissions: {
     readonly status: (permissionId: NimiAppPermissionStatusInput) => Promise<NimiAppPermissionStatus>;
     readonly request: (input: NimiAppPermissionRequestInput) => Promise<NimiAppPermissionStatus>;
+    readonly subscribe: (
+      permissionId: NimiAppPermissionStatusInput,
+      callback: (event: PermissionPostureEvent) => void,
+      onError?: (error: unknown) => void,
+    ) => () => void;
+    readonly agentCapabilityPosture: () => Promise<NimiAgentCapabilityPosture>;
+    readonly subscribeAgentCapabilityPosture: (
+      callback: (posture: NimiAgentCapabilityPosture) => void,
+      onError?: (error: unknown) => void,
+    ) => () => void;
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiAppRuntimeStorageDocument>;
@@ -131,6 +154,7 @@ export type NimiLocalAppClient = {
     ) => Promise<NimiAppRuntimeStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiAppRuntimeStorageRemoveResult>;
   };
+  readonly agentConfigure: NimiLocalAppAgentConfigureClient;
   readonly conversation: {
     readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
     readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
@@ -144,44 +168,142 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  assertExactKeys(standardShell, ['session', 'permission', 'storage', 'conversation'], 'local-app standardShell');
+  assertExactKeys(standardShell, ['session', 'permission', 'storage', 'conversation', 'agentConfigure'], 'local-app standardShell');
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   assertExactMethodNamespace(standardShell.permission, ['status', 'request'], 'permission');
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'subscribe', 'snapshot'], 'conversation');
+
+  const permissionStatus = async (permissionId: NimiAppPermissionStatusInput): Promise<NimiAppPermissionStatus> => {
+    const normalized = requireKnownPermissionID(permissionId);
+    return projectPermissionStatus(
+      await standardShell.permission.status({ permissionId: normalized }),
+      normalized,
+    );
+  };
+
+  const agentCapabilityPosture = () => materializeNimiAgentCapabilityPosture({ status: permissionStatus });
 
   return Object.freeze({
     auth: Object.freeze({
       status: async () => projectAuth(await standardShell.session.status()),
     }),
     permissions: Object.freeze({
-      status: async (permissionId: NimiAppPermissionStatusInput) => {
-        const normalized = requireKnownPermissionID(permissionId);
-        return projectPermissionStatus(
-          await standardShell.permission.status({ permissionId: normalized }),
-          normalized,
-        );
-      },
+      status: permissionStatus,
       request: async (requestInput: NimiAppPermissionRequestInput) => {
         assertExactKeys(requestInput, ['permissionId', 'reason'], 'local-app permission request input');
         const permissionId = requireKnownPermissionID(requestInput.permissionId);
-        const reason = requirePermissionReason(requestInput.reason);
-        if (!isAdmittedPermissionID(permissionId)) {
+        if (isReservedPermissionID(permissionId)) {
           return localAppError(
             `Permission "${permissionId}" is reserved and cannot be requested.`,
             'SDK_PERMISSION_NOT_ADMITTED',
             'wait_for_permission_admission',
           );
         }
+        if (!isAdmittedPermissionID(permissionId)) {
+          return localAppError(
+            `Permission "${permissionId}" is not admitted and cannot be requested.`,
+            'SDK_PERMISSION_NOT_ADMITTED',
+            'wait_for_permission_admission',
+          );
+        }
+        const reason = requirePermissionReason(requestInput.reason);
         return projectPermissionStatus(
           await standardShell.permission.request({ permissionId, reason }),
           permissionId,
         );
       },
+      subscribe: (
+        permissionId: NimiAppPermissionStatusInput,
+        callback: (event: PermissionPostureEvent) => void,
+        onError?: (error: unknown) => void,
+      ) => subscribePermissionStatus(
+        () => permissionStatus(requireKnownPermissionID(permissionId)),
+        callback,
+        onError,
+      ),
+      agentCapabilityPosture,
+      subscribeAgentCapabilityPosture: (
+        callback: (posture: NimiAgentCapabilityPosture) => void,
+        onError?: (error: unknown) => void,
+      ) => subscribeAgentPosture(
+        agentCapabilityPosture,
+        callback,
+        onError,
+      ),
     }),
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
+    agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
   });
+}
+
+const PERMISSION_POSTURE_OBSERVE_INTERVAL_MS = 1_000;
+
+function subscribePermissionStatus(
+  load: () => Promise<PermissionStatus>,
+  callback: (event: PermissionPostureEvent) => void,
+  onError?: (error: unknown) => void,
+): () => void {
+  if (typeof callback !== 'function') {
+    return localAppError(
+      'Local-app permission subscription callback is required.',
+      'SDK_PERMISSION_CALLBACK_INVALID',
+      'provide_permission_callback',
+    );
+  }
+  return subscribeProjection(
+    load,
+    (status) => callback(Object.freeze({ status })),
+    onError,
+  );
+}
+
+function subscribeAgentPosture(
+  load: () => Promise<NimiAgentCapabilityPosture>,
+  callback: (posture: NimiAgentCapabilityPosture) => void,
+  onError?: (error: unknown) => void,
+): () => void {
+  if (typeof callback !== 'function') {
+    return localAppError(
+      'Local-app Agent capability posture subscription callback is required.',
+      'SDK_PERMISSION_CALLBACK_INVALID',
+      'provide_permission_callback',
+    );
+  }
+  return subscribeProjection(load, callback, onError);
+}
+
+function subscribeProjection<T>(
+  load: () => Promise<T>,
+  callback: (projection: T) => void,
+  onError?: (error: unknown) => void,
+): () => void {
+  let active = true;
+  let inFlight = false;
+  let previous = '';
+  const observe = async () => {
+    if (!active || inFlight) return;
+    inFlight = true;
+    try {
+      const projection = await load();
+      const signature = JSON.stringify(projection);
+      if (active && signature !== previous) {
+        previous = signature;
+        callback(projection);
+      }
+    } catch (error) {
+      if (active) onError?.(error);
+    } finally {
+      inFlight = false;
+    }
+  };
+  void observe();
+  const interval = setInterval(() => { void observe(); }, PERMISSION_POSTURE_OBSERVE_INTERVAL_MS);
+  return () => {
+    active = false;
+    clearInterval(interval);
+  };
 }
 
 function projectAuth(value: unknown): NimiAppAuthProjection {
@@ -231,7 +353,7 @@ function projectPermissionStatus(
   if (typeof record.canRequest !== 'boolean' || !Array.isArray(record.agents)) {
     localAppProjectionError('permission request posture');
   }
-  if (!isAdmittedPermissionID(permissionId) && (state !== 'unavailable' || record.canRequest)) {
+  if (isReservedPermissionID(permissionId) && (state !== 'unavailable' || record.canRequest)) {
     localAppProjectionError('reserved permission posture');
   }
   const seenAgentHandles = new Set<string>();

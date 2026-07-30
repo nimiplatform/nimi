@@ -70,6 +70,73 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
+  it('routes all seven configure operations to the protected carrier with decimal revisions', async () => {
+    const requests = [
+      ['local-app.agentConfigurationSnapshot', { agentHandle: 'lash_one' }],
+      ['local-app.agentUpdateConfiguration', { agentHandle: 'lash_one', expectedConfigurationRevision: '1', routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }] }],
+      ['local-app.agentReadinessSnapshot', { agentHandle: 'lash_one' }],
+      ['local-app.agentAutonomySnapshot', { agentHandle: 'lash_one' }],
+      ['local-app.agentUpdateAutonomy', { agentHandle: 'lash_one', expectedAutonomyRevision: '1', intent: { enabled: false } }],
+      ['local-app.agentPresentationSnapshot', { agentHandle: 'lash_one' }],
+      ['local-app.agentCommitPresentation', { agentHandle: 'lash_one', expectedPresentationRevision: '0', intent: { backendKind: 'vrm', avatarAssetRef: 'asset-1', expressionProfileRef: '', idlePreset: '', interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false, backgroundAssetRef: '' }, importedAssets: [] }],
+    ] as const;
+    for (const [operation, payload] of requests) {
+      const ipcMain = new FakeIpcMain();
+      const calls: unknown[] = [];
+      registerBridge(ipcMain, calls);
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS[operation],
+        payload: { payload },
+      })).rejects.toMatchObject({
+        code: 'runtime-permission-denied',
+        reasonCode: 'local-app-operation-unavailable',
+      });
+      expect(calls).toHaveLength(1);
+      expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef|accountId/u);
+    }
+  });
+
+  it('surfaces unclassified Runtime failures without matching the trust-failure branch', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.thirdparty.fixture',
+      runtimeEndpoint: 'local-app-protected-carrier-only',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: () => { throw new Error('ordinary gRPC must not be constructed'); },
+      standardShellHost: {
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        localAppHost: {
+          ...localAppHost(calls),
+          conversationSendTurn: async () => {
+            throw new NimiElectronLocalAppHostError(
+              'runtime-service-error-unclassified',
+              false,
+              { grpc_status_code: '13' },
+            );
+          },
+        },
+      },
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'],
+      payload: {
+        payload: {
+          agentHandle: 'lash_one',
+          conversationAnchorId: 'anchor-1',
+          requestId: 'request-1',
+          text: 'hello',
+        },
+      },
+    })).rejects.toMatchObject({
+      code: 'runtime-service-error-unclassified',
+      reasonCode: 'runtime-service-error-unclassified',
+      details: { reasonMetadata: { grpc_status_code: '13' } },
+    });
+  });
+
   it('cancels a bounded conversation event pump through the subscribe lifecycle command', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
@@ -175,6 +242,13 @@ function localAppHost(calls: unknown[]) {
     conversationSendTurn: unavailable('conversationSendTurn', calls),
     conversationSubscribe: unavailable('conversationSubscribe', calls),
     conversationSnapshot: unavailable('conversationSnapshot', calls),
+    agentConfigurationSnapshot: unavailable('agentConfigurationSnapshot', calls),
+    agentUpdateConfiguration: unavailable('agentUpdateConfiguration', calls),
+    agentReadinessSnapshot: unavailable('agentReadinessSnapshot', calls),
+    agentAutonomySnapshot: unavailable('agentAutonomySnapshot', calls),
+    agentUpdateAutonomy: unavailable('agentUpdateAutonomy', calls),
+    agentPresentationSnapshot: unavailable('agentPresentationSnapshot', calls),
+    agentCommitPresentation: unavailable('agentCommitPresentation', calls),
     conversationStreamNext: async () => ({ completed: true }),
     conversationStreamClose: async () => ({ closed: true }),
     renewTechnicalSession: async () => ({ state: 'ready' }),

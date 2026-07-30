@@ -407,12 +407,37 @@ test('presentation surface returns Runtime committed revision without retrying',
 
   assert.equal(requests.length, 1);
   assert.equal(requests[0]?.expectedRevision, '7');
-  assert.equal(result.committedRevision, '8');
-  assert.equal(result.profile?.avatarAssetRef, 'avatar-1');
+  assert.equal(result.outcome, 'committed');
+  if (result.outcome === 'committed') {
+    assert.equal(result.projection.committedRevision, '8');
+    assert.equal(result.projection.profile?.avatarAssetRef, 'avatar-1');
+  }
 
   omitProfile = true;
   await assert.rejects(() => surface.setPresentationProfile(IDENTITY, {
     backendKind: 'vrm',
     avatarAssetRef: 'avatar-1',
   }, '7'), /missing.*committed profile/iu);
+});
+
+test('presentation surface returns typed conflict and validation outcomes', async () => {
+  let reasonCode: string | number = 614;
+  const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
+    getRuntime: () => ({
+      appId: 'desktop.app', auth: {},
+      agent: { setAgentPresentationProfile: async () => { throw { reasonCode, details: { validation_category: 'integrity', asset_role: 'avatar', raw_path: 'forbidden' } }; } },
+    }),
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_scopes, operation) => operation({}),
+  });
+  const conflict = await surface.setPresentationProfile(IDENTITY, { backendKind: 'vrm', avatarAssetRef: 'avatar-1' }, '7');
+  assert.equal(conflict.outcome, 'conflict');
+  reasonCode = 'AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH';
+  const failure = await surface.setPresentationProfile(IDENTITY, { backendKind: 'vrm', avatarAssetRef: 'avatar-1' }, '7');
+  assert.equal(failure.outcome, 'validation-failed');
+  if (failure.outcome === 'validation-failed') {
+    assert.equal(failure.failure.category, 'integrity');
+    assert.equal(failure.failure.reasonMetadata.validation_category, 'integrity');
+    assert.equal('raw_path' in failure.failure.reasonMetadata, false);
+  }
 });

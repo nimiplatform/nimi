@@ -8,8 +8,14 @@ export interface NimiAppScopeRef {
   readonly surfaceId?: string;
 }
 
-export const KNOWN_PERMISSION_IDS = [
-  'agents.interact',
+// agents.interact is the first complete public permission slice. Runtime's
+// publication row remains the final fail-closed gate during staged rollout.
+export const ADMITTED_PERMISSION_IDS = ['agents.interact'] as const;
+
+export const RESERVED_PERMISSION_IDS = [
+  'agents.configure',
+  'agents.voice',
+  'agents.delegate',
   'artifacts.open',
   'account.profile.read',
   'memory.read',
@@ -27,17 +33,21 @@ export const KNOWN_PERMISSION_IDS = [
   'shared_resources.open',
 ] as const;
 
-export type PermissionID = (typeof KNOWN_PERMISSION_IDS)[number];
+export const KNOWN_PERMISSION_IDS = [
+  ...ADMITTED_PERMISSION_IDS,
+  ...RESERVED_PERMISSION_IDS,
+] as const;
 
-// agents.interact is the first complete public permission slice. Runtime's
-// publication row remains the final fail-closed gate during staged rollout.
-export const ADMITTED_PERMISSION_IDS: readonly PermissionID[] = ['agents.interact'];
+export type AdmittedPermissionID = (typeof ADMITTED_PERMISSION_IDS)[number];
+export type ReservedPermissionID = (typeof RESERVED_PERMISSION_IDS)[number];
+export type PermissionID = (typeof KNOWN_PERMISSION_IDS)[number];
 
 export const PERMISSION_POSTURES = [
   'prompt',
   'pending',
   'granted',
   'denied',
+  'revoked',
   'unavailable',
 ] as const;
 
@@ -61,6 +71,12 @@ export interface PermissionRequestInput {
   readonly reason: string;
 }
 
+/** Transport-bound request shape after SDK admission validation. */
+export interface AdmittedPermissionRequestInput {
+  readonly permissionId: AdmittedPermissionID;
+  readonly reason: string;
+}
+
 export interface PermissionStatus {
   readonly permissionId: PermissionID;
   readonly posture: PermissionPosture;
@@ -76,7 +92,7 @@ export interface PermissionPostureEvent {
 
 export interface PermissionTransport {
   status(permissionId: PermissionID): Promise<PermissionStatus>;
-  request(input: PermissionRequestInput): Promise<PermissionStatus>;
+  request(input: AdmittedPermissionRequestInput): Promise<PermissionStatus>;
   subscribe(permissionId: PermissionID, callback: (event: PermissionPostureEvent) => void): () => void;
 }
 
@@ -84,8 +100,12 @@ export function isKnownPermissionID(value: unknown): value is PermissionID {
   return typeof value === 'string' && KNOWN_PERMISSION_IDS.includes(value as PermissionID);
 }
 
-export function isAdmittedPermissionID(value: unknown): value is PermissionID {
-  return isKnownPermissionID(value) && ADMITTED_PERMISSION_IDS.includes(value);
+export function isAdmittedPermissionID(value: unknown): value is AdmittedPermissionID {
+  return isKnownPermissionID(value) && ADMITTED_PERMISSION_IDS.includes(value as AdmittedPermissionID);
+}
+
+export function isReservedPermissionID(value: unknown): value is ReservedPermissionID {
+  return isKnownPermissionID(value) && RESERVED_PERMISSION_IDS.includes(value as ReservedPermissionID);
 }
 
 export function isPermissionPosture(value: unknown): value is PermissionPosture {

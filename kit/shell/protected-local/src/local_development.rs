@@ -1,4 +1,5 @@
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
@@ -207,6 +208,7 @@ pub enum NimiHostErrorReasonCode {
     ProtectedCarrierRequired,
     RuntimeServiceUnavailable,
     RuntimeServiceUntrusted,
+    RuntimeServiceErrorUnclassified,
     RuntimeServiceRepairRequired,
     RuntimeRestarted,
     ProcessReplaced,
@@ -226,6 +228,11 @@ pub enum NimiHostErrorReasonCode {
     LocalAppPermissionRequired,
     LocalAppPermissionDenied,
     LocalAppPermissionRevoked,
+    LocalAppPermissionReservedNotAdmitted,
+    LocalAppPermissionUnknown,
+    AgentAiConfigRevisionConflict,
+    AgentAutonomyRevisionConflict,
+    AgentPresentationRevisionConflict,
     LocalAppPresenceRequired,
     LocalAppPresenceExpired,
     LocalAppOperationUnavailable,
@@ -237,6 +244,7 @@ impl NimiHostErrorReasonCode {
             Self::ProtectedCarrierRequired => "protected-carrier-required",
             Self::RuntimeServiceUnavailable => "runtime-service-unavailable",
             Self::RuntimeServiceUntrusted => "runtime-service-untrusted",
+            Self::RuntimeServiceErrorUnclassified => "runtime-service-error-unclassified",
             Self::RuntimeServiceRepairRequired => "runtime-service-repair-required",
             Self::RuntimeRestarted => "runtime-restarted",
             Self::ProcessReplaced => "process-replaced",
@@ -260,6 +268,13 @@ impl NimiHostErrorReasonCode {
             Self::LocalAppPermissionRequired => "local-app-permission-required",
             Self::LocalAppPermissionDenied => "local-app-permission-denied",
             Self::LocalAppPermissionRevoked => "local-app-permission-revoked",
+            Self::LocalAppPermissionReservedNotAdmitted => {
+                "local-app-permission-reserved-not-admitted"
+            }
+            Self::LocalAppPermissionUnknown => "local-app-permission-unknown",
+            Self::AgentAiConfigRevisionConflict => "agent-ai-config-revision-conflict",
+            Self::AgentAutonomyRevisionConflict => "agent-autonomy-revision-conflict",
+            Self::AgentPresentationRevisionConflict => "agent-presentation-revision-conflict",
             Self::LocalAppPresenceRequired => "local-app-presence-required",
             Self::LocalAppPresenceExpired => "local-app-presence-expired",
             Self::LocalAppOperationUnavailable => "local-app-operation-unavailable",
@@ -267,10 +282,12 @@ impl NimiHostErrorReasonCode {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NimiHostError {
     reason_code: NimiHostErrorReasonCode,
     retryable: bool,
+    permission_id: Option<String>,
+    reason_metadata: BTreeMap<String, String>,
 }
 
 impl NimiHostError {
@@ -278,15 +295,35 @@ impl NimiHostError {
         Self {
             reason_code,
             retryable,
+            permission_id: None,
+            reason_metadata: BTreeMap::new(),
         }
     }
 
-    pub const fn reason_code(self) -> NimiHostErrorReasonCode {
+    pub fn with_reason_metadata(
+        mut self,
+        permission_id: Option<String>,
+        reason_metadata: BTreeMap<String, String>,
+    ) -> Self {
+        self.permission_id = permission_id;
+        self.reason_metadata = reason_metadata;
+        self
+    }
+
+    pub const fn reason_code(&self) -> NimiHostErrorReasonCode {
         self.reason_code
     }
 
-    pub const fn retryable(self) -> bool {
+    pub const fn retryable(&self) -> bool {
         self.retryable
+    }
+
+    pub fn permission_id(&self) -> Option<&str> {
+        self.permission_id.as_deref()
+    }
+
+    pub const fn reason_metadata(&self) -> &BTreeMap<String, String> {
+        &self.reason_metadata
     }
 }
 

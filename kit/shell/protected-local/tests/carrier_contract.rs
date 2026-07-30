@@ -131,6 +131,10 @@ fn protected_service_reason_codes_are_stable_and_sanitized() {
         ProtectedCarrierReasonCode::RuntimeServiceRepairRequired.as_str(),
         "runtime-service-repair-required"
     );
+    assert_eq!(
+        LocalAppReasonCode::RuntimeServiceErrorUnclassified.as_str(),
+        "runtime-service-error-unclassified"
+    );
 
     let status = RuntimeServiceStatus {
         state: RuntimeServiceState::Unavailable,

@@ -70,7 +70,7 @@ describe('renderer Agent Center shell bridge', () => {
   it('wraps every standard Agent Center command and sources import paths from file-dialog.open', async () => {
     const calls: Array<{ readonly command: string; readonly payload: unknown }> = [];
     const selectedPaths = [
-      'fixtures/picked/live2d',
+      'fixtures/picked/live2d.zip',
       'fixtures/picked/avatar.vrm',
       'fixtures/picked/adapter.json',
       'fixtures/picked/background.png',
@@ -84,10 +84,13 @@ describe('renderer Agent Center shell bridge', () => {
       if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']) {
         const record = payload as { payload?: { backendKind?: string } };
         return {
-          avatarAssetRef: `agent-center-avatar:agent-1/${record.payload?.backendKind}`,
+          role: 'avatar',
+          fileName: record.payload?.backendKind === 'vrm' ? 'avatar.vrm' : 'live2d.zip',
+          mediaType: record.payload?.backendKind === 'vrm' ? 'model/gltf-binary' : 'application/zip',
+          content: Uint8Array.from([1, 2, 3]),
+          sha256: 'a'.repeat(64),
+          custodyRef: `agent-center-import-custody:${record.payload?.backendKind}`,
           backendKind: record.payload?.backendKind,
-          validationStatus: 'valid',
-          backendCapabilityProfileRef: 'avatar-backend-profile:live2d-v1',
         };
       }
       if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate']) {
@@ -140,11 +143,11 @@ describe('renderer Agent Center shell bridge', () => {
       throw new Error(`unexpected command ${command}`);
     }, async () => {
       const bridge = createAgentCenterShellBridge();
-      await expect(bridge.importLive2dAvatarAsset(localAgentScope)).resolves.toMatchObject({
-        avatarAssetRef: 'agent-center-avatar:agent-1/live2d',
+      await expect(bridge.pickAvatarAssetMaterial(localAgentScope, 'live2d')).resolves.toMatchObject({
+        role: 'avatar', backendKind: 'live2d', mediaType: 'application/zip',
       });
-      await expect(bridge.importVrmAvatarAsset(localAgentScope)).resolves.toMatchObject({
-        avatarAssetRef: 'agent-center-avatar:agent-1/vrm',
+      await expect(bridge.pickAvatarAssetMaterial(localAgentScope, 'vrm')).resolves.toMatchObject({
+        role: 'avatar', backendKind: 'vrm', mediaType: 'model/gltf-binary',
       });
       await expect(bridge.validateAvatarAsset({ ...localAgentScope, avatarAssetRef: 'live2d_111111111111' })).resolves.toMatchObject({
         validationStatus: 'valid',

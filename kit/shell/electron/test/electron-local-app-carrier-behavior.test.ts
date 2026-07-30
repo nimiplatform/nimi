@@ -11,6 +11,13 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.conversationSendTurn',
   'nimi.shell.localApp.conversationSubscribe',
   'nimi.shell.localApp.conversationSnapshot',
+  'nimi.shell.localApp.agentConfigurationSnapshot',
+  'nimi.shell.localApp.agentUpdateConfiguration',
+  'nimi.shell.localApp.agentReadinessSnapshot',
+  'nimi.shell.localApp.agentAutonomySnapshot',
+  'nimi.shell.localApp.agentUpdateAutonomy',
+  'nimi.shell.localApp.agentPresentationSnapshot',
+  'nimi.shell.localApp.agentCommitPresentation',
   'nimi.shell.storage.readJson',
   'nimi.shell.storage.writeJson',
   'nimi.shell.storage.removeJson',
@@ -129,7 +136,7 @@ describe('Electron local-app carrier behavior', () => {
       expect(error).toBeInstanceOf(Error);
       expect(error).not.toMatchObject({ reasonCode: 'electron-standard-capability-not-in-host-set' });
       expect(String((error as { reasonCode?: unknown }).reasonCode || '')).toMatch(
-        /^(protected-carrier-required|runtime-service-unavailable|runtime-service-untrusted|runtime-unauthenticated|permission-unavailable|invalid-payload)$/,
+        /^(protected-carrier-required|runtime-service-unavailable|runtime-service-untrusted|runtime-service-error-unclassified|runtime-unauthenticated|permission-unavailable|invalid-payload)$/,
       );
     }
   });

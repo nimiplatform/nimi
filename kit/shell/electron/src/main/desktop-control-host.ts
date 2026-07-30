@@ -12,11 +12,21 @@ import {
 
 type NativeBytesOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
-  | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown };
+  | {
+      readonly status: 'error';
+      readonly reasonCode: unknown;
+      readonly retryable: unknown;
+      readonly reasonMetadata?: unknown;
+    };
 
 type NativeJsonOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
-  | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown };
+  | {
+      readonly status: 'error';
+      readonly reasonCode: unknown;
+      readonly retryable: unknown;
+      readonly reasonMetadata?: unknown;
+    };
 
 type NativeStreamNextOutcome = {
   readonly status: 'ok' | 'error';
@@ -24,6 +34,7 @@ type NativeStreamNextOutcome = {
   readonly completed?: unknown;
   readonly reasonCode?: unknown;
   readonly retryable?: unknown;
+  readonly reasonMetadata?: unknown;
 };
 
 export type NimiElectronDesktopControlBinding = {
@@ -99,12 +110,18 @@ export type NimiElectronDesktopControlHost = {
 export class NimiElectronDesktopControlHostError extends Error {
   readonly reasonCode: string;
   readonly retryable: boolean;
+  readonly reasonMetadata: Readonly<Record<string, string>>;
 
-  constructor(reasonCode: string, retryable: boolean) {
+  constructor(
+    reasonCode: string,
+    retryable: boolean,
+    reasonMetadata: Readonly<Record<string, string>> = {},
+  ) {
     super(reasonCode);
     this.name = 'NimiElectronDesktopControlHostError';
     this.reasonCode = reasonCode;
     this.retryable = retryable;
+    this.reasonMetadata = Object.freeze({ ...reasonMetadata });
   }
 }
 
@@ -178,7 +195,11 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
         || typeof outcome.retryable !== 'boolean') {
         throw untrusted();
       }
-      throw new NimiElectronDesktopControlHostError(outcome.reasonCode, outcome.retryable);
+      throw new NimiElectronDesktopControlHostError(
+        outcome.reasonCode,
+        outcome.retryable,
+        boundedReasonMetadata(outcome.reasonMetadata),
+      );
     }
     if (outcome?.status !== 'ok' || !isUint8Array(outcome.value)) {
       throw untrusted();
@@ -392,10 +413,35 @@ function validateBinding(value: unknown): NimiElectronDesktopControlBinding {
   return value as NimiElectronDesktopControlBinding;
 }
 
-function nativeError(value: { readonly reasonCode?: unknown; readonly retryable?: unknown }): NimiElectronDesktopControlHostError {
+function nativeError(value: {
+  readonly reasonCode?: unknown;
+  readonly retryable?: unknown;
+  readonly reasonMetadata?: unknown;
+}): NimiElectronDesktopControlHostError {
   if (typeof value.reasonCode !== 'string' || !isBoundedReasonCode(value.reasonCode)
     || typeof value.retryable !== 'boolean') throw untrusted();
-  return new NimiElectronDesktopControlHostError(value.reasonCode, value.retryable);
+  return new NimiElectronDesktopControlHostError(
+    value.reasonCode,
+    value.retryable,
+    boundedReasonMetadata(value.reasonMetadata),
+  );
+}
+
+function boundedReasonMetadata(value: unknown): Readonly<Record<string, string>> {
+  if (value === undefined) return {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw untrusted();
+  const metadata: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (!['permission_id', 'permission_reason', 'permission_admission', 'diagnostic_stage',
+      'local_development_reason_code', 'grpc_status_code'].includes(key)
+      || typeof entry !== 'string'
+      || entry.length === 0
+      || entry.length > 2048
+      || entry.trim() !== entry
+      || /[\u0000-\u001f\u007f]/u.test(entry)) throw untrusted();
+    metadata[key] = entry;
+  }
+  return Object.freeze(metadata);
 }
 
 function readStreamId(value: unknown): string {

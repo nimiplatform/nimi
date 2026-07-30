@@ -9,8 +9,10 @@ use nimi_shell_protected_local::{
     DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
     DesktopAccountSessionStatusRequest, DesktopMachineProductUnaryMethod,
     DesktopMachineProductUnaryRequest, DesktopPermissionOwnerUnaryMethod,
-    DesktopPermissionOwnerUnaryRequest, FixedRuntimeServiceControl, LocalAppConversationEvent,
-    LocalAppConversationOpenRequest, LocalAppConversationSendRequest,
+    DesktopPermissionOwnerUnaryRequest, FixedRuntimeServiceControl,
+    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConfigurationRequest,
+    LocalAppConversationEvent, LocalAppConversationOpenRequest, LocalAppConversationSendRequest,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
     LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
@@ -85,7 +87,11 @@ pub async fn desktop_machine_product_unary(
         Ok(response) => NativeBytesOutcome::success(response.response_bytes),
         Err(error) => {
             clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
-            NativeBytesOutcome::error(error.reason_code(), error.retryable())
+            NativeBytesOutcome::error_with_metadata(
+                error.reason_code(),
+                error.retryable(),
+                error.reason_metadata(),
+            )
         }
     }
 }
@@ -120,7 +126,11 @@ pub async fn desktop_account_product_unary(
         Ok(response) => NativeBytesOutcome::success(response.response_bytes),
         Err(error) => {
             clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
-            NativeBytesOutcome::error(error.reason_code(), error.retryable())
+            NativeBytesOutcome::error_with_metadata(
+                error.reason_code(),
+                error.retryable(),
+                error.reason_metadata(),
+            )
         }
     }
 }
@@ -148,7 +158,11 @@ pub async fn desktop_bundled_avatar_unary(
         Ok(response) => NativeBytesOutcome::success(response.response_bytes),
         Err(error) => {
             clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
-            NativeBytesOutcome::error(error.reason_code(), error.retryable())
+            NativeBytesOutcome::error_with_metadata(
+                error.reason_code(),
+                error.retryable(),
+                error.reason_metadata(),
+            )
         }
     }
 }

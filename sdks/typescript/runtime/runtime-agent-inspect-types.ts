@@ -155,10 +155,12 @@ export interface NimiRuntimeAgentPresentationProfileProjection {
 
 export interface NimiRuntimeAgentPresentationProfileReadProjection {
   readonly profile: NimiRuntimeAgentPresentationProfileProjection | null;
+  readonly previousProfile: NimiRuntimeAgentPresentationProfileProjection | null;
   readonly committedRevision: string | null;
 }
 
 export interface NimiRuntimeAgentAutonomySnapshot {
+  readonly revision: string | null;
   readonly mode: NimiRuntimeAgentAutonomyMode | null;
   readonly enabled: boolean | null;
   readonly budgetExhausted: boolean | null;
@@ -183,6 +185,7 @@ export interface NimiRuntimeAgentInspectSnapshot extends NimiRuntimeAgentStateSn
   readonly lifecycleStatus: string | null;
   readonly presentationProfile?: NimiRuntimeAgentPresentationProfileProjection | null;
   readonly presentationProfileRevision: string | null;
+  readonly autonomyRevision: string | null;
   readonly autonomyMode: NimiRuntimeAgentAutonomyMode | null;
   readonly autonomyEnabled: boolean | null;
   readonly autonomyBudgetExhausted: boolean | null;
@@ -204,6 +207,7 @@ export interface ProjectNimiRuntimeAgentInspectSnapshotInput {
     readonly metadata?: Struct | unknown;
     readonly presentationProfile?: unknown;
     readonly presentationProfileRevision?: unknown;
+    readonly previousPresentationProfile?: unknown;
     readonly autonomy?: AgentAutonomyState | null;
   } | null;
   readonly state?: AgentStateProjection | null;
@@ -235,6 +239,26 @@ export interface NimiRuntimeAgentAutonomyConfigInput extends RuntimeLocalAgentId
   readonly maxTokensPerHook: string | number;
 }
 
+export interface NimiRuntimeAgentAutonomyMutationInput extends NimiRuntimeAgentAutonomyConfigInput {
+  readonly expectedRevision: string;
+  readonly enabled?: boolean;
+}
+
+export interface NimiRuntimeAgentAutonomyRevisionConflict {
+  readonly outcome: 'conflict';
+  readonly conflict: {
+    readonly category: 'autonomy-revision-conflict';
+    readonly reasonCode: 'AGENT_AUTONOMY_REVISION_CONFLICT';
+    readonly expectedRevision: string;
+    readonly actionHint: 'refresh_autonomy_snapshot';
+    readonly message: string;
+  };
+}
+
+export type NimiRuntimeAgentAutonomyUpdateResult =
+  | { readonly outcome: 'updated'; readonly projection: NimiRuntimeAgentAutonomySnapshot }
+  | NimiRuntimeAgentAutonomyRevisionConflict;
+
 export interface NimiRuntimeAgentCancelHookInput extends RuntimeLocalAgentIdentityInput {
   readonly hookId: string;
   readonly reason: string;
@@ -254,9 +278,11 @@ export interface NimiRuntimeAgentInspectSurface {
   cancelHook(input: NimiRuntimeAgentCancelHookInput): Promise<NimiRuntimeAgentCancelHookResult>;
   disableAutonomy(input: NimiRuntimeAgentDisableAutonomyInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
   enableAutonomy(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
+  getAutonomySnapshot(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
   getPublicInspect(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentInspectSnapshot>;
   getPresentationProfile(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentPresentationProfileReadProjection>;
   setAutonomyConfig(input: NimiRuntimeAgentAutonomyConfigInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
+  updateAutonomy(input: NimiRuntimeAgentAutonomyMutationInput): Promise<NimiRuntimeAgentAutonomyUpdateResult>;
   subscribePublicEvents(input: NimiRuntimeAgentEventSubscriptionInput): Promise<void>;
   updateState(input: NimiRuntimeAgentStateUpdateInput): Promise<NimiRuntimeAgentStateSnapshot>;
 }

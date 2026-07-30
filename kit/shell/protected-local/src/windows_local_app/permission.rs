@@ -66,6 +66,7 @@ fn project_permission_status(
         ProtoPermissionPosture::Pending => LocalAppPermissionState::Pending,
         ProtoPermissionPosture::Granted => LocalAppPermissionState::Granted,
         ProtoPermissionPosture::Denied => LocalAppPermissionState::Denied,
+        ProtoPermissionPosture::Revoked => LocalAppPermissionState::Revoked,
         ProtoPermissionPosture::Unavailable => LocalAppPermissionState::Unavailable,
         ProtoPermissionPosture::Unspecified => return Err(untrusted()),
     };
@@ -119,6 +120,24 @@ mod tests {
             .expect("reserved posture");
         assert_eq!(status.state, LocalAppPermissionState::Unavailable);
         assert!(!status.can_request);
+    }
+
+    #[test]
+    fn revoked_permission_projects_as_a_distinct_public_state() {
+        let projection = LocalAppPermissionProjection {
+            permission_id: "agents.interact".to_string(),
+            posture: ProtoPermissionPosture::Revoked as i32,
+            can_request: false,
+            reason_code: ReasonCode::LocalAppPermissionRevoked as i32,
+            agents: Vec::new(),
+        };
+        let status = project_permission_status(projection, "agents.interact".to_string())
+            .expect("revoked posture");
+        assert_eq!(status.state, LocalAppPermissionState::Revoked);
+        assert_eq!(
+            status.reason_code,
+            crate::LocalAppReasonCode::PermissionRevoked
+        );
     }
 
     #[test]

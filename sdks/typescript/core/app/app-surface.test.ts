@@ -9,12 +9,14 @@ import {
 import {
   ADMITTED_PERMISSION_IDS,
   KNOWN_PERMISSION_IDS,
+  RESERVED_PERMISSION_IDS,
   NimiAppClient,
   PermissionClient,
   createAppScopeRef,
   createNimiAppClient,
   createPermissionClient,
   isAdmittedNimiFirstRunLocalBaseline,
+  isReservedPermissionID,
   loadNimiAppAIProfileFactoryCatalog,
   selectNimiAppFactoryAIProfileForFirstRun,
   type NimiAppAIProfileFactoryRow,
@@ -114,9 +116,33 @@ class StubPermissionTransport implements PermissionTransport {
 }
 
 describe('vNext app surface', () => {
-  it('exports agents.interact as the first admitted request permission', () => {
-    assert.equal(KNOWN_PERMISSION_IDS.includes('agents.interact'), true);
+  it('exports the full public permission catalog with an exact admitted/reserved partition', () => {
+    const expectedReserved = [
+      'agents.configure',
+      'agents.voice',
+      'agents.delegate',
+      'artifacts.open',
+      'account.profile.read',
+      'memory.read',
+      'memory.write',
+      'knowledge.read',
+      'knowledge.write',
+      'notifications.send',
+      'notifications.receive',
+      'files.open',
+      'files.save',
+      'realm.library.read',
+      'realm.library.manage',
+      'realm.publish',
+      'ai.background',
+      'shared_resources.open',
+    ];
     assert.deepEqual(ADMITTED_PERMISSION_IDS, ['agents.interact']);
+    assert.deepEqual(RESERVED_PERMISSION_IDS, expectedReserved);
+    assert.deepEqual(KNOWN_PERMISSION_IDS, ['agents.interact', ...expectedReserved]);
+    assert.equal(isReservedPermissionID('agents.configure'), true);
+    assert.equal(isReservedPermissionID('agents.voice'), true);
+    assert.equal(isReservedPermissionID('agents.delegate'), true);
     assert.equal(KNOWN_PERMISSION_IDS.includes('realm_source.snapshot.consume' as never), false);
   });
 
@@ -167,6 +193,43 @@ describe('vNext app surface', () => {
       permissionId: 'agents.interact',
       reason: 'Talk with an Agent selected by me',
     })).posture, 'pending');
+  });
+
+  it('names reserved permissions but rejects their requests before transport', async () => {
+    let requestCalls = 0;
+    const client = createPermissionClient({
+      status: async (permissionId) => permissionStatus({ permissionId }),
+      request: async (input) => {
+        requestCalls += 1;
+        return permissionStatus({ permissionId: input.permissionId, posture: 'pending' });
+      },
+      subscribe: () => () => undefined,
+    });
+
+    assert.equal((await client.status('agents.configure')).posture, 'unavailable');
+    await assert.rejects(
+      client.request({
+        permissionId: 'agents.configure',
+        reason: '',
+      }),
+      (error: unknown) => {
+        const typed = error as { reasonCode?: string; actionHint?: string; message?: string };
+        return typed.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED'
+          && typed.actionHint === 'wait_for_permission_admission'
+          && String(typed.message).includes('agents.configure');
+      },
+    );
+    assert.equal(requestCalls, 0);
+
+    await assert.rejects(
+      createPermissionClient(new StubPermissionTransport({
+        status: permissionStatus({
+          permissionId: 'agents.configure',
+          posture: 'granted',
+        }),
+      })).status('agents.configure'),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_RESPONSE_INVALID',
+    );
   });
 
   it('accepts a granted account permission with no current Agents', async () => {

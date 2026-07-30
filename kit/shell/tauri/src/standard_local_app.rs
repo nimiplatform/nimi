@@ -187,7 +187,10 @@ fn map_local_app_error(error: LocalAppOperationError) -> String {
         } else {
             "runtime"
         },
-        Some(json!({ "retryable": error.retryable() })),
+        Some(json!({
+            "retryable": error.retryable(),
+            "reasonMetadata": error.reason_metadata(),
+        })),
     )
 }
 
@@ -196,6 +199,7 @@ fn standard_code(reason: &str) -> &'static str {
         "protected-carrier-required" => "protected-carrier-required",
         "runtime-service-unavailable" => "runtime-service-unavailable",
         "runtime-service-untrusted" => "runtime-service-untrusted",
+        "runtime-service-error-unclassified" => "runtime-service-error-unclassified",
         "runtime-service-repair-required" => "runtime-service-repair-required",
         "runtime-unauthenticated" => "runtime-unauthenticated",
         "invalid-payload" => "invalid-payload",
@@ -209,6 +213,7 @@ fn action_hint(reason: &str) -> &'static str {
     match reason {
         "protected-carrier-required" => "install_verified_tauri_protected_carrier",
         "runtime-service-unavailable" => "start_fixed_runtime_service",
+        "runtime-service-error-unclassified" => "inspect_runtime_service_error",
         "runtime-unauthenticated" => "open_request_empty_local_app_session",
         "permission-unavailable" => "continue_without_optional_permission",
         _ => "refresh_local_app_runtime_projection",

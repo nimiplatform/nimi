@@ -182,14 +182,23 @@ function electronDesktopControlError(
         ? 'runtime-service-repair-required'
         : error.reasonCode === 'runtime-service-untrusted'
           ? 'runtime-service-untrusted'
-          : 'runtime-permission-denied';
+          : error.reasonCode === 'runtime-service-error-unclassified'
+            ? 'runtime-service-error-unclassified'
+            : 'runtime-permission-denied';
   return new NimiElectronShellHostError({
     code,
     message: error.reasonCode,
     reasonCode: error.reasonCode,
     actionHint: error.retryable ? 'retry_verified_desktop_control_operation' : 'refresh_desktop_control_projection',
     source: error.reasonCode === 'protected-carrier-required' ? 'electron' : 'runtime',
-    details: { command, methodId, retryable: error.retryable },
+    details: {
+      command,
+      methodId,
+      retryable: error.retryable,
+      ...(Object.keys(error.reasonMetadata).length > 0
+        ? { reasonMetadata: error.reasonMetadata }
+        : {}),
+    },
   });
 }
 

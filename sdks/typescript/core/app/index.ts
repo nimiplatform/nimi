@@ -13,8 +13,10 @@ import {
   isAdmittedPermissionID,
   isKnownPermissionID,
   isPermissionPosture,
+  isReservedPermissionID,
 } from './permission-types.js';
 import type {
+  AdmittedPermissionRequestInput,
   NimiAppScopeRef,
   PermissionID,
   PermissionPostureEvent,
@@ -74,6 +76,22 @@ export {
   type NimiDesktopSourceReadinessRealmOperationID,
   type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm.js';
+export {
+  NIMI_AGENT_CAPABILITY_GROUPS,
+  materializeNimiAgentCapabilityPosture,
+} from './agent-capability-posture.js';
+export type {
+  NimiAgentCapabilityGroup,
+  NimiAgentCapabilityPosture,
+  NimiAgentCapabilityPostureEntry,
+  NimiAgentCapabilityPostureReason,
+  NimiPermissionStatusReader,
+} from './agent-capability-posture.js';
+export {
+  createNimiLocalAppAgentConfigureClient,
+  mapNimiLocalAppConfigureError,
+} from './local-app-runtime-platform-configure.js';
+export type * from './local-app-runtime-platform-configure.js';
 export type {
   NimiAppAuthMode,
   NimiAppAuthProjection,
@@ -110,12 +128,16 @@ export * from './inventory-types.js';
 export {
   ADMITTED_PERMISSION_IDS,
   KNOWN_PERMISSION_IDS,
+  RESERVED_PERMISSION_IDS,
   PERMISSION_POSTURES,
   isAdmittedPermissionID,
   isKnownPermissionID,
   isPermissionPosture,
+  isReservedPermissionID,
 } from './permission-types.js';
 export type {
+  AdmittedPermissionID,
+  AdmittedPermissionRequestInput,
   NimiAppScopeKind,
   NimiAppScopeRef,
   PermissionID,
@@ -124,6 +146,7 @@ export type {
   PermissionRequestInput,
   PermissionStatus,
   PermissionTransport,
+  ReservedPermissionID,
 } from './permission-types.js';
 export type NimiFirstRunInstallLevel = 'minimal' | 'recommended';
 
@@ -270,7 +293,7 @@ function validateKnownPermissionID(value: unknown): asserts value is PermissionI
   }
 }
 
-function validatePermissionRequest(input: PermissionRequestInput | null | undefined): PermissionRequestInput {
+function validatePermissionRequest(input: PermissionRequestInput | null | undefined): AdmittedPermissionRequestInput {
   if (!input || typeof input !== 'object') {
     appError('SDK_PERMISSION_REQUEST_INVALID', 'permission request is required', 'provide_permission_request');
   }
@@ -279,12 +302,15 @@ function validatePermissionRequest(input: PermissionRequestInput | null | undefi
     appError('SDK_PERMISSION_REQUEST_INVALID', 'permission request accepts only permissionId and reason', 'remove_permission_authority_fields');
   }
   validateKnownPermissionID(input.permissionId);
+  if (isReservedPermissionID(input.permissionId)) {
+    appError('SDK_PERMISSION_NOT_ADMITTED', `permission "${input.permissionId}" is reserved and cannot be requested`, 'wait_for_permission_admission');
+  }
+  if (!isAdmittedPermissionID(input.permissionId)) {
+    appError('SDK_PERMISSION_NOT_ADMITTED', `permission "${input.permissionId}" is not admitted and cannot be requested`, 'wait_for_permission_admission');
+  }
   const reason = normalizeText(input.reason);
   if (reason !== input.reason || new TextEncoder().encode(reason).length === 0 || new TextEncoder().encode(reason).length > 240) {
     appError('SDK_PERMISSION_REQUEST_INVALID', 'permission reason must be canonical and at most 240 UTF-8 bytes', 'provide_permission_reason');
-  }
-  if (!isAdmittedPermissionID(input.permissionId)) {
-    appError('SDK_PERMISSION_NOT_ADMITTED', `permission "${input.permissionId}" is reserved and cannot be requested`, 'wait_for_permission_admission');
   }
   return { permissionId: input.permissionId, reason };
 }
@@ -325,7 +351,7 @@ function validatePermissionStatus(status: PermissionStatus | null | undefined, e
     || (status.posture !== 'granted' && status.agents.length > 0)) {
     appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission Agent projection does not match posture', 'fix_permission_transport_response');
   }
-  if (!isAdmittedPermissionID(status.permissionId) && (status.posture !== 'unavailable' || status.canRequest)) {
+  if (isReservedPermissionID(status.permissionId) && (status.posture !== 'unavailable' || status.canRequest)) {
     appError('SDK_PERMISSION_RESPONSE_INVALID', 'reserved permission must remain unavailable', 'fix_permission_transport_response');
   }
 }

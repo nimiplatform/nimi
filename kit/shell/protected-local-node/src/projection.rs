@@ -251,33 +251,47 @@ impl NativeJsonOutcome {
             value: Some(value),
             reason_code: None,
             retryable: None,
+            reason_metadata: None,
         }
     }
 
     pub(super) fn error(error: LocalAppOperationError) -> Self {
+        let reason_metadata = project_reason_metadata(error.reason_metadata());
         Self {
             status: "error".to_string(),
             value: None,
             reason_code: Some(error.reason_code().as_str().to_string()),
             retryable: Some(error.retryable()),
+            reason_metadata,
         }
     }
 
     pub(super) fn host_error(error: NimiHostError) -> Self {
+        let reason_metadata = project_reason_metadata(error.reason_metadata());
         Self {
             status: "error".to_string(),
             value: None,
             reason_code: Some(error.reason_code().as_str().to_string()),
             retryable: Some(error.retryable()),
+            reason_metadata,
         }
     }
 
     pub(super) fn host_reason(reason_code: &str, retryable: bool) -> Self {
+        Self::host_reason_with_metadata(reason_code, retryable, &Default::default())
+    }
+
+    pub(super) fn host_reason_with_metadata(
+        reason_code: &str,
+        retryable: bool,
+        reason_metadata: &std::collections::BTreeMap<String, String>,
+    ) -> Self {
         Self {
             status: "error".to_string(),
             value: None,
             reason_code: Some(reason_code.to_string()),
             retryable: Some(retryable),
+            reason_metadata: project_reason_metadata(reason_metadata),
         }
     }
 
@@ -287,6 +301,7 @@ impl NativeJsonOutcome {
             value: None,
             reason_code: Some(error.reason_code().as_str().to_string()),
             retryable: Some(error.retryable()),
+            reason_metadata: None,
         }
     }
 }
@@ -298,21 +313,41 @@ impl NativeBytesOutcome {
             value: Some(value.into()),
             reason_code: None,
             retryable: None,
+            reason_metadata: None,
         }
     }
 
     pub(super) fn host_error(error: NimiHostError) -> Self {
-        Self::error(error.reason_code().as_str(), error.retryable())
+        Self::error_with_metadata(
+            error.reason_code().as_str(),
+            error.retryable(),
+            error.reason_metadata(),
+        )
     }
 
     pub(super) fn error(reason_code: &str, retryable: bool) -> Self {
+        Self::error_with_metadata(reason_code, retryable, &Default::default())
+    }
+
+    pub(super) fn error_with_metadata(
+        reason_code: &str,
+        retryable: bool,
+        reason_metadata: &std::collections::BTreeMap<String, String>,
+    ) -> Self {
         Self {
             status: "error".to_string(),
             value: None,
             reason_code: Some(reason_code.to_string()),
             retryable: Some(retryable),
+            reason_metadata: project_reason_metadata(reason_metadata),
         }
     }
+}
+
+fn project_reason_metadata(
+    reason_metadata: &std::collections::BTreeMap<String, String>,
+) -> Option<JsonValue> {
+    (!reason_metadata.is_empty()).then(|| json!(reason_metadata))
 }
 
 #[cfg(test)]
@@ -332,7 +367,27 @@ mod tests {
             Some("runtime-service-unavailable")
         );
         assert_eq!(outcome.retryable, Some(true));
+        assert!(outcome.reason_metadata.is_none());
         assert!(outcome.value.is_none());
+
+        let error =
+            LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceErrorUnclassified, false)
+                .with_reason_metadata(
+                    None,
+                    std::collections::BTreeMap::from([(
+                        "grpc_status_code".to_string(),
+                        "13".to_string(),
+                    )]),
+                );
+        let outcome = NativeJsonOutcome::error(error);
+        assert_eq!(
+            outcome.reason_code.as_deref(),
+            Some("runtime-service-error-unclassified")
+        );
+        assert_eq!(
+            outcome.reason_metadata,
+            Some(json!({ "grpc_status_code": "13" }))
+        );
     }
 
     #[test]
@@ -375,6 +430,7 @@ mod tests {
         assert_eq!(outcome.value.as_ref().map(|value| value.len()), Some(3));
         assert!(outcome.reason_code.is_none());
         assert!(outcome.retryable.is_none());
+        assert!(outcome.reason_metadata.is_none());
     }
 
     #[test]

@@ -2,12 +2,13 @@ use crate::first_party_profiles_generated::{
     BUNDLED_AVATAR_APP_ID, BUNDLED_AVATAR_NATIVE_PROFILE_MARKER,
     DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER, DESKTOP_MACHINE_PRODUCT_NATIVE_PROFILE_MARKER,
 };
-use std::time::Duration;
+use std::{collections::BTreeMap, time::Duration};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DesktopUnaryError {
     reason_code: String,
     retryable: bool,
+    reason_metadata: BTreeMap<String, String>,
 }
 
 impl DesktopUnaryError {
@@ -15,7 +16,13 @@ impl DesktopUnaryError {
         Self {
             reason_code: reason_code.into(),
             retryable,
+            reason_metadata: BTreeMap::new(),
         }
+    }
+
+    fn with_reason_metadata(mut self, reason_metadata: BTreeMap<String, String>) -> Self {
+        self.reason_metadata = reason_metadata;
+        self
     }
 
     pub(crate) fn reason_code(&self) -> &str {
@@ -24,6 +31,10 @@ impl DesktopUnaryError {
 
     pub(crate) const fn retryable(&self) -> bool {
         self.retryable
+    }
+
+    pub(crate) const fn reason_metadata(&self) -> &BTreeMap<String, String> {
+        &self.reason_metadata
     }
 }
 
@@ -177,18 +188,28 @@ async fn invoke_inner(
                     | tonic::Code::Cancelled
                     | tonic::Code::ResourceExhausted
             );
-            let reason = (if bundled_avatar {
+            let reason = if bundled_avatar {
                 crate::grpc_status::bundled_avatar_runtime_reason(&status)
             } else {
                 crate::grpc_status::runtime_reason(&status)
-            })
-            .unwrap_or_else(|| match status.code() {
-                tonic::Code::Unavailable
-                | tonic::Code::DeadlineExceeded
-                | tonic::Code::Cancelled => "runtime-service-unavailable".to_string(),
-                _ => "runtime-service-untrusted".to_string(),
-            });
-            DesktopUnaryError::new(reason, retryable)
+            };
+            match reason {
+                Some(reason) => DesktopUnaryError::new(reason, retryable),
+                None => match status.code() {
+                    tonic::Code::Unavailable
+                    | tonic::Code::DeadlineExceeded
+                    | tonic::Code::Cancelled => {
+                        DesktopUnaryError::new("runtime-service-unavailable", retryable)
+                    }
+                    _ => DesktopUnaryError::new(
+                        crate::grpc_status::RUNTIME_SERVICE_ERROR_UNCLASSIFIED,
+                        retryable,
+                    )
+                    .with_reason_metadata(
+                        crate::grpc_status::unclassified_status_metadata(&status),
+                    ),
+                },
+            }
         })?;
     Ok(response.into_inner())
 }

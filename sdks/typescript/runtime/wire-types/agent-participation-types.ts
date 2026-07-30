@@ -34,6 +34,59 @@ export type {
 };
 
 import type {
+  CommitLocalAppAgentPresentationRequest,
+  GetLocalAppAgentAutonomySnapshotRequest,
+  GetLocalAppAgentConfigurationSnapshotRequest,
+  GetLocalAppAgentPresentationSnapshotRequest,
+  GetLocalAppAgentReadinessSnapshotRequest,
+  LocalAppAgentAutonomyConfig,
+  LocalAppAgentAutonomyIntent,
+  LocalAppAgentAutonomyProjection,
+  LocalAppAgentAutonomySnapshotResponse,
+  LocalAppAgentCapabilityReadiness,
+  LocalAppAgentCommitPresentationResponse,
+  LocalAppAgentConfigurationSnapshotResponse,
+  LocalAppAgentModelSettingsProjection,
+  LocalAppAgentPresentationIntent,
+  LocalAppAgentPresentationProjection,
+  LocalAppAgentPresentationSnapshotResponse,
+  LocalAppAgentReadinessProjection,
+  LocalAppAgentReadinessSnapshotResponse,
+  LocalAppAgentRouteIntent,
+  LocalAppAgentUpdateAutonomyResponse,
+  LocalAppAgentUpdateConfigurationResponse,
+  UpdateLocalAppAgentAutonomyRequest,
+  UpdateLocalAppAgentConfigurationRequest,
+} from "../../core-generated/runtime-protobuf/runtime/v1/agent_configure";
+
+export type {
+  CommitLocalAppAgentPresentationRequest,
+  GetLocalAppAgentAutonomySnapshotRequest,
+  GetLocalAppAgentConfigurationSnapshotRequest,
+  GetLocalAppAgentPresentationSnapshotRequest,
+  GetLocalAppAgentReadinessSnapshotRequest,
+  LocalAppAgentAutonomyConfig,
+  LocalAppAgentAutonomyIntent,
+  LocalAppAgentAutonomyProjection,
+  LocalAppAgentAutonomySnapshotResponse,
+  LocalAppAgentCapabilityReadiness,
+  LocalAppAgentCommitPresentationResponse,
+  LocalAppAgentConfigurationSnapshotResponse,
+  LocalAppAgentModelSettingsProjection,
+  LocalAppAgentPresentationIntent,
+  LocalAppAgentPresentationProjection,
+  LocalAppAgentPresentationSnapshotResponse,
+  LocalAppAgentReadinessProjection,
+  LocalAppAgentReadinessSnapshotResponse,
+  LocalAppAgentRouteIntent,
+  LocalAppAgentUpdateAutonomyResponse,
+  LocalAppAgentUpdateConfigurationResponse,
+  UpdateLocalAppAgentAutonomyRequest,
+  UpdateLocalAppAgentConfigurationRequest,
+};
+
+import type {
+  AgentPresentationAssetMaterial,
   AgentPresentationEventDetail,
   AgentPresentationProfile,
   AgentPresentationProfilePatch,
@@ -41,6 +94,7 @@ import type {
 } from "../../core-generated/runtime-protobuf/runtime/v1/agent_presentation";
 
 export type {
+  AgentPresentationAssetMaterial,
   AgentPresentationEventDetail,
   AgentPresentationProfile,
   AgentPresentationProfilePatch,

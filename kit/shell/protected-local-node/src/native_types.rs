@@ -8,6 +8,7 @@ pub struct NativeJsonOutcome {
     pub value: Option<JsonValue>,
     pub reason_code: Option<String>,
     pub retryable: Option<bool>,
+    pub reason_metadata: Option<JsonValue>,
 }
 
 #[napi(object)]
@@ -16,6 +17,7 @@ pub struct NativeBytesOutcome {
     pub value: Option<Buffer>,
     pub reason_code: Option<String>,
     pub retryable: Option<bool>,
+    pub reason_metadata: Option<JsonValue>,
 }
 
 #[napi(object)]
@@ -49,6 +51,7 @@ pub struct NativeBundledAvatarStreamNextOutcome {
     pub completed: Option<bool>,
     pub reason_code: Option<String>,
     pub retryable: Option<bool>,
+    pub reason_metadata: Option<JsonValue>,
 }
 
 #[napi(object)]
@@ -189,4 +192,31 @@ pub struct NativeConversationScopeInput {
 #[napi(object)]
 pub struct NativeConversationStreamInput {
     pub stream_id: String,
+}
+
+#[napi(object)]
+pub struct NativeAgentHandleInput {
+    pub agent_handle: String,
+}
+
+#[napi(object)]
+pub struct NativeAgentUpdateConfigurationInput {
+    pub agent_handle: String,
+    pub expected_configuration_revision: String,
+    pub route_intents: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAgentUpdateAutonomyInput {
+    pub agent_handle: String,
+    pub expected_autonomy_revision: String,
+    pub intent: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAgentCommitPresentationInput {
+    pub agent_handle: String,
+    pub expected_presentation_revision: String,
+    pub intent: JsonValue,
+    pub imported_assets: JsonValue,
 }

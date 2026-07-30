@@ -45,7 +45,7 @@ impl RuntimeBridgeLocalAppHost {
         match session.session_status().await {
             Ok(status) => Ok(status),
             Err(error) => {
-                self.clear_on_transport_failure(&session, error).await;
+                self.clear_on_transport_failure(&session, &error).await;
                 Err(error)
             }
         }
@@ -60,7 +60,7 @@ impl RuntimeBridgeLocalAppHost {
         match session.renew_technical_session().await {
             Ok(status) => Ok(status),
             Err(error) => {
-                self.clear_on_transport_failure(&session, error).await;
+                self.clear_on_transport_failure(&session, &error).await;
                 Err(error)
             }
         }
@@ -74,7 +74,7 @@ impl RuntimeBridgeLocalAppHost {
         match session.permission_status(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
-                self.clear_on_transport_failure(&session, error).await;
+                self.clear_on_transport_failure(&session, &error).await;
                 Err(error)
             }
         }
@@ -88,7 +88,7 @@ impl RuntimeBridgeLocalAppHost {
         match session.permission_request(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
-                self.clear_on_transport_failure(&session, error).await;
+                self.clear_on_transport_failure(&session, &error).await;
                 Err(error)
             }
         }
@@ -102,7 +102,7 @@ impl RuntimeBridgeLocalAppHost {
         match session.storage_read_json(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
-                self.clear_on_transport_failure(&session, error).await;
+                self.clear_on_transport_failure(&session, &error).await;
                 Err(error)
             }
         }
@@ -116,7 +116,7 @@ impl RuntimeBridgeLocalAppHost {
         match session.storage_write_json(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
-                self.clear_on_transport_failure(&session, error).await;
+                self.clear_on_transport_failure(&session, &error).await;
                 Err(error)
             }
         }
@@ -130,7 +130,7 @@ impl RuntimeBridgeLocalAppHost {
         match session.storage_remove_json(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
-                self.clear_on_transport_failure(&session, error).await;
+                self.clear_on_transport_failure(&session, &error).await;
                 Err(error)
             }
         }
@@ -152,7 +152,7 @@ impl RuntimeBridgeLocalAppHost {
     async fn clear_on_transport_failure(
         &self,
         session: &Arc<dyn NimiLocalAppSession>,
-        error: LocalAppOperationError,
+        error: &LocalAppOperationError,
     ) {
         if !matches!(
             error.reason_code(),

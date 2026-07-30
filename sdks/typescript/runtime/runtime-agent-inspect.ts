@@ -60,6 +60,30 @@ function inspectError(message: string, reasonCode: string, actionHint: string): 
   });
 }
 
+function normalizeExpectedAutonomyRevision(value: unknown): string {
+  const normalized = String(value ?? '').trim();
+  if (!/^[1-9]\d*$/u.test(normalized)) {
+    inspectError(
+      'Runtime Agent autonomy update requires a positive expected revision.',
+      'SDK_RUNTIME_AGENT_AUTONOMY_REVISION_REQUIRED',
+      'refresh_autonomy_snapshot',
+    );
+  }
+  return normalized;
+}
+
+function isAutonomyRevisionConflict(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const shaped = error as {
+    readonly details?: { readonly grpcCode?: unknown };
+    readonly reasonCode?: unknown;
+  };
+  const reasonCode = normalizeNimiRuntimeAgentText(shaped.reasonCode);
+  return reasonCode === 'AGENT_AUTONOMY_REVISION_CONFLICT'
+    || reasonCode === 'RUNTIME_GRPC_ABORTED'
+    || Number(shaped.details?.grpcCode) === 10;
+}
+
 export function createNimiHostRuntimeAgentInspectSurface(
   options: NimiHostRuntimeAgentInspectSurfaceOptions,
 ): NimiRuntimeAgentInspectSurface {
@@ -181,6 +205,19 @@ export function createNimiHostRuntimeAgentInspectSurface(
         }, callOptions),
       );
       return projectNimiRuntimeAgentAutonomySnapshot(response.autonomy);
+    },
+    async getAutonomySnapshot(input) {
+      const resolved = await context(input);
+      const response = await withScopes(
+        resolved.runtime,
+        resolved.subjectUserId,
+        ['runtime.agent.read'],
+        (callOptions) => resolved.runtime.agent.getAgent({
+          context: resolved.requestContext,
+          agentId: resolved.agentId,
+        }, callOptions),
+      );
+      return projectNimiRuntimeAgentAutonomySnapshot(response.agent?.autonomy);
     },
     async getPublicInspect(input) {
       const resolved = await context(input);
@@ -318,6 +355,57 @@ export function createNimiHostRuntimeAgentInspectSurface(
         }, callOptions),
       );
       return projectNimiRuntimeAgentAutonomySnapshot(response.autonomy);
+    },
+    async updateAutonomy(input) {
+      const resolved = await context(input);
+      const setAutonomyConfig = resolved.runtime.agent.setAutonomyConfig;
+      if (!setAutonomyConfig) {
+        inspectError(
+          'Runtime Agent inspect client does not support atomic autonomy updates.',
+          'SDK_RUNTIME_AGENT_INSPECT_METHOD_MISSING',
+          'provide_runtime_agent_atomic_autonomy_update',
+        );
+      }
+      const expectedRevision = normalizeExpectedAutonomyRevision(input.expectedRevision);
+      try {
+        const response = await withScopes(
+          resolved.runtime,
+          resolved.subjectUserId,
+          ['runtime.agent.autonomy.write'],
+          (callOptions) => setAutonomyConfig({
+            context: resolved.requestContext,
+            agentId: resolved.agentId,
+            config: {
+              mode: toNimiRuntimeAgentAutonomyMode(normalizeNimiRuntimeAgentAutonomyModeInput(input.mode)),
+              dailyTokenBudget: normalizeNimiRuntimeAgentNonNegativeInteger(input.dailyTokenBudget),
+              maxTokensPerHook: normalizeNimiRuntimeAgentNonNegativeInteger(input.maxTokensPerHook),
+            },
+            expectedAutonomyRevision: expectedRevision,
+            ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
+          }, callOptions),
+        );
+        const projection = projectNimiRuntimeAgentAutonomySnapshot(response.autonomy);
+        if (!projection.revision) {
+          inspectError(
+            'Runtime Agent atomic autonomy update returned no revised autonomy revision.',
+            'SDK_RUNTIME_AGENT_AUTONOMY_RESPONSE_INVALID',
+            'inspect_runtime_agent_autonomy_response',
+          );
+        }
+        return { outcome: 'updated' as const, projection };
+      } catch (error) {
+        if (!isAutonomyRevisionConflict(error)) throw error;
+        return {
+          outcome: 'conflict' as const,
+          conflict: {
+            category: 'autonomy-revision-conflict' as const,
+            reasonCode: 'AGENT_AUTONOMY_REVISION_CONFLICT' as const,
+            expectedRevision,
+            actionHint: 'refresh_autonomy_snapshot' as const,
+            message: 'Runtime Agent autonomy was modified concurrently; refresh the autonomy snapshot and retry.',
+          },
+        };
+      }
     },
     async subscribePublicEvents(input) {
       const resolved = await context(input);

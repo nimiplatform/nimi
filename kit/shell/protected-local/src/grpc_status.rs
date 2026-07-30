@@ -1,10 +1,11 @@
 use crate::{LocalAppOperationError, LocalAppReasonCode, NimiHostError, NimiHostErrorReasonCode};
 use prost::Message;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use tonic::{Code, Status};
 
 const ERROR_INFO_TYPE_URL: &str = "type.googleapis.com/google.rpc.ErrorInfo";
 const ERROR_INFO_DOMAIN: &str = "nimi.runtime.v1";
+pub(crate) const RUNTIME_SERVICE_ERROR_UNCLASSIFIED: &str = "runtime-service-error-unclassified";
 
 #[derive(Clone, PartialEq, Message)]
 struct GoogleRpcStatus {
@@ -37,6 +38,13 @@ pub(crate) fn bundled_avatar_runtime_reason(status: &Status) -> Option<String> {
     })
 }
 
+pub(crate) fn unclassified_status_metadata(status: &Status) -> BTreeMap<String, String> {
+    BTreeMap::from([(
+        "grpc_status_code".to_string(),
+        (status.code() as i32).to_string(),
+    )])
+}
+
 fn runtime_error_info(status: &Status) -> Option<GoogleRpcErrorInfo> {
     let details = GoogleRpcStatus::decode(status.details()).ok()?;
     details.details.iter().find_map(|detail| {
@@ -49,37 +57,54 @@ fn runtime_error_info(status: &Status) -> Option<GoogleRpcErrorInfo> {
 }
 
 pub(crate) fn host_error_from_status(status: Status) -> NimiHostError {
-    let reason = runtime_reason(&status)
-        .as_deref()
-        .and_then(host_reason_from_runtime_reason);
-    if let Some(reason) = reason {
-        return NimiHostError::new(reason, status_is_retryable(status.code()));
-    }
-    let reason = match status.code() {
+    let info = runtime_error_info(&status);
+    let mapped_reason = info
+        .as_ref()
+        .and_then(|value| host_reason_from_runtime_reason(&value.reason));
+    let unclassified = mapped_reason.is_none()
+        && !matches!(
+            status.code(),
+            Code::Unavailable | Code::DeadlineExceeded | Code::Cancelled
+        );
+    let reason = mapped_reason.unwrap_or_else(|| match status.code() {
         Code::Unavailable | Code::DeadlineExceeded | Code::Cancelled => {
             NimiHostErrorReasonCode::RuntimeServiceUnavailable
         }
-        _ => NimiHostErrorReasonCode::RuntimeServiceUntrusted,
-    };
+        _ => NimiHostErrorReasonCode::RuntimeServiceErrorUnclassified,
+    });
+    let (permission_id, mut metadata) = public_reason_metadata(info.as_ref());
+    if unclassified {
+        metadata.extend(unclassified_status_metadata(&status));
+    }
     NimiHostError::new(reason, status_is_retryable(status.code()))
+        .with_reason_metadata(permission_id, metadata)
 }
 
 pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationError {
-    let reason = runtime_reason(&status)
-        .as_deref()
-        .and_then(local_app_reason_from_runtime_reason)
-        .unwrap_or_else(|| match status.code() {
-            Code::InvalidArgument => LocalAppReasonCode::InvalidPayload,
-            Code::Unauthenticated => LocalAppReasonCode::RuntimeUnauthenticated,
-            Code::PermissionDenied => LocalAppReasonCode::RuntimePermissionDenied,
-            Code::NotFound => LocalAppReasonCode::NotFound,
-            Code::ResourceExhausted => LocalAppReasonCode::ResourceExhausted,
-            Code::Unavailable | Code::DeadlineExceeded | Code::Cancelled => {
-                LocalAppReasonCode::RuntimeServiceUnavailable
-            }
-            _ => LocalAppReasonCode::RuntimeServiceUntrusted,
-        });
+    let info = runtime_error_info(&status);
+    let mapped_reason = info
+        .as_ref()
+        .and_then(|value| local_app_reason_from_runtime_reason(&value.reason));
+    let fallback_reason = match status.code() {
+        Code::InvalidArgument => LocalAppReasonCode::InvalidPayload,
+        Code::Unauthenticated => LocalAppReasonCode::RuntimeUnauthenticated,
+        Code::PermissionDenied => LocalAppReasonCode::RuntimePermissionDenied,
+        Code::NotFound => LocalAppReasonCode::NotFound,
+        Code::ResourceExhausted => LocalAppReasonCode::ResourceExhausted,
+        Code::Unavailable | Code::DeadlineExceeded | Code::Cancelled => {
+            LocalAppReasonCode::RuntimeServiceUnavailable
+        }
+        _ => LocalAppReasonCode::RuntimeServiceErrorUnclassified,
+    };
+    let unclassified = mapped_reason.is_none()
+        && fallback_reason == LocalAppReasonCode::RuntimeServiceErrorUnclassified;
+    let reason = mapped_reason.unwrap_or(fallback_reason);
+    let (permission_id, mut metadata) = public_reason_metadata(info.as_ref());
+    if unclassified {
+        metadata.extend(unclassified_status_metadata(&status));
+    }
     LocalAppOperationError::new(reason, status_is_retryable(status.code()))
+        .with_reason_metadata(permission_id, metadata)
 }
 
 pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCode> {
@@ -98,6 +123,11 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         653 => LocalAppReasonCode::PermissionRevoked,
         654 => LocalAppReasonCode::AccountChanged,
         657 => LocalAppReasonCode::PresenceExpired,
+        668 => LocalAppReasonCode::PermissionReservedNotAdmitted,
+        669 => LocalAppReasonCode::PermissionUnknown,
+        670 => LocalAppReasonCode::AgentAiConfigRevisionConflict,
+        671 => LocalAppReasonCode::AgentAutonomyRevisionConflict,
+        614 => LocalAppReasonCode::AgentPresentationRevisionConflict,
         566 => LocalAppReasonCode::InvalidPath,
         567 => LocalAppReasonCode::NotFound,
         568 => LocalAppReasonCode::ResourceExhausted,
@@ -121,6 +151,15 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "LOCAL_APP_PERMISSION_REQUIRED" => LocalAppReasonCode::PermissionRequired,
         "LOCAL_APP_PERMISSION_DENIED" => LocalAppReasonCode::PermissionDenied,
         "LOCAL_APP_PERMISSION_REVOKED" => LocalAppReasonCode::PermissionRevoked,
+        "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED" => {
+            LocalAppReasonCode::PermissionReservedNotAdmitted
+        }
+        "LOCAL_APP_PERMISSION_UNKNOWN" => LocalAppReasonCode::PermissionUnknown,
+        "AGENT_AI_CONFIG_REVISION_CONFLICT" => LocalAppReasonCode::AgentAiConfigRevisionConflict,
+        "AGENT_AUTONOMY_REVISION_CONFLICT" => LocalAppReasonCode::AgentAutonomyRevisionConflict,
+        "AGENT_PRESENTATION_REVISION_CONFLICT" => {
+            LocalAppReasonCode::AgentPresentationRevisionConflict
+        }
         "LOCAL_APP_PRESENCE_EXPIRED" => LocalAppReasonCode::PresenceExpired,
         "PROTOCOL_ENVELOPE_INVALID" => LocalAppReasonCode::InvalidPayload,
         "APP_STORAGE_PATH_INVALID" => LocalAppReasonCode::InvalidPath,
@@ -170,6 +209,19 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
         "LOCAL_APP_PERMISSION_REQUIRED" => NimiHostErrorReasonCode::LocalAppPermissionRequired,
         "LOCAL_APP_PERMISSION_DENIED" => NimiHostErrorReasonCode::LocalAppPermissionDenied,
         "LOCAL_APP_PERMISSION_REVOKED" => NimiHostErrorReasonCode::LocalAppPermissionRevoked,
+        "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED" => {
+            NimiHostErrorReasonCode::LocalAppPermissionReservedNotAdmitted
+        }
+        "LOCAL_APP_PERMISSION_UNKNOWN" => NimiHostErrorReasonCode::LocalAppPermissionUnknown,
+        "AGENT_AI_CONFIG_REVISION_CONFLICT" => {
+            NimiHostErrorReasonCode::AgentAiConfigRevisionConflict
+        }
+        "AGENT_AUTONOMY_REVISION_CONFLICT" => {
+            NimiHostErrorReasonCode::AgentAutonomyRevisionConflict
+        }
+        "AGENT_PRESENTATION_REVISION_CONFLICT" => {
+            NimiHostErrorReasonCode::AgentPresentationRevisionConflict
+        }
         "LOCAL_APP_PRESENCE_REQUIRED" => NimiHostErrorReasonCode::LocalAppPresenceRequired,
         "LOCAL_APP_PRESENCE_EXPIRED" => NimiHostErrorReasonCode::LocalAppPresenceExpired,
         "LOCAL_APP_DEVELOPER_MODE_DISABLED" => {
@@ -181,6 +233,35 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
         }
         _ => return None,
     })
+}
+
+fn public_reason_metadata(
+    info: Option<&GoogleRpcErrorInfo>,
+) -> (Option<String>, BTreeMap<String, String>) {
+    const PUBLIC_KEYS: [&str; 5] = [
+        "permission_id",
+        "permission_reason",
+        "permission_admission",
+        "diagnostic_stage",
+        "local_development_reason_code",
+    ];
+    let mut metadata = BTreeMap::new();
+    if let Some(info) = info {
+        for key in PUBLIC_KEYS {
+            if let Some(value) = info.metadata.get(key) {
+                let normalized = value.trim();
+                if !normalized.is_empty()
+                    && normalized == value
+                    && normalized.len() <= 2048
+                    && !normalized.chars().any(char::is_control)
+                {
+                    metadata.insert(key.to_string(), normalized.to_string());
+                }
+            }
+        }
+    }
+    let permission_id = metadata.get("permission_id").cloned();
+    (permission_id, metadata)
 }
 
 fn status_is_retryable(code: Code) -> bool {
@@ -196,13 +277,44 @@ mod tests {
     use prost_types::Any;
 
     #[test]
-    fn unknown_status_text_never_becomes_a_public_reason() {
-        let error = host_error_from_status(Status::permission_denied("secret path and token"));
+    fn bare_host_status_is_unclassified_and_keeps_only_the_raw_grpc_code() {
+        let error = host_error_from_status(Status::internal("secret path and token"));
         assert_eq!(
             error.reason_code(),
-            NimiHostErrorReasonCode::RuntimeServiceUntrusted
+            NimiHostErrorReasonCode::RuntimeServiceErrorUnclassified
+        );
+        assert_eq!(
+            error
+                .reason_metadata()
+                .get("grpc_status_code")
+                .map(String::as_str),
+            Some("13")
         );
         assert!(!error.to_string().contains("secret"));
+        assert!(!error
+            .reason_metadata()
+            .values()
+            .any(|value| value.contains("secret")));
+    }
+
+    #[test]
+    fn bare_local_app_internal_status_is_not_a_trust_failure() {
+        let error = local_app_error_from_status(Status::internal("private runtime detail"));
+        assert_eq!(
+            error.reason_code(),
+            LocalAppReasonCode::RuntimeServiceErrorUnclassified
+        );
+        assert_eq!(
+            error
+                .reason_metadata()
+                .get("grpc_status_code")
+                .map(String::as_str),
+            Some("13")
+        );
+        assert_ne!(
+            error.reason_code(),
+            LocalAppReasonCode::RuntimeServiceUntrusted
+        );
     }
 
     #[test]
@@ -301,6 +413,108 @@ mod tests {
             local_app_reason_from_proto(633),
             Some(LocalAppReasonCode::RuntimeRestarted)
         );
+    }
+
+    #[test]
+    fn configure_reason_codes_are_distinct_in_proto_and_string_mappings() {
+        for (number, runtime_reason, local_reason, host_reason) in [
+            (
+                668,
+                "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED",
+                LocalAppReasonCode::PermissionReservedNotAdmitted,
+                NimiHostErrorReasonCode::LocalAppPermissionReservedNotAdmitted,
+            ),
+            (
+                669,
+                "LOCAL_APP_PERMISSION_UNKNOWN",
+                LocalAppReasonCode::PermissionUnknown,
+                NimiHostErrorReasonCode::LocalAppPermissionUnknown,
+            ),
+            (
+                670,
+                "AGENT_AI_CONFIG_REVISION_CONFLICT",
+                LocalAppReasonCode::AgentAiConfigRevisionConflict,
+                NimiHostErrorReasonCode::AgentAiConfigRevisionConflict,
+            ),
+            (
+                671,
+                "AGENT_AUTONOMY_REVISION_CONFLICT",
+                LocalAppReasonCode::AgentAutonomyRevisionConflict,
+                NimiHostErrorReasonCode::AgentAutonomyRevisionConflict,
+            ),
+        ] {
+            assert_eq!(local_app_reason_from_proto(number), Some(local_reason));
+            assert_eq!(
+                local_app_reason_from_runtime_reason(runtime_reason),
+                Some(local_reason)
+            );
+            assert_eq!(
+                host_reason_from_runtime_reason(runtime_reason),
+                Some(host_reason)
+            );
+        }
+    }
+
+    #[test]
+    fn configure_permission_error_preserves_public_permission_metadata() {
+        let info = GoogleRpcErrorInfo {
+            reason: "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED".to_string(),
+            domain: ERROR_INFO_DOMAIN.to_string(),
+            metadata: HashMap::from([
+                ("permission_id".to_string(), "agents.configure".to_string()),
+                (
+                    "permission_reason".to_string(),
+                    "reserved_not_admitted".to_string(),
+                ),
+                (
+                    "diagnostic_stage".to_string(),
+                    "operation-coordinator".to_string(),
+                ),
+                (
+                    "owner_selector_digest".to_string(),
+                    "must-not-cross".to_string(),
+                ),
+            ]),
+        };
+        let envelope = GoogleRpcStatus {
+            code: Code::PermissionDenied as i32,
+            message: "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED".to_string(),
+            details: vec![Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        let status = || {
+            Status::with_details(
+                Code::PermissionDenied,
+                "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED",
+                envelope.encode_to_vec().into(),
+            )
+        };
+        let local = local_app_error_from_status(status());
+        assert_eq!(
+            local.reason_code(),
+            LocalAppReasonCode::PermissionReservedNotAdmitted
+        );
+        assert_eq!(local.permission_id(), Some("agents.configure"));
+        assert_eq!(
+            local
+                .reason_metadata()
+                .get("permission_reason")
+                .map(String::as_str),
+            Some("reserved_not_admitted")
+        );
+        assert!(!local
+            .reason_metadata()
+            .contains_key("owner_selector_digest"));
+
+        let host = host_error_from_status(status());
+        assert_eq!(
+            host.reason_code(),
+            NimiHostErrorReasonCode::LocalAppPermissionReservedNotAdmitted
+        );
+        assert_eq!(host.permission_id(), Some("agents.configure"));
+        assert_eq!(host.reason_metadata(), local.reason_metadata());
     }
 
     #[test]

@@ -265,6 +265,7 @@ test('AI Config upsert maps app intents to the typed mutation payload', async ()
       modelId: 'local/default',
       routePolicy: RoutePolicy.LOCAL,
       connectorId: '',
+      provider: '',
       voiceReferenceRef: '',
       imagePolicyRef: '',
     },
@@ -273,6 +274,7 @@ test('AI Config upsert maps app intents to the typed mutation payload', async ()
       modelId: 'local/default-embedding',
       routePolicy: RoutePolicy.LOCAL,
       connectorId: '',
+      provider: '',
       voiceReferenceRef: '',
       imagePolicyRef: '',
     },
@@ -281,6 +283,7 @@ test('AI Config upsert maps app intents to the typed mutation payload', async ()
       modelId: 'gpt-image-1.5',
       routePolicy: RoutePolicy.CLOUD,
       connectorId: 'connector-1',
+      provider: 'openai',
       voiceReferenceRef: '',
       imagePolicyRef: 'image-policy:runtime-agent-default',
       targetRef: {

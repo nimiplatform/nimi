@@ -3,13 +3,14 @@ use crate::first_party_profiles_generated::{
     DesktopAccountProductStreamMethod, DesktopAccountProductUnaryMethod,
     DesktopMachineProductStreamMethod, DesktopMachineProductUnaryMethod,
 };
-use std::time::Duration;
+use std::{collections::BTreeMap, time::Duration};
 use tokio::sync::mpsc;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DesktopFirstPartyProductError {
     reason_code: String,
     retryable: bool,
+    reason_metadata: BTreeMap<String, String>,
 }
 
 impl DesktopFirstPartyProductError {
@@ -17,7 +18,16 @@ impl DesktopFirstPartyProductError {
         Self {
             reason_code: reason_code.into(),
             retryable,
+            reason_metadata: BTreeMap::new(),
         }
+    }
+
+    pub(crate) fn with_reason_metadata(
+        mut self,
+        reason_metadata: BTreeMap<String, String>,
+    ) -> Self {
+        self.reason_metadata = reason_metadata;
+        self
     }
 
     pub fn reason_code(&self) -> &str {
@@ -27,11 +37,16 @@ impl DesktopFirstPartyProductError {
     pub const fn retryable(&self) -> bool {
         self.retryable
     }
+
+    pub const fn reason_metadata(&self) -> &BTreeMap<String, String> {
+        &self.reason_metadata
+    }
 }
 
 impl From<crate::desktop_unary::DesktopUnaryError> for DesktopFirstPartyProductError {
     fn from(error: crate::desktop_unary::DesktopUnaryError) -> Self {
         Self::new(error.reason_code(), error.retryable())
+            .with_reason_metadata(error.reason_metadata().clone())
     }
 }
 

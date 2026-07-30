@@ -7,6 +7,22 @@ export enum GpuMemoryModel {
   UNIFIED = 2,
 }
 
+export enum LocalAppAgentAutonomyMode {
+  UNSPECIFIED = 0,
+  OFF = 1,
+  LOW = 2,
+  MEDIUM = 3,
+  HIGH = 4,
+}
+
+export enum LocalAppAgentReadinessState {
+  UNSPECIFIED = 0,
+  READY = 1,
+  BLOCKED = 2,
+  UNAVAILABLE = 3,
+  FAILED = 4,
+}
+
 export enum LocalAppPermissionOwnerPosture {
   UNSPECIFIED = 0,
   PENDING = 1,
@@ -23,6 +39,7 @@ export enum LocalAppPermissionPosture {
   GRANTED = 3,
   DENIED = 4,
   UNAVAILABLE = 5,
+  REVOKED = 6,
 }
 
 export enum LocalAppSessionState {

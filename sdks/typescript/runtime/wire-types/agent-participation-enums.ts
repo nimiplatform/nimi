@@ -192,6 +192,12 @@ export function assertKnownAgentLocalSourceSnapshotSchemaVersion(value: unknown)
   return value;
 }
 
+export enum AgentPresentationAssetRole {
+  UNSPECIFIED = 0,
+  AVATAR = 1,
+  BACKGROUND = 2,
+}
+
 export enum AgentPresentationBackendKind {
   UNSPECIFIED = 0,
   VRM = 1,

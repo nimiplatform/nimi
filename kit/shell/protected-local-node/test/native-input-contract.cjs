@@ -32,6 +32,35 @@ const calls = [
   }],
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSubscribe', { agentHandle, conversationAnchorId: 'contract-anchor' }],
+  ['localAppAgentConfigurationSnapshot', { agentHandle }],
+  ['localAppAgentUpdateConfiguration', {
+    agentHandle,
+    expectedConfigurationRevision: '1',
+    routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }],
+  }],
+  ['localAppAgentReadinessSnapshot', { agentHandle }],
+  ['localAppAgentAutonomySnapshot', { agentHandle }],
+  ['localAppAgentUpdateAutonomy', {
+    agentHandle,
+    expectedAutonomyRevision: '1',
+    intent: { enabled: false },
+  }],
+  ['localAppAgentPresentationSnapshot', { agentHandle }],
+  ['localAppAgentCommitPresentation', {
+    agentHandle,
+    expectedPresentationRevision: '0',
+    importedAssets: [],
+    intent: {
+      backendKind: 'vrm',
+      avatarAssetRef: 'asset-1',
+      expressionProfileRef: '',
+      idlePreset: '',
+      interactionPolicyRef: '',
+      defaultVoiceReference: '',
+      avatarAutoplay: false,
+      backgroundAssetRef: '',
+    },
+  }],
 ];
 
 async function main() {

@@ -118,14 +118,19 @@ fn map_first_party_status(status: tonic::Status) -> crate::DesktopFirstPartyProd
             | tonic::Code::Cancelled
             | tonic::Code::ResourceExhausted
     );
-    let reason =
-        crate::grpc_status::runtime_reason(&status).unwrap_or_else(|| match status.code() {
+    match crate::grpc_status::runtime_reason(&status) {
+        Some(reason) => crate::DesktopFirstPartyProductError::new(reason, retryable),
+        None => match status.code() {
             tonic::Code::Unavailable | tonic::Code::DeadlineExceeded | tonic::Code::Cancelled => {
-                "runtime-service-unavailable".to_string()
+                crate::DesktopFirstPartyProductError::new("runtime-service-unavailable", retryable)
             }
-            _ => "runtime-service-untrusted".to_string(),
-        });
-    crate::DesktopFirstPartyProductError::new(reason, retryable)
+            _ => crate::DesktopFirstPartyProductError::new(
+                crate::grpc_status::RUNTIME_SERVICE_ERROR_UNCLASSIFIED,
+                retryable,
+            )
+            .with_reason_metadata(crate::grpc_status::unclassified_status_metadata(&status)),
+        },
+    }
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
@@ -237,12 +242,50 @@ fn map_status(status: tonic::Status) -> BundledAvatarRuntimeError {
             | tonic::Code::Cancelled
             | tonic::Code::ResourceExhausted
     );
-    let reason =
-        crate::grpc_status::runtime_reason(&status).unwrap_or_else(|| match status.code() {
+    match crate::grpc_status::runtime_reason(&status) {
+        Some(reason) => BundledAvatarRuntimeError::new(reason, retryable),
+        None => match status.code() {
             tonic::Code::Unavailable | tonic::Code::DeadlineExceeded | tonic::Code::Cancelled => {
-                "runtime-service-unavailable".to_string()
+                BundledAvatarRuntimeError::new("runtime-service-unavailable", retryable)
             }
-            _ => "runtime-service-untrusted".to_string(),
-        });
-    BundledAvatarRuntimeError::new(reason, retryable)
+            _ => BundledAvatarRuntimeError::new(
+                crate::grpc_status::RUNTIME_SERVICE_ERROR_UNCLASSIFIED,
+                retryable,
+            )
+            .with_reason_metadata(crate::grpc_status::unclassified_status_metadata(&status)),
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bare_first_party_stream_status_is_unclassified_with_raw_code() {
+        let error = map_first_party_status(tonic::Status::internal("private runtime detail"));
+        assert_eq!(
+            error.reason_code(),
+            crate::grpc_status::RUNTIME_SERVICE_ERROR_UNCLASSIFIED
+        );
+        assert_eq!(
+            error
+                .reason_metadata()
+                .get("grpc_status_code")
+                .map(String::as_str),
+            Some("13")
+        );
+        assert!(!error
+            .reason_metadata()
+            .values()
+            .any(|value| value.contains("private")));
+    }
+
+    #[test]
+    fn explicit_runtime_reason_is_not_reclassified() {
+        let status = tonic::Status::unavailable("transport unavailable");
+        let error = map_first_party_status(status);
+        assert_eq!(error.reason_code(), "runtime-service-unavailable");
+        assert!(error.reason_metadata().is_empty());
+    }
 }

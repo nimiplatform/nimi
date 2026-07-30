@@ -46,13 +46,22 @@ function standardShell(overrides: Record<string, unknown> = {}) {
       }),
       snapshot: async () => ({ anchor: { conversationAnchorId: 'anchor-1' } }),
     },
+    agentConfigure: {
+      configurationSnapshot: async () => ({}),
+      updateConfiguration: async () => ({}),
+      readinessSnapshot: async () => ({}),
+      autonomySnapshot: async () => ({}),
+      updateAutonomy: async () => ({}),
+      presentationSnapshot: async () => ({}),
+      commitPresentation: async () => ({}),
+    },
     ...overrides,
   };
 }
 
 test('local-app client exposes only admitted typed namespaces', async () => {
   const client = createLocalAppClient({ standardShell: standardShell() });
-  assert.deepEqual(Object.keys(client).sort(), ['auth', 'conversation', 'permissions', 'storage']);
+  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'auth', 'conversation', 'permissions', 'storage']);
   assert.deepEqual(await client.auth.status(), {
     mode: 'local-app',
     state: 'session-bound',
@@ -107,6 +116,114 @@ test('admitted SDK permission remains fail-closed while Runtime publication is h
   })).posture, 'unavailable');
   assert.equal(JSON.stringify(calls).includes('operationId'), false);
   assert.equal(JSON.stringify(calls).includes('resourceRef'), false);
+});
+
+test('permission projection preserves revoked as a distinct wire posture', async () => {
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      permission: {
+        status: async ({ permissionId }: { permissionId: string }) => ({
+          permissionId,
+          state: 'revoked',
+          canRequest: false,
+          reasonCode: 'LOCAL_APP_PERMISSION_REVOKED',
+          agents: [],
+        }),
+        request: async () => { throw new Error('not used'); },
+      },
+    }),
+  });
+  await assert.doesNotReject(async () => {
+    const status = await client.permissions.status('agents.interact');
+    assert.equal(status.posture, 'revoked');
+    assert.equal(status.detail, 'LOCAL_APP_PERMISSION_REVOKED');
+  });
+});
+
+test('Agent capability posture subscription emits the SDK projection and releases its observer', async () => {
+  const client = createLocalAppClient({ standardShell: standardShell() });
+  const firstPosture = new Promise<Awaited<ReturnType<typeof client.permissions.agentCapabilityPosture>>>((resolve, reject) => {
+    const unsubscribe = client.permissions.subscribeAgentCapabilityPosture((posture) => {
+      unsubscribe();
+      resolve(posture);
+    }, reject);
+  });
+  assert.equal((await firstPosture).configure.reason, 'reserved_not_admitted');
+});
+
+test('agent capability posture pins reserved configure as unavailable/reserved_not_admitted', async () => {
+  const client = createLocalAppClient({ standardShell: standardShell() });
+  const posture = await client.permissions.agentCapabilityPosture();
+  assert.deepEqual(posture.configure, {
+    permissionId: 'agents.configure',
+    posture: 'unavailable',
+    reason: 'reserved_not_admitted',
+    agents: [],
+  });
+  assert.equal(posture.interact.reason, 'not_granted');
+  assert.equal(posture.memory.reason, 'reserved_not_admitted');
+});
+
+test('agent capability posture keeps unknown distinct from reserved and not-granted', async () => {
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      permission: {
+        status: async ({ permissionId }: { permissionId: string }) => ({
+          permissionId,
+          state: 'unavailable',
+          canRequest: false,
+          reasonCode: permissionId === 'agents.interact' ? 'LOCAL_APP_PERMISSION_UNKNOWN' : 'LOCAL_APP_PERMISSION_REQUIRED',
+          agents: [],
+        }),
+        request: async () => ({}),
+      },
+    }),
+  });
+  const posture = await client.permissions.agentCapabilityPosture();
+  assert.equal(posture.interact.reason, 'unknown');
+  assert.equal(posture.configure.reason, 'reserved_not_admitted');
+});
+
+test('local-app reserved permission IDs remain observable but not requestable', async () => {
+  let requestCalls = 0;
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      permission: {
+        status: async ({ permissionId }: { permissionId: string }) => ({
+          permissionId,
+          state: 'unavailable',
+          canRequest: false,
+          reasonCode: 'LOCAL_APP_PERMISSION_DENIED',
+          agents: [],
+        }),
+        request: async () => {
+          requestCalls += 1;
+          return {};
+        },
+      },
+    }),
+  });
+
+  assert.deepEqual(await client.permissions.status('agents.configure'), {
+    permissionId: 'agents.configure',
+    posture: 'unavailable',
+    canRequest: false,
+    agents: [],
+    detail: 'LOCAL_APP_PERMISSION_DENIED',
+  });
+  await assert.rejects(
+    () => client.permissions.request({
+      permissionId: 'agents.configure',
+      reason: 'Configure this Agent',
+    }),
+    (error: unknown) => {
+      const typed = error as { reasonCode?: string; actionHint?: string; message?: string };
+      return typed.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED'
+        && typed.actionHint === 'wait_for_permission_admission'
+        && String(typed.message).includes('agents.configure');
+    },
+  );
+  assert.equal(requestCalls, 0);
 });
 
 test('granted account permission projects only branded opaque Agent handles', async () => {

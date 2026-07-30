@@ -3,6 +3,7 @@ export const NIMI_STANDARD_SHELL_ERROR_CODES = [
   'protected-carrier-required',
   'runtime-service-unavailable',
   'runtime-service-untrusted',
+  'runtime-service-error-unclassified',
   'runtime-service-repair-required',
   'external-daemon-required',
   'runtime-permission-denied',

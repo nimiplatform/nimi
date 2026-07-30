@@ -96,23 +96,29 @@ export function normalizeNimiRuntimeAgentPresentationVoiceReference(value: unkno
 }
 
 export function projectNimiRuntimeAgentPresentationRecord(
-  value: Pick<LocalAgentRecord, 'presentationProfile' | 'presentationProfileRevision'> | unknown,
+  value: Pick<LocalAgentRecord, 'presentationProfile' | 'presentationProfileRevision' | 'previousPresentationProfile'> | unknown,
 ): NimiRuntimeAgentPresentationProfileReadProjection {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return { profile: null, committedRevision: null };
+    return { profile: null, previousProfile: null, committedRevision: null };
   }
   const record = value as Record<string, unknown>;
   const committedRevision = normalizeNimiRuntimeAgentPresentationRevision(record.presentationProfileRevision);
   if (committedRevision === null) {
-    return { profile: null, committedRevision: null };
+    return { profile: null, previousProfile: null, committedRevision: null };
   }
+  const previousRevision = record.previousPresentationProfile && typeof record.previousPresentationProfile === 'object'
+    ? normalizeNimiRuntimeAgentPresentationRevision((record.previousPresentationProfile as Record<string, unknown>).revision)
+    : null;
+  const previousProfile = previousRevision
+    ? projectPersistedPresentationProfile(record.previousPresentationProfile, previousRevision)
+    : null;
   if (record.presentationProfile === undefined || record.presentationProfile === null) {
-    return { profile: null, committedRevision };
+    return { profile: null, previousProfile, committedRevision };
   }
   const profile = projectPersistedPresentationProfile(record.presentationProfile, committedRevision);
   return profile
-    ? { profile, committedRevision }
-    : { profile: null, committedRevision: null };
+    ? { profile, previousProfile, committedRevision }
+    : { profile: null, previousProfile: null, committedRevision: null };
 }
 
 function projectPersistedPresentationProfile(

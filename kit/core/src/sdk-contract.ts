@@ -94,7 +94,7 @@ export type { NimiClientConfig } from '@nimiplatform/sdk';
 // --- Runtime type family ----------------------------------------------------
 // `Runtime`, `ScenarioJobStatus`, catalog enums, and catalog client factories
 // are runtime values, not type-only — keep their value-side export.
-export { Runtime, createNimiHostRuntimeAgentInspectSurface, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runtimeNimiRouteCapabilitiesMatch } from '@nimiplatform/sdk/runtime';
+export { Runtime, createNimiHostRuntimeAgentInspectSurface, createNimiRuntimeAgentModelSettingsModule, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runtimeNimiRouteCapabilitiesMatch } from '@nimiplatform/sdk/runtime';
 export {
   NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS,
   NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER,
@@ -135,6 +135,12 @@ export type {
   NimiRuntimeAgentInspectSurface,
   NimiRuntimeAgentMemoryObservatoryRecord,
   NimiRuntimeAgentMemoryObservatorySnapshot,
+  NimiRuntimeAgentModelSettingsCapabilityReadiness,
+  NimiRuntimeAgentModelSettingsInput,
+  NimiRuntimeAgentModelSettingsModule,
+  NimiRuntimeAgentModelSettingsProjection,
+  NimiRuntimeAgentModelSettingsRouteIntent,
+  NimiRuntimeAgentModelSettingsUpdateInput,
   NimiRuntimeAgentPendingHookInspect,
   NimiRuntimeAgentPresentationProfileProjection,
   NimiRuntimeAgentResolvedStatusCueMood,

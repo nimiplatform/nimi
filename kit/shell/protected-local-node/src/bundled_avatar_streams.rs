@@ -91,7 +91,11 @@ pub async fn desktop_bundled_avatar_stream_open(
         Err(error) => {
             streams().lock().await.remove(stream_id.as_str());
             clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
-            return NativeJsonOutcome::host_reason(error.reason_code(), error.retryable());
+            return NativeJsonOutcome::host_reason_with_metadata(
+                error.reason_code(),
+                error.retryable(),
+                error.reason_metadata(),
+            );
         }
     };
     let (close_tx, _) = watch::channel(false);
@@ -140,13 +144,18 @@ pub async fn desktop_bundled_avatar_stream_next(
             completed: Some(false),
             reason_code: None,
             retryable: None,
+            reason_metadata: None,
         },
         Some(Err(error)) => {
             streams().lock().await.remove(stream_id.as_str());
             if let Some(control) = stream.control.upgrade() {
                 clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
             }
-            next_error(error.reason_code(), error.retryable())
+            next_error_with_metadata(
+                error.reason_code(),
+                error.retryable(),
+                error.reason_metadata(),
+            )
         }
         None => {
             streams().lock().await.remove(stream_id.as_str());
@@ -178,6 +187,7 @@ fn next_completed() -> NativeBundledAvatarStreamNextOutcome {
         completed: Some(true),
         reason_code: None,
         retryable: None,
+        reason_metadata: None,
     }
 }
 
@@ -185,11 +195,20 @@ fn next_error(
     reason_code: impl Into<String>,
     retryable: bool,
 ) -> NativeBundledAvatarStreamNextOutcome {
+    next_error_with_metadata(reason_code, retryable, &Default::default())
+}
+
+fn next_error_with_metadata(
+    reason_code: impl Into<String>,
+    retryable: bool,
+    reason_metadata: &std::collections::BTreeMap<String, String>,
+) -> NativeBundledAvatarStreamNextOutcome {
     NativeBundledAvatarStreamNextOutcome {
         status: "error".to_string(),
         value: None,
         completed: None,
         reason_code: Some(reason_code.into()),
         retryable: Some(retryable),
+        reason_metadata: (!reason_metadata.is_empty()).then(|| json!(reason_metadata)),
     }
 }

@@ -51,85 +51,30 @@ export async function importAvatarAsset(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ) {
-  const dataRoot = await resolveBoundDataRoot(await resolveElectronStandardDataRoot(host, command), command);
-  const scope = parseLocalAgentScope(payload, command);
+  parseLocalAgentScope(payload, command);
   const kind = parseBackendKind(payload.backendKind, command);
   const source = await userSelectedSource(host, payload.sourcePath, command);
-  const files = await readAvatarSourceFiles(kind, source, command);
-  const contentDigest = avatarContentDigest(files.records);
-  const avatarAssetRef = `${kind}_${contentDigest.slice(0, 12)}`;
-  const finalDir = avatarAssetDir(dataRoot, scope, kind, avatarAssetRef);
-  if (await managedPathExists(dataRoot, finalDir, command)) {
-    const validation = await validateAvatarAssetAt(dataRoot, finalDir, scope, avatarAssetRef, kind, command);
-    if (validation.validationStatus !== 'valid') {
-      throw invalidAsset(command, validation.validationMessage ?? 'Avatar asset validation failed');
-    }
-    return avatarImportResult(avatarAssetRef, kind, validation);
+  const metadata = await stat(source);
+  const extension = path.extname(source).toLowerCase();
+  if (!metadata.isFile() || (kind === 'vrm' ? extension !== '.vrm' : extension !== '.zip')) {
+    throw invalidPayload(command, kind === 'vrm'
+      ? 'VRM material must be a selected .vrm file.'
+      : 'Live2D material must be a selected .zip package.');
   }
-  const stagingDir = path.join(agentCenterDir(dataRoot, scope), 'modules', 'avatar_asset', 'staging', `${avatarAssetRef}_${Date.now()}`);
-  await removeManagedPath(dataRoot, stagingDir, command);
-  await ensureManagedDirectory(dataRoot, stagingDir, command);
-  try {
-    for (const file of files.records) {
-      const target = path.join(stagingDir, file.packagePath);
-      await ensureManagedDirectory(dataRoot, path.dirname(target), command);
-      await assertManagedPath(dataRoot, target, command, true);
-      await copyFile(file.sourcePath, target);
-    }
-    const sourceLabel = path.basename(source);
-    const capabilityProfileRef = backendCapabilityProfileRefFor(kind, avatarAssetRef);
-    await writeManagedJson(dataRoot, path.join(stagingDir, 'manifest.json'), {
-      manifest_version: 1,
-      asset_version: '1.0.0',
-      local_asset_id: avatarAssetRef,
-      kind,
-      loader_min_version: '1.0.0',
-      display_name: safeDisplayName(sourceLabel),
-      display_name_i18n: {},
-      entry_file: files.entryFile,
-      required_files: [files.entryFile],
-      content_digest: `sha256:${contentDigest}`,
-      files: files.records.map((file) => ({
-        path: file.packagePath,
-        sha256: file.sha256,
-        bytes: file.bytes,
-        mime: file.mime,
-      })),
-      limits: {
-        max_manifest_bytes: 262_144,
-        max_asset_bytes: MAX_AVATAR_ASSET_BYTES,
-        max_file_bytes: MAX_AVATAR_ASSET_FILE_BYTES,
-        max_file_count: MAX_AVATAR_ASSET_FILE_COUNT,
-      },
-      capabilities: {
-        backend_kind: kind,
-        profile_ref: capabilityProfileRef,
-        materialization_ref: avatarMaterializationRef(scope, kind, avatarAssetRef),
-      },
-      import: {
-        imported_at: new Date().toISOString(),
-        source_label: sourceLabel,
-        source_fingerprint: `sha256:${contentDigest}`,
-      },
-    }, command);
-    const validation = await validateAvatarAssetAt(dataRoot, stagingDir, scope, avatarAssetRef, kind, command);
-    if (validation.validationStatus !== 'valid') {
-      throw invalidAsset(command, validation.validationMessage ?? 'Avatar asset validation failed');
-    }
-    await renameManagedPath(dataRoot, stagingDir, finalDir, command);
-    const finalValidation = await validateAvatarAssetAt(dataRoot, finalDir, scope, avatarAssetRef, kind, command);
-    if (finalValidation.validationStatus !== 'valid') {
-      throw invalidAsset(command, finalValidation.validationMessage ?? 'Final avatar asset validation failed');
-    }
-    return avatarImportResult(avatarAssetRef, kind, finalValidation);
-  } catch (error) {
-    await removeManagedPath(dataRoot, stagingDir, command);
-    if (await managedPathExists(dataRoot, finalDir, command)) {
-      const validation = await validateAvatarAssetAt(dataRoot, finalDir, scope, avatarAssetRef, kind, command);
-      if (validation.validationStatus !== 'valid') await removeManagedPath(dataRoot, finalDir, command);
-    }
-    throw error;
+  const content = await readFile(source);
+  if (content.byteLength === 0 || content.byteLength > 64 * 1024 * 1024) {
+    throw invalidPayload(command, 'Avatar material is outside the bounded Runtime intake size.');
   }
+  const digest = sha256(content);
+  return {
+    role: 'avatar',
+    fileName: path.basename(source),
+    mediaType: kind === 'vrm' ? 'model/gltf-binary' : 'application/zip',
+    content: Uint8Array.from(content),
+    sha256: digest,
+    custodyRef: `agent-center-import-custody:${digest.slice(0, 24)}`,
+    backendKind: kind,
+  };
 }
 
 export async function validateAvatarAsset(

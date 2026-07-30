@@ -17,6 +17,7 @@ use crate::{
     RuntimeServiceActionOutcome,
 };
 use serde_json::Value as JsonValue;
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::future::Future;
@@ -28,6 +29,7 @@ pub enum LocalAppReasonCode {
     ProtectedCarrierRequired,
     RuntimeServiceUnavailable,
     RuntimeServiceUntrusted,
+    RuntimeServiceErrorUnclassified,
     RuntimeServiceRepairRequired,
     RuntimeUnauthenticated,
     ProcessReplaced,
@@ -38,8 +40,13 @@ pub enum LocalAppReasonCode {
     PermissionRequired,
     PermissionDenied,
     PermissionRevoked,
+    PermissionReservedNotAdmitted,
+    PermissionUnknown,
     PresenceExpired,
     RuntimePermissionDenied,
+    AgentAiConfigRevisionConflict,
+    AgentAutonomyRevisionConflict,
+    AgentPresentationRevisionConflict,
     OperationUnavailable,
     InvalidPayload,
     InvalidPath,
@@ -54,6 +61,7 @@ impl LocalAppReasonCode {
             Self::ProtectedCarrierRequired => "protected-carrier-required",
             Self::RuntimeServiceUnavailable => "runtime-service-unavailable",
             Self::RuntimeServiceUntrusted => "runtime-service-untrusted",
+            Self::RuntimeServiceErrorUnclassified => "runtime-service-error-unclassified",
             Self::RuntimeServiceRepairRequired => "runtime-service-repair-required",
             Self::RuntimeUnauthenticated => "runtime-unauthenticated",
             Self::ProcessReplaced => "process-replaced",
@@ -64,8 +72,13 @@ impl LocalAppReasonCode {
             Self::PermissionRequired => "permission-required",
             Self::PermissionDenied => "permission-denied",
             Self::PermissionRevoked => "permission-revoked",
+            Self::PermissionReservedNotAdmitted => "permission-reserved-not-admitted",
+            Self::PermissionUnknown => "permission-unknown",
             Self::PresenceExpired => "presence-expired",
             Self::RuntimePermissionDenied => "runtime-permission-denied",
+            Self::AgentAiConfigRevisionConflict => "agent-ai-config-revision-conflict",
+            Self::AgentAutonomyRevisionConflict => "agent-autonomy-revision-conflict",
+            Self::AgentPresentationRevisionConflict => "agent-presentation-revision-conflict",
             Self::OperationUnavailable => "local-app-operation-unavailable",
             Self::InvalidPayload => "invalid-payload",
             Self::InvalidPath => "invalid-path",
@@ -75,10 +88,12 @@ impl LocalAppReasonCode {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalAppOperationError {
     reason_code: LocalAppReasonCode,
     retryable: bool,
+    permission_id: Option<String>,
+    reason_metadata: BTreeMap<String, String>,
 }
 
 impl LocalAppOperationError {
@@ -86,15 +101,35 @@ impl LocalAppOperationError {
         Self {
             reason_code,
             retryable,
+            permission_id: None,
+            reason_metadata: BTreeMap::new(),
         }
     }
 
-    pub const fn reason_code(self) -> LocalAppReasonCode {
+    pub fn with_reason_metadata(
+        mut self,
+        permission_id: Option<String>,
+        reason_metadata: BTreeMap<String, String>,
+    ) -> Self {
+        self.permission_id = permission_id;
+        self.reason_metadata = reason_metadata;
+        self
+    }
+
+    pub const fn reason_code(&self) -> LocalAppReasonCode {
         self.reason_code
     }
 
-    pub const fn retryable(self) -> bool {
+    pub const fn retryable(&self) -> bool {
         self.retryable
+    }
+
+    pub fn permission_id(&self) -> Option<&str> {
+        self.permission_id.as_deref()
+    }
+
+    pub const fn reason_metadata(&self) -> &BTreeMap<String, String> {
+        &self.reason_metadata
     }
 }
 
@@ -143,6 +178,7 @@ pub enum LocalAppPermissionState {
     Pending,
     Granted,
     Denied,
+    Revoked,
     Unavailable,
 }
 
@@ -153,6 +189,7 @@ impl LocalAppPermissionState {
             Self::Pending => "pending",
             Self::Granted => "granted",
             Self::Denied => "denied",
+            Self::Revoked => "revoked",
             Self::Unavailable => "unavailable",
         }
     }
@@ -236,6 +273,33 @@ pub struct LocalAppConversationSubscribeRequest {
 pub struct LocalAppConversationSnapshotRequest {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentHandleRequest {
+    pub agent_handle: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentUpdateConfigurationRequest {
+    pub agent_handle: String,
+    pub expected_configuration_revision: u64,
+    pub route_intents: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentUpdateAutonomyRequest {
+    pub agent_handle: String,
+    pub expected_autonomy_revision: u64,
+    pub intent: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentCommitPresentationRequest {
+    pub agent_handle: String,
+    pub expected_presentation_revision: u64,
+    pub intent: JsonValue,
+    pub imported_assets: JsonValue,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -604,6 +668,41 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn conversation_snapshot(
         &self,
         request: LocalAppConversationSnapshotRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_configuration_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_update_configuration(
+        &self,
+        request: LocalAppAgentUpdateConfigurationRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_readiness_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_autonomy_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_update_autonomy(
+        &self,
+        request: LocalAppAgentUpdateAutonomyRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_presentation_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_commit_presentation(
+        &self,
+        request: LocalAppAgentCommitPresentationRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 }
 

@@ -128,7 +128,9 @@ function lifecycleError(reasonCode: string, retryable: boolean, command: string)
       ? 'runtime-service-unavailable'
       : reasonCode === 'runtime-service-repair-required'
         ? 'runtime-service-repair-required'
-        : 'runtime-service-untrusted';
+        : reasonCode === 'runtime-service-error-unclassified'
+          ? 'runtime-service-error-unclassified'
+          : 'runtime-service-untrusted';
   return new NimiElectronShellHostError({
     code,
     message: reasonCode,

@@ -31,11 +31,13 @@ export interface AgentCenterAvatarAssetImportPayload extends AgentCenterShellSco
 }
 
 export interface AgentCenterAvatarAssetImportResult {
-  readonly avatarAssetRef: string;
+  readonly role: 'avatar';
+  readonly fileName: string;
+  readonly mediaType: string;
+  readonly content: Uint8Array;
+  readonly sha256: string;
+  readonly custodyRef: string;
   readonly backendKind: AgentCenterShellAvatarBackendKind;
-  readonly validationStatus?: AgentCenterShellValidationStatus;
-  readonly validationMessage?: string;
-  readonly backendCapabilityProfileRef?: string;
 }
 
 export interface AgentCenterAvatarAssetValidatePayload extends AgentCenterShellScopePayload {
@@ -120,11 +122,9 @@ export interface AgentCenterResourceRemovalResult {
 }
 
 export interface AgentCenterShellBridge {
-  readonly importLive2dAvatarAsset: (
+  readonly pickAvatarAssetMaterial: (
     scope: AgentCenterShellScopePayload,
-  ) => Promise<AgentCenterAvatarAssetImportResult | null>;
-  readonly importVrmAvatarAsset: (
-    scope: AgentCenterShellScopePayload,
+    backendKind: AgentCenterShellAvatarBackendKind,
   ) => Promise<AgentCenterAvatarAssetImportResult | null>;
   readonly validateAvatarAsset: (
     payload: AgentCenterAvatarAssetValidatePayload,
@@ -196,8 +196,9 @@ async function pickSinglePath(payload: Parameters<typeof openShellFileDialog>[0]
 
 export async function pickAgentCenterLive2dFolder(): Promise<string | null> {
   return pickSinglePath({
-    kind: 'directory',
-    title: 'Select Live2D folder',
+    kind: 'file',
+    title: 'Select Live2D package',
+    filters: [{ name: 'Live2D package', extensions: ['zip'] }],
   });
 }
 
@@ -387,13 +388,11 @@ export async function removeAgentCenterAccountResources(
 
 export function createAgentCenterShellBridge(): AgentCenterShellBridge {
   return {
-    async importLive2dAvatarAsset(scope) {
-      const sourcePath = await pickAgentCenterLive2dFolder();
-      return sourcePath ? importAgentCenterAvatarAsset({ ...scope, sourcePath, backendKind: 'live2d' }) : null;
-    },
-    async importVrmAvatarAsset(scope) {
-      const sourcePath = await pickAgentCenterVrmFile();
-      return sourcePath ? importAgentCenterAvatarAsset({ ...scope, sourcePath, backendKind: 'vrm' }) : null;
+    async pickAvatarAssetMaterial(scope, backendKind) {
+      const sourcePath = backendKind === 'live2d'
+        ? await pickAgentCenterLive2dFolder()
+        : await pickAgentCenterVrmFile();
+      return sourcePath ? importAgentCenterAvatarAsset({ ...scope, sourcePath, backendKind }) : null;
     },
     validateAvatarAsset: validateAgentCenterAvatarAsset,
     resolveAvatarAssetPreview: resolveAgentCenterAvatarAssetPreview,
@@ -575,15 +574,26 @@ function parseStringArray(value: unknown, fieldName: string, command: string): r
 
 function parseAvatarAssetImportResult(value: unknown, command: string): AgentCenterAvatarAssetImportResult {
   const record = assertRecord(value, `${command} returned invalid payload`);
-  return compactPayload({
-    avatarAssetRef: parseOpaqueRef(record.avatarAssetRef, 'avatarAssetRef', command),
+  const content = parseMaterialBytes(record.content, command);
+  const sha256 = parseRequiredString(record.sha256, 'sha256', command);
+  if (!/^[a-f0-9]{64}$/u.test(sha256)) throw new Error(`${command}: sha256 is invalid`);
+  return {
+    role: 'avatar',
+    fileName: parseRequiredString(record.fileName, 'fileName', command),
+    mediaType: parseRequiredString(record.mediaType, 'mediaType', command),
+    content,
+    sha256,
+    custodyRef: parseOpaqueRef(record.custodyRef, 'custodyRef', command),
     backendKind: parseBackendKind(record.backendKind, command),
-    validationStatus: parseOptionalValidationStatus(record.validationStatus, command),
-    validationMessage: parseOptionalString(record.validationMessage),
-    backendCapabilityProfileRef: record.backendCapabilityProfileRef == null
-      ? undefined
-      : parseOpaqueRef(record.backendCapabilityProfileRef, 'backendCapabilityProfileRef', command),
-  }) as unknown as AgentCenterAvatarAssetImportResult;
+  };
+}
+
+function parseMaterialBytes(value: unknown, command: string): Uint8Array {
+  if (value instanceof Uint8Array && value.byteLength > 0) return Uint8Array.from(value);
+  if (Array.isArray(value) && value.length > 0 && value.every((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 255)) {
+    return Uint8Array.from(value as number[]);
+  }
+  throw new Error(`${command}: content must be non-empty bytes`);
 }
 
 function parseAvatarAssetValidateResult(value: unknown, command: string): AgentCenterAvatarAssetValidateResult {

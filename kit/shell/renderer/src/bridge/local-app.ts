@@ -22,7 +22,7 @@ const LOCAL_APP_STATUS_STATES = new Set([
   'authorizing', 'ready', 'denied', 'runtime-unavailable', 'revoked', 'project-changed',
 ]);
 const LOCAL_APP_PERMISSION_STATES = new Set([
-  'prompt', 'pending', 'granted', 'denied', 'unavailable',
+  'prompt', 'pending', 'granted', 'denied', 'revoked', 'unavailable',
 ]);
 
 export type NimiLocalAppSessionStatus = {
@@ -45,7 +45,7 @@ export type NimiLocalAppAgentHandle = {
 };
 
 export type NimiLocalAppPermissionStatus = {
-  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'unavailable';
+  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'revoked' | 'unavailable';
   readonly permissionId: string;
   readonly canRequest: boolean;
   readonly reasonCode: string;
@@ -66,6 +66,35 @@ export type NimiLocalAppConversationScopeInput = {
   readonly conversationAnchorId: string;
 };
 
+export type NimiLocalAppAgentConfigureShell = {
+  readonly configurationSnapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
+  readonly updateConfiguration: (input: {
+    readonly agentHandle: string;
+    readonly expectedConfigurationRevision: string;
+    readonly routeIntents: readonly unknown[];
+  }) => Promise<JsonObject>;
+  readonly readinessSnapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
+  readonly autonomySnapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
+  readonly updateAutonomy: (input: {
+    readonly agentHandle: string;
+    readonly expectedAutonomyRevision: string;
+    readonly intent: unknown;
+  }) => Promise<JsonObject>;
+  readonly presentationSnapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
+  readonly commitPresentation: (input: {
+    readonly agentHandle: string;
+    readonly expectedPresentationRevision: string;
+    readonly intent: unknown;
+    readonly importedAssets: readonly {
+      readonly role: 'avatar' | 'background';
+      readonly fileName: string;
+      readonly mediaType: string;
+      readonly content: Uint8Array;
+      readonly sha256: string;
+    }[];
+  }) => Promise<JsonObject>;
+};
+
 export type NimiLocalAppConversationSubscription = {
   readonly events: AsyncIterable<unknown>;
   readonly cancel: () => Promise<void>;
@@ -84,6 +113,7 @@ export type NimiLocalAppStandardShellSurface = {
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<NimiLocalAppStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiLocalAppStorageRemoveResult>;
   };
+  readonly agentConfigure: NimiLocalAppAgentConfigureShell;
   readonly conversation: {
     readonly open: (input: {
       readonly agentHandle: string;
@@ -109,6 +139,15 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       readJson: readNimiLocalAppStorageJson,
       writeJson: writeNimiLocalAppStorageJson,
       removeJson: removeNimiLocalAppStorageJson,
+    },
+    agentConfigure: {
+      configurationSnapshot: getNimiLocalAppAgentConfigurationSnapshot,
+      updateConfiguration: updateNimiLocalAppAgentConfiguration,
+      readinessSnapshot: getNimiLocalAppAgentReadinessSnapshot,
+      autonomySnapshot: getNimiLocalAppAgentAutonomySnapshot,
+      updateAutonomy: updateNimiLocalAppAgentAutonomy,
+      presentationSnapshot: getNimiLocalAppAgentPresentationSnapshot,
+      commitPresentation: commitNimiLocalAppAgentPresentation,
     },
     conversation: {
       open: openNimiLocalAppConversation,
@@ -151,6 +190,95 @@ export function requestNimiLocalAppPermission(
     } },
     (value) => parsePermissionStatus(value, permissionId, command),
   );
+}
+
+export function getNimiLocalAppAgentConfigurationSnapshot(input: { readonly agentHandle: string }): Promise<JsonObject> {
+  return invokeAgentConfigureHandle('local-app.agentConfigurationSnapshot', input);
+}
+
+export function updateNimiLocalAppAgentConfiguration(input: {
+  readonly agentHandle: string;
+  readonly expectedConfigurationRevision: string;
+  readonly routeIntents: readonly unknown[];
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConfiguration'];
+  assertExactInput(input, ['agentHandle', 'expectedConfigurationRevision', 'routeIntents'], command);
+  if (!Array.isArray(input.routeIntents) || input.routeIntents.length === 0) throw invalidInput(command, 'routeIntents is invalid');
+  validateProjectionValue(input.routeIntents as JsonValue, command);
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    expectedConfigurationRevision: decimalRevision(input.expectedConfigurationRevision, 'expectedConfigurationRevision', command, false),
+    routeIntents: input.routeIntents as JsonValue,
+  });
+}
+
+export function getNimiLocalAppAgentReadinessSnapshot(input: { readonly agentHandle: string }): Promise<JsonObject> {
+  return invokeAgentConfigureHandle('local-app.agentReadinessSnapshot', input);
+}
+
+export function getNimiLocalAppAgentAutonomySnapshot(input: { readonly agentHandle: string }): Promise<JsonObject> {
+  return invokeAgentConfigureHandle('local-app.agentAutonomySnapshot', input);
+}
+
+export function updateNimiLocalAppAgentAutonomy(input: {
+  readonly agentHandle: string;
+  readonly expectedAutonomyRevision: string;
+  readonly intent: unknown;
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'];
+  assertExactInput(input, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
+  validateProjectionValue(input.intent as JsonValue, command);
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    expectedAutonomyRevision: decimalRevision(input.expectedAutonomyRevision, 'expectedAutonomyRevision', command, false),
+    intent: input.intent as JsonValue,
+  });
+}
+
+export function getNimiLocalAppAgentPresentationSnapshot(input: { readonly agentHandle: string }): Promise<JsonObject> {
+  return invokeAgentConfigureHandle('local-app.agentPresentationSnapshot', input);
+}
+
+export function commitNimiLocalAppAgentPresentation(input: {
+  readonly agentHandle: string;
+  readonly expectedPresentationRevision: string;
+  readonly intent: unknown;
+  readonly importedAssets: readonly {
+    readonly role: 'avatar' | 'background';
+    readonly fileName: string;
+    readonly mediaType: string;
+    readonly content: Uint8Array;
+    readonly sha256: string;
+  }[];
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'];
+  assertExactInput(input, ['agentHandle', 'expectedPresentationRevision', 'intent', 'importedAssets'], command);
+  validateProjectionValue(input.intent as JsonValue, command);
+  const importedAssets = input.importedAssets.map((asset) => ({
+    role: asset.role,
+    fileName: asset.fileName,
+    mediaType: asset.mediaType,
+    content: Array.from(asset.content),
+    sha256: asset.sha256,
+  }));
+  validateProjectionValue(importedAssets as JsonValue, command);
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    expectedPresentationRevision: decimalRevision(input.expectedPresentationRevision, 'expectedPresentationRevision', command, true),
+    intent: input.intent as JsonValue,
+    importedAssets: importedAssets as JsonValue,
+  });
+}
+
+function invokeAgentConfigureHandle(
+  operation: 'local-app.agentConfigurationSnapshot' | 'local-app.agentReadinessSnapshot' | 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot',
+  input: { readonly agentHandle: string },
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS[operation];
+  assertExactInput(input, ['agentHandle'], command);
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+  });
 }
 
 export function openNimiLocalAppConversation(input: {
@@ -575,6 +703,13 @@ function requiredText(value: unknown, field: string, command: string, maxLength:
     throw invalidInput(command, `${field} is invalid`);
   }
   return normalized;
+}
+
+function decimalRevision(value: unknown, field: string, command: string, allowZero: boolean): string {
+  if (typeof value !== 'string' || !/^(?:0|[1-9][0-9]*)$/u.test(value) || (!allowZero && value === '0')) {
+    throw invalidInput(command, `${field} is invalid`);
+  }
+  return value;
 }
 
 function requiredUtf8Text(value: unknown, field: string, command: string, maxBytes: number): string {

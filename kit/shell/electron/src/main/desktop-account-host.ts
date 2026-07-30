@@ -19,7 +19,12 @@ const MAX_ACCOUNT_EVENT_STREAMS = 4;
 type DesktopAccountCommand = typeof DESKTOP_ACCOUNT_COMMANDS[number];
 type NativeJsonOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
-  | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown };
+  | {
+      readonly status: 'error';
+      readonly reasonCode: unknown;
+      readonly retryable: unknown;
+      readonly reasonMetadata?: unknown;
+    };
 
 export type NimiElectronDesktopAccountBinding = {
   readonly desktopAccountSessionStatus: () => Promise<NativeJsonOutcome>;
@@ -109,7 +114,12 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
         || typeof outcome.retryable !== 'boolean') {
         throw desktopAccountError('runtime-service-untrusted', false, command);
       }
-      throw desktopAccountError(outcome.reasonCode, outcome.retryable, command);
+      throw desktopAccountError(
+        outcome.reasonCode,
+        outcome.retryable,
+        command,
+        boundedReasonMetadata(outcome.reasonMetadata),
+      );
     }
     if (outcome?.status !== 'ok' || !isPlainRecord(outcome.value)) {
       throw desktopAccountError('runtime-service-untrusted', false, command);
@@ -356,7 +366,12 @@ function nativeOutcomeError(outcome: NativeJsonOutcome, command: string): NimiEl
     || typeof outcome.retryable !== 'boolean') {
     return desktopAccountError('runtime-service-untrusted', false, command);
   }
-  return desktopAccountError(outcome.reasonCode, outcome.retryable, command);
+  return desktopAccountError(
+    outcome.reasonCode,
+    outcome.retryable,
+    command,
+    boundedReasonMetadata(outcome.reasonMetadata),
+  );
 }
 
 function assertExactKeys(value: Readonly<Record<string, unknown>>, allowed: readonly string[], label: string): void {
@@ -386,7 +401,12 @@ function boundedStreamId(value: unknown): string {
   return value;
 }
 
-function desktopAccountError(reasonCode: string, retryable: boolean, command: string): NimiElectronShellHostError {
+function desktopAccountError(
+  reasonCode: string,
+  retryable: boolean,
+  command: string,
+  reasonMetadata: Readonly<Record<string, string>> = {},
+): NimiElectronShellHostError {
   const code = reasonCode === 'protected-carrier-required'
     ? 'protected-carrier-required'
     : reasonCode === 'runtime-service-unavailable'
@@ -395,15 +415,40 @@ function desktopAccountError(reasonCode: string, retryable: boolean, command: st
         ? 'runtime-service-repair-required'
         : reasonCode === 'runtime-service-untrusted'
           ? 'runtime-service-untrusted'
-          : 'runtime-permission-denied';
+          : reasonCode === 'runtime-service-error-unclassified'
+            ? 'runtime-service-error-unclassified'
+            : 'runtime-permission-denied';
   return new NimiElectronShellHostError({
     code,
     message: reasonCode,
     reasonCode,
     actionHint: retryable ? 'retry_protected_desktop_account_operation' : 'refresh_runtime_account_projection',
     source: reasonCode === 'protected-carrier-required' ? 'electron' : 'runtime',
-    details: { command, retryable },
+    details: {
+      command,
+      retryable,
+      ...(Object.keys(reasonMetadata).length > 0 ? { reasonMetadata } : {}),
+    },
   });
+}
+
+function boundedReasonMetadata(value: unknown): Readonly<Record<string, string>> {
+  if (value === undefined) return {};
+  if (!isPlainRecord(value)) throw new Error('runtime account reason metadata is invalid');
+  const metadata: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (!['permission_id', 'permission_reason', 'permission_admission', 'diagnostic_stage',
+      'local_development_reason_code', 'grpc_status_code'].includes(key)
+      || typeof entry !== 'string'
+      || entry.length === 0
+      || entry.length > 2048
+      || entry.trim() !== entry
+      || /[\u0000-\u001f\u007f]/u.test(entry)) {
+      throw new Error('runtime account reason metadata is invalid');
+    }
+    metadata[key] = entry;
+  }
+  return Object.freeze(metadata);
 }
 
 const PERMISSION_OWNER_METHODS = new Set([

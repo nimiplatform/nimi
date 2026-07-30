@@ -29,6 +29,13 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentConfigurationSnapshot'], 'agentConfigurationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConfiguration'], 'agentUpdateConfiguration'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReadinessSnapshot'], 'agentReadinessSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'], 'agentCommitPresentation'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], 'storageReadJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], 'storageWriteJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], 'storageRemoveJson'],
@@ -128,6 +135,45 @@ function validatePayload(
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
+    case 'agentConfigurationSnapshot':
+    case 'agentReadinessSnapshot':
+    case 'agentAutonomySnapshot':
+    case 'agentPresentationSnapshot':
+      return identifiers(payload, ['agentHandle'], command);
+    case 'agentUpdateConfiguration':
+      assertExactKeys(payload, ['agentHandle', 'expectedConfigurationRevision', 'routeIntents'], command);
+      if (!Array.isArray(payload.routeIntents) || payload.routeIntents.length === 0) {
+        throw invalidPayload(command, 'routeIntents is invalid');
+      }
+      assertNoForbiddenAuthorityValue(payload.routeIntents, command);
+      validateStorageJsonValue(payload.routeIntents, command);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        expectedConfigurationRevision: decimalRevision(payload.expectedConfigurationRevision, 'expectedConfigurationRevision', command, false),
+        routeIntents: payload.routeIntents as NimiElectronLocalAppRecord[string],
+      };
+    case 'agentUpdateAutonomy':
+      assertExactKeys(payload, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
+      assertNoForbiddenAuthorityValue(payload.intent, command);
+      validateStorageJsonValue(payload.intent, command);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        expectedAutonomyRevision: decimalRevision(payload.expectedAutonomyRevision, 'expectedAutonomyRevision', command, false),
+        intent: payload.intent as NimiElectronLocalAppRecord[string],
+      };
+    case 'agentCommitPresentation':
+      assertExactKeys(payload, ['agentHandle', 'expectedPresentationRevision', 'intent', 'importedAssets'], command);
+      assertNoForbiddenAuthorityValue(payload.intent, command);
+      assertNoForbiddenAuthorityValue(payload.importedAssets, command);
+      validateStorageJsonValue(payload.intent, command);
+      validateStorageJsonValue(payload.importedAssets, command);
+      if (!Array.isArray(payload.importedAssets)) throw invalidPayload(command, 'importedAssets is invalid');
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        expectedPresentationRevision: decimalRevision(payload.expectedPresentationRevision, 'expectedPresentationRevision', command, true),
+        intent: payload.intent as NimiElectronLocalAppRecord[string],
+        importedAssets: payload.importedAssets as NimiElectronLocalAppRecord[string],
+      };
     case 'storageReadJson':
     case 'storageRemoveJson':
       return storagePathPayload(payload, command);
@@ -207,6 +253,20 @@ function validateStorageJsonValue(value: unknown, command: string): void {
   }
 }
 
+function assertNoForbiddenAuthorityValue(value: unknown, command: string): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) assertNoForbiddenAuthorityValue(entry, command);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (FORBIDDEN_RENDERER_FIELDS.has(key)) {
+      throw invalidPayload(command, `renderer authority field ${key} is forbidden`);
+    }
+    assertNoForbiddenAuthorityValue(entry, command);
+  }
+}
+
 function assertNoForbiddenAuthority(payload: Readonly<Record<string, unknown>>, command: string): void {
   for (const key of Object.keys(payload)) {
     if (FORBIDDEN_RENDERER_FIELDS.has(key)) {
@@ -227,6 +287,13 @@ function requiredText(value: unknown, field: string, command: string, maxLength:
     throw invalidPayload(command, `${field} is invalid`);
   }
   return normalized;
+}
+
+function decimalRevision(value: unknown, field: string, command: string, allowZero: boolean): string {
+  if (typeof value !== 'string' || !/^(?:0|[1-9][0-9]*)$/u.test(value) || (!allowZero && value === '0')) {
+    throw invalidPayload(command, `${field} is invalid`);
+  }
+  return value;
 }
 
 function requiredUtf8Text(value: unknown, field: string, command: string, maxBytes: number): string {
@@ -301,7 +368,13 @@ function mapHostError(error: NimiElectronLocalAppHostError, command: string): Ni
     reasonCode: error.reasonCode,
     actionHint: actionHint(error.reasonCode),
     source: error.reasonCode === 'protected-carrier-required' ? 'electron' : 'runtime',
-    details: { command, retryable: error.retryable },
+    details: {
+      command,
+      retryable: error.retryable,
+      ...(Object.keys(error.reasonMetadata).length > 0
+        ? { reasonMetadata: error.reasonMetadata }
+        : {}),
+    },
   });
 }
 
@@ -310,6 +383,7 @@ function standardCode(reasonCode: string) {
     case 'protected-carrier-required': return 'protected-carrier-required' as const;
     case 'runtime-service-unavailable': return 'runtime-service-unavailable' as const;
     case 'runtime-service-untrusted': return 'runtime-service-untrusted' as const;
+    case 'runtime-service-error-unclassified': return 'runtime-service-error-unclassified' as const;
     case 'runtime-service-repair-required': return 'runtime-service-repair-required' as const;
     case 'runtime-unauthenticated': return 'runtime-unauthenticated' as const;
     case 'invalid-payload': return 'invalid-payload' as const;
@@ -324,6 +398,7 @@ function actionHint(reasonCode: string): string {
   switch (reasonCode) {
     case 'protected-carrier-required': return 'install_verified_electron_protected_carrier';
     case 'runtime-service-unavailable': return 'start_fixed_runtime_service';
+    case 'runtime-service-error-unclassified': return 'inspect_runtime_service_error';
     case 'runtime-service-repair-required': return 'repair_fixed_runtime_service';
     case 'runtime-unauthenticated': return 'open_request_empty_local_app_session';
     case 'permission-unavailable': return 'continue_without_optional_permission';

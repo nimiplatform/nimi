@@ -184,7 +184,7 @@ pub(super) async fn get_account_session_status(
     let control = control_for_call().await?;
     match control.get_account_session_status(request.clone()).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -201,7 +201,7 @@ pub(super) async fn open_account_session_events(
     let control = control_for_call().await?;
     match control.open_account_session_events(request.clone()).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -218,7 +218,7 @@ pub(super) async fn begin_account_login(
     let control = control_for_call().await?;
     match control.begin_account_login(request.clone()).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call().await?.begin_account_login(request).await
         }
@@ -232,7 +232,7 @@ pub(super) async fn complete_account_login(
     let control = control_for_call().await?;
     match control.complete_account_login(request.clone()).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -249,7 +249,7 @@ pub(super) async fn invoke_account_realm_unary(
     let control = control_for_call().await?;
     match control.invoke_account_realm_unary(request.clone()).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -266,7 +266,7 @@ pub(super) async fn logout_account(
     let control = control_for_call().await?;
     match control.logout_account(request.clone()).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call().await?.logout_account(request).await
         }
@@ -280,7 +280,7 @@ pub(super) async fn switch_account(
     let control = control_for_call().await?;
     match control.switch_account(request.clone()).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call().await?.switch_account(request).await
         }
@@ -445,7 +445,7 @@ pub(super) async fn evaluate_local_development_project(
         .await;
     match first_attempt {
         Ok(value) => Ok(value),
-        Err(error) if !should_reconnect(error) => Err(error),
+        Err(error) if !should_reconnect(&error) => Err(error),
         Err(_) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
@@ -460,7 +460,7 @@ pub(super) async fn get_developer_mode_status() -> Result<DeveloperModeStatus, N
     let control = control_for_call().await?;
     match control.get_developer_mode_status().await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call().await?.get_developer_mode_status().await
         }
@@ -473,7 +473,7 @@ pub(super) async fn get_local_development_authority_summary(
     let control = control_for_call().await?;
     match control.get_local_development_authority_summary().await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -490,7 +490,7 @@ pub(super) async fn set_developer_mode(
     let control = control_for_call().await?;
     match control.set_developer_mode(enabled).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call().await?.set_developer_mode(enabled).await
         }
@@ -507,7 +507,7 @@ pub(super) async fn decide_local_development_project(
         .await
     {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -523,7 +523,7 @@ pub(super) async fn list_local_development_authorizations(
     let control = control_for_call().await?;
     match control.list_local_development_authorizations().await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -543,7 +543,7 @@ pub(super) async fn revoke_local_development_authorization(
         .await
     {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -560,7 +560,7 @@ pub(super) async fn launch_local_development_host(
     let control = control_for_call().await?;
     match control.launch_local_development_host(request.clone()).await {
         Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -589,7 +589,7 @@ pub(super) async fn end_local_development_run(
     let control = control_for_call().await?;
     match control.end_local_development_run(request.clone()).await {
         Ok(()) => Ok(()),
-        Err(error) if should_reconnect(error) => {
+        Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
@@ -622,7 +622,7 @@ async fn control_for_call() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError
                 let Some(delay) = INITIAL_CONTROL_OPEN_RETRY_DELAYS.get(attempt) else {
                     return Err(error);
                 };
-                if !should_retry_initial_control_open(error) {
+                if !should_retry_initial_control_open(&error) {
                     return Err(error);
                 }
                 tokio::time::sleep(*delay).await;
@@ -632,13 +632,13 @@ async fn control_for_call() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError
     unreachable!("initial control open retry loop always returns")
 }
 
-fn should_retry_initial_control_open(error: NimiHostError) -> bool {
+fn should_retry_initial_control_open(error: &NimiHostError) -> bool {
     error.retryable()
         && error.reason_code()
             == nimi_shell_protected_local::NimiHostErrorReasonCode::RuntimeServiceUnavailable
 }
 
-fn should_reconnect(error: NimiHostError) -> bool {
+fn should_reconnect(error: &NimiHostError) -> bool {
     matches!(
         error.reason_code(),
         nimi_shell_protected_local::NimiHostErrorReasonCode::RuntimeServiceUnavailable
@@ -709,19 +709,19 @@ mod tests {
 
     #[test]
     fn initial_control_open_retries_only_retryable_service_unavailable() {
-        assert!(should_retry_initial_control_open(NimiHostError::new(
+        assert!(should_retry_initial_control_open(&NimiHostError::new(
             NimiHostErrorReasonCode::RuntimeServiceUnavailable,
             true,
         )));
-        assert!(!should_retry_initial_control_open(NimiHostError::new(
+        assert!(!should_retry_initial_control_open(&NimiHostError::new(
             NimiHostErrorReasonCode::RuntimeServiceUnavailable,
             false,
         )));
-        assert!(!should_retry_initial_control_open(NimiHostError::new(
+        assert!(!should_retry_initial_control_open(&NimiHostError::new(
             NimiHostErrorReasonCode::RuntimeServiceUntrusted,
             true,
         )));
-        assert!(!should_retry_initial_control_open(NimiHostError::new(
+        assert!(!should_retry_initial_control_open(&NimiHostError::new(
             NimiHostErrorReasonCode::ProtectedCarrierRequired,
             true,
         )));

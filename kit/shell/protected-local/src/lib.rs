@@ -67,7 +67,9 @@ pub use bundled_avatar::{
     BundledAvatarRuntimeStreamReceiver,
 };
 pub use carrier::{
-    DesktopControlFuture, LocalAppAgentHandle, LocalAppConversationEvent,
+    DesktopControlFuture, LocalAppAgentCommitPresentationRequest, LocalAppAgentHandle,
+    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAgentUpdateConfigurationRequest, LocalAppConversationEvent,
     LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
     LocalAppConversationSendRequest, LocalAppConversationSendResult,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,

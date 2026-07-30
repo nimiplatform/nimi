@@ -75,14 +75,11 @@ describe('Electron standard Agent Center host', () => {
     }
   });
 
-  it('imports a file-dialog admitted Live2D folder through standard Agent Center commands', async () => {
+  it('forwards bounded file-dialog material without persistent Shell import', async () => {
     await withTempDir('agent-center-live2d', async (root) => {
       const dataRoot = path.join(root, 'data');
-      const sourceRoot = path.join(root, 'source-live2d');
-      await mkdir(sourceRoot, { recursive: true });
-      await writeFile(path.join(sourceRoot, 'ren.model3.json'), '{"Version":3,"FileReferences":{"Moc":"ren.moc3","Textures":["ren.png"]}}\n', 'utf8');
-      await writeFile(path.join(sourceRoot, 'ren.moc3'), Buffer.from('MOC3\u0001valid'));
-      await writeFile(path.join(sourceRoot, 'ren.png'), VALID_PNG);
+      const sourceRoot = path.join(root, 'ren-live2d.zip');
+      await writeFile(sourceRoot, Buffer.from('runtime-validates-this-package'));
       const protocolHost = createElectronShellFileProtocolHost({ protocol: new FakeElectronProtocol() });
       const ipcMain = registerAgentCenterBridge({
         standardDataRootBinding: {
@@ -97,7 +94,7 @@ describe('Electron standard Agent Center host', () => {
 
       await expect(invokeBridge(ipcMain, event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
-        payload: { kind: 'directory', title: 'Select Live2D folder' },
+        payload: { kind: 'file', title: 'Select Live2D package' },
       })).resolves.toEqual({ canceled: false, paths: [sourceRoot] });
 
       const imported = await invokeBridge(ipcMain, event, {
@@ -114,10 +111,10 @@ describe('Electron standard Agent Center host', () => {
       });
 
       expect(imported).toMatchObject({
-        backendKind: 'live2d',
-        validationStatus: 'valid',
+        role: 'avatar', backendKind: 'live2d', fileName: 'ren-live2d.zip', mediaType: 'application/zip',
       });
-      expect((imported as { avatarAssetRef?: string }).avatarAssetRef).toMatch(/^live2d_[a-f0-9]{12}$/u);
+      expect((imported as { content?: Uint8Array }).content).toEqual(Uint8Array.from(Buffer.from('runtime-validates-this-package')));
+      expect((imported as { sha256?: string }).sha256).toMatch(/^[a-f0-9]{64}$/u);
     });
   });
 

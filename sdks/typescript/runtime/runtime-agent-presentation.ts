@@ -1,5 +1,7 @@
 import {
+  AgentPresentationAssetRole,
   AgentPresentationBackendKind,
+  type AgentPresentationAssetMaterial,
   type AgentPresentationProfile,
   type AgentPresentationProfilePatch,
   type RuntimeTypedCallOptions,
@@ -60,23 +62,56 @@ export interface NimiRuntimeAgentPresentationProfileContext {
   readonly subjectUserId: string;
 }
 
+export interface NimiRuntimeAgentPresentationAssetMaterialInput {
+  readonly role: 'avatar' | 'background';
+  readonly fileName: string;
+  readonly mediaType: string;
+  readonly content: Uint8Array;
+  readonly sha256: string;
+}
+
 export interface NimiRuntimeAgentPresentationProfileSurface {
   setPresentationProfile(
     input: RuntimeLocalAgentIdentityInput,
     profile: NimiRuntimeAgentPresentationProfileInput | null,
     expectedRevision: string,
-  ): Promise<NimiRuntimeAgentPresentationProfileMutationResult>;
+    importedAssets?: readonly NimiRuntimeAgentPresentationAssetMaterialInput[],
+  ): Promise<NimiRuntimeAgentPresentationCommitResult>;
   patchPresentationProfile(
     input: RuntimeLocalAgentIdentityInput,
     patch: NimiRuntimeAgentPresentationProfilePatchInput,
     expectedRevision: string,
-  ): Promise<NimiRuntimeAgentPresentationProfileMutationResult>;
+    importedAssets?: readonly NimiRuntimeAgentPresentationAssetMaterialInput[],
+  ): Promise<NimiRuntimeAgentPresentationCommitResult>;
 }
 
 export interface NimiRuntimeAgentPresentationProfileMutationResult {
   readonly profile: NimiRuntimeAgentPresentationProfileProjection | null;
+  readonly previousProfile: NimiRuntimeAgentPresentationProfileProjection | null;
   readonly committedRevision: string;
 }
+
+export type NimiRuntimeAgentPresentationValidationReasonCode =
+  | 'AGENT_PRESENTATION_ASSET_TYPE_INVALID'
+  | 'AGENT_PRESENTATION_ASSET_TOO_LARGE'
+  | 'AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID'
+  | 'AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING'
+  | 'AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH'
+  | 'AGENT_PRESENTATION_BACKEND_INCOMPATIBLE'
+  | 'AGENT_PRESENTATION_ASSET_NOT_VALIDATED';
+
+export interface NimiRuntimeAgentPresentationTypedFailure {
+  readonly reasonCode: NimiRuntimeAgentPresentationValidationReasonCode;
+  readonly category: 'type' | 'size' | 'structure' | 'dependency' | 'integrity' | 'backend-compat' | 'not-validated';
+  readonly message: string;
+  readonly actionHint: string;
+  readonly reasonMetadata: Readonly<Record<string, string>>;
+}
+
+export type NimiRuntimeAgentPresentationCommitResult =
+  | { readonly outcome: 'committed'; readonly projection: NimiRuntimeAgentPresentationProfileMutationResult }
+  | { readonly outcome: 'conflict'; readonly conflict: { readonly reasonCode: 'AGENT_PRESENTATION_REVISION_CONFLICT'; readonly category: 'presentation-revision-conflict'; readonly actionHint: 'refresh_presentation_snapshot'; readonly message: string } }
+  | { readonly outcome: 'validation-failed'; readonly failure: NimiRuntimeAgentPresentationTypedFailure };
 
 export interface NimiHostRuntimeAgentPresentationProfileClient {
   readonly appId: string;
@@ -179,6 +214,34 @@ function normalizePresentationAvatarAutoplay(value: unknown, omittedValue: boole
   return value;
 }
 
+function buildPresentationAssetMaterials(
+  input: readonly NimiRuntimeAgentPresentationAssetMaterialInput[] | undefined,
+): AgentPresentationAssetMaterial[] {
+  const seen = new Set<string>();
+  return [...(input ?? [])].map((material) => {
+    const role = normalizeNimiRuntimeAgentText(material?.role).toLowerCase();
+    const fileName = normalizeNimiRuntimeAgentText(material?.fileName);
+    const mediaType = normalizeNimiRuntimeAgentText(material?.mediaType).toLowerCase();
+    const sha256 = normalizeNimiRuntimeAgentText(material?.sha256);
+    if ((role !== 'avatar' && role !== 'background') || seen.has(role) || !fileName || !mediaType
+      || !(material?.content instanceof Uint8Array) || material.content.byteLength === 0 || !/^[a-f0-9]{64}$/u.test(sha256)) {
+      presentationError(
+        'Runtime Agent presentation asset material is invalid.',
+        'SDK_RUNTIME_AGENT_PRESENTATION_ASSET_MATERIAL_INVALID',
+        'provide_protected_shell_imported_asset_material',
+      );
+    }
+    seen.add(role);
+    return {
+      role: role === 'avatar' ? AgentPresentationAssetRole.AVATAR : AgentPresentationAssetRole.BACKGROUND,
+      fileName,
+      mediaType,
+      content: new Uint8Array(material.content),
+      sha256,
+    };
+  });
+}
+
 function requirePresentationRevision(value: unknown): string {
   const revision = normalizeNimiRuntimeAgentPresentationRevision(value);
   if (revision === null) {
@@ -252,6 +315,7 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
   readonly expectedRevision: string;
   readonly profile?: NimiRuntimeAgentPresentationProfileInput | null | undefined;
   readonly patch?: NimiRuntimeAgentPresentationProfilePatchInput | null | undefined;
+  readonly importedAssets?: readonly NimiRuntimeAgentPresentationAssetMaterialInput[];
 }): SetAgentPresentationProfileRequest {
   const identity = projectRuntimeLocalAgentIdentity(input.identity);
   const agentId = identity.localAgentRef;
@@ -275,11 +339,13 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
     runtimeSourceRef: identity.runtimeSourceRef,
     localAgentRef: identity.localAgentRef,
   });
+  const importedAssets = buildPresentationAssetMaterials(input.importedAssets);
   if (input.patch) {
     return {
       context,
       agentId,
       expectedRevision,
+      importedAssets,
       mutation: {
         oneofKind: 'patch',
         patch: buildNimiRuntimeAgentPresentationProfilePatch(input.patch),
@@ -291,6 +357,7 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
       context,
       agentId,
       expectedRevision,
+      importedAssets,
       mutation: {
         oneofKind: 'clear',
         clear: {},
@@ -298,8 +365,10 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
     };
   }
   const backendKind = normalizeNimiRuntimeAgentPresentationBackendKind(input.profile.backendKind);
-  const avatarAssetRef = normalizePresentationOpaqueRef(input.profile.avatarAssetRef, 'avatar asset ref', false);
-  if (!backendKind || !avatarAssetRef) {
+  const avatarAssetRef = input.profile.avatarAssetRef === undefined
+    ? ''
+    : normalizePresentationOpaqueRef(input.profile.avatarAssetRef, 'avatar asset ref', true);
+  if (!backendKind || (!avatarAssetRef && !importedAssets.some((asset) => asset.role === AgentPresentationAssetRole.AVATAR))) {
     presentationError(
       'Runtime Agent presentation profile requires backend kind and avatar asset ref.',
       'SDK_RUNTIME_AGENT_PRESENTATION_PROFILE_INVALID',
@@ -310,6 +379,7 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
     context,
     agentId,
     expectedRevision,
+    importedAssets,
     mutation: {
       oneofKind: 'profile',
       profile: {
@@ -339,6 +409,12 @@ function projectPresentationMutationResponse(
       'inspect_runtime_agent_presentation_response',
     );
   }
+  const previousProfile = response.previousProfile
+    ? projectNimiRuntimeAgentPresentationRecord({
+      presentationProfile: response.previousProfile,
+      presentationProfileRevision: response.previousProfile.revision,
+    }).profile
+    : null;
   if (!response.profile) {
     if (mutationKind === 'profile') {
       presentationError(
@@ -347,7 +423,7 @@ function projectPresentationMutationResponse(
         'inspect_runtime_agent_presentation_response',
       );
     }
-    return { profile: null, committedRevision };
+    return { profile: null, previousProfile, committedRevision };
   }
   if (mutationKind === 'clear') {
     presentationError(
@@ -367,54 +443,100 @@ function projectPresentationMutationResponse(
       'inspect_runtime_agent_presentation_response',
     );
   }
-  return { profile: projected.profile, committedRevision };
+  return { profile: projected.profile, previousProfile, committedRevision };
+}
+
+function projectPresentationCommitError(error: unknown): Exclude<NimiRuntimeAgentPresentationCommitResult, { readonly outcome: 'committed' }> | null {
+  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  const reasonValue = record.reasonCode ?? record.code;
+  const rawReason = (typeof reasonValue === 'number' ? String(reasonValue) : normalizeNimiRuntimeAgentText(reasonValue)).replace(/-/gu, '_').toUpperCase();
+  const numeric: Record<string, string> = {
+    '614': 'AGENT_PRESENTATION_REVISION_CONFLICT', '672': 'AGENT_PRESENTATION_ASSET_TYPE_INVALID',
+    '673': 'AGENT_PRESENTATION_ASSET_TOO_LARGE', '674': 'AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID',
+    '675': 'AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING', '676': 'AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH',
+    '677': 'AGENT_PRESENTATION_BACKEND_INCOMPATIBLE', '678': 'AGENT_PRESENTATION_ASSET_NOT_VALIDATED',
+  };
+  const reasonCode = numeric[rawReason] ?? rawReason;
+  const message = error instanceof Error ? error.message : reasonCode;
+  if (reasonCode === 'AGENT_PRESENTATION_REVISION_CONFLICT') {
+    return Object.freeze({ outcome: 'conflict', conflict: Object.freeze({
+      reasonCode, category: 'presentation-revision-conflict', actionHint: 'refresh_presentation_snapshot', message,
+    }) });
+  }
+  const categories: Record<string, NimiRuntimeAgentPresentationTypedFailure['category']> = {
+    AGENT_PRESENTATION_ASSET_TYPE_INVALID: 'type', AGENT_PRESENTATION_ASSET_TOO_LARGE: 'size',
+    AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID: 'structure', AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING: 'dependency',
+    AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH: 'integrity', AGENT_PRESENTATION_BACKEND_INCOMPATIBLE: 'backend-compat',
+    AGENT_PRESENTATION_ASSET_NOT_VALIDATED: 'not-validated',
+  };
+  const category = categories[reasonCode];
+  if (!category) return null;
+  const details = record.details && typeof record.details === 'object' ? record.details as Record<string, unknown> : {};
+  const allowed = ['validation_category', 'asset_role', 'media_type', 'backend_kind'];
+  const reasonMetadata = Object.freeze(Object.fromEntries(allowed.flatMap((key) => {
+    const value = normalizeNimiRuntimeAgentText(details[key]);
+    return value ? [[key, value]] : [];
+  })));
+  return Object.freeze({ outcome: 'validation-failed', failure: Object.freeze({
+    reasonCode: reasonCode as NimiRuntimeAgentPresentationValidationReasonCode,
+    category,
+    message,
+    actionHint: normalizeNimiRuntimeAgentText(record.actionHint) || 'inspect_presentation_validation_failure',
+    reasonMetadata,
+  }) });
 }
 
 export function createNimiHostRuntimeAgentPresentationProfileSurface(
   options: NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
 ): NimiRuntimeAgentPresentationProfileSurface {
   return {
-    async setPresentationProfile(identity, profile, expectedRevision) {
+    async setPresentationProfile(identity, profile, expectedRevision, importedAssets) {
       const runtime = options.getRuntime();
       const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
         options.getSubjectUserId,
         'Runtime Agent presentation profile requires authenticated subject user id.',
       );
-      const response = await withNimiRuntimeAgentScopes({
-        runtime,
-        subjectUserId,
-        withScopes: options.withScopes,
-      }, ['runtime.agent.write'], (callOptions) => runtime.agent.setAgentPresentationProfile(
-        buildNimiSetRuntimeAgentPresentationProfileRequest({
-          context: { appId: runtime.appId, subjectUserId },
-          identity,
-          profile,
-          expectedRevision,
-        }),
-        callOptions,
-      ));
-      return projectPresentationMutationResponse(response, profile ? 'profile' : 'clear');
+      try {
+        const response = await withNimiRuntimeAgentScopes({
+          runtime,
+          subjectUserId,
+          withScopes: options.withScopes,
+        }, ['runtime.agent.write'], (callOptions) => runtime.agent.setAgentPresentationProfile(
+          buildNimiSetRuntimeAgentPresentationProfileRequest({
+            context: { appId: runtime.appId, subjectUserId }, identity, profile, expectedRevision, importedAssets,
+          }),
+          callOptions,
+        ));
+        return Object.freeze({ outcome: 'committed', projection: projectPresentationMutationResponse(response, profile ? 'profile' : 'clear') });
+      } catch (error) {
+        const projected = projectPresentationCommitError(error);
+        if (projected) return projected;
+        throw error;
+      }
     },
-    async patchPresentationProfile(identity, patch, expectedRevision) {
+    async patchPresentationProfile(identity, patch, expectedRevision, importedAssets) {
       const runtime = options.getRuntime();
       const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
         options.getSubjectUserId,
         'Runtime Agent presentation profile requires authenticated subject user id.',
       );
-      const response = await withNimiRuntimeAgentScopes({
-        runtime,
-        subjectUserId,
-        withScopes: options.withScopes,
-      }, ['runtime.agent.write'], (callOptions) => runtime.agent.setAgentPresentationProfile(
-        buildNimiSetRuntimeAgentPresentationProfileRequest({
-          context: { appId: runtime.appId, subjectUserId },
-          identity,
-          patch,
-          expectedRevision,
-        }),
-        callOptions,
-      ));
-      return projectPresentationMutationResponse(response, 'patch');
+      try {
+        const response = await withNimiRuntimeAgentScopes({
+          runtime,
+          subjectUserId,
+          withScopes: options.withScopes,
+        }, ['runtime.agent.write'], (callOptions) => runtime.agent.setAgentPresentationProfile(
+          buildNimiSetRuntimeAgentPresentationProfileRequest({
+            context: { appId: runtime.appId, subjectUserId }, identity, patch, expectedRevision, importedAssets,
+          }),
+          callOptions,
+        ));
+        return Object.freeze({ outcome: 'committed', projection: projectPresentationMutationResponse(response, 'patch') });
+      } catch (error) {
+        const projected = projectPresentationCommitError(error);
+        if (projected) return projected;
+        throw error;
+      }
     },
   };
 }

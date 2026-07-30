@@ -30,7 +30,7 @@ pub async fn local_app_session_status() -> NativeJsonOutcome {
     match session.session_status().await {
         Ok(status) => NativeJsonOutcome::success(project_session_status(status)),
         Err(error) => {
-            clear_session_on_transport_failure(&session, error).await;
+            clear_session_on_transport_failure(&session, &error).await;
             NativeJsonOutcome::error(error)
         }
     }
@@ -45,7 +45,7 @@ pub async fn local_app_session_renew() -> NativeJsonOutcome {
     match session.renew_technical_session().await {
         Ok(status) => NativeJsonOutcome::success(project_session_status(status)),
         Err(error) => {
-            clear_session_on_transport_failure(&session, error).await;
+            clear_session_on_transport_failure(&session, &error).await;
             NativeJsonOutcome::error(error)
         }
     }
@@ -65,7 +65,7 @@ pub async fn local_app_permission_status(input: NativePermissionStatusInput) -> 
     {
         Ok(status) => NativeJsonOutcome::success(project_permission_status(status)),
         Err(error) => {
-            clear_session_on_transport_failure(&session, error).await;
+            clear_session_on_transport_failure(&session, &error).await;
             NativeJsonOutcome::error(error)
         }
     }
@@ -88,10 +88,125 @@ pub async fn local_app_permission_request(
     {
         Ok(status) => NativeJsonOutcome::success(project_permission_status(status)),
         Err(error) => {
-            clear_session_on_transport_failure(&session, error).await;
+            clear_session_on_transport_failure(&session, &error).await;
             NativeJsonOutcome::error(error)
         }
     }
+}
+
+#[napi(js_name = "localAppAgentConfigurationSnapshot")]
+pub async fn local_app_agent_configuration_snapshot(
+    input: NativeAgentHandleInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_configuration_snapshot(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentUpdateConfiguration")]
+pub async fn local_app_agent_update_configuration(
+    input: NativeAgentUpdateConfigurationInput,
+) -> NativeJsonOutcome {
+    let revision = match decimal_revision(&input.expected_configuration_revision, false) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_update_configuration(LocalAppAgentUpdateConfigurationRequest {
+                agent_handle: input.agent_handle,
+                expected_configuration_revision: revision,
+                route_intents: input.route_intents,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentReadinessSnapshot")]
+pub async fn local_app_agent_readiness_snapshot(
+    input: NativeAgentHandleInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_readiness_snapshot(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentAutonomySnapshot")]
+pub async fn local_app_agent_autonomy_snapshot(input: NativeAgentHandleInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_autonomy_snapshot(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentUpdateAutonomy")]
+pub async fn local_app_agent_update_autonomy(
+    input: NativeAgentUpdateAutonomyInput,
+) -> NativeJsonOutcome {
+    let revision = match decimal_revision(&input.expected_autonomy_revision, false) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_update_autonomy(LocalAppAgentUpdateAutonomyRequest {
+                agent_handle: input.agent_handle,
+                expected_autonomy_revision: revision,
+                intent: input.intent,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentPresentationSnapshot")]
+pub async fn local_app_agent_presentation_snapshot(
+    input: NativeAgentHandleInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_presentation_snapshot(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentCommitPresentation")]
+pub async fn local_app_agent_commit_presentation(
+    input: NativeAgentCommitPresentationInput,
+) -> NativeJsonOutcome {
+    let revision = match decimal_revision(&input.expected_presentation_revision, true) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_commit_presentation(LocalAppAgentCommitPresentationRequest {
+                agent_handle: input.agent_handle,
+                expected_presentation_revision: revision,
+                intent: input.intent,
+                imported_assets: input.imported_assets,
+            })
+            .await
+    })
+    .await
 }
 
 #[napi(js_name = "localAppStorageReadJson")]
@@ -217,7 +332,7 @@ pub async fn local_app_conversation_subscribe(
     {
         Ok(receiver) => receiver,
         Err(error) => {
-            clear_session_on_transport_failure(&session, error).await;
+            clear_session_on_transport_failure(&session, &error).await;
             return NativeJsonOutcome::error(error);
         }
     };
@@ -311,6 +426,29 @@ fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
     })
 }
 
+fn decimal_revision(value: &str, allow_zero: bool) -> Result<u64, LocalAppOperationError> {
+    if value.is_empty()
+        || value.trim() != value
+        || (value.len() > 1 && value.starts_with('0'))
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return Err(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidPayload,
+            false,
+        ));
+    }
+    let revision = value
+        .parse::<u64>()
+        .map_err(|_| LocalAppOperationError::new(LocalAppReasonCode::InvalidPayload, false))?;
+    if !allow_zero && revision == 0 {
+        return Err(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidPayload,
+            false,
+        ));
+    }
+    Ok(revision)
+}
+
 async fn invoke_agent<F, Fut>(operation: F) -> NativeJsonOutcome
 where
     F: FnOnce(Arc<dyn NimiLocalAppSession>) -> Fut,
@@ -323,7 +461,7 @@ where
     match operation(session.clone()).await {
         Ok(value) => NativeJsonOutcome::success(value),
         Err(error) => {
-            clear_session_on_transport_failure(&session, error).await;
+            clear_session_on_transport_failure(&session, &error).await;
             NativeJsonOutcome::error(error)
         }
     }
@@ -342,9 +480,28 @@ async fn current_or_open_session() -> Result<Arc<dyn NimiLocalAppSession>, Local
     Ok(session)
 }
 
+#[cfg(test)]
+mod configure_revision_tests {
+    use super::*;
+
+    #[test]
+    fn presentation_accepts_zero_but_other_mutations_require_positive_revisions() {
+        assert_eq!(
+            decimal_revision("0", true).expect("initial presentation"),
+            0
+        );
+        assert!(decimal_revision("0", false).is_err());
+        assert!(decimal_revision("01", true).is_err());
+        assert_eq!(
+            decimal_revision(&u64::MAX.to_string(), false).expect("u64 max"),
+            u64::MAX
+        );
+    }
+}
+
 async fn clear_session_on_transport_failure(
     session: &Arc<dyn NimiLocalAppSession>,
-    error: LocalAppOperationError,
+    error: &LocalAppOperationError,
 ) {
     if !matches!(
         error.reason_code(),

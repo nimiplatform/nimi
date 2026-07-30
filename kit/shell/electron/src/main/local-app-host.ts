@@ -17,12 +17,20 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationStreamNext',
   'localAppConversationStreamClose',
   'localAppConversationSnapshot',
+  'localAppAgentConfigurationSnapshot',
+  'localAppAgentUpdateConfiguration',
+  'localAppAgentReadinessSnapshot',
+  'localAppAgentAutonomySnapshot',
+  'localAppAgentUpdateAutonomy',
+  'localAppAgentPresentationSnapshot',
+  'localAppAgentCommitPresentation',
 ] as const;
 
 const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'protected-carrier-required',
   'runtime-service-unavailable',
   'runtime-service-untrusted',
+  'runtime-service-error-unclassified',
   'runtime-service-repair-required',
   'runtime-unauthenticated',
   'process-replaced',
@@ -38,17 +46,32 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'request-pending',
   'runtime-permission-denied',
   'local-app-operation-unavailable',
+  'permission-reserved-not-admitted',
+  'permission-unknown',
+  'agent-ai-config-revision-conflict',
+  'agent-autonomy-revision-conflict',
+  'agent-presentation-revision-conflict',
   'invalid-payload',
   'not-found',
   'resource-exhausted',
   'invalid-path',
 ] as const);
 
+const ADMITTED_REASON_METADATA_KEYS: ReadonlySet<string> = new Set([
+  'permission_id',
+  'permission_reason',
+  'permission_admission',
+  'diagnostic_stage',
+  'local_development_reason_code',
+  'grpc_status_code',
+]);
+
 const PERMISSION_STATES: ReadonlySet<string> = new Set([
   'prompt',
   'pending',
   'granted',
   'denied',
+  'revoked',
   'unavailable',
 ] as const);
 
@@ -88,7 +111,7 @@ export type NimiElectronLocalAppAgentHandle = NimiElectronLocalAppRecord & {
 };
 
 export type NimiElectronLocalAppPermissionStatus = NimiElectronLocalAppRecord & {
-  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'unavailable';
+  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'revoked' | 'unavailable';
   readonly permissionId: string;
   readonly canRequest: boolean;
   readonly reasonCode: string;
@@ -97,7 +120,12 @@ export type NimiElectronLocalAppPermissionStatus = NimiElectronLocalAppRecord & 
 
 type NativeLocalAppOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
-  | { readonly status: 'error'; readonly reasonCode: string; readonly retryable: boolean };
+  | {
+      readonly status: 'error';
+      readonly reasonCode: string;
+      readonly retryable: boolean;
+      readonly reasonMetadata?: unknown;
+    };
 
 export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionStatus: () => Promise<NativeLocalAppOutcome>;
@@ -113,6 +141,13 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentConfigurationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentUpdateConfiguration: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentReadinessSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
 };
 
 export type NimiElectronLocalAppHost = {
@@ -129,6 +164,13 @@ export type NimiElectronLocalAppHost = {
   readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentConfigurationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentUpdateConfiguration: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentReadinessSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
 };
 
 export type NimiElectronLocalAppMaintenanceFailure = {
@@ -141,12 +183,18 @@ const LOCAL_APP_SESSION_ROTATION_INTERVAL_MS = 5 * 60 * 1_000;
 export class NimiElectronLocalAppHostError extends Error {
   readonly reasonCode: string;
   readonly retryable: boolean;
+  readonly reasonMetadata: Readonly<Record<string, string>>;
 
-  constructor(reasonCode: string, retryable: boolean) {
+  constructor(
+    reasonCode: string,
+    retryable: boolean,
+    reasonMetadata: Readonly<Record<string, string>> = {},
+  ) {
     super(reasonCode);
     this.name = 'NimiElectronLocalAppHostError';
     this.reasonCode = reasonCode;
     this.retryable = retryable;
+    this.reasonMetadata = Object.freeze({ ...reasonMetadata });
   }
 }
 
@@ -211,6 +259,34 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppConversationSnapshot(input));
   }
 
+  agentConfigurationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentConfigurationSnapshot(input));
+  }
+
+  agentUpdateConfiguration(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentUpdateConfiguration(input));
+  }
+
+  agentReadinessSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentReadinessSnapshot(input));
+  }
+
+  agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentAutonomySnapshot(input));
+  }
+
+  agentUpdateAutonomy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentUpdateAutonomy(input));
+  }
+
+  agentPresentationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentPresentationSnapshot(input));
+  }
+
+  agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentCommitPresentation(input));
+  }
+
 }
 
 class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
@@ -271,6 +347,34 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   conversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationSnapshot(input);
+  }
+
+  agentConfigurationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentConfigurationSnapshot(input);
+  }
+
+  agentUpdateConfiguration(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentUpdateConfiguration(input);
+  }
+
+  agentReadinessSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentReadinessSnapshot(input);
+  }
+
+  agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentAutonomySnapshot(input);
+  }
+
+  agentUpdateAutonomy(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentUpdateAutonomy(input);
+  }
+
+  agentPresentationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentPresentationSnapshot(input);
+  }
+
+  agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentCommitPresentation(input);
   }
 
 }
@@ -389,7 +493,11 @@ async function invoke(call: () => Promise<NativeLocalAppOutcome>): Promise<unkno
     if (!ADMITTED_REASON_CODES.has(reasonCode) || typeof outcome.retryable !== 'boolean') {
       throw untrustedRuntimeError();
     }
-    throw new NimiElectronLocalAppHostError(reasonCode, outcome.retryable);
+    throw new NimiElectronLocalAppHostError(
+      reasonCode,
+      outcome.retryable,
+      validateReasonMetadata(outcome.reasonMetadata),
+    );
   }
   if (outcome?.status !== 'ok' || !Object.hasOwn(outcome, 'value')) throw untrustedRuntimeError();
   return outcome.value;
@@ -514,6 +622,26 @@ function validateConversationEvent(value: Record<string, unknown>): NimiElectron
   for (const key of ['messageId', 'messageType', 'reasonCode', 'traceId']) exactText(value[key]);
   validateJsonValue(value.payload);
   return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
+}
+
+function validateReasonMetadata(value: unknown): Readonly<Record<string, string>> {
+  if (value === undefined) return {};
+  if (!isPlainRecord(value) || Object.keys(value).length > ADMITTED_REASON_METADATA_KEYS.size) {
+    throw untrustedRuntimeError();
+  }
+  const metadata: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (!ADMITTED_REASON_METADATA_KEYS.has(key)
+      || typeof entry !== 'string'
+      || entry.length === 0
+      || entry.length > 2048
+      || entry.trim() !== entry
+      || /[\u0000-\u001f\u007f]/u.test(entry)) {
+      throw untrustedRuntimeError();
+    }
+    metadata[key] = entry;
+  }
+  return Object.freeze(metadata);
 }
 
 function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {

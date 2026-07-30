@@ -99,6 +99,35 @@ describe('renderer local-app standard-shell surface', () => {
     });
   });
 
+  it('exposes exactly seven configure operations and preserves decimal revision strings', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { revision: '0' };
+      },
+      listen: () => () => {},
+    };
+    const configure = createNimiLocalAppStandardShellSurface().agentConfigure;
+    const intent = { backendKind: 'vrm', avatarAssetRef: 'asset-1', expressionProfileRef: '', idlePreset: '', interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false, backgroundAssetRef: '' };
+    await configure.configurationSnapshot({ agentHandle: 'lash_owner_issued' });
+    await configure.updateConfiguration({ agentHandle: 'lash_owner_issued', expectedConfigurationRevision: '1', routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }] });
+    await configure.readinessSnapshot({ agentHandle: 'lash_owner_issued' });
+    await configure.autonomySnapshot({ agentHandle: 'lash_owner_issued' });
+    await configure.updateAutonomy({ agentHandle: 'lash_owner_issued', expectedAutonomyRevision: '1', intent: { enabled: false } });
+    await configure.presentationSnapshot({ agentHandle: 'lash_owner_issued' });
+    await configure.commitPresentation({ agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent, importedAssets: [] });
+    expect(Object.keys(configure)).toEqual([
+      'configurationSnapshot', 'updateConfiguration', 'readinessSnapshot', 'autonomySnapshot',
+      'updateAutonomy', 'presentationSnapshot', 'commitPresentation',
+    ]);
+    expect(invocations).toHaveLength(7);
+    expect(invocations.at(-1)).toEqual({
+      command: 'nimi.shell.localApp.agentCommitPresentation',
+      payload: { payload: { agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent, importedAssets: [] } },
+    });
+  });
+
   it('projects conversation events through a cancellable bounded async subscription', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     let eventHandler: ((event: { payload: unknown }) => void) | undefined;

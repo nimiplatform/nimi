@@ -1,3 +1,4 @@
+mod configure;
 mod conversation;
 mod permission;
 mod storage;
@@ -21,6 +22,8 @@ use crate::windows_peer_trust::VerifiedRuntimePeer;
 #[cfg(target_os = "windows")]
 use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
+    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConfigurationRequest,
     LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
     LocalAppConversationSendRequest, LocalAppConversationSendResult,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
@@ -268,6 +271,83 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             conversation::conversation_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_configuration_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::configuration_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_update_configuration(
+        &self,
+        request: LocalAppAgentUpdateConfigurationRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::update_configuration(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_readiness_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::readiness_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_autonomy_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::autonomy_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_update_autonomy(
+        &self,
+        request: LocalAppAgentUpdateAutonomyRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::update_autonomy(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_presentation_snapshot(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::presentation_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_commit_presentation(
+        &self,
+        request: LocalAppAgentCommitPresentationRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::commit_presentation(self.checked_channel()?, request).await
         })
     }
 }

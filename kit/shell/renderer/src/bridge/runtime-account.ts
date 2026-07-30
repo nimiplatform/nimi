@@ -406,7 +406,14 @@ function parseAccountStreamError(value: unknown): BridgeError {
     parseReasonCode(record.reasonCode, 'runtime account event error');
     parseExactNonEmptyString(record.actionHint, 'actionHint', 'runtime account event error', 256);
     const details = assertRecord(record.details, 'runtime account event error details are invalid');
-    assertExactKeys(details, ['command', 'retryable'], 'runtime account event error details');
+    assertExactKeys(
+      details,
+      ['command', 'retryable', ...(details.reasonMetadata === undefined ? [] : ['reasonMetadata'])],
+      'runtime account event error details',
+    );
+    if (details.reasonMetadata !== undefined) {
+      parseAccountReasonMetadata(details.reasonMetadata);
+    }
     if (details.command !== command || typeof details.retryable !== 'boolean') {
       throw new Error('runtime account event error details violate the protected contract');
     }
@@ -431,6 +438,22 @@ function parseAccountStreamError(value: unknown): BridgeError {
   return new BridgeError(reasonCode, command, envelope);
 }
 
+function parseAccountReasonMetadata(value: unknown): Readonly<Record<string, string>> {
+  const record = assertRecord(value, 'runtime account reason metadata is invalid');
+  for (const [key, entry] of Object.entries(record)) {
+    if (!['permission_id', 'permission_reason', 'permission_admission', 'diagnostic_stage',
+      'local_development_reason_code', 'grpc_status_code'].includes(key)
+      || typeof entry !== 'string'
+      || entry.length === 0
+      || entry.length > 2048
+      || entry.trim() !== entry
+      || /[\u0000-\u001f\u007f]/u.test(entry)) {
+      throw new Error('runtime account reason metadata is invalid');
+    }
+  }
+  return record as Readonly<Record<string, string>>;
+}
+
 function parseReasonCode(value: unknown, label: string): string {
   if (typeof value !== 'string'
     || value.length === 0
@@ -446,6 +469,7 @@ function accountStreamErrorCode(reasonCode: string): NimiStandardShellErrorCode 
   if (reasonCode === 'runtime-service-unavailable') return 'runtime-service-unavailable';
   if (reasonCode === 'runtime-service-repair-required') return 'runtime-service-repair-required';
   if (reasonCode === 'runtime-service-untrusted') return 'runtime-service-untrusted';
+  if (reasonCode === 'runtime-service-error-unclassified') return 'runtime-service-error-unclassified';
   return 'runtime-permission-denied';
 }
 

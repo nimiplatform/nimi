@@ -112,7 +112,12 @@ describe('Electron protected local-app host', () => {
   });
 
   it('preserves closed product permission reasons and rejects unknown native reasons', async () => {
-    for (const reasonCode of ['permission-unavailable', 'local-app-operation-unavailable', 'request-pending', 'process-replaced', 'account-changed', 'revoked']) {
+    for (const reasonCode of [
+      'permission-unavailable', 'local-app-operation-unavailable', 'request-pending',
+      'process-replaced', 'account-changed', 'revoked', 'permission-reserved-not-admitted',
+      'permission-unknown', 'agent-ai-config-revision-conflict',
+      'agent-autonomy-revision-conflict', 'agent-presentation-revision-conflict',
+    ]) {
       const candidate = {
         ...binding([]),
         localAppPermissionStatus: async () => ({ status: 'error' as const, reasonCode, retryable: false }),
@@ -121,6 +126,26 @@ describe('Electron protected local-app host', () => {
         permissionId: 'agents.interact',
       })).rejects.toMatchObject({ reasonCode, retryable: false });
     }
+    const unclassified = {
+      ...binding([]),
+      localAppConversationSendTurn: async () => ({
+        status: 'error' as const,
+        reasonCode: 'runtime-service-error-unclassified',
+        retryable: false,
+        reasonMetadata: { grpc_status_code: '13' },
+      }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(unclassified).conversationSendTurn({
+      agentHandle: 'lash_one',
+      conversationAnchorId: 'anchor-1',
+      requestId: 'request-1',
+      text: 'hello',
+    })).rejects.toMatchObject({
+      reasonCode: 'runtime-service-error-unclassified',
+      retryable: false,
+      reasonMetadata: { grpc_status_code: '13' },
+    });
+
     const unknown = {
       ...binding([]),
       localAppPermissionStatus: async () => ({ status: 'error' as const, reasonCode: 'private-detail', retryable: false }),
@@ -223,5 +248,12 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppConversationSnapshot: record('localAppConversationSnapshot', {
       anchor: { conversationAnchorId: 'anchor-1' },
     }),
+    localAppAgentConfigurationSnapshot: record('localAppAgentConfigurationSnapshot', { configurationRevision: '1' }),
+    localAppAgentUpdateConfiguration: record('localAppAgentUpdateConfiguration', { configurationRevision: '2' }),
+    localAppAgentReadinessSnapshot: record('localAppAgentReadinessSnapshot', { configurationRevision: '1' }),
+    localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', { autonomyRevision: '1' }),
+    localAppAgentUpdateAutonomy: record('localAppAgentUpdateAutonomy', { autonomyRevision: '2' }),
+    localAppAgentPresentationSnapshot: record('localAppAgentPresentationSnapshot', { presentationRevision: '0' }),
+    localAppAgentCommitPresentation: record('localAppAgentCommitPresentation', { presentationRevision: '1' }),
   };
 }

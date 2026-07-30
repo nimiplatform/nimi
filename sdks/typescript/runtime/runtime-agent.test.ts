@@ -89,6 +89,7 @@ test('Runtime Agent projection reads typed presentation profile and state snapsh
         usedTokensInWindow: '12',
         windowStartedAt: toNimiRuntimeTimestamp('2026-06-05T00:00:00.000Z'),
         budgetExhausted: false,
+        revision: '9',
       },
     },
     state: {
@@ -151,6 +152,7 @@ test('Runtime Agent projection reads typed presentation profile and state snapsh
   assert.equal(snapshot.executionState, 'chat-active');
   assert.equal(snapshot.currentEmotion, 'focused');
   assert.equal(snapshot.updatedAt, '2026-06-05T00:10:00.000Z');
+  assert.equal(snapshot.autonomyRevision, '9');
   assert.equal(snapshot.autonomyMode, 'high');
   assert.equal(snapshot.autonomyDailyTokenBudget, 1200);
   assert.equal(snapshot.pendingHooksCount, 1);
@@ -444,6 +446,7 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
             presentationProfileRevision: '1',
             autonomy: {
               enabled: true,
+              revision: '2',
               usedTokensInWindow: '10',
               budgetExhausted: false,
               config: {
@@ -558,9 +561,15 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
       },
       async setAutonomyConfig(request: Record<string, unknown>, options?: RuntimeTypedCallOptions) {
         calls.setAutonomyConfig.push({ ...request, __options: options });
+        if (request.expectedAutonomyRevision === '1') {
+          throw Object.assign(new Error('stale autonomy revision'), {
+            reasonCode: 'AGENT_AUTONOMY_REVISION_CONFLICT',
+          });
+        }
         return {
           autonomy: {
-            enabled: true,
+            enabled: request.enabled ?? true,
+            revision: request.expectedAutonomyRevision === '2' ? '3' : '2',
             budgetExhausted: false,
             usedTokensInWindow: '0',
             config: request.config,
@@ -613,6 +622,7 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   });
 
   const snapshot = await surface.getPublicInspect(AGENT_IDENTITY);
+  const autonomySnapshot = await surface.getAutonomySnapshot(AGENT_IDENTITY);
   const updated = await surface.updateState({
     ...AGENT_IDENTITY,
     statusText: 'ready',
@@ -625,6 +635,22 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   const config = await surface.setAutonomyConfig({
     ...AGENT_IDENTITY,
     mode: 'high',
+    dailyTokenBudget: '640',
+    maxTokensPerHook: '160',
+  });
+  const revised = await surface.updateAutonomy({
+    ...AGENT_IDENTITY,
+    expectedRevision: '2',
+    enabled: false,
+    mode: 'off',
+    dailyTokenBudget: '640',
+    maxTokensPerHook: '160',
+  });
+  const conflict = await surface.updateAutonomy({
+    ...AGENT_IDENTITY,
+    expectedRevision: '1',
+    enabled: true,
+    mode: 'medium',
     dailyTokenBudget: '640',
     maxTokensPerHook: '160',
   });
@@ -642,6 +668,8 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   });
 
   assert.equal(snapshot.lifecycleStatus, 'active');
+  assert.equal(snapshot.autonomyRevision, '2');
+  assert.equal(autonomySnapshot.revision, '2');
   assert.equal(snapshot.presentationProfile?.backendKind, 'vrm');
   assert.equal(snapshot.pendingHooks[0]?.triggerKind, 'user-idle');
   assert.equal(snapshot.recentTerminalHooks[0]?.hookId, 'hook-completed');
@@ -655,6 +683,18 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   assert.equal(enabled.mode, 'low');
   assert.equal(disabled.enabled, false);
   assert.equal(config.mode, 'high');
+  assert.equal(revised.outcome, 'updated');
+  if (revised.outcome === 'updated') {
+    assert.equal(revised.projection.revision, '3');
+    assert.equal(revised.projection.enabled, false);
+  }
+  assert.equal(conflict.outcome, 'conflict');
+  if (conflict.outcome === 'conflict') {
+    assert.equal(conflict.conflict.reasonCode, 'AGENT_AUTONOMY_REVISION_CONFLICT');
+    assert.equal(conflict.conflict.expectedRevision, '1');
+  }
+  assert.equal(calls.setAutonomyConfig.at(-2)?.expectedAutonomyRevision, '2');
+  assert.equal(calls.setAutonomyConfig.at(-2)?.enabled, false);
   assert.equal(canceled.status, 'canceled');
   assert.deepEqual(events, ['hook:hook-active']);
   assert.deepEqual(calls.subscribeAgentEvents[0]?.eventFilters, []);

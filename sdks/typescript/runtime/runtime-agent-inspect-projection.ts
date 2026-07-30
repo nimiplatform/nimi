@@ -41,6 +41,11 @@ export function normalizeNimiRuntimeAgentOptionalNumber(value: unknown): number 
   return Number.isFinite(normalized) ? normalized : null;
 }
 
+export function normalizeNimiRuntimeAgentAutonomyRevision(value: unknown): string | null {
+  const normalized = String(value ?? '').trim();
+  return /^[1-9]\d*$/u.test(normalized) ? normalized : null;
+}
+
 function runtimeAgentTimestampToIso(timestamp?: Timestamp): string | null {
   return toNimiRuntimeIsoFromTimestamp(timestamp);
 }
@@ -294,6 +299,7 @@ export function projectNimiRuntimeAgentAutonomySnapshot(
   autonomy?: AgentAutonomyState | null,
 ): NimiRuntimeAgentAutonomySnapshot {
   return {
+    revision: normalizeNimiRuntimeAgentAutonomyRevision(autonomy?.revision),
     mode: formatNimiRuntimeAgentAutonomyMode(autonomy?.config?.mode),
     enabled: typeof autonomy?.enabled === 'boolean' ? autonomy.enabled : null,
     budgetExhausted: typeof autonomy?.budgetExhausted === 'boolean' ? autonomy.budgetExhausted : null,
@@ -385,6 +391,7 @@ export function projectNimiRuntimeAgentInspectSnapshot(
     updatedAt: state.updatedAt,
     currentEmotion: state.currentEmotion,
     proactiveInterruptibility: state.proactiveInterruptibility,
+    autonomyRevision: autonomy.revision,
     autonomyMode: autonomy.mode,
     autonomyEnabled: autonomy.enabled,
     autonomyBudgetExhausted: autonomy.budgetExhausted,

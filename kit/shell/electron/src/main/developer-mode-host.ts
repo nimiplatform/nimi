@@ -102,7 +102,9 @@ function developerModeError(reasonCode: string, retryable: boolean, command: str
         ? 'runtime-service-repair-required'
         : reasonCode === 'runtime-service-untrusted'
           ? 'runtime-service-untrusted'
-          : 'runtime-permission-denied';
+          : reasonCode === 'runtime-service-error-unclassified'
+            ? 'runtime-service-error-unclassified'
+            : 'runtime-permission-denied';
   return new NimiElectronShellHostError({
     code,
     message: reasonCode,
