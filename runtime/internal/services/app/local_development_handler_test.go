@@ -507,6 +507,23 @@ permissions: []
 	if rotated != opened {
 		t.Fatalf("session rotation changed the sanitized projection: before=%+v after=%+v", opened, rotated)
 	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "renderer.ts"), []byte("export const revision = 2;\n"), 0o600); err != nil {
+		t.Fatalf("mutate supervised development payload: %v", err)
+	}
+	healthEvaluation, err := service.EvaluateLocalDevelopmentProject(desktopContext, &runtimev1.EvaluateLocalDevelopmentProjectRequest{
+		ExpectedAppId: "sample.nimi.app", ProjectRoot: projectRoot,
+		ShellKind:       runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+		SupervisorRunId: runID[:],
+	})
+	if err != nil {
+		t.Fatalf("EvaluateLocalDevelopmentProject after supervised payload mutation: %v", err)
+	}
+	if healthEvaluation.GetConfirmationRequired() {
+		t.Fatalf("supervised payload mutation must preserve allow-project authorization: %+v", healthEvaluation)
+	}
+	if _, err := service.RenewLocalAppSessionProjection(hostContext); err != nil {
+		t.Fatalf("passive development health evaluation must not revoke the live technical session: %v", err)
+	}
 	desktopConnection.Revoke()
 	if _, err := service.OpenLocalAppSessionProjection(hostContext); err == nil {
 		t.Fatal("verified Desktop supervisor exit must revoke the local-development technical session")

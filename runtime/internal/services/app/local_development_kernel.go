@@ -101,6 +101,14 @@ func (s *Service) createLocalDevelopmentRecord(ctx context.Context, authorizatio
 }
 
 func (s *Service) prepareLocalDevelopmentRecord(ctx context.Context, authorization localDevelopmentAuthorization) (localappkernel.Principal, localappkernel.Record, error) {
+	return s.resolveLocalDevelopmentRecordForControl(ctx, authorization, true)
+}
+
+func (s *Service) evaluateLocalDevelopmentRecord(ctx context.Context, authorization localDevelopmentAuthorization) (localappkernel.Principal, localappkernel.Record, error) {
+	return s.resolveLocalDevelopmentRecordForControl(ctx, authorization, false)
+}
+
+func (s *Service) resolveLocalDevelopmentRecordForControl(ctx context.Context, authorization localDevelopmentAuthorization, advanceTechnicalState bool) (localappkernel.Principal, localappkernel.Record, error) {
 	if s == nil || s.localAppKernel == nil {
 		return localappkernel.Principal{}, localappkernel.Record{}, localappkernel.ErrNotFound
 	}
@@ -139,6 +147,9 @@ func (s *Service) prepareLocalDevelopmentRecord(ctx context.Context, authorizati
 	}
 	if !localDevelopmentRecordMatchesAuthorization(record, authorization, observation) {
 		return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
+	}
+	if !advanceTechnicalState {
+		return principal, record, nil
 	}
 	record, recordErr = s.updateLocalDevelopmentRecord(ctx, principal, record, observation)
 	return principal, record, recordErr

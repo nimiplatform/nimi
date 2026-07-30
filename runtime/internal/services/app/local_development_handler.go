@@ -137,7 +137,7 @@ func (s *Service) EvaluateLocalDevelopmentProject(ctx context.Context, req *runt
 		return nil, localDevelopmentStoreError(err)
 	}
 	if evaluation.State == runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE {
-		if _, _, kernelErr := s.prepareLocalDevelopmentRecord(ctx, evaluation.Authorization); kernelErr != nil {
+		if _, _, kernelErr := s.evaluateLocalDevelopmentRecord(ctx, evaluation.Authorization); kernelErr != nil {
 			if !localDevelopmentPreparationInvalidatesAuthorization(kernelErr) {
 				return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record", kernelErr)
 			}
