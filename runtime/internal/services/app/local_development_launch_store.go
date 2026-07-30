@@ -454,7 +454,7 @@ func (store *localDevelopmentStore) EndRun(ctx context.Context, authorizationID 
 		return errLocalDevelopmentAuthorization
 	}
 	now := store.now().UTC()
-	if err := revokeLocalDevelopmentAuthorityTx(ctx, tx, authorizationID, &runID, now); err != nil {
+	if err := revokeLocalDevelopmentAuthorityTx(ctx, tx, authorizationID, &runID, now, !store.directPeer); err != nil {
 		return err
 	}
 	if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE {

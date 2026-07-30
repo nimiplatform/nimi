@@ -26,6 +26,10 @@ const windowsProductControlBroadMutationAccess = windows.FILE_WRITE_DATA |
 	windows.GENERIC_WRITE |
 	windows.GENERIC_ALL
 
+func validateProductControlRootPlatform(string, ProductControlDataRootSecurityBinding) error {
+	return nil
+}
+
 // validateProductControlDataRootPlatform rejects reparse traversal before a
 // Product Control-selected path is admitted as Runtime data storage. When the
 // protected principal binding is present, it also verifies the interactive

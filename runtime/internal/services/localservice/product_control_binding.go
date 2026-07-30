@@ -20,6 +20,8 @@ type ProductControlDataRootBinding struct {
 type ProductControlDataRootSecurityBinding struct {
 	InteractiveUserSID string
 	RuntimeServiceSID  string
+	InteractiveUserUID uint32
+	RuntimeServiceUID  uint32
 }
 
 type productControlUsability struct {
@@ -57,6 +59,9 @@ func LoadProductControlDataRootBinding(productControlRoot string, security Produ
 		filepath.Base(root) != ".nimi" {
 		return ProductControlDataRootBinding{}, fmt.Errorf("fixed Product Control root must be the absolute .nimi directory")
 	}
+	if err := validateProductControlRootPlatform(root, security); err != nil {
+		return ProductControlDataRootBinding{}, fmt.Errorf("fixed Product Control root security validation failed: %w", err)
+	}
 	record, err := readProductControlRecord(filepath.Join(root, "nimi.json"))
 	if err != nil {
 		return ProductControlDataRootBinding{}, err
@@ -67,13 +72,48 @@ func LoadProductControlDataRootBinding(productControlRoot string, security Produ
 	if err := validateProductControlDataRootBindingRecord(record); err != nil {
 		return ProductControlDataRootBinding{}, err
 	}
+	selectedRoot := selectedProductDataRootPath(record)
+	if selectedRoot != "" {
+		if err := validateProductControlDataRootBoundary(selectedRoot, root); err != nil {
+			return ProductControlDataRootBinding{}, err
+		}
+	}
 	if state, failure := verifyProductControlSelectedDataRoot(record, security); failure != "" {
 		return ProductControlDataRootBinding{}, fmt.Errorf("Product Control data-root verification failed (%s): %s", state, failure)
 	}
 	return ProductControlDataRootBinding{
 		RecordExists: true,
-		DataRoot:     selectedProductDataRootPath(record),
+		DataRoot:     selectedRoot,
 	}, nil
+}
+
+func validateProductControlDataRootBoundary(dataRoot string, productControlRoot string) error {
+	selected := filepath.Clean(strings.TrimSpace(dataRoot))
+	control := filepath.Clean(strings.TrimSpace(productControlRoot))
+	home := filepath.Dir(control)
+	if productControlPathsEqual(selected, home) ||
+		productControlPathsEqual(selected, control) ||
+		productControlPathIsWithin(selected, control) {
+		return fmt.Errorf("Product Control data root must not overlap the interactive-user home or fixed .nimi boundary")
+	}
+	return nil
+}
+
+func productControlPathsEqual(left string, right string) bool {
+	if filepath.Separator == '\\' {
+		return strings.EqualFold(left, right)
+	}
+	return left == right
+}
+
+func productControlPathIsWithin(candidate string, root string) bool {
+	relative, err := filepath.Rel(root, candidate)
+	if err != nil || filepath.IsAbs(relative) {
+		return false
+	}
+	return relative != "." &&
+		relative != ".." &&
+		!strings.HasPrefix(relative, ".."+string(filepath.Separator))
 }
 
 func validateProductControlDataRootBindingRecord(record *productControlRecord) error {

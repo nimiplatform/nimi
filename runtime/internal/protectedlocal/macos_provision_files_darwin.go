@@ -31,12 +31,41 @@ func inspectMacOSProvisionInventory(stateRoot string, principal macOSRuntimePrin
 			if err := validateMacOSStateArtifact(path, principal, true); err != nil {
 				return macOSProvisionInventory{}, err
 			}
-			inventory.runtimeDir = true
+			inventory.mutableState = true
 		default:
-			return macOSProvisionInventory{}, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("macOS Runtime state contains an unrecognized entry"))
+			// The verified service principal owns the complete 0700 state root.
+			// Runtime services may add product state here without turning the
+			// installer into a second schema or inventory authority.
+			inventory.mutableState = true
 		}
 	}
 	return inventory, nil
+}
+
+func removeMacOSRuntimeMutableState(stateRoot string, stateLock *macOSRuntimeStateLock) error {
+	if stateRoot != MacOSRuntimeStateRoot || stateLock == nil || stateLock.file == nil {
+		return fmt.Errorf("remove macOS Runtime mutable state: retained fixed state lock is required")
+	}
+	return removeMacOSRuntimeMutableStateEntries(stateRoot, stateLock)
+}
+
+func removeMacOSRuntimeMutableStateEntries(stateRoot string, stateLock *macOSRuntimeStateLock) error {
+	if stateLock == nil || stateLock.file == nil {
+		return fmt.Errorf("remove macOS Runtime mutable state entries: retained state lock is required")
+	}
+	entries, err := os.ReadDir(stateRoot)
+	if err != nil {
+		return fmt.Errorf("inspect macOS Runtime mutable state for removal: %w", err)
+	}
+	for _, entry := range entries {
+		if entry.Name() == MacOSRuntimeStateLockFilename {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(stateRoot, entry.Name())); err != nil {
+			return fmt.Errorf("remove macOS Runtime mutable state entry %q: %w", entry.Name(), err)
+		}
+	}
+	return syncMacOSProtectedStateDirectory(stateRoot)
 }
 
 func validateMacOSStateArtifact(path string, principal macOSRuntimePrincipal, directory bool) error {

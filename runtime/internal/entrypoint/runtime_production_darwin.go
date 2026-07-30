@@ -16,7 +16,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
-func runProductionDaemon(version string) error {
+func runProductionDaemon(version string) (resultErr error) {
+	defer func() {
+		protectedlocal.ReportMacOSRuntimeStartupFailure(resultErr)
+	}()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalCh := make(chan os.Signal, 2)

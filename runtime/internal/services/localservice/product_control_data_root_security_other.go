@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build !windows && !darwin
 
 package localservice
 
@@ -29,5 +29,9 @@ func validateProductControlDataRootPlatform(root string, _ ProductControlDataRoo
 			return fmt.Errorf("data root component is not a direct directory")
 		}
 	}
+	return nil
+}
+
+func validateProductControlRootPlatform(string, ProductControlDataRootSecurityBinding) error {
 	return nil
 }

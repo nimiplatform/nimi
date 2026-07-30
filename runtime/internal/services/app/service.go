@@ -81,6 +81,7 @@ type Service struct {
 	localDevelopment          *localDevelopmentStore
 	localDevelopmentRegistry  *protectedlocal.LocalAppLaunchRegistry
 	localDevelopmentVerifier  protectedlocal.LocalDevelopmentProcessVerifier
+	directLocalAppLaunches    *protectedlocal.DirectLocalAppLaunches
 	localDevelopmentArtifacts runtimeartifactservice.Store
 	localAppKernel            *localappkernel.Kernel
 	localAppStorageMu         sync.RWMutex
@@ -135,6 +136,14 @@ func WithLocalDevelopmentAuthority(store *localDevelopmentStore, registry *prote
 		s.localDevelopment = store
 		s.localDevelopmentRegistry = registry
 		s.localDevelopmentVerifier = verifier
+		s.localDevelopmentArtifacts = artifacts
+	}
+}
+
+func WithDirectLocalDevelopmentAuthority(store *localDevelopmentStore, launches *protectedlocal.DirectLocalAppLaunches, artifacts runtimeartifactservice.Store) Option {
+	return func(s *Service) {
+		s.localDevelopment = store
+		s.directLocalAppLaunches = launches
 		s.localDevelopmentArtifacts = artifacts
 	}
 }

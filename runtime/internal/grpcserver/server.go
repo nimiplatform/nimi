@@ -139,6 +139,7 @@ type ProtectedServiceBindings struct {
 	ServiceStateRoot                  string
 	ProductControlRoot                string
 	RuntimeServiceSID                 string
+	RuntimeServiceUID                 uint32
 	LocalDevelopmentConsentStorePath  string
 	PlatformAppIdentityProjectionPath string
 	PlatformBundledAppsRoot           string
@@ -152,6 +153,7 @@ type ProtectedServiceBindings struct {
 	DesktopSessions                   *protectedlocal.DesktopSessionManager
 	LocalAppLaunches                  *protectedlocal.LocalAppLaunchRegistry
 	LocalDevelopmentVerifier          protectedlocal.LocalDevelopmentProcessVerifier
+	DirectLocalAppLaunches            *protectedlocal.DirectLocalAppLaunches
 	RuntimeRestartRequester           runtimecontrolservice.RestartRequester
 }
 
@@ -193,8 +195,14 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 		filepath.Base(productControlRoot) != ".nimi" {
 		return nil, fmt.Errorf("protected Product Control root must be the fixed absolute interactive-user .nimi directory")
 	}
-	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LocalAppLaunches == nil || bindings.LocalDevelopmentVerifier == nil || bindings.RuntimeRestartRequester == nil {
-		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, local-app launches, and local-development verifier are required")
+	sessionScopedLocalApp := bindings.LocalAppLaunches != nil && bindings.LocalDevelopmentVerifier != nil && bindings.DirectLocalAppLaunches == nil
+	directLocalApp := bindings.LocalAppLaunches == nil && bindings.LocalDevelopmentVerifier == nil && bindings.DirectLocalAppLaunches != nil
+	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil ||
+		(!sessionScopedLocalApp && !directLocalApp) || bindings.RuntimeRestartRequester == nil {
+		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop transport, and matching local-app transport authority are required")
+	}
+	if directLocalApp != bindings.DesktopSessions.Direct() {
+		return nil, fmt.Errorf("protected Desktop and local-app transport authorities must use the same direct or session-scoped mode")
 	}
 	consentStorePath := filepath.Clean(strings.TrimSpace(bindings.LocalDevelopmentConsentStorePath))
 	if !filepath.IsAbs(consentStorePath) || filepath.Base(consentStorePath) != "local-development.db" {
@@ -215,7 +223,7 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if err != nil {
 		return nil, err
 	}
-	if err := bindings.DesktopSessions.ValidateBootScoped(context.Background()); err != nil {
+	if err := bindings.DesktopSessions.Validate(context.Background()); err != nil {
 		return nil, fmt.Errorf("validate protected Desktop session authority: %w", err)
 	}
 	bindings.ServiceStateRoot = stateRoot
@@ -240,8 +248,22 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 }
 
 func protectedProductControlDataRootSecurityBinding(bindings ProtectedServiceBindings) (localservice.ProductControlDataRootSecurityBinding, error) {
-	if goruntime.GOOS != "windows" {
+	if goruntime.GOOS != "windows" && goruntime.GOOS != "darwin" {
 		return localservice.ProductControlDataRootSecurityBinding{}, nil
+	}
+	if goruntime.GOOS == "darwin" {
+		interactiveUserUID, _, ok := bindings.LocalOSUserIdentity.MacOSInteractiveUser()
+		if !ok || interactiveUserUID == 0 {
+			return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("protected macOS Product Control requires the verified interactive-user UID")
+		}
+		runtimeServiceUID := bindings.RuntimeServiceUID
+		if runtimeServiceUID == 0 || runtimeServiceUID == interactiveUserUID {
+			return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("protected macOS Product Control requires the distinct fixed Runtime service UID")
+		}
+		return localservice.ProductControlDataRootSecurityBinding{
+			InteractiveUserUID: interactiveUserUID,
+			RuntimeServiceUID:  runtimeServiceUID,
+		}, nil
 	}
 	interactiveUserSID, ok := bindings.LocalOSUserIdentity.WindowsInteractiveUserSID()
 	if !ok || strings.TrimSpace(interactiveUserSID) == "" {
@@ -388,10 +410,16 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	var localDevelopmentStore *appservice.LocalDevelopmentStore
 	var localAppKernel *localappkernel.Kernel
 	if protected != nil {
-		developmentStore, developmentErr := appservice.OpenLocalDevelopmentStore(
-			protected.LocalDevelopmentConsentStorePath,
-			protected.DesktopSessions.BootEpoch(),
-		)
+		var developmentStore *appservice.LocalDevelopmentStore
+		var developmentErr error
+		if protected.DirectLocalAppLaunches != nil {
+			developmentStore, developmentErr = appservice.OpenDirectLocalDevelopmentStore(protected.LocalDevelopmentConsentStorePath)
+		} else {
+			developmentStore, developmentErr = appservice.OpenLocalDevelopmentStore(
+				protected.LocalDevelopmentConsentStorePath,
+				protected.DesktopSessions.BootEpoch(),
+			)
+		}
 		if developmentErr != nil {
 			return nil, fmt.Errorf("open local-development store: %w", developmentErr)
 		}
@@ -577,10 +605,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
 	aiSvc.SetLocalModelLister(localSvc)
 	aiSvc.SetLocalImageProfileResolver(localSvc)
-	// K-AIEXEC-007: inject the ai service local execution capability into the
-	// localservice executionEvidenceRef minter. The adapter is internal to the
-	// runtime and carries no global state.
-	localSvc.SetFirstRunLocalExecutor(newFirstRunLocalExecutorAdapter(aiSvc))
 	localSvc.SetLocalProviderEndpointSink(aiSvc)
 	memorySvc, err := memoryservice.New(logger, cfg)
 	if err != nil {
@@ -748,10 +772,17 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 	}
 	if protected != nil {
-		appOptions = append(appOptions,
-			appservice.WithLocalDevelopmentAuthority(localDevelopmentStore, protected.LocalAppLaunches, protected.LocalDevelopmentVerifier, artifactStore),
-			appservice.WithLocalAppKernel(localAppKernel),
-		)
+		if protected.DirectLocalAppLaunches != nil {
+			appOptions = append(appOptions,
+				appservice.WithDirectLocalDevelopmentAuthority(localDevelopmentStore, protected.DirectLocalAppLaunches, artifactStore),
+				appservice.WithLocalAppKernel(localAppKernel),
+			)
+		} else {
+			appOptions = append(appOptions,
+				appservice.WithLocalDevelopmentAuthority(localDevelopmentStore, protected.LocalAppLaunches, protected.LocalDevelopmentVerifier, artifactStore),
+				appservice.WithLocalAppKernel(localAppKernel),
+			)
+		}
 	}
 	appSvc := appservice.New(logger, appOptions...)
 	if protected != nil {

@@ -188,20 +188,29 @@ func (s *Service) ReadArtifactBytes(
 }
 
 func validLocalAppArtifactDecision(decision accountservice.LocalAppCallerDecision, now time.Time) bool {
-	baseValid := decision.SessionID != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AppID) != "" &&
+	commonValid := decision.SessionID != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AppID) != "" &&
 		decision.HostExecutableDigest != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AccountID) != "" &&
 		strings.TrimSpace(decision.RealmEnvironmentID) != "" && decision.AccountGeneration > 0 &&
-		decision.RuntimeBootEpoch != (protectedlocal.Identifier{}) && decision.Process.PID > 0 &&
-		strings.TrimSpace(decision.Process.CreationMarker) != "" && decision.Process.ExecutableDigest == decision.HostExecutableDigest &&
 		decision.Operation == accountservice.LocalAppOperationReadArtifactBytes && decision.OperationCapability == "data.scope.read#runtime.artifacts" &&
-		now.Before(decision.ExpiresAt.UTC())
-	if !baseValid {
+		decision.TrustClass == accountservice.LocalAppTrustClassDevelopment &&
+		decision.AuthorizationID != (protectedlocal.Identifier{}) && decision.AuthorizationGeneration > 0 &&
+		decision.CapabilityFingerprint != (protectedlocal.Identifier{})
+	if !commonValid {
 		return false
 	}
-	return decision.TrustClass == accountservice.LocalAppTrustClassDevelopment && decision.AuthorizationID != (protectedlocal.Identifier{}) &&
-		decision.AuthorizationGeneration > 0 && protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.ProjectRoot) &&
-		decision.CapabilityFingerprint != (protectedlocal.Identifier{}) && protectedlocal.IsLocalDevelopmentProcessTrustSet(decision.Process) &&
+	direct := decision.DirectPeer.OS == protectedlocal.OSMacOS && decision.DirectPeer.PID != 0 && decision.DirectPeer.UID != 0 &&
+		decision.RuntimeBootEpoch == (protectedlocal.Identifier{}) && decision.Process == (protectedlocal.ProcessTuple{}) &&
+		decision.ExpiresAt.IsZero() &&
+		protectedlocal.IsAbsolutePathForOperatingSystem(decision.DirectPeer.OS, decision.ProjectRoot)
+	sessionScoped := decision.DirectPeer == (protectedlocal.DirectLocalAppPeer{}) &&
+		decision.RuntimeBootEpoch != (protectedlocal.Identifier{}) && decision.Process.PID > 0 &&
+		strings.TrimSpace(decision.Process.CreationMarker) != "" &&
+		decision.Process.ExecutableDigest == decision.HostExecutableDigest &&
+		now.Before(decision.ExpiresAt.UTC()) &&
+		protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.ProjectRoot) &&
+		protectedlocal.IsLocalDevelopmentProcessTrustSet(decision.Process) &&
 		protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.Process.CanonicalExecutablePath)
+	return direct || sessionScoped
 }
 
 func artifactAudienceMatches(audience *ArtifactAudience, decision accountservice.LocalAppCallerDecision, now time.Time) bool {

@@ -1,4 +1,4 @@
-//go:build darwin && cgo
+//go:build darwin && cgo && !nimi_macos_local_development
 
 package protectedlocal
 
@@ -11,7 +11,6 @@ package protectedlocal
 #include <Security/SecACL.h>
 #include <Security/SecKeychain.h>
 #include <Security/SecKeychainItem.h>
-#include <Security/SecItem.h>
 #include <Security/SecTrustedApplication.h>
 #include <errno.h>
 #include <stdint.h>
@@ -247,50 +246,16 @@ static int nimi_macos_keychain_delete(nimi_macos_keychain_store *store,
     return status == errSecSuccess ? 0 : (int)status;
 }
 
-static int nimi_macos_keychain_delete_service(nimi_macos_keychain_store *store,
-                                              const char *service) {
-    if (store == NULL || store->keychain == NULL || service == NULL || service[0] == '\0') {
-        return EINVAL;
-    }
-    CFStringRef service_string = CFStringCreateWithCString(
-        kCFAllocatorDefault, service, kCFStringEncodingUTF8);
-    if (service_string == NULL) {
-        return ENOMEM;
-    }
-    const void *keychain_values[] = { store->keychain };
-    CFArrayRef search_list = CFArrayCreate(
-        kCFAllocatorDefault, keychain_values, 1, &kCFTypeArrayCallBacks);
-    if (search_list == NULL) {
-        CFRelease(service_string);
-        return ENOMEM;
-    }
-    const void *keys[] = { kSecClass, kSecAttrService, kSecMatchSearchList };
-    const void *values[] = { kSecClassGenericPassword, service_string, search_list };
-    CFDictionaryRef query = CFDictionaryCreate(
-        kCFAllocatorDefault, keys, values, 3,
-        &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-    CFRelease(search_list);
-    CFRelease(service_string);
-    if (query == NULL) {
-        return ENOMEM;
-    }
-    OSStatus status = SecItemDelete(query);
-    CFRelease(query);
-    return status == errSecSuccess || status == errSecItemNotFound ? 0 : (int)status;
-}
 */
 import "C"
 
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"runtime"
 	"sync"
 	"unsafe"
 )
-
-var macOSSecretNamePattern = regexp.MustCompile(`^[a-z][a-z0-9.-]{0,62}[a-z0-9]$|^[a-z]$`)
 
 type macOSSystemKeychainSecretStore struct {
 	native    *C.nimi_macos_keychain_store
@@ -327,8 +292,8 @@ func (store *macOSSystemKeychainSecretStore) withNative(operation string, fn fun
 }
 
 func macOSSecretName(name string) (*C.char, error) {
-	if !macOSSecretNamePattern.MatchString(name) {
-		return nil, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("invalid Runtime Keychain item name"))
+	if err := validateMacOSRuntimeSecretName(name); err != nil {
+		return nil, err
 	}
 	return C.CString(name), nil
 }
@@ -366,7 +331,7 @@ func (store *macOSSystemKeychainSecretStore) Store(ctx context.Context, name str
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if len(value) == 0 || len(value) > 65536 {
+	if len(value) == 0 || len(value) > macOSRuntimeMaxSecretBytes {
 		return fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("invalid Runtime System Keychain item size"))
 	}
 	account, err := macOSSecretName(name)
@@ -410,20 +375,6 @@ func (store *macOSSystemKeychainSecretStore) Delete(ctx context.Context, name st
 	})
 }
 
-func (store *macOSSystemKeychainSecretStore) resetServiceNamespace(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	service := C.CString(MacOSKeychainService)
-	defer C.free(unsafe.Pointer(service))
-	return store.withNative("reset Runtime System Keychain service namespace", func(native *C.nimi_macos_keychain_store) error {
-		if result := C.nimi_macos_keychain_delete_service(native, service); result != 0 {
-			return fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("reset Runtime System Keychain service namespace: native status %d", int(result)))
-		}
-		return nil
-	})
-}
-
 func (store *macOSSystemKeychainSecretStore) Close() error {
 	if store == nil {
 		return nil
@@ -442,4 +393,4 @@ func (store *macOSSystemKeychainSecretStore) Close() error {
 	return nil
 }
 
-var _ BinarySecretStore = (*macOSSystemKeychainSecretStore)(nil)
+var _ macOSRuntimeBinarySecretStore = (*macOSSystemKeychainSecretStore)(nil)

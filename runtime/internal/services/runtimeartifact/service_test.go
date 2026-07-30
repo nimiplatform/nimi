@@ -30,17 +30,14 @@ func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudience(t *testing.T) {
 	decision.AuthorizationGeneration = 4
 	decision.ProjectRoot = projectRoot
 	decision.CapabilityFingerprint = artifactTestIdentifier(0x82)
-	decision.Process.OS = protectedlocal.OSMacOS
-	decision.Process.CanonicalExecutablePath = "/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host"
-	macOSTrustSetID, admitted := protectedlocal.LocalDevelopmentTrustSetID(protectedlocal.OSMacOS)
-	if !admitted {
-		t.Fatal("macOS local-development trust set is not admitted for this compiled profile")
-	}
-	decision.Process.ExecutableTrustSetID = macOSTrustSetID
+	decision.RuntimeBootEpoch = protectedlocal.Identifier{}
+	decision.Process = protectedlocal.ProcessTuple{}
+	decision.DirectPeer = protectedlocal.DirectLocalAppPeer{OS: protectedlocal.OSMacOS, PID: 4201, UID: 501}
+	decision.ExpiresAt = time.Time{}
 	audience := &ArtifactAudience{
 		ProducerJobID: "runtime.local-development.bootstrap", OwnerAccountID: decision.AccountID, AppID: decision.AppID,
 		ReleaseDigest: decision.HostExecutableDigest, SessionID: decision.SessionID, AccountGeneration: decision.AccountGeneration,
-		AllowedUse: ArtifactUseReadBytes, ExpiresAt: decision.ExpiresAt,
+		AllowedUse: ArtifactUseReadBytes, ExpiresAt: artifactTestNow.Add(time.Hour),
 		TrustClass: "local_development", AuthorizationID: decision.AuthorizationID,
 		AuthorizationGeneration: decision.AuthorizationGeneration, ProjectRoot: decision.ProjectRoot,
 		CapabilityFingerprint: decision.CapabilityFingerprint,

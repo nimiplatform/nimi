@@ -19,8 +19,8 @@ const (
 )
 
 type macOSProvisionInventory struct {
-	stateLock  bool
-	runtimeDir bool
+	stateLock    bool
+	mutableState bool
 }
 
 // MacOSProtectedStateProvisionResult describes the fixed state root established
@@ -42,7 +42,7 @@ type MacOSProtectedStateStatusResult struct {
 
 // VerifyMacOSProtectedState validates the installed executable, service principal,
 // state root, and state-lock inventory without changing them.
-func VerifyMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateStatusResult, resultErr error) {
+func VerifyMacOSProtectedState(ctx context.Context) (MacOSProtectedStateStatusResult, error) {
 	if ctx == nil {
 		return MacOSProtectedStateStatusResult{}, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("verify macOS Runtime state: context is required"))
 	}
@@ -52,11 +52,9 @@ func VerifyMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateStatus
 	if os.Geteuid() != 0 || os.Getuid() != 0 || os.Getegid() != 0 || os.Getgid() != 0 {
 		return MacOSProtectedStateStatusResult{}, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "run_signed_installer_as_administrator", fmt.Errorf("verify macOS Runtime state: real root principal is required"))
 	}
-	liveness, err := verifyMacOSInstalledProvisioningProcess()
-	if err != nil {
+	if err := verifyMacOSInstalledProvisioningProcess(); err != nil {
 		return MacOSProtectedStateStatusResult{}, fail(ReasonRuntimeExecutableTrustInvalid, false, "reinstall_runtime_service", err)
 	}
-	defer func() { resultErr = errors.Join(resultErr, liveness.Close()) }()
 	principal, err := resolveMacOSRuntimePrincipal()
 	if err != nil {
 		return MacOSProtectedStateStatusResult{}, err
@@ -77,7 +75,7 @@ func VerifyMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateStatus
 }
 
 func classifyMacOSProvisionInventory(inventory macOSProvisionInventory) (macOSProvisionDisposition, error) {
-	if !inventory.stateLock && !inventory.runtimeDir {
+	if !inventory.stateLock && !inventory.mutableState {
 		return macOSProvisionFresh, nil
 	}
 	if inventory.stateLock {
@@ -105,11 +103,9 @@ func ProvisionMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStatePro
 		return MacOSProtectedStateProvisionResult{}, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "run_signed_installer_as_administrator", fmt.Errorf("provision macOS Runtime state: real root principal is required"))
 	}
 
-	provisionLiveness, err := verifyMacOSInstalledProvisioningProcess()
-	if err != nil {
+	if err := verifyMacOSInstalledProvisioningProcess(); err != nil {
 		return MacOSProtectedStateProvisionResult{}, fail(ReasonRuntimeExecutableTrustInvalid, false, "reinstall_runtime_service", err)
 	}
-	defer func() { resultErr = errors.Join(resultErr, provisionLiveness.Close()) }()
 	principal, err := resolveMacOSRuntimePrincipal()
 	if err != nil {
 		return MacOSProtectedStateProvisionResult{}, err
@@ -155,11 +151,6 @@ func ProvisionMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStatePro
 		}()
 	}
 
-	select {
-	case <-provisionLiveness.Revoked():
-		return MacOSProtectedStateProvisionResult{}, fail(ReasonRuntimeExecutableTrustInvalid, false, "reinstall_runtime_service", fmt.Errorf("provision macOS Runtime state: Runtime executable changed during transaction"))
-	default:
-	}
 	committed = true
 	resultDisposition := "validated"
 	if disposition == macOSProvisionFresh {
@@ -173,21 +164,20 @@ func ProvisionMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStatePro
 	}, nil
 }
 
-func verifyMacOSInstalledProvisioningProcess() (DesktopProcessLiveness, error) {
+func verifyMacOSInstalledProvisioningProcess() error {
 	snapshot, err := inspectMacOSProcess(uint32(os.Getpid()))
 	if err != nil {
-		return nil, fmt.Errorf("inspect installed macOS Runtime provisioner process: %w", err)
+		return fmt.Errorf("inspect installed macOS Runtime provisioner process: %w", err)
 	}
 	if snapshot.euid != 0 || snapshot.ruid != 0 || snapshot.executablePath != MacOSRuntimeExecutablePath {
-		return nil, fmt.Errorf("installed macOS Runtime provisioner principal or path mismatch")
+		return fmt.Errorf("installed macOS Runtime provisioner principal or path mismatch")
 	}
 	policy, err := macOSRuntimeCodePolicy()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	_, liveness, err := verifyMacOSProcess(snapshot, nil, policy, MacOSRuntimeExecutablePath, 0, false, nil)
-	if err != nil {
-		return nil, fmt.Errorf("verify installed macOS Runtime provisioner: %w", err)
+	if _, err := verifyMacOSProcessIdentity(snapshot, nil, policy, MacOSRuntimeExecutablePath, 0, false); err != nil {
+		return fmt.Errorf("verify installed macOS Runtime provisioner: %w", err)
 	}
-	return liveness, nil
+	return nil
 }

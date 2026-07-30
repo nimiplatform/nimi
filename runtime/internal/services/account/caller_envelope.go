@@ -38,10 +38,7 @@ func parseHostCallerEnvelope(ctx context.Context) (hostCallerEnvelope, bool) {
 func (s *Service) validateDesktopAccountHost(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
 	connection, protected := protectedlocal.DesktopConnectionFromContext(ctx)
 	if protected && connection != nil {
-		origin := connection.Origin()
-		if origin.TransportClass == protectedlocal.TransportDesktopControl &&
-			origin.HasRole(protectedlocal.RoleVerifiedDesktopProcess) &&
-			origin.HasRole(protectedlocal.RoleDesktopAccountHost) &&
+		if connection.VerifiedDesktopTransport() &&
 			desktopCallerMatchesHostEnvelope(ctx, caller) {
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 		}

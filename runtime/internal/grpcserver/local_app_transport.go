@@ -207,7 +207,7 @@ func newUnaryProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Unar
 		if err != nil {
 			return nil, err
 		}
-		if !protectedLocalAppPolicyAllows(connection.Origin(), policy) {
+		if !protectedLocalAppPolicyAllows(connection, policy) {
 			return nil, protectedLocalAppRoleError(policy.missingRoleReason)
 		}
 		protectedContext := protectedlocal.ContextWithLocalAppConnection(ctx, connection)
@@ -276,7 +276,7 @@ func newStreamProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Str
 		if err != nil {
 			return err
 		}
-		if !protectedLocalAppPolicyAllows(connection.Origin(), policy) {
+		if !protectedLocalAppPolicyAllows(connection, policy) {
 			return protectedLocalAppRoleError(policy.missingRoleReason)
 		}
 		ctx := protectedlocal.ContextWithLocalAppConnection(stream.Context(), connection)
@@ -429,8 +429,18 @@ func protectedLocalAppConnectionFromPeer(ctx context.Context) (*protectedlocal.L
 	return authInfo.connection, nil
 }
 
-func protectedLocalAppPolicyAllows(origin protectedlocal.OriginContext, policy protectedLocalAppMethodPolicy) bool {
-	return origin.TransportClass == policy.transport && origin.HasRole(policy.role)
+func protectedLocalAppPolicyAllows(connection *protectedlocal.LocalAppConnection, policy protectedLocalAppMethodPolicy) bool {
+	if connection == nil {
+		return false
+	}
+	switch policy.transport {
+	case protectedlocal.TransportLocalAppBootstrap:
+		return policy.role == protectedlocal.RoleLocalAppProcess && connection.BootstrapAllowed()
+	case protectedlocal.TransportLocalAppHost:
+		return policy.role == protectedlocal.RoleLocalAppSession && connection.ProtectedOperationAllowed()
+	default:
+		return false
+	}
 }
 
 func protectedLocalAppRoleError(reason runtimev1.ReasonCode) error {

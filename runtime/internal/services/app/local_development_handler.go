@@ -37,6 +37,9 @@ func (s *Service) RevokeAccountAuthority(ctx context.Context, accountID string) 
 			continue
 		}
 		if authorization.State == localDevelopmentAuthorizationRevoked {
+			if s.directLocalAppLaunches != nil {
+				s.directLocalAppLaunches.RevokeAuthorization(authorization.ID)
+			}
 			if err := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateRemoved, true); err != nil {
 				return err
 			}
@@ -47,6 +50,10 @@ func (s *Service) RevokeAccountAuthority(ctx context.Context, accountID string) 
 
 func OpenLocalDevelopmentStore(path string, bootEpoch protectedlocal.Identifier) (*localDevelopmentStore, error) {
 	return openLocalDevelopmentStore(path, bootEpoch)
+}
+
+func OpenDirectLocalDevelopmentStore(path string) (*localDevelopmentStore, error) {
+	return openDirectLocalDevelopmentStore(path)
 }
 
 func (s *Service) GetDeveloperModeStatus(ctx context.Context, _ *runtimev1.GetDeveloperModeStatusRequest) (*runtimev1.GetDeveloperModeStatusResponse, error) {
@@ -255,6 +262,9 @@ func (s *Service) RevokeLocalDevelopmentAuthorization(ctx context.Context, req *
 	if err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
+	if s.directLocalAppLaunches != nil {
+		s.directLocalAppLaunches.RevokeAuthorization(authorizationID)
+	}
 	if err := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateRemoved, true); err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
@@ -311,71 +321,129 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 	if err != nil {
 		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record", err)
 	}
-	expectedHostDigest, err := localDevelopmentDigestIdentifier("host", record.HostExecutableDigest)
-	if err != nil {
-		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record", err)
-	}
-	ticket, err := s.localDevelopment.PrepareLaunch(ctx, localDevelopmentLaunchRequest{
-		AuthorizationID:    authorizationID,
-		SupervisorRunID:    runID,
-		Project:            project,
-		ShellKind:          project.ShellKind,
-		HostExecutable:     hostExecutable,
-		PrincipalID:        principal.LocalAppPrincipalID,
-		RecordID:           record.LocalAppRecordID,
-		ProvenanceRevision: record.ProvenanceRevision,
-		ProjectGeneration:  record.InstallOrProjectGeneration,
-		PayloadDigest:      record.PayloadRootDigest,
-		ExpectedHostDigest: expectedHostDigest,
-	})
-	if err != nil {
-		if s.logger != nil {
-			s.logger.Warn("local development launch rejected", "stage", "launch-store", "app_id", authorization.Project.AppID, "error", err)
-		}
-		if errors.Is(err, errLocalDevelopmentProjectChanged) {
-			return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "launch-store", err)
-		}
-		return nil, localDevelopmentStoreError(err)
-	}
 	desktopConnection, ok := protectedlocal.DesktopConnectionFromContext(ctx)
 	if !ok || desktopConnection == nil {
-		_ = s.localDevelopment.EndRun(context.Background(), authorizationID, runID)
 		return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
 	}
+	var launchID protectedlocal.Identifier
+	var bindDeadline time.Time
+	var revokeLaunch func()
+	if s.directLocalAppLaunches != nil {
+		desktopPeer, direct := desktopConnection.DirectDesktopPeer()
+		if !direct || desktopPeer.OS != protectedlocal.OSMacOS {
+			return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
+		}
+		if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID != runID {
+			return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
+		}
+		prepared, prepareErr := s.directLocalAppLaunches.Prepare(
+			authorizationID,
+			runID,
+			generation,
+			authorization.Generation,
+			desktopPeer.PID,
+			desktopPeer.UID,
+			s.now().UTC().Add(localDevelopmentLaunchTTL),
+		)
+		if prepareErr != nil {
+			return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, "launch-memory", prepareErr)
+		}
+		launchID = prepared.LaunchID
+		bindDeadline = prepared.ExpiresAt
+		revokeLaunch = func() { s.directLocalAppLaunches.Revoke(launchID) }
+	} else {
+		expectedHostDigest, digestErr := localDevelopmentDigestIdentifier("host", record.HostExecutableDigest)
+		if digestErr != nil {
+			return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record", digestErr)
+		}
+		ticket, prepareErr := s.localDevelopment.PrepareLaunch(ctx, localDevelopmentLaunchRequest{
+			AuthorizationID:    authorizationID,
+			SupervisorRunID:    runID,
+			Project:            project,
+			ShellKind:          project.ShellKind,
+			HostExecutable:     hostExecutable,
+			PrincipalID:        principal.LocalAppPrincipalID,
+			RecordID:           record.LocalAppRecordID,
+			ProvenanceRevision: record.ProvenanceRevision,
+			ProjectGeneration:  record.InstallOrProjectGeneration,
+			PayloadDigest:      record.PayloadRootDigest,
+			ExpectedHostDigest: expectedHostDigest,
+		})
+		if prepareErr != nil {
+			if s.logger != nil {
+				s.logger.Warn("local development launch rejected", "stage", "launch-store", "app_id", authorization.Project.AppID, "error", prepareErr)
+			}
+			if errors.Is(prepareErr, errLocalDevelopmentProjectChanged) {
+				return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "launch-store", prepareErr)
+			}
+			return nil, localDevelopmentStoreError(prepareErr)
+		}
+		launchID = ticket.LaunchID
+		bindDeadline = ticket.BindDeadline
+		revokeLaunch = func() { _ = s.localDevelopment.RevokeLaunch(context.Background(), launchID) }
+	}
 	if err := desktopConnection.BindRevocationHook(runID, func() {
+		revokeLaunch()
+		if s.directLocalAppLaunches != nil {
+			s.directLocalAppLaunches.RevokeRun(authorizationID, runID)
+		}
 		if endErr := s.localDevelopment.EndRun(context.Background(), authorizationID, runID); endErr == nil {
 			if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE {
 				_ = s.transitionLocalDevelopmentRecord(context.Background(), authorization, localappkernel.LifecycleStateRemoved, true)
 			}
 		}
 	}); err != nil {
+		revokeLaunch()
 		_ = s.localDevelopment.EndRun(context.Background(), authorizationID, runID)
 		return nil, localDevelopmentFailureFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED, err)
 	}
-	return &runtimev1.PrepareLocalAppLaunchResponse{LaunchId: append([]byte(nil), ticket.LaunchID[:]...), BindDeadline: timestamppb.New(ticket.BindDeadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+	return &runtimev1.PrepareLocalAppLaunchResponse{LaunchId: append([]byte(nil), launchID[:]...), BindDeadline: timestamppb.New(bindDeadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
 func (s *Service) BindLocalAppProcess(ctx context.Context, req *runtimev1.BindLocalAppProcessRequest) (*runtimev1.BindLocalAppProcessResponse, error) {
 	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
 		return nil, err
 	}
-	if s == nil || s.localDevelopment == nil || s.localDevelopmentRegistry == nil || s.localDevelopmentVerifier == nil || req == nil {
+	if s == nil || s.localDevelopment == nil || req == nil ||
+		(s.directLocalAppLaunches == nil && (s.localDevelopmentRegistry == nil || s.localDevelopmentVerifier == nil)) {
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	launchID, ok := localDevelopmentIdentifierFromBytes(req.GetLaunchId())
 	if !ok || req.GetChildProcessId() == 0 {
 		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
 	}
+	desktopConnection, desktopOK := protectedlocal.DesktopConnectionFromContext(ctx)
+	if !desktopOK || desktopConnection == nil {
+		return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "bind-supervisor")
+	}
+	if s.directLocalAppLaunches != nil {
+		desktopPeer, direct := desktopConnection.DirectDesktopPeer()
+		if !direct || desktopPeer.OS != protectedlocal.OSMacOS {
+			return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "bind-supervisor")
+		}
+		deadline, bindErr := s.directLocalAppLaunches.Bind(
+			launchID,
+			req.GetChildProcessId(),
+			desktopPeer.PID,
+			desktopPeer.UID,
+			s.now().UTC().Add(localDevelopmentProcessBindTTL),
+		)
+		if bindErr != nil {
+			return nil, localDevelopmentFailureAtStageFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "bind-direct-peer", bindErr)
+		}
+		return &runtimev1.BindLocalAppProcessResponse{LaunchId: append([]byte(nil), launchID[:]...), BindDeadline: timestamppb.New(deadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+	}
 	policy, err := s.localDevelopment.PendingLaunchPolicy(ctx, launchID)
 	if err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
-	desktopConnection, desktopOK := protectedlocal.DesktopConnectionFromContext(ctx)
-	desktopProcess, desktopProcessOK := desktopConnection.ClientProcess()
-	if !desktopOK || !desktopProcessOK {
+	if desktopProcess, ok := desktopConnection.ClientProcess(); ok {
+		policy.SupervisorProcess = desktopProcess
+	} else if desktopPeer, ok := desktopConnection.DirectDesktopPeer(); ok {
+		policy.SupervisorPID = desktopPeer.PID
+	} else {
 		return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "bind-supervisor")
 	}
-	policy.SupervisorProcess = desktopProcess
 	deadline, err := protectedlocal.BindLocalDevelopmentProcess(
 		s.localDevelopmentRegistry,
 		ctx,
@@ -405,6 +473,19 @@ func localDevelopmentBindDiagnosticStage(err error) string {
 }
 
 func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
+	if s != nil && s.directLocalAppLaunches != nil {
+		connection, _, _, _, generation, err := s.currentDirectLocalDevelopmentAuthority(ctx, false)
+		if err != nil {
+			return authservice.LocalAppSessionProjection{}, localDevelopmentSessionOpenError(err)
+		}
+		if err := connection.BindDirectAuthorization(); err != nil {
+			return authservice.LocalAppSessionProjection{}, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED, err)
+		}
+		return authservice.LocalAppSessionProjection{
+			TrustClass:        runtimev1.LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT,
+			AccountGeneration: generation,
+		}, nil
+	}
 	connection, accountID, generation, err := s.localDevelopmentSessionOpenContext(ctx)
 	if err != nil {
 		return authservice.LocalAppSessionProjection{}, err
@@ -420,6 +501,16 @@ func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservic
 }
 
 func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
+	if s != nil && s.directLocalAppLaunches != nil {
+		_, _, _, _, generation, err := s.currentDirectLocalDevelopmentAuthority(ctx, true)
+		if err != nil {
+			return authservice.LocalAppSessionProjection{}, localDevelopmentSessionOpenError(err)
+		}
+		return authservice.LocalAppSessionProjection{
+			TrustClass:        runtimev1.LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT,
+			AccountGeneration: generation,
+		}, nil
+	}
 	connection, accountID, generation, err := s.localDevelopmentSessionOpenContext(ctx)
 	if err != nil {
 		return authservice.LocalAppSessionProjection{}, err
@@ -494,6 +585,45 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 	if s == nil || s.localDevelopment == nil || accountGeneration == 0 {
 		return accountservice.LocalAppCallerBinding{}, errLocalDevelopmentSessionRevoked
 	}
+	if s.directLocalAppLaunches != nil {
+		connection, authorization, principal, record, generation, err := s.currentDirectLocalDevelopmentAuthority(ctx, true)
+		if errors.Is(err, errLocalDevelopmentAccountChanged) {
+			return accountservice.LocalAppCallerBinding{}, accountservice.ErrLocalAppAccountChanged
+		}
+		if errors.Is(err, errLocalDevelopmentProcessMismatch) {
+			return accountservice.LocalAppCallerBinding{}, accountservice.ErrLocalAppProcessMismatch
+		}
+		if err != nil || generation != accountGeneration {
+			return accountservice.LocalAppCallerBinding{}, errLocalDevelopmentSessionRevoked
+		}
+		peer, peerOK := connection.DirectPeer()
+		if !peerOK {
+			return accountservice.LocalAppCallerBinding{}, accountservice.ErrLocalAppProcessMismatch
+		}
+		hostDigest, digestErr := localDevelopmentDigestIdentifier("host", record.HostExecutableDigest)
+		if digestErr != nil {
+			return accountservice.LocalAppCallerBinding{}, errLocalDevelopmentSessionRevoked
+		}
+		return accountservice.LocalAppCallerBinding{
+			LocalOSUserAnchor:       principal.LocalOSUserAnchor,
+			SessionID:               connection.LaunchID(),
+			DirectPeer:              peer,
+			AppID:                   authorization.Project.AppID,
+			HostExecutableDigest:    hostDigest,
+			AccountGeneration:       generation,
+			TrustClass:              accountservice.LocalAppTrustClassDevelopment,
+			AuthorizationID:         authorization.ID,
+			AuthorizationGeneration: authorization.Generation,
+			ProjectRoot:             authorization.Project.ProjectRoot,
+			CapabilityFingerprint:   authorization.Project.PermissionRequirementFingerprint,
+			Capabilities:            localDevelopmentPermissionIDs(authorization.Project.PermissionRequirements),
+			LocalAppPrincipalID:     principal.LocalAppPrincipalID,
+			LocalAppRecordID:        record.LocalAppRecordID,
+			ProvenanceRevision:      record.ProvenanceRevision,
+			ProjectGeneration:       record.InstallOrProjectGeneration,
+			PayloadDigest:           record.PayloadRootDigest,
+		}, nil
+	}
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
 	if !ok || !protectedlocal.IsLocalDevelopmentProcessTrustSet(connection.Process()) {
 		return accountservice.LocalAppCallerBinding{}, accountservice.ErrLocalAppProcessMismatch
@@ -542,6 +672,67 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 	}, nil
 }
 
+func (s *Service) currentDirectLocalDevelopmentAuthority(
+	ctx context.Context,
+	requireAuthorized bool,
+) (*protectedlocal.LocalAppConnection, localDevelopmentAuthorization, localappkernel.Principal, localappkernel.Record, uint64, error) {
+	if s == nil || s.localDevelopment == nil || s.directLocalAppLaunches == nil || s.localAppKernel == nil {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentSessionRevoked
+	}
+	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
+	if !ok || connection == nil || !connection.Live() {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentProcessMismatch
+	}
+	if requireAuthorized != connection.DirectAuthorizationBound() {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentSessionRevoked
+	}
+	peer, peerOK := connection.DirectPeer()
+	launch, launchOK := connection.DirectLaunch()
+	if !peerOK || !launchOK || peer.OS != protectedlocal.OSMacOS || peer.UID != launch.ExpectedUID {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentProcessMismatch
+	}
+	account, generation, authenticated := s.authenticatedRuntimeAccount(ctx)
+	if !authenticated || generation == 0 || generation != launch.AccountGeneration {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentAccountChanged
+	}
+	authorization, err := s.localDevelopment.GetAuthorization(ctx, launch.AuthorizationID)
+	if err != nil || authorization.State != localDevelopmentAuthorizationActive ||
+		authorization.Generation != launch.AuthorizationGeneration ||
+		authorization.Project.AccountID != account.GetAccountId() {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentSessionRevoked
+	}
+	if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE &&
+		authorization.RunID != launch.SupervisorRunID {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentSessionRevoked
+	}
+	currentProject, err := resolveLocalDevelopmentProject(
+		authorization.Project.ProjectRoot,
+		authorization.Project.AppID,
+		authorization.Project.ShellKind,
+		account.GetAccountId(),
+		generation,
+	)
+	if err != nil || !localDevelopmentProjectsMatch(authorization.Project, currentProject) {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentSessionRevoked
+	}
+	principal, err := s.localAppKernel.Principals().GetByDevelopmentAuthorizationID(ctx, localDevelopmentAuthorizationRef(authorization.ID))
+	if err != nil || principal.State != localappkernel.PrincipalStateActive ||
+		principal.Kind != localappkernel.PrincipalKindDevelopment ||
+		principal.AppID != authorization.Project.AppID {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentSessionRevoked
+	}
+	record, err := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
+	if err != nil || record.LocalAppPrincipalID != principal.LocalAppPrincipalID ||
+		record.TrustClass != localappkernel.TrustClassLocalDevelopment ||
+		record.LifecycleState != localappkernel.LifecycleStateActive ||
+		record.ActiveCapabilityFingerprint != localDevelopmentCapabilityRef(authorization.Project.PermissionRequirementFingerprint) ||
+		record.ExecutionProfileRef != localDevelopmentExecutionProfileRef(authorization.Project.ShellKind) ||
+		record.HostExecutableDigest == "" || record.PayloadRootDigest == "" {
+		return nil, localDevelopmentAuthorization{}, localappkernel.Principal{}, localappkernel.Record{}, 0, errLocalDevelopmentSessionRevoked
+	}
+	return connection, authorization, principal, record, generation, nil
+}
+
 func (s *Service) EndLocalDevelopmentRun(ctx context.Context, req *runtimev1.EndLocalDevelopmentRunRequest) (*runtimev1.EndLocalDevelopmentRunResponse, error) {
 	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
 		return nil, err
@@ -561,6 +752,9 @@ func (s *Service) EndLocalDevelopmentRun(ctx context.Context, req *runtimev1.End
 	if err := s.localDevelopment.EndRun(ctx, authorizationID, runID); err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
+	if s.directLocalAppLaunches != nil {
+		s.directLocalAppLaunches.RevokeRun(authorizationID, runID)
+	}
 	if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE {
 		if err := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateRemoved, true); err != nil {
 			return nil, localDevelopmentStoreError(err)
@@ -577,8 +771,7 @@ func requireProtectedLocalDevelopmentDesktop(ctx context.Context) error {
 	if !ok || connection == nil {
 		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED)
 	}
-	origin := connection.Origin()
-	if origin.TransportClass != protectedlocal.TransportDesktopControl || !origin.HasRole(protectedlocal.RoleLocalAppControl) {
+	if !connection.VerifiedDesktopTransport() {
 		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 	}
 	return nil

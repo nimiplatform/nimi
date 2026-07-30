@@ -106,8 +106,12 @@ loader remains fail-closed with `protected-carrier-required`. A protected
 Runtime journey still requires building and installing the fixed ad-hoc
 development candidate.
 
-After `pnpm dev:runtime -- --install` reports a healthy service, launch the
-workspace renderer with the installed protected Desktop carrier using:
+Use `pnpm dev:runtime -- --install` only for the first macOS installation.
+After that, `pnpm dev:runtime` builds one candidate and replaces the healthy
+installed development service through the platform sudo authorization while
+retaining its verified service principal and protected state. Only explicit
+uninstall removes that installation state. Launch the workspace renderer with
+the installed protected Desktop carrier using:
 
 ```bash
 pnpm dev:macos:desktop:installed

@@ -13,37 +13,425 @@
 #include <grp.h>
 #include <libproc.h>
 #include <limits.h>
+#include <membership.h>
 #include <pwd.h>
 #include <signal.h>
 #include <spawn.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/acl.h>
 #include <sys/event.h>
 #include <sys/proc_info.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-typedef struct {
-    uint32_t pid;
-    uint32_t pidversion;
-    uint32_t euid;
-    uint32_t ruid;
-    uint32_t ppid;
-    uint64_t start_sec;
-    uint64_t start_usec;
-    int kqueue_fd;
-} nimi_macos_verified_runtime_peer;
+enum {
+    NIMI_MACOS_ACL_SEARCH_DIRECTORY = 1,
+    NIMI_MACOS_ACL_PRODUCT_CONTROL_DIRECTORY = 2,
+    NIMI_MACOS_ACL_DATA_DIRECTORY = 3,
+    NIMI_MACOS_ACL_MODIFY_FILE = 4,
+};
+
+static const acl_permset_mask_t NIMI_MACOS_ACL_SEARCH_MASK = ACL_SEARCH;
+static const acl_permset_mask_t NIMI_MACOS_ACL_MODIFY_MASK =
+    ACL_READ_DATA | ACL_WRITE_DATA | ACL_EXECUTE | ACL_DELETE | ACL_APPEND_DATA |
+    ACL_READ_ATTRIBUTES | ACL_WRITE_ATTRIBUTES | ACL_READ_EXTATTRIBUTES |
+    ACL_WRITE_EXTATTRIBUTES | ACL_READ_SECURITY | ACL_SYNCHRONIZE;
+static const acl_permset_mask_t NIMI_MACOS_ACL_BROAD_MUTATION_MASK =
+    ACL_WRITE_DATA | ACL_DELETE | ACL_APPEND_DATA | ACL_DELETE_CHILD |
+    ACL_WRITE_ATTRIBUTES | ACL_WRITE_EXTATTRIBUTES | ACL_WRITE_SECURITY |
+    ACL_CHANGE_OWNER;
+
+static int nimi_fixed_runtime_service_identity(uid_t *uid, gid_t *gid, uuid_t uuid) {
+    if (uid == NULL || gid == NULL || uuid == NULL) return EINVAL;
+    errno = 0;
+    struct passwd *account = getpwnam(NIMI_MACOS_RUNTIME_ACCOUNT);
+    int account_error = errno;
+    if (account == NULL) return account_error != 0 ? account_error : ENOENT;
+    if (account->pw_name == NULL || account->pw_dir == NULL || account->pw_shell == NULL ||
+        strcmp(account->pw_name, NIMI_MACOS_RUNTIME_ACCOUNT) != 0 ||
+        account->pw_uid != account->pw_gid || account->pw_uid < 450 || account->pw_uid > 499 ||
+        strcmp(account->pw_dir, "/var/empty") != 0 ||
+        strcmp(account->pw_shell, "/usr/bin/false") != 0) {
+        return EACCES;
+    }
+    uid_t account_uid = account->pw_uid;
+    gid_t account_gid = account->pw_gid;
+    errno = 0;
+    struct group *group = getgrnam(NIMI_MACOS_RUNTIME_ACCOUNT);
+    int group_error = errno;
+    if (group == NULL) return group_error != 0 ? group_error : ENOENT;
+    if (group->gr_name == NULL ||
+        strcmp(group->gr_name, NIMI_MACOS_RUNTIME_ACCOUNT) != 0 ||
+        account_gid != group->gr_gid) {
+        return EACCES;
+    }
+    int status = mbr_uid_to_uuid(account_uid, uuid);
+    if (status != 0) return status;
+    *uid = account_uid;
+    *gid = account_gid;
+    return 0;
+}
 
 static int nimi_fixed_runtime_service_uid(uid_t *output) {
     if (output == NULL) return EINVAL;
-    struct passwd *account = getpwnam(NIMI_MACOS_RUNTIME_ACCOUNT);
-    if (account == NULL || account->pw_uid == 0 || account->pw_name == NULL ||
-        strcmp(account->pw_name, NIMI_MACOS_RUNTIME_ACCOUNT) != 0) return ENOENT;
-    *output = account->pw_uid;
+    gid_t ignored_gid = 0;
+    uuid_t ignored_uuid;
+    return nimi_fixed_runtime_service_identity(output, &ignored_gid, ignored_uuid);
+}
+
+static int nimi_acl_policy(int policy, mode_t file_mode,
+                           acl_permset_mask_t *expected_permissions,
+                           uint32_t *expected_flags) {
+    if (expected_permissions == NULL || expected_flags == NULL) return EINVAL;
+    switch (policy) {
+        case NIMI_MACOS_ACL_SEARCH_DIRECTORY:
+            if (!S_ISDIR(file_mode)) return ENOTDIR;
+            *expected_permissions = NIMI_MACOS_ACL_SEARCH_MASK;
+            *expected_flags = 0;
+            return 0;
+        case NIMI_MACOS_ACL_PRODUCT_CONTROL_DIRECTORY:
+            if (!S_ISDIR(file_mode)) return ENOTDIR;
+            *expected_permissions = NIMI_MACOS_ACL_MODIFY_MASK;
+            *expected_flags = ACL_ENTRY_FILE_INHERIT;
+            return 0;
+        case NIMI_MACOS_ACL_DATA_DIRECTORY:
+            if (!S_ISDIR(file_mode)) return ENOTDIR;
+            *expected_permissions = NIMI_MACOS_ACL_MODIFY_MASK;
+            *expected_flags = ACL_ENTRY_FILE_INHERIT | ACL_ENTRY_DIRECTORY_INHERIT;
+            return 0;
+        case NIMI_MACOS_ACL_MODIFY_FILE:
+            if (!S_ISREG(file_mode)) return EINVAL;
+            *expected_permissions = NIMI_MACOS_ACL_MODIFY_MASK;
+            *expected_flags = 0;
+            return 0;
+        default:
+            return EINVAL;
+    }
+}
+
+static int nimi_acl_entry_flags(acl_entry_t entry, uint32_t *output) {
+    if (entry == NULL || output == NULL) return EINVAL;
+    acl_flagset_t flagset = NULL;
+    if (acl_get_flagset_np(entry, &flagset) != 0 || flagset == NULL) {
+        return errno == 0 ? EIO : errno;
+    }
+    const acl_flag_t flags[] = {
+        ACL_ENTRY_INHERITED,
+        ACL_ENTRY_FILE_INHERIT,
+        ACL_ENTRY_DIRECTORY_INHERIT,
+        ACL_ENTRY_LIMIT_INHERIT,
+        ACL_ENTRY_ONLY_INHERIT,
+    };
+    uint32_t value = 0;
+    for (size_t index = 0; index < sizeof(flags) / sizeof(flags[0]); index++) {
+        int present = acl_get_flag_np(flagset, flags[index]);
+        if (present < 0) return errno == 0 ? EIO : errno;
+        if (present != 0) value |= (uint32_t)flags[index];
+    }
+    *output = value;
+    return 0;
+}
+
+static int nimi_acl_entry_matches_uuid(acl_entry_t entry, const uuid_t expected, int *matches) {
+    if (entry == NULL || expected == NULL || matches == NULL) return EINVAL;
+    *matches = 0;
+    acl_tag_t tag = ACL_UNDEFINED_TAG;
+    if (acl_get_tag_type(entry, &tag) != 0) return errno == 0 ? EIO : errno;
+    if (tag != ACL_EXTENDED_ALLOW && tag != ACL_EXTENDED_DENY) return 0;
+    void *qualifier = acl_get_qualifier(entry);
+    if (qualifier == NULL) return errno == 0 ? EIO : errno;
+    *matches = uuid_compare((const unsigned char *)qualifier, expected) == 0;
+    acl_free(qualifier);
+    return 0;
+}
+
+static int nimi_acl_entry_is_broad_group(acl_entry_t entry, int *broad) {
+    if (entry == NULL || broad == NULL) return EINVAL;
+    *broad = 0;
+    acl_tag_t tag = ACL_UNDEFINED_TAG;
+    if (acl_get_tag_type(entry, &tag) != 0) return errno == 0 ? EIO : errno;
+    if (tag != ACL_EXTENDED_ALLOW) return 0;
+    void *qualifier = acl_get_qualifier(entry);
+    if (qualifier == NULL) return errno == 0 ? EIO : errno;
+    id_t identifier = 0;
+    int identifier_type = -1;
+    int status = mbr_uuid_to_id(
+        (const unsigned char *)qualifier, &identifier, &identifier_type);
+    acl_free(qualifier);
+    if (status == ENOENT || status == ESRCH) {
+        return 0;
+    }
+    if (status != 0) return status;
+    if (identifier_type != ID_TYPE_GID) return 0;
+    switch (identifier) {
+        case 12: // everyone
+        case 20: // staff
+        case 50: // authedusers
+        case 51: // interactusers
+        case 52: // netusers
+        case 53: // consoleusers
+        case 61: // localaccounts
+        case 62: // netaccounts
+            *broad = 1;
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
+static int nimi_inspect_fixed_runtime_acl(const char *path, uid_t expected_owner,
+                                          uid_t runtime_owner, int policy,
+                                          const uuid_t runtime_uuid, int *exact) {
+    if (path == NULL || path[0] != '/' || runtime_uuid == NULL || exact == NULL) return EINVAL;
+    *exact = 0;
+    struct stat info;
+    if (lstat(path, &info) != 0) return errno == 0 ? EIO : errno;
+    int owner_is_admitted = info.st_uid == expected_owner ||
+        (policy == NIMI_MACOS_ACL_MODIFY_FILE && info.st_uid == runtime_owner);
+    if (S_ISLNK(info.st_mode) || !owner_is_admitted ||
+        (info.st_mode & (S_IWGRP | S_IWOTH)) != 0) {
+        return EACCES;
+    }
+    acl_permset_mask_t expected_permissions = 0;
+    uint32_t expected_flags = 0;
+    int status = nimi_acl_policy(policy, info.st_mode, &expected_permissions, &expected_flags);
+    if (status != 0) return status;
+    errno = 0;
+    acl_t acl = acl_get_file(path, ACL_TYPE_EXTENDED);
+    if (acl == NULL) {
+        if (errno == ENOENT || errno == ENOATTR) return 0;
+        return errno == 0 ? EIO : errno;
+    }
+    int matching_entries = 0;
+    int exact_entry = 0;
+    acl_entry_t entry = NULL;
+    int entry_status = acl_get_entry(acl, ACL_FIRST_ENTRY, &entry);
+    while (entry_status == 0 && entry != NULL) {
+        acl_tag_t tag = ACL_UNDEFINED_TAG;
+        acl_permset_mask_t permissions = 0;
+        uint32_t flags = 0;
+        int matches_runtime = 0;
+        int broad_group = 0;
+        if (acl_get_tag_type(entry, &tag) != 0 ||
+            acl_get_permset_mask_np(entry, &permissions) != 0) {
+            status = errno == 0 ? EIO : errno;
+            break;
+        }
+        status = nimi_acl_entry_flags(entry, &flags);
+        if (status != 0) break;
+        status = nimi_acl_entry_matches_uuid(entry, runtime_uuid, &matches_runtime);
+        if (status != 0) break;
+        status = nimi_acl_entry_is_broad_group(entry, &broad_group);
+        if (status != 0) break;
+        if (broad_group && (permissions & NIMI_MACOS_ACL_BROAD_MUTATION_MASK) != 0) {
+            status = EACCES;
+            break;
+        }
+        if (matches_runtime) {
+            matching_entries++;
+            uint32_t semantic_flags = flags & ~(uint32_t)ACL_ENTRY_INHERITED;
+            if (tag == ACL_EXTENDED_ALLOW && permissions == expected_permissions &&
+                semantic_flags == expected_flags) {
+                exact_entry = 1;
+            }
+        }
+        entry = NULL;
+        errno = 0;
+        entry_status = acl_get_entry(acl, ACL_NEXT_ENTRY, &entry);
+    }
+    if (status == 0 && entry_status < 0 && errno != EINVAL) {
+        status = errno == 0 ? EIO : errno;
+    }
+    acl_free(acl);
+    if (status != 0) return status;
+    *exact = matching_entries == 1 && exact_entry;
+    return 0;
+}
+
+static int nimi_acl_entry_is_stale_runtime(acl_entry_t entry,
+                                           acl_permset_mask_t expected_permissions,
+                                           uint32_t expected_flags,
+                                           int *stale) {
+    if (entry == NULL || stale == NULL) return EINVAL;
+    *stale = 0;
+    acl_tag_t tag = ACL_UNDEFINED_TAG;
+    if (acl_get_tag_type(entry, &tag) != 0) return errno == 0 ? EIO : errno;
+    if (tag != ACL_EXTENDED_ALLOW) return 0;
+    void *qualifier = acl_get_qualifier(entry);
+    if (qualifier == NULL) return errno == 0 ? EIO : errno;
+    id_t identifier = 0;
+    int identifier_type = -1;
+    int status = mbr_uuid_to_id(
+        (const unsigned char *)qualifier, &identifier, &identifier_type);
+    acl_free(qualifier);
+    if (status == 0) return 0;
+    if (status != ENOENT && status != ESRCH) return status;
+
+    acl_permset_mask_t permissions = 0;
+    uint32_t flags = 0;
+    if (acl_get_permset_mask_np(entry, &permissions) != 0) {
+        return errno == 0 ? EIO : errno;
+    }
+    status = nimi_acl_entry_flags(entry, &flags);
+    if (status != 0) return status;
+    uint32_t semantic_flags = flags & ~(uint32_t)ACL_ENTRY_INHERITED;
+    *stale = permissions == expected_permissions && semantic_flags == expected_flags;
+    return 0;
+}
+
+static int nimi_copy_acl_without_runtime(acl_t source, const uuid_t runtime_uuid,
+                                         acl_permset_mask_t expected_permissions,
+                                         uint32_t expected_flags, acl_t *output) {
+    if (source == NULL || runtime_uuid == NULL || output == NULL) return EINVAL;
+    acl_t next = acl_init(0);
+    if (next == NULL) return errno == 0 ? ENOMEM : errno;
+    int status = 0;
+    acl_entry_t entry = NULL;
+    int entry_status = acl_get_entry(source, ACL_FIRST_ENTRY, &entry);
+    while (entry_status == 0 && entry != NULL) {
+        int matches_runtime = 0;
+        int stale_runtime = 0;
+        status = nimi_acl_entry_matches_uuid(entry, runtime_uuid, &matches_runtime);
+        if (status != 0) break;
+        status = nimi_acl_entry_is_stale_runtime(
+            entry, expected_permissions, expected_flags, &stale_runtime);
+        if (status != 0) break;
+        if (!matches_runtime && !stale_runtime) {
+            acl_entry_t copied = NULL;
+            if (acl_create_entry(&next, &copied) != 0 || copied == NULL ||
+                acl_copy_entry(copied, entry) != 0) {
+                status = errno == 0 ? EIO : errno;
+                break;
+            }
+        }
+        entry = NULL;
+        errno = 0;
+        entry_status = acl_get_entry(source, ACL_NEXT_ENTRY, &entry);
+    }
+    if (status == 0 && entry_status < 0 && errno != EINVAL) {
+        status = errno == 0 ? EIO : errno;
+    }
+    if (status != 0) {
+        acl_free(next);
+        return status;
+    }
+    *output = next;
+    return 0;
+}
+
+static int nimi_append_fixed_runtime_acl_entry(acl_t *acl, const uuid_t runtime_uuid,
+                                                acl_permset_mask_t permissions,
+                                                uint32_t flags) {
+    if (acl == NULL || *acl == NULL || runtime_uuid == NULL) return EINVAL;
+    acl_entry_t entry = NULL;
+    if (acl_create_entry(acl, &entry) != 0 || entry == NULL) {
+        return errno == 0 ? EIO : errno;
+    }
+    if (acl_set_tag_type(entry, ACL_EXTENDED_ALLOW) != 0 ||
+        acl_set_qualifier(entry, runtime_uuid) != 0 ||
+        acl_set_permset_mask_np(entry, permissions) != 0) {
+        return errno == 0 ? EIO : errno;
+    }
+    acl_flagset_t flagset = NULL;
+    if (acl_get_flagset_np(entry, &flagset) != 0 || flagset == NULL ||
+        acl_clear_flags_np(flagset) != 0) {
+        return errno == 0 ? EIO : errno;
+    }
+    const acl_flag_t supported_flags[] = {
+        ACL_ENTRY_FILE_INHERIT,
+        ACL_ENTRY_DIRECTORY_INHERIT,
+        ACL_ENTRY_LIMIT_INHERIT,
+        ACL_ENTRY_ONLY_INHERIT,
+    };
+    for (size_t index = 0; index < sizeof(supported_flags) / sizeof(supported_flags[0]); index++) {
+        if ((flags & (uint32_t)supported_flags[index]) != 0 &&
+            acl_add_flag_np(flagset, supported_flags[index]) != 0) {
+            return errno == 0 ? EIO : errno;
+        }
+    }
+    if (acl_set_flagset_np(entry, flagset) != 0) return errno == 0 ? EIO : errno;
+    return 0;
+}
+
+int nimi_macos_validate_fixed_runtime_path_acl(const char *path, int policy) {
+    uid_t runtime_uid = 0;
+    gid_t runtime_gid = 0;
+    uuid_t runtime_uuid;
+    int status = nimi_fixed_runtime_service_identity(&runtime_uid, &runtime_gid, runtime_uuid);
+    if (status != 0) return status;
+    (void)runtime_uid;
+    (void)runtime_gid;
+    uid_t owner = geteuid();
+    if (owner == 0 || getuid() != owner) return EACCES;
+    int exact = 0;
+    status = nimi_inspect_fixed_runtime_acl(
+        path, owner, runtime_uid, policy, runtime_uuid, &exact);
+    if (status != 0) return status;
+    return exact ? 0 : EACCES;
+}
+
+int nimi_macos_prepare_fixed_runtime_path_acl(const char *path, int policy) {
+    uid_t runtime_uid = 0;
+    gid_t runtime_gid = 0;
+    uuid_t runtime_uuid;
+    int status = nimi_fixed_runtime_service_identity(&runtime_uid, &runtime_gid, runtime_uuid);
+    if (status != 0) return status;
+    (void)runtime_uid;
+    (void)runtime_gid;
+    uid_t owner = geteuid();
+    if (owner == 0 || getuid() != owner) return EACCES;
+    int exact = 0;
+    status = nimi_inspect_fixed_runtime_acl(
+        path, owner, runtime_uid, policy, runtime_uuid, &exact);
+    if (status != 0) return status;
+    if (exact) return 0;
+
+    struct stat info;
+    if (lstat(path, &info) != 0) return errno == 0 ? EIO : errno;
+    if (info.st_uid == runtime_uid) return EACCES;
+    acl_permset_mask_t expected_permissions = 0;
+    uint32_t expected_flags = 0;
+    status = nimi_acl_policy(policy, info.st_mode, &expected_permissions, &expected_flags);
+    if (status != 0) return status;
+    errno = 0;
+    acl_t current = acl_get_file(path, ACL_TYPE_EXTENDED);
+    if (current == NULL && (errno == ENOENT || errno == ENOATTR)) current = acl_init(0);
+    if (current == NULL) return errno == 0 ? EIO : errno;
+    acl_t next = NULL;
+    status = nimi_copy_acl_without_runtime(
+        current, runtime_uuid, expected_permissions, expected_flags, &next);
+    acl_free(current);
+    if (status != 0) return status;
+    status = nimi_append_fixed_runtime_acl_entry(
+        &next, runtime_uuid, expected_permissions, expected_flags);
+    if (status == 0 && acl_valid(next) != 0) status = errno == 0 ? EIO : errno;
+    if (status == 0 && acl_set_file(path, ACL_TYPE_EXTENDED, next) != 0) {
+        status = errno == 0 ? EIO : errno;
+    }
+    acl_free(next);
+    if (status != 0) return status;
+    return nimi_macos_validate_fixed_runtime_path_acl(path, policy);
+}
+
+int nimi_macos_copy_current_user_profile(char *output, size_t output_size) {
+    if (output == NULL || output_size < 2) return EINVAL;
+    uid_t owner = geteuid();
+    if (owner == 0 || getuid() != owner) return EACCES;
+    errno = 0;
+    struct passwd *account = getpwuid(owner);
+    if (account == NULL || account->pw_uid != owner || account->pw_dir == NULL) {
+        return errno == 0 ? ENOENT : errno;
+    }
+    size_t length = strlen(account->pw_dir);
+    if (length < 2 || account->pw_dir[0] != '/' || length >= output_size) return EINVAL;
+    memcpy(output, account->pw_dir, length + 1);
     return 0;
 }
 
@@ -51,8 +439,26 @@ static int nimi_process_snapshot(pid_t pid, struct proc_bsdinfo *output, char *p
     if (pid <= 0 || output == NULL || path == NULL || path_size < 2) return EINVAL;
     memset(output, 0, sizeof(*output));
     memset(path, 0, path_size);
-    int read = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, output, sizeof(*output));
-    if (read != sizeof(*output) || output->pbi_pid != (uint32_t)pid || output->pbi_start_tvsec == 0) {
+    struct kinfo_proc info;
+    memset(&info, 0, sizeof(info));
+    int selectors[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, (int)pid };
+    size_t info_length = sizeof(info);
+    if (sysctl(selectors, 4, &info, &info_length, NULL, 0) != 0) {
+        return errno == 0 ? EIO : errno;
+    }
+    if (info_length != sizeof(info) || info.kp_proc.p_pid != pid ||
+        info.kp_proc.p_starttime.tv_sec <= 0 ||
+        info.kp_proc.p_starttime.tv_usec < 0 ||
+        info.kp_proc.p_starttime.tv_usec >= 1000000) {
+        return ESRCH;
+    }
+    output->pbi_pid = (uint32_t)info.kp_proc.p_pid;
+    output->pbi_ppid = (uint32_t)info.kp_eproc.e_ppid;
+    output->pbi_uid = (uint32_t)info.kp_eproc.e_ucred.cr_uid;
+    output->pbi_ruid = (uint32_t)info.kp_eproc.e_pcred.p_ruid;
+    output->pbi_start_tvsec = (uint64_t)info.kp_proc.p_starttime.tv_sec;
+    output->pbi_start_tvusec = (uint64_t)info.kp_proc.p_starttime.tv_usec;
+    if (output->pbi_pid != (uint32_t)pid) {
         return errno == 0 ? ESRCH : errno;
     }
     int path_length = proc_pidpath(pid, path, (uint32_t)path_size);
@@ -113,9 +519,8 @@ static int nimi_verify_runtime_code(pid_t pid, const audit_token_t *token,
         result = status == errSecSuccess ? EACCES : (int)status;
         goto cleanup_strings;
     }
-    SecCSFlags validation_flags = kSecCSStrictValidate | kSecCSCheckAllArchitectures;
-    if (require_trusted_anchor) validation_flags |= kSecCSCheckTrustedAnchors;
-    status = SecCodeCheckValidity(code, validation_flags, requirement);
+    // Static validation owns architecture, trust-anchor, and notarization checks.
+    status = SecCodeCheckValidity(code, kSecCSDefaultFlags, requirement);
     if (status != errSecSuccess) {
         result = (int)status;
         CFRelease(requirement);
@@ -186,12 +591,9 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
                                    const char *expected_team,
                                    const char *expected_identifier,
                                    int require_trusted_anchor,
-                                   int require_ad_hoc,
-                                   nimi_macos_verified_runtime_peer *output) {
-    if (socket_fd < 0 || output == NULL || expected_executable == NULL ||
+                                   int require_ad_hoc) {
+    if (socket_fd < 0 || expected_executable == NULL ||
         strcmp(expected_executable, NIMI_MACOS_RUNTIME_EXECUTABLE) != 0) return EINVAL;
-    memset(output, 0, sizeof(*output));
-    output->kqueue_fd = -1;
     uid_t service_uid = 0;
     int result = nimi_fixed_runtime_service_uid(&service_uid);
     if (result != 0) return result;
@@ -241,25 +643,6 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
     if (result != 0 || !nimi_same_process(&before, &after) || strcmp(process_path, after_path) != 0) {
         return EACCES;
     }
-    int queue = kqueue();
-    if (queue < 0) {
-        return errno == 0 ? EIO : errno;
-    }
-    struct kevent change;
-    EV_SET(&change, (uintptr_t)peer_pid, EVFILT_PROC, EV_ADD | EV_ENABLE | EV_CLEAR,
-        NOTE_EXIT | NOTE_EXEC, 0, NULL);
-    if (kevent(queue, &change, 1, NULL, 0, NULL) != 0) {
-        close(queue);
-        return errno == 0 ? EIO : errno;
-    }
-    output->pid = (uint32_t)peer_pid;
-    output->pidversion = (uint32_t)audit_token_to_pidversion(token);
-    output->euid = (uint32_t)service_uid;
-    output->ruid = (uint32_t)service_uid;
-    output->ppid = before.pbi_ppid;
-    output->start_sec = before.pbi_start_tvsec;
-    output->start_usec = before.pbi_start_tvusec;
-    output->kqueue_fd = queue;
     return 0;
 }
 
@@ -439,31 +822,6 @@ int nimi_macos_open_url(const char *raw_url) {
         if (url == nil) return EINVAL;
         return [[NSWorkspace sharedWorkspace] openURL:url] ? 0 : EIO;
     }
-}
-
-int nimi_macos_runtime_peer_alive(uint32_t pid, uint32_t expected_ppid,
-                                  uint32_t expected_euid, uint64_t start_sec,
-                                  uint64_t start_usec, int kqueue_fd,
-                                  const char *expected_executable) {
-    if (pid == 0 || kqueue_fd < 0 || expected_executable == NULL) return -1;
-    struct kevent event;
-    struct timespec timeout = {0, 0};
-    int count = kevent(kqueue_fd, NULL, 0, &event, 1, &timeout);
-    if (count < 0) return -1;
-    if (count > 0) {
-        if (event.filter == EVFILT_PROC && (event.fflags & NOTE_EXEC) != 0) return 2;
-        if (event.filter == EVFILT_PROC && (event.fflags & NOTE_EXIT) != 0) return 0;
-        return -1;
-    }
-    struct proc_bsdinfo process;
-    char path[PROC_PIDPATHINFO_MAXSIZE];
-    int snapshot = nimi_process_snapshot((pid_t)pid, &process, path, sizeof(path));
-    if (snapshot == ESRCH) return 0;
-    if (snapshot != 0) return -1;
-    if (process.pbi_ppid != expected_ppid || process.pbi_uid != expected_euid ||
-        process.pbi_ruid != expected_euid || process.pbi_start_tvsec != start_sec ||
-        process.pbi_start_tvusec != start_usec || strcmp(path, expected_executable) != 0) return 2;
-    return 1;
 }
 
 int nimi_macos_spawn_suspended(const char *executable, char *const argv[], char *const envp[],

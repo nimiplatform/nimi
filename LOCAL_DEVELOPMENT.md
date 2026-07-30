@@ -18,8 +18,8 @@
 | 路径 | 用途 | 受保护 Runtime |
 |---|---|---|
 | `pnpm dev:desktop` | Windows/macOS 日常 Electron UI、main、preload 与 loopback CDP 迭代 | Windows 使用已安装 fixed service；macOS workspace Electron 明确不可用 |
-| `pnpm dev:runtime` | Windows 构建并更新已安装 fixed service | 可用 |
-| `pnpm dev:runtime -- --install` | macOS 构建并安装固定 ad-hoc development candidate | 可用 |
+| `pnpm dev:runtime` | Windows/macOS 构建并更新健康的已安装 fixed service | 可用 |
+| `pnpm dev:runtime -- --install` | macOS 首次安装固定 ad-hoc development candidate | 可用 |
 | `pnpm dev:macos:desktop:installed` | macOS 启动 renderer 与已安装的 `/Applications/Nimi Dev.app` | 可用 |
 | `nimi-app dev --shell electron` | 由 Desktop supervisor 启动第三方 Electron App | 取决于当前受保护 Desktop/Runtime |
 
@@ -55,8 +55,15 @@ pnpm dev:desktop
 ```bash
 pnpm dev:runtime -- --status
 pnpm dev:runtime -- --install
+pnpm dev:runtime
 NIMI_DESKTOP_DEV_CDP_PORT=9333 pnpm dev:macos:desktop:installed
 ```
+
+`--install` 只用于 `absent` 状态的首次安装。此后无参数
+`pnpm dev:runtime` 与 Windows 一样是日常更新入口：先构建完整候选，经 sudo 授权后替换
+当前健康安装，并检查新 Runtime 回到 `running/healthy`。更新前状态不是健康
+`present` 时不会猜测性修复。日常更新保留已验证的 `_nimiruntimedev` principal、
+protected state 与 Keychain namespace；只有显式 `--uninstall` 才删除这些安装状态。
 
 macOS development candidate 的边界是固定的：
 
@@ -96,10 +103,10 @@ Control 只来自显式 destructive reset。
 | 修改对象 | 动作 |
 |---|---|
 | Desktop renderer | Vite HMR |
-| Desktop Electron main/preload | workspace 路径自动重建；macOS protected 路径重建 candidate 后重新安装 |
+| Desktop Electron main/preload | workspace 路径自动重建；macOS protected 路径运行 `pnpm dev:runtime` 更新 |
 | 第三方 App renderer | Desktop supervisor 保持 renderer 与 host 生命周期绑定 |
 | 第三方 App `src-electron` | supervisor 防抖构建并替换 host |
-| Runtime Go | Windows 用 `pnpm dev:runtime` 更新；macOS 重建并 fresh install 固定 candidate |
+| Runtime Go | Windows/macOS 均用 `pnpm dev:runtime` 更新健康的已安装 fixed service |
 | SDK/Kit | 运行 `pnpm dev:prepare:watch` |
 
 Runtime restart、host replacement、renderer dev server 退出、authority 刷新失败或

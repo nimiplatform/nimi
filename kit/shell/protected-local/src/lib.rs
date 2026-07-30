@@ -12,6 +12,9 @@ mod grpc_status;
 mod local_development;
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
+mod macos_data_root;
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
 mod macos_peer_trust;
 #[cfg(target_os = "macos")]
 mod macos_profile;
@@ -115,9 +118,9 @@ pub use local_development::{
     LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 #[cfg(target_os = "macos")]
-pub use macos_service_control::{
-    invalidate_verified_desktop_runtime_channel, MacOsUnixSocketCarrier,
-};
+pub use macos_data_root::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};
+#[cfg(target_os = "macos")]
+pub use macos_service_control::MacOsUnixSocketCarrier;
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{
     FixedRuntimeServiceControl, RuntimeServiceAction, RuntimeServiceActionOutcome,

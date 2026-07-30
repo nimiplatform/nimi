@@ -11,21 +11,17 @@ const (
 )
 
 type macOSCodePolicy struct {
-	executableRole       string
 	teamID               string
 	signingIdentifier    string
 	directRequirement    string
-	trustSetID           string
 	requireAdHoc         bool
 	requireTrustedAnchor bool
 	requireNotarization  bool
 }
 
 func (policy macOSCodePolicy) validate() error {
-	if !canonicalIdentityField(policy.executableRole) ||
-		!canonicalIdentityField(policy.signingIdentifier) ||
+	if !canonicalIdentityField(policy.signingIdentifier) ||
 		!validMacOSRequirement(policy.directRequirement) ||
-		!canonicalIdentityField(policy.trustSetID) ||
 		(policy.requireNotarization && !policy.requireTrustedAnchor) ||
 		(policy.requireAdHoc && (policy.teamID != "" || policy.requireTrustedAnchor || policy.requireNotarization)) ||
 		(!policy.requireAdHoc && (!validMacOSTeamID(policy.teamID) || !policy.requireTrustedAnchor)) {
@@ -35,28 +31,13 @@ func (policy macOSCodePolicy) validate() error {
 }
 
 func macOSRuntimeCodePolicy() (macOSCodePolicy, error) {
-	return loadMacOSCodePolicy(macOSRuntimeExecutableRole)
+	return newMacOSCodePolicy(MacOSRuntimeSigningIdentifier)
 }
 
 func macOSDesktopCodePolicy() (macOSCodePolicy, error) {
-	policy, err := loadMacOSCodePolicy(macOSDesktopExecutableRole)
-	if err != nil {
-		return macOSCodePolicy{}, err
-	}
-	if err := verifyMacOSOuterBundleSeal(
-		MacOSDesktopApplicationPath,
-		policy.directRequirement,
-		policy.teamID,
-		policy.signingIdentifier,
-		policy.requireTrustedAnchor,
-		policy.requireNotarization,
-		policy.requireAdHoc,
-	); err != nil {
-		return macOSCodePolicy{}, err
-	}
-	return policy, nil
+	return newMacOSCodePolicy(MacOSDesktopSigningIdentifier)
 }
 
 func macOSLocalAppHostCodePolicy() (macOSCodePolicy, error) {
-	return loadMacOSCodePolicy(macOSLocalHostExecutableRole)
+	return newMacOSCodePolicy(MacOSLocalAppHostIdentifier)
 }

@@ -165,9 +165,19 @@ func (origin OriginContext) HasRole(role OriginRole) bool {
 	return ok
 }
 
+// DesktopPeerIdentity is the minimal OS identity retained for a directly
+// verified native Desktop socket. It is not a portable process proof.
+type DesktopPeerIdentity struct {
+	OS           OperatingSystem
+	PID          uint32
+	UID          uint32
+	AuditSession uint32
+}
+
 type Connection struct {
 	origin      OriginContext
 	client      ProcessTuple
+	directPeer  DesktopPeerIdentity
 	live        atomic.Bool
 	done        chan struct{}
 	revokedDone chan struct{}
@@ -181,6 +191,20 @@ type Connection struct {
 
 	desktopSessionMu sync.RWMutex
 	desktopSession   *desktopSessionAuthority
+}
+
+func newDirectDesktopConnection(peer DesktopPeerIdentity) (*Connection, error) {
+	if peer.OS != OSMacOS || peer.PID == 0 || peer.UID == 0 || peer.AuditSession == 0 {
+		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", fmt.Errorf("verified macOS Desktop peer is incomplete"))
+	}
+	connection := &Connection{
+		origin:      OriginContext{TransportClass: TransportDesktopControl},
+		directPeer:  peer,
+		done:        make(chan struct{}),
+		revokedDone: make(chan struct{}),
+	}
+	connection.live.Store(true)
+	return connection, nil
 }
 
 type desktopConnectionContextKey struct{}
@@ -290,6 +314,38 @@ func (connection *Connection) ClientProcess() (ProcessTuple, bool) {
 	return connection.client, connection.client.validate() == nil
 }
 
+// DirectDesktopPeer returns only the minimal identity retained by the macOS
+// direct socket path. Windows continues to use ClientProcess.
+func (connection *Connection) DirectDesktopPeer() (DesktopPeerIdentity, bool) {
+	if connection == nil || !connection.live.Load() || connection.directPeer.OS != OSMacOS ||
+		connection.directPeer.PID == 0 || connection.directPeer.UID == 0 ||
+		connection.directPeer.AuditSession == 0 {
+		return DesktopPeerIdentity{}, false
+	}
+	return connection.directPeer, true
+}
+
+// VerifiedDesktopTransport reports authority created by a native verified
+// listener. Windows keeps its existing role-bearing session path; macOS is
+// authorized directly from the connected socket peer.
+func (connection *Connection) VerifiedDesktopTransport() bool {
+	if connection == nil || !connection.live.Load() ||
+		connection.origin.TransportClass != TransportDesktopControl {
+		return false
+	}
+	if _, ok := connection.DirectDesktopPeer(); ok {
+		return true
+	}
+	return connection.origin.HasRole(RoleVerifiedDesktopProcess)
+}
+
+func (connection *Connection) Done() <-chan struct{} {
+	if connection == nil {
+		return nil
+	}
+	return connection.done
+}
+
 func (connection *Connection) watchClientLiveness() {
 	select {
 	case <-connection.livenessSignal:
@@ -322,7 +378,9 @@ func (connection *Connection) Revoke() {
 		return
 	}
 	close(connection.done)
-	_ = connection.clientLiveness.Close()
+	if connection.clientLiveness != nil {
+		_ = connection.clientLiveness.Close()
+	}
 	connection.revokeMu.Lock()
 	hooks := make([]func(), 0, len(connection.revokeHooks)+len(connection.boundRevokeHooks))
 	hooks = append(hooks, connection.revokeHooks...)
@@ -411,6 +469,7 @@ type DesktopSessionManager struct {
 	bootEpoch Identifier
 	random    io.Reader
 	managerID Identifier
+	direct    bool
 
 	mu       sync.Mutex
 	sessions map[Identifier]*desktopSessionAuthority
@@ -439,14 +498,31 @@ func NewDesktopSessionManager(bootEpoch Identifier, random io.Reader) (*DesktopS
 	}, nil
 }
 
-// ValidateBootScoped confirms that this manager owns a live boot-scoped
-// session index. Normal Desktop sessions are not durable-anchor truth.
-func (manager *DesktopSessionManager) ValidateBootScoped(ctx context.Context) error {
+func NewDirectDesktopSessionManager(random io.Reader) (*DesktopSessionManager, error) {
+	managerID, err := readIdentifier(random)
+	if err != nil {
+		return nil, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "restart_runtime_service", fmt.Errorf("generate direct session manager identifier: %w", err))
+	}
+	return &DesktopSessionManager{
+		random: random, managerID: managerID, direct: true,
+		sessions: make(map[Identifier]*desktopSessionAuthority),
+	}, nil
+}
+
+func (manager *DesktopSessionManager) Direct() bool {
+	return manager != nil && manager.direct
+}
+
+// Validate confirms that the manager is ready for either direct native peers
+// or the Windows session-scoped transport.
+func (manager *DesktopSessionManager) Validate(ctx context.Context) error {
 	if ctx == nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: context is required"))
 	}
-	if manager == nil || manager.bootEpoch == (Identifier{}) || manager.managerID == (Identifier{}) {
-		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: boot-scoped authority is incomplete"))
+	if manager == nil || manager.managerID == (Identifier{}) ||
+		(!manager.direct && manager.bootEpoch == (Identifier{})) ||
+		(manager.direct && manager.bootEpoch != (Identifier{})) {
+		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: transport authority is incomplete"))
 	}
 	manager.mu.Lock()
 	sessionsReady := manager.sessions != nil
@@ -464,6 +540,9 @@ func (manager *DesktopSessionManager) Open(ctx context.Context) (DesktopSessionP
 	}
 	if connection == nil || !connection.live.Load() {
 		return DesktopSessionProjection{}, fail(ReasonDesktopProcessVerificationUnavailable, true, "reconnect_desktop", fmt.Errorf("open desktop session: connection is not live"))
+	}
+	if _, direct := connection.DirectDesktopPeer(); direct {
+		return DesktopSessionProjection{}, fail(ReasonProtectedOriginRoleMismatch, false, "use_desktop_control", fmt.Errorf("macOS direct Desktop transport does not open a boot-scoped session"))
 	}
 	origin := connection.origin
 	if origin.TransportClass != TransportDesktopControl {
@@ -518,10 +597,13 @@ func (manager *DesktopSessionManager) AuthorizeContext(ctx context.Context, role
 	if !ok {
 		return fail(ReasonDesktopControlTransportRequired, false, "use_desktop_control", fmt.Errorf("authorize desktop session: protected connection context is required"))
 	}
-	authority := connection.desktopSessionAuthority()
 	if connection == nil || !connection.live.Load() {
 		return fail(ReasonDesktopProcessVerificationUnavailable, true, "reconnect_desktop", fmt.Errorf("authorize desktop session: live connection required"))
 	}
+	if _, direct := connection.DirectDesktopPeer(); direct {
+		return nil
+	}
+	authority := connection.desktopSessionAuthority()
 	if authority == nil {
 		return fail(ReasonProtectedOriginRoleMismatch, false, "reconnect_desktop", fmt.Errorf("authorize desktop session: connection has no session authority"))
 	}

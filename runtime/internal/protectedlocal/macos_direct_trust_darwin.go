@@ -8,18 +8,6 @@ import (
 	"unicode/utf8"
 )
 
-const (
-	macOSRuntimeExecutableRole   = "nimi_runtime_service"
-	macOSDesktopExecutableRole   = "nimi_desktop"
-	macOSLocalHostExecutableRole = "nimi_local_app_host"
-)
-
-type macOSRoleTrustRequirements struct {
-	role              string
-	trustSetID        string
-	signingIdentifier string
-}
-
 // MacOSTeamID is injected only by guarded production builds. The mutually
 // exclusive local-development build requires an ad-hoc signature instead.
 var MacOSTeamID string
@@ -32,43 +20,21 @@ func macOSDirectCodeSigner() (string, error) {
 	return teamID, nil
 }
 
-func macOSRoleRequirements(role string) (macOSRoleTrustRequirements, error) {
-	switch role {
-	case macOSRuntimeExecutableRole:
-		return macOSRoleTrustRequirements{
-			role: role, trustSetID: MacOSRuntimeTrustSetID,
-			signingIdentifier: MacOSRuntimeSigningIdentifier,
-		}, nil
-	case macOSDesktopExecutableRole:
-		return macOSRoleTrustRequirements{
-			role: role, trustSetID: MacOSDesktopTrustSetID,
-			signingIdentifier: MacOSDesktopSigningIdentifier,
-		}, nil
-	case macOSLocalHostExecutableRole:
-		return macOSRoleTrustRequirements{
-			role: role, trustSetID: MacOSLocalAppHostTrustSet,
-			signingIdentifier: MacOSLocalAppHostIdentifier,
-		}, nil
-	default:
-		return macOSRoleTrustRequirements{}, fmt.Errorf("unknown macOS protected-local executable role")
-	}
-}
-
-func loadMacOSCodePolicy(role string) (macOSCodePolicy, error) {
-	requirements, err := macOSRoleRequirements(role)
-	if err != nil {
-		return macOSCodePolicy{}, err
+func newMacOSCodePolicy(signingIdentifier string) (macOSCodePolicy, error) {
+	if !canonicalIdentityField(signingIdentifier) {
+		return macOSCodePolicy{}, fmt.Errorf("macOS signing identifier is invalid")
 	}
 	teamID := ""
-	directRequirement := fmt.Sprintf(`identifier "%s"`, requirements.signingIdentifier)
+	directRequirement := fmt.Sprintf(`identifier "%s"`, signingIdentifier)
 	if !macOSDirectTrustRequiresAdHoc {
+		var err error
 		teamID, err = macOSDirectCodeSigner()
 		if err != nil {
 			return macOSCodePolicy{}, err
 		}
 		directRequirement = fmt.Sprintf(
 			`identifier "%s" and anchor apple generic and certificate leaf[subject.OU] = "%s"`,
-			requirements.signingIdentifier,
+			signingIdentifier,
 			teamID,
 		)
 	}
@@ -76,11 +42,9 @@ func loadMacOSCodePolicy(role string) (macOSCodePolicy, error) {
 		directRequirement += " and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
 	}
 	policy := macOSCodePolicy{
-		executableRole:       requirements.role,
 		teamID:               teamID,
-		signingIdentifier:    requirements.signingIdentifier,
+		signingIdentifier:    signingIdentifier,
 		directRequirement:    directRequirement,
-		trustSetID:           requirements.trustSetID,
 		requireAdHoc:         macOSDirectTrustRequiresAdHoc,
 		requireTrustedAnchor: macOSDirectTrustRequiresTrustedAnchor,
 		requireNotarization:  macOSDirectTrustRequiresNotarization,

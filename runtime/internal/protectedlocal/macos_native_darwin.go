@@ -16,12 +16,14 @@ package protectedlocal
 #include <limits.h>
 #include <libproc.h>
 #include <pwd.h>
+#include <os/log.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/proc.h>
 #include <sys/proc_info.h>
 #include <sys/socket.h>
+#include <sys/sysctl.h>
 #include <sys/un.h>
 #include <unistd.h>
 
@@ -62,6 +64,12 @@ typedef struct {
     char home[PATH_MAX];
     char shell[PATH_MAX];
 } nimi_macos_runtime_account;
+
+static void nimi_macos_log_runtime_diagnostic(const char *stage, const char *detail) {
+    if (stage == NULL || detail == NULL) return;
+    os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR,
+        "Nimi Runtime diagnostic: stage=%{public}s detail=%{public}s", stage, detail);
+}
 
 static int nimi_macos_lookup_runtime_account(const char *name,
                                              nimi_macos_runtime_account *output) {
@@ -162,27 +170,34 @@ static int nimi_macos_revalidate_graphic_session(uint32_t audit_session, uint32_
 }
 
 static int nimi_macos_process_info(uint32_t pid, nimi_macos_process_snapshot *output) {
-    if (pid == 0 || output == NULL) {
+    if (pid == 0 || pid > INT_MAX || output == NULL) {
         return EINVAL;
     }
     memset(output, 0, sizeof(*output));
-    struct proc_bsdinfo info;
+    struct kinfo_proc info;
     memset(&info, 0, sizeof(info));
-    int read = proc_pidinfo((int)pid, PROC_PIDTBSDINFO, 0, &info, sizeof(info));
-    if (read != sizeof(info) || info.pbi_pid != pid || info.pbi_start_tvsec == 0) {
-        return errno == 0 ? ESRCH : errno;
+    int selectors[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, (int)pid };
+    size_t info_length = sizeof(info);
+    if (sysctl(selectors, 4, &info, &info_length, NULL, 0) != 0) {
+        return errno == 0 ? EIO : errno;
+    }
+    if (info_length != sizeof(info) || info.kp_proc.p_pid != (pid_t)pid ||
+        info.kp_proc.p_starttime.tv_sec <= 0 ||
+        info.kp_proc.p_starttime.tv_usec < 0 ||
+        info.kp_proc.p_starttime.tv_usec >= 1000000) {
+        return ESRCH;
     }
     int path_len = proc_pidpath((int)pid, output->executable_path, sizeof(output->executable_path));
     if (path_len <= 0 || output->executable_path[0] != '/') {
         return errno == 0 ? ESRCH : errno;
     }
-    output->pid = info.pbi_pid;
-    output->ppid = info.pbi_ppid;
-    output->euid = info.pbi_uid;
-    output->ruid = info.pbi_ruid;
-    output->status = info.pbi_status;
-    output->start_sec = info.pbi_start_tvsec;
-    output->start_usec = info.pbi_start_tvusec;
+    output->pid = (uint32_t)info.kp_proc.p_pid;
+    output->ppid = (uint32_t)info.kp_eproc.e_ppid;
+    output->euid = (uint32_t)info.kp_eproc.e_ucred.cr_uid;
+    output->ruid = (uint32_t)info.kp_eproc.e_pcred.p_ruid;
+    output->status = (uint32_t)(unsigned char)info.kp_proc.p_stat;
+    output->start_sec = (uint64_t)info.kp_proc.p_starttime.tv_sec;
+    output->start_usec = (uint64_t)info.kp_proc.p_starttime.tv_usec;
     return 0;
 }
 
@@ -258,9 +273,8 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
         result = (int)status;
         goto cleanup_strings;
     }
-    SecCSFlags validation_flags = kSecCSStrictValidate | kSecCSCheckAllArchitectures;
-    if (require_trusted_anchor) validation_flags |= kSecCSCheckTrustedAnchors;
-    status = SecCodeCheckValidity(code, validation_flags, requirement);
+    // Static validation owns architecture, trust-anchor, and notarization checks.
+    status = SecCodeCheckValidity(code, kSecCSDefaultFlags, requirement);
     if (status != errSecSuccess) {
         result = (int)status;
         CFRelease(requirement);
@@ -484,6 +498,31 @@ func lookupMacOSRuntimeAccount(name string) (macOSRuntimeAccountRecord, error) {
 		home:  C.GoString(&native.home[0]),
 		shell: C.GoString(&native.shell[0]),
 	}, nil
+}
+
+func reportMacOSRuntimeDiagnostic(stage string, err error) {
+	if !macOSDirectTrustRequiresAdHoc || err == nil {
+		return
+	}
+	detail := strings.NewReplacer("\n", " ", "\r", " ", "\t", " ").Replace(err.Error())
+	if len(detail) > 512 {
+		detail = detail[:512]
+	}
+	nativeStage := C.CString(stage)
+	nativeDetail := C.CString(detail)
+	defer C.free(unsafe.Pointer(nativeStage))
+	defer C.free(unsafe.Pointer(nativeDetail))
+	C.nimi_macos_log_runtime_diagnostic(nativeStage, nativeDetail)
+}
+
+func reportMacOSDesktopPeerRejection(stage string, err error) {
+	reportMacOSRuntimeDiagnostic("desktop-"+stage, err)
+}
+
+// ReportMacOSRuntimeStartupFailure emits one bounded local-development
+// diagnostic when launchd would otherwise retain only an opaque exit code.
+func ReportMacOSRuntimeStartupFailure(err error) {
+	reportMacOSRuntimeDiagnostic("startup", err)
 }
 
 func verifyMacOSOuterBundleSeal(applicationPath, directRequirement, teamID, signingIdentifier string, requireTrustedAnchor, requireNotarization, requireAdHoc bool) error {

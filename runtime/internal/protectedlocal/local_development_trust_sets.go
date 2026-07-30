@@ -4,10 +4,6 @@ const (
 	// WindowsLocalDevelopmentTrustSetID binds a mutable project to the exact
 	// Desktop-supervised Windows host admitted by the Windows verifier.
 	WindowsLocalDevelopmentTrustSetID = "windows-local-development-supervised-v1"
-	// MacOSLocalDevelopmentTrustSetID is reserved for the Apple-signed Nimi
-	// Local App Host embedded in the admitted Desktop bundle. Generic Electron,
-	// copied bundles, and project-built Tauri binaries do not belong to it.
-	MacOSLocalDevelopmentTrustSetID = "nimi-local-development-host-macos-production-v1"
 )
 
 // LocalDevelopmentTrustSetID returns the one production trust set admitted
@@ -16,8 +12,6 @@ func LocalDevelopmentTrustSetID(os OperatingSystem) (string, bool) {
 	switch os {
 	case OSWindows:
 		return WindowsLocalDevelopmentTrustSetID, true
-	case OSMacOS:
-		return activeMacOSLocalDevelopmentTrustSetID(), true
 	default:
 		return "", false
 	}

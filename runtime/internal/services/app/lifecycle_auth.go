@@ -28,8 +28,7 @@ func isDesktopCoreLifecycleController(ctx context.Context) bool {
 // account and permission gates before mutating or launching anything.
 func (s *Service) requireAppLifecycleSession(ctx context.Context, appID string) error {
 	if connection, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok {
-		origin := connection.Origin()
-		if origin.TransportClass == protectedlocal.TransportDesktopControl && origin.HasRole(protectedlocal.RoleLocalAppControl) {
+		if connection.VerifiedDesktopTransport() {
 			return nil
 		}
 	}

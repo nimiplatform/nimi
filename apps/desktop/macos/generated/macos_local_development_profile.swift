@@ -1,6 +1,5 @@
 // Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT.
 let generatedInstallerHelperPath = "/usr/local/libexec/nimi-macos-dev-security"
-let generatedInstallerSigningIdentifier = "ai.nimi.dev-installer"
 let generatedRequiredArchitecture = "arm64"
 let generatedRuntimeExecutablePath = "/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime"
 let generatedRuntimeStateRoot = "/Library/Application Support/Nimi/RuntimeDev/state"
@@ -9,7 +8,6 @@ let generatedDesktopExecutablePath = "/Applications/Nimi Dev.app/Contents/MacOS/
 let generatedLocalAppHostPath = "/Applications/Nimi Dev.app/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev"
 let generatedLaunchDaemonPath = "/Library/LaunchDaemons/ai.nimi.runtime.dev.plist"
 let generatedLaunchDaemonLabel = "ai.nimi.runtime.dev"
-let generatedLaunchDaemonSHA256 = "298d7c2065089fdcc9d23ae6e0e1014c5977be928cb16784a210374aa9bfd4a1"
 let generatedRuntimeAccountName = "_nimiruntimedev"
 let generatedDesktopSocketPath = "/private/var/run/nimi-dev/runtime-desktop.sock"
 let generatedLocalAppSocketPath = "/private/var/run/nimi-dev/runtime-local-app.sock"

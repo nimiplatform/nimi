@@ -83,11 +83,12 @@ type localDevelopmentAuthorization struct {
 }
 
 type localDevelopmentStore struct {
-	db        *sql.DB
-	bootEpoch protectedlocal.Identifier
-	random    io.Reader
-	now       func() time.Time
-	mu        sync.Mutex
+	db         *sql.DB
+	bootEpoch  protectedlocal.Identifier
+	directPeer bool
+	random     io.Reader
+	now        func() time.Time
+	mu         sync.Mutex
 }
 
 // LocalDevelopmentStore is exported only for protected Runtime composition.
@@ -113,12 +114,31 @@ func openLocalDevelopmentStore(path string, bootEpoch protectedlocal.Identifier)
 	return store, nil
 }
 
+func openDirectLocalDevelopmentStore(path string) (*localDevelopmentStore, error) {
+	cleaned := filepath.Clean(strings.TrimSpace(path))
+	if !filepath.IsAbs(cleaned) || filepath.Base(cleaned) != "local-development.db" {
+		return nil, fmt.Errorf("%w: fixed absolute local-development.db path is required", errLocalDevelopmentInvalid)
+	}
+	db, err := sql.Open("sqlite", "file:"+filepath.ToSlash(cleaned))
+	if err != nil {
+		return nil, fmt.Errorf("open direct local-development store: %w", err)
+	}
+	db.SetMaxOpenConns(1)
+	store := &localDevelopmentStore{db: db, directPeer: true, random: rand.Reader, now: time.Now}
+	if err := store.initialize(context.Background()); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return store, nil
+}
+
 func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 	now := time.Now().UTC().UnixNano()
-	statements := []struct {
+	type storeStatement struct {
 		query string
 		args  []any
-	}{
+	}
+	statements := []storeStatement{
 		{query: `PRAGMA journal_mode = WAL`},
 		{query: `PRAGMA synchronous = FULL`},
 		{query: `PRAGMA foreign_keys = ON`},
@@ -152,7 +172,10 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			account_generation INTEGER NOT NULL CHECK(account_generation >= 0), updated_unix_nano INTEGER NOT NULL
 		)`},
 		{query: `INSERT OR IGNORE INTO local_development_mode(singleton, enabled, revision, account_id, account_generation, updated_unix_nano) VALUES (1, 0, 1, '', 0, ?)`, args: []any{now}},
-		{query: `CREATE TABLE IF NOT EXISTS local_development_launch (
+	}
+	if !store.directPeer {
+		statements = append(statements, []storeStatement{
+			{query: `CREATE TABLE IF NOT EXISTS local_development_launch (
 			launch_id BLOB PRIMARY KEY CHECK(length(launch_id) = 32),
 			authorization_id BLOB NOT NULL REFERENCES local_development_authorization(authorization_id),
 			supervisor_run_id BLOB NOT NULL CHECK(length(supervisor_run_id) = 32),
@@ -170,8 +193,8 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			issued_unix_nano INTEGER NOT NULL, expires_unix_nano INTEGER NOT NULL,
 			bind_deadline_unix_nano INTEGER, process_json TEXT, revoked_unix_nano INTEGER
 		)`},
-		{query: `CREATE INDEX IF NOT EXISTS local_development_launch_run ON local_development_launch(authorization_id, supervisor_run_id, status)`},
-		{query: `CREATE TABLE IF NOT EXISTS local_development_session (
+			{query: `CREATE INDEX IF NOT EXISTS local_development_launch_run ON local_development_launch(authorization_id, supervisor_run_id, status)`},
+			{query: `CREATE TABLE IF NOT EXISTS local_development_session (
 			session_id BLOB PRIMARY KEY CHECK(length(session_id) = 32),
 			session_proof_hash BLOB NOT NULL CHECK(length(session_proof_hash) = 32),
 			launch_id BLOB NOT NULL REFERENCES local_development_launch(launch_id),
@@ -187,8 +210,9 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			process_json TEXT NOT NULL, issued_unix_nano INTEGER NOT NULL,
 			expires_unix_nano INTEGER NOT NULL, revoked_unix_nano INTEGER
 		)`},
-		{query: `UPDATE local_development_launch SET status = 'revoked', revoked_unix_nano = ? WHERE status IN ('pending','process_bound') AND runtime_boot_epoch <> ?`, args: []any{now, store.bootEpoch[:]}},
-		{query: `UPDATE local_development_session SET revoked_unix_nano = ? WHERE revoked_unix_nano IS NULL AND runtime_boot_epoch <> ?`, args: []any{now, store.bootEpoch[:]}},
+			{query: `UPDATE local_development_launch SET status = 'revoked', revoked_unix_nano = ? WHERE status IN ('pending','process_bound') AND runtime_boot_epoch <> ?`, args: []any{now, store.bootEpoch[:]}},
+			{query: `UPDATE local_development_session SET revoked_unix_nano = ? WHERE revoked_unix_nano IS NULL AND runtime_boot_epoch <> ?`, args: []any{now, store.bootEpoch[:]}},
+		}...)
 	}
 	for _, statement := range statements {
 		if _, err := store.db.ExecContext(ctx, statement.query, statement.args...); err != nil {
@@ -377,7 +401,7 @@ func (store *localDevelopmentStore) RevokeAuthorization(ctx context.Context, aut
 		return localDevelopmentAuthorization{}, err
 	}
 	now := store.now().UTC()
-	if err := revokeLocalDevelopmentAuthorityTx(ctx, tx, authorizationID, nil, now); err != nil {
+	if err := revokeLocalDevelopmentAuthorityTx(ctx, tx, authorizationID, nil, now, !store.directPeer); err != nil {
 		return localDevelopmentAuthorization{}, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -410,11 +434,13 @@ func (store *localDevelopmentStore) RevokeAccountAuthority(ctx context.Context, 
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE account_id = ? AND state = 'active' AND decision = ?`, now, normalized, int32(runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE)); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE local_development_launch SET status = 'revoked', revoked_unix_nano = ? WHERE account_id = ? AND status IN ('pending','process_bound')`, now, normalized); err != nil {
-		return err
-	}
-	if _, err := tx.ExecContext(ctx, `UPDATE local_development_session SET revoked_unix_nano = ? WHERE account_id = ? AND revoked_unix_nano IS NULL`, now, normalized); err != nil {
-		return err
+	if !store.directPeer {
+		if _, err := tx.ExecContext(ctx, `UPDATE local_development_launch SET status = 'revoked', revoked_unix_nano = ? WHERE account_id = ? AND status IN ('pending','process_bound')`, now, normalized); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE local_development_session SET revoked_unix_nano = ? WHERE account_id = ? AND revoked_unix_nano IS NULL`, now, normalized); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }

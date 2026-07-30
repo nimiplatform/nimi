@@ -3,21 +3,17 @@ use std::future::Future;
 use std::io;
 use std::os::fd::AsRawFd;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex, OnceLock};
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 use hyper_util::rt::TokioIo;
 use tokio::net::UnixStream;
-use tokio::sync::Mutex as AsyncMutex;
 use tonic::transport::{Channel, Endpoint};
 use tower::service_fn;
 
-use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
-use crate::generated::{OpenDesktopSessionRequest, RequestRuntimeRestartRequest};
+use crate::generated::RequestRuntimeRestartRequest;
 use crate::macos_peer_trust::{
-    verify_runtime_peer, MacOSRuntimePeerState, MacOSRuntimeProcessIdentity,
-    VerifiedMacOSRuntimePeer, MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH, MACOS_RUNTIME_SOCKET_PATH,
+    verify_runtime_peer_once, MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH, MACOS_RUNTIME_SOCKET_PATH,
 };
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
@@ -44,7 +40,6 @@ const SERVICE_NOT_REGISTERED: i32 = 0;
 const SERVICE_ENABLED: i32 = 1;
 const SERVICE_REQUIRES_APPROVAL: i32 = 2;
 const SERVICE_NOT_FOUND: i32 = 3;
-const RESTART_DEADLINE: Duration = Duration::from_secs(90);
 
 type ControlFuture<'a, T, E> = Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'a>>;
 
@@ -58,39 +53,13 @@ unsafe extern "C" {
 pub struct MacOsUnixSocketCarrier;
 
 struct MacOSDesktopControl {
-    session: Arc<VerifiedDesktopRuntimeSession>,
-    development_processes: Mutex<HashMap<[u8; 32], SupervisedDevelopmentProcess>>,
-}
-
-struct VerifiedDesktopRuntimeSession {
     channel: Channel,
-    runtime_peer: VerifiedMacOSRuntimePeer,
-    _desktop_session_id: [u8; 32],
-    runtime_boot_epoch: [u8; 32],
-}
-
-static DESKTOP_RUNTIME_SESSION: OnceLock<AsyncMutex<Option<Arc<VerifiedDesktopRuntimeSession>>>> =
-    OnceLock::new();
-
-fn desktop_runtime_session_cache() -> &'static AsyncMutex<Option<Arc<VerifiedDesktopRuntimeSession>>>
-{
-    DESKTOP_RUNTIME_SESSION.get_or_init(|| AsyncMutex::new(None))
+    development_processes: Mutex<HashMap<[u8; 32], SupervisedDevelopmentProcess>>,
 }
 
 impl MacOSDesktopControl {
     fn host_channel(&self) -> Result<Channel, NimiHostError> {
-        match self.session.runtime_peer.state() {
-            MacOSRuntimePeerState::Intact => Ok(self.session.channel.clone()),
-            MacOSRuntimePeerState::Exited => Err(NimiHostError::new(
-                NimiHostErrorReasonCode::RuntimeRestarted,
-                true,
-            )),
-            MacOSRuntimePeerState::Replaced => Err(NimiHostError::new(
-                NimiHostErrorReasonCode::ProcessReplaced,
-                false,
-            )),
-            MacOSRuntimePeerState::Untrusted => Err(untrusted_host()),
-        }
+        Ok(self.channel.clone())
     }
 
     fn product_profile_channel(&self) -> Result<Channel, DesktopFirstPartyProductError> {
@@ -190,21 +159,7 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(async move {
-            let channel = match self.session.runtime_peer.state() {
-                MacOSRuntimePeerState::Intact => self.session.channel.clone(),
-                MacOSRuntimePeerState::Exited => return Err(unavailable()),
-                MacOSRuntimePeerState::Replaced | MacOSRuntimePeerState::Untrusted => {
-                    return Err(untrusted());
-                }
-            };
-            request_verified_runtime_restart_on_channel(
-                channel,
-                self.session.runtime_boot_epoch,
-                self.session.runtime_peer.identity(),
-            )
-            .await
-        })
+        Box::pin(async move { request_runtime_restart_on_channel(self.channel.clone()).await })
     }
 
     fn get_account_session_status(
@@ -495,9 +450,15 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
         >,
     > {
         Box::pin(async {
-            let session = shared_verified_desktop_runtime_session().await?;
+            tokio::task::spawn_blocking(
+                crate::macos_data_root::prepare_fixed_runtime_product_control_root,
+            )
+            .await
+            .map_err(|_| repair_required())?
+            .map_err(|_| repair_required())?;
+            let channel = open_verified_runtime_channel().await?;
             Ok(Box::new(MacOSDesktopControl {
-                session,
+                channel,
                 development_processes: Mutex::new(HashMap::new()),
             }) as Box<dyn NimiDesktopControl>)
         })
@@ -568,13 +529,8 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
         >,
     > {
         Box::pin(async {
-            let session = shared_verified_desktop_runtime_session().await?;
-            request_verified_runtime_restart_on_channel(
-                session.channel.clone(),
-                session.runtime_boot_epoch,
-                session.runtime_peer.identity(),
-            )
-            .await
+            let channel = open_verified_runtime_channel().await?;
+            request_runtime_restart_on_channel(channel).await
         })
     }
 }
@@ -587,78 +543,24 @@ fn runtime_socket_is_absent() -> Result<bool, ProtectedCarrierError> {
     }
 }
 
-async fn shared_verified_desktop_runtime_session(
-) -> Result<Arc<VerifiedDesktopRuntimeSession>, ProtectedCarrierError> {
-    let mut slot = desktop_runtime_session_cache().lock().await;
-    if let Some(session) = slot.as_ref() {
-        if session.runtime_peer.intact() {
-            return Ok(session.clone());
-        }
-        slot.take();
-    }
-    let session = Arc::new(open_verified_desktop_runtime_session().await?);
-    *slot = Some(session.clone());
-    Ok(session)
-}
-
-async fn open_verified_desktop_runtime_session(
-) -> Result<VerifiedDesktopRuntimeSession, ProtectedCarrierError> {
-    let (channel, runtime_peer) = open_verified_runtime_channel().await?;
-    let opened = RuntimeAuthServiceClient::new(channel.clone())
-        .open_desktop_session(OpenDesktopSessionRequest {})
-        .await
-        .map_err(|_| untrusted())?
-        .into_inner();
-    let desktop_session_id: [u8; 32] = opened
-        .desktop_session_id
-        .try_into()
-        .map_err(|_| untrusted())?;
-    let runtime_boot_epoch: [u8; 32] = opened
-        .runtime_boot_epoch
-        .try_into()
-        .map_err(|_| untrusted())?;
-    if desktop_session_id == [0u8; 32] || runtime_boot_epoch == [0u8; 32] || !runtime_peer.intact()
-    {
-        return Err(untrusted());
-    }
-    Ok(VerifiedDesktopRuntimeSession {
-        channel,
-        runtime_peer,
-        _desktop_session_id: desktop_session_id,
-        runtime_boot_epoch,
-    })
-}
-
-async fn open_verified_runtime_channel(
-) -> Result<(Channel, VerifiedMacOSRuntimePeer), ProtectedCarrierError> {
+async fn open_verified_runtime_channel() -> Result<Channel, ProtectedCarrierError> {
     if macos_service_status()? != SERVICE_ENABLED {
         return Err(unavailable());
     }
     let stream = UnixStream::connect(MACOS_RUNTIME_SOCKET_PATH)
         .await
         .map_err(|_| unavailable())?;
-    let peer = verify_runtime_peer(stream.as_raw_fd(), MACOS_RUNTIME_SOCKET_PATH)?;
-    if macos_service_status()? != SERVICE_ENABLED || !peer.intact() {
-        return Err(untrusted());
-    }
-    let channel = channel_from_verified_socket(stream).await?;
-    if !peer.intact() {
-        return Err(untrusted());
-    }
-    Ok((channel, peer))
+    verify_runtime_peer_once(stream.as_raw_fd(), MACOS_RUNTIME_SOCKET_PATH)?;
+    channel_from_verified_socket(stream).await
 }
 
 pub(crate) async fn open_verified_local_app_runtime_channel(
-) -> Result<(Channel, VerifiedMacOSRuntimePeer), ProtectedCarrierError> {
+) -> Result<Channel, ProtectedCarrierError> {
     let stream = UnixStream::connect(MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH)
         .await
         .map_err(|_| unavailable())?;
-    let peer = verify_runtime_peer(stream.as_raw_fd(), MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH)?;
-    let channel = channel_from_verified_socket(stream).await?;
-    if !peer.intact() {
-        return Err(untrusted());
-    }
-    Ok((channel, peer))
+    verify_runtime_peer_once(stream.as_raw_fd(), MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH)?;
+    channel_from_verified_socket(stream).await
 }
 
 async fn channel_from_verified_socket(
@@ -684,14 +586,9 @@ async fn channel_from_verified_socket(
         .map_err(|_| untrusted())
 }
 
-async fn request_verified_runtime_restart_on_channel(
+async fn request_runtime_restart_on_channel(
     channel: Channel,
-    before_epoch: [u8; 32],
-    before_process: MacOSRuntimeProcessIdentity,
 ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
-    if before_epoch == [0u8; 32] || before_process.pid == 0 || before_process.pidversion == 0 {
-        return Err(untrusted());
-    }
     let result = RuntimeServiceControlServiceClient::new(channel)
         .request_runtime_restart(RequestRuntimeRestartRequest {})
         .await;
@@ -708,41 +605,11 @@ async fn request_verified_runtime_restart_on_channel(
             ) => {}
         _ => return Err(untrusted()),
     }
-    invalidate_verified_desktop_runtime_channel().await;
-    let deadline = tokio::time::Instant::now() + RESTART_DEADLINE;
-    let mut replacement_seen = false;
-    loop {
-        if tokio::time::Instant::now() >= deadline {
-            return Err(if replacement_seen {
-                unavailable()
-            } else {
-                repair_required()
-            });
-        }
-        match open_verified_desktop_runtime_session().await {
-            Ok(after) => {
-                let after_process = after.runtime_peer.identity();
-                if after_process != before_process {
-                    if after.runtime_boot_epoch != [0u8; 32]
-                        && after.runtime_boot_epoch != before_epoch
-                    {
-                        let mut slot = desktop_runtime_session_cache().lock().await;
-                        *slot = Some(Arc::new(after));
-                        return Ok(service_outcome(RuntimeServiceState::Running, None, false));
-                    }
-                    return Err(untrusted());
-                }
-            }
-            Err(_) => replacement_seen = true,
-        }
-        tokio::time::sleep(Duration::from_millis(150)).await;
-    }
-}
-
-pub async fn invalidate_verified_desktop_runtime_channel() {
-    if let Some(cache) = DESKTOP_RUNTIME_SESSION.get() {
-        cache.lock().await.take();
-    }
+    Ok(service_outcome(
+        RuntimeServiceState::RestartPending,
+        None,
+        true,
+    ))
 }
 
 fn macos_service_status() -> Result<i32, ProtectedCarrierError> {

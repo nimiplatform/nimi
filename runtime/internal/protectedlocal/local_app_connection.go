@@ -44,6 +44,8 @@ type LocalAppConnection struct {
 	process           ProcessTuple
 	boot              Identifier
 	liveness          DesktopProcessLiveness
+	directPeer        *DirectLocalAppPeer
+	directLaunch      *DirectLocalAppLaunch
 	trustClass        LocalAppTrustClass
 	live              atomic.Bool
 	done              chan struct{}
@@ -53,6 +55,7 @@ type LocalAppConnection struct {
 	sessionRevokeHook func()
 	sessionMu         sync.RWMutex
 	session           *LocalAppSessionHandle
+	directAuthorized  bool
 }
 
 func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPeerVerifier) (*LocalAppConnection, error) {
@@ -87,6 +90,21 @@ func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPee
 	return connection, nil
 }
 
+func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppLaunch) (*LocalAppConnection, error) {
+	if !peer.valid() || !launch.valid() || launch.ChildPID == 0 || launch.BindDeadline.IsZero() ||
+		peer.PID != launch.ChildPID || peer.UID != launch.ExpectedUID {
+		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "relaunch_app", fmt.Errorf("direct local-app peer or launch is incomplete"))
+	}
+	directPeer := peer
+	directLaunch := launch
+	connection := &LocalAppConnection{
+		launchID: launch.LaunchID, directPeer: &directPeer, directLaunch: &directLaunch,
+		trustClass: LocalAppTrustLocalDevelopment, done: make(chan struct{}),
+	}
+	connection.live.Store(true)
+	return connection, nil
+}
+
 func (connection *LocalAppConnection) LaunchID() Identifier {
 	if connection == nil {
 		return Identifier{}
@@ -108,6 +126,20 @@ func (connection *LocalAppConnection) RuntimeBootEpoch() Identifier {
 	return connection.boot
 }
 
+func (connection *LocalAppConnection) DirectPeer() (DirectLocalAppPeer, bool) {
+	if connection == nil || connection.directPeer == nil || !connection.live.Load() {
+		return DirectLocalAppPeer{}, false
+	}
+	return *connection.directPeer, true
+}
+
+func (connection *LocalAppConnection) DirectLaunch() (DirectLocalAppLaunch, bool) {
+	if connection == nil || connection.directLaunch == nil || !connection.live.Load() {
+		return DirectLocalAppLaunch{}, false
+	}
+	return *connection.directLaunch, true
+}
+
 func (connection *LocalAppConnection) Live() bool {
 	return connection != nil && connection.live.Load()
 }
@@ -124,7 +156,7 @@ func (connection *LocalAppConnection) TrustClass() LocalAppTrustClass {
 }
 
 func (connection *LocalAppConnection) Origin() OriginContext {
-	if connection == nil || !connection.live.Load() || !connection.trustClass.valid() {
+	if connection == nil || !connection.live.Load() || !connection.trustClass.valid() || connection.directPeer != nil {
 		return OriginContext{}
 	}
 	roles := make(map[OriginRole]struct{}, 1)
@@ -142,6 +174,53 @@ func (connection *LocalAppConnection) Origin() OriginContext {
 	}
 	connection.sessionMu.RUnlock()
 	return OriginContext{TransportClass: transport, roles: roles}
+}
+
+func (connection *LocalAppConnection) BindDirectAuthorization() error {
+	if connection == nil || connection.directPeer == nil || connection.directLaunch == nil {
+		return fmt.Errorf("direct local-app connection is unavailable")
+	}
+	connection.sessionMu.Lock()
+	defer connection.sessionMu.Unlock()
+	if !connection.live.Load() {
+		return fmt.Errorf("direct local-app connection is revoked")
+	}
+	if connection.directAuthorized {
+		return fmt.Errorf("direct local-app connection is already authorized")
+	}
+	connection.directAuthorized = true
+	return nil
+}
+
+func (connection *LocalAppConnection) DirectAuthorizationBound() bool {
+	if connection == nil || connection.directPeer == nil || connection.directLaunch == nil {
+		return false
+	}
+	connection.sessionMu.RLock()
+	defer connection.sessionMu.RUnlock()
+	return connection.live.Load() && connection.directAuthorized
+}
+
+func (connection *LocalAppConnection) BootstrapAllowed() bool {
+	if connection == nil || !connection.live.Load() {
+		return false
+	}
+	if connection.directPeer != nil {
+		return !connection.DirectAuthorizationBound()
+	}
+	origin := connection.Origin()
+	return origin.TransportClass == TransportLocalAppBootstrap && origin.HasRole(RoleLocalAppProcess)
+}
+
+func (connection *LocalAppConnection) ProtectedOperationAllowed() bool {
+	if connection == nil || !connection.live.Load() {
+		return false
+	}
+	if connection.directPeer != nil {
+		return connection.DirectAuthorizationBound()
+	}
+	origin := connection.Origin()
+	return origin.TransportClass == TransportLocalAppHost && origin.HasRole(RoleLocalAppSession)
 }
 
 func (connection *LocalAppConnection) BindSession(handle LocalAppSessionHandle) error {
@@ -211,9 +290,12 @@ func (connection *LocalAppConnection) Revoke() {
 		return
 	}
 	close(connection.done)
-	_ = connection.liveness.Close()
+	if connection.liveness != nil {
+		_ = connection.liveness.Close()
+	}
 	connection.sessionMu.Lock()
 	connection.session = nil
+	connection.directAuthorized = false
 	connection.sessionMu.Unlock()
 	connection.revokeMu.Lock()
 	hooks := append([]func(){}, connection.hooks...)

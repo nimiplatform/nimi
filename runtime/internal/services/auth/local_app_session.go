@@ -52,11 +52,15 @@ func (s *Service) RenewLocalAppSession(ctx context.Context, _ *runtimev1.RenewLo
 }
 
 func localAppSessionResponse(projection LocalAppSessionProjection) *runtimev1.OpenLocalAppSessionResponse {
+	var runtimeBootEpoch []byte
+	if projection.RuntimeBootEpoch != (protectedlocal.Identifier{}) {
+		runtimeBootEpoch = append([]byte(nil), projection.RuntimeBootEpoch[:]...)
+	}
 	return &runtimev1.OpenLocalAppSessionResponse{
 		State:             runtimev1.LocalAppSessionState_LOCAL_APP_SESSION_STATE_READY,
 		TrustClass:        projection.TrustClass,
 		AccountGeneration: projection.AccountGeneration,
-		RuntimeBootEpoch:  append([]byte(nil), projection.RuntimeBootEpoch[:]...),
+		RuntimeBootEpoch:  runtimeBootEpoch,
 		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
 	}
 }

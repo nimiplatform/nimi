@@ -30,12 +30,10 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	stateRoot := strings.TrimSpace(state.ServiceStatePath())
 	secrets := state.BinarySecrets()
 	sessions := state.DesktopSessions()
-	bootEpoch := state.BootEpoch()
-	runtimeProcess := state.RuntimeProcess()
 	euid, auditSession, accountPartition, identityBound := state.InteractiveIdentity()
-	if stateRoot == "" || bootEpoch == (protectedlocal.Identifier{}) || secrets == nil || sessions == nil ||
-		sessions.BootEpoch() != bootEpoch || state.LocalAppLaunches() == nil || !identityBound ||
-		protectedlocal.ValidateProcessTuple(runtimeProcess) != nil {
+	if stateRoot == "" || secrets == nil || sessions == nil || !sessions.Direct() ||
+		state.DirectLocalAppLaunches() == nil || !identityBound ||
+		state.RuntimeServiceUID() == 0 {
 		return fail(fmt.Errorf("complete verified macOS Runtime security state is required"))
 	}
 	serviceDataRoot, err := resolveProtectedServiceDataRoot(stateRoot, cfg.LocalStatePath)
@@ -58,10 +56,6 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	if err != nil {
 		return fail(fmt.Errorf("adapt macOS protected connector custody: %w", err))
 	}
-	localDevelopmentVerifier, err := protectedlocal.NewMacOSLocalDevelopmentProcessVerifier(state)
-	if err != nil {
-		return fail(fmt.Errorf("construct macOS local-development process verifier: %w", err))
-	}
 	platformAppIdentityProjectionPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
 	if err != nil {
 		return fail(fmt.Errorf("resolve macOS protected Platform app resources: %w", err))
@@ -69,13 +63,14 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot, PlatformAppIdentityProjectionPath: platformAppIdentityProjectionPath,
+			RuntimeServiceUID:                state.RuntimeServiceUID(),
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceDataRoot, "runtime", "local-development.db"),
 			PlatformBundledAppsRoot:          platformBundledAppsRoot,
 			AccountCustody:                   accountCustody, AccountPartition: accountPartition,
 			AccountRealmBaseURL: cfg.AccountRealmBaseURL, AccountAuthorizationURL: cfg.AccountAuthorizationURL,
 			AccountTokenURL: cfg.AccountTokenURL, LocalOSUserIdentity: localOSUserIdentity,
 			ConnectorSecrets: connectorSecrets, DesktopSessions: sessions,
-			LocalAppLaunches: state.LocalAppLaunches(), LocalDevelopmentVerifier: localDevelopmentVerifier,
+			DirectLocalAppLaunches:  state.DirectLocalAppLaunches(),
 			RuntimeRestartRequester: requestRestart,
 		},
 		Close: state.Close,

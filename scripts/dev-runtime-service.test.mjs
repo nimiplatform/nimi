@@ -131,7 +131,6 @@ test('macOS install stops on candidate build failure before privileged mutation'
       queryStatus: async () => ({
         status: 'absent',
         state: 'stopped',
-        healthy: false,
         serviceName: 'ai.nimi.runtime.dev',
       }),
       buildCandidate: async () => {
@@ -141,7 +140,6 @@ test('macOS install stops on candidate build failure before privileged mutation'
           actionHint: 'inspect_macos_development_build_output',
         });
       },
-      confirm: async () => calls.push('confirm'),
       invokeHelper: async () => calls.push('sudo-helper'),
     }),
     (error) => error.reasonCode === 'dev-runtime-build-failed',
@@ -150,7 +148,8 @@ test('macOS install stops on candidate build failure before privileged mutation'
 });
 
 test('macOS dev:runtime accepts only the fixed current modes', () => {
-  assert.deepEqual(parseMacOSDevRuntimeArguments([]), { mode: 'status' });
+  assert.deepEqual(parseMacOSDevRuntimeArguments([]), { mode: 'update' });
+  assert.deepEqual(parseMacOSDevRuntimeArguments(['--status']), { mode: 'status' });
   assert.deepEqual(parseMacOSDevRuntimeArguments(['--', '--desktop']), { mode: 'desktop' });
   for (const args of [
     ['--development-data-root', '/tmp/nimi'],
@@ -161,6 +160,83 @@ test('macOS dev:runtime accepts only the fixed current modes', () => {
       () => parseMacOSDevRuntimeArguments(args),
       (error) => error.reasonCode === 'dev-runtime-argument-invalid',
     );
+  }
+});
+
+test('current macOS service update builds once and returns the helper result', async (context) => {
+  const candidateRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-update-candidate-test-'));
+  context.after(() => rmSync(candidateRoot, { recursive: true, force: true }));
+  mkdirSync(path.join(candidateRoot, 'installer'));
+  writeFileSync(path.join(candidateRoot, 'installer', 'nimi-macos-dev-security'), 'test');
+  const calls = [];
+  const result = await runDevRuntimeService({
+    platform: 'darwin',
+    architecture: 'arm64',
+    queryStatus: async () => {
+      calls.push('status');
+      return {
+        status: 'present',
+        state: 'running',
+        pid: 123,
+        serviceName: 'ai.nimi.runtime.dev',
+      };
+    },
+    buildCandidate: async () => {
+      calls.push('build-candidate');
+      return {
+        outputRoot: candidateRoot,
+        cleanup: async () => calls.push('cleanup-candidate'),
+      };
+    },
+    invokeHelper: async (args) => {
+      calls.push(`helper:${args[0]}`);
+      return {
+        status: 'updated',
+        state: 'running',
+        pid: 456,
+        serviceName: 'ai.nimi.runtime.dev',
+      };
+    },
+  });
+  assert.deepEqual(calls, [
+    'status',
+    'build-candidate',
+    'helper:update-candidate',
+    'cleanup-candidate',
+  ]);
+  assert.deepEqual(result, {
+    status: 'updated',
+    state: 'running',
+    pid: 456,
+    serviceName: 'ai.nimi.runtime.dev',
+  });
+});
+
+test('macOS default update refuses absent or partial namespaces before mutation', async () => {
+  for (const [status, reasonCode, actionHint] of [
+    [
+      { status: 'absent', state: 'stopped' },
+      'dev-runtime-service-not-installed',
+      'run_pnpm_dev_runtime_install',
+    ],
+    [
+      { status: 'partial', state: 'stopped' },
+      'runtime-service-repair-required',
+      'run_pnpm_dev_runtime_uninstall_before_update',
+    ],
+  ]) {
+    const calls = [];
+    await assert.rejects(
+      runDevRuntimeService({
+        platform: 'darwin',
+        architecture: 'arm64',
+        queryStatus: async () => status,
+        buildCandidate: async () => calls.push('build-candidate'),
+        invokeHelper: async () => calls.push('sudo-helper'),
+      }),
+      (error) => error.reasonCode === reasonCode && error.actionHint === actionHint,
+    );
+    assert.deepEqual(calls, []);
   }
 });
 
@@ -178,14 +254,12 @@ test('macOS install always removes its built source candidate after an attempted
       queryStatus: async () => ({
         status: 'absent',
         state: 'stopped',
-        healthy: false,
         serviceName: 'ai.nimi.runtime.dev',
       }),
       buildCandidate: async () => ({
         outputRoot: candidateRoot,
         cleanup: async () => calls.push('cleanup-candidate'),
       }),
-      confirm: async () => calls.push('confirm'),
       invokeHelper: async () => {
         calls.push('sudo-helper');
         throw Object.assign(new Error('install failed'), {
@@ -195,17 +269,17 @@ test('macOS install always removes its built source candidate after an attempted
     }),
     (error) => error.reasonCode === 'runtime-service-repair-required',
   );
-  assert.deepEqual(calls, ['confirm', 'sudo-helper', 'cleanup-candidate']);
+  assert.deepEqual(calls, ['sudo-helper', 'cleanup-candidate']);
 });
 
-test('installed macOS Desktop launcher requires one healthy fixed service', async () => {
+test('installed macOS Desktop launcher requires one running fixed service', async () => {
   const calls = [];
   await assert.rejects(
     runDevRuntimeService({
       platform: 'darwin',
       architecture: 'arm64',
       mode: 'desktop',
-      queryStatus: async () => ({ status: 'absent', state: 'stopped', healthy: false }),
+      queryStatus: async () => ({ status: 'absent', state: 'stopped' }),
       launchDesktop: async () => calls.push('launch'),
     }),
     (error) => error.reasonCode === 'dev-runtime-service-not-installed',
@@ -217,7 +291,6 @@ test('installed macOS Desktop launcher requires one healthy fixed service', asyn
     queryStatus: async () => ({
       status: 'present',
       state: 'running',
-      healthy: true,
       pid: 123,
     }),
     launchDesktop: async () => {

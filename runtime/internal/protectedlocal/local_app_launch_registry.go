@@ -13,8 +13,17 @@ type LocalDevelopmentProcessPolicy struct {
 	HostExecutablePath   string
 	ProjectHostAliasPath string
 	// SupervisorProcess is injected from the verified Desktop connection by
-	// Runtime service code. It is never persisted or request-supplied.
+	// Runtime service code on Windows. SupervisorPID carries the directly
+	// verified macOS Desktop PID. Neither is persisted or request-supplied.
 	SupervisorProcess ProcessTuple
+	SupervisorPID     uint32
+}
+
+func (policy LocalDevelopmentProcessPolicy) supervisorPID() uint32 {
+	if policy.SupervisorPID != 0 {
+		return policy.SupervisorPID
+	}
+	return policy.SupervisorProcess.PID
 }
 
 type LocalDevelopmentProcessVerifier interface {

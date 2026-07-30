@@ -164,61 +164,80 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 	if err != nil {
 		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
+	if principal.State != localappkernel.PrincipalStateActive || principal.AppID != caller.AppID ||
+		record.LocalAppRecordID != caller.LocalAppRecordID ||
+		record.ProvenanceRevision != caller.ProvenanceRevision ||
+		record.InstallOrProjectGeneration != caller.ProjectGeneration ||
+		record.PayloadRootDigest != caller.PayloadDigest ||
+		record.TrustClass != localappkernel.TrustClassLocalDevelopment ||
+		record.LifecycleState != localappkernel.LifecycleStateActive {
+		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
-	if !ok || connection == nil || !connection.Live() || connection.Process() != caller.Process {
+	if !ok || connection == nil || !connection.Live() {
 		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
 	}
-	connectionRef := localAppPrivateIdentifierRef("connection", caller.SessionID)
-	bootRef := localAppPrivateIdentifierRef("boot", caller.RuntimeBootEpoch)
-	sessionRef := localAppPrivateIdentifierRef("session", caller.SessionID)
-	process := localappop.ProcessBinding{
-		NativeConnectionRef:  connectionRef,
-		ProcessID:            caller.Process.PID,
-		ProcessStartRef:      caller.Process.CreationMarker,
-		ExecutableObjectRef:  caller.Process.CanonicalExecutableIdentity,
-		HostExecutableDigest: record.HostExecutableDigest,
-	}
-	snapshot := localappop.Snapshot{
-		ResolvedAt: s.now().UTC(), LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), BootEpoch: bootRef,
-		CurrentProcess: process,
-		Principal: localappop.Principal{
-			LocalOSUserAnchor: principal.LocalOSUserAnchor, ID: principal.LocalAppPrincipalID,
-			Kind: localAppOperationPrincipalKind(principal.Kind), AppID: principal.AppID,
-			Lineage: localappop.LineageBinding{ImmutableLineageID: principal.ImmutableLineageID, DevelopmentAuthorizationID: principal.DevelopmentAuthorizationID, CanonicalProjectFileID: principal.CanonicalProjectFileID},
-			State:   localAppOperationPrincipalState(principal.State),
-		},
-		Record: localappop.Record{
-			LocalOSUserAnchor: record.LocalOSUserAnchor, ID: record.LocalAppRecordID, PrincipalID: record.LocalAppPrincipalID,
-			TrustClass: localAppOperationTrustClass(record.TrustClass), ProvenanceRevision: record.ProvenanceRevision,
-			InstallOrProjectGeneration: record.InstallOrProjectGeneration, ExecutionProfileRef: record.ExecutionProfileRef,
-			HostExecutableDigest: record.HostExecutableDigest, PayloadRootDigest: record.PayloadRootDigest, State: localAppOperationRecordState(record.LifecycleState),
-		},
-		Session: localappop.Session{
-			ID: sessionRef, State: localappop.SessionStateActive, LocalOSUserAnchor: record.LocalOSUserAnchor,
-			PrincipalID: record.LocalAppPrincipalID, RecordID: record.LocalAppRecordID, ProvenanceRevision: caller.ProvenanceRevision,
-			InstallOrProjectGeneration: caller.ProjectGeneration, HostExecutableDigest: record.HostExecutableDigest,
-			PayloadRootDigest: caller.PayloadDigest, AccountID: caller.AccountID, AccountGeneration: caller.AccountGeneration,
-			BootEpoch: bootRef, Process: process,
-		},
-		Account: localappop.Account{ID: caller.AccountID, Generation: caller.AccountGeneration, State: localappop.AccountStateAuthenticated},
-		OwnerPolicy: localappop.OwnerPolicyDecision{
-			Status: localappop.OwnerPolicyAllowed, Operation: localappop.Operation(operation), Selector: selector,
-			OwnerSelectorDigest: binding.fingerprint, PolicyRevision: localAppOwnerPolicyRevision,
-			ResourceImpactDigest: binding.fingerprint,
-		},
-	}
-	coordinatorOptions := make([]localappop.CoordinatorOption, 0, 1)
-	if authorityClass == localappop.AuthorityClassUserPermission {
-		coordinatorOptions = append(coordinatorOptions, localappop.WithUserPermissionAdmission(func(candidate localappop.Operation) bool {
-			return candidate == localappop.Operation(operation)
-		}))
-	}
-	coordinator := localappop.NewCoordinator(localappop.SnapshotResolverFunc(func(context.Context, localappop.Request) (localappop.Snapshot, error) {
-		return snapshot, nil
-	}), coordinatorOptions...)
-	result := coordinator.Evaluate(ctx, localappop.Request{NativeConnectionRef: connectionRef, Operation: localappop.Operation(operation), Selector: selector})
-	if result.Outcome != localappop.OutcomeAllowed || result.Authorization == nil || result.Authorization.AuthorityClass != authorityClass {
-		return LocalAppCallerDecision{}, localAppOperationDenied(localAppOperationRuntimeReason(result.Reason))
+	if directPeer, direct := connection.DirectPeer(); direct {
+		if caller.DirectPeer != directPeer || caller.SessionID != connection.LaunchID() ||
+			caller.RuntimeBootEpoch != (protectedlocal.Identifier{}) || caller.Process != (protectedlocal.ProcessTuple{}) {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
+		}
+	} else {
+		if caller.DirectPeer != (protectedlocal.DirectLocalAppPeer{}) || connection.Process() != caller.Process {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
+		}
+		connectionRef := localAppPrivateIdentifierRef("connection", caller.SessionID)
+		bootRef := localAppPrivateIdentifierRef("boot", caller.RuntimeBootEpoch)
+		sessionRef := localAppPrivateIdentifierRef("session", caller.SessionID)
+		process := localappop.ProcessBinding{
+			NativeConnectionRef:  connectionRef,
+			ProcessID:            caller.Process.PID,
+			ProcessStartRef:      caller.Process.CreationMarker,
+			ExecutableObjectRef:  caller.Process.CanonicalExecutableIdentity,
+			HostExecutableDigest: record.HostExecutableDigest,
+		}
+		snapshot := localappop.Snapshot{
+			ResolvedAt: s.now().UTC(), LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), BootEpoch: bootRef,
+			CurrentProcess: process,
+			Principal: localappop.Principal{
+				LocalOSUserAnchor: principal.LocalOSUserAnchor, ID: principal.LocalAppPrincipalID,
+				Kind: localAppOperationPrincipalKind(principal.Kind), AppID: principal.AppID,
+				Lineage: localappop.LineageBinding{ImmutableLineageID: principal.ImmutableLineageID, DevelopmentAuthorizationID: principal.DevelopmentAuthorizationID, CanonicalProjectFileID: principal.CanonicalProjectFileID},
+				State:   localAppOperationPrincipalState(principal.State),
+			},
+			Record: localappop.Record{
+				LocalOSUserAnchor: record.LocalOSUserAnchor, ID: record.LocalAppRecordID, PrincipalID: record.LocalAppPrincipalID,
+				TrustClass: localAppOperationTrustClass(record.TrustClass), ProvenanceRevision: record.ProvenanceRevision,
+				InstallOrProjectGeneration: record.InstallOrProjectGeneration, ExecutionProfileRef: record.ExecutionProfileRef,
+				HostExecutableDigest: record.HostExecutableDigest, PayloadRootDigest: record.PayloadRootDigest, State: localAppOperationRecordState(record.LifecycleState),
+			},
+			Session: localappop.Session{
+				ID: sessionRef, State: localappop.SessionStateActive, LocalOSUserAnchor: record.LocalOSUserAnchor,
+				PrincipalID: record.LocalAppPrincipalID, RecordID: record.LocalAppRecordID, ProvenanceRevision: caller.ProvenanceRevision,
+				InstallOrProjectGeneration: caller.ProjectGeneration, HostExecutableDigest: record.HostExecutableDigest,
+				PayloadRootDigest: caller.PayloadDigest, AccountID: caller.AccountID, AccountGeneration: caller.AccountGeneration,
+				BootEpoch: bootRef, Process: process,
+			},
+			Account: localappop.Account{ID: caller.AccountID, Generation: caller.AccountGeneration, State: localappop.AccountStateAuthenticated},
+			OwnerPolicy: localappop.OwnerPolicyDecision{
+				Status: localappop.OwnerPolicyAllowed, Operation: localappop.Operation(operation), Selector: selector,
+				OwnerSelectorDigest: binding.fingerprint, PolicyRevision: localAppOwnerPolicyRevision,
+				ResourceImpactDigest: binding.fingerprint,
+			},
+		}
+		coordinatorOptions := make([]localappop.CoordinatorOption, 0, 1)
+		if authorityClass == localappop.AuthorityClassUserPermission {
+			coordinatorOptions = append(coordinatorOptions, localappop.WithUserPermissionAdmission(func(candidate localappop.Operation) bool {
+				return candidate == localappop.Operation(operation)
+			}))
+		}
+		coordinator := localappop.NewCoordinator(localappop.SnapshotResolverFunc(func(context.Context, localappop.Request) (localappop.Snapshot, error) {
+			return snapshot, nil
+		}), coordinatorOptions...)
+		result := coordinator.Evaluate(ctx, localappop.Request{NativeConnectionRef: connectionRef, Operation: localappop.Operation(operation), Selector: selector})
+		if result.Outcome != localappop.OutcomeAllowed || result.Authorization == nil || result.Authorization.AuthorityClass != authorityClass {
+			return LocalAppCallerDecision{}, localAppOperationDenied(localAppOperationRuntimeReason(result.Reason))
+		}
 	}
 	caller.Operation = operation
 	caller.AuthorityClass = authorityClass

@@ -129,7 +129,7 @@ func TestBoundRevocationHookReplacesExactBindingAndUnbindsCompletedWork(t *testi
 }
 
 func TestDesktopSessionManagerValidationIsIndependentOfDurableLedger(t *testing.T) {
-	if err := (&DesktopSessionManager{}).ValidateBootScoped(context.Background()); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
+	if err := (&DesktopSessionManager{}).Validate(context.Background()); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
 		t.Fatalf("zero manager validation error = %v", err)
 	}
 
@@ -138,13 +138,13 @@ func TestDesktopSessionManagerValidationIsIndependentOfDurableLedger(t *testing.
 	if err != nil {
 		t.Fatalf("new session manager: %v", err)
 	}
-	if err := manager.ValidateBootScoped(context.Background()); err != nil {
+	if err := manager.Validate(context.Background()); err != nil {
 		t.Fatalf("validate anchored manager: %v", err)
 	}
 	if err := ledger.Close(); err != nil {
 		t.Fatalf("close ledger: %v", err)
 	}
-	if err := manager.ValidateBootScoped(context.Background()); err != nil {
+	if err := manager.Validate(context.Background()); err != nil {
 		t.Fatalf("ordinary session authority depended on closed ledger: %v", err)
 	}
 }

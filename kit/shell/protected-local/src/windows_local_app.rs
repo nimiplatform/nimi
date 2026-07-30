@@ -14,8 +14,6 @@ use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::{OpenLocalAppSessionRequest, RenewLocalAppSessionRequest};
 use crate::grpc_status::local_app_error_from_status;
 #[cfg(target_os = "macos")]
-use crate::macos_peer_trust::{MacOSRuntimePeerState, VerifiedMacOSRuntimePeer};
-#[cfg(target_os = "macos")]
 use crate::macos_service_control::open_verified_local_app_runtime_channel;
 #[cfg(target_os = "windows")]
 use crate::windows_peer_trust::VerifiedRuntimePeer;
@@ -51,36 +49,19 @@ pub struct MacOsLocalAppCarrier;
 
 #[cfg(target_os = "windows")]
 type PlatformRuntimePeer = VerifiedRuntimePeer;
-#[cfg(target_os = "macos")]
-type PlatformRuntimePeer = VerifiedMacOSRuntimePeer;
 
 struct PlatformLocalAppSession {
     channel: Channel,
+    #[cfg(target_os = "windows")]
     runtime_peer: PlatformRuntimePeer,
     account_generation: u64,
+    #[cfg(target_os = "windows")]
     runtime_boot_epoch: [u8; 32],
     operation_gate: RwLock<()>,
 }
 
 impl PlatformLocalAppSession {
     fn checked_channel(&self) -> Result<Channel, LocalAppOperationError> {
-        #[cfg(target_os = "macos")]
-        match self.runtime_peer.state() {
-            MacOSRuntimePeerState::Intact => {}
-            MacOSRuntimePeerState::Exited => {
-                return Err(LocalAppOperationError::new(
-                    LocalAppReasonCode::RuntimeRestarted,
-                    true,
-                ));
-            }
-            MacOSRuntimePeerState::Replaced => {
-                return Err(LocalAppOperationError::new(
-                    LocalAppReasonCode::ProcessReplaced,
-                    false,
-                ));
-            }
-            MacOSRuntimePeerState::Untrusted => return Err(untrusted()),
-        }
         #[cfg(target_os = "windows")]
         let _ = &self.runtime_peer;
         Ok(self.channel.clone())
@@ -93,13 +74,17 @@ impl PlatformLocalAppSession {
             .await
             .map_err(local_app_error_from_status)?
             .into_inner();
+        #[cfg(target_os = "windows")]
         let (account_generation, runtime_boot_epoch) = validate_session_projection(response)?;
+        #[cfg(target_os = "macos")]
+        let account_generation = validate_session_projection(response)?;
         if account_generation != self.account_generation {
             return Err(LocalAppOperationError::new(
                 LocalAppReasonCode::AccountChanged,
                 false,
             ));
         }
+        #[cfg(target_os = "windows")]
         if runtime_boot_epoch != self.runtime_boot_epoch {
             return Err(LocalAppOperationError::new(
                 LocalAppReasonCode::RuntimeRestarted,
@@ -382,6 +367,7 @@ impl NimiLocalAppCarrier for MacOsLocalAppCarrier {
     }
 }
 
+#[cfg(target_os = "windows")]
 async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalAppOperationError> {
     let (channel, runtime_peer) = open_local_app_runtime_channel()
         .await
@@ -401,6 +387,24 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     }))
 }
 
+#[cfg(target_os = "macos")]
+async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalAppOperationError> {
+    let channel = open_local_app_runtime_channel()
+        .await
+        .map_err(local_app_error_from_protected)?;
+    let response = RuntimeAuthServiceClient::new(channel.clone())
+        .open_local_app_session(OpenLocalAppSessionRequest {})
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    let account_generation = validate_session_projection(response)?;
+    Ok(Box::new(PlatformLocalAppSession {
+        channel,
+        account_generation,
+        operation_gate: RwLock::new(()),
+    }))
+}
+
 fn ready_session_status() -> LocalAppSessionStatus {
     LocalAppSessionStatus {
         state: LocalAppSessionState::Ready,
@@ -409,6 +413,7 @@ fn ready_session_status() -> LocalAppSessionStatus {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn validate_session_projection(
     response: crate::generated::OpenLocalAppSessionResponse,
 ) -> Result<(u64, [u8; 32]), LocalAppOperationError> {
@@ -429,6 +434,20 @@ fn validate_session_projection(
     Ok((response.account_generation, runtime_boot_epoch))
 }
 
+#[cfg(target_os = "macos")]
+fn validate_session_projection(
+    response: crate::generated::OpenLocalAppSessionResponse,
+) -> Result<u64, LocalAppOperationError> {
+    if response.state != LOCAL_APP_SESSION_READY
+        || response.trust_class != LOCAL_APP_TRUST_LOCAL_DEVELOPMENT
+        || response.account_generation == 0
+        || response.reason_code != ACTION_EXECUTED
+    {
+        return Err(untrusted());
+    }
+    Ok(response.account_generation)
+}
+
 #[cfg(target_os = "windows")]
 async fn open_local_app_runtime_channel(
 ) -> Result<(Channel, VerifiedRuntimePeer), crate::ProtectedCarrierError> {
@@ -440,8 +459,7 @@ async fn open_local_app_runtime_channel(
 }
 
 #[cfg(target_os = "macos")]
-async fn open_local_app_runtime_channel(
-) -> Result<(Channel, VerifiedMacOSRuntimePeer), crate::ProtectedCarrierError> {
+async fn open_local_app_runtime_channel() -> Result<Channel, crate::ProtectedCarrierError> {
     with_one_unavailable_retry(
         open_verified_local_app_runtime_channel,
         Duration::from_millis(100),

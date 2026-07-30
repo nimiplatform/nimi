@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -42,6 +43,7 @@ func TestProtectedDaemonRunFailsClosedWithoutVerifiedNativeListener(t *testing.T
 			ServiceStateRoot:                 serviceStateRoot,
 			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
 			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
+			RuntimeServiceUID:                450,
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
 			AccountCustody:                   daemonProtectedAccountCustody{},
 			AccountPartition:                 "account=user-alpha;logon=42",
@@ -84,6 +86,7 @@ func TestProtectedDaemonRunProtectedUsesNativeCarrierWithoutPublicListeners(t *t
 			ServiceStateRoot:                 serviceStateRoot,
 			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
 			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
+			RuntimeServiceUID:                450,
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
 			AccountCustody:                   daemonProtectedAccountCustody{},
 			AccountPartition:                 "account=user-alpha;logon=42",
@@ -206,6 +209,7 @@ func TestNewProtectedUsesProtectedServerWithoutPublishingStatePathToEnvironment(
 			ServiceStateRoot:                 serviceStateRoot,
 			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
 			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
+			RuntimeServiceUID:                450,
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
 			AccountCustody:                   daemonProtectedAccountCustody{},
 			AccountPartition:                 "account=user-alpha;logon=42",
@@ -261,6 +265,7 @@ func TestNewProtectedWithResourcesClosesOwnedState(t *testing.T) {
 					ServiceStateRoot:                 serviceStateRoot,
 					ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
 					RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
+					RuntimeServiceUID:                450,
 					LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
 					AccountCustody:                   daemonProtectedAccountCustody{},
 					AccountPartition:                 "account=user-alpha;logon=42",
@@ -357,6 +362,13 @@ type daemonProtectedAuthorities struct {
 
 func verifiedDaemonTestIdentity(t *testing.T) localappkernel.VerifiedLocalOSUserIdentity {
 	t.Helper()
+	if goruntime.GOOS == "darwin" {
+		identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 42)
+		if err != nil {
+			t.Fatalf("validate daemon test macOS-user identity: %v", err)
+		}
+		return identity
+	}
 	identity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
 		t.Fatalf("validate daemon test OS-user identity: %v", err)

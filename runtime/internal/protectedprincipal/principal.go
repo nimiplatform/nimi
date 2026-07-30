@@ -21,6 +21,8 @@ type Principal struct {
 	AccountGeneration uint64
 	BootEpoch         protectedlocal.Identifier
 	invalidated       <-chan struct{}
+	transportDone     <-chan struct{}
+	directTransport   bool
 }
 
 type contextKey struct{}
@@ -49,15 +51,24 @@ func (principal Principal) Valid() bool {
 	if strings.TrimSpace(principal.AppID) == "" || strings.TrimSpace(principal.ProfileID) == "" ||
 		strings.TrimSpace(principal.Capability) == "" || strings.TrimSpace(principal.AccountID) == "" ||
 		strings.TrimSpace(principal.RealmEnvironment) == "" || principal.AccountGeneration == 0 ||
-		principal.BootEpoch == (protectedlocal.Identifier{}) || principal.invalidated == nil {
+		principal.invalidated == nil ||
+		(!principal.directTransport && principal.BootEpoch == (protectedlocal.Identifier{})) ||
+		(principal.directTransport && principal.transportDone == nil) {
 		return false
 	}
 	select {
 	case <-principal.invalidated:
 		return false
 	default:
-		return true
 	}
+	if principal.directTransport {
+		select {
+		case <-principal.transportDone:
+			return false
+		default:
+		}
+	}
+	return true
 }
 
 func (principal Principal) Owns(subject string) bool {
@@ -108,5 +119,43 @@ func NewDesktopAccountProduct(
 		generation,
 		bootEpoch,
 		invalidated,
+	)
+}
+
+func NewDirect(
+	appID string,
+	profileID string,
+	capability string,
+	projection *runtimev1.AccountProjection,
+	generation uint64,
+	invalidated <-chan struct{},
+	transportDone <-chan struct{},
+) Principal {
+	principal := Principal{
+		AppID: strings.TrimSpace(appID), ProfileID: strings.TrimSpace(profileID),
+		Capability: strings.TrimSpace(capability), AccountGeneration: generation,
+		invalidated: invalidated, transportDone: transportDone, directTransport: true,
+	}
+	if projection != nil {
+		principal.AccountID = strings.TrimSpace(projection.GetAccountId())
+		principal.RealmEnvironment = strings.TrimSpace(projection.GetRealmEnvironmentId())
+	}
+	return principal
+}
+
+func NewDirectDesktopAccountProduct(
+	projection *runtimev1.AccountProjection,
+	generation uint64,
+	invalidated <-chan struct{},
+	transportDone <-chan struct{},
+) Principal {
+	return NewDirect(
+		envelope.ProtectedDesktopAppID,
+		protectedlocal.DesktopAccountProductProfileID,
+		protectedlocal.DesktopAccountProductProfileID,
+		projection,
+		generation,
+		invalidated,
+		transportDone,
 	)
 }

@@ -87,7 +87,7 @@ pub(crate) async fn invoke_machine_unary(
     channel: tonic::transport::Channel,
     request: DesktopMachineProductUnaryRequest,
 ) -> Result<DesktopFirstPartyProductUnaryResponse, DesktopFirstPartyProductError> {
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     if request.method == DesktopMachineProductUnaryMethod::SelectProductControlDataRoot {
         use prost::Message;
         let selection = crate::generated::SelectProductControlDataRootRequest::decode(
@@ -189,7 +189,7 @@ pub(crate) async fn open_account_stream(
 mod tests {
     use super::*;
 
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     #[tokio::test]
     async fn selected_data_root_is_decoded_before_transport_or_acl_action() {
         let channel = tonic::transport::Endpoint::from_static("http://[::]:50051").connect_lazy();

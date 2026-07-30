@@ -22,8 +22,4 @@ const (
 	MacOSRuntimeSigningIdentifier = "ai.nimi.runtime"
 	MacOSDesktopSigningIdentifier = "ai.nimi.apps.nimi.desktop"
 	MacOSLocalAppHostIdentifier   = "ai.nimi.apps.nimi.local-app-host"
-
-	MacOSDesktopTrustSetID    = "nimi-desktop-production-v1"
-	MacOSRuntimeTrustSetID    = "nimi-runtime-production-v1"
-	MacOSLocalAppHostTrustSet = "nimi-local-development-host-macos-production-v1"
 )

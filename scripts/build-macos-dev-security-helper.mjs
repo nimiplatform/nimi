@@ -28,4 +28,4 @@ runReleaseCommand('/usr/bin/xcrun', ['clang','-target','arm64-apple-macos13.0','
 await rm(objectPath,{force:true});
 const metadata=await stat(outputPath);if(!metadata.isFile()||metadata.size===0||(metadata.mode&0o111)===0)throw new Error('helper build missing executable');
 runReleaseCommand('/usr/bin/lipo',['-archs',outputPath]);
-process.stdout.write(`${JSON.stringify({status:'built',architecture:'arm64',outputPath,sourceCount:PRIVILEGED_HELPER_SOURCES.length,operations:['status','install-candidate','restart-service','uninstall-service']})}\n`);
+process.stdout.write(`${JSON.stringify({status:'built',architecture:'arm64',outputPath,sourceCount:PRIVILEGED_HELPER_SOURCES.length,operations:['status','install-candidate','update-candidate','restart-service','uninstall-service']})}\n`);

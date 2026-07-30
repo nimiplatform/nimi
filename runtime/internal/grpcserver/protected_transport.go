@@ -164,8 +164,7 @@ func (protectedDesktopTransportCredentials) ServerHandshake(raw net.Conn) (net.C
 	if !ok || connection == nil || connection.Conn == nil || connection.desktopConnection == nil {
 		return nil, nil, fmt.Errorf("protected Desktop transport requires a native verified connection")
 	}
-	origin := connection.desktopConnection.Origin()
-	if origin.TransportClass != protectedlocal.TransportDesktopControl || !origin.HasRole(protectedlocal.RoleVerifiedDesktopProcess) {
+	if !connection.desktopConnection.VerifiedDesktopTransport() {
 		return nil, nil, fmt.Errorf("protected Desktop transport requires the verified Desktop role")
 	}
 	return raw, &protectedDesktopAuthInfo{connection: connection.desktopConnection}, nil
@@ -427,10 +426,19 @@ func bindBundledAvatarPrincipal(
 		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
 	}
 	projection, generation, invalidated, ok := provider.BindAuthenticatedRuntimeGeneration(ctx)
-	principal := protectedprincipal.New(
-		bundledavatar.AppID, bundledavatar.ProfileID, capability, projection,
-		generation, desktopSessions.BootEpoch(), invalidated,
-	)
+	connection, connected := protectedlocal.DesktopConnectionFromContext(ctx)
+	var principal protectedprincipal.Principal
+	if _, direct := connection.DirectDesktopPeer(); connected && direct {
+		principal = protectedprincipal.NewDirect(
+			bundledavatar.AppID, bundledavatar.ProfileID, capability, projection,
+			generation, invalidated, connection.Done(),
+		)
+	} else {
+		principal = protectedprincipal.New(
+			bundledavatar.AppID, bundledavatar.ProfileID, capability, projection,
+			generation, desktopSessions.BootEpoch(), invalidated,
+		)
+	}
 	if !ok || !principal.Valid() {
 		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
@@ -447,9 +455,17 @@ func bindDesktopAccountProductPrincipal(
 		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
 	}
 	projection, generation, invalidated, ok := provider.BindAuthenticatedRuntimeGeneration(ctx)
-	principal := protectedprincipal.NewDesktopAccountProduct(
-		projection, generation, desktopSessions.BootEpoch(), invalidated,
-	)
+	connection, connected := protectedlocal.DesktopConnectionFromContext(ctx)
+	var principal protectedprincipal.Principal
+	if _, direct := connection.DirectDesktopPeer(); connected && direct {
+		principal = protectedprincipal.NewDirectDesktopAccountProduct(
+			projection, generation, invalidated, connection.Done(),
+		)
+	} else {
+		principal = protectedprincipal.NewDesktopAccountProduct(
+			projection, generation, desktopSessions.BootEpoch(), invalidated,
+		)
+	}
 	if !ok || !principal.Valid() {
 		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
@@ -613,8 +629,7 @@ func protectedDesktopConnectionFromPeer(ctx context.Context) (*protectedlocal.Co
 	if !ok || authInfo == nil || authInfo.connection == nil {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED)
 	}
-	origin := authInfo.connection.Origin()
-	if origin.TransportClass != protectedlocal.TransportDesktopControl || !origin.HasRole(protectedlocal.RoleVerifiedDesktopProcess) {
+	if !authInfo.connection.VerifiedDesktopTransport() {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 	}
 	return authInfo.connection, nil

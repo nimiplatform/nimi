@@ -8,7 +8,6 @@ import {
   rmSync,
 } from 'node:fs';
 import path from 'node:path';
-import readline from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 
 import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from '../apps/desktop/scripts/generated/macos-local-development-profile.mjs';
@@ -25,8 +24,6 @@ const runtimePath = MACOS_LOCAL_DEVELOPMENT_PROFILE.runtimeExecutablePath;
 const desktopPath = MACOS_LOCAL_DEVELOPMENT_PROFILE.desktopApplicationPath;
 const desktopExecutablePath = MACOS_LOCAL_DEVELOPMENT_PROFILE.desktopExecutablePath;
 const launchDaemonPath = MACOS_LOCAL_DEVELOPMENT_PROFILE.launchDaemonPath;
-const desktopRoot = path.join(repoRoot, 'apps', 'desktop');
-const rendererUrl = 'http://127.0.0.1:1420';
 const candidateOutputParent = path.join(
   repoRoot,
   '.nimi',
@@ -46,10 +43,10 @@ const modes = new Map([
 export function parseMacOSDevRuntimeArguments(args) {
   const normalized = args.slice();
   while (normalized[0] === '--') normalized.shift();
-  if (normalized.length === 0) return Object.freeze({ mode: 'status' });
+  if (normalized.length === 0) return Object.freeze({ mode: 'update' });
   if (normalized.length !== 1 || !modes.has(normalized[0])) {
     throw workflowError(
-      'macOS dev:runtime accepts no argument or exactly one of --install, --status, --logs, --desktop, --restart, or --uninstall.',
+      'macOS dev:runtime updates by default and otherwise accepts exactly one of --install, --status, --logs, --desktop, --restart, or --uninstall.',
       'dev-runtime-argument-invalid',
       'use_one_documented_macos_dev_runtime_mode',
     );
@@ -68,28 +65,30 @@ export async function runMacOSDevRuntimeService(input = {}) {
     );
   }
 
-  const mode = input.mode ?? 'status';
+  const mode = input.mode ?? 'update';
   const queryStatus = input.queryStatus ?? readDevelopmentStatus;
   if (mode === 'status') return queryStatus();
   if (mode === 'logs') return readRuntimeLogs();
 
   const initial = await queryStatus();
   if (mode === 'desktop') {
-    assertHealthyInstalledStatus(initial);
+    assertInstalledRunningStatus(initial);
     const launchDesktop = input.launchDesktop ?? launchInstalledDesktop;
     return launchDesktop();
   }
-  const confirm = input.confirm ?? confirmMachineMutation;
   const invokeHelper = input.invokeHelper ?? runPrivilegedHelper;
 
-  if (mode === 'install') {
-    if (initial.status !== 'absent') {
+  if (mode === 'install' || mode === 'update') {
+    if (mode === 'install' && initial.status !== 'absent') {
       throw workflowError(
         'macOS development Runtime install requires an absent product namespace.',
         'runtime-service-repair-required',
         'run_pnpm_dev_runtime_uninstall_before_install',
         { status: initial },
       );
+    }
+    if (mode === 'update') {
+      assertUpdateReadyStatus(initial);
     }
     const buildCandidate = input.buildCandidate ?? buildDevelopmentCandidate;
     const candidate = await buildCandidate();
@@ -106,20 +105,11 @@ export async function runMacOSDevRuntimeService(input = {}) {
           'rebuild_the_complete_candidate',
         );
       }
-      await confirm(installImpact(), 'INSTALL NIMI MACOS DEV RUNTIME');
       const installResult = await invokeHelper([
-        'install-candidate',
+        mode === 'update' ? 'update-candidate' : 'install-candidate',
         candidate.outputRoot,
       ]);
-      const final = await queryStatus();
-      assertHealthyInstalledStatus(final);
-      return Object.freeze({
-        ...installResult,
-        status: 'installed',
-        state: final.state,
-        pid: final.pid,
-        serviceName: MACOS_LOCAL_DEVELOPMENT_PROFILE.runtimeServiceLabel,
-      });
+      return Object.freeze(installResult);
     } finally {
       await candidate.cleanup?.();
     }
@@ -127,38 +117,12 @@ export async function runMacOSDevRuntimeService(input = {}) {
 
   if (mode === 'restart') {
     assertHelperAvailable(initial);
-    await confirm(restartImpact(), 'RESTART NIMI MACOS DEV RUNTIME');
-    const result = await invokeHelper(['restart-service']);
-    const final = await queryStatus();
-    assertHealthyInstalledStatus(final);
-    if (!Number.isInteger(result?.previousPID)
-      || !Number.isInteger(result?.pid)
-      || result.pid === result.previousPID
-      || final.pid !== result.pid) {
-      throw workflowError(
-        'Runtime restart did not observe one new live process.',
-        'runtime-service-unavailable',
-        'inspect_macos_dev_runtime_launchd_logs',
-        { result, status: final },
-      );
-    }
-    return result;
+    return invokeHelper(['restart-service']);
   }
 
   if (mode === 'uninstall') {
     assertHelperAvailable(initial);
-    await confirm(uninstallImpact(), 'UNINSTALL NIMI MACOS DEV RUNTIME');
-    const result = await invokeHelper(['uninstall-service']);
-    const final = await queryStatus();
-    if (final.status !== 'absent') {
-      throw workflowError(
-        'macOS development Runtime remains present after uninstall.',
-        'runtime-service-repair-required',
-        'inspect_the_exact_remaining_nimi_paths',
-        { status: final },
-      );
-    }
-    return result;
+    return invokeHelper(['uninstall-service']);
   }
 
   throw workflowError(
@@ -168,10 +132,27 @@ export async function runMacOSDevRuntimeService(input = {}) {
   );
 }
 
-export function assertHealthyInstalledStatus(status) {
+function assertUpdateReadyStatus(status) {
+  if (status?.status === 'present') return;
+  if (status?.status === 'absent') {
+    throw workflowError(
+      'The macOS development Runtime service is not installed.',
+      'dev-runtime-service-not-installed',
+      'run_pnpm_dev_runtime_install',
+      { status },
+    );
+  }
+  throw workflowError(
+    'The macOS development Runtime installation is incomplete.',
+    'runtime-service-repair-required',
+    'run_pnpm_dev_runtime_uninstall_before_update',
+    { status },
+  );
+}
+
+export function assertInstalledRunningStatus(status) {
   if (status?.status === 'present'
     && status?.state === 'running'
-    && status?.healthy === true
     && Number.isInteger(status?.pid)
     && status.pid > 1) {
     return;
@@ -185,10 +166,8 @@ export function assertHealthyInstalledStatus(status) {
     );
   }
   throw workflowError(
-    'The macOS development Runtime is not healthy.',
-    status?.reasonCode === 'runtime-service-untrusted'
-      ? 'runtime-service-untrusted'
-      : 'runtime-service-repair-required',
+    'The macOS development Runtime is not running.',
+    'runtime-service-unavailable',
     'inspect_macos_dev_runtime_status_and_launchd_logs',
     { status },
   );
@@ -202,12 +181,10 @@ async function readDevelopmentStatus() {
       launchDaemonPath,
       serviceRoot,
       '/private/var/run/nimi-dev',
-      ...readKnownStagingArtifacts(),
     ].filter((value, index, values) => existsSync(value) && values.indexOf(value) === index);
     return Object.freeze({
       status: installedArtifacts.length === 0 ? 'absent' : 'partial',
       state: 'stopped',
-      healthy: false,
       serviceName: MACOS_LOCAL_DEVELOPMENT_PROFILE.runtimeServiceLabel,
       ...(installedArtifacts.length > 0
         ? {
@@ -281,7 +258,11 @@ function removeBuiltDevelopmentCandidate(outputRoot) {
 }
 
 async function runPrivilegedHelper(arguments_) {
-  if (arguments_[0] !== 'install-candidate' || arguments_.length !== 2) {
+  const candidateCommand = (
+    arguments_[0] === 'install-candidate'
+      || arguments_[0] === 'update-candidate'
+  ) && arguments_.length === 2;
+  if (!candidateCommand) {
     requireInstalledHelperMetadata();
     return runJSON('/usr/bin/sudo', [helperPath, ...arguments_]);
   }
@@ -304,7 +285,15 @@ async function runPrivilegedHelper(arguments_) {
     );
     runCaptured(
       '/usr/bin/sudo',
-      ['/usr/bin/ditto', '--noqtn', '--noacl', source, staged],
+      [
+        '/usr/bin/ditto',
+        '--norsrc',
+        '--noextattr',
+        '--noacl',
+        '--noqtn',
+        source,
+        staged,
+      ],
       process.env,
     );
     runCaptured(
@@ -312,9 +301,14 @@ async function runPrivilegedHelper(arguments_) {
       ['/usr/sbin/chown', '-R', 'root:wheel', staged],
       process.env,
     );
+    const stagedHelper = path.join(
+      staged,
+      'installer',
+      'nimi-macos-dev-security',
+    );
     return runJSON('/usr/bin/sudo', [
-      path.join(staged, 'installer', 'nimi-macos-dev-security'),
-      'install-candidate',
+      stagedHelper,
+      arguments_[0],
       staged,
     ]);
   } finally {
@@ -404,38 +398,6 @@ function isUUID(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
 }
 
-function readKnownStagingArtifacts() {
-  const patterns = [
-    [serviceRoot, /^\.active-([0-9a-f-]+)\.stage$/iu],
-    ['/Applications', /^\.Nimi Dev\.app-([0-9a-f-]+)\.stage$/iu],
-    ['/usr/local/libexec', /^\.nimi-macos-dev-security-([0-9a-f-]+)\.stage$/iu],
-    ['/Library/LaunchDaemons', /^\.ai\.nimi\.runtime\.dev-([0-9a-f-]+)\.stage\.plist$/iu],
-  ];
-  const artifacts = [];
-  for (const [parent, pattern] of patterns) {
-    if (!existsSync(parent)) continue;
-    for (const entry of readDirectoryForStatus(parent, artifacts)) {
-      const match = entry.match(pattern);
-      if (match && isUUID(match[1])) artifacts.push(path.join(parent, entry));
-    }
-  }
-  if (existsSync(bootstrapRoot)) {
-    for (const entry of readDirectoryForStatus(bootstrapRoot, artifacts)) {
-      if (isUUID(entry)) artifacts.push(path.join(bootstrapRoot, entry));
-    }
-  }
-  return artifacts.sort();
-}
-
-function readDirectoryForStatus(directory, artifacts) {
-  try {
-    return readdirSync(directory);
-  } catch {
-    artifacts.push(directory);
-    return [];
-  }
-}
-
 function readRuntimeLogs() {
   const result = runCaptured('/usr/bin/log', [
     'show',
@@ -455,74 +417,23 @@ function readRuntimeLogs() {
 }
 
 async function launchInstalledDesktop() {
-  const renderer = spawn(process.execPath, [
-    path.join(desktopRoot, 'scripts', 'ensure-dev-renderer-port.mjs'),
-    '--',
-    'vite',
-    '--host',
-    '127.0.0.1',
-    '--port',
-    '1420',
-    '--strictPort',
-  ], {
-    cwd: desktopRoot,
+  const desktop = spawn(desktopExecutablePath, resolveDesktopDevObservationArguments(), {
+    cwd: path.dirname(desktopExecutablePath),
     env: process.env,
     stdio: 'inherit',
   });
-  let desktop;
-  try {
-    await waitForRenderer(renderer);
-    desktop = spawn(desktopExecutablePath, resolveDesktopDevObservationArguments(), {
-      cwd: path.dirname(desktopExecutablePath),
-      env: process.env,
-      stdio: 'inherit',
-    });
-    const result = await waitForChild(desktop);
-    if (result.error || result.code !== 0) {
-      throw workflowError(
-        `The installed Nimi Dev application exited with ${result.error?.message || result.signal || `status ${result.code}`}.`,
-        'desktop-dev-launch-failed',
-        'inspect_the_installed_nimi_dev_application',
-      );
-    }
-    return Object.freeze({
-      status: 'stopped',
-      application: desktopPath,
-      rendererUrl,
-    });
-  } finally {
-    await stopChild(renderer);
-    if (desktop?.exitCode === null && desktop.signalCode === null) {
-      await stopChild(desktop);
-    }
+  const result = await waitForChild(desktop);
+  if (result.error || result.code !== 0) {
+    throw workflowError(
+      `The installed Nimi Dev application exited with ${result.error?.message || result.signal || `status ${result.code}`}.`,
+      'desktop-dev-launch-failed',
+      'inspect_the_installed_nimi_dev_application',
+    );
   }
-}
-
-async function waitForRenderer(renderer) {
-  const deadline = Date.now() + 45_000;
-  let lastError;
-  while (Date.now() < deadline) {
-    if (renderer.exitCode !== null || renderer.signalCode !== null) {
-      throw workflowError(
-        'The Desktop renderer process exited before becoming ready.',
-        'desktop-dev-renderer-unavailable',
-        'inspect_the_desktop_renderer_output',
-      );
-    }
-    try {
-      const response = await fetch(rendererUrl);
-      if (response.ok || response.status < 500) return;
-      lastError = new Error(`renderer responded ${response.status}`);
-    } catch (error) {
-      lastError = error;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw workflowError(
-    `Timed out waiting for the Desktop renderer: ${lastError instanceof Error ? lastError.message : String(lastError || '')}`,
-    'desktop-dev-renderer-unavailable',
-    'inspect_the_desktop_renderer_output',
-  );
+  return Object.freeze({
+    status: 'stopped',
+    application: desktopPath,
+  });
 }
 
 function waitForChild(child) {
@@ -539,89 +450,6 @@ function waitForChild(child) {
     };
     child.once('error', (error) => finish({ error }));
     child.once('exit', (code, signal) => finish({ code, signal }));
-  });
-}
-
-async function stopChild(child) {
-  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return;
-  child.kill('SIGTERM');
-  const stopped = await Promise.race([
-    waitForChild(child).then(() => true),
-    new Promise((resolve) => setTimeout(() => resolve(false), 2_000)),
-  ]);
-  if (!stopped && child.exitCode === null && child.signalCode === null) {
-    child.kill('SIGKILL');
-    await waitForChild(child);
-  }
-}
-
-async function confirmMachineMutation(impact, phrase) {
-  process.stdout.write(
-    `${JSON.stringify({ status: 'confirmation-required', confirmation: phrase, impact })}\n`,
-  );
-  if (!process.stdin.isTTY || !process.stderr.isTTY) {
-    throw workflowError(
-      'Interactive confirmation is required before privileged macOS service mutation.',
-      'macos-dev-machine-mutation-confirmation-required',
-      'rerun_in_an_interactive_terminal_and_enter_the_exact_confirmation_phrase',
-    );
-  }
-  const terminal = readline.createInterface({
-    input: process.stdin,
-    output: process.stderr,
-  });
-  const answer = await terminal.question(
-    `Type ${JSON.stringify(phrase)} to continue: `,
-  );
-  terminal.close();
-  if (answer !== phrase) {
-    throw workflowError(
-      'macOS development Runtime mutation was cancelled.',
-      'macos-dev-machine-mutation-cancelled',
-      'rerun_only_after_approving_the_reported_changes',
-    );
-  }
-}
-
-function installImpact() {
-  return Object.freeze({
-    action: 'install the fixed ad-hoc-signed macOS development Desktop and Runtime service',
-    writes: [
-      desktopPath,
-      `${serviceRoot}/{active,state,install-transaction.json}`,
-      launchDaemonPath,
-      helperPath,
-      '/private/var/run/nimi-dev',
-    ],
-    creates: ['non-login _nimiruntimedev user and group'],
-    rollbackDeletes: [
-      `System Keychain items with service ${MACOS_LOCAL_DEVELOPMENT_PROFILE.keychainService}`,
-      'only fixed development installation paths created by the failed transaction',
-    ],
-  });
-}
-
-function restartImpact() {
-  return Object.freeze({
-    action: `restart ${MACOS_LOCAL_DEVELOPMENT_PROFILE.runtimeServiceLabel}`,
-    consequence: 'the Runtime process and protected sessions rotate',
-    persistentDataDeleted: false,
-  });
-}
-
-function uninstallImpact() {
-  return Object.freeze({
-    action: 'stop and uninstall the macOS development Desktop and Runtime service',
-    deletes: [
-      desktopPath,
-      serviceRoot,
-      launchDaemonPath,
-      helperPath,
-      '/private/var/run/nimi-dev',
-      '_nimiruntimedev user and group',
-      'Runtime-only development protected state',
-      `System Keychain items with service ${MACOS_LOCAL_DEVELOPMENT_PROFILE.keychainService}`,
-    ],
   });
 }
 
@@ -650,18 +478,6 @@ function requireInstalledHelperMetadata() {
       'The installed macOS development security helper metadata is untrusted.',
       'runtime-service-repair-required',
       'reinstall_the_root_owned_macos_development_security_helper',
-    );
-  }
-  const verification = spawnSync(
-    '/usr/bin/codesign',
-    ['--verify', '--strict', '--verbose=4', helperPath],
-    { encoding: 'utf8' },
-  );
-  if (verification.error || verification.status !== 0) {
-    throw workflowError(
-      'The installed macOS development security helper signature is invalid.',
-      'runtime-service-untrusted',
-      'reinstall_the_macos_development_runtime',
     );
   }
 }

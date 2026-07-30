@@ -193,7 +193,7 @@ func unmarshalLocalDevelopmentProcess(encoded string) (protectedlocal.ProcessTup
 	return process, nil
 }
 
-func revokeLocalDevelopmentAuthorityTx(ctx context.Context, tx *sql.Tx, authorizationID protectedlocal.Identifier, runID *protectedlocal.Identifier, now time.Time) error {
+func revokeLocalDevelopmentAuthorityTx(ctx context.Context, tx *sql.Tx, authorizationID protectedlocal.Identifier, runID *protectedlocal.Identifier, now time.Time, sessionScoped bool) error {
 	if tx == nil || authorizationID == (protectedlocal.Identifier{}) {
 		return errLocalDevelopmentInvalid
 	}
@@ -201,11 +201,17 @@ func revokeLocalDevelopmentAuthorityTx(ctx context.Context, tx *sql.Tx, authoriz
 		if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE authorization_id = ? AND state <> 'revoked'`, now.UnixNano(), authorizationID[:]); err != nil {
 			return err
 		}
+		if !sessionScoped {
+			return nil
+		}
 		if _, err := tx.ExecContext(ctx, `UPDATE local_development_launch SET status = 'revoked', revoked_unix_nano = ? WHERE authorization_id = ? AND status IN ('pending','process_bound')`, now.UnixNano(), authorizationID[:]); err != nil {
 			return err
 		}
 		_, err := tx.ExecContext(ctx, `UPDATE local_development_session SET revoked_unix_nano = ? WHERE authorization_id = ? AND revoked_unix_nano IS NULL`, now.UnixNano(), authorizationID[:])
 		return err
+	}
+	if !sessionScoped {
+		return nil
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_launch SET status = 'revoked', revoked_unix_nano = ? WHERE authorization_id = ? AND supervisor_run_id = ? AND status IN ('pending','process_bound')`, now.UnixNano(), authorizationID[:], runID[:]); err != nil {
 		return err

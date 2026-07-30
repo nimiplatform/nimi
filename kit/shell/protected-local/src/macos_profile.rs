@@ -9,9 +9,6 @@ pub(crate) use crate::macos_profile_local_development::*;
 pub(crate) const RUNTIME_SIGNING_IDENTIFIER: &str = "ai.nimi.runtime";
 
 #[cfg(not(feature = "macos-local-development"))]
-pub(crate) const DESKTOP_SIGNING_IDENTIFIER: &str = "ai.nimi.apps.nimi.desktop";
-
-#[cfg(not(feature = "macos-local-development"))]
 pub(crate) const RUNTIME_SOCKET_PATH: &str = "/private/var/run/nimi/runtime-desktop.sock";
 
 #[cfg(not(feature = "macos-local-development"))]
@@ -20,9 +17,6 @@ pub(crate) const LOCAL_APP_SOCKET_PATH: &str = "/private/var/run/nimi/runtime-lo
 #[cfg(not(feature = "macos-local-development"))]
 pub(crate) const RUNTIME_EXECUTABLE_PATH: &str =
     "/Applications/Nimi.app/Contents/Library/LaunchServices/nimi-runtime";
-
-#[cfg(not(feature = "macos-local-development"))]
-pub(crate) const DESKTOP_APPLICATION_PATH: &str = "/Applications/Nimi.app";
 
 #[cfg(not(feature = "macos-local-development"))]
 pub(crate) const LOCAL_APP_HOST_PATH: &str = "/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host";

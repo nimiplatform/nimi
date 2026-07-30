@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"testing"
 	"time"
@@ -153,6 +154,7 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 			ServiceStateRoot:                 serviceStateRoot,
 			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
 			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
+			RuntimeServiceUID:                450,
 			LocalDevelopmentConsentStorePath: consentStorePath,
 			AccountCustody:                   emptyProtectedAccountCustody{},
 			AccountPartition:                 "verified-user-and-logon-session",
@@ -213,6 +215,7 @@ func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) 
 			ServiceStateRoot:                  t.TempDir(),
 			ProductControlRoot:                filepath.Join(t.TempDir(), ".nimi"),
 			RuntimeServiceSID:                 protectedlocal.WindowsProductionServiceSID,
+			RuntimeServiceUID:                 450,
 			LocalDevelopmentConsentStorePath:  filepath.Join(t.TempDir(), "local-development.db"),
 			PlatformAppIdentityProjectionPath: "relative/nimi-app-identity-surfaces.yaml",
 			AccountCustody:                    emptyProtectedAccountCustody{},
@@ -256,6 +259,7 @@ func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 					ServiceStateRoot:                 t.TempDir(),
 					ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
 					RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
+					RuntimeServiceUID:                450,
 					LocalDevelopmentConsentStorePath: filepath.Join(t.TempDir(), "local-development.db"),
 					AccountCustody:                   emptyProtectedAccountCustody{},
 					AccountPartition:                 "verified-user-and-logon-session",
@@ -284,6 +288,13 @@ type protectedAuthoritiesForServerTest struct {
 
 func verifiedServerTestIdentity(t *testing.T) localappkernel.VerifiedLocalOSUserIdentity {
 	t.Helper()
+	if goruntime.GOOS == "darwin" {
+		identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 42)
+		if err != nil {
+			t.Fatalf("validate server test macOS-user identity: %v", err)
+		}
+		return identity
+	}
 	identity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
 		t.Fatalf("validate server test OS-user identity: %v", err)

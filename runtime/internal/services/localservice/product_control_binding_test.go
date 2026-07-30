@@ -125,17 +125,10 @@ func productControlBindingRecordForTest(dataRoot string) map[string]any {
 			"verifiedAtUnixMs": 2,
 		},
 		"firstRun": map[string]any{
-			"installLevel":             nil,
-			"aiProfileAlias":           nil,
-			"completed":                false,
-			"completedAt":              nil,
-			"initializationPlanId":     nil,
-			"baselineProfileRef":       nil,
-			"baselineCommitId":         nil,
-			"accountDefaultProfileRef": nil,
-			"builtInAiConfigRefs":      []string{},
-			"runtimeBaselineRef":       nil,
-			"executionEvidenceRef":     nil,
+			"installLevel":   nil,
+			"aiProfileAlias": nil,
+			"completed":      false,
+			"completedAt":    nil,
 		},
 		"pointers": map[string]any{"factoryProfileIndex": nil},
 		"repair":   map[string]any{"required": false, "reason": nil},
@@ -165,6 +158,26 @@ func writeProductControlBindingRecordForTest(t *testing.T, productControlRoot st
 	}
 	if err := os.WriteFile(filepath.Join(productControlRoot, "nimi.json"), raw, 0o600); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestProductControlDataRootBoundaryRejectsHomeAndProductControlOverlap(t *testing.T) {
+	home := t.TempDir()
+	productControlRoot := filepath.Join(home, ".nimi")
+	for _, candidate := range []string{
+		home,
+		productControlRoot,
+		filepath.Join(productControlRoot, "data"),
+	} {
+		if err := validateProductControlDataRootBoundary(candidate, productControlRoot); err == nil {
+			t.Fatalf("overlapping data root was admitted: %s", candidate)
+		}
+	}
+	if err := validateProductControlDataRootBoundary(
+		filepath.Join(home, "Nimi"),
+		productControlRoot,
+	); err != nil {
+		t.Fatalf("ordinary sibling data root was rejected: %v", err)
 	}
 }
 

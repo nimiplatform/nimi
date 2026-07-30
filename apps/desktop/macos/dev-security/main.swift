@@ -23,6 +23,13 @@ struct NimiMacOSDevSecurityInstaller {
                         root: URL(fileURLWithPath: arguments[1], isDirectory: true)
                     )
                 )
+            case "update-candidate":
+                guard arguments.count == 2 else { throw argumentFailure(command) }
+                try emit(
+                    try updateCandidate(
+                        root: URL(fileURLWithPath: arguments[1], isDirectory: true)
+                    )
+                )
             case "restart-service":
                 guard arguments.count == 1 else { throw argumentFailure(command) }
                 try emit(try restartService())

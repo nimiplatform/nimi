@@ -4,10 +4,8 @@ package protectedlocal
 
 import (
 	"context"
-	cryptorand "crypto/rand"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"sync"
 )
@@ -17,7 +15,6 @@ type MacOSVerifiedDesktopListener struct {
 	cancel context.CancelFunc
 	raw    *net.UnixListener
 	state  *MacOSRuntimeSecurityState
-	random io.Reader
 
 	mu         sync.Mutex
 	primed     net.Conn
@@ -29,7 +26,7 @@ type MacOSVerifiedDesktopListener struct {
 }
 
 func OpenMacOSVerifiedDesktopListener(ctx context.Context, state *MacOSRuntimeSecurityState) (*MacOSVerifiedDesktopListener, error) {
-	if ctx == nil || state == nil || state.runtimeProcess.validate() != nil || state.bootEpoch == (Identifier{}) {
+	if ctx == nil || state == nil || state.serviceUID == 0 {
 		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("verified macOS Runtime security state is required"))
 	}
 	raw, err := activateMacOSLaunchdSocket(MacOSDesktopSocketActivationName, MacOSDesktopSocketPath, state.serviceUID)
@@ -37,7 +34,7 @@ func OpenMacOSVerifiedDesktopListener(ctx context.Context, state *MacOSRuntimeSe
 		return nil, err
 	}
 	listenerContext, cancel := context.WithCancel(ctx)
-	listener := &MacOSVerifiedDesktopListener{ctx: listenerContext, cancel: cancel, raw: raw, state: state, random: cryptorand.Reader}
+	listener := &MacOSVerifiedDesktopListener{ctx: listenerContext, cancel: cancel, raw: raw, state: state}
 	state.transportMu.Lock()
 	defer state.transportMu.Unlock()
 	if state.closed || state.desktopTransport != nil {
@@ -115,37 +112,25 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 		}
 		audit, err := macOSPeerIdentityFromUnixConn(raw)
 		if err != nil {
+			reportMacOSDesktopPeerRejection("peer-identity", err)
 			_ = raw.Close()
 			continue
 		}
-		client, liveness, err := verifyConnectedMacOSDesktop(audit)
+		client, err := verifyConnectedMacOSDesktop(audit)
 		if err != nil {
+			reportMacOSDesktopPeerRejection("desktop-process", err)
 			_ = raw.Close()
 			continue
 		}
 		if err := listener.state.BindInteractiveIdentity(audit); err != nil {
-			_ = liveness.Close()
+			reportMacOSDesktopPeerRejection("interactive-identity", err)
 			_ = raw.Close()
 			_ = listener.Close()
 			return nil, err
 		}
-		endpointID, err := readIdentifier(listener.random)
+		desktopConnection, err := newDirectDesktopConnection(client)
 		if err != nil {
-			_ = liveness.Close()
-			_ = raw.Close()
-			return nil, err
-		}
-		transcriptNonce, err := readIdentifier(listener.random)
-		if err != nil {
-			_ = liveness.Close()
-			_ = raw.Close()
-			return nil, err
-		}
-		desktopConnection, err := EstablishDesktopConnection(ctx, staticMacOSDesktopPeerVerifier{peers: VerifiedDesktopPeers{
-			Client: client, Server: listener.state.runtimeProcess, ClientLiveness: liveness,
-			RuntimeBootEpoch: listener.state.bootEpoch, EndpointInstanceID: endpointID, TranscriptNonce: transcriptNonce,
-		}}, listener.random)
-		if err != nil {
+			reportMacOSDesktopPeerRejection("desktop-connection", err)
 			_ = raw.Close()
 			continue
 		}
@@ -155,12 +140,7 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			_ = raw.Close()
 			return nil, net.ErrClosed
 		}
-		desktopConnection.onRevoke(func() {
-			_ = verified.closeTransport()
-			if err := revalidateMacOSGraphicSession(audit.euid, audit.auditSession); err != nil {
-				_ = listener.Close()
-			}
-		})
+		desktopConnection.onRevoke(func() { _ = verified.closeTransport() })
 		return verified, nil
 	}
 }
@@ -214,12 +194,6 @@ func (listener *MacOSVerifiedDesktopListener) Addr() net.Addr {
 		return &net.UnixAddr{Name: MacOSDesktopSocketPath, Net: "unix"}
 	}
 	return listener.raw.Addr()
-}
-
-type staticMacOSDesktopPeerVerifier struct{ peers VerifiedDesktopPeers }
-
-func (verifier staticMacOSDesktopPeerVerifier) VerifyDesktopPeers(context.Context) (VerifiedDesktopPeers, error) {
-	return verifier.peers, nil
 }
 
 type macOSVerifiedDesktopNetConn struct {
@@ -312,22 +286,17 @@ func (listener *MacOSVerifiedLocalAppListener) Accept() (net.Conn, error) {
 			_ = raw.Close()
 			continue
 		}
-		expected, policy, bound := listener.state.localAppLaunches.BoundProcessPolicy(audit.pid)
-		if !bound || policy.SupervisorProcess.PID == 0 {
-			_ = raw.Close()
-			continue
-		}
-		peer, pipeLiveness, err := verifyConnectedMacOSLocalApp(audit, expected, policy.SupervisorProcess.PID)
+		launch, err := listener.state.localAppLaunches.Consume(audit.pid, audit.euid)
 		if err != nil {
 			_ = raw.Close()
 			continue
 		}
-		promoted, err := listener.state.localAppLaunches.Promote(peer, pipeLiveness)
+		peer, err := verifyConnectedMacOSLocalApp(audit, launch.DesktopPID)
 		if err != nil {
 			_ = raw.Close()
 			continue
 		}
-		connection, err := EstablishLocalAppConnection(listener.ctx, staticLocalAppPeerVerifier{peer: promoted})
+		connection, err := newDirectLocalAppConnection(peer, launch)
 		if err != nil {
 			_ = raw.Close()
 			continue

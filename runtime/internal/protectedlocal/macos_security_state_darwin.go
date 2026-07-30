@@ -4,7 +4,6 @@ package protectedlocal
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
@@ -19,12 +18,9 @@ type MacOSRuntimeSecurityState struct {
 	serviceGID       uint32
 	stateRoot        string
 	stateLock        *macOSRuntimeStateLock
-	runtimeProcess   ProcessTuple
-	runtimeLiveness  DesktopProcessLiveness
-	secrets          *macOSSystemKeychainSecretStore
-	bootEpoch        Identifier
+	secrets          macOSRuntimeBinarySecretStore
 	desktopSessions  *DesktopSessionManager
-	localAppLaunches *LocalAppLaunchRegistry
+	localAppLaunches *DirectLocalAppLaunches
 
 	identityMu         sync.RWMutex
 	interactiveEUID    uint32
@@ -108,16 +104,9 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 	if err != nil {
 		return nil, err
 	}
-	runtimeProcess, runtimeLiveness, err := verifyMacOSRuntimeProcess()
-	if err != nil {
+	if err := verifyMacOSRuntimeProcess(); err != nil {
 		return nil, fail(ReasonRuntimeExecutableTrustInvalid, false, "reinstall_runtime_service", err)
 	}
-	acceptedRuntimeLiveness := false
-	defer func() {
-		if !acceptedRuntimeLiveness {
-			_ = runtimeLiveness.Close()
-		}
-	}()
 	stateRoot, err := validateMacOSRuntimeStateRoot(MacOSRuntimeStateRoot, principal)
 	if err != nil {
 		return nil, err
@@ -132,7 +121,7 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 			_ = stateLock.Close()
 		}
 	}()
-	secrets, err := OpenMacOSSystemKeychainSecretStore()
+	secrets, err := openMacOSRuntimeBinarySecretStore(stateRoot, principal)
 	if err != nil {
 		return nil, err
 	}
@@ -142,26 +131,18 @@ func OpenMacOSRuntimeSecurityState(ctx context.Context) (*MacOSRuntimeSecuritySt
 			_ = secrets.Close()
 		}
 	}()
-	bootEpoch, err := NewBootEpoch(rand.Reader)
+	desktopSessions, err := NewDirectDesktopSessionManager(nil)
 	if err != nil {
 		return nil, err
 	}
-	desktopSessions, err := NewDesktopSessionManager(bootEpoch, nil)
-	if err != nil {
-		return nil, err
-	}
-	localAppLaunches, err := NewLocalAppLaunchRegistry(bootEpoch)
-	if err != nil {
-		return nil, err
-	}
+	localAppLaunches := NewDirectLocalAppLaunches()
 	state := &MacOSRuntimeSecurityState{
-		serviceUID: principal.uid, serviceGID: principal.gid, stateRoot: stateRoot, stateLock: stateLock, runtimeProcess: runtimeProcess,
-		runtimeLiveness: runtimeLiveness, secrets: secrets, bootEpoch: bootEpoch,
+		serviceUID: principal.uid, serviceGID: principal.gid, stateRoot: stateRoot, stateLock: stateLock,
+		secrets:         secrets,
 		desktopSessions: desktopSessions, localAppLaunches: localAppLaunches,
 	}
 	keepSecrets = true
 	keepStateLock = true
-	acceptedRuntimeLiveness = true
 	return state, nil
 }
 
@@ -200,17 +181,20 @@ func (state *MacOSRuntimeSecurityState) ServiceStatePath() string {
 	}
 	return state.stateRoot
 }
+
+// RuntimeServiceUID returns the fixed non-login Runtime uid already validated
+// when this security state was opened.
+func (state *MacOSRuntimeSecurityState) RuntimeServiceUID() uint32 {
+	if state == nil {
+		return 0
+	}
+	return state.serviceUID
+}
 func (state *MacOSRuntimeSecurityState) BinarySecrets() BinarySecretStore {
 	if state == nil {
 		return nil
 	}
 	return state.secrets
-}
-func (state *MacOSRuntimeSecurityState) BootEpoch() Identifier {
-	if state == nil {
-		return Identifier{}
-	}
-	return state.bootEpoch
 }
 func (state *MacOSRuntimeSecurityState) DesktopSessions() *DesktopSessionManager {
 	if state == nil {
@@ -218,19 +202,12 @@ func (state *MacOSRuntimeSecurityState) DesktopSessions() *DesktopSessionManager
 	}
 	return state.desktopSessions
 }
-func (state *MacOSRuntimeSecurityState) LocalAppLaunches() *LocalAppLaunchRegistry {
+func (state *MacOSRuntimeSecurityState) DirectLocalAppLaunches() *DirectLocalAppLaunches {
 	if state == nil {
 		return nil
 	}
 	return state.localAppLaunches
 }
-func (state *MacOSRuntimeSecurityState) RuntimeProcess() ProcessTuple {
-	if state == nil {
-		return ProcessTuple{}
-	}
-	return state.runtimeProcess
-}
-
 func (state *MacOSRuntimeSecurityState) Close() error {
 	if state == nil {
 		return nil
@@ -247,9 +224,6 @@ func (state *MacOSRuntimeSecurityState) Close() error {
 		}
 		if localApp != nil {
 			failures = append(failures, localApp.Close())
-		}
-		if state.runtimeLiveness != nil {
-			failures = append(failures, state.runtimeLiveness.Close())
 		}
 		if state.secrets != nil {
 			failures = append(failures, state.secrets.Close())

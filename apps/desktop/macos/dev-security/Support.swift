@@ -1,7 +1,5 @@
-import CryptoKit
 import Darwin
 import Foundation
-import Security
 
 struct InstallerFailure: Error {
     let reasonCode: String
@@ -125,6 +123,35 @@ func secureCopiedTree(_ root: String) throws {
     }
 }
 
+func removeLocalDevelopmentTransferMetadata(_ root: String) throws {
+    let attributes = ["com.apple.quarantine", "com.apple.provenance"]
+    for url in try treeURLs(root) {
+        var value = stat()
+        try requireThat(
+            lstat(url.path, &value) == 0,
+            "dev-install-copy-failed", "retry_the_install",
+            "A staged path cannot be inspected before transfer metadata removal.",
+            details: ["path": url.path]
+        )
+        let options = value.st_mode & S_IFMT == S_IFLNK ? XATTR_NOFOLLOW : 0
+        for attribute in attributes {
+            errno = 0
+            let status = url.path.withCString { path in
+                attribute.withCString { name in
+                    removexattr(path, name, options)
+                }
+            }
+            if status == 0 || errno == ENOATTR { continue }
+            throw fail(
+                "dev-install-copy-failed",
+                "inspect_the_exact_staged_application",
+                "Local-development transfer metadata could not be removed.",
+                details: ["path": url.path, "attribute": attribute, "errno": errno]
+            )
+        }
+    }
+}
+
 private func hasExtendedACL(_ path: String, symbolicLink: Bool) throws -> Bool {
     errno = 0
     let value = path.withCString {
@@ -180,68 +207,6 @@ func removeExtendedACL(_ path: String, symbolicLink: Bool) throws {
         details: ["path": path, "errno": errno]
     )
     try requireNoExtendedACL(path, symbolicLink: symbolicLink)
-}
-
-func inspectStaticCode(codePath: String, executablePath: String, identifier: String) throws {
-    var executable = stat()
-    try requireThat(
-        lstat(executablePath, &executable) == 0 && executable.st_mode & S_IFMT == S_IFREG
-            && executable.st_mode & 0o111 != 0 && executable.st_mode & 0o022 == 0,
-        "runtime-service-untrusted", "rebuild_and_sign_the_candidate",
-        "A signed executable has unsafe metadata."
-    )
-    try requireNoExtendedACL(executablePath, symbolicLink: false)
-    var code: SecStaticCode?
-    let created = SecStaticCodeCreateWithPath(URL(fileURLWithPath: codePath) as CFURL, [], &code) == errSecSuccess
-    let valid = code.map {
-        SecStaticCodeCheckValidity($0, SecCSFlags(rawValue: kSecCSStrictValidate | kSecCSCheckAllArchitectures), nil) == errSecSuccess
-    } ?? false
-    try requireThat(created && valid, "runtime-service-untrusted", "rebuild_and_sign_the_candidate", "Strict code-signing validation failed.", details: ["path": codePath])
-    try requireAdHocCodeIdentity(code!, identifier: identifier)
-}
-
-func inspectRunningCode(pid: pid_t, identifier: String) throws {
-    var dynamicCode: SecCode?
-    let attributes = [kSecGuestAttributePid: NSNumber(value: pid)] as CFDictionary
-    let found = SecCodeCopyGuestWithAttributes(nil, attributes, [], &dynamicCode) == errSecSuccess
-    let valid = dynamicCode.map {
-        SecCodeCheckValidity(
-            $0,
-            SecCSFlags(rawValue: kSecCSStrictValidate | kSecCSCheckAllArchitectures),
-            nil
-        ) == errSecSuccess
-    } ?? false
-    try requireThat(found && valid, "runtime-service-untrusted", "inspect_the_live_runtime", "The live Runtime signature is invalid.")
-    var staticCode: SecStaticCode?
-    try requireThat(
-        SecCodeCopyStaticCode(dynamicCode!, [], &staticCode) == errSecSuccess && staticCode != nil,
-        "runtime-service-untrusted", "inspect_the_live_runtime",
-        "The live Runtime cannot be bound to static code."
-    )
-    try requireAdHocCodeIdentity(staticCode!, identifier: identifier)
-}
-
-private func requireAdHocCodeIdentity(_ code: SecStaticCode, identifier: String) throws {
-    var information: CFDictionary?
-    let copied = SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &information) == errSecSuccess
-    guard copied, let values = information as? [String: Any],
-          values[kSecCodeInfoIdentifier as String] as? String == identifier,
-          let flags = values[kSecCodeInfoFlags as String] as? NSNumber,
-          flags.uint32Value & 0x0000_0002 != 0,
-          flags.uint32Value & 0x0001_0000 != 0,
-          values[kSecCodeInfoTeamIdentifier as String] == nil,
-          values[kSecCodeInfoCertificates as String] == nil else {
-        throw fail(
-            "runtime-service-untrusted",
-            "rebuild_the_fixed_ad_hoc_development_candidate",
-            "The local code identity is not the required ad-hoc hardened Runtime identity.",
-            details: ["identifier": identifier]
-        )
-    }
-}
-
-func sha256File(_ path: String) throws -> String {
-    SHA256.hash(data: try Data(contentsOf: URL(fileURLWithPath: path))).hex
 }
 
 struct FixedCommandResult { let status: Int32; let stdout: Data; let stderr: Data }
@@ -321,16 +286,4 @@ func processIsLive(_ pid: pid_t) -> Bool {
     errno = 0
     if kill(pid, 0) == 0 { return true }
     return errno == EPERM
-}
-
-func syncDirectory(_ path: String) throws {
-    let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)
-    try requireThat(descriptor >= 0, "runtime-service-repair-required", "inspect_the_exact_install_directory", "An install directory cannot be opened.")
-    let result = fsync(descriptor)
-    Darwin.close(descriptor)
-    try requireThat(result == 0, "runtime-service-repair-required", "inspect_the_exact_install_directory", "An install directory cannot be synchronized.")
-}
-
-private extension Digest {
-    var hex: String { map { String(format: "%02x", $0) }.joined() }
 }

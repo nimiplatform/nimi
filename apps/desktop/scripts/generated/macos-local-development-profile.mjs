@@ -13,13 +13,9 @@ export const MACOS_LOCAL_DEVELOPMENT_PROFILE = Object.freeze({
   "localAppHostSigningIdentifier": "ai.nimi.apps.nimi.local-app-host.dev",
   "installerSigningIdentifier": "ai.nimi.dev-installer",
   "architecture": "arm64",
-  "runtimeTrustSetId": "nimi-runtime-macos-local-development-v1",
-  "desktopTrustSetId": "nimi-desktop-macos-local-development-v1",
-  "localAppHostTrustSetId": "nimi-local-development-host-macos-local-development-v1",
   "desktopSocketActivationName": "DesktopControlDev",
   "localAppSocketActivationName": "LocalAppHostDev",
   "desktopSocketPath": "/private/var/run/nimi-dev/runtime-desktop.sock",
   "localAppSocketPath": "/private/var/run/nimi-dev/runtime-local-app.sock",
-  "keychainService": "ai.nimi.runtime.protected-local.dev.v1",
   "helperPath": "/usr/local/libexec/nimi-macos-dev-security"
 });

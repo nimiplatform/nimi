@@ -57,6 +57,7 @@ type LocalAppCallerBinding struct {
 	AccountGeneration       uint64
 	RuntimeBootEpoch        protectedlocal.Identifier
 	Process                 protectedlocal.ProcessTuple
+	DirectPeer              protectedlocal.DirectLocalAppPeer
 	ExpiresAt               time.Time
 	TrustClass              LocalAppTrustClass
 	AuthorizationID         protectedlocal.Identifier
@@ -103,6 +104,7 @@ type LocalAppCallerDecision struct {
 	AccountGeneration       uint64
 	RuntimeBootEpoch        protectedlocal.Identifier
 	Process                 protectedlocal.ProcessTuple
+	DirectPeer              protectedlocal.DirectLocalAppPeer
 	ExpiresAt               time.Time
 	Operation               LocalAppOperation
 	AuthorityClass          localappop.AuthorityClass
@@ -164,10 +166,19 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 	if binding.AccountGeneration != generation {
 		return LocalAppCallerDecision{}, ErrLocalAppAccountChanged
 	}
+	directPeer := binding.DirectPeer.OS == protectedlocal.OSMacOS && binding.DirectPeer.PID != 0 && binding.DirectPeer.UID != 0 &&
+		binding.SessionID != (protectedlocal.Identifier{}) &&
+		binding.RuntimeBootEpoch == (protectedlocal.Identifier{}) &&
+		binding.Process == (protectedlocal.ProcessTuple{}) &&
+		binding.ExpiresAt.IsZero()
+	sessionScoped := binding.DirectPeer == (protectedlocal.DirectLocalAppPeer{}) &&
+		binding.SessionID != (protectedlocal.Identifier{}) &&
+		binding.RuntimeBootEpoch != (protectedlocal.Identifier{}) &&
+		binding.Process.PID != 0 &&
+		s.now().UTC().Before(binding.ExpiresAt.UTC())
 	if strings.TrimSpace(binding.LocalOSUserAnchor) == "" || binding.LocalOSUserAnchor != strings.TrimSpace(binding.LocalOSUserAnchor) ||
-		binding.SessionID == (protectedlocal.Identifier{}) || strings.TrimSpace(binding.AppID) == "" ||
+		(!directPeer && !sessionScoped) || strings.TrimSpace(binding.AppID) == "" ||
 		binding.HostExecutableDigest == (protectedlocal.Identifier{}) ||
-		binding.RuntimeBootEpoch == (protectedlocal.Identifier{}) || binding.Process.PID == 0 || !s.now().UTC().Before(binding.ExpiresAt.UTC()) ||
 		binding.TrustClass != LocalAppTrustClassDevelopment || binding.AuthorizationID == (protectedlocal.Identifier{}) ||
 		binding.AuthorizationGeneration == 0 || strings.TrimSpace(binding.ProjectRoot) == "" ||
 		binding.CapabilityFingerprint == (protectedlocal.Identifier{}) {
@@ -189,6 +200,7 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 		AccountGeneration:       generation,
 		RuntimeBootEpoch:        binding.RuntimeBootEpoch,
 		Process:                 binding.Process,
+		DirectPeer:              binding.DirectPeer,
 		ExpiresAt:               binding.ExpiresAt.UTC(),
 		TrustClass:              binding.TrustClass,
 		AuthorizationID:         binding.AuthorizationID,
@@ -244,7 +256,8 @@ func (s *Service) AuthorizeLocalAppOperation(ctx context.Context, operation Loca
 	}
 	if binding.TrustClass != LocalAppTrustClassDevelopment ||
 		binding.AuthorizationID != decision.AuthorizationID || binding.AuthorizationGeneration != decision.AuthorizationGeneration ||
-		binding.CapabilityFingerprint != decision.CapabilityFingerprint {
+		binding.CapabilityFingerprint != decision.CapabilityFingerprint ||
+		binding.DirectPeer != decision.DirectPeer {
 		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
 	}
 	authorityClass, admitted := localappop.AuthorityClassForOperation(localappop.Operation(operation))
