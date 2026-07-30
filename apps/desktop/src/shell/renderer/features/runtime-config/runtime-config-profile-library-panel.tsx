@@ -4,7 +4,7 @@ import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import { PackageIcon, RefreshIcon, SearchIcon, StarIcon } from './runtime-config-local-model-center-icons.js';
 import type { NimiAccountProfileLibraryProjection, LibraryProfile } from './runtime-config-profile-library.js';
 
-type ProfileSource = 'system' | 'custom' | 'imported';
+type ProfileSource = 'custom' | 'imported';
 
 type ProfileTableRow = {
   id: string;
@@ -48,20 +48,16 @@ function formatUpdatedAt(updatedAt: string | undefined, fallback: string): strin
 }
 
 function SourceDot({ source }: { source: ProfileSource }) {
-  const color = source === 'system'
-    ? 'bg-[var(--nimi-status-success)]'
-    : source === 'imported'
-      ? 'bg-[var(--nimi-status-info)]'
-      : 'bg-[var(--nimi-action-primary-bg)]';
+  const color = source === 'imported'
+    ? 'bg-[var(--nimi-status-info)]'
+    : 'bg-[var(--nimi-action-primary-bg)]';
   return <span className={`h-2 w-2 rounded-full ${color}`} aria-hidden />;
 }
 
 function TemplateGlyph({ source }: { source: ProfileSource }) {
-  const className = source === 'system'
-    ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
-    : source === 'imported'
-      ? 'bg-[color-mix(in_srgb,var(--nimi-status-info)_16%,transparent)] text-[var(--nimi-status-info)]'
-      : 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] text-[var(--nimi-action-primary-bg)]';
+  const className = source === 'imported'
+    ? 'bg-[color-mix(in_srgb,var(--nimi-status-info)_16%,transparent)] text-[var(--nimi-status-info)]'
+    : 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] text-[var(--nimi-action-primary-bg)]';
   return (
     <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${className}`}>
       <PackageIcon className="h-5 w-5" />
@@ -71,10 +67,8 @@ function TemplateGlyph({ source }: { source: ProfileSource }) {
 
 export function AccountProfileLibraryPanel(props: {
   projection: NimiAccountProfileLibraryProjection | null;
-  accountDefaultProfile: NimiAIProfile | null;
   loading: boolean;
   onRefresh: () => void;
-  onCreateFromDefault: () => void;
   onUseAsBase: (profile: NimiAIProfile) => void;
   onEdit: (entry: LibraryProfile) => void;
   onDelete: (entry: LibraryProfile) => void;
@@ -83,28 +77,11 @@ export function AccountProfileLibraryPanel(props: {
   const [activeTab, setActiveTab] = useState<'library' | 'history'>('library');
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | ProfileSource>('all');
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(['account-default']));
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
 
   const entries = props.projection?.profiles ?? [];
-  const defaultCapabilityCount = props.accountDefaultProfile
-    ? countConfiguredCapabilities(props.accountDefaultProfile)
-    : 0;
 
   const rows = useMemo<ProfileTableRow[]>(() => {
-    const accountDefault: ProfileTableRow[] = props.accountDefaultProfile
-      ? [{
-        id: 'account-default',
-        profile: props.accountDefaultProfile,
-        title: props.accountDefaultProfile.title || t('runtimeConfig.profiles.accountDefaultTitle', { defaultValue: 'Default Profile' }),
-        source: 'system',
-        sourceLabel: t('runtimeConfig.profiles.sourceSystem', { defaultValue: 'System' }),
-        updatedAt: t('runtimeConfig.profiles.systemDefaultUpdated', { defaultValue: 'Factory default' }),
-        capabilityCount: defaultCapabilityCount,
-        removable: false,
-        entry: null,
-      }]
-      : [];
-
     const libraryRows = entries.map((entry): ProfileTableRow => {
       const source: ProfileSource = entry.origin === 'imported' ? 'imported' : 'custom';
       return {
@@ -122,8 +99,8 @@ export function AccountProfileLibraryPanel(props: {
       };
     });
 
-    return [...accountDefault, ...libraryRows];
-  }, [defaultCapabilityCount, entries, props.accountDefaultProfile, t]);
+    return libraryRows;
+  }, [entries, t]);
 
   const query = normalized(searchQuery);
   const filteredRows = rows.filter((row) => {
@@ -199,7 +176,6 @@ export function AccountProfileLibraryPanel(props: {
               className="h-10 min-w-40 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 text-sm text-[var(--nimi-text-secondary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
             >
               <option value="all">{t('runtimeConfig.profiles.allSources', { defaultValue: 'All Sources' })}</option>
-              <option value="system">{t('runtimeConfig.profiles.sourceSystem', { defaultValue: 'System' })}</option>
               <option value="custom">{t('runtimeConfig.profiles.sourceCustom', { defaultValue: 'Custom' })}</option>
               <option value="imported">{t('runtimeConfig.profiles.sourceImported', { defaultValue: 'Imported' })}</option>
             </select>
@@ -266,11 +242,6 @@ export function AccountProfileLibraryPanel(props: {
                             <div className="min-w-0">
                               <div className="flex min-w-0 flex-wrap items-center gap-2">
                                 <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{row.title}</p>
-                                {row.source === 'system' ? (
-                                  <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--nimi-status-success)]">
-                                    {t('runtimeConfig.profiles.accountDefaultBadge', { defaultValue: 'Account default' })}
-                                  </span>
-                                ) : null}
                               </div>
                               <p className="mt-1 text-[11px] text-[var(--nimi-text-muted)]">
                                 {t('runtimeConfig.profiles.capabilityCount', {
@@ -292,8 +263,8 @@ export function AccountProfileLibraryPanel(props: {
                           <div className="flex flex-wrap items-center justify-end gap-2">
                             <button
                               type="button"
-                              data-testid={row.source === 'system' ? 'runtime-profiles-copy-default' : 'runtime-profiles-use-as-base'}
-                              onClick={() => (row.source === 'system' ? props.onCreateFromDefault() : props.onUseAsBase(row.profile))}
+                              data-testid="runtime-profiles-use-as-base"
+                              onClick={() => props.onUseAsBase(row.profile)}
                               className="inline-flex h-8 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_48%,transparent)] bg-[var(--nimi-surface-card)] px-3 text-xs font-semibold text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]"
                             >
                               {t('runtimeConfig.profiles.useAsBase', { defaultValue: 'Use' })}

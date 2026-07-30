@@ -1,7 +1,7 @@
 {
   "name": "@nimiplatform/desktop-product-control-darwin-arm64",
   "version": "0.1.0",
-  "description": "Private Desktop product-control Node-API binding for macOS arm64 Electron",
+  "description": "Private Desktop account profile library binding for macOS arm64 Electron",
   "license": "MIT",
   "private": true,
   "os": ["darwin"],

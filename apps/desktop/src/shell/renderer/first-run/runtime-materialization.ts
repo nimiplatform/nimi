@@ -6,6 +6,7 @@ import {
   repairNimiFirstRunMaterializationDependency,
   repairableNimiFirstRunMaterializationDependencies,
   resolveNimiFirstRunMaterializationProjection,
+  retryableInterruptedNimiFirstRunMaterializationJobs,
   retryNimiFirstRunMaterializationJob,
   startNimiFirstRunMaterialization,
   type NimiFirstRunMaterializationInput,
@@ -70,6 +71,37 @@ export function repairableConfirmedNimiFirstRunMaterializationDependencies(
 ) {
   if (!isConfirmedNimiFirstRunSetupState(productState)) return [];
   return repairableNimiFirstRunMaterializationDependencies(projection);
+}
+
+function materializationDependencyIdentity(
+  job: NimiRuntimeLocalEnvironmentDependencyJob,
+): string {
+  return [
+    job.environmentKey,
+    job.dependencyFamily,
+    job.dependencyId,
+    job.consumerScope,
+  ].join('|');
+}
+
+export async function retryAllInterruptedNimiFirstRunMaterializationJobs(
+  projection: NimiFirstRunMaterializationProjection,
+  retryJob: (
+    jobId: string,
+  ) => Promise<NimiFirstRunMaterializationProjection>,
+): Promise<NimiFirstRunMaterializationProjection> {
+  let current = projection;
+  const attemptedDependencies = new Set<string>();
+
+  while (true) {
+    const job = retryableInterruptedNimiFirstRunMaterializationJobs(current)
+      .find((candidate) =>
+        !attemptedDependencies.has(materializationDependencyIdentity(candidate)));
+    if (!job) return current;
+
+    attemptedDependencies.add(materializationDependencyIdentity(job));
+    current = await retryJob(job.jobId);
+  }
 }
 
 export async function resolveDesktopNimiFirstRunMaterializationProjection(

@@ -36,10 +36,7 @@ export interface DesktopRendererFirstRunPort {
     readonly reasonCode?: string;
   }): Promise<NimiFirstRunMaterializationProjection>;
   cancelMaterializationJob(input: DesktopFirstRunMaterializationInput & { readonly jobId: string }): Promise<NimiFirstRunMaterializationProjection>;
-  finalize(): Promise<{
-    readonly prepared: NimiProductControlRecordProjection;
-    readonly final: NimiProductControlRecordProjection;
-  }>;
+  finalize(): Promise<NimiProductControlRecordProjection>;
 }
 
 export function createUnavailableDesktopFirstRunPort(code: string): DesktopRendererFirstRunPort {

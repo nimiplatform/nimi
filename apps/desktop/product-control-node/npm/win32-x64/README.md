@@ -1,9 +1,10 @@
-# Desktop product-control native core
+# Desktop account profile native library
 
 Private Windows x64 Node-API projection used only by the Nimi Desktop Electron
-main process. It materializes and verifies Desktop-owned first-run evidence via
-the shared Product Control Rust core. It is not a renderer API and does not
-expose Runtime transport, credentials, or mutable authority.
+main process. It provides ordinary account profile library CRUD with strict
+schema validation and atomic file writes. It is not a renderer API and does not
+expose Runtime transport, credentials, readiness evidence, or mutable
+product-control authority.
 
 `nimi_desktop_product_control.node` is a generated, signed build output and is
 intentionally excluded from Git. On Windows x64, provision the local development

@@ -7,9 +7,6 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import { getProductionConversationCapabilityRouteRuntime } from '../chat/production-conversation-route-runtime-state.js';
-import {
-  initializeBuiltInChatScopesFromProductControl,
-} from '../../app-shell/providers/desktop-ai-config-service';
 import { desktopBridge } from '../../bridge';
 import {
   refreshConversationCapabilityProjections,
@@ -77,18 +74,17 @@ export function createDesktopRuntimeAccountBrowserBroker() {
   };
 }
 
-async function syncDesktopBuiltInChatAIConfigAfterLogin(): Promise<void> {
+async function refreshDesktopChatCapabilitiesAfterLogin(): Promise<void> {
   const projection = await desktopBridge.getProductControlRecord();
   if (projection.state !== 'ready_for_use') {
     logRendererEvent({
       level: 'info',
       area: 'desktop-auth',
-      message: 'phase:post-login-built-in-ai-config:skipped-product-not-ready',
+      message: 'phase:post-login-chat-capabilities:skipped-product-not-ready',
       details: { productState: projection.state },
     });
     return;
   }
-  await initializeBuiltInChatScopesFromProductControl();
   await refreshConversationCapabilityProjections(
     productionAppStore,
     ['text.generate'],
@@ -143,7 +139,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       const results = await Promise.allSettled([
         productionQueryClient.invalidateQueries({ queryKey: ['chats'] }),
         productionQueryClient.invalidateQueries({ queryKey: ['contacts'] }),
-        syncDesktopBuiltInChatAIConfigAfterLogin(),
+        refreshDesktopChatCapabilitiesAfterLogin(),
       ]);
       logDesktopPostLoginSyncFailures(results);
     },

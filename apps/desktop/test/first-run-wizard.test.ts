@@ -45,6 +45,7 @@ import type {
 import type { NimiFirstRunMaterializationProjection } from '../src/shell/renderer/first-run/runtime-materialization.js';
 import {
   productStateForNimiFirstRunMaterializationStatus,
+  retryAllInterruptedNimiFirstRunMaterializationJobs,
 } from '../src/shell/renderer/first-run/runtime-materialization.js';
 
 // --- Fixtures -------------------------------------------------------------
@@ -65,20 +66,20 @@ test('a local first-run action error survives a clean projection refresh', () =>
   assert.equal(resolveProductControlWorkflowError(null, null, null), null);
 });
 
-test('a ready record with failed Runtime owner verification re-enters setup reconciliation', () => {
+test('a ready record with failed current Runtime gates re-enters setup reconciliation', () => {
   const projection = projectionFor('local_ai_profile_selected_environment_not_ready', {
     state: 'ready_for_use',
     firstRun: {
       installLevel: 'minimal',
       aiProfileAlias: 'local-speech-ready',
       completed: true,
-      builtInAiConfigRefs: ['aiconfig:chat'],
+      completedAt: '2026-07-14T00:00:00.000Z',
     },
   });
   assert.equal(
     isReadyRecordSetupReconciliationRequired({
       ...projection,
-      error: 'Runtime baseline readiness owner verification failed',
+      error: 'Current Runtime activation gate failed',
     }, true),
     true,
   );
@@ -86,7 +87,7 @@ test('a ready record with failed Runtime owner verification re-enters setup reco
   assert.equal(
     isReadyRecordSetupReconciliationRequired({
       ...projection,
-      error: 'Runtime baseline readiness owner verification failed',
+      error: 'Current Runtime activation gate failed',
     }, false),
     false,
   );
@@ -176,13 +177,6 @@ function projectionFor(
         aiProfileAlias: null,
         completed: false,
         completedAt: null,
-        initializationPlanId: null,
-        baselineProfileRef: null,
-        baselineCommitId: null,
-        accountDefaultProfileRef: null,
-        builtInAiConfigRefs: [],
-        runtimeBaselineRef: null,
-        executionEvidenceRef: null,
         ...override.firstRun,
       },
       pointers: {},
@@ -277,7 +271,6 @@ test('step indicator highlights the phase matching the current state', () => {
       installLevel: 'minimal',
       aiProfileAlias: 'local-speech-ready',
       completed: false,
-      builtInAiConfigRefs: [],
     },
   });
   assert.match(setup, /data-testid="first-run-step-setup" data-active="true"/);
@@ -346,6 +339,72 @@ function materializationFixture(
     ...overrides,
   };
 }
+
+test('one explicit Setup retry drains retryable interrupted dependencies sequentially', async () => {
+  const dependency = (
+    dependencyId: string,
+    state: 'failed' | 'cancelled',
+    retryable = true,
+  ): NimiFirstRunMaterializationProjection['dependencies'][number] => ({
+    packId: 'local-speech',
+    dependency: {
+      dependencyFamily: 'python.package-set',
+      dependencyId,
+      consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
+      required: true,
+      state,
+      sourceKind: 'runtime-managed',
+      confirmationRequired: false,
+      environmentKey: `environment:${dependencyId}`,
+    },
+    job: {
+      jobId: `job:${dependencyId}`,
+      environmentKey: `environment:${dependencyId}`,
+      dependencyFamily: 'python.package-set',
+      dependencyId,
+      consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
+      state,
+      sourceKind: 'runtime-managed',
+      retryable,
+      createdAt: '2026-07-29T00:00:00.000Z',
+      updatedAt: '2026-07-29T00:01:00.000Z',
+      bytesReceived: 0,
+      bytesTotal: 0,
+      percent: 0,
+      speedBytesPerSec: 0,
+      etaSeconds: 0,
+    },
+  });
+  const projection = materializationFixture('failed', {
+    dependencies: [
+      dependency('python-runtime', 'failed'),
+      dependency('python-venv', 'cancelled'),
+      dependency('python-package-set', 'failed'),
+      dependency('not-retryable', 'failed', false),
+    ],
+  });
+  const retriedJobIds: string[] = [];
+  let retryInFlight = false;
+
+  const result = await retryAllInterruptedNimiFirstRunMaterializationJobs(
+    projection,
+    async (jobId) => {
+      assert.equal(retryInFlight, false, 'retries must not overlap');
+      retryInFlight = true;
+      retriedJobIds.push(jobId);
+      await Promise.resolve();
+      retryInFlight = false;
+      return projection;
+    },
+  );
+
+  assert.equal(result, projection);
+  assert.deepEqual(retriedJobIds, [
+    'job:python-runtime',
+    'job:python-venv',
+    'job:python-package-set',
+  ]);
+});
 
 test('the setup checklist projects the real materialization progression', () => {
   assert.deepEqual([...FIRST_RUN_SETUP_STEP_IDS], [
@@ -606,7 +665,6 @@ test('the Setup phase renders the checklist for the four progress states', () =>
         installLevel: 'minimal',
         aiProfileAlias: 'local-speech-ready',
         completed: false,
-        builtInAiConfigRefs: [],
       },
     });
     assert.match(markup, /data-testid="first-run-phase-setup"/);
@@ -621,7 +679,7 @@ test('ready-record reconciliation surfaces runtime read failures in setup instea
       installLevel: 'minimal',
       aiProfileAlias: 'local-speech-ready',
       completed: true,
-      builtInAiConfigRefs: ['aiconfig:chat'],
+      completedAt: '2026-07-14T00:00:00.000Z',
     },
   });
   const markup = renderProjection({

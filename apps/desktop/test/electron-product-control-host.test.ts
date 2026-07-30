@@ -1,26 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type {
-  NimiElectronDesktopAccountHost,
-} from '@nimiplatform/kit/shell/electron/main';
 import {
-  CollectDeviceProfileResponse,
-  MintFirstRunExecutionEvidenceResponse,
-  MintRuntimeBaselineReadinessResponse,
+  AdmitProductControlReadyForUseRequest,
   ProductControlProjectionJson,
-  RecordProductControlAccountDefaultProfileEvidenceRequest,
-  ResolveFirstRunExecutionEvidenceResponse,
-  ResolveRuntimeBaselineReadinessResponse,
   SelectProductControlDataRootRequest,
   SetProductControlFirstRunInstallLevelRequest,
 } from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/local_runtime';
-import type { DesktopProductControlEvidence } from '../src-electron/product-control-evidence';
+import type { DesktopAccountProfileHost } from '../src-electron/account-profile-host';
 import {
-  FIRST_RUN_LOCAL_AI_MINT_TIMEOUT_MS,
   createDesktopElectronProductControlHost,
   type DesktopProductControlTransport,
-  formatRuntimeReadinessFailure,
 } from '../src-electron/product-control-host';
 
 const GET_RECORD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
@@ -30,17 +20,11 @@ const SELECT_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/SelectProductCont
 const COMPLETE_DEVICE_SCAN = '/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan';
 const SET_INSTALL_LEVEL = '/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel';
 const RECONCILE_SETUP = '/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState';
-const RECORD_ACCOUNT = '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence';
-const COLLECT_DEVICE_PROFILE = '/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile';
-const RESOLVE_BASELINE = '/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness';
-const MINT_BASELINE = '/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness';
-const RESOLVE_EXECUTION = '/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence';
-const MINT_EXECUTION = '/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence';
-const RECORD_LOCAL_AI = '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence';
+const ADMIT_READY = '/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse';
 
 function projectionJson(state = 'data_root_selected'): string {
   return JSON.stringify({
-    path: 'C:\\Users\\tester\\.nimi\\nimi.json',
+    path: '/Users/tester/Library/Application Support/Nimi/product-control.json',
     exists: true,
     state,
     record: {
@@ -49,8 +33,8 @@ function projectionJson(state = 'data_root_selected'): string {
       productVersion: '1',
       state,
       dataRoot: {
-        path: 'D:\\NimiData',
-        status: 'ready',
+        path: '/Users/tester/NimiData',
+        status: state === 'ready_for_use' ? 'ready' : 'selected',
         selectedAt: '2026-07-14T00:00:00.000Z',
         verifiedAt: '2026-07-14T00:00:00.000Z',
         selectedAtUnixMs: 1,
@@ -59,8 +43,8 @@ function projectionJson(state = 'data_root_selected'): string {
       firstRun: {
         installLevel: 'minimal',
         aiProfileAlias: 'local-speech-ready',
-        completed: false,
-        builtInAiConfigRefs: [],
+        completed: state === 'ready_for_use',
+        completedAt: state === 'ready_for_use' ? '2026-07-14T00:00:00.000Z' : null,
       },
       pointers: {},
       repair: { required: false },
@@ -69,7 +53,7 @@ function projectionJson(state = 'data_root_selected'): string {
   });
 }
 
-const unusedAccountProfileLibrary = Object.freeze({
+const unusedProfiles: DesktopAccountProfileHost = Object.freeze({
   listAccountProfileLibrary: () => { throw new Error('not-called'); },
   createAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
   editAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
@@ -78,19 +62,19 @@ const unusedAccountProfileLibrary = Object.freeze({
   deleteAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
 });
 
-test('Electron Product Control host maps every renderer command to an exact Runtime method', async () => {
+test('Electron Product Control maps direct commands and sends empty ready admission', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
   const control: DesktopProductControlTransport = {
     machineProductUnary: async (input) => {
       calls.push({ methodId: input.methodId, requestBytes: input.requestBytes });
       const json = input.methodId === GET_SELECTED_DATA_ROOT
         ? JSON.stringify({
-            path: 'C:\\Users\\tester\\.nimi\\nimi.json',
+            path: '/Users/tester/Library/Application Support/Nimi/product-control.json',
             exists: true,
             state: 'ready_for_use',
             dataRoot: {
-              path: 'D:\\NimiData',
-              status: 'selected',
+              path: '/Users/tester/NimiData',
+              status: 'ready',
               selectedAt: '2026-07-14T00:00:00.000Z',
               verifiedAt: '2026-07-14T00:00:00.000Z',
               selectedAtUnixMs: 1,
@@ -98,7 +82,7 @@ test('Electron Product Control host maps every renderer command to an exact Runt
             },
             error: null,
           })
-        : projectionJson('ready_for_use');
+        : projectionJson(input.methodId === ADMIT_READY ? 'ready_for_use' : 'data_root_selected');
       return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json }));
     },
   };
@@ -108,39 +92,40 @@ test('Electron Product Control host maps every renderer command to an exact Runt
       invoke: async () => { throw new Error('not-called'); },
       close: () => {},
     },
-    evidence: {
-      ...unusedAccountProfileLibrary,
-      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
-      readAccountDefaultProfile: () => { throw new Error('not-called'); },
-      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
-      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
-      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-    },
+    profiles: unusedProfiles,
   });
 
   await host.commandHandlers.product_control_record_get({ command: 'product_control_record_get', payload: {} });
-  const selected = await host.commandHandlers.product_control_selected_data_root_get({
-    command: 'product_control_selected_data_root_get', payload: {},
-  }) as { dataRoot: { status: string } | null };
+  await host.commandHandlers.product_control_selected_data_root_get({
+    command: 'product_control_selected_data_root_get',
+    payload: {},
+  });
   await host.commandHandlers.product_control_record_ensure_created({
-    command: 'product_control_record_ensure_created', payload: {},
+    command: 'product_control_record_ensure_created',
+    payload: {},
   });
   await host.commandHandlers.product_control_record_select_data_root({
-    command: 'product_control_record_select_data_root', payload: { payload: { dataRoot: 'D:\\NimiData' } },
+    command: 'product_control_record_select_data_root',
+    payload: { payload: { dataRoot: '/Users/tester/NimiData' } },
   });
   await host.commandHandlers.product_control_record_complete_first_run_device_environment_scan({
-    command: 'product_control_record_complete_first_run_device_environment_scan', payload: {},
+    command: 'product_control_record_complete_first_run_device_environment_scan',
+    payload: {},
   });
   await host.commandHandlers.product_control_record_set_first_run_install_level({
     command: 'product_control_record_set_first_run_install_level',
     payload: { payload: { installLevel: 'minimal', aiProfileAlias: 'local-speech-ready' } },
   });
   await host.commandHandlers.product_control_record_reconcile_first_run_setup_state({
-    command: 'product_control_record_reconcile_first_run_setup_state', payload: {},
+    command: 'product_control_record_reconcile_first_run_setup_state',
+    payload: {},
   });
+  const admitted = await host.commandHandlers.product_control_record_admit_ready_for_use({
+    command: 'product_control_record_admit_ready_for_use',
+    payload: {},
+  }) as { state: string };
 
-  assert.equal(selected.dataRoot?.status, 'selected');
+  assert.equal(admitted.state, 'ready_for_use');
   assert.deepEqual(calls.map((call) => call.methodId), [
     GET_RECORD,
     GET_SELECTED_DATA_ROOT,
@@ -149,603 +134,47 @@ test('Electron Product Control host maps every renderer command to an exact Runt
     COMPLETE_DEVICE_SCAN,
     SET_INSTALL_LEVEL,
     RECONCILE_SETUP,
+    ADMIT_READY,
   ]);
   assert.equal(
     SelectProductControlDataRootRequest.fromBinary(calls[3]!.requestBytes).dataRoot,
-    'D:\\NimiData',
+    '/Users/tester/NimiData',
   );
   assert.deepEqual(
     SetProductControlFirstRunInstallLevelRequest.fromBinary(calls[5]!.requestBytes),
     { installLevel: 'minimal', aiProfileAlias: 'local-speech-ready' },
   );
+  assert.deepEqual(
+    AdmitProductControlReadyForUseRequest.fromBinary(calls[7]!.requestBytes),
+    {},
+  );
 });
 
-test('Electron selected data-root resolver uses only dataRoot.path and accepts selected or ready', async () => {
-  function hostFor(
-    status: 'selected' | 'ready',
-    dataRoot: unknown,
-    state = status === 'ready' ? 'ready_for_use' : 'data_root_selected',
-  ) {
-    return createDesktopElectronProductControlHost({
-      control: {
-        machineProductUnary: async (input) => {
-          assert.equal(input.methodId, GET_SELECTED_DATA_ROOT);
-          const json = JSON.stringify({
-            path: 'C:\\decoy-that-is-the-control-record\\nimi.json',
+test('selected data-root resolver accepts only canonical selected/ready projections', async () => {
+  const host = createDesktopElectronProductControlHost({
+    control: {
+      machineProductUnary: async () => ProductControlProjectionJson.toBinary(
+        ProductControlProjectionJson.create({
+          json: JSON.stringify({
+            path: '/Users/tester/Library/Application Support/Nimi/product-control.json',
             exists: true,
-            state,
-            dataRoot,
+            state: 'ready_for_use',
+            dataRoot: {
+              path: '/Users/tester/NimiData',
+              status: 'ready',
+              selectedAt: '2026-07-14T00:00:00.000Z',
+              verifiedAt: '2026-07-14T00:00:00.000Z',
+              selectedAtUnixMs: 1,
+              verifiedAtUnixMs: 1,
+            },
             error: null,
-          });
-          return ProductControlProjectionJson.toBinary(
-            ProductControlProjectionJson.create({ json }),
-          );
-        },
-      },
-    });
-  }
-
-  for (const status of ['selected', 'ready'] as const) {
-    const host = hostFor(status, {
-      path: 'D:\\NimiData',
-      status,
-      selectedAt: '2026-07-14T00:00:00.000Z',
-      verifiedAt: '2026-07-14T00:00:00.000Z',
-      selectedAtUnixMs: 1,
-      verifiedAtUnixMs: 1,
-    });
-    assert.equal(await host.resolveSelectedDataRoot(), 'D:\\NimiData');
-    if (status === 'ready') {
-      assert.equal(await host.resolveReadyDataRoot(), 'D:\\NimiData');
-    } else {
-      await assert.rejects(
-        host.resolveReadyDataRoot(),
-        /desktop-product-control-data-root-not-ready/u,
-      );
-    }
-  }
-
-  await assert.rejects(
-    hostFor('ready', null).resolveSelectedDataRoot(),
-    /desktop-product-control-selected-data-root-unavailable/u,
-  );
-
-  for (const [state, status] of [
-    ['config_missing', 'selected'],
-    ['data_root_missing', 'selected'],
-    ['repair_required', 'selected'],
-    ['blocked', 'ready'],
-    ['ready_for_use', 'selected'],
-  ] as const) {
-    await assert.rejects(
-      hostFor(status, {
-        path: 'D:\\MustNotLeak',
-        status,
-        selectedAt: '2026-07-14T00:00:00.000Z',
-        verifiedAt: '2026-07-14T00:00:00.000Z',
-        selectedAtUnixMs: 1,
-        verifiedAtUnixMs: 1,
-      }, state).resolveSelectedDataRoot(),
-      /desktop-product-control-selected-data-root-unavailable/u,
-    );
-  }
-});
-
-test('Electron Account Profile Library host binds all operations to ready Product Control and authenticated account', async () => {
-  const transportCalls: string[] = [];
-  let accountCalls = 0;
-  const libraryCalls: Array<{ operation: string; input: unknown }> = [];
-  const control: DesktopProductControlTransport = {
-    machineProductUnary: async (input) => {
-      transportCalls.push(input.methodId);
-      assert.equal(input.methodId, GET_SELECTED_DATA_ROOT);
-      const json = JSON.stringify({
-        path: 'C:\\Users\\tester\\.nimi\\nimi.json',
-        exists: true,
-        state: 'ready_for_use',
-        dataRoot: {
-          path: 'D:\\NimiData',
-          status: 'ready',
-          selectedAt: '2026-07-14T00:00:00.000Z',
-          verifiedAt: '2026-07-14T00:00:00.000Z',
-          selectedAtUnixMs: 1,
-          verifiedAtUnixMs: 1,
-        },
-        error: null,
-      });
-      return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json }));
-    },
-  };
-  const account: NimiElectronDesktopAccountHost = {
-    invoke: async (command, payload) => {
-      accountCalls += 1;
-      assert.equal(command, 'runtime_account_session_status');
-      assert.deepEqual(payload, {});
-      return {
-        state: 'authenticated',
-        accountProjection: {
-          accountId: 'account-a',
-          displayName: 'Account A',
-          realmEnvironmentId: 'production',
-        },
-      };
-    },
-    close: () => {},
-  };
-  const capture = (operation: string, input: unknown) => {
-    libraryCalls.push({ operation, input });
-    return { operation };
-  };
-  const host = createDesktopElectronProductControlHost({
-    control,
-    account,
-    evidence: {
-      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
-      readAccountDefaultProfile: () => { throw new Error('not-called'); },
-      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
-      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
-      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-      listAccountProfileLibrary: (input) => capture('list', input),
-      createAccountProfileLibraryProfile: (input) => capture('create', input),
-      editAccountProfileLibraryProfile: (input) => capture('edit', input),
-      importAccountProfileLibraryProfiles: (input) => capture('import', input),
-      exportAccountProfileLibraryProfiles: (input) => capture('export', input),
-      deleteAccountProfileLibraryProfile: (input) => capture('delete', input),
-    },
-  });
-  const profile = { profileId: 'profile-a', title: 'Profile A' };
-
-  await host.commandHandlers.account_profile_library_list({
-    command: 'account_profile_library_list',
-    payload: {},
-  });
-  await host.commandHandlers.account_profile_library_create({
-    command: 'account_profile_library_create',
-    payload: { payload: { profile } },
-  });
-  await host.commandHandlers.account_profile_library_edit({
-    command: 'account_profile_library_edit',
-    payload: { payload: { profile } },
-  });
-  await host.commandHandlers.account_profile_library_import({
-    command: 'account_profile_library_import',
-    payload: { payload: { profiles: [profile] } },
-  });
-  await host.commandHandlers.account_profile_library_export({
-    command: 'account_profile_library_export',
-    payload: { payload: { profileIds: ['profile-a'] } },
-  });
-  await host.commandHandlers.account_profile_library_delete({
-    command: 'account_profile_library_delete',
-    payload: { payload: { profileId: 'profile-a' } },
-  });
-
-  assert.deepEqual(transportCalls, Array(6).fill(GET_SELECTED_DATA_ROOT));
-  assert.equal(accountCalls, 6);
-  assert.deepEqual(libraryCalls, [
-    { operation: 'list', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a' } },
-    { operation: 'create', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profile } },
-    { operation: 'edit', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profile } },
-    { operation: 'import', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profiles: [profile] } },
-    { operation: 'export', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profileIds: ['profile-a'] } },
-    { operation: 'delete', input: { dataRoot: 'D:\\NimiData', accountId: 'account-a', profileId: 'profile-a' } },
-  ]);
-});
-
-test('Electron Account Profile Library host rejects caller-owned bindings and non-ready data roots', async () => {
-  let transportCalls = 0;
-  let accountCalls = 0;
-  let libraryCalls = 0;
-  const host = createDesktopElectronProductControlHost({
-    control: {
-      machineProductUnary: async () => {
-        transportCalls += 1;
-        const json = JSON.stringify({
-          path: 'C:\\Users\\tester\\.nimi\\nimi.json',
-          exists: true,
-          state: 'data_root_selected',
-          dataRoot: {
-            path: 'D:\\NimiData',
-            status: 'selected',
-            selectedAt: '2026-07-14T00:00:00.000Z',
-            verifiedAt: '2026-07-14T00:00:00.000Z',
-            selectedAtUnixMs: 1,
-            verifiedAtUnixMs: 1,
-          },
-          error: null,
-        });
-        return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json }));
-      },
-    },
-    account: {
-      invoke: async () => {
-        accountCalls += 1;
-        return {
-          state: 'authenticated',
-          accountProjection: {
-            accountId: 'account-a',
-            displayName: 'Account A',
-            realmEnvironmentId: 'production',
-          },
-        };
-      },
-      close: () => {},
-    },
-    evidence: {
-      ...unusedAccountProfileLibrary,
-      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
-      readAccountDefaultProfile: () => { throw new Error('not-called'); },
-      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
-      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
-      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-      createAccountProfileLibraryProfile: () => { libraryCalls += 1; },
-      listAccountProfileLibrary: () => { libraryCalls += 1; },
-    },
-  });
-
-  await assert.rejects(
-    host.commandHandlers.account_profile_library_create({
-      command: 'account_profile_library_create',
-      payload: {
-        payload: {
-          profile: { profileId: 'profile-a' },
-          accountId: 'renderer-account',
-        },
-      },
-    }),
-    /desktop-product-control-payload-invalid/u,
-  );
-  await assert.rejects(
-    host.commandHandlers.account_profile_library_import({
-      command: 'account_profile_library_import',
-      payload: { payload: { profiles: [] } },
-    }),
-    /desktop-product-control-payload-invalid/u,
-  );
-  assert.equal(transportCalls, 0);
-  assert.equal(accountCalls, 0);
-
-  await assert.rejects(
-    host.commandHandlers.account_profile_library_list({
-      command: 'account_profile_library_list',
-      payload: {},
-    }),
-    /desktop-product-control-data-root-not-ready/u,
-  );
-  assert.equal(transportCalls, 1);
-  assert.equal(accountCalls, 1);
-  assert.equal(libraryCalls, 0);
-});
-
-test('Electron evidence commands reject repair-required Product Control before side effects', async () => {
-  const methodCalls: string[] = [];
-  let accountCalls = 0;
-  let evidenceCalls = 0;
-  const repairProjection = JSON.stringify({
-    path: 'C:\\Users\\tester\\.nimi\\nimi.json',
-    exists: true,
-    state: 'repair_required',
-    record: {
-      schemaVersion: 1,
-      installId: 'install-repair',
-      productVersion: '1',
-      state: 'repair_required',
-      dataRoot: {
-        path: 'D:\\MustNotUse',
-        status: 'repair_required',
-        selectedAt: '2026-07-14T00:00:00.000Z',
-        verifiedAt: '2026-07-14T00:00:00.000Z',
-        selectedAtUnixMs: 1,
-        verifiedAtUnixMs: 1,
-      },
-      firstRun: {
-        installLevel: 'minimal',
-        aiProfileAlias: 'local-speech-ready',
-        completed: false,
-        builtInAiConfigRefs: [],
-      },
-      pointers: {},
-      repair: {
-        required: true,
-        reason: 'derived state requires repair',
-      },
-    },
-    error: 'Product Control requires repair',
-  });
-  const host = createDesktopElectronProductControlHost({
-    control: {
-      machineProductUnary: async (input) => {
-        methodCalls.push(input.methodId);
-        return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({
-          json: repairProjection,
-        }));
-      },
-    },
-    account: {
-      invoke: async () => {
-        accountCalls += 1;
-        return {
-          state: 'authenticated',
-          accountProjection: {
-            accountId: 'account-repair',
-            displayName: 'Account Repair',
-            realmEnvironmentId: 'production',
-          },
-        };
-      },
-      close: () => {},
-    },
-    evidence: {
-      ...unusedAccountProfileLibrary,
-      ensureAccountDefaultProfile: () => {
-        evidenceCalls += 1;
-        return { accountDefaultProfileRef: 'must-not-record' };
-      },
-      readAccountDefaultProfile: () => { throw new Error('not-called'); },
-      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
-      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
-      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-    },
-  });
-
-  await assert.rejects(
-    host.commandHandlers.product_control_record_ensure_account_default_profile({
-      command: 'product_control_record_ensure_account_default_profile',
-      payload: {},
-    }),
-    /desktop-product-control-projection-unusable/u,
-  );
-  assert.deepEqual(methodCalls, [GET_RECORD]);
-  assert.equal(accountCalls, 0);
-  assert.equal(evidenceCalls, 0);
-});
-
-test('Electron Product Control host rejects extra renderer fields before protected transport', async () => {
-  let calls = 0;
-  const host = createDesktopElectronProductControlHost({
-    control: {
-      machineProductUnary: async () => { calls += 1; throw new Error('not-called'); },
-    },
-    account: {
-      invoke: async () => { throw new Error('not-called'); },
-      close: () => {},
-    },
-    evidence: {
-      ...unusedAccountProfileLibrary,
-      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
-      readAccountDefaultProfile: () => { throw new Error('not-called'); },
-      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
-      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
-      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-    },
-  });
-
-  await assert.rejects(
-    host.commandHandlers.product_control_record_select_data_root({
-      command: 'product_control_record_select_data_root',
-      payload: { payload: { dataRoot: 'D:\\NimiData', methodId: GET_RECORD } },
-    }),
-    /desktop-product-control-payload-invalid/u,
-  );
-  await assert.rejects(
-    host.commandHandlers.product_control_record_get({
-      command: 'product_control_record_get',
-      payload: { methodId: GET_RECORD },
-    }),
-    /desktop-product-control-payload-invalid/u,
-  );
-  assert.equal(calls, 0);
-});
-
-test('Electron first-run host records Desktop evidence through the exact protected Runtime method', async () => {
-  const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
-  const control: DesktopProductControlTransport = {
-    machineProductUnary: async (input) => {
-      calls.push({ methodId: input.methodId, requestBytes: input.requestBytes });
-      assert.ok(input.methodId === GET_RECORD || input.methodId === RECORD_ACCOUNT);
-      return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({
-        json: projectionJson(input.methodId === RECORD_ACCOUNT ? 'ai_environment_unconfigured' : undefined),
-      }));
-    },
-  };
-  const account: NimiElectronDesktopAccountHost = {
-    invoke: async () => ({
-      state: 'authenticated',
-      accountProjection: {
-        accountId: 'account-a',
-        displayName: 'Account A',
-        realmEnvironmentId: 'production',
-      },
-    }),
-    close: () => {},
-  };
-  const evidenceCalls: unknown[] = [];
-  const evidence: DesktopProductControlEvidence = {
-    ...unusedAccountProfileLibrary,
-    ensureAccountDefaultProfile: (input) => {
-      evidenceCalls.push(input);
-      return { accountDefaultProfileRef: 'account-default-profile:v1:bound' };
-    },
-    readAccountDefaultProfile: () => { throw new Error('not-called'); },
-    verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
-    ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-    readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
-    verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-  };
-  const host = createDesktopElectronProductControlHost({ control, account, evidence });
-  const result = await host.commandHandlers.product_control_record_ensure_account_default_profile({
-    command: 'product_control_record_ensure_account_default_profile',
-    payload: {},
-  }) as { state: string };
-
-  assert.equal(result.state, 'ai_environment_unconfigured');
-  assert.deepEqual(evidenceCalls, [{
-    dataRoot: 'D:\\NimiData',
-    accountId: 'account-a',
-    aiProfileAlias: 'local-speech-ready',
-    installLevel: 'minimal',
-  }]);
-  assert.deepEqual(calls.map((call) => call.methodId), [GET_RECORD, RECORD_ACCOUNT]);
-  const recorded = RecordProductControlAccountDefaultProfileEvidenceRequest.fromBinary(calls[1]!.requestBytes);
-  assert.deepEqual(JSON.parse(recorded.accountDefaultProfileEvidenceJson), {
-    accountDefaultProfileRef: 'account-default-profile:v1:bound',
-  });
-});
-
-test('Electron first-run host remints Runtime-owned evidence after unknown refs', async () => {
-  const calls: string[] = [];
-  const staleProjection = JSON.parse(projectionJson('local_ai_profile_selected_assets_missing'));
-  staleProjection.record.firstRun.accountDefaultProfileRef = 'account-default-profile:v1:bound';
-  staleProjection.record.firstRun.runtimeBaselineRef = 'runtime-baseline:stale';
-  staleProjection.record.firstRun.executionEvidenceRef = 'execution-evidence:stale';
-  const projectionBytes = ProductControlProjectionJson.toBinary(
-    ProductControlProjectionJson.create({ json: JSON.stringify(staleProjection) }),
-  );
-  const control: DesktopProductControlTransport = {
-    machineProductUnary: async (input) => {
-      calls.push(input.methodId);
-      if ([GET_RECORD, RECORD_ACCOUNT, RECORD_LOCAL_AI].includes(input.methodId)) {
-        return projectionBytes;
-      }
-      if (input.methodId === COLLECT_DEVICE_PROFILE) {
-        return CollectDeviceProfileResponse.toBinary(CollectDeviceProfileResponse.create({
-          profile: { os: 'windows', arch: 'x64' },
-        }));
-      }
-      if (input.methodId === RESOLVE_BASELINE) {
-        return ResolveRuntimeBaselineReadinessResponse.toBinary(
-          ResolveRuntimeBaselineReadinessResponse.create({
-            state: 'blocked',
-            reasonCode: 'RUNTIME_BASELINE_READINESS_REF_UNKNOWN',
           }),
-        );
-      }
-      if (input.methodId === MINT_BASELINE) {
-        return MintRuntimeBaselineReadinessResponse.toBinary(
-          MintRuntimeBaselineReadinessResponse.create({
-            state: 'ready',
-            ref: { runtimeBaselineRef: 'runtime-baseline:fresh' },
-          }),
-        );
-      }
-      if (input.methodId === RESOLVE_EXECUTION) {
-        return ResolveFirstRunExecutionEvidenceResponse.toBinary(
-          ResolveFirstRunExecutionEvidenceResponse.create({
-            state: 'local_ai_blocked',
-            reasonCode: 'FIRST_RUN_EXECUTION_EVIDENCE_REF_UNKNOWN',
-          }),
-        );
-      }
-      if (input.methodId === MINT_EXECUTION) {
-        return MintFirstRunExecutionEvidenceResponse.toBinary(
-          MintFirstRunExecutionEvidenceResponse.create({
-            state: 'local_ai_ready',
-            ref: { executionEvidenceRef: 'execution-evidence:fresh' },
-          }),
-        );
-      }
-      throw new Error(`unexpected method: ${input.methodId}`);
+        }),
+      ),
     },
-  };
-  const host = createDesktopElectronProductControlHost({
-    control,
-    account: {
-      invoke: async () => ({
-        state: 'authenticated',
-        accountProjection: {
-          accountId: 'account-a',
-          displayName: 'Account A',
-          realmEnvironmentId: 'production',
-        },
-      }),
-      close: () => {},
-    },
-    evidence: {
-      ...unusedAccountProfileLibrary,
-      ensureAccountDefaultProfile: () => ({
-        accountDefaultProfileRef: 'account-default-profile:v1:bound',
-      }),
-      readAccountDefaultProfile: () => { throw new Error('not-called'); },
-      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
-      ensureBuiltInAiConfigEvidenceSet: () => ({
-        builtInAiConfigRefs: ['aiconfig:chat'],
-      }),
-      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
-      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-    },
+    profiles: unusedProfiles,
   });
 
-  await host.commandHandlers.product_control_record_prepare_first_run_local_ai_ready({
-    command: 'product_control_record_prepare_first_run_local_ai_ready',
-    payload: {},
-  });
-
-  assert.deepEqual(calls, [
-    GET_RECORD,
-    RECORD_ACCOUNT,
-    GET_RECORD,
-    COLLECT_DEVICE_PROFILE,
-    RESOLVE_BASELINE,
-    MINT_BASELINE,
-    RESOLVE_EXECUTION,
-    MINT_EXECUTION,
-    RECORD_LOCAL_AI,
-  ]);
-});
-
-test('Electron first-run host rejects renderer-supplied evidence fields', async () => {
-  const host = createDesktopElectronProductControlHost({
-    control: {
-      machineProductUnary: async () => { throw new Error('not-called'); },
-    },
-    account: {
-      invoke: async () => { throw new Error('not-called'); },
-      close: () => {},
-    },
-    evidence: {
-      ...unusedAccountProfileLibrary,
-      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
-      readAccountDefaultProfile: () => { throw new Error('not-called'); },
-      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
-      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
-      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
-    },
-  });
-  await assert.rejects(
-    host.commandHandlers.product_control_record_admit_ready_for_use({
-      command: 'product_control_record_admit_ready_for_use',
-      payload: { accountDefaultProfileRef: 'caller-controlled' },
-    }),
-    /desktop-product-control-payload-invalid/u,
-  );
-});
-
-test('Electron first-run host preserves bounded Runtime readiness detail', () => {
-  assert.equal(FIRST_RUN_LOCAL_AI_MINT_TIMEOUT_MS, 600_000);
-  assert.equal(
-    formatRuntimeReadinessFailure('first-run-execution-not-ready', {
-      reasonCode: 'FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED',
-      detail: 'local baseline execution failed for capability local_text_chat_execution: engine unavailable',
-    }),
-    'first-run-execution-not-ready:FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED: '
-      + 'local baseline execution failed for capability local_text_chat_execution: engine unavailable',
-  );
-  assert.equal(
-    formatRuntimeReadinessFailure('runtime-baseline-not-ready', {
-      reasonCode: 'RUNTIME_BASELINE_READINESS_BLOCKED',
-    }),
-    'runtime-baseline-not-ready:RUNTIME_BASELINE_READINESS_BLOCKED',
-  );
-  assert.equal(
-    formatRuntimeReadinessFailure('first-run-execution-not-ready', {
-      reasonCode: 'FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED',
-      detail: ` ${'x'.repeat(5_000)} `,
-    }).length,
-    'first-run-execution-not-ready:FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED: '.length + 4_096,
-  );
+  assert.equal(await host.resolveSelectedDataRoot(), '/Users/tester/NimiData');
+  assert.equal(await host.resolveReadyDataRoot(), '/Users/tester/NimiData');
 });

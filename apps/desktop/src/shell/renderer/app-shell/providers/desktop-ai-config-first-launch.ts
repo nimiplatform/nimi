@@ -8,7 +8,6 @@ import {
   type NimiAppFirstLaunchAIConfigResult,
   type NimiAppManifestRequirementGap,
 } from '@nimiplatform/sdk/ai';
-import { getAccountDefaultProfileForScopeInit } from '../../bridge/runtime-bridge/product-control.js';
 
 export interface EnsureAppFirstLaunchAIConfigInput {
   /** Admitted Nimi App `app_id` (dot-separated namespace identity). */
@@ -38,7 +37,7 @@ export type DesktopAppFirstLaunchAIConfigHost = {
 };
 
 async function resolveAccountDefaultProfile(): Promise<NimiAIProfile> {
-  return getAccountDefaultProfileForScopeInit();
+  throw new Error('desktop-account-default-profile-unavailable');
 }
 
 export async function ensureDesktopAppFirstLaunchAIConfig(

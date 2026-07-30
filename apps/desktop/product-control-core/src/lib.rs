@@ -1,4 +1,4 @@
-//! Shared Desktop-owned first-run product-control core.
+//! Shared Desktop-owned account profile library core.
 //!
 //! This crate is the single implementation consumed by the Electron Node-API
 //! projection. It contains no shell framework dependency.
@@ -37,15 +37,7 @@ pub mod desktop_paths {
     }
 }
 
-pub mod runtime_bridge {
-    pub mod generated {
-        include!(concat!(env!("OUT_DIR"), "/nimi.runtime.v1.rs"));
-    }
-}
-
 pub mod account_profile_library;
-pub mod desktop_ai_config_library;
-pub mod platform_ai_profile;
 
 #[cfg(test)]
 pub mod test_support {

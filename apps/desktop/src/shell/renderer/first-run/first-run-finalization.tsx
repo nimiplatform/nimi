@@ -6,14 +6,10 @@ import type { DesktopRendererFirstRunPort } from '../renderer/first-run-port.js'
 /**
  * Desktop first-run finalization surface for the `local_ai_ready` state.
  *
- * At `local_ai_ready` the renderer asks the backend to refresh owner evidence,
- * then requests backend admission of the `ready_for_use` transition via
- * `desktopBridge.admitProductReadyForUse()` and displays finalization progress
- * only. Per cold-start-authority-contract P-COLD-016 the renderer never writes
- * `ready_for_use`, mints refs, or declares refs valid; the backend admission op
- * is the sole authority. The returned projection routes the workflow:
- * `ready_for_use` on success, the earliest-failed `state` (with a non-null
- * `error`) on failure.
+ * At `local_ai_ready` the renderer requests Runtime admission of the
+ * `ready_for_use` transition and displays finalization progress only. Per
+ * P-COLD-016 the renderer never writes `ready_for_use` or declares Runtime
+ * gates satisfied; the Runtime admission operation is the sole authority.
  */
 
 type FinalizationStatus = 'requesting' | 'failed';
@@ -35,14 +31,7 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
     setStatus('requesting');
     setError(null);
     try {
-      const { prepared, final } = await props.firstRun.finalize();
-      notifyProjectionChange(prepared);
-      if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
-        setStatus('failed');
-        setError(prepared.error);
-        return;
-      }
-      const next = final;
+      const next = await props.firstRun.finalize();
       notifyProjectionChange(next);
       if (next.state !== 'ready_for_use') {
         setStatus('failed');
@@ -79,8 +68,7 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
       </p>
       <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">
         {t('FirstRun.states.local_ai_ready.body', {
-          defaultValue:
-            'Account Default Profile, built-in AIConfigs, and baseline execution evidence still need finalization.',
+          defaultValue: 'Runtime is checking the current local environment before Nimi is ready.',
         })}
       </p>
       {status === 'failed' ? (

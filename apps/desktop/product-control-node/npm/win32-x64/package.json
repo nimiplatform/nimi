@@ -1,7 +1,7 @@
 {
   "name": "@nimiplatform/desktop-product-control-win32-x64",
   "version": "0.1.0",
-  "description": "Private Desktop first-run evidence Node-API binding for Windows x64 Electron",
+  "description": "Private Desktop account profile library binding for Windows x64 Electron",
   "license": "MIT",
   "private": true,
   "os": ["win32"],

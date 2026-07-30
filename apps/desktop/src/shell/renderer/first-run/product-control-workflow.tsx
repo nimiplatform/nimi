@@ -11,6 +11,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { NimiProductControlRecordProjection, NimiProductControlState } from '../bridge';
 import {
+  retryAllInterruptedNimiFirstRunMaterializationJobs,
   type NimiFirstRunMaterializationDependencyProjection,
   type NimiFirstRunMaterializationProjection,
 } from './runtime-materialization.js';
@@ -549,18 +550,21 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
 
   const retrySetupStep = useCallback(
     async (item: NimiFirstRunMaterializationDependencyProjection): Promise<void> => {
-      if (!selectedPlan || !selectedDataRoot || !item.job) return;
-      setPendingAction(`retry-${item.job.jobId}`);
+      if (!selectedPlan || !selectedDataRoot || !item.job || !materialization) return;
+      setPendingAction('retry-materialization');
       setError(null);
       try {
         await projectMaterialization(
-          await firstRun.retryMaterializationJob({
-            profile: selectedPlan,
-            runtimeDataRoot: selectedDataRoot,
-            installLevel: selectedInstallLevel,
-            jobId: item.job.jobId,
-            confirmed: true,
-          }),
+          await retryAllInterruptedNimiFirstRunMaterializationJobs(
+            materialization,
+            async (jobId) => firstRun.retryMaterializationJob({
+              profile: selectedPlan,
+              runtimeDataRoot: selectedDataRoot,
+              installLevel: selectedInstallLevel,
+              jobId,
+              confirmed: true,
+            }),
+          ),
         );
       } catch (nextError) {
         setError(
@@ -574,7 +578,14 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         setPendingAction(null);
       }
     },
-    [selectedPlan, selectedDataRoot, selectedInstallLevel, projectMaterialization, t],
+    [
+      materialization,
+      selectedPlan,
+      selectedDataRoot,
+      selectedInstallLevel,
+      projectMaterialization,
+      t,
+    ],
   );
 
   const repairSetupStep = useCallback(

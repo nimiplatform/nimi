@@ -43,7 +43,7 @@ export function useFirstRunMaterializationObserver(
   }, [input.selectedPlan?.alias, input.selectedDataRoot, input.selectedInstallLevel]);
 
   // Runtime materialization observer. Active while setup/finalization can still
-  // need Runtime-evidence progress. Even at `local_ai_ready`, a platform-dynamic
+  // need current Runtime progress. Even at `local_ai_ready`, a platform-dynamic
   // dependency projection may discover a missing Runtime prerequisite and move
   // the product record back to Setup before finalization retries.
   useEffect(() => {

@@ -11,13 +11,7 @@ import type { DesktopRendererFirstRunPort } from './first-run-port.js';
 
 export function createDesktopProductionFirstRunPort(): DesktopRendererFirstRunPort {
   let finalizationInFlight: ReturnType<DesktopRendererFirstRunPort['finalize']> | null = null;
-  const finalize = async () => {
-    const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady();
-    if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
-      return { prepared, final: prepared };
-    }
-    return { prepared, final: await desktopBridge.admitProductReadyForUse() };
-  };
+  const finalize = () => desktopBridge.admitProductReadyForUse();
   return Object.freeze({
     available: desktopBridge.hasElectronInvoke,
     ensureRecordCreated: desktopBridge.ensureProductControlRecordCreated,

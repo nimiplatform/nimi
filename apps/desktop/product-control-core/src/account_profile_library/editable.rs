@@ -1,22 +1,12 @@
 //! Account-scoped editable AI profile library file family.
 //!
-//! Spec authority:
-//!   - `P-AIPS-013` Account Default Profile Local Library Evidence — fixes the
-//!     account profile library under
-//!     `<dataRoot>/accounts/<account-id>/profiles/`
-//!     and forbids renderer profile state / SDK cache / app-local cache as
-//!     profile-library truth.
-//!   - Product manual "User-Local Config And Data Roots" — the account profile
-//!     library is `<dataRoot>/accounts/<account-id>/profiles/{ index.json,
-//!     default.json, user/, imported/ }`.
-//!
-//! This module owns the EDITABLE library family: the `index.json` library
-//! index, the `user/` directory of user-created profiles, and the `imported/`
-//! directory of imported profiles. The non-removable Account Default Profile
-//! (`default.json`, `account_profile_library.rs`, T2.1a/c) keeps its own record
-//! and lives where it is — the library index references it as a fixed,
-//! non-removable, non-editable-through-this-module entry; this module never
-//! reads, writes, or mutates `default.json`.
+//! The ordinary product-data library is
+//! `<dataRoot>/accounts/<account-id>/profiles/{ index.json, default.json,
+//! user/, imported/ }`. This module owns `index.json`, the `user/` directory of
+//! user-created profiles, and the `imported/` directory of imported profiles.
+//! When an independently owned `default.json` exists, the index exposes only a
+//! fixed, non-removable row for it; this module never creates, reads its full
+//! payload, writes, or mutates that file.
 //!
 //! Hard boundaries:
 //!   - the library file family on disk is the single source of truth; the

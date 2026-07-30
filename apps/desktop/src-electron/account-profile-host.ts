@@ -9,24 +9,6 @@ type NativeOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown };
 
-export type DesktopProductControlEvidenceInput = {
-  readonly dataRoot: string;
-  readonly accountId: string;
-  readonly aiProfileAlias?: string;
-  readonly installLevel?: string;
-  readonly accountDefaultProfileRef?: string;
-};
-
-export type DesktopBuiltInAiConfigInput = {
-  readonly dataRoot: string;
-  readonly accountId: string;
-  readonly aiProfileAlias: string;
-  readonly installLevel: string;
-  readonly executionEvidence: Readonly<Record<string, unknown>>;
-  readonly surfaceId?: string;
-  readonly builtInAiConfigRefs?: readonly string[];
-};
-
 export type DesktopAccountProfileLibraryInput = {
   readonly dataRoot: string;
   readonly accountId: string;
@@ -48,13 +30,7 @@ export type DesktopAccountProfileLibraryDeleteInput = DesktopAccountProfileLibra
   readonly profileId: string;
 };
 
-export type DesktopProductControlEvidenceBinding = {
-  readonly ensureAccountDefaultProfile: (input: DesktopProductControlEvidenceInput) => NativeOutcome;
-  readonly readAccountDefaultProfile: (input: DesktopProductControlEvidenceInput) => NativeOutcome;
-  readonly verifyAccountDefaultProfile: (input: DesktopProductControlEvidenceInput) => NativeOutcome;
-  readonly ensureBuiltInAiConfigEvidenceSet: (input: DesktopBuiltInAiConfigInput) => NativeOutcome;
-  readonly readBuiltInAiConfigForScopeInit: (input: DesktopBuiltInAiConfigInput) => NativeOutcome;
-  readonly verifyBuiltInAiConfigEvidenceSet: (input: DesktopBuiltInAiConfigInput) => NativeOutcome;
+export type DesktopAccountProfileHostBinding = {
   readonly listAccountProfileLibrary: (input: DesktopAccountProfileLibraryInput) => NativeOutcome;
   readonly createAccountProfileLibraryProfile: (input: DesktopAccountProfileLibraryEntryInput) => NativeOutcome;
   readonly editAccountProfileLibraryProfile: (input: DesktopAccountProfileLibraryEntryInput) => NativeOutcome;
@@ -63,13 +39,7 @@ export type DesktopProductControlEvidenceBinding = {
   readonly deleteAccountProfileLibraryProfile: (input: DesktopAccountProfileLibraryDeleteInput) => NativeOutcome;
 };
 
-export type DesktopProductControlEvidence = {
-  readonly ensureAccountDefaultProfile: (input: DesktopProductControlEvidenceInput) => unknown;
-  readonly readAccountDefaultProfile: (input: DesktopProductControlEvidenceInput) => unknown;
-  readonly verifyAccountDefaultProfile: (input: DesktopProductControlEvidenceInput) => unknown;
-  readonly ensureBuiltInAiConfigEvidenceSet: (input: DesktopBuiltInAiConfigInput) => unknown;
-  readonly readBuiltInAiConfigForScopeInit: (input: DesktopBuiltInAiConfigInput) => unknown;
-  readonly verifyBuiltInAiConfigEvidenceSet: (input: DesktopBuiltInAiConfigInput) => unknown;
+export type DesktopAccountProfileHost = {
   readonly listAccountProfileLibrary: (input: DesktopAccountProfileLibraryInput) => unknown;
   readonly createAccountProfileLibraryProfile: (input: DesktopAccountProfileLibraryEntryInput) => unknown;
   readonly editAccountProfileLibraryProfile: (input: DesktopAccountProfileLibraryEntryInput) => unknown;
@@ -78,18 +48,12 @@ export type DesktopProductControlEvidence = {
   readonly deleteAccountProfileLibraryProfile: (input: DesktopAccountProfileLibraryDeleteInput) => unknown;
 };
 
-export function createDesktopProductControlEvidence(
-  binding?: DesktopProductControlEvidenceBinding,
-): DesktopProductControlEvidence {
+export function createDesktopAccountProfileHost(
+  binding?: DesktopAccountProfileHostBinding,
+): DesktopAccountProfileHost {
   let checked = binding ? validateBinding(binding) : undefined;
   const current = () => (checked ??= loadBinding());
   return {
-    ensureAccountDefaultProfile: (input) => unwrap(current().ensureAccountDefaultProfile(input)),
-    readAccountDefaultProfile: (input) => unwrap(current().readAccountDefaultProfile(input)),
-    verifyAccountDefaultProfile: (input) => unwrap(current().verifyAccountDefaultProfile(input)),
-    ensureBuiltInAiConfigEvidenceSet: (input) => unwrap(current().ensureBuiltInAiConfigEvidenceSet(input)),
-    readBuiltInAiConfigForScopeInit: (input) => unwrap(current().readBuiltInAiConfigForScopeInit(input)),
-    verifyBuiltInAiConfigEvidenceSet: (input) => unwrap(current().verifyBuiltInAiConfigEvidenceSet(input)),
     listAccountProfileLibrary: (input) => unwrap(current().listAccountProfileLibrary(input)),
     createAccountProfileLibraryProfile: (input) => unwrap(current().createAccountProfileLibraryProfile(input)),
     editAccountProfileLibraryProfile: (input) => unwrap(current().editAccountProfileLibraryProfile(input)),
@@ -99,31 +63,25 @@ export function createDesktopProductControlEvidence(
   };
 }
 
-function loadBinding(): DesktopProductControlEvidenceBinding {
+function loadBinding(): DesktopAccountProfileHostBinding {
   const packageName = PACKAGE_BY_PLATFORM[`${process.platform}:${process.arch}` as keyof typeof PACKAGE_BY_PLATFORM];
   if (!packageName) {
-    throw new Error('desktop-first-run-evidence-platform-unsupported');
+    throw new Error('desktop-account-profile-platform-unsupported');
   }
   try {
     return validateBinding(createRequire(import.meta.url)(packageName) as unknown);
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith('desktop-first-run-evidence-')) throw error;
-    throw new Error('desktop-first-run-evidence-carrier-required', { cause: error });
+    if (error instanceof Error && error.message.startsWith('desktop-account-profile-')) throw error;
+    throw new Error('desktop-account-profile-host-required', { cause: error });
   }
 }
 
-function validateBinding(value: unknown): DesktopProductControlEvidenceBinding {
+function validateBinding(value: unknown): DesktopAccountProfileHostBinding {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('desktop-first-run-evidence-carrier-untrusted');
+    throw new Error('desktop-account-profile-host-untrusted');
   }
   const binding = value as Record<string, unknown>;
   for (const method of [
-    'ensureAccountDefaultProfile',
-    'readAccountDefaultProfile',
-    'verifyAccountDefaultProfile',
-    'ensureBuiltInAiConfigEvidenceSet',
-    'readBuiltInAiConfigForScopeInit',
-    'verifyBuiltInAiConfigEvidenceSet',
     'listAccountProfileLibrary',
     'createAccountProfileLibraryProfile',
     'editAccountProfileLibraryProfile',
@@ -132,10 +90,10 @@ function validateBinding(value: unknown): DesktopProductControlEvidenceBinding {
     'deleteAccountProfileLibraryProfile',
   ]) {
     if (typeof binding[method] !== 'function') {
-      throw new Error('desktop-first-run-evidence-carrier-untrusted');
+      throw new Error('desktop-account-profile-host-untrusted');
     }
   }
-  return value as DesktopProductControlEvidenceBinding;
+  return value as DesktopAccountProfileHostBinding;
 }
 
 function unwrap(outcome: NativeOutcome): unknown {
@@ -146,5 +104,5 @@ function unwrap(outcome: NativeOutcome): unknown {
     && typeof outcome.retryable === 'boolean') {
     throw new Error(outcome.reasonCode);
   }
-  throw new Error('desktop-first-run-evidence-carrier-untrusted');
+  throw new Error('desktop-account-profile-host-untrusted');
 }

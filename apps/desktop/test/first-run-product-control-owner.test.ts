@@ -61,13 +61,6 @@ function projectionFor(
         aiProfileAlias: null,
         completed: false,
         completedAt: null,
-        initializationPlanId: null,
-        baselineProfileRef: null,
-        baselineCommitId: null,
-        accountDefaultProfileRef: null,
-        builtInAiConfigRefs: [],
-        runtimeBaselineRef: null,
-        executionEvidenceRef: null,
         ...override.firstRun,
       },
       pointers: {},
@@ -130,7 +123,6 @@ test('Local AI phase renders the selected install level and continuation action'
       installLevel: 'minimal',
       aiProfileAlias: 'local-speech-ready',
       completed: false,
-      builtInAiConfigRefs: [],
     },
   });
   assert.match(markup, /data-product-state="ai_environment_unconfigured"/);
@@ -152,7 +144,6 @@ test('materialization progress states render one Setup checklist', () => {
         installLevel: 'minimal',
         aiProfileAlias: 'local-speech-ready',
         completed: false,
-        builtInAiConfigRefs: [],
       },
     });
     assert.match(markup, /Setting up Nimi/);
@@ -176,13 +167,6 @@ test('return-run verification downgrade renders reconciliation instead of setup'
       aiProfileAlias: 'local-speech-ready',
       completed: true,
       completedAt: '2026-05-20T00:00:00.000Z',
-      initializationPlanId: 'first-run-plan:runtime-baseline:execution-evidence',
-      baselineProfileRef: 'default',
-      baselineCommitId: 'sha256:ready',
-      accountDefaultProfileRef: 'account-default-profile:v1:ready',
-      builtInAiConfigRefs: ['built-in-ai-config:v1:nimi', 'built-in-ai-config:v1:agent'],
-      runtimeBaselineRef: 'runtime_baseline_ready',
-      executionEvidenceRef: 'execution_evidence_ready',
     },
   });
   assert.match(markup, /data-product-state="local_ai_profile_selected_environment_not_ready"/);
@@ -206,17 +190,10 @@ test('return-run repair downgrade renders the repair surface', () => {
       aiProfileAlias: 'local-speech-ready',
       completed: true,
       completedAt: '2026-05-20T00:00:00.000Z',
-      initializationPlanId: 'first-run-plan:runtime-baseline:execution-evidence',
-      baselineProfileRef: 'default',
-      baselineCommitId: 'sha256:ready',
-      accountDefaultProfileRef: 'account-default-profile:v1:ready',
-      builtInAiConfigRefs: ['built-in-ai-config:v1:nimi', 'built-in-ai-config:v1:agent'],
-      runtimeBaselineRef: 'runtime_baseline_ready',
-      executionEvidenceRef: 'execution_evidence_ready',
     },
     repair: {
       required: true,
-      reason: 'runtime baseline repair required',
+      reason: 'runtime activation repair required',
     },
   });
   assert.match(markup, /data-product-state="repair_required"/);
@@ -255,7 +232,6 @@ test('every first-run state renders human copy instead of its raw enum', () => {
         installLevel: 'minimal',
         aiProfileAlias: 'local-speech-ready',
         completed: false,
-        builtInAiConfigRefs: [],
       },
     });
     // The state machine state is carried only on the data attribute, never

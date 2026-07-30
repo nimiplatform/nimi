@@ -88,7 +88,6 @@ export function ProfileCatalogPage() {
   const { t } = useTranslation();
   const profileLibrary = useAccountProfileLibrary();
   const [libraryProjection, setLibraryProjection] = useState<NimiAccountProfileLibraryProjection | null>(null);
-  const [accountDefaultProfile, setAccountDefaultProfile] = useState<NimiAIProfile | null>(null);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [libraryFeedback, setLibraryFeedback] = useState<ProfileFeedback>(null);
   const [editorDraft, setEditorDraft] = useState<ProfileEditorDraft | null>(null);
@@ -97,13 +96,8 @@ export function ProfileCatalogPage() {
   const refreshProfileLibrary = useCallback(async () => {
     setLibraryLoading(true);
     try {
-      await profileLibrary.ensureAccountDefault();
-      const [projection, defaultProfile] = await Promise.all([
-        profileLibrary.load(),
-        profileLibrary.loadAccountDefault(),
-      ]);
+      const projection = await profileLibrary.load();
       setLibraryProjection(projection);
-      setAccountDefaultProfile(defaultProfile);
       return projection;
     } finally {
       setLibraryLoading(false);
@@ -165,11 +159,6 @@ export function ProfileCatalogPage() {
       profileJsonText: profileBodyJson(base),
     });
   }, [profileLibrary, t]);
-
-  const openCreateProfileFromDefault = useCallback(() => {
-    if (!accountDefaultProfile) return;
-    openCreateProfileFromBase(accountDefaultProfile);
-  }, [accountDefaultProfile, openCreateProfileFromBase]);
 
   const openEditProfile = useCallback((entry: LibraryProfile) => {
     setEditorDraft({
@@ -259,10 +248,8 @@ export function ProfileCatalogPage() {
 
       <AccountProfileLibraryPanel
         projection={libraryProjection}
-        accountDefaultProfile={accountDefaultProfile}
         loading={libraryLoading}
         onRefresh={() => { void reloadProfileLibrary(); }}
-        onCreateFromDefault={openCreateProfileFromDefault}
         onUseAsBase={openCreateProfileFromBase}
         onEdit={openEditProfile}
         onDelete={deleteProfile}

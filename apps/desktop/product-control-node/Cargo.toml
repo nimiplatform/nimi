@@ -2,7 +2,7 @@
 name = "nimi-desktop-product-control-node"
 version = "0.1.0"
 edition = "2021"
-description = "Private Node-API projection of the shared Desktop first-run evidence core."
+description = "Private Node-API projection of the Desktop account profile library."
 license = "MIT"
 
 [lib]

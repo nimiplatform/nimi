@@ -9,7 +9,6 @@
 import {
   createNimiAIConfigSubscriptionRegistry,
   createNimiAIRuntimeEvidence,
-  createNimiBuiltInChatAIScopeRef,
   previewNimiAIProfileApply,
   validateNimiAIProfile,
   versionNimiAIConfig,
@@ -41,10 +40,6 @@ import {
 } from './desktop-ai-config-storage.js';
 import type { ConversationCapabilityRouteRuntime } from '../../features/chat/conversation-capability.js';
 import { getProductionConversationCapabilityRouteRuntime } from '../../features/chat/production-conversation-route-runtime-state.js';
-import {
-  getAccountDefaultProfileForScopeInit,
-  getBuiltInAIConfigForScopeInit,
-} from '../../bridge/runtime-bridge/product-control.js';
 import {
   listAccountProfileLibrary,
 } from '../../bridge/runtime-bridge/account-profile-library.js';
@@ -206,41 +201,6 @@ export function pushDesktopAIConfigToBoundStore(scopeRef: NimiAIScopeRef): void 
   appStoreSetter(scopeKey(scopeRef), getConfigForScope(scopeRef));
 }
 
-export async function initializeBuiltInChatScopeFromProductControl(
-  scopeRef: NimiAIScopeRef,
-): Promise<boolean> {
-  if (scopeRef.kind !== 'feature'
-    || scopeRef.ownerId !== 'desktop.chat'
-    || (scopeRef.surfaceId !== 'nimi' && scopeRef.surfaceId !== 'agent')) {
-    return false;
-  }
-  if (scopeHasPersistedConfig(scopeRef)) {
-    return false;
-  }
-  const builtInConfig = await getBuiltInAIConfigForScopeInit(scopeRef.surfaceId);
-  if (scopeHasPersistedConfig(scopeRef)) {
-    return false;
-  }
-  commitConfig(builtInConfig);
-  return true;
-}
-
-let builtInChatScopeInitializationInFlight: Promise<void> | null = null;
-
-export function initializeBuiltInChatScopesFromProductControl(): Promise<void> {
-  if (builtInChatScopeInitializationInFlight) {
-    return builtInChatScopeInitializationInFlight;
-  }
-  builtInChatScopeInitializationInFlight = Promise.all([
-    initializeBuiltInChatScopeFromProductControl(createNimiBuiltInChatAIScopeRef('nimi')),
-    initializeBuiltInChatScopeFromProductControl(createNimiBuiltInChatAIScopeRef('agent')),
-  ]).then(() => undefined)
-    .finally(() => {
-      builtInChatScopeInitializationInFlight = null;
-    });
-  return builtInChatScopeInitializationInFlight;
-}
-
 // ---------------------------------------------------------------------------
 // Per-app first-launch NimiAIConfig initialization (S-AICONF-009)
 // ---------------------------------------------------------------------------
@@ -284,15 +244,6 @@ function resolveFactoryAIProfile(profileId: string): NimiAIProfile | null {
     .find((profile) => profile.profileId === normalizedProfileId) ?? null;
 }
 
-async function resolveAccountDefaultAIProfile(profileId: string): Promise<NimiAIProfile | null> {
-  try {
-    const profile = await getAccountDefaultProfileForScopeInit();
-    return profile.profileId === profileId ? profile : null;
-  } catch {
-    return null;
-  }
-}
-
 async function resolveAccountLibraryAIProfile(profileId: string): Promise<NimiAIProfile | null> {
   try {
     const projection = await listAccountProfileLibrary();
@@ -310,7 +261,6 @@ async function resolveDesktopAIProfile(profileId: string): Promise<NimiAIProfile
     return null;
   }
   return resolveFactoryAIProfile(normalizedProfileId)
-    ?? await resolveAccountDefaultAIProfile(normalizedProfileId)
     ?? await resolveAccountLibraryAIProfile(normalizedProfileId);
 }
 

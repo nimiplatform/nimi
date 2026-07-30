@@ -81,7 +81,6 @@ const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUIL
   && __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__;
 const ELECTRON_DEVELOPMENT_BUILD = typeof __NIMI_ELECTRON_DEVELOPMENT_BUILD__ !== 'undefined'
   && __NIMI_ELECTRON_DEVELOPMENT_BUILD__;
-const MACOS_LOCAL_DEVELOPMENT_RENDERER_URL = 'http://127.0.0.1:1420';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -96,11 +95,9 @@ const appOriginProtocol = createDesktopAppOriginProtocol({
     avatar: path.dirname(rendererDistAvatarIndex),
   },
 });
-const rendererUrl = MACOS_LOCAL_DEVELOPMENT_BUILD
-  ? MACOS_LOCAL_DEVELOPMENT_RENDERER_URL
-  : ELECTRON_DEVELOPMENT_BUILD
-    ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL)
-    : '';
+const rendererUrl = ELECTRON_DEVELOPMENT_BUILD
+  ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL)
+  : '';
 const bundledAvatarRendererUrl = ELECTRON_DEVELOPMENT_BUILD
   ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL) || 'http://127.0.0.1:1427'
   : appOriginProtocol.rendererUrl('avatar');
@@ -324,10 +321,13 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     });
   } catch (error: unknown) {
     await shutdownBeforeQuit().catch(() => undefined);
-    process.stderr.write(`[desktop-bootstrap] ${desktopBootstrapFailureCode(error)}\n`);
+    const failureCode = desktopBootstrapFailureCode(error);
+    process.stderr.write(`[desktop-bootstrap] ${failureCode}\n`);
     dialog.showErrorBox(
       'Nimi could not start safely',
-      'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
+      MACOS_LOCAL_DEVELOPMENT_BUILD
+        ? `Nimi Dev bootstrap failed (${failureCode}). Start it with "pnpm dev:runtime -- --desktop" and inspect the terminal output.`
+        : 'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
     );
     app.exit(1);
   }
@@ -655,8 +655,11 @@ function emitDesktopMenuBarEvent(
 }
 
 function createDesktopMenuBarIcon(): Electron.NativeImage {
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'favicon-32x32.png')
+    : path.join(appRoot, 'src', 'shell', 'renderer', 'assets', 'favicon-32x32.png');
   const icon = nativeImage
-    .createFromPath(path.join(appRoot, 'assets', 'icon.icns'))
+    .createFromPath(iconPath)
     .resize({ width: 18, height: 18 });
   if (icon.isEmpty()) {
     throw new Error('desktop-menu-bar-icon-unavailable');

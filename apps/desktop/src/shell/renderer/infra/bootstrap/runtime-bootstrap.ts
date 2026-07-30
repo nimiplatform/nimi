@@ -3,7 +3,6 @@ import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '../../bridge';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { initializeBuiltInChatScopesFromProductControl } from '../../app-shell/providers/desktop-ai-config-service';
 import { getOfflineCoordinator } from '../offline/coordinator';
 import {
   DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
@@ -154,23 +153,6 @@ export async function disposeRuntimeBootstrap(): Promise<void> {
   }
   await teardownBootstrapState();
   bootstrapPromise = null;
-}
-
-async function initializeBuiltInChatScopesAfterReadyAdmission(flowId: string): Promise<void> {
-  const projection = await desktopBridge.getProductControlRecord();
-  if (projection.state !== 'ready_for_use') {
-    logRendererEvent({
-      level: 'info',
-      area: 'renderer-bootstrap',
-      message: 'phase:built-in-ai-config:init-skipped-product-not-ready',
-      flowId,
-      details: {
-        productState: projection.state,
-      },
-    });
-    return;
-  }
-  await initializeBuiltInChatScopesFromProductControl();
 }
 
 export function bootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void> {
@@ -378,22 +360,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
             level: 'warn',
             area: 'renderer-bootstrap',
             message: 'phase:account-profile:hydrate-deferred',
-            flowId,
-            details: {
-              accountId: accountProjection.accountId,
-              error: safeBootstrapErrorMessage(error),
-            },
-          });
-        });
-        await withBootstrapStepTimeout(
-          'built-in chat AIConfig init',
-          initializeBuiltInChatScopesAfterReadyAdmission(flowId),
-          DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-        ).catch((error) => {
-          logRendererEvent({
-            level: 'warn',
-            area: 'renderer-bootstrap',
-            message: 'phase:built-in-ai-config:init-deferred',
             flowId,
             details: {
               accountId: accountProjection.accountId,

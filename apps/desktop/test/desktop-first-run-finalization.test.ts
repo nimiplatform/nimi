@@ -66,8 +66,10 @@ test('Wave 7: local_ai_ready finalization invokes the backend admission command'
         state: 'ready_for_use',
         dataRoot: null,
         firstRun: {
+          installLevel: 'minimal',
+          aiProfileAlias: 'local-speech-ready',
           completed: true,
-          builtInAiConfigRefs: [],
+          completedAt: '2026-07-14T00:00:00.000Z',
         },
         pointers: {},
         repair: { required: false },
@@ -98,7 +100,7 @@ test('Wave 7: a failed admission routes to the earliest-failed copy-floor surfac
     path: '/nimi/product-control.json',
     exists: true,
     state: 'local_ai_assets_downloaded_environment_not_ready',
-    error: 'baseline execution evidence missing',
+    error: 'current local environment is not ready',
     record: null,
   }));
   try {
@@ -106,7 +108,7 @@ test('Wave 7: a failed admission routes to the earliest-failed copy-floor surfac
     assert.notEqual(projection.state, 'ready_for_use');
     assert.equal(projection.state, 'local_ai_assets_downloaded_environment_not_ready');
     assert.equal(projection.record, null);
-    assert.equal(projection.error, 'baseline execution evidence missing');
+    assert.equal(projection.error, 'current local environment is not ready');
   } finally {
     mock.restore();
   }

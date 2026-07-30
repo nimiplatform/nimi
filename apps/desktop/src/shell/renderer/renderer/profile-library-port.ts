@@ -7,8 +7,6 @@ export interface DesktopRendererProfileLibraryPort {
   available(): boolean;
   createId(): string;
   load(): Promise<NimiAccountProfileLibraryProjection>;
-  ensureAccountDefault(): Promise<void>;
-  loadAccountDefault(): Promise<NimiAIProfile>;
   create(profile: NimiAIProfile): Promise<NimiAccountProfileLibraryProjection>;
   edit(profile: NimiAIProfile): Promise<NimiAccountProfileLibraryProjection>;
   import(profiles: NimiAIProfile[]): Promise<NimiAccountProfileLibraryProjection>;
@@ -25,8 +23,6 @@ export function createUnavailableDesktopRendererProfileLibraryPort(): DesktopRen
     available: () => false,
     createId: profileLibraryUnadmitted,
     load: async () => profileLibraryUnadmitted(),
-    ensureAccountDefault: async () => profileLibraryUnadmitted(),
-    loadAccountDefault: async () => profileLibraryUnadmitted(),
     create: async () => profileLibraryUnadmitted(),
     edit: async () => profileLibraryUnadmitted(),
     import: async () => profileLibraryUnadmitted(),

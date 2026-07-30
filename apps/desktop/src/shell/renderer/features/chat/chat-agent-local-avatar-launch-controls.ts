@@ -102,23 +102,20 @@ export function useAgentLocalAvatarLaunchControls(input: {
     })),
     [avatarLiveInstancesQuery.data],
   );
-  // D-LLM-105 condition 6 requires a typed Runtime authorization projection.
-  // No admitted projection exists in this hook yet, so start_with_chat fails
-  // closed instead of inferring authorization from account or bridge readiness.
+  // No admitted Runtime authorization projection exists for automatic launch,
+  // so start_with_chat fails closed instead of inferring authorization from
+  // account or bridge readiness.
   const avatarRuntimeProjectionAuthorization
     = presentation.accountId === null
         ? 'unauthorized' as const
         : 'unknown' as const;
 
-  /**
-   * Shared D-LLM-106 arbitrated launch executor. Both the `start_with_chat`
-   * gate and the explicit composer launch route through here, so the launch
-   * decision branches on `avatar_instance_policy` in exactly one place. The
-   * emitted payload stays the D-LLM-072 LocalAgent identity envelope plus
-   * Avatar instance launch fields.
-   */
+  // Automatic launch remains fail closed until Runtime projects an admitted
+  // launch mode, authorization verdict, and instance policy. Explicit user
+  // launch does not depend on that retired Desktop-side proof chain: the
+  // verified host owns validation and exact-instance reuse.
   const executeArbitratedLaunch = useCallback(async (input2: {
-    trigger: 'start_with_chat' | 'explicit_user_action';
+    trigger: 'start_with_chat';
     newInstanceAlreadySpawnedForThisOpenEvent: boolean;
   }): Promise<{ arbitration: AvatarLaunchArbitrationResult; launched: boolean; opened: boolean }> => {
     if (!presentation.activeTarget || !avatarInstanceId || !presentation.activeConversationAnchorId) {
@@ -223,47 +220,22 @@ export function useAgentLocalAvatarLaunchControls(input: {
             : presentation.t('Chat.agentCenterAvatarStopUnconfirmed', { defaultValue: 'Close request was sent, but the OS did not confirm it.' }),
         };
       }
-      // D-LLM-106 - the explicit launch entry branches on instance policy
-      // through the same arbitration authority as the start_with_chat gate.
-      const { arbitration, launched, opened } = await executeArbitratedLaunch({
-        trigger: 'explicit_user_action',
-        newInstanceAlreadySpawnedForThisOpenEvent: false,
+      await registerDesktopAvatarLiveInstanceBinding({
+        target: presentation.activeTarget,
+        avatarInstanceId,
+        conversationAnchorId: presentation.activeConversationAnchorId,
+        subjectUserId: presentation.accountId || '',
+        sdk,
       });
-      if (arbitration.decision === 'reuse_instance') {
-        return {
-          kind: 'success' as const,
-          message: presentation.t('Chat.agentCenterAvatarReuseActiveInstance', {
-            defaultValue: 'An Avatar is already running for this agent and conversation.',
-          }),
-        };
-      }
-      if (arbitration.decision === 'require_user_selection') {
-        return {
-          kind: 'warning' as const,
-          message: presentation.t('Chat.agentCenterAvatarRequireUserSelection', {
-            defaultValue: 'Choose which Avatar instance to launch for this agent.',
-          }),
-        };
-      }
-      if (arbitration.decision === 'fail_closed') {
-        return {
-          kind: 'warning' as const,
-          message: arbitration.state === 'anchor_unavailable'
-            ? presentation.t('Chat.agentCenterAvatarAnchorUnavailable', {
-              defaultValue: 'Avatar launch needs an available conversation anchor.',
-            })
-            : arbitration.state === 'instance_conflict'
-              ? presentation.t('Chat.agentCenterAvatarInstanceConflict', {
-                defaultValue: 'An existing Avatar instance conflicts with this launch; close it or change the instance policy.',
-              })
-              : presentation.t('Chat.agentCenterAvatarInstancePolicyUnresolved', {
-                defaultValue: 'Avatar launch needs a resolvable instance policy.',
-              }),
-        };
-      }
+      const result = await bindings.app.commands.avatarHandoff.launch({
+        agentId: presentation.activeTarget.localAgentRef,
+        avatarInstanceId,
+        launchSource: 'desktop-agent-chat',
+      });
+      await refetchAvatarLiveInstances();
       return {
-        kind: launched && opened ? 'success' as const : 'warning' as const,
-        message: launched && opened
+        kind: result.opened ? 'success' as const : 'warning' as const,
+        message: result.opened
           ? presentation.t('Chat.agentCenterAvatarStartSuccess', { defaultValue: 'Avatar launch requested. Waiting for the avatar to come online.' })
           : presentation.t('Chat.agentCenterAvatarStartUnconfirmed', { defaultValue: 'Launch request was sent, but the OS did not confirm it.' }),
       };
@@ -276,17 +248,19 @@ export function useAgentLocalAvatarLaunchControls(input: {
     avatarConversationAnchorReady,
     input.avatarConfigured,
     avatarInstanceId,
+    bindings,
     refetchAvatarLiveInstances,
     avatarRunning,
-    executeArbitratedLaunch,
+    sdk,
+    presentation.accountId,
     presentation.activeTarget,
     presentation.activeConversationAnchorId,
     presentation.onOpenAgentCenter,
     presentation.t,
   ]);
 
-  // D-LLM-105 - the single `start_with_chat` auto-launch actuation site.
-  // The gate evaluates on every Agent-Chat-open event for the selected
+  // The single `start_with_chat` auto-launch actuation site. The gate evaluates
+  // on every Agent-Chat-open event for the selected
   // LocalAgent. The open event is keyed by { localAgentRef, conversationAnchorId };
   // reopening Agent Chat or switching anchor is a fresh open event and
   // re-evaluates the gate. No other surface/effect/hook emits start_with_chat.
@@ -294,8 +268,8 @@ export function useAgentLocalAvatarLaunchControls(input: {
   const startWithChatOpenEventKey = presentation.activeTarget?.localAgentRef && presentation.activeConversationAnchorId
     ? `${presentation.activeTarget.localAgentRef}::${presentation.activeConversationAnchorId}`
     : null;
-  // Per-open-event repeated-spawn guard state (D-LLM-106). A single open event
-  // spawns at most one new instance under launch_new_instance.
+  // Per-open-event repeated-spawn guard state. A single open event spawns at
+  // most one new instance under launch_new_instance.
   const startWithChatActuationRef = useRef<{ openEventKey: string | null; newInstanceSpawned: boolean }>({
     openEventKey: null,
     newInstanceSpawned: false,

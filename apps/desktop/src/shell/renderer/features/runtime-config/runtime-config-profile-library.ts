@@ -14,8 +14,6 @@ export type { NimiAccountProfileLibraryProjection };
 
 export type AccountProfileLibraryResource = Readonly<{
   load(): Promise<NimiAccountProfileLibraryProjection>;
-  ensureAccountDefault(): Promise<void>;
-  loadAccountDefault(): Promise<NimiAIProfile>;
   create(profile: NimiAIProfile): Promise<NimiAccountProfileLibraryProjection>;
   edit(profile: NimiAIProfile): Promise<NimiAccountProfileLibraryProjection>;
   import(profiles: NimiAIProfile[]): Promise<NimiAccountProfileLibraryProjection>;
@@ -40,8 +38,6 @@ export function createAccountProfileLibraryResource(
   const load = async () => adopt(await port.load());
   return Object.freeze({
     load,
-    ensureAccountDefault: port.ensureAccountDefault,
-    loadAccountDefault: port.loadAccountDefault,
     async create(profile) {
       return adopt(await port.create(profile));
     },

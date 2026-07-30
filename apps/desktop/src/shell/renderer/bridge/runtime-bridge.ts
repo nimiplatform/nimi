@@ -16,11 +16,9 @@ import {
   admitProductReadyForUse,
   completeProductFirstRunDeviceEnvironmentScan,
   ensureProductControlRecordCreated,
-  getAccountDefaultProfileForScopeInit,
   getProductControlRecord,
   getProductControlSelectedDataRoot,
   pickProductDataRootDirectory,
-  prepareProductFirstRunLocalAiReady,
   reconcileProductFirstRunSetupState,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
@@ -56,7 +54,6 @@ export type {
   NimiProductControlRecord,
   NimiProductControlRecordProjection,
   NimiProductControlState,
-  AccountDefaultProfileAIProfile,
 } from './runtime-bridge/product-control';
 
 export type {
@@ -118,9 +115,7 @@ export {
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   reconcileProductFirstRunSetupState,
-  prepareProductFirstRunLocalAiReady,
   admitProductReadyForUse,
-  getAccountDefaultProfileForScopeInit,
   planNimiDataCleanup,
   executeNimiDataCleanup,
   exportDesktopLogs,
