@@ -164,7 +164,7 @@ func TestPublicChatCommittedTranscriptTurnReplayIsIdempotentAcrossLaterTurns(t *
 	}
 }
 
-func TestPublicChatAnchorContinuityCrossesAppsButEventsStayWithTurnCaller(t *testing.T) {
+func TestPublicChatAnchorContinuityAndEventsCrossApps(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -189,8 +189,8 @@ func TestPublicChatAnchorContinuityCrossesAppsButEventsStayWithTurnCaller(t *tes
 	if err := svc.emitPublicChatTurnEvent(session, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedDetail("cross-app")); err != nil {
 		t.Fatalf("emitPublicChatTurnEvent: %v", err)
 	}
-	if emitted := capture.waitForMessageType(t, publicChatTurnAcceptedType); emitted.GetToAppId() != "zhiyu.app" {
-		t.Fatalf("turn event delivered to %q, want current turn caller", emitted.GetToAppId())
+	if emitted := capture.waitForMessageType(t, publicChatTurnAcceptedType); emitted.GetToAppId() != "" {
+		t.Fatalf("turn event target = %q, want conversation-scoped broadcast", emitted.GetToAppId())
 	}
 	if _, _, _, _, err := svc.snapshotPublicChatAnchorForCaller("third-surface.app", anchorID); err != nil {
 		t.Fatalf("cross-app snapshot: %v", err)

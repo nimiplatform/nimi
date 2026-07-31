@@ -24,6 +24,7 @@
     "provision:windows-dev-trust": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/lib/windows-dev-signing.ps1 -Mode Provision -Json",
     "doctor:windows-dev-signing": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/lib/windows-dev-signing.ps1 -Mode Diagnose -Path dist/nimi.exe -Json",
     "runtime:cmd": "cd runtime && go run ./cmd/nimi",
+    "runtime:repair-local-agent-chat": "cd runtime && go run ./tools/repair-local-agent-chat",
     "test:runtime:go": "cd runtime && go test -count=1 -timeout=5m ./...",
     "test:runtime:live": "cd runtime && go test -tags=live -count=1 ./internal/services/ai -run ^TestLive",
     "test:runtime:python": "node scripts/run-runtime-python-tests.mjs",

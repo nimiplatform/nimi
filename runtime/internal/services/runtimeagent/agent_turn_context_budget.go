@@ -19,12 +19,17 @@ type agentTurnContextTruncationCandidate struct {
 	StableID  string
 }
 
+const (
+	agentTurnContextOptionalRealmSourceBudgetDivisor        uint64 = 8
+	agentTurnContextOptionalRealmSourceOutputBudgetMultiple uint64 = 4
+)
+
 var agentTurnContextTruncationOrder = []agentTurnContextTruncationClass{
+	agentTurnContextTruncationWorldDetail,
 	agentTurnContextTruncationHistory,
 	agentTurnContextTruncationMemory,
 	agentTurnContextTruncationExemplar,
 	agentTurnContextTruncationKnowledge,
-	agentTurnContextTruncationWorldDetail,
 }
 
 func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnContextBudgetInput) (agentTurnContextBudgetResult, error) {
@@ -73,6 +78,19 @@ func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnCo
 		}
 	}
 	used := allocated
+	// A model's context capacity is not an interactive latency target. Keep
+	// optional Realm materialization detail within a bounded share of the
+	// resolved input budget so a large World closure cannot consume nearly the
+	// entire prompt merely because the model advertises a large context window.
+	// Mandatory source identity/behavior, Runtime transcript, memory, policy,
+	// capabilities, and the current turn do not participate in this sub-budget.
+	optionalRealmSourceBudget := agentTurnContextOptionalRealmSourceBudget(inputBudget, input.ReservedOutputTokens)
+	optionalRealmSourceTokens := truncateOptionalRealmSourceContext(lanes, optionalRealmSourceBudget)
+	retainedTokens, ok := addAgentTurnContextTokens(optionalRealmSourceTokens, agentTurnContextIncludedNonOptionalRealmSourceTokens(lanes))
+	if !ok || retainedTokens > allocated {
+		return agentTurnContextBudgetResult{}, fmt.Errorf("agent turn context optional Realm source token estimate is invalid")
+	}
+	used = retainedTokens
 	if used > inputBudget {
 		candidates := collectAgentTurnContextTruncationCandidates(lanes)
 		for _, class := range agentTurnContextTruncationOrder {
@@ -111,6 +129,80 @@ func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnCo
 		}
 	}
 	return agentTurnContextBudgetResult{Manifest: manifest}, nil
+}
+
+func agentTurnContextOptionalRealmSourceBudget(inputBudget, reservedOutput uint64) uint64 {
+	budget := inputBudget / agentTurnContextOptionalRealmSourceBudgetDivisor
+	outputScaledBudget := inputBudget
+	if reservedOutput <= inputBudget/agentTurnContextOptionalRealmSourceOutputBudgetMultiple {
+		outputScaledBudget = reservedOutput * agentTurnContextOptionalRealmSourceOutputBudgetMultiple
+	}
+	if outputScaledBudget > budget {
+		budget = outputScaledBudget
+	}
+	if budget > inputBudget {
+		return inputBudget
+	}
+	return budget
+}
+
+func truncateOptionalRealmSourceContext(lanes []agentTurnContextLane, budget uint64) uint64 {
+	var used uint64
+	candidates := make([]agentTurnContextTruncationCandidate, 0)
+	for laneIndex := range lanes {
+		for itemIndex := range lanes[laneIndex].Items {
+			item := &lanes[laneIndex].Items[itemIndex]
+			if !isOptionalRealmSourceContextItem(*item) {
+				continue
+			}
+			used += item.TokenEstimate
+			candidates = append(candidates, agentTurnContextTruncationCandidate{
+				LaneIndex: laneIndex,
+				ItemIndex: itemIndex,
+				Class:     item.TruncationClass,
+				Rank:      item.Rank,
+				Priority:  item.Priority,
+				StableID:  item.StableID,
+			})
+		}
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].Priority != candidates[j].Priority {
+			return candidates[i].Priority < candidates[j].Priority
+		}
+		return candidates[i].StableID < candidates[j].StableID
+	})
+	for _, candidate := range candidates {
+		if used <= budget {
+			break
+		}
+		item := &lanes[candidate.LaneIndex].Items[candidate.ItemIndex]
+		if !item.Included {
+			continue
+		}
+		item.Included = false
+		item.Truncated = true
+		used -= item.TokenEstimate
+	}
+	return used
+}
+
+func agentTurnContextIncludedNonOptionalRealmSourceTokens(lanes []agentTurnContextLane) uint64 {
+	var tokens uint64
+	for _, lane := range lanes {
+		for _, item := range lane.Items {
+			if item.Included && !isOptionalRealmSourceContextItem(item) {
+				tokens += item.TokenEstimate
+			}
+		}
+	}
+	return tokens
+}
+
+func isOptionalRealmSourceContextItem(item agentTurnContextItem) bool {
+	return !item.Mandatory &&
+		item.AuthorityOwner == agentTurnContextAuthorityRealmSnapshot &&
+		item.TruncationClass != agentTurnContextTruncationNone
 }
 
 func collectAgentTurnContextTruncationCandidates(lanes []agentTurnContextLane) map[agentTurnContextTruncationClass][]agentTurnContextTruncationCandidate {

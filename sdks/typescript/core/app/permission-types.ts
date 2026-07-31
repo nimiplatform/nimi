@@ -65,6 +65,7 @@ export type NimiLocalAppAgentHandle = string & {
 export interface NimiLocalAppAgent {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly displayName: string;
+  readonly avatarUrl: string | null;
 }
 
 export interface PermissionRequestInput {

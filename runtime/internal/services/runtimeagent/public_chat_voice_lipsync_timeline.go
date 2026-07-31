@@ -442,7 +442,7 @@ func (r publicChatRuntime) emitTimelineEventForChannel(session publicChatAnchorS
 		"timeline":               timeline,
 		"detail":                 detail,
 	}
-	if err := r.emitEvent(session.CallerAppID, session.SubjectUserID, messageType, out); err != nil {
+	if err := r.emitEvent(session.SubjectUserID, messageType, out); err != nil {
 		return err
 	}
 	return r.emitPresentationAgentEventForTimeline(session, trimmedTurnID, streamID, messageType, detail, time.Now().UTC())

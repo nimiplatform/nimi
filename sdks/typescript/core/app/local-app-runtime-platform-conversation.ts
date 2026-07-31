@@ -16,7 +16,6 @@ export type { NimiLocalAppAgentHandle } from './permission-types.js';
 
 export type NimiLocalAppConversationOpenInput = {
   readonly agentHandle: NimiLocalAppAgentHandle;
-  readonly disposition: 'create-or-resume' | 'create-new';
 };
 
 export type NimiLocalAppConversationOpenResult = {
@@ -70,7 +69,6 @@ export type NimiLocalAppConversationShellSubscription = {
 export type NimiLocalAppConversationShell = {
   readonly open: (input: {
     readonly agentHandle: string;
-    readonly disposition: NimiLocalAppConversationOpenInput['disposition'];
   }) => Promise<unknown>;
   readonly send: (input: {
     readonly agentHandle: string;
@@ -95,17 +93,10 @@ export type NimiLocalAppConversationShell = {
 export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversationShell) {
   return Object.freeze({
     open: async (input: NimiLocalAppConversationOpenInput): Promise<NimiLocalAppConversationOpenResult> => {
-      assertExactKeys(input, ['agentHandle', 'disposition'], 'local-app conversation open input');
+      assertExactKeys(input, ['agentHandle'], 'local-app conversation open input');
       assertNoAuthorityMaterial(input);
       const agentHandle = requireText(input.agentHandle, 'agentHandle');
-      if (input.disposition !== 'create-or-resume' && input.disposition !== 'create-new') {
-        return localAppError(
-          'Local-app conversation disposition is invalid.',
-          'SDK_LOCAL_APP_INPUT_INVALID',
-          'use_declared_conversation_disposition',
-        );
-      }
-      return projectOpen(await shell.open({ agentHandle, disposition: input.disposition }));
+      return projectOpen(await shell.open({ agentHandle }));
     },
     send: async (input: NimiLocalAppConversationSendInput): Promise<NimiLocalAppConversationSendResult> => {
       assertExactKeys(

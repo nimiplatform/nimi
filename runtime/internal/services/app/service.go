@@ -49,11 +49,12 @@ type localAppOperationAuthorizer interface {
 type Option func(*Service)
 
 type subscriber struct {
-	id            uint64
-	appID         string
-	subjectUserID string
-	fromAppFilter map[string]bool
-	relay         *streamutil.Relay[*runtimev1.AppMessageEvent]
+	id                   uint64
+	appID                string
+	subjectUserID        string
+	conversationAnchorID string
+	fromAppFilter        map[string]bool
+	relay                *streamutil.Relay[*runtimev1.AppMessageEvent]
 }
 
 type InternalConsumer func(context.Context, *runtimev1.AppMessageEvent) error
@@ -274,7 +275,10 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 	toAppID := strings.TrimSpace(req.GetToAppId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	messageType := strings.TrimSpace(req.GetMessageType())
-	if fromAppID == "" || toAppID == "" {
+	conversationBroadcast := toAppID == "" && isTrustedInternalCaller(ctx, fromAppID) && runtimeAgentConversationBroadcastEnvelope(
+		fromAppID, subjectUserID, messageType, req.GetPayload(),
+	)
+	if fromAppID == "" || (toAppID == "" && !conversationBroadcast) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if contextAppID := appIDFromContext(ctx); contextAppID != "" && contextAppID != fromAppID {
@@ -489,7 +493,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 					grpcerr.ReasonOptions{Message: "local app subscription authorization is no longer valid"},
 				)
 			}
-			if current.LocalAppPrincipalID != localDecision.LocalAppPrincipalID || current.LocalAppRecordID != localDecision.LocalAppRecordID || current.AccountID != localDecision.AccountID || current.SessionID != localDecision.SessionID {
+			if current.LocalAppPrincipalID != localDecision.LocalAppPrincipalID || current.LocalAppRecordID != localDecision.LocalAppRecordID || current.AccountID != localDecision.AccountID {
 				return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 			}
 		}
@@ -539,10 +543,11 @@ func (s *Service) addSubscriber(req *runtimev1.SubscribeAppMessagesRequest) subs
 
 	s.nextSubID++
 	sub := subscriber{
-		id:            s.nextSubID,
-		appID:         strings.TrimSpace(req.GetAppId()),
-		subjectUserID: strings.TrimSpace(req.GetSubjectUserId()),
-		fromAppFilter: filter,
+		id:                   s.nextSubID,
+		appID:                strings.TrimSpace(req.GetAppId()),
+		subjectUserID:        strings.TrimSpace(req.GetSubjectUserId()),
+		conversationAnchorID: strings.TrimSpace(req.GetConversationAnchorId()),
+		fromAppFilter:        filter,
 		relay: streamutil.NewRelay(streamutil.RelayOptions[*runtimev1.AppMessageEvent]{
 			Budget:              32,
 			MaxConsecutiveDrops: 3,
@@ -593,6 +598,17 @@ func (s *Service) internalConsumer(appID string) InternalConsumer {
 }
 
 func matches(sub subscriber, event *runtimev1.AppMessageEvent) bool {
+	if runtimeAgentConversationBroadcastEvent(event) {
+		if !sub.fromAppFilter[runtimeagentservice.PublicChatRuntimeAppID] ||
+			sub.subjectUserID == "" || sub.subjectUserID != strings.TrimSpace(event.GetSubjectUserId()) {
+			return false
+		}
+		fields := event.GetPayload().GetFields()
+		if sub.conversationAnchorID != "" && sub.conversationAnchorID != strings.TrimSpace(fields["conversation_anchor_id"].GetStringValue()) {
+			return false
+		}
+		return true
+	}
 	if sub.appID != "" && sub.appID != event.GetToAppId() {
 		return false
 	}
@@ -603,6 +619,25 @@ func matches(sub subscriber, event *runtimev1.AppMessageEvent) bool {
 		return false
 	}
 	return true
+}
+
+func runtimeAgentConversationBroadcastEnvelope(fromAppID string, subjectUserID string, messageType string, payload *structpb.Struct) bool {
+	if strings.TrimSpace(fromAppID) != runtimeagentservice.PublicChatRuntimeAppID ||
+		strings.TrimSpace(subjectUserID) == "" || payload == nil {
+		return false
+	}
+	trimmedType := strings.TrimSpace(messageType)
+	if !strings.HasPrefix(trimmedType, "runtime.agent.turn.") && !strings.HasPrefix(trimmedType, "runtime.agent.presentation.") {
+		return false
+	}
+	fields := payload.GetFields()
+	return strings.TrimSpace(fields["conversation_anchor_id"].GetStringValue()) != ""
+}
+
+func runtimeAgentConversationBroadcastEvent(event *runtimev1.AppMessageEvent) bool {
+	return event != nil && strings.TrimSpace(event.GetToAppId()) == "" && runtimeAgentConversationBroadcastEnvelope(
+		event.GetFromAppId(), event.GetSubjectUserId(), event.GetMessageType(), event.GetPayload(),
+	)
 }
 
 func cloneEvent(event *runtimev1.AppMessageEvent) *runtimev1.AppMessageEvent {

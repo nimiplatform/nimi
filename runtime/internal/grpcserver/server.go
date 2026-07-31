@@ -638,6 +638,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	agentSvc.SetRuntimeAccountProjectionProvider(accountSvc)
+	agentSvc.SetRealmCharacterPublicAvatarResolver(accountSvc)
 	accountSvc.SetLocalAgentOwnershipResolver(agentSvc)
 	agentSvc.SetAuditStore(auditStore)
 	// K-AGCORE-146: Runtime Agent AI Config readiness recomputes on provider health

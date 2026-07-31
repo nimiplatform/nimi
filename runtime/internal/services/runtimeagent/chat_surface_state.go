@@ -20,9 +20,10 @@ const (
 	runtimeAgentMetaConversationAnchorMetadata  = "public_chat_anchor_metadata:"
 )
 
-// persistedPublicChatSurfaceState persists runtime-owned ConversationAnchor
-// truth per K-AGCORE-034. The JSON top-level key is `anchors` to make the
-// continuity scope explicit; legacy `sessions` JSON is not read.
+// persistedPublicChatSurfaceState persists Runtime-owned LocalAgent
+// conversation truth. More than one durable anchor for the same LocalAgent is
+// invalid and requires the explicit offline repair tool; Runtime never mutates
+// historical conversation truth during startup.
 type persistedPublicChatSurfaceState struct {
 	Version             uint64                               `json:"version"`
 	SavedAt             string                               `json:"savedAt"`
@@ -465,6 +466,9 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			persisted.Version = version
 		}
 	}
+	if err := validatePersistedPublicChatConversationSingletons(persisted.Anchors); err != nil {
+		return fmt.Errorf("public chat surface state requires explicit offline repair with runtime:repair-local-agent-chat while Runtime is stopped: %w", err)
+	}
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
 	s.chatSurfaceVersion = persisted.Version
@@ -503,8 +507,13 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			}
 		}
 		status := runtimev1.ConversationAnchorStatus(item.Status)
-		if status == runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_UNSPECIFIED {
+		switch status {
+		case runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_UNSPECIFIED:
 			status = runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE
+		case runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
+			runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED:
+		default:
+			return fmt.Errorf("persisted conversation anchor %s status is invalid", item.ConversationAnchorID)
 		}
 		bindings := clonePublicChatExecutionBindings(item.Bindings)
 		if len(bindings) == 0 && strings.TrimSpace(item.Binding.ModelID) != "" {
@@ -617,6 +626,39 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			SourceTurnID:         item.SourceTurnID,
 			SourceActionID:       item.SourceActionID,
 			HookIntent:           hookIntent,
+		}
+	}
+	return nil
+}
+
+func validatePersistedPublicChatConversationSingletons(anchors []persistedPublicChatAnchor) error {
+	anchorByOwnerAgent := make(map[string]string, len(anchors))
+	for _, anchor := range anchors {
+		ownerUserID := strings.TrimSpace(anchor.OwnerUserID)
+		localAgentRef := strings.TrimSpace(anchor.LocalAgentRef)
+		anchorID := strings.TrimSpace(anchor.ConversationAnchorID)
+		if ownerUserID == "" || localAgentRef == "" || anchorID == "" {
+			continue
+		}
+		key := ownerUserID + "\x00" + localAgentRef
+		if existingAnchorID, duplicate := anchorByOwnerAgent[key]; duplicate {
+			return fmt.Errorf(
+				"multiple durable conversation anchors for owner_user_id %q and local_agent_ref %q: %q and %q",
+				ownerUserID,
+				localAgentRef,
+				existingAnchorID,
+				anchorID,
+			)
+		}
+		anchorByOwnerAgent[key] = anchorID
+	}
+	for _, anchor := range anchors {
+		if runtimev1.ConversationAnchorStatus(anchor.Status) ==
+			runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED {
+			return fmt.Errorf(
+				"durable conversation anchor %q is closed and cannot satisfy LocalAgent singleton continuity",
+				strings.TrimSpace(anchor.ConversationAnchorID),
+			)
 		}
 	}
 	return nil

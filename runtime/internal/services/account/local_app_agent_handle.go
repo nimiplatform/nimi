@@ -22,6 +22,7 @@ const localAppAgentPermissionID = "agents.interact"
 type materializedLocalAppAgent struct {
 	Handle      string
 	DisplayName string
+	AvatarURL   *string
 }
 
 func (s *Service) materializeAccountAgentHandles(ctx context.Context, caller LocalAppCallerDecision, permissionID, ownerSelectorDigest string) ([]materializedLocalAppAgent, error) {
@@ -46,7 +47,9 @@ func (s *Service) materializeAccountAgentHandles(ctx context.Context, caller Loc
 	materialized := make([]materializedLocalAppAgent, 0, len(agents))
 	seenAgentIDs := make(map[string]struct{}, len(agents))
 	for _, agent := range agents {
-		if !exactSelectorText(agent.LocalAgentID) || !canonicalLocalAppAgentDisplayName(agent.DisplayName) {
+		if !exactSelectorText(agent.LocalAgentID) ||
+			!canonicalLocalAppAgentDisplayName(agent.DisplayName) ||
+			!canonicalLocalAppAgentAvatarURL(agent.AvatarURL) {
 			return nil, ErrLocalAppSelectorMismatch
 		}
 		if _, duplicate := seenAgentIDs[agent.LocalAgentID]; duplicate {
@@ -66,6 +69,7 @@ func (s *Service) materializeAccountAgentHandles(ctx context.Context, caller Loc
 		materialized = append(materialized, materializedLocalAppAgent{
 			Handle:      issued.Handle,
 			DisplayName: agent.DisplayName,
+			AvatarURL:   agent.AvatarURL,
 		})
 	}
 	return materialized, nil

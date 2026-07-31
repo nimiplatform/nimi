@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"net/url"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -18,6 +19,7 @@ const (
 	localAppPermissionRequestIDMaxBytes = localappkernel.MaxPermissionRequestIDBytes
 	localAppPermissionRequestDedupTTL   = 5 * time.Minute
 	localAppAgentDisplayNameMaxBytes    = 240
+	localAppAgentAvatarURLMaxBytes      = 4096
 )
 
 func (s *Service) GetLocalAppPermissionStatus(ctx context.Context, req *runtimev1.GetLocalAppPermissionStatusRequest) (*runtimev1.GetLocalAppPermissionStatusResponse, error) {
@@ -202,6 +204,7 @@ func (s *Service) localAppPermissionProjection(ctx context.Context, permissionID
 			projection.Agents = append(projection.Agents, &runtimev1.LocalAppPermissionAgentHandle{
 				AgentHandle: agent.Handle,
 				DisplayName: agent.DisplayName,
+				AvatarUrl:   optionalLocalAppAgentAvatarURL(agent.AvatarURL),
 			})
 		}
 		latestGrant, latestGrantErr := s.localAppKernel.PermissionGrants().Get(ctx, grantKey)
@@ -289,4 +292,24 @@ func canonicalPermissionReason(value string) bool {
 
 func canonicalLocalAppAgentDisplayName(value string) bool {
 	return value != "" && strings.TrimSpace(value) == value && utf8.ValidString(value) && len([]byte(value)) <= localAppAgentDisplayNameMaxBytes
+}
+
+func canonicalLocalAppAgentAvatarURL(value *string) bool {
+	if value == nil {
+		return true
+	}
+	if *value == "" || strings.TrimSpace(*value) != *value || !utf8.ValidString(*value) ||
+		len([]byte(*value)) > localAppAgentAvatarURLMaxBytes {
+		return false
+	}
+	parsed, err := url.Parse(*value)
+	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" &&
+		parsed.User == nil && parsed.Fragment == ""
+}
+
+func optionalLocalAppAgentAvatarURL(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }

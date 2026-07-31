@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -58,6 +59,34 @@ func (s *Service) GetVoiceAsset(ctx context.Context, req *runtimev1.GetVoiceAsse
 		return nil, err
 	}
 	return &runtimev1.GetVoiceAssetResponse{Asset: asset}, nil
+}
+
+// ResolveRuntimeAgentVoiceAsset is the Runtime-private orchestration lookup
+// used after an owner-scoped VoiceAsset has been committed as a LocalAgent
+// presentation reference. It does not widen the public Get/List/Delete
+// contract: only the in-process RuntimeAgent adapter calls it, and the
+// LocalAgent owner must still match the VoiceAsset subject.
+func (s *Service) ResolveRuntimeAgentVoiceAsset(
+	_ context.Context,
+	voiceAssetID string,
+	ownerUserID string,
+) (*runtimev1.VoiceAsset, error) {
+	voiceAssetID = strings.TrimSpace(voiceAssetID)
+	ownerUserID = strings.TrimSpace(ownerUserID)
+	if voiceAssetID == "" || ownerUserID == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if s == nil || s.voiceAssets == nil {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+	}
+	asset, ok := s.voiceAssets.getAsset(voiceAssetID)
+	if !ok || asset == nil {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+	}
+	if strings.TrimSpace(asset.GetSubjectUserId()) != ownerUserID {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+	}
+	return proto.Clone(asset).(*runtimev1.VoiceAsset), nil
 }
 
 func (s *Service) ListVoiceAssets(ctx context.Context, req *runtimev1.ListVoiceAssetsRequest) (*runtimev1.ListVoiceAssetsResponse, error) {

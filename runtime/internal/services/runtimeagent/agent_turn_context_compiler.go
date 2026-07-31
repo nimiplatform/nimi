@@ -313,7 +313,17 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 
 func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane) agentTurnProviderPrompt {
 	prompt := agentTurnProviderPrompt{Messages: make([]agentTurnProviderMessage, 0)}
+	var outputContractMessages []agentTurnProviderMessage
 	for _, lane := range lanes {
+		if lane.LaneID == agentTurnContextLaneOutputContract {
+			for _, item := range lane.Items {
+				outputContractMessages = append(outputContractMessages, agentTurnContextProviderMessagesForItem(item)...)
+			}
+			continue
+		}
+		if lane.LaneID == agentTurnContextLaneCurrentUserTurn {
+			prompt.Messages = append(prompt.Messages, outputContractMessages...)
+		}
 		for _, item := range lane.Items {
 			prompt.Messages = append(prompt.Messages, agentTurnContextProviderMessagesForItem(item)...)
 		}

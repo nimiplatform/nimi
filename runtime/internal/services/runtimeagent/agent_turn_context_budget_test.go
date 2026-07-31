@@ -2,12 +2,13 @@ package runtimeagent
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"unicode/utf8"
 )
 
-func TestAgentTurnContextProviderSequenceUsesFixedLaneOrder(t *testing.T) {
+func TestAgentTurnContextProviderSequencePlacesOutputContractBeforeCurrentTurn(t *testing.T) {
 	t.Parallel()
 	compiled, err := compileAgentTurnContext(agentTurnContextTestInput(t, "worldCharacter"))
 	if err != nil {
@@ -43,7 +44,6 @@ func TestAgentTurnContextProviderSequenceUsesFixedLaneOrder(t *testing.T) {
 	}
 	orderedSystemLanes := []agentTurnContextLaneID{
 		agentTurnContextLaneRuntimePolicy,
-		agentTurnContextLaneOutputContract,
 		agentTurnContextLaneSourceIdentity,
 		agentTurnContextLaneSourceBehavior,
 		agentTurnContextLaneWorldContext,
@@ -66,8 +66,13 @@ func TestAgentTurnContextProviderSequenceUsesFixedLaneOrder(t *testing.T) {
 			currentUserIndex = index
 		}
 	}
-	if historyAssistantIndex < 0 || currentUserIndex < 0 || positions[agentTurnContextLaneCapabilityContext] <= historyAssistantIndex || currentUserIndex <= positions[agentTurnContextLaneCapabilityContext] || currentUserIndex != len(compiled.ProviderPrompt.Messages)-1 {
-		t.Fatalf("provider history/capability/current order is invalid: history=%d capability=%d current=%d total=%d", historyAssistantIndex, positions[agentTurnContextLaneCapabilityContext], currentUserIndex, len(compiled.ProviderPrompt.Messages))
+	outputContractIndex := positions[agentTurnContextLaneOutputContract]
+	if historyAssistantIndex < 0 || currentUserIndex < 0 ||
+		positions[agentTurnContextLaneCapabilityContext] <= historyAssistantIndex ||
+		outputContractIndex <= positions[agentTurnContextLaneCapabilityContext] ||
+		currentUserIndex != outputContractIndex+1 ||
+		currentUserIndex != len(compiled.ProviderPrompt.Messages)-1 {
+		t.Fatalf("provider history/capability/output-contract/current order is invalid: history=%d capability=%d outputContract=%d current=%d total=%d", historyAssistantIndex, positions[agentTurnContextLaneCapabilityContext], outputContractIndex, currentUserIndex, len(compiled.ProviderPrompt.Messages))
 	}
 }
 
@@ -80,14 +85,28 @@ func TestAgentTurnContextBudgetTruncatesWholeItemsInFixedOrder(t *testing.T) {
 	input.Transcript[1].AssistantText = "new-assistant-canary-" + strings.Repeat("D", 800)
 	input.Memory[0].Text = "high-memory-canary-" + strings.Repeat("H", 800)
 	input.Memory[1].Text = "low-memory-canary-" + strings.Repeat("L", 800)
+	input.Budget.ContextWindowTokens = 1 << 30
 	full, err := compileAgentTurnContext(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	history := agentTurnContextTestLane(t, full.PrivateLanes, agentTurnContextLaneConversationHistory)
 	memory := agentTurnContextTestLane(t, full.PrivateLanes, agentTurnContextLaneCanonicalMemory)
+	world := agentTurnContextTestLane(t, full.PrivateLanes, agentTurnContextLaneWorldContext)
 	if len(history.Items) != 2 || len(memory.Items) != 2 {
 		t.Fatalf("history=%d memory=%d", len(history.Items), len(memory.Items))
+	}
+	var optionalWorldTokens uint64
+	var optionalWorldItems int
+	for _, item := range world.Items {
+		if item.TruncationClass != agentTurnContextTruncationWorldDetail {
+			continue
+		}
+		optionalWorldTokens += item.TokenEstimate
+		optionalWorldItems++
+	}
+	if optionalWorldItems == 0 || optionalWorldTokens == 0 {
+		t.Fatal("fixture has no optional world detail")
 	}
 	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
 	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.UsedTokens - history.Items[0].TokenEstimate
@@ -97,28 +116,33 @@ func TestAgentTurnContextBudgetTruncatesWholeItemsInFixedOrder(t *testing.T) {
 	}
 	trimmedHistory := agentTurnContextTestLane(t, trimOldest.PrivateLanes, agentTurnContextLaneConversationHistory)
 	trimmedMemory := agentTurnContextTestLane(t, trimOldest.PrivateLanes, agentTurnContextLaneCanonicalMemory)
-	if trimmedHistory.Items[0].Included || !trimmedHistory.Items[0].Truncated || !trimmedHistory.Items[1].Included {
-		t.Fatalf("oldest complete pair was not removed first: %+v", trimmedHistory.Items)
+	trimmedWorld := agentTurnContextTestLane(t, trimOldest.PrivateLanes, agentTurnContextLaneWorldContext)
+	if trimmedWorld.TruncatedCount == 0 {
+		t.Fatalf("optional world detail was not removed before transcript: %+v", trimmedWorld.Items)
+	}
+	if !trimmedHistory.Items[0].Included || !trimmedHistory.Items[1].Included {
+		t.Fatalf("conversation history was truncated before optional world detail: %+v", trimmedHistory.Items)
 	}
 	if !trimmedMemory.Items[0].Included || !trimmedMemory.Items[1].Included {
 		t.Fatalf("memory was truncated before history: %+v", trimmedMemory.Items)
 	}
 	providerText := agentTurnContextTestProviderText(trimOldest.ProviderPrompt)
-	if strings.Contains(providerText, "old-user-canary") || strings.Contains(providerText, "old-assistant-canary") || !strings.Contains(providerText, "new-user-canary") || !strings.Contains(providerText, "new-assistant-canary") {
-		t.Fatal("history pair was fragmented or the wrong pair was removed")
+	if !strings.Contains(providerText, "old-user-canary") || !strings.Contains(providerText, "old-assistant-canary") || !strings.Contains(providerText, "new-user-canary") || !strings.Contains(providerText, "new-assistant-canary") {
+		t.Fatal("conversation history was not retained while optional world detail remained truncatable")
 	}
 
 	historyTokens := history.Items[0].TokenEstimate + history.Items[1].TokenEstimate
 	lowMemoryTokens := memory.Items[1].TokenEstimate
-	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.UsedTokens - historyTokens - lowMemoryTokens
+	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.UsedTokens - optionalWorldTokens - historyTokens - lowMemoryTokens
 	trimMemory, err := compileAgentTurnContext(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	trimmedHistory = agentTurnContextTestLane(t, trimMemory.PrivateLanes, agentTurnContextLaneConversationHistory)
 	trimmedMemory = agentTurnContextTestLane(t, trimMemory.PrivateLanes, agentTurnContextLaneCanonicalMemory)
-	if trimmedHistory.TruncatedCount != 2 || trimmedMemory.TruncatedCount != 1 || !trimmedMemory.Items[0].Included || trimmedMemory.Items[1].Included {
-		t.Fatalf("fixed history->low-memory truncation failed: history=%+v memory=%+v", trimmedHistory, trimmedMemory)
+	trimmedWorld = agentTurnContextTestLane(t, trimMemory.PrivateLanes, agentTurnContextLaneWorldContext)
+	if int(trimmedWorld.TruncatedCount) != optionalWorldItems || trimmedHistory.TruncatedCount != 2 || trimmedMemory.TruncatedCount != 1 || !trimmedMemory.Items[0].Included || trimmedMemory.Items[1].Included {
+		t.Fatalf("fixed optional-world->history->low-memory truncation failed: world=%+v history=%+v memory=%+v", trimmedWorld, trimmedHistory, trimmedMemory)
 	}
 	providerText = agentTurnContextTestProviderText(trimMemory.ProviderPrompt)
 	if strings.Contains(providerText, "low-memory-canary") || !strings.Contains(providerText, "high-memory-canary") {
@@ -126,6 +150,101 @@ func TestAgentTurnContextBudgetTruncatesWholeItemsInFixedOrder(t *testing.T) {
 	}
 	if trimMemory.Summary.GetTruncation()[0].GetReason().String() != "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED" {
 		t.Fatalf("truncation reason=%s", trimMemory.Summary.GetTruncation()[0].GetReason())
+	}
+}
+
+func TestAgentTurnContextBudgetCapsOptionalRealmSourceForInteractiveLatency(t *testing.T) {
+	t.Parallel()
+	hash := strings.Repeat("a", 64)
+	lanes := []agentTurnContextLane{
+		{
+			LaneID: agentTurnContextLaneSourceIdentity,
+			Items: []agentTurnContextItem{{
+				StableID: "source.identity.core", AuthorityOwner: agentTurnContextAuthorityRealmSnapshot,
+				Mandatory: true, TruncationClass: agentTurnContextTruncationNone,
+				ContentHash: hash, TokenEstimate: 2460,
+			}},
+		},
+		{
+			LaneID: agentTurnContextLaneSourceKnowledge,
+			Items: []agentTurnContextItem{{
+				StableID: "source.knowledge.typed", AuthorityOwner: agentTurnContextAuthorityRealmSnapshot,
+				Priority: 600, TruncationClass: agentTurnContextTruncationKnowledge,
+				ContentHash: hash, TokenEstimate: 3340,
+			}},
+		},
+		{LaneID: agentTurnContextLaneWorldContext},
+		{LaneID: agentTurnContextLaneRelationshipContext},
+		{
+			LaneID: agentTurnContextLaneConversationHistory,
+			Items: []agentTurnContextItem{{
+				StableID:        "runtime.transcript.sequence.00000000000000000013",
+				AuthorityOwner:  agentTurnContextAuthorityRuntimeTranscript,
+				TruncationClass: agentTurnContextTruncationHistory,
+				ContentHash:     hash, TokenEstimate: 3597,
+			}},
+		},
+		{
+			LaneID: agentTurnContextLaneCurrentUserTurn,
+			Items: []agentTurnContextItem{{
+				StableID: "caller.current-turn", AuthorityOwner: agentTurnContextAuthorityCallerTurn,
+				Mandatory: true, TruncationClass: agentTurnContextTruncationNone,
+				ContentHash: hash, TokenEstimate: 75,
+			}},
+		},
+	}
+	for index := 0; index < 40; index++ {
+		lanes[2].Items = append(lanes[2].Items, agentTurnContextItem{
+			StableID:       fmt.Sprintf("source.world.detail.%03d", index),
+			AuthorityOwner: agentTurnContextAuthorityRealmSnapshot,
+			Priority:       100, TruncationClass: agentTurnContextTruncationWorldDetail,
+			ContentHash: hash, TokenEstimate: 4000,
+		})
+		lanes[3].Items = append(lanes[3].Items, agentTurnContextItem{
+			StableID:       fmt.Sprintf("source.relationship.world.%03d", index),
+			AuthorityOwner: agentTurnContextAuthorityRealmSnapshot,
+			Priority:       100, TruncationClass: agentTurnContextTruncationWorldDetail,
+			ContentHash: hash, TokenEstimate: 4000,
+		})
+	}
+	input := agentTurnContextBudgetInput{
+		ContextWindowTokens:   144384,
+		ReservedOutputTokens:  1024,
+		ReservedSafetyTokens:  512,
+		ReservedAdapterTokens: 256,
+	}
+	result, err := applyAgentTurnContextBudget(lanes, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	optionalBudget := agentTurnContextOptionalRealmSourceBudget(result.Manifest.InputBudgetTokens, input.ReservedOutputTokens)
+	var optionalUsed uint64
+	var includedUsed uint64
+	for _, lane := range lanes {
+		for _, item := range lane.Items {
+			if !item.Included {
+				continue
+			}
+			includedUsed += item.TokenEstimate
+			if isOptionalRealmSourceContextItem(item) {
+				optionalUsed += item.TokenEstimate
+			}
+		}
+	}
+	if optionalUsed == 0 || optionalUsed > optionalBudget {
+		t.Fatalf("optional Realm source used=%d budget=%d", optionalUsed, optionalBudget)
+	}
+	if !lanes[1].Items[0].Included {
+		t.Fatal("higher-priority source knowledge was not retained by the optional Realm source budget")
+	}
+	if !lanes[4].Items[0].Included || lanes[4].Items[0].Truncated {
+		t.Fatal("Runtime-owned recent transcript was truncated by optional Realm source materialization")
+	}
+	if lanes[2].TruncatedCount == 0 || lanes[3].TruncatedCount == 0 {
+		t.Fatalf("large optional World closure was not bounded: world=%+v relationship=%+v", lanes[2], lanes[3])
+	}
+	if result.Manifest.UsedTokens != includedUsed || result.Manifest.UsedTokens >= result.Manifest.InputBudgetTokens/3 {
+		t.Fatalf("interactive prompt was not materially bounded: manifest=%+v included=%d", result.Manifest, includedUsed)
 	}
 }
 

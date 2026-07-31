@@ -18,10 +18,9 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// OpenConversationAnchor opens a new runtime-owned ConversationAnchor per
-// K-AGCORE-034. Explicit `agent_id` and `subject_user_id` are required and
-// become runtime truth; runtime MUST NOT infer anchors from implicit/default
-// agent or derive continuity from `agent_id` alone.
+// OpenConversationAnchor resolves the one Runtime-owned ConversationAnchor
+// for an explicitly selected LocalAgent. The first authorized open creates the
+// anchor; every later authorized surface receives that same committed anchor.
 func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.OpenConversationAnchorRequest) (*runtimev1.OpenConversationAnchorResponse, error) {
 	if s == nil || s.isClosed() {
 		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
@@ -30,7 +29,6 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		return nil, status.Error(codes.InvalidArgument, "open conversation anchor request is required")
 	}
 	decision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	localAppDisposition := ""
 	var identity localAgentIdentity
 	var entry *agentEntry
 	var err error
@@ -38,9 +36,8 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		if decision.Operation != accountservice.LocalAppOperationOpenConversation || strings.TrimSpace(req.GetAgentId()) == "" || req.GetContext() != nil || strings.TrimSpace(req.GetSubjectUserId()) != "" || strings.TrimSpace(req.GetOwnerUserId()) != "" || strings.TrimSpace(req.GetRuntimeSourceRef()) != "" || strings.TrimSpace(req.GetLocalAgentRef()) != "" {
 			return nil, status.Error(codes.PermissionDenied, "local-app conversation selector is invalid")
 		}
-		localAppDisposition, err = localAppConversationDisposition(req.GetMetadata())
-		if err != nil {
-			return nil, err
+		if metadata := req.GetMetadata(); metadata != nil && len(metadata.GetFields()) != 0 {
+			return nil, status.Error(codes.PermissionDenied, "local-app conversation metadata is not admitted")
 		}
 		entry, err = s.agentByID(decision.LocalAgentID)
 		if err == nil && entry != nil && entry.Agent != nil {
@@ -78,20 +75,8 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
 		return nil, status.Error(codes.FailedPrecondition, "agent is not active")
 	}
-	if localAppAuthorized && localAppDisposition == "create-or-resume" {
-		resumed := s.resumeLocalAppConversationAnchor(decision, localAgentRef)
-		if resumed != nil {
-			metadata, metadataErr := s.chatStateRepo.loadConversationAnchorMetadata(resumed.ConversationAnchorID)
-			if metadataErr != nil {
-				return nil, grpcerr.WrapWithReasonCode(
-					codes.Unavailable,
-					runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
-					metadataErr,
-					grpcerr.ReasonOptions{Message: "conversation anchor metadata could not be loaded"},
-				)
-			}
-			return &runtimev1.OpenConversationAnchorResponse{Snapshot: s.buildConversationAnchorSnapshotLocked(resumed, metadata)}, nil
-		}
+	if resolved := s.resolveLocalAgentConversationAnchor(identity.OwnerUserID, localAgentRef); resolved != nil {
+		return s.openConversationAnchorResponse(resolved)
 	}
 
 	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
@@ -122,16 +107,19 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	}
 
 	s.chatSurfaceMu.Lock()
-	// anchor_id is a fresh ULID — collision should never happen but stay fail-closed
+	// Recheck under the creation lock so concurrent first opens converge.
+	if resolved := resolveLocalAgentConversationAnchorLocked(s.chatAnchors, identity.OwnerUserID, localAgentRef); resolved != nil {
+		s.chatSurfaceMu.Unlock()
+		return s.openConversationAnchorResponse(resolved)
+	}
+	// anchor_id is a fresh ULID — collision should never happen but stay fail-closed.
 	if _, exists := s.chatAnchors[anchorID]; exists {
 		s.chatSurfaceMu.Unlock()
 		return nil, status.Error(codes.AlreadyExists, "conversation anchor already exists")
 	}
 	s.chatAnchors[anchorID] = anchor
 	snapshotState, err := s.capturePublicChatSurfaceSnapshotLocked()
-	s.chatSurfaceMu.Unlock()
 	if err != nil {
-		s.chatSurfaceMu.Lock()
 		delete(s.chatAnchors, anchorID)
 		s.chatSurfaceMu.Unlock()
 		return nil, grpcerr.WrapWithReasonCode(
@@ -143,7 +131,6 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	}
 	committedMetadata, err := s.chatStateRepo.persistPublicChatSurfaceStateWithAnchorMetadata(snapshotState, anchorID, metadata)
 	if err != nil {
-		s.chatSurfaceMu.Lock()
 		delete(s.chatAnchors, anchorID)
 		s.chatSurfaceMu.Unlock()
 		return nil, grpcerr.WrapWithReasonCode(
@@ -153,47 +140,76 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 			grpcerr.ReasonOptions{Message: "conversation anchor could not be persisted"},
 		)
 	}
+	committedAnchor := clonePublicChatAnchorState(anchor)
+	s.chatSurfaceMu.Unlock()
 
-	snapshot := s.buildConversationAnchorSnapshotLocked(anchor, committedMetadata)
+	snapshot := s.buildConversationAnchorSnapshotLocked(committedAnchor, committedMetadata)
 	return &runtimev1.OpenConversationAnchorResponse{Snapshot: snapshot}, nil
 }
 
-func localAppConversationDisposition(metadata *structpb.Struct) (string, error) {
-	if metadata == nil || len(metadata.GetFields()) != 1 {
-		return "", status.Error(codes.PermissionDenied, "local-app conversation disposition is invalid")
-	}
-	value := strings.TrimSpace(metadata.GetFields()["local_app_anchor_disposition"].GetStringValue())
-	if value != "create-or-resume" && value != "create-new" {
-		return "", status.Error(codes.PermissionDenied, "local-app conversation disposition is invalid")
-	}
-	return value, nil
+func conversationAnchorIsResumable(statusValue runtimev1.ConversationAnchorStatus) bool {
+	return statusValue == runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_UNSPECIFIED ||
+		statusValue == runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE
 }
 
-func (s *Service) resumeLocalAppConversationAnchor(decision accountservice.LocalAppCallerDecision, localAgentRef string) *publicChatAnchorState {
-	s.chatSurfaceMu.Lock()
-	defer s.chatSurfaceMu.Unlock()
+func resolveLocalAgentConversationAnchorLocked(anchors map[string]*publicChatAnchorState, ownerUserID string, localAgentRef string) *publicChatAnchorState {
 	var selected *publicChatAnchorState
-	for _, anchor := range s.chatAnchors {
-		if anchor == nil || anchor.Status != runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE ||
-			anchor.LocalAgentRef != localAgentRef || anchor.AgentID != localAgentRef ||
-			anchor.OwnerUserID != decision.AccountID || anchor.SubjectUserID != decision.AccountID ||
-			anchor.CallerAppID != decision.AppID || anchor.LocalAppPrincipalID != decision.LocalAppPrincipalID {
+	selectedResumable := false
+	for _, anchor := range anchors {
+		if anchor == nil ||
+			anchor.OwnerUserID != ownerUserID || anchor.SubjectUserID != ownerUserID ||
+			anchor.LocalAgentRef != localAgentRef {
 			continue
 		}
-		if selected == nil || anchor.UpdatedAt.After(selected.UpdatedAt) ||
-			(anchor.UpdatedAt.Equal(selected.UpdatedAt) && anchor.ConversationAnchorID < selected.ConversationAnchorID) {
+		resumable := conversationAnchorIsResumable(anchor.Status)
+		if selected == nil || (resumable && !selectedResumable) ||
+			(resumable == selectedResumable && (anchor.UpdatedAt.After(selected.UpdatedAt) ||
+				(anchor.UpdatedAt.Equal(selected.UpdatedAt) && anchor.ConversationAnchorID < selected.ConversationAnchorID))) {
 			selected = anchor
+			selectedResumable = resumable
 		}
 	}
-	if selected == nil {
+	return clonePublicChatAnchorState(selected)
+}
+
+func clonePublicChatAnchorState(anchor *publicChatAnchorState) *publicChatAnchorState {
+	if anchor == nil {
 		return nil
 	}
-	cloned := *selected
-	cloned.CommittedTranscript = clonePublicChatCommittedTranscript(selected.CommittedTranscript)
-	cloned.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(selected.ActiveTurnSnapshot)
-	cloned.LastTurnSnapshot = clonePublicChatTurnProjectionState(selected.LastTurnSnapshot)
-	cloned.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(selected.CompletedTurnSnapshots)
+	cloned := *anchor
+	cloned.CommittedTranscript = clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
+	cloned.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
+	cloned.LastTurnSnapshot = clonePublicChatTurnProjectionState(anchor.LastTurnSnapshot)
+	cloned.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
 	return &cloned
+}
+
+func (s *Service) resolveLocalAgentConversationAnchor(ownerUserID string, localAgentRef string) *publicChatAnchorState {
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+	return resolveLocalAgentConversationAnchorLocked(s.chatAnchors, strings.TrimSpace(ownerUserID), strings.TrimSpace(localAgentRef))
+}
+
+func (s *Service) openConversationAnchorResponse(anchor *publicChatAnchorState) (*runtimev1.OpenConversationAnchorResponse, error) {
+	if anchor == nil {
+		return nil, status.Error(codes.NotFound, "conversation anchor not found")
+	}
+	if !conversationAnchorIsResumable(anchor.Status) {
+		return nil, status.Error(
+			codes.FailedPrecondition,
+			"conversation anchor is closed; stop Runtime and run runtime:repair-local-agent-chat",
+		)
+	}
+	metadata, err := s.chatStateRepo.loadConversationAnchorMetadata(anchor.ConversationAnchorID)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			err,
+			grpcerr.ReasonOptions{Message: "conversation anchor metadata could not be loaded"},
+		)
+	}
+	return &runtimev1.OpenConversationAnchorResponse{Snapshot: s.buildConversationAnchorSnapshotLocked(anchor, metadata)}, nil
 }
 
 func (s *Service) ValidateLocalAppConversationScope(ctx context.Context, agentID string, anchorID string) error {
@@ -205,8 +221,7 @@ func (s *Service) ValidateLocalAppConversationScope(ctx context.Context, agentID
 	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
 	valid := anchor != nil && anchor.AgentID == strings.TrimSpace(agentID) &&
 		anchor.LocalAgentRef == strings.TrimSpace(agentID) && anchor.OwnerUserID == decision.AccountID &&
-		anchor.SubjectUserID == decision.AccountID && anchor.CallerAppID == decision.AppID &&
-		anchor.LocalAppPrincipalID != "" && anchor.LocalAppPrincipalID == decision.LocalAppPrincipalID
+		anchor.SubjectUserID == decision.AccountID
 	s.chatSurfaceMu.Unlock()
 	if !valid {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)

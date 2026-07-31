@@ -11,6 +11,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const localAppRouteOptionLimit = 512
@@ -76,7 +77,15 @@ func (s *Service) UpdateLocalAppAgentConfiguration(ctx context.Context, req *run
 	if err != nil {
 		return nil, err
 	}
-	intents, err := localAppRouteIntentsToRuntime(req.GetRouteIntents())
+	current, err := s.committedRuntimeAgentAIConfigByAgentInstanceID(identity.LocalAgentRef)
+	if err != nil {
+		return nil, err
+	}
+	intents, err := localAppRouteIntentsToRuntime(req.GetRouteIntents(), current.GetIntents())
+	if err != nil {
+		return nil, err
+	}
+	intents, err = s.materializeLocalAppImageRouteTarget(ctx, intents)
 	if err != nil {
 		return nil, err
 	}
@@ -143,10 +152,32 @@ func (s *Service) localAppModelSettingsProjection(ctx context.Context, localAgen
 		return nil, err
 	}
 	return &runtimev1.LocalAppAgentModelSettingsProjection{
-		Capabilities: aicapabilities.CanonicalCatalog(), RouteIntents: intents,
+		Capabilities: localAppCapabilitiesFromReadiness(readiness), RouteIntents: intents,
 		Readiness: readiness.GetCapabilities(), ConfigurationRevision: config.GetRevision(),
 		RouteOptions: routeOptions,
 	}, nil
+}
+
+func localAppCapabilitiesFromReadiness(
+	readiness *runtimev1.LocalAppAgentReadinessProjection,
+) []string {
+	if readiness == nil {
+		return nil
+	}
+	out := make([]string, 0, len(readiness.GetCapabilities()))
+	seen := make(map[string]struct{}, len(readiness.GetCapabilities()))
+	for _, item := range readiness.GetCapabilities() {
+		capability := strings.TrimSpace(item.GetCapability())
+		if capability == "" {
+			continue
+		}
+		if _, duplicate := seen[capability]; duplicate {
+			continue
+		}
+		seen[capability] = struct{}{}
+		out = append(out, capability)
+	}
+	return out
 }
 
 func (s *Service) localAppModelRouteOptions(
@@ -213,6 +244,25 @@ func (s *Service) localAppModelRouteOptions(
 						if normalizeErr != nil || !isAdmittedRuntimeAgentAIConfigCapability(capability) {
 							continue
 						}
+						for _, configured := range config.GetIntents() {
+							if configured.GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL ||
+								strings.TrimSpace(configured.GetCapability()) != capability ||
+								!localAppConfiguredModelMatchesAsset(configured.GetModelId(), asset) {
+								continue
+							}
+							// A configured intent may refer to Runtime's opaque
+							// asset_id, logical_model_id, or local_asset_id. It
+							// is already part of the bounded projection; enrich
+							// that exact option with the inventory display label
+							// without exposing any unconfigured private id.
+							addLocalAppRouteOption(options, &runtimev1.LocalAppAgentRouteOption{
+								Capability:   capability,
+								Model:        strings.TrimSpace(configured.GetModelId()),
+								RoutePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+								Label:        label,
+								Availability: availability,
+							})
+						}
 						addLocalAppRouteOption(options, &runtimev1.LocalAppAgentRouteOption{
 							Capability:   capability,
 							Model:        model,
@@ -254,6 +304,120 @@ func (s *Service) localAppModelRouteOptions(
 	return out, nil
 }
 
+func localAppConfiguredModelMatchesAsset(modelID string, asset *runtimev1.LocalAssetRecord) bool {
+	modelID = strings.TrimSpace(modelID)
+	if modelID == "" || asset == nil {
+		return false
+	}
+	for _, candidate := range []string{
+		asset.GetAssetId(),
+		asset.GetLogicalModelId(),
+		asset.GetLocalAssetId(),
+	} {
+		if modelID == strings.TrimSpace(candidate) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) materializeLocalAppImageRouteTarget(
+	ctx context.Context,
+	intents []*runtimev1.RuntimeAgentAIConfigIntent,
+) ([]*runtimev1.RuntimeAgentAIConfigIntent, error) {
+	targetIndex := -1
+	targetModel := ""
+	for index, intent := range intents {
+		if strings.TrimSpace(intent.GetCapability()) != runtimeAgentAIConfigCapabilityImageGenerate ||
+			intent.GetTargetRef().GetTarget() != nil {
+			continue
+		}
+		if intent.GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
+		targetIndex = index
+		targetModel = strings.TrimSpace(intent.GetModelId())
+		break
+	}
+	if targetIndex < 0 {
+		return intents, nil
+	}
+
+	s.localAppRouteOptionsMu.RLock()
+	inventory := s.localAppRouteOptions
+	s.localAppRouteOptionsMu.RUnlock()
+	if inventory == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	}
+
+	matches := make(map[string]*runtimev1.LocalAssetRecord)
+	for _, statusFilter := range []runtimev1.LocalAssetStatus{
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+	} {
+		pageToken := ""
+		for {
+			response, err := inventory.ListLocalAssets(ctx, &runtimev1.ListLocalAssetsRequest{
+				StatusFilter: statusFilter,
+				PageSize:     200,
+				PageToken:    pageToken,
+			})
+			if err != nil {
+				return nil, err
+			}
+			for _, asset := range response.GetAssets() {
+				if strings.TrimSpace(asset.GetLogicalModelId()) != targetModel ||
+					!localAppAssetSupportsCapability(asset, runtimeAgentAIConfigCapabilityImageGenerate) {
+					continue
+				}
+				localAssetID := strings.TrimSpace(asset.GetLocalAssetId())
+				if localAssetID != "" {
+					matches[localAssetID] = asset
+				}
+			}
+			pageToken = strings.TrimSpace(response.GetNextPageToken())
+			if pageToken == "" {
+				break
+			}
+		}
+	}
+	if len(matches) != 1 {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	}
+
+	localAssetID := ""
+	for id := range matches {
+		localAssetID = id
+	}
+	out := append([]*runtimev1.RuntimeAgentAIConfigIntent(nil), intents...)
+	materialized := proto.Clone(intents[targetIndex]).(*runtimev1.RuntimeAgentAIConfigIntent)
+	materialized.TargetRef = &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+				Version: "v2",
+				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
+					ProfileBindingId: "local-runtime:" + localAssetID,
+				},
+			},
+		},
+	}
+	out[targetIndex] = materialized
+	return out, nil
+}
+
+func localAppAssetSupportsCapability(asset *runtimev1.LocalAssetRecord, capability string) bool {
+	if asset == nil {
+		return false
+	}
+	for _, rawCapability := range asset.GetCapabilities() {
+		normalized, err := aicapabilities.NormalizeCatalogCapability(rawCapability)
+		if err == nil && normalized == capability {
+			return true
+		}
+	}
+	return false
+}
+
 func addLocalAppRouteOption(
 	options map[string]*runtimev1.LocalAppAgentRouteOption,
 	option *runtimev1.LocalAppAgentRouteOption,
@@ -271,13 +435,31 @@ func addLocalAppRouteOption(
 		return
 	}
 	if existing := options[key]; existing != nil {
+		selected := existing
 		if existing.GetAvailability() != runtimev1.LocalAppAgentRouteOptionAvailability_LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY &&
 			option.GetAvailability() == runtimev1.LocalAppAgentRouteOptionAvailability_LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY {
-			options[key] = option
+			selected = option
 		}
+		labelSource := option
+		if selected == option {
+			labelSource = existing
+		}
+		if !localAppRouteOptionHasDisplayLabel(selected) && localAppRouteOptionHasDisplayLabel(labelSource) {
+			selected = proto.Clone(selected).(*runtimev1.LocalAppAgentRouteOption)
+			selected.Label = strings.TrimSpace(labelSource.GetLabel())
+		}
+		options[key] = selected
 		return
 	}
 	options[key] = option
+}
+
+func localAppRouteOptionHasDisplayLabel(option *runtimev1.LocalAppAgentRouteOption) bool {
+	if option == nil {
+		return false
+	}
+	label := strings.TrimSpace(option.GetLabel())
+	return label != "" && label != strings.TrimSpace(option.GetModel())
 }
 
 func (s *Service) localAppReadinessProjection(localAgentRef string, revision uint64) (*runtimev1.LocalAppAgentReadinessProjection, error) {
@@ -306,9 +488,19 @@ func (s *Service) localAppReadinessProjection(localAgentRef string, revision uin
 	return &runtimev1.LocalAppAgentReadinessProjection{Capabilities: items, ConfigurationRevision: revision}, nil
 }
 
-func localAppRouteIntentsToRuntime(input []*runtimev1.LocalAppAgentRouteIntent) ([]*runtimev1.RuntimeAgentAIConfigIntent, error) {
+func localAppRouteIntentsToRuntime(
+	input []*runtimev1.LocalAppAgentRouteIntent,
+	current []*runtimev1.RuntimeAgentAIConfigIntent,
+) ([]*runtimev1.RuntimeAgentAIConfigIntent, error) {
 	if len(input) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	currentByCapability := make(map[string]*runtimev1.RuntimeAgentAIConfigIntent, len(current))
+	for _, intent := range current {
+		if intent == nil {
+			continue
+		}
+		currentByCapability[strings.TrimSpace(intent.GetCapability())] = intent
 	}
 	seen := make(map[string]struct{}, len(input))
 	out := make([]*runtimev1.RuntimeAgentAIConfigIntent, 0, len(input))
@@ -332,9 +524,46 @@ func localAppRouteIntentsToRuntime(input []*runtimev1.LocalAppAgentRouteIntent) 
 			(route == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD && provider == "") {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		out = append(out, &runtimev1.RuntimeAgentAIConfigIntent{Capability: capability, Provider: provider, ModelId: model, RoutePolicy: route})
+		next := &runtimev1.RuntimeAgentAIConfigIntent{
+			Capability:  capability,
+			Provider:    provider,
+			ModelId:     model,
+			RoutePolicy: route,
+		}
+		if committed := currentByCapability[capability]; localAppRouteIdentityMatchesRuntimeIntent(item, committed) {
+			next = proto.Clone(committed).(*runtimev1.RuntimeAgentAIConfigIntent)
+			next.Capability = capability
+			next.Provider = provider
+			next.ModelId = model
+			next.RoutePolicy = route
+		}
+		out = append(out, next)
 	}
 	return out, nil
+}
+
+func localAppRouteIdentityMatchesRuntimeIntent(
+	next *runtimev1.LocalAppAgentRouteIntent,
+	current *runtimev1.RuntimeAgentAIConfigIntent,
+) bool {
+	if next == nil || current == nil ||
+		next.GetRoutePolicy() != current.GetRoutePolicy() ||
+		strings.TrimSpace(next.GetCapability()) != strings.TrimSpace(current.GetCapability()) {
+		return false
+	}
+	nextProvider := strings.TrimSpace(next.GetProvider())
+	nextModel := strings.TrimSpace(next.GetModel())
+	currentProvider := strings.TrimSpace(current.GetProvider())
+	currentModel := strings.TrimSpace(current.GetModelId())
+	if cloud := current.GetTargetRef().GetCloud(); cloud != nil {
+		if currentProvider == "" {
+			currentProvider = strings.TrimSpace(cloud.GetProvider())
+		}
+		if strings.TrimSpace(cloud.GetProviderModelId()) != "" {
+			currentModel = strings.TrimSpace(cloud.GetProviderModelId())
+		}
+	}
+	return nextProvider == currentProvider && nextModel == currentModel
 }
 
 func (s *Service) GetLocalAppAgentAutonomySnapshot(ctx context.Context, req *runtimev1.GetLocalAppAgentAutonomySnapshotRequest) (*runtimev1.LocalAppAgentAutonomySnapshotResponse, error) {

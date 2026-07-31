@@ -19,7 +19,7 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 	if r.svc == nil || r.svc.voiceLipsync == nil {
 		return nil
 	}
-	policy, ok := r.agentVoiceOutputPolicyForSession(session)
+	policy, ok := r.agentVoiceOutputPolicyForSession(ctx, session)
 	if !ok {
 		return nil
 	}
@@ -33,6 +33,8 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 		SpeechRoutePolicy:     policy.SpeechRoutePolicy,
 		SpeechConnectorID:     policy.SpeechConnectorID,
 		SpeechTargetRef:       clonePublicChatTargetRef(policy.SpeechTargetRef),
+		SpeechAppID:           policy.SpeechAppID,
+		OwnerUserID:           policy.OwnerUserID,
 		AgentID:               session.AgentID,
 		IdempotencyKey:        runtimeAgentManualVoiceLipsyncIdempotencyKey(turn.TurnID, req.MessageID, event.GetMessageId()),
 	}
@@ -144,9 +146,9 @@ func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, s
 		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.FailedPrecondition, "completed public chat turn timeline unavailable")
 	}
 	sessionSnapshot := *session
-	// Manual replay is delivered to the authenticated requesting surface. The
-	// anchor's last turn caller remains delivery history, never an app-id
-	// authorization partition.
+	// Manual replay records the authenticated requester as projection origin.
+	// CallerAppID is informational only and never targets the conversation
+	// broadcast or partitions authorization.
 	sessionSnapshot.CallerAppID = strings.TrimSpace(callerAppID)
 	sessionSnapshot.CommittedTranscript = clonePublicChatCommittedTranscript(session.CommittedTranscript)
 	sessionSnapshot.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
@@ -257,7 +259,7 @@ func (r publicChatRuntime) emitTimelineEventForChannelSnapshot(session publicCha
 		"timeline":               timeline,
 		"detail":                 detail,
 	}
-	if err := r.emitEvent(session.CallerAppID, session.SubjectUserID, messageType, out); err != nil {
+	if err := r.emitEvent(session.SubjectUserID, messageType, out); err != nil {
 		return err
 	}
 	if err := r.emitPresentationAgentEventForTimeline(session, strings.TrimSpace(turn.TurnID), strings.TrimSpace(turn.StreamID), messageType, detail, observedAt); err != nil {

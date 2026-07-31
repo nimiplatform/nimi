@@ -48,6 +48,10 @@ func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef stri
 		if turn.Cancel != nil {
 			cancels = append(cancels, turn.Cancel)
 		}
+		if turn.BindingRelease != nil {
+			cancels = append(cancels, turn.BindingRelease)
+			turn.BindingRelease = nil
+		}
 		delete(s.chatTurns, turnID)
 		changed = true
 	}

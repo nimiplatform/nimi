@@ -116,11 +116,10 @@ type avatarLiveInstanceBindingState struct {
 	UpdatedAt            time.Time
 }
 
-// publicChatAnchorState is the runtime-owned ConversationAnchor continuity
-// state per K-AGCORE-034. It is keyed by `conversation_anchor_id` only;
-// `agent_id` is agent identity scope, not continuity scope.
-// `subject_user_id` is captured at anchor-open time and is runtime truth.
-// ActiveTurn / LastTurn remain anchor-scoped per K-AGCORE-035.
+// publicChatAnchorState is the Runtime-owned continuity state for a
+// LocalAgent's single conversation. ConversationAnchorID is its issued
+// continuity token; OwnerUserID plus LocalAgentRef resolves the singleton.
+// SubjectUserID is captured at first open and must equal OwnerUserID.
 type publicChatAnchorState struct {
 	ConversationAnchorID string
 	AgentID              string
@@ -188,7 +187,10 @@ type publicChatTurnState struct {
 	// A config mutation during an in-flight turn affects the next turn only.
 	ConfigRevision   uint64
 	AvailableActions publicChatAvailableActions
-	Projection       *publicChatTurnProjectionState
+	// BindingRelease holds the once-safe outer local-model lease acquired while
+	// resolving live execution capacity. Reservation release owns invoking it.
+	BindingRelease func()
+	Projection     *publicChatTurnProjectionState
 	// TerminalProjection is staged separately from the app-facing active turn.
 	// A committed message may still be running independent post-turn work, so a
 	// terminal snapshot must not become observable until the reservation is

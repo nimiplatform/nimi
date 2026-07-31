@@ -90,7 +90,7 @@ func TestAgentAIConfigReadinessTransitionsOnImageBindingUpsert(t *testing.T) {
 	t.Parallel()
 	svc := newAgentAIConfigTestService(t)
 
-	// Cloud binding without any connector selector: committed but unusable.
+	// A targetless image route is rejected before it can fabricate READY.
 	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
 		Context:          agentAIConfigTestContext("nimi.desktop"),
 		ExpectedRevision: 1,
@@ -101,39 +101,37 @@ func TestAgentAIConfigReadinessTransitionsOnImageBindingUpsert(t *testing.T) {
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			},
 		),
-	}); err != nil {
-		t.Fatalf("UpsertRuntimeAgentAIConfig(no connector): %v", err)
+	}); err == nil {
+		t.Fatal("UpsertRuntimeAgentAIConfig(targetless image) succeeded")
 	}
 	snapshot := agentAIConfigReadinessSnapshot(t, svc)
-	if snapshot.GetConfigRevision() != 2 {
-		t.Fatalf("expected readiness config_revision 2, got %d", snapshot.GetConfigRevision())
+	if snapshot.GetConfigRevision() != 1 {
+		t.Fatalf("targetless image mutation changed revision to %d", snapshot.GetConfigRevision())
 	}
 	image := requireExecutionCapabilityReadiness(t, snapshot, runtimeAgentAIConfigCapabilityImageGenerate)
-	if image.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE {
-		t.Fatalf("expected connector-less cloud image binding UNAVAILABLE, got %v", image.GetState())
-	}
-	if image.GetReasonCode() != agentAIConfigReadinessReasonConnectorMissing {
-		t.Fatalf("expected reason connector_missing, got %q", image.GetReasonCode())
+	if image.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED {
+		t.Fatalf("rejected image binding changed readiness to %v", image.GetState())
 	}
 
-	// Adding the connector selector transitions the capability to READY.
+	// A complete v2 target transitions the capability to READY.
 	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
 		Context:          agentAIConfigTestContext("nimi.desktop"),
-		ExpectedRevision: 2,
+		ExpectedRevision: 1,
 		Intents: requiredRuntimeAgentAIConfigTestIntents(
 			&runtimev1.RuntimeAgentAIConfigIntent{
 				Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 				ModelId:     "openai/gpt-image-1",
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 				ConnectorId: "cloud-openai",
+				TargetRef:   runtimeAgentAIConfigTestCloudTarget("cloud-openai", "openai", "gpt-image-1"),
 			},
 		),
 	}); err != nil {
 		t.Fatalf("UpsertRuntimeAgentAIConfig(with connector): %v", err)
 	}
 	snapshot = agentAIConfigReadinessSnapshot(t, svc)
-	if snapshot.GetConfigRevision() != 3 {
-		t.Fatalf("expected readiness config_revision 3, got %d", snapshot.GetConfigRevision())
+	if snapshot.GetConfigRevision() != 2 {
+		t.Fatalf("expected readiness config_revision 2, got %d", snapshot.GetConfigRevision())
 	}
 	image = requireExecutionCapabilityReadiness(t, snapshot, runtimeAgentAIConfigCapabilityImageGenerate)
 	if image.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY {
@@ -203,13 +201,14 @@ func TestAgentAIConfigReadinessUsesCapabilitySpecificReasons(t *testing.T) {
 		t.Fatalf("expected voice_reference_missing, got %q", voiceReason)
 	}
 
-	if err := tracker.Mark(localProviderHealthKey, false, "image engine unavailable"); err != nil {
+	if err := tracker.Mark(localImageProviderHealthKey, false, "image engine unavailable"); err != nil {
 		t.Fatalf("tracker.Mark(unhealthy): %v", err)
 	}
 	imageState, imageReason := svc.evaluateRuntimeAgentAIConfigCapabilityReadiness(&runtimev1.RuntimeAgentAIConfigIntent{
 		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 		ModelId:     "local/image",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   runtimeAgentAIConfigTestLocalTarget("image"),
 	})
 	if imageState != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE {
 		t.Fatalf("expected image route unavailable, got %v", imageState)
@@ -218,6 +217,9 @@ func TestAgentAIConfigReadinessUsesCapabilitySpecificReasons(t *testing.T) {
 		t.Fatalf("expected image_route_unavailable, got %q", imageReason)
 	}
 
+	if err := tracker.Mark(localProviderHealthKey, false, "voice engine unavailable"); err != nil {
+		t.Fatalf("tracker.Mark(unhealthy): %v", err)
+	}
 	voiceRouteState, voiceRouteReason := svc.evaluateRuntimeAgentAIConfigCapabilityReadiness(&runtimev1.RuntimeAgentAIConfigIntent{
 		Capability:        runtimeAgentAIConfigCapabilityVoiceWorkflowDesign,
 		ModelId:           "voice/design",
@@ -229,6 +231,38 @@ func TestAgentAIConfigReadinessUsesCapabilitySpecificReasons(t *testing.T) {
 	}
 	if voiceRouteReason != agentAIConfigReadinessReasonVoiceWorkflowUnavailable {
 		t.Fatalf("expected voice_workflow_unavailable, got %q", voiceRouteReason)
+	}
+}
+
+func TestAgentAIConfigReadinessUsesLocalImageHealthForImageGenerate(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+	tracker := providerhealth.New()
+	svc.SetProviderHealthTracker(tracker)
+	intent := &runtimev1.RuntimeAgentAIConfigIntent{
+		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
+		ModelId:     "local/z-image-turbo",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   runtimeAgentAIConfigTestLocalTarget("z-image-turbo"),
+	}
+
+	if err := tracker.Mark(localProviderHealthKey, false, "llama unavailable"); err != nil {
+		t.Fatalf("tracker.Mark(local unhealthy): %v", err)
+	}
+	state, reason := svc.evaluateRuntimeAgentAIConfigCapabilityReadiness(intent)
+	if state != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY || reason != "" {
+		t.Fatalf("llama health must not block local image readiness, got %v (%q)", state, reason)
+	}
+
+	if err := tracker.Mark(localImageProviderHealthKey, false, "managed image backend unavailable"); err != nil {
+		t.Fatalf("tracker.Mark(local-image unhealthy): %v", err)
+	}
+	state, reason = svc.evaluateRuntimeAgentAIConfigCapabilityReadiness(intent)
+	if state != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE {
+		t.Fatalf("expected local-image unhealthy to block image readiness, got %v", state)
+	}
+	if reason != agentAIConfigReadinessReasonImageRouteUnavailable {
+		t.Fatalf("expected image_route_unavailable, got %q", reason)
 	}
 }
 
@@ -324,6 +358,7 @@ func TestSubscribeRuntimeAgentAIConfigReadinessInitialAndMutationSnapshots(t *te
 				ModelId:     "openai/gpt-image-1",
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 				ConnectorId: "cloud-openai",
+				TargetRef:   runtimeAgentAIConfigTestCloudTarget("cloud-openai", "openai", "gpt-image-1"),
 			},
 		),
 	}); err != nil {

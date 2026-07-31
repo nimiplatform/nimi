@@ -81,7 +81,6 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
                   coverageSections: [
                     AgentLocalSourceCoverageSection.IDENTITY,
                     AgentLocalSourceCoverageSection.PRESENTATION,
-                    AgentLocalSourceCoverageSection.PLACEMENT,
                     AgentLocalSourceCoverageSection.BIOGRAPHY,
                     AgentLocalSourceCoverageSection.PSYCHOLOGY,
                     AgentLocalSourceCoverageSection.KNOWLEDGE,

@@ -197,8 +197,8 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 
 	voiceChunk := capture.waitForMessageType(t, publicChatPresentationVoiceStreamChunkType)
 	voicePlayback := capture.waitForMessageType(t, publicChatPresentationVoicePlaybackRequestedType)
-	if voiceChunk.GetToAppId() != "zhiyu.app" || voicePlayback.GetToAppId() != "zhiyu.app" {
-		t.Fatalf("cross-app manual voice projection must return to requesting surface: chunk=%q playback=%q", voiceChunk.GetToAppId(), voicePlayback.GetToAppId())
+	if voiceChunk.GetToAppId() != "" || voicePlayback.GetToAppId() != "" {
+		t.Fatalf("manual voice projection must use conversation broadcast: chunk=%q playback=%q", voiceChunk.GetToAppId(), voicePlayback.GetToAppId())
 	}
 	chunkPayload := publicChatPayloadMap(t, voiceChunk)
 	requirePublicChatTimelineEnvelope(t, chunkPayload, turnID, streamID, publicChatTimelineChannelVoice, "K-AGCORE-133")

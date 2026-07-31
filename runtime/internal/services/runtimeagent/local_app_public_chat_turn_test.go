@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -10,10 +11,9 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestAuthorizedLocalAppInterruptsOnlyItsOwnActiveConversation(t *testing.T) {
+func TestAuthorizedLocalAppPrincipalInterruptsSharedAccountConversation(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
 	baseDecision := accountservice.LocalAppCallerDecision{
@@ -23,15 +23,11 @@ func TestAuthorizedLocalAppInterruptsOnlyItsOwnActiveConversation(t *testing.T) 
 		LocalAppRecordID:    "record-a",
 		LocalAgentID:        localAgentRef,
 	}
-	metadata, err := structpb.NewStruct(map[string]any{"local_app_anchor_disposition": "create-new"})
-	if err != nil {
-		t.Fatal(err)
-	}
 	openDecision := baseDecision
 	openDecision.Operation = accountservice.LocalAppOperationOpenConversation
 	opened, err := svc.OpenConversationAnchor(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), openDecision),
-		&runtimev1.OpenConversationAnchorRequest{AgentId: localAgentRef, Metadata: metadata},
+		&runtimev1.OpenConversationAnchorRequest{AgentId: localAgentRef},
 	)
 	if err != nil {
 		t.Fatalf("OpenConversationAnchor(local app): %v", err)
@@ -83,26 +79,29 @@ func TestAuthorizedLocalAppInterruptsOnlyItsOwnActiveConversation(t *testing.T) 
 	}
 	foreignDecision := baseDecision
 	foreignDecision.Operation = accountservice.LocalAppOperationInterruptConversation
-	foreignDecision.LocalAppPrincipalID = "principal-b"
-	foreignDecision.LocalAppRecordID = "record-b"
+	foreignDecision.AccountID = "foreign-account"
+	foreignDecision.LocalAppPrincipalID = "foreign-principal"
+	foreignDecision.LocalAppRecordID = "foreign-record"
 	err = svc.ConsumePublicChatAppMessage(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), foreignDecision),
 		interruptEvent,
 	)
 	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("foreign interrupt status = %s err=%v", status.Code(err), err)
+		t.Fatalf("foreign-account interrupt status = %s err=%v", status.Code(err), err)
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED {
-		t.Fatalf("foreign interrupt reason = %s ok=%v err=%v", reason, ok, err)
+		t.Fatalf("foreign-account interrupt reason = %s ok=%v err=%v", reason, ok, err)
 	}
 
 	interruptDecision := baseDecision
 	interruptDecision.Operation = accountservice.LocalAppOperationInterruptConversation
+	interruptDecision.LocalAppPrincipalID = "principal-b"
+	interruptDecision.LocalAppRecordID = "record-b"
 	if err := svc.ConsumePublicChatAppMessage(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), interruptDecision),
 		interruptEvent,
 	); err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(local interrupt): %v", err)
+		t.Fatalf("ConsumePublicChatAppMessage(second principal interrupt): %v", err)
 	}
 	_ = capture.waitForMessageType(t, publicChatTurnInterruptAckType)
 	_ = capture.waitForMessageType(t, publicChatTurnInterruptedType)
@@ -127,15 +126,11 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 		LocalAppRecordID:    "record-a",
 		LocalAgentID:        localAgentRef,
 	}
-	metadata, err := structpb.NewStruct(map[string]any{"local_app_anchor_disposition": "create-new"})
-	if err != nil {
-		t.Fatalf("build local-app anchor metadata: %v", err)
-	}
 	openDecision := decision
 	openDecision.Operation = accountservice.LocalAppOperationOpenConversation
 	opened, err := svc.OpenConversationAnchor(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), openDecision),
-		&runtimev1.OpenConversationAnchorRequest{AgentId: localAgentRef, Metadata: metadata},
+		&runtimev1.OpenConversationAnchorRequest{AgentId: localAgentRef},
 	)
 	if err != nil {
 		t.Fatalf("OpenConversationAnchor(local app): %v", err)
@@ -149,6 +144,7 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 		Version: "v2",
 		Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "local-runtime:local-asset-live"},
 	}}}
+	var bindingReleaseCount atomic.Int32
 	svc.SetPublicChatBindingResolver(stubPublicChatBindingResolver{
 		resolve: func(_ context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
 			return PublicChatBindingResolution{
@@ -161,6 +157,7 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 				ModelRevision:       "local-app-turn-model-v1",
 				ProviderID:          "local",
 				RouteDigest:         sha256HexBytes([]byte("local-app-turn-route-v1")),
+				Release:             func() { bindingReleaseCount.Add(1) },
 			}, nil
 		},
 	})
@@ -241,8 +238,18 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 	if got := execution.Binding.TargetRef.GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:local-asset-live" {
 		t.Fatalf("execution durable target = %q", got)
 	}
+	if got := bindingReleaseCount.Load(); got != 0 {
+		t.Fatalf("binding lease released before turn execution completed: count=%d", got)
+	}
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+	deadline := time.Now().Add(2 * time.Second)
+	for bindingReleaseCount.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if got := bindingReleaseCount.Load(); got != 1 {
+		t.Fatalf("binding lease release count=%d, want 1", got)
+	}
 
 	snapshotDecision := decision
 	snapshotDecision.Operation = accountservice.LocalAppOperationConversationSnapshot

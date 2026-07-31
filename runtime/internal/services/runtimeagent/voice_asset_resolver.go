@@ -25,8 +25,29 @@ type runtimeAIVoiceAssetService interface {
 	GetVoiceAsset(context.Context, *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error)
 }
 
+type runtimeAgentVoiceAssetService interface {
+	ResolveRuntimeAgentVoiceAsset(context.Context, string, string) (*runtimev1.VoiceAsset, error)
+}
+
 type aiBackedVoiceAssetResolver struct {
 	ai runtimeAIVoiceAssetService
+}
+
+type runtimeAgentVoiceAssetOwnerContextKey struct{}
+
+func withRuntimeAgentVoiceAssetOwner(ctx context.Context, ownerUserID string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, runtimeAgentVoiceAssetOwnerContextKey{}, strings.TrimSpace(ownerUserID))
+}
+
+func runtimeAgentVoiceAssetOwnerFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	ownerUserID, _ := ctx.Value(runtimeAgentVoiceAssetOwnerContextKey{}).(string)
+	return strings.TrimSpace(ownerUserID)
 }
 
 func NewAIBackedVoiceAssetResolver(ai runtimeAIVoiceAssetService) VoiceAssetResolver {
@@ -37,6 +58,13 @@ func NewAIBackedVoiceAssetResolver(ai runtimeAIVoiceAssetService) VoiceAssetReso
 }
 
 func (r aiBackedVoiceAssetResolver) ResolveVoiceAsset(ctx context.Context, voiceAssetID string) (*runtimev1.VoiceAsset, error) {
+	if ownerUserID := runtimeAgentVoiceAssetOwnerFromContext(ctx); ownerUserID != "" {
+		agentService, ok := r.ai.(runtimeAgentVoiceAssetService)
+		if !ok {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED)
+		}
+		return agentService.ResolveRuntimeAgentVoiceAsset(ctx, strings.TrimSpace(voiceAssetID), ownerUserID)
+	}
 	response, err := r.ai.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: strings.TrimSpace(voiceAssetID)})
 	if err != nil {
 		return nil, err
@@ -192,4 +220,70 @@ func voiceAssetExpiryElapsed(asset *runtimev1.VoiceAsset, now time.Time) bool {
 
 func invalidProfileVoiceAssetBinding() error {
 	return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED)
+}
+
+func resolveRuntimeAgentBoundVoiceAsset(
+	ctx context.Context,
+	resolver VoiceAssetResolver,
+	ownerUserID string,
+	voiceAssetID string,
+) (*runtimev1.VoiceAsset, error) {
+	ownerUserID = strings.TrimSpace(ownerUserID)
+	voiceAssetID = strings.TrimSpace(voiceAssetID)
+	if ownerUserID == "" || voiceAssetID == "" || resolver == nil {
+		return nil, invalidProfileVoiceAssetBinding()
+	}
+	asset, err := resolver.ResolveVoiceAsset(
+		withRuntimeAgentVoiceAssetOwner(ctx, ownerUserID),
+		voiceAssetID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if asset == nil || strings.TrimSpace(asset.GetVoiceAssetId()) != voiceAssetID {
+		return nil, invalidProfileVoiceAssetBinding()
+	}
+	if strings.TrimSpace(asset.GetAppId()) == "" || strings.TrimSpace(asset.GetSubjectUserId()) != ownerUserID {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+	}
+	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+		asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT ||
+		!validProfileVoiceAssetWorkflowType(asset.GetWorkflowType()) ||
+		strings.TrimSpace(asset.GetProvider()) == "" ||
+		strings.TrimSpace(asset.GetProviderVoiceRef()) == "" ||
+		voiceAssetExpiryElapsed(asset, time.Now().UTC()) ||
+		runtimeidentity.ValidateDurableTargetRef(asset.GetTargetRef()) != nil ||
+		runtimeidentity.ValidateDurableTargetRef(asset.GetVoiceAssetTargetRef()) != nil ||
+		!proto.Equal(asset.GetTargetRef(), asset.GetVoiceAssetTargetRef()) ||
+		!voiceAssetProviderMatchesDurableTarget(asset.GetProvider(), asset.GetTargetRef()) {
+		return nil, invalidProfileVoiceAssetBinding()
+	}
+	return asset, nil
+}
+
+func resolveRuntimeAgentVoiceAssetExecutionApp(
+	ctx context.Context,
+	resolver VoiceAssetResolver,
+	ownerUserID string,
+	defaultVoiceReference string,
+	speechTargetRef *runtimev1.RuntimeDurableTargetRef,
+) (string, error) {
+	kind, voiceAssetID, ok := strings.Cut(strings.TrimSpace(defaultVoiceReference), ":")
+	kind = strings.TrimSpace(kind)
+	voiceAssetID = strings.TrimSpace(voiceAssetID)
+	if !ok || kind == "" || voiceAssetID == "" {
+		return "", invalidProfileVoiceAssetBinding()
+	}
+	if kind != "voice_asset_id" {
+		return runtimeAgentVoiceSynthesisAppID, nil
+	}
+	asset, err := resolveRuntimeAgentBoundVoiceAsset(ctx, resolver, ownerUserID, voiceAssetID)
+	if err != nil {
+		return "", err
+	}
+	appID := strings.TrimSpace(asset.GetAppId())
+	if speechTargetRef == nil || !proto.Equal(speechTargetRef, asset.GetVoiceAssetTargetRef()) {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
+	}
+	return appID, nil
 }

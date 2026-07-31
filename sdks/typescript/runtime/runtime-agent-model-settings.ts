@@ -12,7 +12,12 @@ import {
   type UpsertRuntimeAgentAIConfigRequest,
   type UpsertRuntimeAgentAIConfigResponse,
 } from '../core-generated/runtime-typed-client';
-import { createNimiAIScopeRef, type NimiAIScopeRef } from '../core/ai/index.js';
+import {
+  createNimiAIScopeRef,
+  toRuntimeDurableTargetRef,
+  type NimiAIConfigTargetRef,
+  type NimiAIScopeRef,
+} from '../core/ai/index.js';
 import { createNimiError } from '../types/index.js';
 import {
   projectRuntimeLocalAgentIdentity,
@@ -37,6 +42,7 @@ export interface NimiRuntimeAgentModelSettingsRouteIntent {
   readonly provider: string;
   readonly model: string;
   readonly routePolicy: NimiRuntimeAgentModelSettingsRoutePolicy;
+  readonly targetRef?: NimiAIConfigTargetRef;
 }
 
 export interface NimiRuntimeAgentModelSettingsCapabilityReadiness {
@@ -135,7 +141,31 @@ export function createNimiRuntimeAgentModelSettingsModule(
       const expectedRevision = uint64(input.expectedConfigurationRevision, 'expected configuration revision', true);
       const subjectUserId = await resolveSubject(input.subjectUserId);
       const context = contextFor(input, subjectUserId);
-      const intents = toRuntimeModelSettingsIntents(input.routeIntents);
+      // This surface is route-only. Read the committed full intents first so
+      // an unchanged route retains Runtime-owned target, connector, voice, and
+      // image-policy material. The expected-revision CAS below remains the
+      // mutation authority if this read races another writer.
+      const currentResponse = await scoped(
+        subjectUserId,
+        ['runtime.agent.ai_config.read'],
+        (callOptions) => options.runtime.agent.getRuntimeAgentAIConfig({ context }, callOptions),
+      );
+      const currentRevision = uint64(
+        currentResponse.config?.revision,
+        'configuration revision',
+        true,
+      );
+      if (currentRevision !== expectedRevision) {
+        return modelSettingsError(
+          'Runtime Agent model settings changed before the route update was committed.',
+          'SDK_RUNTIME_AGENT_MODEL_SETTINGS_REVISION_CONFLICT',
+          'refresh_model_settings_snapshot',
+        );
+      }
+      const intents = toRuntimeModelSettingsIntents(
+        input.routeIntents,
+        currentResponse.config?.intents ?? [],
+      );
       // The RPC promise resolves only after Runtime's repository CAS, audit
       // handoff, and readiness refresh have completed. We additionally await
       // the matching readiness projection before resolving this SDK call.
@@ -225,10 +255,16 @@ function projectRouteIntent(intent: RuntimeAgentAIConfigIntent): NimiRuntimeAgen
   return modelSettingsError('Runtime Agent model settings route policy is invalid.', 'SDK_RUNTIME_AGENT_MODEL_SETTINGS_RESPONSE_INVALID', 'inspect_runtime_model_settings');
 }
 
-function toRuntimeModelSettingsIntents(input: readonly NimiRuntimeAgentModelSettingsRouteIntent[]): RuntimeAgentAIConfigIntent[] {
+function toRuntimeModelSettingsIntents(
+  input: readonly NimiRuntimeAgentModelSettingsRouteIntent[],
+  current: readonly RuntimeAgentAIConfigIntent[],
+): RuntimeAgentAIConfigIntent[] {
   if (!Array.isArray(input) || input.length === 0) {
     return modelSettingsError('Model settings update requires route intents.', 'SDK_RUNTIME_AGENT_MODEL_SETTINGS_INPUT_INVALID', 'provide_model_route_intents');
   }
+  const currentByCapability = new Map(
+    current.map((intent) => [normalizeNimiRuntimeAgentText(intent.capability), intent]),
+  );
   const seen = new Set<string>();
   return input.map((intent) => {
     const capability = requireModelSettingsText(intent?.capability, 'route capability');
@@ -239,6 +275,28 @@ function toRuntimeModelSettingsIntents(input: readonly NimiRuntimeAgentModelSett
       return modelSettingsError('Model settings route intent is not canonical.', 'SDK_RUNTIME_AGENT_MODEL_SETTINGS_INPUT_INVALID', 'repair_model_route_intent');
     }
     seen.add(capability);
+    const committed = currentByCapability.get(capability);
+    const targetRef = intent.targetRef;
+    if (targetRef) {
+      if ((intent.routePolicy === 'local' && targetRef.kind !== 'local-runtime')
+        || (intent.routePolicy === 'cloud' && targetRef.kind !== 'cloud-connector')
+        || (targetRef.kind === 'cloud-connector'
+          && (normalizeNimiRuntimeAgentText(targetRef.provider) !== provider
+            || normalizeNimiRuntimeAgentText(targetRef.providerModelId) !== modelId))) {
+        return modelSettingsError('Model settings target ref does not match its route intent.', 'SDK_RUNTIME_AGENT_MODEL_SETTINGS_INPUT_INVALID', 'repair_model_route_target');
+      }
+    }
+    const runtimeTargetRef = targetRef ? toRuntimeDurableTargetRef(targetRef) : undefined;
+    if (committed && routeIntentMatchesCommitted(intent, committed)) {
+      return {
+        ...committed,
+        capability,
+        modelId,
+        provider,
+        routePolicy: intent.routePolicy === 'local' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD,
+        ...(runtimeTargetRef ? { targetRef: runtimeTargetRef } : {}),
+      };
+    }
     return {
       capability,
       modelId,
@@ -247,8 +305,20 @@ function toRuntimeModelSettingsIntents(input: readonly NimiRuntimeAgentModelSett
       connectorId: '',
       voiceReferenceRef: '',
       imagePolicyRef: '',
+      ...(runtimeTargetRef ? { targetRef: runtimeTargetRef } : {}),
     };
   });
+}
+
+function routeIntentMatchesCommitted(
+  next: NimiRuntimeAgentModelSettingsRouteIntent,
+  current: RuntimeAgentAIConfigIntent,
+): boolean {
+  const projected = projectRouteIntent(current);
+  return projected.capability === requireModelSettingsText(next.capability, 'route capability')
+    && projected.provider === normalizeNimiRuntimeAgentText(next.provider)
+    && projected.model === requireModelSettingsText(next.model, 'route model')
+    && projected.routePolicy === next.routePolicy;
 }
 
 function uint64(value: unknown, field: string, positive: boolean): string {

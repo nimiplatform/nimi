@@ -7,10 +7,12 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -112,6 +114,33 @@ func requiredRuntimeAgentAIConfigTestIntents(extra ...*runtimev1.RuntimeAgentAIC
 	return append(intents, extra...)
 }
 
+func runtimeAgentAIConfigTestLocalTarget(localAssetID string) *runtimev1.RuntimeDurableTargetRef {
+	return &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+				Version: "v2",
+				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
+					ProfileBindingId: "local-runtime:" + localAssetID,
+				},
+			},
+		},
+	}
+}
+
+func runtimeAgentAIConfigTestCloudTarget(connectorID, provider, modelID string) *runtimev1.RuntimeDurableTargetRef {
+	return &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
+			Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+				Version:              "v2",
+				ConnectorId:          connectorID,
+				RemoteModelCatalogId: provider + "/" + modelID,
+				ProviderModelId:      modelID,
+				Provider:             provider,
+			},
+		},
+	}
+}
+
 func TestRuntimeAgentAIConfigSeedOnInitializeAndGet(t *testing.T) {
 	t.Parallel()
 	svc := newAgentAIConfigTestService(t)
@@ -159,6 +188,7 @@ func TestRuntimeAgentAIConfigPerAgentIsolation(t *testing.T) {
 			ModelId:     "openai/gpt-image-1",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			ConnectorId: "cloud-openai",
+			TargetRef:   runtimeAgentAIConfigTestCloudTarget("cloud-openai", "openai", "gpt-image-1"),
 		}),
 	})
 	if err != nil {
@@ -213,6 +243,7 @@ func TestRuntimeAgentAIConfigUpsertBumpsRevision(t *testing.T) {
 			Capability:  runtimeAgentAIConfigCapabilityAudioSynthesize,
 			ModelId:     "speech/qwen3tts",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef:   runtimeAgentAIConfigTestLocalTarget("speech-qwen3tts"),
 		}),
 	})
 	if err != nil {
@@ -223,6 +254,89 @@ func TestRuntimeAgentAIConfigUpsertBumpsRevision(t *testing.T) {
 	}
 	if resp.GetConfig().GetUpdatedByAppId() != "nimi.desktop" {
 		t.Fatalf("expected updated_by_app_id nimi.desktop, got %q", resp.GetConfig().GetUpdatedByAppId())
+	}
+}
+
+func TestRuntimeAgentAIConfigMaterializesBoundVoiceAssetTarget(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+	const voiceAssetID = "voice-asset-agent-ai-config"
+	asset := bindableVoiceAsset(voiceAssetID)
+	asset.AppId = "nimi.voice-demo"
+	asset.SubjectUserId = runtimeAgentAIConfigTestOwner
+	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, requestedID string) (*runtimev1.VoiceAsset, error) {
+		if requestedID != voiceAssetID {
+			t.Fatalf("voice asset id = %q, want %q", requestedID, voiceAssetID)
+		}
+		return proto.Clone(asset).(*runtimev1.VoiceAsset), nil
+	}))
+	if _, err := setPresentationVoiceReference(
+		context.Background(),
+		svc,
+		agentAIConfigTestContext("nimi.voice-demo"),
+		0,
+		"voice_asset_id:"+voiceAssetID,
+	); err != nil {
+		t.Fatalf("bind presentation voice asset: %v", err)
+	}
+
+	response, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 1,
+		Intents: requiredRuntimeAgentAIConfigTestIntents(&runtimev1.RuntimeAgentAIConfigIntent{
+			Capability:  runtimeAgentAIConfigCapabilityAudioSynthesize,
+			Provider:    "provider-1",
+			ModelId:     "provider-model-1",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		}),
+	})
+	if err != nil {
+		t.Fatalf("UpsertRuntimeAgentAIConfig: %v", err)
+	}
+	audio := requireAgentAIConfigIntent(t, response.GetConfig(), runtimeAgentAIConfigCapabilityAudioSynthesize)
+	if audio.GetConnectorId() != "connector-1" {
+		t.Fatalf("audio connector = %q, want VoiceAsset connector", audio.GetConnectorId())
+	}
+	if !proto.Equal(audio.GetTargetRef(), asset.GetVoiceAssetTargetRef()) {
+		t.Fatalf("audio target = %v, want exact VoiceAsset target %v", audio.GetTargetRef(), asset.GetVoiceAssetTargetRef())
+	}
+}
+
+func TestRuntimeAgentAIConfigRejectsBoundVoiceAssetTargetMismatch(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+	const voiceAssetID = "voice-asset-agent-ai-config-mismatch"
+	asset := bindableVoiceAsset(voiceAssetID)
+	asset.AppId = "nimi.voice-demo"
+	asset.SubjectUserId = runtimeAgentAIConfigTestOwner
+	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, _ string) (*runtimev1.VoiceAsset, error) {
+		return proto.Clone(asset).(*runtimev1.VoiceAsset), nil
+	}))
+	if _, err := setPresentationVoiceReference(
+		context.Background(),
+		svc,
+		agentAIConfigTestContext("nimi.voice-demo"),
+		0,
+		"voice_asset_id:"+voiceAssetID,
+	); err != nil {
+		t.Fatalf("bind presentation voice asset: %v", err)
+	}
+
+	_, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 1,
+		Intents: requiredRuntimeAgentAIConfigTestIntents(&runtimev1.RuntimeAgentAIConfigIntent{
+			Capability:  runtimeAgentAIConfigCapabilityAudioSynthesize,
+			Provider:    "provider-1",
+			ModelId:     "other-provider-model",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		}),
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("code = %s, want InvalidArgument: %v", status.Code(err), err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH {
+		t.Fatalf("reason = %s, %v; want AI_VOICE_TARGET_MODEL_MISMATCH", reason, ok)
 	}
 }
 
@@ -287,6 +401,7 @@ func TestRuntimeAgentAIConfigSurvivesRestartWithoutReseed(t *testing.T) {
 			ModelId:     "openai/gpt-image-1",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			ConnectorId: "cloud-openai",
+			TargetRef:   runtimeAgentAIConfigTestCloudTarget("cloud-openai", "openai", "gpt-image-1"),
 		}),
 	})
 	if err != nil {

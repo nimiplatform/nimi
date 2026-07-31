@@ -53,13 +53,19 @@ func (r publicChatRuntime) reserveTurn(
 		// admitted; turn admission binds to the committed Runtime Agent AI Config.
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, errPublicChatRequestExecutionBindingsNotAdmitted
 	}
-	resolvedBindings, configRevision, err := r.svc.resolveExecutionBindingsFromConfig(parent, localAgentRef, subjectUserID, req)
+	resolvedBindings, configRevision, bindingRelease, err := r.svc.resolveExecutionBindingsFromConfig(parent, localAgentRef, subjectUserID, req)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, publicChatDiagnosticError(
 			err,
 			"runtime_agent_public_chat_binding_resolution",
 		)
 	}
+	releaseUnclaimedBinding := bindingRelease
+	defer func() {
+		if releaseUnclaimedBinding != nil {
+			releaseUnclaimedBinding()
+		}
+	}()
 	_, hasImageBinding := resolvedBindings[runtimeAgentAIConfigCapabilityImageGenerate]
 	availableActions := publicChatAvailableActions{
 		ImageGenerate: r.svc.deriveImageActionAvailability(localAgentRef, configRevision, hasImageBinding),
@@ -124,8 +130,8 @@ func (r publicChatRuntime) reserveTurn(
 		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {
 			session.SubjectUserID = trimmed
 		}
-		// app_id identifies the caller for this turn and its event delivery. It
-		// is not an anchor, transcript, snapshot, list, or interrupt partition.
+		// app_id is retained only as last-turn-origin information. Conversation
+		// delivery and authorization never target or partition by this field.
 		session.CallerAppID = callerAppID
 		if req.MaxOutputTokens > 0 || session.MaxTokens == 0 {
 			session.MaxTokens = req.MaxOutputTokens
@@ -164,7 +170,9 @@ func (r publicChatRuntime) reserveTurn(
 			Origin:               publicChatTurnOriginUser,
 			ConfigRevision:       configRevision,
 			AvailableActions:     availableActions,
+			BindingRelease:       bindingRelease,
 		}
+		releaseUnclaimedBinding = nil
 		turn.Projection = newPublicChatTurnProjection(turn)
 		session.ActiveTurnID = turnID
 		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
@@ -189,6 +197,11 @@ func (r publicChatRuntime) releaseTurnReservation(anchorID string, turnID string
 	trimmedTurnID := strings.TrimSpace(turnID)
 	r.svc.chatSurfaceMu.Lock()
 	turn := r.svc.chatTurns[trimmedTurnID]
+	var bindingRelease func()
+	if turn != nil {
+		bindingRelease = turn.BindingRelease
+		turn.BindingRelease = nil
+	}
 	delete(r.svc.chatTurns, trimmedTurnID)
 	if session := r.svc.chatAnchors[trimmedAnchorID]; session != nil && session.ActiveTurnID == trimmedTurnID {
 		if publishTerminal && turn != nil && turn.TerminalProjection != nil {
@@ -218,6 +231,9 @@ func (r publicChatRuntime) releaseTurnReservation(anchorID string, turnID string
 	}
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.persistCurrentPublicChatSurfaceState()
+	if bindingRelease != nil {
+		bindingRelease()
+	}
 }
 
 func (r publicChatRuntime) finishTurnReservation(session publicChatAnchorState, turnID string) {

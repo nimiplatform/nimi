@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
@@ -94,6 +95,116 @@ func TestPublicChatTranscriptAndContextSummaryRecoverAcrossRestart(t *testing.T)
 	}
 	if len(thirdTranscript) != 6 || thirdTranscript[4].GetContent() != "third user" || thirdTranscript[5].GetContent() != "third assistant" {
 		t.Fatalf("third turn continuity mismatch: %v", thirdTranscript)
+	}
+}
+
+func TestPublicChatRestartRecoveryInterruptsTurnWithoutClosingConversationAnchor(t *testing.T) {
+	statePath := t.TempDir() + "/runtime-state.json"
+	first, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+	anchorID := openPublicChatTestAnchor(t, first, "agent-alpha", "desktop.app", "user-1")
+	first.chatSurfaceMu.Lock()
+	first.chatAnchors[anchorID].ActiveTurnSnapshot = &publicChatTurnProjectionState{
+		TurnID: "turn-interrupted-by-restart", Status: publicChatTurnStatusStarted,
+	}
+	first.chatAnchors[anchorID].UpdatedAt = time.Now().UTC()
+	first.chatSurfaceMu.Unlock()
+	first.persistCurrentPublicChatSurfaceState()
+	closeFirst()
+
+	restarted, closeRestarted := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+	defer closeRestarted()
+	recovered, ok := restarted.publicChatAnchorSnapshot(anchorID)
+	if !ok {
+		t.Fatalf("recovered anchor %q not found", anchorID)
+	}
+	if recovered.Status != runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE {
+		t.Fatalf("restart recovery changed anchor status to %s", recovered.Status)
+	}
+	if recovered.ActiveTurnSnapshot != nil || recovered.LastTurnSnapshot == nil ||
+		recovered.LastTurnSnapshot.Status != publicChatTurnStatusInterrupted ||
+		recovered.LastTurnSnapshot.ReasonCode != runtimev1.ReasonCode_AI_STREAM_BROKEN {
+		t.Fatalf("restart recovery turn projection mismatch: active=%+v last=%+v", recovered.ActiveTurnSnapshot, recovered.LastTurnSnapshot)
+	}
+	if resolved := openPublicChatTestAnchor(t, restarted, "agent-alpha", "web.app", "user-1"); resolved != anchorID {
+		t.Fatalf("post-restart open resolved %q, want active canonical anchor %q", resolved, anchorID)
+	}
+}
+
+func TestPersistedConversationSingletonValidationRejectsAllDuplicateDurableAnchors(t *testing.T) {
+	anchors := []persistedPublicChatAnchor{
+		{
+			ConversationAnchorID: "anchor-active",
+			OwnerUserID:          "user-1",
+			LocalAgentRef:        "local-agent:alpha",
+			Status:               int32(runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE),
+		},
+		{
+			ConversationAnchorID: "anchor-closed",
+			OwnerUserID:          "user-1",
+			LocalAgentRef:        "local-agent:alpha",
+			Status:               int32(runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED),
+		},
+	}
+	err := validatePersistedPublicChatConversationSingletons(anchors)
+	if err == nil || !strings.Contains(err.Error(), "multiple durable conversation anchors") {
+		t.Fatalf("duplicate durable anchors must fail closed, got %v", err)
+	}
+	if got := anchors[1].Status; got != int32(runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED) {
+		t.Fatalf("validation mutated persisted state: status=%d", got)
+	}
+}
+
+func TestPersistedConversationSingletonValidationRejectsClosedSingleton(t *testing.T) {
+	anchors := []persistedPublicChatAnchor{{
+		ConversationAnchorID: "anchor-closed",
+		OwnerUserID:          "user-1",
+		LocalAgentRef:        "local-agent:alpha",
+		Status:               int32(runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED),
+	}}
+	err := validatePersistedPublicChatConversationSingletons(anchors)
+	if err == nil || !strings.Contains(err.Error(), "cannot satisfy LocalAgent singleton continuity") {
+		t.Fatalf("closed durable singleton must fail closed, got %v", err)
+	}
+	if got := anchors[0].Status; got != int32(runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED) {
+		t.Fatalf("validation mutated persisted state: status=%d", got)
+	}
+}
+
+func TestPublicChatSurfaceLoadRejectsDuplicateDurableAnchorsWithoutMutation(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	existingAnchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	state := persistedPublicChatSurfaceState{
+		Version: 100,
+		Anchors: []persistedPublicChatAnchor{
+			{
+				ConversationAnchorID: "legacy-anchor-a",
+				AgentID:              testRuntimeAgentLocalRef("agent-alpha"),
+				LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
+				OwnerUserID:          "user-1",
+				RuntimeSourceRef:     testRuntimeAgentSourceRef("agent-alpha"),
+				SubjectUserID:        "user-1",
+				Status:               int32(runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE),
+			},
+			{
+				ConversationAnchorID: "legacy-anchor-b",
+				AgentID:              testRuntimeAgentLocalRef("agent-alpha"),
+				LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
+				OwnerUserID:          "user-1",
+				RuntimeSourceRef:     testRuntimeAgentSourceRef("agent-alpha"),
+				SubjectUserID:        "user-1",
+				Status:               int32(runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED),
+			},
+		},
+	}
+	if err := svc.chatStateRepo.persistPublicChatSurfaceState(state); err != nil {
+		t.Fatalf("persist duplicate forged state: %v", err)
+	}
+	err := svc.loadPublicChatSurfaceStateFromDB()
+	if err == nil || !strings.Contains(err.Error(), "explicit offline repair") {
+		t.Fatalf("duplicate durable state must fail closed with repair direction, got %v", err)
+	}
+	if _, ok := svc.publicChatAnchorSnapshot(existingAnchorID); !ok {
+		t.Fatal("failed load mutated the previously loaded in-memory conversation")
 	}
 }
 

@@ -21,17 +21,22 @@ import (
 )
 
 type fakeLocalModelLister struct {
-	responses    []*runtimev1.ListLocalAssetsResponse
-	err          error
-	calls        int
-	warmErr      error
-	warmCalls    int
-	startErr     error
-	startCalls   int
-	startResp    *runtimev1.StartLocalAssetResponse
-	leaseCalls   []string
-	acquireDelay time.Duration
-	managedNames map[string]string
+	responses     []*runtimev1.ListLocalAssetsResponse
+	err           error
+	calls         int
+	warmErr       error
+	warmCalls     int
+	startErr      error
+	startCalls    int
+	startResp     *runtimev1.StartLocalAssetResponse
+	leaseCalls    []string
+	acquireDelay  time.Duration
+	managedNames  map[string]string
+	catalogModels map[string]string
+	localContexts map[string]struct {
+		window   uint64
+		revision string
+	}
 }
 
 type localModelPrivateCause struct {
@@ -214,6 +219,22 @@ func (f *fakeLocalModelLister) ResolveManagedLlamaModelByCapabilities(preferred 
 	}
 	resolved := strings.TrimSpace(f.managedNames[strings.TrimSpace(preferred)])
 	return resolved, resolved != ""
+}
+
+func (f *fakeLocalModelLister) ResolveCatalogModelIDForLocalAsset(localAssetID string) (string, bool) {
+	if f == nil {
+		return "", false
+	}
+	resolved := strings.TrimSpace(f.catalogModels[strings.TrimSpace(localAssetID)])
+	return resolved, resolved != ""
+}
+
+func (f *fakeLocalModelLister) ResolveLocalTextContextMetadata(_ context.Context, localAssetID string) (uint64, string, bool) {
+	if f == nil {
+		return 0, "", false
+	}
+	resolved, ok := f.localContexts[strings.TrimSpace(localAssetID)]
+	return resolved.window, resolved.revision, ok && resolved.window > 0 && strings.TrimSpace(resolved.revision) != ""
 }
 
 func TestParseLocalModelSelector(t *testing.T) {

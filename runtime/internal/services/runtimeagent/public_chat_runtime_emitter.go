@@ -36,7 +36,7 @@ func (r publicChatRuntime) emitTurnEvent(session publicChatAnchorState, turnID s
 	} else {
 		out["detail"] = detail
 	}
-	callerAppID, subjectUserID := r.turnEventDestination(trimmedTurnID, session.CallerAppID, session.SubjectUserID)
+	subjectUserID := r.turnEventSubject(trimmedTurnID, session.SubjectUserID)
 	if publicChatTerminalTurnEvent(messageType) {
 		// A terminal event is a readiness boundary. Release the Runtime turn
 		// reservation before synchronous delivery so a consumer cannot observe
@@ -46,7 +46,7 @@ func (r publicChatRuntime) emitTurnEvent(session publicChatAnchorState, turnID s
 		// a next turn started inside this callback cannot be overwritten to IDLE.
 		r.releaseTurnReservation(session.ConversationAnchorID, trimmedTurnID, true)
 	}
-	return r.emitEvent(callerAppID, subjectUserID, messageType, out)
+	return r.emitEvent(subjectUserID, messageType, out)
 }
 
 func publicChatTerminalTurnEvent(messageType string) bool {
@@ -87,24 +87,23 @@ func (r publicChatRuntime) emitTurnMessageCommitted(session publicChatAnchorStat
 			"text":       strings.TrimSpace(text),
 		},
 	}
-	callerAppID, subjectUserID := r.turnEventDestination(trimmedTurnID, session.CallerAppID, session.SubjectUserID)
-	return r.emitEvent(callerAppID, subjectUserID, publicChatTurnMessageCommittedType, out)
+	subjectUserID := r.turnEventSubject(trimmedTurnID, session.SubjectUserID)
+	return r.emitEvent(subjectUserID, publicChatTurnMessageCommittedType, out)
 }
 
-func (r publicChatRuntime) turnEventDestination(turnID string, fallbackAppID string, fallbackSubjectUserID string) (string, string) {
+func (r publicChatRuntime) turnEventSubject(turnID string, fallbackSubjectUserID string) string {
 	if r.svc == nil {
-		return strings.TrimSpace(fallbackAppID), strings.TrimSpace(fallbackSubjectUserID)
+		return strings.TrimSpace(fallbackSubjectUserID)
 	}
 	r.svc.chatSurfaceMu.Lock()
 	defer r.svc.chatSurfaceMu.Unlock()
 	turn := r.svc.chatTurns[strings.TrimSpace(turnID)]
 	if turn == nil {
-		return strings.TrimSpace(fallbackAppID), strings.TrimSpace(fallbackSubjectUserID)
+		return strings.TrimSpace(fallbackSubjectUserID)
 	}
-	return firstNonEmpty(strings.TrimSpace(turn.CallerAppID), strings.TrimSpace(fallbackAppID)),
-		firstNonEmpty(strings.TrimSpace(turn.SubjectUserID), strings.TrimSpace(fallbackSubjectUserID))
+	return firstNonEmpty(strings.TrimSpace(turn.SubjectUserID), strings.TrimSpace(fallbackSubjectUserID))
 }
-func (r publicChatRuntime) emitEvent(callerAppID string, subjectUserID string, messageType string, payload map[string]any) error {
+func (r publicChatRuntime) emitEvent(subjectUserID string, messageType string, payload map[string]any) error {
 	if r.svc == nil || r.svc.isClosed() {
 		return nil
 	}
@@ -120,7 +119,7 @@ func (r publicChatRuntime) emitEvent(callerAppID string, subjectUserID string, m
 	}
 	_, err = emitter(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     publicChatRuntimeAppID,
-		ToAppId:       strings.TrimSpace(callerAppID),
+		ToAppId:       "",
 		SubjectUserId: strings.TrimSpace(subjectUserID),
 		MessageType:   strings.TrimSpace(messageType),
 		Payload:       structPayload,

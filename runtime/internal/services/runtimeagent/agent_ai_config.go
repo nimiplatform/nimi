@@ -1,6 +1,7 @@
 package runtimeagent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -231,7 +233,11 @@ func (s *Service) upsertRuntimeAgentAIConfig(ctx *runtimev1.AgentRequestContext,
 	if trimmedAppID == "" {
 		return nil, status.Error(codes.InvalidArgument, "context.app_id is required for runtime agent ai config mutation")
 	}
-	normalized, err := normalizeRuntimeAgentAIConfigIntents(intents)
+	materialized, err := s.materializeBoundVoiceSynthesisTarget(identity, intents)
+	if err != nil {
+		return nil, err
+	}
+	normalized, err := normalizeRuntimeAgentAIConfigIntents(materialized)
 	if err != nil {
 		return nil, err
 	}
@@ -277,6 +283,75 @@ func (s *Service) upsertRuntimeAgentAIConfig(ctx *runtimev1.AgentRequestContext,
 	return cloneRuntimeAgentAIConfig(next), nil
 }
 
+func (s *Service) materializeBoundVoiceSynthesisTarget(
+	identity localAgentIdentity,
+	intents []*runtimev1.RuntimeAgentAIConfigIntent,
+) ([]*runtimev1.RuntimeAgentAIConfigIntent, error) {
+	hasSynthesisIntent := false
+	for _, intent := range intents {
+		if strings.TrimSpace(intent.GetCapability()) == runtimeAgentAIConfigCapabilityAudioSynthesize {
+			hasSynthesisIntent = true
+			break
+		}
+	}
+	if !hasSynthesisIntent {
+		return intents, nil
+	}
+	entry, err := s.agentByID(identity.LocalAgentRef)
+	if err != nil {
+		return nil, err
+	}
+	const voiceAssetPrefix = "voice_asset_id:"
+	defaultVoiceReference := strings.TrimSpace(entry.Agent.GetPresentationProfile().GetDefaultVoiceReference())
+	if !strings.HasPrefix(defaultVoiceReference, voiceAssetPrefix) {
+		return intents, nil
+	}
+	voiceAssetID := strings.TrimSpace(strings.TrimPrefix(defaultVoiceReference, voiceAssetPrefix))
+	asset, err := resolveRuntimeAgentBoundVoiceAsset(
+		context.Background(),
+		s.currentVoiceAssetResolver(),
+		identity.OwnerUserID,
+		voiceAssetID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	targetRef := asset.GetVoiceAssetTargetRef()
+	cloud := targetRef.GetCloud()
+	if cloud == nil {
+		return nil, runtimeAgentVoiceTargetModelMismatchError()
+	}
+	targetProvider := strings.TrimSpace(cloud.GetProvider())
+	targetModel := strings.TrimSpace(cloud.GetProviderModelId())
+	targetConnectorID := strings.TrimSpace(cloud.GetConnectorId())
+	out := make([]*runtimev1.RuntimeAgentAIConfigIntent, len(intents))
+	for index, intent := range intents {
+		out[index] = intent
+		if strings.TrimSpace(intent.GetCapability()) != runtimeAgentAIConfigCapabilityAudioSynthesize {
+			continue
+		}
+		provider := strings.TrimSpace(intent.GetProvider())
+		connectorID := strings.TrimSpace(intent.GetConnectorId())
+		if intent.GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD ||
+			strings.TrimSpace(intent.GetModelId()) != targetModel ||
+			(provider != "" && provider != targetProvider) ||
+			(connectorID != "" && connectorID != targetConnectorID) ||
+			(intent.GetTargetRef() != nil && !proto.Equal(intent.GetTargetRef(), targetRef)) {
+			return nil, runtimeAgentVoiceTargetModelMismatchError()
+		}
+		materialized := proto.Clone(intent).(*runtimev1.RuntimeAgentAIConfigIntent)
+		materialized.Provider = targetProvider
+		materialized.ConnectorId = targetConnectorID
+		materialized.TargetRef = proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef)
+		out[index] = materialized
+	}
+	return out, nil
+}
+
+func runtimeAgentVoiceTargetModelMismatchError() error {
+	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
+}
+
 func runtimeAgentAIConfigRevisionConflictError(expected uint64, committed uint64) error {
 	return grpcerr.WithReasonCodeOptions(
 		codes.Aborted,
@@ -318,7 +393,14 @@ func normalizeRuntimeAgentAIConfigIntents(intents []*runtimev1.RuntimeAgentAICon
 			return nil, status.Errorf(codes.InvalidArgument, "runtime agent ai config intent for %q requires an explicit route_policy", capability)
 		}
 		targetRef := intent.GetTargetRef()
+		if runtimeAgentAIConfigCapabilityRequiresTargetRef(capability) &&
+			(targetRef == nil || targetRef.GetTarget() == nil) {
+			return nil, status.Errorf(codes.InvalidArgument, "runtime agent ai config intent for %q requires target_ref", capability)
+		}
 		if targetRef != nil {
+			if err := runtimeidentity.ValidateDurableTargetRef(targetRef); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "runtime agent ai config intent for %q has invalid target_ref: %v", capability, err)
+			}
 			switch target := targetRef.GetTarget().(type) {
 			case *runtimev1.RuntimeDurableTargetRef_LocalRuntime:
 				if routePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {

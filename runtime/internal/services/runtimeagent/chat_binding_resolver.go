@@ -15,7 +15,7 @@ import (
 
 type publicChatBindingResolverService interface {
 	ResolvePublicChatTextBinding(context.Context, runtimev1.RoutePolicy, string) (runtimev1.RoutePolicy, string, error)
-	ResolvePublicChatTextContextMetadata(context.Context, runtimev1.RoutePolicy, string, *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, error)
+	ResolvePublicChatTextContextMetadataLease(context.Context, runtimev1.RoutePolicy, string, *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, func(), error)
 }
 
 type PublicChatBindingResolutionRequest struct {
@@ -42,6 +42,7 @@ type PublicChatBindingResolution struct {
 	ModelRevision       string
 	ProviderID          string
 	RouteDigest         string
+	Release             func()
 }
 
 type PublicChatBindingResolver interface {
@@ -76,7 +77,7 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 			"runtime_agent_public_chat_route_resolution",
 		)
 	}
-	contextWindow, catalogRevision, modelRevision, providerID, resolvedTargetRef, err := r.ai.ResolvePublicChatTextContextMetadata(
+	contextWindow, catalogRevision, modelRevision, providerID, resolvedTargetRef, release, err := r.ai.ResolvePublicChatTextContextMetadataLease(
 		ctx,
 		routeDecision,
 		modelResolved,
@@ -98,9 +99,13 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 		CatalogRevision:     strings.TrimSpace(catalogRevision),
 		ModelRevision:       strings.TrimSpace(modelRevision),
 		ProviderID:          strings.TrimSpace(providerID),
+		Release:             release,
 	}
 	resolution.RouteDigest = publicChatResolvedRouteDigest(resolution, resolution.TargetRef)
 	if resolution.TargetRef == nil || resolution.TargetRef.GetTarget() == nil || resolution.ContextWindowTokens == 0 || resolution.CatalogRevision == "" || resolution.ModelRevision == "" || resolution.ProviderID == "" || resolution.RouteDigest == "" {
+		if resolution.Release != nil {
+			resolution.Release()
+		}
 		return PublicChatBindingResolution{}, publicChatDiagnosticError(
 			status.Error(codes.FailedPrecondition, "runtime public chat catalog context metadata incomplete"),
 			"runtime_agent_public_chat_context_metadata_incomplete",
@@ -221,10 +226,10 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 	agentInstanceID string,
 	subjectUserID string,
 	req publicChatTurnRequestPayload,
-) (publicChatExecutionBindings, uint64, error) {
+) (publicChatExecutionBindings, uint64, func(), error) {
 	config, err := s.committedRuntimeAgentAIConfigByAgentInstanceID(agentInstanceID)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
 	var textBinding *runtimev1.RuntimeAgentAIConfigIntent
 	var imageBinding *runtimev1.RuntimeAgentAIConfigIntent
@@ -240,10 +245,10 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		}
 	}
 	if textBinding == nil || strings.TrimSpace(textBinding.GetModelId()) == "" {
-		return nil, 0, status.Error(codes.FailedPrecondition, "Runtime Agent AI Config is missing the required text.generate intent (K-AGCORE-147)")
+		return nil, 0, nil, status.Error(codes.FailedPrecondition, "Runtime Agent AI Config is missing the required text.generate intent (K-AGCORE-147)")
 	}
 	if s == nil || !s.HasPublicChatBindingResolver() {
-		return nil, 0, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver unavailable")
+		return nil, 0, nil, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver unavailable")
 	}
 	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
 		Capability:      runtimeAgentAIConfigCapabilityTextGenerate,
@@ -258,17 +263,24 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		TargetRef:       clonePublicChatTargetRef(textBinding.GetTargetRef()),
 	})
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
+	}
+	release := resolved.Release
+	releaseOnFailure := func(err error) (publicChatExecutionBindings, uint64, func(), error) {
+		if release != nil {
+			release()
+		}
+		return nil, 0, nil, err
 	}
 	if strings.TrimSpace(resolved.ModelID) == "" {
-		return nil, 0, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned empty model")
+		return releaseOnFailure(status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned empty model"))
 	}
 	if resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		return nil, 0, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned unspecified route")
+		return releaseOnFailure(status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned unspecified route"))
 	}
 	resolvedTargetRef := firstPublicChatTargetRef(resolved.TargetRef, textBinding.GetTargetRef())
 	if resolvedTargetRef == nil || resolvedTargetRef.GetTarget() == nil || resolved.ContextWindowTokens == 0 || strings.TrimSpace(resolved.CatalogRevision) == "" || strings.TrimSpace(resolved.ModelRevision) == "" || strings.TrimSpace(resolved.ProviderID) == "" || !validSHA256Hex(strings.TrimSpace(resolved.RouteDigest)) {
-		return nil, 0, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned incomplete catalog context metadata")
+		return releaseOnFailure(status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned incomplete catalog context metadata"))
 	}
 	out := publicChatExecutionBindings{
 		runtimeAgentAIConfigCapabilityTextGenerate: {
@@ -290,7 +302,7 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 	if audioBinding != nil {
 		out[runtimeAgentAIConfigCapabilityAudioSynthesize] = runtimeAgentAIConfigIntentToPublicChatBinding(audioBinding)
 	}
-	return out, config.GetRevision(), nil
+	return out, config.GetRevision(), release, nil
 }
 
 func (s *Service) committedOptionalExecutionBinding(agentInstanceID string, capability string) (publicChatExecutionBinding, bool, error) {
@@ -418,6 +430,9 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 	})
 	if err != nil {
 		return publicChatExecutionBinding{}, err
+	}
+	if resolved.Release != nil {
+		defer resolved.Release()
 	}
 	if strings.TrimSpace(resolved.ModelID) == "" {
 		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned empty model")

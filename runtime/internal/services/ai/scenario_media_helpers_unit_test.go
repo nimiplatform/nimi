@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"strings"
@@ -539,7 +540,10 @@ func TestResolveSynthesizeSpeechSpecVoiceRefRejectsExpiredVoiceAsset(t *testing.
 		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED,
 	}
 
-	_, err := svc.resolveSynthesizeSpeechSpecVoiceRef("dashscope/qwen3-tts-vc", &runtimev1.SpeechSynthesizeScenarioSpec{
+	_, err := svc.resolveSynthesizeSpeechSpecVoiceRef(context.Background(), &runtimev1.ScenarioRequestHead{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-1",
+	}, "dashscope/qwen3-tts-vc", &runtimev1.SpeechSynthesizeScenarioSpec{
 		Text: "should not synthesize with expired voice asset",
 		VoiceRef: &runtimev1.VoiceReference{
 			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,

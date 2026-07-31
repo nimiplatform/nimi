@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -116,6 +117,21 @@ func TestPublicChatImageActionSubmitRequestCarriesRuntimeTargetRef(t *testing.T)
 	}
 }
 
+func TestPublicChatImageActionLeavesLocalProfileMaterializationRuntimeOwned(t *testing.T) {
+	t.Parallel()
+	req := buildPublicChatImageActionSubmitRequest(publicChatExecutionBinding{
+		ModelID:     "local-z-image",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	}, nil, "studio portrait of the current local agent", "runtime-agent-image-action:local", time.Second)
+
+	if got := req.GetHead().GetModelId(); got != "local-z-image" {
+		t.Fatalf("local image target = %q, want local-z-image", got)
+	}
+	if len(req.GetExtensions()) != 0 {
+		t.Fatalf("Agent Chat must not fabricate private profile_entries: %+v", req.GetExtensions())
+	}
+}
+
 func publicChatImageActionTurnPayload(t *testing.T, anchorID string) *structpb.Struct {
 	t.Helper()
 	return publicChatStructPayload(t, map[string]any{
@@ -139,6 +155,7 @@ func submitPublicChatImageActionTurn(t *testing.T, svc *Service, anchorID string
 			Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 			ModelId:     "local/image",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef:   publicChatTestLocalRuntimeTargetRef("local-runtime:local/image"),
 		})
 	}
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
@@ -291,12 +308,16 @@ func TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable(t *testi
 	})
 	actionExecutor := &stubPublicChatActionExecutor{}
 	svc.SetPublicChatActionExecutor(actionExecutor)
-	// A committed cloud image binding without a connector is UNAVAILABLE
-	// (connector_missing) in the readiness projection.
+	tracker := providerhealth.New()
+	svc.SetProviderHealthTracker(tracker)
+	if err := tracker.Mark(localImageProviderHealthKey, false, "image backend unavailable"); err != nil {
+		t.Fatalf("tracker.Mark(local-image unavailable): %v", err)
+	}
 	upsertPublicChatTestAgentAIConfig(t, svc, &runtimev1.RuntimeAgentAIConfigIntent{
 		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
-		ModelId:     "openai/gpt-image-1",
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ModelId:     "local/image",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   publicChatTestLocalRuntimeTargetRef("local-runtime:local/image"),
 	})
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,

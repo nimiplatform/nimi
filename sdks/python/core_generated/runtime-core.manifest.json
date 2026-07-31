@@ -20731,6 +20731,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "avatar_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -35770,7 +35777,6 @@
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION",
-          "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE",
@@ -35779,8 +35785,6 @@
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING",
-          "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE",
-          "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY",
           "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE"

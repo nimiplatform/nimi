@@ -738,6 +738,15 @@ export interface LocalAppPermissionAgentHandle {
      * @generated from protobuf field: string display_name = 2
      */
     displayName: string;
+    /**
+     * Nullable display-only metadata. Runtime first uses the admitted canonical
+     * external avatar resource when one is present, and otherwise resolves the
+     * bound Character's WorldPublic media (avatar, portrait, then reference
+     * image). Only a stable HTTPS URI is emitted; otherwise this is empty.
+     *
+     * @generated from protobuf field: string avatar_url = 3
+     */
+    avatarUrl: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppPermissionStatusRequest
@@ -3752,13 +3761,15 @@ class LocalAppPermissionAgentHandle$Type extends MessageType<LocalAppPermissionA
     constructor() {
         super("nimi.runtime.v1.LocalAppPermissionAgentHandle", [
             { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "avatar_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppPermissionAgentHandle>): LocalAppPermissionAgentHandle {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.agentHandle = "";
         message.displayName = "";
+        message.avatarUrl = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppPermissionAgentHandle>(this, message, value);
         return message;
@@ -3773,6 +3784,9 @@ class LocalAppPermissionAgentHandle$Type extends MessageType<LocalAppPermissionA
                     break;
                 case /* string display_name */ 2:
                     message.displayName = reader.string();
+                    break;
+                case /* string avatar_url */ 3:
+                    message.avatarUrl = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3792,6 +3806,9 @@ class LocalAppPermissionAgentHandle$Type extends MessageType<LocalAppPermissionA
         /* string display_name = 2; */
         if (message.displayName !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        /* string avatar_url = 3; */
+        if (message.avatarUrl !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.avatarUrl);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

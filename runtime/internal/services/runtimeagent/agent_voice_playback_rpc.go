@@ -100,7 +100,7 @@ func (s *Service) resolveVoicePlaybackTurnScope(
 }
 
 func (s *Service) resolveVoicePlaybackAnchorScope(
-	callerAppID string,
+	_ string,
 	identity localAgentIdentity,
 	anchorID string,
 ) (publicChatAnchorState, error) {
@@ -109,9 +109,6 @@ func (s *Service) resolveVoicePlaybackAnchorScope(
 	session := s.chatAnchors[anchorID]
 	if session == nil {
 		return publicChatAnchorState{}, status.Error(codes.NotFound, "conversation anchor not found")
-	}
-	if strings.TrimSpace(session.CallerAppID) != callerAppID && !s.avatarLiveInstanceBindingAuthorizesAnchorLocked(callerAppID, anchorID, identity) {
-		return publicChatAnchorState{}, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
 	}
 	if strings.TrimSpace(session.OwnerUserID) != identity.OwnerUserID ||
 		strings.TrimSpace(session.RuntimeSourceRef) != identity.RuntimeSourceRef ||

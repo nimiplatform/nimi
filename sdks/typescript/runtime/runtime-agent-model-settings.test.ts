@@ -6,6 +6,7 @@ import {
   RuntimeAgentAIConfigReadinessState,
   type RuntimeAgentAIConfig,
   type RuntimeAgentAIConfigReadinessSnapshot,
+  type UpsertRuntimeAgentAIConfigRequest,
 } from '../core-generated/runtime-typed-client.js';
 import {
   createNimiRuntimeAgentModelSettingsModule,
@@ -39,6 +40,52 @@ function readiness(revision = '9007199254740993'): RuntimeAgentAIConfigReadiness
       { capability: 'text.generate', state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY, reasonCode: '' },
       { capability: 'text.embed', state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY, reasonCode: '' },
       { capability: 'audio.transcribe', state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED, reasonCode: '' },
+    ],
+  };
+}
+
+function configWithImage(revision: string): RuntimeAgentAIConfig {
+  const base = config(revision);
+  return {
+    ...base,
+    intents: [
+      ...base.intents,
+      {
+        capability: 'image.generate',
+        modelId: 'private-image-asset',
+        routePolicy: RoutePolicy.LOCAL,
+        connectorId: 'runtime-owned-connector',
+        voiceReferenceRef: 'runtime-owned-voice',
+        imagePolicyRef: 'runtime-owned-image-policy',
+        provider: '',
+        targetRef: {
+          target: {
+            oneofKind: 'localRuntime',
+            localRuntime: {
+              version: 'v2',
+              ref: {
+                oneofKind: 'profileBindingId',
+                profileBindingId: 'runtime-owned-profile-binding',
+              },
+            },
+          },
+        },
+      },
+    ],
+  };
+}
+
+function readinessWithImage(revision: string): RuntimeAgentAIConfigReadinessSnapshot {
+  const base = readiness(revision);
+  return {
+    ...base,
+    capabilities: [
+      ...base.capabilities,
+      {
+        capability: 'image.generate',
+        state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY,
+        reasonCode: '',
+      },
     ],
   };
 }
@@ -78,7 +125,7 @@ test('first-party model settings update resolves only after Runtime commit and m
       appId: 'desktop.app',
       auth: {},
       agent: {
-        getRuntimeAgentAIConfig: async () => ({ config: config('1') }),
+        getRuntimeAgentAIConfig: async () => ({ config: configWithImage('9007199254740992') }),
         upsertRuntimeAgentAIConfig: async (request) => { calls.push(request); return commit; },
         getRuntimeAgentAIConfigReadiness: async () => ready,
       },
@@ -94,16 +141,109 @@ test('first-party model settings update resolves only after Runtime commit and m
       { capability: 'text.generate', provider: '', model: 'local/text', routePolicy: 'local' },
       { capability: 'text.embed', provider: '', model: 'local/embed', routePolicy: 'local' },
       { capability: 'audio.transcribe', provider: '', model: 'local/stt', routePolicy: 'local' },
+      { capability: 'image.generate', provider: '', model: 'private-image-asset', routePolicy: 'local' },
     ],
   }).finally(() => { settled = true; });
   await Promise.resolve();
   assert.equal(settled, false);
-  resolveCommit({ config: config() });
+  resolveCommit({ config: configWithImage('9007199254740993') });
   await Promise.resolve();
   await Promise.resolve();
   assert.equal(settled, false);
-  resolveReadiness({ snapshot: readiness() });
+  resolveReadiness({ snapshot: readinessWithImage('9007199254740993') });
   const projection = await pending;
   assert.equal(projection.configurationRevision, '9007199254740993');
-  assert.equal((calls[0] as { expectedRevision?: string }).expectedRevision, '9007199254740992');
+  const request = calls[0] as {
+    expectedRevision?: string;
+    intents?: RuntimeAgentAIConfig['intents'];
+  };
+  assert.equal(request.expectedRevision, '9007199254740992');
+  const image = request.intents?.find((intent) => intent.capability === 'image.generate');
+  assert.equal(image?.connectorId, 'runtime-owned-connector');
+  assert.equal(image?.voiceReferenceRef, 'runtime-owned-voice');
+  assert.equal(image?.imagePolicyRef, 'runtime-owned-image-policy');
+  assert.equal(
+    image?.targetRef?.target.oneofKind === 'localRuntime'
+      ? image.targetRef.target.localRuntime.ref.oneofKind
+      : '',
+    'profileBindingId',
+  );
+});
+
+test('first-party model settings writes the exact selected v2 target for a targetless route', async () => {
+  const current = config('7');
+  current.intents.push({
+    capability: 'image.generate',
+    modelId: 'legacy-private-image-id',
+    routePolicy: RoutePolicy.LOCAL,
+    connectorId: '',
+    voiceReferenceRef: '',
+    imagePolicyRef: '',
+    provider: '',
+  });
+  let committedRequest: UpsertRuntimeAgentAIConfigRequest | null = null;
+  const committed = configWithImage('8');
+  committed.intents[committed.intents.length - 1] = {
+    ...committed.intents[committed.intents.length - 1]!,
+    modelId: 'local.image.z-image-turbo',
+    targetRef: {
+      target: {
+        oneofKind: 'localRuntime',
+        localRuntime: {
+          version: 'v2',
+          ref: {
+            oneofKind: 'profileBindingId',
+            profileBindingId: 'local-runtime:image-local-asset',
+          },
+        },
+      },
+    },
+  };
+  const module = createNimiRuntimeAgentModelSettingsModule({
+    runtime: {
+      appId: 'desktop.app',
+      auth: {},
+      agent: {
+        getRuntimeAgentAIConfig: async () => ({ config: current }),
+        upsertRuntimeAgentAIConfig: async (request) => {
+          committedRequest = request;
+          return { config: committed };
+        },
+        getRuntimeAgentAIConfigReadiness: async () => ({ snapshot: readinessWithImage('8') }),
+      },
+    },
+    getSubjectUserId: () => 'owner-1',
+    withScopes,
+  });
+  await module.update({
+    ...identity,
+    expectedConfigurationRevision: '7',
+    routeIntents: [
+      { capability: 'text.generate', provider: '', model: 'local/text', routePolicy: 'local' },
+      { capability: 'text.embed', provider: '', model: 'local/embed', routePolicy: 'local' },
+      { capability: 'audio.transcribe', provider: '', model: 'local/stt', routePolicy: 'local' },
+      {
+        capability: 'image.generate',
+        provider: '',
+        model: 'local.image.z-image-turbo',
+        routePolicy: 'local',
+        targetRef: {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local-runtime:image-local-asset',
+        },
+      },
+    ],
+  });
+  const request = committedRequest as { intents?: RuntimeAgentAIConfig['intents'] } | null;
+  const image = request?.intents?.find((intent) => intent.capability === 'image.generate');
+  assert.equal(image?.modelId, 'local.image.z-image-turbo');
+  assert.equal(
+    image?.targetRef?.target.oneofKind === 'localRuntime'
+      ? image.targetRef.target.localRuntime.ref.oneofKind === 'profileBindingId'
+        ? image.targetRef.target.localRuntime.ref.profileBindingId
+        : ''
+      : '',
+    'local-runtime:image-local-asset',
+  );
 });

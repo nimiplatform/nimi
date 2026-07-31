@@ -340,7 +340,7 @@ func executeBackendSyncMedia(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		effectiveSpec, err := s.resolveSynthesizeSpeechSpecVoiceRef(modelResolved, spec)
+		effectiveSpec, err := s.resolveSynthesizeSpeechSpecVoiceRef(ctx, req.GetHead(), modelResolved, spec)
 		if err != nil {
 			return nil, nil, "", err
 		}

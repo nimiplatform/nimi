@@ -295,7 +295,11 @@ test('granted account permission projects only branded opaque Agent handles', as
           state: 'granted',
           canRequest: false,
           reasonCode: 'ACTION_EXECUTED',
-          agents: [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent' }],
+          agents: [{
+            agentHandle: 'opaque-runtime-handle',
+            displayName: 'Owned Agent',
+            avatarUrl: 'https://assets.example.test/owned-agent.png',
+          }],
         }),
         request: async () => ({}),
       },
@@ -305,7 +309,11 @@ test('granted account permission projects only branded opaque Agent handles', as
     permissionId: 'agents.interact',
     posture: 'granted',
     canRequest: false,
-    agents: [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent' }],
+    agents: [{
+      agentHandle: 'opaque-runtime-handle',
+      displayName: 'Owned Agent',
+      avatarUrl: 'https://assets.example.test/owned-agent.png',
+    }],
     detail: 'ACTION_EXECUTED',
   });
 });
@@ -331,11 +339,12 @@ test('granted account permission accepts zero current Agents', async () => {
 test('permission projection rejects duplicate, malformed, or non-granted Agent handles', async () => {
   const invalidAgents = [
     [
-      { agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent' },
-      { agentHandle: 'opaque-runtime-handle', displayName: 'Other Agent' },
+      { agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent', avatarUrl: null },
+      { agentHandle: 'opaque-runtime-handle', displayName: 'Other Agent', avatarUrl: null },
     ],
-    [{ agentHandle: ' opaque-runtime-handle', displayName: 'Owned Agent' }],
-    [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent', selectorHandle: 'legacy' }],
+    [{ agentHandle: ' opaque-runtime-handle', displayName: 'Owned Agent', avatarUrl: null }],
+    [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent', avatarUrl: null, selectorHandle: 'legacy' }],
+    [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent', avatarUrl: 'http://assets.example.test/owned-agent.png' }],
   ];
   for (const agents of invalidAgents) {
     const client = createLocalAppClient({
@@ -365,7 +374,7 @@ test('permission projection rejects duplicate, malformed, or non-granted Agent h
           state: 'denied',
           canRequest: true,
           reasonCode: 'PERMISSION_DENIED',
-          agents: [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent' }],
+          agents: [{ agentHandle: 'opaque-runtime-handle', displayName: 'Owned Agent', avatarUrl: null }],
         }),
         request: async () => ({}),
       },
@@ -461,7 +470,7 @@ test('conversation namespace preserves opaque Agent handles and reserved typed f
     }),
   });
   const operations = [
-    () => client.conversation.open({ agentHandle: handle, disposition: 'create-new' }),
+    () => client.conversation.open({ agentHandle: handle }),
     () => client.conversation.send({
       agentHandle: handle,
       conversationAnchorId: 'anchor-1',
@@ -479,6 +488,7 @@ test('conversation namespace preserves opaque Agent handles and reserved typed f
     );
   }
   assert.equal(JSON.stringify(calls).includes('localAgentId'), false);
+  assert.deepEqual(calls[0], { agentHandle: handle });
   assert.equal(calls.length, 5);
 });
 
@@ -512,7 +522,7 @@ test('conversation subscription validates events and cancels exactly once', asyn
       },
     }),
   });
-  assert.deepEqual(await client.conversation.open({ agentHandle: handle, disposition: 'create-new' }), {
+  assert.deepEqual(await client.conversation.open({ agentHandle: handle }), {
     conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null,
   });
   assert.deepEqual(await client.conversation.interruptTurn({

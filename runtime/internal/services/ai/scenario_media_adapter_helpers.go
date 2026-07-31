@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -620,6 +622,8 @@ func resolveScenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) strin
 }
 
 func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
 	modelResolved string,
 	spec *runtimev1.SpeechSynthesizeScenarioSpec,
 ) (*runtimev1.SpeechSynthesizeScenarioSpec, error) {
@@ -643,6 +647,27 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
 	}
 	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	}
+	if head == nil ||
+		strings.TrimSpace(head.GetAppId()) != strings.TrimSpace(asset.GetAppId()) ||
+		strings.TrimSpace(head.GetSubjectUserId()) != strings.TrimSpace(asset.GetSubjectUserId()) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+	}
+	if identity := authn.IdentityFromContext(ctx); identity != nil &&
+		strings.TrimSpace(identity.SubjectUserID) != strings.TrimSpace(asset.GetSubjectUserId()) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+	}
+	if callerAppID := voiceAssetCallerAppID(ctx); callerAppID != "" &&
+		callerAppID != strings.TrimSpace(asset.GetAppId()) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+	}
+	assetTargetRef := asset.GetVoiceAssetTargetRef()
+	if assetTargetRef == nil || !proto.Equal(head.GetTargetRef(), assetTargetRef) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
+	}
+	if cloud := assetTargetRef.GetCloud(); cloud != nil &&
+		strings.TrimSpace(head.GetConnectorId()) != strings.TrimSpace(cloud.GetConnectorId()) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}
 	if targetModelID := normalizeVoiceWorkflowProviderModelID(asset.GetTargetModelId(), asset.GetProvider()); targetModelID != "" && strings.TrimSpace(modelResolved) != "" && !strings.EqualFold(targetModelID, normalizeVoiceWorkflowProviderModelID(modelResolved, asset.GetProvider())) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)

@@ -1950,11 +1950,12 @@ export interface AgentVoiceStreamEvent {
     replayTruncated: boolean;
 }
 /**
- * K-AGCORE-034 ConversationAnchor boundary: runtime-owned continuity anchor.
- * `conversation_anchor_id` is the only admitted cross-surface continuity
- * scope; `agent_id` is agent identity only. `turn_id` and `message_id` are
- * anchor-scoped. `subject_user_id` is explicit runtime truth at anchor-open
- * time; hosts must not infer anchor continuity from agent identity.
+ * ConversationAnchor is Runtime's continuity token for the one conversation
+ * transcript owned by a LocalAgent. The first authorized open creates it and
+ * every later authorized Desktop, local-app, or Avatar surface resolves the
+ * same anchor; App, principal, and surface identity never partition it.
+ * `turn_id` and `message_id` are scoped to that shared conversation, and
+ * `subject_user_id` equals the LocalAgent owner established by Runtime.
  *
  * @generated from protobuf message nimi.runtime.v1.ConversationAnchor
  */

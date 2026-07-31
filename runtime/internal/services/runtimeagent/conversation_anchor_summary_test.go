@@ -15,9 +15,14 @@ func TestListAgentConversationSummariesProjectsRuntimeOwnedAnchorsAcrossApps(t *
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	oldAnchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	newAnchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	if desktopAgain := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1"); desktopAgain != anchorID {
+		t.Fatalf("repeated desktop open resolved %q, want %q", desktopAgain, anchorID)
+	}
 	otherAppAnchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "web.app", "user-1")
+	if otherAppAnchorID != anchorID {
+		t.Fatalf("cross-app open resolved %q, want %q", otherAppAnchorID, anchorID)
+	}
 	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext("agent-beta")}); err != nil {
 		t.Fatalf("RealmSourceMaterialization beta: %v", err)
 	}
@@ -35,15 +40,11 @@ func TestListAgentConversationSummariesProjectsRuntimeOwnedAnchorsAcrossApps(t *
 		t.Fatalf("persist test source status: %v", err)
 	}
 
-	oldUpdatedAt := time.Date(2026, 4, 24, 10, 0, 0, 0, time.UTC)
 	newUpdatedAt := time.Date(2026, 4, 25, 10, 0, 0, 0, time.UTC)
 	svc.chatSurfaceMu.Lock()
-	svc.chatAnchors[oldAnchorID].CommittedTranscript = testPublicChatCommittedTranscript([2]string{"Older prompt from runtime owned transcript", "Older assistant reply"})
-	svc.chatAnchors[oldAnchorID].LastMessageID = "message-old"
-	svc.chatAnchors[oldAnchorID].UpdatedAt = oldUpdatedAt
-	svc.chatAnchors[newAnchorID].CommittedTranscript = testPublicChatCommittedTranscript([2]string{"Newer prompt from runtime owned transcript", "Newer assistant reply"})
-	svc.chatAnchors[newAnchorID].LastMessageID = "message-new"
-	svc.chatAnchors[newAnchorID].LastTurnSnapshot = &publicChatTurnProjectionState{
+	svc.chatAnchors[anchorID].CommittedTranscript = testPublicChatCommittedTranscript([2]string{"Other app prompt", "Other app assistant"})
+	svc.chatAnchors[anchorID].LastMessageID = ""
+	svc.chatAnchors[anchorID].LastTurnSnapshot = &publicChatTurnProjectionState{
 		TurnID: "turn-new",
 		ContextSummary: &runtimev1.AgentTurnContextSummary{
 			SchemaVersion:       runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
@@ -56,9 +57,7 @@ func TestListAgentConversationSummariesProjectsRuntimeOwnedAnchorsAcrossApps(t *
 			TranscriptTurnCount: 1,
 		},
 	}
-	svc.chatAnchors[newAnchorID].UpdatedAt = newUpdatedAt
-	svc.chatAnchors[otherAppAnchorID].CommittedTranscript = testPublicChatCommittedTranscript([2]string{"Other app prompt", "Other app assistant"})
-	svc.chatAnchors[otherAppAnchorID].UpdatedAt = newUpdatedAt.Add(time.Hour)
+	svc.chatAnchors[anchorID].UpdatedAt = newUpdatedAt.Add(time.Hour)
 	svc.chatSurfaceMu.Unlock()
 
 	ctx := testLocalAgentContext("user-1", "agent-alpha")
@@ -91,46 +90,14 @@ func TestListAgentConversationSummariesProjectsRuntimeOwnedAnchorsAcrossApps(t *
 	if first.GetUpdatedAt().AsTime() != newUpdatedAt.Add(time.Hour) {
 		t.Fatalf("unexpected updated_at: got %s want %s", first.GetUpdatedAt().AsTime(), newUpdatedAt.Add(time.Hour))
 	}
-	if resp.GetNextPageToken() != "1" {
-		t.Fatalf("expected next page token 1, got %q", resp.GetNextPageToken())
+	if first.GetLastTurnContextSummary().GetContextContentHash() != strings.Repeat("a", 64) || first.GetLastTurnContextSummary().GetTranscriptTurnCount() != 1 {
+		t.Fatalf("expected bounded last turn context summary, got %+v", first.GetLastTurnContextSummary())
 	}
-
-	nextResp, err := svc.ListAgentConversationSummaries(context.Background(), &runtimev1.ListAgentConversationSummariesRequest{
-		Context:   ctx,
-		AgentId:   ctx.GetLocalAgentRef(),
-		PageSize:  1,
-		PageToken: resp.GetNextPageToken(),
-	})
-	if err != nil {
-		t.Fatalf("ListAgentConversationSummaries page 2: %v", err)
+	if !first.GetSourceContextStatus().GetReady() {
+		t.Fatalf("expected bounded source status, got %+v", first.GetSourceContextStatus())
 	}
-	if got := len(nextResp.GetSummaries()); got != 1 {
-		t.Fatalf("expected one second-page summary, got %d", got)
-	}
-	second := nextResp.GetSummaries()[0]
-	if got := second.GetAnchor().GetConversationAnchorId(); got != newAnchorID {
-		t.Fatalf("expected next newest anchor on second page, got %q", got)
-	}
-	if second.GetLastTurnContextSummary().GetContextContentHash() != strings.Repeat("a", 64) || second.GetLastTurnContextSummary().GetTranscriptTurnCount() != 1 {
-		t.Fatalf("expected bounded last turn context summary, got %+v", second.GetLastTurnContextSummary())
-	}
-	if !second.GetSourceContextStatus().GetReady() {
-		t.Fatalf("expected bounded source status, got %+v", second.GetSourceContextStatus())
-	}
-	if nextResp.GetNextPageToken() != "2" {
-		t.Fatalf("expected third-page token 2, got %q", nextResp.GetNextPageToken())
-	}
-	lastResp, err := svc.ListAgentConversationSummaries(context.Background(), &runtimev1.ListAgentConversationSummariesRequest{
-		Context: ctx, AgentId: ctx.GetLocalAgentRef(), PageSize: 1, PageToken: nextResp.GetNextPageToken(),
-	})
-	if err != nil {
-		t.Fatalf("ListAgentConversationSummaries page 3: %v", err)
-	}
-	if got := lastResp.GetSummaries()[0].GetAnchor().GetConversationAnchorId(); got != oldAnchorID {
-		t.Fatalf("expected oldest anchor on third page, got %q", got)
-	}
-	if lastResp.GetNextPageToken() != "" {
-		t.Fatalf("expected final page to omit token, got %q", lastResp.GetNextPageToken())
+	if resp.GetNextPageToken() != "" {
+		t.Fatalf("singleton conversation summary must not have another page, got %q", resp.GetNextPageToken())
 	}
 }
 

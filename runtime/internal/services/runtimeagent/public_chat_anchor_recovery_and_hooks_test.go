@@ -90,11 +90,12 @@ func TestConversationAnchorMetadataCommittedAndRecovered(t *testing.T) {
 	}
 }
 
-func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
+func TestPublicChatLegacyMultiAnchorFailsClosedAndDifferentAgentIsolation(t *testing.T) {
 	t.Parallel()
 
 	localStatePath := t.TempDir() + "/local-state.json"
 	svc, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
+	defer closeFirst()
 	var err error
 
 	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
@@ -104,7 +105,10 @@ func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	}
 
 	anchorA1 := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	anchorA2 := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorA2 := addLegacyPublicChatTestAnchor(
+		t, svc, anchorA1, "agent_anchor_legacy_older", time.Now().UTC().Add(-time.Hour),
+		testPublicChatCommittedTranscript([2]string{"legacy prompt", "legacy reply"}),
+	)
 	anchorB1 := openPublicChatTestAnchor(t, svc, "agent-beta", "desktop.app", "user-1")
 
 	capture := newPublicChatEmitCapture()
@@ -257,66 +261,45 @@ func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
 		t.Fatalf("expected anchor B1 last turn text reply-2, got=%v", publicChatLastTurnSnapshot(t, anchorB1Snap))
 	}
 
-	closeFirst()
+	if err := svc.loadPublicChatSurfaceStateFromDB(); err == nil ||
+		!strings.Contains(err.Error(), "explicit offline repair") {
+		t.Fatalf("legacy duplicate durable anchors must fail closed without startup migration, got %v", err)
+	}
+	if got := svc.chatAnchors[anchorA2]; got == nil ||
+		got.Status != runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE ||
+		len(got.CommittedTranscript) != 1 {
+		t.Fatalf("failed duplicate load mutated the legacy anchor: %+v", got)
+	}
+	if got := svc.chatAnchors[anchorB1]; got == nil || got.LastMessageID != "message-pack4-2" {
+		t.Fatalf("failed duplicate load mutated the different-agent anchor: %+v", got)
+	}
+}
 
-	recoveredSvc, closeRecovered := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
-	defer closeRecovered()
-	recoveredCapture := newPublicChatEmitCapture()
-	recoveredSvc.SetPublicChatAppEmitter(recoveredCapture.emit)
-
-	recoveredA1, err := recoveredSvc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
-		ConversationAnchorId: anchorA1,
-	})
-	if err != nil {
-		t.Fatalf("GetConversationAnchorSnapshot(recovered A1): %v", err)
+func addLegacyPublicChatTestAnchor(t *testing.T, svc *Service, sourceAnchorID string, legacyAnchorID string, updatedAt time.Time, transcript []publicChatCommittedTranscriptTurn) string {
+	t.Helper()
+	svc.chatSurfaceMu.Lock()
+	legacy := clonePublicChatAnchorState(svc.chatAnchors[sourceAnchorID])
+	if legacy == nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatalf("source anchor %q not found", sourceAnchorID)
 	}
-	if got := recoveredA1.GetSnapshot().GetAnchor().GetLastTurnId(); got != activeTurnID {
-		t.Fatalf("expected recovered last_turn_id=%s, got %s", activeTurnID, got)
-	}
-	if got := recoveredA1.GetSnapshot().GetAnchor().GetLastMessageId(); got != "message-pack4-1" {
-		t.Fatalf("expected recovered last_message_id=message-pack4-1, got %s", got)
-	}
-	if got := recoveredA1.GetSnapshot().GetActiveTurnId(); got != "" {
-		t.Fatalf("expected no active turn after restart, got %s", got)
-	}
-	if got := recoveredA1.GetSnapshot().GetActiveStreamId(); got != "" {
-		t.Fatalf("expected no active stream after restart, got %s", got)
-	}
-
-	recoveredA2, err := recoveredSvc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
-		ConversationAnchorId: anchorA2,
-	})
-	if err != nil {
-		t.Fatalf("GetConversationAnchorSnapshot(recovered A2): %v", err)
-	}
-	if got := recoveredA2.GetSnapshot().GetAnchor().GetLastTurnId(); got != "" {
-		t.Fatalf("expected untouched anchor A2 to remain empty after restart, got %s", got)
-	}
-
-	recoveredB1, err := recoveredSvc.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
-		Context:              testRuntimeAgentIdentityContext("agent-beta"),
-		AgentId:              testRuntimeAgentLocalRef("agent-beta"),
-		ConversationAnchorId: anchorB1,
-	})
-	if err != nil {
-		t.Fatalf("GetConversationAnchorSnapshot(recovered B1): %v", err)
-	}
-	if got := recoveredB1.GetSnapshot().GetAnchor().GetLastMessageId(); got != "message-pack4-2" {
-		t.Fatalf("expected recovered B1 last_message_id=message-pack4-2, got %s", got)
-	}
-
-	recoveredSession := requestPublicChatSessionSnapshot(t, recoveredSvc, recoveredCapture, anchorA1, "snapshot-pack4-recovered-a1")
-	recoveredLastTurn := publicChatLastTurnSnapshot(t, recoveredSession)
-	if got := recoveredLastTurn["message_id"]; got != "message-pack4-1" {
-		t.Fatalf("expected recovered session snapshot message_id=message-pack4-1, got=%v", recoveredLastTurn)
-	}
-	if got := recoveredLastTurn["text"]; got != "reply-1" {
-		t.Fatalf("expected recovered session snapshot text=reply-1, got=%v", recoveredLastTurn)
-	}
+	legacy.ConversationAnchorID = legacyAnchorID
+	legacy.ThreadID = "agent_thread_" + legacyAnchorID
+	legacy.ActiveTurnID = ""
+	legacy.ActiveTurnSnapshot = nil
+	legacy.LastTurnID = ""
+	legacy.LastMessageID = ""
+	legacy.LastTurnSnapshot = nil
+	legacy.CompletedTurnSnapshots = nil
+	legacy.PendingFollowUpID = ""
+	legacy.Status = runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE
+	legacy.CreatedAt = updatedAt.Add(-time.Minute)
+	legacy.UpdatedAt = updatedAt
+	legacy.CommittedTranscript = clonePublicChatCommittedTranscript(transcript)
+	svc.chatAnchors[legacyAnchorID] = legacy
+	svc.chatSurfaceMu.Unlock()
+	svc.persistCurrentPublicChatSurfaceState()
+	return legacyAnchorID
 }
 
 func TestPublicChatInterruptIsolationRejectsWrongAnchor(t *testing.T) {
@@ -324,7 +307,7 @@ func TestPublicChatInterruptIsolationRejectsWrongAnchor(t *testing.T) {
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorA1 := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	anchorA2 := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorA2 := addLegacyPublicChatTestAnchor(t, svc, anchorA1, "agent_anchor_legacy_interrupt", time.Now().UTC().Add(-time.Hour), nil)
 	capture := newPublicChatEmitCapture()
 	var err error
 	svc.SetPublicChatAppEmitter(capture.emit)
@@ -379,7 +362,7 @@ func TestPublicChatInterruptIsolationRejectsWrongAnchor(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"conversation_anchor_id": anchorA2,
 			"turn_id":                turnID,
-			"reason":                 "wrong_anchor",
+			"reason":                 "user_cancel",
 		}),
 	})
 	if status.Code(err) != codes.NotFound {

@@ -97,7 +97,6 @@ const BOUNDED_SOURCE_REF = {
 const CHARACTER_READY_COVERAGE = [
   AgentLocalSourceCoverageSection.IDENTITY,
   AgentLocalSourceCoverageSection.PRESENTATION,
-  AgentLocalSourceCoverageSection.PLACEMENT,
   AgentLocalSourceCoverageSection.BIOGRAPHY,
   AgentLocalSourceCoverageSection.PSYCHOLOGY,
   AgentLocalSourceCoverageSection.KNOWLEDGE,
@@ -114,11 +113,14 @@ const CHARACTER_READY_COVERAGE = [
 const PERSONA_READY_COVERAGE = [
   AgentLocalSourceCoverageSection.IDENTITY,
   AgentLocalSourceCoverageSection.PRESENTATION,
+  AgentLocalSourceCoverageSection.BIOGRAPHY,
+  AgentLocalSourceCoverageSection.PSYCHOLOGY,
+  AgentLocalSourceCoverageSection.KNOWLEDGE,
+  AgentLocalSourceCoverageSection.RELATIONSHIPS,
+  AgentLocalSourceCoverageSection.CAPABILITIES,
   AgentLocalSourceCoverageSection.INTERACTION_PROFILE,
   AgentLocalSourceCoverageSection.ASSETS,
   AgentLocalSourceCoverageSection.AUTHORING,
-  AgentLocalSourceCoverageSection.PERSONA_STYLE,
-  AgentLocalSourceCoverageSection.CONTENT_PROFILE,
   AgentLocalSourceCoverageSection.WORLD_CORE,
   AgentLocalSourceCoverageSection.DEPENDENCY_CLOSURE,
 ] as const;
@@ -230,7 +232,6 @@ test('bounded source projection decodes proto and strict protojson without field
     coverage_sections: [
       'IDENTITY',
       'PRESENTATION',
-      'PLACEMENT',
       'BIOGRAPHY',
       'PSYCHOLOGY',
       'KNOWLEDGE',
@@ -273,8 +274,8 @@ test('bounded source projection requires current source-kind baseline coverage',
     sourceSchemaVersion: 'realm.persona-character-core/v1',
     coverageSections: completeCoverage(PERSONA_READY_COVERAGE),
   };
-  assert.equal(decodeNimiRuntimeAgentSourceContextStatus(character).coverageSections.length, 14);
-  assert.equal(decodeNimiRuntimeAgentSourceContextStatus(persona).coverageSections.length, 9);
+  assert.equal(decodeNimiRuntimeAgentSourceContextStatus(character).coverageSections.length, 13);
+  assert.equal(decodeNimiRuntimeAgentSourceContextStatus(persona).coverageSections.length, 12);
   assert.throws(() => decodeNimiRuntimeAgentSourceContextStatus({
     ...character,
     coverageSections: character.coverageSections.slice(0, -1),
@@ -289,6 +290,32 @@ test('bounded source projection requires current source-kind baseline coverage',
       ? { ...entry, state: AgentLocalSourceCoverageState.OPTIONAL_OMITTED, requiredCount: 0, resolvedCount: 0, omittedCount: 1 }
       : entry),
   }).sourceRef.kind, 'personaCharacter');
+});
+
+test('bounded source projection rejects retired CharacterProfile coverage roots', () => {
+  const status = boundedSourceStatus();
+  for (const section of [
+    3,
+    12,
+    13,
+    'AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT',
+    'AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE',
+    'AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE',
+  ]) {
+    assert.throws(() => decodeNimiRuntimeAgentSourceContextStatus({
+      ...status,
+      coverageSections: [
+        ...status.coverageSections,
+        {
+          section,
+          state: AgentLocalSourceCoverageState.COMPLETE,
+          requiredCount: 1,
+          resolvedCount: 1,
+          omittedCount: 0,
+        },
+      ],
+    }), /unknown or unspecified/u);
+  }
 });
 
 test('bounded source projection preserves omitted optional dependencies in complete coverage', () => {

@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
@@ -58,6 +59,8 @@ type voiceLipsyncSynthesisInput struct {
 	SpeechRoutePolicy     runtimev1.RoutePolicy
 	SpeechConnectorID     string
 	SpeechTargetRef       *runtimev1.RuntimeDurableTargetRef
+	SpeechAppID           string
+	OwnerUserID           string
 	AgentID               string
 	IdempotencyKey        string
 }
@@ -218,11 +221,13 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	}
 	ctx, cancel := context.WithTimeout(ctx, waitTimeout)
 	defer cancel()
-	ctx = runtimeAgentVoiceSynthesisContext(ctx)
+	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)
+	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
+	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
 	submitResp, err := s.ai.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         runtimeAgentVoiceSynthesisAppID,
-			SubjectUserId: runtimeAgentVoiceSynthesisSubjectID,
+			AppId:         speechAppID,
+			SubjectUserId: ownerUserID,
 			ModelId:       modelID,
 			RoutePolicy:   routePolicy,
 			ConnectorId:   strings.TrimSpace(input.SpeechConnectorID),
@@ -451,7 +456,21 @@ func firstVoiceSynthesisArtifact(artifacts []*runtimev1.ScenarioArtifact) *runti
 	return nil
 }
 
-func runtimeAgentVoiceSynthesisContext(parent context.Context) context.Context {
+func runtimeAgentVoiceSynthesisAppIDForInput(input voiceLipsyncSynthesisInput) string {
+	if appID := strings.TrimSpace(input.SpeechAppID); appID != "" {
+		return appID
+	}
+	return runtimeAgentVoiceSynthesisAppID
+}
+
+func runtimeAgentVoiceSynthesisOwnerForInput(input voiceLipsyncSynthesisInput) string {
+	if ownerUserID := strings.TrimSpace(input.OwnerUserID); ownerUserID != "" {
+		return ownerUserID
+	}
+	return runtimeAgentVoiceSynthesisSubjectID
+}
+
+func runtimeAgentVoiceSynthesisContext(parent context.Context, appID string, ownerUserID string) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -460,8 +479,17 @@ func runtimeAgentVoiceSynthesisContext(parent context.Context) context.Context {
 	if next == nil {
 		next = metadata.MD{}
 	}
-	next.Set("x-nimi-app-id", runtimeAgentVoiceSynthesisAppID)
-	return metadata.NewIncomingContext(parent, next)
+	appID = strings.TrimSpace(appID)
+	if appID == "" {
+		appID = runtimeAgentVoiceSynthesisAppID
+	}
+	next.Set("x-nimi-app-id", appID)
+	ctx := metadata.NewIncomingContext(parent, next)
+	ownerUserID = strings.TrimSpace(ownerUserID)
+	if ownerUserID != "" && ownerUserID != runtimeAgentVoiceSynthesisSubjectID {
+		ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: ownerUserID})
+	}
+	return ctx
 }
 
 // buildSyntheticLipsyncFrames returns deterministic mouth-open frames whose

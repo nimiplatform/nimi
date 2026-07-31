@@ -30,6 +30,11 @@ const (
 // for the local engine family (see daemon_audit.go Mark("local", ...)).
 const localProviderHealthKey = "local"
 
+// localImageProviderHealthKey is the providerhealth.Tracker key owned by the
+// daemon-managed native image backend. image.generate must not inherit llama's
+// "local" reachability state.
+const localImageProviderHealthKey = "local-image"
+
 // SetProviderHealthTracker wires the runtime provider health tracker into the
 // Runtime Agent AI Config readiness prober and subscribes to health change
 // evidence so projections recompute on every provider health transition
@@ -216,7 +221,11 @@ func (s *Service) evaluateRuntimeAgentAIConfigCapabilityReadiness(intent *runtim
 	tracker := s.providerHealthTracker()
 	switch intent.GetRoutePolicy() {
 	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
-		if tracker != nil && tracker.SnapshotOf(localProviderHealthKey).State == providerhealth.StateUnhealthy {
+		healthKey := localProviderHealthKey
+		if capability == runtimeAgentAIConfigCapabilityImageGenerate {
+			healthKey = localImageProviderHealthKey
+		}
+		if tracker != nil && tracker.SnapshotOf(healthKey).State == providerhealth.StateUnhealthy {
 			return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, routeUnavailableReadinessReason(capability)
 		}
 		return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY, ""
@@ -241,7 +250,8 @@ func (s *Service) evaluateRuntimeAgentAIConfigCapabilityReadiness(intent *runtim
 }
 
 func runtimeAgentAIConfigCapabilityRequiresTargetRef(capability string) bool {
-	return capability == runtimeAgentAIConfigCapabilityAudioSynthesize
+	return capability == runtimeAgentAIConfigCapabilityImageGenerate ||
+		capability == runtimeAgentAIConfigCapabilityAudioSynthesize
 }
 
 func isRuntimeAgentAIConfigVoiceWorkflowCapability(capability string) bool {

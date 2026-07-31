@@ -23,6 +23,7 @@ import {
 function localAssetRecord(overrides: Partial<{
   localAssetId: string;
   assetId: string;
+  logicalModelId: string;
   kind: LocalAssetKind;
   engine: string;
   endpoint: string;
@@ -45,7 +46,7 @@ function localAssetRecord(overrides: Partial<{
     updatedAt: overrides.updatedAt ?? '',
     healthDetail: '',
     capabilities: overrides.capabilities ?? ['text.generate'],
-    logicalModelId: '',
+    logicalModelId: overrides.logicalModelId ?? '',
     family: '',
     artifactRoles: overrides.artifactRoles ?? [],
     preferredEngine: '',
@@ -128,6 +129,29 @@ test('Runtime host route options snapshot revision changes when local Runtime in
   });
 
   assert.notEqual(second.snapshotRevision, first.snapshotRevision);
+});
+
+test('Runtime host route options use logical model identity while retaining the v2 local target', () => {
+  const snapshot = buildNimiRuntimeRouteOptionsProjection({
+    capability: 'image.generate',
+    connectors: [],
+    runtimeLocalModels: [localAssetRecord({
+      localAssetId: 'private-image-local-asset',
+      assetId: 'private-image-asset',
+      logicalModelId: 'local.image.z-image-turbo',
+      kind: LocalAssetKind.IMAGE,
+      engine: 'stable-diffusion.cpp',
+      capabilities: ['image.generate'],
+    })],
+  });
+  const target = snapshot.inventory.targets[0];
+  assert.equal(target?.display.model, 'local.image.z-image-turbo');
+  assert.equal(target?.evidence.resolvedModelId, 'local.image.z-image-turbo');
+  assert.deepEqual(target?.targetRef, {
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: 'local-runtime:private-image-local-asset',
+  });
 });
 
 test('Runtime host route options project generated Runtime enums to SDK route strings', async () => {

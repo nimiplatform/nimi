@@ -200,7 +200,10 @@ func TestAdmittedLocalAppPermissionManagementGrantUseAndRevoke(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	fixture.service.permissionAdmitted = func(id string) bool { return id == "agents.interact" }
 	fixture.service.auditStore = auditlog.New(32, 32)
-	fixture.service.SetLocalAgentOwnershipResolver(localAgentOwnershipFixture{accountID: "acct-1", agentID: "agent-owned"})
+	avatarURL := "https://assets.example.test/owned-agent.png"
+	fixture.service.SetLocalAgentOwnershipResolver(localAgentOwnershipFixture{
+		accountID: "acct-1", agentID: "agent-owned", avatarURL: &avatarURL,
+	})
 	fixture.resolver.binding.Capabilities = []string{"agents.interact"}
 
 	requested, err := fixture.service.RequestLocalAppPermission(permissionRequestContext("test-local_app_permissions_test-8"), &runtimev1.RequestLocalAppPermissionRequest{PermissionId: "agents.interact", Reason: "Open a conversation"})
@@ -219,7 +222,8 @@ func TestAdmittedLocalAppPermissionManagementGrantUseAndRevoke(t *testing.T) {
 		len(statusResponse.GetProjection().GetAgents()) != 1 ||
 		statusResponse.GetProjection().GetAgents()[0].GetAgentHandle() == "" ||
 		statusResponse.GetProjection().GetAgents()[0].GetAgentHandle() == "agent-owned" ||
-		statusResponse.GetProjection().GetAgents()[0].GetDisplayName() != "Owned Agent" {
+		statusResponse.GetProjection().GetAgents()[0].GetDisplayName() != "Owned Agent" ||
+		statusResponse.GetProjection().GetAgents()[0].GetAvatarUrl() != avatarURL {
 		t.Fatalf("granted status = (%+v, %v)", statusResponse, err)
 	}
 	agentHandle := statusResponse.GetProjection().GetAgents()[0].GetAgentHandle()

@@ -114,6 +114,61 @@ func TestLocalAppSubscriptionRevalidatesAuthorityBeforeEveryDeliveredEvent(t *te
 	}
 }
 
+func TestLocalAppSubscriptionContinuesAcrossTechnicalSessionRotation(t *testing.T) {
+	initial := accountservice.LocalAppCallerDecision{
+		SessionID: accountServiceIdentifier(0x91), AppID: "nimi.zhiyu", AccountID: "account-a",
+		LocalAppPrincipalID: "principal-a", LocalAppRecordID: "record-a", LocalAgentID: "agent-a",
+		Operation: accountservice.LocalAppOperationSubscribeConversation,
+	}
+	rotated := initial
+	rotated.SessionID = accountServiceIdentifier(0x92)
+	svc := newTestService(
+		WithLocalAppConversationScopeValidator(localAppConversationScopeAcceptAll{}),
+		WithLocalAppOperationAuthorizer(localAppSubscriptionAuthorizer{decision: rotated}),
+	)
+	baseContext := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), initial)
+	streamContext, cancel := context.WithCancel(baseContext)
+	defer cancel()
+	stream := &appMessageStreamCollector{ctx: streamContext}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
+			FromAppIds: []string{"runtime.agent"}, LocalAgentRef: "agent-a", ConversationAnchorId: "anchor-a",
+		}, stream)
+	}()
+
+	deadline := time.Now().Add(time.Second)
+	for {
+		svc.mu.RLock()
+		ready := len(svc.subscribers) == 1
+		svc.mu.RUnlock()
+		if ready {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("local-app subscriber was not registered")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	svc.publish(&runtimev1.AppMessageEvent{
+		FromAppId: "runtime.agent", ToAppId: initial.AppID, SubjectUserId: initial.AccountID,
+		MessageType: "runtime.agent.turn.started",
+	})
+	if !waitForAppEvents(stream, 1, time.Second) {
+		t.Fatal("technical session rotation interrupted an otherwise authorized local-app subscription")
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("subscription returned an error after cancellation: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("subscription did not exit after cancellation")
+	}
+}
+
 func accountServiceIdentifier(seed byte) [32]byte {
 	var value [32]byte
 	for index := range value {

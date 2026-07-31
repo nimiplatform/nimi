@@ -220,7 +220,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		TimingMode:       spec.GetTimingMode(),
 		VoiceRenderHints: spec.GetVoiceRenderHints(),
 	}
-	effectiveSpeechSpec, err := s.resolveSynthesizeSpeechSpecVoiceRef(modelResolved, speechSpec)
+	effectiveSpeechSpec, err := s.resolveSynthesizeSpeechSpecVoiceRef(requestCtx, req.GetHead(), modelResolved, speechSpec)
 	if err != nil {
 		return failAndStop(err)
 	}

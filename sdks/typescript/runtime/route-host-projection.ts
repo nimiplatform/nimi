@@ -23,6 +23,7 @@ import {
 export interface NimiRuntimeRouteLocalAssetProjectionInput {
   readonly localAssetId?: unknown;
   readonly assetId?: unknown;
+  readonly logicalModelId?: unknown;
   readonly kind?: unknown;
   readonly engine?: unknown;
   readonly endpoint?: unknown;
@@ -176,6 +177,8 @@ function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput):
     .map((asset): NimiRuntimeTargetInventoryItem | null => {
       const localAssetId = normalizeText(asset.localAssetId);
       const assetId = normalizeText(asset.assetId);
+      const logicalModelId = normalizeText(asset.logicalModelId);
+      const resolvedModelId = logicalModelId || assetId;
       const engine = normalizeLower(asset.engine);
       if (!localAssetId || !assetId) return null;
       const snapshot = snapshotByLocalId.get(localAssetId) || snapshotByLookup.get(localAssetLookupKey(assetId, engine));
@@ -194,8 +197,8 @@ function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput):
       return {
         targetRef: localTargetRefForAsset(localAssetId),
         display: {
-          label: displayNameForAsset(asset, assetId),
-          model: assetId,
+          label: displayNameForAsset(asset, resolvedModelId),
+          model: resolvedModelId,
           provider: engine || undefined,
           engine: engine || undefined,
         },
@@ -209,7 +212,7 @@ function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput):
         evidence: {
           source: 'local-runtime',
           localAssetId,
-          resolvedModelId: assetId,
+          resolvedModelId,
           engine: engine || undefined,
           endpoint: normalizeText(asset.endpoint || snapshot?.endpoint) || undefined,
           runtimeStatus,

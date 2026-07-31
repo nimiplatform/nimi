@@ -21,29 +21,18 @@ import {
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]) {
-  const sourceSections = input.kind === 'personaCharacter'
-    ? [
-        AgentLocalSourceCoverageSection.IDENTITY,
-        AgentLocalSourceCoverageSection.PRESENTATION,
-        AgentLocalSourceCoverageSection.INTERACTION_PROFILE,
-        AgentLocalSourceCoverageSection.ASSETS,
-        AgentLocalSourceCoverageSection.AUTHORING,
-        AgentLocalSourceCoverageSection.PERSONA_STYLE,
-        AgentLocalSourceCoverageSection.CONTENT_PROFILE,
-      ]
-    : [
-        AgentLocalSourceCoverageSection.IDENTITY,
-        AgentLocalSourceCoverageSection.PRESENTATION,
-        AgentLocalSourceCoverageSection.PLACEMENT,
-        AgentLocalSourceCoverageSection.BIOGRAPHY,
-        AgentLocalSourceCoverageSection.PSYCHOLOGY,
-        AgentLocalSourceCoverageSection.KNOWLEDGE,
-        AgentLocalSourceCoverageSection.RELATIONSHIPS,
-        AgentLocalSourceCoverageSection.CAPABILITIES,
-        AgentLocalSourceCoverageSection.INTERACTION_PROFILE,
-        AgentLocalSourceCoverageSection.ASSETS,
-        AgentLocalSourceCoverageSection.AUTHORING,
-      ];
+  const sourceSections = [
+    AgentLocalSourceCoverageSection.IDENTITY,
+    AgentLocalSourceCoverageSection.PRESENTATION,
+    AgentLocalSourceCoverageSection.BIOGRAPHY,
+    AgentLocalSourceCoverageSection.PSYCHOLOGY,
+    AgentLocalSourceCoverageSection.KNOWLEDGE,
+    AgentLocalSourceCoverageSection.RELATIONSHIPS,
+    AgentLocalSourceCoverageSection.CAPABILITIES,
+    AgentLocalSourceCoverageSection.INTERACTION_PROFILE,
+    AgentLocalSourceCoverageSection.ASSETS,
+    AgentLocalSourceCoverageSection.AUTHORING,
+  ];
   return {
     ...rawSourceContextStatus(input),
     coverageSections: [

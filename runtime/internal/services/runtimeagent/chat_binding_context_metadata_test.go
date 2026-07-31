@@ -21,11 +21,11 @@ func (s contextMetadataBindingAIStub) ResolvePublicChatTextBinding(_ context.Con
 	return route, modelID, nil
 }
 
-func (s contextMetadataBindingAIStub) ResolvePublicChatTextContextMetadata(_ context.Context, _ runtimev1.RoutePolicy, _ string, targetRef *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, error) {
+func (s contextMetadataBindingAIStub) ResolvePublicChatTextContextMetadataLease(_ context.Context, _ runtimev1.RoutePolicy, _ string, targetRef *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, func(), error) {
 	if s.resolvedTarget != nil {
 		targetRef = s.resolvedTarget
 	}
-	return s.window, s.catalogRevision, s.modelRevision, s.providerID, clonePublicChatTargetRef(targetRef), s.metadataErr
+	return s.window, s.catalogRevision, s.modelRevision, s.providerID, clonePublicChatTargetRef(targetRef), nil, s.metadataErr
 }
 
 func TestPublicChatBindingResolutionBindsCatalogCapacityAndRouteDigest(t *testing.T) {

@@ -313,7 +313,6 @@ pub enum AgentLocalSourceCoverageSection {
     AGENTLOCALSOURCECOVERAGESECTIONUNSPECIFIED,
     AGENTLOCALSOURCECOVERAGESECTIONIDENTITY,
     AGENTLOCALSOURCECOVERAGESECTIONPRESENTATION,
-    AGENTLOCALSOURCECOVERAGESECTIONPLACEMENT,
     AGENTLOCALSOURCECOVERAGESECTIONBIOGRAPHY,
     AGENTLOCALSOURCECOVERAGESECTIONPSYCHOLOGY,
     AGENTLOCALSOURCECOVERAGESECTIONKNOWLEDGE,
@@ -322,8 +321,6 @@ pub enum AgentLocalSourceCoverageSection {
     AGENTLOCALSOURCECOVERAGESECTIONINTERACTIONPROFILE,
     AGENTLOCALSOURCECOVERAGESECTIONASSETS,
     AGENTLOCALSOURCECOVERAGESECTIONAUTHORING,
-    AGENTLOCALSOURCECOVERAGESECTIONPERSONASTYLE,
-    AGENTLOCALSOURCECOVERAGESECTIONCONTENTPROFILE,
     AGENTLOCALSOURCECOVERAGESECTIONWORLDCORE,
     AGENTLOCALSOURCECOVERAGESECTIONBOUNDENTITY,
     AGENTLOCALSOURCECOVERAGESECTIONDEPENDENCYCLOSURE,
@@ -15845,6 +15842,7 @@ impl LocalAppAgentUpdateConfigurationResponse {
 pub struct LocalAppPermissionAgentHandle {
     pub agent_handle: Option<String>,
     pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
 }
 
 impl LocalAppPermissionAgentHandle {
@@ -15852,6 +15850,7 @@ impl LocalAppPermissionAgentHandle {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
         if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
+        if let Some(value) = &self.avatar_url { pairs.push(format!("avatar_url={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -15861,6 +15860,7 @@ impl LocalAppPermissionAgentHandle {
 
         out.agent_handle = pairs.get("agent_handle").cloned();
         out.display_name = pairs.get("display_name").cloned();
+        out.avatar_url = pairs.get("avatar_url").cloned();
         out
     }
 }

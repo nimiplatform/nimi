@@ -251,13 +251,13 @@ describe('vNext app surface', () => {
       permissionStatus({
         posture: 'granted',
         agents: [
-          { agentHandle: handle, displayName: 'One' },
-          { agentHandle: handle, displayName: 'Two' },
+          { agentHandle: handle, displayName: 'One', avatarUrl: null },
+          { agentHandle: handle, displayName: 'Two', avatarUrl: null },
         ],
       }),
       permissionStatus({
         posture: 'denied',
-        agents: [{ agentHandle: handle, displayName: 'One' }],
+        agents: [{ agentHandle: handle, displayName: 'One', avatarUrl: null }],
       }),
     ]) {
       await assert.rejects(

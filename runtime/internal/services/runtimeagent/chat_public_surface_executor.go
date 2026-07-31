@@ -33,15 +33,15 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 }
 
 const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
-- Return APML only; begin <message id="message-0">, put reply and optional cue children inside <message>, then close </message>. No Markdown, JSON, fences, <think>, or prefix prose.
-- Ordinary text-only reply exact shape: <message id="message-0">reply text</message>. Never self-close <message>.
+- Return APML only; start <message id="message-0">, put reply/cues inside <message>, and close it. No Markdown, JSON, fences, <think>, or prose.
+- Text-only: <message id="message-0">reply text</message>. Never self-close <message>.
 - Optional cues (omit if unsure): never top-level; at most one each; <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, never emotion.
-- Optional voice sibling: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
+- Voice: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
 %s
-- Optional follow-up sibling: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.
+- Follow-up: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.
 - Order: message first, then only action, time-hook, or event-hook siblings. Close every tag.`
 
-const publicChatImageActionAvailablePrompt = `- Image sibling: <action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
+const publicChatImageActionAvailablePrompt = `- Image output; all reply text stays in message, with no text between/after tags: <message id="message-0">Creating it.</message><action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
 - If the user asks to create, draw, generate, send, or show an image/photo/picture/avatar/selfie/visual, include exactly one sibling <action kind="image"> after the message.
 - For an agent photo/avatar/selfie request, create a representative or stylized visual prompt; do not claim a missing physical body to skip it.`
 

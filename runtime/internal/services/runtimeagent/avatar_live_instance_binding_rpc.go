@@ -121,9 +121,10 @@ func (s *Service) RegisterAvatarLiveInstanceBinding(ctx context.Context, req *ru
 	}, nil
 }
 
-// ResolveAvatarLiveInstanceBinding recovers the Runtime-owned anchor that
-// Desktop explicitly registered for this Avatar instance. Missing bindings
-// fail closed so Avatar cannot infer continuity from same-agent identity.
+// ResolveAvatarLiveInstanceBinding recovers the Runtime-owned singleton
+// conversation anchor explicitly attached to this Avatar instance. Missing
+// instance bindings still fail closed because instance attachment is not
+// inferred from launch payload identity.
 func (s *Service) ResolveAvatarLiveInstanceBinding(ctx context.Context, req *runtimev1.ResolveAvatarLiveInstanceBindingRequest) (*runtimev1.ResolveAvatarLiveInstanceBindingResponse, error) {
 	if s == nil || s.isClosed() {
 		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")

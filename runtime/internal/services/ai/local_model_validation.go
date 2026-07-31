@@ -28,6 +28,14 @@ type managedLlamaModelResolver interface {
 	ResolveManagedLlamaModelByCapabilities(preferred string, capabilities ...string) (string, bool)
 }
 
+type localCatalogModelIdentityResolver interface {
+	ResolveCatalogModelIDForLocalAsset(localAssetID string) (string, bool)
+}
+
+type localTextContextMetadataResolver interface {
+	ResolveLocalTextContextMetadata(context.Context, string) (uint64, string, bool)
+}
+
 type localImageProfileResolver interface {
 	ResolveManagedMediaImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
 	ResolveManagedMediaBackendTarget(context.Context) (string, string, error)

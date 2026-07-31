@@ -11,6 +11,7 @@ type localAgentOwnershipFixture struct {
 	accountID   string
 	agentID     string
 	displayName string
+	avatarURL   *string
 }
 
 func (fixture localAgentOwnershipFixture) OwnsActiveLocalAgent(_ context.Context, accountID string, localAgentID string) (bool, error) {
@@ -31,6 +32,7 @@ func (fixture localAgentOwnershipFixture) ListOwnedActiveLocalAgents(_ context.C
 	return []LocalAgentOwnerProjection{{
 		LocalAgentID: fixture.agentID,
 		DisplayName:  displayName,
+		AvatarURL:    fixture.avatarURL,
 	}}, nil
 }
 

@@ -76,7 +76,7 @@ func (s *Service) executeScenarioAsyncJob(
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
 		originalReq := req
 		var effectiveSpec *runtimev1.SpeechSynthesizeScenarioSpec
-		effectiveSpec, err = s.resolveSynthesizeSpeechSpecVoiceRef(modelResolved, req.GetSpec().GetSpeechSynthesize())
+		effectiveSpec, err = s.resolveSynthesizeSpeechSpecVoiceRef(ctx, req.GetHead(), modelResolved, req.GetSpec().GetSpeechSynthesize())
 		if err == nil && effectiveSpec != nil && effectiveSpec != req.GetSpec().GetSpeechSynthesize() {
 			clonedReq := cloneSubmitScenarioJobRequest(req)
 			if clonedReq == nil || clonedReq.GetSpec() == nil {

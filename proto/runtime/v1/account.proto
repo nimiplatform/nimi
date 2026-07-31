@@ -401,6 +401,11 @@ message LocalAppPermissionProjection {
 message LocalAppPermissionAgentHandle {
   string agent_handle = 1;
   string display_name = 2;
+  // Nullable display-only metadata. Runtime first uses the admitted canonical
+  // external avatar resource when one is present, and otherwise resolves the
+  // bound Character's WorldPublic media (avatar, portrait, then reference
+  // image). Only a stable HTTPS URI is emitted; otherwise this is empty.
+  string avatar_url = 3;
 }
 
 message GetLocalAppPermissionStatusRequest {

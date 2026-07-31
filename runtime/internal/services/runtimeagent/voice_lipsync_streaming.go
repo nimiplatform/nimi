@@ -65,12 +65,14 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 	}
 	ctx, cancel := context.WithTimeout(ctx, waitTimeout)
 	defer cancel()
-	ctx = runtimeAgentVoiceSynthesisContext(ctx)
+	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)
+	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
+	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
 
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         runtimeAgentVoiceSynthesisAppID,
-			SubjectUserId: runtimeAgentVoiceSynthesisSubjectID,
+			AppId:         speechAppID,
+			SubjectUserId: ownerUserID,
 			ModelId:       modelID,
 			RoutePolicy:   routePolicy,
 			ConnectorId:   strings.TrimSpace(input.SpeechConnectorID),

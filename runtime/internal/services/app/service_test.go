@@ -337,6 +337,97 @@ func TestSubscribeAppMessagesFiltering(t *testing.T) {
 	}
 }
 
+func TestRuntimeAgentConversationBroadcastReachesAuthorizedCrossAppSubscribers(t *testing.T) {
+	svc := newTestService()
+	type activeSubscription struct {
+		stream *appMessageStreamCollector
+		cancel context.CancelFunc
+		done   chan error
+	}
+	subscribe := func(appID string, subjectUserID string) activeSubscription {
+		t.Helper()
+		ctx := envelope.WithValidatedProtectedCapability(appContext(appID), appID, "runtime.agent.turn.read")
+		ctx, cancel := context.WithCancel(ctx)
+		stream := &appMessageStreamCollector{ctx: ctx}
+		done := make(chan error, 1)
+		go func() {
+			done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
+				AppId: appID, SubjectUserId: subjectUserID, FromAppIds: []string{"runtime.agent"},
+			}, stream)
+		}()
+		return activeSubscription{stream: stream, cancel: cancel, done: done}
+	}
+
+	desktop := subscribe("nimi.desktop", "user-1")
+	avatar := subscribe("nimi.avatar", "user-1")
+	foreign := subscribe("foreign.app", "user-2")
+	defer desktop.cancel()
+	defer avatar.cancel()
+	defer foreign.cancel()
+	deadline := time.Now().Add(time.Second)
+	for {
+		svc.mu.RLock()
+		ready := len(svc.subscribers) == 3
+		svc.mu.RUnlock()
+		if ready {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("conversation subscribers were not registered")
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	payload, err := structpb.NewStruct(map[string]any{
+		"conversation_anchor_id": "anchor-shared", "turn_id": "turn-shared",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.SendAppMessage(WithTrustedInternalCaller(context.Background(), "runtime.agent"), &runtimev1.SendAppMessageRequest{
+		FromAppId: "runtime.agent", ToAppId: "", SubjectUserId: "user-1",
+		MessageType: "runtime.agent.turn.message_committed", Payload: payload,
+	}); err != nil {
+		t.Fatalf("SendAppMessage(conversation broadcast): %v", err)
+	}
+	if !waitForAppEvents(desktop.stream, 1, time.Second) || !waitForAppEvents(avatar.stream, 1, time.Second) {
+		t.Fatal("shared conversation event did not reach both authorized app subscribers")
+	}
+	time.Sleep(20 * time.Millisecond)
+	foreign.stream.mu.Lock()
+	foreignCount := len(foreign.stream.events)
+	foreign.stream.mu.Unlock()
+	if foreignCount != 0 {
+		t.Fatalf("foreign subject received %d conversation events", foreignCount)
+	}
+	for _, stream := range []*appMessageStreamCollector{desktop.stream, avatar.stream} {
+		stream.mu.Lock()
+		event := stream.events[0]
+		stream.mu.Unlock()
+		if event.GetToAppId() != "" || event.GetPayload().GetFields()["conversation_anchor_id"].GetStringValue() != "anchor-shared" {
+			t.Fatalf("unexpected conversation broadcast envelope: %+v", event)
+		}
+	}
+	if matches(subscriber{
+		subjectUserID: "user-1", conversationAnchorID: "other-anchor",
+		fromAppFilter: map[string]bool{"runtime.agent": true},
+	}, desktop.stream.events[0]) {
+		t.Fatal("subscriber authorized for a different anchor matched conversation broadcast")
+	}
+
+	for _, subscription := range []activeSubscription{desktop, avatar, foreign} {
+		subscription.cancel()
+		select {
+		case err := <-subscription.done:
+			if err != nil {
+				t.Fatalf("subscription close: %v", err)
+			}
+		case <-time.After(time.Second):
+			t.Fatal("subscription did not close")
+		}
+	}
+}
+
 func TestSubscribeAppMessagesFromAppFilter(t *testing.T) {
 	svc := newTestService()
 	ctx, cancel := context.WithCancel(context.Background())

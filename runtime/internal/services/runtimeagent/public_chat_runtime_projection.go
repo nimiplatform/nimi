@@ -92,7 +92,7 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 	if r.svc.voiceLipsync == nil {
 		return
 	}
-	policy, ok := r.agentVoiceOutputPolicyForSession(session)
+	policy, ok := r.agentVoiceOutputPolicyForSession(ctx, session)
 	if !ok || !policy.AvatarAutoplay {
 		return
 	}
@@ -112,6 +112,8 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		SpeechRoutePolicy:     policy.SpeechRoutePolicy,
 		SpeechConnectorID:     policy.SpeechConnectorID,
 		SpeechTargetRef:       clonePublicChatTargetRef(policy.SpeechTargetRef),
+		SpeechAppID:           policy.SpeechAppID,
+		OwnerUserID:           policy.OwnerUserID,
 		AgentID:               session.AgentID,
 	}
 	if streamed, err := r.projectCommittedNativeVoiceStream(session, turn, synthesisInput); streamed {
@@ -393,9 +395,11 @@ type agentVoiceOutputPolicy struct {
 	SpeechRoutePolicy     runtimev1.RoutePolicy
 	SpeechConnectorID     string
 	SpeechTargetRef       *runtimev1.RuntimeDurableTargetRef
+	SpeechAppID           string
+	OwnerUserID           string
 }
 
-func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAnchorState) (agentVoiceOutputPolicy, bool) {
+func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context, session publicChatAnchorState) (agentVoiceOutputPolicy, bool) {
 	profile := r.agentPresentationProfileForSession(session)
 	if profile == nil {
 		return agentVoiceOutputPolicy{}, false
@@ -414,6 +418,21 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAn
 		audioBinding.TargetRef == nil || audioBinding.TargetRef.GetTarget() == nil {
 		return agentVoiceOutputPolicy{}, false
 	}
+	if cloud := audioBinding.TargetRef.GetCloud(); cloud != nil &&
+		strings.TrimSpace(audioBinding.ConnectorID) != strings.TrimSpace(cloud.GetConnectorId()) {
+		return agentVoiceOutputPolicy{}, false
+	}
+	ownerUserID := strings.TrimSpace(session.OwnerUserID)
+	speechAppID, err := resolveRuntimeAgentVoiceAssetExecutionApp(
+		ctx,
+		r.svc.currentVoiceAssetResolver(),
+		ownerUserID,
+		voiceRef,
+		audioBinding.TargetRef,
+	)
+	if err != nil || speechAppID == "" || ownerUserID == "" {
+		return agentVoiceOutputPolicy{}, false
+	}
 	return agentVoiceOutputPolicy{
 		AvatarAutoplay:        profile.GetAvatarAutoplay(),
 		DefaultVoiceReference: voiceRef,
@@ -421,6 +440,8 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAn
 		SpeechRoutePolicy:     routePolicy,
 		SpeechConnectorID:     audioBinding.ConnectorID,
 		SpeechTargetRef:       clonePublicChatTargetRef(audioBinding.TargetRef),
+		SpeechAppID:           speechAppID,
+		OwnerUserID:           ownerUserID,
 	}, true
 }
 

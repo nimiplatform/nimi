@@ -2947,9 +2947,14 @@ func (x *LocalAppPermissionProjection) GetAgents() []*LocalAppPermissionAgentHan
 }
 
 type LocalAppPermissionAgentHandle struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgentHandle   string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	AgentHandle string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
+	DisplayName string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// Nullable display-only metadata. Runtime first uses the admitted canonical
+	// external avatar resource when one is present, and otherwise resolves the
+	// bound Character's WorldPublic media (avatar, portrait, then reference
+	// image). Only a stable HTTPS URI is emitted; otherwise this is empty.
+	AvatarUrl     string `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2994,6 +2999,13 @@ func (x *LocalAppPermissionAgentHandle) GetAgentHandle() string {
 func (x *LocalAppPermissionAgentHandle) GetDisplayName() string {
 	if x != nil {
 		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *LocalAppPermissionAgentHandle) GetAvatarUrl() string {
+	if x != nil {
+		return x.AvatarUrl
 	}
 	return ""
 }
@@ -4344,10 +4356,12 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"canRequest\x12<\n" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12F\n" +
-	"\x06agents\x18\a \x03(\v2..nimi.runtime.v1.LocalAppPermissionAgentHandleR\x06agentsJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aR\x16selected_agent_handlesR\x0fselected_agents\"e\n" +
+	"\x06agents\x18\a \x03(\v2..nimi.runtime.v1.LocalAppPermissionAgentHandleR\x06agentsJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aR\x16selected_agent_handlesR\x0fselected_agents\"\x84\x01\n" +
 	"\x1dLocalAppPermissionAgentHandle\x12!\n" +
 	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"I\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1d\n" +
+	"\n" +
+	"avatar_url\x18\x03 \x01(\tR\tavatarUrl\"I\n" +
 	"\"GetLocalAppPermissionStatusRequest\x12#\n" +
 	"\rpermission_id\x18\x01 \x01(\tR\fpermissionId\"t\n" +
 	"#GetLocalAppPermissionStatusResponse\x12M\n" +

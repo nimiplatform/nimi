@@ -86,6 +86,7 @@ type AccountAuthorityRevoker interface {
 type LocalAgentOwnerProjection struct {
 	LocalAgentID string
 	DisplayName  string
+	AvatarURL    *string
 }
 
 type LocalAgentOwnershipResolver interface {

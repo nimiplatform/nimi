@@ -536,16 +536,17 @@ function projectPermissionStatus(
   const seenAgentHandles = new Set<string>();
   const agents = record.agents.map((value): NimiLocalAppAgent => {
     const agent = asRecord(value);
-    assertExactProjectionKeys(agent, ['agentHandle', 'displayName'], 'local-app Agent');
+    assertExactProjectionKeys(agent, ['agentHandle', 'displayName', 'avatarUrl'], 'local-app Agent');
     const agentHandle = projectionText(agent.agentHandle, 'agentHandle') as NimiLocalAppAgentHandle;
     const displayName = projectionText(agent.displayName, 'displayName');
+    const avatarUrl = projectStableAvatarUrl(agent.avatarUrl);
     if (new TextEncoder().encode(agentHandle).length > 240
       || new TextEncoder().encode(displayName).length > 240
       || seenAgentHandles.has(agentHandle)) {
       localAppProjectionError('permission Agent projection');
     }
     seenAgentHandles.add(agentHandle);
-    return Object.freeze({ agentHandle, displayName });
+    return Object.freeze({ agentHandle, displayName, avatarUrl });
   });
   if (record.canRequest !== (state === 'prompt')
     || (state !== 'granted' && agents.length > 0)) {
@@ -558,6 +559,26 @@ function projectPermissionStatus(
     agents: Object.freeze(agents),
     detail: projectionText(record.reasonCode, 'reasonCode'),
   };
+}
+
+function projectStableAvatarUrl(value: unknown): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string'
+    || !value
+    || value.trim() !== value
+    || new TextEncoder().encode(value).byteLength > 4096) {
+    return localAppProjectionError('permission Agent avatarUrl');
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return localAppProjectionError('permission Agent avatarUrl');
+  }
+  if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password || parsed.hash) {
+    return localAppProjectionError('permission Agent avatarUrl');
+  }
+  return value;
 }
 
 function localAppSessionState(

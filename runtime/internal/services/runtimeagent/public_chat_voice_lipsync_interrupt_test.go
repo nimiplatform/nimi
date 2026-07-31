@@ -321,7 +321,7 @@ func TestPublicChatNativeVoiceStreamSubscribeRejectsStreamFromDifferentTurn(t *t
 	}
 }
 
-func TestPublicChatNativeVoiceStreamSubscribeRejectsWrongCallerApp(t *testing.T) {
+func TestPublicChatNativeVoiceStreamSubscribeAllowsAnotherAuthorizedApp(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -361,10 +361,10 @@ func TestPublicChatNativeVoiceStreamSubscribeRejectsWrongCallerApp(t *testing.T)
 		ConversationAnchorId: anchorID,
 		TurnId:               turn.TurnID,
 	}, stream)
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("wrong-caller voice stream subscription error code=%v, want PermissionDenied", status.Code(err))
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("cross-app voice stream subscription error=%v, want context cancellation after capture", err)
 	}
-	if len(stream.events) != 0 {
-		t.Fatalf("wrong-caller voice stream subscription must not receive owner chunks: %#v", stream.events)
+	if len(stream.events) != 1 || string(stream.events[0].GetChunk()) != "RIFF-owner-subscribe-caller" {
+		t.Fatalf("authorized cross-app subscription did not receive shared conversation chunk: %#v", stream.events)
 	}
 }

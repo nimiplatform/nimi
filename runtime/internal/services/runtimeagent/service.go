@@ -69,6 +69,10 @@ type Service struct {
 	sourceMaterializationNow                 func() time.Time
 	chatAppEmit                              publicChatAppMessageEmitter
 	runtimeAccountProjection                 runtimeAccountProjectionProvider
+	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
+	localAppAgentAvatarCacheMu               sync.Mutex
+	localAppAgentAvatarCache                 map[localAppAgentAvatarCacheKey]string
+	localAppAgentAvatarLookups               map[localAppAgentAvatarCacheKey]*localAppAgentAvatarLookup
 	voiceAssetResolverMu                     sync.RWMutex
 	voiceAssetResolver                       VoiceAssetResolver
 	aiBridgeMu                               sync.RWMutex
@@ -97,9 +101,8 @@ type Service struct {
 
 	chatSurfaceMu      sync.Mutex
 	chatSurfaceVersion uint64
-	// chatAnchors holds runtime-owned ConversationAnchor truth keyed by
-	// conversation_anchor_id. Per K-AGCORE-034 this is the only admitted
-	// cross-surface continuity scope; agent identity is not continuity.
+	// chatAnchors stores Runtime-issued continuity tokens. Open resolution
+	// converges on one resumable anchor per (owner_user_id, local_agent_ref).
 	chatAnchors   map[string]*publicChatAnchorState
 	chatTurns     map[string]*publicChatTurnState
 	chatFollowUps map[string]*publicChatFollowUpState

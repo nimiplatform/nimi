@@ -180,12 +180,11 @@ func (s *Service) emitPublicChatTurnEvent(
 	return s.publicChatRuntime().emitTurnEvent(session, turnID, messageType, payload)
 }
 func (s *Service) emitPublicChatEvent(
-	callerAppID string,
 	subjectUserID string,
 	messageType string,
 	payload map[string]any,
 ) error {
-	return s.publicChatRuntime().emitEvent(callerAppID, subjectUserID, messageType, payload)
+	return s.publicChatRuntime().emitEvent(subjectUserID, messageType, payload)
 }
 func (s *Service) shutdownPublicChatSurface() {
 	s.publicChatRuntime().shutdownSurface()

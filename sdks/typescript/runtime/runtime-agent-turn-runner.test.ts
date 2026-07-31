@@ -389,6 +389,75 @@ test('Runtime Agent turn runner recovers terminal snapshot after active-turn sna
   assert.equal(parts.find((part) => part.type === 'turn-completed')?.outputText, 'active-bound recovered');
 });
 
+test('Runtime Agent turn runner recovers a failed last-turn snapshot while the subscription remains open', async () => {
+  let snapshotQueryCount = 0;
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
+    async subscribe() {
+      return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+        await new Promise(() => undefined);
+      })();
+    },
+    async request() {
+      return { messageId: 'request-message', accepted: true, reasonCode: 0 as never };
+    },
+    async interrupt() {
+      return { messageId: 'interrupt-message', accepted: true, reasonCode: 0 as never };
+    },
+    async getSessionSnapshot() {
+      snapshotQueryCount += 1;
+      if (snapshotQueryCount === 1) {
+        return {
+          requestId: 'request',
+          activeTurn: {
+            turnId: 'turn',
+            streamId: 'stream',
+            status: 'started',
+            updatedAt: new Date().toISOString(),
+          },
+        };
+      }
+      return {
+        requestId: 'request',
+        lastTurn: {
+          turnId: 'turn',
+          streamId: 'stream',
+          status: 'failed',
+          reasonCode: 'AI_OUTPUT_INVALID',
+          message: 'structured chat output must be APML beginning with <message>',
+          updatedAt: new Date(Date.now() + 1000).toISOString(),
+        },
+      };
+    },
+  };
+
+  const result = await runNimiRuntimeAgentTurn({
+    turns,
+    request: {
+      ownerUserId: 'owner',
+      runtimeSourceRef: 'agent',
+      localAgentRef: 'local-agent:owner:agent',
+      conversationAnchorId: 'anchor',
+      threadId: 'thread',
+      requestId: 'request',
+      messages: [{ role: 'user', content: 'hello' }],
+    },
+    stallRecoveryIntervalMs: 1,
+  });
+
+  const parts = [];
+  for await (const part of result.stream) {
+    parts.push(part);
+  }
+  assert.equal(parts.length, 1);
+  assert.equal(parts[0]?.type, 'turn-failed');
+  if (parts[0]?.type === 'turn-failed') {
+    assert.deepEqual(parts[0].error, {
+      code: 'AI_OUTPUT_INVALID',
+      message: 'structured chat output must be APML beginning with <message>',
+    });
+  }
+});
+
 test('Runtime Agent turn runner projects Runtime action artifact events', async () => {
   const requestIds: string[] = [];
   const turns: NimiRuntimeAgentTurnRunnerModule = {
