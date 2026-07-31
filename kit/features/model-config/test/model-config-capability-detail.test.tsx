@@ -235,6 +235,63 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(container?.textContent).not.toContain('01KTEX08DS2GR9HJ1X3R459P1B');
   });
 
+  it('hydrates dedicated local model-settings routes from the provider label', async () => {
+    const localModelId = '01KYSTRPKPAN8WWT102A6A8GH0';
+    const modelSettings = {
+      scopeRef,
+      capabilities: ['text.generate'],
+      routeIntents: [{
+        capability: 'text.generate',
+        provider: '',
+        model: localModelId,
+        routePolicy: 'local' as const,
+      }],
+      readiness: [],
+      configurationRevision: '2',
+    };
+    const provider: RouteModelPickerDataProvider = {
+      listLocalModels: async () => [{
+        localModelId,
+        modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0/01kystq3jhtwgvzarkwdfhfn38',
+        label: 'local-import/gemma-4-26B-A4B-it-Q8_0/01kystq3jhtwgvzarkwdfhfn38',
+        engine: 'llama',
+        status: 'active',
+        capabilities: ['text.generate'],
+      }],
+      listConnectors: async () => [],
+      listConnectorModels: async () => [],
+    };
+    const surface: AppModelConfigSurface = {
+      scopeRef,
+      modelSettingsService: {
+        get: () => modelSettings,
+        update: async () => modelSettings,
+        subscribe: () => () => undefined,
+      },
+      requirementDeclaration: requirementDeclaration('text.generate'),
+      providerResolver: () => provider,
+      projectionResolver: () => null,
+      i18n: { t: (key) => key },
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="text.generate"
+          surface={surface}
+          config={null}
+          modelSettings={modelSettings}
+        />,
+      ),
+    );
+    await act(async () => {
+      await flush();
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('gemma-4-26B-A4B-it-Q8_0/01kystq3jhtwgvzarkwdfhfn38');
+    expect(container?.textContent).not.toContain(localModelId);
+  });
+
   it('renders active local-import models as model name plus configured source metadata', async () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,

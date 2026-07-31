@@ -128,6 +128,35 @@ function findAssetForLocalTarget(
   return assets.find((asset) => candidates.some((candidate) => localAssetMatchesCandidate(asset, candidate))) ?? null;
 }
 
+function routeTargetRefFromSelection(
+  selection: ModelConfigRouteSelection,
+): ModelConfigTargetRef | null {
+  if (selection.source === 'local') {
+    const profileBindingId = normalizeText(selection.profileBindingId);
+    const readinessRef = normalizeText(selection.readinessRef);
+    if (Boolean(profileBindingId) === Boolean(readinessRef)) {
+      return null;
+    }
+    return profileBindingId
+      ? { kind: 'local-runtime', version: 'v2', profileBindingId }
+      : { kind: 'local-runtime', version: 'v2', readinessRef };
+  }
+  const connectorId = normalizeText(selection.connectorId);
+  const remoteModelCatalogId = normalizeText(selection.remoteModelCatalogId);
+  const providerModelId = normalizeText(selection.providerModelId);
+  if (!connectorId || !remoteModelCatalogId || !providerModelId) {
+    return null;
+  }
+  const provider = normalizeText(selection.provider);
+  return {
+    kind: 'cloud-connector',
+    connectorId,
+    remoteModelCatalogId,
+    providerModelId,
+    ...(provider ? { provider } : {}),
+  };
+}
+
 function localAssetFamily(asset: LocalAssetEntry | null): string {
   if (!asset) return '';
   const extensible = asset as LocalAssetEntry & {
@@ -419,8 +448,21 @@ export function ModelConfigCapabilityDetail({
     model: routeIntent.model,
     modelLabel: routeIntent.model,
     ...(routeIntent.routePolicy === 'cloud'
-      ? { provider: routeIntent.provider, providerModelId: routeIntent.model }
-      : { localModelId: routeIntent.model }),
+      ? {
+          provider: routeIntent.provider,
+          providerModelId: routeIntent.model,
+          ...(routeIntent.targetRef?.kind === 'cloud-connector' ? {
+            connectorId: routeIntent.targetRef.connectorId,
+            remoteModelCatalogId: routeIntent.targetRef.remoteModelCatalogId,
+          } : {}),
+        }
+      : {
+          localModelId: routeIntent.model,
+          ...(routeIntent.targetRef?.kind === 'local-runtime' ? {
+            profileBindingId: routeIntent.targetRef.profileBindingId,
+            readinessRef: routeIntent.targetRef.readinessRef,
+          } : {}),
+        }),
   } : null;
   const [writeError, setWriteError] = useState<string | null>(null);
   const writeQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -470,12 +512,19 @@ export function ModelConfigCapabilityDetail({
     if (selection) {
       const model = normalizeText(selection.source === 'cloud'
         ? (selection.providerModelId || selection.model)
-        : (selection.localModelId || selection.profileBindingId || selection.readinessRef || selection.model));
+        : (selection.modelId || selection.model));
       const provider = selection.source === 'cloud' ? normalizeText(selection.provider) : '';
       if (!model || (selection.source === 'cloud' && !provider)) {
         throw new Error('The selected model route does not carry canonical provider/model identity.');
       }
-      nextIntent = { capability: capabilityId, provider, model, routePolicy: selection.source };
+      const targetRef = routeTargetRefFromSelection(selection);
+      nextIntent = {
+        capability: capabilityId,
+        provider,
+        model,
+        routePolicy: selection.source,
+        ...(targetRef ? { targetRef } : {}),
+      };
     }
     const routeIntents = modelSettings.routeIntents
       .filter((intent) => intent.capability !== capabilityId)

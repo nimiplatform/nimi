@@ -105,6 +105,21 @@ function localTargetCandidates(targetRef: ModelConfigTargetRef | null | undefine
   return [...new Set(candidates)];
 }
 
+function localSelectionCandidates(
+  selection: Partial<RouteModelPickerSelection> | null | undefined,
+): string[] {
+  if (selection?.source !== 'local') {
+    return [];
+  }
+  const candidates = [
+    ...localRuntimeRefCandidates(selection.localModelId),
+    ...localRuntimeRefCandidates(selection.profileBindingId),
+    ...localRuntimeRefCandidates(selection.readinessRef),
+    ...localRuntimeRefCandidates(selection.model),
+  ].filter(Boolean);
+  return [...new Set(candidates)];
+}
+
 function localTargetMatches(
   model: {
     localModelId?: string;
@@ -147,7 +162,9 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
     || targetSummary.label
     || null;
   const source = selection.source || null;
-  const unresolvedLocalTarget = item.targetRef?.kind === 'local-runtime' && !hydratedTargetSummary;
+  const unresolvedLocalTarget = source === 'local'
+    && Boolean(item.targetRef || item.routeSelection)
+    && !hydratedTargetSummary;
   const unresolvedOpaqueLocalTarget = unresolvedLocalTarget && containsOpaqueRuntimeId(displayLabel);
   const localDetail = source === 'local'
     ? (hydratedTargetSummary?.sourceLabel
@@ -174,49 +191,48 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
   useEffect(() => {
     let cancelled = false;
     setHydratedTargetSummary(null);
-    if (!item.provider || !item.targetRef) {
+    if (!item.provider) {
       return () => {
         cancelled = true;
       };
     }
-    if (item.targetRef.kind === 'local-runtime') {
-      const candidates = localTargetCandidates(item.targetRef);
-      if (candidates.length === 0) {
-        return () => {
-          cancelled = true;
-        };
-      }
-      void item.provider.listLocalModels()
-        .then((models) => {
-          if (cancelled) return;
-          const match = models.find((model) => localTargetMatches(model, candidates));
-          if (!match) return;
-          const rawLabel = match.label || match.modelId || match.localModelId || '';
-          const label = compactLocalModelLabel(rawLabel) || rawLabel;
-          const sourceLabel = localSourceLabel(match.modelId)
-            ?? localSourceLabel(match.localModelId)
-            ?? localSourceLabel(match.label);
-          const detail = [
-            match.engine,
-            match.modelId && match.modelId !== label ? match.modelId : '',
-          ].filter(Boolean).join(' · ');
-          setHydratedTargetSummary({
-            label,
-            detail: detail || null,
-            sourceLabel,
-          });
-        })
-        .catch(() => undefined);
+    const candidates = [
+      ...localTargetCandidates(item.targetRef),
+      ...localSelectionCandidates(item.routeSelection),
+    ];
+    if (candidates.length === 0) {
       return () => {
         cancelled = true;
       };
     }
+    void item.provider.listLocalModels()
+      .then((models) => {
+        if (cancelled) return;
+        const match = models.find((model) => localTargetMatches(model, candidates));
+        if (!match) return;
+        const rawLabel = match.label || match.modelId || match.localModelId || '';
+        const label = compactLocalModelLabel(rawLabel) || rawLabel;
+        const sourceLabel = localSourceLabel(match.modelId)
+          ?? localSourceLabel(match.localModelId)
+          ?? localSourceLabel(match.label);
+        const detail = [
+          match.engine,
+          match.modelId && match.modelId !== label ? match.modelId : '',
+        ].filter(Boolean).join(' · ');
+        setHydratedTargetSummary({
+          label,
+          detail: detail || null,
+          sourceLabel,
+        });
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [item.provider, item.targetRef]);
+  }, [item.provider, item.routeSelection, item.targetRef]);
 
-  const triggerLabel = item.targetRef && (unresolvedOpaqueLocalTarget || containsOpaqueRuntimeId(displayLabel))
+  const triggerLabel = source === 'local'
+    && (unresolvedOpaqueLocalTarget || containsOpaqueRuntimeId(displayLabel))
     ? 'Local runtime model'
     : (source === 'local' ? compactLocalModelLabel(displayLabel) ?? displayLabel : displayLabel);
 

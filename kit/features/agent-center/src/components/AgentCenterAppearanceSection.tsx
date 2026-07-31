@@ -73,10 +73,31 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
     key,
     translateAgentCenter(i18n, `AgentCenter.appearance.autoSave.${key}`, fallback),
   ])) as Record<keyof typeof EN, string>, [i18n]);
+  const voiceCopy = useMemo(() => ({
+    defaultVoiceTitle: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceTitle', 'Default voice'),
+    defaultVoiceDescription: translateAgentCenter(
+      i18n,
+      'AgentCenter.appearance.defaultVoiceDescription',
+      'Read-only Runtime presentation reference.',
+    ),
+    defaultVoiceUnset: translateAgentCenter(i18n, 'AgentCenter.appearance.defaultVoiceUnset', 'Not configured'),
+    avatarAutoplayLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.avatarAutoplayLabel', 'Avatar autoplay'),
+    avatarAutoplayDescription: translateAgentCenter(
+      i18n,
+      'AgentCenter.appearance.avatarAutoplayDescription',
+      'Automatically play committed voice output through the Avatar.',
+    ),
+    enableLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.enableLabel', 'Enable'),
+    disableLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.disableLabel', 'Disable'),
+  }), [i18n]);
   const actionAvailable = availability.state === 'available';
   const canReplace = actionAvailable && Boolean(session.appearance.replaceAvatar);
   const canRestore = snapshot.availability.restorePreviousAppearance.state === 'available'
     && Boolean(appearance.previousSelection);
+  const hasDefaultVoice = Boolean(appearance.defaultVoiceReference?.trim());
+  const canToggleAutoplay = actionAvailable
+    && Boolean(session.appearance.setAvatarAutoplay)
+    && (appearance.avatarAutoplay || hasDefaultVoice);
 
   const choose = (kind: 'live2d' | 'vrm') => setPendingKind(kind);
   const replace = async () => {
@@ -104,6 +125,17 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
     try {
       await session.restorePreviousAppearance();
       setOperation({ state: 'restored', message: copy.restored });
+    } catch (error) {
+      const failure = message(error);
+      setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
+    }
+  };
+  const toggleAutoplay = async () => {
+    if (!session.appearance.setAvatarAutoplay) return;
+    setOperation({ state: 'saving', message: copy.saving });
+    try {
+      await session.appearance.setAvatarAutoplay(!appearance.avatarAutoplay);
+      setOperation({ state: 'saved', message: copy.saved });
     } catch (error) {
       const failure = message(error);
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
@@ -169,6 +201,40 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n }: AgentC
                 </AgentButton>
               ) : null}
             </div>
+          </div>
+        </Card>
+
+        <Card
+          className="grid gap-4 border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+        >
+          <div
+            className="grid gap-1"
+            data-agent-center-default-voice={hasDefaultVoice ? 'bound' : 'unset'}
+          >
+            <h3 className="m-0 text-[15px] font-semibold text-slate-950">{voiceCopy.defaultVoiceTitle}</h3>
+            <p className="m-0 text-[11px] leading-5 text-slate-500">{voiceCopy.defaultVoiceDescription}</p>
+            <span
+              className="truncate font-mono text-[11px] text-slate-600"
+              data-agent-center-default-voice-reference={appearance.defaultVoiceReference || ''}
+              title={appearance.defaultVoiceReference || voiceCopy.defaultVoiceUnset}
+            >
+              {appearance.defaultVoiceReference || voiceCopy.defaultVoiceUnset}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="grid gap-1">
+              <span className="text-[13px] font-semibold text-slate-800">{voiceCopy.avatarAutoplayLabel}</span>
+              <span className="text-[11px] leading-5 text-slate-500">{voiceCopy.avatarAutoplayDescription}</span>
+            </div>
+            <AgentButton
+              dataAttrs={{
+                'data-agent-center-avatar-autoplay': appearance.avatarAutoplay ? 'enabled' : 'disabled',
+              }}
+              disabled={!canToggleAutoplay || operation.state === 'saving'}
+              onClick={() => void toggleAutoplay()}
+            >
+              {appearance.avatarAutoplay ? voiceCopy.disableLabel : voiceCopy.enableLabel}
+            </AgentButton>
           </div>
         </Card>
 

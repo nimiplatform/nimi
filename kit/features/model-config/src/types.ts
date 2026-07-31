@@ -34,6 +34,7 @@ export type ModelConfigRouteSelection = {
   remoteModelCatalogId?: string;
   providerModelId?: string;
   localModelId?: string;
+  modelId?: string;
   profileBindingId?: string;
   readinessRef?: string;
   modelLabel?: string;

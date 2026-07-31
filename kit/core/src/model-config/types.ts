@@ -45,6 +45,7 @@ export interface ModelConfigRouteIntent {
   readonly provider: string;
   readonly model: string;
   readonly routePolicy: 'local' | 'cloud';
+  readonly targetRef?: ModelConfigTargetRef;
 }
 
 export interface ModelConfigSettingsReadiness {

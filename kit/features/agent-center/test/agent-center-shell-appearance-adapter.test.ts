@@ -103,6 +103,46 @@ describe('Agent Center appearance auto-save adapter', () => {
     expect(await adapter.load()).toMatchObject({ avatarAssetRef: 'vrm_current', presentationRevision: '7' });
   });
 
+  it('patches only avatar autoplay and preserves the committed default voice reference', async () => {
+    const profile = {
+      ...emptyProfile,
+      defaultVoiceReference: 'voice_asset_id:voice-song-lian',
+      avatarAutoplay: false,
+    };
+    const patchPresentationProfile = vi.fn(async (
+      receivedIdentity: RuntimeLocalAgentIdentityInput,
+      patch: AgentCenterRuntimePresentationProfilePatch,
+      expectedRevision: string,
+    ): Promise<AgentCenterRuntimePresentationProfileMutationResult> => {
+      expect(receivedIdentity).toEqual(identity);
+      expect(patch).toEqual({ avatarAutoplay: true });
+      expect(expectedRevision).toBe('5');
+      return {
+        profile: { ...profile, avatarAutoplay: true },
+        previousProfile: profile,
+        committedRevision: '6',
+      };
+    });
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account',
+      snapshot: { inspect: {
+        presentationProfile: profile,
+        presentationProfileRevision: '5',
+      } as never },
+      runtimePresentation: {
+        async setPresentationProfile() { throw new Error('must not replace the presentation'); },
+        patchPresentationProfile,
+      },
+    });
+    await expect(adapter.setAvatarAutoplay?.(true)).resolves.toMatchObject({
+      presentationRevision: '6',
+      defaultVoiceReference: 'voice_asset_id:voice-song-lian',
+      avatarAutoplay: true,
+    });
+    expect(patchPresentationProfile).toHaveBeenCalledTimes(1);
+  });
+
   it('projects post-save render failure separately and restores previous as a new commit', async () => {
     const previous = { ...emptyProfile, backendKind: 'vrm' as const, avatarAssetRef: 'vrm_previous' };
     let call = 0;

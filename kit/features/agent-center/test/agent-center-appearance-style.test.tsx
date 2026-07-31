@@ -32,4 +32,20 @@ describe('AgentCenter committed appearance surface', () => {
     expect(markup).toContain('unsupported committed backend');
     expect(markup).toMatch(/disabled=""/u);
   });
+
+  it('renders the Runtime-bound default voice and avatar autoplay state', async () => {
+    const session = await sessionFor({
+      appearance: {
+        status: 'not_configured',
+        presentationRevision: 'p4',
+        defaultVoiceReference: 'voice_asset_id:voice-song-lian',
+        avatarAutoplay: true,
+      },
+    });
+    const markup = renderToStaticMarkup(<AgentCenter activeSection="appearance" session={session} />);
+    expect(markup).toContain('data-agent-center-default-voice="bound"');
+    expect(markup).toContain('data-agent-center-default-voice-reference="voice_asset_id:voice-song-lian"');
+    expect(markup).toContain('data-agent-center-avatar-autoplay="enabled"');
+    expect(markup).toContain('Disable');
+  });
 });

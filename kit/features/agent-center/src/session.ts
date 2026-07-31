@@ -492,6 +492,30 @@ export function createPermissionedAgentCenterSession(
 ): AgentCenterSession {
   if (!String(input.handle).trim()) throw new Error('Agent Center requires an opaque Agent handle.');
   let manager: ManagerSession | null = null;
+  const appearanceFromState = (value: AgentCenterStateInput | AgentCenterState): AgentCenterAppearanceProjection => (
+    isBuiltState(value) ? value : buildAgentCenterState(value)
+  ).appearance;
+  const appearanceAdapter: AgentCenterAppearanceAdapter = {
+    async load() {
+      return appearanceFromState(await input.surface.read(input.handle, input.loadOptions));
+    },
+    async setAvatarAutoplay(enabled) {
+      const current = manager?.getSnapshot().state.appearance;
+      const expectedRevision = current?.presentationRevision;
+      if (expectedRevision === null || expectedRevision === undefined) {
+        throw new Error('Agent Center Runtime presentation revision is unavailable.');
+      }
+      const result = await input.surface.replaceAppearance(input.handle, {
+        expectedRevision,
+        intent: { avatarAutoplay: enabled },
+        importedAssets: [],
+      });
+      if ('status' in result && !('runtimeStatus' in result) && !('agentAIConfig' in result)) {
+        return result as AgentCenterAppearanceProjection;
+      }
+      return appearanceFromState(result as AgentCenterStateInput | AgentCenterState);
+    },
+  };
   const transport: SessionTransport = {
     modelConfig: createPermissionedModelConfigAdapter(async () => {
       const current = manager?.getSnapshot().state.modelSettings;
@@ -499,7 +523,7 @@ export function createPermissionedAgentCenterSession(
       const state = await input.surface.read(input.handle, input.loadOptions);
       return state.modelSettings || null;
     }),
-    appearanceAdapter: null,
+    appearanceAdapter,
     async actionAvailability() {
       return projectAgentCenterActionAvailability(await input.surface.actionPosture(input.handle));
     },

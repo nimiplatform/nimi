@@ -9,6 +9,7 @@ import {
 import type {
   AgentCenterAutonomyProjection,
   AgentCenterOpaqueHandle,
+  AgentCenterPermissionedPresentationCommitInput,
   AgentCenterPermissionedSdkSurface,
   AgentCenterPermissionedSdkSurfaceInput,
   AgentCenterProductAction,
@@ -179,6 +180,50 @@ describe('AgentCenterSession', () => {
     await flush();
     expect(session.getSnapshot().state.configRevision).toBe('9007199254740993');
     unsubscribe();
+  });
+
+  it('patches avatar autoplay through the permissioned presentation commit without replacing the voice', async () => {
+    const calls: AgentCenterPermissionedPresentationCommitInput[] = [];
+    const current: AgentCenterStateInput = {
+      ...emptyProjection(),
+      appearance: {
+        status: 'not_configured',
+        presentationRevision: 'presentation:1',
+        defaultVoiceReference: 'voice_asset_id:voice-song-lian',
+        avatarAutoplay: false,
+      },
+    };
+    const updated: AgentCenterStateInput = {
+      ...current,
+      appearance: {
+        status: 'not_configured',
+        presentationRevision: 'presentation:2',
+        defaultVoiceReference: 'voice_asset_id:voice-song-lian',
+        avatarAutoplay: true,
+      },
+    };
+    const session = createPermissionedAgentCenterSession({
+      handle: 'opaque' as AgentCenterOpaqueHandle,
+      surface: permissionedSurface({
+        async read() { return current; },
+        async replaceAppearance(_handle, input) {
+          calls.push(input);
+          return updated;
+        },
+      }),
+    });
+    await session.refresh();
+    await session.appearance.setAvatarAutoplay?.(true);
+    expect(calls).toEqual([{
+      expectedRevision: 'presentation:1',
+      intent: { avatarAutoplay: true },
+      importedAssets: [],
+    }]);
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      presentationRevision: 'presentation:2',
+      defaultVoiceReference: 'voice_asset_id:voice-song-lian',
+      avatarAutoplay: true,
+    });
   });
 
   it('builds the permissioned model picker from bounded configuration-snapshot options', async () => {

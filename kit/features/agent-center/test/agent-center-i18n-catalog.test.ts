@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   agentCenterEnCatalog,
   agentCenterZhCatalog,
@@ -43,14 +44,25 @@ function literalCatalogKeys(): readonly string[] {
   return [...keys].sort();
 }
 
+function canonicalCapabilityCatalogKeys(): readonly string[] {
+  return CANONICAL_CAPABILITY_CATALOG.flatMap(({ i18nKeys }) => [
+    i18nKeys.title,
+    i18nKeys.subtitle,
+    i18nKeys.detail,
+  ]).sort();
+}
+
 describe('Agent Center canonical i18n catalogs', () => {
   it('covers every literal component key in English and ships matching Chinese keys', () => {
     const enKeys = Object.keys(agentCenterEnCatalog).sort();
     const zhKeys = Object.keys(agentCenterZhCatalog).sort();
+    const canonicalCapabilityKeys = canonicalCapabilityCatalogKeys();
 
-    expect(enKeys).toHaveLength(385);
+    expect(enKeys).toHaveLength(397);
     expect(zhKeys).toEqual(enKeys);
     expect(literalCatalogKeys().filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);
+    expect(canonicalCapabilityKeys.filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);
+    expect(canonicalCapabilityKeys.filter((key) => !(key in agentCenterZhCatalog))).toEqual([]);
 
     const copyNamespaces = {
       AgentCenterChromeCopy: 'AgentCenter.chrome.',

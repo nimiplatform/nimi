@@ -163,6 +163,20 @@ export function createAgentCenterShellAppearanceAdapter(
         return project();
       });
     },
+    setAvatarAutoplay(enabled: boolean) {
+      return enqueue(async () => {
+        if (committedRevision === null) {
+          throw new Error('Agent Center Runtime presentation revision is unavailable.');
+        }
+        const result = await input.runtimePresentation.patchPresentationProfile(
+          input.identity,
+          { avatarAutoplay: enabled },
+          committedRevision,
+        );
+        adopt(result, currentMaterialRef);
+        return project();
+      });
+    },
   };
 }
 
