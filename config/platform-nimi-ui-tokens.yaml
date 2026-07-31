@@ -1366,6 +1366,14 @@ tokens:
     primitive_family: overlay
     source_rule: P-DESIGN-003
     theme_layer: foundation
+  - id: z.toast
+    category: z
+    semantic_name: Z toast
+    css_var: --nimi-z-toast
+    ts_token: toast
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
   - id: sizing.action_sm_height
     category: sizing
     semantic_name: Action small height

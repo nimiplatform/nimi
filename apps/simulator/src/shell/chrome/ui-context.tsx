@@ -1,7 +1,7 @@
 /**
  * Simulator shell chrome state: one React context + reducer holding the
  * shell-atmosphere (sky phase/time/intensity/motion), chrome overlays (Lens,
- * Apps page, Sky panel, Field menu, toast), and window geometry for the
+ * Apps page, Sky panel, Field menu), and window geometry for the
  * imperative `.simulator-surface` sections (per-instance x/y/w/h/z/minimized).
  *
  * This is presentation state only. Product/session truth stays in the State
@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from 'react';
 import { usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
+import { nimiToast, type NimiToastTone } from '@nimiplatform/kit/ui';
 import {
   sceneTimeFromDate,
   scenePhaseFromTime,
@@ -65,6 +66,7 @@ export interface ChromePaneSpot {
 export interface ChromeToast {
   readonly title: string;
   readonly detail: string;
+  readonly tone?: NimiToastTone;
 }
 
 export interface ChromeFieldMenu {
@@ -82,7 +84,6 @@ interface ChromeState {
   readonly skyPanelOpen: boolean;
   readonly fieldMenu: ChromeFieldMenu | null;
   readonly receiptGrantId: string | null;
-  readonly toast: ChromeToast | null;
   readonly windows: Readonly<Record<string, ChromeWindowGeometry>>;
   readonly windowNotices: Readonly<Record<string, string>>;
   readonly zCounter: number;
@@ -106,8 +107,6 @@ type ChromeAction =
   | { readonly type: 'set-sky-panel-open'; readonly v: boolean }
   | { readonly type: 'set-field-menu'; readonly menu: ChromeFieldMenu | null }
   | { readonly type: 'set-receipt-grant'; readonly grantId: string | null }
-  | { readonly type: 'show-toast'; readonly toast: ChromeToast }
-  | { readonly type: 'dismiss-toast' }
   | { readonly type: 'sync-windows'; readonly instances: readonly { readonly instanceId: string; readonly moduleId: string }[] }
   | { readonly type: 'present-window'; readonly instanceId: string; readonly moduleId: string }
   | { readonly type: 'move-window'; readonly instanceId: string; readonly x: number; readonly y: number }
@@ -236,7 +235,6 @@ function initialChromeState(): ChromeState {
     skyPanelOpen: false,
     fieldMenu: null,
     receiptGrantId: null,
-    toast: null,
     windows: {},
     windowNotices: {},
     zCounter: 10,
@@ -387,10 +385,6 @@ function chromeReducer(state: ChromeState, action: ChromeAction): ChromeState {
       return { ...state, fieldMenu: action.menu };
     case 'set-receipt-grant':
       return state.receiptGrantId === action.grantId ? state : { ...state, receiptGrantId: action.grantId };
-    case 'show-toast':
-      return { ...state, toast: action.toast };
-    case 'dismiss-toast':
-      return state.toast === null ? state : { ...state, toast: null };
     case 'sync-windows':
       return syncWindows(state, action.instances);
     case 'present-window':
@@ -526,7 +520,6 @@ export interface UiState {
   readonly skyPanelOpen: boolean;
   readonly fieldMenu: ChromeFieldMenu | null;
   readonly receiptGrantId: string | null;
-  readonly toast: ChromeToast | null;
   readonly windows: Readonly<Record<string, ChromeWindowGeometry>>;
   readonly windowNotices: Readonly<Record<string, string>>;
   readonly panePos: Readonly<Record<string, ChromePaneSpot>>;
@@ -625,7 +618,6 @@ export function UiProvider({ children, subscribeFamily, stageElement }: UiProvid
       skyPanelOpen: state.skyPanelOpen,
       fieldMenu: state.fieldMenu,
       receiptGrantId: state.receiptGrantId,
-      toast: state.toast,
       windows: state.windows,
       windowNotices: state.windowNotices,
       panePos: state.panePos,
@@ -645,8 +637,12 @@ export function UiProvider({ children, subscribeFamily, stageElement }: UiProvid
       setSkyPanelOpen: (v) => dispatch({ type: 'set-sky-panel-open', v }),
       setFieldMenu: (menu) => dispatch({ type: 'set-field-menu', menu }),
       setReceiptGrantId: (grantId) => dispatch({ type: 'set-receipt-grant', grantId }),
-      showToast: (toast) => dispatch({ type: 'show-toast', toast }),
-      dismissToast: () => dispatch({ type: 'dismiss-toast' }),
+      showToast: (toast) => {
+        const tone = toast.tone ?? 'info';
+        if (toast.detail) nimiToast.show({ title: toast.title, message: toast.detail, tone });
+        else nimiToast.show({ message: toast.title, tone });
+      },
+      dismissToast: () => nimiToast.clear(),
       syncWindows: (instances) => dispatch({ type: 'sync-windows', instances }),
       presentWindow: (instanceId, moduleId) => dispatch({ type: 'present-window', instanceId, moduleId }),
       moveWindow: (instanceId, x, y) => dispatch({ type: 'move-window', instanceId, x, y }),

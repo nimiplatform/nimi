@@ -1,5 +1,5 @@
 /* Nimi OS "Field" — panes, spine, lens, wake, cradle, windows, consent,
- * ledger, toast, tide. Aurora-inspired spatial idiom. */
+ * ledger, tide. Aurora-inspired spatial idiom. */
 
 /* — Stage + tide overview — */
 .stage {
@@ -372,8 +372,7 @@
  * border + inner top highlight + faint bottom shade), and a wide, soft,
  * low-opacity depth shadow. — */
 .pane-float,
-.window-frame,
-.toast-float {
+.window-frame {
   background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.18),
@@ -2236,52 +2235,6 @@
   text-align: center;
   color: var(--fld-text-3);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* — Toast pill — */
-.toast-float {
-  position: fixed;
-  right: 18px;
-  bottom: 84px;
-  z-index: 940;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  max-width: 320px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(234, 176, 194, 0.4);
-  box-shadow: var(--fld-shadow-sm);
-  animation: toast-in 0.3s var(--fld-spring);
-}
-
-@keyframes toast-in {
-  from { transform: translateY(12px); opacity: 0; }
-}
-
-.toast-orb {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-top: 5px;
-  background: var(--fld-aurora);
-  flex: none;
-}
-
-.toast-body {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-}
-
-.toast-body b {
-  font-size: 0.8125rem;
-}
-
-.toast-close {
-  color: var(--fld-text-3);
-  font-size: 0.75rem;
 }
 
 .pane-float[data-top='true'],

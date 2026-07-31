@@ -2409,6 +2409,16 @@
             "nimi-light": 80
           }
         },
+        "z.toast": {
+          "cssVar": "--nimi-z-toast",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": 100,
+            "nimi-light": 100
+          }
+        },
         "z.tooltip": {
           "cssVar": "--nimi-z-tooltip",
           "primitiveFamily": "overlay",
@@ -3792,6 +3802,75 @@
         "sourceRule": "P-DESIGN-015",
         "slots": [],
         "variants": {}
+      },
+      {
+        "id": "primitive.toast",
+        "family": "feedback",
+        "component": "NimiToast",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "viewport",
+            "className": "nimi-toast-viewport"
+          },
+          {
+            "id": "root",
+            "className": "nimi-toast"
+          },
+          {
+            "id": "icon",
+            "className": "nimi-toast__icon"
+          },
+          {
+            "id": "body",
+            "className": "nimi-toast__body"
+          },
+          {
+            "id": "title",
+            "className": "nimi-toast__title"
+          },
+          {
+            "id": "message",
+            "className": "nimi-toast__message"
+          },
+          {
+            "id": "action",
+            "className": "nimi-toast__action"
+          },
+          {
+            "id": "close",
+            "className": "nimi-toast__close"
+          }
+        ],
+        "variants": {
+          "tone": [
+            {
+              "id": "neutral",
+              "className": "nimi-toast--neutral",
+              "selector": ""
+            },
+            {
+              "id": "success",
+              "className": "nimi-toast--success",
+              "selector": ""
+            },
+            {
+              "id": "warning",
+              "className": "nimi-toast--warning",
+              "selector": ""
+            },
+            {
+              "id": "danger",
+              "className": "nimi-toast--danger",
+              "selector": ""
+            },
+            {
+              "id": "info",
+              "className": "nimi-toast--info",
+              "selector": ""
+            }
+          ]
+        }
       },
       {
         "id": "primitive.toggle",

@@ -149,6 +149,7 @@ packs:
       z.tooltip: "70"
       z.popover: "80"
       z.dialog: "90"
+      z.toast: "100"
       sizing.action_sm_height: 32px
       sizing.action_md_height: 40px
       sizing.action_lg_height: 48px
@@ -344,6 +345,7 @@ packs:
       z.tooltip: "70"
       z.popover: "80"
       z.dialog: "90"
+      z.toast: "100"
       sizing.action_sm_height: 32px
       sizing.action_md_height: 40px
       sizing.action_lg_height: 48px

@@ -6,6 +6,7 @@ import {
   EmptyState,
   InlineAlert,
   LoadingSkeleton,
+  nimiToast,
   ProgressIndicator,
   Statistic,
   StatisticGroup,
@@ -166,6 +167,53 @@ export const DATA_RECIPES: Recipe[] = [
     props: [
       { name: 'tone', desc: 'neutral | success | warning | danger | info' },
       { name: 'icon', desc: 'optional leading icon node' },
+    ],
+  },
+  {
+    id: 'toast',
+    category: 'data',
+    name: 'Toast',
+    exportsLabel: 'nimiToast, NimiToaster',
+    importNames: ['nimiToast', 'NimiToaster'],
+    badge: { label: 'signals', tone: 'info' },
+    wide: true,
+    stage: (
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-3">
+        <Button size="sm" tone="secondary" onClick={() => nimiToast.success('Export finished.')}>Success</Button>
+        <Button size="sm" tone="secondary" onClick={() => nimiToast.info('Runtime check scheduled.')}>Info</Button>
+        <Button size="sm" tone="secondary" onClick={() => nimiToast.warning('Local model cache is almost full.')}>Warning</Button>
+        <Button size="sm" tone="secondary" onClick={() => nimiToast.danger('Bridge connection lost.')}>Danger</Button>
+        <Button
+          size="sm"
+          tone="secondary"
+          onClick={() => nimiToast.info('Update ready to install.', {
+            action: { label: 'Restart', onClick: () => nimiToast.success('Restart scheduled.') },
+          })}
+        >
+          With action
+        </Button>
+      </div>
+    ),
+    snippet: `<NimiToaster /> // mount once near the app root
+
+<Button onClick={() => nimiToast.success('Export finished.')}>Success</Button>
+<Button onClick={() => nimiToast.info('Runtime check scheduled.')}>Info</Button>
+<Button onClick={() => nimiToast.warning('Local model cache is almost full.')}>Warning</Button>
+<Button onClick={() => nimiToast.danger('Bridge connection lost.')}>Danger</Button>
+<Button
+  onClick={() =>
+    nimiToast.info('Update ready to install.', {
+      action: { label: 'Restart', onClick: () => nimiToast.success('Restart scheduled.') },
+    })
+  }
+>
+  With action
+</Button>`,
+    props: [
+      { name: 'nimiToast.{tone}', desc: 'success | info | warning | danger | neutral imperative helpers' },
+      { name: 'action', desc: 'optional { label, onClick } trailing action' },
+      { name: 'durationMs / sticky', desc: 'auto-dismiss delay; sticky keeps the toast until dismissed' },
+      { name: 'NimiToaster', desc: 'viewport host mounted once near the app root' },
     ],
   },
   {

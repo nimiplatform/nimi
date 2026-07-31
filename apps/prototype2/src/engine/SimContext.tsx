@@ -18,6 +18,7 @@ import {
   type ReactNode,
 } from 'react';
 import { SCENARIO } from '../scenario/scenario';
+import { nimiToast } from '@nimiplatform/kit/ui';
 import { FLOWS, type FlowStep } from '../scenario/flows';
 import type {
   AgentLocation,
@@ -76,7 +77,6 @@ interface SimState {
   bridge: BridgeState | null;
   ledgerOpen: boolean;
   flowRunning: boolean;
-  toast: { title: string; detail: string } | null;
   cradlePos: Record<string, { x: number; y: number; w: number }>;
 }
 
@@ -98,7 +98,6 @@ type Action =
   | { type: 'bridge-set'; bridge: BridgeState | null }
   | { type: 'bridge-stage'; stage: 'toAgent' | 'toTarget' }
   | { type: 'flow-guard'; running: boolean }
-  | { type: 'toast-clear' }
   | { type: 'reset' };
 
 const SPAWN: Record<ModuleId, { x: number; y: number }> = {
@@ -161,7 +160,6 @@ function buildInitialState(epoch: number): SimState {
     bridge: null,
     ledgerOpen: false,
     flowRunning: false,
-    toast: null,
     cradlePos: defaultCradleSpots(),
   };
 }
@@ -382,8 +380,6 @@ function reducer(state: SimState, action: Action): SimState {
           };
           return { ...state, desktopChat: [...state.desktopChat, msg] };
         }
-        case 'toast':
-          return { ...state, toast: { title: step.title, detail: step.detail } };
         case 'bridge':
           return state; // handled by the runner (DOM measuring), not the reducer
       }
@@ -395,8 +391,6 @@ function reducer(state: SimState, action: Action): SimState {
       return state.bridge ? { ...state, bridge: { ...state.bridge, stage: action.stage } } : state;
     case 'flow-guard':
       return { ...state, flowRunning: action.running };
-    case 'toast-clear':
-      return { ...state, toast: null };
     case 'reset':
       return buildInitialState(state.epoch + 1);
     default:
@@ -474,6 +468,11 @@ export function SimProvider({ children }: { children: ReactNode }) {
             } else {
               dispatch({ type: 'bridge-set', bridge: null });
             }
+            return;
+          }
+          if (step.type === 'toast') {
+            if (step.detail) nimiToast.show({ title: step.title, message: step.detail, tone: 'info' });
+            else nimiToast.show({ message: step.title, tone: 'info' });
             return;
           }
           dispatch({ type: 'step', step });
@@ -561,9 +560,10 @@ export function SimProvider({ children }: { children: ReactNode }) {
       resolveConsent,
       toggleGrant: (grantId) => dispatch({ type: 'grant-toggle', grantId }),
       toggleLedger: () => dispatch({ type: 'ledger-toggle' }),
-      dismissToast: () => dispatch({ type: 'toast-clear' }),
+      dismissToast: () => nimiToast.clear(),
       resetSession: () => {
         clearTimers();
+        nimiToast.clear();
         dispatch({ type: 'reset' });
       },
     }),

@@ -56,11 +56,18 @@ body,
   color-scheme: dark;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/*
+ * Form controls inherit app typography. Kept inside @layer base so Tailwind
+ * utilities (unlayered styles beat layered ones) can still set per-element
+ * font styles — e.g. the chat composer's text-[13px].
+ */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 /*

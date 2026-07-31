@@ -1,5 +1,5 @@
-/* Nimi OS "Field" — panes, spine, lens, cradle, windows, consent, ledger,
- * and toast. Aurora-inspired spatial idiom.
+/* Nimi OS "Field" — panes, spine, lens, cradle, windows, consent,
+ * and ledger. Aurora-inspired spatial idiom.
  * Ported from prototype2. Mock-app-only scroll helpers were dropped; the
  * consent / receipt / ledger / agent-HUD / bridge sections are retained for
  * the follow-up overlay task even though nothing renders them yet.
@@ -295,8 +295,7 @@
  * low-opacity depth shadow. — */
 .pane-float,
 .window-frame,
-.simulator-surface,
-.toast-float {
+.simulator-surface {
   background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.18),
@@ -2132,52 +2131,6 @@
   text-align: center;
   color: var(--fld-text-3);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* — Toast pill — */
-.toast-float {
-  position: fixed;
-  right: 18px;
-  bottom: 84px;
-  z-index: 940;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  max-width: 320px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(234, 176, 194, 0.4);
-  box-shadow: var(--fld-shadow-sm);
-  animation: toast-in 0.3s var(--fld-spring);
-}
-
-@keyframes toast-in {
-  from { transform: translateY(12px); opacity: 0; }
-}
-
-.toast-orb {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-top: 5px;
-  background: var(--fld-aurora);
-  flex: none;
-}
-
-.toast-body {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-}
-
-.toast-body b {
-  font-size: 0.8125rem;
-}
-
-.toast-close {
-  color: var(--fld-text-3);
-  font-size: 0.75rem;
 }
 
 .pane-float[data-top='true'],

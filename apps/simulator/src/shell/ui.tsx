@@ -16,6 +16,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import type { SimulatorDiagnostic } from './diagnostics.ts';
+import { NimiToaster } from '@nimiplatform/kit/ui';
 import type { SimulatorShellRoute } from './routes.ts';
 import type { SimulatorSessionInstanceView } from './session.ts';
 import { UiProvider, useUi, SCENE_PHASE_LABEL } from './chrome/ui-context.tsx';
@@ -34,7 +35,6 @@ import { Lens } from './chrome/lens.tsx';
 import { AppsPage } from './chrome/apps-page.tsx';
 import { FieldMenu } from './chrome/field-menu.tsx';
 import { SkyPanel } from './chrome/sky-panel.tsx';
-import { ToastFloat } from './chrome/toast-float.tsx';
 import { ConsentOverlay } from './chrome/consent-overlay.tsx';
 import { GrantDock } from './chrome/grant-dock.tsx';
 import { GrantReceiptDialog } from './chrome/grant-receipt.tsx';
@@ -180,7 +180,7 @@ function DiagnosticsView(props: SimulatorShellViewProps): ReactElement {
   );
 }
 
-const BLOCK_MENU = '.pane-float, .simulator-surface, .spine, .app-rail, .apps-page, .apps-backdrop, .lens-backdrop, .toast-float, .field-menu, .sky-panel, .simulator-diagnostics, button, input';
+const BLOCK_MENU = '.pane-float, .simulator-surface, .spine, .app-rail, .apps-page, .apps-backdrop, .lens-backdrop, .field-menu, .sky-panel, .simulator-diagnostics, button, input';
 
 /** Shell-global keyboard chrome (⌘K Lens and Escape ordering). Rides the
  * admitted `keyboard` listener family through the global coordinator. */
@@ -271,7 +271,7 @@ function ShellChrome(props: SimulatorShellViewProps): ReactElement {
         <Lens />
         <AppsPage />
         <SkyPanel />
-        <ToastFloat />
+        <NimiToaster />
         <AgentLayer />
         <GrantDock />
         <ConsentOverlay />

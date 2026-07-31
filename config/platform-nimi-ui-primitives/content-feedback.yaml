@@ -282,6 +282,39 @@ primitives:
         - id: info
           class_name: nimi-inline-alert--info
     source_rule: P-DESIGN-010
+  - id: primitive.toast
+    family: feedback
+    component: NimiToast
+    slots:
+      - id: viewport
+        class_name: nimi-toast-viewport
+      - id: root
+        class_name: nimi-toast
+      - id: icon
+        class_name: nimi-toast__icon
+      - id: body
+        class_name: nimi-toast__body
+      - id: title
+        class_name: nimi-toast__title
+      - id: message
+        class_name: nimi-toast__message
+      - id: action
+        class_name: nimi-toast__action
+      - id: close
+        class_name: nimi-toast__close
+    class_groups:
+      tone:
+        - id: neutral
+          class_name: nimi-toast--neutral
+        - id: success
+          class_name: nimi-toast--success
+        - id: warning
+          class_name: nimi-toast--warning
+        - id: danger
+          class_name: nimi-toast--danger
+        - id: info
+          class_name: nimi-toast--info
+    source_rule: P-DESIGN-010
   - id: primitive.empty_state
     family: feedback
     component: EmptyState

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { NimiToaster } from '@nimiplatform/kit/ui';
 import { SimProvider, useSim } from './engine/SimContext';
 import { UiProvider, useUi, PHASE_LABEL } from './shell/UiContext';
 import { Field } from './shell/Field';
@@ -11,13 +12,12 @@ import { AppRail } from './shell/AppRail';
 import { AppsPage } from './shell/AppsPage';
 import { ConsentOverlay } from './shell/ConsentOverlay';
 import { LedgerDrawer, type LedgerFilter } from './shell/LedgerDrawer';
-import { ToastFloat } from './shell/ToastFloat';
 import { AgentLayer } from './shell/AgentLayer';
 import { FieldMenu, type FieldMenuState } from './shell/FieldMenu';
 import { SkyPanel } from './shell/SkyPanel';
 import { SpatialStage } from './shell/SpatialStage';
 
-const BLOCK_MENU = '.pane-float, .window-frame, .spine, .app-rail, .apps-page, .ledger-drawer, .consent-backdrop, .lens-backdrop, .toast-float, .field-menu, .sky-panel, button, input';
+const BLOCK_MENU = '.pane-float, .window-frame, .spine, .app-rail, .apps-page, .ledger-drawer, .consent-backdrop, .lens-backdrop, .field-menu, .sky-panel, button, input';
 
 function Stage() {
   const { state, goHome, tidy, toggleLedger } = useSim();
@@ -77,7 +77,7 @@ function Stage() {
       {appsOpen ? <AppsPage onClose={closeApps} /> : null}
       <AppRail />
       <AgentLayer />
-      <ToastFloat />
+      <NimiToaster />
       <ConsentOverlay />
       <LedgerDrawer filter={ledgerFilter} onFilterChange={setLedgerFilter} />
       <Spine onOpenSkyPanel={openSkyPanel} skyPanelOpen={skyPanelOpen} />

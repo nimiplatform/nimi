@@ -8,6 +8,8 @@ import {
   InlineAlert,
   LoadingSkeleton,
   NimiText,
+  NimiToaster,
+  nimiToast,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -230,6 +232,32 @@ function FeedbackSection() {
         <InlineAlert tone="danger">Bridge connection lost.</InlineAlert>
         <InlineAlert tone="success">Export finished.</InlineAlert>
       </Card>
+      <Card title="Toast" testId="card-toast">
+        <div className="flex flex-wrap gap-2">
+          <Button tone="secondary" data-testid="toast-success" onClick={() => nimiToast.success('Export finished.')}>Success</Button>
+          <Button tone="secondary" data-testid="toast-info" onClick={() => nimiToast.info('Runtime check scheduled.')}>Info</Button>
+          <Button tone="secondary" data-testid="toast-warning" onClick={() => nimiToast.warning('Local model cache is almost full.')}>Warning</Button>
+          <Button tone="secondary" data-testid="toast-danger" onClick={() => nimiToast.danger('Bridge connection lost.')}>Danger</Button>
+          <Button
+            tone="secondary"
+            data-testid="toast-action"
+            onClick={() =>
+              nimiToast.info('Update ready to install.', {
+                action: { label: 'Restart', onClick: () => nimiToast.success('Restart scheduled.') },
+              })
+            }
+          >
+            With action
+          </Button>
+          <Button
+            tone="secondary"
+            data-testid="toast-sticky"
+            onClick={() => nimiToast.warning('Bridge is reconnecting…', { sticky: true, title: 'Sticky' })}
+          >
+            Sticky
+          </Button>
+        </div>
+      </Card>
       <Card title="Status badge">
         <div className="flex flex-wrap gap-2">
           <StatusBadge tone="neutral">Idle</StatusBadge>
@@ -320,6 +348,7 @@ export function PreviewApp({ params }: { params: PreviewParams }) {
       <footer className="pt-4">
         <NimiText role="caption">{SECTIONS.length} sections · governed by canonical platform authority</NimiText>
       </footer>
+      <NimiToaster />
     </div>
   );
 }

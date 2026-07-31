@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NimiRendererHostProvider, type NimiRendererHostBindingV1, type NimiRendererHostMethodMap } from '@nimiplatform/kit/shell/renderer/host';
+import { NimiToaster } from '@nimiplatform/kit/ui';
 
 import { testerCanonicalRendererFactory } from '../renderer/factory.js';
 import { createTesterProductionBindings } from '../renderer/production-bindings.js';
@@ -24,6 +25,7 @@ export function App(props: {
       <AuthGate>
         {canonical?.surfaces.main.render() ?? null}
       </AuthGate>
+      <NimiToaster />
     </NimiRendererHostProvider>
   );
 }

@@ -353,6 +353,7 @@ Components map the Google DESIGN.md `components` object to the admitted Nimi pri
 - `Surface` (`primitive.surface`): family `surface`, source `P-DESIGN-011`; variants elevation:4, material:5, state:4, tone:5.
 - `NimiTabs` (`primitive.tabs`): family `navigation`, source `P-DESIGN-014`; variants state:1.
 - `TextareaField` (`primitive.textarea`): family `field`, source `P-DESIGN-015`.
+- `NimiToast` (`primitive.toast`): family `feedback`, source `P-DESIGN-010`; variants tone:5.
 - `Toggle` (`primitive.toggle`): family `toggle`, source `P-DESIGN-010`; variants compound:1, state:3.
 - `NimiText` (`primitive.typography`): family `typography`, source `P-DESIGN-016`; variants role:7.
 
