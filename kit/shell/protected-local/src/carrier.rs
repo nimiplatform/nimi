@@ -198,6 +198,7 @@ impl LocalAppPermissionState {
 pub struct LocalAppAgentHandle {
     pub agent_handle: String,
     pub display_name: String,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -250,7 +251,6 @@ pub struct LocalAppWorldCoreCreateRequest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationOpenRequest {
     pub agent_handle: String,
-    pub disposition: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -10,7 +10,7 @@ import {
 } from '../../../scripts/lib/windows-dev-signing.mjs';
 import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import {
-  resolveDesktopDevObservationArguments,
+  resolveDesktopDevLaunchOptions,
   resolvePersistentDesktopDevProfile,
   resolveSignedDesktopDevCarrier,
   resolveWorkspaceElectronDevCarrier,
@@ -25,9 +25,10 @@ const workspaceRoot = path.resolve(appRoot, '../..');
 const rendererUrl = process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL || 'http://127.0.0.1:1420';
 const bundledAvatarRendererUrl = process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL
   || 'http://127.0.0.1:1427';
-const avatarOnly = process.argv.includes('--avatar-only');
-const unknownArgument = process.argv.slice(2).find((value) => value !== '--avatar-only');
-if (unknownArgument) throw new Error(`Unsupported Desktop Electron dev argument: ${unknownArgument}`);
+const {
+  avatarOnly,
+  observationArguments: desktopDevObservationArguments,
+} = resolveDesktopDevLaunchOptions(process.argv.slice(2));
 const electronVersion = String(require('electron/package.json').version || '').trim();
 const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
 let desktopDevSession;
@@ -84,7 +85,7 @@ async function runWindowsDesktopDev() {
       throw new Error('Avatar-only Electron dev requires NIMI_AVATAR_AGENT_ID with a Runtime local-agent ref.');
     }
     const electron = spawnTracked(electronBin, [
-      ...resolveDesktopDevObservationArguments(),
+      ...desktopDevObservationArguments,
       `--user-data-dir=${profileRoot}`,
       'dist-electron/main.js',
     ], {
@@ -134,7 +135,7 @@ async function runMacOSDesktopDev() {
     spawnRenderer();
     await waitForUrl(rendererUrl, 45_000);
     const electron = spawnTracked(electronBin, [
-      ...resolveDesktopDevObservationArguments(),
+      ...desktopDevObservationArguments,
       `--user-data-dir=${macOSProfileRoot}`,
       'dist-electron/main.js',
     ], {

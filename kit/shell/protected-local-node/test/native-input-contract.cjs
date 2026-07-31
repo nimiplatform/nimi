@@ -27,7 +27,7 @@ const calls = [
   ['localAppRealmWorldCoreCreate', {
     body: { core: {}, origin: { kind: 'manual' }, visibility: 'private' },
   }],
-  ['localAppConversationOpen', { agentHandle, disposition: 'create-new' }],
+  ['localAppConversationOpen', { agentHandle }],
   ['localAppConversationSendTurn', {
     agentHandle,
     conversationAnchorId: 'contract-anchor',
@@ -86,7 +86,7 @@ async function main() {
   }
 
   const removedInputs = [
-    ['localAppConversationOpen', { selectedAgentHandle: agentHandle, disposition: 'create-new' }],
+    ['localAppConversationOpen', { selectedAgentHandle: agentHandle }],
     ['localAppConversationSendTurn', {
       selectedAgentHandle: agentHandle,
       conversationAnchorId: 'contract-anchor',

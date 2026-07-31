@@ -44,6 +44,7 @@ export type NimiLocalAppPermissionRequestInput = NimiLocalAppPermissionStatusInp
 export type NimiLocalAppAgentHandle = {
   readonly agentHandle: string;
   readonly displayName: string;
+  readonly avatarUrl: string | null;
 };
 
 export type NimiLocalAppPermissionStatus = {
@@ -130,7 +131,6 @@ export type NimiLocalAppStandardShellSurface = {
   readonly conversation: {
     readonly open: (input: {
       readonly agentHandle: string;
-      readonly disposition: 'create-or-resume' | 'create-new';
     }) => Promise<JsonObject>;
     readonly send: (input: NimiLocalAppConversationScopeInput & {
       readonly requestId: string;
@@ -351,17 +351,12 @@ function invokeAgentConfigureHandle(
 
 export function openNimiLocalAppConversation(input: {
   readonly agentHandle: string;
-  readonly disposition: 'create-or-resume' | 'create-new';
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'];
-  assertExactInput(input, ['agentHandle', 'disposition'], command);
-  if (input.disposition !== 'create-or-resume' && input.disposition !== 'create-new') {
-    throw invalidInput(command, 'disposition is invalid');
-  }
-  return invokeLocalAppRecord(command, {
-    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
-    disposition: input.disposition,
-  });
+  return invokeLocalAppRecord(
+    command,
+    identifiers(input, ['agentHandle'], command),
+  );
 }
 
 export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversationScopeInput & {
@@ -640,12 +635,13 @@ function parsePermissionStatus(
   const seen = new Set<string>();
   const agents = record.agents.map((value) => {
     const agent = assertRecord(value, `${command} returned invalid agent handle`);
-    assertProjectionKeys(agent, ['agentHandle', 'displayName'], command, 'permission agent');
+    assertProjectionKeys(agent, ['agentHandle', 'displayName', 'avatarUrl'], command, 'permission agent');
     const agentHandle = requiredText(agent.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH);
     const displayName = requiredUtf8Text(agent.displayName, 'displayName', command, 240);
+    const avatarUrl = stableAvatarUrlOrNull(agent.avatarUrl, command);
     if (seen.has(agentHandle)) throw new Error(`${command}: permission agent handle is duplicated`);
     seen.add(agentHandle);
-    return Object.freeze({ agentHandle, displayName });
+    return Object.freeze({ agentHandle, displayName, avatarUrl });
   });
   return Object.freeze({
     state: state as NimiLocalAppPermissionStatus['state'],
@@ -663,6 +659,26 @@ function parseStorageDocument(value: unknown, command: string): NimiLocalAppStor
   if (sizeBytes > MAX_STORAGE_DOCUMENT_BYTES) throw new Error(`${command}: sizeBytes exceeds the document bound`);
   validateStorageJsonValue(record.value, command);
   return { value: record.value as JsonValue, sizeBytes };
+}
+
+function stableAvatarUrlOrNull(value: unknown, command: string): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string'
+    || !value
+    || value.trim() !== value
+    || new TextEncoder().encode(value).byteLength > 4096) {
+    throw new Error(`${command}: permission agent avatarUrl is invalid`);
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`${command}: permission agent avatarUrl is invalid`);
+  }
+  if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password || parsed.hash) {
+    throw new Error(`${command}: permission agent avatarUrl is invalid`);
+  }
+  return value;
 }
 
 function canonicalStoragePath(value: string, command: string): string {

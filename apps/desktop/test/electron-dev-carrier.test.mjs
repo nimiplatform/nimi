@@ -8,6 +8,7 @@ import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 
 import {
+  resolveDesktopDevLaunchOptions,
   resolveDesktopDevObservationArguments,
   resolvePersistentDesktopDevProfile,
   resolveSignedDesktopDevCarrier,
@@ -141,6 +142,46 @@ test('Desktop dev CDP observation is explicit, loopback-only, and fail-closed', 
   assert.throws(
     () => resolveDesktopDevObservationArguments({ NIMI_DESKTOP_DEV_CDP_PORT: '80' }),
     (error) => error.reasonCode === 'desktop-dev-observation-port-invalid',
+  );
+});
+
+test('Desktop dev accepts the guarded package-script CDP arguments', () => {
+  assert.deepEqual(resolveDesktopDevLaunchOptions([
+    '--',
+    '--cdp-port',
+    '9337',
+  ], {}), {
+    avatarOnly: false,
+    observationArguments: [
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=9337',
+    ],
+  });
+  assert.deepEqual(resolveDesktopDevLaunchOptions([
+    '--avatar-only',
+    '--cdp-port',
+    '9337',
+  ], {}), {
+    avatarOnly: true,
+    observationArguments: [
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=9337',
+    ],
+  });
+});
+
+test('Desktop dev rejects malformed or unsupported package-script arguments', () => {
+  assert.throws(
+    () => resolveDesktopDevLaunchOptions(['--cdp-port'], {}),
+    /requires a value/u,
+  );
+  assert.throws(
+    () => resolveDesktopDevLaunchOptions(['--cdp-port', '9337', '--cdp-port', '9338'], {}),
+    /only be provided once/u,
+  );
+  assert.throws(
+    () => resolveDesktopDevLaunchOptions(['--inspect'], {}),
+    /Unsupported Desktop Electron dev argument/u,
   );
 });
 

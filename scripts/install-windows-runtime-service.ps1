@@ -15,12 +15,14 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $ServiceName = 'NimiRuntime'
-$ServiceAccount = 'NT SERVICE\NimiRuntime'
 $ExpectedServiceSid = 'S-1-5-80-152272774-1324336204-4147968316-71209937-3548791786'
 $ExpectedSignerSubject = 'CN=Nimi Local Development Code Signing'
 $InstallRoot = Join-Path $env:ProgramFiles 'Nimi\Runtime'
 $StateRoot = Join-Path $env:ProgramData 'Nimi\Runtime\Protected'
-$RuntimeInstallationState = Join-Path $StateRoot 'runtime\installation.json'
+$RuntimeStateRoot = Join-Path $StateRoot 'runtime'
+$RuntimeInstallationState = Join-Path $RuntimeStateRoot 'installation.json'
+$RuntimeDatabase = Join-Path $RuntimeStateRoot 'memory.db'
+$BundledLocalAgentChatRepairHelper = Join-Path $PSScriptRoot 'resources\repair-local-agent-chat.exe'
 $DeploymentRealmOrigins = @{
   production = 'https://realm.nimi.ai'
   'local-development' = 'http://127.0.0.1:3002'
@@ -30,12 +32,14 @@ $LocalAppPipeName = 'nimi-runtime-local-app-v1'
 $ExpectedAppIdentityProjectionSha256 = '__BUILD_APP_IDENTITY_PROJECTION_SHA256__'
 $ExpectedRuntimeSha256 = '__BUILD_RUNTIME_SHA256__'
 $ExpectedRuntimeBuildRecordSha256 = '__BUILD_RUNTIME_RECORD_SHA256__'
-$CandidateVersionId = "$ExpectedRuntimeSha256-$ExpectedRuntimeBuildRecordSha256"
+$ExpectedLocalAgentChatRepairSha256 = '__BUILD_LOCAL_AGENT_CHAT_REPAIR_SHA256__'
+$CandidateVersionId = '__BUILD_INSTALLER_CANDIDATE_VERSION_ID__'
 $InstalledVersionRoot = Join-Path $InstallRoot "versions\$CandidateVersionId"
 $InstalledBinary = Join-Path $InstalledVersionRoot 'nimi.exe'
 $ResourcesRoot = Join-Path $InstalledVersionRoot 'resources'
 $InstalledAppIdentityProjection = Join-Path $ResourcesRoot 'nimi-app-identity-surfaces.yaml'
 $InstalledRuntimeBuildRecord = Join-Path $ResourcesRoot 'runtime-build-record.json'
+$InstalledLocalAgentChatRepairHelper = Join-Path $ResourcesRoot 'repair-local-agent-chat.exe'
 $RuntimeStartupStages = @{
   42240 = 'unclassified'
   42241 = 'principal'
@@ -166,20 +170,28 @@ function Assert-FileSha256 {
 }
 
 function Copy-PlatformResources {
-  param([Parameter(Mandatory = $true)] [string] $DestinationRoot)
+  param(
+    [Parameter(Mandatory = $true)] [string] $DestinationRoot,
+    [Parameter(Mandatory = $true)] [string] $ExpectedSignerCertificateSha256
+  )
   $payloadRoot = Join-Path $PSScriptRoot 'resources'
   $sourceAppIdentityProjection = Join-Path $payloadRoot 'nimi-app-identity-surfaces.yaml'
   $sourceRuntimeBuildRecord = Join-Path $payloadRoot 'runtime-build-record.json'
+  $sourceLocalAgentChatRepairHelper = Join-Path $payloadRoot 'repair-local-agent-chat.exe'
   Assert-FileSha256 -Path $sourceAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $sourceRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
+  Assert-LocalAgentChatRepairHelper -Path $sourceLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
   $destinationResources = Join-Path $DestinationRoot 'resources'
   New-Item -ItemType Directory -Path $destinationResources -Force | Out-Null
   $destinationAppIdentityProjection = Join-Path $destinationResources 'nimi-app-identity-surfaces.yaml'
   $destinationBuildRecord = Join-Path $destinationResources 'runtime-build-record.json'
+  $destinationLocalAgentChatRepairHelper = Join-Path $destinationResources 'repair-local-agent-chat.exe'
   Copy-Item -LiteralPath $sourceAppIdentityProjection -Destination $destinationAppIdentityProjection
   Copy-Item -LiteralPath $sourceRuntimeBuildRecord -Destination $destinationBuildRecord
+  Copy-Item -LiteralPath $sourceLocalAgentChatRepairHelper -Destination $destinationLocalAgentChatRepairHelper
   Assert-FileSha256 -Path $destinationAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $destinationBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
+  Assert-LocalAgentChatRepairHelper -Path $destinationLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
 }
 
 function Read-RuntimeBuildRecord {
@@ -212,6 +224,7 @@ function Assert-InstalledCandidate {
   Assert-FileSha256 -Path $InstalledBinary -Expected $ExpectedRuntimeSha256
   Assert-FileSha256 -Path $InstalledAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $InstalledRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
+  Assert-LocalAgentChatRepairHelper -Path $InstalledLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
   $certificate = Assert-SignedFile -Path $InstalledBinary
   if ((Get-CertificateSha256 -Certificate $certificate) -ne $ExpectedSignerCertificateSha256) {
     throw 'Installed Runtime signer does not match the signed installer candidate.'
@@ -219,6 +232,18 @@ function Assert-InstalledCandidate {
   $record = Read-RuntimeBuildRecord
   if ($record.runtime.signerCertificateSha256 -ne $ExpectedSignerCertificateSha256) {
     throw 'Installed Runtime build record signer does not match the signed installer candidate.'
+  }
+}
+
+function Assert-LocalAgentChatRepairHelper {
+  param(
+    [Parameter(Mandatory = $true)] [string] $Path,
+    [Parameter(Mandatory = $true)] [string] $ExpectedSignerCertificateSha256
+  )
+  Assert-FileSha256 -Path $Path -Expected $ExpectedLocalAgentChatRepairSha256
+  $certificate = Assert-SignedFile -Path $Path
+  if ((Get-CertificateSha256 -Certificate $certificate) -ne $ExpectedSignerCertificateSha256) {
+    throw 'LocalAgent chat repair helper signer does not match the signed installer.'
   }
 }
 
@@ -242,7 +267,7 @@ function Stage-InstallCandidate {
     if ((Get-CertificateSha256 -Certificate $stagedCertificate) -ne $ExpectedSignerCertificateSha256) {
       throw 'Staged Runtime signer changed during candidate preparation.'
     }
-    Copy-PlatformResources -DestinationRoot $stagingRoot
+    Copy-PlatformResources -DestinationRoot $stagingRoot -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
     Move-Item -LiteralPath $stagingRoot -Destination $InstalledVersionRoot
     Assert-InstalledCandidate -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
   } finally {
@@ -331,9 +356,8 @@ function Wait-ProtectedPipes {
   throw "$ServiceName protected pipes were not ready within 20 seconds."
 }
 
-function Set-StateRootAcl {
-  New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
-  $account = [Security.Principal.NTAccount]::new($ServiceAccount)
+function New-ServiceOnlyDirectorySecurity {
+  $account = [Security.Principal.SecurityIdentifier]::new($ExpectedServiceSid)
   $security = [Security.AccessControl.DirectorySecurity]::new()
   $security.SetAccessRuleProtection($true, $false)
   $security.SetOwner($account)
@@ -345,14 +369,12 @@ function Set-StateRootAcl {
     [Security.AccessControl.AccessControlType]::Allow
   )
   [void] $security.AddAccessRule($rule)
-  Set-Acl -LiteralPath $StateRoot -AclObject $security
+  Assert-ServiceOnlySecurityDescriptor -Security $security -Directory
+  return $security
 }
 
-function Set-RuntimeInstallationStateAcl {
-  if (-not (Test-Path -LiteralPath $RuntimeInstallationState -PathType Leaf)) {
-    return
-  }
-  $account = [Security.Principal.NTAccount]::new($ServiceAccount)
+function New-ServiceOnlyFileSecurity {
+  $account = [Security.Principal.SecurityIdentifier]::new($ExpectedServiceSid)
   $security = [Security.AccessControl.FileSecurity]::new()
   $security.SetAccessRuleProtection($true, $false)
   $security.SetOwner($account)
@@ -362,7 +384,103 @@ function Set-RuntimeInstallationStateAcl {
     [Security.AccessControl.AccessControlType]::Allow
   )
   [void] $security.AddAccessRule($rule)
-  Set-Acl -LiteralPath $RuntimeInstallationState -AclObject $security
+  Assert-ServiceOnlySecurityDescriptor -Security $security
+  return $security
+}
+
+function Assert-ServiceOnlySecurityDescriptor {
+  param(
+    [Parameter(Mandatory = $true)] $Security,
+    [switch] $Directory
+  )
+  if (-not $Security.AreAccessRulesProtected) {
+    throw 'Constructed Runtime custody DACL must be protected.'
+  }
+  $owner = $Security.GetOwner([Security.Principal.SecurityIdentifier])
+  if ($null -eq $owner -or $owner.Value -ne $ExpectedServiceSid) {
+    throw 'Constructed Runtime custody owner must be the exact service SID.'
+  }
+  $rules = @($Security.GetAccessRules(
+    $true,
+    $true,
+    [Security.Principal.SecurityIdentifier]
+  ))
+  if ($rules.Count -ne 1) {
+    throw 'Constructed Runtime custody DACL must contain exactly one service ACE.'
+  }
+  $rule = $rules[0]
+  $expectedInheritance = if ($Directory) {
+    [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+  } else {
+    [Security.AccessControl.InheritanceFlags]::None
+  }
+  if ($rule.IdentityReference.Value -ne $ExpectedServiceSid -or
+      $rule.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow -or
+      $rule.FileSystemRights -ne [Security.AccessControl.FileSystemRights]::FullControl -or
+      $rule.InheritanceFlags -ne $expectedInheritance -or
+      $rule.PropagationFlags -ne [Security.AccessControl.PropagationFlags]::None -or
+      $rule.IsInherited) {
+    throw 'Constructed Runtime custody DACL must grant only exact service FullControl.'
+  }
+}
+
+function Set-StateRootAcl {
+  New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+  $attributes = [IO.File]::GetAttributes($StateRoot)
+  if (($attributes -band [IO.FileAttributes]::Directory) -eq 0 -or
+      ($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+    throw "Runtime state root must be a non-reparse directory: $StateRoot"
+  }
+  $security = New-ServiceOnlyDirectorySecurity
+  Set-Acl -LiteralPath $StateRoot -AclObject $security
+}
+
+function Set-RuntimeStateRootAcl {
+  if (-not (Test-Path -LiteralPath $RuntimeStateRoot -PathType Container)) {
+    return $false
+  }
+  $attributes = [IO.File]::GetAttributes($RuntimeStateRoot)
+  if (($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+    throw "Refusing to restore service custody through a reparse-point Runtime state root: $RuntimeStateRoot"
+  }
+  $security = New-ServiceOnlyDirectorySecurity
+  Set-Acl -LiteralPath $RuntimeStateRoot -AclObject $security
+  return $true
+}
+
+function Set-ServiceOnlyFileAcl {
+  param([Parameter(Mandatory = $true)] [string] $Path)
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    return $false
+  }
+  $attributes = [IO.File]::GetAttributes($Path)
+  if (($attributes -band ([IO.FileAttributes]::Directory -bor [IO.FileAttributes]::ReparsePoint)) -ne 0) {
+    throw "Refusing to restore service custody to a non-regular file: $Path"
+  }
+  $security = New-ServiceOnlyFileSecurity
+  Set-Acl -LiteralPath $Path -AclObject $security
+  return $true
+}
+
+function Set-RuntimeInstallationStateAcl {
+  [void] (Set-ServiceOnlyFileAcl -Path $RuntimeInstallationState)
+}
+
+function Set-RuntimeRepairStateAcl {
+  param([string] $BackupPath = '')
+  foreach ($path in @(
+    $RuntimeDatabase,
+    "$RuntimeDatabase-wal",
+    "$RuntimeDatabase-shm",
+    "$RuntimeDatabase-journal"
+  )) {
+    [void] (Set-ServiceOnlyFileAcl -Path $path)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($BackupPath)) {
+    [void] (Set-ServiceOnlyFileAcl -Path $BackupPath)
+  }
+  Set-RuntimeInstallationStateAcl
+  [void] (Set-RuntimeStateRootAcl)
 }
 
 function Grant-InstallerStateAccess {
@@ -395,19 +513,224 @@ function Grant-InstallerStateAccess {
   }
 }
 
-function Grant-InstallerRuntimeInstallationStateAccess {
-  if (-not (Test-Path -LiteralPath $RuntimeInstallationState -PathType Leaf)) {
-    return $false
-  }
-  $takeOwnership = Invoke-NativeCommand -FilePath 'takeown.exe' -Arguments @('/F', $RuntimeInstallationState, '/A')
+function Grant-InstallerFileAccess {
+  param(
+    [Parameter(Mandatory = $true)] [string] $Path,
+    [Parameter(Mandatory = $true)] [string] $Label
+  )
+  $takeOwnership = Invoke-NativeCommand -FilePath 'takeown.exe' -Arguments @('/F', $Path, '/A')
   if ($takeOwnership.ExitCode -ne 0) {
-    throw "Unable to take temporary installer ownership of the Runtime installation state.`n$($takeOwnership.StdOut)`n$($takeOwnership.StdErr)"
+    try {
+      [void] [IO.File]::GetAttributes($Path)
+    } catch [IO.FileNotFoundException] {
+      return $false
+    } catch [IO.DirectoryNotFoundException] {
+      return $false
+    } catch {
+      throw "Unable to take temporary installer ownership of the $Label, and its absence could not be confirmed.`n$($takeOwnership.StdOut)`n$($takeOwnership.StdErr)`nprobe: $($_.Exception.Message)"
+    }
+    throw "Unable to take temporary installer ownership of the $Label.`n$($takeOwnership.StdOut)`n$($takeOwnership.StdErr)"
   }
-  $grant = Invoke-NativeCommand -FilePath 'icacls.exe' -Arguments @($RuntimeInstallationState, '/grant:r', '*S-1-5-32-544:F')
+  $attributes = [IO.File]::GetAttributes($Path)
+  if (($attributes -band ([IO.FileAttributes]::Directory -bor [IO.FileAttributes]::ReparsePoint)) -ne 0) {
+    throw "Refusing temporary installer access to a non-regular $Label`: $Path"
+  }
+  $grant = Invoke-NativeCommand -FilePath 'icacls.exe' -Arguments @($Path, '/grant:r', '*S-1-5-32-544:F')
   if ($grant.ExitCode -ne 0) {
-    throw "Unable to acquire temporary installer access to the Runtime installation state.`n$($grant.StdOut)`n$($grant.StdErr)"
+    throw "Unable to acquire temporary installer access to the $Label.`n$($grant.StdOut)`n$($grant.StdErr)"
   }
   return $true
+}
+
+function Grant-InstallerRuntimeStateAccess {
+  $takeOwnership = Invoke-NativeCommand -FilePath 'takeown.exe' -Arguments @('/F', $RuntimeStateRoot, '/A')
+  if ($takeOwnership.ExitCode -ne 0) {
+    try {
+      [void] [IO.File]::GetAttributes($RuntimeStateRoot)
+    } catch [IO.FileNotFoundException] {
+      return $false
+    } catch [IO.DirectoryNotFoundException] {
+      return $false
+    } catch {
+      throw "Unable to take temporary installer ownership of the Runtime state directory, and its absence could not be confirmed.`n$($takeOwnership.StdOut)`n$($takeOwnership.StdErr)`nprobe: $($_.Exception.Message)"
+    }
+    throw "Unable to take temporary installer ownership of the Runtime state directory.`n$($takeOwnership.StdOut)`n$($takeOwnership.StdErr)"
+  }
+  $attributes = [IO.File]::GetAttributes($RuntimeStateRoot)
+  if (($attributes -band [IO.FileAttributes]::Directory) -eq 0 -or
+      ($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+    throw "Runtime state directory must be a non-reparse directory: $RuntimeStateRoot"
+  }
+  $grant = Invoke-NativeCommand -FilePath 'icacls.exe' -Arguments @($RuntimeStateRoot, '/grant:r', '*S-1-5-32-544:(OI)(CI)F')
+  if ($grant.ExitCode -ne 0) {
+    throw "Unable to acquire temporary installer access to the Runtime state directory.`n$($grant.StdOut)`n$($grant.StdErr)"
+  }
+  return $true
+}
+
+function Grant-InstallerRuntimeInstallationStateAccess {
+  return (Grant-InstallerFileAccess -Path $RuntimeInstallationState -Label 'Runtime installation state')
+}
+
+function Grant-InstallerRuntimeDatabaseAccess {
+  $databaseExists = Grant-InstallerFileAccess -Path $RuntimeDatabase -Label 'Runtime SQLite database'
+  if (-not $databaseExists) {
+    return $false
+  }
+  foreach ($path in @(
+    "$RuntimeDatabase-wal",
+    "$RuntimeDatabase-shm",
+    "$RuntimeDatabase-journal"
+  )) {
+    [void] (Grant-InstallerFileAccess -Path $path -Label 'Runtime SQLite sidecar')
+  }
+  return $true
+}
+
+function Resolve-LocalAgentChatRepairBackupPath {
+  param([Parameter(Mandatory = $true)] [string] $Path)
+  $resolved = [IO.Path]::GetFullPath($Path)
+  $expectedDirectory = [IO.Path]::GetFullPath($RuntimeStateRoot).TrimEnd('\')
+  $actualDirectory = [IO.Path]::GetDirectoryName($resolved).TrimEnd('\')
+  $name = [IO.Path]::GetFileName($resolved)
+  if (-not $actualDirectory.Equals($expectedDirectory, [StringComparison]::OrdinalIgnoreCase) -or
+      $name -cnotmatch '^memory\.db\.pre-local-agent-chat-repair-\d{8}T\d{6}\.\d{7}Z-[0-9a-f]{32}\.sqlite$') {
+    throw "LocalAgent chat repair backup path is outside the fixed Runtime database namespace: $resolved"
+  }
+  return $resolved
+}
+
+function New-LocalAgentChatRepairBackupPath {
+  $timestamp = [DateTime]::UtcNow.ToString(
+    'yyyyMMddTHHmmss.fffffffZ',
+    [Globalization.CultureInfo]::InvariantCulture
+  )
+  $candidate = "$RuntimeDatabase.pre-local-agent-chat-repair-$timestamp-$([Guid]::NewGuid().ToString('N')).sqlite"
+  $resolved = Resolve-LocalAgentChatRepairBackupPath -Path $candidate
+  try {
+    [void] [IO.File]::GetAttributes($resolved)
+  } catch [IO.FileNotFoundException] {
+    return $resolved
+  } catch [IO.DirectoryNotFoundException] {
+    throw "Runtime state directory is missing while planning LocalAgent chat repair backup: $RuntimeStateRoot"
+  } catch {
+    throw "Unable to confirm the planned LocalAgent chat repair backup is absent: $($_.Exception.Message)"
+  }
+  throw "Planned LocalAgent chat repair backup already exists: $resolved"
+}
+
+function Invoke-LocalAgentChatOfflineRepair {
+  param(
+    [Parameter(Mandatory = $true)] [string] $ExpectedSignerCertificateSha256,
+    [Parameter(Mandatory = $true)] [string] $BackupPath
+  )
+  $plannedBackupPath = Resolve-LocalAgentChatRepairBackupPath -Path $BackupPath
+  Assert-LocalAgentChatRepairHelper -Path $InstalledLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
+  $result = Invoke-NativeCommand -FilePath $InstalledLocalAgentChatRepairHelper -Arguments @(
+    '--db',
+    $RuntimeDatabase,
+    '--backup',
+    $plannedBackupPath,
+    '--confirm-runtime-stopped',
+    '--apply',
+    '--installer-preinstall',
+    '--json'
+  )
+  if ($result.ExitCode -ne 0) {
+    throw "LocalAgent chat offline repair failed before Runtime installation.`n$($result.StdOut)`n$($result.StdErr)"
+  }
+  try {
+    $repair = $result.StdOut | ConvertFrom-Json
+  } catch {
+    throw "LocalAgent chat offline repair returned invalid JSON: $($_.Exception.Message)"
+  }
+  $keys = @($repair.PSObject.Properties.Name | Sort-Object)
+  $requiredKeys = @(
+    'duplicateGroups',
+    'originalVersion',
+    'reactivatedAnchors',
+    'repairedVersion',
+    'rewrittenAnchorRefs',
+    'rewrittenAvatarRefs',
+    'rewrittenFollowUpRefs',
+    'schemaVersion',
+    'status'
+  )
+  foreach ($required in $requiredKeys) {
+    if ($keys -notcontains $required) {
+      throw "LocalAgent chat offline repair result is missing $required."
+    }
+  }
+  if ([int] $repair.schemaVersion -ne 1) {
+    throw 'LocalAgent chat offline repair result schemaVersion is invalid.'
+  }
+  $status = [string] $repair.status
+  $duplicateGroups = [int] $repair.duplicateGroups
+  $reactivatedAnchors = [int] $repair.reactivatedAnchors
+  $rewrittenAnchorRefs = [int] $repair.rewrittenAnchorRefs
+  $originalVersion = [uint64] $repair.originalVersion
+  $repairedVersion = [uint64] $repair.repairedVersion
+  if ($duplicateGroups -lt 0 -or $reactivatedAnchors -lt 0 -or $rewrittenAnchorRefs -lt 0) {
+    throw 'LocalAgent chat offline repair returned negative change counts.'
+  }
+  $changeCount = $duplicateGroups + $reactivatedAnchors + $rewrittenAnchorRefs
+  $backupProperty = $repair.PSObject.Properties['backupPath']
+  $skipProperty = $repair.PSObject.Properties['skipReason']
+  $backupPath = if ($null -eq $backupProperty -or $null -eq $backupProperty.Value) { '' } else { [string] $backupProperty.Value }
+  $skipReason = if ($null -eq $skipProperty -or $null -eq $skipProperty.Value) { '' } else { [string] $skipProperty.Value }
+  switch ($status) {
+    'applied' {
+      if ($changeCount -eq 0 -or
+          $repairedVersion -ne ($originalVersion + 1) -or
+          [string]::IsNullOrWhiteSpace($backupPath)) {
+        throw 'LocalAgent chat offline repair reported an invalid applied result.'
+      }
+      if (-not (Test-Path -LiteralPath $backupPath -PathType Leaf)) {
+        throw "LocalAgent chat offline repair backup is missing: $backupPath"
+      }
+      $resolvedDatabase = (Resolve-Path -LiteralPath $RuntimeDatabase).Path
+      $resolvedBackup = (Resolve-Path -LiteralPath $backupPath).Path
+      $backupPrefix = $resolvedDatabase + '.pre-local-agent-chat-repair-'
+      if (-not $backupPath.Equals($plannedBackupPath, [StringComparison]::OrdinalIgnoreCase) -or
+          -not $resolvedBackup.Equals($plannedBackupPath, [StringComparison]::OrdinalIgnoreCase) -or
+          -not $resolvedBackup.StartsWith($backupPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "LocalAgent chat offline repair created a backup outside the fixed Runtime database namespace: $resolvedBackup"
+      }
+    }
+    'no-change' {
+      if ($changeCount -ne 0 -or
+          $originalVersion -ne $repairedVersion -or
+          -not [string]::IsNullOrWhiteSpace($backupPath)) {
+        throw 'LocalAgent chat offline repair reported an invalid no-change result.'
+      }
+      if (Test-Path -LiteralPath $plannedBackupPath) {
+        throw "LocalAgent chat offline repair created an unexpected no-change backup: $plannedBackupPath"
+      }
+    }
+    'not-applicable' {
+      if ($skipReason -ne 'public_chat_state_uninitialized' -or
+          $changeCount -ne 0 -or
+          -not [string]::IsNullOrWhiteSpace($backupPath)) {
+        throw 'LocalAgent chat offline repair reported an invalid not-applicable result.'
+      }
+      if (Test-Path -LiteralPath $plannedBackupPath) {
+        throw "LocalAgent chat offline repair created an unexpected not-applicable backup: $plannedBackupPath"
+      }
+    }
+    default {
+      throw "LocalAgent chat offline repair returned unsupported status: $status"
+    }
+  }
+  return [ordered]@{
+    status = $status
+    skipReason = if ([string]::IsNullOrWhiteSpace($skipReason)) { $null } else { $skipReason }
+    duplicateGroups = $duplicateGroups
+    reactivatedAnchors = $reactivatedAnchors
+    rewrittenAnchorRefs = $rewrittenAnchorRefs
+    originalVersion = $originalVersion
+    repairedVersion = $repairedVersion
+    backupPath = if ([string]::IsNullOrWhiteSpace($backupPath)) { $null } else { $backupPath }
+  }
 }
 
 function Write-RuntimeInstallationState {
@@ -486,6 +809,8 @@ function Get-Status {
   $signature = if (Test-Path -LiteralPath $InstalledBinary -PathType Leaf) { Get-AuthenticodeSignature -LiteralPath $InstalledBinary } else { $null }
   $runtimeSha256 = if (Test-Path -LiteralPath $InstalledBinary -PathType Leaf) { (Get-FileHash -LiteralPath $InstalledBinary -Algorithm SHA256).Hash.ToLowerInvariant() } else { $null }
   $runtimeBuildRecordSha256 = if (Test-Path -LiteralPath $InstalledRuntimeBuildRecord -PathType Leaf) { (Get-FileHash -LiteralPath $InstalledRuntimeBuildRecord -Algorithm SHA256).Hash.ToLowerInvariant() } else { $null }
+  $repairHelperSignature = if (Test-Path -LiteralPath $InstalledLocalAgentChatRepairHelper -PathType Leaf) { Get-AuthenticodeSignature -LiteralPath $InstalledLocalAgentChatRepairHelper } else { $null }
+  $repairHelperSha256 = if (Test-Path -LiteralPath $InstalledLocalAgentChatRepairHelper -PathType Leaf) { (Get-FileHash -LiteralPath $InstalledLocalAgentChatRepairHelper -Algorithm SHA256).Hash.ToLowerInvariant() } else { $null }
   $runtimeBuildRecord = if ($runtimeBuildRecordSha256 -eq $ExpectedRuntimeBuildRecordSha256) {
     try { Read-RuntimeBuildRecord } catch { $null }
   } else { $null }
@@ -515,6 +840,11 @@ function Get-Status {
     runtimeBuildRecordSha256 = $runtimeBuildRecordSha256
     expectedRuntimeBuildRecordSha256 = $ExpectedRuntimeBuildRecordSha256
     runtimeBuildRecordMatchesCandidate = $null -ne $runtimeBuildRecord
+    localAgentChatRepairHelperSha256 = $repairHelperSha256
+    expectedLocalAgentChatRepairHelperSha256 = $ExpectedLocalAgentChatRepairSha256
+    localAgentChatRepairHelperMatchesCandidate = $null -ne $repairHelperSha256 -and $repairHelperSha256 -eq $ExpectedLocalAgentChatRepairSha256
+    localAgentChatRepairHelperSignatureStatus = if ($null -eq $repairHelperSignature) { 'Missing' } else { [string] $repairHelperSignature.Status }
+    localAgentChatRepairHelperSignerCertificateSha256 = if ($null -eq $repairHelperSignature -or $null -eq $repairHelperSignature.SignerCertificate) { $null } else { Get-CertificateSha256 -Certificate $repairHelperSignature.SignerCertificate }
     runtimeCandidateId = if ($null -eq $runtimeBuildRecord) { $null } else { $runtimeBuildRecord.candidateId }
     sourceDirtyDescriptorSha256 = if ($null -eq $runtimeBuildRecord) { $null } else { $runtimeBuildRecord.source.dirtyDescriptorSha256 }
     sourceTreeSha256 = if ($null -eq $runtimeBuildRecord) { $null } else { $runtimeBuildRecord.source.sourceTreeSha256 }
@@ -532,6 +862,7 @@ function Install-Service {
   if ($installerSigner -ne $runtimeSigner) {
     throw 'Runtime binary and service installer do not share the exact signing identity.'
   }
+  Assert-LocalAgentChatRepairHelper -Path $BundledLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $installerSigner
   Import-SignerForLocalSystem -Certificate $runtimeCertificate
   Stage-InstallCandidate -SourceBinary $source -ExpectedSignerCertificateSha256 $installerSigner
 
@@ -542,24 +873,57 @@ function Install-Service {
   $previousWasRunning = $null -ne $existing -and [string] $existing.Status -ne 'Stopped'
   $createdService = $false
   $mutatedService = $false
-  $installerStateAccess = $false
+  $installerStateTouched = $false
+  $runtimeStateTouched = $false
+  $runtimeDatabaseTouched = $false
+  $installationStateTouched = $false
+  $runtimeStateAccess = $false
+  $runtimeDatabaseAccess = $false
   $installationStateAccess = $false
   $deploymentStateChanged = $false
   $previousInstallationState = $null
+  $stateCustodyRestored = $true
+  $plannedRepairBackupPath = ''
+  $offlineRepair = [ordered]@{
+    status = 'not-applicable'
+    skipReason = 'runtime_database_absent'
+    duplicateGroups = 0
+    reactivatedAnchors = 0
+    rewrittenAnchorRefs = 0
+    originalVersion = 0
+    repairedVersion = 0
+    backupPath = $null
+  }
 
   try {
-    Grant-InstallerStateAccess
-    $installerStateAccess = $true
-
     if ($previousWasRunning) {
       Stop-Service -Name $ServiceName -ErrorAction Stop
       Wait-ServiceState -Expected 'Stopped'
     }
+    $stateCustodyRestored = $false
+    $installerStateTouched = $true
+    Grant-InstallerStateAccess
+    $runtimeStateTouched = $true
+    $runtimeStateAccess = Grant-InstallerRuntimeStateAccess
+    $installationStateTouched = $true
     $installationStateAccess = Grant-InstallerRuntimeInstallationStateAccess
+    if ($runtimeStateAccess) {
+      $runtimeDatabaseTouched = $true
+      $runtimeDatabaseAccess = Grant-InstallerRuntimeDatabaseAccess
+    }
+    if ($runtimeDatabaseAccess) {
+      $plannedRepairBackupPath = New-LocalAgentChatRepairBackupPath
+      $offlineRepair = Invoke-LocalAgentChatOfflineRepair `
+        -ExpectedSignerCertificateSha256 $installerSigner `
+        -BackupPath $plannedRepairBackupPath
+    }
     if (Test-Path -LiteralPath $RuntimeInstallationState -PathType Leaf) {
       $previousInstallationState = Get-Content -LiteralPath $RuntimeInstallationState -Raw -Encoding UTF8
     }
     $deploymentStateChanged = Set-RuntimeDeploymentProfile
+    Set-RuntimeRepairStateAcl -BackupPath $plannedRepairBackupPath
+    Set-StateRootAcl
+    $stateCustodyRestored = $true
 
     $binaryPathName = "`"$InstalledBinary`" serve"
     if ($null -eq $existing) {
@@ -577,8 +941,6 @@ function Install-Service {
     if ($resolvedSid -ne $ExpectedServiceSid) {
       throw "SCM resolved unexpected service SID: $resolvedSid"
     }
-    Set-RuntimeInstallationStateAcl
-    Set-StateRootAcl
     try {
       Start-Service -Name $ServiceName -ErrorAction Stop
     } catch {
@@ -593,6 +955,9 @@ function Install-Service {
         -not $status.desktopPipePresent -or -not $status.localAppPipePresent -or
         -not $status.runtimeBinaryMatchesCandidate -or
         -not $status.runtimeBuildRecordMatchesCandidate -or
+        -not $status.localAgentChatRepairHelperMatchesCandidate -or
+        $status.localAgentChatRepairHelperSignatureStatus -ne 'Valid' -or
+        $status.localAgentChatRepairHelperSignerCertificateSha256 -ne $installerSigner -or
         $status.signatureStatus -ne 'Valid' -or $status.state -ne 'running') {
       throw 'NimiRuntime failed post-install fixed-service validation.'
     }
@@ -601,6 +966,7 @@ function Install-Service {
     $status['atomicVersionRoot'] = $InstalledVersionRoot
     $status['deploymentProfile'] = $DeploymentProfile
     $status['realmOrigin'] = $DeploymentRealmOrigins[$DeploymentProfile]
+    $status['offlineRepair'] = $offlineRepair
     return $status
   } catch {
     $installFailure = $_
@@ -633,31 +999,39 @@ function Install-Service {
         $rollbackFailures.Add("restore previous service definition: $($_.Exception.Message)")
       }
     }
-    if ($installerStateAccess) {
-      if ($installationStateAccess) {
-        try {
-          Grant-InstallerStateAccess
-          Grant-InstallerRuntimeInstallationStateAccess
-          if ($deploymentStateChanged -and $null -ne $previousInstallationState) {
+    if ($installerStateTouched -and (-not $stateCustodyRestored -or $deploymentStateChanged)) {
+      try {
+        $stateCustodyRestored = $false
+        Grant-InstallerStateAccess
+        if ($runtimeStateTouched) {
+          [void] (Grant-InstallerRuntimeStateAccess)
+        }
+        if ($runtimeDatabaseTouched) {
+          [void] (Grant-InstallerRuntimeDatabaseAccess)
+        }
+        if ($installationStateTouched) {
+          [void] (Grant-InstallerRuntimeInstallationStateAccess)
+          if ($installationStateAccess -and $deploymentStateChanged -and $null -ne $previousInstallationState) {
             Write-RuntimeInstallationState -Raw $previousInstallationState
           }
-          Set-RuntimeInstallationStateAcl
-        } catch {
-          $rollbackFailures.Add("restore Runtime installation state custody: $($_.Exception.Message)")
         }
-      }
-      try {
+        Set-RuntimeRepairStateAcl -BackupPath $plannedRepairBackupPath
         Set-StateRootAcl
+        $stateCustodyRestored = $true
       } catch {
-        $rollbackFailures.Add("restore protected state ownership: $($_.Exception.Message)")
+        $rollbackFailures.Add("restore protected Runtime state custody: $($_.Exception.Message)")
       }
     }
     if (-not $createdService -and $previousWasRunning) {
-      try {
-        Start-Service -Name $ServiceName -ErrorAction Stop
-        Wait-ServiceState -Expected 'Running'
-      } catch {
-        $rollbackFailures.Add("restart previous service: $($_.Exception.Message)")
+      if (-not $stateCustodyRestored) {
+        $rollbackFailures.Add('previous service not restarted because protected Runtime state custody was not restored')
+      } else {
+        try {
+          Start-Service -Name $ServiceName -ErrorAction Stop
+          Wait-ServiceState -Expected 'Running'
+        } catch {
+          $rollbackFailures.Add("restart previous service: $($_.Exception.Message)")
+        }
       }
     }
     $rollbackDetail = if ($rollbackFailures.Count -eq 0) { 'rollback completed' } else { 'rollback failures: ' + ($rollbackFailures -join '; ') }

@@ -16,6 +16,10 @@
 - For an authorized implementation or product-gate task, attempt the real affected build, launch, or journey first. `not_observed` is not invalid; stop on the first actual failure, repair its smallest causal mechanism, and rerun the same target.
 - Later gates, historical mappings, and unrelated validation cannot block the current target unless they are direct prerequisites.
 - Read historical plans or evidence only when the current failure points there; inspect only affected paths and preserve unrelated work.
+## Nimi App CDP
+- For real Nimi App acceptance or renderer debugging, use the guarded package script with Desktop-supervised Electron and explicit loopback CDP: `pnpm --filter <app-package> dev -- --cdp-port <free-port>`. Attach to that App's exact target; do not open its Vite renderer directly or attach to Desktop or another App. Native and owner UI remain outside CDP.
+- Stay code-first: read the affected consumer and direct contract, use CDP only to reproduce or observe the first real failure, repair the smallest causal mechanism, then rerun the same journey. CDP success does not replace code review or affected tests.
+- Keep CDP ephemeral. Do not add or commit automation harnesses, Playwright projects, helper endpoints, recordings, fixtures, baselines, evidence systems, ledgers, manifests, or default CDP configuration.
 ## Retrieval Defaults
 - Start with the changed consumer, its nearest `AGENTS.md`, direct dependencies, and exact authority IDs implicated by the task or first failure.
 - For prompt or governance audits, search instruction filenames rather than repository content; inspect only the instruction files and exact loader/checker configuration named by the task. Never search `.nimi/spec/**` or product implementation merely because an instruction mentions them.

@@ -17,6 +17,7 @@ pub(super) fn project_permission_status(status: LocalAppPermissionStatus) -> Jso
         "agents": status.agents.into_iter().map(|agent| json!({
             "agentHandle": agent.agent_handle,
             "displayName": agent.display_name,
+            "avatarUrl": agent.avatar_url,
         })).collect::<Vec<_>>(),
     })
 }
@@ -410,15 +411,23 @@ mod tests {
     #[test]
     pub(super) fn permission_projection_keeps_only_product_permission_fields() {
         let value = project_permission_status(LocalAppPermissionStatus {
-            state: LocalAppPermissionState::Unavailable,
+            state: LocalAppPermissionState::Granted,
             permission_id: "agents.interact".to_string(),
             can_request: false,
-            reason_code: LocalAppReasonCode::RuntimePermissionDenied,
-            agents: Vec::new(),
+            reason_code: LocalAppReasonCode::ActionExecuted,
+            agents: vec![nimi_shell_protected_local::LocalAppAgentHandle {
+                agent_handle: "lash_owner_issued".to_string(),
+                display_name: "Owned Agent".to_string(),
+                avatar_url: Some("https://assets.example.test/owned-agent.png".to_string()),
+            }],
         });
         assert_eq!(value["permissionId"], "agents.interact");
         assert_eq!(value["canRequest"], false);
-        assert_eq!(value["state"], "unavailable");
+        assert_eq!(value["state"], "granted");
+        assert_eq!(
+            value["agents"][0]["avatarUrl"],
+            "https://assets.example.test/owned-agent.png"
+        );
         assert!(value.get("operationId").is_none());
         assert!(value.get("resourceRef").is_none());
     }

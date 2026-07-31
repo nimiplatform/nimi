@@ -461,6 +461,9 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let mut processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
+        if let Some(process) = processes.get_mut(&supervisor_run_id) {
+            process.terminate()?;
+        }
         processes.remove(&supervisor_run_id);
         Ok(())
     }

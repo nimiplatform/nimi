@@ -86,7 +86,7 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ value: { version: 2 }, sizeBytes: 13 });
     await expect(host.storageRemoveJson({ relativePath: 'agent-chat/state.json' }))
       .resolves.toEqual({ removed: false });
-    await expect(host.conversationOpen({ agentHandle: 'lash_one', disposition: 'create-new' }))
+    await expect(host.conversationOpen({ agentHandle: 'lash_one' }))
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null });
     await expect(host.conversationSendTurn({ agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }))
       .resolves.toEqual({ messageId: 'message-1' });
@@ -174,7 +174,11 @@ describe('Electron protected local-app host', () => {
           permissionId: 'agents.interact',
           canRequest: false,
           reasonCode: 'action-executed',
-          agents: [{ agentHandle: 'lash_one', displayName: 'Owned Agent' }],
+          agents: [{
+            agentHandle: 'lash_one',
+            displayName: 'Owned Agent',
+            avatarUrl: 'https://assets.example.test/owned-agent.png',
+          }],
         },
       }),
       localAppPermissionRequest: async () => ({
@@ -190,12 +194,37 @@ describe('Electron protected local-app host', () => {
     };
     const host = createNimiElectronLocalAppHostForBinding(withAgent);
     await expect(host.permissionStatus({ permissionId: 'agents.interact' })).resolves.toMatchObject({
-      agents: [{ agentHandle: 'lash_one', displayName: 'Owned Agent' }],
+      agents: [{
+        agentHandle: 'lash_one',
+        displayName: 'Owned Agent',
+        avatarUrl: 'https://assets.example.test/owned-agent.png',
+      }],
     });
     await expect(host.permissionRequest({
       permissionId: 'agents.interact',
       reason: 'Continue the conversation',
     })).resolves.toMatchObject({ state: 'granted', agents: [] });
+
+    const unstableAvatar = {
+      ...withAgent,
+      localAppPermissionStatus: async () => ({
+        status: 'ok' as const,
+        value: {
+          state: 'granted',
+          permissionId: 'agents.interact',
+          canRequest: false,
+          reasonCode: 'action-executed',
+          agents: [{
+            agentHandle: 'lash_one',
+            displayName: 'Owned Agent',
+            avatarUrl: 'http://assets.example.test/owned-agent.png',
+          }],
+        },
+      }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(unstableAvatar).permissionStatus({
+      permissionId: 'agents.interact',
+    })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
   });
 
   it('rejects protected authority material returned by the native carrier', async () => {

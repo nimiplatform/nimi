@@ -13,6 +13,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const localImageProviderHealthKey = "local-image"
+
 func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
 	switch strings.TrimSpace(strings.ToLower(engineName)) {
 	case string(engine.EngineLlama):
@@ -31,7 +33,7 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 	case engine.EngineLlama:
 		return "local", true
 	case engineManagedImageBackend:
-		return "local-image", true
+		return localImageProviderHealthKey, true
 	case engine.EngineMedia:
 		return "local-media", true
 	case engine.EngineSpeech:

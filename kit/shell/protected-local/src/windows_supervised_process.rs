@@ -3,13 +3,15 @@ use std::mem::{size_of, zeroed};
 use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
-use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, WAIT_TIMEOUT};
+use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, WAIT_OBJECT_0, WAIT_TIMEOUT};
 use windows_sys::Win32::System::Threading::{
     CreateProcessW, ResumeThread, TerminateProcess, WaitForSingleObject, CREATE_SUSPENDED,
     PROCESS_INFORMATION, STARTUPINFOW,
 };
 
 use crate::{NimiHostError, NimiHostErrorReasonCode};
+
+const TERMINATION_WAIT_MS: u32 = 5_000;
 
 pub(crate) struct SupervisedDevelopmentProcess {
     process: HANDLE,
@@ -107,21 +109,28 @@ impl SupervisedDevelopmentProcess {
         unsafe { WaitForSingleObject(self.process, 0) == WAIT_TIMEOUT }
     }
 
-    pub(crate) fn terminate(&mut self) {
+    pub(crate) fn terminate(&mut self) -> Result<(), NimiHostError> {
         if self.process.is_null() || !self.running() {
-            return;
+            return Ok(());
         }
         // SAFETY: process is the exact retained child handle, so PID reuse
         // cannot redirect termination to another process.
-        unsafe {
-            TerminateProcess(self.process, 1);
+        if unsafe { TerminateProcess(self.process, 1) } == 0 {
+            return Err(unavailable());
         }
+        // TerminateProcess is asynchronous. A replacement may immediately
+        // reuse the same browser profile and loopback CDP port, so termination
+        // is complete only after the retained process handle is signalled.
+        if unsafe { WaitForSingleObject(self.process, TERMINATION_WAIT_MS) } != WAIT_OBJECT_0 {
+            return Err(unavailable());
+        }
+        Ok(())
     }
 }
 
 impl Drop for SupervisedDevelopmentProcess {
     fn drop(&mut self) {
-        self.terminate();
+        let _ = self.terminate();
         unsafe {
             if !self.thread.is_null() {
                 CloseHandle(self.thread);
@@ -270,5 +279,22 @@ mod tests {
         .expect("create exact Runtime-authorized external host");
         assert!(process.id() > 0);
         assert!(process.running());
+    }
+
+    #[test]
+    fn termination_waits_for_process_exit_before_returning() {
+        let executable = std::env::current_exe().expect("current test executable");
+        let working_directory = std::env::temp_dir();
+        let mut process = SupervisedDevelopmentProcess::create_runtime_authorized(
+            &executable,
+            &[],
+            &working_directory,
+        )
+        .expect("create suspended child");
+        assert!(process.running());
+
+        process.terminate().expect("terminate child");
+
+        assert!(!process.running());
     }
 }

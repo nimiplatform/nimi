@@ -2256,6 +2256,11 @@ pub struct LocalAppPermissionAgentHandle {
     pub agent_handle: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub display_name: ::prost::alloc::string::String,
+    /// Nullable display-only metadata. Runtime emits a stable HTTPS URI only
+    /// when the materialized source profile's avatar resource resolves through
+    /// its admitted external resource references; otherwise this is empty.
+    #[prost(string, tag = "3")]
+    pub avatar_url: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppPermissionStatusRequest {
@@ -18088,11 +18093,12 @@ pub struct AgentVoiceStreamEvent {
     #[prost(bool, tag = "14")]
     pub replay_truncated: bool,
 }
-/// K-AGCORE-034 ConversationAnchor boundary: runtime-owned continuity anchor.
-/// `conversation_anchor_id` is the only admitted cross-surface continuity
-/// scope; `agent_id` is agent identity only. `turn_id` and `message_id` are
-/// anchor-scoped. `subject_user_id` is explicit runtime truth at anchor-open
-/// time; hosts must not infer anchor continuity from agent identity.
+/// ConversationAnchor is Runtime's continuity token for the one conversation
+/// transcript owned by a LocalAgent. The first authorized open creates it and
+/// every later authorized Desktop, local-app, or Avatar surface resolves the
+/// same anchor; App, principal, and surface identity never partition it.
+/// `turn_id` and `message_id` are scoped to that shared conversation, and
+/// `subject_user_id` equals the LocalAgent owner established by Runtime.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ConversationAnchor {
     #[prost(string, tag = "1")]

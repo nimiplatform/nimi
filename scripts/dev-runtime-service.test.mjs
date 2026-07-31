@@ -14,6 +14,7 @@ import {
   assertRuntimeServiceDeploymentProfile,
   assertRuntimeServiceHealthy,
   assertRuntimeServiceInstalled,
+  assertRuntimeOfflineRepair,
   parseDevRuntimeArguments,
   runDevRuntimeService,
 } from './dev-runtime-service.mjs';
@@ -30,11 +31,25 @@ const healthyStatus = {
   localAppPipePresent: true,
   runtimeBinaryMatchesCandidate: true,
   runtimeBuildRecordMatchesCandidate: true,
+  localAgentChatRepairHelperMatchesCandidate: true,
+  localAgentChatRepairHelperSignatureStatus: 'Valid',
+  signerCertificateSha256: 'cd'.repeat(32),
+  localAgentChatRepairHelperSignerCertificateSha256: 'cd'.repeat(32),
   signatureStatus: 'Valid',
   runtimeCandidateId: 'runtime-0123456789abcdef0123456789abcdef',
   runtimeBinarySha256: 'ab'.repeat(32),
   deploymentProfile: 'local-development',
   realmOrigin: 'http://127.0.0.1:3002',
+  offlineRepair: {
+    status: 'no-change',
+    skipReason: null,
+    duplicateGroups: 0,
+    reactivatedAnchors: 0,
+    rewrittenAnchorRefs: 0,
+    originalVersion: 176,
+    repairedVersion: 176,
+    backupPath: null,
+  },
 };
 
 test('missing fixed service fails before any build or install mutation', async () => {
@@ -68,7 +83,7 @@ test('dev:runtime accepts no Windows update overrides', () => {
   }
 });
 
-test('current Windows service update builds, installs, and checks the resulting service', async () => {
+test('current Windows service update runs signed offline repair, installs, and checks the resulting service', async () => {
   const calls = [];
   const result = await runDevRuntimeService({
     platform: 'win32',
@@ -94,6 +109,7 @@ test('current Windows service update builds, installs, and checks the resulting 
     signatureStatus: 'Valid',
     deploymentProfile: healthyStatus.deploymentProfile,
     realmOrigin: healthyStatus.realmOrigin,
+    offlineRepair: healthyStatus.offlineRepair,
   });
 });
 
@@ -101,9 +117,20 @@ test('post-update status fails closed on signature, build record, or candidate m
   assertRuntimeServiceInstalled(healthyStatus);
   assertRuntimeServiceHealthy(healthyStatus);
   assertRuntimeServiceDeploymentProfile(healthyStatus);
+  assertRuntimeOfflineRepair(healthyStatus.offlineRepair);
+  assertRuntimeOfflineRepair({
+    ...healthyStatus.offlineRepair,
+    status: 'applied',
+    rewrittenAnchorRefs: 1,
+    originalVersion: 176,
+    repairedVersion: 177,
+    backupPath: 'D:\\NimiRuntime\\runtime.sqlite.pre-local-agent-chat-repair.sqlite',
+  });
   for (const status of [
     { ...healthyStatus, signatureStatus: 'UnknownError' },
     { ...healthyStatus, runtimeBuildRecordMatchesCandidate: false },
+    { ...healthyStatus, localAgentChatRepairHelperMatchesCandidate: false },
+    { ...healthyStatus, localAgentChatRepairHelperSignerCertificateSha256: 'ef'.repeat(32) },
     { ...healthyStatus, runtimeCandidateId: 'invalid' },
   ]) {
     assert.throws(
@@ -119,6 +146,16 @@ test('post-update status fails closed on signature, build record, or candidate m
     }),
     (error) => error.reasonCode === 'dev-runtime-deployment-profile-mismatch',
   );
+  for (const repair of [
+    undefined,
+    { ...healthyStatus.offlineRepair, status: 'applied', backupPath: null },
+    { ...healthyStatus.offlineRepair, status: 'not-applicable', skipReason: 'unknown' },
+  ]) {
+    assert.throws(
+      () => assertRuntimeOfflineRepair(repair),
+      (error) => error.reasonCode === 'dev-runtime-offline-repair-invalid',
+    );
+  }
 });
 
 test('macOS install stops on candidate build failure before privileged mutation', async () => {

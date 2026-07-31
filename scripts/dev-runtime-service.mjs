@@ -42,6 +42,10 @@ export function assertRuntimeServiceHealthy(status) {
     && status?.localAppPipePresent === true
     && status?.runtimeBinaryMatchesCandidate === true
     && status?.runtimeBuildRecordMatchesCandidate === true
+    && status?.localAgentChatRepairHelperMatchesCandidate === true
+    && status?.localAgentChatRepairHelperSignatureStatus === 'Valid'
+    && typeof status?.signerCertificateSha256 === 'string'
+    && status?.localAgentChatRepairHelperSignerCertificateSha256 === status.signerCertificateSha256
     && status?.signatureStatus === 'Valid'
     && /^runtime-[0-9a-f]{32}$/u.test(status?.runtimeCandidateId ?? '');
   if (!healthy) {
@@ -62,6 +66,40 @@ export function assertRuntimeServiceDeploymentProfile(status) {
       'dev-runtime-deployment-profile-mismatch',
       'inspect_dev_runtime_installer_profile',
       { status },
+    );
+  }
+}
+
+export function assertRuntimeOfflineRepair(repair) {
+  const status = repair?.status;
+  const duplicateGroups = repair?.duplicateGroups;
+  const reactivatedAnchors = repair?.reactivatedAnchors;
+  const rewrittenAnchorRefs = repair?.rewrittenAnchorRefs;
+  const changeCount = Number.isInteger(duplicateGroups)
+    && Number.isInteger(reactivatedAnchors)
+    && Number.isInteger(rewrittenAnchorRefs)
+    ? duplicateGroups + reactivatedAnchors + rewrittenAnchorRefs
+    : -1;
+  const valid = repair
+    && (
+      (status === 'applied'
+        && changeCount > 0
+        && typeof repair.backupPath === 'string'
+        && repair.backupPath.length > 0)
+      || (status === 'no-change'
+        && changeCount === 0
+        && repair.backupPath == null)
+      || (status === 'not-applicable'
+        && changeCount === 0
+        && repair.backupPath == null
+        && ['runtime_database_absent', 'public_chat_state_uninitialized'].includes(repair.skipReason))
+    );
+  if (!valid) {
+    throw workflowError(
+      'NimiRuntime installer did not report a valid signed offline LocalAgent chat repair result.',
+      'dev-runtime-offline-repair-invalid',
+      'inspect_dev_runtime_installer_offline_repair',
+      { repair },
     );
   }
 }
@@ -103,6 +141,7 @@ export async function runDevRuntimeService(input = {}) {
   await buildRuntime();
   await buildInstaller();
   const installedStatus = await install();
+  assertRuntimeOfflineRepair(installedStatus.offlineRepair);
   assertRuntimeServiceDeploymentProfile(installedStatus);
   const finalStatus = await queryStatus();
   assertRuntimeServiceHealthy(finalStatus);
@@ -116,6 +155,7 @@ export async function runDevRuntimeService(input = {}) {
     signatureStatus: finalStatus.signatureStatus,
     deploymentProfile: installedStatus.deploymentProfile,
     realmOrigin: installedStatus.realmOrigin,
+    offlineRepair: installedStatus.offlineRepair,
   };
 }
 

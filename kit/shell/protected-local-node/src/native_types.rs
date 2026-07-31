@@ -184,7 +184,6 @@ pub struct NativeStorageRemoveInput {
 #[napi(object)]
 pub struct NativeConversationOpenInput {
     pub agent_handle: String,
-    pub disposition: String,
 }
 
 #[napi(object)]

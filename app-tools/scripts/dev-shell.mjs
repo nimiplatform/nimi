@@ -11,6 +11,7 @@ const MAX_HEARTBEAT_AGE_MS = 10_000;
 const REQUEST_TIMEOUT_MS = 5_000;
 const STATUS_POLL_MS = 350;
 const TERMINAL_STATES = new Set([
+  'cleanup-failed',
   'denied',
   'failed',
   'project-changed',

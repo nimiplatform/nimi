@@ -41,7 +41,11 @@ describe('renderer local-app standard-shell surface', () => {
           permissionId: 'agents.interact',
           canRequest: false,
           reasonCode: 'action-executed',
-          agents: [{ agentHandle: 'lash_owner_issued', displayName: 'Owned Agent' }],
+          agents: [{
+            agentHandle: 'lash_owner_issued',
+            displayName: 'Owned Agent',
+            avatarUrl: 'https://assets.example.test/owned-agent.png',
+          }],
         };
       },
       listen: () => () => {},
@@ -49,7 +53,11 @@ describe('renderer local-app standard-shell surface', () => {
     const surface = createNimiLocalAppStandardShellSurface();
     await expect(surface.permission.status({ permissionId: 'agents.interact' })).resolves.toMatchObject({
       state: 'granted',
-      agents: [{ agentHandle: 'lash_owner_issued', displayName: 'Owned Agent' }],
+      agents: [{
+        agentHandle: 'lash_owner_issued',
+        displayName: 'Owned Agent',
+        avatarUrl: 'https://assets.example.test/owned-agent.png',
+      }],
     });
     await surface.permission.request({ permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-renderer-1' });
     expect(invocations).toEqual([
@@ -89,6 +97,29 @@ describe('renderer local-app standard-shell surface', () => {
         reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
         agents: [],
         grantId: 'forbidden',
+      }),
+      listen: () => () => {},
+    };
+    await expect(createNimiLocalAppStandardShellSurface().permission.status({
+      permissionId: 'agents.interact',
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'renderer-standard-shell-result-invalid',
+    });
+  });
+
+  it('rejects a non-HTTPS Agent display avatar projection', async () => {
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => ({
+        state: 'granted',
+        permissionId: 'agents.interact',
+        canRequest: false,
+        reasonCode: 'ACTION_EXECUTED',
+        agents: [{
+          agentHandle: 'lash_owner_issued',
+          displayName: 'Owned Agent',
+          avatarUrl: 'http://assets.example.test/owned-agent.png',
+        }],
       }),
       listen: () => () => {},
     };

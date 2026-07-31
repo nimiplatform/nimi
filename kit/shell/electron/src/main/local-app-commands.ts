@@ -144,14 +144,7 @@ function validatePayload(
       validateJsonValue(payload, command, 2 * 1024 * 1024);
       return payload as NimiElectronLocalAppRecord;
     case 'conversationOpen':
-      assertExactKeys(payload, ['agentHandle', 'disposition'], command);
-      if (payload.disposition !== 'create-or-resume' && payload.disposition !== 'create-new') {
-        throw invalidPayload(command, 'disposition is invalid');
-      }
-      return {
-        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
-        disposition: payload.disposition,
-      };
+      return identifiers(payload, ['agentHandle'], command);
     case 'conversationSendTurn':
       assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
       return {

@@ -72,7 +72,7 @@ describe('Electron local-app standard-shell operations', () => {
 
   it('reaches all five conversation operations but preserves typed failures', async () => {
     const requests = [
-      ['local-app.conversationOpen', { agentHandle: 'lash_one', disposition: 'create-new' }],
+      ['local-app.conversationOpen', { agentHandle: 'lash_one' }],
       ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }],
       ['local-app.conversationInterruptTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSubscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],

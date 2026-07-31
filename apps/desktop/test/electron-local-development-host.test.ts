@@ -237,6 +237,43 @@ test('Electron local-development renderer exit tears down its host and ends the 
   }
 });
 
+test('Electron local-development revoke makes the run terminal before intentional process exit', async () => {
+  let endRunCalls = 0;
+  const control = {
+    getAuthoritySummary: async () => authoritySummary(),
+    evaluate: async () => { throw new Error('not-called'); },
+    decide: async () => { throw new Error('not-called'); },
+    listAuthorizations: async () => [],
+    revokeAuthorization: async () => authorization('revoked'),
+    launch: async () => { throw new Error('not-called'); },
+    hostRunning: async () => false,
+    terminateHost: async () => {},
+    endRun: async () => {
+      endRunCalls += 1;
+      throw new Error('revoked-run-cannot-end-again');
+    },
+  } satisfies NimiElectronLocalDevelopmentControl;
+  const host = new ElectronLocalDevelopmentHost(control, os.tmpdir(), async () => {});
+  const run = activeRun();
+  const cleanupStoppedStates: boolean[] = [];
+  const runs = Reflect.get(host, 'runs') as Map<string, typeof run>;
+  const authorizationSelectors = Reflect.get(host, 'authorizationSelectors') as Map<string, string>;
+  runs.set(run.status.runId, run);
+  authorizationSelectors.set('dev-project-revoke-test', authorizationId);
+  Reflect.set(host, 'stopRunProcesses', async (candidate: typeof run) => {
+    cleanupStoppedStates.push(candidate.stopped);
+    await invokeHostMethod(host, 'handleUnexpectedRendererExit', candidate, 1);
+  });
+
+  await invokeHostMethod(host, 'revoke', { selector: 'dev-project-revoke-test' });
+
+  assert.deepEqual(cleanupStoppedStates, [true]);
+  assert.equal(endRunCalls, 0);
+  assert.equal(run.stopped, true);
+  assert.equal(run.status.state, 'revoked');
+  assert.equal(run.status.reasonCode, 'local-development-session-revoked');
+});
+
 test('Electron local-development shutdown retains failed cleanup targets for retry', async () => {
   let watcherCloseCalls = 0;
   let endRunCalls = 0;

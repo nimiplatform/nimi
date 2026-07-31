@@ -93,6 +93,31 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 	}
 }
 
+func TestOnEngineStateChangeManagedImageBackendMarksLocalImageProviderHealth(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	daemon := newTestDaemon(t, logger)
+	daemon.aiHealth = daemon.grpc.AIHealthTracker()
+	daemon.state.SetStatus(health.StatusReady, "ready")
+
+	daemon.onEngineStateChange(string(engineManagedImageBackend), "unhealthy", "resident probe failed")
+	unhealthy := daemon.aiHealth.SnapshotOf(localImageProviderHealthKey)
+	if unhealthy.State != providerhealth.StateUnhealthy {
+		t.Fatalf("expected local-image unhealthy, got %#v", unhealthy)
+	}
+	if unhealthy.LastReason != "resident probe failed" {
+		t.Fatalf("unexpected local-image unhealthy reason: %q", unhealthy.LastReason)
+	}
+
+	daemon.onEngineStateChange(string(engineManagedImageBackend), "healthy", "resident ready")
+	healthy := daemon.aiHealth.SnapshotOf(localImageProviderHealthKey)
+	if healthy.State != providerhealth.StateHealthy {
+		t.Fatalf("expected local-image healthy, got %#v", healthy)
+	}
+	if healthy.ConsecutiveFailures != 0 {
+		t.Fatalf("expected local-image failure counter reset, got %d", healthy.ConsecutiveFailures)
+	}
+}
+
 func TestSampleAIProviderHealthSkipsManagedLoopbackProbeWhenEngineIsIdle(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")

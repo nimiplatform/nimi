@@ -21,7 +21,7 @@ use crate::{
     LocalAppOperationError, LocalAppReasonCode,
 };
 
-use super::{invalid_payload, require_text, untrusted};
+use super::{require_text, untrusted};
 
 const ACTION_EXECUTED: i32 = 1;
 const MAX_TEXT_BYTES: usize = 64 * 1024;
@@ -31,24 +31,12 @@ pub(super) async fn open_conversation(
     request: LocalAppConversationOpenRequest,
 ) -> Result<LocalAppConversationOpenResult, LocalAppOperationError> {
     require_text(&request.agent_handle)?;
-    let disposition = match request.disposition.as_str() {
-        "create-or-resume" | "create-new" => request.disposition,
-        _ => return Err(invalid_payload()),
-    };
-    let metadata = Struct {
-        fields: BTreeMap::from([(
-            "local_app_anchor_disposition".to_string(),
-            Value {
-                kind: Some(Kind::StringValue(disposition)),
-            },
-        )]),
-    };
     let response = RuntimeAgentServiceClient::new(channel)
         .open_conversation_anchor(OpenConversationAnchorRequest {
             context: None,
             agent_id: request.agent_handle,
             subject_user_id: String::new(),
-            metadata: Some(metadata),
+            metadata: None,
             local_agent_ref: String::new(),
             owner_user_id: String::new(),
             runtime_source_ref: String::new(),

@@ -183,6 +183,40 @@ test('official dev launcher stays attached while Desktop recovers a Runtime rest
   }
 });
 
+test('official dev launcher exits when Desktop reports terminal process cleanup failure', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  try {
+    await assert.rejects(
+      runDevShell(input.project, {
+        shell: 'electron',
+        descriptorPath: input.descriptorPath,
+        now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+        fetch: async (url) => {
+          if (url.endsWith('/v1/start')) {
+            return response({
+              status: 'ok',
+              run: {
+                ...runStatus('cleanup-failed'),
+                reasonCode: 'local-development-process-cleanup-failed',
+                message: 'local-development-process-cleanup-failed',
+              },
+            });
+          }
+          throw new Error(`unexpected route: ${url}`);
+        },
+        installSignalHandlers: false,
+        output: { write() {} },
+        errorOutput: { write() {} },
+      }),
+      (error) => error?.reasonCode === 'local-development-process-cleanup-failed',
+    );
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
 test('official dev launcher rejects stale or non-loopback Desktop presence before any request', {
   skip: !['win32', 'darwin'].includes(process.platform),
 }, async () => {

@@ -281,7 +281,6 @@ pub async fn local_app_conversation_open(input: NativeConversationOpenInput) -> 
         session
             .conversation_open(LocalAppConversationOpenRequest {
                 agent_handle: input.agent_handle,
-                disposition: input.disposition,
             })
             .await
             .map(|result| {

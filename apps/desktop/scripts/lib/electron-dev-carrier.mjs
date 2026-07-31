@@ -72,6 +72,41 @@ export function resolveDesktopDevObservationArguments(env = process.env) {
   ];
 }
 
+export function resolveDesktopDevLaunchOptions(argv = [], env = process.env) {
+  let avatarOnly = false;
+  let commandLineCdpPort;
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = String(argv[index]);
+    if (argument === '--') continue;
+    if (argument === '--avatar-only') {
+      avatarOnly = true;
+      continue;
+    }
+    if (argument === '--cdp-port') {
+      if (commandLineCdpPort !== undefined) {
+        throw new Error('Desktop Electron dev CDP port may only be provided once.');
+      }
+      const value = argv[index + 1];
+      if (value === undefined || String(value).startsWith('--')) {
+        throw new Error('Desktop Electron dev argument --cdp-port requires a value.');
+      }
+      commandLineCdpPort = String(value);
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unsupported Desktop Electron dev argument: ${argument}`);
+  }
+
+  const observationEnv = commandLineCdpPort === undefined
+    ? env
+    : { ...env, NIMI_DESKTOP_DEV_CDP_PORT: commandLineCdpPort };
+  return {
+    avatarOnly,
+    observationArguments: resolveDesktopDevObservationArguments(observationEnv),
+  };
+}
+
 function requiredText(value, field) {
   const normalized = typeof value === 'string' ? value.trim() : '';
   if (!normalized) throw new Error(`${field} is required`);

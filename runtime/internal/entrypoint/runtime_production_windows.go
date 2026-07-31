@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
+	"golang.org/x/sys/windows/svc/eventlog"
 )
 
 func runProductionDaemon(version string) error {
@@ -121,6 +122,7 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 
 	runtimeDaemon, desktopListener, localAppListener, err := service.open(ctx, requestRestart)
 	if err != nil {
+		writeWindowsRuntimeStartupFailure(err)
 		return true, windowsStartupExitCode(err)
 	}
 
@@ -154,6 +156,22 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 			return false, 0
 		}
 	}
+}
+
+func writeWindowsRuntimeStartupFailure(err error) {
+	if err == nil {
+		return
+	}
+	message := err.Error()
+	if len(message) > 2048 {
+		message = message[:2048]
+	}
+	log, openErr := eventlog.Open(protectedlocal.WindowsRuntimeServiceName())
+	if openErr != nil {
+		return
+	}
+	defer func() { _ = log.Close() }()
+	_ = log.Error(1, message)
 }
 
 func initiateWindowsRuntimeServiceStop(cancel context.CancelFunc, runtime windowsRuntimeEmergencyStopper, closers ...windowsRuntimeServiceCloser) {

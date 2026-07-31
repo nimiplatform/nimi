@@ -487,6 +487,7 @@ export class ElectronLocalDevelopmentHost {
     const authorization = await this.control.revokeAuthorization(authorizationId);
     for (const run of this.runs.values()) {
       if (run.authorizationId === authorizationId) {
+        run.stopped = true;
         setRunState(run, 'revoked', 'Development authorization was revoked', 'local-development-session-revoked', false);
         await this.stopRunProcesses(run);
       }

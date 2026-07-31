@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use tonic::{transport::Channel, Request};
+use url::Url;
 
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::{
@@ -86,6 +87,7 @@ fn project_permission_status(
                 || agent.display_name.trim() != agent.display_name
                 || agent.display_name.is_empty()
                 || agent.display_name.len() > 240
+                || !stable_avatar_url_or_empty(&agent.avatar_url)
         })
     {
         return Err(untrusted());
@@ -103,9 +105,31 @@ fn project_permission_status(
             .map(|agent| LocalAppAgentHandle {
                 agent_handle: agent.agent_handle,
                 display_name: agent.display_name,
+                avatar_url: if agent.avatar_url.is_empty() {
+                    None
+                } else {
+                    Some(agent.avatar_url)
+                },
             })
             .collect(),
     })
+}
+
+fn stable_avatar_url_or_empty(value: &str) -> bool {
+    if value.is_empty() {
+        return true;
+    }
+    if value.trim() != value || value.len() > 4096 {
+        return false;
+    }
+    let Ok(parsed) = Url::parse(value) else {
+        return false;
+    };
+    parsed.scheme() == "https"
+        && parsed.host_str().is_some()
+        && parsed.username().is_empty()
+        && parsed.password().is_none()
+        && parsed.fragment().is_none()
 }
 
 #[cfg(test)]
@@ -171,6 +195,7 @@ mod tests {
         let agent = crate::generated::LocalAppPermissionAgentHandle {
             agent_handle: "lah_v1_opaque".to_string(),
             display_name: "Owned Agent".to_string(),
+            avatar_url: String::new(),
         };
         let projection = LocalAppPermissionProjection {
             permission_id: "agents.interact".to_string(),
@@ -178,6 +203,40 @@ mod tests {
             can_request: false,
             reason_code: ReasonCode::ActionExecuted as i32,
             agents: vec![agent.clone(), agent],
+        };
+        assert!(project_permission_status(projection, "agents.interact".to_string()).is_err());
+    }
+
+    #[test]
+    fn permission_projection_projects_only_stable_https_avatar_urls() {
+        let projection = LocalAppPermissionProjection {
+            permission_id: "agents.interact".to_string(),
+            posture: ProtoPermissionPosture::Granted as i32,
+            can_request: false,
+            reason_code: ReasonCode::ActionExecuted as i32,
+            agents: vec![crate::generated::LocalAppPermissionAgentHandle {
+                agent_handle: "lah_v1_opaque".to_string(),
+                display_name: "Owned Agent".to_string(),
+                avatar_url: "https://assets.example.test/owned-agent.png".to_string(),
+            }],
+        };
+        let status = project_permission_status(projection, "agents.interact".to_string())
+            .expect("stable HTTPS avatar URL");
+        assert_eq!(
+            status.agents[0].avatar_url.as_deref(),
+            Some("https://assets.example.test/owned-agent.png")
+        );
+
+        let projection = LocalAppPermissionProjection {
+            permission_id: "agents.interact".to_string(),
+            posture: ProtoPermissionPosture::Granted as i32,
+            can_request: false,
+            reason_code: ReasonCode::ActionExecuted as i32,
+            agents: vec![crate::generated::LocalAppPermissionAgentHandle {
+                agent_handle: "lah_v1_opaque".to_string(),
+                display_name: "Owned Agent".to_string(),
+                avatar_url: "http://assets.example.test/owned-agent.png".to_string(),
+            }],
         };
         assert!(project_permission_status(projection, "agents.interact".to_string()).is_err());
     }

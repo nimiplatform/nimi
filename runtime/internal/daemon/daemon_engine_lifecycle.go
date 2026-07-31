@@ -105,12 +105,19 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 		return
 	}
 	if strings.EqualFold(strings.TrimSpace(engineName), string(engineManagedImageBackend)) {
+		normalizedStatus := strings.ToLower(strings.TrimSpace(status))
 		if svc := d.grpc.LocalService(); svc != nil {
-			switch strings.ToLower(strings.TrimSpace(status)) {
+			switch normalizedStatus {
 			case "healthy":
 				svc.SetManagedImageBackendHealth(true, detail)
 			case "unhealthy":
 				svc.SetManagedImageBackendHealth(false, detail)
+			}
+		}
+		if d.aiHealth != nil && (normalizedStatus == "healthy" || normalizedStatus == "unhealthy") {
+			previous := d.aiHealth.SnapshotOf(localImageProviderHealthKey)
+			if err := d.aiHealth.Mark(localImageProviderHealthKey, normalizedStatus == "healthy", detail); err == nil {
+				appendProviderHealthAudit(d.auditStore, localImageProviderHealthKey, previous, d.aiHealth.SnapshotOf(localImageProviderHealthKey))
 			}
 		}
 	}

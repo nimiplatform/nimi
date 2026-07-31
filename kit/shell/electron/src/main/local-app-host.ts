@@ -110,6 +110,7 @@ export type NimiElectronLocalAppRecord = {
 export type NimiElectronLocalAppAgentHandle = NimiElectronLocalAppRecord & {
   readonly agentHandle: string;
   readonly displayName: string;
+  readonly avatarUrl: string | null;
 };
 
 export type NimiElectronLocalAppPermissionStatus = NimiElectronLocalAppRecord & {
@@ -561,16 +562,17 @@ async function invokePermissionStatus(
   }
   const seen = new Set<string>();
   const agents = value.agents.map((entry) => {
-    if (!isPlainRecord(entry) || !hasExactKeys(entry, ['agentHandle', 'displayName'])) {
+    if (!isPlainRecord(entry) || !hasExactKeys(entry, ['agentHandle', 'displayName', 'avatarUrl'])) {
       throw untrustedRuntimeError();
     }
     const agentHandle = exactText(entry.agentHandle);
     const displayName = exactText(entry.displayName);
+    const avatarUrl = exactStableAvatarUrl(entry.avatarUrl);
     if (Buffer.byteLength(displayName, 'utf8') > 240 || seen.has(agentHandle)) {
       throw untrustedRuntimeError();
     }
     seen.add(agentHandle);
-    return Object.freeze({ agentHandle, displayName });
+    return Object.freeze({ agentHandle, displayName, avatarUrl });
   });
   return Object.freeze({
     state: value.state as NimiElectronLocalAppPermissionStatus['state'],
@@ -709,6 +711,23 @@ function exactText(value: unknown): string {
 function optionalExactText(value: unknown): string | null {
   if (value === null) return null;
   return exactText(value);
+}
+
+function exactStableAvatarUrl(value: unknown): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string' || !value || value.trim() !== value || Buffer.byteLength(value, 'utf8') > 4096) {
+    throw untrustedRuntimeError();
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw untrustedRuntimeError();
+  }
+  if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password || parsed.hash) {
+    throw untrustedRuntimeError();
+  }
+  return value;
 }
 
 function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): void {
