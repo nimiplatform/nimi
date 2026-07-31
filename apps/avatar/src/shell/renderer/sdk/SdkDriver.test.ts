@@ -713,6 +713,36 @@ describe('SdkDriver', () => {
           finalArtifact: true,
         },
       };
+      yield {
+        eventName: 'runtime.agent.presentation.voice_playback_terminal',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-voice-1',
+        streamId: 'stream-voice-1',
+        timeline: {
+          turnId: 'turn-voice-1',
+          streamId: 'stream-voice-1',
+          channel: 'voice',
+          offsetMs: 480,
+          sequence: 2,
+          startedAtWall: '2026-04-25T00:00:00.000Z',
+          observedAtWall: '2026-04-25T00:00:00.500Z',
+          timebaseOwner: 'runtime',
+          projectionRuleId: 'K-AGCORE-133',
+          clockBasis: 'monotonic_with_wall_anchor',
+          providerNeutral: true,
+          appLocalAuthority: false,
+        },
+        detail: {
+          voiceStreamId: 'voice-stream-1',
+          finalArtifactId: 'artifact-1',
+          audioMimeType: 'audio/wav',
+          voiceOutputMode: 'artifact',
+          voicePlaybackState: 'completed',
+          terminalReason: 'artifact_playback_completed',
+          playbackTarget: 'avatar_autoplay',
+        },
+      };
       // The backend-branch hard cut removes the deprecated Runtime
       // presentation per-frame mouth-batch consume
       // path was deleted; the frame batch fixture is no longer emitted
@@ -748,12 +778,25 @@ describe('SdkDriver', () => {
     expect(events.map((event) => event.name)).toEqual(expect.arrayContaining([
       'runtime.agent.presentation.voice_stream_chunk_available',
       'runtime.agent.presentation.voice_playback_requested',
+      'runtime.agent.presentation.voice_playback_terminal',
     ]));
     expect(events.find((event) => event.name === 'runtime.agent.presentation.voice_stream_chunk_available')?.detail)
       .toEqual(expect.objectContaining({
         runtime_timeline: expect.objectContaining({
           projection_rule_id: 'K-AGCORE-133',
         }),
+        playbackTarget: 'avatar_autoplay',
+      }));
+    expect(events.find((event) => event.name === 'runtime.agent.presentation.voice_playback_terminal')?.detail)
+      .toEqual(expect.objectContaining({
+        runtime_timeline: expect.objectContaining({
+          projection_rule_id: 'K-AGCORE-133',
+          offset_ms: 480,
+          sequence: 2,
+        }),
+        voiceStreamId: 'voice-stream-1',
+        voicePlaybackState: 'completed',
+        terminalReason: 'artifact_playback_completed',
         playbackTarget: 'avatar_autoplay',
       }));
     // Hard cut: the deprecated per-frame mouth-batch presentation
@@ -766,7 +809,8 @@ describe('SdkDriver', () => {
     );
     expect(presentationEvents.every((event) =>
       event.name === 'runtime.agent.presentation.voice_playback_requested'
-      || event.name === 'runtime.agent.presentation.voice_stream_chunk_available',
+      || event.name === 'runtime.agent.presentation.voice_stream_chunk_available'
+      || event.name === 'runtime.agent.presentation.voice_playback_terminal',
     ))
       .toBe(true);
 

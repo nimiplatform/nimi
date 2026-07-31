@@ -675,6 +675,8 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.presentation.voice_stream_chunk_available':
         this.startNativeVoiceStreamSubscription(event);
         break;
+      case 'runtime.agent.presentation.voice_playback_terminal':
+        break;
       case 'runtime.agent.hook.intent_proposed':
       case 'runtime.agent.hook.pending':
       case 'runtime.agent.hook.rejected':
