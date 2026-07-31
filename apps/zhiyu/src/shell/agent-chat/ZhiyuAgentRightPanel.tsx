@@ -11,6 +11,7 @@ import type { ZhiyuEvidence } from '../app/evidence';
 import {
   agentCenterHeaderStateLabel,
   agentCenterWorldLabel,
+  currentPartnerAvatarUrl,
   partnerInitial,
 } from './ZhiyuAgentChatLabels';
 
@@ -97,6 +98,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
             i18n={ZHIYU_AGENT_CENTER_I18N}
             identity={{
               displayName: props.currentPartnerName,
+              avatarUrl: currentPartnerAvatarUrl(props.evidence),
               avatarFallback: partnerInitial(props.currentPartnerName),
             }}
             onSectionChange={props.onActiveTabChange}

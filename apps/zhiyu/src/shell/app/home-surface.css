@@ -18,7 +18,9 @@
   box-sizing: border-box;
 }
 
-:where(.zhiyu-agent-chat) :where(button):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *)) {
+/* Keep the blanket button chrome out of the canonical composer subtree;
+   the composer buttons own their styling (ghost toolbar, emerald send). */
+:where(.zhiyu-agent-chat) :where(button):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *, [data-canonical-composer-root="true"] *)) {
   min-width: 34px;
   min-height: 32px;
   border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.1));
@@ -32,12 +34,12 @@
   letter-spacing: 0;
 }
 
-:where(.zhiyu-agent-chat) :where(button:not(:disabled):hover):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *)) {
+:where(.zhiyu-agent-chat) :where(button:not(:disabled):hover):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *, [data-canonical-composer-root="true"] *)) {
   border-color: color-mix(in srgb, var(--nimi-action-primary-bg, #45B8D6) 46%, var(--nimi-border-subtle, rgba(15, 23, 42, 0.12)));
   background: color-mix(in srgb, var(--nimi-surface-card, #fff) 86%, var(--nimi-action-primary-bg, #45B8D6) 14%);
 }
 
-:where(.zhiyu-agent-chat) :where(button:disabled):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *)) {
+:where(.zhiyu-agent-chat) :where(button:disabled):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *, [data-canonical-composer-root="true"] *)) {
   cursor: not-allowed;
   opacity: 0.58;
 }
@@ -55,7 +57,7 @@
 
 .zhiyu-agent-chat__layout {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr) 500px;
+  grid-template-columns: 64px minmax(0, 1fr) 500px;
   grid-template-areas: "presence conversation side";
   gap: 0;
   width: 100%;
@@ -66,7 +68,7 @@
 }
 
 .zhiyu-agent-chat__layout.is-side-closed {
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   grid-template-areas: "presence conversation";
 }
 
@@ -78,26 +80,24 @@
   min-height: 0;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 34px 8px 28px;
-  border: 0;
-  background: transparent;
+  gap: 10px;
+  padding: 14px 0 12px;
 }
 
 .zhiyu-agent-rail__logo {
   display: grid;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  border-radius: 16px;
+  border-radius: 14px;
   background: transparent;
   box-shadow: none;
 }
 
 .zhiyu-agent-rail__logo img {
   display: block;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
@@ -108,7 +108,7 @@
   flex: 1;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
+  gap: 4px;
   padding: 2px 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -122,10 +122,10 @@
 .zhiyu-agent-rail__separator {
   width: 28px;
   height: 1px;
-  margin: 4px auto;
+  margin: 6px auto;
   flex: 0 0 auto;
   border-radius: 999px;
-  background: rgba(203, 213, 225, 0.82);
+  background: rgba(226, 232, 240, 0.8);
 }
 
 .zhiyu-agent-rail__agent-row {
@@ -135,7 +135,7 @@
   height: 44px;
   flex: 0 0 44px;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .zhiyu-agent-rail__agent-indicator {
@@ -146,9 +146,9 @@
   height: 0;
   transform: translateY(-50%);
   border-radius: 0 999px 999px 0;
-  background: var(--nimi-action-primary-bg, #45B8D6);
+  background: #10b981;
   opacity: 0;
-  transition: height 160ms ease, opacity 160ms ease;
+  transition: height 200ms ease, opacity 200ms ease;
 }
 
 .zhiyu-agent-rail__agent-row:hover .zhiyu-agent-rail__agent-indicator {
@@ -167,32 +167,35 @@
   width: 40px;
   height: 40px;
   min-height: 40px;
-  margin-left: 8px;
   place-items: center;
   padding: 0;
   overflow: hidden;
   border: 0;
   border-radius: 999px;
   box-shadow: none;
-  transition: border-radius 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+  transition: border-radius 200ms ease, box-shadow 200ms ease, transform 200ms ease, background 200ms ease;
 }
 
 .zhiyu-agent-rail__agent {
-  background: linear-gradient(135deg, #5bc4dc, #3fb5c3);
+  background: linear-gradient(135deg, #34d399, #0d9488);
   color: #fff;
   font-size: 15px;
   font-weight: 800;
 }
 
+.zhiyu-agent-rail__agent > img,
+.zhiyu-home__composer-avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .zhiyu-agent-rail__agent:not(.is-active):hover {
   border-radius: 16px;
-  transform: translateY(-1px);
 }
 
 .zhiyu-agent-rail__agent.is-active {
   border-radius: 16px;
-  background: #58c7b5;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 8px 18px rgba(21, 128, 112, 0.16);
 }
 
 .zhiyu-agent-rail__agent-row.is-unavailable:hover .zhiyu-agent-rail__agent-indicator {
@@ -208,9 +211,13 @@
 
 .zhiyu-agent-rail__tools {
   display: grid;
+  width: 100%;
   gap: 8px;
   align-self: end;
+  justify-items: center;
   margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.7);
 }
 
 .zhiyu-agent-rail__tools button {
@@ -221,10 +228,11 @@
   min-height: 40px;
   place-items: center;
   padding: 0;
-  border: 0;
+  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.1));
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: none;
+  background: var(--nimi-surface-card, #fff);
+  color: var(--nimi-text-secondary, #475569);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .zhiyu-chat-canvas {
@@ -237,10 +245,6 @@
   gap: 26px;
   padding: 78px 24px 34px 60px !important;
   overflow: hidden;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
 }
 
 .zhiyu-chat-canvas__shell {
@@ -262,7 +266,9 @@
   width: 100%;
   min-width: 0;
   min-height: 0;
-  scrollbar-gutter: stable;
+  /* both-edges keeps the message column centered with the composer column
+     instead of shifting 8px left when the gutter is reserved. */
+  scrollbar-gutter: stable both-edges;
   scrollbar-width: auto;
 }
 
@@ -300,23 +306,29 @@
 }
 
 .zhiyu-chat-canvas__composer [data-chat-composer-textarea="true"] {
-  font-size: 16px;
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .zhiyu-home__composer-avatar,
 .zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button {
   display: inline-grid;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
   place-items: center;
   padding: 0;
-  border-color: rgba(226, 232, 240, 0.86);
+  border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:not(:disabled):hover {
+  background: rgba(15, 23, 42, 0.06);
   color: #334155;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
 .zhiyu-home__composer-avatar {
@@ -451,10 +463,6 @@
 .zhiyu-source-not-ready-empty__description > p {
   margin: 0;
   line-height: 1.75;
-}
-
-.zhiyu-source-not-ready-empty__handoff {
-  text-align: left;
 }
 
 .zhiyu-source-not-ready-empty__actions {
@@ -698,13 +706,13 @@
 
 @container nimi-ui-module-zhiyu-surface (max-width: 1320px) {
   .zhiyu-agent-chat__layout {
-    grid-template-columns: 76px minmax(0, 1fr) 500px;
+    grid-template-columns: 64px minmax(0, 1fr) 500px;
     grid-template-areas: "presence conversation side";
     gap: 0;
   }
 
   .zhiyu-agent-chat__layout.is-side-closed {
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: 64px minmax(0, 1fr);
     grid-template-areas: "presence conversation";
     gap: 0;
   }
@@ -740,7 +748,7 @@
   }
 
   .zhiyu-agent-rail {
-    padding: 10px 6px;
+    padding: 10px 0;
   }
 
   .zhiyu-agent-rail__agent-row {
@@ -848,7 +856,12 @@
 
   .zhiyu-agent-rail__tools {
     display: flex;
+    width: auto;
     flex: 0 0 auto;
+    padding-top: 0;
+    padding-left: 8px;
+    border-top: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.7);
   }
 
   .zhiyu-chat-canvas {

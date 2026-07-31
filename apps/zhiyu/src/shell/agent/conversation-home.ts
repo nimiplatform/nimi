@@ -1,15 +1,7 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { NimiLocalAppAgentHandle, NimiLocalAppClient } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
-import {
-  clearZhiyuAgentConversationAnchorBinding,
-  getZhiyuAgentConversationAnchorBinding,
-  hydrateZhiyuAgentConversationAnchorBindingsFromStorage,
-  persistZhiyuAgentConversationAnchorBinding,
-  persistZhiyuAgentConversationAnchorBindingsToStorage,
-  type ZhiyuAgentConversationAnchorBinding,
-} from './conversation-anchor-binding-storage';
 import type { ZhiyuLocalAgentStatus } from './local-agent-status';
 
 export type ZhiyuConversationHomeStatus = ZhiyuEvidence['conversation'];
@@ -45,70 +37,21 @@ export async function probeZhiyuRuntimeConversationHome(
 
   const conversation = getZhiyuLocalAppClient().conversation;
   try {
-    await hydrateZhiyuAgentConversationAnchorBindingsFromStorage();
-    const existing = getZhiyuAgentConversationAnchorBinding(identity.agentHandle);
-    if (bindingMatchesIdentity(existing, identity)) {
-      const recovered = await ensureConversationAnchorBindingUpstream({ conversation, identity, binding: existing });
-      if (recovered) return conversationReady(identity, recovered.conversationAnchorId, recovered.threadId);
-    } else if (existing) {
-      clearZhiyuAgentConversationAnchorBinding(identity.agentHandle);
-      await persistZhiyuAgentConversationAnchorBindingsToStorage();
-    }
-
     const opened = await conversation.open({
       agentHandle: identity.agentHandle,
-      disposition: 'create-or-resume',
     });
     const snapshot = await conversation.snapshot({
       agentHandle: identity.agentHandle,
       conversationAnchorId: opened.conversationAnchorId,
     });
-    const binding = persistZhiyuAgentConversationAnchorBinding({
-      ...identity,
-      conversationAnchorId: opened.conversationAnchorId,
-      threadId: requireRuntimeThreadId(snapshot),
-      updatedAtMs: Date.now(),
-    });
-    await persistZhiyuAgentConversationAnchorBindingsToStorage();
-    return conversationReady(identity, binding.conversationAnchorId, binding.threadId);
+    return conversationReady(
+      identity,
+      opened.conversationAnchorId,
+      requireRuntimeThreadId(snapshot),
+    );
   } catch (error) {
     return normalizeConversationError(error, identity);
   }
-}
-
-async function ensureConversationAnchorBindingUpstream(input: {
-  readonly conversation: NimiLocalAppClient['conversation'];
-  readonly identity: LocalAgentIdentity;
-  readonly binding: ZhiyuAgentConversationAnchorBinding;
-}): Promise<ZhiyuAgentConversationAnchorBinding | null> {
-  try {
-    const snapshot = await input.conversation.snapshot({
-      agentHandle: input.identity.agentHandle,
-      conversationAnchorId: input.binding.conversationAnchorId,
-    });
-    const threadId = requireRuntimeThreadId(snapshot);
-    if (threadId === input.binding.threadId) return input.binding;
-    const refreshed = persistZhiyuAgentConversationAnchorBinding({
-      ...input.binding,
-      threadId,
-      updatedAtMs: Date.now(),
-    });
-    await persistZhiyuAgentConversationAnchorBindingsToStorage();
-    return refreshed;
-  } catch (error) {
-    if (!isRecoverableRuntimeAnchorError(error)) throw error;
-    clearZhiyuAgentConversationAnchorBinding(input.identity.agentHandle);
-    await persistZhiyuAgentConversationAnchorBindingsToStorage();
-    return null;
-  }
-}
-
-function bindingMatchesIdentity(
-  binding: ZhiyuAgentConversationAnchorBinding | null,
-  identity: LocalAgentIdentity,
-): binding is ZhiyuAgentConversationAnchorBinding {
-  return Boolean(binding
-    && binding.agentHandle === identity.agentHandle);
 }
 
 function conversationReady(
@@ -159,14 +102,6 @@ function normalizeConversationError(error: unknown, identity: LocalAgentIdentity
     message: error instanceof Error && error.message.trim() ? error.message.trim() : 'Runtime conversation is unavailable.',
     ...identity,
   });
-}
-
-function isRecoverableRuntimeAnchorError(error: unknown): boolean {
-  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
-  const reasonCode = stringOr(record.reasonCode, '').toLowerCase();
-  return reasonCode.includes('not-found') || reasonCode.includes('not_found')
-    || reasonCode.includes('failed-precondition') || reasonCode.includes('failed_precondition')
-    || reasonCode.includes('anchor');
 }
 
 function conversationUnavailable(input: {

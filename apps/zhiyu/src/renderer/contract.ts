@@ -3,11 +3,10 @@ import type {
   NimiRendererHostFacadeV1,
   NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
-import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
+import type { AgentCenterOpaqueHandle, AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 
 import type { ZhiyuRuntimeAgentChatTurnInput, ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import type { ZhiyuVoiceCaptureEvidence } from '../shell/agent-chat/voice-capture-evidence.js';
-import type { ZhiyuAgentAIConfigRouteEvidenceInput } from '../shell/agent-chat/agent-ai-config.js';
 import type { ZhiyuAvatarLaunchAction } from '../shell/avatar/avatar-launch.js';
 import type { ZhiyuAvatarLaunchResult } from '../shell/avatar/avatar-launch-handoff.js';
 import type { ZhiyuDesktopOpenActionResult } from '../shell/desktop-open/desktop-open-action.js';
@@ -29,18 +28,15 @@ export type ZhiyuHomeProjection = Pick<
 >;
 
 export interface ZhiyuRendererProjectionPort {
-  agentCenterSession(evidence: ZhiyuEvidence): AgentCenterSession | null;
+  agentCenterSession(agentHandle: AgentCenterOpaqueHandle | null): AgentCenterSession | null;
   loadHome(input: { readonly selectedAgentHandle: string | null }): Promise<ZhiyuHomeProjection>;
   loadAgentInventory(): Promise<ZhiyuEvidence['inventory']>;
-  loadExecutionRoute(input: ZhiyuAgentAIConfigRouteEvidenceInput): Promise<ZhiyuEvidence['route']>;
   projectTurnReadiness(
     conversation: ZhiyuEvidence['conversation'],
     inventory: ZhiyuEvidence['inventory'],
   ): ZhiyuEvidence['turn'];
   hydrateConversation(input: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
+    readonly agentHandle: string;
     readonly conversationAnchorId: string;
     readonly currentSource: ZhiyuEvidence['source'];
     readonly currentChat: ZhiyuEvidence['chat'];
@@ -79,9 +75,10 @@ export interface ZhiyuRendererCommandPort {
 
 export interface ZhiyuRendererEventPort {
   onProjectionChanged?(projection: ZhiyuEvidence): void;
-  subscribeExecutionRoute(input: {
-    readonly routeInput: ZhiyuAgentAIConfigRouteEvidenceInput;
-    readonly onRoute: (route: ZhiyuEvidence['route']) => void;
+  subscribeConversation(input: {
+    readonly agentHandle: string;
+    readonly conversationAnchorId: string;
+    readonly onChat: (chat: ZhiyuEvidence['chat']) => void;
   }): () => void;
   subscribeCompanion(input: {
     readonly ownerUserId: string;

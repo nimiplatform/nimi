@@ -20,9 +20,7 @@ export type ZhiyuCompanionStatus = ZhiyuEvidence['companion'];
 
 export type ZhiyuAgentSessionHydrationInput = {
   readonly current: ZhiyuAgentChatStatus;
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
+  readonly agentHandle: string;
   readonly conversationAnchorId: string;
   readonly snapshot: NimiRuntimeAgentSessionSnapshot;
 };
@@ -38,7 +36,7 @@ export function hydrateZhiyuAgentChatFromRuntimeSessionSnapshot(
     const projected = transcriptMessageToCanonicalMessage({
       message,
       sessionId: input.conversationAnchorId,
-      targetId: input.localAgentRef,
+      targetId: input.agentHandle,
     });
     return projected ? [projected] : [];
   });
@@ -55,9 +53,9 @@ export function hydrateZhiyuAgentChatFromRuntimeSessionSnapshot(
     actionHint: 'continue_runtime_agent_conversation',
     source: 'runtime',
     message: 'Runtime Agent session snapshot was hydrated through SDK transcript replay.',
-    ownerUserId: input.ownerUserId,
-    runtimeSourceRef: input.runtimeSourceRef,
-    localAgentRef: input.localAgentRef,
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
     conversationAnchorId: input.conversationAnchorId,
     requestId: normalizeText(input.snapshot.requestId) || null,
     runtimeTurnId: runtimeTurnIdFromSnapshot(input.snapshot),

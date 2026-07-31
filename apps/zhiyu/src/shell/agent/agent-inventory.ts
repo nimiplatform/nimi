@@ -24,6 +24,7 @@ export async function probeZhiyuRuntimeAgentInventory(): Promise<ZhiyuRuntimeAge
     const localAgents = permission.agents.map((agent) => ({
       agentHandle: agent.agentHandle,
       displayName: agent.displayName,
+      avatarUrl: agent.avatarUrl,
       sourceReady: true,
     }));
     return {

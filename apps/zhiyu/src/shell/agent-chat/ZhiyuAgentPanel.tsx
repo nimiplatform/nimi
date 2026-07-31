@@ -1,4 +1,3 @@
-import { Surface } from '@nimiplatform/kit/ui';
 import {
   Settings,
 } from 'lucide-react';
@@ -9,6 +8,7 @@ type DesktopPresenceRailProps = {
     readonly itemKey: string;
     readonly agentHandle: string | null;
     readonly displayName?: string | null;
+    readonly avatarUrl: string | null;
     readonly sourceReady: boolean;
   }[];
   readonly currentAgentHandle: string | null;
@@ -29,13 +29,9 @@ export function DesktopPresenceRail({
   onSelectAgent,
 }: DesktopPresenceRailProps) {
   return (
-    <Surface
-      as="section"
+    <section
       className="zhiyu-agent-rail"
       data-zhiyu-region="presence"
-      material="solid"
-      elevation="base"
-      padding="md"
     >
       <div className="zhiyu-agent-rail__logo" aria-label="Nimi" data-zhiyu-desktop-logo-image="nimi">
         <img src={nimiLogoImage} alt="" aria-hidden="true" />
@@ -84,7 +80,14 @@ export function DesktopPresenceRail({
                   }
                 }}
               >
-                {partnerInitial(agent.displayName)}
+                {agent.avatarUrl ? (
+                  <img
+                    src={agent.avatarUrl}
+                    alt=""
+                    aria-hidden="true"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : partnerInitial(agent.displayName)}
               </button>
             </div>
           );
@@ -95,7 +98,7 @@ export function DesktopPresenceRail({
           <Settings size={20} aria-hidden="true" />
         </button>
       </div>
-    </Surface>
+    </section>
   );
 }
 

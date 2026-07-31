@@ -1,9 +1,8 @@
 import {
   Button,
   EmptyState,
-  InlineAlert,
+  nimiToast,
   StatusBadge,
-  Surface,
 } from '@nimiplatform/kit/ui';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { ChatComposerAdapter } from '@nimiplatform/kit/features/chat/headless';
@@ -35,6 +34,7 @@ import {
   chatModelPresentation,
   chatReplyChipLabel,
   conversationMessagesForDisplay,
+  currentPartnerAvatarUrl,
   currentPartnerDisplayName,
   formatZhiyuTranscriptDateLabel,
 } from './ZhiyuAgentChatLabels';
@@ -54,6 +54,7 @@ import {
   CompanionEmotionStatus,
   formatReasonLabel,
 } from '../app/home-surface-sections';
+import { followZhiyuTranscriptToLatest } from './transcript-auto-follow';
 
 const subscribeToNoAgentCenter = (): (() => void) => () => undefined;
 const getNoAgentCenterSnapshot = (): AgentCenterSnapshot | null => null;
@@ -111,6 +112,7 @@ export function ZhiyuAgentChatSurface({
   );
   const modelConfigLabel = modelPresentation.label;
   const currentPartnerName = currentPartnerDisplayName(evidence);
+  const currentPartnerAvatar = currentPartnerAvatarUrl(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
   const agentPermissionRequestable = evidence.inventory.actionHint === 'request_agents_interact_permission';
@@ -147,15 +149,6 @@ export function ZhiyuAgentChatSurface({
       description={(
         <div className="zhiyu-source-not-ready-empty__description">
           <p>这个伙伴的来源资料还没有准备完成，暂时不能开始对话。请到 Nimi 桌面端继续选择伙伴来源，完成后回到这里重新检查。</p>
-          {desktopOpenResult ? (
-            <InlineAlert
-              tone={desktopOpenResult.state === 'accepted' ? 'info' : 'warning'}
-              className="zhiyu-source-not-ready-empty__handoff"
-              data-zhiyu-source-not-ready-handoff-state={desktopOpenResult.state}
-            >
-              {desktopOpenResult.message}
-            </InlineAlert>
-          ) : null}
           <details className="zhiyu-source-not-ready-empty__diagnostics">
             <summary>查看诊断信息</summary>
             <dl>
@@ -299,17 +292,11 @@ export function ZhiyuAgentChatSurface({
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
   const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
   const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
+  const chatTranscriptEndRef = useRef<HTMLSpanElement>(null);
   const composerRootRef = useRef<HTMLDivElement>(null);
   const getChatTranscriptRoot = useCallback(() => (
     chatTranscriptViewportRef.current?.querySelector<HTMLElement>('[data-canonical-transcript-root="true"]') ?? null
   ), []);
-  const scrollChatTranscriptToLatest = useCallback(() => {
-    const root = getChatTranscriptRoot();
-    if (!root) {
-      return;
-    }
-    root.scrollTop = root.scrollHeight;
-  }, [getChatTranscriptRoot]);
   const openModelConfig = () => {
     setRightPanelMode('agent');
     setActiveAgentTab('model');
@@ -336,7 +323,12 @@ export function ZhiyuAgentChatSurface({
     }
     setDesktopOpenPending(true);
     try {
-      setDesktopOpenResult(await onDesktopOpenSelectPartner());
+      const result = await onDesktopOpenSelectPartner();
+      setDesktopOpenResult(result);
+      nimiToast.show({
+        tone: result.state === 'accepted' ? 'info' : 'warning',
+        message: result.message,
+      });
     } finally {
       setDesktopOpenPending(false);
     }
@@ -345,13 +337,15 @@ export function ZhiyuAgentChatSurface({
     if (evidence.chat.messageCount <= 0) {
       return;
     }
-    scrollChatTranscriptToLatest();
+    const root = getChatTranscriptRoot();
+    const end = chatTranscriptEndRef.current;
+    return root && end ? followZhiyuTranscriptToLatest(root, end) : undefined;
   }, [
     evidence.chat.latestAssistantText,
     evidence.chat.messageCount,
     evidence.chat.requestId,
     evidence.chat.state,
-    scrollChatTranscriptToLatest,
+    getChatTranscriptRoot,
   ]);
   return (
     <main
@@ -377,6 +371,7 @@ export function ZhiyuAgentChatSurface({
             itemKey: agent.agentHandle,
             agentHandle: agent.agentHandle,
             displayName: agent.displayName,
+            avatarUrl: agent.avatarUrl,
             sourceReady: agent.sourceReady,
           }))}
           currentAgentHandle={evidence.localAgent.agentHandle}
@@ -393,13 +388,9 @@ export function ZhiyuAgentChatSurface({
           }}
         />
 
-        <Surface
-          as="section"
+        <section
           className="zhiyu-chat-canvas"
           data-zhiyu-region="conversation"
-          material="glass-thin"
-          elevation="base"
-          padding="md"
         >
           <div
             className="zhiyu-chat-canvas__shell"
@@ -421,7 +412,17 @@ export function ZhiyuAgentChatSurface({
                 emptyTitle={emptyTitle}
                 emptyDescription={emptyDescription}
                 content={sourceNotReadyEmptyState ?? noLocalPartnerEmptyState}
-                footerContent={chatFooter}
+                footerContent={(
+                  <>
+                    {chatFooter}
+                    <span
+                      ref={chatTranscriptEndRef}
+                      data-zhiyu-transcript-end="true"
+                      aria-hidden="true"
+                      className="block h-px w-full"
+                    />
+                  </>
+                )}
                 widthClassName="w-full max-w-none"
                 widthPositionClassName="mx-0"
                 scrollViewportWidthClassName="w-full"
@@ -453,6 +454,7 @@ export function ZhiyuAgentChatSurface({
                 leadingSlot={(
                   <ComposerAvatarButton
                     currentPartnerName={currentPartnerName}
+                    currentPartnerAvatarUrl={currentPartnerAvatar}
                     hasCurrentPartner={hasCurrentPartner}
                     avatarLaunchAction={avatarLaunchAction}
                     onAvatarLaunch={onAvatarLaunch}
@@ -499,7 +501,7 @@ export function ZhiyuAgentChatSurface({
             </span>
             <CompanionEmotionStatus companion={evidence.companion} />
           </div>
-        </Surface>
+        </section>
 
         {rightPanelMode !== 'closed' ? (
           <RightAgentPanel

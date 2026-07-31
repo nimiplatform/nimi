@@ -21,9 +21,7 @@ test('hydrates Zhiyu chat from Runtime session snapshot without masking committe
   const module = await importConversationStateModule();
   const chat = module.hydrateZhiyuAgentChatFromRuntimeSessionSnapshot({
     current: idleChat(),
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:opaque',
-    localAgentRef: 'local-agent:opaque',
+    agentHandle: 'opaque-agent-handle',
     conversationAnchorId: 'conversation-anchor:opaque',
     snapshot: {
       requestId: 'runtime-request-2',
@@ -61,9 +59,7 @@ test('keeps current chat when Runtime snapshot has no transcript replay envelope
   };
   const chat = module.hydrateZhiyuAgentChatFromRuntimeSessionSnapshot({
     current,
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:opaque',
-    localAgentRef: 'local-agent:opaque',
+    agentHandle: 'opaque-agent-handle',
     conversationAnchorId: 'conversation-anchor:opaque',
     snapshot: {
       transcript: [

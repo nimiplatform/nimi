@@ -138,6 +138,7 @@ function simulatedHome(
       localAgents: scenario.agents.map((agent) => ({
         agentHandle: simulatedAgentHandle(agent.localAgentRef),
         displayName: agent.displayName,
+        avatarUrl: null,
         sourceReady: true,
       })),
     },
@@ -181,31 +182,6 @@ function simulatedHome(
     delegation: initial.delegation,
     proposal: initial.proposal,
     avatar: { ...initial.avatar, ...identity },
-  };
-}
-
-function simulatedRoute(context: ZhiyuSimulatorPrepareContext): ZhiyuEvidence['route'] {
-  return {
-    transport: 'electron-ipc',
-    ready: true,
-    capability: 'text.generate',
-    configRevision: 1,
-    readinessRevision: 1,
-    updatedAt: new Date(context.clock.now()).toISOString(),
-    updatedByAppId: 'nimi.zhiyu',
-    capabilities: {
-      'text.generate': {
-        state: 'ready',
-        reasonCode: 'ready',
-        probedAt: new Date(context.clock.now()).toISOString(),
-        binding: null,
-      },
-    },
-    executionBinding: null,
-    reasonCode: 'zhiyu-agent-ai-config-ready',
-    actionHint: 'send_runtime_agent_turn',
-    source: 'simulator',
-    message: 'Deterministic Simulator text route is ready.',
   };
 }
 
@@ -256,7 +232,9 @@ function simulatedVoiceUnavailable(readiness: ZhiyuVoiceCaptureEvidence): ZhiyuV
   };
 }
 
-function simulatedAgentCenterSession(): null {
+function simulatedAgentCenterSession(
+  _agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
+): null {
   return null;
 }
 
@@ -347,7 +325,6 @@ export function createZhiyuSimulatorBindings(
           Promise.resolve(simulatedHome(context, selectedAgentHandle))
         ),
         loadAgentInventory: async () => simulatedHome(context, null).inventory,
-        loadExecutionRoute: async () => simulatedRoute(context),
         projectTurnReadiness: simulatedTurnReady,
         async hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
           return { source: input.currentSource, chat: input.currentChat };
@@ -472,8 +449,9 @@ export function createZhiyuSimulatorBindings(
         onProjectionChanged(projection: ZhiyuEvidence) {
           latestProjection = projection;
         },
-        subscribeExecutionRoute({ onRoute }: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeExecutionRoute']>[0]) {
-          return context.projection.subscribe(() => onRoute(simulatedRoute(context)));
+        subscribeConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeConversation']>[0]) {
+          void input;
+          return () => undefined;
         },
         subscribeCompanion({ onCompanion }: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeCompanion']>[0]) {
           companionListeners.add(onCompanion);

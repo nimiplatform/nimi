@@ -55,7 +55,17 @@ test('Zhiyu Agent Center panel renders the Manager Session without caller postur
   assert.doesNotThrow(() => {
     html = renderPanel({
       mode: 'agent',
-      evidence: { companion: { currentEmotion: null, executionState: null } },
+      evidence: {
+        companion: { currentEmotion: null, executionState: null },
+        localAgent: { agentHandle: 'opaque-agent' },
+        inventory: {
+          localAgents: [{
+            agentHandle: 'opaque-agent',
+            displayName: '伙伴',
+            avatarUrl: 'https://assets.example.test/agent.png',
+          }],
+        },
+      },
       currentPartnerName: '伙伴',
       activeTab: 'overview',
       onActiveTabChange() {},
@@ -67,6 +77,7 @@ test('Zhiyu Agent Center panel renders the Manager Session without caller postur
   assert.match(html, /data-test-action-reason="reserved-not-admitted"/);
   assert.match(html, /data-test-chrome="standalone"/);
   assert.match(html, /data-test-identity="伙伴"/);
+  assert.match(html, /data-test-avatar-url="https:\/\/assets\.example\.test\/agent\.png"/);
 });
 
 test('Zhiyu adopts Kit canonical Agent Center chrome and keeps host context outside it', async () => {
@@ -138,6 +149,7 @@ async function importRightPanelModule() {
               return createElement('div', {
                 'data-test-chrome': props.chrome,
                 'data-test-identity': props.identity?.displayName,
+                'data-test-avatar-url': props.identity?.avatarUrl,
                 'data-test-action-reason': props.session.getSnapshot().availability.updateModelSettings.reason,
               });
             }

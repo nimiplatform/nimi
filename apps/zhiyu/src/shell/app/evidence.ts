@@ -198,6 +198,7 @@ export type ZhiyuEvidence = {
     readonly localAgents: readonly {
       readonly agentHandle: string;
       readonly displayName: string;
+      readonly avatarUrl: string | null;
       readonly sourceReady: boolean;
     }[];
   };
@@ -363,17 +364,18 @@ export type ZhiyuEvidence = {
   readonly chat: ZhiyuRuntimeAgentChatStatus;
   readonly route: {
     readonly transport: 'electron-ipc';
-    // Send readiness: runtime-projected text.generate readiness === 'ready'.
+    // Permissioned model-settings display/feature readiness. Chat submit
+    // readiness is owned separately by the LocalApp conversation turn gate.
     readonly ready: boolean;
     readonly capability: 'text.generate';
-    // Committed runtime agent AI Config projection (K-AGCORE-144~150).
-    readonly configRevision: number | null;
-    readonly readinessRevision: number | null;
+    // Runtime-owned model-settings projection revision.
+    readonly configRevision: string | null;
+    readonly readinessRevision: string | null;
     readonly updatedAt: string | null;
     readonly updatedByAppId: string | null;
     readonly capabilities: Readonly<Record<string, ZhiyuExecutionCapabilityEvidence>>;
-    // Committed text.generate binding projection (display evidence only; the
-    // runtime resolves every turn against its own committed config).
+    // Bounded route + model display projection derived from model settings;
+    // Runtime resolves every turn against its own committed config.
     readonly executionBinding: NimiRuntimeAgentExecutionBinding | null;
     readonly reasonCode: string;
     readonly actionHint: string;

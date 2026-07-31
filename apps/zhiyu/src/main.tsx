@@ -7,6 +7,7 @@ import {
   type NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
+import { NimiToaster } from '@nimiplatform/kit/ui';
 import './styles.css';
 import './renderer/styles.css';
 import { zhiyuCanonicalRendererFactory } from './renderer/factory';
@@ -67,6 +68,7 @@ createRoot(root).render(
       <AuthGate>
         <ZhiyuProductionSurface />
       </AuthGate>
+      <NimiToaster />
     </NimiRendererHostProvider>
   </React.StrictMode>,
 );

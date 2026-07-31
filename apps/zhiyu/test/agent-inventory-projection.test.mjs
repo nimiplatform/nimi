@@ -80,6 +80,7 @@ const granted = Object.freeze({
   localAgents: Object.freeze([Object.freeze({
     agentHandle: 'opaque-handle',
     displayName: '伙伴甲',
+    avatarUrl: null,
     sourceReady: true,
   })]),
 });
@@ -100,6 +101,10 @@ test('detects account permission posture and covered-Agent projection changes', 
     ...granted,
     localAgents: [{ ...granted.localAgents[0], displayName: '伙伴乙' }],
   }), false);
+  assert.equal(sameZhiyuRuntimeAgentInventory(granted, {
+    ...granted,
+    localAgents: [{ ...granted.localAgents[0], avatarUrl: 'https://assets.example.test/agent.png' }],
+  }), false);
 });
 
 test('projects every current covered Agent and keeps opaque handles explicit', async () => {
@@ -109,8 +114,12 @@ test('projects every current covered Agent and keeps opaque handles explicit', a
     posture: 'granted',
     canRequest: false,
     agents: [
-      { agentHandle: 'opaque-agent-a', displayName: '伙伴甲' },
-      { agentHandle: 'opaque-agent-b', displayName: '伙伴乙' },
+      {
+        agentHandle: 'opaque-agent-a',
+        displayName: '伙伴甲',
+        avatarUrl: 'https://assets.example.test/agent-a.png',
+      },
+      { agentHandle: 'opaque-agent-b', displayName: '伙伴乙', avatarUrl: null },
     ],
   };
   const { probeZhiyuRuntimeAgentInventory } = await loadInventoryModule();
@@ -120,6 +129,10 @@ test('projects every current covered Agent and keeps opaque handles explicit', a
   assert.deepEqual(result.localAgents.map((agent) => agent.agentHandle), [
     'opaque-agent-a',
     'opaque-agent-b',
+  ]);
+  assert.deepEqual(result.localAgents.map((agent) => agent.avatarUrl), [
+    'https://assets.example.test/agent-a.png',
+    null,
   ]);
   assert.equal('localAgentRef' in result.localAgents[0], false);
   assert.equal('ownerUserId' in result.localAgents[0], false);

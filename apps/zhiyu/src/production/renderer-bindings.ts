@@ -3,9 +3,7 @@ import {
   type NimiRendererHostFacadeV1,
   type NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
-import {
-  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-} from '@nimiplatform/sdk/runtime';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import {
@@ -19,10 +17,6 @@ import { resolveZhiyuRuntimeLocalAgentSelection } from '../shell/agent/local-age
 import { probeZhiyuRuntimeMemoryObservatory } from '../shell/agent/memory-observatory.js';
 import { projectZhiyuProposalIntakeStatus } from '../shell/agent/proposal-intake.js';
 import { projectZhiyuRuntimeSourceProjection } from '../shell/agent/source-projection.js';
-import {
-  fetchZhiyuAgentAIConfigRouteEvidence,
-  subscribeZhiyuAgentAIConfigReadiness,
-} from '../shell/agent-chat/agent-ai-config.js';
 import { probeZhiyuAgentTurnReadiness } from '../shell/agent-chat/agent-turn-readiness.js';
 import { runZhiyuAgentChatTurn } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import {
@@ -36,6 +30,7 @@ import { runZhiyuVoicePlaybackAction } from '../shell/app/voice-playback-action.
 import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
 import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
 import { probeZhiyuRuntimeAccountStatus } from '../shell/auth/runtime-account-status.js';
+import { getZhiyuLocalAppClient } from '../shell/auth/runtime-platform.js';
 import {
   requestZhiyuDesktopOpenAgentConfig,
   requestZhiyuDesktopOpenSelectPartner,
@@ -43,6 +38,8 @@ import {
 import { probeZhiyuRuntimeStatus } from '../shell/runtime/runtime-status.js';
 import { createZhiyuProductionTurnRequestId } from './turn-request-id.js';
 import { createZhiyuProductionAgentCenterSession } from './agent-center-adapters.js';
+import { hydrateZhiyuProductionConversation } from './conversation-hydration.js';
+import { subscribeZhiyuAmbientConversation } from '../shell/agent-chat/ambient-conversation-subscription.js';
 
 function productionRoutePort(): ZhiyuCanonicalRendererBindings['route'] {
   return Object.freeze({
@@ -90,10 +87,7 @@ async function loadHome(selectedAgentHandle: string | null): Promise<ZhiyuHomePr
 }
 
 async function hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
-  return {
-    source: input.currentSource,
-    chat: input.currentChat,
-  };
+  return hydrateZhiyuProductionConversation(input, getZhiyuLocalAppClient().conversation);
 }
 
 export function createZhiyuProductionBindings(
@@ -110,7 +104,6 @@ export function createZhiyuProductionBindings(
         agentCenterSession: createZhiyuProductionAgentCenterSession,
         loadHome: ({ selectedAgentHandle }: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0]) => loadHome(selectedAgentHandle),
         loadAgentInventory: probeZhiyuRuntimeAgentInventory,
-        loadExecutionRoute: fetchZhiyuAgentAIConfigRouteEvidence,
         projectTurnReadiness: probeZhiyuAgentTurnReadiness,
         hydrateConversation,
         loadSourceContext: loadZhiyuSourceContextProjection,
@@ -146,36 +139,15 @@ export function createZhiyuProductionBindings(
         launchAvatar: ({ evidence, action }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action }),
       }),
       events: Object.freeze({
-        subscribeExecutionRoute({ routeInput, onRoute }: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeExecutionRoute']>[0]) {
-          const subjectUserId = routeInput.subjectUserId;
-          if (!subjectUserId || !routeInput.ownerUserId || !routeInput.runtimeSourceRef || !routeInput.localAgentRef) {
-            return () => undefined;
-          }
-          let active = true;
-          let iterator: AsyncIterator<NimiRuntimeAgentAIConfigReadinessSnapshotProjection> | null = null;
-          void (async () => {
-            try {
-              const stream = subscribeZhiyuAgentAIConfigReadiness({
-                subjectUserId,
-                ownerUserId: routeInput.ownerUserId!,
-                runtimeSourceRef: routeInput.runtimeSourceRef!,
-                localAgentRef: routeInput.localAgentRef!,
-              });
-              iterator = stream[Symbol.asyncIterator]();
-              while (active) {
-                const next = await iterator.next();
-                if (next.done) break;
-                const route = await fetchZhiyuAgentAIConfigRouteEvidence(routeInput);
-                if (active) onRoute(route);
-              }
-            } catch {
-              // Initial route evidence remains fail-closed when live refresh is unavailable.
-            }
-          })();
-          return () => {
-            active = false;
-            void iterator?.return?.();
-          };
+        subscribeConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeConversation']>[0]) {
+          return subscribeZhiyuAmbientConversation({
+            conversation: getZhiyuLocalAppClient().conversation,
+            identity: {
+              agentHandle: input.agentHandle as NimiLocalAppAgentHandle,
+              conversationAnchorId: input.conversationAnchorId,
+            },
+            onChat: input.onChat,
+          });
         },
         subscribeCompanion(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeCompanion']>[0]) {
           void input;

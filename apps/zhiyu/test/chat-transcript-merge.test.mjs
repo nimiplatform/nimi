@@ -16,6 +16,36 @@ test.after(async () => {
   }
 });
 
+test('appends the submitted user message from the protected local-app Agent handle', async () => {
+  const { appendSubmittedUserMessage } = await importTransitionsModule();
+  const current = chatStatus({
+    requestId: null,
+    ready: true,
+    state: 'completed',
+    messages: [],
+  });
+  const appended = appendSubmittedUserMessage(current, {
+    ready: true,
+    agentHandle: 'opaque-owner-agent-handle',
+    conversationAnchorId: 'agent-anchor-1',
+    threadId: 'runtime-thread-1',
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
+  }, 'zhiyu-turn-local-app-1', 'new local-app question', '2026-07-31T04:40:33.000Z');
+
+  assert.equal(appended.messageCount, 1);
+  assert.deepEqual(
+    appended.messages.map(({ role, text, targetId }) => ({ role, text, targetId })),
+    [{
+      role: 'user',
+      text: 'new local-app question',
+      targetId: 'opaque-owner-agent-handle',
+    }],
+  );
+  assert.equal(appended.messages[0]?.metadata?.localAgentRef, undefined);
+});
+
 test('merges the streamed and committed primary assistant for one Runtime turn', async () => {
   const { mergeChatTranscript, turnStatusFromChat } = await importTransitionsModule();
   const turnId = 'zhiyu-turn-1';

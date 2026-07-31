@@ -60,6 +60,7 @@ test('binding composes revisions and preserves blocked, failed, and unavailable 
     assert.equal(projection.modelSettings.configurationRevision, '7');
     assert.equal(projection.modelSettings.readiness[0].state, state);
     assert.equal(projection.modelSettings.routeOptions[0].model, 'local/model-b');
+    assert.equal(projection.modelSettings.routeOptions[0].label, 'Local model B');
     assert.equal(projection.autonomy.revision, '11');
     assert.equal(projection.appearance.presentationRevision, '13');
   }
@@ -130,8 +131,9 @@ test('scripted SDK posture events project granted to prompt requestability', asy
   assert.ok(calls.includes('unsubscribePermissionPosture'));
 });
 
-test('production path returns a sealed Manager Session only for a covered opaque handle', async () => {
+test('production path returns a sealed Manager Session only for an authorized opaque handle', async () => {
   const { createZhiyuProductionAgentCenterSession } = await loadFactoryModule();
+  const { projectZhiyuAuthorizedAgentCenterHandle } = await loadHandleModule();
   globalThis.__zhiyuAgentCenterClient = {
     permissions: {
       ...permissionClient([]),
@@ -139,8 +141,20 @@ test('production path returns a sealed Manager Session only for a covered opaque
     },
     agentConfigure: configureClient([]),
   };
-  assert.equal(createZhiyuProductionAgentCenterSession(resolvedEvidence()).kind, 'manager-session');
-  assert.equal(createZhiyuProductionAgentCenterSession(resolvedEvidence({ inventory: { localAgents: [] } })), null);
+  const authorizedHandle = projectZhiyuAuthorizedAgentCenterHandle(resolvedEvidence());
+  const updatedEvidenceHandle = projectZhiyuAuthorizedAgentCenterHandle({
+    ...resolvedEvidence(),
+    chat: { state: 'streaming' },
+  });
+  assert.equal(authorizedHandle, 'opaque-handle');
+  assert.equal(updatedEvidenceHandle, authorizedHandle);
+  assert.equal(createZhiyuProductionAgentCenterSession(authorizedHandle).kind, 'manager-session');
+  assert.equal(
+    createZhiyuProductionAgentCenterSession(
+      projectZhiyuAuthorizedAgentCenterHandle(resolvedEvidence({ inventory: { localAgents: [] } })),
+    ),
+    null,
+  );
 });
 
 test('production Agent Center path has no private capability stub or dual adapter path', async () => {
@@ -151,6 +165,7 @@ test('production Agent Center path has no private capability stub or dual adapte
 
 async function loadBindingModule() { return loadModule('src/production/agent-center-permissioned-binding.ts'); }
 async function loadFactoryModule() { return loadModule('src/production/agent-center-adapters.ts'); }
+async function loadHandleModule() { return loadModule('src/shell/agent/agent-center-handle.ts'); }
 
 async function loadModule(entry) {
   const output = (await build({

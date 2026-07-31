@@ -66,7 +66,7 @@ export function ensureSubmittedUserMessageInChat(
   createdAt: string,
 ): ZhiyuRuntimeAgentChatStatus {
   const turnId = requestId?.trim();
-  if (!turnId || !conversation.conversationAnchorId || !conversation.localAgentRef || !text.trim()) {
+  if (!turnId || !conversation.conversationAnchorId || !conversation.agentHandle || !text.trim()) {
     return status;
   }
   const hasSubmittedUserMessage = status.messages.some((message) =>
@@ -238,15 +238,15 @@ function createSubmittedUserMessage(input: {
   readonly createdAt: string;
 }): RuntimeAgentConversationProjectionState['messages'][number] {
   const conversationAnchorId = input.conversation.conversationAnchorId;
-  const localAgentRef = input.conversation.localAgentRef;
+  const agentHandle = input.conversation.agentHandle;
   const threadId = input.conversation.threadId;
-  if (!conversationAnchorId || !localAgentRef || !threadId) {
+  if (!conversationAnchorId || !agentHandle || !threadId) {
     throw new Error('Zhiyu submitted user message requires Runtime conversation identity.');
   }
   return {
     id: `${input.requestId}:user`,
     sessionId: conversationAnchorId,
-    targetId: localAgentRef,
+    targetId: agentHandle,
     source: 'agent',
     role: 'user',
     text: input.text,
@@ -261,9 +261,8 @@ function createSubmittedUserMessage(input: {
       threadId,
       turnId: input.requestId,
       sessionId: conversationAnchorId,
-      targetId: localAgentRef,
+      targetId: agentHandle,
       conversationAnchorId,
-      localAgentRef,
     },
   };
 }
@@ -274,11 +273,22 @@ function mergeConversationMessages(
 ): RuntimeAgentConversationProjectionState['messages'] {
   const merged: Array<RuntimeAgentConversationProjectionState['messages'][number]> = [];
   const indexByMessageKey = new Map<string, number>();
+  const indexByOriginalMessageId = new Map<string, number>();
+  const indexByRuntimeTurnRole = new Map<string, number>();
   const usedIds = new Set<string>();
+  const indexMessage = (
+    message: RuntimeAgentConversationProjectionState['messages'][number],
+    index: number,
+  ) => {
+    indexByMessageKey.set(mergedConversationMessageKey(message), index);
+    indexByOriginalMessageId.set(originalConversationMessageId(message), index);
+    const runtimeTurnRole = runtimeTurnRoleKey(message);
+    if (runtimeTurnRole) indexByRuntimeTurnRole.set(runtimeTurnRole, index);
+  };
   const append = (message: RuntimeAgentConversationProjectionState['messages'][number]) => {
     const normalized = normalizeMergedConversationMessage(message, usedIds);
-    const key = mergedConversationMessageKey(normalized);
-    indexByMessageKey.set(key, merged.length);
+    const index = merged.length;
+    indexMessage(normalized, index);
     usedIds.add(normalized.id);
     merged.push(normalized);
   };
@@ -286,13 +296,17 @@ function mergeConversationMessages(
     append(message);
   }
   for (const message of incomingMessages) {
-    const key = mergedConversationMessageKey(message);
-    const existingIndex = indexByMessageKey.get(key);
+    const runtimeTurnRole = runtimeTurnRoleKey(message);
+    const existingIndex = indexByMessageKey.get(mergedConversationMessageKey(message))
+      ?? indexByOriginalMessageId.get(originalConversationMessageId(message))
+      ?? (runtimeTurnRole ? indexByRuntimeTurnRole.get(runtimeTurnRole) : undefined);
     if (existingIndex === undefined) {
       append(message);
     } else {
       const existing = merged[existingIndex];
-      merged[existingIndex] = preserveMergedConversationMessageId(existing, message);
+      const updated = preserveMergedConversationMessageId(existing, message);
+      merged[existingIndex] = updated;
+      indexMessage(updated, existingIndex);
     }
   }
   return merged.filter((message) => !isEmptyStreamingTranscriptPlaceholder(message));
@@ -359,6 +373,18 @@ function isPrimaryConversationTextMessage(
   return message.kind === undefined || message.kind === 'text' || message.kind === 'streaming';
 }
 
+function runtimeTurnRoleKey(
+  message: RuntimeAgentConversationProjectionState['messages'][number],
+): string | null {
+  const runtimeTurnId = conversationMessageRuntimeTurnId(message);
+  if (!runtimeTurnId || !isPrimaryConversationTextMessage(message)) return null;
+  if (message.role === 'user') return `${runtimeTurnId}:primary-user`;
+  if (message.role === 'agent' || message.role === 'assistant') {
+    return `${runtimeTurnId}:primary-assistant`;
+  }
+  return null;
+}
+
 function originalConversationMessageId(
   message: RuntimeAgentConversationProjectionState['messages'][number],
 ): string {
@@ -371,6 +397,17 @@ function conversationMessageTurnId(
 ): string | null {
   const turnId = message.metadata?.turnId;
   return typeof turnId === 'string' && turnId.trim() ? turnId : null;
+}
+
+function conversationMessageRuntimeTurnId(
+  message: RuntimeAgentConversationProjectionState['messages'][number],
+): string | null {
+  const metadata = message.metadata;
+  if (!metadata) return null;
+  for (const value of [metadata.runtimeTurnId, metadata.runtime_turn_id]) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
 }
 
 function runtimeTurnIdentityFromProjection(

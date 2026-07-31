@@ -17,21 +17,15 @@ test.after(async () => {
   }
 });
 
-test('Zhiyu AI Config route evidence projects committed config + readiness tri-state', async () => {
+test('Zhiyu AI Config route evidence projects the permissioned Agent Center snapshot', async () => {
   const module = await importAgentAIConfigModule();
-  const route = module.projectZhiyuAgentAIConfigRouteEvidence({
-    config: configSnapshot(),
-    readiness: readinessSnapshot([
-      capabilityReadiness('text.generate', 'ready', ''),
-      capabilityReadiness('image.generate', 'unavailable', 'route_unhealthy'),
-    ]),
-  });
+  const route = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot());
 
   assert.equal(route.ready, true);
   assert.equal(route.capability, 'text.generate');
-  assert.equal(route.configRevision, 7);
-  assert.equal(route.readinessRevision, 7);
-  assert.equal(route.updatedByAppId, 'nimi.zhiyu');
+  assert.equal(route.configRevision, '7');
+  assert.equal(route.readinessRevision, '7');
+  assert.equal(route.updatedByAppId, null);
   assert.equal(route.reasonCode, 'runtime-agent-ai-config-ready');
   assert.equal(route.actionHint, 'send_runtime_agent_turn');
   assert.equal(route.source, 'runtime');
@@ -41,67 +35,94 @@ test('Zhiyu AI Config route evidence projects committed config + readiness tri-s
   assert.equal(route.capabilities['image.generate'].state, 'unavailable');
   assert.equal(route.capabilities['image.generate'].reasonCode, 'route_unhealthy');
   assert.deepEqual(route.capabilities['image.generate'].binding, imageBinding());
+  assert.equal('connectorId' in route.capabilities['image.generate'].binding, false);
 });
 
 test('Zhiyu AI Config route evidence derives send-readiness from text.generate readiness only', async () => {
   const module = await importAgentAIConfigModule();
 
-  const notConfigured = module.projectZhiyuAgentAIConfigRouteEvidence({
-    config: configSnapshot({ intents: {} }),
-    readiness: readinessSnapshot([
-      capabilityReadiness('text.generate', 'not_configured', ''),
-    ]),
-  });
+  const notConfigured = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
+    modelSettings: modelSettings({
+      routeIntents: [],
+      readiness: [{
+        capability: 'text.generate',
+        state: 'blocked',
+        reason: 'not_configured',
+        observedAt: null,
+      }],
+    }),
+  }));
   assert.equal(notConfigured.ready, false);
   assert.equal(notConfigured.reasonCode, 'zhiyu-agent-ai-config-not-configured');
   assert.equal(notConfigured.actionHint, 'configure_runtime_agent_ai_config');
   assert.equal(notConfigured.executionBinding, null);
 
-  const unavailable = module.projectZhiyuAgentAIConfigRouteEvidence({
-    config: configSnapshot(),
-    readiness: readinessSnapshot([
-      capabilityReadiness('text.generate', 'unavailable', 'route_unhealthy'),
-      capabilityReadiness('image.generate', 'ready', ''),
-    ]),
-  });
+  const blockedWithBinding = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
+    modelSettings: modelSettings({
+      readiness: [
+        capabilityReadiness('text.generate', 'blocked', 'not_configured'),
+      ],
+    }),
+  }));
+  assert.equal(blockedWithBinding.reasonCode, 'zhiyu-agent-ai-config-not-configured');
+  assert.equal(blockedWithBinding.capabilities['text.generate'].state, 'not_configured');
+  assert.deepEqual(blockedWithBinding.executionBinding, textBinding());
+
+  const unavailable = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
+    modelSettings: modelSettings({
+      readiness: [
+        capabilityReadiness('text.generate', 'unavailable', 'route_unhealthy'),
+        capabilityReadiness('image.generate', 'ready', ''),
+      ],
+    }),
+  }));
   assert.equal(unavailable.ready, false);
   assert.equal(unavailable.reasonCode, 'zhiyu-agent-ai-config-readiness-unavailable');
   assert.match(unavailable.message, /route_unhealthy/);
 });
 
-test('Zhiyu AI Config route evidence fails closed with typed zhiyu reason codes', async () => {
+test('Zhiyu AI Config route evidence fails closed without account or raw Agent identity', async () => {
   const module = await importAgentAIConfigModule();
 
-  const authRequired = module.zhiyuAgentAIConfigRouteAuthRequired();
-  assert.equal(authRequired.ready, false);
-  assert.equal(authRequired.reasonCode, 'zhiyu-agent-ai-config-auth-required');
-  assert.equal(authRequired.actionHint, 'sign_in_runtime_account');
-  assert.equal(authRequired.configRevision, null);
+  const identityRequired = module.projectZhiyuAgentAIConfigRouteEvidence(null);
+  assert.equal(identityRequired.ready, false);
+  assert.equal(identityRequired.reasonCode, 'zhiyu-agent-ai-config-identity-required');
+  assert.equal(identityRequired.actionHint, 'select_runtime_local_agent');
 
-  const unavailable = module.zhiyuAgentAIConfigRouteUnavailable(Object.assign(
-    new Error('grpc unavailable'),
-    { reasonCode: 'RUNTIME_GRPC_UNAVAILABLE', source: 'runtime' },
-  ));
+  const permissionRequired = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
+    modelSettings: null,
+    availability: {
+      readModelSettings: {
+        state: 'unavailable',
+        reason: 'needs-grant',
+        nextStep: 'requestPermission',
+      },
+    },
+  }));
+  assert.equal(permissionRequired.reasonCode, 'zhiyu-agent-ai-config-permission-required');
+  assert.equal(permissionRequired.actionHint, 'request_agents_configure_permission');
+
+  const unavailable = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
+    phase: 'degraded',
+    modelSettings: null,
+    error: 'Runtime is offline.',
+    availability: {
+      readModelSettings: {
+        state: 'unavailable',
+        reason: 'runtime-offline',
+        nextStep: 'retry',
+      },
+    },
+  }));
   assert.equal(unavailable.ready, false);
   assert.equal(unavailable.reasonCode, 'zhiyu-agent-ai-config-unavailable');
-  assert.match(unavailable.message, /RUNTIME_GRPC_UNAVAILABLE/);
-  assert.match(unavailable.message, /grpc unavailable/);
+  assert.match(unavailable.message, /offline/);
   assert.equal(unavailable.executionBinding, null);
 
-  const fetched = await module.fetchZhiyuAgentAIConfigRouteEvidence({ subjectUserId: '' });
-  assert.equal(fetched.reasonCode, 'zhiyu-agent-ai-config-auth-required');
-
-  const identityMissing = await module.fetchZhiyuAgentAIConfigRouteEvidence({ subjectUserId: 'user-1' });
-  assert.equal(identityMissing.reasonCode, 'zhiyu-agent-ai-config-identity-required');
-
-  assert.throws(
-    () => module.getZhiyuAgentAIConfig({
-      subjectUserId: 'user-1',
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'runtime-source:opaque',
-      localAgentRef: 'runtime-local-agent:opaque',
-    }),
-    (error) => error?.reasonCode === 'zhiyu-agent-ai-config-capability-not-admitted',
+  const source = await readFile(path.join(root, 'src/shell/agent-chat/agent-ai-config.ts'), 'utf8');
+  assert.doesNotMatch(
+    source,
+    /subjectUserId|accountId|ownerUserId|runtimeSourceRef|localAgentRef|requireZhiyuLocalAppCapability|@nimiplatform\/sdk\/runtime/u,
   );
 });
 
@@ -175,8 +196,8 @@ test('Zhiyu composer copy maps Agent AI Config readiness tri-state to Chinese pr
     transport: 'electron-ipc',
     ready: false,
     capability: 'text.generate',
-    configRevision: 7,
-    readinessRevision: 7,
+    configRevision: '7',
+    readinessRevision: '7',
     updatedAt: null,
     updatedByAppId: 'nimi.zhiyu',
     capabilities: {},
@@ -224,9 +245,9 @@ test('Zhiyu composer copy maps Agent AI Config readiness tri-state to Chinese pr
   assert.equal(
     module.agentAIConfigReadinessHint({
       ...routeBase,
-      reasonCode: 'zhiyu-agent-ai-config-auth-required',
+      reasonCode: 'zhiyu-agent-ai-config-permission-required',
     }),
-    '请先登录本地运行服务账户。',
+    '请先授权织羽读取伙伴模型配置。',
   );
   assert.equal(
     module.agentAIConfigReadinessHint({
@@ -307,9 +328,14 @@ test('Zhiyu composer projects the configured model from the permissioned Agent C
     route: {
       ready: false,
       executionBinding: null,
-      reasonCode: 'zhiyu-agent-ai-config-auth-required',
+      reasonCode: 'zhiyu-agent-ai-config-permission-required',
     },
   };
+  assert.deepEqual(module.chatModelPresentation(evidence), {
+    label: '模型配置需授权',
+    ready: false,
+    reasonCode: 'zhiyu-agent-ai-config-permission-required',
+  });
   const presentation = module.chatModelPresentation(evidence, {
     routeIntents: [{
       capability: 'text.generate',
@@ -456,23 +482,54 @@ function workspaceStubPlugin() {
   };
 }
 
-function configSnapshot(overrides = {}) {
+function agentCenterSnapshot(overrides = {}) {
+  const settings = Object.hasOwn(overrides, 'modelSettings')
+    ? overrides.modelSettings
+    : modelSettings();
   return {
-    revision: 7,
-    intents: {
-      'text.generate': textBinding(),
-      'image.generate': imageBinding(),
+    phase: overrides.phase ?? 'ready',
+    state: {
+      modelSettings: settings,
     },
-    updatedAt: '2026-07-06T00:00:00.000Z',
-    updatedByAppId: 'nimi.zhiyu',
-    ...overrides,
+    availability: overrides.availability ?? {
+      readModelSettings: {
+        state: 'available',
+        reason: null,
+        nextStep: null,
+      },
+    },
+    error: overrides.error ?? null,
   };
 }
 
-function readinessSnapshot(capabilities) {
+function modelSettings(overrides = {}) {
   return {
-    configRevision: 7,
-    capabilities,
+    scopeRef: {
+      kind: 'runtime-agent',
+      ownerId: 'lah_v1_agent_opaque',
+    },
+    capabilities: ['text.generate', 'image.generate'],
+    routeIntents: [
+      {
+        capability: 'text.generate',
+        routePolicy: 'local',
+        provider: '',
+        model: 'runtime-model:opaque',
+      },
+      {
+        capability: 'image.generate',
+        routePolicy: 'cloud',
+        provider: 'connector-runtime-image',
+        model: 'runtime-image-model:opaque',
+      },
+    ],
+    routeOptions: [],
+    readiness: [
+      capabilityReadiness('text.generate', 'ready', ''),
+      capabilityReadiness('image.generate', 'unavailable', 'route_unhealthy'),
+    ],
+    configurationRevision: '7',
+    ...overrides,
   };
 }
 
@@ -480,8 +537,8 @@ function capabilityReadiness(capability, state, reasonCode) {
   return {
     capability,
     state,
-    reasonCode,
-    probedAt: '2026-07-06T00:00:01.000Z',
+    reason: reasonCode,
+    observedAt: '2026-07-06T00:00:01.000Z',
   };
 }
 
@@ -489,11 +546,6 @@ function textBinding() {
   return {
     route: 'local',
     modelId: 'runtime-model:opaque',
-    targetRef: {
-      kind: 'local-runtime',
-      version: 'v2',
-      profileBindingId: 'local-runtime:runtime-model-opaque',
-    },
   };
 }
 
@@ -501,14 +553,6 @@ function imageBinding() {
   return {
     route: 'cloud',
     modelId: 'runtime-image-model:opaque',
-    connectorId: 'connector-runtime-image',
-    targetRef: {
-      kind: 'cloud-connector',
-      version: 'v2',
-      connectorId: 'connector-runtime-image',
-      remoteModelCatalogId: 'catalog-runtime-image',
-      providerModelId: 'runtime-image-model:opaque',
-    },
   };
 }
 

@@ -41,8 +41,13 @@ export function chatModelPresentation(
   }
   const binding = evidence.route.executionBinding;
   if (!binding) {
+    const unavailableLabel = evidence.route.reasonCode === 'zhiyu-agent-ai-config-permission-required'
+      ? '模型配置需授权'
+      : evidence.route.reasonCode === 'zhiyu-agent-ai-config-loading'
+        ? '正在加载模型配置'
+        : '未绑定模型';
     return {
-      label: '未绑定模型',
+      label: unavailableLabel,
       ready: evidence.route.ready,
       reasonCode: evidence.route.reasonCode,
     };
@@ -124,15 +129,18 @@ function withDevelopmentReasonCode(message: string, reasonCode: string): string 
     : message;
 }
 
-// Readiness tri-state product copy for the composer gate. The unavailable
-// reason codes come from the Runtime Agent AI Config readiness projection
+// Readiness tri-state product copy for model diagnostics. The unavailable
+// reason codes come from the Runtime Agent model-settings readiness projection
 // (.nimi/spec/runtime/agent-participation.authority.yaml).
 export function agentAIConfigReadinessHint(route: ZhiyuEvidence['route']): string {
-  if (route.reasonCode === 'zhiyu-agent-ai-config-auth-required') {
-    return '请先登录本地运行服务账户。';
-  }
   if (route.reasonCode === 'zhiyu-agent-ai-config-identity-required') {
     return '请先选择本地伙伴。';
+  }
+  if (route.reasonCode === 'zhiyu-agent-ai-config-permission-required') {
+    return '请先授权织羽读取伙伴模型配置。';
+  }
+  if (route.reasonCode === 'zhiyu-agent-ai-config-loading') {
+    return '正在加载伙伴模型配置。';
   }
   if (route.reasonCode === 'zhiyu-agent-ai-config-unavailable') {
     return '本地运行服务暂时不可用，请稍后重试。';
@@ -177,6 +185,11 @@ export function currentPartnerDisplayName(evidence: ZhiyuEvidence): string {
     return '当前伙伴';
   }
   return '本地伙伴';
+}
+
+export function currentPartnerAvatarUrl(evidence: ZhiyuEvidence): string | null {
+  const selectedHandle = evidence.localAgent?.agentHandle;
+  return evidence.inventory?.localAgents.find((agent) => agent.agentHandle === selectedHandle)?.avatarUrl ?? null;
 }
 
 export function currentPartnerSubtitle(evidence: ZhiyuEvidence): string {

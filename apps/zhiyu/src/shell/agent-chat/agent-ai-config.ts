@@ -1,147 +1,133 @@
-import {
-  type NimiRuntimeAgentAIConfigIntents,
-  type NimiRuntimeAgentAIConfigModule,
-  type NimiRuntimeAgentAIConfigSnapshot,
-  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-  type RuntimeLocalAgentIdentityInput,
-} from '@nimiplatform/sdk/runtime';
-import type { ZhiyuEvidence, ZhiyuExecutionCapabilityEvidence, ZhiyuAgentAIConfigReadinessState } from '../app/evidence';
-import { requireZhiyuLocalAppCapability } from '../auth/runtime-platform';
+import type {
+  AgentCenterRuntimeModelSettingsProjection,
+  AgentCenterSnapshot,
+} from '@nimiplatform/kit/features/agent-center';
 
-// Z-AUTH-006: Zhiyu is a pure projection + config-editor surface over the
-// runtime-owned Runtime Agent AI Config (K-AGCORE-144~150). This module never
-// probes, warms, caches, or re-derives route truth; every call is a typed
-// pass-through over runtime.agent.ai_config.* behind the existing
-// host-bound protected local-app operation context.
-export const ZHIYU_AGENT_AI_CONFIG_READ_SCOPES = [
-  'runtime.agent.ai_config.read',
-] as const;
-export const ZHIYU_AGENT_AI_CONFIG_WRITE_SCOPES = [
-  'runtime.agent.ai_config.read',
-  'runtime.agent.ai_config.write',
-] as const;
+import type {
+  ZhiyuAgentAIConfigReadinessState,
+  ZhiyuEvidence,
+  ZhiyuExecutionCapabilityEvidence,
+} from '../app/evidence';
+
 export type ZhiyuRuntimeRouteStatus = ZhiyuEvidence['route'];
 
-export type ZhiyuAgentAIConfigCallInput = RuntimeLocalAgentIdentityInput & {
-  readonly subjectUserId: string;
-};
-
-export type ZhiyuAgentAIConfigUpsertInput = ZhiyuAgentAIConfigCallInput & {
-  readonly expectedRevision: number;
-  readonly intents: NimiRuntimeAgentAIConfigIntents;
-};
-
-export type ZhiyuAgentAIConfigRouteEvidenceInput = Partial<RuntimeLocalAgentIdentityInput> & {
-  readonly subjectUserId: string;
-};
-
-export function getZhiyuAgentAIConfig(
-  input: ZhiyuAgentAIConfigCallInput,
-): Promise<NimiRuntimeAgentAIConfigSnapshot> {
-  return zhiyuAgentAIConfigModule(input.subjectUserId).get(input);
-}
-
-export function upsertZhiyuAgentAIConfig(
-  input: ZhiyuAgentAIConfigUpsertInput,
-): Promise<NimiRuntimeAgentAIConfigSnapshot> {
-  return zhiyuAgentAIConfigModule(input.subjectUserId).upsert(input);
-}
-
-export function getZhiyuAgentAIConfigReadiness(
-  input: ZhiyuAgentAIConfigCallInput,
-): Promise<NimiRuntimeAgentAIConfigReadinessSnapshotProjection> {
-  return zhiyuAgentAIConfigModule(input.subjectUserId).readiness(input);
-}
-
-export function subscribeZhiyuAgentAIConfigReadiness(
-  input: ZhiyuAgentAIConfigCallInput,
-): AsyncIterable<NimiRuntimeAgentAIConfigReadinessSnapshotProjection> {
-  return zhiyuAgentAIConfigModule(input.subjectUserId).subscribeReadiness(input);
-}
-
-// Startup + on-demand refresh: one committed-config read plus one readiness
-// read; no probing, warming, or app-local readiness derivation.
-export async function fetchZhiyuAgentAIConfigRouteEvidence(
-  input: ZhiyuAgentAIConfigRouteEvidenceInput,
-): Promise<ZhiyuRuntimeRouteStatus> {
-  const subject = input.subjectUserId.trim();
-  if (!subject) {
-    return zhiyuAgentAIConfigRouteAuthRequired();
+// Local Apps never receive or reconstruct Runtime account or LocalAgent
+// identity here. The permissioned Agent Center session is the single
+// model-settings owner seam; this adapter only projects its bounded snapshot
+// into Zhiyu's existing diagnostics and voice-readiness view.
+export function projectZhiyuAgentAIConfigRouteEvidence(
+  snapshot: AgentCenterSnapshot | null,
+): ZhiyuRuntimeRouteStatus {
+  if (!snapshot) {
+    return zhiyuAgentAIConfigRouteBlocked({
+      reasonCode: 'zhiyu-agent-ai-config-identity-required',
+      actionHint: 'select_runtime_local_agent',
+      source: 'renderer',
+      message: 'Select an authorized Agent before reading its model settings.',
+    });
   }
-  const identity = normalizeRouteIdentity(input);
-  if (!identity) {
-    return zhiyuAgentAIConfigRouteIdentityRequired();
+
+  const modelSettings = snapshot.state.modelSettings;
+  if (modelSettings) {
+    return projectZhiyuAgentCenterModelSettingsRoute(modelSettings);
   }
-  const callInput = {
-    subjectUserId: subject,
-    ...identity,
-  };
-  try {
-    const [config, readiness] = await Promise.all([
-      getZhiyuAgentAIConfig(callInput),
-      getZhiyuAgentAIConfigReadiness(callInput),
-    ]);
-    return projectZhiyuAgentAIConfigRouteEvidence({ config, readiness });
-  } catch (error) {
-    return zhiyuAgentAIConfigRouteUnavailable(error);
+
+  if (snapshot.phase === 'loading') {
+    return zhiyuAgentAIConfigRouteBlocked({
+      reasonCode: 'zhiyu-agent-ai-config-loading',
+      actionHint: 'wait_for_agent_center_model_settings',
+      source: 'renderer',
+      message: 'Runtime Agent model settings are loading.',
+    });
   }
+
+  const readAvailability = snapshot.availability.readModelSettings;
+  if (
+    readAvailability.reason === 'needs-grant'
+    || readAvailability.reason === 'denied'
+    || readAvailability.reason === 'revoked'
+    || readAvailability.reason === 'request-pending'
+  ) {
+    return zhiyuAgentAIConfigRouteBlocked({
+      reasonCode: 'zhiyu-agent-ai-config-permission-required',
+      actionHint: readAvailability.nextStep === 'requestPermission'
+        ? 'request_agents_configure_permission'
+        : 'wait_for_agents_configure_permission',
+      source: 'runtime',
+      message: 'Runtime Agent model settings require the agents.configure permission.',
+    });
+  }
+
+  return zhiyuAgentAIConfigRouteBlocked({
+    reasonCode: 'zhiyu-agent-ai-config-unavailable',
+    actionHint: 'refresh_agent_center_model_settings',
+    source: 'runtime',
+    message: snapshot.error?.trim()
+      || 'Runtime Agent model settings are unavailable.',
+  });
 }
 
-export function projectZhiyuAgentAIConfigRouteEvidence(input: {
-  readonly config: NimiRuntimeAgentAIConfigSnapshot;
-  readonly readiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection;
-}): ZhiyuRuntimeRouteStatus {
+export function projectZhiyuAgentCenterModelSettingsRoute(
+  modelSettings: AgentCenterRuntimeModelSettingsProjection,
+): ZhiyuRuntimeRouteStatus {
+  const intents = new Map(
+    modelSettings.routeIntents.map((intent) => [intent.capability, intent] as const),
+  );
+  const readiness = new Map(
+    modelSettings.readiness.map((entry) => [entry.capability, entry] as const),
+  );
+  const capabilityIds = new Set([
+    ...modelSettings.capabilities,
+    ...intents.keys(),
+    ...readiness.keys(),
+  ]);
   const capabilities: Record<string, ZhiyuExecutionCapabilityEvidence> = {};
-  for (const entry of input.readiness.capabilities) {
-    capabilities[entry.capability] = {
-      state: entry.state,
-      reasonCode: entry.reasonCode,
-      probedAt: entry.probedAt,
-      binding: input.config.intents[entry.capability] ?? null,
+
+  for (const capability of capabilityIds) {
+    const intent = intents.get(capability) ?? null;
+    const readinessEntry = readiness.get(capability) ?? null;
+    const binding = intent ? executionBinding(intent) : null;
+    const state = readinessState(readinessEntry?.state, Boolean(binding));
+    capabilities[capability] = {
+      state,
+      reasonCode: readinessEntry?.reason.trim()
+        || (state === 'ready' ? 'ready' : state),
+      probedAt: readinessEntry?.observedAt ?? null,
+      binding,
     };
   }
-  for (const [capability, binding] of Object.entries(input.config.intents)) {
-    if (!capabilities[capability]) {
-      capabilities[capability] = {
-        state: 'unavailable',
-        reasonCode: 'probe_failed',
-        probedAt: null,
-        binding,
-      };
-    }
-  }
+
   const text = capabilities['text.generate'] ?? null;
-  const textState: ZhiyuAgentAIConfigReadinessState = text?.state ?? 'not_configured';
-  const ready = textState === 'ready';
+  const ready = text?.state === 'ready';
   return {
     transport: 'electron-ipc',
     ready,
     capability: 'text.generate',
-    configRevision: input.config.revision,
-    readinessRevision: input.readiness.configRevision,
-    updatedAt: input.config.updatedAt,
-    updatedByAppId: input.config.updatedByAppId || null,
+    configRevision: modelSettings.configurationRevision,
+    readinessRevision: modelSettings.configurationRevision,
+    updatedAt: null,
+    updatedByAppId: null,
     capabilities,
-    executionBinding: input.config.intents['text.generate'] ?? null,
+    executionBinding: text?.binding ?? null,
     ...(ready
       ? {
         reasonCode: 'runtime-agent-ai-config-ready',
         actionHint: 'send_runtime_agent_turn',
         source: 'runtime',
-        message: 'Runtime Agent AI Config projects text.generate as ready.',
+        message: 'Runtime Agent model settings project text.generate as ready.',
       }
-      : textState === 'not_configured'
+      : text?.state === 'not_configured'
         ? {
           reasonCode: 'zhiyu-agent-ai-config-not-configured',
           actionHint: 'configure_runtime_agent_ai_config',
           source: 'runtime',
-          message: 'Runtime Agent AI Config has no ready text.generate intent yet.',
+          message: 'Runtime Agent model settings have no text.generate intent.',
         }
         : {
           reasonCode: 'zhiyu-agent-ai-config-readiness-unavailable',
           actionHint: 'inspect_runtime_agent_ai_config_readiness',
           source: 'runtime',
-          message: `Runtime Agent AI Config readiness reports text.generate as unavailable (${text?.reasonCode || 'unknown'}).`,
+          message: `Runtime Agent model settings report text.generate as unavailable (${text?.reasonCode || 'unknown'}).`,
         }),
   };
 }
@@ -169,66 +155,20 @@ export function zhiyuAgentAIConfigRouteBlocked(input: {
   };
 }
 
-export function zhiyuAgentAIConfigRouteAuthRequired(): ZhiyuRuntimeRouteStatus {
-  return zhiyuAgentAIConfigRouteBlocked({
-    reasonCode: 'zhiyu-agent-ai-config-auth-required',
-    actionHint: 'sign_in_runtime_account',
-    source: 'renderer',
-    message: 'Runtime Agent AI Config requires an authenticated Runtime account.',
-  });
-}
-
-export function zhiyuAgentAIConfigRouteIdentityRequired(): ZhiyuRuntimeRouteStatus {
-  return zhiyuAgentAIConfigRouteBlocked({
-    reasonCode: 'zhiyu-agent-ai-config-identity-required',
-    actionHint: 'select_runtime_local_agent',
-    source: 'renderer',
-    message: 'Runtime Agent AI Config requires a selected Runtime Local Agent identity.',
-  });
-}
-
-export function zhiyuAgentAIConfigRouteUnavailable(error: unknown): ZhiyuRuntimeRouteStatus {
-  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
-  const cause = typeof record.reasonCode === 'string' && record.reasonCode.trim()
-    ? record.reasonCode.trim()
-    : 'unknown';
-  const detail = error instanceof Error && error.message.trim()
-    ? error.message.trim()
-    : 'Runtime Agent AI Config projection failed.';
-  return zhiyuAgentAIConfigRouteBlocked({
-    reasonCode: 'zhiyu-agent-ai-config-unavailable',
-    actionHint: 'check_runtime_agent_ai_config_surface',
-    source: typeof record.source === 'string' && record.source.trim() ? record.source.trim() : 'runtime',
-    message: `Runtime Agent AI Config is unavailable (${cause}). ${detail}`,
-  });
-}
-
-function zhiyuAgentAIConfigModule(
-  subjectUserId: string,
-): NimiRuntimeAgentAIConfigModule {
-  const subject = subjectUserId.trim();
-  if (!subject) {
-    throw Object.assign(new Error('Zhiyu Runtime Agent AI Config requires an authenticated subject user id.'), {
-      reasonCode: 'zhiyu-agent-ai-config-auth-required',
-      actionHint: 'sign_in_runtime_account',
-      source: 'renderer',
-    });
-  }
-  return requireZhiyuLocalAppCapability('agent-ai-config');
-}
-
-function normalizeRouteIdentity(
-  input: Partial<RuntimeLocalAgentIdentityInput>,
-): RuntimeLocalAgentIdentityInput | null {
-  const ownerUserId = typeof input.ownerUserId === 'string' ? input.ownerUserId.trim() : '';
-  const runtimeSourceRef = typeof input.runtimeSourceRef === 'string' ? input.runtimeSourceRef.trim() : '';
-  const localAgentRef = typeof input.localAgentRef === 'string' ? input.localAgentRef.trim() : '';
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
-    return null;
-  }
+function executionBinding(
+  intent: AgentCenterRuntimeModelSettingsProjection['routeIntents'][number],
+): NonNullable<ZhiyuExecutionCapabilityEvidence['binding']> {
   return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
+    route: intent.routePolicy,
+    modelId: intent.model,
   };
+}
+
+function readinessState(
+  state: AgentCenterRuntimeModelSettingsProjection['readiness'][number]['state'] | undefined,
+  hasBinding: boolean,
+): ZhiyuAgentAIConfigReadinessState {
+  if (!hasBinding) return 'not_configured';
+  if (state === 'ready') return 'ready';
+  return state === 'blocked' ? 'not_configured' : 'unavailable';
 }

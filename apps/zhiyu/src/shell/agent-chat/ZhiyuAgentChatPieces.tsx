@@ -39,12 +39,14 @@ export function behaviorModeSubtitle(mode: 'off' | 'low' | 'medium' | 'high') {
 
 export function ComposerAvatarButton({
   currentPartnerName,
+  currentPartnerAvatarUrl,
   hasCurrentPartner,
   avatarLaunchAction,
   onAvatarLaunch,
   onOpenSettings,
 }: {
   readonly currentPartnerName: string;
+  readonly currentPartnerAvatarUrl: string | null;
   readonly hasCurrentPartner: boolean;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
   readonly onAvatarLaunch?: () => void;
@@ -65,7 +67,14 @@ export function ComposerAvatarButton({
         onOpenSettings();
       }}
     >
-      {partnerInitial(currentPartnerName)}
+      {currentPartnerAvatarUrl ? (
+        <img
+          src={currentPartnerAvatarUrl}
+          alt=""
+          aria-hidden="true"
+          referrerPolicy="no-referrer"
+        />
+      ) : partnerInitial(currentPartnerName)}
     </button>
   );
 }
