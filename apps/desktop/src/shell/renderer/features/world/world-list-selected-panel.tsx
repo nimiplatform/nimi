@@ -149,7 +149,11 @@ export function SelectedWorldPanel({
         type="button"
         className="max-w-full truncate text-left text-sm font-semibold text-[var(--world-explorer-text)] hover:text-[var(--world-explorer-brand)]"
         aria-label={t('World.atlas.preview.people.openProfile', { name: person.name })}
-        onClick={() => onOpenPerson(person.sourceRef as CharacterSourceRefV3)}
+        onClick={() => {
+          if (person.sourceRef) {
+            onOpenPerson(person.sourceRef);
+          }
+        }}
       >
         {person.name}
       </button>
@@ -159,7 +163,11 @@ export function SelectedWorldPanel({
         type="button"
         className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--world-explorer-brand)] focus-visible:ring-offset-2"
         aria-label={t('World.atlas.preview.people.openProfile', { name: person.name })}
-        onClick={() => onOpenPerson(person.sourceRef as CharacterSourceRefV3)}
+        onClick={() => {
+          if (person.sourceRef) {
+            onOpenPerson(person.sourceRef);
+          }
+        }}
       >
         <Avatar
           alt={person.name}

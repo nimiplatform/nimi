@@ -16,24 +16,16 @@ import {
   ProfileDetailLoadingState,
 } from '../relationship/profile-detail-view-content-shell.js';
 import { SendGiftModal } from '../economy/send-gift-modal';
-import {
-  characterSourceMaterializationFailureMessage,
-  characterSourceMaterializationMessage,
-  characterSourceRefKey,
-  describeCharacterPrimaryAction,
-  discoverCharacterSourceLocalAgents,
-  resolveCharacterSourceState,
-} from '../explore/character-source-materialization';
-import { materializeSourceContactLaunchTarget } from '../relationship/source-contact-launch-target.js';
-import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
-import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { toProfileData, type ProfileSource } from './profile-model.js';
+import {
+  requireHumanAccountId,
+  toHumanProfileData,
+  type HumanProfileSource,
+} from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '../relationship/relationship-model';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
-import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -47,25 +39,19 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 export function ProfilePanel() {
   const realmHumanChatData = useRealmHumanChatData();
-  const bindings = useDesktopRendererBindings();
   const realmSocialData = useRealmSocialData();
   const i18n = useDesktopI18nResource().instance;
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
-  const ownerUserId = String(currentUser?.id || '').trim();
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const setFeedback = emitFeedbackToast;
   const profileScrollContainerRef = useRef<HTMLDivElement>(null);
 
   const isOwnProfile = !selectedProfileId;
@@ -82,21 +68,22 @@ export function ProfilePanel() {
   const profileQuery = useQuery({
     queryKey: ['user-profile', selectedProfileId],
     queryFn: async () => {
+      const profileId = requireHumanAccountId(selectedProfileId);
       try {
-        const result = await realmSocialData.loadUserProfile(selectedProfileId!);
-        const data: ProfileSource = result;
+        const result = await realmSocialData.loadUserProfile(profileId);
+        const data: HumanProfileSource = result;
         // API may not return isFriend - check local contacts
-        if (data.isFriend !== true && (realmSocialData.isFriend(selectedProfileId!) || Boolean(getContactFromCache(selectedProfileId!)))) {
+        if (data.isFriend !== true && (realmSocialData.isFriend(profileId) || Boolean(getContactFromCache(profileId)))) {
           return { ...data, isFriend: true };
         }
         // Check if a pending sent request exists in local cache
-        if (data.isPendingFriendRequest !== true && isPendingSentRequestInContacts(realmSocialData.contacts(), selectedProfileId!)) {
+        if (data.isPendingFriendRequest !== true && isPendingSentRequestInContacts(realmSocialData.contacts(), profileId)) {
           return { ...data, isPendingFriendRequest: true };
         }
         return data;
       } catch (error) {
         // If API fails, try to get from contacts cache
-        const contact = getContactFromCache(selectedProfileId!);
+        const contact = getContactFromCache(profileId);
         if (contact) {
           // Convert contact to profile format
           return {
@@ -105,20 +92,10 @@ export function ProfilePanel() {
             handle: contact.handle,
             avatarUrl: contact.avatarUrl,
             bio: contact.bio,
-            isSource: contact.isSource,
             createdAt: contact.friendsSince,
             isFriend: true,
-            // Add other fields with defaults
-            isCreator: false,
-            isVerified: false,
-            worldId: null,
-            sourceWorldId: null,
-            sourceConfig: null,
             tags: contact.tags || [],
-            followerCount: 0,
-            followingCount: 0,
-            postCount: 0,
-          } satisfies ProfileSource;
+          } satisfies HumanProfileSource;
         }
         // Re-throw if not in cache
         throw error;
@@ -129,57 +106,17 @@ export function ProfilePanel() {
   });
   const profile = useMemo(() => {
     if (isOwnProfile && currentUser) {
-      return toProfileData(currentUser);
+      return toHumanProfileData(currentUser);
     }
     if (profileQuery.data) {
-      return toProfileData(profileQuery.data);
+      return toHumanProfileData(profileQuery.data);
     }
     return null;
   }, [isOwnProfile, currentUser, profileQuery.data]);
-  const profileSourceRefKey = profile?.sourceRef ? characterSourceRefKey(profile.sourceRef) : 'missing-source-ref';
-  const profileSourceLocalAgentsQuery = useQuery({
-    queryKey: [
-      'profile-source-local-agents',
-      ownerUserId,
-      profileSourceRefKey,
-      profile?.runtimeSourceRef ?? '',
-    ],
-    queryFn: async () => (profile
-      ? discoverCharacterSourceLocalAgents(profile, ownerUserId, bindings.sdk)
-      : []),
-    enabled: authStatus === 'authenticated' && Boolean(profile?.isSource) && Boolean(ownerUserId),
-    staleTime: 10_000,
-  });
-  const sourceAction = useMemo(() => {
-    if (!profile?.isSource) {
-      return null;
-    }
-    return describeCharacterPrimaryAction(resolveCharacterSourceState(
-      profile,
-      profileSourceLocalAgentsQuery.data ?? [],
-      {
-        runtimeInventoryPending: Boolean(ownerUserId && profileSourceLocalAgentsQuery.isPending),
-        runtimeInventoryUnavailable: !ownerUserId || profileSourceLocalAgentsQuery.isError,
-      },
-    ), i18n.t);
-  }, [
-    ownerUserId,
-    profile,
-    profileSourceLocalAgentsQuery.data,
-    profileSourceLocalAgentsQuery.isError,
-    profileSourceLocalAgentsQuery.isPending,
-  ]);
 
   const loading = !isOwnProfile && profileQuery.isPending;
   const error = !isOwnProfile && profileQuery.isError;
   const isBlockedProfile = Boolean(!isOwnProfile && profile && realmSocialData.isBlockedUser(profile.id));
-  const addFriendBlocked = Boolean(profile?.isSource && sourceAction?.disabled);
-  const addFriendHint = profile?.isSource && sourceAction?.disabled
-    ? sourceAction.hint ?? characterSourceMaterializationMessage(i18n.t)
-    : null;
-  const addFriendLabel = profile?.isSource
-    ? sourceAction?.label || i18n.t('Explore.characterSourceMaterialize', { defaultValue: 'Become my partner' })
-    : undefined;
 
   const onMessage = async () => {
     if (!profile) {
@@ -211,34 +148,6 @@ export function ProfilePanel() {
   const onAddFriend = async () => {
     if (!profile) return;
     try {
-      if (profile.isSource) {
-        if (addFriendBlocked) {
-          throw new Error(addFriendHint || characterSourceMaterializationMessage(i18n.t));
-        }
-        const target = await materializeSourceContactLaunchTarget(
-          profile,
-          ownerUserId,
-          i18n.t,
-          bindings.sdk,
-        );
-        await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
-        await queryClient.invalidateQueries({ queryKey: ['profile-source-local-agents'], exact: false });
-        await launchAgentConversationFromDisplay({
-          target,
-          setActiveTab,
-          setChatMode,
-          setSelectedTargetForSource,
-          setAgentConversationSelection,
-          setAgentConversationTargetSnapshot,
-        });
-        setFeedback({
-          kind: 'success',
-          message: i18n.t('Explore.characterSourceMaterializedFeedback', {
-            defaultValue: 'Your partner is ready. Opening chat.',
-          }),
-        });
-        return;
-      }
       if (!selectedProfileId) {
         return;
       }
@@ -246,15 +155,12 @@ export function ProfilePanel() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
       ]);
       setFeedback(null);
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: profile.isSource
-          ? characterSourceMaterializationFailureMessage(error, i18n.t)
-          : toErrorMessage(error, i18n.t('Relationship.addContactFailed', { defaultValue: 'Failed to add contact' })),
+        message: toErrorMessage(error, i18n.t('Relationship.addContactFailed', { defaultValue: 'Failed to add contact' })),
       });
     }
   };
@@ -270,12 +176,10 @@ export function ProfilePanel() {
         handle: profile.handle,
         avatarUrl: profile.avatarUrl,
         bio: profile.bio,
-        isSource: profile.isSource,
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
       ]);
       setFeedback(null);
       navigateBack();
@@ -297,7 +201,6 @@ export function ProfilePanel() {
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
       ]);
       setFeedback(null);
       navigateBack();
@@ -345,7 +248,6 @@ export function ProfilePanel() {
       setAuthSession(updatedAuthUser);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
-        queryClient.invalidateQueries({ queryKey: ['contact-profile'] }),
         queryClient.invalidateQueries({ queryKey: ['contacts'] }),
       ]);
       setFeedback({
@@ -418,11 +320,6 @@ export function ProfilePanel() {
         contentClassName="flex min-h-full w-full flex-col"
         viewportRef={profileScrollContainerRef}
       >
-        {feedback ? (
-          <div className="px-6 pt-4">
-            <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-          </div>
-        ) : null}
         <Surface
           tone="panel"
           material="glass-regular"
@@ -444,9 +341,6 @@ export function ProfilePanel() {
             onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
               void onAddFriend();
             } : undefined}
-            addFriendLabel={addFriendLabel}
-            canAddFriend={!addFriendBlocked}
-            addFriendHint={addFriendHint}
             onSendGift={() => setGiftModalOpen(true)}
             onBlock={!isOwnProfile && !isBlockedProfile ? () => {
               void onBlockProfile();
@@ -454,7 +348,7 @@ export function ProfilePanel() {
             onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => {
               void onRemoveProfile();
             } : undefined}
-            showMessageButton={!isOwnProfile && !profile.isSource && !isBlockedProfile}
+            showMessageButton={!isOwnProfile && !isBlockedProfile}
             onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
           />
         </Surface>
@@ -464,7 +358,7 @@ export function ProfilePanel() {
         receiverId={profile?.id || ''}
         receiverName={profile?.displayName || profile?.handle || 'User'}
         receiverHandle={profile?.handle}
-        receiverIsSource={profile?.isSource === true}
+        receiverIsSource={false}
         receiverAvatarUrl={profile?.avatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {

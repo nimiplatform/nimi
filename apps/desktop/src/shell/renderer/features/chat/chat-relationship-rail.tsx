@@ -117,11 +117,11 @@ function RelationshipAvatar({
     }
     cancelHide();
     setHoverCardPos(null);
-    if (profileTarget.kind === 'source-detail') {
+    if (profileTarget.kind === 'character') {
       navigateToSourceDetail(profileTarget.sourceRef);
       return;
     }
-    navigateToProfile(profileTarget.profileId, 'profile');
+    navigateToProfile(profileTarget.profileId);
   };
 
   return (

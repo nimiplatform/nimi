@@ -3,11 +3,10 @@ import { Button, IconButton, OverlayShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 
-export type PostCardAuthorPreview = {
+export type PostCardHumanAuthorPreview = {
   name: string;
   handle: string;
   avatarUrl?: string | null;
-  isSource: boolean;
 };
 
 export function AddFriendModal({
@@ -16,7 +15,7 @@ export function AddFriendModal({
   onClose,
   onAddFriend,
 }: {
-  author: PostCardAuthorPreview;
+  author: PostCardHumanAuthorPreview;
   isOpen: boolean;
   onClose: () => void;
   onAddFriend: (message?: string) => Promise<void>;
@@ -100,19 +99,14 @@ export function AddFriendModal({
         <EntityAvatar
           imageUrl={author.avatarUrl}
           name={author.name}
-          kind={author.isSource ? 'source' : 'human'}
+          kind="human"
           sizeClassName="h-16 w-16"
-          className={author.isSource ? undefined : 'ring-4 ring-mint-100'}
+          className="ring-4 ring-mint-100"
           textClassName="text-xl font-bold"
-          fallbackClassName={author.isSource ? undefined : 'bg-mint-100 text-mint-700'}
+          fallbackClassName="bg-mint-100 text-mint-700"
         />
         <h3 className="mt-3 text-lg font-bold text-gray-900">{author.name}</h3>
         <p className="text-sm text-gray-500">@{author.handle.replace(/^@/, '')}</p>
-        {author.isSource ? (
-          <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-            {t('Relationship.sourceBadge', { defaultValue: 'Source' })}
-          </span>
-        ) : null}
       </div>
 
       <div className="mt-4">

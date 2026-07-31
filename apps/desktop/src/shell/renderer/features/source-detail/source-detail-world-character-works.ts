@@ -1,15 +1,12 @@
-import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { SourceDetailWorkCollection } from './source-detail-model.js';
 import {
   readMilestoneTimeLabel,
   readOptionalString,
-  readPath,
-  readRecordArray,
   readScalarString,
   slug,
 } from './source-detail-model-readers.js';
 import {
-  isWorkLikeBiographyMilestone,
   mergeDistinctText,
   mergeTimeLabel,
   normalizeWorkStatus,
@@ -28,58 +25,6 @@ import {
   readRelationshipTargetLabel,
   readRelationshipType,
 } from './source-detail-world-character-relationships.js';
-
-function toWorkCollection(row: JsonObject, index: number): SourceDetailWorkCollection | null {
-  const title = readWorkTitle(row);
-  if (!title) {
-    return null;
-  }
-  const textId = readScalarString(row.textId);
-  const rowRef = readScalarString(row.rowRef);
-  const hasNativeTitle = Boolean(
-    readOptionalString(row, 'titleChn')
-    ?? readOptionalString(row, 'titleZh')
-    ?? readOptionalString(row, 'chineseTitle')
-    ?? readOptionalString(row, 'displayTitle')
-    ?? readOptionalString(row, 'name'),
-  );
-  return {
-    id: readScalarString(row.id)
-      ?? readScalarString(row.workId)
-      ?? (textId ? ['text', textId].join('-') : null)
-      ?? rowRef
-      ?? slug(title, String(index + 1)),
-    title,
-    romanizedTitle: hasNativeTitle ? readOptionalString(row, 'title') : readOptionalString(row, 'romanizedTitle'),
-    textId,
-    rowRef,
-    role: readOptionalString(row, 'role') ?? readOptionalString(row, 'relationRole'),
-    status: normalizeWorkStatus(row.joinStatus ?? row.status),
-  };
-}
-
-export function readWorldCharacterWorks(sourceCore: JsonObject | null | undefined): SourceDetailWorkCollection[] {
-  const candidateRows = [
-    readPath(sourceCore, ['authoring', 'extensions', 'sourcePerson', 'texts']),
-    readPath(sourceCore, ['authoring', 'extensions', 'cbdb', 'sourcePerson', 'texts']),
-    readPath(sourceCore, ['authoring', 'extensions', 'cbdb', 'texts']),
-    readPath(sourceCore, ['authoring', 'extensions', 'works']),
-    readPath(sourceCore, ['sourcePerson', 'texts']),
-    readPath(sourceCore, ['works']),
-  ].flatMap(readRecordArray);
-  const seen = new Set<string>();
-  return candidateRows
-    .map(toWorkCollection)
-    .filter((work): work is SourceDetailWorkCollection => Boolean(work))
-    .filter((work) => {
-      const key = work.textId ?? work.rowRef ?? work.title;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
-}
 
 function toWorkCollectionFromRelationship(row: JsonObject, index: number): SourceDetailWorkCollection | null {
   const type = readRelationshipType(row);
@@ -266,53 +211,5 @@ export function dedupeWorks(works: SourceDetailWorkCollection[]): SourceDetailWo
 export function readWorldCharacterWorksFromRelationships(relationships: JsonObject[]): SourceDetailWorkCollection[] {
   return relationships
     .map(toWorkCollectionFromRelationship)
-    .filter((work): work is SourceDetailWorkCollection => Boolean(work));
-}
-
-function toWorkCollectionFromBiographyMilestone(
-  row: JsonObject,
-  index: number,
-): SourceDetailWorkCollection | null {
-  const rawTitle = readOptionalString(row, 'title');
-  const summary = readOptionalString(row, 'summary');
-  if (!isWorkLikeBiographyMilestone(row, rawTitle, summary)) {
-    return null;
-  }
-  const title = readWorkTitleFromText(rawTitle)
-    ?? readWorkTitleFromText(summary)
-    ?? readOptionalString(row, 'titleChn')
-    ?? readOptionalString(row, 'titleZh')
-    ?? readOptionalString(row, 'chineseTitle')
-    ?? readOptionalString(row, 'displayTitle')
-    ?? readOptionalString(row, 'name')
-    ?? rawTitle
-    ?? summary;
-  if (!title) {
-    return null;
-  }
-  const textId = readScalarString(row.textId);
-  return {
-    id: readOptionalString(row, 'workId')
-      ?? readOptionalString(row, 'milestoneId')
-      ?? readOptionalString(row, 'id')
-      ?? (textId ? ['text', textId].join('-') : null)
-      ?? slug(title, String(index + 1)),
-    title,
-    romanizedTitle: readOptionalString(row, 'romanizedTitle'),
-    textId,
-    rowRef: readScalarString(row.rowRef),
-    role: readOptionalString(row, 'role') ?? readOptionalString(row, 'relationRole'),
-    status: normalizeWorkStatus(row.joinStatus ?? row.status),
-    summary: isGenericWorkSummary(title, summary) ? null : summary,
-    timeLabel: readMilestoneTimeLabel([row], [rawTitle, summary]),
-  };
-}
-
-export function readWorldCharacterWorksFromBiography(
-  sourceCore: JsonObject | null | undefined,
-): SourceDetailWorkCollection[] {
-  const biography = parseOptionalJsonObject(sourceCore?.biography);
-  return readRecordArray(biography?.milestones)
-    .map(toWorkCollectionFromBiographyMilestone)
     .filter((work): work is SourceDetailWorkCollection => Boolean(work));
 }

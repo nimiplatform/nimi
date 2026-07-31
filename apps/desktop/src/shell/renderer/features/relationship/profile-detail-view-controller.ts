@@ -2,11 +2,11 @@ import { type ChangeEvent, type RefObject, useEffect, useLayoutEffect, useRef, u
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import type { ProfileData, ProfileTab } from '../profile/profile-model';
+import type { HumanProfileData, HumanProfileTab } from '../profile/profile-model';
 import { buildEditableDraft, type EditableProfileDraft } from './profile-detail-view-parts.js';
 
 export type ProfileDetailViewProps = {
-  profile: ProfileData;
+  profile: HumanProfileData;
   loading: boolean;
   error: boolean;
   isBlockedProfile?: boolean;
@@ -37,26 +37,26 @@ type TabIndicator = {
 
 export const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
-const DEFAULT_TAB: ProfileTab = 'Posts';
+const DEFAULT_TAB: HumanProfileTab = 'Posts';
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
 
 export function useProfileDetailViewController(props: ProfileDetailViewProps, realmBaseUrl: string) {
   const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<ProfileTab>(DEFAULT_TAB);
+  const [activeTab, setActiveTab] = useState<HumanProfileTab>(DEFAULT_TAB);
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [visitedTabs, setVisitedTabs] = useState<ProfileTab[]>([DEFAULT_TAB]);
+  const [visitedTabs, setVisitedTabs] = useState<HumanProfileTab[]>([DEFAULT_TAB]);
   const [draft, setDraft] = useState<EditableProfileDraft>(() => buildEditableDraft(props.profile));
   const [tabIndicator, setTabIndicator] = useState<TabIndicator>({ left: 0, width: 24 });
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
-  const tabButtonRefs = useRef<Partial<Record<ProfileTab, HTMLButtonElement | null>>>({});
+  const tabButtonRefs = useRef<Partial<Record<HumanProfileTab, HTMLButtonElement | null>>>({});
   const internalScrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = props.externalScrollContainerRef ?? internalScrollContainerRef;
   const usesExternalScrollContainer = Boolean(props.externalScrollContainerRef);

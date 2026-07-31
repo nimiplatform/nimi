@@ -108,6 +108,11 @@ function sourceDetailRaw() {
       worldEntityRef: { kind: 'worldEntity', worldId: 'world-song', entityId: 'entity-song-scholar' },
       sourceHash: 'a'.repeat(64),
     },
+    viewerRelation: {
+      state: 'connectable',
+      connectionId: null,
+      runtimeSourceRef: null,
+    },
     entity: {
       id: 'entity-song-scholar',
       kind: 'person',
@@ -122,6 +127,23 @@ function sourceDetailRaw() {
           value: 'Hanlin scholar',
         },
       ],
+    },
+    characterProfile: {
+      role: 'Scholar',
+      archetype: 'Archivist',
+      traits: ['measured'],
+      knowledgeTopics: ['archives'],
+      knowledgeConstraints: [],
+      interactionModes: ['research'],
+      milestones: [],
+      relationshipNotes: [],
+      conversationAnchors: ['archives'],
+      interaction: {
+        tone: 'A measured Song dynasty scholar voice.',
+        cadence: 'Deliberate cadence with quiet pauses.',
+        scenario: null,
+        greeting: 'The archives are quiet; ask, and I will open them.',
+      },
     },
     source: {
       interactionProfile: {
@@ -167,8 +189,7 @@ test('source detail consumes public world character media and voice resources', 
     transcript: null,
     previewText: null,
   });
-  assert.equal(detail.voiceDesign, null);
-  assert.deepEqual(detail.worldCharacter?.interaction, {
+  assert.deepEqual(detail.characterProfile.interaction, {
     tone: 'A measured Song dynasty scholar voice.',
     cadence: 'Deliberate cadence with quiet pauses.',
     scenario: null,

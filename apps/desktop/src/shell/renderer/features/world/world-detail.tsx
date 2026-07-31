@@ -5,9 +5,9 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { characterSourceMaterializationFailureMessage } from '../explore/character-source-materialization';
-import { materializeSourceContactLaunchTarget } from '../relationship/source-contact-launch-target.js';
+import { materializeCharacterSourceLaunchTarget } from '../relationship/character-source-launch-target.js';
 import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
 import {
   NarrativeWorldDetailPage,
@@ -45,7 +45,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
   const detailViewportRef = useRef<HTMLDivElement | null>(null);
   const isReady = authStatus === 'authenticated' && !!world.id;
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const setFeedback = emitFeedbackToast;
   const flowIdRef = useRef('');
   const enteredAtRef = useRef(0);
   const primaryReadyLoggedRef = useRef(false);
@@ -213,9 +213,8 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
 
   const handleMaterializeSource = async (character: WorldCharacter) => {
     try {
-      const target = await materializeSourceContactLaunchTarget({
+      const target = await materializeCharacterSourceLaunchTarget({
         ...character,
-        isSource: true,
         displayName: character.name,
         sourceWorldId: character.sourceRef.worldId,
         sourceKind: character.sourceRef.kind,
@@ -239,11 +238,6 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
       viewportClassName="bg-transparent"
       viewportRef={detailViewportRef}
     >
-      {feedback ? (
-        <div className="mx-auto w-full max-w-[1400px] px-5 pt-5">
-          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-        </div>
-      ) : null}
       {worldData.type === 'OASIS' ? (
         <OasisWorldDetailPage
           world={worldData}

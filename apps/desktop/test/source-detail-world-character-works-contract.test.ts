@@ -12,6 +12,7 @@ import {
   simplifySourceDetailChineseText,
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
+import { composeWorldCharacterMilestones } from '../src/shell/renderer/features/source-detail/source-detail-world-character-milestones.js';
 
 test.before(async () => {
   await initI18n();
@@ -24,7 +25,7 @@ test('world character source detail simplifier covers CBDB relationship prose fr
   );
 });
 
-test('world character source detail maps source text rows as works collections only', () => {
+test('character source detail maps public biography work events as works collections', () => {
   const detail = toSourceDetailData(liBaiRaw, 'source_materialization_available');
 
   assert.equal(detail.worksAvailability, 'available');
@@ -32,11 +33,13 @@ test('world character source detail maps source text rows as works collections o
   assert.deepEqual(detail.works[0], {
     id: 'text-25641',
     title: '李太白集',
-    romanizedTitle: 'li tai bai ji',
-    textId: '25641',
-    rowRef: 'cbdb:BIOG_TEXT_DATA:32540:13008:1',
+    romanizedTitle: null,
+    textId: null,
+    rowRef: null,
     role: null,
-    status: 'resolved',
+    status: 'unknown',
+    summary: null,
+    timeLabel: null,
   });
   assert.equal(detail.works.some((work) => work.title === '将进酒'), false);
 });
@@ -92,13 +95,12 @@ test('world character source detail hides paused score and gift controls', () =>
   assert.doesNotMatch(markup, />Send Gift</);
 });
 
-test('world character source detail fails closed when source text rows are absent', () => {
+test('world character source detail reports works unavailable when public biography has no work events', () => {
   const detail = toSourceDetailData({
     ...liBaiRaw,
-    source: {
-      authoring: {
-        extensions: {},
-      },
+    characterProfile: {
+      ...liBaiRaw.characterProfile,
+      milestones: [],
     },
   }, 'source_materialization_available');
 
@@ -116,16 +118,20 @@ test('world character source detail uses Realm relationship neighborhood for wor
   assert.deepEqual(detail.relationshipClues.map((clue) => clue.label), [
     '理学家 - 阳明学派',
   ]);
-  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), [
+  assert.deepEqual(detail.characterProfile.milestones.map((milestone) => milestone.title), [
     '嘉靖二年（1523）中进士',
     '官至礼部尚书',
   ]);
-  assert.equal(detail.worldCharacter?.milestones.some((milestone) => milestone.kind === 'work'), false);
+  assert.equal(detail.characterProfile.milestones.some((milestone) => milestone.kind === 'work'), false);
 });
 
 test('world character career milestones keep repeated office rows while work rows stay in works', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [],
+    },
     source: {
       ...ouYangDeRaw.source,
       biography: {
@@ -210,10 +216,15 @@ test('world character career milestones keep repeated office rows while work row
       },
     ],
   }, 'source_materialization_available');
-  const milestones = detail.worldCharacter?.milestones ?? [];
+  const sharedMilestones = detail.characterProfile.milestones;
+  const milestones = composeWorldCharacterMilestones(
+    sharedMilestones,
+    detail.worldCharacterAugmentation?.careerMilestones ?? [],
+  );
   const officeMilestones = milestones.filter((milestone) => milestone.kind === 'office' && milestone.title === '翰林学士');
   const workMilestones = milestones.filter((milestone) => milestone.kind === 'work' && milestone.title === '牧庵集');
 
+  assert.deepEqual(sharedMilestones, []);
   assert.equal(officeMilestones.length, 1);
   assert.equal(workMilestones.length, 0);
   assert.match(officeMilestones[0]?.summary ?? '', /承担朝廷文字事务/);
@@ -223,7 +234,7 @@ test('world character career milestones keep repeated office rows while work row
   assert.deepEqual(milestones.map((milestone) => milestone.title), ['翰林学士']);
 });
 
-test('world character works collapse duplicated biography and relationship evidence into the best collection card', () => {
+test('world character works prefer graph detail when public biography and relationship evidence overlap', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
     source: {
@@ -280,12 +291,12 @@ test('world character works collapse duplicated biography and relationship evide
     {
       title: '牧庵集',
       summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
-      status: 'resolved',
+      status: 'unresolved',
     },
   ]);
 });
 
-test('world character works collapse same-title source rows and relationship rows with conflicting upstream text ids', () => {
+test('world character works ignore non-public source rows and use relationship evidence', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
     source: {
@@ -341,18 +352,22 @@ test('world character works collapse same-title source rows and relationship row
   })), [
     {
       title: '牧庵集',
-      romanizedTitle: 'mu an ji',
+      romanizedTitle: null,
       textId: 'relationship-muan',
       summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
-      status: 'resolved',
+      status: 'unresolved',
     },
   ]);
 });
 
-test('world character works collapse source text rows and generic biography text-code evidence', () => {
+test('world character works do not consume legacy source text or biography shapes', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
     displayName: '同憕',
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [],
+    },
     source: {
       ...ouYangDeRaw.source,
       authoring: {
@@ -386,22 +401,8 @@ test('world character works collapse source text rows and generic biography text
     relationships: [],
   }, 'source_materialization_available');
 
-  assert.deepEqual(detail.works.map((work) => ({
-    title: work.title,
-    romanizedTitle: work.romanizedTitle,
-    textId: work.textId,
-    summary: work.summary ?? null,
-    status: work.status,
-  })), [
-    {
-      title: '庵集',
-      romanizedTitle: 'an ji',
-      textId: '43210',
-      summary: null,
-      status: 'resolved',
-    },
-  ]);
-  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), []);
+  assert.deepEqual(detail.works, []);
+  assert.deepEqual(detail.characterProfile.milestones.map((milestone) => milestone.title), []);
 });
 
 test('world character works hide ingestion status badges from profile cards', async () => {
@@ -475,7 +476,7 @@ test('world character works hide ingestion status badges from profile cards', as
   }
 });
 
-test('world character works do not render generic relationship summaries as evidence copy', async () => {
+test('world character works do not treat shared profile relationship notes as graph works', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -511,34 +512,36 @@ test('world character works do not render generic relationship summaries as evid
       }),
     );
 
-    assert.match(markup, /牧庵集/);
+    assert.doesNotMatch(markup, /牧庵集/);
     assert.doesNotMatch(markup, /姚燧与著作/);
   } finally {
     await changeLocale('en');
   }
 });
 
-test('world character source relationships move text works into works instead of career milestones', () => {
+test('shared public biography work events feed the works collection', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
-    source: {
-      ...ouYangDeRaw.source,
-      biography: {
-        milestones: [],
-      },
-      relationships: [
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [
         {
-          targetRef: 'cbdb-text-xueneng-poems',
-          targetLabel: '薛能诗集',
-          relationType: 'text',
-          relationLabel: '著作',
+          id: 'cbdb-text-xueneng-poems',
+          title: '薛能诗集',
           summary: '《薛能诗集》是其诗歌创作的重要结集，是其文学成就的直接体现。',
+          sequence: 1,
+          timeLabel: null,
+          kind: 'work',
+          derived: false,
         },
         {
-          targetRef: 'cbdb-text-fancheng',
-          relationType: 'text',
-          relationLabel: '著作',
+          id: 'cbdb-text-fancheng',
+          title: '繁城集',
           summary: '薛能与著作「繁城集」有关。',
+          sequence: 2,
+          timeLabel: null,
+          kind: 'work',
+          derived: false,
         },
       ],
     },
@@ -547,40 +550,43 @@ test('world character source relationships move text works into works instead of
 
   assert.deepEqual(detail.works.map((work) => work.title), ['薛能诗集', '繁城集']);
   assert.match(detail.works[0]?.summary ?? '', /文学成就/);
-  assert.equal(detail.worldCharacter?.milestones.some((milestone) => milestone.kind === 'work'), false);
-  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), []);
+  assert.equal(detail.characterProfile.milestones.every((milestone) => milestone.kind === 'work'), true);
+  assert.deepEqual(detail.characterProfile.milestones.map((milestone) => milestone.title), ['薛能诗集', '繁城集']);
 });
 
-test('world character work-like biography milestones move into works instead of life milestones', () => {
+test('public biography explicitly distinguishes work and office milestones', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
-    source: {
-      ...ouYangDeRaw.source,
-      biography: {
-        milestones: [
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [
           {
-            milestoneId: 'xueneng-poems',
+            id: 'xueneng-poems',
             title: '薛能诗集',
             summary: '《薛能诗集》是其诗歌创作的重要结集，是其文学成就的直接体现。',
             sequence: 1,
+            timeLabel: null,
+            kind: 'work',
+            derived: false,
           },
           {
-            milestoneId: 'xueneng-office',
+            id: 'xueneng-office',
             title: '咸通年间任同州刺史',
             summary: '咸通年间任同州刺史。',
             sequence: 2,
             timeLabel: '咸通',
+            kind: 'office',
+            derived: false,
           },
         ],
-      },
-      relationships: [],
     },
     relationships: [],
   }, 'source_materialization_available');
 
   assert.deepEqual(detail.works.map((work) => work.title), ['薛能诗集']);
   assert.match(detail.works[0]?.summary ?? '', /诗歌创作/);
-  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), [
+  assert.deepEqual(detail.characterProfile.milestones.map((milestone) => milestone.title), [
+    '薛能诗集',
     '咸通年间任同州刺史',
   ]);
 });

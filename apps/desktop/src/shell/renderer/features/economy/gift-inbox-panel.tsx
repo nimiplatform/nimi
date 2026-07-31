@@ -18,7 +18,7 @@ import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { invalidateNotificationQueries } from '../notification/notification-query.js';
 import { useTranslation } from 'react-i18next';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 function formatGiftDate(input: string | null | undefined, i18n: DesktopI18nResource): string {
@@ -86,7 +86,7 @@ export function GiftInboxPanel() {
   const navigateBack = useAppStore((state) => state.navigateBack);
   const selectedGiftTransactionId = useAppStore((state) => state.selectedGiftTransactionId);
   const setSelectedGiftTransactionId = useAppStore((state) => state.setSelectedGiftTransactionId);
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const setFeedback = emitFeedbackToast;
   const giftService = useMemo(
     () => createRealmCommerceGiftService({ generated: sdk.realm().generated }),
     [sdk],
@@ -222,9 +222,6 @@ export function GiftInboxPanel() {
         </div>
 
         <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-3xl space-y-4 px-6 py-5">
-          {feedback ? (
-            <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-          ) : null}
           <GiftInboxDetail
             gift={selectedGift}
             status={selectedGiftStatus}
@@ -316,9 +313,6 @@ export function GiftInboxPanel() {
       </div>
 
       <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-3xl space-y-3 px-6 py-5">
-        {feedback ? (
-          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-        ) : null}
         <GiftInboxList
           items={giftItems}
           loading={listLoading}

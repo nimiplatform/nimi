@@ -5,10 +5,14 @@ import { parsePersonaSources } from '../src/shell/renderer/features/explore/expl
 import { resolveCharacterSourceRefV3 } from '../src/shell/renderer/features/explore/character-source-materialization.js';
 import {
   buildRelationshipProfileNavigationTarget,
-  buildRelationshipProfileSeed,
 } from '../src/shell/renderer/features/chat/chat-relationship-hover-card.js';
-import { toProfileData } from '../src/shell/renderer/features/profile/profile-model.js';
+import {
+  toAgentTargetSnapshotFromSummary,
+  toHumanFriendTargetSummary,
+} from '../src/shell/renderer/features/chat/chat-sidebar-targets.js';
+import { buildPostCardAuthorProjection } from '../src/shell/renderer/features/home/post-card-projections.js';
 import { toFriendContact } from '../src/shell/renderer/features/relationship/relationship-model.js';
+import { toWorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
 
 const sourceRef = {
   kind: 'personaCharacter' as const,
@@ -16,6 +20,18 @@ const sourceRef = {
   worldId: 'world-a',
   ownerAccountId: 'account-a',
   sourceHash: 'a'.repeat(64),
+};
+
+const worldCharacterSourceRef = {
+  kind: 'worldCharacter' as const,
+  id: 'character-a',
+  worldId: 'world-a',
+  worldEntityRef: {
+    kind: 'worldEntity' as const,
+    worldId: 'world-a',
+    entityId: 'character-a',
+  },
+  sourceHash: 'b'.repeat(64),
 };
 
 test('shared Realm source materialization rejects nested sourceRef that does not match display identity', () => {
@@ -35,7 +51,42 @@ test('shared Realm source materialization rejects nested sourceRef that does not
   }), null);
 });
 
-test('explore, relationship, and profile projections fail closed on display/sourceRef mismatch', () => {
+test('world list drops a Character sourceRef that belongs to another world', () => {
+  const worldRecord = {
+    id: 'world-a',
+    name: 'World A',
+    summary: 'World summary',
+    media: {},
+    stats: {},
+    time: {},
+    characters: [{
+      id: worldCharacterSourceRef.id,
+      name: 'Character A',
+      sourceKind: worldCharacterSourceRef.kind,
+      sourceRef: worldCharacterSourceRef,
+    }],
+  };
+
+  assert.deepEqual(
+    toWorldListItem(worldRecord).characters?.[0]?.sourceRef,
+    worldCharacterSourceRef,
+  );
+  assert.equal(
+    toWorldListItem({
+      ...worldRecord,
+      characters: [{
+        ...worldRecord.characters[0],
+        sourceRef: {
+          ...worldCharacterSourceRef,
+          worldId: 'world-b',
+        },
+      }],
+    }).characters?.[0]?.sourceRef,
+    null,
+  );
+});
+
+test('explore projection rejects display/sourceRef mismatch and friendship rejects source payloads', () => {
   const mismatchedPayload = {
     id: 'persona-a',
     displayName: 'Persona A',
@@ -52,54 +103,41 @@ test('explore, relationship, and profile projections fail closed on display/sour
   };
 
   assert.throws(() => parsePersonaSources({ items: [mismatchedPayload] }, new Map()), /sourceRef.*mismatch/i);
-  assert.throws(() => toFriendContact(mismatchedPayload), /sourceRef.*mismatch/i);
-  assert.throws(() => toProfileData(mismatchedPayload), /sourceRef.*mismatch/i);
+  assert.throws(() => toFriendContact(mismatchedPayload), /requires a human contact/i);
+  const humanContact = toFriendContact({
+    id: 'account-a',
+    displayName: 'Human A',
+    handle: 'human-a',
+  });
+  assert.equal(humanContact.id, 'account-a');
+  assert.equal('isSource' in humanContact, false);
+  assert.throws(() => toFriendContact({
+    id: 'local-agent:user-a:agent-a',
+    displayName: 'Runtime LocalAgent',
+    handle: 'agent-a',
+    localAgentRef: 'local-agent:user-a:agent-a',
+  }), /requires a human contact/i);
+  assert.throws(() => toFriendContact({
+    id: 'local-agent:user-a:agent-a',
+    displayName: 'Runtime LocalAgent',
+    handle: 'agent-a',
+  }), /requires a human account id/i);
+  assert.throws(() => toFriendContact({
+    id: 'account-a',
+    displayName: 'Legacy-shaped Human',
+    handle: 'account-a',
+    isSource: false,
+  }), /requires a human contact/i);
+  assert.equal(toHumanFriendTargetSummary({
+    id: 'account-a',
+    displayName: 'Legacy-shaped Human',
+    handle: 'account-a',
+    isSource: false,
+  }), null);
 });
 
-test('profile data preserves WorldEntityCore projection for world character sources', () => {
-  const profile = toProfileData({
-    id: 'character-a',
-    displayName: 'Character A',
-    handle: '~character-a',
-    isSource: true,
-    sourceKind: 'worldCharacter',
-    sourceId: 'character-a',
-    sourceWorldId: 'world-a',
-    sourceRef: {
-      kind: 'worldCharacter',
-      id: 'character-a',
-      worldId: 'world-a',
-      worldEntityRef: { kind: 'worldEntity', worldId: 'world-a', entityId: 'entity-a' },
-      sourceHash: 'b'.repeat(64),
-    },
-    entityId: 'entity-a',
-    entityContentHash: 'entity-hash-a',
-    entity: {
-      id: 'entity-a',
-      kind: 'person',
-      name: 'Canonical Character A',
-      summary: 'Entity-layer semantic identity.',
-      contentHash: 'entity-hash-a',
-      tags: ['scholar'],
-      facts: [{ key: 'office', value: 'Hanlin scholar' }],
-    },
-  });
-
-  assert.equal((profile as { entityId?: string }).entityId, 'entity-a');
-  assert.equal((profile as { entityContentHash?: string }).entityContentHash, 'entity-hash-a');
-  assert.deepEqual((profile as { entity?: unknown }).entity, {
-    id: 'entity-a',
-    kind: 'person',
-    name: 'Canonical Character A',
-    summary: 'Entity-layer semantic identity.',
-    contentHash: 'entity-hash-a',
-    tags: ['scholar'],
-    facts: [{ key: 'office', value: 'Hanlin scholar' }],
-  });
-});
-
-test('chat relationship profile seed requires hash-bearing sourceRef for agent targets', () => {
-  assert.equal(buildRelationshipProfileSeed({
+test('chat relationship profile navigation discriminates human account ids from Character sourceRefs', () => {
+  assert.equal(buildRelationshipProfileNavigationTarget({
     id: 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a',
     source: 'agent',
     canonicalSessionId: 'conversation-a',
@@ -110,22 +148,6 @@ test('chat relationship profile seed requires hash-bearing sourceRef for agent t
     },
   }), null);
 
-  const target = buildRelationshipProfileSeed({
-    id: 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a',
-    source: 'agent',
-    canonicalSessionId: 'conversation-a',
-    title: 'Persona A',
-    handle: '~persona-a',
-    avatarUrl: '/avatar.png',
-    metadata: {
-      runtimeSourceRef: 'runtime-source:personaCharacter:world-a:persona-a',
-      sourceRef,
-    },
-  });
-
-  assert.equal(target?.profileId, 'persona-a');
-  assert.deepEqual(target?.seed.sourceRef, sourceRef);
-  assert.equal(target?.seed.runtimeSourceRef, 'runtime-source:personaCharacter:world-a:persona-a');
   assert.deepEqual(buildRelationshipProfileNavigationTarget({
     id: 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a',
     source: 'agent',
@@ -133,7 +155,120 @@ test('chat relationship profile seed requires hash-bearing sourceRef for agent t
     title: 'Persona A',
     metadata: { sourceRef },
   }), {
-    kind: 'source-detail',
+    kind: 'character',
     sourceRef,
   });
+
+  assert.deepEqual(buildRelationshipProfileNavigationTarget({
+    id: 'chat-a',
+    source: 'human',
+    canonicalSessionId: 'chat-a',
+    title: 'Human A',
+    metadata: { otherUserId: 'account-a' },
+  }), {
+    kind: 'human',
+    profileId: 'account-a',
+  });
+
+  assert.equal(buildRelationshipProfileNavigationTarget({
+    id: 'local-agent:user-a:agent-a',
+    source: 'human',
+    canonicalSessionId: 'local-agent:user-a:agent-a',
+    title: 'Misclassified LocalAgent',
+    metadata: { otherUserId: 'local-agent:user-a:agent-a' },
+  }), null);
+});
+
+test('chat target projection preserves Runtime-discovered Character sourceRef separately from localAgentRef', () => {
+  const localAgentRef = 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a';
+  const target = toAgentTargetSnapshotFromSummary({
+    id: localAgentRef,
+    source: 'agent',
+    canonicalSessionId: 'conversation-a',
+    title: 'Persona A',
+    metadata: {
+      ownerUserId: 'user-a',
+      runtimeSourceRef: 'runtime-source:personaCharacter:world-a:persona-a',
+      localAgentRef,
+      displayName: 'Persona A',
+      sourceRef,
+    },
+  });
+
+  assert.equal(target?.localAgentRef, localAgentRef);
+  assert.deepEqual(target?.sourceRef, sourceRef);
+  assert.equal(toAgentTargetSnapshotFromSummary({
+    id: localAgentRef,
+    source: 'agent',
+    canonicalSessionId: 'conversation-a',
+    title: 'Persona A',
+    metadata: {
+      ownerUserId: 'user-a',
+      runtimeSourceRef: 'runtime-source:personaCharacter:world-a:persona-a',
+      localAgentRef,
+      displayName: 'Persona A',
+    },
+  }), null);
+});
+
+test('post author projection keeps Character sourceRef separate from human profileId', () => {
+  const characterProjection = buildPostCardAuthorProjection({
+    authorId: '',
+    unknownDisplayName: 'Unknown',
+    post: {
+      authorKind: 'personaCharacter',
+      sourceAuthor: {
+        id: sourceRef.id,
+        kind: sourceRef.kind,
+        worldId: sourceRef.worldId,
+        sourceRef,
+        displayName: 'Persona A',
+        handle: '~persona-a',
+        avatarUrl: null,
+      },
+    } as never,
+  });
+  assert.deepEqual(characterProjection.authorProfileTarget, {
+    kind: 'character',
+    sourceRef,
+  });
+
+  assert.throws(() => buildPostCardAuthorProjection({
+    authorId: sourceRef.id,
+    unknownDisplayName: 'Unknown',
+    post: {
+      authorKind: 'personaCharacter',
+    } as never,
+  }), /Character-authored post requires sourceAuthor/i);
+
+  assert.throws(() => buildPostCardAuthorProjection({
+    authorId: 'account-a',
+    unknownDisplayName: 'Unknown',
+    post: {
+      authorKind: 'human',
+      sourceAuthor: {
+        id: sourceRef.id,
+        kind: sourceRef.kind,
+        worldId: sourceRef.worldId,
+        sourceRef,
+      },
+    } as never,
+  }), /Human-authored post cannot include Character sourceAuthor/i);
+
+  const humanProjection = buildPostCardAuthorProjection({
+    authorId: 'account-a',
+    unknownDisplayName: 'Unknown',
+    post: {
+      authorKind: 'human',
+      author: {
+        displayName: 'Human A',
+        handle: 'human-a',
+        avatarUrl: null,
+      },
+    } as never,
+  });
+  assert.equal(humanProjection.authorProfileTarget?.kind, 'human');
+  if (humanProjection.authorProfileTarget?.kind === 'human') {
+    assert.equal(humanProjection.authorProfileTarget.profileId, 'account-a');
+  }
 });

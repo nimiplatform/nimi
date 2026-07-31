@@ -68,6 +68,10 @@ test('world character relationship map keeps factual clue text out of graph node
 test('world character relationship map renders posted address clues with location icons', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      relationshipNotes: [],
+    },
     source: {
       ...ouYangDeRaw.source,
       relationships: [],
@@ -154,7 +158,7 @@ test('world character source detail renders dossier sections without exposing ra
   assert.match(markup, /欧阳南野先生文集/);
   assert.match(markup, /data-testid="world-character-relationship-map"/);
   assert.match(markup, /data-testid="world-character-career-derived-node"/);
-  assert.doesNotMatch(markup, /data-testid="world-character-relationship-clue-postedToOffice"/);
+  assert.match(markup, /data-testid="world-character-relationship-clue-postedToOffice"/);
   assert.doesNotMatch(markup, /data-testid="world-character-relationship-clue-text"/);
   assert.doesNotMatch(visibleMarkup, /cbdb-rel-99984/);
   assert.doesNotMatch(visibleMarkup, /cbdb:BIOG_TEXT_DATA/);

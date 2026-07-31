@@ -19,7 +19,7 @@ import {
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
-import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import {
   invalidateNotificationQueries,
   notificationQueryKeys,
@@ -50,7 +50,7 @@ export function NotificationPanel() {
   const authUser = useAppStore((state) => state.auth.user);
   const navigateToGiftInbox = useAppStore((state) => state.navigateToGiftInbox);
   const { t } = useTranslation();
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const setFeedback = emitFeedbackToast;
   const [activeFilter, setActiveFilter] = useState<NotificationFilterTab>('all');
   const [rejectingItem, setRejectingItem] = useState<NotificationItemView | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -410,10 +410,8 @@ export function NotificationPanel() {
       <div className="mx-auto w-full max-w-4xl">
         <NotificationPanelHeader
           activeFilter={activeFilter}
-          feedback={feedback}
           markingAllRead={markingAllRead}
           unreadCount={unreadCount}
-          onDismissFeedback={() => setFeedback(null)}
           onFilterChange={setActiveFilter}
           onMarkAllRead={() => {
             void markAllRead();

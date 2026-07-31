@@ -11,12 +11,13 @@ import {
   renderToStaticMarkup,
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
+import { composeWorldCharacterMilestones } from '../src/shell/renderer/features/source-detail/source-detail-world-character-milestones.js';
 
 test.before(async () => {
   await initI18n();
 });
 
-test('world character source detail uses the dedicated world character page surface', () => {
+test('world character source detail uses the shared character page surface', () => {
   const source = toSourceDetailData(liBaiRaw, 'source_materialization_available');
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
@@ -30,7 +31,8 @@ test('world character source detail uses the dedicated world character page surf
     }),
   );
 
-  assert.match(markup, /data-testid="world-character-source-detail-page"/);
+  assert.match(markup, /data-testid="character-source-detail-page"/);
+  assert.match(markup, /data-source-kind="worldCharacter"/);
   assert.match(markup, /data-testid="world-character-works-section"/);
   assert.match(markup, /data-testid="world-character-hero-stats"/);
   assert.match(markup, /data-testid="world-character-hero-actions"/);
@@ -41,6 +43,51 @@ test('world character source detail uses the dedicated world character page surf
   assert.doesNotMatch(markup, /data-testid="world-character-bottom-stats"/);
   assert.doesNotMatch(markup, /data-testid="world-character-source-boundary"/);
   assert.doesNotMatch(markup, /data-testid="source-detail-compact-profile-card"/);
+});
+
+test('persona character source detail uses the same shared profile and page surface', () => {
+  const source = toSourceDetailData({
+    ...liBaiRaw,
+    id: 'persona-li-bai',
+    sourceKind: 'personaCharacter',
+    sourceId: 'persona-li-bai',
+    sourceRef: {
+      kind: 'personaCharacter',
+      id: 'persona-li-bai',
+      worldId: liBaiRaw.worldId,
+      ownerAccountId: 'account-li-bai',
+      sourceHash: liBaiRaw.sourceHash,
+    },
+    source: undefined,
+    characterProfile: {
+      ...liBaiRaw.characterProfile,
+      milestones: [],
+      interaction: {
+        tone: '豪放',
+        cadence: '从容',
+        scenario: '诗文问答',
+        greeting: '且饮一杯，再谈诗。',
+      },
+    },
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+    }),
+  );
+
+  assert.match(markup, /data-testid="character-source-detail-page"/);
+  assert.match(markup, /data-source-kind="personaCharacter"/);
+  assert.match(markup, /data-testid="world-character-works-section"/);
+  assert.match(markup, /No works are available yet/);
+  assert.match(markup, /data-testid="world-character-media-section"/);
+  assert.match(markup, /且饮一杯，再谈诗。/);
 });
 
 test('world character source detail keeps section titles without eyebrow labels', async () => {
@@ -74,26 +121,33 @@ test('world character source detail keeps section titles without eyebrow labels'
   }
 });
 
-test('world character source detail projects admitted character dossier fields', () => {
+test('world character source detail reuses the shared dossier and keeps career augmentation separate', () => {
   const detail = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+  const milestones = composeWorldCharacterMilestones(
+    detail.characterProfile.milestones,
+    detail.worldCharacterAugmentation?.careerMilestones ?? [],
+  );
 
-  assert.equal(detail.worldCharacter?.role, '阳明学派思想家与朝廷重臣');
-  assert.equal(detail.worldCharacter?.faction, '阳明学派');
-  assert.equal(detail.worldCharacter?.rank, '礼部尚书');
-  assert.deepEqual(detail.worldCharacter?.sceneRefs, ['ming-literati-network', 'ming-official-career', 'ming-kinship-clan']);
-  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), [
+  assert.equal(detail.characterProfile.role, '阳明学派思想家与朝廷重臣');
+  assert.equal(detail.characterProfile.archetype, '阳明学派');
+  assert.deepEqual(detail.characterProfile.traits, ['礼部尚书']);
+  assert.deepEqual(detail.characterProfile.interactionModes, ['文人交游', '仕途回顾', '亲缘关系']);
+  assert.deepEqual(detail.characterProfile.milestones.map((milestone) => milestone.title), [
     '嘉靖二年（1523）中进士',
     '官至礼部尚书',
   ]);
-  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.timeLabel), [
+  assert.deepEqual(detail.characterProfile.milestones.map((milestone) => milestone.timeLabel), [
     '1523',
     '1554',
   ]);
-  assert.equal(detail.worldCharacter?.milestones[1]?.kind, 'office');
-  assert.equal(detail.worldCharacter?.milestones[1]?.derived, true);
-  assert.match(detail.worldCharacter?.milestones[1]?.summary ?? '', /掌管国家礼仪与科举事务/);
-  assert.equal(detail.worldCharacter?.relationshipNotes[0]?.summary, '欧阳德被明确标识为阳明学派理学家，这是其最核心的学术身份。');
-  assert.match(detail.worldCharacter?.conversationAnchors.join('\n') ?? '', /想问诗文、仕途还是人生起落/);
+  assert.equal(detail.characterProfile.milestones[1]?.kind, 'biography');
+  assert.equal(detail.characterProfile.milestones[1]?.derived, false);
+  assert.doesNotMatch(detail.characterProfile.milestones[1]?.summary ?? '', /掌管国家礼仪与科举事务/);
+  assert.equal(milestones[1]?.kind, 'office');
+  assert.equal(milestones[1]?.derived, true);
+  assert.match(milestones[1]?.summary ?? '', /掌管国家礼仪与科举事务/);
+  assert.equal(detail.characterProfile.relationshipNotes[0]?.summary, '欧阳德被明确标识为阳明学派理学家，这是其最核心的学术身份。');
+  assert.match(detail.characterProfile.conversationAnchors.join('\n'), /想问诗文、仕途还是人生起落/);
 });
 
 test('world character conversation rail renders direct questions instead of raw clue list', async () => {
@@ -122,9 +176,9 @@ test('world character conversation rail renders direct questions instead of raw 
     assert.doesNotMatch(markup, /你可以讲讲/);
     assert.doesNotMatch(markup, /欧阳德会先请你说明想问诗文、仕途还是人生起落/);
     assert.match(markup, /他为什么被称为阳明学派思想家与朝廷重臣？/);
-    assert.match(markup, /阳明学派怎样影响了他的一生？/);
-    assert.match(markup, /担任礼部尚书时，他经历了什么？/);
-    assert.match(markup, /他在明代文人网络里经历了什么？/);
+    assert.match(markup, /他会如何解释阳明学派？/);
+    assert.match(markup, /他会如何解释礼部尚书？/);
+    assert.match(markup, /他会如何解释文人交游？/);
     assert.match(markup, /欧阳南野先生文集为什么重要？/);
   } finally {
     await changeLocale('en');
@@ -141,15 +195,12 @@ test('world character conversation rail filters raw CBDB relationship templates 
         ...ouYangDeRaw.entity,
         name: '同恕',
       },
-      source: {
-        ...ouYangDeRaw.source,
-        placement: {
-          ...ouYangDeRaw.source.placement,
-          role: '思想家、书院山长',
-          faction: '元代文人书院网络',
-          rank: '书院山长、太子左赞善',
-          sceneRefs: ['yuan-academy-gathering', 'yuan-official-court', 'yuan-literati-network'],
-        },
+      characterProfile: {
+        ...ouYangDeRaw.characterProfile,
+        role: '思想家、书院山长',
+        archetype: '元代文人书院网络',
+        traits: ['书院山长、太子左赞善'],
+        interactionModes: ['书院雅集', '朝廷议事', '文人交游'],
       },
       relationships: [
         {
@@ -196,9 +247,9 @@ test('world character conversation rail filters raw CBDB relationship templates 
     const askMarkup = markup.slice(askStart, markup.indexOf('</section>', askStart));
 
     assert.match(askMarkup, /他为什么被称为思想家、书院山长？/);
-    assert.match(askMarkup, /元代文人书院网络怎样影响了他的一生？/);
-    assert.match(askMarkup, /担任书院山长、太子左赞善时，他经历了什么？/);
-    assert.match(askMarkup, /他在元代书院雅集里经历了什么？/);
+    assert.match(askMarkup, /他会如何解释元代文人书院网络？/);
+    assert.match(askMarkup, /他会如何解释书院山长、太子左赞善？/);
+    assert.match(askMarkup, /他会如何解释书院雅集？/);
     assert.doesNotMatch(askMarkup, /Y所作|occasion|图像记|送别诗、序|他和临别|他和从Y处|他和画赞/);
   } finally {
     await changeLocale('en');
@@ -231,34 +282,39 @@ test('world character career milestones read CBDB first and last year attributes
     ],
   }, 'source_materialization_available');
 
-  const milestone = detail.worldCharacter?.milestones.find((item) => item.title === '书院山长');
+  const milestone = detail.worldCharacterAugmentation?.careerMilestones
+    .find((item) => item.title === '书院山长');
 
   assert.equal(milestone?.kind, 'office');
   assert.equal(milestone?.timeLabel, '1314-1316');
+  assert.equal(detail.characterProfile.milestones.some((item) => item.title === '书院山长'), false);
 });
 
 test('world character career milestones collapse authored career summaries with relationship office facts', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
-    source: {
-      ...ouYangDeRaw.source,
-      biography: {
-        milestones: [
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [
           {
-            milestoneId: 'yao-sui-career-chain',
+            id: 'yao-sui-career-chain',
             title: '历任翰林国史院直学士、学士、承旨',
             summary: '历任翰林国史院直学士、学士、承旨。',
             sequence: 1,
+            timeLabel: null,
+            kind: 'biography',
+            derived: false,
           },
           {
-            milestoneId: 'yao-sui-da-sinong',
+            id: 'yao-sui-da-sinong',
             title: '官至大司农司司农丞',
             summary: '官至大司农司司农丞。',
             sequence: 2,
+            timeLabel: null,
+            kind: 'biography',
+            derived: false,
           },
         ],
-      },
-      relationships: [],
     },
     relationships: [
       {
@@ -308,8 +364,14 @@ test('world character career milestones collapse authored career summaries with 
       },
     ],
   }, 'source_materialization_available');
-  const milestones = detail.worldCharacter?.milestones ?? [];
+  const sharedMilestones = detail.characterProfile.milestones;
+  const milestones = composeWorldCharacterMilestones(
+    sharedMilestones,
+    detail.worldCharacterAugmentation?.careerMilestones ?? [],
+  );
 
+  assert.equal(sharedMilestones.every((milestone) => milestone.kind === 'biography'), true);
+  assert.equal(sharedMilestones.every((milestone) => !milestone.derived), true);
   assert.deepEqual(milestones.map((milestone) => milestone.title), [
     '历任翰林国史院直学士、学士、承旨',
     '官至大司农司司农丞',
@@ -326,19 +388,19 @@ test('world character career milestones collapse authored career summaries with 
 test('world character life milestones omit unknown time placeholder', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
-    source: {
-      ...ouYangDeRaw.source,
-      biography: {
-        milestones: [
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [
           {
-            milestoneId: 'untimed-biography-milestone',
+            id: 'untimed-biography-milestone',
             title: '拜访故友',
             summary: '与故友重逢。',
             sequence: 1,
+            timeLabel: null,
+            kind: 'biography',
+            derived: false,
           },
         ],
-      },
-      relationships: [],
     },
     relationships: [],
   }, 'source_materialization_available');
@@ -361,37 +423,46 @@ test('world character life milestones omit unknown time placeholder', () => {
 test('world character biographical timeline keeps untimed career clues in one reading flow', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
-    source: {
-      ...ouYangDeRaw.source,
-      biography: {
-        milestones: [
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [
           {
-            milestoneId: 'birth-1254',
+            id: 'birth-1254',
             title: '1254年出生',
             summary: '1254年出生。',
             sequence: 1,
+            timeLabel: '1254',
+            kind: 'biography',
+            derived: false,
           },
           {
-            milestoneId: 'academy-1314',
+            id: 'academy-1314',
             title: '1314年任书院山长',
             summary: '1314年任书院山长，主持书院讲学。',
             sequence: 2,
+            timeLabel: '1314',
+            kind: 'biography',
+            derived: false,
           },
           {
-            milestoneId: 'death-1331',
+            id: 'death-1331',
             title: '1331年去世',
             summary: '1331年去世。',
             sequence: 3,
+            timeLabel: '1331',
+            kind: 'biography',
+            derived: false,
           },
           {
-            milestoneId: 'untimed-biography-clue',
+            id: 'untimed-biography-clue',
             title: '拜访故友',
             summary: '与故友重逢。',
             sequence: 4,
+            timeLabel: null,
+            kind: 'biography',
+            derived: false,
           },
         ],
-      },
-      relationships: [],
     },
     relationships: [
       {
@@ -458,19 +529,19 @@ test('world character biographical timeline keeps untimed career clues in one re
 test('world character biographical timeline without timed events renders one clues list', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
-    source: {
-      ...ouYangDeRaw.source,
-      biography: {
-        milestones: [
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [
           {
-            milestoneId: 'untimed-biography',
+            id: 'untimed-biography',
             title: '拜访故友',
             summary: '与故友重逢。',
             sequence: 1,
+            timeLabel: null,
+            kind: 'biography',
+            derived: false,
           },
         ],
-      },
-      relationships: [],
     },
     relationships: [
       {

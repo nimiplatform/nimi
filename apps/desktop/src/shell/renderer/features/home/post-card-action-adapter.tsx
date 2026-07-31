@@ -109,7 +109,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
         receiverId={input.authorId}
         receiverName={input.authorName}
         receiverHandle={input.authorHandle}
-        receiverIsSource={input.authorIsSource}
+        receiverIsSource={false}
         receiverAvatarUrl={input.authorAvatarUrl}
         onClose={input.onClose}
         onSent={input.onSent}

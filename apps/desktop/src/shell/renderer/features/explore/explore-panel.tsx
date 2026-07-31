@@ -9,7 +9,7 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import type { WorldDetailNavigationOptions } from '../../app-shell/providers/store-types';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { ProfileDetailModal } from '../relationship/profile-detail-modal.js';
 import { SendGiftModal } from '../economy/send-gift-modal';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -17,7 +17,7 @@ import { ExploreView } from './explore-view';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
 import type { ExploreSectionId } from './explore-section-nav';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
-import { parsePersonaSources, toProfileTargetFromPersonaSource } from './explore-persona-source-projection';
+import { parsePersonaSources } from './explore-persona-source-projection';
 import {
   fetchWorldListItems,
   worldPrimaryDisplayDetailQueryKey,
@@ -30,7 +30,7 @@ import {
   discoverCharacterSourceLocalAgents,
   resolveCharacterSourceState,
 } from './character-source-materialization';
-import { materializeSourceContactLaunchTarget } from '../relationship/source-contact-launch-target.js';
+import { materializeCharacterSourceLaunchTarget } from '../relationship/character-source-launch-target.js';
 import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
@@ -69,8 +69,10 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const [selectedProfileTarget, setSelectedProfileTarget] = useState<
+    Extract<PostCardAuthorProfileTarget, { kind: 'human' }> | null
+  >(null);
+  const setFeedback = emitFeedbackToast;
 
   // Fetch worlds for banner carousel
   const worldsQuery = useQuery({
@@ -83,7 +85,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   // Create worlds map for personaSource mapping
   const worldsMap = useMemo(() => {
     const worlds = worldsQuery.data ?? [];
-    return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, scoreEwma: w.scoreEwma, name: w.name }]));
+    return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, name: w.name }]));
   }, [worldsQuery.data]);
 
   // Fetch personaSources for sidebar
@@ -189,7 +191,10 @@ export function ExplorePanel(props: ExplorePanelProps) {
 
   const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
     try {
-      const target = await materializeSourceContactLaunchTarget(source, ownerUserId, i18n.t, bindings.sdk);
+      const target = await materializeCharacterSourceLaunchTarget({
+        ...source,
+        runtimeSourceRef: source.viewerRelation.runtimeSourceRef,
+      }, ownerUserId, i18n.t, bindings.sdk);
       await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
       await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
       await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
@@ -276,11 +281,21 @@ export function ExplorePanel(props: ExplorePanelProps) {
     [navigateToSourceDetail],
   );
 
+  const onPostAuthorOpen = useCallback(
+    (target: PostCardAuthorProfileTarget) => {
+      if (target.kind === 'character') {
+        navigateToSourceDetail(target.sourceRef);
+        return;
+      }
+      setSelectedProfileTarget(target);
+    },
+    [navigateToSourceDetail],
+  );
+
   const onWorldCharacterMaterialize = useCallback(async (character: WorldCharacter) => {
     try {
-      const target = await materializeSourceContactLaunchTarget({
+      const target = await materializeCharacterSourceLaunchTarget({
         ...character,
-        isSource: true,
         displayName: character.name,
         sourceWorldId: character.sourceRef.worldId,
         sourceKind: character.sourceRef.kind,
@@ -309,23 +324,14 @@ export function ExplorePanel(props: ExplorePanelProps) {
   }, [bindings, ownerUserId, queryClient]);
 
   const onPersonaSourceOpen = useCallback(
-    (sourceId: string) => {
-      const target = personaSources.find((item) => item.id === sourceId) || null;
-      if (!target) {
-        return;
-      }
-      setSelectedProfileTarget(toProfileTargetFromPersonaSource(target));
+    (sourceRef: CharacterSourceRefV3) => {
+      navigateToSourceDetail(sourceRef);
     },
-    [personaSources],
+    [navigateToSourceDetail],
   );
 
   return (
     <>
-      <InlineFeedback
-        feedback={feedback}
-        onDismiss={() => setFeedback(null)}
-        className="absolute left-1/2 top-20 z-30 w-[min(720px,calc(100cqw-160px))] -translate-x-1/2 shadow-[0_18px_48px_rgba(15,23,42,0.16)]"
-      />
       <ExploreView
         selectedCategory={selectedCategory}
         categories={categories}
@@ -343,7 +349,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
         onPersonaSourceManage={onPersonaSourceManage}
         onPersonaSourceSendGift={onPersonaSourceSendGift}
         onPersonaSourceOpen={onPersonaSourceOpen}
-        onPostAuthorOpen={setSelectedProfileTarget}
+        onPostAuthorOpen={onPostAuthorOpen}
         onWorldOpen={onWorldOpen}
         onWorldCharacterOpen={onWorldCharacterOpen}
         onWorldCharacterMaterialize={onWorldCharacterMaterialize}
@@ -353,7 +359,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
         receiverId={selectedSourceForGift?.id || ''}
         receiverName={selectedSourceForGift?.name || 'Persona'}
         receiverHandle={selectedSourceForGift?.handle}
-        receiverIsSource={selectedSourceForGift?.isSource === true}
+        receiverIsSource
         receiverAvatarUrl={selectedSourceForGift?.avatarUrl}
         onClose={() => {
           setGiftModalOpen(false);

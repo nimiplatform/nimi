@@ -41,12 +41,10 @@ test('world character source detail hides generic system and affordance tags fro
 test('world character source detail renders circular banner-overlap avatar and simplified Chinese scene labels', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
-    source: {
-      ...ouYangDeRaw.source,
-      placement: {
-        ...ouYangDeRaw.source.placement,
-        sceneRefs: ['yuan-literati-network', 'yuan-academy-gathering', 'yuan-official-court'],
-      },
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      archetype: '元代文人网络',
+      interactionModes: ['文人交游', '书院雅集', '朝廷议事'],
     },
   }, 'source_materialization_available');
   const markup = renderToStaticMarkup(
@@ -61,7 +59,7 @@ test('world character source detail renders circular banner-overlap avatar and s
     }),
   );
 
-  assert.match(markup, /元代文人网络 \/ 元代书院雅集 \/ 元代朝廷官场/);
+  assert.match(markup, /文人交游 \/ 书院雅集 \/ 朝廷议事/);
   assert.doesNotMatch(markup, /yuan-literati-network/);
   assert.doesNotMatch(markup, /yuan-academy-gathering/);
   assert.doesNotMatch(markup, /yuan-official-court/);
@@ -79,12 +77,9 @@ test('world character hero uses dynasty badge, no bottom white mask, and hides r
         ...ouYangDeRaw.entity,
         name: '同恕',
       },
-      source: {
-        ...ouYangDeRaw.source,
-        placement: {
-          ...ouYangDeRaw.source.placement,
-          sceneRefs: ['yuan-literati-network'],
-        },
+      characterProfile: {
+        ...ouYangDeRaw.characterProfile,
+        archetype: '元代文人网络',
       },
     }, 'source_materialization_available');
     const markup = renderToStaticMarkup(
@@ -125,12 +120,9 @@ test('world character hero shows chat instead of join after the character is alr
         ...ouYangDeRaw.entity,
         name: '同恕',
       },
-      source: {
-        ...ouYangDeRaw.source,
-        placement: {
-          ...ouYangDeRaw.source.placement,
-          sceneRefs: ['yuan-literati-network'],
-        },
+      characterProfile: {
+        ...ouYangDeRaw.characterProfile,
+        archetype: '元代文人网络',
       },
     }, 'local_agent_available');
     const markup = renderToStaticMarkup(
@@ -170,15 +162,12 @@ test('world character hero keeps banner and avatar placement while styling name 
         contentHash: 'entity-hash-yao-sui',
       },
       bio: '元代文学家、政治家。',
-      source: {
-        ...ouYangDeRaw.source,
-        placement: {
-          ...ouYangDeRaw.source.placement,
-          role: '文学家，政治家',
-          faction: '元代文人网络',
-          rank: '翰林学士',
-          sceneRefs: ['yuan-literati-network'],
-        },
+      characterProfile: {
+        ...ouYangDeRaw.characterProfile,
+        role: '文学家，政治家',
+        archetype: '元代文人网络',
+        traits: ['翰林学士'],
+        interactionModes: ['文人交游'],
       },
     }, 'source_materialization_available');
     const markup = renderToStaticMarkup(
@@ -215,30 +204,25 @@ test('world character source detail renders admitted CBDB dossier prose in simpl
       name: '蘇軾',
       summary: '元代文學與關係網核心人物，後歷任翰林學士承旨，舊友往來甚廣。',
     },
-    source: {
-      ...ouYangDeRaw.source,
-      placement: {
-        ...ouYangDeRaw.source.placement,
-        role: '文學領袖與朝廷重臣',
-        faction: '元代文人關係網',
-        rank: '翰林學士承旨',
-      },
-      biography: {
-        milestones: [
-          {
-            milestoneId: 'cbdb-person-traditional-milestone-1',
-            title: '後入翰林學士院',
-            summary: '舊臣推舉入翰林學士院，聲名甚廣。',
-            sequence: 1,
-            timeLabel: '1275',
-          },
-        ],
-      },
-      knowledge: {
-        topics: ['文學與關係網', '舊友往來甚廣'],
-        constraints: ['語氣沉穩，少談臺閣舊事'],
-      },
-      interactionProfile: {
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      role: '文學領袖與朝廷重臣',
+      archetype: '元代文人關係網',
+      traits: ['翰林學士承旨'],
+      milestones: [
+        {
+          id: 'cbdb-person-traditional-milestone-1',
+          title: '後入翰林學士院',
+          summary: '舊臣推舉入翰林學士院，聲名甚廣。',
+          sequence: 1,
+          timeLabel: '1275',
+          kind: 'biography',
+          derived: false,
+        },
+      ],
+      knowledgeTopics: ['文學與關係網', '舊友往來甚廣'],
+      knowledgeConstraints: ['語氣沉穩，少談臺閣舊事'],
+      interaction: {
         tone: '沉穩含蓄，談吐帶有舊學氣息',
         cadence: '語速平緩，聽感莊重',
         scenario: '元代文人關係網中的會面。',
@@ -268,8 +252,8 @@ test('world character source detail renders admitted CBDB dossier prose in simpl
 
   assert.equal(source.displayName, '苏轼');
   assert.equal(source.entity?.summary, '元代文学与关系网核心人物，后历任翰林学士承旨，旧友往来甚广。');
-  assert.equal(source.worldCharacter?.faction, '元代文人关系网');
-  assert.equal(source.worldCharacter?.milestones[0]?.title, '后入翰林学士院');
+  assert.equal(source.characterProfile.archetype, '元代文人关系网');
+  assert.equal(source.characterProfile.milestones[0]?.title, '后入翰林学士院');
 
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {

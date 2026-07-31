@@ -4,9 +4,24 @@ import {
 } from '@nimiplatform/sdk/realm';
 import type {
   RealmGetExploreFeedOperationResponse,
+  RealmModel,
 } from '@nimiplatform/sdk/realm/generated';
 import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
 import type { JsonObject } from '@nimiplatform/sdk/types';
+import {
+  characterSourceRefKey,
+  readCharacterSourceRefV3,
+  type CharacterSourceRefV3,
+} from '../../realm-source/realm-source-identity.js';
+import {
+  projectCharacterSourceProfile,
+} from '../../realm-source/character-source-profile-projection.js';
+import {
+  requireWorldPublicSourceCardDto,
+  type WorldPublicSourceCardDto,
+} from '../../world/data/world-public-projection.js';
+
+type PersonaCharacterCoreDto = RealmModel<'PersonaCharacterCoreDto'>;
 
 export type LoadExplorePersonasInput = {
   tag?: string | null;
@@ -40,34 +55,19 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function normalizePublicMediaUrl(value: unknown): string | undefined {
-  const normalized = normalizeText(value);
-  return normalized && /^https?:\/\//iu.test(normalized) ? normalized : undefined;
-}
-
-function readExternalAssetUri(core: Record<string, unknown>, kinds: readonly string[]): string | undefined {
-  const assets = asRecord(core.assets);
-  const refs = Array.isArray(assets.externalRefs) ? assets.externalRefs : [];
-  for (const ref of refs) {
-    const record = asRecord(ref);
-    const kind = normalizeText(record.kind);
-    if (kind && kinds.includes(kind)) {
-      const uri = normalizePublicMediaUrl(record.uri);
-      if (uri) return uri;
-    }
-  }
-  return undefined;
-}
-
 function failPersonaCharacterContract(reasonCode: string, message: string): never {
   const error = new Error(message) as Error & { reasonCode?: string };
   error.reasonCode = reasonCode;
   throw error;
 }
 
-function requirePersonaCharacterCore(value: unknown): Record<string, unknown> {
+function requirePersonaCharacterCore(value: unknown): {
+  persona: PersonaCharacterCoreDto;
+  sourceRef: Extract<CharacterSourceRefV3, { kind: 'personaCharacter' }>;
+} {
   const persona = asRecord(value);
-  if (!persona.id || typeof persona.id !== 'string') {
+  const id = normalizeText(persona.id);
+  if (!id) {
     failPersonaCharacterContract(
       'SDK_REALM_PERSONA_CHARACTER_CORE_CONTRACT_INVALID',
       'PersonaCharacter payload is missing id',
@@ -80,7 +80,45 @@ function requirePersonaCharacterCore(value: unknown): Record<string, unknown> {
       `PersonaCharacter ${persona.id} payload is missing profile object`,
     );
   }
-  return persona;
+  const sourceRef = readCharacterSourceRefV3({
+    kind: 'personaCharacter',
+    id,
+    worldId: normalizeText(persona.worldId),
+    ownerAccountId: normalizeText(persona.ownerAccountId),
+    sourceHash: normalizeText(persona.sourceHash),
+  });
+  if (!sourceRef || sourceRef.kind !== 'personaCharacter') {
+    failPersonaCharacterContract(
+      'SDK_REALM_PERSONA_CHARACTER_SOURCE_REF_INVALID',
+      `PersonaCharacter ${id} cannot produce a strict CharacterSourceRefV3`,
+    );
+  }
+  return {
+    persona: value as PersonaCharacterCoreDto,
+    sourceRef,
+  };
+}
+
+async function loadPersonaPublicSourceCard(
+  realm: Realm,
+  sourceRef: Extract<CharacterSourceRefV3, { kind: 'personaCharacter' }>,
+): Promise<WorldPublicSourceCardDto> {
+  const source = requireWorldPublicSourceCardDto(
+    await realm.worldPublic.worldPublicControllerGetCharacterSource({
+      path: {},
+      body: { sourceRef },
+    }),
+    sourceRef.worldId,
+  );
+  const returnedSourceRef = readCharacterSourceRefV3(source.sourceRef);
+  if (!returnedSourceRef
+    || characterSourceRefKey(returnedSourceRef) !== characterSourceRefKey(sourceRef)) {
+    failPersonaCharacterContract(
+      'SDK_REALM_PERSONA_CHARACTER_PUBLIC_SOURCE_REF_MISMATCH',
+      `WorldPublicSourceCard ${source.id} does not match the requested PersonaCharacter sourceRef`,
+    );
+  }
+  return source;
 }
 
 export async function loadExplorePersonas(
@@ -111,63 +149,32 @@ export async function loadExplorePersonas(
       }
       const normalizedQuery = query?.toLowerCase();
       const normalizedTag = tag?.toLowerCase();
-      const items = rows.map((row) => {
-        const persona = requirePersonaCharacterCore(row);
-        const profile = asRecord(persona.profile);
-        const identity = asRecord(profile.identity);
-        const presentation = asRecord(profile.presentation);
-        const interactionProfile = asRecord(profile.interactionProfile);
-        const contentProfile = asRecord(profile.contentProfile);
-        const personaStyle = asRecord(profile.personaStyle);
-        const origin = asRecord(persona.origin);
-        const homeWorldId = normalizeText(persona.worldId)
-          ?? normalizeText(interactionProfile.homeWorldId);
-        const sourceHash = normalizeText(persona.sourceHash);
-        const ownerAccountId = normalizeText(persona.ownerAccountId);
-        const sourceRef = homeWorldId && sourceHash && ownerAccountId
-          ? {
-              kind: 'personaCharacter' as const,
-              id: String(persona.id),
-              worldId: homeWorldId,
-              ownerAccountId,
-              sourceHash,
-            }
-          : null;
-        const displayName = normalizeText(presentation.displayName)
-          ?? normalizeText(identity.name)
-          ?? String(persona.id);
-        const handle = normalizeText(identity.handle)
-          ?? displayName;
-        const tags = Array.isArray(contentProfile.topics)
-          ? contentProfile.topics.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-          : [];
+      const projectedItems = await Promise.all(rows.map(async (row) => {
+        const { persona, sourceRef } = requirePersonaCharacterCore(row);
+        const publicSource = await loadPersonaPublicSourceCard(realm, sourceRef);
+        const projection = projectCharacterSourceProfile(persona.profile, publicSource);
         return {
           id: persona.id,
-          displayName,
-          name: displayName,
-          handle,
-          avatarUrl: readExternalAssetUri(profile, ['avatar', 'referenceImage'])
-            ?? null,
-          bio: normalizeText(identity.summary)
-            ?? normalizeText(presentation.profileLine)
-            ?? normalizeText(presentation.shortBio)
-            ?? null,
-          tags,
-          source: profile,
-          sourceKind: 'personaCharacter',
-          sourceId: persona.id,
-          sourceHash: sourceHash ?? null,
+          displayName: projection.displayName,
+          name: projection.displayName,
+          handle: projection.handle || projection.displayName,
+          avatarUrl: projection.avatarUrl,
+          bio: projection.bio,
+          tags: projection.tags,
           sourceRef,
-          runtimeSourceRef: null,
-          visibility: normalizeText(persona.visibility) ?? null,
-          archetype: normalizeText(personaStyle.archetype) ?? normalizeText(personaStyle.voice),
-          origin: normalizeText(origin.kind),
-          pacing: normalizeText(personaStyle.pacing),
-          worldId: homeWorldId,
+          viewerRelation: projection.viewerRelation,
+          visibility: persona.visibility,
+          role: projection.characterProfile.role,
+          archetype: projection.characterProfile.archetype,
+          cadence: projection.characterProfile.interaction?.cadence ?? null,
+          worldId: sourceRef.worldId,
+          worldName: projection.worldName,
+          ownership: projection.ownership,
           createdAt: persona.createdAt,
           updatedAt: persona.updatedAt,
         };
-      }).filter((item) => {
+      }));
+      const items = projectedItems.filter((item) => {
         const haystack = [
           item.id,
           item.displayName,

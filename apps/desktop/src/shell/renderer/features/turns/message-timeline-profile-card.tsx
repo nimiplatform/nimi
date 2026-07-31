@@ -2,13 +2,13 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '../../components/entity-avatar.js';
-import type { ProfileData } from '../profile/profile-model';
+import type { HumanProfileData } from '../profile/profile-model';
 import { formatProfileDate } from '../profile/profile-model';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 export type ChatProfileCardProps = {
-  profileData: ProfileData;
+  profileData: HumanProfileData;
   onClose: () => void;
   onViewFullProfile: () => void;
   viewFullProfileLabel: string;
@@ -80,10 +80,10 @@ export function ChatProfileCard({
           <EntityAvatar
             imageUrl={profileData.avatarUrl}
             name={profileData.displayName}
-            kind={profileData.isSource ? 'source' : 'human'}
+            kind="human"
             sizeClassName="h-20 w-20"
-            className={profileData.isSource ? undefined : 'ring-2 ring-white/70'}
-            fallbackClassName={profileData.isSource ? undefined : 'bg-gradient-to-br from-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] to-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,white)] text-[var(--nimi-action-primary-bg)]'}
+            className="ring-2 ring-white/70"
+            fallbackClassName="bg-gradient-to-br from-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] to-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,white)] text-[var(--nimi-action-primary-bg)]"
             textClassName="text-2xl font-bold"
           />
           {profileData.isOnline ? (
@@ -97,9 +97,7 @@ export function ChatProfileCard({
         <p className="text-xs text-gray-500">{profileData.handle}</p>
 
         <span className="mt-2 inline-flex items-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-action-primary-bg)]">
-          {profileData.isSource
-            ? t('ChatTimeline.source', { defaultValue: 'Source' })
-            : t('ChatTimeline.human')}
+          {t('ChatTimeline.human')}
         </span>
 
         {profileData.bio ? (

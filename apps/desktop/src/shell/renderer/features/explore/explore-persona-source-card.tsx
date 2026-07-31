@@ -1,5 +1,5 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useId, useMemo, type CSSProperties, type MouseEvent } from 'react';
+import type { CSSProperties, MouseEvent } from 'react';
 
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { getSemanticSourcePalette } from '../../components/source-theme.js';
@@ -11,44 +11,6 @@ import {
   type CharacterSourceState,
 } from './character-source-materialization';
 
-// Hash an identifier into a stable 12-point curve in [0.3, 1]. This powers the
-// decorative activity sparkline on the persona source card - we have no time-series
-// engagement data, so the curve is deterministic per-source rather than
-// synthesized per render (which would flicker) or mocked as uniform fake data.
-function deterministicPulse(seed: string, points = 12): number[] {
-  let h = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-  const out: number[] = [];
-  for (let i = 0; i < points; i += 1) {
-    h = (h * 1664525 + 1013904223) >>> 0;
-    out.push(0.3 + ((h % 1000) / 1000) * 0.7);
-  }
-  return out;
-}
-function MiniSparkline({ seed, width = 52, height = 18 }: { seed: string; width?: number; height?: number }) {
-  const id = `source-pulse-${useId().replace(/[^A-Za-z0-9_-]/gu, '')}`;
-  const data = useMemo(() => deterministicPulse(seed), [seed]);
-  const max = Math.max(...data, 1);
-  const step = width / Math.max(data.length - 1, 1);
-  const points = data
-    .map((v, i) => `${(i * step).toFixed(1)},${(height - (v / max) * height * 0.9 - 2).toFixed(1)}`)
-    .join(' ');
-  const area = `0,${height} ${points} ${width},${height}`;
-  return (
-    <svg width={width} height={height} style={{ display: 'block' }} aria-hidden>
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--nimi-accent)" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="var(--nimi-accent)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon points={area} fill={`url(#${id})`} />
-      <polyline points={points} fill="none" stroke="var(--nimi-accent)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
 function sourcePillStyle(state: CharacterSourceState): CSSProperties {
   if (state === 'source_materialization_available' || state === 'local_agent_available') {
     return {
@@ -79,9 +41,9 @@ function PrimaryActionIcon({ action: _action }: { action: CharacterPrimaryAction
 type CharacterPrimaryActionGlyph = ReturnType<typeof describeCharacterPrimaryAction>['action'];
 // Compact Persona Source Card for horizontal scrolling recommendation section.
 // Layout: rank kicker + Public pill · aurora blob · glyph tile + name/role ·
-// Origin meta row · footer (sparkline + count + source action). Every
+// Origin meta row · footer (optional server count + source action). Every
 // color uses fg-*/accent-*/border-* tokens, every font uses the three font
-// tokens. The sparkline is decorative - see deterministicPulse comment.
+// tokens.
 export function PersonaSourceCard({
   source,
   onPrimaryAction,
@@ -94,17 +56,21 @@ export function PersonaSourceCard({
   const i18n = useDesktopI18nResource().instance;
   const palette = getSemanticSourcePalette({
     archetype: source.archetype,
-    origin: source.origin,
-    description: source.bio || source.archetype || null,
+    description: source.bio || source.role || source.archetype || null,
     worldName: source.worldName,
     tags: source.tags,
   });
-  const roleText = source.bio
+  const roleText = source.role
+    || source.bio
     || source.archetype
+    || source.cadence
     || source.tags[0]
     || i18n.t('Explore.defaultRole', { defaultValue: 'Companion' });
-  const originText = source.origin || source.worldName || source.archetype || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
-  const postsCount = typeof source.postsCount === 'number' ? source.postsCount : 0;
+  const ownershipText = source.ownership === 'worldOwned'
+    ? i18n.t('Explore.worldOwnedSource', { defaultValue: 'World-owned' })
+    : i18n.t('Explore.userOwnedSource', { defaultValue: 'User-owned' });
+  const worldText = `${source.worldName} · ${ownershipText}`;
+  const postsCount = typeof source.postsCount === 'number' ? source.postsCount : null;
   const isPublic = source.visibility === 'public';
   const glyph = source.name ? source.name.trim().charAt(0).toUpperCase() : '·';
   const sourceState: CharacterSourceState = source.sourceState ?? 'source_materialization_unavailable';
@@ -219,7 +185,7 @@ export function PersonaSourceCard({
           </div>
         </div>
       </div>
-      {/* Origin meta row */}
+      {/* World and ownership meta row */}
       <div className="relative flex items-baseline justify-between gap-2">
         <span
           style={{
@@ -229,7 +195,7 @@ export function PersonaSourceCard({
             letterSpacing: '0.04em',
           }}
         >
-          {i18n.t('Explore.originLabel', { defaultValue: 'Origin' })}
+          {i18n.t('Explore.worldLabel', { defaultValue: 'World' })}
         </span>
         <span
           className="min-w-0 truncate text-right"
@@ -240,16 +206,15 @@ export function PersonaSourceCard({
             color: 'var(--nimi-fg-2)',
           }}
         >
-          {originText}
+          {worldText}
         </span>
       </div>
-      {/* Footer: sparkline + count + source action */}
+      {/* Footer: real server count when present + source action */}
       <div
         className="relative mt-auto flex items-center justify-between border-t pt-3"
         style={{ borderColor: 'var(--nimi-border-subtle)' }}
       >
-        <div className="flex items-center gap-2.5">
-          <MiniSparkline seed={source.id} />
+        {postsCount !== null ? (
           <div className="flex flex-col leading-tight">
             <span
               style={{
@@ -274,7 +239,7 @@ export function PersonaSourceCard({
               {i18n.t('Explore.chatsLabel', { defaultValue: 'Posts' })}
             </span>
           </div>
-        </div>
+        ) : null}
         <button
           type="button"
           onClick={handlePrimaryActionClick}
@@ -282,7 +247,7 @@ export function PersonaSourceCard({
           data-testid={E2E_IDS.explorePersonaSourcePrimaryAction(source.id)}
           data-source-state={sourceState}
           data-primary-action={primaryAction.action}
-          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors disabled:cursor-default"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors disabled:cursor-default"
           style={{
             fontFamily: 'var(--nimi-font-sans)',
             fontSize: 11,

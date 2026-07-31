@@ -14,6 +14,7 @@ import {
   toWorldDisplayFallback,
   worldPublicHighlightImages,
 } from '../src/shell/renderer/features/world/world-detail-queries.js';
+import { projectWorldPublicSourceCard } from '../src/shell/renderer/features/world/data/world-public-projection.js';
 import { toWorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
 
 type RealmWorldDataError = {
@@ -279,6 +280,30 @@ test('World Atlas excludes Beijing and Northern Song scholar-official worlds fro
   assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '北京士大夫世界' }))), false);
   assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '北宋士大夫世界' }))), false);
   assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '唐代文人世界' }))), true);
+});
+
+test('World Character projections fail closed on incomplete source refs', () => {
+  const incompleteSource = publicSource({
+    sourceRef: {
+      kind: 'worldCharacter',
+      id: 'source-1',
+      worldId: 'world-1',
+      sourceHash: 'a'.repeat(64),
+    },
+  });
+
+  assert.throws(
+    () => projectWorldPublicSourceCard(incompleteSource as never),
+    /matching CharacterSourceRefV3/i,
+  );
+
+  const item = toWorldListItem(publicWorld({
+    characters: [{
+      ...incompleteSource,
+      name: 'Archivist Liora',
+    }],
+  }));
+  assert.equal(item.characters?.[0]?.sourceRef, null);
 });
 
 test('World detail consumes public source sections for characters and personas', async () => {

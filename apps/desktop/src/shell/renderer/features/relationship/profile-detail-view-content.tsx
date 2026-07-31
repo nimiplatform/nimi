@@ -13,10 +13,8 @@ import {
   EyeIcon,
   InlineMeta,
   LocationIcon,
-  OriginIcon,
   PencilIcon,
   SpinnerIcon,
-  WorldMetaLink,
 } from './profile-detail-view-parts.js';
 import {
   ACCEPTED_AVATAR_TYPES,
@@ -33,23 +31,8 @@ import { ProfileDetailTabs } from './profile-detail-view-tabs.js';
 const SHOW_AVATAR_ONLINE_INDICATOR = false;
 const TOPBAR_TOOLTIP_CLASS = 'rounded-full bg-[#0f172a] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.25)]';
 
-function formatEntityFact(fact: Record<string, unknown>): string {
-  const key = typeof fact.key === 'string'
-    ? fact.key
-    : typeof fact.name === 'string'
-      ? fact.name
-      : '';
-  const value = typeof fact.value === 'string'
-    ? fact.value
-    : typeof fact.summary === 'string'
-      ? fact.summary
-      : '';
-  return [key, value].filter(Boolean).join(': ');
-}
-
 export function ProfileDetailViewContent(input: {
   controller: ProfileDetailViewController;
-  onVisitWorld: (worldId: string) => void;
 } & ProfileDetailViewProps) {
   const bindings = useDesktopRendererBindings();
   const i18n = useDesktopI18nResource();
@@ -86,9 +69,9 @@ export function ProfileDetailViewContent(input: {
   const friendCount = profile.stats?.friendsCount ?? 0;
   const postCount = profile.stats?.postsCount ?? 0;
   const likesCount = profile.stats?.likesCount ?? 0;
-  const headerStyle = profile.worldBannerUrl
+  const headerStyle = profile.coverUrl
     ? {
-        backgroundImage: `linear-gradient(120deg, rgba(7, 20, 17, 0.58), rgba(7, 20, 17, 0.18)), url(${profile.worldBannerUrl})`,
+        backgroundImage: `linear-gradient(120deg, rgba(7, 20, 17, 0.58), rgba(7, 20, 17, 0.18)), url(${profile.coverUrl})`,
         backgroundPosition: 'center',
         backgroundSize: 'cover',
       }
@@ -108,17 +91,11 @@ export function ProfileDetailViewContent(input: {
   const locationLabel = profile.city && profile.countryCode
     ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
     : profile.city || profile.countryCode?.toUpperCase() || t('Profile.unknownRegion', { defaultValue: 'Unknown region' });
-  const originLabel = profile.sourceOrigin || t('Profile.unknownOrigin', { defaultValue: 'Unknown origin' });
   const joinedLabel = formatProfileDate(profile.createdAt, i18n.formatDate) || t('Profile.unknownJoinedDate', { defaultValue: 'Unknown joined date' });
-  const worldLabel = profile.worldName || t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
-  const worldNavigationId = profile.sourceWorldId || '';
-  const canVisitWorld = Boolean(worldNavigationId);
   const isRestrictedProfile = (input.isRestrictedProfile === true || profile.accessState === 'restricted') && !input.isOwnProfile;
   const headline = isRestrictedProfile
     ? t('Profile.privateProfileDescription', { defaultValue: 'This profile is private. Only basic contact information is available.' })
-    : profile.bio || (profile.isSource
-    ? t('Profile.sourceNoSummary', { defaultValue: 'This source has no public profile summary yet.' })
-    : t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' }));
+    : profile.bio || t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' });
   const contentRestricted = (input.isBlockedProfile === true || isRestrictedProfile) && !input.isOwnProfile;
   const showGiftButton = !input.isOwnProfile && !contentRestricted;
   const showAddFriendButton = !contentRestricted && !input.isOwnProfile && !profile.isFriend && !profile.isPendingFriendRequest && Boolean(input.onAddFriend);
@@ -137,14 +114,6 @@ export function ProfileDetailViewContent(input: {
   const profileDetailBody = (
           <section className="relative">
             <div className="relative h-[168px] overflow-hidden px-8 py-5 [mask-image:linear-gradient(180deg,#000_0%,#000_58%,rgba(0,0,0,0.45)_78%,transparent_96%)] [-webkit-mask-image:linear-gradient(180deg,#000_0%,#000_58%,rgba(0,0,0,0.45)_78%,transparent_96%)]" style={headerStyle}>
-              {canVisitWorld ? (
-                <button
-                  type="button"
-                  onClick={() => input.onVisitWorld(worldNavigationId)}
-                  className="absolute inset-x-0 top-0 z-10 h-[110px] cursor-pointer"
-                  aria-label={t('Profile.visitWorld', { worldName: worldLabel, defaultValue: 'Visit {{worldName}}' })}
-                />
-              ) : null}
               {!input.isOwnProfile && !input.hideBackButton ? (
                 <button
                   type="button"
@@ -159,7 +128,7 @@ export function ProfileDetailViewContent(input: {
                   </svg>
                 </button>
               ) : null}
-              {!profile.worldBannerUrl ? (
+              {!profile.coverUrl ? (
                 <>
                   <div className="pointer-events-none absolute -left-6 top-4 h-40 w-44 rounded-full bg-[#73e0bc]/24 blur-[44px]" />
                   <div className="pointer-events-none absolute left-[34%] top-[-2%] h-36 w-40 rounded-full bg-[#a98fff]/20 blur-[48px]" />
@@ -206,11 +175,11 @@ export function ProfileDetailViewContent(input: {
                               <EntityAvatar
                                 imageUrl={isEditing ? draft.avatarUrl || null : profile.avatarUrl}
                                 name={isEditing ? draft.displayName || profile.displayName : profile.displayName}
-                                kind={profile.isSource ? 'source' : 'human'}
+                                kind="human"
                                 sizeClassName="h-24 w-24"
                                 textClassName="text-3xl font-bold"
-                                fallbackClassName={profile.isSource ? undefined : 'bg-gradient-to-br from-[var(--nimi-action-primary-bg)]/20 to-[var(--nimi-action-primary-bg)]/5 text-[var(--nimi-action-primary-bg-hover)]'}
-                                className={profile.isSource ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]'}
+                                fallbackClassName="bg-gradient-to-br from-[var(--nimi-action-primary-bg)]/20 to-[var(--nimi-action-primary-bg)]/5 text-[var(--nimi-action-primary-bg-hover)]"
+                                className="rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]"
                               />
 
                               {SHOW_AVATAR_ONLINE_INDICATOR && profile.isOnline ? (
@@ -230,7 +199,7 @@ export function ProfileDetailViewContent(input: {
                                   />
                                   <div
                                     onClick={() => !isUploadingAvatar && avatarInputRef.current?.click()}
-                                    className={`absolute inset-0 flex items-center justify-center ${profile.isSource ? 'rounded-[12px]' : 'rounded-full'} transition-all ${
+                                    className={`absolute inset-0 flex items-center justify-center rounded-full transition-all ${
                                       isUploadingAvatar
                                         ? 'bg-black/50'
                                         : 'cursor-pointer bg-black/0 group-hover:bg-black/40'
@@ -331,12 +300,6 @@ export function ProfileDetailViewContent(input: {
                                     <div className="grid max-w-[460px] grid-cols-2 gap-x-10 gap-y-2 text-sm text-slate-600">
                                       <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
                                       <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
-                                      <WorldMetaLink
-                                        value={worldLabel}
-                                        canVisit={canVisitWorld}
-                                        onClick={canVisitWorld ? () => input.onVisitWorld(worldNavigationId) : undefined}
-                                      />
-                                      <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
                                     </div>
                                     {profile.tags.length > 0 ? (
                                       <div className="mt-4 flex flex-wrap gap-2">
@@ -349,24 +312,6 @@ export function ProfileDetailViewContent(input: {
                                             {tag}
                                           </span>
                                         ))}
-                                      </div>
-                                    ) : null}
-                                    {profile.entity ? (
-                                      <div className="mt-4 max-w-[460px] rounded-2xl border border-slate-200/80 bg-white/68 px-4 py-3 text-[12px] text-slate-600">
-                                        <p className="text-[13px] font-semibold text-slate-800">{profile.entity.name}</p>
-                                        {profile.entity.summary ? (
-                                          <p className="mt-1 leading-relaxed">{profile.entity.summary}</p>
-                                        ) : null}
-                                        {profile.entity.tags.length > 0 ? (
-                                          <p className="mt-2 text-[11px] font-medium text-[var(--nimi-action-primary-bg-hover)]">
-                                            {profile.entity.tags.slice(0, 4).join(' / ')}
-                                          </p>
-                                        ) : null}
-                                        {profile.entity.facts.length > 0 ? (
-                                          <p className="mt-2 leading-relaxed text-slate-500">
-                                            {profile.entity.facts.slice(0, 2).map(formatEntityFact).filter(Boolean).join(' · ')}
-                                          </p>
-                                        ) : null}
                                       </div>
                                     ) : null}
                                   </div>

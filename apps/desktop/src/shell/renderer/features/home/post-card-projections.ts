@@ -1,7 +1,10 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import type { ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
+import type { HumanProfileDetailSeed } from '../relationship/profile-detail-modal.js';
 import type { EditablePostSeed } from '../profile/create-post-modal-helpers.js';
-import { readCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
+import {
+  readCharacterSourceRefV3,
+  type CharacterSourceRefV3,
+} from '../realm-source/realm-source-identity.js';
 import {
   normalizeMediaType,
   resolveMediaUrl,
@@ -18,8 +21,19 @@ export type PostCardDisplayAuthor = {
   displayName: string;
   handle: string;
   avatarUrl?: string | null;
-  isSource: boolean;
+  kind: 'human' | 'character';
 };
+
+export type PostCardAuthorProfileTarget =
+  | {
+      kind: 'human';
+      profileId: string;
+      profileSeed: HumanProfileDetailSeed;
+    }
+  | {
+      kind: 'character';
+      sourceRef: CharacterSourceRefV3;
+    };
 
 function extractPostAttachmentId(attachment: unknown): string {
   if (!attachment || typeof attachment !== 'object') {
@@ -80,35 +94,41 @@ export function buildPostCardAuthorProjection(input: {
   post: PostDto;
   unknownDisplayName: string;
 }): {
-  authorProfileSeed: ProfileDetailSeed | null;
+  authorProfileTarget: PostCardAuthorProfileTarget | null;
   displayAuthor: PostCardDisplayAuthor | null;
-  isSourceAuthored: boolean;
 } {
   const { authorId, post } = input;
   const author = post.author ?? null;
   const sourceAuthor = post.sourceAuthor ?? null;
-  const isSourceAuthored = post.authorKind !== 'human' && Boolean(sourceAuthor);
 
-  if (isSourceAuthored && sourceAuthor) {
-    const sourceAuthorSeed = buildSourceAuthorProfileSeed(sourceAuthor, input.unknownDisplayName);
+  if (post.authorKind !== 'human') {
+    if (!sourceAuthor) {
+      throw new Error('Character-authored post requires sourceAuthor with CharacterSourceRefV3');
+    }
+    const sourceRef = readPostSourceAuthorRef(sourceAuthor);
     return {
-      authorProfileSeed: sourceAuthorSeed,
+      authorProfileTarget: {
+        kind: 'character',
+        sourceRef,
+      },
       displayAuthor: {
         id: sourceAuthor.id,
         displayName: sourceAuthor.displayName || input.unknownDisplayName,
         handle: sourceAuthor.handle || '',
         avatarUrl: sourceAuthor.avatarUrl ?? null,
-        isSource: true,
+        kind: 'character',
       },
-      isSourceAuthored: true,
     };
+  }
+
+  if (sourceAuthor) {
+    throw new Error('Human-authored post cannot include Character sourceAuthor');
   }
 
   if (!authorId) {
     return {
-      authorProfileSeed: null,
+      authorProfileTarget: null,
       displayAuthor: null,
-      isSourceAuthored: false,
     };
   }
 
@@ -116,39 +136,33 @@ export function buildPostCardAuthorProjection(input: {
   const handle = author?.handle || '';
 
   return {
-    authorProfileSeed: {
-      id: authorId,
-      displayName,
-      handle,
-      avatarUrl: author?.avatarUrl ?? null,
-      bio: author?.bio ?? null,
-      isSource: false,
-      isOnline: author?.isOnline === true,
-      createdAt: author?.createdAt ?? '',
-      friendsCount: author?.friendCount,
-      sourceState: null,
-      sourceArchetype: null,
-      sourceOrigin: null,
-      sourceTier: null,
-      sourcePacing: null,
-      sourceOwnershipType: null,
-      sourceWorldId: null,
+    authorProfileTarget: {
+      kind: 'human',
+      profileId: authorId,
+      profileSeed: {
+        id: authorId,
+        displayName,
+        handle,
+        avatarUrl: author?.avatarUrl ?? null,
+        bio: author?.bio ?? null,
+        isOnline: author?.isOnline === true,
+        createdAt: author?.createdAt ?? '',
+        friendsCount: author?.friendCount,
+      },
     },
     displayAuthor: {
       id: authorId,
       displayName,
       handle,
       avatarUrl: author?.avatarUrl ?? null,
-      isSource: false,
+      kind: 'human',
     },
-    isSourceAuthored: false,
   };
 }
 
-function buildSourceAuthorProfileSeed(
+function readPostSourceAuthorRef(
   sourceAuthor: PostSourceAuthorDto,
-  unknownDisplayName: string,
-): ProfileDetailSeed {
+): CharacterSourceRefV3 {
   const sourceRef = readCharacterSourceRefV3(sourceAuthor.sourceRef);
   if (!sourceRef
     || sourceRef.kind !== sourceAuthor.kind
@@ -156,27 +170,5 @@ function buildSourceAuthorProfileSeed(
     || sourceRef.id !== sourceAuthor.id) {
     throw new Error('Post source author requires a matching CharacterSourceRefV3');
   }
-  return {
-    id: sourceAuthor.id,
-    displayName: sourceAuthor.displayName || unknownDisplayName,
-    handle: sourceAuthor.handle || '',
-    avatarUrl: sourceAuthor.avatarUrl ?? null,
-    bio: null,
-    isSource: true,
-    isOnline: false,
-    createdAt: '',
-    friendsCount: undefined,
-    sourceState: null,
-    sourceArchetype: null,
-    sourceOrigin: null,
-    sourceTier: null,
-    sourcePacing: null,
-    sourceOwnershipType: null,
-    sourceWorldId: sourceAuthor.worldId,
-    sourceKind: sourceRef.kind,
-    sourceId: sourceRef.id,
-    sourceHash: sourceRef.sourceHash,
-    runtimeSourceRef: sourceAuthor.runtimeSourceRef,
-    sourceRef,
-  };
+  return sourceRef;
 }

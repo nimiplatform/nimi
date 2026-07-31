@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
-import type { StatusBanner } from '../../app-shell/providers/store-types';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
-type SetFeedback = (banner: StatusBanner | null) => void;
+type SetFeedback = (banner: InlineFeedbackState | null) => void;
 
 export type UsePostCardUiInput = {
   authorId: string;

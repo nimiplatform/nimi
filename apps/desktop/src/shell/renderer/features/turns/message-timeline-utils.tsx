@@ -83,7 +83,6 @@ export type ChatProfileSummary = {
   displayName: string;
   handle: string;
   avatarUrl: string | null;
-  isSource: boolean;
   isOnline: boolean;
   bio: string;
   presenceText: string;
@@ -114,7 +113,6 @@ export function toChatProfileSummary(input: {
       : typeof fallback.avatarUrl === 'string'
         ? String(fallback.avatarUrl)
         : null,
-    isSource: source.isSource === true || fallback.isSource === true,
     isOnline: source.isOnline === true || fallback.isOnline === true,
     bio: String(source.bio || '').trim(),
     presenceText: String(source.presenceText || fallback.presenceText || '').trim(),

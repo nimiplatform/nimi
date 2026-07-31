@@ -3,7 +3,6 @@ import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar.js';
-import { type ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
 import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
@@ -50,7 +49,7 @@ function getIdentityLabel(target: ConversationTargetSummary, sourceLabel: string
 
 function getProfileOpenLabel(source: ConversationTargetSummary['source'], title: string, t: TFunction): string {
   const action = source === 'agent'
-    ? t('Chat.composerAvatarOpenSource', { defaultValue: 'Open persona profile' })
+    ? t('Chat.composerAvatarOpenCharacter', { defaultValue: 'Open character profile' })
     : t('Chat.composerAvatarOpenContact', { defaultValue: 'Open profile' });
   return `${action}: ${title}`;
 }
@@ -64,13 +63,6 @@ function getMetadataValue(target: ConversationTargetSummary, key: string): unkno
   return target.metadata?.[key];
 }
 
-function resolveProfileTargetId(target: ConversationTargetSummary): string {
-  if (target.source === 'human') {
-    return getMetadataText(target, 'otherUserId') || target.id;
-  }
-  return resolveProfileSourceRef(target)?.id ?? '';
-}
-
 function resolveProfileSourceRef(target: ConversationTargetSummary): CharacterSourceRefV3 | null {
   if (target.source !== 'agent') {
     return null;
@@ -78,59 +70,26 @@ function resolveProfileSourceRef(target: ConversationTargetSummary): CharacterSo
   return readCharacterSourceRefV3(getMetadataValue(target, 'sourceRef'));
 }
 
-export function buildRelationshipProfileSeed(target: ConversationTargetSummary): { profileId: string; seed: ProfileDetailSeed } | null {
-  if (target.source !== 'human' && target.source !== 'agent') {
-    return null;
-  }
-  const sourceRef = resolveProfileSourceRef(target);
-  if (target.source === 'agent' && !sourceRef) {
-    return null;
-  }
-  const profileId = resolveProfileTargetId(target).trim();
-  if (!profileId) {
-    return null;
-  }
-  const ownershipType = getMetadataText(target, 'ownershipType');
-  const runtimeSourceRef = target.source === 'agent'
-    ? getMetadataText(target, 'runtimeSourceRef')
-    : '';
-  return {
-    profileId,
-    seed: {
-      id: profileId,
-      displayName: target.title,
-      handle: target.handle?.replace(/^@/, '').trim() || '',
-      avatarUrl: target.avatarUrl || null,
-      bio: target.bio || null,
-      isSource: target.source === 'agent',
-      isOnline: target.isOnline ?? undefined,
-      worldName: getMetadataText(target, 'worldName') || null,
-      sourceWorldId: sourceRef?.worldId ?? null,
-      sourceKind: sourceRef?.kind,
-      sourceId: sourceRef?.id,
-      sourceHash: sourceRef?.sourceHash,
-      runtimeSourceRef: runtimeSourceRef || undefined,
-      ...(sourceRef ? { sourceRef } : {}),
-      sourceOwnershipType: ownershipType || null,
-    },
-  };
-}
-
 export type RelationshipProfileNavigationTarget =
-  | { kind: 'source-detail'; sourceRef: CharacterSourceRefV3 }
-  | { kind: 'profile'; profileId: string };
+  | { kind: 'character'; sourceRef: CharacterSourceRefV3 }
+  | { kind: 'human'; profileId: string };
 
 export function buildRelationshipProfileNavigationTarget(
   target: ConversationTargetSummary,
 ): RelationshipProfileNavigationTarget | null {
-  const profile = buildRelationshipProfileSeed(target);
-  if (!profile) {
-    return null;
+  if (target.source === 'agent') {
+    const sourceRef = resolveProfileSourceRef(target);
+    return sourceRef ? { kind: 'character', sourceRef } : null;
   }
-  if (profile.seed.sourceRef) {
-    return { kind: 'source-detail', sourceRef: profile.seed.sourceRef };
+  if (target.source === 'human') {
+    const profileId = (getMetadataText(target, 'otherUserId') || target.id).trim();
+    return profileId
+      && !profileId.startsWith('local-agent:')
+      && !profileId.startsWith('runtime-source:')
+      ? { kind: 'human', profileId }
+      : null;
   }
-  return { kind: 'profile', profileId: profile.profileId };
+  return null;
 }
 
 function LocalAgentGlyphIcon({ className = '' }: { className?: string }) {
@@ -163,14 +122,14 @@ export function RelationshipHoverCard({
   const sourceLabel = getSourceLabel(target.source, t);
   const identity = getIdentityLabel(target, sourceLabel);
   const preview = target.previewText || target.bio || t('Chat.hoverCardNoPreview', { defaultValue: 'No recent message' });
-  const isSource = target.source === 'agent';
+  const isLocalAgent = target.source === 'agent';
   const sourcePillLabel = t('Chat.hoverCardLocalAgent', { defaultValue: 'localAgent' });
 
-  const avatarVisual = isSource ? (
+  const avatarVisual = isLocalAgent ? (
     <EntityAvatar
       imageUrl={target.avatarUrl || null}
       name={target.avatarFallback || target.title || '?'}
-      kind="source"
+      kind="agent"
       sizeClassName="h-[74px] w-[74px]"
       textClassName="text-xl font-semibold"
     />
@@ -222,7 +181,7 @@ export function RelationshipHoverCard({
             <h3 className="min-w-0 truncate text-[16px] font-semibold leading-6 tracking-normal text-slate-950">
               {target.title}
             </h3>
-            {isSource ? (
+            {isLocalAgent ? (
               <span
                 className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-violet-700"
                 aria-label={sourcePillLabel}

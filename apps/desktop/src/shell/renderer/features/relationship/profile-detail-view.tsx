@@ -13,9 +13,6 @@ export type { EditableProfileDraft } from './profile-detail-view-parts.js';
 
 export function ProfileDetailView(props: ProfileDetailViewProps) {
   const { t } = useTranslation();
-  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
-  const setSelectedProfileIsSource = useAppStore((state) => state.setSelectedProfileIsSource);
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const controller = useProfileDetailViewController(props, realmBaseUrl);
 
@@ -33,15 +30,5 @@ export function ProfileDetailView(props: ProfileDetailViewProps) {
     );
   }
 
-  return (
-    <ProfileDetailViewContent
-      {...props}
-      controller={controller}
-      onVisitWorld={(worldNavigationId) => {
-        setSelectedProfileId(props.profile.id);
-        setSelectedProfileIsSource(props.profile.isSource);
-        navigateToWorld(worldNavigationId);
-      }}
-    />
-  );
+  return <ProfileDetailViewContent {...props} controller={controller} />;
 }

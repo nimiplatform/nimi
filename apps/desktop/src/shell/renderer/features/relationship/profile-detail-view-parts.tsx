@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { ProfileData } from '../profile/profile-model';
+import type { HumanProfileData } from '../profile/profile-model';
 
 export type EditableProfileDraft = {
   displayName: string;
@@ -12,7 +12,7 @@ export type EditableProfileDraft = {
   tags: string;
 };
 
-export function buildEditableDraft(profile: ProfileData): EditableProfileDraft {
+export function buildEditableDraft(profile: HumanProfileData): EditableProfileDraft {
   return {
     displayName: profile.displayName || '',
     avatarUrl: profile.avatarUrl || '',
@@ -45,32 +45,6 @@ export function EditableField(input: {
   );
 }
 
-export function WorldMetaLink(input: {
-  value: string;
-  canVisit: boolean;
-  onClick?: () => void;
-}) {
-  if (!input.canVisit || !input.onClick) {
-    return <InlineMeta value={input.value} icon={<WorldIcon className="h-3.5 w-3.5" />} />;
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={input.onClick}
-      className="group flex items-center gap-2.5 text-left transition-colors"
-    >
-      <span className="shrink-0 text-[#94A3B8] transition-colors group-hover:text-[var(--nimi-action-primary-bg)]">
-        <WorldIcon className="h-3.5 w-3.5" />
-      </span>
-      <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] leading-6 text-[#7C8AA5] transition-colors duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] group-hover:text-[var(--nimi-action-primary-bg)]">
-        <span className="truncate">{input.value}</span>
-        <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0" />
-      </span>
-    </button>
-  );
-}
-
 export function InlineMeta({
   value,
   icon,
@@ -92,15 +66,6 @@ export function StatTile({ label, value }: { label: string; value: number }) {
       <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">{label}</div>
       <div className="mt-1.5 text-[28px] font-semibold leading-none tracking-[-0.04em] text-[#1A1A1B]">{value}</div>
     </div>
-  );
-}
-
-export function ExternalLinkIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 17 17 7" />
-      <path d="M9 7h8v8" />
-    </svg>
   );
 }
 
@@ -294,24 +259,6 @@ export function LocationIcon({ className = '' }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-export function OriginIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3 14.5 8.5 20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5L12 3Z" />
-    </svg>
-  );
-}
-
-export function WorldIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
     </svg>
   );
 }

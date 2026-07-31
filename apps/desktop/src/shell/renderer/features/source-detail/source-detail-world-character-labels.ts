@@ -96,17 +96,9 @@ function sceneDynastyLabel(sceneRef: string): string | null {
 }
 
 export function worldCharacterHeroSubtitle(source: SourceDetailData): string | null {
-  const sceneDynasties = uniqueStrings(
-    (source.worldCharacter?.sceneRefs ?? []).map(sceneDynastyLabel),
-  );
-  if (sceneDynasties.length > 0) {
-    return sceneDynasties.slice(0, 2).join(' / ');
-  }
-
   const textCandidates = [
-    source.worldCharacter?.faction,
-    source.worldCharacter?.role,
-    source.worldCharacter?.rank,
+    source.characterProfile.archetype,
+    source.characterProfile.role,
     source.worldId,
     source.entity?.summary,
     source.bio,
@@ -176,7 +168,7 @@ function trimHeroPhrase(value: string): string {
 }
 
 function conciseRoleText(source: SourceDetailData): string | null {
-  const role = simplifyDisplayText(String(source.worldCharacter?.role || '').trim()).replace(/、/gu, '，');
+  const role = simplifyDisplayText(String(source.characterProfile.role || '').trim()).replace(/、/gu, '，');
   if (role) {
     return role;
   }
@@ -197,8 +189,8 @@ export function worldCharacterHeroDescription(source: SourceDetailData, dynastyL
   const textSources = [
     source.entity?.summary,
     source.bio,
-    source.worldCharacter?.interaction?.greeting,
-    ...(source.worldCharacter?.conversationAnchors ?? []),
+    source.characterProfile.interaction?.greeting,
+    ...source.characterProfile.conversationAnchors,
   ];
   const zi = readNamedFact(source, [/^(?:zi|courtesyName|courtesy_name|styleName|style_name)$/iu, /(?:^|[^一-龥])courtesy(?:\s+name)?/iu, /字/u])
     ?? readDelimitedNamePart(textSources, '字');
@@ -219,9 +211,11 @@ export function worldCharacterHeroDescription(source: SourceDetailData, dynastyL
 
 export function topicChips(source: SourceDetailData): string[] {
   return [
-    source.worldCharacter?.role,
-    source.worldCharacter?.faction,
-    source.worldCharacter?.rank,
+    source.characterProfile.role,
+    source.characterProfile.archetype,
+    ...source.characterProfile.traits,
+    ...source.characterProfile.knowledgeTopics,
+    ...source.characterProfile.interactionModes,
     ...source.works.map((work) => work.title),
   ]
     .filter((value): value is string => Boolean(value))

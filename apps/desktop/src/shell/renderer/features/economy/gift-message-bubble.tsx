@@ -9,7 +9,8 @@ import {
 } from '@nimiplatform/kit/features/commerce/realm';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 
 export interface GiftMessagePayload {
   giftTransactionId: string;
@@ -36,7 +37,7 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     [sdk],
   );
   const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null);
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const setFeedback = emitFeedbackToast;
 
   const txQuery = useQuery({
     queryKey: ['gift-transaction', payload.giftTransactionId],
@@ -166,9 +167,6 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
           {statusBadge}
         </div>
       )}
-      {feedback ? (
-        <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-      ) : null}
     </div>
   );
 }

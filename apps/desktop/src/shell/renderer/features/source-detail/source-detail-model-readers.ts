@@ -1,5 +1,5 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { SourceDetailVoiceDesign, SourceDetailVoiceSample } from './source-detail-model.js';
+import type { SourceDetailVoiceSample } from './source-detail-model.js';
 
 export function readOptionalString(record: JsonObject | null | undefined, key: string): string | null {
   const value = record?.[key];
@@ -26,38 +26,6 @@ export function readExternalAssetUri(core: JsonObject | null | undefined, kinds:
     }
   }
   return null;
-}
-
-export function readVoiceDesign(record: JsonObject | null | undefined): SourceDetailVoiceDesign | null {
-  const voiceId = readOptionalString(record, 'voiceId');
-  const sampleUri = readOptionalString(record, 'sampleUri');
-  const provider = readOptionalString(record, 'provider');
-  const workflow = readOptionalString(record, 'workflow');
-  const model = readOptionalString(record, 'model');
-  const prompt = readOptionalString(record, 'prompt');
-  const transcript = readOptionalString(record, 'transcript');
-  const previewText = readOptionalString(record, 'previewText');
-  const publicSampleUri = readPublicUrlValue(sampleUri);
-  if (!voiceId || !publicSampleUri || !provider || !workflow || !model || !prompt || !transcript || !previewText) {
-    return null;
-  }
-  return {
-    voiceId,
-    sampleUri: publicSampleUri,
-    provider,
-    workflow,
-    model,
-    prompt,
-    transcript,
-    previewText,
-  };
-}
-
-export function readWorldStudioVoiceDesign(core: JsonObject | null | undefined): SourceDetailVoiceDesign | null {
-  const authoring = parseOptionalJsonObject(core?.authoring);
-  const extensions = parseOptionalJsonObject(authoring?.extensions);
-  const worldStudioSettings = parseOptionalJsonObject(extensions?.worldStudioSettings);
-  return readVoiceDesign(parseOptionalJsonObject(worldStudioSettings?.voice));
 }
 
 export function readStringArray(value: unknown): string[] {

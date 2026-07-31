@@ -1,11 +1,11 @@
 import { Suspense, lazy, type MutableRefObject, type RefObject, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ProfileTab } from '../profile/profile-model';
+import type { HumanProfileTab } from '../profile/profile-model';
 import type { ProfileDetailViewController } from './profile-detail-view-controller.js';
 import { ProfileDetailTabFallback } from './profile-detail-view-content-shell.js';
 
-const PROFILE_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
-const OWN_PROFILE_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts', 'FollowedWorlds'];
+const PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
+const OWN_PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts', 'FollowedWorlds'];
 
 const PostsTab = lazy(async () => {
   const module = await import('../profile/posts-tab');
@@ -28,7 +28,7 @@ const FollowedWorldsTab = lazy(async () => {
   return { default: module.FollowedWorldsTab };
 });
 
-function getProfileDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab: ProfileTab): string {
+function getProfileDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab: HumanProfileTab): string {
   switch (tab) {
     case 'Posts':
       return t('Profile.tabPosts', { defaultValue: 'Posts' });
@@ -44,11 +44,11 @@ function getProfileDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab
 }
 
 function renderTabPanel(
-  activeTab: ProfileTab,
+  activeTab: HumanProfileTab,
   isBlockedProfile: boolean,
   profileId: string,
-  tab: ProfileTab,
-  visitedTabs: ProfileTab[],
+  tab: HumanProfileTab,
+  visitedTabs: HumanProfileTab[],
 ) {
   if (!visitedTabs.includes(tab)) {
     return null;
@@ -85,15 +85,15 @@ function renderTabPanel(
 }
 
 type ProfileDetailTabsProps = {
-  activeTab: ProfileTab;
+  activeTab: HumanProfileTab;
   isBlockedProfile?: boolean;
   isOwnProfile?: boolean;
-  onSetActiveTab: (tab: ProfileTab) => void;
+  onSetActiveTab: (tab: HumanProfileTab) => void;
   profileId: string;
   tabButtonRefs: MutableRefObject<ProfileDetailViewController['tabButtonRefs']['current']>;
   tabIndicator: ProfileDetailViewController['tabIndicator'];
   tabListRef: RefObject<HTMLDivElement | null>;
-  visitedTabs: ProfileTab[];
+  visitedTabs: HumanProfileTab[];
 };
 
 export function ProfileDetailTabs(props: ProfileDetailTabsProps) {

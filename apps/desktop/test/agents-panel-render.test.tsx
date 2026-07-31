@@ -102,7 +102,6 @@ test('Characters tab renders local agent cards with world badges and search fiel
       bio: '元代书画大家，湖州路总管府事。',
     },
     stats: null,
-    worldScore: 0,
   });
   const markup = renderView(baseProps(), queryClient);
   assert.ok(markup.includes('data-testid="agents-list"'), 'expected agents list');

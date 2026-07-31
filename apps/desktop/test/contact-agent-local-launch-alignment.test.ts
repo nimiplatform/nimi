@@ -6,9 +6,9 @@ import {
   resolveCharacterSourceState,
 } from '../src/shell/renderer/features/explore/character-source-materialization.js';
 import {
-  materializeSourceContactLaunchTarget,
-  toSourceContactLaunchTarget,
-} from '../src/shell/renderer/features/relationship/source-contact-launch-target.js';
+  materializeCharacterSourceLaunchTarget,
+  toCharacterSourceLaunchTarget,
+} from '../src/shell/renderer/features/relationship/character-source-launch-target.js';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 
 const SOURCE_HASH = 'a'.repeat(64);
@@ -23,14 +23,13 @@ const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
   options?.defaultValue ?? ''
 )) as TFunction;
 
-test('source contact launch target fails closed and requires Runtime-owned localAgent identity', () => {
-  assert.deepEqual(toSourceContactLaunchTarget({
+test('character source launch target requires Runtime identity and never maps legacy ownership strings', () => {
+  const sourceWithLegacyOwnership = {
     id: 'character-1',
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
-    bio: 'ordinary source contact',
-    isSource: true,
+    bio: 'ordinary character source',
     worldId: 'oasis',
     sourceKind: 'worldCharacter',
     sourceId: 'character-1',
@@ -40,64 +39,56 @@ test('source contact launch target fails closed and requires Runtime-owned local
     localAgentRef: 'local-agent:opaque-character-1',
     worldName: 'OASIS',
     sourceOwnershipType: 'MASTER_OWNED',
-  }, 'user-1'), {
+    ownershipType: 'WORLD_OWNED',
+  } as Parameters<typeof toCharacterSourceLaunchTarget>[0] & {
+    sourceOwnershipType: string;
+    ownershipType: string;
+  };
+  assert.deepEqual(toCharacterSourceLaunchTarget(sourceWithLegacyOwnership, 'user-1'), {
     ownerUserId: 'user-1',
     runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
     localAgentRef: 'local-agent:opaque-character-1',
+    sourceRef: WORLD_SOURCE_REF,
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
     worldId: 'oasis',
     worldName: 'OASIS',
-    bio: 'ordinary source contact',
-    ownershipType: 'MASTER_OWNED',
-    // Contact-launch sources carry identity only; runtime source content
+    bio: 'ordinary character source',
+    ownershipType: null,
+    // Character source launch inputs carry identity only; runtime source content
     // (greeting / docs) is supplied by source materialization.
     greeting: null,
     builtinDocsContext: null,
   });
 
   assert.throws(() => {
-    toSourceContactLaunchTarget({
-      id: 'human-1',
-      displayName: 'Human',
-      handle: 'human',
-      avatarUrl: null,
-      bio: null,
-      isSource: false,
-    }, 'user-1');
-  }, /requires a Realm source contact/);
-
-  assert.throws(() => {
-    toSourceContactLaunchTarget({
+    toCharacterSourceLaunchTarget({
       id: 'character-1',
       displayName: 'Character',
       handle: 'character',
       avatarUrl: null,
       bio: null,
-      isSource: true,
     }, '');
   }, /requires ownerUserId/);
 
   assert.throws(() => {
-    toSourceContactLaunchTarget({
+    toCharacterSourceLaunchTarget({
       id: '',
       displayName: 'Character',
       handle: 'character',
       avatarUrl: null,
       bio: null,
-      isSource: true,
     }, 'user-1');
   }, /requires hash-bearing sourceRef/);
 
   assert.throws(() => {
-    toSourceContactLaunchTarget({
+    toCharacterSourceLaunchTarget({
       id: 'character-1',
       displayName: 'Character',
       handle: 'character',
       avatarUrl: null,
       bio: null,
-      isSource: true,
       worldId: 'oasis',
       sourceKind: 'worldCharacter',
       sourceId: 'character-1',
@@ -106,13 +97,12 @@ test('source contact launch target fails closed and requires Runtime-owned local
   }, /requires runtimeSourceRef/);
 
   assert.throws(() => {
-    toSourceContactLaunchTarget({
+    toCharacterSourceLaunchTarget({
       id: 'character-1',
       displayName: 'Character',
       handle: 'character',
       avatarUrl: null,
       bio: null,
-      isSource: true,
       worldId: 'oasis',
       sourceKind: 'worldCharacter',
       sourceId: 'character-1',
@@ -122,13 +112,12 @@ test('source contact launch target fails closed and requires Runtime-owned local
   }, /requires localAgentRef/);
 
   assert.throws(() => {
-    toSourceContactLaunchTarget({
+    toCharacterSourceLaunchTarget({
       id: 'character-1',
       displayName: 'Character',
       handle: 'character',
       avatarUrl: null,
       bio: null,
-      isSource: true,
       worldId: 'oasis',
       sourceKind: 'worldCharacter',
       sourceId: 'character-1',
@@ -139,7 +128,7 @@ test('source contact launch target fails closed and requires Runtime-owned local
   }, /requires Runtime-owned localAgentRef/);
 });
 
-test('source contact launch target re-reads a committed LocalAgent by canonical sourceRef only', async () => {
+test('character source launch target re-reads a committed LocalAgent by canonical sourceRef only', async () => {
   const discoveryInputs: unknown[] = [];
   let discoveryCall = 0;
   const sdk = {
@@ -177,13 +166,12 @@ test('source contact launch target re-reads a committed LocalAgent by canonical 
     }),
   } as unknown as DesktopRendererSdkPort;
 
-  const target = await materializeSourceContactLaunchTarget({
+  const target = await materializeCharacterSourceLaunchTarget({
     id: 'character-1',
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
-    bio: 'ordinary source contact',
-    isSource: true,
+    bio: 'ordinary character source',
     worldId: 'oasis',
     sourceKind: 'worldCharacter',
     sourceId: 'character-1',
@@ -203,8 +191,7 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
-    bio: 'ordinary source contact',
-    isSource: true,
+    bio: 'ordinary character source',
     worldId: 'oasis',
     sourceKind: 'worldCharacter',
     sourceId: 'character-1',

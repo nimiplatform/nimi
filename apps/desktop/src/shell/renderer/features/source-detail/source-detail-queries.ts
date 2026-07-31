@@ -21,7 +21,6 @@ export type SourceDetailStats = {
 export type SourceDisplayDetail = {
   source: SourceDetailData;
   stats: SourceDetailStats | null;
-  worldScore: number;
 };
 
 export type SourceDisplayDetailSelection = CharacterSourceRefV3;
@@ -30,21 +29,19 @@ function normalizeSourceStats(raw: JsonObject): SourceDetailStats | null {
   const statsData = parseOptionalJsonObject(raw.stats) as (JsonObject & {
     friendsCount?: number;
     postsCount?: number;
+    likesCount?: number;
   }) | undefined;
+  if (!statsData
+    || typeof statsData.friendsCount !== 'number'
+    || typeof statsData.postsCount !== 'number'
+    || typeof statsData.likesCount !== 'number') {
+    return null;
+  }
   return {
-    friendsCount: statsData?.friendsCount ?? 0,
-    postsCount: statsData?.postsCount ?? 0,
-    likesCount: 0,
+    friendsCount: statsData.friendsCount,
+    postsCount: statsData.postsCount,
+    likesCount: statsData.likesCount,
   };
-}
-
-function normalizeWorldScore(raw: JsonObject): number {
-  const worldData = parseOptionalJsonObject(raw.world) as (JsonObject & {
-    scoreEwma?: number;
-  }) | undefined;
-  return worldData?.scoreEwma ?? (
-    typeof raw.worldScoreEwma === 'number' ? raw.worldScoreEwma : 0
-  );
 }
 
 export function sourceDisplayDetailQueryKey(selection: SourceDisplayDetailSelection) {
@@ -69,6 +66,5 @@ export async function fetchSourceDisplayDetail(
   return {
     source: toSourceDetailData(sourceResult, sourceState),
     stats: normalizeSourceStats(sourceResult),
-    worldScore: normalizeWorldScore(sourceResult),
   };
 }

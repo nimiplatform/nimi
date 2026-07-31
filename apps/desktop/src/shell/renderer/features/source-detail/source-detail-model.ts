@@ -5,24 +5,26 @@ import {
   type CharacterSourceRefV3,
 } from '../realm-source/realm-source-identity.js';
 import {
-  readExternalAssetUri,
   readOptionalString,
   readSourceMediaUrl,
   readStringArray,
-  readVoiceDesign,
   readVoiceSample,
-  readWorldStudioVoiceDesign,
 } from './source-detail-model-readers.js';
 import {
   dedupeWorks,
   readCareerMilestonesFromRelationships,
+  readCharacterProfile,
   readRelationshipClues,
   readRelationshipRows,
-  readWorldCharacter,
-  readWorldCharacterWorks,
-  readWorldCharacterWorksFromBiography,
   readWorldCharacterWorksFromRelationships,
 } from './source-detail-world-character-model.js';
+import type {
+  CharacterProfileInteractionProjection,
+  CharacterProfileMilestoneProjection,
+  CharacterProfileProjection,
+  CharacterProfileRelationshipProjection,
+  CharacterSourceViewerRelationProjection,
+} from '../realm-source/character-source-profile-projection.js';
 import { simplifySourceDetailChineseText } from './source-detail-simplified-chinese.js';
 
 
@@ -34,30 +36,28 @@ export type SourceDetailData = {
   profileCoverUrl: string | null;
   referenceImageUrl: string | null;
   voiceSample: SourceDetailVoiceSample | null;
-  voiceDesign: SourceDetailVoiceDesign | null;
   bio: string | null;
   createdAt: string;
   tags: string[];
   isOnline: boolean;
-  state: string | null;
   archetype: string | null;
-  origin: string | null;
-  tier: string | null;
-  pacing: string | null;
+  cadence: string | null;
   visibility: string | null;
-  ownershipType: string | null;
-  worldId: string | null;
-  sourceKind: CharacterSourceRefV3['kind'] | null;
-  sourceId: string | null;
-  sourceHash: string | null;
+  ownership: 'worldOwned' | 'userOwned' | null;
+  viewerRelation: CharacterSourceViewerRelationProjection;
+  worldId: string;
+  worldName: string | null;
+  sourceKind: CharacterSourceRefV3['kind'];
+  sourceId: string;
+  sourceHash: string;
   runtimeSourceRef: string | null;
-  sourceRef: CharacterSourceRefV3 | null;
+  sourceRef: CharacterSourceRefV3;
   entity: SourceDetailEntity | null;
-  worldCharacter: SourceDetailWorldCharacter | null;
+  characterProfile: CharacterProfileProjection;
+  worldCharacterAugmentation: SourceDetailWorldCharacterAugmentation | null;
   relationshipClues: SourceDetailRelationshipClue[];
   works: SourceDetailWorkCollection[];
   worksAvailability: 'available' | 'unavailable';
-  isFriend: boolean;
   sourceState: CharacterSourceState;
   worldBannerUrl: string | null;
 };
@@ -84,39 +84,10 @@ export type SourceDetailEntity = {
   facts: JsonObject[];
 };
 
-export type SourceDetailWorldCharacter = {
-  role: string | null;
-  faction: string | null;
-  rank: string | null;
-  sceneRefs: string[];
-  milestones: SourceDetailWorldCharacterMilestone[];
-  relationshipNotes: SourceDetailWorldCharacterRelationshipNote[];
-  conversationAnchors: string[];
-  interaction: SourceDetailWorldCharacterInteraction | null;
-};
+export type SourceDetailWorldCharacterMilestone = CharacterProfileMilestoneProjection;
 
-export type SourceDetailWorldCharacterMilestone = {
-  id: string;
-  title: string;
-  summary: string | null;
-  sequence: number | null;
-  timeLabel: string | null;
-  kind: 'biography' | 'entry' | 'office' | 'work';
-  derived: boolean;
-};
-
-export type SourceDetailWorldCharacterRelationshipNote = {
-  id: string;
-  type: string;
-  targetRef: string | null;
-  summary: string;
-};
-
-export type SourceDetailWorldCharacterInteraction = {
-  tone: string | null;
-  cadence: string | null;
-  scenario: string | null;
-  greeting: string | null;
+export type SourceDetailWorldCharacterAugmentation = {
+  careerMilestones: SourceDetailWorldCharacterMilestone[];
 };
 
 export type SourceDetailRelationshipClue = {
@@ -126,17 +97,6 @@ export type SourceDetailRelationshipClue = {
   targetLabel: string | null;
   summary: string | null;
   detail: string | null;
-};
-
-export type SourceDetailVoiceDesign = {
-  voiceId: string;
-  sampleUri: string;
-  provider: string;
-  workflow: string;
-  model: string;
-  prompt: string;
-  transcript: string;
-  previewText: string;
 };
 
 export type SourceDetailVoiceSample = {
@@ -176,6 +136,22 @@ function readSourceDetailEntity(value: unknown): SourceDetailEntity | null {
     contentHash,
     tags: readStringArray(entity.tags),
     facts: readEntityFacts(entity.facts),
+  };
+}
+
+function readSourceViewerRelation(value: unknown): CharacterSourceViewerRelationProjection | null {
+  const relation = parseOptionalJsonObject(value);
+  if (!relation) {
+    return null;
+  }
+  const state = relation.state;
+  if (state !== 'connectable' && state !== 'connected' && state !== 'unavailable') {
+    return null;
+  }
+  return {
+    state,
+    connectionId: readOptionalString(relation, 'connectionId'),
+    runtimeSourceRef: readOptionalString(relation, 'runtimeSourceRef'),
   };
 }
 
@@ -221,18 +197,18 @@ function simplifyWorldCharacterMilestones(
   }));
 }
 
-function simplifyWorldCharacterRelationshipNotes(
-  notes: SourceDetailWorldCharacterRelationshipNote[],
-): SourceDetailWorldCharacterRelationshipNote[] {
+function simplifyCharacterProfileRelationshipNotes(
+  notes: CharacterProfileRelationshipProjection[],
+): CharacterProfileRelationshipProjection[] {
   return notes.map((note) => ({
     ...note,
     summary: simplifySourceDetailChineseText(note.summary),
   }));
 }
 
-function simplifyWorldCharacterInteraction(
-  interaction: SourceDetailWorldCharacterInteraction | null,
-): SourceDetailWorldCharacterInteraction | null {
+function simplifyCharacterProfileInteraction(
+  interaction: CharacterProfileInteractionProjection | null,
+): CharacterProfileInteractionProjection | null {
   if (!interaction) {
     return null;
   }
@@ -244,21 +220,32 @@ function simplifyWorldCharacterInteraction(
   };
 }
 
-function simplifySourceDetailWorldCharacter(
-  character: SourceDetailWorldCharacter | null,
-): SourceDetailWorldCharacter | null {
-  if (!character) {
-    return null;
-  }
+function simplifySourceDetailCharacterProfile(
+  character: CharacterProfileProjection,
+): CharacterProfileProjection {
   return {
     ...character,
     role: simplifyNullableText(character.role),
-    faction: simplifyNullableText(character.faction),
-    rank: simplifyNullableText(character.rank),
+    archetype: simplifyNullableText(character.archetype),
+    traits: simplifyTextArray(character.traits),
+    knowledgeTopics: simplifyTextArray(character.knowledgeTopics),
+    knowledgeConstraints: simplifyTextArray(character.knowledgeConstraints),
+    interactionModes: simplifyTextArray(character.interactionModes),
     milestones: simplifyWorldCharacterMilestones(character.milestones),
-    relationshipNotes: simplifyWorldCharacterRelationshipNotes(character.relationshipNotes),
+    relationshipNotes: simplifyCharacterProfileRelationshipNotes(character.relationshipNotes),
     conversationAnchors: simplifyTextArray(character.conversationAnchors),
-    interaction: simplifyWorldCharacterInteraction(character.interaction),
+    interaction: simplifyCharacterProfileInteraction(character.interaction),
+  };
+}
+
+function simplifyWorldCharacterAugmentation(
+  augmentation: SourceDetailWorldCharacterAugmentation | null,
+): SourceDetailWorldCharacterAugmentation | null {
+  if (!augmentation) {
+    return null;
+  }
+  return {
+    careerMilestones: simplifyWorldCharacterMilestones(augmentation.careerMilestones),
   };
 }
 
@@ -274,20 +261,6 @@ function simplifySourceDetailRelationshipClues(
   }));
 }
 
-function simplifySourceDetailVoiceDesign(
-  voiceDesign: SourceDetailVoiceDesign | null,
-): SourceDetailVoiceDesign | null {
-  if (!voiceDesign) {
-    return null;
-  }
-  return {
-    ...voiceDesign,
-    prompt: simplifySourceDetailChineseText(voiceDesign.prompt),
-    transcript: simplifySourceDetailChineseText(voiceDesign.transcript),
-    previewText: simplifySourceDetailChineseText(voiceDesign.previewText),
-  };
-}
-
 function simplifySourceDetailVoiceSample(
   voiceSample: SourceDetailVoiceSample | null,
 ): SourceDetailVoiceSample | null {
@@ -301,134 +274,125 @@ function simplifySourceDetailVoiceSample(
   };
 }
 
-function simplifyWorldCharacterSourceDetailData(detail: SourceDetailData): SourceDetailData {
+function simplifySourceDetailData(detail: SourceDetailData): SourceDetailData {
   return {
     ...detail,
     displayName: simplifySourceDetailChineseText(detail.displayName),
     bio: simplifyNullableText(detail.bio),
     tags: simplifyTextArray(detail.tags),
     archetype: simplifyNullableText(detail.archetype),
-    pacing: simplifyNullableText(detail.pacing),
+    cadence: simplifyNullableText(detail.cadence),
     voiceSample: simplifySourceDetailVoiceSample(detail.voiceSample),
-    voiceDesign: simplifySourceDetailVoiceDesign(detail.voiceDesign),
     entity: simplifySourceDetailEntity(detail.entity),
-    worldCharacter: simplifySourceDetailWorldCharacter(detail.worldCharacter),
+    characterProfile: simplifySourceDetailCharacterProfile(detail.characterProfile),
+    worldCharacterAugmentation: simplifyWorldCharacterAugmentation(detail.worldCharacterAugmentation),
     relationshipClues: simplifySourceDetailRelationshipClues(detail.relationshipClues),
     works: simplifySourceDetailWorks(detail.works),
   };
+}
+
+function readProfileWorks(profile: CharacterProfileProjection): SourceDetailWorkCollection[] {
+  return profile.milestones
+    .filter((milestone) => milestone.kind === 'work')
+    .map((milestone) => ({
+      id: milestone.id,
+      title: milestone.title,
+      romanizedTitle: null,
+      textId: null,
+      rowRef: null,
+      role: null,
+      status: 'unknown',
+      summary: milestone.summary,
+      timeLabel: milestone.timeLabel,
+    }));
 }
 
 export function toSourceDetailData(
   raw: JsonObject,
   sourceState: CharacterSourceState,
 ): SourceDetailData {
-  const sourceRecord = parseOptionalJsonObject(raw.source);
   const world = parseOptionalJsonObject(raw.world);
-  const personaStyle = parseOptionalJsonObject(sourceRecord?.personaStyle);
   const sourceRef = readCharacterSourceRefV3(raw.sourceRef);
-  const sourceKind = sourceRef?.kind ?? null;
-  const worldId = sourceRef?.worldId ?? null;
-  const sourceId = sourceRef?.id ?? null;
-  const sourceHash = sourceRef?.sourceHash ?? '';
+  if (!sourceRef) {
+    throw new Error('Source detail projection requires complete CharacterSourceRefV3');
+  }
+  const sourceKind = sourceRef.kind;
+  const worldId = sourceRef.worldId;
+  const sourceId = sourceRef.id;
+  const sourceHash = sourceRef.sourceHash;
   const displayName = typeof raw.displayName === 'string' ? raw.displayName.trim() : '';
   if (!displayName) {
-    throw new Error('Source detail projection requires displayName from Realm Core');
+    throw new Error('Source detail projection requires displayName from WorldPublicSourceCard');
   }
   const relationships = readRelationshipRows(raw.relationships);
-  const sourceRelationships = readRelationshipRows(sourceRecord?.relationships);
   const careerMilestones = sourceKind === 'worldCharacter'
-    ? readCareerMilestonesFromRelationships([...sourceRelationships, ...relationships])
+    ? readCareerMilestonesFromRelationships(relationships)
     : [];
-  const works = sourceKind === 'worldCharacter'
-    ? dedupeWorks([
-        ...readWorldCharacterWorks(sourceRecord),
-        ...readWorldCharacterWorksFromBiography(sourceRecord),
-        ...readWorldCharacterWorksFromRelationships(sourceRelationships),
-        ...readWorldCharacterWorksFromRelationships(relationships),
-      ])
-    : [];
+  const characterProfile = readCharacterProfile(raw.characterProfile);
+  if (!characterProfile) {
+    throw new Error('Source detail projection requires shared characterProfile');
+  }
+  const viewerRelation = readSourceViewerRelation(raw.viewerRelation);
+  if (!viewerRelation) {
+    throw new Error('Source detail projection requires viewerRelation from WorldPublicSourceCard');
+  }
+  const works = dedupeWorks([
+    ...readProfileWorks(characterProfile),
+    ...(sourceKind === 'worldCharacter'
+      ? readWorldCharacterWorksFromRelationships(relationships)
+      : []),
+  ]);
   const avatarUrl = readSourceMediaUrl(raw, 'avatar', 'avatarUrl')
     ?? readSourceMediaUrl(raw, 'portrait', 'portraitUrl')
-    ?? readSourceMediaUrl(raw, 'referenceImage', 'referenceImageUrl')
-    ?? readExternalAssetUri(sourceRecord, ['avatar', 'referenceImage', 'portrait']);
-  const profileCoverUrl = readSourceMediaUrl(raw, 'profileCover', 'profileCoverUrl')
-    ?? readExternalAssetUri(sourceRecord, ['profileCover', 'cover']);
-  const referenceImageUrl = readSourceMediaUrl(raw, 'referenceImage', 'referenceImageUrl')
-    ?? readExternalAssetUri(sourceRecord, ['referenceImage']);
+    ?? readSourceMediaUrl(raw, 'referenceImage', 'referenceImageUrl');
+  const profileCoverUrl = readSourceMediaUrl(raw, 'profileCover', 'profileCoverUrl');
+  const referenceImageUrl = readSourceMediaUrl(raw, 'referenceImage', 'referenceImageUrl');
   const voiceSample = readVoiceSample(raw);
+  const ownership = raw.ownership === 'worldOwned' || raw.ownership === 'userOwned'
+    ? raw.ownership
+    : null;
 
   const detail: SourceDetailData = {
-    id: String(raw.id || ''),
+    id: sourceId,
     displayName,
     handle: String(raw.handle || ''),
     avatarUrl,
     profileCoverUrl,
     referenceImageUrl,
     voiceSample,
-    voiceDesign: readVoiceDesign(parseOptionalJsonObject(raw.voiceDesign))
-      ?? readWorldStudioVoiceDesign(sourceRecord),
     bio: typeof raw.bio === 'string' ? raw.bio : null,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
     isOnline: raw.isOnline === true,
-    state: readOptionalString(sourceRecord, 'state'),
-    archetype: (
-      (typeof raw.archetype === 'string' ? raw.archetype : null)
-      || readOptionalString(personaStyle, 'archetype')
-    ),
-    origin: readOptionalString(sourceRecord, 'origin'),
-    tier: readOptionalString(sourceRecord, 'tier'),
-    pacing: (
-      (typeof raw.pacing === 'string' ? raw.pacing : null)
-      || readOptionalString(personaStyle, 'pacing')
-    ),
-    visibility: (
-      (typeof raw.visibility === 'string' ? raw.visibility : null)
-      || (sourceRecord && typeof sourceRecord.visibility === 'string' ? sourceRecord.visibility : null)
-    ),
-    ownershipType: readOptionalString(sourceRecord, 'ownershipType'),
+    archetype: characterProfile.archetype,
+    cadence: characterProfile.interaction?.cadence ?? null,
+    visibility: typeof raw.visibility === 'string' ? raw.visibility : null,
+    ownership,
+    viewerRelation,
     worldId,
+    worldName: typeof raw.worldName === 'string' ? raw.worldName : null,
     sourceKind,
     sourceId,
     sourceHash,
     runtimeSourceRef: (
       (typeof raw.runtimeSourceRef === 'string' ? raw.runtimeSourceRef.trim() : '')
+      || viewerRelation.runtimeSourceRef
       || null
     ),
     sourceRef,
     entity: readSourceDetailEntity(raw.entity),
-    worldCharacter: sourceKind === 'worldCharacter' ? readWorldCharacter(sourceRecord, careerMilestones) : null,
+    characterProfile,
+    worldCharacterAugmentation: sourceKind === 'worldCharacter'
+      ? { careerMilestones }
+      : null,
     relationshipClues: sourceKind === 'worldCharacter' ? readRelationshipClues(relationships) : [],
     works,
     worksAvailability: works.length > 0 ? 'available' : 'unavailable',
-    isFriend: raw.isFriend === true,
     sourceState,
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
-      || readOptionalString(sourceRecord, 'worldBannerUrl')
       || readOptionalString(world, 'bannerUrl')
     ),
   };
-  return sourceKind === 'worldCharacter' ? simplifyWorldCharacterSourceDetailData(detail) : detail;
-}
-
-export function getSourceInitial(name: string): string {
-  return name.charAt(0).toUpperCase();
-}
-
-export function getStateBadgeColor(state: string): { bg: string; text: string; dot: string } {
-  switch (state) {
-    case 'ACTIVE':
-      return { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' };
-    case 'READY':
-      return { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' };
-    case 'INCUBATING':
-      return { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' };
-    case 'SUSPENDED':
-      return { bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' };
-    case 'FAILED':
-      return { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' };
-    default:
-      return { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
-  }
+  return simplifySourceDetailData(detail);
 }

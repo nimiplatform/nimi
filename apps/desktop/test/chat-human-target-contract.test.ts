@@ -7,10 +7,8 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import {
   toAgentTargetSnapshotFromSummary,
-  mergeAgentTargetSummaries,
   toAgentTargetsFromLocalAgentList,
   mergeHumanChatTargetsWithFriendTargets,
-  toAgentTargetsFromSocialSnapshot,
   toHumanFriendTargetsFromSocialSnapshot,
 } from '../src/shell/renderer/features/chat/chat-sidebar-targets.js';
 import type { LocalAgentListItem } from '../src/shell/renderer/features/agents/local-agent-list-model.js';
@@ -23,6 +21,16 @@ function worldSourceRef(id: string, worldId = 'world-1') {
     id,
     worldId,
     worldEntityRef: { kind: 'worldEntity' as const, worldId, entityId: `entity-${id}` },
+    sourceHash: SOURCE_HASH,
+  };
+}
+
+function personaSourceRef(id: string, worldId = 'world-1') {
+  return {
+    kind: 'personaCharacter' as const,
+    id,
+    worldId,
+    ownerAccountId: 'owner-1',
     sourceHash: SOURCE_HASH,
   };
 }
@@ -85,20 +93,31 @@ test('human sidebar targets include human friends without duplicating existing c
         id: 'user-1',
         displayName: 'Alice',
         handle: 'alice',
-        isSource: false,
       },
       {
         id: 'user-2',
         displayName: 'Bob',
         handle: 'bob',
         avatarUrl: 'https://example.test/bob.png',
-        isSource: false,
       },
       {
         id: 'agent-1',
         displayName: 'Companion',
         handle: 'companion',
         isSource: true,
+      },
+      {
+        id: 'local-agent:runtime-owned-1',
+        displayName: 'Runtime-owned companion',
+        localAgentRef: 'local-agent:runtime-owned-1',
+        runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1',
+        isSource: false,
+      },
+      {
+        id: 'source-1',
+        displayName: 'Character source',
+        sourceRef: worldSourceRef('source-1'),
+        isSource: false,
       },
     ],
   });
@@ -127,51 +146,7 @@ test('human sidebar targets include human friends without duplicating existing c
   ]);
 });
 
-test('agent sidebar targets derive only from materialized Realm source contacts', () => {
-  const agentTargets = toAgentTargetsFromSocialSnapshot({
-    friends: [
-      {
-        id: 'source-1',
-        displayName: 'Archivist',
-        handle: '~archivist',
-        avatarUrl: '',
-        bio: 'connected source',
-        isSource: true,
-        worldId: 'world-1',
-        worldName: 'World One',
-        sourceKind: 'worldCharacter',
-        sourceId: 'source-1',
-        sourceRef: worldSourceRef('source-1'),
-        runtimeSourceRef: 'runtime-source-1',
-        localAgentRef: 'local-agent:opaque-archivist-1',
-      },
-      {
-        id: 'source-unmaterialized',
-        displayName: 'No Runtime Ref',
-        isSource: true,
-        worldId: 'world-1',
-        sourceKind: 'worldCharacter',
-        sourceId: 'source-unmaterialized',
-        sourceRef: worldSourceRef('source-unmaterialized'),
-      },
-      {
-        id: 'human-1',
-        displayName: 'Human',
-        isSource: false,
-      },
-    ],
-  }, 'owner-1');
-
-  assert.equal(agentTargets.length, 1);
-  assert.equal(agentTargets[0]?.id, 'local-agent:opaque-archivist-1');
-  assert.equal(agentTargets[0]?.source, 'agent');
-  assert.equal(agentTargets[0]?.title, 'Archivist');
-  assert.equal(agentTargets[0]?.handle, '~archivist');
-  assert.equal(agentTargets[0]?.metadata?.localAgentRef, 'local-agent:opaque-archivist-1');
-  assert.equal(agentTargets[0]?.metadata?.runtimeSourceRef, 'runtime-source-1');
-});
-
-test('agent sidebar targets include Runtime ListAgents items even without Realm source contacts', () => {
+test('agent sidebar targets include Runtime ListAgents items without a Realm source projection', () => {
   const runtimeTargets = toAgentTargetsFromLocalAgentList([{
     localAgentRef: 'local-agent:runtime-owned-yan-zhenqing',
     ownerUserId: 'owner-1',
@@ -197,6 +172,7 @@ test('agent sidebar targets include Runtime ListAgents items even without Realm 
     ownerUserId: 'owner-1',
     runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
     localAgentRef: 'local-agent:runtime-owned-yan-zhenqing',
+    sourceRef: worldSourceRef('yan-zhenqing', 'world-tang'),
     displayName: 'Yan Zhenqing',
     handle: 'yan-zhenqing',
     avatarUrl: null,
@@ -209,7 +185,7 @@ test('agent sidebar targets include Runtime ListAgents items even without Realm 
   });
 });
 
-test('agent sidebar targets rehydrate Runtime worldCharacter items from source detail projection', () => {
+test('agent sidebar targets rehydrate Runtime items from the shared character profile projection', () => {
   const localAgent = {
     localAgentRef: 'local-agent:runtime-owned-yan-zhenqing',
     ownerUserId: 'owner-1',
@@ -227,30 +203,34 @@ test('agent sidebar targets rehydrate Runtime worldCharacter items from source d
     profileCoverUrl: 'https://cdn.example.test/yan/cover.png',
     referenceImageUrl: 'https://cdn.example.test/yan/reference.png',
     voiceSample: null,
-    voiceDesign: null,
     bio: '唐代书法家、忠臣、政治家。',
     createdAt: '2026-07-09T00:00:00.000Z',
     tags: ['唐代', '书法家'],
     isOnline: false,
-    state: null,
     archetype: null,
-    origin: null,
-    tier: null,
-    pacing: null,
+    cadence: '缓慢有力',
     visibility: null,
-    ownershipType: 'WORLD_OWNED',
+    ownership: 'worldOwned',
+    viewerRelation: {
+      state: 'connected',
+      connectionId: 'connection-yan-zhenqing',
+      runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
+    },
     worldId: 'world-tang',
+    worldName: 'Tang Literati',
     sourceKind: 'worldCharacter',
     sourceId: 'yan-zhenqing',
     sourceHash: SOURCE_HASH,
     runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
     sourceRef: localAgent.sourceRef,
     entity: null,
-    worldCharacter: {
+    characterProfile: {
       role: '书法家、忠臣、政治家',
-      faction: '唐代士族、书法大家',
-      rank: '太师、鲁郡公',
-      sceneRefs: ['tang-court'],
+      archetype: null,
+      traits: [],
+      knowledgeTopics: [],
+      knowledgeConstraints: [],
+      interactionModes: [],
       milestones: [],
       relationshipNotes: [],
       conversationAnchors: ['想问书法、仕途还是安史之乱？'],
@@ -261,10 +241,12 @@ test('agent sidebar targets rehydrate Runtime worldCharacter items from source d
         greeting: '老夫颜真卿，愿与你谈书法与世道。',
       },
     },
+    worldCharacterAugmentation: {
+      careerMilestones: [],
+    },
     relationshipClues: [],
     works: [],
     worksAvailability: 'unavailable',
-    isFriend: false,
     sourceState: 'local_agent_available',
     worldBannerUrl: 'https://cdn.example.test/tang/banner.png',
   } satisfies SourceDetailData;
@@ -279,20 +261,97 @@ test('agent sidebar targets rehydrate Runtime worldCharacter items from source d
     ownerUserId: 'owner-1',
     runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
     localAgentRef: 'local-agent:runtime-owned-yan-zhenqing',
+    sourceRef: worldSourceRef('yan-zhenqing', 'world-tang'),
     displayName: '颜真卿',
     handle: '~yan-zhenqing',
     avatarUrl: 'https://cdn.example.test/yan/avatar.png',
     worldId: 'world-tang',
     worldName: 'Tang Literati',
     bio: '唐代书法家、忠臣、政治家。',
-    ownershipType: 'WORLD_OWNED',
+    ownershipType: null,
     greeting: '老夫颜真卿，愿与你谈书法与世道。',
     builtinDocsContext: null,
   });
 });
 
-test('agent sidebar merges Runtime ListAgents with richer source contact targets by localAgentRef', () => {
-  const runtimeTargets = toAgentTargetsFromLocalAgentList([{
+test('agent sidebar targets read personaCharacter greeting from the shared character profile projection', () => {
+  const sourceRef = personaSourceRef('persona-lin');
+  const localAgent = {
+    localAgentRef: 'local-agent:runtime-owned-persona-lin',
+    ownerUserId: 'owner-1',
+    runtimeSourceRef: 'runtime-source:personaCharacter:world-1:persona-lin:hash-1',
+    displayName: 'Persona Lin',
+    sourceRef,
+    sourceKey: 'personaCharacter:world-1:persona-lin:hash-1',
+  } satisfies LocalAgentListItem;
+  const sourceDetail = {
+    id: 'persona-lin',
+    displayName: '林',
+    handle: '~persona-lin',
+    avatarUrl: null,
+    profileCoverUrl: null,
+    referenceImageUrl: null,
+    voiceSample: null,
+    bio: 'A PersonaCharacter using the shared profile contract.',
+    createdAt: '2026-07-09T00:00:00.000Z',
+    tags: [],
+    isOnline: false,
+    archetype: null,
+    cadence: null,
+    visibility: 'public',
+    ownership: 'userOwned',
+    viewerRelation: {
+      state: 'connected',
+      connectionId: 'connection-persona-lin',
+      runtimeSourceRef: localAgent.runtimeSourceRef,
+    },
+    worldId: 'world-1',
+    worldName: 'World One',
+    sourceKind: 'personaCharacter',
+    sourceId: 'persona-lin',
+    sourceHash: SOURCE_HASH,
+    runtimeSourceRef: localAgent.runtimeSourceRef,
+    sourceRef,
+    entity: null,
+    relationshipClues: [],
+    works: [],
+    worksAvailability: 'unavailable',
+    sourceState: 'local_agent_available',
+    worldBannerUrl: null,
+    characterProfile: {
+      role: null,
+      archetype: null,
+      traits: [],
+      knowledgeTopics: [],
+      knowledgeConstraints: [],
+      interactionModes: [],
+      milestones: [],
+      relationshipNotes: [],
+      conversationAnchors: [],
+      interaction: {
+        tone: null,
+        cadence: null,
+        scenario: null,
+        greeting: '你好，我是林。',
+      },
+    },
+    worldCharacterAugmentation: null,
+  } satisfies SourceDetailData;
+
+  const targets = toAgentTargetsFromLocalAgentList(
+    [localAgent],
+    new Map([['world-1', 'World One']]),
+    new Map([[localAgent.sourceKey, sourceDetail]]),
+  );
+
+  assert.equal(
+    toAgentTargetSnapshotFromSummary(targets[0])?.greeting,
+    '你好，我是林。',
+  );
+});
+
+test('agent sidebar target metadata restores only Runtime inventory targets', () => {
+  const [agentTarget] = toAgentTargetsFromLocalAgentList([{
     localAgentRef: 'local-agent:opaque-archivist-1',
     ownerUserId: 'owner-1',
     runtimeSourceRef: 'runtime-source-1',
@@ -300,75 +359,17 @@ test('agent sidebar merges Runtime ListAgents with richer source contact targets
     sourceRef: worldSourceRef('source-1'),
     sourceKey: 'worldCharacter:world-1:source-1:hash-1',
   } satisfies LocalAgentListItem], new Map([['world-1', 'Runtime World']]));
-  const contactTargets = toAgentTargetsFromSocialSnapshot({
-    friends: [{
-      id: 'source-1',
-      displayName: 'Archivist',
-      handle: '~archivist',
-      avatarUrl: 'https://example.test/avatar.png',
-      bio: 'connected source',
-      isSource: true,
-      worldId: 'world-1',
-      worldName: 'World One',
-      sourceKind: 'worldCharacter',
-      sourceId: 'source-1',
-      sourceRef: worldSourceRef('source-1'),
-      runtimeSourceRef: 'runtime-source-1',
-      localAgentRef: 'local-agent:opaque-archivist-1',
-    }],
-  }, 'owner-1');
-
-  const mergedTargets = mergeAgentTargetSummaries(runtimeTargets, contactTargets);
-
-  assert.equal(mergedTargets.length, 1);
-  assert.equal(mergedTargets[0]?.id, 'local-agent:opaque-archivist-1');
-  assert.equal(mergedTargets[0]?.title, 'Archivist');
-  assert.equal(mergedTargets[0]?.handle, '~archivist');
-  assert.equal(mergedTargets[0]?.avatarUrl, 'https://example.test/avatar.png');
-  assert.equal(mergedTargets[0]?.metadata?.worldName, 'World One');
-});
-
-test('agent sidebar target metadata restores the local target snapshot for selection', () => {
-  const [agentTarget] = toAgentTargetsFromSocialSnapshot({
-    friends: [
-      {
-        id: 'source-1',
-        displayName: 'Archivist',
-        handle: '~archivist',
-        avatarUrl: '',
-        bio: 'connected source',
-        isSource: true,
-        worldId: 'world-1',
-        worldName: 'World One',
-        sourceKind: 'worldCharacter',
-        sourceId: 'source-1',
-        sourceRef: worldSourceRef('source-1'),
-        runtimeSourceRef: 'runtime-source-1',
-        localAgentRef: 'local-agent:opaque-archivist-1',
-      },
-    ],
-  }, 'owner-1');
-
-  const snapshot = toAgentTargetSnapshotFromSummary(agentTarget);
-  assert.deepEqual(snapshot, {
-    ownerUserId: 'owner-1',
-    runtimeSourceRef: 'runtime-source-1',
-    localAgentRef: 'local-agent:opaque-archivist-1',
-    displayName: 'Archivist',
-    handle: '~archivist',
-    avatarUrl: null,
-    worldId: 'world-1',
-    worldName: 'World One',
-    bio: 'connected source',
-    ownershipType: null,
-    greeting: null,
-    builtinDocsContext: null,
-  });
-
+  assert.ok(agentTarget);
+  assert.equal(toAgentTargetSnapshotFromSummary(agentTarget)?.localAgentRef, 'local-agent:opaque-archivist-1');
   assert.equal(toAgentTargetSnapshotFromSummary({
     id: 'human-1',
     source: 'human',
     canonicalSessionId: 'human-1',
     title: 'Human',
+  }), null);
+
+  assert.equal(toAgentTargetSnapshotFromSummary({
+    ...agentTarget,
+    id: 'local-agent:different',
   }), null);
 });

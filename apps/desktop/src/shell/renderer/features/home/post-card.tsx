@@ -2,17 +2,17 @@ import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { RealmModel, ReportReason } from '@nimiplatform/sdk/realm/generated';
 
-import type { ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
 import type { EditablePostSeed } from '../profile/create-post-modal-helpers.js';
 import { PostCardArticle } from './article';
 import { BlockUserConfirmModal, DeletePostConfirmModal } from './confirm-modals';
 import { EditVisibilityModal } from './edit-visibility-modal';
 import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import {
   buildPostCardAuthorProjection,
   buildPostCardMediaProjection,
+  type PostCardAuthorProfileTarget,
 } from './post-card-projections';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -28,10 +28,7 @@ function toBannerErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export type PostCardAuthorProfileTarget = {
-  profileId: string;
-  profileSeed: ProfileDetailSeed;
-};
+export type { PostCardAuthorProfileTarget } from './post-card-projections';
 
 export type PostCardActionAdapter = {
   realmBaseUrl: string;
@@ -61,7 +58,6 @@ export type PostCardActionAdapter = {
     authorId: string;
     authorName: string;
     authorHandle: string;
-    authorIsSource: boolean;
     authorAvatarUrl?: string | null;
     onClose: () => void;
     onSent: () => void;
@@ -72,7 +68,6 @@ export type PostCardActionAdapter = {
       name: string;
       handle: string;
       avatarUrl?: string | null;
-      isSource: boolean;
     };
     onClose: () => void;
     onAddFriend: (message?: string) => Promise<void>;
@@ -109,7 +104,7 @@ export function PostCard(input: PostCardProps) {
   const authStatus = actionAdapter.authStatus;
   const currentUserId = actionAdapter.currentUserId;
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const setFeedback = emitFeedbackToast;
 
   const ownerAuthorId = String(post.authorId || post.author?.id || '').trim();
   const isOwnPost = Boolean(currentUserId && ownerAuthorId === currentUserId);
@@ -132,7 +127,7 @@ export function PostCard(input: PostCardProps) {
     () => buildPostCardMediaProjection({ post, postVisibility, realmBaseUrl }),
     [post, postVisibility, realmBaseUrl],
   );
-  const { authorProfileSeed, displayAuthor, isSourceAuthored } = useMemo(
+  const { authorProfileTarget, displayAuthor } = useMemo(
     () => buildPostCardAuthorProjection({
       authorId: ownerAuthorId,
       post,
@@ -140,7 +135,8 @@ export function PostCard(input: PostCardProps) {
     }),
     [i18n, ownerAuthorId, post],
   );
-  const humanActionAuthorId = isSourceAuthored ? '' : ownerAuthorId;
+  const isCharacterAuthored = displayAuthor?.kind === 'character';
+  const humanActionAuthorId = displayAuthor?.kind === 'human' ? ownerAuthorId : '';
   const displayProfileId = displayAuthor?.id ?? ownerAuthorId;
   const canUseHumanAuthorActions = Boolean(humanActionAuthorId);
 
@@ -382,35 +378,29 @@ export function PostCard(input: PostCardProps) {
   }, [actionAdapter, humanActionAuthorId, authStatus]);
 
   const openAuthorProfile = useCallback(() => {
-    if (!displayProfileId || !authorProfileSeed) {
+    if (!authorProfileTarget) {
       return;
     }
     if (onOpenAuthorProfile) {
-      onOpenAuthorProfile({
-        profileId: displayProfileId,
-        profileSeed: authorProfileSeed,
-      });
+      onOpenAuthorProfile(authorProfileTarget);
       return;
     }
-  }, [authorProfileSeed, displayProfileId, onOpenAuthorProfile]);
+  }, [authorProfileTarget, onOpenAuthorProfile]);
 
   return (
     <>
-      {feedback ? (
-        <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-3" />
-      ) : null}
       <PostCardArticle
         post={post}
         authorId={displayProfileId}
         authorName={displayAuthor?.displayName ?? ''}
         authorHandle={displayAuthor?.handle ?? ''}
         authorAvatarUrl={displayAuthor?.avatarUrl}
-        authorIsSource={isSourceAuthored}
+        authorKind={displayAuthor?.kind ?? 'human'}
         canUseHumanAuthorActions={canUseHumanAuthorActions}
         isFriend={ui.isFriend}
         isOwnPost={isOwnPost}
         canEditPost={canEditPostAttachment}
-        canEditVisibility={!isSourceAuthored}
+        canEditVisibility={!isCharacterAuthored}
         showAddFriendBadge={showAddFriendBadge}
         isLiked={ui.isLiked}
         isLikePending={isLikePending}
@@ -447,7 +437,6 @@ export function PostCard(input: PostCardProps) {
         authorName:
           displayAuthor?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
         authorHandle: displayAuthor?.handle || '',
-        authorIsSource: isSourceAuthored,
         authorAvatarUrl: displayAuthor?.avatarUrl,
         onClose: () => ui.setIsSendGiftOpen(false),
         onSent: () => {
@@ -462,7 +451,6 @@ export function PostCard(input: PostCardProps) {
           name: displayAuthor?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
           handle: displayAuthor?.handle || '',
           avatarUrl: displayAuthor?.avatarUrl,
-          isSource: isSourceAuthored,
         },
         onClose: () => ui.setShowAddFriendModal(false),
         onAddFriend: handleAddFriend,

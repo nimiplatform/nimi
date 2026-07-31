@@ -1,5 +1,5 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -12,9 +12,9 @@ import {
   type CharacterSourceDiscoveredLocalAgent,
 } from '../explore/character-source-materialization';
 import {
-  materializeSourceContactLaunchTarget,
-  toSourceContactLaunchTarget,
-} from '../relationship/source-contact-launch-target.js';
+  materializeCharacterSourceLaunchTarget,
+  toCharacterSourceLaunchTarget,
+} from '../relationship/character-source-launch-target.js';
 import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import {
@@ -27,7 +27,7 @@ import {
   fetchSourceDisplayDetail,
 } from './source-detail-queries.js';
 import { SourceDetailView } from './source-detail-view.js';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function SourceDetailPanel() {
@@ -45,7 +45,7 @@ export function SourceDetailPanel() {
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const setFeedback = emitFeedbackToast;
 
   const profileQuery = useQuery({
     queryKey: selectedSourceRef
@@ -134,19 +134,19 @@ export function SourceDetailPanel() {
     return profileQuery.data.stats;
   }, [profileQuery.data]);
 
-  const resolveSourceContactTarget = async () => {
+  const resolveCharacterSourceTarget = async () => {
     if (!source) {
       throw new Error(characterSourceMaterializationMessage(i18n.t));
     }
 
     const existingAgent = sourceRuntimeLocalAgents.length === 1 ? sourceRuntimeLocalAgents[0] : null;
     const target = existingAgent
-      ? toSourceContactLaunchTarget({
+      ? toCharacterSourceLaunchTarget({
         ...source,
         runtimeSourceRef: existingAgent.runtimeSourceRef,
         localAgentRef: existingAgent.localAgentRef,
       }, ownerUserId)
-      : await materializeSourceContactLaunchTarget(source, ownerUserId, i18n.t, bindings.sdk);
+      : await materializeCharacterSourceLaunchTarget(source, ownerUserId, i18n.t, bindings.sdk);
 
     if (!existingAgent) {
       await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
@@ -158,7 +158,7 @@ export function SourceDetailPanel() {
 
   const handlePrimaryAction = async () => {
     try {
-      await resolveSourceContactTarget();
+      await resolveCharacterSourceTarget();
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
@@ -175,7 +175,7 @@ export function SourceDetailPanel() {
 
   const handleStartChat = async (initialComposerText?: string) => {
     try {
-      const target = await resolveSourceContactTarget();
+      const target = await resolveCharacterSourceTarget();
       await launchAgentConversationFromDisplay({
         target,
         setActiveTab,
@@ -213,11 +213,6 @@ export function SourceDetailPanel() {
 
   return (
     <>
-      {feedback ? (
-        <div className="px-6 pt-4">
-          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-        </div>
-      ) : null}
       <SourceDetailView
         source={sourceForView!}
         stats={stats}

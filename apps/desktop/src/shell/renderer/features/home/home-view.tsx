@@ -1,6 +1,6 @@
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { ScrollArea, Surface, nimiToast } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -11,6 +11,7 @@ import { usePostCardActionAdapter } from './post-card-action-adapter';
 import { PostFeed } from './post-feed';
 import { prepareHomeFeedItems } from './utils';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { useAppStore } from '../../app-shell/providers/app-store.js';
 
 // Optimistic post placeholder component
 function PublishingPostCard() {
@@ -45,41 +46,6 @@ function PublishingPostCard() {
   );
 }
 
-// Toast notification component
-function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
-  const bindings = useDesktopRendererBindings();
-  const onCloseRef = useRef(onClose);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    return bindings.clock.schedule(3_000, (result) => {
-      if (result.ok) onCloseRef.current();
-    });
-  }, [bindings]);
-
-  return (
-    <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 rounded-full px-4 py-2.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 ${
-      type === 'success' ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : 'bg-red-500 text-white'
-    }`}>
-      {type === 'success' ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="15" y1="9" x2="9" y2="15" />
-          <line x1="9" y1="9" x2="15" y2="15" />
-        </svg>
-      )}
-      <span className="text-sm font-medium">{message}</span>
-    </div>
-  );
-}
-
 const PAGE_SIZE = 15;
 type HomeFeedColumns = 1 | 2;
 
@@ -109,11 +75,13 @@ function useHomeFeedColumns(): HomeFeedColumns {
 export function HomeView(props: HomeViewProps) {
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
+  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
   const [createPostOpen, setCreatePostOpen] = useState(false);
-  const [selectedFeedProfile, setSelectedFeedProfile] = useState<PostCardAuthorProfileTarget | null>(null);
+  const [selectedFeedProfile, setSelectedFeedProfile] = useState<
+    Extract<PostCardAuthorProfileTarget, { kind: 'human' }> | null
+  >(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const createPostRequestRef = useRef<number>(props.createPostRequestKey ?? 0);
   const feedScrollRef = useRef<HTMLDivElement>(null);
   // PostFeed remounts when scope or refreshKey changes so each scope is read
@@ -122,6 +90,13 @@ export function HomeView(props: HomeViewProps) {
   const postFeedKey = `moments-${props.feedScope}-${refreshKey}`;
   const postCardActionAdapter = usePostCardActionAdapter();
   const homeFeedColumns = useHomeFeedColumns();
+  const handleOpenAuthorProfile = useCallback((target: PostCardAuthorProfileTarget) => {
+    if (target.kind === 'character') {
+      navigateToSourceDetail(target.sourceRef);
+      return;
+    }
+    setSelectedFeedProfile(target);
+  }, [navigateToSourceDetail]);
 
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
@@ -189,7 +164,7 @@ export function HomeView(props: HomeViewProps) {
                     onDelete={() => setRefreshKey((k) => k + 1)}
                     onBlock={() => setRefreshKey((k) => k + 1)}
                     showAddFriendBadge={false}
-                    onOpenAuthorProfile={setSelectedFeedProfile}
+                    onOpenAuthorProfile={handleOpenAuthorProfile}
                   />
                 )}
               />
@@ -206,31 +181,16 @@ export function HomeView(props: HomeViewProps) {
           setIsPublishing(false);
           if (success) {
             setRefreshKey((k) => k + 1);
-            setToast({
-              message: mode === 'edit'
-                ? t('Home.postUpdated', { defaultValue: 'Post updated successfully!' })
-                : t('Home.postPublished', { defaultValue: 'Post published successfully!' }),
-              type: 'success',
-            });
+            nimiToast.success(mode === 'edit'
+              ? t('Home.postUpdated', { defaultValue: 'Post updated successfully!' })
+              : t('Home.postPublished', { defaultValue: 'Post published successfully!' }));
             return;
           }
-          setToast({
-            message: mode === 'edit'
-              ? t('Home.postUpdateFailed', { defaultValue: 'Failed to update post' })
-              : t('Home.postPublishFailed', { defaultValue: 'Failed to publish post' }),
-            type: 'error',
-          });
+          nimiToast.danger(mode === 'edit'
+            ? t('Home.postUpdateFailed', { defaultValue: 'Failed to update post' })
+            : t('Home.postPublishFailed', { defaultValue: 'Failed to publish post' }));
         }}
       />
-
-      {/* Toast notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
 
       <ProfileDetailModal
         open={Boolean(selectedFeedProfile)}

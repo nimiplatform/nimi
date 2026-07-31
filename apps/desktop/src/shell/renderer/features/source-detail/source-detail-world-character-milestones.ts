@@ -1,17 +1,13 @@
-import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { SourceDetailWorldCharacterMilestone } from './source-detail-model.js';
 import {
-  readFiniteNumber,
   readMilestoneTimeLabel,
   readOptionalString,
-  readRecordArray,
   readScalarString,
   readTimeLabelFromText,
   readYearLabel,
-  slug,
 } from './source-detail-model-readers.js';
 import {
-  isWorkLikeBiographyMilestone,
   mergeDistinctText,
   mergeTimeLabel,
   milestoneTexts,
@@ -401,35 +397,11 @@ function careerMilestoneMatchesAuthored(
   )) || careerOfficeFactsOverlap(authored, career);
 }
 
-export function readWorldCharacterMilestones(
-  sourceCore: JsonObject | null | undefined,
+export function composeWorldCharacterMilestones(
+  sharedMilestones: readonly SourceDetailWorldCharacterMilestone[],
   careerMilestones: readonly SourceDetailWorldCharacterMilestone[],
 ): SourceDetailWorldCharacterMilestone[] {
-  const biography = parseOptionalJsonObject(sourceCore?.biography);
-  const authored = readRecordArray(biography?.milestones)
-    .map((row, index): SourceDetailWorldCharacterMilestone | null => {
-      const title = readOptionalString(row, 'title') ?? readOptionalString(row, 'summary');
-      if (!title) {
-        return null;
-      }
-      const summary = readOptionalString(row, 'summary');
-      if (isWorkLikeBiographyMilestone(row, title, summary)) {
-        return null;
-      }
-      const sequence = readFiniteNumber(row.sequence);
-      return {
-        id: readOptionalString(row, 'milestoneId')
-          ?? readOptionalString(row, 'id')
-          ?? slug(title, String(index + 1)),
-        title,
-        summary,
-        sequence,
-        timeLabel: readMilestoneTimeLabel([row], [title, summary]),
-        kind: 'biography',
-        derived: false,
-      };
-    })
-    .filter((milestone): milestone is SourceDetailWorldCharacterMilestone => Boolean(milestone))
+  const authored = [...sharedMilestones]
     .sort((left, right) => (left.sequence ?? Number.MAX_SAFE_INTEGER) - (right.sequence ?? Number.MAX_SAFE_INTEGER));
   const mergedAuthored = authored.map((milestone) => {
     const matchingCareers = careerMilestones.filter((candidate) => careerMilestoneMatchesAuthored(milestone, candidate));

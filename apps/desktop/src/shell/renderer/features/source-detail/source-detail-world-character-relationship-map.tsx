@@ -4,8 +4,8 @@ import { MapPin, Network, UserRound } from 'lucide-react';
 import type {
   SourceDetailData,
   SourceDetailRelationshipClue,
-  SourceDetailWorldCharacterRelationshipNote,
 } from './source-detail-model.js';
+import type { CharacterProfileRelationshipProjection } from '../realm-source/character-source-profile-projection.js';
 import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
 import { relationKindLabel, relationshipTheme } from './source-detail-world-character-theme.js';
@@ -62,7 +62,7 @@ function relationshipEdgeLabelPosition(slot: { x: number; y: number }): { left: 
 
 function buildRelationshipMapItems(
   sourceName: string,
-  notes: readonly SourceDetailWorldCharacterRelationshipNote[],
+  notes: readonly CharacterProfileRelationshipProjection[],
   clues: readonly SourceDetailRelationshipClue[],
   t: ReturnType<typeof useTranslation>['t'],
 ): RelationshipMapItem[] {
@@ -205,7 +205,7 @@ function extractRelatedPersonName(sourceName: string, text: string): string | nu
 
 export function WorldCharacterRelationshipCluesSection({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
-  const notes = source.worldCharacter?.relationshipNotes ?? [];
+  const notes = source.characterProfile.relationshipNotes;
   const clues = source.relationshipClues;
   const items = buildRelationshipMapItems(source.displayName, notes, clues, t);
   const relationTypes = uniqueStrings(items.map((item) => item.type));

@@ -1,12 +1,10 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
-import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
 import { resolveCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
+import type { CharacterSourceViewerRelationProjection } from '../realm-source/character-source-profile-projection.js';
 
 type SourceWorldProjection = {
   bannerUrl: string | null;
-  scoreEwma: number;
   name?: string;
 };
 
@@ -48,6 +46,19 @@ function toNumberMap(value: unknown): Record<string, number> | undefined {
   return output;
 }
 
+function readViewerRelation(value: unknown): CharacterSourceViewerRelationProjection {
+  const relation = toRecord(value);
+  const state = relation?.state;
+  if (!relation || (state !== 'connectable' && state !== 'connected' && state !== 'unavailable')) {
+    throw new Error('PersonaCharacter viewerRelation is missing or invalid');
+  }
+  return {
+    state,
+    connectionId: asString(relation.connectionId).trim() || null,
+    runtimeSourceRef: asString(relation.runtimeSourceRef).trim() || null,
+  };
+}
+
 function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): ExplorePersonaSourceCardData | null {
   const source = toRecord(raw);
   if (!source) {
@@ -58,7 +69,6 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     return null;
   }
 
-  const sourceRecord = toRecord(source.source);
   const stats = toRecord(source.stats);
 
   const displayName = asString(source.displayName).trim()
@@ -71,46 +81,39 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     || null;
   const bio = asString(source.bio).trim()
     || null;
-  const isSource = source.isSource === true || Boolean(sourceRecord);
   const isOnline = source.isOnline === true;
-  const sourceRef = resolveCharacterSourceRefV3(source) ?? undefined;
-  if (source.sourceRef && !sourceRef) {
-    throw new Error('PersonaCharacter sourceRef mismatch');
+  const sourceRef = resolveCharacterSourceRefV3(source);
+  if (!sourceRef || sourceRef.kind !== 'personaCharacter') {
+    throw new Error('PersonaCharacter sourceRef is missing, invalid, or mismatched');
   }
-  const sourceKind = sourceRef?.kind;
-  const sourceId = sourceRef?.id || id;
-  const sourceHash = sourceRef?.sourceHash || '';
-
-  const personaStyle = toRecord(sourceRecord?.personaStyle);
-  const archetype = asString(source.archetype).trim()
-    || asString(personaStyle?.archetype).trim();
-  const origin = asString(sourceRecord?.origin).trim()
-    || asString(source.origin).trim();
-  const tier = asString(sourceRecord?.tier).trim()
-    || asString(source.tier).trim();
-  const state = asString(sourceRecord?.state).trim()
-    || asString(source.state).trim();
-  const pacing = asString(source.pacing).trim()
-    || asString(personaStyle?.pacing).trim();
-  const ownershipType = asString(sourceRecord?.ownershipType).trim();
-  const visibility = asString(source.visibility).trim()
-    || asString(sourceRecord?.visibility).trim()
-    || null;
+  if (sourceRef.id !== id) {
+    throw new Error('PersonaCharacter sourceRef id mismatch');
+  }
+  const viewerRelation = readViewerRelation(source.viewerRelation);
+  const role = asString(source.role).trim() || null;
+  const archetype = asString(source.archetype).trim() || null;
+  const cadence = asString(source.cadence).trim() || null;
+  const ownership = source.ownership;
+  if (ownership !== 'worldOwned' && ownership !== 'userOwned') {
+    throw new Error('PersonaCharacter public ownership is missing or invalid');
+  }
+  const visibility = asString(source.visibility).trim() || null;
 
   const customTags = Array.isArray(source.tags)
-    ? source.tags.map(String).filter(Boolean)
+    ? source.tags
+        .filter((tag): tag is string => typeof tag === 'string')
+        .map((tag) => tag.trim())
+        .filter(Boolean)
     : [];
-  const tags = [archetype, origin, pacing].filter(Boolean).concat(customTags);
+  const tags = Array.from(new Set(customTags));
 
-  const worldId = asString(sourceRecord?.worldId).trim()
-    || asString(source.worldId).trim()
-    || asString(source.homeWorldId).trim()
-    || sourceRef?.worldId
-    || null;
-  const worldData = worldId ? worldsMap.get(worldId) : null;
+  const worldId = sourceRef.worldId;
+  const worldName = asString(source.worldName).trim();
+  if (!worldName) {
+    throw new Error('PersonaCharacter public worldName is missing');
+  }
+  const worldData = worldsMap.get(worldId);
   const worldBannerUrl = worldData?.bannerUrl ?? null;
-  const worldName = worldData?.name ?? null;
-  const worldScoreEwma = worldData?.scoreEwma ?? 0;
 
   const friendsCount = asNumber(stats?.friendsCount)
     ?? asNumber(source.friendsCount)
@@ -129,21 +132,15 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     handle,
     avatarUrl,
     bio,
-    isSource,
-    sourceKind,
-    sourceId,
-    sourceHash,
-    runtimeSourceRef: asString(source.runtimeSourceRef).trim() || undefined,
-    ...(sourceRef ? { sourceRef } : {}),
+    sourceRef,
+    viewerRelation,
     worldId,
     worldName,
     worldBannerUrl,
+    role,
     archetype,
-    origin,
-    tier,
-    state,
-    ownershipType,
-    pacing,
+    cadence,
+    ownership,
     visibility,
     isOnline,
     tags,
@@ -151,7 +148,6 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     postsCount,
     likesCount,
     giftStats,
-    worldScoreEwma,
   };
 }
 
@@ -161,39 +157,4 @@ export function parsePersonaSources(personasResult: unknown, worldsMap: SourceWo
   return raw
     .map((item) => mapPersonaSource(item, worldsMap))
     .filter((item): item is ExplorePersonaSourceCardData => item !== null);
-}
-
-export function toProfileTargetFromPersonaSource(source: ExplorePersonaSourceCardData): PostCardAuthorProfileTarget {
-  const profileSeed: ProfileDetailSeed = {
-    id: source.id,
-    displayName: source.name,
-    handle: source.handle,
-    avatarUrl: source.avatarUrl,
-    bio: source.bio,
-    isSource: source.isSource,
-    isOnline: source.isOnline,
-    tags: source.tags,
-    worldName: source.worldName,
-    worldBannerUrl: source.worldBannerUrl,
-    friendsCount: source.friendsCount,
-    postsCount: source.postsCount,
-    likesCount: source.likesCount,
-    giftStats: source.giftStats,
-    sourceState: source.state,
-    sourceArchetype: source.archetype,
-    sourceOrigin: source.origin,
-    sourceTier: source.tier,
-    sourcePacing: source.pacing,
-    sourceOwnershipType: source.ownershipType,
-    sourceWorldId: source.worldId,
-    sourceKind: source.sourceKind,
-    sourceId: source.sourceId,
-    sourceHash: source.sourceHash,
-    runtimeSourceRef: source.runtimeSourceRef,
-    sourceRef: source.sourceRef,
-  };
-  return {
-    profileId: source.id,
-    profileSeed,
-  };
 }

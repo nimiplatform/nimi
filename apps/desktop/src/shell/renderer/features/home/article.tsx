@@ -16,7 +16,7 @@ export type PostCardArticleProps = {
   authorName: string;
   authorHandle: string;
   authorAvatarUrl?: string | null;
-  authorIsSource: boolean;
+  authorKind: 'human' | 'character';
   canUseHumanAuthorActions: boolean;
   isFriend: boolean;
   isOwnPost: boolean;
@@ -77,7 +77,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
               <EntityAvatar
                 imageUrl={props.authorAvatarUrl}
                 name={authorName}
-                kind={props.authorIsSource ? 'source' : 'human'}
+                kind={props.authorKind === 'character' ? 'source' : 'human'}
                 sizeClassName="h-11 w-11"
                 className="shrink-0 ring-1 ring-black/5 transition-transform duration-500 group-hover:scale-105"
                 fallbackClassName="bg-slate-100 text-slate-600 ring-1 ring-black/5"

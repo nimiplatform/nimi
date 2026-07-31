@@ -43,7 +43,7 @@ type ExploreViewProps = {
   onToggleCategory: (category: string) => void;
   onPersonaSourceManage: (source: ExplorePersonaSourceCardData) => void;
   onPersonaSourceSendGift?: (sourceId: string) => void;
-  onPersonaSourceOpen?: (sourceId: string) => void;
+  onPersonaSourceOpen?: (sourceRef: CharacterSourceRefV3) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
   onWorldOpen?: (worldId: string, options?: WorldDetailNavigationOptions) => void;
   onWorldCharacterOpen?: (sourceRef: CharacterSourceRefV3) => void;
@@ -62,7 +62,7 @@ function ExplorePersonaSourcesSection({
 }: {
   personaSources: ExplorePersonaSourceCardData[];
   onPersonaSourceManage: (source: ExplorePersonaSourceCardData) => void;
-  onPersonaSourceOpen?: (sourceId: string) => void;
+  onPersonaSourceOpen?: (sourceRef: CharacterSourceRefV3) => void;
 }) {
   const { t } = useTranslation();
   if (personaSources.length === 0) {
@@ -85,7 +85,7 @@ function ExplorePersonaSourcesSection({
           key={personaSource.id}
           source={personaSource}
           onPrimaryAction={() => onPersonaSourceManage(personaSource)}
-          onOpen={() => onPersonaSourceOpen?.(personaSource.id)}
+          onOpen={() => onPersonaSourceOpen?.(personaSource.sourceRef)}
         />
       ))}
     </div>

@@ -12,7 +12,6 @@ import {
   localAgentListQueryKey,
   type LocalAgentListItem,
 } from '../agents/local-agent-list-model';
-import { toSourceContactLaunchTarget } from '../relationship/source-contact-launch-target';
 import {
   fetchSourceDisplayDetail,
   sourceDisplayDetailQueryKey,
@@ -56,9 +55,8 @@ function nullableText(value: unknown): string | null {
   return normalizeText(value) || null;
 }
 
-function normalizeOwnershipType(value: unknown): AgentLocalTargetSnapshot['ownershipType'] {
-  const normalized = normalizeText(value);
-  return normalized === 'MASTER_OWNED' || normalized === 'WORLD_OWNED' ? normalized : null;
+function readSourceCharacterGreeting(source: SourceDetailData | null): string | null {
+  return nullableText(source?.characterProfile.interaction?.greeting);
 }
 
 export function toHumanFriendTargetSummary(
@@ -69,11 +67,19 @@ export function toHumanFriendTargetSummary(
     return null;
   }
   const record = friend as Record<string, unknown>;
-  if (record.isSource === true) {
+  if (Object.prototype.hasOwnProperty.call(record, 'isSource')
+    || record.sourceRef != null
+    || record.runtimeSourceRef != null
+    || record.localAgentRef != null
+    || record.sourceKind != null
+    || record.sourceId != null
+    || record.source != null) {
     return null;
   }
   const targetId = normalizeText(record.id);
-  if (!targetId) {
+  if (!targetId
+    || targetId.startsWith('local-agent:')
+    || targetId.startsWith('runtime-source:')) {
     return null;
   }
   const title = normalizeText(record.displayName)
@@ -154,7 +160,6 @@ function toAgentTargetSummary(
       worldId: snapshot.worldId,
       worldName: snapshot.worldName,
       bio: snapshot.bio,
-      ownershipType: snapshot.ownershipType,
       greeting: snapshot.greeting,
       builtinDocsContext: snapshot.builtinDocsContext,
       sourceRef,
@@ -180,71 +185,12 @@ export function toAgentTargetsFromLocalAgentList(
         worldId: source?.worldId || agent.sourceRef.worldId,
         worldName: worldNameById.get(source?.worldId || agent.sourceRef.worldId) || null,
         bio: source?.bio ?? null,
-        ownershipType: normalizeOwnershipType(source?.ownershipType),
-        greeting: source?.worldCharacter?.interaction?.greeting ?? null,
+        ownershipType: null,
+        greeting: readSourceCharacterGreeting(source),
         builtinDocsContext: null,
       }, agent.sourceRef);
     })
     .sort((left, right) => left.title.localeCompare(right.title));
-}
-
-export function toAgentTargetsFromSocialSnapshot(
-  snapshot: { friends?: readonly unknown[] } | null | undefined,
-  ownerUserId: string | null | undefined,
-): ConversationTargetSummary[] {
-  const owner = normalizeText(ownerUserId);
-  if (!owner) {
-    return [];
-  }
-  const friends = Array.isArray(snapshot?.friends) ? snapshot.friends : [];
-  return friends
-    .map((friend) => {
-      if (!friend || typeof friend !== 'object' || (friend as Record<string, unknown>).isSource !== true) {
-        return null;
-      }
-      try {
-        const sourceRef = resolveCharacterSourceRefV3(friend);
-        if (!sourceRef) {
-          return null;
-        }
-        return toAgentTargetSummary(toSourceContactLaunchTarget(
-          friend as Parameters<typeof toSourceContactLaunchTarget>[0],
-          owner,
-        ), sourceRef);
-      } catch {
-        return null;
-      }
-    })
-    .filter((target): target is ConversationTargetSummary => Boolean(target))
-    .sort((left, right) => left.title.localeCompare(right.title));
-}
-
-function summaryLocalAgentRef(target: ConversationTargetSummary): string {
-  if (target.source !== 'agent') {
-    return '';
-  }
-  const metadataRef = normalizeText(target.metadata?.localAgentRef);
-  return metadataRef || normalizeText(target.id);
-}
-
-export function mergeAgentTargetSummaries(
-  runtimeTargets: readonly ConversationTargetSummary[],
-  sourceContactTargets: readonly ConversationTargetSummary[],
-): ConversationTargetSummary[] {
-  const byLocalAgentRef = new Map<string, ConversationTargetSummary>();
-  for (const target of runtimeTargets) {
-    const localAgentRef = summaryLocalAgentRef(target);
-    if (isRuntimeLocalAgentRef(localAgentRef)) {
-      byLocalAgentRef.set(localAgentRef, target);
-    }
-  }
-  for (const target of sourceContactTargets) {
-    const localAgentRef = summaryLocalAgentRef(target);
-    if (isRuntimeLocalAgentRef(localAgentRef)) {
-      byLocalAgentRef.set(localAgentRef, target);
-    }
-  }
-  return [...byLocalAgentRef.values()].sort((left, right) => left.title.localeCompare(right.title));
 }
 
 export function toAgentTargetSnapshotFromSummary(
@@ -254,13 +200,15 @@ export function toAgentTargetSnapshotFromSummary(
     return null;
   }
   const metadata = target.metadata || {};
+  const sourceRef = resolveCharacterSourceRefV3({ sourceRef: metadata.sourceRef });
   const ownerUserId = normalizeText(metadata.ownerUserId);
   const runtimeSourceRef = normalizeText(metadata.runtimeSourceRef);
   const localAgentRef = normalizeText(metadata.localAgentRef);
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
+  if (!sourceRef || !ownerUserId || !runtimeSourceRef || !localAgentRef) {
     return null;
   }
-  if (!isRuntimeLocalAgentRef(localAgentRef)) {
+  if (!isRuntimeLocalAgentRef(localAgentRef)
+    || normalizeText(target.id) !== localAgentRef) {
     return null;
   }
   const displayName = normalizeText(metadata.displayName) || normalizeText(target.title);
@@ -271,13 +219,14 @@ export function toAgentTargetSnapshotFromSummary(
     ownerUserId,
     runtimeSourceRef,
     localAgentRef,
+    sourceRef,
     displayName,
     handle: normalizeText(metadata.handle),
     avatarUrl: nullableText(metadata.avatarUrl),
     worldId: nullableText(metadata.worldId),
     worldName: nullableText(metadata.worldName),
     bio: nullableText(metadata.bio),
-    ownershipType: normalizeOwnershipType(metadata.ownershipType),
+    ownershipType: null,
     greeting: nullableText(metadata.greeting),
     builtinDocsContext: nullableText(metadata.builtinDocsContext),
   };
@@ -371,10 +320,8 @@ export function useChatTargetsForSidebar(
   }, [humanChatsQuery.data, socialSnapshotQuery.data, t]);
 
   const agentTargets = useMemo(() => {
-    const runtimeTargets = toAgentTargetsFromLocalAgentList(localAgents, worldNameById, sourceDetailBySourceKey);
-    const sourceContactTargets = toAgentTargetsFromSocialSnapshot(socialSnapshotQuery.data, ownerUserId);
-    return mergeAgentTargetSummaries(runtimeTargets, sourceContactTargets);
-  }, [localAgents, ownerUserId, socialSnapshotQuery.data, sourceDetailBySourceKey, worldNameById]);
+    return toAgentTargetsFromLocalAgentList(localAgents, worldNameById, sourceDetailBySourceKey);
+  }, [localAgents, sourceDetailBySourceKey, worldNameById]);
 
   const groupTargets = useMemo(() => {
     const items = ((groupChatsQuery.data as { items?: GroupChatViewDto[] } | undefined)?.items || []) as GroupChatViewDto[];

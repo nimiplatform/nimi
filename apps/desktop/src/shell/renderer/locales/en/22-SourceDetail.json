@@ -33,6 +33,11 @@
     "statusUnknown": "To verify",
     "unavailable": "No works are available yet."
   },
+  "character": {
+    "identityArchetype": "Archetype",
+    "identityTraits": "Traits",
+    "identityModes": "Interaction modes"
+  },
   "worldCharacter": {
     "eyebrow": "World character detail",
     "primaryAction": "Next step",

@@ -1,8 +1,5 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type {
-  SourceDetailRelationshipClue,
-  SourceDetailWorldCharacterRelationshipNote,
-} from './source-detail-model.js';
+import type { SourceDetailRelationshipClue } from './source-detail-model.js';
 import {
   readMilestoneTimeLabel,
   readOptionalString,
@@ -167,28 +164,5 @@ export function readRelationshipClues(relationships: JsonObject[]): SourceDetail
       seen.add(key);
       return true;
     })
-    .slice(0, 12);
-}
-
-export function readWorldCharacterRelationshipNotes(sourceCore: JsonObject | null | undefined): SourceDetailWorldCharacterRelationshipNote[] {
-  return readRecordArray(sourceCore?.relationships)
-    .map((row, index): SourceDetailWorldCharacterRelationshipNote | null => {
-      const summary = readOptionalString(row, 'summary');
-      const type = readOptionalString(row, 'relationType')
-        ?? readOptionalString(row, 'type');
-      if (!summary || !type || isCareerRelationshipType(type) || isWorkRelationshipType(type)) {
-        return null;
-      }
-      const targetRef = readOptionalString(row, 'targetRef');
-      return {
-        id: readOptionalString(row, 'id')
-          ?? (targetRef ? `${type}-${targetRef}` : null)
-          ?? `${type}-${index + 1}`,
-        type,
-        targetRef,
-        summary,
-      };
-    })
-    .filter((note): note is SourceDetailWorldCharacterRelationshipNote => Boolean(note))
     .slice(0, 12);
 }

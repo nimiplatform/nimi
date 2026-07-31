@@ -17,8 +17,11 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatProfileCard } from '../turns/message-timeline-profile-card.js';
 import { toChatProfileSummary } from '../turns/message-timeline-utils.js';
-import { toProfileData, type ProfileSource } from '../profile/profile-model';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import {
+  toHumanProfileData,
+  type HumanProfileSource,
+} from '../profile/profile-model';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useChatUploadPlaceholderStore } from '../turns/chat-upload-placeholder-context.js';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
@@ -97,7 +100,7 @@ export function HumanCanonicalComposer(props: {
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const setFeedback = emitFeedbackToast;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pickerResolverRef = useRef<((attachments: readonly PendingAttachment[] | PromiseLike<readonly PendingAttachment[] | null> | null) => void) | null>(null);
   const pendingAttachmentsRef = useRef<PendingAttachment[]>([]);
@@ -279,11 +282,6 @@ export function HumanCanonicalComposer(props: {
 
   return (
     <>
-      {feedback ? (
-        <div className="px-4 pb-3">
-          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-        </div>
-      ) : null}
       <CanonicalComposer
         adapter={adapter}
         disabled={!props.selectedChatId || isUploading || offlineTier === 'L2'}
@@ -311,13 +309,14 @@ export function HumanCanonicalComposer(props: {
             imageUrl={props.leadingAvatar.imageUrl || null}
             fallbackLabel={props.leadingAvatar.fallbackLabel || props.leadingAvatar.name}
             preview={props.leadingAvatar.targetId ? {
-              targetId: props.leadingAvatar.targetId,
+              kind: 'human',
+              profileId: props.leadingAvatar.targetId,
               handle: props.leadingAvatar.handle || null,
               worldName: props.leadingAvatar.worldName || null,
             } : null}
             triggerTestId={E2E_IDS.chatHeaderProfileToggle}
             openProfileTestId={E2E_IDS.chatOpenUserProfile}
-            onOpenProfilePage={(targetId) => navigateToProfile(targetId, 'profile')}
+            onOpenHumanProfilePage={(profileId) => navigateToProfile(profileId)}
           />
         ) : null}
       />
@@ -386,13 +385,13 @@ export function HumanCanonicalProfileDrawer(props: {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden px-4 py-4">
       <ChatProfileCard
-        profileData={toProfileData((profileQuery.data || profileSummary) as unknown as ProfileSource)}
+        profileData={toHumanProfileData((profileQuery.data || profileSummary) as unknown as HumanProfileSource)}
         onClose={() => setProfilePanelTarget(null)}
         onViewFullProfile={() => {
           if (!profileSummary.id) {
             return;
           }
-          navigateToProfile(profileSummary.id, 'profile');
+          navigateToProfile(profileSummary.id);
         }}
         viewFullProfileLabel={profileActionLabel}
         onOpenGift={profilePanelTarget === 'other' && profileSummary.id ? props.onOpenGift : undefined}

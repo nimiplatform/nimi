@@ -71,6 +71,43 @@ test('Characters tab fails closed on incomplete bounded source status', () => {
   assert.equal(toLocalAgentListItem(noMaterialization, OWNER), null);
 });
 
+test('Characters tab requires a complete kind-specific CharacterSourceRefV3', () => {
+  const worldCharacterWithoutEntity = makeAgentRecord({
+    sourceContextStatus: {
+      ...READY_SOURCE_STATUS,
+      sourceRef: {
+        kind: 'worldCharacter',
+        id: 'char-1',
+        worldId: 'world-1',
+        sourceHash: 'a'.repeat(64),
+      },
+    },
+  });
+  assert.equal(toLocalAgentListItem(worldCharacterWithoutEntity, OWNER), null);
+
+  const personaCharacterWithoutOwner = makeAgentRecord({
+    sourceContextStatus: {
+      ...READY_SOURCE_STATUS,
+      sourceRef: {
+        kind: 'personaCharacter',
+        id: 'persona-1',
+        worldId: 'world-1',
+        sourceHash: 'a'.repeat(64),
+      },
+    },
+  });
+  assert.equal(toLocalAgentListItem(personaCharacterWithoutOwner, OWNER), null);
+});
+
+test('Characters tab requires source status to belong to the listed LocalAgent', () => {
+  assert.equal(toLocalAgentListItem(makeAgentRecord({
+    sourceContextStatus: {
+      ...READY_SOURCE_STATUS,
+      localAgentRef: 'local-agent:DIFFERENT',
+    },
+  }), OWNER), null);
+});
+
 test('Characters tab requires runtimeSourceRef on the record', () => {
   assert.equal(toLocalAgentListItem(makeAgentRecord({ runtimeSourceRef: '' }), OWNER), null);
 });

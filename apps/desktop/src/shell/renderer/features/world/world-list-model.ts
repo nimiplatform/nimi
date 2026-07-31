@@ -1,4 +1,7 @@
-import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
+import {
+  readCharacterSourceRefV3,
+  type CharacterSourceRefV3,
+} from '../realm-source/realm-source-identity.js';
 import { isMainWorldType } from './shared';
 
 type LooseObject = { [key: string]: unknown };
@@ -167,6 +170,20 @@ function readStringArray(value: unknown): string[] {
     : [];
 }
 
+function readWorldCharacterSourceRef(
+  character: WorldCharacterSummaryDto,
+  expectedWorldId: string,
+): CharacterSourceRefV3 | null {
+  const sourceRef = readCharacterSourceRefV3(character.sourceRef);
+  if (!sourceRef
+    || sourceRef.id !== character.id
+    || sourceRef.worldId !== expectedWorldId
+    || (character.sourceKind != null && sourceRef.kind !== character.sourceKind)) {
+    return null;
+  }
+  return sourceRef;
+}
+
 function toComputedCharacter(raw: unknown): WorldComputedEntryCharacter | null {
   const record = readRecord(raw);
   if (!record) {
@@ -254,6 +271,10 @@ export function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): bo
 
 export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersDto): WorldListItem {
   requireWorldDisplayRecord(raw);
+  const worldId = readString(raw.id);
+  if (!worldId) {
+    throw new Error('World list item requires world id');
+  }
   const media = readRecord(raw.media);
   const stats = readRecord(raw.stats);
   const time = readRecord(raw.time);
@@ -261,6 +282,7 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
   if ('characters' in raw && Array.isArray(raw.characters)) {
     parsedCharacters = raw.characters.map((character: WorldCharacterSummaryDto) => {
       const display = readRecord(character.display);
+      const sourceRef = readWorldCharacterSourceRef(character, worldId);
       return {
         id: character.id,
         name: character.name || 'Unknown',
@@ -269,8 +291,8 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
         avatarUrl: character.avatarUrl ?? null,
         profileCoverUrl: character.profileCoverUrl ?? null,
         createdAt: character.createdAt,
-        sourceRef: character.sourceRef ?? null,
-        sourceKind: character.sourceKind,
+        sourceRef,
+        sourceKind: sourceRef?.kind,
         ownership: character.ownership,
         role: readString(display?.role),
         tags: readStringArray(display?.tags),

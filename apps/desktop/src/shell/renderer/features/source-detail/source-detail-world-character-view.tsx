@@ -14,7 +14,6 @@ import {
   type SourceDetailBiographicalTimelineSection,
 } from './source-detail-world-character-biographical-timeline.js';
 import {
-  sceneRefLabel,
   topicChips,
   worldCharacterHeroDescription,
   worldCharacterHeroSubtitle,
@@ -25,8 +24,9 @@ import {
   milestoneKindLabel,
   milestoneTheme,
 } from './source-detail-world-character-theme.js';
+import { composeWorldCharacterMilestones } from './source-detail-world-character-milestones.js';
 
-type WorldCharacterSourceDetailPageProps = {
+type CharacterSourceDetailPageProps = {
   source: SourceDetailData;
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
   onBack: () => void;
@@ -37,26 +37,23 @@ type WorldCharacterSourceDetailPageProps = {
 
 function WorldCharacterIdentityCoordinates({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
-  const character = source.worldCharacter;
-  if (!character) {
-    return null;
-  }
+  const character = source.characterProfile;
   const coordinates = [
     {
       label: t('SourceDetail.worldCharacter.identityRole', { defaultValue: 'Role' }),
       value: character.role,
     },
     {
-      label: t('SourceDetail.worldCharacter.identityFaction', { defaultValue: 'Faction' }),
-      value: character.faction,
+      label: t('SourceDetail.character.identityArchetype', { defaultValue: 'Archetype' }),
+      value: character.archetype,
     },
     {
-      label: t('SourceDetail.worldCharacter.identityRank', { defaultValue: 'Rank' }),
-      value: character.rank,
+      label: t('SourceDetail.character.identityTraits', { defaultValue: 'Traits' }),
+      value: character.traits.join(' / ') || null,
     },
     {
-      label: t('SourceDetail.worldCharacter.identityScenes', { defaultValue: 'Scenes' }),
-      value: character.sceneRefs.length > 0 ? character.sceneRefs.map(sceneRefLabel).join(' / ') : null,
+      label: t('SourceDetail.character.identityModes', { defaultValue: 'Interaction modes' }),
+      value: character.interactionModes.join(' / ') || null,
     },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value));
 
@@ -211,7 +208,12 @@ function WorldCharacterClueList({
 
 function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
-  const milestones = source.worldCharacter?.milestones ?? [];
+  const milestones = source.sourceKind === 'worldCharacter'
+    ? composeWorldCharacterMilestones(
+        source.characterProfile.milestones,
+        source.worldCharacterAugmentation?.careerMilestones ?? [],
+      )
+    : source.characterProfile.milestones;
   const sections = buildSourceDetailBiographicalTimeline(milestones);
   if (sections.length === 0) {
     return null;
@@ -377,10 +379,10 @@ function WorldCharacterConversationSection({
     })
     .filter((topic): topic is WorldCharacterQuestionTopic => Boolean(topic));
   const questionTopics = uniqueQuestionTopics([
-    source.worldCharacter?.role ? { kind: 'role' as const, text: source.worldCharacter.role } : null,
-    source.worldCharacter?.faction ? { kind: 'faction' as const, text: source.worldCharacter.faction } : null,
-    source.worldCharacter?.rank ? { kind: 'rank' as const, text: source.worldCharacter.rank } : null,
-    ...(source.worldCharacter?.sceneRefs ?? []).map((sceneRef) => ({ kind: 'scene' as const, text: sceneRefLabel(sceneRef) })),
+    source.characterProfile.role ? { kind: 'role' as const, text: source.characterProfile.role } : null,
+    source.characterProfile.archetype ? { kind: 'topic' as const, text: source.characterProfile.archetype } : null,
+    ...source.characterProfile.traits.map((trait) => ({ kind: 'topic' as const, text: trait })),
+    ...source.characterProfile.interactionModes.map((mode) => ({ kind: 'topic' as const, text: mode })),
     ...source.works.map((work) => ({ kind: 'work' as const, text: work.title })),
     ...relationshipTopics,
     ...topicChips(source).map((topic) => ({ kind: 'topic' as const, text: topic })),
@@ -426,7 +428,7 @@ function WorldCharacterOpeningLine({
   className?: string;
 }) {
   const { t } = useTranslation();
-  const interaction = source.worldCharacter?.interaction;
+  const interaction = source.characterProfile.interaction;
   const openingLine = interaction?.greeting ? simplifyDisplayText(interaction.greeting) : null;
   if (!openingLine) {
     return null;
@@ -484,7 +486,7 @@ function WorldCharacterMediaSection({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
   const referenceImageUrl = source.referenceImageUrl;
   const voiceSample = source.voiceSample;
-  const hasOpeningLine = Boolean(source.worldCharacter?.interaction?.greeting);
+  const hasOpeningLine = Boolean(source.characterProfile.interaction?.greeting);
 
   if (!referenceImageUrl && !voiceSample && !hasOpeningLine) {
     return null;
@@ -534,7 +536,7 @@ function WorldCharacterMediaSection({ source }: { source: SourceDetailData }) {
   );
 }
 
-export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetailPageProps) {
+export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const { source } = props;
@@ -567,7 +569,11 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
     : null;
 
   return (
-    <div data-testid="world-character-source-detail-page" className="flex min-h-0 flex-1 flex-col">
+    <div
+      data-testid="character-source-detail-page"
+      data-source-kind={source.sourceKind ?? undefined}
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <ScrollArea
         className="flex-1"
         contentClassName="mx-auto max-w-[1180px] px-5 py-6"

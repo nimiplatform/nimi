@@ -5,49 +5,23 @@ import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
 } from '../../realm-source/realm-source-identity.js';
+import {
+  projectCharacterSourceProfile,
+  type CharacterProfileCoreDto,
+} from '../../realm-source/character-source-profile-projection.js';
+import {
+  requireWorldPublicSourceCardDto,
+  type WorldPublicSourceCardDto,
+} from '../../world/data/world-public-projection.js';
 
 function toNonEmptyString(value: unknown): string {
   return String(value || '').trim();
-}
-
-function readPublicUrlString(value: unknown): string | null {
-  const normalized = toNonEmptyString(value);
-  return /^https?:\/\//i.test(normalized) ? normalized : null;
 }
 
 function asRecord(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as JsonObject
     : {};
-}
-
-function readExternalAssetUri(core: JsonObject, kinds: readonly string[]): string | null {
-  const assets = asRecord(core.assets);
-  const refs = Array.isArray(assets.externalRefs) ? assets.externalRefs : [];
-  for (const ref of refs) {
-    const record = asRecord(ref);
-    const kind = toNonEmptyString(record.kind);
-    if (kind && kinds.includes(kind)) {
-      const uri = toNonEmptyString(record.uri);
-      if (readPublicUrlString(uri)) return uri;
-    }
-  }
-  return null;
-}
-
-function requireProjectedText(value: string | null, message: string): string {
-  if (!value) {
-    throw new Error(message);
-  }
-  return value;
-}
-
-function readWorldStudioVoiceDesign(core: JsonObject): JsonObject | null {
-  const authoring = asRecord(core.authoring);
-  const extensions = asRecord(authoring.extensions);
-  const worldStudioSettings = asRecord(extensions.worldStudioSettings);
-  const voice = asRecord(worldStudioSettings.voice);
-  return Object.keys(voice).length > 0 ? voice : null;
 }
 
 function readStringArray(value: unknown): string[] {
@@ -143,138 +117,35 @@ async function loadWorldCharacterRelationshipProjections(
   return relationships.map(projectWorldRelationshipCore);
 }
 
-function readPublicSourceMediaAsset(media: JsonObject | null, kind: string): JsonObject | null {
-  const assets = asRecord(media?.assets);
-  const asset = asRecord(assets[kind]);
-  const id = toNonEmptyString(asset.id);
-  const url = readPublicUrlString(asset.url);
-  if (!id || !url) {
-    return null;
-  }
-  return {
-    ...asset,
-    id,
-    url,
-  };
-}
-
-function readPublicSourceMediaUrl(media: JsonObject | null, kind: string, scalarKey: string): string | null {
-  const asset = readPublicSourceMediaAsset(media, kind);
-  return readPublicUrlString(asset?.url) ?? readPublicUrlString(media?.[scalarKey]);
-}
-
-function projectPublicSourceMedia(media: JsonObject | null): JsonObject {
-  const avatarAsset = readPublicSourceMediaAsset(media, 'avatar');
-  const portraitAsset = readPublicSourceMediaAsset(media, 'portrait');
-  const profileCoverAsset = readPublicSourceMediaAsset(media, 'profileCover');
-  const referenceImageAsset = readPublicSourceMediaAsset(media, 'referenceImage');
-  const voiceSampleAsset = readPublicSourceMediaAsset(media, 'voiceSample');
-  return {
-    media: media ?? null,
-    avatarUrl:
-      readPublicSourceMediaUrl(media, 'avatar', 'avatarUrl') ??
-      readPublicSourceMediaUrl(media, 'portrait', 'portraitUrl') ??
-      readPublicSourceMediaUrl(media, 'referenceImage', 'referenceImageUrl'),
-    portraitUrl: readPublicSourceMediaUrl(media, 'portrait', 'portraitUrl'),
-    profileCoverUrl: readPublicSourceMediaUrl(media, 'profileCover', 'profileCoverUrl'),
-    referenceImageUrl: readPublicSourceMediaUrl(media, 'referenceImage', 'referenceImageUrl'),
-    voiceSampleUrl: readPublicSourceMediaUrl(media, 'voiceSample', 'voiceSampleUrl'),
-    voiceSample: voiceSampleAsset,
-    mediaAssets: {
-      avatar: avatarAsset,
-      portrait: portraitAsset,
-      profileCover: profileCoverAsset,
-      referenceImage: referenceImageAsset,
-      voiceSample: voiceSampleAsset,
-    },
-  };
-}
-
-async function loadPublicSourceMedia(
+async function loadPublicSourceCard(
   realm: Realm,
   sourceRef: CharacterSourceRefV3,
-): Promise<JsonObject | null> {
-  const source = await realm.worldPublic.worldPublicControllerGetCharacterSource({
-    path: {},
-    body: { sourceRef },
-  });
+): Promise<WorldPublicSourceCardDto> {
+  const source = requireWorldPublicSourceCardDto(
+    await realm.worldPublic.worldPublicControllerGetCharacterSource({
+      path: {},
+      body: { sourceRef },
+    }),
+    sourceRef.worldId,
+  );
   const returnedSourceRef = readCharacterSourceRefV3(source.sourceRef);
   if (!returnedSourceRef
     || characterSourceRefKey(returnedSourceRef) !== characterSourceRefKey(sourceRef)) {
     throw new Error('Public Character source projection returned a mismatched sourceRef');
   }
-  return asRecord(source.media);
+  return source;
 }
 
-function projectPersonaCharacterProfile(core: JsonObject, publicMedia: JsonObject | null = null): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'portraitUrl' | 'profileCoverUrl' | 'referenceImageUrl' | 'voiceSampleUrl' | 'voiceSample' | 'media' | 'mediaAssets' | 'voiceDesign' | 'bio' | 'archetype' | 'pacing'> {
-  const identity = asRecord(core.identity);
-  const presentation = asRecord(core.presentation);
-  const personaStyle = asRecord(core.personaStyle);
-  const media = projectPublicSourceMedia(publicMedia);
-  const displayName = toNonEmptyString(presentation.displayName)
-    || toNonEmptyString(identity.name);
-  const bio = toNonEmptyString(identity.summary)
-    || toNonEmptyString(presentation.profileLine)
-    || toNonEmptyString(presentation.shortBio);
+function projectProfile(
+  profile: CharacterProfileCoreDto,
+  source: WorldPublicSourceCardDto,
+  runtimeSourceRef: string | null,
+): JsonObject {
+  const projection = projectCharacterSourceProfile(profile, source);
   return {
-    displayName: requireProjectedText(
-      displayName,
-      'PersonaCharacter source detail requires presentation.displayName or identity.name',
-    ),
-    handle: toNonEmptyString(identity.handle),
-    media: media.media,
-    mediaAssets: media.mediaAssets,
-    portraitUrl: media.portraitUrl,
-    voiceSampleUrl: media.voiceSampleUrl,
-    voiceSample: media.voiceSample,
-    avatarUrl: toNonEmptyString(media.avatarUrl)
-      || readExternalAssetUri(core, ['avatar', 'referenceImage', 'portrait']),
-    profileCoverUrl: toNonEmptyString(media.profileCoverUrl)
-      || readExternalAssetUri(core, ['profileCover', 'cover']),
-    referenceImageUrl: toNonEmptyString(media.referenceImageUrl)
-      || readExternalAssetUri(core, ['referenceImage']),
-    voiceDesign: readWorldStudioVoiceDesign(core),
-    archetype: toNonEmptyString(personaStyle.archetype) || null,
-    pacing: toNonEmptyString(personaStyle.pacing) || null,
-    bio: requireProjectedText(
-      bio,
-      'PersonaCharacter source detail requires identity.summary or presentation profile copy',
-    ),
-  };
-}
-
-function projectWorldCharacterCore(core: JsonObject, publicMedia: JsonObject | null = null): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'portraitUrl' | 'profileCoverUrl' | 'referenceImageUrl' | 'voiceSampleUrl' | 'voiceSample' | 'media' | 'mediaAssets' | 'voiceDesign' | 'bio'> {
-  const identity = asRecord(core.identity);
-  const presentation = asRecord(core.presentation);
-  const media = projectPublicSourceMedia(publicMedia);
-  const displayName = toNonEmptyString(presentation.displayName)
-    || toNonEmptyString(identity.name);
-  const bio = toNonEmptyString(identity.summary)
-    || toNonEmptyString(presentation.profileLine)
-    || toNonEmptyString(presentation.shortBio);
-  return {
-    displayName: requireProjectedText(
-      displayName,
-      'WorldCharacterCore source detail requires presentation.displayName or identity.name',
-    ),
-    handle: toNonEmptyString(identity.handle),
-    media: media.media,
-    mediaAssets: media.mediaAssets,
-    portraitUrl: media.portraitUrl,
-    voiceSampleUrl: media.voiceSampleUrl,
-    voiceSample: media.voiceSample,
-    avatarUrl: toNonEmptyString(media.avatarUrl)
-      || readExternalAssetUri(core, ['avatar', 'referenceImage', 'portrait']),
-    profileCoverUrl: toNonEmptyString(media.profileCoverUrl)
-      || readExternalAssetUri(core, ['profileCover', 'cover']),
-    referenceImageUrl: toNonEmptyString(media.referenceImageUrl)
-      || readExternalAssetUri(core, ['referenceImage']),
-    voiceDesign: readWorldStudioVoiceDesign(core),
-    bio: requireProjectedText(
-      bio,
-      'WorldCharacterCore source detail requires identity.summary or presentation profile copy',
-    ),
-  };
+    ...projection,
+    runtimeSourceRef: projection.viewerRelation.runtimeSourceRef ?? runtimeSourceRef,
+  } as unknown as JsonObject;
 }
 
 async function loadRealmSourceDetailsBySourceRef(
@@ -284,9 +155,12 @@ async function loadRealmSourceDetailsBySourceRef(
 ): Promise<JsonObject> {
   const runtimeSourceRef = toNonEmptyString(context?.runtimeSourceRef) || null;
   if (sourceRef.kind === 'personaCharacter') {
-    const persona = await realm.worldCore.worldCoreControllerGetPersonaCharacter({
-      path: { personaCharacterId: sourceRef.id },
-    });
+    const [persona, publicSource] = await Promise.all([
+      realm.worldCore.worldCoreControllerGetPersonaCharacter({
+        path: { personaCharacterId: sourceRef.id },
+      }),
+      loadPublicSourceCard(realm, sourceRef),
+    ]);
     const worldId = toNonEmptyString(persona.worldId);
     const sourceHash = toNonEmptyString(persona.sourceHash);
     const ownerAccountId = toNonEmptyString(persona.ownerAccountId);
@@ -295,23 +169,19 @@ async function loadRealmSourceDetailsBySourceRef(
       || ownerAccountId !== sourceRef.ownerAccountId) {
       throw new Error('PersonaCharacter sourceRef is stale or mismatched');
     }
-    const core = asRecord(persona.profile);
-    const publicMedia = await loadPublicSourceMedia(realm, sourceRef);
     return {
       id: persona.id,
-      ...projectPersonaCharacterProfile(core, publicMedia),
-      source: core,
+      ...projectProfile(persona.profile, publicSource, runtimeSourceRef),
       createdAt: persona.createdAt,
       updatedAt: persona.updatedAt,
       visibility: persona.visibility,
-      homeWorldId: worldId,
+      worldId,
       ownerId: persona.ownerAccountId,
       sourceKind: 'personaCharacter',
       sourceId: persona.id,
       contentHash: persona.contentHash,
       sourceHash,
       sourceRef,
-      runtimeSourceRef,
     };
   }
 
@@ -325,33 +195,31 @@ async function loadRealmSourceDetailsBySourceRef(
     || toNonEmptyString(character.worldEntityRef.entityId) !== sourceRef.worldEntityRef.entityId) {
     throw new Error('WorldCharacterCore sourceRef is stale or mismatched');
   }
-  const core = asRecord(character.profile);
   const entityId = toNonEmptyString(character.worldEntityRef.entityId);
   if (!entityId) {
     throw new Error('WorldCharacterCore source detail requires entityId');
   }
-  const [entity, relationships] = await Promise.all([
+  const [entity, relationships, publicSource] = await Promise.all([
     loadBoundWorldEntityProjection(realm, character, worldId),
     loadWorldCharacterRelationshipProjections(realm, entityId, worldId),
+    loadPublicSourceCard(realm, sourceRef),
   ]);
-  const publicMedia = await loadPublicSourceMedia(realm, sourceRef);
   return {
     id: character.id,
-    ...projectWorldCharacterCore(core, publicMedia),
-    source: core,
+    ...projectProfile(character.profile, publicSource, runtimeSourceRef),
     entityId,
     entityContentHash: toNonEmptyString(entity.contentHash),
     entity,
     relationships,
     createdAt: character.createdAt,
     updatedAt: character.updatedAt,
+    visibility: character.visibility,
     worldId,
     sourceKind: 'worldCharacter',
     sourceId: character.id,
     contentHash: character.contentHash,
     sourceHash,
     sourceRef,
-    runtimeSourceRef,
   };
 }
 

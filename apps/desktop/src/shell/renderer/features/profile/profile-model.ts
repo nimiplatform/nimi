@@ -1,30 +1,15 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
-import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { SourceDetailEntity } from '../source-detail/source-detail-model.js';
-import { resolveCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
-export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts' | 'FollowedWorlds';
+export type HumanProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts' | 'FollowedWorlds';
 
-export const PROFILE_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
-
-export type GiftWallItem = {
-  id: string;
-  name: string;
-  emoji: string;
-  iconUrl: string | null;
-  energyCost: string;
-  count: number;
-};
-
-export type ProfileData = {
+export type HumanProfileData = {
   accessState: 'full' | 'restricted';
   id: string;
   displayName: string;
   handle: string;
   avatarUrl: string | null;
+  coverUrl: string | null;
   bio: string | null;
-  isSource: boolean;
   isOnline: boolean;
   isFriend: boolean;
   isPendingFriendRequest: boolean;
@@ -36,24 +21,6 @@ export type ProfileData = {
   gender: string | null;
   stats: { friendsCount: number; postsCount: number; likesCount: number } | null;
   giftStats: Record<string, number>;
-  sourceState: string | null;
-  sourceArchetype: string | null;
-  sourceOrigin: string | null;
-  sourceTier: string | null;
-  sourceVisibility: string | null;
-  sourcePacing: string | null;
-  sourceOwnershipType: string | null;
-  sourceWorldId: string | null;
-  sourceKind: CharacterSourceRefV3['kind'] | null;
-  sourceId: string | null;
-  sourceHash: string | null;
-  runtimeSourceRef: string | null;
-  sourceRef: CharacterSourceRefV3 | null;
-  entityId: string | null;
-  entityContentHash: string | null;
-  entity: SourceDetailEntity | null;
-  worldName: string | null;
-  worldBannerUrl: string | null;
 };
 
 type UserProfileDto = RealmModel<'UserProfileDto'>;
@@ -61,190 +28,81 @@ type ProfileStatsLike = NonNullable<UserProfileDto['stats']> & {
   likesCount?: number;
   likeCount?: number;
 };
-type ProfileSourceRecordLike = {
-  importance?: string | null;
-  origin?: string | null;
-  ownershipType?: string | null;
-  personaStyle?: {
-    archetype?: string | null;
-    pacing?: string | null;
-  } | null;
-  state?: string | null;
-  tier?: string | null;
-  visibility?: string | null;
-  worldId?: string | null;
-  worldName?: string | null;
-  worldBannerUrl?: string | null;
-};
-type ProfileWorldLike = {
-  name?: string | null;
-  bannerUrl?: string | null;
-};
-type ProfileSourceGeneratedBase = Partial<Omit<
+
+export type HumanProfileSource = Partial<Omit<
   UserProfileDto,
-  | 'avatarUrl'
-  | 'bio'
-  | 'city'
-  | 'countryCode'
-  | 'createdAt'
-  | 'displayName'
-  | 'gender'
-  | 'giftStats'
-  | 'handle'
-  | 'id'
-  | 'isSource'
-  | 'languages'
-  | 'stats'
-  | 'tags'
->>;
-export type ProfileSource = ProfileSourceGeneratedBase & {
-  createdAt?: string | null;
+  'createdAt' | 'gender' | 'giftStats' | 'stats'
+>> & {
+  id?: string;
   displayName?: string;
   handle?: string;
-  gender?: string | null;
-  id?: string;
-  isSource?: boolean;
-  sourceRef?: unknown;
-  runtimeSourceRef?: string | null;
-  sourceKind?: string | null;
-  sourceId?: string | null;
-  originKind?: string | null;
-  isCreator?: boolean;
-  isVerified?: boolean;
-  followerCount?: number;
-  followingCount?: number;
   avatarUrl?: string | null;
+  profileCoverUrl?: string | null;
   bio?: string | null;
-  city?: string | null;
-  countryCode?: string | null;
+  createdAt?: string | null;
+  gender?: string | null;
   languages?: readonly string[];
-  postCount?: number;
   tags?: readonly string[];
-  isFriend?: boolean;
-  isPendingFriendRequest?: boolean;
-  worldId?: string | null;
-  sourceWorldId?: string | null;
-  entityId?: string | null;
-  entityContentHash?: string | null;
-  entity?: unknown;
-  sourceConfig?: object | null;
-  worldName?: string | null;
-  worldBannerUrl?: string | null;
-  likesCount?: number;
-  likeCount?: number;
   stats?: ProfileStatsLike | null;
   giftStats?: Record<string, unknown> | null;
-  source?: ProfileSourceRecordLike | null;
-  world?: ProfileWorldLike | null;
+  likesCount?: number;
+  likeCount?: number;
+  isFriend?: boolean;
+  isPendingFriendRequest?: boolean;
 };
 
-function hasRealmSourceIdentity(raw: ProfileSource): boolean {
-  if (raw.isSource === true) return true;
-  if (typeof raw.sourceRef === 'string' && raw.sourceRef.trim()) return true;
-  if (raw.sourceRef && typeof raw.sourceRef === 'object' && !Array.isArray(raw.sourceRef)) return true;
-  if (typeof raw.runtimeSourceRef === 'string' && raw.runtimeSourceRef.trim()) return true;
-  if (typeof raw.sourceKind === 'string' && raw.sourceKind.trim()) return true;
-  if (typeof raw.originKind === 'string' && raw.originKind.trim()) return true;
-  return Boolean(raw.source);
-}
-
-function readObjectRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function readOptionalStringRecord(value: unknown, key: string): string | null {
-  const record = readObjectRecord(value);
-  if (!record) {
-    return null;
+function assertHumanProfileSource(raw: HumanProfileSource): void {
+  const payload = raw as Record<string, unknown>;
+  const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(payload, key);
+  if (
+    hasOwn('isSource')
+    || hasOwn('sourceRef')
+    || hasOwn('runtimeSourceRef')
+    || hasOwn('localAgentRef')
+    || hasOwn('sourceKind')
+    || hasOwn('sourceId')
+    || hasOwn('source')
+  ) {
+    throw new Error('Human profile cannot consume Character Source or Runtime LocalAgent data');
   }
-  const entry = record[key];
-  return typeof entry === 'string' && entry.trim() ? entry.trim() : null;
 }
 
-function readStringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.map((item) => String(item || '').trim()).filter(Boolean)
-    : [];
-}
-
-function readEntityFacts(value: unknown): JsonObject[] {
-  return Array.isArray(value)
-    ? value.map(parseOptionalJsonObject).filter((item): item is JsonObject => Boolean(item))
-    : [];
-}
-
-function readProfileEntity(value: unknown): SourceDetailEntity | null {
-  const entity = readObjectRecord(value);
-  if (!entity) {
-    return null;
+export function requireHumanAccountId(value: unknown): string {
+  const id = typeof value === 'string' ? value.trim() : '';
+  if (!id) {
+    throw new Error('Human profile accountId is required');
   }
-  const id = readOptionalStringRecord(entity, 'id');
-  const kind = readOptionalStringRecord(entity, 'kind');
-  const name = readOptionalStringRecord(entity, 'name');
-  const contentHash = readOptionalStringRecord(entity, 'contentHash');
-  if (!id || !kind || !name || !contentHash) {
-    return null;
+  if (id.startsWith('local-agent:') || id.startsWith('runtime-source:')) {
+    throw new Error('Human profile accountId cannot be a Runtime LocalAgent reference');
   }
-  return {
-    id,
-    kind,
-    name,
-    summary: readOptionalStringRecord(entity, 'summary'),
-    contentHash,
-    tags: readStringArray(entity.tags),
-    facts: readEntityFacts(entity.facts),
-  };
+  return id;
 }
 
-export function toProfileData(raw: ProfileSource): ProfileData {
-  const sourceRecord = raw.source ?? undefined;
-  const stats = raw.stats;
-  const giftStats = raw.giftStats;
-  const world = raw.world;
-  const sourceRefFromPayload = resolveCharacterSourceRefV3(raw);
-  if (raw.sourceRef && !sourceRefFromPayload) {
-    throw new Error('Profile sourceRef mismatch');
-  }
-  const sourceKind = sourceRefFromPayload?.kind ?? null;
-  const sourceWorldId = (
-    sourceRefFromPayload?.worldId
-    || readOptionalStringRecord(sourceRecord, 'worldId')
-    || (typeof raw.sourceWorldId === 'string' ? raw.sourceWorldId.trim() || null : null)
-  );
-  const personaStyle = sourceRecord?.personaStyle && typeof sourceRecord.personaStyle === 'object' && !Array.isArray(sourceRecord.personaStyle)
-    ? sourceRecord.personaStyle
-    : null;
-  const sourceId = (
-    sourceRefFromPayload?.id
-    || null
-  );
-  const sourceHash = sourceRefFromPayload?.sourceHash ?? null;
-  const sourceRef = sourceRefFromPayload;
+export function toHumanProfileData(raw: HumanProfileSource): HumanProfileData {
+  assertHumanProfileSource(raw);
+  const id = requireHumanAccountId(raw.id);
 
   const parsedGiftStats: Record<string, number> = {};
-  if (giftStats) {
-    for (const [key, val] of Object.entries(giftStats)) {
-      if (typeof val === 'number') parsedGiftStats[key] = val;
+  if (raw.giftStats) {
+    for (const [key, value] of Object.entries(raw.giftStats)) {
+      if (typeof value === 'number') {
+        parsedGiftStats[key] = value;
+      }
     }
   }
-  const entity = readProfileEntity(raw.entity);
-  const entityContentHash = (
-    (typeof raw.entityContentHash === 'string' ? raw.entityContentHash.trim() : '')
-    || entity?.contentHash
-    || null
-  );
 
+  const stats = raw.stats;
   return {
     accessState: 'full',
-    id: String(raw.id || ''),
+    id,
     displayName: String(raw.displayName || raw.handle || 'Unknown'),
     handle: String(raw.handle || ''),
     avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : null,
+    coverUrl: typeof raw.profileCoverUrl === 'string' ? raw.profileCoverUrl : null,
     bio: typeof raw.bio === 'string' ? raw.bio : null,
-    isSource: hasRealmSourceIdentity(raw),
     isOnline: raw.isOnline === true,
+    isFriend: raw.isFriend === true,
+    isPendingFriendRequest: raw.isPendingFriendRequest === true,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
     languages: Array.isArray(raw.languages) ? raw.languages.map(String) : [],
@@ -267,43 +125,6 @@ export function toProfileData(raw: ProfileSource): ProfileData {
         }
       : null,
     giftStats: parsedGiftStats,
-    sourceState: sourceRecord && typeof sourceRecord.state === 'string' ? sourceRecord.state : null,
-    sourceArchetype: personaStyle && typeof personaStyle.archetype === 'string' ? personaStyle.archetype : null,
-    sourceOrigin: sourceRecord && typeof sourceRecord.origin === 'string' ? sourceRecord.origin : null,
-    sourceTier: sourceRecord && typeof sourceRecord.tier === 'string' ? sourceRecord.tier : null,
-    sourceVisibility: (
-      (sourceRecord && typeof sourceRecord.visibility === 'string' ? sourceRecord.visibility : null)
-    ),
-    sourcePacing: personaStyle && typeof personaStyle.pacing === 'string' ? personaStyle.pacing : null,
-    sourceOwnershipType: (
-      (sourceRecord && typeof sourceRecord.ownershipType === 'string' ? sourceRecord.ownershipType : null)
-    ),
-    sourceWorldId,
-    sourceKind,
-    sourceId,
-    sourceHash,
-    runtimeSourceRef: (
-      (typeof raw.runtimeSourceRef === 'string' ? raw.runtimeSourceRef.trim() : '')
-      || null
-    ),
-    sourceRef,
-    entityId: (
-      (typeof raw.entityId === 'string' ? raw.entityId.trim() : '')
-      || entity?.id
-      || null
-    ),
-    entityContentHash,
-    entity,
-    worldName: (
-      (typeof raw.worldName === 'string' ? raw.worldName : null)
-      || (typeof world?.name === 'string' ? world.name : null)
-    ),
-    worldBannerUrl: (
-      (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
-      || (typeof world?.bannerUrl === 'string' ? world.bannerUrl : null)
-    ),
-    isFriend: raw.isFriend === true,
-    isPendingFriendRequest: raw.isPendingFriendRequest === true,
   };
 }
 

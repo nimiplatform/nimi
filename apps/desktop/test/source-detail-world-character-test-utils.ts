@@ -43,6 +43,42 @@ export const liBaiRaw = {
     worldEntityRef: { kind: 'worldEntity', worldId: 'cbdb-tang-literati-world', entityId: 'cbdb-person-32540' },
     sourceHash: 'a'.repeat(64),
   },
+  viewerRelation: {
+    state: 'connectable',
+    connectionId: null,
+    runtimeSourceRef: null,
+  },
+  characterProfile: {
+    role: '盛唐诗人',
+    archetype: '诗人',
+    traits: ['豪放'],
+    knowledgeTopics: ['唐诗'],
+    knowledgeConstraints: [],
+    interactionModes: ['诗文问答'],
+    milestones: [
+      {
+        id: 'text-25641',
+        title: '李太白集',
+        summary: null,
+        sequence: 1,
+        timeLabel: null,
+        kind: 'work',
+        derived: false,
+      },
+      {
+        id: 'text-26414',
+        title: '草堂集(李白)',
+        summary: null,
+        sequence: 2,
+        timeLabel: null,
+        kind: 'work',
+        derived: false,
+      },
+    ],
+    relationshipNotes: [],
+    conversationAnchors: ['唐诗'],
+    interaction: null,
+  },
   source: {
     state: 'source_materialization_available',
     authoring: {
@@ -88,6 +124,11 @@ export const ouYangDeRaw = {
     worldEntityRef: { kind: 'worldEntity', worldId: 'cbdb-ming-lettered-networks-world', entityId: 'cbdb-person-99984' },
     sourceHash: 'b'.repeat(64),
   },
+  viewerRelation: {
+    state: 'connectable',
+    connectionId: null,
+    runtimeSourceRef: null,
+  },
   entity: {
     id: 'cbdb-person-99984',
     kind: 'person',
@@ -96,6 +137,59 @@ export const ouYangDeRaw = {
     contentHash: 'entity-hash-ou-yang-de',
     tags: ['世界实体', '人物'],
     facts: [],
+  },
+  characterProfile: {
+    role: '阳明学派思想家与朝廷重臣',
+    archetype: '阳明学派',
+    traits: ['礼部尚书'],
+    knowledgeTopics: ['阳明学派思想家与朝廷重臣'],
+    knowledgeConstraints: ['身处嘉靖朝政治漩涡'],
+    interactionModes: ['文人交游', '仕途回顾', '亲缘关系'],
+    milestones: [
+      {
+        id: 'cbdb-person-99984-milestone-1',
+        title: '嘉靖二年（1523）中进士',
+        summary: '嘉靖二年（1523）中进士',
+        sequence: 1,
+        timeLabel: '1523',
+        kind: 'biography',
+        derived: false,
+      },
+      {
+        id: 'cbdb-person-99984-milestone-3',
+        title: '官至礼部尚书',
+        summary: '官至礼部尚书',
+        sequence: 3,
+        timeLabel: '1554',
+        kind: 'biography',
+        derived: false,
+      },
+    ],
+    relationshipNotes: [
+      {
+        id: 'cbdb-status-181',
+        type: 'status',
+        targetRef: 'cbdb-status-181',
+        summary: '欧阳德被明确标识为阳明学派理学家，这是其最核心的学术身份。',
+      },
+      {
+        id: 'cbdb-office-70625',
+        type: 'postedToOffice',
+        targetRef: 'cbdb-office-70625',
+        summary: '官至礼部尚书，是其仕途的顶峰，掌管国家礼仪与科举事务。',
+      },
+    ],
+    conversationAnchors: [
+      '欧阳德会先请你说明想问诗文、仕途还是人生起落。',
+      '阳明学派思想家与朝廷重臣',
+      '身处嘉靖朝政治漩涡',
+    ],
+    interaction: {
+      tone: '沉稳庄重，带有学者与高官的威严',
+      cadence: '语速平缓，条理清晰，善用典故',
+      scenario: '士人交游圈：以师友、同僚、门生关系为纽带。',
+      greeting: '吾乃欧阳德，字崇一，号南野。',
+    },
   },
   source: {
     placement: {

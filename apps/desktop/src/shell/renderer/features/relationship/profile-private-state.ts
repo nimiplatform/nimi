@@ -1,13 +1,16 @@
 import { extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
-import { toProfileData, type ProfileData, type ProfileSource } from '../profile/profile-model';
+import {
+  toHumanProfileData,
+  type HumanProfileData,
+  type HumanProfileSource,
+} from '../profile/profile-model';
 
-export type RestrictedContactProfileSeed = {
+export type RestrictedHumanProfileSeed = {
   id: string;
   displayName: string;
   handle: string;
   avatarUrl?: string | null;
   bio?: string | null;
-  isSource: boolean;
   isOnline?: boolean;
   createdAt?: string | null;
   friendsSince?: string | null;
@@ -15,19 +18,10 @@ export type RestrictedContactProfileSeed = {
   city?: string | null;
   countryCode?: string | null;
   gender?: string | null;
-  worldName?: string | null;
-  worldBannerUrl?: string | null;
   friendsCount?: number;
   postsCount?: number;
   likesCount?: number;
   giftStats?: Record<string, number>;
-  sourceState?: string | null;
-  sourceArchetype?: string | null;
-  sourceOrigin?: string | null;
-  sourceTier?: string | null;
-  sourcePacing?: string | null;
-  sourceOwnershipType?: string | null;
-  sourceWorldId?: string | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -59,7 +53,7 @@ export function isPrivateProfileAccessError(error: unknown): boolean {
   return readStatus(error) === 403;
 }
 
-function toStats(seed: RestrictedContactProfileSeed): ProfileSource['stats'] {
+function toStats(seed: RestrictedHumanProfileSeed): HumanProfileSource['stats'] {
   const hasStats = typeof seed.friendsCount === 'number'
     || typeof seed.postsCount === 'number'
     || typeof seed.likesCount === 'number';
@@ -73,35 +67,21 @@ function toStats(seed: RestrictedContactProfileSeed): ProfileSource['stats'] {
   };
 }
 
-export function toRestrictedContactProfileData(seed: RestrictedContactProfileSeed): ProfileData {
-  const profile = toProfileData({
+export function toRestrictedHumanProfileData(seed: RestrictedHumanProfileSeed): HumanProfileData {
+  const profile = toHumanProfileData({
     id: seed.id,
     displayName: seed.displayName,
     handle: seed.handle,
     avatarUrl: seed.avatarUrl ?? null,
     bio: seed.bio ?? null,
-    isSource: seed.isSource,
     isOnline: seed.isOnline === true,
     createdAt: seed.createdAt || seed.friendsSince || '',
     tags: seed.tags ?? [],
     city: seed.city ?? null,
     countryCode: seed.countryCode ?? null,
     gender: seed.gender ?? null,
-    worldName: seed.worldName ?? null,
-    worldBannerUrl: seed.worldBannerUrl ?? null,
     stats: toStats(seed),
     giftStats: seed.giftStats ?? null,
-    source: {
-      state: seed.sourceState ?? null,
-      origin: seed.sourceOrigin ?? null,
-      tier: seed.sourceTier ?? null,
-      personaStyle: {
-        archetype: seed.sourceArchetype ?? null,
-        pacing: seed.sourcePacing ?? null,
-      },
-      ownershipType: seed.sourceOwnershipType ?? null,
-      worldId: seed.sourceWorldId ?? null,
-    },
     isFriend: true,
     isPendingFriendRequest: false,
   });

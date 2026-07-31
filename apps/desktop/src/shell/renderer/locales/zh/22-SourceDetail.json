@@ -33,6 +33,11 @@
     "statusUnknown": "待确认",
     "unavailable": "暂时没有作品信息。"
   },
+  "character": {
+    "identityArchetype": "角色原型",
+    "identityTraits": "特质",
+    "identityModes": "互动方式"
+  },
   "worldCharacter": {
     "eyebrow": "世界人物详情",
     "primaryAction": "下一步",

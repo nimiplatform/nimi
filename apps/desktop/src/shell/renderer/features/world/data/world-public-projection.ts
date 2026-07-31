@@ -458,7 +458,16 @@ export function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): 
   const referenceImageAsset = readPublicAssetFromRecord(mediaAssetsRecord, 'referenceImage');
   const voiceSampleAsset = readPublicAssetFromRecord(mediaAssetsRecord, 'voiceSample');
   const relation = asRecord(source.relation);
-  const sourceRef = source.sourceRef as unknown as CharacterSourceRefV3;
+  const sourceRef = readCharacterSourceRefV3(source.sourceRef);
+  if (!sourceRef
+    || sourceRef.kind !== source.sourceKind
+    || sourceRef.worldId !== source.worldId
+    || sourceRef.id !== source.id) {
+    failRealmWorldContract(
+      'SDK_REALM_WORLD_PUBLIC_SOURCE_REF_MISMATCH',
+      `World public source ${source.id} requires a matching CharacterSourceRefV3`,
+    );
+  }
   return {
     id: source.id,
     name: source.displayName,
@@ -468,7 +477,9 @@ export function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): 
       avatarAsset?.url ??
       readPublicUrl(media, 'avatarUrl') ??
       portraitAsset?.url ??
+      readPublicUrl(media, 'portraitUrl') ??
       referenceImageAsset?.url ??
+      readPublicUrl(media, 'referenceImageUrl') ??
       null,
     portraitUrl: portraitAsset?.url ?? readPublicUrl(media, 'portraitUrl'),
     profileCoverUrl: profileCoverAsset?.url ?? readPublicUrl(media, 'profileCoverUrl'),

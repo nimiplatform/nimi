@@ -1,24 +1,19 @@
 import { Button, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { FILTER_TABS, type NotificationFilterTab } from './notification-panel-types.js';
 
 type NotificationPanelHeaderProps = {
   activeFilter: NotificationFilterTab;
-  feedback: InlineFeedbackState | null;
   markingAllRead: boolean;
   unreadCount: number;
-  onDismissFeedback: () => void;
   onFilterChange: (filter: NotificationFilterTab) => void;
   onMarkAllRead: () => void;
 };
 
 export function NotificationPanelHeader({
   activeFilter,
-  feedback,
   markingAllRead,
   unreadCount,
-  onDismissFeedback,
   onFilterChange,
   onMarkAllRead,
 }: NotificationPanelHeaderProps) {
@@ -60,11 +55,6 @@ export function NotificationPanelHeader({
           </Button>
         ))}
       </div>
-      {feedback ? (
-        <div className="pt-4">
-          <InlineFeedback feedback={feedback} onDismiss={onDismissFeedback} />
-        </div>
-      ) : null}
     </Surface>
   );
 }

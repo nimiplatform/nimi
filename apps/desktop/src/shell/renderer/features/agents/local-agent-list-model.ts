@@ -4,7 +4,10 @@ import {
   type NimiRuntimeAgentSourceRef,
 } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
-import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
+import {
+  characterSourceRefKey,
+  readCharacterSourceRefV3,
+} from '../realm-source/realm-source-identity.js';
 
 // The Characters tab (D-SHELL-001 `agents`) projects runtime ListAgents
 // authority: source-materialized LocalAgents owned by the signed-in account.
@@ -34,10 +37,7 @@ function normalizeText(value: unknown): string {
 
 function toCharacterSourceRefFromStatus(status: NimiRuntimeAgentSourceContextStatus | null | undefined): NimiRuntimeAgentSourceRef | null {
   if (status?.ready !== true || !status.sourceRef) return null;
-  const worldId = normalizeText(status.sourceRef.worldId);
-  const id = normalizeText(status.sourceRef.id);
-  const sourceHash = normalizeText(status.sourceRef.sourceHash);
-  return worldId && id && sourceHash ? status.sourceRef : null;
+  return readCharacterSourceRefV3(status.sourceRef);
 }
 
 type RuntimeAgentRecordLike = {
@@ -55,6 +55,7 @@ export function toLocalAgentListItem(
   const ownerUserId = normalizeText(agent.ownerUserId);
   if (!ownerUserId || ownerUserId !== currentUserId) return null;
   if (!isRuntimeLocalAgentRef(agent.localAgentRef)) return null;
+  if (normalizeText(agent.sourceContextStatus?.localAgentRef) !== agent.localAgentRef) return null;
   const runtimeSourceRef = normalizeText(agent.runtimeSourceRef);
   if (!runtimeSourceRef) return null;
   const sourceRef = toCharacterSourceRefFromStatus(agent.sourceContextStatus);
