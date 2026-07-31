@@ -296,3 +296,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.companion-panel
+  - id: rule.nimi.desktop.agent-projection.r201
+    kind: rule
+    title: Character source chat consumes the shared profile projection
+    modality: must
+    statement: Desktop LocalAgent Conversation derives PersonaCharacter and WorldCharacter greeting and other shared character context from the same shared Realm character profile consumer projection, while Runtime-owned LocalAgent identity, materialization context, and non-null Runtime conversation fields remain Runtime projections and are not erased by absent source-contact fields.
+    condition: Whenever Desktop builds or merges a LocalAgent Conversation target backed by a PersonaCharacter or WorldCharacter source.
+    failure: Reject a WorldCharacter-only greeting path, source-kind-specific shared-context parser, legacy Core fallback, or null source-contact field that overwrites an available Runtime conversation field.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.character-profile-projection

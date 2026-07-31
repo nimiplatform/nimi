@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.relationship-profile
     kind: definition
     title: Desktop contextual relationship and profile surface
-    meaning: Desktop relationship and profile UX is a contextual shared profile and social projection consumed by Home, Chat, Explore, Profile, notifications, World detail, source detail, and local materialization flows rather than a standalone primary product surface.
+    meaning: Desktop relationship and profile UX is a contextual composition consumed by Home, Chat, Explore, Profile, notifications, World detail, source detail, and local materialization flows rather than a standalone primary product surface; Human UserProfile, Character Source profile, and Runtime LocalAgent presentation remain explicit typed subjects whose visual primitives may be shared without merging identity, truth, data models, caches, or action authority.
   - id: rule.nimi.desktop.product-surfaces.r001
     kind: rule
     title: Explore is the unified Realm discovery surface
@@ -307,9 +307,9 @@ units:
     kind: rule
     title: Relationship and profile UX remains contextual
     modality: must
-    statement: Human and source profile detail remains available through shared profile-detail modal and content components to Home, Explore, Chat, Profile, notification, and other contextual consumers; remove friend, block, unblock, accept or reject friend request, and local materialization handoff use admitted Realm social, Realm core, and Runtime paths, while pending, unavailable, or unsupported materialization fails closed or routes to an admitted in-context action.
+    statement: Contextual profile intent uses exactly a Human subject keyed by Realm accountId or a Character Source subject keyed by complete CharacterSourceRefV3, while Runtime LocalAgent presentation and Conversation remain keyed by Runtime-owned localAgentRef; Human detail may use a contextual Human profile modal, every Character detail intent routes through the canonical Character source-detail projection, and shared visual primitives never authorize a shared loader, semantic union, cache namespace, tab set, or action controller; friend, remove friend, block, unblock, privacy, edit, and Human Chat actions apply only to Human subjects, while Character subjects expose only typed source facts and explicitly admitted source gift, materialization, existing-LocalAgent open, and World navigation actions, with unavailable capability failing closed.
     condition: Whenever Desktop presents profile detail, relationship state, social mutation, or local materialization state.
-    failure: Reject renderer-local social truth, pseudo-success, Realm REST bypass, bare-source direct chat, a standalone primary relationship page, lazy route, E2E page journey, governed page shell, or sidebar, while retaining reusable contextual modal behavior.
+    failure: Reject renderer-local social truth, pseudo-success, Realm REST bypass, an isSource-style UserProfile and Character union, localAgentRef or bare sourceId substituted for CharacterSourceRefV3, a Character ID submitted to a Human API or tab, bare-source direct chat, and any shared component that leaks action authority across subjects.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.relationship-profile
@@ -317,9 +317,9 @@ units:
     kind: rule
     title: Relationship categories are closed
     modality: must
-    statement: Contextual relationship and profile consumers distinguish exactly human_friends for ACTIVE human-to-human Friendship relations that resolve to human relationship and Human Chat, and local_agents for Runtime-owned LocalAgents discovered from Runtime inventory and provenance that may expose source provenance and open an existing LocalAgent without treating source records as friends or deriving LocalAgent identity from source metadata.
+    statement: Contextual relationship and profile consumers distinguish exactly human_friends for ACTIVE human-to-human Friendship relations that resolve to human relationship and Human Chat, and local_agents for Runtime-owned LocalAgents discovered only from Runtime inventory and provenance that may expose a complete CharacterSourceRefV3 and open an existing LocalAgent; a WorldPublic viewer relation remains a typed Character source relation with its own state, connectionId, and runtimeSourceRef and is never projected as Friendship or isFriend, while Realm social contacts never supply or override a LocalAgent target.
     condition: Whenever Desktop categorizes a relationship or source-backed profile entry.
-    failure: Reject an additional or collapsed category, non-ACTIVE human relation as a friend, source record as friendship, or source-derived LocalAgent identity.
+    failure: Reject an additional or collapsed category, non-ACTIVE human relation as a friend, source record or viewer relation as Friendship, source contacts merged into Runtime LocalAgent inventory, or source-derived LocalAgent identity.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.relationship-profile
@@ -333,3 +333,17 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.relationship-profile
+  - id: rule.nimi.desktop.product-surfaces.r033
+    kind: rule
+    title: Desktop character surfaces consume the shared profile projection
+    modality: must
+    statement: Explore, Home, source detail, World detail, and contextual Character consumers derive PersonaCharacter and WorldCharacter display, narrative, knowledge, interaction, media, biography milestones, viewer relation, and public-source facts from one typed shared Realm character profile consumer projection and route every Character detail intent with complete CharacterSourceRefV3, so the same shared input has the same projected meaning for both source kinds; WorldCharacter-only entity and incident relationship sections are rendered only from their typed augmentation, Realm public ownership worldOwned or userOwned, Persona ownerAccountId, and Runtime ownerUserId or localAgentRef remain distinct namespaces, and absent public facts or statistics remain null, unavailable, or hidden.
+    condition: Whenever Desktop presents or routes a PersonaCharacter or WorldCharacter source outside LocalAgent Conversation.
+    failure: Reject a source-kind-specific profile parser, duplicated semantic view model, parallel Character profile modal, obsolete Core field fallback, shared-field loss, source identity or ownership namespace alias, fabricated zero fact, or WorldCharacter relationship augmentation represented as shared CharacterProfile data.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.relationship-profile
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.character-profile-projection

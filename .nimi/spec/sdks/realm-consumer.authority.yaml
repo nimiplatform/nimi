@@ -22,6 +22,10 @@ units:
     kind: definition
     title: Deferred Realm group LocalAgent participation client boundary
     meaning: Realm group LocalAgent participation and room orchestration are outside the current SDK product closure and remain an isolated future consumer boundary that does not block TypeScript core SDK, Realm and Runtime access, LocalAgent Conversation, or ordinary App development.
+  - id: definition.nimi.sdks.realm-consumer.character-profile-projection
+    kind: definition
+    title: Shared Realm character profile consumer projection
+    meaning: The shared Realm character profile consumer projection is the single Nimi interpretation of CharacterProfileCoreDto together with its exactly matching WorldPublicSourceCardDto for both PersonaCharacter and WorldCharacter sources; it preserves common display, narrative, knowledge, interaction, media, and public-source semantics, while source identity and dependency closure remain typed source-reference concerns and WorldCharacter bound-entity or incident relationships remain optional typed augmentations outside the shared profile.
   - id: rule.nimi.sdks.realm-consumer.r001
     kind: rule
     title: Realm authority stays external and unmirrored
@@ -252,3 +256,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.group-participation-plane
+  - id: rule.nimi.sdks.realm-consumer.r045
+    kind: rule
+    title: Character sources share one consumer profile projection
+    modality: must
+    statement: SDK, Runtime, Nimi Home, and authorized Apps project PersonaCharacter and WorldCharacter sources through the same shared Realm character profile consumer projection; a source-kind branch may select typed source identity, hash domain, and dependency closure, and a WorldCharacter branch may add bound-entity or incident-relationship facts, but no branch may redefine, omit, or reinterpret shared CharacterProfileCoreDto or WorldPublicSourceCardDto semantics.
+    condition: Whenever a Nimi consumer materializes, adapts, displays, or compiles a PersonaCharacter or WorldCharacter source.
+    failure: Fail closed on a mismatched source reference or public card, and reject a kind-specific profile schema or semantic parser, partial public-card projection followed by raw Core re-parsing, shared-field omission, and legacy CharacterProfileCoreDto roots including personaStyle, contentProfile, placement, or biography.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.character-profile-projection

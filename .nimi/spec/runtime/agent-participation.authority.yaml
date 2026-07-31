@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.conversation-anchor-plane
     kind: definition
     title: Runtime LocalAgent conversation continuity plane
-    meaning: Runtime owns cross-surface LocalAgent Conversation continuity through committed conversation anchors and snapshots; anchors distinguish independent conversations for one LocalAgent and never make an App, Desktop, Avatar, or projection cache the continuity owner.
+    meaning: Runtime owns cross-surface LocalAgent Conversation continuity as exactly one durable Runtime-owned conversation transcript per LocalAgent; the conversation anchor is only the Runtime-issued continuity token for that single conversation, every authorized surface attaches as a projection and consumer of the same transcript, and no App identity, Desktop, Avatar, caller principal, or projection cache partitions continuity or becomes its owner.
   - id: definition.nimi.runtime.agent-participation.hook-intent-plane
     kind: definition
     title: Optional Runtime continuation boundary
@@ -62,9 +62,9 @@ units:
     kind: rule
     title: LocalAgent Conversation continuity is Runtime-owned
     modality: must
-    statement: Runtime Agent Service owns every LocalAgent Conversation anchor, committed turn, snapshot, recovery, attachment, and interruption decision, and multiple conversations or LocalAgents never collapse into an implicit global session.
+    statement: Runtime Agent Service owns the single conversation transcript of each LocalAgent with every anchor, committed turn, snapshot, recovery, attachment, and interruption decision, and distinct LocalAgents never share one transcript while one LocalAgent never has parallel Runtime conversation histories.
     condition: Whenever a LocalAgent conversation is opened, continued, recovered, or projected across surfaces.
-    failure: Reject App-owned continuity, local transcript recovery, or implicit global attachment.
+    failure: Reject App-owned continuity, local transcript recovery, parallel per-surface conversation histories, and implicit cross-LocalAgent attachment.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
@@ -72,19 +72,19 @@ units:
     kind: rule
     title: No platform default LocalAgent
     modality: must_not
-    statement: Runtime, Desktop, Avatar, Home, or an App infers a platform-level current or default LocalAgent, or treats LocalAgent identity alone as conversation continuity.
-    condition: Whenever a surface selects a LocalAgent or attaches to a Conversation.
-    failure: Require an explicit authorized localAgentId and an explicit Runtime conversation selection or creation.
+    statement: Runtime, Desktop, Avatar, Home, or an App infers a platform-level current or default LocalAgent.
+    condition: Whenever a surface selects a LocalAgent or attaches to its conversation.
+    failure: Require an explicit authorized localAgentId.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
   - id: rule.nimi.runtime.agent-participation.r005
     kind: rule
-    title: Conversation open and recovery are explicit
+    title: Conversation open and recovery are explicit and convergent
     modality: must
-    statement: A caller supplies an explicit authorized localAgentId and explicit conversation intent, while Runtime creates or resolves committed continuity and returns only typed snapshots and projections.
+    statement: A caller supplies an explicit authorized localAgentId, Runtime resolves that LocalAgent's single conversation by creating it on first open and returning the same committed continuity to every later authorized caller, and callers never select, partition, or duplicate conversation identity by App, principal, surface, or disposition.
     condition: Whenever a LocalAgent Conversation is opened or recovered.
-    failure: Reject shadow anchors, App-local history as recovery truth, and an unauthorized LocalAgent target.
+    failure: Reject shadow or parallel transcripts, caller-selected conversation partitioning, App-local history as recovery truth, and an unauthorized LocalAgent target.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
