@@ -36,7 +36,7 @@ function DateSeparatorRow({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-4">
       <div className="h-px flex-1 bg-slate-200/70" />
-      <span className="shrink-0 rounded-full border border-white/80 bg-white/72 px-3 py-1 text-[11px] font-medium text-slate-500 shadow-[0_12px_26px_rgba(15,23,42,0.05)]">
+      <span className="shrink-0 rounded-full border border-white/80 bg-white/72 px-3 py-1 text-[11px] font-medium text-slate-500">
         {label}
       </span>
       <div className="h-px flex-1 bg-slate-200/70" />
@@ -50,6 +50,9 @@ function renderMessageItem(
 ) {
   const renderContext = toCanonicalTranscriptRenderContext({ item: virtualItem.item, focused: virtualItem.focused });
   const renderedAvatar = props.renderMessageAvatar?.(virtualItem.item.message, renderContext);
+  // Surfaces without an avatar renderer must not reserve the 32px avatar gutter,
+  // otherwise message text indents away from the shared content column edges.
+  const avatarSlot = renderedAvatar === undefined ? null : renderedAvatar;
   const senderName = String(virtualItem.item.message.senderName || '').trim();
   const showSenderLabel = virtualItem.item.message.source === 'group'
     && !renderContext.isCurrentUser
@@ -73,7 +76,7 @@ function renderMessageItem(
       ) : null}
       <CanonicalMessageBubble
         message={virtualItem.item.message}
-        avatar={renderedAvatar}
+        avatar={avatarSlot}
         content={props.renderMessageContent?.(virtualItem.item.message, renderContext)}
         accessory={props.renderMessageAccessory
           ? props.renderMessageAccessory(virtualItem.item.message, renderContext)

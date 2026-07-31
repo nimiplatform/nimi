@@ -8,18 +8,18 @@ import type {
   ChatComposerMediaAction,
 } from '../types.js';
 
-const MIN_TEXTAREA_HEIGHT = 48;
+const MIN_TEXTAREA_HEIGHT = 36;
 const MAX_TEXTAREA_HEIGHT = 128;
 
 const ICON_MIC = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 1v11" /><path d="M8 5a4 4 0 0 1 8 0v7a4 4 0 0 1-8 0z" />
     <path d="M19 11a7 7 0 0 1-14 0" /><path d="M12 19v4" /><path d="M8 23h8" />
   </svg>
 );
 
 const ICON_PLUS = (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 5v14" /><path d="M5 12h14" />
   </svg>
 );
@@ -173,11 +173,11 @@ export function ChatComposer<TAttachment = never>({
       rows={1}
       data-chat-composer-textarea="true"
       className={cn(
-        'min-h-[48px] max-h-32 min-w-0 flex-1 resize-none overflow-y-hidden',
+        'min-h-[36px] max-h-32 min-w-0 flex-1 resize-none overflow-y-hidden',
         isStacked
-          ? 'w-full rounded-[24px] border-0 bg-transparent px-4 py-3.5 text-[15px] leading-6 shadow-none'
-          : 'rounded-[20px] border border-slate-200 bg-white px-4 py-3',
-        'text-sm text-slate-900 outline-none',
+          ? 'w-full rounded-[24px] border-0 bg-transparent px-2.5 py-2 text-[13px] leading-5 shadow-none'
+          : 'rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-sm',
+        'text-slate-900 outline-none',
         'transition-colors duration-200',
         'placeholder:text-slate-400',
         isStacked ? 'focus:ring-0' : 'focus:border-emerald-300',
@@ -204,13 +204,12 @@ export function ChatComposer<TAttachment = never>({
       className={cn(
         'flex shrink-0 items-center justify-center text-white transition-all duration-150',
         isStacked
-          ? 'h-9 w-9 rounded-full bg-slate-500 shadow-[0_8px_20px_rgba(100,116,139,0.22)] hover:bg-slate-600 hover:shadow-[0_12px_24px_rgba(100,116,139,0.28)]'
-          : 'h-12 w-12 rounded-[20px] bg-gradient-to-br from-sky-400 via-cyan-400 to-sky-500 shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
+          ? 'h-8 w-8 rounded-full bg-slate-200/80 text-slate-400 enabled:bg-gradient-to-br enabled:from-emerald-500 enabled:to-teal-500 enabled:text-white enabled:shadow-[0_8px_20px_rgba(16,185,129,0.28)] enabled:hover:from-emerald-600 enabled:hover:to-teal-600 enabled:hover:shadow-[0_12px_24px_rgba(16,185,129,0.34)]'
+          : 'h-12 w-12 rounded-[20px] bg-gradient-to-br from-sky-400 via-cyan-400 to-sky-500 shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-inherit',
         'active:scale-[0.92]',
-        'disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-inherit',
       )}
     >
-      <span className={isStacked ? 'scale-[0.88]' : undefined}>{ICON_SEND}</span>
+      {ICON_SEND}
     </button>
   );
 
@@ -238,7 +237,7 @@ export function ChatComposer<TAttachment = never>({
       className={cn(
         'flex shrink-0 items-center justify-center transition-colors',
         isStacked
-          ? 'h-9 w-9 rounded-full border border-slate-200/80 bg-white/90 text-slate-500 hover:border-emerald-300 hover:text-teal-700'
+          ? 'h-8 w-8 rounded-full border border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700'
           : 'h-11 w-11 rounded-2xl border border-slate-200/80 bg-white/90 text-slate-600 hover:border-emerald-300 hover:text-teal-700',
         showMediaActions ? 'border border-sky-200 bg-sky-50 text-sky-700' : '',
         'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200/80 disabled:hover:text-slate-500',
@@ -291,7 +290,7 @@ export function ChatComposer<TAttachment = never>({
         ) : null}
 
         {isStacked ? (
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-1">
             <div data-chat-composer-textarea-row="true">
               {textareaNode}
             </div>
@@ -399,7 +398,7 @@ export function ChatComposer<TAttachment = never>({
 // ---------------------------------------------------------------------------
 
 const ICON_SPINNER = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
@@ -426,14 +425,16 @@ function VoiceButton({
         onClick={onToggle}
         className={cn(
           'flex shrink-0 items-center justify-center transition-colors',
-          compact ? 'h-9 w-9 rounded-full' : 'h-11 w-11 rounded-2xl',
+          compact ? 'h-8 w-8 rounded-full' : 'h-11 w-11 rounded-2xl',
           isRecording
             ? 'border border-rose-200/80 bg-gradient-to-b from-rose-50 to-white text-rose-600 shadow-[0_4px_12px_rgba(244,63,94,0.12)]'
             : isTranscribing
               ? 'border border-amber-200 bg-amber-50 text-amber-600'
               : isFailed
                 ? 'border border-amber-200 bg-amber-50 text-amber-600'
-                : 'border border-slate-200/80 bg-white/90 text-slate-600 hover:border-emerald-300 hover:text-teal-700',
+                : compact
+                  ? 'border border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700'
+                  : 'border border-slate-200/80 bg-white/90 text-slate-600 hover:border-emerald-300 hover:text-teal-700',
         )}
         title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing…' : 'Voice input'}
       >

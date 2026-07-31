@@ -222,6 +222,8 @@ export function ConversationAnimationStyles() {
   .conversation-root .conv-animate-breathe,
   .conversation-root .conv-animate-send-press,
   .conversation-root .conv-animate-fade-in,
+  .conversation-root .chat-msg-entry,
+  .conversation-root .lc-typing-dot,
   .conversation-root .lc-current-turn-halo,
   .conversation-root .lc-current-turn-card::before,
   .conversation-root .lc-current-turn-card::after,

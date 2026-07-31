@@ -453,7 +453,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   return (
     <>
       <div
-        className={cn('flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}
+        className={cn('chat-msg-entry group flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}
         style={{ animation: `${animationName} 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) ${animationDelayMs}ms both` }}
       >
         {resolvedAvatar}
@@ -469,14 +469,25 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
                 isMediaCard
                   ? 'overflow-hidden border border-gray-200 bg-white'
                   : isUser
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border border-emerald-400 px-4 py-2 text-white/90 [&_*]:!text-inherit'
-                    : 'bg-gray-100/70 px-4 py-2 text-gray-600',
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border border-emerald-400 px-4 py-2 text-white/95 [&_*]:!text-inherit'
+                    : 'border border-white/70 bg-white/80 px-4 py-2 text-slate-800 shadow-[0_4px_16px_rgba(15,23,42,0.05)]',
               )}
               style={bubbleShape.style}
             >
               {defaultContent}
             </div>
           ) : content}
+          {showTimestamp && time ? (
+            <div
+              data-canonical-message-timestamp="true"
+              className={cn(
+                'mt-1 text-[11px] leading-4 text-slate-400 opacity-0 transition-opacity duration-150 group-hover:opacity-100',
+                isUser ? 'text-right' : 'text-left',
+              )}
+            >
+              {time}
+            </div>
+          ) : null}
           {accessory === undefined ? null : accessory}
         </div>
       </div>

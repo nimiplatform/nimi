@@ -28,7 +28,7 @@ export function ConversationComposerShell({
         'border border-white/90 bg-white/84',
         'shadow-[0_24px_50px_rgba(15,23,42,0.08)]',
         'backdrop-blur-xl',
-        'px-3 py-2',
+        'px-2.5 py-1.5',
         className,
       )}
       style={style}
