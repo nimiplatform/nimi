@@ -265,6 +265,52 @@ test('installer stops the service before opening protected Runtime state custody
   );
 });
 
+test('service recovery is bounded and explicit stop cannot restart forever', () => {
+  const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
+  const source = readFileSync(installerPath, 'utf8');
+  assert.match(source, /'failureflag', \$ServiceName, '1'/u);
+  assert.match(
+    source,
+    /'failure', \$ServiceName, 'reset=', '300', 'actions=', 'restart\/1000\/restart\/3000\/restart\/10000\/none\/0'/u,
+  );
+});
+
+test('version retention keeps only current and last-known-good candidates', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-version-retention-test-'));
+  try {
+    const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
+    const escapedInstallerPath = installerPath.replaceAll("'", "''");
+    const escapedTempRoot = tempRoot.replaceAll("'", "''");
+    const command = [
+      `. '${escapedInstallerPath}'`,
+      `$InstallRoot = '${escapedTempRoot}'`,
+      `$versions = Join-Path $InstallRoot 'versions'`,
+      `$current = Join-Path $versions 'current'`,
+      `$previous = Join-Path $versions 'previous'`,
+      `$stale = Join-Path $versions 'stale'`,
+      `New-Item -ItemType Directory -Path $current, $previous, $stale -Force | Out-Null`,
+      `$previousServicePath = ('"' + (Join-Path $previous 'nimi.exe') + '" serve')`,
+      `$resolvedPrevious = Resolve-InstalledVersionRootFromServicePath -ServiceBinaryPath $previousServicePath`,
+      `$removed = @(Remove-StaleInstalledVersions -KeepRoots @($current, $resolvedPrevious))`,
+      `[ordered]@{ removed = $removed; current = (Test-Path -LiteralPath $current); previous = (Test-Path -LiteralPath $previous); stale = (Test-Path -LiteralPath $stale) } | ConvertTo-Json -Compress`,
+    ].join('; ');
+    const result = spawnSync(resolveWindowsPowerShell7(), [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
+    ], { encoding: 'utf8', windowsHide: true });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.deepEqual(JSON.parse(result.stdout.trim()), {
+      removed: ['stale'],
+      current: true,
+      previous: true,
+      stale: false,
+    });
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test('signed installer migrates existing Runtime state to the fixed local-development profile', {
   skip: process.platform !== 'win32',
 }, () => {

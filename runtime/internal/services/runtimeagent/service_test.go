@@ -800,6 +800,49 @@ func TestRuntimeAgentRunLifeTrackSweepAdmitsCadenceTickByMode(t *testing.T) {
 	}
 }
 
+func TestRuntimeAgentRunLifeTrackSweepKeepsPendingCadenceScheduleStable(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	agentID := "agent-cadence-stable"
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
+		Context: testRuntimeAgentIdentityContext(agentID),
+		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_HIGH,
+		},
+	}); err != nil {
+		t.Fatalf("RealmSourceMaterialization: %v", err)
+	}
+	mustEnableAutonomy(t, svc, ctx, agentID)
+
+	firstSweepAt := time.Now().UTC()
+	if err := svc.runLifeTrackSweep(ctx, firstSweepAt); err != nil {
+		t.Fatalf("runLifeTrackSweep(first): %v", err)
+	}
+	first := mustFindPendingCadenceHook(t, svc, ctx, agentID)
+	firstScheduledAt := first.GetScheduledFor().AsTime().UTC()
+	firstNotBefore := first.GetIntent().GetNotBefore().AsTime().UTC()
+	firstTriggerDetail := proto.Clone(first.GetIntent().GetTriggerDetail())
+
+	if err := svc.runLifeTrackSweep(ctx, firstSweepAt.Add(5*time.Minute)); err != nil {
+		t.Fatalf("runLifeTrackSweep(second): %v", err)
+	}
+	second := mustFindPendingCadenceHook(t, svc, ctx, agentID)
+	if second.GetIntent().GetIntentId() != first.GetIntent().GetIntentId() {
+		t.Fatalf("cadence hook identity changed: first=%q second=%q", first.GetIntent().GetIntentId(), second.GetIntent().GetIntentId())
+	}
+	if got := second.GetScheduledFor().AsTime().UTC(); !got.Equal(firstScheduledAt) {
+		t.Fatalf("pending cadence schedule drifted: first=%s second=%s", firstScheduledAt, got)
+	}
+	if got := second.GetIntent().GetNotBefore().AsTime().UTC(); !got.Equal(firstNotBefore) {
+		t.Fatalf("pending cadence not_before drifted: first=%s second=%s", firstNotBefore, got)
+	}
+	if !proto.Equal(second.GetIntent().GetTriggerDetail(), firstTriggerDetail) {
+		t.Fatalf("pending cadence trigger detail drifted: first=%v second=%v", firstTriggerDetail, second.GetIntent().GetTriggerDetail())
+	}
+}
+
 func TestRuntimeAgentRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *testing.T) {
 	t.Parallel()
 

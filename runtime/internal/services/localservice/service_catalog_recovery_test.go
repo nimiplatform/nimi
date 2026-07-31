@@ -577,6 +577,13 @@ func TestListLocalAssetsManagedSpeechDoesNotProbeOrMutateState(t *testing.T) {
 		t.Fatalf("stored warm_state = %s, want READY", stored.GetWarmState())
 	}
 
+	svc.mu.Lock()
+	svc.assets[installed.GetLocalAssetId()].Hashes = map[string]string{
+		installed.GetEntry(): "sha256:" + strings.Repeat("0", 64),
+	}
+	svc.entryHashCache = make(map[string]entryHashCacheState)
+	svc.mu.Unlock()
+
 	svc.runRecoverySweep(context.Background())
 
 	stored = svc.modelByID(installed.GetLocalAssetId())
@@ -594,6 +601,12 @@ func TestListLocalAssetsManagedSpeechDoesNotProbeOrMutateState(t *testing.T) {
 	}
 	if probeCalls != 0 {
 		t.Fatalf("recovery sweep must not probe cold managed speech, got %d probe calls", probeCalls)
+	}
+	svc.mu.RLock()
+	hashCacheEntries := len(svc.entryHashCache)
+	svc.mu.RUnlock()
+	if hashCacheEntries != 0 {
+		t.Fatalf("cold managed speech recovery must not hash model entries, got %d cache entries", hashCacheEntries)
 	}
 }
 
@@ -655,6 +668,10 @@ func TestListLocalAssetsDoesNotDriveManagedSpeechRecovery(t *testing.T) {
 		t.Fatalf("ListLocalAssets must not create recovery state, got %+v", state)
 	}
 
+	recoveryTargets, _ := svc.collectUnhealthyRecoveryTargets()
+	if len(recoveryTargets) != 0 {
+		t.Fatalf("cold managed speech without an engine must not enter recurring recovery, got %d targets", len(recoveryTargets))
+	}
 	svc.runRecoverySweep(context.Background())
 	if probeCalls != 0 {
 		t.Fatalf("recovery sweep must not probe or bootstrap cold managed speech, got %d", probeCalls)

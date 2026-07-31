@@ -44,6 +44,11 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 	go func() {
 		done <- daemon.Run(ctx)
 	}()
+	readyCtx, cancelReady := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancelReady()
+	if err := daemon.WaitReady(readyCtx); err != nil {
+		t.Fatalf("wait for daemon ready: %v", err)
+	}
 
 	deadline := time.Now().Add(2 * time.Second)
 	seenStarting := false

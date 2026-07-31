@@ -46,11 +46,20 @@ type windowsRuntimeServiceCloser interface {
 }
 
 const (
-	windowsRuntimeServiceStopTimeout        = 25 * time.Second
-	windowsRuntimeServiceStopCheckpointTick = 2 * time.Second
-	windowsRuntimeServiceStopTimeoutCode    = 0xA5F0
-	windowsRuntimeServiceRestartExitCode    = 0xA5F1
+	windowsRuntimeServiceStartWaitHint       = 30 * time.Second
+	windowsRuntimeServiceStartCheckpointTick = 2 * time.Second
+	windowsRuntimeServiceStopTimeout         = 25 * time.Second
+	windowsRuntimeServiceStopCheckpointTick  = 2 * time.Second
+	windowsRuntimeServiceStopTimeoutCode     = 0xA5F0
+	windowsRuntimeServiceRestartExitCode     = 0xA5F1
 )
+
+type windowsRuntimeOpenResult struct {
+	runtimeDaemon    *daemon.Daemon
+	desktopListener  net.Listener
+	localAppListener net.Listener
+	err              error
+}
 
 type windowsRuntimeStartupStage uint32
 
@@ -107,7 +116,8 @@ func windowsStartupExitCode(err error) uint32 {
 }
 
 func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.ChangeRequest, statuses chan<- svc.Status) (bool, uint32) {
-	statuses <- svc.Status{State: svc.StartPending}
+	startCheckpoint := uint32(1)
+	statuses <- windowsRuntimeStartPendingStatus(startCheckpoint, windowsRuntimeServiceStartWaitHint)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	restartRequested := make(chan struct{}, 1)
@@ -120,14 +130,73 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 		}
 	}
 
-	runtimeDaemon, desktopListener, localAppListener, err := service.open(ctx, requestRestart)
-	if err != nil {
-		writeWindowsRuntimeStartupFailure(err)
-		return true, windowsStartupExitCode(err)
+	openResultCh := make(chan windowsRuntimeOpenResult, 1)
+	go func() {
+		runtimeDaemon, desktopListener, localAppListener, err := service.open(ctx, requestRestart)
+		openResultCh <- windowsRuntimeOpenResult{
+			runtimeDaemon:    runtimeDaemon,
+			desktopListener:  desktopListener,
+			localAppListener: localAppListener,
+			err:              err,
+		}
+	}()
+	startTicker := time.NewTicker(windowsRuntimeServiceStartCheckpointTick)
+	defer startTicker.Stop()
+	var openResult windowsRuntimeOpenResult
+	openComplete := false
+	for !openComplete {
+		select {
+		case openResult = <-openResultCh:
+			openComplete = true
+		case <-startTicker.C:
+			startCheckpoint++
+			statuses <- windowsRuntimeStartPendingStatus(startCheckpoint, windowsRuntimeServiceStartWaitHint)
+		}
 	}
+	if openResult.err != nil {
+		writeWindowsRuntimeFailure(openResult.err)
+		return true, windowsStartupExitCode(openResult.err)
+	}
+	runtimeDaemon := openResult.runtimeDaemon
+	desktopListener := openResult.desktopListener
+	localAppListener := openResult.localAppListener
 
 	done := make(chan error, 1)
 	go func() { done <- runtimeDaemon.RunProtectedWithLocalApp(ctx, desktopListener, localAppListener) }()
+	ready := make(chan error, 1)
+	go func() { ready <- runtimeDaemon.WaitReady(ctx) }()
+	readyReached := false
+	for !readyReached {
+		select {
+		case err := <-ready:
+			if err != nil {
+				writeWindowsRuntimeFailure(err)
+				initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, localAppListener, desktopListener)
+				_, _ = waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
+				return true, uint32(windowsRuntimeStartupDaemon)
+			}
+			readyReached = true
+		case err := <-done:
+			if err != nil {
+				writeWindowsRuntimeFailure(err)
+				return true, uint32(windowsRuntimeStartupDaemon)
+			}
+			return false, 0
+		case <-startTicker.C:
+			startCheckpoint++
+			statuses <- windowsRuntimeStartPendingStatus(startCheckpoint, windowsRuntimeServiceStartWaitHint)
+		}
+	}
+	startTicker.Stop()
+	select {
+	case err := <-done:
+		if err != nil {
+			writeWindowsRuntimeFailure(err)
+			return true, uint32(windowsRuntimeStartupDaemon)
+		}
+		return false, 0
+	default:
+	}
 	statuses <- svc.Status{State: svc.Running, Accepts: svc.AcceptStop | svc.AcceptShutdown}
 
 	for {
@@ -139,7 +208,14 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 			case svc.Stop, svc.Shutdown:
 				statuses <- windowsRuntimeStopPendingStatus(1, windowsRuntimeServiceStopTimeout)
 				initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, localAppListener, desktopListener)
-				return waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
+				serviceSpecific, code := waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
+				if code != 0 {
+					writeWindowsRuntimeFailure(fmt.Errorf("Runtime stop completed with serviceSpecific=%t code=%d", serviceSpecific, code))
+				}
+				// An explicit SCM Stop or Shutdown must remain stopped even when
+				// cleanup reports an error. Returning a failure here would feed
+				// the same request back into the service recovery policy.
+				return false, 0
 			}
 		case <-restartRequested:
 			statuses <- windowsRuntimeStopPendingStatus(1, windowsRuntimeServiceStopTimeout)
@@ -151,6 +227,7 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 			return true, windowsRuntimeServiceRestartExitCode
 		case err := <-done:
 			if err != nil {
+				writeWindowsRuntimeFailure(err)
 				return false, 1
 			}
 			return false, 0
@@ -158,7 +235,7 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 	}
 }
 
-func writeWindowsRuntimeStartupFailure(err error) {
+func writeWindowsRuntimeFailure(err error) {
 	if err == nil {
 		return
 	}
@@ -172,6 +249,14 @@ func writeWindowsRuntimeStartupFailure(err error) {
 	}
 	defer func() { _ = log.Close() }()
 	_ = log.Error(1, message)
+}
+
+func windowsRuntimeStartPendingStatus(checkpoint uint32, waitHint time.Duration) svc.Status {
+	waitHintMillis := waitHint.Milliseconds()
+	if waitHintMillis <= 0 || waitHintMillis > int64(^uint32(0)) {
+		waitHintMillis = int64(^uint32(0))
+	}
+	return svc.Status{State: svc.StartPending, CheckPoint: checkpoint, WaitHint: uint32(waitHintMillis)}
 }
 
 func initiateWindowsRuntimeServiceStop(cancel context.CancelFunc, runtime windowsRuntimeEmergencyStopper, closers ...windowsRuntimeServiceCloser) {

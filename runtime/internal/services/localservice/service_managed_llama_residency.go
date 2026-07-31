@@ -15,6 +15,10 @@ func managedLocalModelColdDetail() string {
 	return "managed local model available (cold)"
 }
 
+func managedSupervisedLlamaColdRecovery(reason string) bool {
+	return strings.TrimSpace(reason) == "recovery_sweep"
+}
+
 func (s *Service) currentManagedLlamaLoadedLocalAssetID() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -468,21 +468,15 @@ func TestMemoryServiceCanonicalRetainEnqueuesBacklogAndInfraRetainDoesNot(t *tes
 	}
 }
 
-func TestMemoryServiceReplicationLoopDefaultBridgeKeepsPendingBacklog(t *testing.T) {
+func TestMemoryServiceReplicationSweepSkipsUnavailableBridgeWithoutMutatingBacklog(t *testing.T) {
 	t.Parallel()
 
 	svc, _, _ := newCanonicalTestMemoryRecord(t)
-	loopCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	if err := svc.StartReplicationLoop(loopCtx); err != nil {
-		t.Fatalf("StartReplicationLoop: %v", err)
+	for i := 0; i < 3; i++ {
+		if err := svc.runReplicationSweep(context.Background(), time.Now().UTC()); err != nil {
+			t.Fatalf("runReplicationSweep #%d: %v", i+1, err)
+		}
 	}
-	t.Cleanup(svc.StopReplicationLoop)
-
-	waitForMemoryCondition(t, 2*time.Second, func() bool {
-		backlog := svc.ListReplicationBacklog()
-		return len(backlog) == 1 && backlog[0].AttemptCount > 0 && backlog[0].Status == replicationBacklogStatusPending
-	})
 
 	backlog := svc.ListReplicationBacklog()
 	if len(backlog) != 1 {
@@ -491,8 +485,8 @@ func TestMemoryServiceReplicationLoopDefaultBridgeKeepsPendingBacklog(t *testing
 	if backlog[0].Status != replicationBacklogStatusPending {
 		t.Fatalf("expected pending backlog status, got %#v", backlog[0])
 	}
-	if backlog[0].LastAttemptOutcome != replicationAttemptUnavailable {
-		t.Fatalf("expected unavailable attempt outcome, got %#v", backlog[0])
+	if backlog[0].AttemptCount != 0 || !backlog[0].LastAttemptAt.IsZero() || backlog[0].LastAttemptOutcome != "" {
+		t.Fatalf("unavailable bridge must not mutate or persist retry state, got %#v", backlog[0])
 	}
 }
 
@@ -692,6 +686,9 @@ func TestMemoryServicePendingBacklogMetadataSurvivesRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Retain: %v", err)
 	}
+	svc.SetReplicationBridgeAdapter(&fakeReplicationBridgeAdapter{
+		err: status.Error(codes.Unavailable, "test replication bridge unavailable"),
+	})
 	loopCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if err := svc.StartReplicationLoop(loopCtx); err != nil {

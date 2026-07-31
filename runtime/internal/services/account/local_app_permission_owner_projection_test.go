@@ -69,6 +69,54 @@ func TestListLocalAppPermissionOwnerProjectionsReturnsCurrentAccountScopeAgentsO
 	}
 }
 
+func TestListLocalAppPermissionOwnerProjectionsLoadsAgentInventoryOncePerRequest(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	ownership := &ownerProjectionAgentSetFixture{
+		accountID: "acct-1",
+		agents: []LocalAgentOwnerProjection{
+			{LocalAgentID: "agent-owned", DisplayName: "Owned Agent"},
+		},
+	}
+	fixture.service.SetLocalAgentOwnershipResolver(ownership)
+
+	for _, permissionID := range []string{"agents.interact", "agents.inspect"} {
+		request, err := fixture.kernel.PermissionGrants().CreatePendingRequest(context.Background(), localappkernel.CreatePermissionRequestInput{
+			LocalOSUserAnchor:   fixture.kernel.LocalOSUserAnchor(),
+			AccountID:           "acct-1",
+			LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
+			PermissionID:        permissionID,
+			RequestID:           "test-local_app_permission_owner_projection_inventory-" + permissionID,
+			DisplayAppID:        fixture.resolver.binding.AppID,
+			Reason:              "Inspect the current Agent account scope",
+		})
+		if err != nil {
+			t.Fatalf("create %q request: %v", permissionID, err)
+		}
+		if _, err := fixture.kernel.PermissionGrants().DecidePendingRequest(context.Background(), localappkernel.DecidePermissionRequestInput{
+			LocalOSUserAnchor:   fixture.kernel.LocalOSUserAnchor(),
+			AccountID:           "acct-1",
+			LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
+			PermissionID:        permissionID,
+			ExpectedRevision:    request.Revision,
+			State:               localappkernel.PermissionGrantStateGranted,
+			OwnerSelectorDigest: localappkernel.AgentAccountScopeDigest("acct-1"),
+		}); err != nil {
+			t.Fatalf("grant %q: %v", permissionID, err)
+		}
+	}
+
+	response, err := fixture.service.ListLocalAppPermissionOwnerProjections(
+		context.Background(),
+		&runtimev1.ListLocalAppPermissionOwnerProjectionsRequest{Caller: desktopAccountControlCaller()},
+	)
+	if err != nil || !response.GetAccepted() || len(response.GetPermissions()) != 2 {
+		t.Fatalf("owner list = (%+v, %v)", response, err)
+	}
+	if ownership.listCalls != 1 {
+		t.Fatalf("Agent inventory reads = %d, want 1", ownership.listCalls)
+	}
+}
+
 func TestListLocalAppPermissionOwnerProjectionsReservedAndEmpty(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	response, err := fixture.service.ListLocalAppPermissionOwnerProjections(context.Background(), &runtimev1.ListLocalAppPermissionOwnerProjectionsRequest{Caller: desktopAccountControlCaller()})
@@ -212,6 +260,7 @@ func TestLocalAppPermissionOwnerProjectionOmitsRejectedHistory(t *testing.T) {
 type ownerProjectionAgentSetFixture struct {
 	accountID string
 	agents    []LocalAgentOwnerProjection
+	listCalls int
 }
 
 func (fixture *ownerProjectionAgentSetFixture) OwnsActiveLocalAgent(_ context.Context, accountID string, localAgentID string) (bool, error) {
@@ -230,6 +279,7 @@ func (fixture *ownerProjectionAgentSetFixture) ListOwnedActiveLocalAgents(_ cont
 	if accountID != fixture.accountID {
 		return nil, ErrLocalAppSelectorMismatch
 	}
+	fixture.listCalls++
 	return append([]LocalAgentOwnerProjection(nil), fixture.agents...), nil
 }
 

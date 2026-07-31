@@ -102,7 +102,6 @@ func (s *Service) updateModelAvailabilityAndWarmStateWithReason(
 	if id == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	now := nowISO()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	current := cloneLocalAsset(s.assets[id])
@@ -116,16 +115,28 @@ func (s *Service) updateModelAvailabilityAndWarmStateWithReason(
 	if nextStatus != current.GetStatus() && !isValidModelTransition(current.GetStatus(), nextStatus) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
+	nextWarmState := current.GetWarmState()
+	if updateWarmState {
+		nextWarmState = warmState
+	}
+	nextReason := reason
+	if nextReason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		nextReason = projectionReasonCodeForEngine(current.GetEngine(), detail)
+	}
+	if nextStatus == current.GetStatus() &&
+		nextWarmState == current.GetWarmState() &&
+		detail == current.GetHealthDetail() &&
+		nextReason == current.GetReasonCode() {
+		return current, nil
+	}
+	now := nowISO()
 	current.Status = nextStatus
 	if updateWarmState {
-		current.WarmState = warmState
+		current.WarmState = nextWarmState
 	}
 	current.UpdatedAt = now
 	current.HealthDetail = detail
-	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		reason = projectionReasonCodeForEngine(current.GetEngine(), detail)
-	}
-	current.ReasonCode = reason
+	current.ReasonCode = nextReason
 	s.assets[id] = cloneLocalAsset(current)
 	if nextStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		delete(s.assetRuntimeModes, id)

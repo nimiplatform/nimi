@@ -48,6 +48,13 @@ func TestWindowsRuntimeStartupExitCodesAreStableAndUnique(t *testing.T) {
 	}
 }
 
+func TestWindowsRuntimeServiceStartIsCheckpointed(t *testing.T) {
+	status := windowsRuntimeStartPendingStatus(7, 30*time.Second)
+	if status.State != svc.StartPending || status.CheckPoint != 7 || status.WaitHint != 30_000 {
+		t.Fatalf("start status = %#v", status)
+	}
+}
+
 func TestWindowsRuntimeServiceStopIsCheckpointedAndBounded(t *testing.T) {
 	done := make(chan error)
 	statuses := make(chan svc.Status, 16)

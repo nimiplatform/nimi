@@ -61,7 +61,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 			continue
 		}
 		if isManagedSupervisedLlamaModel(localModel, model.mode) {
-			if _, err := s.checkManagedSupervisedLlamaHealth(ctx, localModel); err != nil {
+			if _, err := s.checkManagedSupervisedLlamaHealthWithReason(ctx, localModel, "recovery_sweep"); err != nil {
 				s.logger.Debug("managed llama recovery health failed", "local_model_id", localModelID, "error", err)
 			}
 			continue
@@ -123,8 +123,13 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 }
 
 func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []serviceRecoveryTarget) {
+	manager := s.engineManagerOrNil()
+	_, llamaEngineHealthy := managedLlamaEngineInfo(manager)
+	speechEngineActive := managedRecoveryEngineActive(manager, "speech")
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	llamaRecoveryActive := strings.TrimSpace(s.managedLlamaLoadedLocalAssetID) != "" || llamaEngineHealthy
 	models := make([]modelRecoveryTarget, 0, len(s.assets))
 	for _, model := range s.assets {
 		if model == nil {
@@ -132,6 +137,9 @@ func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []se
 		}
 		mode := s.assetRuntimeModes[model.GetLocalAssetId()]
 		if shouldCollectModelRecoveryTarget(model, mode) {
+			if shouldSkipQuiescentManagedRecoveryTarget(model, mode, llamaRecoveryActive, speechEngineActive) {
+				continue
+			}
 			models = append(models, modelRecoveryTarget{
 				record: cloneLocalAsset(model),
 				mode:   mode,
@@ -152,6 +160,61 @@ func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []se
 		})
 	}
 	return models, services
+}
+
+func managedRecoveryEngineActive(manager EngineManager, engineName string) bool {
+	if manager == nil {
+		return false
+	}
+	info, err := manager.EngineStatus(engineName)
+	if err != nil || info.PID <= 0 {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(info.Status)) {
+	case "", "stopped":
+		return false
+	default:
+		return true
+	}
+}
+
+func shouldSkipQuiescentManagedRecoveryTarget(
+	model *runtimev1.LocalAssetRecord,
+	mode runtimev1.LocalEngineRuntimeMode,
+	llamaRecoveryActive bool,
+	speechEngineActive bool,
+) bool {
+	if model == nil {
+		return false
+	}
+	if isManagedSupervisedImageModel(model, mode) {
+		// Managed image availability is driven by an explicit load/lease. The
+		// recovery loop deliberately performs no image action, so cloning its
+		// potentially large bundle inventory every interval is pure overhead.
+		return true
+	}
+	engineActive := true
+	switch {
+	case isManagedSupervisedLlamaModel(model, mode):
+		engineActive = llamaRecoveryActive
+	case isManagedSupervisedSpeechModel(model, mode):
+		engineActive = speechEngineActive
+	default:
+		return false
+	}
+	if engineActive {
+		return false
+	}
+	if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		// Without an engine, the managed health paths intentionally leave
+		// installed and unhealthy assets untouched until an explicit load.
+		return true
+	}
+	coldDetail := managedLocalModelColdDetail()
+	coldReason := projectionReasonCodeForEngine(model.GetEngine(), coldDetail)
+	return model.GetWarmState() == runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD &&
+		model.GetHealthDetail() == coldDetail &&
+		model.GetReasonCode() == coldReason
 }
 
 func shouldCollectModelRecoveryTarget(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {

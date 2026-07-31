@@ -30,6 +30,24 @@ type localAppAgentAvatarLookup struct {
 	err       error
 }
 
+type localAppAgentDisplayAvatarCacheKey struct {
+	localAgentRef string
+	sourceHash    string
+}
+
+type localAppAgentDisplayAvatarCacheEntry struct {
+	avatarURL       string
+	hasURL          bool
+	resolvePublic   bool
+	publicSourceRef accountservice.RealmSourceMaterializationSourceRefV3
+}
+
+type localAppAgentDisplayAvatarLookup struct {
+	done  chan struct{}
+	entry localAppAgentDisplayAvatarCacheEntry
+	err   error
+}
+
 func (s *Service) SetRealmCharacterPublicAvatarResolver(resolver realmCharacterPublicAvatarResolver) {
 	if s != nil {
 		s.realmCharacterPublicAvatar = resolver
@@ -59,13 +77,16 @@ func (s *Service) ListOwnedActiveLocalAgents(ctx context.Context, accountID stri
 	}
 	s.mu.RLock()
 	agents := make([]accountservice.LocalAgentOwnerProjection, 0, len(s.agents))
+	sourceHashes := make(map[string]string, len(s.agents))
 	for _, entry := range s.agents {
-		if entry == nil || entry.Agent == nil ||
-			strings.TrimSpace(entry.Agent.GetOwnerUserId()) != accountID ||
-			entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
+		if entry == nil || entry.Agent == nil {
 			continue
 		}
 		localAgentID := entry.Agent.GetLocalAgentRef()
+		if strings.TrimSpace(entry.Agent.GetOwnerUserId()) != accountID ||
+			entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
+			continue
+		}
 		displayName := entry.Agent.GetDisplayName()
 		if localAgentID == "" || localAgentID != strings.TrimSpace(localAgentID) ||
 			displayName == "" || displayName != strings.TrimSpace(displayName) {
@@ -76,10 +97,17 @@ func (s *Service) ListOwnedActiveLocalAgents(ctx context.Context, accountID stri
 			LocalAgentID: localAgentID,
 			DisplayName:  displayName,
 		})
+		sourceHashes[localAgentID] = localAppAgentCurrentSourceHash(entry.Agent)
 	}
 	s.mu.RUnlock()
+	s.pruneLocalAppAgentDisplayAvatarCache()
 	for index := range agents {
-		avatarURL, err := s.localAppAgentDisplayAvatarURL(ctx, accountID, agents[index].LocalAgentID)
+		avatarURL, err := s.localAppAgentDisplayAvatarURL(
+			ctx,
+			accountID,
+			agents[index].LocalAgentID,
+			sourceHashes[agents[index].LocalAgentID],
+		)
 		if err != nil {
 			agents[index].AvatarURL = nil
 			continue
@@ -95,20 +123,155 @@ func (s *Service) ListOwnedActiveLocalAgents(ctx context.Context, accountID stri
 	return agents, nil
 }
 
-func (s *Service) localAppAgentDisplayAvatarURL(ctx context.Context, accountID, localAgentRef string) (*string, error) {
-	if s.publicChatSourceSnapshotResolve == nil {
+func localAppAgentCurrentSourceHash(agent *runtimev1.LocalAgentRecord) string {
+	if agent == nil {
+		return ""
+	}
+	status := agent.GetSourceContextStatus()
+	if status == nil || !status.GetReady() {
+		return ""
+	}
+	sourceRef := status.GetSourceRef()
+	if sourceRef == nil {
+		return ""
+	}
+	var sourceHash string
+	switch {
+	case sourceRef.GetWorldCharacter() != nil:
+		sourceHash = strings.TrimSpace(sourceRef.GetWorldCharacter().GetSourceHash())
+	case sourceRef.GetPersonaCharacter() != nil:
+		sourceHash = strings.TrimSpace(sourceRef.GetPersonaCharacter().GetSourceHash())
+	}
+	if !isLowerSHA256V3(sourceHash) {
+		return ""
+	}
+	return sourceHash
+}
+
+func (s *Service) pruneLocalAppAgentDisplayAvatarCache() {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	s.localAppAgentDisplayAvatarCacheMu.Lock()
+	defer s.localAppAgentDisplayAvatarCacheMu.Unlock()
+	for key := range s.localAppAgentDisplayAvatarCache {
+		entry := s.agents[key.localAgentRef]
+		if entry == nil || localAppAgentCurrentSourceHash(entry.Agent) != key.sourceHash {
+			delete(s.localAppAgentDisplayAvatarCache, key)
+		}
+	}
+}
+
+func (s *Service) localAppAgentDisplayAvatarURL(ctx context.Context, accountID, localAgentRef, sourceHash string) (*string, error) {
+	key := localAppAgentDisplayAvatarCacheKey{
+		localAgentRef: strings.TrimSpace(localAgentRef),
+		sourceHash:    strings.TrimSpace(sourceHash),
+	}
+	if key.localAgentRef == "" || !isLowerSHA256V3(key.sourceHash) {
+		entry, err := s.prepareLocalAppAgentDisplayAvatar(ctx, localAgentRef, "")
+		if err != nil {
+			return nil, err
+		}
+		return s.resolvePreparedLocalAppAgentDisplayAvatar(ctx, accountID, localAgentRef, entry)
+	}
+
+	s.localAppAgentDisplayAvatarCacheMu.Lock()
+	if cached, ok := s.localAppAgentDisplayAvatarCache[key]; ok {
+		s.localAppAgentDisplayAvatarCacheMu.Unlock()
+		return s.resolvePreparedLocalAppAgentDisplayAvatar(ctx, accountID, localAgentRef, cached)
+	}
+	if lookup, ok := s.localAppAgentDisplayAvatarLookups[key]; ok {
+		s.localAppAgentDisplayAvatarCacheMu.Unlock()
+		select {
+		case <-lookup.done:
+			if lookup.err != nil {
+				return nil, lookup.err
+			}
+			return s.resolvePreparedLocalAppAgentDisplayAvatar(ctx, accountID, localAgentRef, lookup.entry)
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	if s.localAppAgentDisplayAvatarCache == nil {
+		s.localAppAgentDisplayAvatarCache = make(map[localAppAgentDisplayAvatarCacheKey]localAppAgentDisplayAvatarCacheEntry)
+	}
+	if s.localAppAgentDisplayAvatarLookups == nil {
+		s.localAppAgentDisplayAvatarLookups = make(map[localAppAgentDisplayAvatarCacheKey]*localAppAgentDisplayAvatarLookup)
+	}
+	lookup := &localAppAgentDisplayAvatarLookup{done: make(chan struct{})}
+	s.localAppAgentDisplayAvatarLookups[key] = lookup
+	s.localAppAgentDisplayAvatarCacheMu.Unlock()
+
+	entry, err := s.prepareLocalAppAgentDisplayAvatar(ctx, localAgentRef, key.sourceHash)
+	lookup.entry = entry
+	lookup.err = err
+
+	s.mu.RLock()
+	currentSourceHashMatches := false
+	if currentAgentEntry := s.agents[key.localAgentRef]; currentAgentEntry != nil {
+		currentSourceHashMatches = localAppAgentCurrentSourceHash(currentAgentEntry.Agent) == key.sourceHash
+	}
+	s.localAppAgentDisplayAvatarCacheMu.Lock()
+	delete(s.localAppAgentDisplayAvatarLookups, key)
+	if err == nil && currentSourceHashMatches {
+		for cachedKey := range s.localAppAgentDisplayAvatarCache {
+			if cachedKey.localAgentRef == key.localAgentRef && cachedKey != key {
+				delete(s.localAppAgentDisplayAvatarCache, cachedKey)
+			}
+		}
+		s.localAppAgentDisplayAvatarCache[key] = lookup.entry
+	}
+	close(lookup.done)
+	s.localAppAgentDisplayAvatarCacheMu.Unlock()
+	s.mu.RUnlock()
+
+	if err != nil {
+		return nil, err
+	}
+	return s.resolvePreparedLocalAppAgentDisplayAvatar(ctx, accountID, localAgentRef, lookup.entry)
+}
+
+func (s *Service) resolvePreparedLocalAppAgentDisplayAvatar(
+	ctx context.Context,
+	accountID string,
+	localAgentRef string,
+	entry localAppAgentDisplayAvatarCacheEntry,
+) (*string, error) {
+	if entry.hasURL {
+		avatarURL := entry.avatarURL
+		return &avatarURL, nil
+	}
+	if !entry.resolvePublic || s.realmCharacterPublicAvatar == nil {
 		return nil, nil
+	}
+	return s.resolveLocalAppRealmCharacterPublicAvatar(
+		ctx,
+		accountID,
+		localAgentRef,
+		entry.publicSourceRef,
+	)
+}
+
+func (s *Service) prepareLocalAppAgentDisplayAvatar(
+	ctx context.Context,
+	localAgentRef string,
+	expectedSourceHash string,
+) (localAppAgentDisplayAvatarCacheEntry, error) {
+	if s.publicChatSourceSnapshotResolve == nil {
+		return localAppAgentDisplayAvatarCacheEntry{}, nil
 	}
 	snapshot, found, err := s.publicChatSourceSnapshotResolve(ctx, localAgentRef)
 	if err != nil {
-		return nil, err
+		return localAppAgentDisplayAvatarCacheEntry{}, err
 	}
 	if !found {
-		return nil, nil
+		return localAppAgentDisplayAvatarCacheEntry{}, fmt.Errorf("current Agent source snapshot is unavailable")
+	}
+	if expectedSourceHash != "" && snapshot.Semantic.SourceRef.SourceHash != expectedSourceHash {
+		return localAppAgentDisplayAvatarCacheEntry{}, fmt.Errorf("current Agent source changed during avatar projection")
 	}
 	profile, err := decodeRealmSourceCompilerProfileV3(snapshot.Semantic.Source.Profile)
 	if err != nil {
-		return nil, err
+		return localAppAgentDisplayAvatarCacheEntry{}, err
 	}
 	if profile.Presentation.AvatarResourceRef != nil {
 		avatarResourceRef := strings.TrimSpace(*profile.Presentation.AvatarResourceRef)
@@ -118,36 +281,29 @@ func (s *Service) localAppAgentDisplayAvatarURL(ctx context.Context, accountID, 
 					continue
 				}
 				if externalRef.URI == nil {
-					return nil, fmt.Errorf("avatar external resource %q has no stable URI", avatarResourceRef)
+					return localAppAgentDisplayAvatarCacheEntry{}, fmt.Errorf("avatar external resource %q has no stable URI", avatarResourceRef)
 				}
 				if err := validateSourceMaterializationStableExternalURI(
 					*externalRef.URI,
 					"$.snapshot.semantic.source.profile.assets.externalRefs.avatar.uri",
 				); err != nil {
-					return nil, err
+					return localAppAgentDisplayAvatarCacheEntry{}, err
 				}
-				avatarURL := *externalRef.URI
-				return &avatarURL, nil
+				return localAppAgentDisplayAvatarCacheEntry{
+					avatarURL: *externalRef.URI,
+					hasURL:    true,
+				}, nil
 			}
 		}
 	}
-	if s.realmCharacterPublicAvatar != nil &&
-		snapshot.Semantic.SourceRef.Kind == "worldCharacter" &&
+	if snapshot.Semantic.SourceRef.Kind == "worldCharacter" &&
 		snapshot.Semantic.SourceRef.validate() == nil {
-		publicAvatarURL, err := s.resolveLocalAppRealmCharacterPublicAvatar(
-			ctx,
-			accountID,
-			localAgentRef,
-			accountRealmCharacterPublicAvatarSourceRef(snapshot.Semantic.SourceRef),
-		)
-		if err != nil {
-			return nil, err
-		}
-		if publicAvatarURL != nil {
-			return publicAvatarURL, nil
-		}
+		return localAppAgentDisplayAvatarCacheEntry{
+			resolvePublic:   true,
+			publicSourceRef: accountRealmCharacterPublicAvatarSourceRef(snapshot.Semantic.SourceRef),
+		}, nil
 	}
-	return nil, nil
+	return localAppAgentDisplayAvatarCacheEntry{}, nil
 }
 
 // This cache is process-local display memoization for one exact LocalAgent

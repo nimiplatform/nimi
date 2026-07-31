@@ -50,6 +50,8 @@ type Daemon struct {
 	providerFailureHints      map[string]string
 	startupStatusMu           sync.Mutex
 	startupDegradedReason     string
+	readyOnce                 sync.Once
+	readyCh                   chan struct{}
 	stopSupervisedOnce        sync.Once
 	stopSupervisedFn          func()
 	// resolvedImageMatrix caches the v2 image supervised matrix selection
@@ -254,6 +256,7 @@ func newDaemon(cfg config.Config, logger *slog.Logger, version string, newGRPCSe
 		detectMediaHostSupportFn: engine.DetectMediaHostSupport,
 		listEmbeddingAssetsFn:    listEmbeddingAssets,
 		providerFailureHints:     map[string]string{},
+		readyCh:                  make(chan struct{}),
 	}
 	d.http = httpserver.New(
 		cfg.HTTPAddr,
@@ -320,6 +323,23 @@ func (d *Daemon) RunProtectedWithLocalApp(ctx context.Context, desktopListener, 
 	}, "verified-native-desktop-and-local-app")
 }
 
+// WaitReady blocks until the daemon has completed its serving-state transition
+// to READY or the caller cancels the wait.
+func (d *Daemon) WaitReady(ctx context.Context) error {
+	if d == nil || d.readyCh == nil {
+		return fmt.Errorf("Runtime daemon readiness is unavailable")
+	}
+	if ctx == nil {
+		return fmt.Errorf("Runtime readiness context is required")
+	}
+	select {
+	case <-d.readyCh:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonServerStarter, stopServers daemonServerStopper, transport string) error {
 	if ctx == nil {
 		return fmt.Errorf("Runtime context is required")
@@ -365,20 +385,10 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 		}
 		return fmt.Errorf("refresh managed embedding profile: %w", err)
 	}
-	if memorySvc := d.grpc.MemoryService(); memorySvc != nil && memorySvc.PersistenceBackend() != nil {
-		if _, err := memorySvc.PersistenceBackend().BackupNow(backgroundCtx); err != nil {
-			stop()
-			cancelBackground()
-			backgroundWG.Wait()
-			if shutdownErr := d.shutdown(); shutdownErr != nil {
-				return fmt.Errorf("startup sqlite backup: %w (shutdown: %v)", err, shutdownErr)
-			}
-			return fmt.Errorf("startup sqlite backup: %w", err)
-		}
-	}
 	startupDegradedReason := d.consumeStartupDegradedReason()
 	d.state.SetStatus(health.StatusReady, "ready")
 	d.grpc.SyncServingState()
+	d.readyOnce.Do(func() { close(d.readyCh) })
 	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
 		if err := agentSvc.StartLifeTrackLoop(backgroundCtx); err != nil {
 			cancelBackground()
@@ -454,10 +464,6 @@ func (d *Daemon) shutdown() error {
 	}
 	waitForShutdownDrain(ctx, d.cfg.ShutdownTimeout)
 	d.stopSupervisedEngines("stopping supervised engines")
-	var backupErr error
-	if memorySvc := d.grpc.MemoryService(); memorySvc != nil && memorySvc.PersistenceBackend() != nil {
-		_, backupErr = memorySvc.PersistenceBackend().BackupNow(ctx)
-	}
 	httpErr := d.http.Shutdown(ctx)
 	grpcResult := d.grpc.Stop(ctx)
 	appendShutdownAudit(d.auditStore, grpcResult.Shutdown)
@@ -472,7 +478,7 @@ func (d *Daemon) shutdown() error {
 	}
 	protectedStateErr := d.closeProtectedState()
 	d.state.SetStatus(health.StatusStopped, "stopped")
-	if joined := errors.Join(backupErr, httpErr, closeErr, cognitionCloseErr, protectedStateErr); joined != nil {
+	if joined := errors.Join(httpErr, closeErr, cognitionCloseErr, protectedStateErr); joined != nil {
 		return fmt.Errorf("shutdown runtime: %w", joined)
 	}
 	return nil

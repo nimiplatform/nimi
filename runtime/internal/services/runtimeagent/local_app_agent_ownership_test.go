@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -152,7 +153,14 @@ func TestLocalAppAgentOwnershipCoalescesConcurrentPublicAvatarLookup(t *testing.
 
 func TestLocalAppAgentOwnershipReusesSuccessfulPublicAvatarLookup(t *testing.T) {
 	snapshot := localAppAgentOwnershipMediaOnlySnapshot(t)
-	svc := localAppAgentOwnershipAvatarService(snapshot)
+	var snapshotResolveCalls atomic.Int32
+	svc := localAppAgentOwnershipAvatarServiceWithSnapshotResolver(func(
+		_ context.Context,
+		localAgentRef string,
+	) (localAgentSourceSnapshotV2, bool, error) {
+		snapshotResolveCalls.Add(1)
+		return snapshot, localAgentRef == snapshot.LocalAgentRef, nil
+	}, snapshot)
 	var resolverCalls atomic.Int32
 	svc.SetRealmCharacterPublicAvatarResolver(localAppAgentPublicAvatarResolverFunc(func(
 		context.Context,
@@ -173,6 +181,49 @@ func TestLocalAppAgentOwnershipReusesSuccessfulPublicAvatarLookup(t *testing.T) 
 	}
 	if got := resolverCalls.Load(); got != 1 {
 		t.Fatalf("reused public avatar resolver calls = %d, want 1", got)
+	}
+	if got := snapshotResolveCalls.Load(); got != 1 {
+		t.Fatalf("reused source snapshot resolver calls = %d, want 1", got)
+	}
+}
+
+func TestLocalAppAgentOwnershipCachesSourceProjectionButRefreshesMissingPublicAvatar(t *testing.T) {
+	snapshot := localAppAgentOwnershipMediaOnlySnapshot(t)
+	var snapshotResolveCalls atomic.Int32
+	svc := localAppAgentOwnershipAvatarServiceWithSnapshotResolver(func(
+		_ context.Context,
+		localAgentRef string,
+	) (localAgentSourceSnapshotV2, bool, error) {
+		snapshotResolveCalls.Add(1)
+		return snapshot, localAgentRef == snapshot.LocalAgentRef, nil
+	}, snapshot)
+	var resolverCalls atomic.Int32
+	svc.SetRealmCharacterPublicAvatarResolver(localAppAgentPublicAvatarResolverFunc(func(
+		context.Context,
+		string,
+		accountservice.RealmSourceMaterializationSourceRefV3,
+	) (*string, error) {
+		if resolverCalls.Add(1) == 1 {
+			return nil, nil
+		}
+		avatarURL := "https://cdn.example.test/song-lian-late-avatar.png"
+		return &avatarURL, nil
+	}))
+
+	first, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+	if err != nil || len(first) != 1 || first[0].AvatarURL != nil {
+		t.Fatalf("initial missing public avatar inventory = (%+v, %v)", first, err)
+	}
+	second, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+	if err != nil || len(second) != 1 || second[0].AvatarURL == nil ||
+		*second[0].AvatarURL != "https://cdn.example.test/song-lian-late-avatar.png" {
+		t.Fatalf("refreshed public avatar inventory = (%+v, %v)", second, err)
+	}
+	if got := snapshotResolveCalls.Load(); got != 1 {
+		t.Fatalf("cached source snapshot resolver calls = %d, want 1", got)
+	}
+	if got := resolverCalls.Load(); got != 2 {
+		t.Fatalf("refreshed public avatar resolver calls = %d, want 2", got)
 	}
 }
 
@@ -231,6 +282,9 @@ func TestLocalAppAgentOwnershipSourceHashChangeRefetchesPublicAvatar(t *testing.
 		t.Fatalf("first source-hash avatar = (%+v, %v)", first, err)
 	}
 	currentSnapshot.Semantic.SourceRef.SourceHash = strings.Repeat("b", 64)
+	svc.mu.Lock()
+	svc.agents[snapshot.LocalAgentRef].Agent.SourceContextStatus = localAgentSourceContextStatusV2(currentSnapshot)
+	svc.mu.Unlock()
 	second, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
 	if err != nil || len(second) != 1 || second[0].AvatarURL == nil {
 		t.Fatalf("changed source-hash avatar = (%+v, %v)", second, err)
@@ -240,6 +294,134 @@ func TestLocalAppAgentOwnershipSourceHashChangeRefetchesPublicAvatar(t *testing.
 	}
 	if got := resolverCalls.Load(); got != 2 {
 		t.Fatalf("source-hash public avatar resolver calls = %d, want 2", got)
+	}
+}
+
+func TestLocalAppAgentOwnershipPrunesRemovedAgentSourceProjectionCache(t *testing.T) {
+	snapshot := localAppAgentOwnershipAvatarSnapshot(t, "https://assets.example.test/avatars/pruned.png")
+	svc := localAppAgentOwnershipAvatarService(snapshot)
+
+	inventory, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+	if err != nil || len(inventory) != 1 || inventory[0].AvatarURL == nil {
+		t.Fatalf("initial cached avatar inventory = (%+v, %v)", inventory, err)
+	}
+	svc.localAppAgentDisplayAvatarCacheMu.Lock()
+	cachedBeforeDelete := len(svc.localAppAgentDisplayAvatarCache)
+	svc.localAppAgentDisplayAvatarCacheMu.Unlock()
+	if cachedBeforeDelete != 1 {
+		t.Fatalf("source projection cache entries before delete = %d, want 1", cachedBeforeDelete)
+	}
+
+	svc.mu.Lock()
+	delete(svc.agents, snapshot.LocalAgentRef)
+	svc.mu.Unlock()
+	inventory, err = svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+	if err != nil || len(inventory) != 0 {
+		t.Fatalf("inventory after Agent delete = (%+v, %v)", inventory, err)
+	}
+	svc.localAppAgentDisplayAvatarCacheMu.Lock()
+	cachedAfterDelete := len(svc.localAppAgentDisplayAvatarCache)
+	svc.localAppAgentDisplayAvatarCacheMu.Unlock()
+	if cachedAfterDelete != 0 {
+		t.Fatalf("source projection cache entries after delete = %d, want 0", cachedAfterDelete)
+	}
+}
+
+func TestLocalAppAgentOwnershipDoesNotPublishLateOldSourceProjection(t *testing.T) {
+	oldSnapshot := localAppAgentOwnershipAvatarSnapshot(t, "https://assets.example.test/avatars/old.png")
+	newSnapshot := localAppAgentOwnershipAvatarSnapshot(t, "https://assets.example.test/avatars/new.png")
+	newSourceHash := strings.Repeat("b", 64)
+	newSnapshot.Semantic.SourceRef.SourceHash = newSourceHash
+	oldLookupStarted := make(chan struct{})
+	releaseOldLookup := make(chan struct{})
+	var lookupCalls atomic.Int32
+	svc := localAppAgentOwnershipAvatarServiceWithSnapshotResolver(func(
+		_ context.Context,
+		localAgentRef string,
+	) (localAgentSourceSnapshotV2, bool, error) {
+		if lookupCalls.Add(1) == 1 {
+			close(oldLookupStarted)
+			<-releaseOldLookup
+			return oldSnapshot, localAgentRef == oldSnapshot.LocalAgentRef, nil
+		}
+		return newSnapshot, localAgentRef == newSnapshot.LocalAgentRef, nil
+	}, oldSnapshot)
+
+	firstDone := make(chan error, 1)
+	go func() {
+		inventory, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+		if err == nil && (len(inventory) != 1 || inventory[0].AvatarURL == nil ||
+			*inventory[0].AvatarURL != "https://assets.example.test/avatars/old.png") {
+			err = fmt.Errorf("old source inventory = %+v", inventory)
+		}
+		firstDone <- err
+	}()
+	<-oldLookupStarted
+
+	svc.mu.Lock()
+	svc.agents[oldSnapshot.LocalAgentRef].Agent.SourceContextStatus = localAgentSourceContextStatusV2(newSnapshot)
+	svc.mu.Unlock()
+	current, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+	if err != nil || len(current) != 1 || current[0].AvatarURL == nil ||
+		*current[0].AvatarURL != "https://assets.example.test/avatars/new.png" {
+		t.Fatalf("new source inventory = (%+v, %v)", current, err)
+	}
+	close(releaseOldLookup)
+	if err := <-firstDone; err != nil {
+		t.Fatal(err)
+	}
+
+	svc.localAppAgentDisplayAvatarCacheMu.Lock()
+	defer svc.localAppAgentDisplayAvatarCacheMu.Unlock()
+	if len(svc.localAppAgentDisplayAvatarCache) != 1 {
+		t.Fatalf("source projection cache after late old lookup = %+v", svc.localAppAgentDisplayAvatarCache)
+	}
+	currentKey := localAppAgentDisplayAvatarCacheKey{
+		localAgentRef: oldSnapshot.LocalAgentRef,
+		sourceHash:    newSourceHash,
+	}
+	if cached, ok := svc.localAppAgentDisplayAvatarCache[currentKey]; !ok ||
+		!cached.hasURL || cached.avatarURL != "https://assets.example.test/avatars/new.png" {
+		t.Fatalf("current source projection cache = (%+v, %v)", cached, ok)
+	}
+}
+
+func TestLocalAppAgentOwnershipDoesNotRepublishProjectionAfterAgentDelete(t *testing.T) {
+	snapshot := localAppAgentOwnershipAvatarSnapshot(t, "https://assets.example.test/avatars/deleted.png")
+	lookupStarted := make(chan struct{})
+	releaseLookup := make(chan struct{})
+	svc := localAppAgentOwnershipAvatarServiceWithSnapshotResolver(func(
+		_ context.Context,
+		localAgentRef string,
+	) (localAgentSourceSnapshotV2, bool, error) {
+		close(lookupStarted)
+		<-releaseLookup
+		return snapshot, localAgentRef == snapshot.LocalAgentRef, nil
+	}, snapshot)
+
+	firstDone := make(chan error, 1)
+	go func() {
+		_, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+		firstDone <- err
+	}()
+	<-lookupStarted
+
+	svc.mu.Lock()
+	delete(svc.agents, snapshot.LocalAgentRef)
+	svc.mu.Unlock()
+	inventory, err := svc.ListOwnedActiveLocalAgents(context.Background(), "acct-1")
+	if err != nil || len(inventory) != 0 {
+		t.Fatalf("inventory during deleted Agent lookup = (%+v, %v)", inventory, err)
+	}
+	close(releaseLookup)
+	if err := <-firstDone; err != nil {
+		t.Fatal(err)
+	}
+
+	svc.localAppAgentDisplayAvatarCacheMu.Lock()
+	defer svc.localAppAgentDisplayAvatarCacheMu.Unlock()
+	if len(svc.localAppAgentDisplayAvatarCache) != 0 {
+		t.Fatalf("deleted Agent source projection was republished: %+v", svc.localAppAgentDisplayAvatarCache)
 	}
 }
 
@@ -352,10 +534,11 @@ func localAppAgentOwnershipAvatarServiceWithSnapshotResolver(
 	return &Service{
 		agents: map[string]*agentEntry{
 			snapshot.LocalAgentRef: {Agent: &runtimev1.LocalAgentRecord{
-				LocalAgentRef:   snapshot.LocalAgentRef,
-				DisplayName:     "宋濂",
-				OwnerUserId:     "acct-1",
-				LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+				LocalAgentRef:       snapshot.LocalAgentRef,
+				DisplayName:         "宋濂",
+				OwnerUserId:         "acct-1",
+				LifecycleStatus:     runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+				SourceContextStatus: localAgentSourceContextStatusV2(snapshot),
 			}},
 		},
 		publicChatSourceSnapshotResolve: resolve,

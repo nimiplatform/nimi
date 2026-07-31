@@ -345,13 +345,16 @@ func (s *Service) requeueReplicationBacklogItem(item *ReplicationBacklogItem, ou
 	return nil
 }
 
-func (s *Service) currentReplicationBridgeAdapter() ReplicationBridgeAdapter {
+func (s *Service) currentReplicationBridgeAdapter() (ReplicationBridgeAdapter, bool) {
 	s.replicationLoopMu.Lock()
 	defer s.replicationLoopMu.Unlock()
 	if s.replicationBridgeAdapter == nil {
-		return unavailableReplicationBridgeAdapter{}
+		return unavailableReplicationBridgeAdapter{}, false
 	}
-	return s.replicationBridgeAdapter
+	if _, unavailable := s.replicationBridgeAdapter.(unavailableReplicationBridgeAdapter); unavailable {
+		return s.replicationBridgeAdapter, false
+	}
+	return s.replicationBridgeAdapter, true
 }
 
 func (s *Service) SetReplicationBridgeAdapter(adapter ReplicationBridgeAdapter) {
@@ -416,11 +419,14 @@ func (s *Service) runReplicationLoop(ctx context.Context, done chan struct{}) {
 }
 
 func (s *Service) runReplicationSweep(ctx context.Context, now time.Time) error {
+	adapter, bridgeReady := s.currentReplicationBridgeAdapter()
+	if !bridgeReady {
+		return nil
+	}
 	items, err := s.ClaimReplicationBacklogBatch(defaultReplicationBacklogBatch, now)
 	if err != nil || len(items) == 0 {
 		return err
 	}
-	adapter := s.currentReplicationBridgeAdapter()
 	for _, item := range items {
 		replication, bridgeErr := adapter.SyncPendingMemory(ctx, cloneReplicationBacklogItem(item))
 		if bridgeErr != nil {

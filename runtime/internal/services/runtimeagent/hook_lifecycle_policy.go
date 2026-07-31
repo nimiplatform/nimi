@@ -503,6 +503,8 @@ func cadenceTickScheduledAt(entry *agentEntry, now time.Time) (time.Time, bool) 
 	anchor := now
 	if latest, ok := latestLifeTurnAnchor(entry); ok {
 		anchor = latest
+	} else if admittedAt, ok := pendingCadenceAdmissionAnchor(entry); ok {
+		anchor = admittedAt
 	}
 	scheduledAt := anchor.Add(policy.baseTick)
 	if scheduledAt.Before(now) {
@@ -515,6 +517,39 @@ func cadenceTickScheduledAt(entry *agentEntry, now time.Time) (time.Time, bool) 
 		}
 	}
 	return scheduledAt.UTC(), true
+}
+
+func pendingCadenceAdmissionAnchor(entry *agentEntry) (time.Time, bool) {
+	if entry == nil {
+		return time.Time{}, false
+	}
+	var earliest time.Time
+	for _, hook := range entry.Hooks {
+		if hook == nil || !isCadenceTickHook(hook) ||
+			hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING ||
+			hook.GetAdmittedAt() == nil || hook.GetAdmittedAt().AsTime().IsZero() {
+			continue
+		}
+		admittedAt := hook.GetAdmittedAt().AsTime().UTC()
+		if earliest.IsZero() || admittedAt.Before(earliest) {
+			earliest = admittedAt
+		}
+	}
+	if earliest.IsZero() {
+		return time.Time{}, false
+	}
+	return earliest, true
+}
+
+func cadenceHookScheduleMatches(hook *runtimev1.PendingHook, scheduledAt time.Time) bool {
+	if hook == nil || hook.GetIntent() == nil || scheduledAt.IsZero() {
+		return false
+	}
+	return hook.GetScheduledFor() != nil &&
+		hook.GetScheduledFor().AsTime().UTC().Equal(scheduledAt.UTC()) &&
+		hook.GetIntent().GetNotBefore() != nil &&
+		hook.GetIntent().GetNotBefore().AsTime().UTC().Equal(scheduledAt.UTC()) &&
+		strings.TrimSpace(hook.GetIntent().GetReason()) == autonomyCadenceHookReason
 }
 
 // cadenceTickHookIntent builds the baseline autonomy cadence HookIntent as a
@@ -619,20 +654,25 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 	}
 
 	primary := pendingCadence[0]
-	delay := scheduledAt.Sub(now)
-	if delay < 0 {
-		delay = 0
+	scheduleChanged := !cadenceHookScheduleMatches(primary, scheduledAt)
+	if scheduleChanged {
+		delay := scheduledAt.Sub(now)
+		if delay < 0 {
+			delay = 0
+		}
+		primary.Intent.TriggerDetail = timeTriggerDetail(delay)
+		primary.Intent.NotBefore = timestamppb.New(scheduledAt)
+		primary.Intent.Reason = autonomyCadenceHookReason
+		primary.ScheduledFor = timestamppb.New(scheduledAt)
 	}
-	primary.Intent.TriggerDetail = timeTriggerDetail(delay)
-	primary.Intent.NotBefore = timestamppb.New(scheduledAt)
-	primary.Intent.Reason = autonomyCadenceHookReason
-	primary.ScheduledFor = timestamppb.New(scheduledAt)
 	var events []*runtimev1.AgentEvent
 	if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
 		events = append(events, stateEvent)
 	}
-	if err := s.updateAgent(entry, events...); err != nil {
-		return err
+	if scheduleChanged || len(events) > 0 {
+		if err := s.updateAgent(entry, events...); err != nil {
+			return err
+		}
 	}
 	if len(pendingCadence) <= 1 {
 		return nil

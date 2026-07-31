@@ -70,6 +70,9 @@ type Service struct {
 	chatAppEmit                              publicChatAppMessageEmitter
 	runtimeAccountProjection                 runtimeAccountProjectionProvider
 	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
+	localAppAgentDisplayAvatarCacheMu        sync.Mutex
+	localAppAgentDisplayAvatarCache          map[localAppAgentDisplayAvatarCacheKey]localAppAgentDisplayAvatarCacheEntry
+	localAppAgentDisplayAvatarLookups        map[localAppAgentDisplayAvatarCacheKey]*localAppAgentDisplayAvatarLookup
 	localAppAgentAvatarCacheMu               sync.Mutex
 	localAppAgentAvatarCache                 map[localAppAgentAvatarCacheKey]string
 	localAppAgentAvatarLookups               map[localAppAgentAvatarCacheKey]*localAppAgentAvatarLookup

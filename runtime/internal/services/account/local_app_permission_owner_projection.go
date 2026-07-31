@@ -45,6 +45,11 @@ func (s *Service) ListLocalAppPermissionOwnerProjections(ctx context.Context, re
 	for _, request := range requests {
 		permissions = append(permissions, projectPendingOwnerPermission(request))
 	}
+	type activeGrantProjectionInput struct {
+		principal localappkernel.Principal
+		grant     localappkernel.PermissionGrant
+	}
+	activeGrants := make([]activeGrantProjectionInput, 0, len(grants))
 	for _, grant := range grants {
 		principal, principalErr := s.localAppKernel.Principals().Get(ctx, grant.Key.LocalAppPrincipalID)
 		if principalErr != nil {
@@ -56,7 +61,28 @@ func (s *Service) ListLocalAppPermissionOwnerProjections(ctx context.Context, re
 		if principal.State != localappkernel.PrincipalStateActive {
 			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 		}
-		projection, projectionErr := s.projectActiveOwnerPermission(ctx, accountID, principal, grant)
+		if err := validateActiveOwnerPermissionGrant(accountID, principal, grant); err != nil {
+			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+		}
+		activeGrants = append(activeGrants, activeGrantProjectionInput{principal: principal, grant: grant})
+	}
+	var agents []LocalAgentOwnerProjection
+	if len(activeGrants) > 0 {
+		if s.localAgentOwnership == nil {
+			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+		}
+		agents, err = s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
+		if err != nil {
+			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+		}
+	}
+	for _, activeGrant := range activeGrants {
+		projection, projectionErr := projectActiveOwnerPermissionWithAgents(
+			accountID,
+			activeGrant.principal,
+			activeGrant.grant,
+			agents,
+		)
 		if projectionErr != nil {
 			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 		}
@@ -79,8 +105,24 @@ func (s *Service) ownerPermissionProjectionsForPrincipal(ctx context.Context, ac
 	for _, request := range requests {
 		permissions = append(permissions, projectPendingOwnerPermission(request))
 	}
+	if len(grants) == 0 {
+		sortOwnerPermissionProjections(permissions)
+		return permissions, nil
+	}
+	if s.localAgentOwnership == nil {
+		return nil, ErrLocalAppSelectorUnavailable
+	}
 	for _, grant := range grants {
-		projection, projectionErr := s.projectActiveOwnerPermission(ctx, accountID, principal, grant)
+		if err := validateActiveOwnerPermissionGrant(accountID, principal, grant); err != nil {
+			return nil, err
+		}
+	}
+	agents, err := s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
+	if err != nil {
+		return nil, ErrLocalAppSelectorUnavailable
+	}
+	for _, grant := range grants {
+		projection, projectionErr := projectActiveOwnerPermissionWithAgents(accountID, principal, grant, agents)
 		if projectionErr != nil {
 			return nil, projectionErr
 		}
@@ -102,9 +144,38 @@ func projectPendingOwnerPermission(request localappkernel.PermissionRequest) *ru
 }
 
 func (s *Service) projectActiveOwnerPermission(ctx context.Context, accountID string, principal localappkernel.Principal, grant localappkernel.PermissionGrant) (*runtimev1.LocalAppPermissionOwnerProjection, error) {
+	if err := validateActiveOwnerPermissionGrant(accountID, principal, grant); err != nil {
+		return nil, err
+	}
+	if s.localAgentOwnership == nil {
+		return nil, ErrLocalAppSelectorUnavailable
+	}
+	agents, err := s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
+	if err != nil {
+		return nil, ErrLocalAppSelectorUnavailable
+	}
+	return projectActiveOwnerPermissionWithAgents(accountID, principal, grant, agents)
+}
+
+func validateActiveOwnerPermissionGrant(accountID string, principal localappkernel.Principal, grant localappkernel.PermissionGrant) error {
 	if grant.State != localappkernel.PermissionGrantStateGranted || grant.Key.AccountID != accountID ||
 		grant.Key.LocalAppPrincipalID != principal.LocalAppPrincipalID {
-		return nil, localappkernel.ErrStateConflict
+		return localappkernel.ErrStateConflict
+	}
+	if grant.Key.OwnerSelectorDigest != localappkernel.AgentAccountScopeDigest(accountID) {
+		return ErrLocalAppSelectorUnavailable
+	}
+	return nil
+}
+
+func projectActiveOwnerPermissionWithAgents(
+	accountID string,
+	principal localappkernel.Principal,
+	grant localappkernel.PermissionGrant,
+	agents []LocalAgentOwnerProjection,
+) (*runtimev1.LocalAppPermissionOwnerProjection, error) {
+	if err := validateActiveOwnerPermissionGrant(accountID, principal, grant); err != nil {
+		return nil, err
 	}
 	projection := &runtimev1.LocalAppPermissionOwnerProjection{
 		LocalAppPrincipalId: principal.LocalAppPrincipalID,
@@ -115,13 +186,7 @@ func (s *Service) projectActiveOwnerPermission(ctx context.Context, accountID st
 		RequestedAt:         timestamppb.New(grant.CreatedAt),
 		DecidedAt:           timestamppb.New(grant.UpdatedAt),
 	}
-	if grant.Key.OwnerSelectorDigest != localappkernel.AgentAccountScopeDigest(accountID) || s.localAgentOwnership == nil {
-		return nil, ErrLocalAppSelectorUnavailable
-	}
-	agents, err := s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
-	if err != nil {
-		return nil, ErrLocalAppSelectorUnavailable
-	}
+	agents = append([]LocalAgentOwnerProjection(nil), agents...)
 	sort.Slice(agents, func(i, j int) bool {
 		if agents[i].DisplayName == agents[j].DisplayName {
 			return agents[i].LocalAgentID < agents[j].LocalAgentID

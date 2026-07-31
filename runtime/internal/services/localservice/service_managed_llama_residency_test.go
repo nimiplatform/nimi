@@ -202,6 +202,76 @@ func TestRecoverySweepSkipsFailedManagedLlamaBeforeProbeInterval(t *testing.T) {
 	}
 }
 
+func TestRecoverySweepDoesNotHashColdManagedLlama(t *testing.T) {
+	probeCalls := 0
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls++
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			probeURL:  endpoint,
+		}
+	})
+	model := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_alpha",
+		"local/alpha-model",
+		"nimi/alpha-model",
+		"alpha.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+	)
+
+	svc.mu.Lock()
+	svc.assets[model.GetLocalAssetId()].Hashes = map[string]string{
+		model.GetEntry(): "sha256:" + strings.Repeat("0", 64),
+	}
+	svc.entryHashCache = make(map[string]entryHashCacheState)
+	svc.mu.Unlock()
+
+	svc.runRecoverySweep(context.Background())
+
+	current := svc.modelByID(model.GetLocalAssetId())
+	if current == nil {
+		t.Fatal("expected stored asset")
+	}
+	if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("status after cold recovery sweep = %s, want ACTIVE", current.GetStatus())
+	}
+	if current.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("warm state after cold recovery sweep = %s, want COLD", current.GetWarmState())
+	}
+	if probeCalls != 0 {
+		t.Fatalf("cold managed llama recovery must not probe, got %d calls", probeCalls)
+	}
+	svc.mu.RLock()
+	hashCacheEntries := len(svc.entryHashCache)
+	auditEntries := len(svc.audits)
+	updatedAt := svc.assets[model.GetLocalAssetId()].GetUpdatedAt()
+	svc.mu.RUnlock()
+	if hashCacheEntries != 0 {
+		t.Fatalf("cold managed llama recovery must not hash model entries, got %d cache entries", hashCacheEntries)
+	}
+	recoveryTargets, _ := svc.collectUnhealthyRecoveryTargets()
+	if len(recoveryTargets) != 0 {
+		t.Fatalf("settled cold managed llama must not remain in recurring recovery targets, got %d", len(recoveryTargets))
+	}
+
+	svc.runRecoverySweep(context.Background())
+
+	current = svc.modelByID(model.GetLocalAssetId())
+	if current.GetUpdatedAt() != updatedAt {
+		t.Fatalf("unchanged cold recovery updated timestamp: first=%q second=%q", updatedAt, current.GetUpdatedAt())
+	}
+	svc.mu.RLock()
+	secondAuditEntries := len(svc.audits)
+	svc.mu.RUnlock()
+	if secondAuditEntries != auditEntries {
+		t.Fatalf("unchanged cold recovery appended audit entries: first=%d second=%d", auditEntries, secondAuditEntries)
+	}
+}
+
 func TestAcquireLocalAssetLeaseStartsExplicitManagedLlamaTarget(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{

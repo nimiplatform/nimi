@@ -282,6 +282,57 @@ function Stage-InstallCandidate {
   }
 }
 
+function Resolve-InstalledVersionRootFromServicePath {
+  param([AllowNull()] [string] $ServiceBinaryPath)
+  if ([string]::IsNullOrWhiteSpace($ServiceBinaryPath)) { return $null }
+  $match = [regex]::Match($ServiceBinaryPath, '^\s*"([^"]+)"(?:\s|$)')
+  if (-not $match.Success) { return $null }
+  $binary = [IO.Path]::GetFullPath($match.Groups[1].Value)
+  if ([IO.Path]::GetFileName($binary) -ne 'nimi.exe') { return $null }
+  $candidateRoot = [IO.Path]::GetFullPath((Split-Path $binary -Parent)).TrimEnd('\')
+  $versionsRoot = [IO.Path]::GetFullPath((Join-Path $InstallRoot 'versions')).TrimEnd('\')
+  $candidateParent = [IO.Path]::GetFullPath((Split-Path $candidateRoot -Parent)).TrimEnd('\')
+  if (-not [string]::Equals($candidateParent, $versionsRoot, [StringComparison]::OrdinalIgnoreCase)) {
+    return $null
+  }
+  return $candidateRoot
+}
+
+function Remove-StaleInstalledVersions {
+  param([string[]] $KeepRoots = @())
+  $versionsPath = Join-Path $InstallRoot 'versions'
+  if (-not (Test-Path -LiteralPath $versionsPath -PathType Container)) { return @() }
+  $resolvedVersions = (Resolve-Path -LiteralPath $versionsPath).Path.TrimEnd('\')
+  $keep = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+  foreach ($root in $KeepRoots) {
+    if ([string]::IsNullOrWhiteSpace($root) -or -not (Test-Path -LiteralPath $root -PathType Container)) {
+      continue
+    }
+    $resolvedKeep = (Resolve-Path -LiteralPath $root).Path.TrimEnd('\')
+    $keepParent = [IO.Path]::GetFullPath((Split-Path $resolvedKeep -Parent)).TrimEnd('\')
+    if (-not [string]::Equals($keepParent, $resolvedVersions, [StringComparison]::OrdinalIgnoreCase)) {
+      throw "Refusing to retain Runtime version outside the versions root: $resolvedKeep"
+    }
+    [void] $keep.Add($resolvedKeep)
+  }
+
+  $removed = [System.Collections.Generic.List[string]]::new()
+  foreach ($directory in Get-ChildItem -LiteralPath $resolvedVersions -Directory) {
+    if (($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+      throw "Refusing to remove Runtime version through a reparse point: $($directory.FullName)"
+    }
+    $resolvedCandidate = (Resolve-Path -LiteralPath $directory.FullName).Path.TrimEnd('\')
+    $candidateParent = [IO.Path]::GetFullPath((Split-Path $resolvedCandidate -Parent)).TrimEnd('\')
+    if (-not [string]::Equals($candidateParent, $resolvedVersions, [StringComparison]::OrdinalIgnoreCase)) {
+      throw "Refusing to remove Runtime version outside the versions root: $resolvedCandidate"
+    }
+    if ($keep.Contains($resolvedCandidate)) { continue }
+    Remove-Item -LiteralPath $resolvedCandidate -Recurse -Force
+    $removed.Add($directory.Name)
+  }
+  return $removed.ToArray()
+}
+
 function Import-SignerForLocalSystem {
   param([Parameter(Mandatory = $true)] $Certificate)
   $temp = Join-Path ([IO.Path]::GetTempPath()) "nimi-runtime-signer-$($Certificate.Thumbprint).cer"
@@ -935,7 +986,7 @@ function Install-Service {
     $mutatedService = $true
     Invoke-ServiceControl -Arguments @('sidtype', $ServiceName, 'restricted') -FailureMessage 'SCM failed to apply the restricted service SID.'
     Invoke-ServiceControl -Arguments @('failureflag', $ServiceName, '1') -FailureMessage 'SCM failed to enable non-crash recovery.'
-    Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/1000/restart/3000/restart/10000') -FailureMessage 'SCM failed to configure Runtime recovery.'
+    Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '300', 'actions=', 'restart/1000/restart/3000/restart/10000/none/0') -FailureMessage 'SCM failed to configure Runtime recovery.'
 
     $resolvedSid = Resolve-ServiceSid
     if ($resolvedSid -ne $ExpectedServiceSid) {
@@ -967,6 +1018,22 @@ function Install-Service {
     $status['deploymentProfile'] = $DeploymentProfile
     $status['realmOrigin'] = $DeploymentRealmOrigins[$DeploymentProfile]
     $status['offlineRepair'] = $offlineRepair
+    $previousVersionRoot = Resolve-InstalledVersionRootFromServicePath -ServiceBinaryPath $previousBinaryPath
+    $keepVersionRoots = @($InstalledVersionRoot)
+    if (-not [string]::IsNullOrWhiteSpace($previousVersionRoot)) {
+      $keepVersionRoots += $previousVersionRoot
+    }
+    $versionRetention = [ordered]@{
+      kept = @($keepVersionRoots | ForEach-Object { Split-Path $_ -Leaf } | Select-Object -Unique)
+      removed = @()
+      error = $null
+    }
+    try {
+      $versionRetention.removed = @(Remove-StaleInstalledVersions -KeepRoots $keepVersionRoots)
+    } catch {
+      $versionRetention.error = $_.Exception.Message
+    }
+    $status['versionRetention'] = $versionRetention
     return $status
   } catch {
     $installFailure = $_

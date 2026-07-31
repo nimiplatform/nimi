@@ -21,7 +21,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestDaemonRunCreatesSQLiteBackupOnShutdown(t *testing.T) {
+func TestDaemonLifecycleDoesNotCreateSQLiteBackup(t *testing.T) {
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
 		HTTPAddr:             "127.0.0.1:0",
@@ -52,11 +52,11 @@ func TestDaemonRunCreatesSQLiteBackupOnShutdown(t *testing.T) {
 	}
 
 	entries, err := os.ReadDir(filepath.Join(filepath.Dir(cfg.LocalStatePath), "backups"))
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		t.Fatalf("os.ReadDir(backups): %v", err)
 	}
-	if len(entries) == 0 {
-		t.Fatal("expected at least one sqlite backup snapshot after shutdown")
+	if len(entries) != 0 {
+		t.Fatalf("expected no lifecycle sqlite backup snapshots, got %d", len(entries))
 	}
 }
 

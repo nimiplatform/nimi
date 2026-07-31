@@ -453,6 +453,10 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 }
 
 func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *runtimev1.LocalAssetRecord) (*runtimev1.LocalAssetHealth, error) {
+	return s.checkManagedSupervisedLlamaHealthWithReason(ctx, model, "explicit_health_check")
+}
+
+func (s *Service) checkManagedSupervisedLlamaHealthWithReason(ctx context.Context, model *runtimev1.LocalAssetRecord, reason string) (*runtimev1.LocalAssetHealth, error) {
 	if model == nil {
 		return nil, nil
 	}
@@ -464,6 +468,24 @@ func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *
 	}
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
 		return s.setManagedSupervisedLlamaUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
+	}
+	if managedSupervisedLlamaColdRecovery(reason) && s.currentManagedLlamaLoadedLocalAssetID() == "" {
+		if _, hasEngine := managedLlamaEngineInfo(s.engineManagerOrNil()); !hasEngine {
+			if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+				coldModel, err := s.updateModelAvailabilityAndWarmState(
+					localModelID,
+					runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+					runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+					managedLocalModelColdDetail(),
+					true,
+				)
+				if err != nil {
+					return nil, err
+				}
+				return modelHealth(coldModel), nil
+			}
+			return modelHealth(model), nil
+		}
 	}
 	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {
 		return s.setManagedSupervisedLlamaUnhealthy(model, managedLocalModelBundleFailureDetail(err))
@@ -559,14 +581,6 @@ func (s *Service) checkManagedSupervisedSpeechHealthWithReason(ctx context.Conte
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
 		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
 	}
-	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {
-		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalModelBundleFailureDetail(err))
-	}
-	if refreshed := s.modelByID(localModelID); refreshed != nil {
-		model = refreshed
-	}
-
-	endpoint := s.effectiveLocalModelEndpoint(model)
 	if managedSupervisedSpeechColdRecovery(reason) && !s.managedSpeechEngineAlreadyRunning(model) {
 		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 			coldModel, err := s.updateModelAvailabilityAndWarmState(
@@ -583,6 +597,14 @@ func (s *Service) checkManagedSupervisedSpeechHealthWithReason(ctx context.Conte
 		}
 		return modelHealth(model), nil
 	}
+	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {
+		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalModelBundleFailureDetail(err))
+	}
+	if refreshed := s.modelByID(localModelID); refreshed != nil {
+		model = refreshed
+	}
+
+	endpoint := s.effectiveLocalModelEndpoint(model)
 	bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, model)
 	probe := s.probeLocalModelEndpoint(ctx, model, endpoint)
 	if modelProbeSucceeded(model, probe, managedLlamaRegistration{}) {
