@@ -1,5 +1,5 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
-import type { StatusBanner } from '../../app-shell/providers/app-store';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { useTranslation } from 'react-i18next';
 import {
   readStorageTextFrom,
@@ -18,7 +18,7 @@ type HydrationEffectInput = {
   hydrated: boolean;
   setHydrated: (next: boolean) => void;
   setState: Dispatch<SetStateAction<RuntimeConfigStateV11 | null>>;
-  setStatusBanner: (banner: StatusBanner | null) => void;
+  setStatusBanner: (banner: InlineFeedbackState | null) => void;
 };
 
 export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {

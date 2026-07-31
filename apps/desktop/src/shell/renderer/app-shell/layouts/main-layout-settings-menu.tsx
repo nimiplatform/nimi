@@ -15,8 +15,8 @@ export type SettingsSubmenuItemId =
   | 'logout';
 
 export type SettingsMenuAnchorPosition = {
-  top: number;
-  right: number;
+  bottom: number;
+  left: number;
 };
 
 const SETTINGS_SUBMENU_ITEMS: Array<{ id: SettingsSubmenuItemId; label: string; icon: string }> = [
@@ -60,8 +60,8 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
   const { t } = useTranslation();
   const interactiveMotion = useDesktopInteractiveMotion();
   const anchorStyle: CSSProperties = {
-    top: props.anchorPosition.top,
-    right: props.anchorPosition.right,
+    bottom: props.anchorPosition.bottom,
+    left: props.anchorPosition.left,
   };
   const items = SETTINGS_SUBMENU_ITEMS.filter((item) => (
     item.id !== 'logout'

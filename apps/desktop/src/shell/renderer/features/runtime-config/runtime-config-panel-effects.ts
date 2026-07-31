@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { NimiRuntimeLocalSnapshot } from '@nimiplatform/sdk/runtime';
 import { isNimiRuntimeLocalRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import type { Dispatch, SetStateAction } from 'react';
-import type { StatusBanner } from '../../app-shell/providers/app-store';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
   useRuntimeConfigLocalModelCenterClient,
@@ -25,7 +25,7 @@ type RuntimeConfigPanelEffectsInput = {
   setHydrated: (next: boolean) => void;
   state: RuntimeConfigStateV11 | null;
   setState: Dispatch<SetStateAction<RuntimeConfigStateV11 | null>>;
-  setStatusBanner: (banner: StatusBanner | null) => void;
+  setStatusBanner: (banner: InlineFeedbackState | null) => void;
   setVaultEntryCount: (count: number) => void;
   vaultVersion: number;
   discoverLocalModels: (options?: { visible?: boolean }) => Promise<void>;

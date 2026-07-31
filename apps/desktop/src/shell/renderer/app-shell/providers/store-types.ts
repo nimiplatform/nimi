@@ -25,6 +25,7 @@ import type { ExploreSectionId } from '../../features/explore/explore-section-na
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 import type { CharacterSourceRefV3 } from '../../features/realm-source/realm-source-identity.js';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 export type AuthStatus =
   | 'bootstrapping'
@@ -68,6 +69,15 @@ export type WorldDetailNavigationOptions = {
   initialSubpage?: WorldDetailInitialSubpage | null;
 };
 
+export type NavigationRouteSnapshot = {
+  activeTab: AppTab;
+  selectedProfileId: string | null;
+  selectedSourceRef: CharacterSourceRefV3 | null;
+  selectedWorldId: string | null;
+  selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
+  selectedGiftTransactionId: string | null;
+};
+
 export type RuntimeFieldMap = {
   targetType: string;
   targetAccountId: string;
@@ -77,13 +87,6 @@ export type RuntimeFieldMap = {
   mode: 'STORY' | 'SCENE_TURN';
   turnIndex: number;
   userConfirmedUpload: boolean;
-};
-
-export type StatusBanner = {
-  kind: StatusKind;
-  message: string;
-  actionLabel?: string;
-  onAction?: () => void;
 };
 
 export type AppStoreState = {
@@ -102,7 +105,7 @@ export type AppStoreState = {
   conversationCapabilityProjectionByCapability: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>;
   agentEffectiveCapabilityResolution: AgentEffectiveCapabilityResolution | null;
   activeTab: AppTab;
-  navigationBackStack: AppTab[];
+  navigationBackStack: NavigationRouteSnapshot[];
   chatMode: ConversationMode;
   chatThinkingPreference: ChatThinkingPreference;
   chatSourceFilter: ConversationSourceFilter;
@@ -117,7 +120,6 @@ export type AppStoreState = {
   chatSetupState: ChatSetupStateByMode;
   selectedChatId: string | null;
   selectedProfileId: string | null;
-  selectedProfileIsSource: boolean | null;
   selectedSourceRef: CharacterSourceRefV3 | null;
   selectedWorldId: string | null;
   selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
@@ -128,7 +130,6 @@ export type AppStoreState = {
   profileDetailOverlayOpen: boolean;
   chatProfilePanelTarget: 'self' | 'other' | null;
   offlineTier: OfflineTier;
-  statusBanner: StatusBanner | null;
   setOfflineTier: (tier: OfflineTier) => void;
   setBootstrapReady: (ready: boolean) => void;
   setBootstrapError: (message: string | null) => void;
@@ -163,8 +164,6 @@ export type AppStoreState = {
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;
-  setSelectedProfileIsSource: (isSource: boolean | null) => void;
-  setSelectedSourceRef: (sourceRef: CharacterSourceRefV3 | null) => void;
   setSelectedWorldId: (worldId: string | null) => void;
   setSelectedGiftTransactionId: (giftTransactionId: string | null) => void;
   setExploreActiveSection: (section: ExploreSectionId) => void;
@@ -172,12 +171,12 @@ export type AppStoreState = {
   setAppsDetailAppId: (appId: string | null) => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
-  navigateToProfile: (profileId: string | null, tab: 'profile' | 'source-detail') => void;
+  navigateToProfile: (profileId: string) => void;
   navigateToSourceDetail: (sourceRef: CharacterSourceRefV3) => void;
   navigateToWorld: (worldId: string, options?: WorldDetailNavigationOptions) => void;
   navigateToGiftInbox: (giftTransactionId?: string | null) => void;
   navigateBack: () => void;
-  setStatusBanner: (banner: StatusBanner | null) => void;
+  setStatusBanner: (banner: InlineFeedbackState | null) => void;
 };
 
 export type AppStoreSet = (

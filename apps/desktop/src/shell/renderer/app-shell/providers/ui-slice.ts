@@ -11,7 +11,14 @@ import {
   EMPTY_NIMI_CONVERSATION_SELECTION,
 } from '../../features/chat/chat-shell-types';
 import type { ChatThinkingPreference } from '../../features/chat/chat-shared-thinking';
-import type { AppStoreSet, AppStoreState, AppTab } from './store-types';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
+import { readCharacterSourceRefV3 } from '../../features/realm-source/realm-source-identity.js';
+import type {
+  AppStoreSet,
+  AppStoreState,
+  AppTab,
+  NavigationRouteSnapshot,
+} from './store-types';
 
 export type UiSliceDependencies = {
   readonly initialChatThinkingPreference: ChatThinkingPreference;
@@ -19,21 +26,53 @@ export type UiSliceDependencies = {
   readonly setActiveScopeForMode: (mode: AppStoreState['chatMode']) => void;
 };
 
+type NavigationState = Pick<AppStoreState,
+  | 'activeTab'
+  | 'navigationBackStack'
+  | 'selectedProfileId'
+  | 'selectedSourceRef'
+  | 'selectedWorldId'
+  | 'selectedWorldInitialSubpage'
+  | 'selectedGiftTransactionId'
+>;
+
+function toNavigationRouteSnapshot(state: NavigationState): NavigationRouteSnapshot {
+  return {
+    activeTab: state.activeTab,
+    selectedProfileId: state.selectedProfileId,
+    selectedSourceRef: state.selectedSourceRef,
+    selectedWorldId: state.selectedWorldId,
+    selectedWorldInitialSubpage: state.selectedWorldInitialSubpage,
+    selectedGiftTransactionId: state.selectedGiftTransactionId,
+  };
+}
+
 function pushNavigationBackStack(
-  stack: readonly AppTab[],
-  activeTab: AppTab,
+  state: NavigationState,
   targetTab: AppTab,
-): AppTab[] {
-  if (activeTab === targetTab) {
-    return [...stack];
+): NavigationRouteSnapshot[] {
+  if (state.activeTab === targetTab) {
+    return [...state.navigationBackStack];
   }
 
-  const nextStack = [...stack];
-  if (nextStack[nextStack.length - 1] !== activeTab) {
-    nextStack.push(activeTab);
+  const currentRoute = toNavigationRouteSnapshot(state);
+  const nextStack = [...state.navigationBackStack];
+  if (nextStack[nextStack.length - 1]?.activeTab === currentRoute.activeTab) {
+    nextStack[nextStack.length - 1] = currentRoute;
+  } else {
+    nextStack.push(currentRoute);
   }
   return nextStack;
 }
+
+const DEFAULT_BACK_ROUTE: NavigationRouteSnapshot = {
+  activeTab: 'chat',
+  selectedProfileId: null,
+  selectedSourceRef: null,
+  selectedWorldId: null,
+  selectedWorldInitialSubpage: null,
+  selectedGiftTransactionId: null,
+};
 
 type UiSlice = Pick<AppStoreState,
   | 'bootstrapReady'
@@ -54,7 +93,6 @@ type UiSlice = Pick<AppStoreState,
   | 'chatSetupState'
   | 'selectedChatId'
   | 'selectedProfileId'
-  | 'selectedProfileIsSource'
   | 'selectedSourceRef'
   | 'selectedWorldId'
   | 'selectedWorldInitialSubpage'
@@ -65,7 +103,6 @@ type UiSlice = Pick<AppStoreState,
   | 'profileDetailOverlayOpen'
   | 'chatProfilePanelTarget'
   | 'offlineTier'
-  | 'statusBanner'
   | 'setOfflineTier'
   | 'setBootstrapReady'
   | 'setBootstrapError'
@@ -84,8 +121,6 @@ type UiSlice = Pick<AppStoreState,
   | 'setChatSetupState'
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
-  | 'setSelectedProfileIsSource'
-  | 'setSelectedSourceRef'
   | 'setSelectedWorldId'
   | 'setSelectedGiftTransactionId'
   | 'setExploreActiveSection'
@@ -124,7 +159,6 @@ export function createUiSlice(
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     selectedChatId: null,
     selectedProfileId: null,
-    selectedProfileIsSource: null,
     selectedSourceRef: null,
     selectedWorldId: null,
     selectedWorldInitialSubpage: null,
@@ -135,7 +169,6 @@ export function createUiSlice(
     profileDetailOverlayOpen: false,
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
-    statusBanner: null,
     setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
@@ -243,8 +276,6 @@ export function createUiSlice(
         },
       })),
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
-    setSelectedProfileIsSource: (isSource) => set({ selectedProfileIsSource: isSource }),
-    setSelectedSourceRef: (sourceRef) => set({ selectedSourceRef: sourceRef }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId, selectedWorldInitialSubpage: null }),
     setSelectedGiftTransactionId: (giftTransactionId) => set({ selectedGiftTransactionId: giftTransactionId }),
     setExploreActiveSection: (section) => set({ exploreActiveSection: section }),
@@ -255,24 +286,31 @@ export function createUiSlice(
     },
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
-    navigateToProfile: (profileId, tab) =>
+    navigateToProfile: (profileId) => {
+      const accountId = typeof profileId === 'string' ? profileId.trim() : '';
+      if (!accountId || accountId.startsWith('local-agent:') || accountId.startsWith('runtime-source:')) {
+        return;
+      }
       set((state) => ({
-        navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, tab),
-        selectedProfileId: profileId,
-        selectedProfileIsSource: tab === 'source-detail',
+        navigationBackStack: pushNavigationBackStack(state, 'profile'),
+        selectedProfileId: accountId,
         selectedSourceRef: null,
         selectedGiftTransactionId: null,
-        activeTab: tab,
-      })),
-    navigateToSourceDetail: (sourceRef) =>
+        activeTab: 'profile',
+      }));
+    },
+    navigateToSourceDetail: (sourceRefInput) => {
+      const sourceRef = readCharacterSourceRefV3(sourceRefInput);
+      if (!sourceRef) {
+        return;
+      }
       set((state) => ({
-        navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, 'source-detail'),
-        selectedProfileId: sourceRef.id,
-        selectedProfileIsSource: true,
+        navigationBackStack: pushNavigationBackStack(state, 'source-detail'),
         selectedSourceRef: sourceRef,
         selectedGiftTransactionId: null,
         activeTab: 'source-detail',
-      })),
+      }));
+    },
     navigateToWorld: (worldId, options) => {
       const normalizedWorldId = String(worldId || '').trim();
       if (!normalizedWorldId) {
@@ -280,7 +318,7 @@ export function createUiSlice(
       }
       startTransition(() => {
         set((state) => ({
-          navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, 'world-detail'),
+          navigationBackStack: pushNavigationBackStack(state, 'world-detail'),
           selectedSourceRef: null,
           selectedWorldId: normalizedWorldId,
           selectedWorldInitialSubpage: options?.initialSubpage ?? null,
@@ -297,7 +335,7 @@ export function createUiSlice(
       const normalizedGiftTransactionId = String(giftTransactionId || '').trim() || null;
       startTransition(() => {
         set((state) => ({
-          navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, 'gift-inbox'),
+          navigationBackStack: pushNavigationBackStack(state, 'gift-inbox'),
           selectedGiftTransactionId: normalizedGiftTransactionId,
           selectedSourceRef: null,
           activeTab: 'gift-inbox',
@@ -312,23 +350,18 @@ export function createUiSlice(
           };
         }
 
-        const target = state.navigationBackStack[state.navigationBackStack.length - 1] ?? 'chat';
+        const target = state.navigationBackStack[state.navigationBackStack.length - 1] ?? DEFAULT_BACK_ROUTE;
         const navigationBackStack = state.navigationBackStack.slice(0, -1);
-        const keepProfile = target === 'home'
-          || target === 'explore'
-          || target === 'profile'
-          || target === 'source-detail';
         return {
-          activeTab: target,
+          activeTab: target.activeTab,
           navigationBackStack,
-          selectedProfileId: keepProfile ? state.selectedProfileId : null,
-          selectedProfileIsSource: keepProfile ? state.selectedProfileIsSource : null,
-          selectedSourceRef: keepProfile ? state.selectedSourceRef : null,
-          selectedWorldId: target === 'world-detail' ? state.selectedWorldId : null,
-          selectedWorldInitialSubpage: target === 'world-detail' ? state.selectedWorldInitialSubpage : null,
-          selectedGiftTransactionId: null,
+          selectedProfileId: target.selectedProfileId,
+          selectedSourceRef: target.selectedSourceRef,
+          selectedWorldId: target.selectedWorldId,
+          selectedWorldInitialSubpage: target.selectedWorldInitialSubpage,
+          selectedGiftTransactionId: target.selectedGiftTransactionId,
         };
       }),
-    setStatusBanner: (banner) => set({ statusBanner: banner }),
+    setStatusBanner: (banner) => emitFeedbackToast(banner),
   };
 }

@@ -12,7 +12,6 @@ import { addConnectorToState, removeConnectorFromState, replaceConnectorsInState
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { SectionTitle as SharedSectionTitle } from '../settings/settings-layout-components';
-import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 import { acquireCodexManagedCredential, type CodexOAuthPendingState } from './runtime-config-codex-oauth';
 import { BoltIcon, Button, PlusIcon } from './runtime-config-page-cloud-primitives';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
@@ -36,7 +35,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const { selectedConnector, orderedConnectors, updateState } = model;
   const authStatus = useAppStore((s) => s.auth.status);
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
-  const pageFeedbackRef = useRef(model.pageFeedback);
   const [tokenDraft, setTokenDraft] = useState('');
   const [connectorLabelDraft, setConnectorLabelDraft] = useState('');
   const [savingToken, setSavingToken] = useState(false);
@@ -77,9 +75,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     && !savingToken
     && !codexOAuthBusy;
   useEffect(() => {
-    pageFeedbackRef.current = model.pageFeedback;
-  }, [model.pageFeedback]);
-  useEffect(() => {
     setTokenDraft('');
     setTokenSaveError('');
     setCodexOAuthPending(null);
@@ -112,22 +107,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
       message: formatRuntimeConfigErrorBanner(label, error),
     });
   }, [model]);
-  const clearPageErrorByLabel = useCallback((label: string) => {
-    if (
-      pageFeedbackRef.current?.kind === 'error'
-      && String(pageFeedbackRef.current.message || '').includes(label)
-    ) {
-      model.setPageFeedback(null);
-    }
-  }, [model]);
-  useEffect(() => {
-    model.setConnectorTestFeedback(null);
-  }, [model, selectedConnectorId]);
   const loadProviderCatalog = useCallback(async () => {
     const providers = await sdkListProviderCatalog();
     setProviderCatalog(Array.isArray(providers) ? providers : []);
-    clearPageErrorByLabel(PROVIDER_CATALOG_ERROR_LABEL);
-  }, [clearPageErrorByLabel, PROVIDER_CATALOG_ERROR_LABEL]);
+  }, []);
   const vendorOptions = useMemo(() => {
     const visibleVendors = new Set<ApiVendor>();
     for (const entry of managedProviderCatalog) {
@@ -150,16 +133,13 @@ export function CloudPage({ model, state }: CloudPageProps) {
       const drafts = prev.connectors.filter((c) => c.isDraft);
       return replaceConnectorsInState(prev, [...connectors, ...drafts]);
     });
-    clearPageErrorByLabel(CONNECTORS_LOAD_ERROR_LABEL);
-  }, [clearPageErrorByLabel, updateState, CONNECTORS_LOAD_ERROR_LABEL]);
+  }, [updateState]);
   const connectorLoadCallbacksRef = useRef({
-    clearPageErrorByLabel,
     reportError,
     updateState,
   });
   const connectorListFromSdkRef = useRef(sdkListConnectors);
   connectorLoadCallbacksRef.current = {
-    clearPageErrorByLabel,
     reportError,
     updateState,
   };
@@ -174,7 +154,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
           const drafts = prev.connectors.filter((c) => c.isDraft);
           return replaceConnectorsInState(prev, [...connectors, ...drafts]);
         });
-        callbacks.clearPageErrorByLabel(CONNECTORS_LOAD_ERROR_LABEL);
       })
       .catch((error) => {
         if (!cancelled) {
@@ -486,14 +465,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
           </button>
         </div>
       </div>
-      {model.connectorTestFeedback ? (
-        <InlineFeedback
-          feedback={model.connectorTestFeedback}
-          className="w-full"
-          title={t('runtimeConfig.cloud.testResult', { defaultValue: 'Connector test' })}
-          onDismiss={() => model.setConnectorTestFeedback(null)}
-        />
-      ) : null}
       {/* Split panel: connector list (left) + config (right) */}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <CloudConnectorListPanel

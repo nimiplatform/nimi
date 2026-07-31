@@ -548,3 +548,81 @@ test('agent runtime provider projects Runtime image action artifact events as im
   assert.equal(artifact?.uri, 'data:image/png;base64,aW1hZ2U=');
   assert.deepEqual(runtimeThreadIds, ['runtime-thread-image']);
 });
+
+test('agent runtime provider keeps the Desktop stream alive during the Runtime turn handshake', async () => {
+  let resolveHandshake!: () => void;
+  const handshake = new Promise<void>((resolve) => {
+    resolveHandshake = resolve;
+  });
+  const baseStreamController = createTestStreamController();
+  let keepaliveStarted = 0;
+  let keepaliveStopped = 0;
+  const provider = createRuntimeAgentChatConversationProvider({
+    streamController: {
+      ...baseStreamController,
+      startKeepalive(chatId, intervalMs) {
+        keepaliveStarted += 1;
+        const stop = baseStreamController.startKeepalive(chatId, intervalMs);
+        return () => {
+          keepaliveStopped += 1;
+          stop();
+        };
+      },
+    },
+    t: testTranslate,
+    runtimeAdapter: {
+      streamAgentTurn: async () => {
+        await handshake;
+        return {
+          stream: (async function* stream() {
+            yield {
+              type: 'turn-failed' as const,
+              error: {
+                code: 'AI_OUTPUT_INVALID',
+                message: 'structured chat output must be APML beginning with <message>',
+              },
+            };
+          })(),
+        };
+      },
+    },
+  });
+  const iterator = provider.runTurn({
+    modeId: 'runtime-agent-chat-v1',
+    threadId: 'thread-handshake',
+    turnId: 'turn-handshake',
+    userMessage: {
+      id: 'user-handshake',
+      text: 'plain text response',
+    },
+    history: [],
+    metadata: {
+      ownerUserId: 'user-1',
+      runtimeSourceRef: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
+      conversationAnchorId: 'anchor-handshake',
+      runtimeThreadId: 'runtime-thread-handshake',
+      reasoningPreference: 'off',
+      textMaxOutputTokensRequested: null,
+    },
+  })[Symbol.asyncIterator]();
+
+  assert.equal((await iterator.next()).value?.type, 'turn-started');
+  const terminalPending = iterator.next();
+  await Promise.resolve();
+  assert.equal(keepaliveStarted, 1);
+  assert.equal(keepaliveStopped, 0);
+
+  resolveHandshake();
+  const terminal = await terminalPending;
+  assert.equal(terminal.value?.type, 'turn-failed');
+  if (terminal.value?.type === 'turn-failed') {
+    assert.equal(terminal.value.error.code, 'AI_OUTPUT_INVALID');
+    assert.equal(
+      terminal.value.error.message,
+      'structured chat output must be APML beginning with <message>',
+    );
+  }
+  assert.equal((await iterator.next()).done, true);
+  assert.equal(keepaliveStopped, 1);
+});

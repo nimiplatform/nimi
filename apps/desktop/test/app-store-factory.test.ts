@@ -374,6 +374,7 @@ function createCanonicalBindings(input: {
         loginMode: () => 'embedded',
         developerModeEnabled: () => false,
         viewportWidth: () => 1_280,
+        viewportHeight: () => 800,
         documentVisible: () => true,
         windowFocused: () => true,
         titlebarDragEnabled: () => false,

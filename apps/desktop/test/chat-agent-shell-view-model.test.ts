@@ -2,23 +2,34 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  resolveAgentCharacterProfilePreviewTarget,
   resolveAgentCanonicalMessages,
   resolveAgentSelectedTargetId,
   resolveAgentTargetSummaries,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-view-model.js';
 import {
   mergeAgentTargetWithPresentationProfile,
+  overlayAgentTargetWithLiveProfileContent,
 } from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 
+const sourceRef = {
+  kind: 'personaCharacter' as const,
+  id: 'persona-1',
+  worldId: 'world-1',
+  ownerAccountId: 'user-1',
+  sourceHash: 'a'.repeat(64),
+};
+
 function sampleTargets(): AgentLocalTargetSnapshot[] {
   return [{
     ownerUserId: 'user-1',
     runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
+    sourceRef,
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
@@ -82,6 +93,17 @@ test('agent shell view model resolves target summaries from agent targets and th
     handle: '@scout',
     avatarUrl: 'https://example.com/scout.png',
   }]);
+  assert.deepEqual(summaries[0]?.metadata?.sourceRef, sourceRef);
+});
+
+test('agent composer profile preview requires saved Character sourceRef and never uses localAgentRef as source id', () => {
+  assert.deepEqual(resolveAgentCharacterProfilePreviewTarget(sampleTargets()[0]), {
+    kind: 'character',
+    sourceRef,
+    handle: 'companion',
+    worldName: 'World One',
+  });
+  assert.equal(resolveAgentCharacterProfilePreviewTarget(sampleTargets()[1]), null);
 });
 
 test('agent shell view model prefers persisted thread snapshot avatar for target summaries', () => {
@@ -372,4 +394,18 @@ test('agent shell view model merges runtime presentation profile onto desktop ta
     avatarAutoplay: true,
     backgroundAssetRef: null,
   });
+});
+
+test('live Character avatar refreshes an existing thread snapshot without resetting thread data', () => {
+  const threadTarget = sampleTargets()[0]!;
+  const liveTarget = {
+    ...threadTarget,
+    avatarUrl: 'https://cdn.nimi.test/character/companion.png',
+  };
+
+  const merged = overlayAgentTargetWithLiveProfileContent(threadTarget, liveTarget);
+
+  assert.equal(merged?.avatarUrl, liveTarget.avatarUrl);
+  assert.equal(merged?.localAgentRef, threadTarget.localAgentRef);
+  assert.equal(merged?.runtimeSourceRef, threadTarget.runtimeSourceRef);
 });

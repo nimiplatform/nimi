@@ -1,4 +1,5 @@
 import type {
+  NimiRuntimeAgentConsumeEvent,
   NimiRuntimeAgentMessage,
   NimiRuntimeAgentSessionSnapshot,
   NimiRuntimeAgentTranscriptMessage,
@@ -26,7 +27,8 @@ function isTranscriptTextMessage(message: NimiRuntimeAgentMessage | null | undef
 }
 
 function isCommittedMediaProjectionMessage(message: AgentLocalMessageRecord): boolean {
-  return message.status !== 'pending'
+  return message.status === 'complete'
+    && !message.error
     && (
       message.kind === 'image'
       || message.kind === 'voice'
@@ -37,7 +39,34 @@ function isCommittedMediaProjectionMessage(message: AgentLocalMessageRecord): bo
 }
 
 function isCommittedTextProjectionMessage(message: AgentLocalMessageRecord): boolean {
-  return message.status !== 'pending' && !isCommittedMediaProjectionMessage(message);
+  return message.status === 'complete'
+    && !message.error
+    && !isCommittedMediaProjectionMessage(message);
+}
+
+function locallyRetainedProjectionMessages(
+  bundle: AgentLocalThreadBundle | null | undefined,
+): AgentLocalMessageRecord[] {
+  if (!bundle) {
+    return [];
+  }
+  const messageById = new Map(bundle.messages.map((message) => [message.id, message]));
+  const retainedIds = new Set(
+    bundle.messages
+      .filter((message) => message.status !== 'complete' || Boolean(message.error))
+      .map((message) => message.id),
+  );
+  const pendingParentIds = [...retainedIds];
+  while (pendingParentIds.length > 0) {
+    const messageId = pendingParentIds.pop();
+    const parentMessageId = messageId ? normalizeText(messageById.get(messageId)?.parentMessageId) : '';
+    if (!parentMessageId || retainedIds.has(parentMessageId) || !messageById.has(parentMessageId)) {
+      continue;
+    }
+    retainedIds.add(parentMessageId);
+    pendingParentIds.push(parentMessageId);
+  }
+  return bundle.messages.filter((message) => retainedIds.has(message.id));
 }
 
 function parseIsoTimestampMs(value: unknown): number | null {
@@ -190,17 +219,22 @@ function committedMediaProjectionMessages(
   return bundle.messages.filter(isCommittedMediaProjectionMessage);
 }
 
-function mergeHydratedTextAndCommittedMediaMessages(input: {
+function mergeHydratedTextAndLocalProjectionMessages(input: {
   hydratedMessages: AgentLocalMessageRecord[];
   committedMediaMessages: AgentLocalMessageRecord[];
+  locallyRetainedMessages: AgentLocalMessageRecord[];
 }): AgentLocalMessageRecord[] {
-  if (input.committedMediaMessages.length === 0) {
+  if (
+    input.committedMediaMessages.length === 0
+    && input.locallyRetainedMessages.length === 0
+  ) {
     return input.hydratedMessages;
   }
   const seenIds = new Set<string>();
   return [
     ...input.hydratedMessages,
     ...input.committedMediaMessages,
+    ...input.locallyRetainedMessages,
   ]
     .filter((message) => {
       if (seenIds.has(message.id)) {
@@ -218,6 +252,14 @@ function mergeHydratedTextAndCommittedMediaMessages(input: {
     .map((item) => item.message);
 }
 
+export function shouldRefreshAgentRuntimeSessionSnapshotForEvent(
+  event: Pick<NimiRuntimeAgentConsumeEvent, 'eventName'>,
+): boolean {
+  return event.eventName === 'runtime.agent.turn.completed'
+    || event.eventName === 'runtime.agent.turn.failed'
+    || event.eventName === 'runtime.agent.turn.interrupted';
+}
+
 export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
   thread: AgentLocalThreadSummary | AgentLocalThreadRecord;
   bundle: AgentLocalThreadBundle | null | undefined;
@@ -231,9 +273,6 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
     return null;
   }
   if (!transcriptHasRuntimeReplayEnvelope(transcript)) {
-    return null;
-  }
-  if (input.bundle?.messages.some((message) => message.status === 'pending')) {
     return null;
   }
   if (transcriptWouldDropCommittedAssistantText(transcript, input.bundle)) {
@@ -253,9 +292,10 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
     return null;
   }
 
-  const messages = mergeHydratedTextAndCommittedMediaMessages({
+  const messages = mergeHydratedTextAndLocalProjectionMessages({
     hydratedMessages,
     committedMediaMessages: committedMediaProjectionMessages(input.bundle),
+    locallyRetainedMessages: locallyRetainedProjectionMessages(input.bundle),
   });
   const lastMessage = messages[messages.length - 1] || null;
   const createdAtMs = 'createdAtMs' in input.thread && typeof input.thread.createdAtMs === 'number'

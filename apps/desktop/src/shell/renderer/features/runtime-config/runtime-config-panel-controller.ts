@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { RuntimePageIdV11 } from './runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from './runtime-config-storage-persist';
@@ -10,7 +10,7 @@ import { useRuntimeConfigPanelDerived } from './runtime-config-panel-derived';
 import { useRuntimeConfigPanelState } from './runtime-config-panel-state';
 import { useRuntimeConfigDaemonController } from './runtime-config-panel-controller-daemon';
 import { useRuntimeConfigInstallActions } from './runtime-config-panel-controller-install-actions';
-import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -25,8 +25,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const runtimeTabActive = activeTab === 'runtime';
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const offlineTier = useAppStore((state) => state.offlineTier);
-  const [pageFeedback, setPageFeedback] = useState<InlineFeedbackState | null>(null);
-  const [connectorTestFeedback, setConnectorTestFeedback] = useState<InlineFeedbackState | null>(null);
+  const setPageFeedback = emitFeedbackToast;
+  const setConnectorTestFeedback = emitFeedbackToast;
 
   const panelState = useRuntimeConfigPanelState();
   const derived = useRuntimeConfigPanelDerived({
@@ -101,8 +101,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     panelState.setDiscovering,
     panelState.setTestingConnector,
     panelState.updateState,
-    setConnectorTestFeedback,
-    setPageFeedback,
   ]);
 
   const commands = useMemo(
@@ -241,15 +239,12 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
     runtimeDaemonError: daemon.runtimeDaemonError,
     runtimeDaemonUpdatedAt: daemon.runtimeDaemonUpdatedAt,
-    pageFeedback,
-    connectorTestFeedback,
     localModelLifecycleById: installActions.localModelLifecycleById,
     localModelLifecycleErrorById: installActions.localModelLifecycleErrorById,
     setShowCloudApiKey: panelState.setShowCloudApiKey,
     setLocalModelQuery: panelState.setLocalModelQuery,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
     setPageFeedback,
-    setConnectorTestFeedback,
     onChangePage,
     updateState: panelState.updateState,
     discoverLocalModels: commands.discoverLocalModels,

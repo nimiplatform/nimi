@@ -33,7 +33,10 @@ import {
   resolveAgentChatRequestedMaxOutputTokens,
   } from '../src/shell/renderer/features/chat/chat-nimi-route-view.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
-import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from '../src/shell/renderer/features/chat/chat-agent-session-hydration.js';
+import {
+  hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
+  shouldRefreshAgentRuntimeSessionSnapshotForEvent,
+} from '../src/shell/renderer/features/chat/chat-agent-session-hydration.js';
 import {
   resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
@@ -555,6 +558,7 @@ export {
   resolveAgentChatRequestedMaxOutputTokens,
   resolveAgentTurnTotalTimeoutMs,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
+  shouldRefreshAgentRuntimeSessionSnapshotForEvent,
   resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
   buildAgentEffectiveCapabilityResolution,

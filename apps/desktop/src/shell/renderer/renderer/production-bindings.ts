@@ -190,6 +190,7 @@ export function createDesktopProductionBindings(
         loginMode: () => getShellFeatureFlags().mode === 'web' ? 'embedded' : 'desktop-browser',
         developerModeEnabled: isDeveloperModeEnabled,
         viewportWidth: () => window.innerWidth || document.documentElement.clientWidth,
+        viewportHeight: () => window.innerHeight || document.documentElement.clientHeight,
         documentVisible: () => document.visibilityState !== 'hidden',
         windowFocused: () => document.hasFocus(),
         titlebarDragEnabled: () => getShellFeatureFlags().enableTitlebarDrag,

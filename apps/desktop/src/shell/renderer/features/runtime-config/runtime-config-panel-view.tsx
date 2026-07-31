@@ -22,7 +22,6 @@ import { AdvancedPage } from './runtime-config-page-advanced';
 import { ProfileCatalogPage } from './runtime-config-page-profiles';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
-import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
 function RuntimeSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] ${className}`} />;
@@ -193,15 +192,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         </div>
 
         <ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden">
-          {model.pageFeedback ? (
-            <div className="mx-auto min-w-0 w-full max-w-5xl px-4 pt-3">
-              <InlineFeedback
-                feedback={model.pageFeedback}
-                title={t('runtimeConfig.panel.statusTitle', { defaultValue: 'Runtime status' })}
-                onDismiss={() => model.setPageFeedback(null)}
-              />
-            </div>
-          ) : null}
           {activePage === 'overview' && (
             <div data-testid={E2E_IDS.runtimePageRoot('overview')} className="min-w-0">
               <OverviewPage model={model} state={state} />

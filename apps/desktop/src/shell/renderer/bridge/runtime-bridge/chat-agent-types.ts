@@ -1,5 +1,8 @@
 import type { JsonObject } from './shared.js';
-import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiRuntimeAgentPresentationProfileProjection,
+  NimiRuntimeAgentSourceRef,
+} from '@nimiplatform/sdk/runtime';
 
 export type AgentLocalMessageRole = 'system' | 'user' | 'assistant';
 export type AgentLocalMessageStatus = 'pending' | 'complete' | 'error';
@@ -15,6 +18,7 @@ export type AgentLocalTargetSnapshot = {
   ownerUserId: string;
   runtimeSourceRef: string;
   localAgentRef: string;
+  sourceRef?: NimiRuntimeAgentSourceRef | null;
   displayName: string;
   handle: string;
   avatarUrl: string | null;

@@ -14,6 +14,7 @@ import { resolveAgentConversationHostView } from './chat-agent-shell-host-view';
 import { resolveAgentConversationHostSnapshot } from './chat-agent-shell-host-snapshot';
 import {
   resolveAgentCanonicalMessages,
+  resolveAgentCharacterProfilePreviewTarget,
   resolveAgentSelectedTargetId,
   resolveAgentTargetSummaries,
 } from './chat-agent-shell-view-model';
@@ -144,6 +145,10 @@ export function useAgentConversationPresentation(
       || input.activeTarget?.displayName
       || input.t('Chat.agentGenericIdentity', { defaultValue: 'Agent' }),
     [characterData.name, input.activeTarget?.displayName, input.t],
+  );
+  const characterProfilePreviewTarget = useMemo(
+    () => resolveAgentCharacterProfilePreviewTarget(input.activeTarget),
+    [input.activeTarget],
   );
   const canonicalMessages = useMemo(
     () => resolveAgentCanonicalMessages({
@@ -325,11 +330,7 @@ export function useAgentConversationPresentation(
                 name={resolvedAgentDisplayName}
                 imageUrl={characterData.avatarUrl || null}
                 fallbackLabel={characterData.avatarFallback || resolvedAgentDisplayName}
-                preview={input.activeTarget?.localAgentRef ? {
-                  targetId: input.activeTarget.localAgentRef,
-                  handle: characterData.handle || null,
-                  worldName: input.activeTarget.worldName || null,
-                } : null}
+                preview={characterProfilePreviewTarget}
               />
             )}
             avatarAction={{
@@ -396,5 +397,6 @@ export function useAgentConversationPresentation(
     surfaceState.composer,
     resolvedAgentDisplayName,
     input.onOpenAgentCenter,
+    characterProfilePreviewTarget,
   ]);
 }

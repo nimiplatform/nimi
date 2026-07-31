@@ -1,9 +1,6 @@
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import {
-  createNimiHostRuntimeAgentPresentationProfileSurface,
   createNimiRuntimeAgentConsumeClient,
-  normalizeNimiRuntimeAgentPresentationRevision,
-  normalizeNimiRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { asNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
@@ -68,52 +65,6 @@ export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSna
   };
 }
 
-async function syncRuntimePresentationProfile(input: {
-  target: AgentLocalTargetSnapshot;
-  sdk: DesktopRendererSdkPort;
-  context: {
-    appId: string;
-    subjectUserId: string;
-    ownerUserId: string;
-    runtimeSourceRef: string;
-    localAgentRef: string;
-  };
-}): Promise<void> {
-  const profile = input.target.presentationProfile;
-  const backendKind = profile
-    ? normalizeNimiRuntimeAgentPresentationBackendKind(profile.backendKind)
-    : null;
-  const avatarAssetRef = normalizeText(profile?.avatarAssetRef);
-  if (!profile || !backendKind || !avatarAssetRef) {
-    return;
-  }
-  const runtime = input.sdk.hostRuntimeAgent();
-  const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
-    getRuntime: () => runtime,
-    getSubjectUserId: () => input.context.subjectUserId,
-    withScopes: input.sdk.withRuntimeProtectedScopes,
-  });
-  // Protected desktop GetAgent forbids caller-built identity selectors: the
-  // Runtime injects the account principal and checks Agent ownership itself.
-  const current = await input.sdk.withRuntimeProtectedScopes(
-    ['runtime.agent.read'],
-    (callOptions) => runtime.agent.getAgent({
-      agentId: input.context.localAgentRef,
-    }, callOptions),
-  );
-  const expectedRevision = normalizeNimiRuntimeAgentPresentationRevision(
-    current.agent?.presentationProfileRevision,
-  );
-  if (expectedRevision === null) {
-    throw new Error('Runtime Agent presentation profile revision is unavailable.');
-  }
-  await surface.setPresentationProfile({
-    localAgentRef: input.context.localAgentRef,
-    ownerUserId: input.context.ownerUserId,
-    runtimeSourceRef: input.context.runtimeSourceRef,
-  }, profile, expectedRevision);
-}
-
 export async function ensureRuntimeAgentExists(
   target: AgentLocalTargetSnapshot,
   sdk: DesktopRendererSdkPort,
@@ -140,7 +91,6 @@ export async function ensureRuntimeAgentExists(
   if (returnedLocalAgentRef !== context.localAgentRef) {
     throw new Error('Runtime LocalAgent inventory did not return the selected opaque localAgentRef.');
   }
-  await syncRuntimePresentationProfile({ target, context, sdk });
 }
 
 export async function assertAgentSubmitSchedulingAllowed(input: {

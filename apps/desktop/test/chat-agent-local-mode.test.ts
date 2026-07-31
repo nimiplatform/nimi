@@ -3,6 +3,7 @@ import {
   test,
   ReasonCode,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
+  shouldRefreshAgentRuntimeSessionSnapshotForEvent,
 } from './chat-agent-local-mode-test-utils.js';
 import type { NimiRuntimeAgentMessage, NimiRuntimeAgentSessionSnapshot } from '@nimiplatform/sdk/runtime';
 
@@ -212,7 +213,7 @@ test('agent session hydration rejects missing replay envelope even when local bu
   assert.equal(hydrated, null);
 });
 
-test('agent session hydration preserves local pending projections over runtime snapshot replay', () => {
+test('agent session hydration rejects a snapshot without replay envelope even with a local pending projection', () => {
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
@@ -274,6 +275,199 @@ test('agent session hydration preserves local pending projections over runtime s
   });
 
   assert.equal(hydrated, null);
+});
+
+test('agent ambient Runtime terminal events request an authoritative session snapshot refresh', () => {
+  assert.equal(shouldRefreshAgentRuntimeSessionSnapshotForEvent({
+    eventName: 'runtime.agent.turn.accepted',
+  }), false);
+  assert.equal(shouldRefreshAgentRuntimeSessionSnapshotForEvent({
+    eventName: 'runtime.agent.turn.message_committed',
+  }), false);
+  assert.equal(shouldRefreshAgentRuntimeSessionSnapshotForEvent({
+    eventName: 'runtime.agent.turn.completed',
+  }), true);
+  assert.equal(shouldRefreshAgentRuntimeSessionSnapshotForEvent({
+    eventName: 'runtime.agent.turn.failed',
+  }), true);
+  assert.equal(shouldRefreshAgentRuntimeSessionSnapshotForEvent({
+    eventName: 'runtime.agent.turn.interrupted',
+  }), true);
+});
+
+test('agent session hydration merges external Runtime commits while retaining a local failed projection', () => {
+  const thread = {
+    id: 'thread-1',
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+    title: 'Agent One',
+    createdAtMs: 1000,
+    updatedAtMs: 3001,
+    lastMessageAtMs: 3001,
+    targetSnapshot: {
+      ownerUserId: 'user-1',
+      runtimeSourceRef: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
+      displayName: 'Agent One',
+      handle: 'agent-one',
+      avatarUrl: null,
+      presentationProfile: null,
+      worldId: null,
+      worldName: null,
+      bio: null,
+      ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
+    },
+  };
+  const localFailure = {
+    code: 'AI_OUTPUT_INVALID',
+    message: 'Runtime response was invalid.',
+  };
+  const hydrated = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
+    thread,
+    bundle: {
+      thread,
+      messages: [
+        {
+          id: 'runtime-user-1',
+          threadId: 'thread-1',
+          role: 'user',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'hello',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: null,
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 1001,
+          updatedAtMs: 1001,
+        },
+        {
+          id: 'runtime-assistant-1',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'hi there',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: 'runtime-user-1',
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 1002,
+          updatedAtMs: 1002,
+        },
+        {
+          id: 'local-failed-user',
+          threadId: 'thread-1',
+          role: 'user',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'local failed prompt',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: null,
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: {
+            transport: 'runtime.agent.turns',
+            conversationAnchorId: 'anchor-1',
+          },
+          createdAtMs: 3000,
+          updatedAtMs: 3000,
+        },
+        {
+          id: 'local-failed-assistant',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'pending',
+          kind: 'text',
+          contentText: '',
+          reasoningText: null,
+          error: localFailure,
+          traceId: null,
+          parentMessageId: 'local-failed-user',
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 3001,
+          updatedAtMs: 3001,
+        },
+      ],
+    },
+    conversationAnchorId: 'anchor-1',
+    snapshot: {
+      transcript: [
+        {
+          id: 'runtime-user-1',
+          role: 'user',
+          content: 'hello',
+          status: 'complete',
+          kind: 'text',
+          createdAt: '1970-01-01T00:00:01.001Z',
+          updatedAt: '1970-01-01T00:00:01.001Z',
+        },
+        {
+          id: 'runtime-assistant-1',
+          role: 'assistant',
+          content: 'hi there',
+          status: 'complete',
+          kind: 'text',
+          createdAt: '1970-01-01T00:00:01.002Z',
+          updatedAt: '1970-01-01T00:00:01.002Z',
+          parentMessageId: 'runtime-user-1',
+        },
+        {
+          id: 'runtime-external-user',
+          role: 'user',
+          content: 'external app prompt',
+          status: 'complete',
+          kind: 'text',
+          createdAt: '1970-01-01T00:00:04.000Z',
+          updatedAt: '1970-01-01T00:00:04.000Z',
+        },
+        {
+          id: 'runtime-external-assistant',
+          role: 'assistant',
+          content: 'external app answer',
+          status: 'complete',
+          kind: 'text',
+          createdAt: '1970-01-01T00:00:04.001Z',
+          updatedAt: '1970-01-01T00:00:04.001Z',
+          parentMessageId: 'runtime-external-user',
+        },
+      ],
+      transcriptMessageCount: 4,
+    },
+    nowMs: 5000,
+  });
+
+  assert.ok(hydrated);
+  assert.deepEqual(hydrated?.messages.map((message) => message.id), [
+    'runtime-user-1',
+    'runtime-assistant-1',
+    'local-failed-user',
+    'local-failed-assistant',
+    'runtime-external-user',
+    'runtime-external-assistant',
+  ]);
+  assert.deepEqual(hydrated?.messages.find((message) => message.id === 'local-failed-assistant')?.error, localFailure);
+  assert.equal(
+    hydrated?.messages.find((message) => message.id === 'runtime-external-assistant')?.contentText,
+    'external app answer',
+  );
 });
 
 test('agent session hydration does not drop committed assistant text when failed runtime snapshot regresses transcript', () => {

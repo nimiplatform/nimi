@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import type { ChatComposerVoiceState } from '@nimiplatform/kit/features/chat/types';
 import { useTranslation } from 'react-i18next';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { cn } from '@nimiplatform/kit/ui';
 import {
   appendPendingAttachment,
@@ -25,7 +26,7 @@ type AgentComposerAvatarAction = {
 };
 
 const ICON_HANDS_FREE = (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 12a8 8 0 0 1 16 0" />
     <path d="M4 12v5a2 2 0 0 0 2 2h2v-7H6a2 2 0 0 0-2 2Z" />
     <path d="M20 12v5a2 2 0 0 1-2 2h-2v-7h2a2 2 0 0 1 2 2Z" />
@@ -34,7 +35,7 @@ const ICON_HANDS_FREE = (
 );
 
 const ICON_THINKING = (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9.5 18.5c.7.9 1.6 1.5 2.5 1.5s1.8-.6 2.5-1.5" />
     <path d="M8 10.5a4 4 0 1 1 7.1 2.5c-.7.8-1.1 1.5-1.1 2.5H10c0-1-.4-1.7-1.1-2.5A4 4 0 0 1 8 10.5Z" />
     <path d="M10 4.5 9 3" />
@@ -45,7 +46,7 @@ const ICON_THINKING = (
 );
 
 const ICON_AVATAR = (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="8" r="4" />
     <path d="M6 21a6 6 0 0 1 12 0" />
     <path d="M8.5 8h.01" />
@@ -123,21 +124,21 @@ function AgentComposerToolbarControls(props: {
         className={cn(
           AGENT_COMPOSER_TOOL_BUTTON_CLASS,
           avatarState === 'running'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:border-emerald-300 hover:text-emerald-700'
+            ? 'border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-700'
             : avatarState === 'ready_stopped'
-              ? 'border-violet-200 bg-violet-50 text-violet-600 shadow-[0_4px_12px_rgba(139,92,246,0.12)] hover:border-violet-300 hover:text-violet-700'
+              ? 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700'
               : avatarState === 'pending'
-                ? 'cursor-wait border-amber-200 bg-amber-50 text-amber-600 opacity-70'
+                ? 'cursor-wait border-transparent bg-amber-50 text-amber-600 opacity-70'
                 : avatarState === 'unavailable'
                   ? 'cursor-not-allowed border-transparent bg-transparent text-slate-400 opacity-60'
-            : 'border-transparent bg-transparent text-slate-500 hover:border-violet-200 hover:bg-white hover:text-violet-700',
+            : 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700',
           'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-500',
         )}
       >
         {ICON_AVATAR}
       </button>
       </div>
-      <span aria-hidden="true" data-agent-composer-toolbar-divider="true" className="mx-0.5 h-5 w-px bg-slate-200/80" />
+      <span aria-hidden="true" data-agent-composer-toolbar-divider="true" className="mx-0.5 h-4 w-px bg-slate-200/80" />
       <div data-agent-composer-utility-group="true" className="flex items-center gap-1">
       {props.handsFreeState ? (
         <button
@@ -154,8 +155,8 @@ function AgentComposerToolbarControls(props: {
           className={cn(
             AGENT_COMPOSER_TOOL_BUTTON_CLASS,
             handsFreeActive
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-600 shadow-[0_4px_12px_rgba(16,185,129,0.12)]'
-              : 'border-transparent bg-transparent text-slate-500 hover:border-emerald-200 hover:bg-white hover:text-teal-700',
+              ? 'border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-700'
+              : 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700',
             'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-500',
           )}
         >
@@ -177,8 +178,8 @@ function AgentComposerToolbarControls(props: {
           className={cn(
             AGENT_COMPOSER_TOOL_BUTTON_CLASS,
             props.thinkingState === 'on'
-              ? 'border-sky-200 bg-sky-50 text-sky-600 shadow-[0_4px_12px_rgba(14,165,233,0.12)]'
-              : 'border-transparent bg-transparent text-slate-500 hover:border-sky-200 hover:bg-white hover:text-sky-700',
+              ? 'border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-700'
+              : 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700',
             'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-500',
           )}
         >
@@ -248,7 +249,6 @@ export function AgentCanonicalComposer(props: {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pickerResolverRef = useRef<((attachments: readonly PendingAttachment[] | null) => void) | null>(null);
-  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [composerText, setComposerText] = useState(props.initialText);
   const attachmentsRef = useRef<readonly PendingAttachment[]>(props.pendingAttachments);
 
@@ -293,7 +293,7 @@ export function AgentCanonicalComposer(props: {
       built = next;
     }
     if (hadUnsupported) {
-      setFeedback({
+      emitFeedbackToast({
         kind: 'warning',
         message: t('Chat.agentAttachmentImageOnly', {
           defaultValue: 'Agent chat currently supports image attachments only.',
@@ -376,11 +376,6 @@ export function AgentCanonicalComposer(props: {
 
   return (
     <div onPasteCapture={handlePasteCapture}>
-      {feedback ? (
-        <div className="pb-3">
-          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-        </div>
-      ) : null}
       <CanonicalComposer
         key={props.composerKey}
         adapter={{
@@ -409,7 +404,7 @@ export function AgentCanonicalComposer(props: {
         toolbarSlot={(
           <AgentComposerToolbarControls
             avatarAction={props.avatarAction}
-            onAvatarFeedback={(nextFeedback) => setFeedback(nextFeedback)}
+            onAvatarFeedback={emitFeedbackToast}
             thinkingState={props.thinkingState}
             onThinkingToggle={props.onThinkingToggle}
             handsFreeState={props.handsFreeState}

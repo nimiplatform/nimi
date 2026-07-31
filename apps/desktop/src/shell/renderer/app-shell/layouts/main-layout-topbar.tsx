@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode, RefObject } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { motion } from 'motion/react';
@@ -10,20 +10,11 @@ import {
 import { useDesktopInteractiveMotion } from '../../ui/motion/desktop-motion';
 import type { AuthStatus } from '../providers/app-store';
 
-const SHELL_TOPBAR_GHOST_ICON_CLASS =
-  'relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--nimi-fg-2)] transition-colors hover:text-[color:var(--nimi-fg-1)]';
-
 type MainLayoutTopBarProps = {
   authStatus: AuthStatus;
   titlebarTopInsetClass: string;
   titlebarLeftInsetClass: string;
   titlebarContent?: ReactNode;
-  unreadCount: number;
-  avatarNode: ReactNode;
-  settingsMenuOpen: boolean;
-  settingsTriggerRef: RefObject<HTMLDivElement | null>;
-  onOpenNotifications: () => void;
-  onToggleSettingsMenu: () => void;
   activeTab: string;
   onLogin: () => void;
   onOpenChat: () => void;
@@ -36,7 +27,6 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
   const { t } = useTranslation();
   const interactiveMotion = useDesktopInteractiveMotion();
   const anonymousMode = props.authStatus !== 'authenticated';
-  const unreadBadge = props.unreadCount > 99 ? '99+' : String(props.unreadCount);
 
   return (
     <div
@@ -118,50 +108,6 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
               {props.activeTab === 'home' ? (
                 <HomeCreatePostButton onClick={props.onCreatePostRequest} />
               ) : null}
-              <Tooltip content={t('Navigation.notifications')} className="h-9">
-                <motion.button
-                  type="button"
-                  data-titlebar-interactive="true"
-                  onClick={props.onOpenNotifications}
-                  whileHover={interactiveMotion.whileHover}
-                  whileTap={interactiveMotion.whileTap}
-                  transition={interactiveMotion.transition}
-                  className={SHELL_TOPBAR_GHOST_ICON_CLASS}
-                  aria-label={t('Common.openNotifications')}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                  </svg>
-                  {props.unreadCount > 0 ? (
-                    props.unreadCount > 1 ? (
-                      <span className="absolute -right-1 -top-1 flex min-w-[16px] items-center justify-center rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500 px-1 text-[10px] leading-[14px] text-white">
-                        {unreadBadge}
-                      </span>
-                    ) : (
-                      <span className="absolute right-1 top-1.5 h-2 w-2 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500" />
-                    )
-                  ) : null}
-                </motion.button>
-              </Tooltip>
-              <Tooltip content={t('Common.openAccountMenu')} placement="top" className="h-9">
-                <div ref={props.settingsTriggerRef} className="flex h-9 items-center">
-                  <motion.button
-                    type="button"
-                    data-testid="desktop-account-menu-trigger"
-                    data-titlebar-interactive="true"
-                    onClick={props.onToggleSettingsMenu}
-                    whileHover={interactiveMotion.whileHover}
-                    whileTap={interactiveMotion.whileTap}
-                    transition={interactiveMotion.transition}
-                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white p-0 text-[var(--nimi-text-primary)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-150 hover:scale-[1.03]"
-                    aria-label={t('Common.openAccountMenu')}
-                    aria-expanded={props.settingsMenuOpen}
-                  >
-                    {props.avatarNode}
-                  </motion.button>
-                </div>
-              </Tooltip>
             </>
           )}
         </div>

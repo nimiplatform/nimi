@@ -5,8 +5,8 @@ import type { AgentConversationAnchorBindingStore } from '../app-shell/providers
 import type {
   AppStoreState,
   RuntimeAccountAuthProjection,
-  StatusBanner,
 } from '../app-shell/providers/store-types.js';
+import type { InlineFeedbackState } from '../ui/feedback/inline-feedback.js';
 
 /**
  * Narrow mutation surface used by production bootstrap and Simulator
@@ -25,7 +25,7 @@ export interface DesktopRendererLifecyclePort {
   setAuthSession(user: Record<string, unknown> | null): void;
   clearAuthSession(): void;
   setRuntimeDefaults(defaults: NonNullable<AppStoreState['runtimeDefaults']>): void;
-  setStatusBanner(banner: StatusBanner | null): void;
+  setStatusBanner(banner: InlineFeedbackState | null): void;
   setBootstrapReady(ready: boolean): void;
   setBootstrapError(message: string | null): void;
   invalidateQueries(keys: readonly (readonly unknown[])[]): Promise<void>;

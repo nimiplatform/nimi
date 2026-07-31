@@ -120,26 +120,26 @@ async function* runRuntimeOwnedAgentTurn(input: {
     throw new Error('runtime.agent.turns does not yet admit Desktop-submitted image attachments');
   }
 
-  const runtimeResult = await input.runtimeAdapter.streamAgentTurn({
-    ownerUserId: input.metadata.ownerUserId,
-    runtimeSourceRef: input.metadata.runtimeSourceRef,
-    localAgentRef: input.metadata.localAgentRef,
-    conversationAnchorId: input.metadata.conversationAnchorId,
-    threadId: input.metadata.runtimeThreadId,
-    userMessageId: input.baseInput.userMessage.id,
-    userText: input.userText,
-    userAttachments: input.userAttachments,
-    maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
-    reasoningPreference: input.metadata.reasoningPreference,
-    signal: input.baseInput.signal,
-  });
-
   const stopKeepalive = input.streamController.startKeepalive(
     input.baseInput.threadId,
     RUNTIME_AGENT_WAIT_KEEPALIVE_MS,
   );
 
   try {
+    const runtimeResult = await input.runtimeAdapter.streamAgentTurn({
+      ownerUserId: input.metadata.ownerUserId,
+      runtimeSourceRef: input.metadata.runtimeSourceRef,
+      localAgentRef: input.metadata.localAgentRef,
+      conversationAnchorId: input.metadata.conversationAnchorId,
+      threadId: input.metadata.runtimeThreadId,
+      userMessageId: input.baseInput.userMessage.id,
+      userText: input.userText,
+      userAttachments: input.userAttachments,
+      maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
+      reasoningPreference: input.metadata.reasoningPreference,
+      signal: input.baseInput.signal,
+    });
+
     for await (const part of runtimeResult.stream) {
       switch (part.type) {
         case 'reasoning-delta': {

@@ -1,6 +1,6 @@
 import type {
-  StatusBanner,
-} from '../../app-shell/providers/app-store';
+  InlineFeedbackState,
+} from '../../ui/feedback/inline-feedback';
 import type {
   RuntimeConfigStateV11,
 } from './runtime-config-state-types';
@@ -26,7 +26,7 @@ export type DiscoverProviderCommandContext = {
   sdk: DesktopRendererSdkPort;
   discovering: boolean;
   updateState: RuntimeConfigStateUpdater;
-  setStatusBanner: (next: StatusBanner | null) => void;
+  setStatusBanner: (next: InlineFeedbackState | null) => void;
 };
 
 export type HealthProviderCommandContext = {
@@ -34,7 +34,7 @@ export type HealthProviderCommandContext = {
   sdk: DesktopRendererSdkPort;
   checkingHealth: boolean;
   updateState: RuntimeConfigStateUpdater;
-  setStatusBanner: (next: StatusBanner | null) => void;
+  setStatusBanner: (next: InlineFeedbackState | null) => void;
 };
 
 export type TestConnectorCommandContext = {
@@ -44,8 +44,8 @@ export type TestConnectorCommandContext = {
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
   testingConnector: boolean;
   updateState: RuntimeConfigStateUpdater;
-  setStatusBanner: (next: StatusBanner | null) => void;
-  setControlFeedback: (next: StatusBanner | null) => void;
+  setStatusBanner: (next: InlineFeedbackState | null) => void;
+  setControlFeedback: (next: InlineFeedbackState | null) => void;
 };
 
 export type RuntimeConfigPanelProviderCommandFactories = {

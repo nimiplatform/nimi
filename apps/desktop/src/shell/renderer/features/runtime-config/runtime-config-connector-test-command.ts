@@ -4,12 +4,12 @@ import {
   formatNimiRuntimeErrorDetail as formatRuntimeConfigErrorDetail,
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import type { StatusBanner } from '../../app-shell/providers/app-store';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { discoverConnectorModelsAndHealth } from './runtime-config-connector-discovery';
 import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service.js';
 
-function connectorTestFailureKind(status: string): StatusBanner['kind'] {
+function connectorTestFailureKind(status: string): InlineFeedbackState['kind'] {
   return status === 'degraded' ? 'warning' : 'error';
 }
 
@@ -19,7 +19,7 @@ export async function runSelectedConnectorTestCommand(input: {
   connectorSdk: RuntimeConfigConnectorSdkService;
   now: () => number;
   updateState: RuntimeConfigStateUpdater;
-  setControlFeedback: (banner: StatusBanner | null) => void;
+  setControlFeedback: (banner: InlineFeedbackState | null) => void;
 }) {
   const flowId = createRendererFlowId('runtime-config-connector');
   const {
@@ -83,7 +83,7 @@ export function markSelectedConnectorTestFailedCommand(input: {
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
   now: () => number;
   updateState: RuntimeConfigStateUpdater;
-  setControlFeedback: (banner: StatusBanner | null) => void;
+  setControlFeedback: (banner: InlineFeedbackState | null) => void;
   error: unknown;
 }) {
   const flowId = createRendererFlowId('runtime-config-connector');

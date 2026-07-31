@@ -61,6 +61,7 @@ export interface DesktopRendererProjectionPort {
   loginMode(): 'desktop-browser' | 'embedded';
   developerModeEnabled(): boolean;
   viewportWidth(): number;
+  viewportHeight(): number;
   documentVisible(): boolean;
   windowFocused(): boolean;
   titlebarDragEnabled(): boolean;

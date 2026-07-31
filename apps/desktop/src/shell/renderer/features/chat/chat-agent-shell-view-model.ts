@@ -8,6 +8,14 @@ import type {
   AgentLocalThreadSummary,
 } from '../../bridge/runtime-bridge/types';
 import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
+
+export type AgentCharacterProfilePreviewTarget = {
+  kind: 'character';
+  sourceRef: CharacterSourceRefV3;
+  handle: string | null;
+  worldName: string | null;
+};
 
 function toIsoStringFromMs(value: number): string | null {
   if (!Number.isFinite(value) || value <= 0) {
@@ -48,12 +56,30 @@ export function resolveAgentTargetSummaries(input: {
       status: 'active' as const,
       isOnline: null,
       metadata: {
+        ownerUserId: target.ownerUserId,
+        runtimeSourceRef: target.runtimeSourceRef,
+        localAgentRef: target.localAgentRef,
+        sourceRef: target.sourceRef ?? null,
         worldName: target.worldName,
         ownershipType: target.ownershipType,
         presentationProfile: resolvedTarget.presentationProfile,
       },
     };
   });
+}
+
+export function resolveAgentCharacterProfilePreviewTarget(
+  target: AgentLocalTargetSnapshot | null | undefined,
+): AgentCharacterProfilePreviewTarget | null {
+  if (!target?.sourceRef) {
+    return null;
+  }
+  return {
+    kind: 'character',
+    sourceRef: target.sourceRef,
+    handle: target.handle || null,
+    worldName: target.worldName || null,
+  };
 }
 
 export function resolveAgentCanonicalMessages(input: {

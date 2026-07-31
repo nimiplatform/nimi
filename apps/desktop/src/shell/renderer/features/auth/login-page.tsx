@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { NimiToaster } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 
@@ -51,6 +52,7 @@ export function LoginPage() {
         </div>
       ) : null}
       <WebAuthMenu mode={authMode} />
+      <NimiToaster />
     </div>
   );
 }

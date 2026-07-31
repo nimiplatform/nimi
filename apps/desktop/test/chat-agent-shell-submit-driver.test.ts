@@ -422,8 +422,8 @@ test('agent submit driver emits interrupted stream effect before interrupted hos
     state: createDriverState(),
     refreshedBundle: null,
     runtimeError: {
-      code: 'RUNTIME_CALL_FAILED',
-      message: 'runtime broke',
+      code: 'AI_OUTPUT_INVALID',
+      message: 'structured chat output must be APML beginning with <message>',
     },
     updatedAtMs: 160,
     streamSnapshot: streamState({
@@ -433,6 +433,10 @@ test('agent submit driver emits interrupted stream effect before interrupted hos
 
   assert.deepEqual(effectKinds(interrupted), ['stream', 'host']);
   assert.equal(interrupted.streamEffects[0]?.type, 'error');
+  assert.deepEqual(interrupted.hostPatchEffect?.bundle.messages.at(-1)?.error, {
+    code: 'AI_OUTPUT_INVALID',
+    message: 'structured chat output must be APML beginning with <message>',
+  });
   assert.equal(interrupted.hostPatchEffect?.footerViewState.displayState, 'interrupted');
 });
 

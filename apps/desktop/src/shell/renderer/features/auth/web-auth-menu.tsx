@@ -1,16 +1,15 @@
 import {
   useCallback,
   useMemo,
-  useState,
   type MouseEvent,
 } from 'react';
 import authLogoImage from '../../assets/logo.png';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { WebAuthMenuMode } from '@nimiplatform/kit/auth/shell';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
+import { nimiToast } from '@nimiplatform/kit/ui';
 import { toNimiRealmAuthUserRecord } from '@nimiplatform/sdk/realm';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
@@ -21,29 +20,26 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const authStatus = useAppStore((state) => state.auth.status);
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
-  const [authFeedback, setAuthFeedback] = useState<InlineFeedbackState | null>(null);
   const reportActionableReadiness = useCallback(() => {
     bindings.surfaceLifecycle.reportReadyCandidate();
   }, [bindings]);
   const normalizedAuthUser = toNimiRealmAuthUserRecord(authUser);
   const handleStatusBanner = (banner: { kind: string; message: string } | null) => {
     if (!banner) {
-      setAuthFeedback(null);
       return;
     }
-    if (banner.kind === 'error' || banner.kind === 'warning') {
-      setAuthFeedback(banner as InlineFeedbackState);
-      return;
-    }
-    setAuthFeedback(null);
+    const kind = String(banner.kind || 'info');
+    nimiToast.show({
+      tone: kind === 'error'
+        ? 'danger'
+        : kind === 'warning'
+          ? 'warning'
+          : kind === 'success'
+            ? 'success'
+            : 'info',
+      message: banner.message,
+    });
   };
-  const footer = (
-    <div className="space-y-3">
-      {authFeedback ? (
-        <InlineFeedback feedback={authFeedback} onDismiss={() => setAuthFeedback(null)} />
-      ) : null}
-    </div>
-  );
 
   const handleRootMouseDown = (event: MouseEvent<HTMLElement>) => {
     if (mode !== 'desktop-browser') {
@@ -82,7 +78,6 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
         setAuthSession: (user) => setAuthSession(user),
         setStatusBanner: handleStatusBanner,
       }}
-      footer={footer}
       onActionableReady={reportActionableReadiness}
       onEntryAction={() => {
         void bindings.app.commands.reportAuthEntryAction();

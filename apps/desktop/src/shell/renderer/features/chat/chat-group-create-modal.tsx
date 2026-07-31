@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
+import { toFriendContact } from '../relationship/relationship-model.js';
 
 type FriendEntry = {
   id: string;
@@ -28,22 +29,18 @@ export function ChatGroupCreateModal(props: {
     queryKey: ['group-create-friends'],
     queryFn: async () => {
       const snapshot = await realmSocialData.loadSocialSnapshot();
-      const friends: FriendEntry[] = [];
       const items = Array.isArray(snapshot.friends)
         ? snapshot.friends
         : [];
-      for (const item of items) {
-        if (!item || typeof item !== 'object') continue;
-        const f = item as Record<string, unknown>;
-        if (f.isSource === true) continue;
-        friends.push({
-          id: String(f.id || f.accountId || ''),
-          displayName: String(f.displayName || '').trim(),
-          handle: String(f.handle || '').trim(),
-          avatarUrl: f.avatarUrl ? String(f.avatarUrl) : null,
-        });
-      }
-      return friends;
+      return items.map((item): FriendEntry => {
+        const friend = toFriendContact(item);
+        return {
+          id: friend.id,
+          displayName: friend.displayName,
+          handle: friend.handle,
+          avatarUrl: friend.avatarUrl,
+        };
+      });
     },
     enabled: open,
     staleTime: 30_000,

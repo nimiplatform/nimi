@@ -137,7 +137,14 @@ test('A0 world navigation opens world detail instead of chat', () => {
   state.navigateToWorld(' world-alpha ');
 
   assert.equal(harness.getState().activeTab, 'world-detail');
-  assert.deepEqual(harness.getState().navigationBackStack, ['explore']);
+  assert.deepEqual(harness.getState().navigationBackStack, [{
+    activeTab: 'explore',
+    selectedProfileId: null,
+    selectedSourceRef: null,
+    selectedWorldId: null,
+    selectedWorldInitialSubpage: null,
+    selectedGiftTransactionId: null,
+  }]);
   assert.equal(harness.getState().runtimeFields.worldId, 'world-alpha');
 });
 
@@ -175,7 +182,7 @@ test('A0 nested world character detail back returns to the world list origin', (
   const state = harness.getState();
 
   state.setActiveTab('explore');
-  state.navigateToWorld('world-alpha');
+  state.navigateToWorld('world-alpha', { initialSubpage: 'people-archive' });
   harness.getState().navigateToSourceDetail({
     kind: 'worldCharacter',
     id: 'character-alpha',
@@ -188,11 +195,108 @@ test('A0 nested world character detail back returns to the world list origin', (
 
   assert.equal(harness.getState().activeTab, 'world-detail');
   assert.equal(harness.getState().selectedWorldId, 'world-alpha');
+  assert.equal(harness.getState().selectedWorldInitialSubpage, 'people-archive');
+  assert.equal(harness.getState().selectedSourceRef, null);
 
   harness.getState().navigateBack();
 
   assert.equal(harness.getState().activeTab, 'explore');
   assert.equal(harness.getState().selectedWorldId, null);
+});
+
+test('A0 nested world navigation back restores the exact source detail selection', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+  const sourceRef = {
+    kind: 'personaCharacter' as const,
+    id: 'persona-alpha',
+    worldId: 'world-alpha',
+    ownerAccountId: 'account-alpha',
+    sourceHash: 'b'.repeat(64),
+  };
+
+  state.setSelectedProfileId('human-profile-alpha');
+  state.navigateToSourceDetail(sourceRef);
+
+  assert.equal(harness.getState().activeTab, 'source-detail');
+  assert.equal(harness.getState().selectedProfileId, 'human-profile-alpha');
+  assert.deepEqual(harness.getState().selectedSourceRef, sourceRef);
+
+  harness.getState().navigateToWorld('world-alpha');
+
+  assert.equal(harness.getState().activeTab, 'world-detail');
+  assert.equal(harness.getState().selectedSourceRef, null);
+
+  harness.getState().navigateBack();
+
+  assert.equal(harness.getState().activeTab, 'source-detail');
+  assert.equal(harness.getState().selectedProfileId, 'human-profile-alpha');
+  assert.deepEqual(harness.getState().selectedSourceRef, sourceRef);
+  assert.equal(harness.getState().selectedWorldId, null);
+  assert.equal(harness.getState().selectedWorldInitialSubpage, null);
+  assert.equal(harness.getState().selectedGiftTransactionId, null);
+});
+
+test('A0 route snapshots restore human profile and gift inbox selections', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+
+  state.setActiveTab('explore');
+  state.navigateToProfile('human-profile-alpha');
+  harness.getState().navigateToGiftInbox('gift-alpha');
+  harness.getState().navigateToWorld('world-alpha', { initialSubpage: 'relationship-explorer' });
+
+  harness.getState().navigateBack();
+
+  assert.equal(harness.getState().activeTab, 'gift-inbox');
+  assert.equal(harness.getState().selectedProfileId, 'human-profile-alpha');
+  assert.equal(harness.getState().selectedGiftTransactionId, 'gift-alpha');
+  assert.equal(harness.getState().selectedWorldId, null);
+
+  harness.getState().navigateBack();
+
+  assert.equal(harness.getState().activeTab, 'gift-inbox');
+  assert.equal(harness.getState().selectedGiftTransactionId, null);
+
+  harness.getState().navigateBack();
+
+  assert.equal(harness.getState().activeTab, 'profile');
+  assert.equal(harness.getState().selectedProfileId, 'human-profile-alpha');
+  assert.equal(harness.getState().selectedSourceRef, null);
+});
+
+test('A0 human profile navigation rejects Runtime LocalAgent references', () => {
+  const harness = createUiSliceHarness();
+  harness.getState().setActiveTab('explore');
+
+  harness.getState().navigateToProfile('local-agent:account-a:agent-a');
+  harness.getState().navigateToProfile({
+    kind: 'personaCharacter',
+    id: 'persona-a',
+    worldId: 'world-a',
+    ownerAccountId: 'account-a',
+    sourceHash: 'a'.repeat(64),
+  } as never);
+
+  assert.equal(harness.getState().activeTab, 'explore');
+  assert.equal(harness.getState().selectedProfileId, null);
+  assert.deepEqual(harness.getState().navigationBackStack, []);
+});
+
+test('A0 Character detail navigation rejects incomplete source refs', () => {
+  const harness = createUiSliceHarness();
+  harness.getState().setActiveTab('explore');
+
+  harness.getState().navigateToSourceDetail({
+    kind: 'worldCharacter',
+    id: 'character-alpha',
+    worldId: 'world-alpha',
+    sourceHash: 'a'.repeat(64),
+  } as never);
+
+  assert.equal(harness.getState().activeTab, 'explore');
+  assert.equal(harness.getState().selectedSourceRef, null);
+  assert.deepEqual(harness.getState().navigationBackStack, []);
 });
 
 test('A0 AI setup is ready only when text.generate projection is supported', () => {

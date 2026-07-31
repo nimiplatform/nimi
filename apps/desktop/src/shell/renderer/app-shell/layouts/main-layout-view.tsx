@@ -6,8 +6,7 @@ import { loadNimiRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAppStore, type AppTab, type AuthStatus } from '../providers/app-store';
 import { EntityAvatar } from '../../components/entity-avatar.js';
-import { AmbientBackground, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
-import { StatusBanner } from '../../ui/feedback/status-banner';
+import { AmbientBackground, NimiToaster, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import {
   notificationQueryKeys,
   resolveNotificationIdentityRef,
@@ -73,7 +72,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   );
   const titlebarTopInsetClass = titlebarFrame.topInsetClass;
   const shellContentTopPaddingClass = titlebarFrame.contentTopPaddingClass;
-  const settingsMenuFallbackTop = titlebarFrame.settingsMenuFallbackTop;
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
@@ -104,8 +102,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   }, [bindings]);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
-    top: settingsMenuFallbackTop,
-    right: 16,
+    bottom: 16,
+    left: 84,
   });
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -141,19 +139,20 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   });
 
   const unreadCount = unreadCountQuery.data?.total ?? 0;
+  const unreadBadge = unreadCount > 99 ? '99+' : String(unreadCount);
 
   const updateSettingsMenuPosition = useCallback(() => {
     const triggerRect = settingsTriggerRef.current?.getBoundingClientRect();
     if (!triggerRect) {
-      setSettingsMenuPosition({ top: settingsMenuFallbackTop, right: 16 });
+      setSettingsMenuPosition({ bottom: 16, left: 84 });
       return;
     }
-    const viewportWidth = bindings.app.projection.viewportWidth();
+    const viewportHeight = bindings.app.projection.viewportHeight();
     setSettingsMenuPosition({
-      top: Math.max(12, Math.round(triggerRect.bottom + 12)),
-      right: Math.max(12, Math.round(viewportWidth - triggerRect.right)),
+      bottom: Math.max(12, Math.round(viewportHeight - triggerRect.bottom)),
+      left: Math.max(12, Math.round(triggerRect.right + 12)),
     });
-  }, [bindings, settingsMenuFallbackTop]);
+  }, [bindings]);
 
   useLayoutEffect(() => {
     if (settingsMenuOpen) {
@@ -262,10 +261,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     }
   };
 
-  const openNotificationsFromTitlebar = () => {
+  const openNotificationsFromSidebar = () => {
     props.onNav('notification');
   };
-  const toggleSettingsMenuFromTitlebar = () => {
+  const toggleSettingsMenuFromSidebar = () => {
     if (settingsMenuOpen) {
       setSettingsMenuOpen(false);
       return;
@@ -295,12 +294,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             onExploreSearchTextChange={setExploreSearchText}
           />
         )}
-        unreadCount={unreadCount}
-        avatarNode={avatarNode}
-        settingsMenuOpen={settingsMenuOpen}
-        settingsTriggerRef={settingsTriggerRef}
-        onOpenNotifications={openNotificationsFromTitlebar}
-        onToggleSettingsMenu={toggleSettingsMenuFromTitlebar}
         activeTab={props.activeTab}
         onLogin={props.onLogin}
         onOpenChat={() => props.onNav('chat')}
@@ -363,12 +356,68 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 </div>
               </ScrollArea>
             </nav>
+            <div className="flex shrink-0 flex-col items-center gap-2 pb-3">
+              <Tooltip
+                content={t('Navigation.notifications')}
+                placement="right"
+                contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
+              >
+                <motion.button
+                  type="button"
+                  onClick={openNotificationsFromSidebar}
+                  whileHover={interactiveMotion.whileHover}
+                  whileTap={interactiveMotion.whileTap}
+                  transition={interactiveMotion.transition}
+                  className={`relative flex h-10 w-10 items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                    props.activeTab === 'notification'
+                      ? 'text-[var(--nimi-action-primary-bg)]'
+                      : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
+                  }`}
+                  aria-label={t('Common.openNotifications')}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                  </svg>
+                  {unreadCount > 0 ? (
+                    unreadCount > 1 ? (
+                      <span className="absolute -right-1 -top-1 flex min-w-[16px] items-center justify-center rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500 px-1 text-[10px] leading-[14px] text-white">
+                        {unreadBadge}
+                      </span>
+                    ) : (
+                      <span className="absolute right-1 top-1.5 h-2 w-2 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500" />
+                    )
+                  ) : null}
+                </motion.button>
+              </Tooltip>
+              <Tooltip
+                content={t('Common.openAccountMenu')}
+                placement="right"
+                contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
+              >
+                <div ref={settingsTriggerRef} className="flex h-9 items-center">
+                  <motion.button
+                    type="button"
+                    data-testid="desktop-account-menu-trigger"
+                    onClick={toggleSettingsMenuFromSidebar}
+                    whileHover={interactiveMotion.whileHover}
+                    whileTap={interactiveMotion.whileTap}
+                    transition={interactiveMotion.transition}
+                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white p-0 text-[var(--nimi-text-primary)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-150 hover:scale-[1.03]"
+                    aria-label={t('Common.openAccountMenu')}
+                    aria-expanded={settingsMenuOpen}
+                  >
+                    {avatarNode}
+                  </motion.button>
+                </div>
+              </Tooltip>
+            </div>
           </aside>
         )}
 
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <OfflineShellStrip />
-          <StatusBanner />
+          <NimiToaster />
 
           <MainLayoutPanelStack
             activeTab={props.activeTab}

@@ -38,9 +38,9 @@ export function mergeAgentTargetWithPresentationProfile(
  * persisted thread target.
  *
  * A persisted thread `targetSnapshot` carries durable identity but does not
- * round-trip live source profile content (`presentationProfile`, `greeting`,
- * `builtinDocsContext`). The live runtime source target is the source of truth
- * for that content at chat time.
+ * round-trip live source profile content (`avatarUrl`,
+ * `presentationProfile`, `greeting`, `builtinDocsContext`). The live runtime
+ * source target is the source of truth for that content at chat time.
  */
 export function overlayAgentTargetWithLiveProfileContent(
   threadTarget: AgentLocalTargetSnapshot | null,
@@ -56,6 +56,7 @@ export function overlayAgentTargetWithLiveProfileContent(
     threadTarget,
     liveTarget.presentationProfile || null,
   ) as AgentLocalTargetSnapshot;
+  const nextAvatarUrl = liveTarget.avatarUrl || null;
   const nextGreeting = liveTarget.greeting ?? threadTarget.greeting ?? null;
   const nextDocs = liveTarget.builtinDocsContext ?? threadTarget.builtinDocsContext ?? null;
   const nextDefaultVoiceReference = liveTarget.defaultVoiceReference
@@ -68,7 +69,8 @@ export function overlayAgentTargetWithLiveProfileContent(
     ?? threadTarget.ownerSettingsProjection
     ?? null;
   if (
-    nextGreeting === (threadTarget.greeting ?? null)
+    nextAvatarUrl === (threadTarget.avatarUrl ?? null)
+    && nextGreeting === (threadTarget.greeting ?? null)
     && nextDocs === (threadTarget.builtinDocsContext ?? null)
     && nextDefaultVoiceReference === (threadTarget.defaultVoiceReference ?? null)
     && (nextAvatarAutoplay ?? false) === (threadTarget.avatarAutoplay ?? false)
@@ -82,6 +84,7 @@ export function overlayAgentTargetWithLiveProfileContent(
   }
   return {
     ...merged,
+    avatarUrl: nextAvatarUrl,
     greeting: nextGreeting,
     builtinDocsContext: nextDocs,
     defaultVoiceReference: nextDefaultVoiceReference,

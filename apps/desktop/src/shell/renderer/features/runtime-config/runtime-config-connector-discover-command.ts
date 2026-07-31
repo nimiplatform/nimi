@@ -1,5 +1,5 @@
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import type { StatusBanner } from '../../app-shell/providers/app-store';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import { discoverLocalModelsFromEndpoint } from './runtime-config-connector-discovery';
@@ -8,7 +8,7 @@ export async function runDiscoverLocalModelsCommand(input: {
   state: RuntimeConfigStateV11;
   sdk: DesktopRendererSdkPort;
   updateState: RuntimeConfigStateUpdater;
-  setStatusBanner: (banner: StatusBanner | null) => void;
+  setStatusBanner: (banner: InlineFeedbackState | null) => void;
 }) {
   const {
     endpoint,

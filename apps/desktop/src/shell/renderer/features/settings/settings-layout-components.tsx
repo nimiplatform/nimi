@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react';
+import { useEffect, type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import {
@@ -9,7 +9,8 @@ import {
   StatusBadge as KitStatusBadge,
   cn,
 } from '@nimiplatform/kit/ui';
-import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import {
   useDesktopCardMotion,
   useDesktopInteractiveMotion,
@@ -209,5 +210,9 @@ export function FormFeedback(props: {
   onDismiss?: () => void;
   className?: string;
 }) {
-  return <InlineFeedback {...props} />;
+  const { feedback } = props;
+  useEffect(() => {
+    emitFeedbackToast(feedback);
+  }, [feedback]);
+  return null;
 }

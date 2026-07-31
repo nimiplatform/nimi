@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -10,7 +10,10 @@ import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   bundleQueryKey,
 } from './chat-agent-shell-core';
-import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from './chat-agent-session-hydration';
+import {
+  hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
+  shouldRefreshAgentRuntimeSessionSnapshotForEvent,
+} from './chat-agent-session-hydration';
 import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
 
@@ -47,6 +50,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
   const visibleProjections = useAgentVisibleProjectionStore();
   const lastRuntimeSessionSnapshotRequestKeyRef = useRef<string | null>(null);
   const pendingRuntimeSessionSnapshotRequestKeyRef = useRef<string | null>(null);
+  const [ambientSnapshotRevision, setAmbientSnapshotRevision] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +84,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
       knownMessages.length,
       normalizeText(lastKnownMessage?.id),
       normalizeText(lastKnownMessage?.status),
+      ambientSnapshotRevision,
     ].join('|');
     if (
       pendingRuntimeSessionSnapshotRequestKeyRef.current === snapshotRequestKey
@@ -187,6 +192,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
     bindings,
     input.activeLocalAgentRef,
     input.activeConversationAnchorId,
+    ambientSnapshotRevision,
     input.authStatus,
     input.buildHostErrorDetails,
     input.bundleError,
@@ -195,13 +201,88 @@ export function useAgentRuntimeSessionSnapshotHydration(
     input.selectedThreadRecord,
     input.submittingThreadId,
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const thread = input.selectedThreadRecord;
+    const localAgentRef = normalizeText(input.activeLocalAgentRef || thread?.localAgentRef);
+    const conversationAnchorId = normalizeText(input.activeConversationAnchorId);
+    if (
+      input.authStatus !== 'authenticated'
+      || !thread
+      || !localAgentRef
+      || !conversationAnchorId
+      || input.isBundleLoading
+      || Boolean(input.bundleError)
+      || input.submittingThreadId === thread.id
+    ) {
+      return () => {
+        cancelled = true;
+        controller.abort();
+      };
+    }
+
+    const runtimeAgent = createDesktopRuntimeAgentSessionSnapshotClient(bindings.sdk);
+    void (async () => {
+      const events = await runtimeAgent.turns.subscribe({
+        localAgentRef,
+        ownerUserId: thread.ownerUserId,
+        runtimeSourceRef: thread.runtimeSourceRef,
+        conversationAnchorId,
+        includeAgentEvents: false,
+      }, { signal: controller.signal });
+      for await (const event of events) {
+        if (cancelled) {
+          return;
+        }
+        if (!shouldRefreshAgentRuntimeSessionSnapshotForEvent(event)) {
+          continue;
+        }
+        setAmbientSnapshotRevision((revision) => revision + 1);
+      }
+    })().catch((error) => {
+      if (cancelled || controller.signal.aborted) {
+        return;
+      }
+      logRendererEvent({
+        level: 'warn',
+        area: 'agent-chat-shell',
+        message: 'action:host-error',
+        details: input.buildHostErrorDetails(error, 'subscribe-runtime-agent-session-projection', {
+          threadId: thread.id,
+          conversationAnchorId,
+          localAgentRef,
+        }),
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [
+    bindings,
+    input.activeLocalAgentRef,
+    input.activeConversationAnchorId,
+    input.authStatus,
+    input.buildHostErrorDetails,
+    input.bundleError,
+    input.isBundleLoading,
+    input.selectedThreadRecord,
+    input.submittingThreadId,
+  ]);
 }
 
 function createDesktopRuntimeAgentSessionSnapshotClient(
   sdk: ReturnType<typeof useDesktopRendererBindings>['sdk'],
 ) {
+  const accountProduct = sdk.accountProduct();
   return createNimiRuntimeAgentConsumeClient({
-    runtime: { agents: sdk.accountProduct().agents },
+    runtime: {
+      agents: accountProduct.agents,
+      appMessages: accountProduct.appMessages,
+    },
     runtimeAppId: sdk.appId(),
   });
 }

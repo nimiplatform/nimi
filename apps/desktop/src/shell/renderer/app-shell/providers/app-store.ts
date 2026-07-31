@@ -15,7 +15,6 @@ export type {
   AuthStatus,
   RuntimeAccountAuthProjection,
   RuntimeFieldMap,
-  StatusBanner,
   StatusKind,
 } from './store-types.js';
 
