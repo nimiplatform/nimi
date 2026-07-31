@@ -44,6 +44,7 @@ export function createTesterRunTargetSummary(input: {
   runtime: TesterRuntimeInspection | null;
   config: NimiAIConfig | null;
   localModels?: readonly TesterRunTargetLocalModel[];
+  standaloneTauriAvailable?: boolean;
 }): TesterRunTargetSummary {
   const { capability, runtime, config } = input;
   const section = CAPABILITY_TO_SECTION[capability.id];
@@ -67,13 +68,16 @@ export function createTesterRunTargetSummary(input: {
   };
 
   if (capability.execution === 'standalone-tauri') {
+    const canDispatch = input.standaloneTauriAvailable === true;
     return {
       ...base,
       status: 'tauri-only',
       source: 'local-fixture',
       modelLabel: 'Local fixture',
-      detail: 'This lane opens the standalone Tauri viewer and does not use Runtime model routing.',
-      canDispatch: true,
+      detail: canDispatch
+        ? 'This lane opens the standalone Tauri viewer and does not use Runtime model routing.'
+        : 'This lane requires the standalone Tauri shell; the current shell cannot open its viewer.',
+      canDispatch,
     };
   }
   if (capability.execution === 'typed-unavailable') {

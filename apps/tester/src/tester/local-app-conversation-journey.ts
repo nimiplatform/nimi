@@ -7,7 +7,6 @@ import type {
 export type TesterConversationPort = {
   readonly open: (input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
-    readonly disposition: 'create-or-resume';
   }) => Promise<{ readonly conversationAnchorId: string }>;
   readonly send: (input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
@@ -43,7 +42,6 @@ export async function runTesterConversationJourney(input: {
 }): Promise<TesterConversationJourneyResult> {
   const opened = await input.conversation.open({
     agentHandle: input.agentHandle,
-    disposition: 'create-or-resume',
   });
   const scope = {
     agentHandle: input.agentHandle,
@@ -105,13 +103,17 @@ async function waitForTerminalTurn(input: {
     if (event.messageType === 'runtime.agent.turn.failed') {
       throw terminalFailure(
         stringValue(detail, 'message') || 'Runtime Agent turn failed.',
-        event.reasonCode || 'runtime-agent-turn-failed',
+        stringValue(detail, 'reason_code', 'reasonCode')
+          || event.reasonCode
+          || 'runtime-agent-turn-failed',
       );
     }
     if (event.messageType === 'runtime.agent.turn.interrupted') {
       throw terminalFailure(
         'Runtime Agent turn was interrupted before completion.',
-        event.reasonCode || 'runtime-agent-turn-interrupted',
+        stringValue(detail, 'reason', 'terminal_reason', 'terminalReason')
+          || event.reasonCode
+          || 'runtime-agent-turn-interrupted',
       );
     }
     if (event.messageType !== 'runtime.agent.turn.completed') continue;

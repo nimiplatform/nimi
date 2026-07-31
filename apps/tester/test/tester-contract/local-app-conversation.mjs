@@ -58,6 +58,7 @@ test('agents.interact journey uses one current Agent handle as the operation tar
     snapshot: { messages: [] },
   });
   assert.deepEqual(calls.map(([operation]) => operation), ['open', 'subscribe', 'send', 'snapshot', 'cancel']);
+  assert.deepEqual(calls[0], ['open', { agentHandle: handle }]);
   for (const [, input] of calls.slice(0, 4)) assert.equal(input.agentHandle, handle);
   assert.equal(JSON.stringify(calls).includes('localAgentId'), false);
 });
@@ -109,4 +110,60 @@ test('journey fails closed when the matching turn stream ends without terminal e
     },
   }), (error) => error.reasonCode === 'tester-conversation-terminal-missing');
   assert.equal(cancelled, 1);
+});
+
+test('journey preserves the Runtime-owned terminal failure detail over the generic event envelope reason', async () => {
+  const { runTesterConversationJourney } = await importBehaviorModule('tester/local-app-conversation-journey.js');
+  const terminalCases = [
+    {
+      messageType: 'runtime.agent.turn.failed',
+      detail: { reason_code: 'AI_OUTPUT_INVALID', message: 'structured output invalid' },
+      expectedReasonCode: 'AI_OUTPUT_INVALID',
+      expectedMessage: 'structured output invalid',
+    },
+    {
+      messageType: 'runtime.agent.turn.interrupted',
+      detail: { reason: 'timeout' },
+      expectedReasonCode: 'timeout',
+      expectedMessage: 'Runtime Agent turn was interrupted before completion.',
+    },
+  ];
+  for (const terminal of terminalCases) {
+    await assert.rejects(() => runTesterConversationJourney({
+      agentHandle: 'opaque-current-agent',
+      requestId: 'request-terminal-detail',
+      text: 'hello',
+      conversation: {
+        async open() { return { conversationAnchorId: 'anchor-terminal-detail' }; },
+        async subscribe() {
+          return {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                messageType: 'runtime.agent.turn.accepted',
+                reasonCode: 'action-executed',
+                payload: {
+                  turn_id: 'turn-terminal-detail',
+                  detail: { request_id: 'request-terminal-detail' },
+                },
+              };
+              yield {
+                messageType: terminal.messageType,
+                reasonCode: 'action-executed',
+                payload: {
+                  turn_id: 'turn-terminal-detail',
+                  detail: terminal.detail,
+                },
+              };
+            },
+            async cancel() {},
+          };
+        },
+        async send() { return { messageId: 'message-terminal-detail' }; },
+        async snapshot() { return {}; },
+      },
+    }), (error) => (
+      error.reasonCode === terminal.expectedReasonCode
+      && error.message === terminal.expectedMessage
+    ));
+  }
 });

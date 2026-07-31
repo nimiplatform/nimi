@@ -32,6 +32,16 @@ export function isExpectedReservedPermissionError(error: unknown): boolean {
   return hasExpectedReasonCode(error, EXPECTED_RESERVED_REASON_CODES);
 }
 
+export function canVerifyRevokedConversation(input: {
+  readonly posture: string | undefined;
+  readonly lastHandle: string | null;
+  readonly lastAnchor: string | null;
+}): boolean {
+  return input.posture === 'prompt'
+    && Boolean(input.lastHandle)
+    && Boolean(input.lastAnchor);
+}
+
 function hasExpectedReasonCode(error: unknown, expected: readonly string[]): boolean {
   if (!error || typeof error !== 'object') return false;
   const reasonCode = nonEmptyText((error as { readonly reasonCode?: unknown }).reasonCode);

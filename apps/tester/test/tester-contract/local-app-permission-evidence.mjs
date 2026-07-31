@@ -36,3 +36,22 @@ test('reserved evidence accepts only the SDK not-admitted contract error', async
   ), false);
   assert.equal(isExpectedReservedPermissionError(new Error('SDK_PERMISSION_NOT_ADMITTED')), false);
 });
+
+test('revoke verification becomes available only after a granted journey is retained and posture returns to prompt', async () => {
+  const { canVerifyRevokedConversation } = await importBehaviorModule(
+    'tester/local-app-permission-evidence.js',
+  );
+  const retainedJourney = {
+    lastHandle: 'local-agent-handle',
+    lastAnchor: 'conversation-anchor',
+  };
+
+  assert.equal(canVerifyRevokedConversation({ posture: 'prompt', ...retainedJourney }), true);
+  assert.equal(canVerifyRevokedConversation({ posture: 'granted', ...retainedJourney }), false);
+  assert.equal(canVerifyRevokedConversation({ posture: 'denied', ...retainedJourney }), false);
+  assert.equal(canVerifyRevokedConversation({
+    posture: 'prompt',
+    lastHandle: null,
+    lastAnchor: retainedJourney.lastAnchor,
+  }), false);
+});

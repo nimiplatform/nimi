@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
+import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
@@ -98,9 +99,16 @@ export function useTesterRunTargetSummary(
   }, [rendererHost, scopeRef, service]);
 
   const [localModels, setLocalModels] = useState<TesterRunTargetLocalModel[]>([]);
+  const standaloneTauriAvailable = hasTauriRuntime();
   const target = useMemo(
-    () => createTesterRunTargetSummary({ capability, runtime, config, localModels }),
-    [capability, config, localModels, runtime],
+    () => createTesterRunTargetSummary({
+      capability,
+      runtime,
+      config,
+      localModels,
+      standaloneTauriAvailable,
+    }),
+    [capability, config, localModels, runtime, standaloneTauriAvailable],
   );
   const hydrationKey = useMemo(
     () => targetRefHydrationKey(target.bindingCapabilityId, config),

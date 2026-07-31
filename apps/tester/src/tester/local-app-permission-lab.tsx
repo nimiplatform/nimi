@@ -4,6 +4,7 @@ import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui'
 import type { NimiLocalAppAgent, NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import { useTesterRendererHost } from '../renderer/context.js';
 import {
+  canVerifyRevokedConversation,
   isExpectedReservedPermissionError,
   isExpectedRevokedPermissionError,
   normalizeTesterBoundaryError,
@@ -168,6 +169,11 @@ export function TesterLocalAppPermissionLab() {
 
   const status = useMemo(() => permissionPresentation(permission?.posture), [permission?.posture]);
   const busy = busyAction !== null;
+  const canVerifyRevoked = canVerifyRevokedConversation({
+    posture: permission?.posture,
+    lastHandle,
+    lastAnchor,
+  });
 
   return (
     <div className="grid min-w-0 gap-4 pb-4" data-testid="tester-local-app-permission-lab">
@@ -203,7 +209,7 @@ export function TesterLocalAppPermissionLab() {
           <Button type="button" tone="secondary" leadingIcon={<RefreshCw size={16} />} loading={busyAction === 'refresh'} disabled={busy && busyAction !== 'refresh'} onClick={() => void refresh()}>刷新</Button>
           <Button type="button" tone="secondary" leadingIcon={<KeyRound size={16} />} loading={busyAction === 'request'} disabled={busy || !sessionBound || permission?.posture !== 'prompt'} onClick={() => void requestPermission()}>请求账户级 Agent 授权</Button>
           <Button type="button" tone="primary" leadingIcon={<MessageCircle size={16} />} loading={busyAction === 'conversation'} disabled={busy || permission?.posture !== 'granted' || !journeyAgentHandle} onClick={() => void runConversation()}>运行会话四操作</Button>
-          <Button type="button" tone="secondary" loading={busyAction === 'revoke'} disabled={busy || permission?.posture !== 'denied' || !lastHandle || !lastAnchor} onClick={() => void verifyRevokedDenial()}>验证撤销后拒绝</Button>
+          <Button type="button" tone="secondary" loading={busyAction === 'revoke'} disabled={busy || !canVerifyRevoked} onClick={() => void verifyRevokedDenial()}>验证撤销后拒绝</Button>
           <Button type="button" tone="secondary" loading={busyAction === 'reserved'} disabled={busy} onClick={() => void probeReservedPermission()}>探针其它 reserved 权限</Button>
           <Button type="button" tone="secondary" leadingIcon={<CheckCircle2 size={16} />} loading={busyAction === 'storage'} disabled={busy || !sessionBound} onClick={() => void runStorageRoundTrip()}>验证私有存储</Button>
         </div>

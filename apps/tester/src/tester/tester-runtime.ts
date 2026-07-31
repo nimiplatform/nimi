@@ -73,7 +73,7 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
   return {
     status: 'connected',
     mode: projection.mode,
-    detail: 'The protected local-app identity session is bound and Runtime is connected. This zero-permission manifest admits app-private JSON storage only; account, Realm, Agent, AI, lifecycle, realtime, and media capabilities are not admitted.',
+    detail: 'The protected local-app identity session is bound and Runtime is connected. This manifest admits agents.interact plus app-private JSON storage; Account, Realm, generic AI, lifecycle, realtime, media, and all other reserved capabilities are not admitted.',
     healthJson: compactJson({
       sessionState: projection.localAppSession.state,
       sessionBound: projection.localAppSession.sessionBound,
@@ -91,6 +91,6 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
   return capabilityUnavailable(
     capability,
     'sdk-method-unavailable',
-    'This local-app carrier admits only session posture, public permission posture/request, and app-private JSON storage. Generic AI and media execution remain unavailable until a complete product permission is admitted.',
+    'This app manifest admits agents.interact conversation operations only; it does not declare agents.configure, and the carrier exposes no generic AI or media execution permission. This capability remains unavailable by contract.',
   );
 }

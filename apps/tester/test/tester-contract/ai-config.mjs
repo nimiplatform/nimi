@@ -80,6 +80,36 @@ test('tester separates a connected protected session from an unadmitted capabili
   assert.doesNotMatch(admission.detail, /Runtime unavailable/i);
 });
 
+test('tester dispatches the standalone World Tour only from a Tauri shell', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const capability = {
+    id: 'world.generate',
+    label: 'World Tour',
+    group: 'world',
+    summary: '',
+    surface: '',
+    execution: 'standalone-tauri',
+  };
+
+  const electronTarget = createTesterRunTargetSummary({
+    capability,
+    runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
+    config: null,
+    standaloneTauriAvailable: false,
+  });
+  assert.equal(electronTarget.canDispatch, false);
+  assert.match(electronTarget.detail, /requires the standalone Tauri shell/u);
+
+  const tauriTarget = createTesterRunTargetSummary({
+    capability,
+    runtime: { status: 'connected', mode: 'tauri-local-app', detail: 'connected' },
+    config: null,
+    standaloneTauriAvailable: true,
+  });
+  assert.equal(tauriTarget.canDispatch, true);
+  assert.match(tauriTarget.detail, /opens the standalone Tauri viewer/u);
+});
+
 test('tester treats modeled simulation as dispatchable without claiming Runtime readiness', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const { statusForCapability } = await importBehaviorModule('tester/workbench/section-ai-testing-admission.js');
