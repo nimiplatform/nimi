@@ -13,6 +13,8 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+const profileRuntimeMaterializationKeyPrefix = "profile_workflow:"
+
 func (s *Service) profileRuntimePrepareFactsForDescriptor(descriptor *profileRuntimeDescriptor) profileRuntimePrepareFacts {
 	if s == nil || descriptor == nil {
 		return profileRuntimePrepareFacts{}
@@ -188,14 +190,14 @@ func profileRuntimeMaterializationCacheKey(
 		return "", profileRuntimeDescriptorError("cache.identity_marshal_failed", err.Error())
 	}
 	sum := sha256.Sum256(raw)
-	return "profile_workflow:" + hex.EncodeToString(sum[:]), nil
+	return profileRuntimeMaterializationKeyPrefix + hex.EncodeToString(sum[:]), nil
 }
 
 func rejectProfileRuntimeForbiddenPayload(value any, path string) error {
 	switch typed := value.(type) {
 	case map[string]any:
 		for key, child := range typed {
-			if _, forbidden := profileRuntimeDescriptorForbiddenFields[key]; forbidden {
+			if profileRuntimeDescriptorFieldIsForbidden(key) {
 				return profileRuntimeDescriptorError("descriptor.forbidden_host_local_field", path+"."+key)
 			}
 			if err := rejectProfileRuntimeForbiddenPayload(child, path+"."+key); err != nil {

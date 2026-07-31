@@ -87,12 +87,13 @@ func managedImageMaterializationBindingsToLocalState(bindings []managedMediaProf
 			continue
 		}
 		out = append(out, localStateManagedImageMaterializationBindingState{
-			AssetID:          strings.TrimSpace(binding.AssetID),
-			LocalAssetID:     strings.TrimSpace(binding.LocalAssetID),
-			CompanionKind:    strings.TrimSpace(binding.CompanionKind),
-			EngineSlot:       strings.TrimSpace(binding.EngineSlot),
-			CompanionAssetID: strings.TrimSpace(binding.CompanionAssetID),
-			ParentAssetID:    strings.TrimSpace(binding.ParentAssetID),
+			AssetID:               strings.TrimSpace(binding.AssetID),
+			LocalAssetID:          strings.TrimSpace(binding.LocalAssetID),
+			CompanionKind:         strings.TrimSpace(binding.CompanionKind),
+			EngineSlot:            strings.TrimSpace(binding.EngineSlot),
+			CompanionAssetID:      strings.TrimSpace(binding.CompanionAssetID),
+			CompanionLocalAssetID: strings.TrimSpace(binding.CompanionLocalAssetID),
+			ParentAssetID:         strings.TrimSpace(binding.ParentAssetID),
 		})
 	}
 	return out
@@ -104,7 +105,10 @@ func restoreManagedImageProfileMaterialization(
 ) (string, string, []managedMediaProfileMaterializationBinding, bool) {
 	localAssetID := strings.TrimSpace(item.LocalAssetID)
 	materializationKey := strings.TrimSpace(item.MaterializationKey)
-	if localAssetID == "" || !item.MaterializationResolved || len(item.MaterializationBindings) == 0 {
+	if localAssetID == "" ||
+		!strings.HasPrefix(materializationKey, profileRuntimeMaterializationKeyPrefix) ||
+		!item.MaterializationResolved ||
+		len(item.MaterializationBindings) == 0 {
 		return "", "", nil, false
 	}
 	mainAsset := assets[localAssetID]
@@ -136,31 +140,27 @@ func restoreManagedImageProfileMaterialization(
 		if companionAssetID == "" {
 			continue
 		}
+		companionLocalAssetID := strings.TrimSpace(binding.CompanionLocalAssetID)
 		if strings.TrimSpace(binding.AssetID) != mainAssetID ||
 			strings.TrimSpace(binding.LocalAssetID) != localAssetID ||
 			strings.TrimSpace(binding.ParentAssetID) != mainAssetID ||
 			strings.TrimSpace(binding.CompanionKind) == "" ||
-			strings.TrimSpace(binding.EngineSlot) == "" {
+			strings.TrimSpace(binding.EngineSlot) == "" ||
+			companionLocalAssetID == "" {
 			return "", "", nil, false
 		}
-		if !localStateAssetIDAdmitted(assets, companionAssetID) {
+		companionAsset := assets[companionLocalAssetID]
+		if !localStateAssetAdmitted(companionAsset) ||
+			strings.TrimSpace(companionAsset.GetLocalAssetId()) != companionLocalAssetID ||
+			strings.TrimSpace(companionAsset.GetAssetId()) != companionAssetID {
+			return "", "", nil, false
+		}
+		companionKind, ok := parseLocalAssetKindToken(binding.CompanionKind)
+		if !ok || effectiveAssetKind(companionAsset.GetKind(), companionAsset.GetCapabilities()) != companionKind {
 			return "", "", nil, false
 		}
 	}
 	return localAssetID, materializationKey, bindings, true
-}
-
-func localStateAssetIDAdmitted(assets map[string]*runtimev1.LocalAssetRecord, assetID string) bool {
-	identity := strings.TrimSpace(assetID)
-	if identity == "" {
-		return false
-	}
-	for _, asset := range assets {
-		if strings.TrimSpace(asset.GetAssetId()) == identity && localStateAssetAdmitted(asset) {
-			return true
-		}
-	}
-	return false
 }
 
 func localStateAssetAdmitted(asset *runtimev1.LocalAssetRecord) bool {
@@ -186,12 +186,13 @@ func managedImageMaterializationBindingsFromLocalState(bindings []localStateMana
 			continue
 		}
 		out = append(out, managedMediaProfileMaterializationBinding{
-			AssetID:          strings.TrimSpace(binding.AssetID),
-			LocalAssetID:     strings.TrimSpace(binding.LocalAssetID),
-			CompanionKind:    strings.TrimSpace(binding.CompanionKind),
-			EngineSlot:       strings.TrimSpace(binding.EngineSlot),
-			CompanionAssetID: strings.TrimSpace(binding.CompanionAssetID),
-			ParentAssetID:    strings.TrimSpace(binding.ParentAssetID),
+			AssetID:               strings.TrimSpace(binding.AssetID),
+			LocalAssetID:          strings.TrimSpace(binding.LocalAssetID),
+			CompanionKind:         strings.TrimSpace(binding.CompanionKind),
+			EngineSlot:            strings.TrimSpace(binding.EngineSlot),
+			CompanionAssetID:      strings.TrimSpace(binding.CompanionAssetID),
+			CompanionLocalAssetID: strings.TrimSpace(binding.CompanionLocalAssetID),
+			ParentAssetID:         strings.TrimSpace(binding.ParentAssetID),
 		})
 	}
 	return out

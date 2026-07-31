@@ -1,11 +1,19 @@
 package localservice
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path"
 	"sort"
 	"strings"
 
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -37,6 +45,174 @@ func verifiedAssetsFromLocalCatalog(local *catalog.LocalProviderCatalog) ([]*run
 		return descriptors[i].GetTemplateId() < descriptors[j].GetTemplateId()
 	})
 	return descriptors, nil
+}
+
+// ResolveCatalogModelIDForLocalAsset returns the canonical catalog model
+// identity only when the installed asset's complete sha256 fingerprint exactly
+// matches one reviewed local catalog variant. File imports keep their unique
+// installed and storage identities; this proof restores only the catalog
+// identity needed by catalog-owned execution metadata.
+func (s *Service) ResolveCatalogModelIDForLocalAsset(localAssetID string) (string, bool) {
+	if s == nil {
+		return "", false
+	}
+	s.mu.RLock()
+	asset := cloneLocalAsset(s.assets[strings.TrimSpace(localAssetID)])
+	verified := make([]*runtimev1.LocalVerifiedAssetDescriptor, 0, len(s.verified))
+	for _, descriptor := range s.verified {
+		verified = append(verified, cloneVerifiedAsset(descriptor))
+	}
+	s.mu.RUnlock()
+	if asset == nil {
+		return "", false
+	}
+	assetFingerprint := localAssetSHA256Fingerprint(asset.GetHashes())
+	if assetFingerprint == "" {
+		return "", false
+	}
+
+	resolvedModelID := ""
+	for _, descriptor := range verified {
+		if descriptor == nil ||
+			descriptor.GetKind() != asset.GetKind() ||
+			!strings.EqualFold(strings.TrimSpace(descriptor.GetEngine()), strings.TrimSpace(asset.GetEngine())) ||
+			localAssetSHA256Fingerprint(descriptor.GetHashes()) != assetFingerprint {
+			continue
+		}
+		candidate := strings.TrimSpace(descriptor.GetLogicalModelId())
+		if candidate == "" {
+			continue
+		}
+		if resolvedModelID != "" && resolvedModelID != candidate {
+			return "", false
+		}
+		resolvedModelID = candidate
+	}
+	return resolvedModelID, resolvedModelID != ""
+}
+
+// ResolveLocalTextContextMetadata returns exact Runtime-owned context metadata
+// for an imported llama GGUF that has no reviewed catalog variant. The
+// architecture-scoped GGUF context_length is only a training upper bound.
+// Runtime reads the currently leased worker's server-selected capacity and
+// verifies that worker is serving this exact model path; an explicit llama
+// ctx_size is an additional upper bound. Revision identity comes from the
+// installed entry's verified sha256. The caller owns the local-asset lease for
+// the whole context-composition and execution interval.
+func (s *Service) ResolveLocalTextContextMetadata(ctx context.Context, localAssetID string) (uint64, string, bool) {
+	if s == nil {
+		return 0, "", false
+	}
+	localAssetID = strings.TrimSpace(localAssetID)
+	s.mu.RLock()
+	asset := cloneLocalAsset(s.assets[localAssetID])
+	s.mu.RUnlock()
+	if asset == nil ||
+		asset.GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT ||
+		!strings.EqualFold(strings.TrimSpace(asset.GetEngine()), "llama") {
+		return 0, "", false
+	}
+	entryHash := expectedManagedModelEntryHash(asset)
+	if entryHash == "" {
+		return 0, "", false
+	}
+	entryPath, err := resolveManagedModelEntryAbsolutePath(resolveLocalModelsPath(s.localModelsPath), asset)
+	if err != nil {
+		return 0, "", false
+	}
+	summary, err := ggufmeta.InspectPath(entryPath)
+	if err != nil {
+		return 0, "", false
+	}
+	contextWindow, ok := ggufmeta.LLMContextLength(summary)
+	if !ok || contextWindow < 512 || contextWindow > 1048576 {
+		return 0, "", false
+	}
+	llamaConfig, err := engine.ExtractManagedLlamaEngineConfig(asset.GetEngineConfig())
+	if err != nil {
+		return 0, "", false
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if refreshed := s.modelByID(localAssetID); refreshed != nil {
+		asset = refreshed
+	}
+	executionWindow, ok := probeLlamaExecutionContextWindow(ctx, s.effectiveLocalModelEndpoint(asset), entryPath)
+	if !ok {
+		return 0, "", false
+	}
+	if executionWindow < contextWindow {
+		contextWindow = executionWindow
+	}
+	if llamaConfig.CtxSize > 0 && uint64(llamaConfig.CtxSize) < contextWindow {
+		contextWindow = uint64(llamaConfig.CtxSize)
+	}
+	return contextWindow, "sha256:" + entryHash, true
+}
+
+func probeLlamaExecutionContextWindow(ctx context.Context, endpoint string, expectedModelPath string) (uint64, bool) {
+	parsed, rootPath, err := parseCanonicalProbeBaseURL(endpoint)
+	if err != nil {
+		return 0, false
+	}
+	parsed.Path = path.Join(rootPath, "props")
+	probeCtx, cancel := context.WithTimeout(ctx, localHealthProbeTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(probeCtx, http.MethodGet, parsed.String(), nil)
+	if err != nil {
+		return 0, false
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, false
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return 0, false
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, localHealthProbeMaxResponseBodySize+1))
+	if err != nil || len(body) == 0 || len(body) > localHealthProbeMaxResponseBodySize {
+		return 0, false
+	}
+	var props struct {
+		DefaultGenerationSettings struct {
+			ContextWindow uint64 `json:"n_ctx"`
+		} `json:"default_generation_settings"`
+		ModelPath string `json:"model_path"`
+	}
+	if err := json.Unmarshal(body, &props); err != nil {
+		return 0, false
+	}
+	executionWindow := props.DefaultGenerationSettings.ContextWindow
+	if executionWindow < 512 || executionWindow > 1048576 {
+		return 0, false
+	}
+	expectedInfo, err := os.Stat(strings.TrimSpace(expectedModelPath))
+	if err != nil {
+		return 0, false
+	}
+	actualInfo, err := os.Stat(strings.TrimSpace(props.ModelPath))
+	if err != nil || !os.SameFile(expectedInfo, actualInfo) {
+		return 0, false
+	}
+	return executionWindow, true
+}
+
+func localAssetSHA256Fingerprint(hashes map[string]string) string {
+	if len(hashes) == 0 {
+		return ""
+	}
+	values := make([]string, 0, len(hashes))
+	for _, value := range hashes {
+		normalized := normalizeExpectedSHA256Hash(value)
+		if normalized == "" {
+			return ""
+		}
+		values = append(values, normalized)
+	}
+	sort.Strings(values)
+	return strings.Join(values, "\n")
 }
 
 // projectVerifiedAssetDescriptor builds one LocalVerifiedAssetDescriptor from a

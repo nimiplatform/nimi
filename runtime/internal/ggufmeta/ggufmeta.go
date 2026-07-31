@@ -39,6 +39,8 @@ type MetadataEntry struct {
 	Type           ValueType
 	StringValue    string
 	HasStringValue bool
+	Uint64Value    uint64
+	HasUint64Value bool
 }
 
 type Summary struct {
@@ -107,8 +109,17 @@ func Inspect(reader io.Reader) (Summary, error) {
 			}
 			entry.StringValue = value
 			entry.HasStringValue = true
-		} else if err := skipValue(reader, valueType); err != nil {
-			return Summary{}, fmt.Errorf("skip gguf metadata value %q: %w", key, err)
+		} else if isIntegerValueType(valueType) {
+			value, ok, err := readUint64MetadataValue(reader, valueType)
+			if err != nil {
+				return Summary{}, fmt.Errorf("read gguf metadata integer %q: %w", key, err)
+			}
+			entry.Uint64Value = value
+			entry.HasUint64Value = ok
+		} else {
+			if err := skipValue(reader, valueType); err != nil {
+				return Summary{}, fmt.Errorf("skip gguf metadata value %q: %w", key, err)
+			}
 		}
 		summary.Entries = append(summary.Entries, entry)
 	}
@@ -180,6 +191,19 @@ func (s Summary) StringValue(key string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func (s Summary) Uint64Value(key string) (uint64, bool) {
+	needle := strings.TrimSpace(key)
+	if needle == "" {
+		return 0, false
+	}
+	for _, entry := range s.Entries {
+		if entry.Key == needle && entry.HasUint64Value {
+			return entry.Uint64Value, true
+		}
+	}
+	return 0, false
 }
 
 func (s Summary) HasTensorNameSuffix(suffix string) bool {
@@ -263,6 +287,20 @@ func LLMDetectedArchitecture(summary Summary) string {
 	return strings.TrimSpace(value)
 }
 
+// LLMContextLength returns the model-authored context length for the detected
+// GGUF architecture. It never guesses an architecture or a default capacity.
+func LLMContextLength(summary Summary) (uint64, bool) {
+	architecture := LLMDetectedArchitecture(summary)
+	if architecture == "" {
+		return 0, false
+	}
+	value, ok := summary.Uint64Value(architecture + ".context_length")
+	if !ok || value == 0 {
+		return 0, false
+	}
+	return value, true
+}
+
 var stableDiffusionIdentityKeys = []string{
 	"general.architecture",
 	"general.name",
@@ -297,6 +335,57 @@ func readValueType(reader io.Reader) (ValueType, error) {
 		return 0, err
 	}
 	return ValueType(value), nil
+}
+
+func isIntegerValueType(valueType ValueType) bool {
+	switch valueType {
+	case ValueTypeUint8, ValueTypeInt8,
+		ValueTypeUint16, ValueTypeInt16,
+		ValueTypeUint32, ValueTypeInt32,
+		ValueTypeUint64, ValueTypeInt64:
+		return true
+	default:
+		return false
+	}
+}
+
+func readUint64MetadataValue(reader io.Reader, valueType ValueType) (uint64, bool, error) {
+	switch valueType {
+	case ValueTypeUint8:
+		var value uint8
+		err := binary.Read(reader, binary.LittleEndian, &value)
+		return uint64(value), true, err
+	case ValueTypeInt8:
+		var value int8
+		err := binary.Read(reader, binary.LittleEndian, &value)
+		return uint64(max(value, 0)), value >= 0, err
+	case ValueTypeUint16:
+		var value uint16
+		err := binary.Read(reader, binary.LittleEndian, &value)
+		return uint64(value), true, err
+	case ValueTypeInt16:
+		var value int16
+		err := binary.Read(reader, binary.LittleEndian, &value)
+		return uint64(max(value, 0)), value >= 0, err
+	case ValueTypeUint32:
+		var value uint32
+		err := binary.Read(reader, binary.LittleEndian, &value)
+		return uint64(value), true, err
+	case ValueTypeInt32:
+		var value int32
+		err := binary.Read(reader, binary.LittleEndian, &value)
+		return uint64(max(value, 0)), value >= 0, err
+	case ValueTypeUint64:
+		var value uint64
+		err := binary.Read(reader, binary.LittleEndian, &value)
+		return value, true, err
+	case ValueTypeInt64:
+		var value int64
+		err := binary.Read(reader, binary.LittleEndian, &value)
+		return uint64(max(value, 0)), value >= 0, err
+	default:
+		return 0, false, fmt.Errorf("value type %d is not an integer", valueType)
+	}
 }
 
 func readGGUFString(reader io.Reader) (string, error) {

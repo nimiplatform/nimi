@@ -297,6 +297,17 @@ func realmSourceProductCoverageStateV2(status *runtimev1.LocalAgentSourceContext
 	return runtimev1.AgentLocalSourceCoverageState_AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED
 }
 
+func TestLocalAgentSourceProfileCoverageSectionV2RejectsLegacyCharacterRoots(t *testing.T) {
+	for _, path := range []string{"placement", "biography", "personaStyle", "contentProfile"} {
+		if got := localAgentSourceProfileCoverageSectionV2(path); got != runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED {
+			t.Fatalf("legacy CharacterProfile coverage path %q projected as %s", path, got)
+		}
+	}
+	if got := localAgentSourceProfileCoverageSectionV2("narrative.milestones.0"); got != runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY {
+		t.Fatalf("current narrative coverage projected as %s", got)
+	}
+}
+
 // ProfileHashForTest keeps tests on the normalized typed profile rather than
 // reaching into transport or Raw JSON state.
 func (source localAgentRealmCharacterSourceV3) ProfileHashForTest() string {

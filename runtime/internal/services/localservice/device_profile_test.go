@@ -118,6 +118,36 @@ func TestProbePythonProfileSkipsWindowsStoreAlias(t *testing.T) {
 	}
 }
 
+func TestProbePythonProfileFailsClosedWhenCommandFails(t *testing.T) {
+	originalLookPath := localRuntimeLookPath
+	originalCommand := localRuntimeCommand
+	t.Cleanup(func() {
+		localRuntimeLookPath = originalLookPath
+		localRuntimeCommand = originalCommand
+	})
+
+	localRuntimeLookPath = func(name string) (string, error) {
+		if name == "python" {
+			return "python", nil
+		}
+		return "", exec.ErrNotFound
+	}
+	localRuntimeCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		if runtime.GOOS == "windows" {
+			return exec.CommandContext(ctx, "cmd", "/c", "exit", "1")
+		}
+		return exec.CommandContext(ctx, "sh", "-c", "exit 1")
+	}
+
+	profile := probePythonProfile()
+	if profile.GetAvailable() {
+		t.Fatalf("failed Python probe must not report available: %#v", profile)
+	}
+	if profile.GetVersion() != "" {
+		t.Fatalf("failed Python probe version = %q, want empty", profile.GetVersion())
+	}
+}
+
 // TestHostProfileOrCollectedSelfCollectsWhenRequestOmitsProfile is the
 // deterministic unit guard for the desktop first-run `blocked` defect: when a
 // resolver entry point receives a nil request host_profile (the desktop

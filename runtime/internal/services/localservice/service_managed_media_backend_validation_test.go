@@ -145,7 +145,7 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	}
 }
 
-func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntries(t *testing.T) {
+func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntriesOrRuntimeMaterialization(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
@@ -178,9 +178,9 @@ func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntries(t *testi
 		},
 	})
 	if err == nil {
-		t.Fatalf("expected fail-close when no profile entries are supplied")
+		t.Fatalf("expected fail-close when no profile entries or Runtime materialization are available")
 	}
-	assertGRPCReasonCode(t, err, "missing profile entries", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "missing image materialization", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testing.T) {
@@ -534,7 +534,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 	assertGRPCReasonCode(t, err, "duplicate engineSlot binding", runtimev1.ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT)
 }
 
-func TestResolveManagedMediaImageProfileRejectsIncompatibleVAEFamily(t *testing.T) {
+func TestResolveManagedMediaImageProfileRejectsFlux1VAEForZImage(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
@@ -563,7 +563,7 @@ func TestResolveManagedMediaImageProfileRejectsIncompatibleVAEFamily(t *testing.
 		Kind:          runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 		Engine:        "media",
 		Entry:         "ae.safetensors",
-		Family:        "flux2-vae",
+		Family:        "flux1-vae",
 		ArtifactRoles: []string{"vae"},
 		Status:        runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 		Source:        &runtimev1.LocalAssetSource{},
@@ -616,7 +616,7 @@ func TestResolveManagedMediaImageProfileRejectsIncompatibleVAEFamily(t *testing.
 		t.Fatal("expected incompatible z-image vae family to fail closed")
 	}
 	assertGRPCReasonCode(t, err, "incompatible vae family", runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
-	if !strings.Contains(err.Error(), "flux2-vae") || !strings.Contains(err.Error(), "z-image-turbo") {
+	if !strings.Contains(err.Error(), "flux1-vae") || !strings.Contains(err.Error(), "z-image-turbo") {
 		t.Fatalf("expected incompatible family detail, got %v", err)
 	}
 }

@@ -158,6 +158,11 @@ func TestM1LocalProductPostconditionMatrix(t *testing.T) {
 		if err != nil || repeated.GetTransfer().GetState() != localTransferStateCancelled || repeated.GetTransfer().GetReasonCode() != "LOCAL_TRANSFER_CANCELLED" {
 			t.Fatalf("idempotent cancel response=%+v err=%v", repeated, err)
 		}
+		failed := newTransfer(localTransferStateFailed)
+		response, err = svc.CancelLocalTransfer(context.Background(), &runtimev1.CancelLocalTransferRequest{InstallSessionId: failed.GetInstallSessionId()})
+		if err != nil || response.GetTransfer().GetState() != localTransferStateCancelled || response.GetTransfer().GetReasonCode() != "LOCAL_TRANSFER_CANCELLED" {
+			t.Fatalf("failed transfer cancel response=%+v err=%v", response, err)
+		}
 	})
 
 	t.Run("WatchLocalTransfers", func(t *testing.T) {

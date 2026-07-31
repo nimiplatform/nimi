@@ -418,7 +418,8 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 	}
 	control := s.transferControl(sessionID)
 	summary := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
-		if isTerminalTransferState(summary.GetState()) {
+		state := normalizeTransferState(summary.GetState())
+		if state == localTransferStateCompleted || state == localTransferStateCancelled {
 			return
 		}
 		summary.State = localTransferStateCancelled

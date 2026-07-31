@@ -31,6 +31,30 @@ func TestProfileRuntimeDescriptorRejectsForbiddenRuntimeEvidence(t *testing.T) {
 	}
 }
 
+func TestProfileRuntimeDescriptorRejectsDualAssetSourceObjects(t *testing.T) {
+	descriptor := testProfileRuntimeDescriptor()
+	descriptor.AssetBindings[0].Manual = &profileRuntimeDescriptorManualSource{
+		ExpectedName:            "model.gguf",
+		AssociationInstructions: "This second source object is forbidden.",
+	}
+	_, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err == nil || !strings.Contains(err.Error(), "descriptor.asset_binding.huggingface_required_field_missing") {
+		t.Fatalf("dual asset source objects must fail closed, got %v", err)
+	}
+}
+
+func TestProfileRuntimeDescriptorRejectsMissingNativeRuntimeConsumer(t *testing.T) {
+	descriptor := testProfileRuntimeDescriptor()
+	descriptor.CapabilitySlices[0].RuntimeConsumerID = ""
+	descriptor.CapabilitySlices[0].ConsumerID = "stable-diffusion.cpp.metal"
+	descriptor.CapabilitySlices[0].ConsumerScope = "stable-diffusion.cpp.metal"
+	descriptor.CapabilitySlices[0].Execution.ConsumerID = "stable-diffusion.cpp.metal"
+	_, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err == nil || !strings.Contains(err.Error(), "descriptor.runtime_consumer_missing") {
+		t.Fatalf("native image runtime consumer must be explicit, got %v", err)
+	}
+}
+
 func TestProfileRuntimeDescriptorRejectsDuplicateSliceIDsBeforeMaterialization(t *testing.T) {
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	setupRequiredSlice := descriptor.CapabilitySlices[0]
@@ -237,10 +261,7 @@ func TestProfileRuntimePrepareRequiresIdeogram4CapableNativePackageEvidence(t *t
 	facts.NativeBackendPackages[0].SelectedSourceRecordID = "src_windows_runtime_wrapper"
 	facts.NativeBackendPackages[0].SupportedModelFamilies = nil
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)
@@ -266,10 +287,7 @@ func TestProfileRuntimePrepareNormalizesZImageFamilyAliasesForNativePackageSuppo
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	facts.NativeBackendPackages[0].SupportedModelFamilies = []string{"z-image-turbo"}
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate z-image alias descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare z-image alias descriptor: %v", err)
@@ -287,10 +305,7 @@ func TestProfileRuntimePrepareRequiresZImageCapableNativePackageEvidence(t *test
 	facts := testProfileRuntimeReadyFacts(descriptor)
 	facts.NativeBackendPackages[0].SupportedModelFamilies = nil
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate z-image descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare z-image descriptor: %v", err)
@@ -386,10 +401,7 @@ func TestProfileRuntimePrepareSeparatesSourceReadinessFromAssetHealth(t *testing
 
 func TestProfileRuntimeMaterializationIdentityKeepsOrderedCompanionOccurrences(t *testing.T) {
 	first := testProfileRuntimeDescriptor()
-	validatedFirst, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, first))
-	if err != nil {
-		t.Fatalf("validate first descriptor: %v", err)
-	}
+	validatedFirst := validateProfileRuntimeDescriptorForInternalTest(t, first)
 	firstResult, err := prepareProfileRuntimeDescriptorWithFacts(validatedFirst, testProfileRuntimeReadyFacts(first))
 	if err != nil {
 		t.Fatalf("prepare first descriptor: %v", err)
@@ -398,10 +410,7 @@ func TestProfileRuntimeMaterializationIdentityKeepsOrderedCompanionOccurrences(t
 	second := testProfileRuntimeDescriptor()
 	second.CapabilitySlices[0].OrderedCompanionOccurrences[0].Order = 1
 	second.CapabilitySlices[0].OrderedCompanionOccurrences[1].Order = 0
-	validatedSecond, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, second))
-	if err != nil {
-		t.Fatalf("validate second descriptor: %v", err)
-	}
+	validatedSecond := validateProfileRuntimeDescriptorForInternalTest(t, second)
 	secondResult, err := prepareProfileRuntimeDescriptorWithFacts(validatedSecond, testProfileRuntimeReadyFacts(second))
 	if err != nil {
 		t.Fatalf("prepare second descriptor: %v", err)
@@ -551,10 +560,7 @@ func TestProfileRuntimeMaterializationIdentityRejectsMainAssetOnlyShortcut(t *te
 	first := testProfileRuntimeDescriptor()
 	first.CapabilitySlices[0].OrderedCompanionOccurrences = nil
 	first.AssetBindings = first.AssetBindings[:1]
-	validatedFirst, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, first))
-	if err != nil {
-		t.Fatalf("validate first descriptor: %v", err)
-	}
+	validatedFirst := validateProfileRuntimeDescriptorForInternalTest(t, first)
 	firstResult, err := prepareProfileRuntimeDescriptorWithFacts(validatedFirst, testProfileRuntimeReadyFacts(first))
 	if err != nil {
 		t.Fatalf("prepare first descriptor: %v", err)
@@ -562,10 +568,7 @@ func TestProfileRuntimeMaterializationIdentityRejectsMainAssetOnlyShortcut(t *te
 
 	second := first
 	second.CapabilitySlices[0].SliceID = "slice:image:other-workflow"
-	validatedSecond, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, second))
-	if err != nil {
-		t.Fatalf("validate second descriptor: %v", err)
-	}
+	validatedSecond := validateProfileRuntimeDescriptorForInternalTest(t, second)
 	secondResult, err := prepareProfileRuntimeDescriptorWithFacts(validatedSecond, testProfileRuntimeReadyFacts(second))
 	if err != nil {
 		t.Fatalf("prepare second descriptor: %v", err)
@@ -594,10 +597,7 @@ func TestProfileRuntimeDescriptorAllowsRepeatedAssetUseWithDistinctOccurrences(t
 	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[0].PreparedAssetID = "asset:shared-lora"
 	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[1].PreparedAssetID = "asset:shared-lora"
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, testProfileRuntimeReadyFacts(descriptor))
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)
@@ -610,10 +610,7 @@ func TestProfileRuntimeDescriptorAllowsRepeatedAssetUseWithDistinctOccurrences(t
 func TestProfileRuntimeDescriptorKeepsSameMainAssetDistinctAcrossCompanionWorkflows(t *testing.T) {
 	keyFor := func(t *testing.T, descriptor profileRuntimeDescriptor) string {
 		t.Helper()
-		validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-		if err != nil {
-			t.Fatalf("validate descriptor: %v", err)
-		}
+		validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 		results, err := prepareProfileRuntimeDescriptorWithFacts(validated, testProfileRuntimeReadyFacts(descriptor))
 		if err != nil {
 			t.Fatalf("prepare descriptor: %v", err)
@@ -760,30 +757,20 @@ func TestProfileRuntimeDescriptorOccurrenceIdentityDoesNotCollapseToSlotMap(t *t
 	}
 }
 
-func TestProfileRuntimeDescriptorPreparedAssetIDsDoNotNeedLocalPaths(t *testing.T) {
+func TestProfileRuntimeDescriptorRejectsPreparedAssetIDs(t *testing.T) {
 	descriptor := testProfileRuntimeDescriptor()
 	descriptor.AssetBindings[0].PreparedAssetID = "artifact_" + ulid.Make().String()
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
-	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, testProfileRuntimeReadyFacts(descriptor))
-	if err != nil {
-		t.Fatalf("prepare descriptor: %v", err)
-	}
-	if results[0].Outcome != profileRuntimePrepareReady {
-		t.Fatalf("prepared logical asset ids should not require local paths, got %+v", results[0])
+	_, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptorWithPreparedAssetsForTest(t, descriptor))
+	if err == nil || !strings.Contains(err.Error(), "descriptor.forbidden_host_local_field") {
+		t.Fatalf("portable prepared asset ids must fail closed, got %v", err)
 	}
 }
 
 func TestProfileRuntimeMaterializationIdentityInvalidatesOnAllWorkflowInputs(t *testing.T) {
 	keyFor := func(t *testing.T, descriptor profileRuntimeDescriptor) string {
 		t.Helper()
-		validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-		if err != nil {
-			t.Fatalf("validate descriptor: %v", err)
-		}
+		validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 		results, err := prepareProfileRuntimeDescriptorWithFacts(validated, testProfileRuntimeReadyFacts(descriptor))
 		if err != nil {
 			t.Fatalf("prepare descriptor: %v", err)

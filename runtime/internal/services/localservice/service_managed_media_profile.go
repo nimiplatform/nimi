@@ -43,12 +43,13 @@ type managedMediaProfileSlotResolution struct {
 }
 
 type managedMediaProfileMaterializationBinding struct {
-	AssetID          string
-	LocalAssetID     string
-	CompanionKind    string
-	EngineSlot       string
-	CompanionAssetID string
-	ParentAssetID    string
+	AssetID               string
+	LocalAssetID          string
+	CompanionKind         string
+	EngineSlot            string
+	CompanionAssetID      string
+	CompanionLocalAssetID string
+	ParentAssetID         string
 }
 
 func cloneManagedMediaProfileMaterializationBindings(bindings []managedMediaProfileMaterializationBinding) []managedMediaProfileMaterializationBinding {
@@ -380,9 +381,10 @@ func managedMediaOptionalBool(record map[string]any, key string) *bool {
 }
 
 // ResolveManagedMediaImageProfile renders a dynamic managed media profile for
-// the selected main model. Slot dependencies are resolved from profile entries
-// supplied via the profile_entries key in scenario extensions. The workflow is
-// hard-cut and does not fall back to the model's own entry path.
+// the selected main model. Slot dependencies are resolved from explicit
+// profile entries or from validated Runtime-private materialization bindings
+// fixed by descriptor prepare. The workflow is hard-cut and does not fall back
+// to the model's own entry path.
 func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedModelID string, scenarioExtensions map[string]any) (string, map[string]any, map[string]any, error) {
 	model := s.resolveManagedMediaImageModel(requestedModelID)
 	if model == nil {
@@ -397,10 +399,19 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 		return "", nil, nil, err
 	}
 
+	_, profileEntriesProvided := scenarioExtensions[managedMediaWorkflowProfileEntriesKey]
 	profileEntries := managedMediaProfileEntries(scenarioExtensions)
 	entryOverrides, err := managedMediaEntryOverrides(scenarioExtensions)
 	if err != nil {
 		return "", nil, nil, err
+	}
+	runtimeMaterializationKey := ""
+	if !profileEntriesProvided && len(profileEntries) == 0 && len(entryOverrides) == 0 {
+		if runtimeEntries, runtimeOverrides, materializationKey, ok := s.managedImageProfileEntriesFromRuntimeMaterialization(model); ok {
+			profileEntries = runtimeEntries
+			entryOverrides = runtimeOverrides
+			runtimeMaterializationKey = materializationKey
+		}
 	}
 
 	profile := managedMediaNormalizeImageProfile(model, mergeMaps(structToMap(model.GetEngineConfig()), profileOverrides))
@@ -435,21 +446,29 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 			}
 			companionKind, _ := localAssetKindToken(effectiveAssetKind(slotAsset.Asset.GetKind(), slotAsset.Asset.GetCapabilities()))
 			materializationBindings = append(materializationBindings, managedMediaProfileMaterializationBinding{
-				AssetID:          parentAssetID,
-				LocalAssetID:     strings.TrimSpace(mainAsset.GetLocalAssetId()),
-				CompanionKind:    companionKind,
-				EngineSlot:       strings.TrimSpace(slotAsset.EngineSlot),
-				CompanionAssetID: strings.TrimSpace(slotAsset.Asset.GetAssetId()),
-				ParentAssetID:    parentAssetID,
+				AssetID:               parentAssetID,
+				LocalAssetID:          strings.TrimSpace(mainAsset.GetLocalAssetId()),
+				CompanionKind:         companionKind,
+				EngineSlot:            strings.TrimSpace(slotAsset.EngineSlot),
+				CompanionAssetID:      strings.TrimSpace(slotAsset.Asset.GetAssetId()),
+				CompanionLocalAssetID: strings.TrimSpace(slotAsset.Asset.GetLocalAssetId()),
+				ParentAssetID:         parentAssetID,
 			})
 		}
 	}
 
-	// Fail-close: profile entries must supply the main model path for image workflow.
+	// Fail-close: explicit entries or prepared Runtime materialization must
+	// supply the main model path for the image workflow.
 	if modelPath == "" {
+		message := "image workflow requires profile entries with a main image model; no fallback to model entry path"
+		actionHint := "supply_profile_entries"
+		if !profileEntriesProvided {
+			message = "image workflow requires prepared Runtime materialization with a main image model; no fallback to model entry path"
+			actionHint = "prepare_image_materialization"
+		}
 		return "", nil, nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "image workflow requires profile entries with a main image model; no fallback to model entry path",
-			ActionHint: "supply_profile_entries",
+			Message:    message,
+			ActionHint: actionHint,
 		})
 	}
 
@@ -495,7 +514,11 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	sum := sha256.Sum256(canonical)
 	alias := "nimi-img-" + hex.EncodeToString(sum[:8])
 	profile["name"] = alias
-	s.cacheManagedMediaImageProfileResolution(model.GetLocalAssetId(), alias, profile, materializationResolved, materializationBindings)
+	cacheAlias := alias
+	if runtimeMaterializationKey != "" {
+		cacheAlias = runtimeMaterializationKey
+	}
+	s.cacheManagedMediaImageProfileResolution(model.GetLocalAssetId(), cacheAlias, profile, materializationResolved, materializationBindings)
 
 	return alias, profile, managedMediaForwardedExtensions(scenarioExtensions), nil
 }

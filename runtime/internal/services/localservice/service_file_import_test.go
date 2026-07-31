@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +22,42 @@ func managedModelQuarantineDirsForTest(t *testing.T, svc *Service) []string {
 		t.Fatalf("glob quarantine dirs: %v", err)
 	}
 	return entries
+}
+
+func TestComputeImportFileSHA256WithProgressReportsProcessedBytes(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "large-model.gguf")
+	const fileSize = int64(65*1024*1024 + 1)
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("create source file: %v", err)
+	}
+	if err := file.Truncate(fileSize); err != nil {
+		_ = file.Close()
+		t.Fatalf("truncate source file: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("close source file: %v", err)
+	}
+
+	progress := make([]int64, 0, 2)
+	hash, err := computeImportFileSHA256WithProgress(path, func(processedBytes int64) {
+		progress = append(progress, processedBytes)
+	})
+	if err != nil {
+		t.Fatalf("compute hash with progress: %v", err)
+	}
+	if hash == "" {
+		t.Fatal("expected source file hash")
+	}
+	if len(progress) < 2 {
+		t.Fatalf("progress samples = %v, want an intermediate and final sample", progress)
+	}
+	if got := progress[len(progress)-1]; got != fileSize {
+		t.Fatalf("final processed bytes = %d want %d", got, fileSize)
+	}
+	if got := progress[0]; got <= 0 || got >= fileSize {
+		t.Fatalf("first processed bytes = %d, want an intermediate value", got)
+	}
 }
 
 func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
@@ -76,6 +114,12 @@ func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
 	if transfer.GetLocalAssetId() != model.GetLocalAssetId() {
 		t.Fatalf("localModelId = %q want %q", transfer.GetLocalAssetId(), model.GetLocalAssetId())
 	}
+	if got, want := transfer.GetBytesReceived(), int64(len(validTestGGUF())); got != want {
+		t.Fatalf("bytesReceived = %d want source file size %d", got, want)
+	}
+	if got, want := transfer.GetBytesTotal(), int64(len(validTestGGUF())); got != want {
+		t.Fatalf("bytesTotal = %d want source file size %d", got, want)
+	}
 	if got := model.GetSource().GetRepo(); !strings.HasPrefix(got, "file://") || !strings.HasSuffix(got, "/asset.manifest.json") {
 		t.Fatalf("source repo = %q", got)
 	}
@@ -121,6 +165,141 @@ func TestImportLocalModelFileDuplicateNameCreatesDistinctInstances(t *testing.T)
 	}
 	if len(svc.assets) != 2 {
 		t.Fatalf("expected two stored assets, got %d", len(svc.assets))
+	}
+}
+
+func TestResolveCatalogModelIDForLocalAssetUsesExactCatalogHashProof(t *testing.T) {
+	svc := newTestService(t)
+	var catalogVariant *runtimev1.LocalVerifiedAssetDescriptor
+	for _, descriptor := range svc.verified {
+		if descriptor.GetLogicalModelId() == "gemma-4-26b-a4b-it-local" &&
+			descriptor.GetAssetId() == "local.chat.gemma-4-26b-a4b-it.q8-0" {
+			catalogVariant = descriptor
+			break
+		}
+	}
+	if catalogVariant == nil {
+		t.Fatal("expected Gemma 4 26B Q8 catalog variant")
+	}
+	var admittedHash string
+	for _, value := range catalogVariant.GetHashes() {
+		admittedHash = value
+	}
+	svc.assets["imported-gemma-q8"] = &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "imported-gemma-q8",
+		AssetId:        "local-import/gemma-4-26B-A4B-it-Q8_0/import-instance",
+		LogicalModelId: "nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:         "llama",
+		Hashes:         map[string]string{"renamed.gguf": admittedHash},
+	}
+
+	modelID, ok := svc.ResolveCatalogModelIDForLocalAsset("imported-gemma-q8")
+	if !ok || modelID != "gemma-4-26b-a4b-it-local" {
+		t.Fatalf("catalog identity = %q ok=%v", modelID, ok)
+	}
+
+	svc.assets["imported-gemma-q8"].Hashes["renamed.gguf"] = "sha256:" + strings.Repeat("0", 64)
+	if modelID, ok := svc.ResolveCatalogModelIDForLocalAsset("imported-gemma-q8"); ok || modelID != "" {
+		t.Fatalf("mismatched hash must not resolve catalog identity: model=%q ok=%v", modelID, ok)
+	}
+}
+
+func TestResolveLocalTextContextMetadataUsesGGUFContextAndEntryHash(t *testing.T) {
+	svc := newTestService(t)
+	var propsModelPath string
+	llama := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path != "/props" {
+			http.NotFound(w, req)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"default_generation_settings": map[string]any{"n_ctx": 144384},
+			"model_path":                  propsModelPath,
+		})
+	}))
+	defer llama.Close()
+	logicalModelID := "nimi/imported-gemma-context"
+	entry := "renamed-gemma.gguf"
+	modelDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
+	if err := os.MkdirAll(modelDir, 0o755); err != nil {
+		t.Fatalf("mkdir model dir: %v", err)
+	}
+	payload := validGemma4TestGGUF()
+	if err := os.WriteFile(filepath.Join(modelDir, entry), payload, 0o600); err != nil {
+		t.Fatalf("write GGUF: %v", err)
+	}
+	propsModelPath = filepath.Join(modelDir, entry)
+	if err := os.WriteFile(filepath.Join(modelDir, "asset.manifest.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	hash := validGemma4TestGGUFHash()
+	svc.assets["imported-gemma-context"] = &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "imported-gemma-context",
+		AssetId:        "local-import/gemma/import-instance",
+		LogicalModelId: logicalModelID,
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:         "llama",
+		Endpoint:       llama.URL + "/v1",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Entry:          entry,
+		Source: &runtimev1.LocalAssetSource{
+			Repo: "file://" + filepath.ToSlash(filepath.Join(modelDir, "asset.manifest.json")),
+		},
+		Hashes: map[string]string{entry: "sha256:" + hash},
+	}
+	svc.assetRuntimeModes["imported-gemma-context"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+
+	window, revision, ok := svc.ResolveLocalTextContextMetadata(context.Background(), "imported-gemma-context")
+	if !ok || window != 144384 || revision != "sha256:"+hash {
+		t.Fatalf("local context metadata = window:%d revision:%q ok=%v", window, revision, ok)
+	}
+}
+
+func TestProbeLlamaExecutionContextWindowFailsClosedOnInvalidProps(t *testing.T) {
+	expectedPath := filepath.Join(t.TempDir(), "expected.gguf")
+	otherPath := filepath.Join(t.TempDir(), "other.gguf")
+	if err := os.WriteFile(expectedPath, []byte("expected"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(otherPath, []byte("other"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name    string
+		payload map[string]any
+	}{
+		{
+			name: "missing context",
+			payload: map[string]any{
+				"default_generation_settings": map[string]any{},
+				"model_path":                  expectedPath,
+			},
+		},
+		{
+			name: "mismatched model path",
+			payload: map[string]any{
+				"default_generation_settings": map[string]any{"n_ctx": 144384},
+				"model_path":                  otherPath,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				if req.URL.Path != "/props" {
+					http.NotFound(w, req)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(test.payload)
+			}))
+			defer server.Close()
+			if window, ok := probeLlamaExecutionContextWindow(context.Background(), server.URL+"/v1", expectedPath); ok || window != 0 {
+				t.Fatalf("invalid props admitted window=%d ok=%v", window, ok)
+			}
+		})
 	}
 }
 
@@ -192,6 +371,20 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	}
 	if got := asset.GetSource().GetRepo(); got != "file://"+filepath.ToSlash(manifestPath) {
 		t.Fatalf("imported passive asset source repo mismatch: got=%q want=%q", got, "file://"+filepath.ToSlash(manifestPath))
+	}
+	transfers, err := svc.ListLocalTransfers(context.Background(), &runtimev1.ListLocalTransfersRequest{})
+	if err != nil {
+		t.Fatalf("ListLocalTransfers passive asset: %v", err)
+	}
+	if len(transfers.GetTransfers()) == 0 {
+		t.Fatal("expected passive asset import transfer session")
+	}
+	transfer := transfers.GetTransfers()[0]
+	if got, want := transfer.GetBytesReceived(), int64(len("vae-payload")); got != want {
+		t.Fatalf("passive bytesReceived = %d want source file size %d", got, want)
+	}
+	if got, want := transfer.GetBytesTotal(), int64(len("vae-payload")); got != want {
+		t.Fatalf("passive bytesTotal = %d want source file size %d", got, want)
 	}
 	resolvedPath, err := svc.ResolveManagedAssetPath(context.Background(), asset.GetLocalAssetId())
 	if err != nil {

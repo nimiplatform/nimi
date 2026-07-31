@@ -156,6 +156,24 @@ func TestSourceMaterializationProfileSchemaV3RejectsNonCanonicalNestedValues(t *
 		"unknown coverage enum": func(candidate map[string]any) {
 			candidate["profileCoverage"].(map[string]any)["aggregateStatus"] = "READY"
 		},
+		"legacy placement coverage section": func(candidate map[string]any) {
+			coverage := candidate["profileCoverage"].(map[string]any)
+			coverage["requiredSections"].([]any)[0].(map[string]any)["path"] = "placement"
+		},
+		"legacy persona style coverage section": func(candidate map[string]any) {
+			coverage := candidate["profileCoverage"].(map[string]any)
+			coverage["optionalSections"].([]any)[0].(map[string]any)["path"] = "personaStyle"
+		},
+		"legacy content profile coverage ref": func(candidate map[string]any) {
+			coverage := candidate["profileCoverage"].(map[string]any)
+			coverage["requiredRefs"].([]any)[0].(map[string]any)["path"] = "contentProfile.topics.0"
+		},
+		"legacy biography coverage diagnostic": func(candidate map[string]any) {
+			coverage := candidate["profileCoverage"].(map[string]any)
+			coverage["diagnostics"] = []any{map[string]any{
+				"path": "biography.summary", "code": "legacy-path", "message": "legacy path",
+			}}
+		},
 	}
 
 	for name, mutate := range cases {

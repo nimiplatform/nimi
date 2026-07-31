@@ -235,22 +235,14 @@ func profileRuntimeNativeImageBackendRequirement(slice profileRuntimeDescriptorC
 	if strings.TrimSpace(slice.Execution.Backend) != "stablediffusion-ggml" || strings.TrimSpace(slice.Capability) != "image.generate" {
 		return "", "", false
 	}
-	consumer := firstNonEmptyString(
-		slice.RuntimeConsumerID,
-		slice.ConsumerID,
-		slice.ConsumerScope,
-		slice.Execution.ConsumerID,
-		slice.Execution.ConsumerScope,
-	)
+	consumer := strings.TrimSpace(slice.RuntimeConsumerID)
 	if consumer == "" {
-		consumer = "stable-diffusion.cpp.metal"
-	}
-	switch consumer {
-	case "stable-diffusion.cpp.metal", "stable-diffusion.cpp.cuda":
-		return "stable-diffusion.cpp.package", consumer, true
-	default:
 		return "", "", false
 	}
+	if _, ok := nativeSDCPPPackageContractForConsumer(consumer); !ok {
+		return "", "", false
+	}
+	return "stable-diffusion.cpp.package", consumer, true
 }
 
 func nativeSDCPPPackageContractForConsumer(consumer string) (nativeSDCPPPackageContract, bool) {
@@ -272,13 +264,4 @@ func nativeSDCPPPackageContractForConsumer(consumer string) (nativeSDCPPPackageC
 	default:
 		return nativeSDCPPPackageContract{}, false
 	}
-}
-
-func firstNonEmptyString(values ...string) string {
-	for _, value := range values {
-		if trimmed := strings.TrimSpace(value); trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }

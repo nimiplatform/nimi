@@ -293,3 +293,18 @@ func TestLLMDetectedArchitectureMissing(t *testing.T) {
 		t.Fatalf("LLMDetectedArchitecture = %q, want empty", got)
 	}
 }
+
+func TestLLMContextLengthUsesDetectedArchitectureNumericMetadata(t *testing.T) {
+	payload := buildTestGGUF(t,
+		[]string{"token_embd.weight"},
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
+		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 262144},
+	)
+	summary, err := Inspect(bytes.NewReader(payload))
+	if err != nil {
+		t.Fatalf("Inspect: %v", err)
+	}
+	if got, ok := LLMContextLength(summary); !ok || got != 262144 {
+		t.Fatalf("LLMContextLength = %d ok=%v, want 262144", got, ok)
+	}
+}

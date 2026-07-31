@@ -127,12 +127,13 @@ type localStateManagedImageProfileMaterializationState struct {
 }
 
 type localStateManagedImageMaterializationBindingState struct {
-	AssetID          string `json:"assetId,omitempty"`
-	LocalAssetID     string `json:"localAssetId,omitempty"`
-	CompanionKind    string `json:"companionKind,omitempty"`
-	EngineSlot       string `json:"engineSlot,omitempty"`
-	CompanionAssetID string `json:"companionAssetId,omitempty"`
-	ParentAssetID    string `json:"parentAssetId,omitempty"`
+	AssetID               string `json:"assetId,omitempty"`
+	LocalAssetID          string `json:"localAssetId,omitempty"`
+	CompanionKind         string `json:"companionKind,omitempty"`
+	EngineSlot            string `json:"engineSlot,omitempty"`
+	CompanionAssetID      string `json:"companionAssetId,omitempty"`
+	CompanionLocalAssetID string `json:"companionLocalAssetId,omitempty"`
+	ParentAssetID         string `json:"parentAssetId,omitempty"`
 }
 
 func resolveLocalStatePath(configuredPath string) string {
@@ -348,9 +349,6 @@ func (s *Service) restoreState() error {
 			MaterializationResolved: true,
 			MaterializationBindings: bindings,
 		}
-	}
-	if s.healManagedImageProfileMaterializationsFromSelectedSourcesLocked() > 0 {
-		healedSnapshot = true
 	}
 	// Crash recovery: a job persisted at a non-terminal state across a daemon
 	// restart has no background goroutine driving it. Fail every orphan closed

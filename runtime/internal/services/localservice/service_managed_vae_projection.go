@@ -169,7 +169,10 @@ func managedImageVAEFamilyCompatibleWithImageFamily(imageFamily string, vaeFamil
 	normalizedVAEFamily := normalizeManagedImageVAEFamily(vaeFamily)
 	switch normalizedImageFamily {
 	case "z-image", "z-image-turbo":
-		return normalizedVAEFamily == "flux1-vae"
+		// The admitted Comfy-Org/z_image_turbo ae.safetensors has the
+		// 32-channel latent shape projected above as flux2-vae, which is also
+		// the shape consumed by the stable-diffusion.cpp Z-Image backend.
+		return normalizedVAEFamily == "flux2-vae"
 	case "ideogram4":
 		return normalizedVAEFamily == "flux2-vae"
 	default:

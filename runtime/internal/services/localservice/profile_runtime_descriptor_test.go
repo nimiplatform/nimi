@@ -21,12 +21,13 @@ func testProfileRuntimeDescriptor() profileRuntimeDescriptor {
 		RequirementRefs:     []string{"requirement:test"},
 		CapabilitySlices: []profileRuntimeDescriptorCapability{
 			{
-				SliceID:         "slice:image",
-				Capability:      "image.generate",
-				ExecutionMode:   "local",
-				ContractState:   "declared",
-				ReadinessPolicy: "required",
-				ParamsRef:       "params:image",
+				SliceID:           "slice:image",
+				Capability:        "image.generate",
+				ExecutionMode:     "local",
+				ContractState:     "declared",
+				ReadinessPolicy:   "required",
+				ParamsRef:         "params:image",
+				RuntimeConsumerID: "stable-diffusion.cpp.metal",
 				Execution: profileRuntimeDescriptorExecution{
 					Backend:       "stablediffusion-ggml",
 					BackendClass:  "native_binary",
@@ -189,11 +190,76 @@ func testProfileRuntimeImageCompanionDescriptor() profileRuntimeDescriptor {
 
 func marshalProfileRuntimeDescriptor(t *testing.T, descriptor profileRuntimeDescriptor) []byte {
 	t.Helper()
-	raw, err := json.Marshal(descriptor)
+	portable := descriptor
+	portable.AssetBindings = append([]profileRuntimeDescriptorAssetBinding(nil), descriptor.AssetBindings...)
+	for index := range portable.AssetBindings {
+		portable.AssetBindings[index].PreparedAssetID = ""
+	}
+	portable.CapabilitySlices = append([]profileRuntimeDescriptorCapability(nil), descriptor.CapabilitySlices...)
+	for index := range portable.CapabilitySlices {
+		portable.CapabilitySlices[index].OrderedCompanionOccurrences = append(
+			[]profileRuntimeDescriptorCompanionOccurrence(nil),
+			descriptor.CapabilitySlices[index].OrderedCompanionOccurrences...,
+		)
+		for occurrenceIndex := range portable.CapabilitySlices[index].OrderedCompanionOccurrences {
+			portable.CapabilitySlices[index].OrderedCompanionOccurrences[occurrenceIndex].PreparedAssetID = ""
+		}
+	}
+	raw, err := json.Marshal(portable)
 	if err != nil {
 		t.Fatalf("marshal descriptor: %v", err)
 	}
 	return raw
+}
+
+func marshalProfileRuntimeDescriptorWithPreparedAssetsForTest(t *testing.T, descriptor profileRuntimeDescriptor) []byte {
+	t.Helper()
+	raw, err := json.Marshal(descriptor)
+	if err != nil {
+		t.Fatalf("marshal descriptor with prepared assets: %v", err)
+	}
+	return raw
+}
+
+func applyProfileRuntimePreparedAssetsForInternalTest(
+	validated *profileRuntimeDescriptor,
+	source profileRuntimeDescriptor,
+) {
+	if validated == nil {
+		return
+	}
+	preparedByBindingID := map[string]string{}
+	for _, binding := range source.AssetBindings {
+		preparedByBindingID[strings.TrimSpace(binding.BindingID)] = strings.TrimSpace(binding.PreparedAssetID)
+	}
+	for index := range validated.AssetBindings {
+		validated.AssetBindings[index].PreparedAssetID = preparedByBindingID[strings.TrimSpace(validated.AssetBindings[index].BindingID)]
+	}
+	preparedByOccurrenceID := map[string]string{}
+	for _, slice := range source.CapabilitySlices {
+		for _, occurrence := range slice.OrderedCompanionOccurrences {
+			preparedByOccurrenceID[strings.TrimSpace(occurrence.OccurrenceID)] = strings.TrimSpace(occurrence.PreparedAssetID)
+		}
+	}
+	for sliceIndex := range validated.CapabilitySlices {
+		for occurrenceIndex := range validated.CapabilitySlices[sliceIndex].OrderedCompanionOccurrences {
+			occurrence := &validated.CapabilitySlices[sliceIndex].OrderedCompanionOccurrences[occurrenceIndex]
+			occurrence.PreparedAssetID = preparedByOccurrenceID[strings.TrimSpace(occurrence.OccurrenceID)]
+		}
+	}
+}
+
+func validateProfileRuntimeDescriptorForInternalTest(
+	t *testing.T,
+	descriptor profileRuntimeDescriptor,
+) *profileRuntimeDescriptor {
+	t.Helper()
+	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err != nil {
+		t.Fatalf("validate portable descriptor: %v", err)
+	}
+	applyProfileRuntimePreparedAssetsForInternalTest(validated, descriptor)
+	return validated
 }
 
 func testProfileRuntimeReadyFacts(descriptor profileRuntimeDescriptor) profileRuntimePrepareFacts {
@@ -286,34 +352,6 @@ func seedProfileRuntimeNativeImageBackendForService(t *testing.T, svc *Service) 
 	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 }
 
-func seedProfileRuntimeImageSelectedSourceForService(t *testing.T, svc *Service, family string, dependencyID string) {
-	t.Helper()
-	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
-	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
-		DependencyFamily: family,
-		DependencyID:     dependencyID,
-		EnvironmentKey: localEnvironmentKey(
-			family,
-			dependencyID,
-			hostState.HostProfileID,
-			localEnvironmentPlatformTuple(hostState),
-			svc.localEnvironmentRuntimeDataRoot(),
-		),
-		SourceKind:        localEnvironmentSourceImported,
-		CanonicalRoot:     "runtime-managed/" + shortHash(family+"|"+dependencyID),
-		Version:           "local-import",
-		SelectedConsumers: []string{"stable-diffusion.cpp.metal"},
-		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
-		CompatibilityEvidence: []string{
-			"selected-source-test",
-		},
-		VerifiedArtifacts: []string{
-			"artifact",
-		},
-	})
-	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
-}
-
 func profileRuntimeNativeImageBackendEnvironmentKeyForTest(svc *Service) string {
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
 	return localEnvironmentKey(
@@ -333,7 +371,7 @@ func seedProfileRuntimeLocalAssetForService(t *testing.T, svc *Service, localAss
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
 		family = normalizeManagedImageProjectionFamily(assetID)
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE:
-		family = "flux1-vae"
+		family = "flux2-vae"
 		artifactRoles = []string{"vae"}
 	}
 	svc.mu.Lock()
@@ -369,6 +407,163 @@ func seedProfileRuntimePreparedAssetsForService(t *testing.T, svc *Service, desc
 			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 			Source:       &runtimev1.LocalAssetSource{},
 		}
+	}
+}
+
+func seedProfileRuntimePortableSelectedSourcesForService(
+	t *testing.T,
+	svc *Service,
+	descriptor profileRuntimeDescriptor,
+	includedBindingIDs ...string,
+) {
+	t.Helper()
+	included := make(map[string]bool, len(includedBindingIDs))
+	for _, bindingID := range includedBindingIDs {
+		included[strings.TrimSpace(bindingID)] = true
+	}
+	shouldInclude := func(binding profileRuntimeDescriptorAssetBinding) bool {
+		return len(included) == 0 || included[strings.TrimSpace(binding.BindingID)]
+	}
+	var mainBinding *profileRuntimeDescriptorAssetBinding
+	for index := range descriptor.AssetBindings {
+		binding := &descriptor.AssetBindings[index]
+		if shouldInclude(*binding) && strings.TrimSpace(binding.AssetRole) == "main" {
+			mainBinding = binding
+			break
+		}
+	}
+	if mainBinding == nil {
+		t.Fatal("portable selected-source fixture requires a main binding")
+	}
+	modelsRoot := svc.resolvedLocalModelsPath()
+	seedBinding := func(
+		binding profileRuntimeDescriptorAssetBinding,
+		family string,
+		parentAssetID string,
+		parentRecordID string,
+	) localEnvironmentSelectedSourceRecordState {
+		t.Helper()
+		localAssetID := strings.TrimSpace(binding.PreparedAssetID)
+		if localAssetID == "" {
+			t.Fatalf("binding %q fixture requires an internal local asset id", binding.BindingID)
+		}
+		asset := &runtimev1.LocalAssetRecord{
+			LocalAssetId: localAssetID,
+			AssetId:      strings.TrimSpace(binding.ExpectedIdentity),
+			Kind:         profileRuntimeAssetKindForComponentKindForTest(binding.ComponentKind),
+			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			Source:       &runtimev1.LocalAssetSource{},
+		}
+		switch strings.TrimSpace(binding.Source) {
+		case "huggingface":
+			if binding.HuggingFace == nil || len(binding.HuggingFace.Entries) != 1 {
+				t.Fatalf("binding %q fixture requires one Hugging Face entry", binding.BindingID)
+			}
+			asset.Entry = strings.TrimSpace(binding.HuggingFace.Entries[0])
+			asset.Source.Repo = strings.TrimSpace(binding.HuggingFace.RepoID)
+			asset.Source.Revision = strings.TrimSpace(binding.HuggingFace.Revision)
+		case "manual":
+			if binding.Manual == nil {
+				t.Fatalf("binding %q fixture requires a manual source", binding.BindingID)
+			}
+			asset.Entry = strings.TrimSpace(binding.Manual.ExpectedName)
+			asset.SourceFileName = strings.TrimSpace(binding.Manual.ExpectedName)
+		default:
+			t.Fatalf("binding %q fixture has unsupported source %q", binding.BindingID, binding.Source)
+		}
+		if strings.TrimSpace(binding.AssetRole) == "main" {
+			asset.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+			asset.Family = normalizeManagedImageProjectionFamily(binding.ExpectedIdentity)
+		}
+		if asset.Kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
+			asset.Family = "flux2-vae"
+			asset.ArtifactRoles = []string{"vae"}
+		}
+		svc.mu.Lock()
+		svc.assets[localAssetID] = asset
+		svc.mu.Unlock()
+		entryPath := writeProfileRuntimeSelectedSourceEntryFixture(t, modelsRoot, asset, "selected-source-entry:"+binding.BindingID)
+		resolvedEntryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, asset)
+		if err != nil {
+			t.Fatalf("resolve binding %q fixture entry: %v", binding.BindingID, err)
+		}
+		if filepath.Clean(entryPath) != filepath.Clean(resolvedEntryPath) {
+			t.Fatalf("binding %q fixture path mismatch: wrote=%q resolved=%q", binding.BindingID, entryPath, resolvedEntryPath)
+		}
+		return seedProfileRuntimePreparedAssetSelectedSourceForService(
+			t,
+			svc,
+			family,
+			asset,
+			parentAssetID,
+			parentRecordID,
+			entryPath,
+		)
+	}
+	mainRecord := seedBinding(*mainBinding, localEnvironmentFamilyModelAsset, "", "")
+	for _, binding := range descriptor.AssetBindings {
+		if !shouldInclude(binding) || strings.TrimSpace(binding.AssetRole) != "companion" {
+			continue
+		}
+		seedBinding(
+			binding,
+			localEnvironmentFamilyModelCompanion,
+			strings.TrimSpace(mainBinding.ExpectedIdentity),
+			strings.TrimSpace(mainRecord.RecordID),
+		)
+	}
+}
+
+func writeProfileRuntimeSelectedSourceEntryFixture(
+	t *testing.T,
+	modelsRoot string,
+	asset *runtimev1.LocalAssetRecord,
+	content string,
+) string {
+	t.Helper()
+	if asset == nil {
+		t.Fatal("selected-source entry fixture requires an asset")
+	}
+	root, err := filepath.Abs(strings.TrimSpace(modelsRoot))
+	if err != nil {
+		t.Fatalf("resolve selected-source models root: %v", err)
+	}
+	entry, err := sanitizeManagedEntryPath(asset.GetEntry())
+	if err != nil {
+		t.Fatalf("sanitize selected-source entry: %v", err)
+	}
+	var target string
+	if logicalModelID := strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/"); logicalModelID != "" &&
+		shouldUseLogicalManagedBundlePath(asset) {
+		target = filepath.Join(root, "resolved", filepath.FromSlash(logicalModelID), entry)
+	} else {
+		baseDir, resolveErr := resolveManagedBaseDir(root, asset.GetAssetId(), asset.GetSource().GetRepo())
+		if resolveErr != nil {
+			t.Fatalf("resolve selected-source base directory: %v", resolveErr)
+		}
+		target = filepath.Join(baseDir, entry)
+	}
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("create selected-source fixture directory: %v", err)
+	}
+	if err := os.WriteFile(target, []byte(content), 0o600); err != nil {
+		t.Fatalf("write selected-source fixture: %v", err)
+	}
+	return target
+}
+
+func profileRuntimeAssetKindForComponentKindForTest(componentKind string) runtimev1.LocalAssetKind {
+	switch strings.TrimSpace(componentKind) {
+	case "image":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
+	case "vae":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE
+	case "chat", "text_encoder":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+	case "lora":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA
+	default:
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
 	}
 }
 
@@ -414,6 +609,9 @@ func assertProfileRuntimePlanBindingsRequired(t *testing.T, svc *Service) {
 	for _, dep := range plan.Dependencies {
 		if dep.ReasonCode == "LOCAL_ENVIRONMENT_IMAGE_PROFILE_BINDINGS_REQUIRED" &&
 			dep.DependencyID == "image-profile-bindings:local-z-image" {
+			if dep.Detail != "image profile materialization bindings are required before resolving companion assets; call Runtime descriptor prepare to materialize this image profile" {
+				t.Fatalf("profile-bindings blocker must direct callers to Runtime descriptor prepare: %+v", dep)
+			}
 			return
 		}
 	}
@@ -444,6 +642,7 @@ func TestServicePrepareProfileRuntimeDescriptorAcceptsSDKFormedShape(t *testing.
 				"contract_state": "declared",
 				"readiness_policy": "required",
 				"params_ref": "params:none",
+				"runtime_consumer_id": "stable-diffusion.cpp.metal",
 				"execution": {
 					"backend": "stablediffusion-ggml",
 					"backend_class": "native_binary",
@@ -484,7 +683,6 @@ func TestServicePrepareProfileRuntimeDescriptorAcceptsSDKFormedShape(t *testing.
 				"source": "huggingface",
 				"expected_identity": "hf:nimiplatform/z-image",
 				"readiness_policy": "required",
-				"prepared_asset_id": "asset:main",
 				"huggingface": {
 					"repo_id": "nimiplatform/z-image",
 					"revision": "main",
@@ -499,7 +697,6 @@ func TestServicePrepareProfileRuntimeDescriptorAcceptsSDKFormedShape(t *testing.
 				"source": "huggingface",
 				"expected_identity": "hf:nimiplatform/lora-a",
 				"readiness_policy": "optional",
-				"prepared_asset_id": "asset:lora-a",
 				"huggingface": {
 					"repo_id": "nimiplatform/lora-a",
 					"revision": "main",
@@ -524,8 +721,7 @@ func TestServicePrepareProfileRuntimeDescriptorAcceptsSDKFormedShape(t *testing.
 	}
 	if result.SliceResults[0].Outcome != string(profileRuntimePrepareSetupRequiredNoLiveConfig) ||
 		!profileRuntimeStringSliceContains(result.SliceResults[0].ReasonCodes, "native_backend_package_source_missing") ||
-		!profileRuntimeStringSliceContains(result.SliceResults[0].ReasonCodes, "prepared_asset_not_admitted") ||
-		!profileRuntimeStringSliceContains(result.SliceResults[0].ReasonCodes, "required_companion_unadmitted") {
+		!profileRuntimeStringSliceContains(result.SliceResults[0].ReasonCodes, "required_asset_missing") {
 		t.Fatalf("local slice must fail closed until Runtime facts are materialized: %+v", result.SliceResults[0])
 	}
 	if result.SliceResults[1].Outcome != string(profileRuntimePrepareSetupRequiredNoLiveConfig) ||
@@ -539,7 +735,8 @@ func TestServicePrepareProfileRuntimeDescriptorReadyAfterCanonicalMaterializatio
 	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeDescriptor()
-	seedProfileRuntimeReadyFactsForService(t, svc, descriptor)
+	seedProfileRuntimeNativeImageBackendForService(t, svc)
+	seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
 
 	result, err := svc.prepareProfileRuntimeDescriptor(context.Background(), ProfileRuntimeDescriptorPrepareRequest{
 		DescriptorJSON: marshalProfileRuntimeDescriptor(t, descriptor),
@@ -563,9 +760,7 @@ func TestServicePrepareProfileRuntimeDescriptorCachesDescriptorBackedImageMateri
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
 
 	result, err := svc.prepareProfileRuntimeDescriptor(context.Background(), ProfileRuntimeDescriptorPrepareRequest{
 		DescriptorJSON: marshalProfileRuntimeDescriptor(t, descriptor),
@@ -599,10 +794,17 @@ func TestServicePrepareProfileRuntimeDescriptorCachesDescriptorBackedImageMateri
 		}
 		companionBySlot[binding.EngineSlot] = binding
 	}
-	if got := companionBySlot["vae_path"]; got.CompanionKind != "vae" || got.CompanionAssetID != "z_image_ae" || got.ParentAssetID != "z_image_turbo" {
+	if got := companionBySlot["vae_path"]; got.CompanionKind != "vae" ||
+		got.CompanionAssetID != "z_image_ae" ||
+		got.CompanionLocalAssetID != "local-z-image-ae" ||
+		got.ParentAssetID != "z_image_turbo" {
 		t.Fatalf("unexpected AE companion binding: %+v", got)
 	}
-	if got := companionBySlot["llm_path"]; got.CompanionKind != "chat" || got.CompanionKind == "auxiliary" || got.CompanionAssetID != "qwen3_4b_companion" || got.ParentAssetID != "z_image_turbo" {
+	if got := companionBySlot["llm_path"]; got.CompanionKind != "chat" ||
+		got.CompanionKind == "auxiliary" ||
+		got.CompanionAssetID != "qwen3_4b_companion" ||
+		got.CompanionLocalAssetID != "local-qwen3-4b" ||
+		got.ParentAssetID != "z_image_turbo" {
 		t.Fatalf("Qwen text encoder must project as chat llm_path companion, got %+v", got)
 	}
 
@@ -640,9 +842,7 @@ func TestServicePrepareProfileRuntimeDescriptorRPCBytesClearsPlanBindings(t *tes
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
 
 	resp, err := svc.PrepareProfileRuntimeDescriptor(context.Background(), &runtimev1.PrepareProfileRuntimeDescriptorRequest{
 		DescriptorJson: marshalProfileRuntimeDescriptor(t, descriptor),
@@ -702,9 +902,7 @@ func TestServicePrepareProfileRuntimeDescriptorRPCUsesDataRootSelectedSourceWhen
 	if _, ok := svc.localEnvironmentSelectedSourceRecord(modelsRootEnvironmentKey); ok {
 		t.Fatalf("test must not seed a models-root selected source: %s", modelsRootEnvironmentKey)
 	}
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
 
 	resp, err := svc.PrepareProfileRuntimeDescriptor(context.Background(), &runtimev1.PrepareProfileRuntimeDescriptorRequest{
 		DescriptorJson: marshalProfileRuntimeDescriptor(t, descriptor),
@@ -725,9 +923,7 @@ func TestProfileRuntimeDescriptorMaterializationPersistsAcrossRestart(t *testing
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
 
 	result, err := svc.prepareProfileRuntimeDescriptor(context.Background(), ProfileRuntimeDescriptorPrepareRequest{
 		DescriptorJSON: marshalProfileRuntimeDescriptor(t, descriptor),
@@ -748,52 +944,14 @@ func TestProfileRuntimeDescriptorMaterializationPersistsAcrossRestart(t *testing
 	if len(snapshot.ManagedImageProfileMaterializations[0].MaterializationBindings) != 3 {
 		t.Fatalf("expected main + companion persisted bindings, got %+v", snapshot.ManagedImageProfileMaterializations[0])
 	}
-
-	restored, err := New(svc.logger, nil, svc.stateStorePath, 0, svc.localModelsPath)
-	if err != nil {
-		t.Fatalf("restore service: %v", err)
+	persistedCompanionLocalIDs := map[string]bool{}
+	for _, binding := range snapshot.ManagedImageProfileMaterializations[0].MaterializationBindings {
+		if binding.CompanionLocalAssetID != "" {
+			persistedCompanionLocalIDs[binding.CompanionLocalAssetID] = true
+		}
 	}
-	defer restored.Close()
-	assertProfileRuntimePlanCompanionsReady(t, restored)
-}
-
-func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesOnPlan(t *testing.T) {
-	t.Parallel()
-	svc := newTestService(t)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelAsset, "z_image_turbo")
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset_id=z_image_ae|parent_asset_id=z_image_turbo")
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo")
-
-	if cached, ok := svc.cachedManagedMediaImageProfile("local-z-image"); ok && cached.MaterializationResolved {
-		t.Fatalf("test must start without a materialization cache, got %+v", cached)
-	}
-
-	assertProfileRuntimePlanCompanionsReady(t, svc)
-	cached, ok := svc.cachedManagedMediaImageProfile("local-z-image")
-	if !ok || !cached.MaterializationResolved || len(cached.MaterializationBindings) != 3 {
-		t.Fatalf("plan resolution must heal materialization bindings from selected sources, ok=%v cached=%+v", ok, cached)
-	}
-}
-
-func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesAcrossRestart(t *testing.T) {
-	t.Parallel()
-	svc := newTestService(t)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelAsset, "z_image_turbo")
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset_id=z_image_ae|parent_asset_id=z_image_turbo")
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo")
-
-	snapshot, err := loadLocalStateSnapshot(svc.stateStorePath)
-	if err != nil {
-		t.Fatalf("load pre-restore state: %v", err)
-	}
-	if len(snapshot.ManagedImageProfileMaterializations) != 0 {
-		t.Fatalf("test must persist selected sources without materialization cache, got %+v", snapshot.ManagedImageProfileMaterializations)
+	if !persistedCompanionLocalIDs["local-z-image-ae"] || !persistedCompanionLocalIDs["local-qwen3-4b"] {
+		t.Fatalf("persisted materialization must retain exact companion local asset ids: %+v", snapshot.ManagedImageProfileMaterializations[0])
 	}
 
 	restored, err := New(svc.logger, nil, svc.stateStorePath, 0, svc.localModelsPath)
@@ -802,10 +960,6 @@ func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesAcr
 	}
 	defer restored.Close()
 	assertProfileRuntimePlanCompanionsReady(t, restored)
-	cached, ok := restored.cachedManagedMediaImageProfile("local-z-image")
-	if !ok || !cached.MaterializationResolved || len(cached.MaterializationBindings) != 3 {
-		t.Fatalf("restore must heal materialization bindings from selected sources, ok=%v cached=%+v", ok, cached)
-	}
 }
 
 func TestProfileRuntimeDescriptorMaterializationRestoreFailsClosedForCorruptState(t *testing.T) {
@@ -830,6 +984,18 @@ func TestProfileRuntimeDescriptorMaterializationRestoreFailsClosedForCorruptStat
 			name: "companion binding incomplete",
 			mutate: func(snapshot *localStateSnapshot) {
 				snapshot.ManagedImageProfileMaterializations[0].MaterializationBindings[1].EngineSlot = ""
+			},
+		},
+		{
+			name: "companion prepared local asset id missing",
+			mutate: func(snapshot *localStateSnapshot) {
+				snapshot.ManagedImageProfileMaterializations[0].MaterializationBindings[1].CompanionLocalAssetID = ""
+			},
+		},
+		{
+			name: "materialization key is not descriptor prepared",
+			mutate: func(snapshot *localStateSnapshot) {
+				snapshot.ManagedImageProfileMaterializations[0].MaterializationKey = "selected-source-legacy"
 			},
 		},
 		{
@@ -861,9 +1027,7 @@ func TestProfileRuntimeDescriptorMaterializationRestoreFailsClosedForCorruptStat
 			svc := newTestService(t)
 			descriptor := testProfileRuntimeImageCompanionDescriptor()
 			seedProfileRuntimeNativeImageBackendForService(t, svc)
-			seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-			seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-			seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+			seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
 			if _, err := svc.prepareProfileRuntimeDescriptor(context.Background(), ProfileRuntimeDescriptorPrepareRequest{
 				DescriptorJSON: marshalProfileRuntimeDescriptor(t, descriptor),
 			}); err != nil {
@@ -896,8 +1060,7 @@ func TestServicePrepareProfileRuntimeDescriptorMissingCompanionDoesNotCacheMater
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeImageCompanionDescriptor()
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor, "main", "ae")
 
 	result, err := svc.prepareProfileRuntimeDescriptor(context.Background(), ProfileRuntimeDescriptorPrepareRequest{
 		DescriptorJSON: marshalProfileRuntimeDescriptor(t, descriptor),
@@ -906,7 +1069,7 @@ func TestServicePrepareProfileRuntimeDescriptorMissingCompanionDoesNotCacheMater
 		t.Fatalf("prepare descriptor through service: %v", err)
 	}
 	if result.SliceResults[0].Outcome != string(profileRuntimePrepareSetupRequiredNoLiveConfig) ||
-		!profileRuntimeStringSliceContains(result.SliceResults[0].ReasonCodes, "required_companion_unadmitted") {
+		!profileRuntimeStringSliceContains(result.SliceResults[0].ReasonCodes, "required_asset_missing") {
 		t.Fatalf("missing Qwen companion must fail closed: %+v", result.SliceResults[0])
 	}
 	if cached, ok := svc.cachedManagedMediaImageProfile("local-z-image"); ok && cached.MaterializationResolved {
@@ -983,7 +1146,7 @@ func TestServicePrepareProfileRuntimeDescriptorRejectsCompanionIdentityAndKindMi
 			name:       "identity mismatch",
 			assetID:    "qwen3_wrong_asset",
 			kind:       runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-			reasonCode: "prepared_asset_identity_mismatch",
+			reasonCode: "required_asset_missing",
 		},
 		{
 			name:       "kind mismatch",
@@ -997,9 +1160,11 @@ func TestServicePrepareProfileRuntimeDescriptorRejectsCompanionIdentityAndKindMi
 			svc := newTestService(t)
 			descriptor := testProfileRuntimeImageCompanionDescriptor()
 			seedProfileRuntimeNativeImageBackendForService(t, svc)
-			seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
-			seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-			seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", tc.assetID, tc.kind, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+			seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
+			svc.mu.Lock()
+			svc.assets["local-qwen3-4b"].AssetId = tc.assetID
+			svc.assets["local-qwen3-4b"].Kind = tc.kind
+			svc.mu.Unlock()
 
 			result, err := svc.prepareProfileRuntimeDescriptor(context.Background(), ProfileRuntimeDescriptorPrepareRequest{
 				DescriptorJSON: marshalProfileRuntimeDescriptor(t, descriptor),
@@ -1026,10 +1191,7 @@ func TestProfileRuntimePrepareRejectsNonCanonicalNativePackageFacts(t *testing.T
 	facts.NativeBackendPackages[0].PackageFormat = "direct_archive"
 	facts.NativeBackendPackages[0].LaunchMode = "runtime_wrapper"
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)
@@ -1063,10 +1225,7 @@ func TestProfileRuntimePrepareAcceptsWindowsRuntimeWrapperNativePackageFacts(t *
 	facts.NativeBackendPackages[0].LaunchMode = "runtime_wrapper"
 	facts.NativeBackendPackages[0].SelectedSourceRecordID = "src_windows_runtime_wrapper"
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)
@@ -1082,10 +1241,7 @@ func TestProfileRuntimePrepareRejectsWrongNativeConsumerAndSource(t *testing.T) 
 	descriptor.CapabilitySlices[0].RuntimeConsumerID = "stable-diffusion.cpp.cuda"
 	facts := testProfileRuntimeReadyFacts(descriptor)
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)
@@ -1117,10 +1273,7 @@ func TestProfileRuntimePrepareFailsClosedForPreparedAssetExactMismatch(t *testin
 		}
 	}
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)
@@ -1141,10 +1294,7 @@ func TestProfileRuntimePrepareFailsClosedForPreparedAssetRoleMismatch(t *testing
 		}
 	}
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)
@@ -1175,10 +1325,7 @@ func TestProfileRuntimePrepareFailsClosedForQwenBackupOnlyCompanion(t *testing.T
 	}
 	facts.PreparedAssets = filtered
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)
@@ -1202,10 +1349,7 @@ func TestProfileRuntimePrepareFailsClosedForSourceUnreadyRequiredCompanion(t *te
 		}
 	}
 
-	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
-	if err != nil {
-		t.Fatalf("validate descriptor: %v", err)
-	}
+	validated := validateProfileRuntimeDescriptorForInternalTest(t, descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
 	if err != nil {
 		t.Fatalf("prepare descriptor: %v", err)

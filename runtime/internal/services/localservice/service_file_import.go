@@ -79,6 +79,10 @@ func prepareImportSourcePath(rawPath string) (string, fs.FileInfo, error) {
 }
 
 func computeImportFileSHA256(path string) (string, error) {
+	return computeImportFileSHA256WithProgress(path, nil)
+}
+
+func computeImportFileSHA256WithProgress(path string, onProgress func(processedBytes int64)) (string, error) {
 	file, err := os.Open(strings.TrimSpace(path))
 	if err != nil {
 		return "", err
@@ -87,8 +91,31 @@ func computeImportFileSHA256(path string) (string, error) {
 		_ = file.Close()
 	}()
 	hasher := sha256.New()
-	if _, err := io.Copy(hasher, file); err != nil {
-		return "", err
+	const progressStepBytes int64 = 64 * 1024 * 1024
+	buffer := make([]byte, 4*1024*1024)
+	var processedBytes int64
+	var reportedBytes int64
+	for {
+		readCount, readErr := file.Read(buffer)
+		if readCount > 0 {
+			if _, writeErr := hasher.Write(buffer[:readCount]); writeErr != nil {
+				return "", writeErr
+			}
+			processedBytes += int64(readCount)
+			if onProgress != nil && processedBytes-reportedBytes >= progressStepBytes {
+				onProgress(processedBytes)
+				reportedBytes = processedBytes
+			}
+		}
+		if errors.Is(readErr, io.EOF) {
+			break
+		}
+		if readErr != nil {
+			return "", readErr
+		}
+	}
+	if onProgress != nil && processedBytes != reportedBytes {
+		onProgress(processedBytes)
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
@@ -257,7 +284,7 @@ func (s *Service) importLocalModelFile(
 	req *runtimev1.ImportLocalAssetFileRequest,
 	removeSource bool,
 ) (*runtimev1.ImportLocalAssetFileResponse, error) {
-	sourcePath, _, err := prepareImportSourcePath(req.GetFilePath())
+	sourcePath, sourceInfo, err := prepareImportSourcePath(req.GetFilePath())
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,
@@ -289,11 +316,12 @@ func (s *Service) importLocalModelFile(
 		transferPhase = "move"
 	}
 	transfer := s.newLocalTransfer(localTransferKindImport, localTransferMutation{
-		ModelID:   modelID,
-		Phase:     transferPhase,
-		State:     localTransferStateRunning,
-		Message:   "staging local model file",
-		Retryable: false,
+		ModelID:    modelID,
+		Phase:      transferPhase,
+		State:      localTransferStateRunning,
+		Message:    "staging local model file",
+		Retryable:  false,
+		BytesTotal: sourceInfo.Size(),
 	})
 	transferID := transfer.GetInstallSessionId()
 	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
@@ -344,7 +372,9 @@ func (s *Service) importLocalModelFile(
 			grpcerr.ReasonOptions{Message: "managed model file could not be staged"},
 		)
 	}
-	stageFileHash, err := computeImportFileSHA256(stageFilePath)
+	stageFileHash, err := computeImportFileSHA256WithProgress(stageFilePath, func(processedBytes int64) {
+		s.updateTransferProgress(transferID, transferPhase, processedBytes, sourceInfo.Size(), "staging local model file")
+	})
 	if err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("hash staged managed model file: %v", err), false)
 		return nil, grpcerr.WrapWithReasonCode(
@@ -354,7 +384,7 @@ func (s *Service) importLocalModelFile(
 			grpcerr.ReasonOptions{Message: "managed model file integrity could not be computed"},
 		)
 	}
-	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local model staged")
+	s.updateTransferProgress(transferID, transferPhase, sourceInfo.Size(), sourceInfo.Size(), "local model staged")
 	manifestPath := filepath.Join(stageDir, "asset.manifest.json")
 	kind := inferAssetKindFromCapabilities(capabilities)
 	kindToken, err := localAssetKindToken(kind)
@@ -390,7 +420,7 @@ func (s *Service) importLocalModelFile(
 	if strings.TrimSpace(binding.endpoint) != "" {
 		manifest["endpoint"] = binding.endpoint
 	}
-	s.updateTransferProgress(transferID, "manifest", 1, 1, "writing runtime manifest")
+	s.updateTransferProgress(transferID, "manifest", sourceInfo.Size(), sourceInfo.Size(), "writing runtime manifest")
 	payload, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		if _, rollbackErr := s.rollbackManagedModelStageBeforeActivation(modelsRoot, logicalModelID, sourcePath, stageFilePath, stageDir, removeSource, "local_model_import", fmt.Sprintf("serialize manifest: %v", err), modelID); rollbackErr != nil {
@@ -448,7 +478,7 @@ func (s *Service) importLocalModelFile(
 		)
 	}
 	manifestPath = runtimeManagedAssetManifestPath(modelsRoot, logicalModelID)
-	s.updateTransferProgress(transferID, "register", 1, 1, "registering local model")
+	s.updateTransferProgress(transferID, "register", sourceInfo.Size(), sourceInfo.Size(), "registering local model")
 	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{
 		ManifestPath: manifestPath,
 		Endpoint:     binding.endpoint,
@@ -496,7 +526,7 @@ func (s *Service) importLocalPassiveAssetFile(
 	req *runtimev1.ImportLocalAssetFileRequest,
 	removeSource bool,
 ) (*runtimev1.ImportLocalAssetFileResponse, error) {
-	sourcePath, _, err := prepareImportSourcePath(req.GetFilePath())
+	sourcePath, sourceInfo, err := prepareImportSourcePath(req.GetFilePath())
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,
@@ -527,6 +557,7 @@ func (s *Service) importLocalPassiveAssetFile(
 		State:      localTransferStateRunning,
 		Message:    "staging local artifact file",
 		Retryable:  false,
+		BytesTotal: sourceInfo.Size(),
 	})
 	transferID := transfer.GetInstallSessionId()
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
@@ -551,7 +582,9 @@ func (s *Service) importLocalPassiveAssetFile(
 			grpcerr.ReasonOptions{Message: "managed artifact file could not be staged"},
 		)
 	}
-	destFileHash, err := computeImportFileSHA256(destFilePath)
+	destFileHash, err := computeImportFileSHA256WithProgress(destFilePath, func(processedBytes int64) {
+		s.updateTransferProgress(transferID, transferPhase, processedBytes, sourceInfo.Size(), "staging local artifact file")
+	})
 	if err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("hash staged managed artifact file: %v", err), false)
 		return nil, grpcerr.WrapWithReasonCode(
@@ -561,7 +594,7 @@ func (s *Service) importLocalPassiveAssetFile(
 			grpcerr.ReasonOptions{Message: "managed artifact file integrity could not be computed"},
 		)
 	}
-	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local artifact staged")
+	s.updateTransferProgress(transferID, transferPhase, sourceInfo.Size(), sourceInfo.Size(), "local artifact staged")
 	manifestPath := runtimeManagedPassiveAssetManifestPath(modelsRoot, artifactID)
 	kindToken, err := localAssetKindToken(kind)
 	if err != nil {
@@ -602,7 +635,7 @@ func (s *Service) importLocalPassiveAssetFile(
 	if engine != "" {
 		manifest["preferred_engine"] = engine
 	}
-	s.updateTransferProgress(transferID, "manifest", 1, 1, "writing artifact manifest")
+	s.updateTransferProgress(transferID, "manifest", sourceInfo.Size(), sourceInfo.Size(), "writing artifact manifest")
 	payload, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("serialize runtime managed artifact manifest: %v", err), false)
@@ -622,7 +655,7 @@ func (s *Service) importLocalPassiveAssetFile(
 			grpcerr.ReasonOptions{Message: "managed artifact manifest could not be written"},
 		)
 	}
-	s.updateTransferProgress(transferID, "register", 1, 1, "registering local artifact")
+	s.updateTransferProgress(transferID, "register", sourceInfo.Size(), sourceInfo.Size(), "registering local artifact")
 	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)

@@ -199,6 +199,9 @@ func (s *Service) prepareProfileRuntimeDescriptor(
 	if err != nil {
 		return nil, err
 	}
+	if err := s.associateProfileRuntimeDescriptorPreparedAssets(descriptor); err != nil {
+		return nil, err
+	}
 	facts := s.profileRuntimePrepareFactsForDescriptor(descriptor)
 	results, err := prepareProfileRuntimeDescriptorWithFacts(descriptor, facts)
 	if err != nil {
@@ -319,16 +322,31 @@ func profileRuntimeDescriptorMaterializationBindings(
 			return "", nil, profileRuntimeDescriptorError("materialization.required_companion_unassociated", companion.OccurrenceID)
 		}
 		companionAssetID := strings.TrimSpace(companionFact.AssetID)
-		if companionAssetID == "" {
+		companionLocalAssetID := strings.TrimSpace(companionFact.LocalAssetID)
+		if companionLocalAssetID == "" {
+			companionLocalAssetID = strings.TrimSpace(companionFact.PreparedAssetID)
+		}
+		preparedAssetID := strings.TrimSpace(binding.PreparedAssetID)
+		if companionAssetID == "" || companionLocalAssetID == "" {
 			return "", nil, profileRuntimeDescriptorError("materialization.companion_asset_identity_missing", companion.OccurrenceID)
 		}
+		if preparedAssetID == "" ||
+			companionLocalAssetID != preparedAssetID ||
+			strings.TrimSpace(companionFact.PreparedAssetID) != preparedAssetID {
+			return "", nil, profileRuntimeDescriptorError("materialization.required_companion_unassociated", companion.OccurrenceID)
+		}
+		if occurrencePreparedAssetID := strings.TrimSpace(companion.PreparedAssetID); occurrencePreparedAssetID != "" &&
+			occurrencePreparedAssetID != companionLocalAssetID {
+			return "", nil, profileRuntimeDescriptorError("materialization.required_companion_unassociated", companion.OccurrenceID)
+		}
 		materializationBindings = append(materializationBindings, managedMediaProfileMaterializationBinding{
-			AssetID:          mainAssetID,
-			LocalAssetID:     mainLocalAssetID,
-			CompanionKind:    profileRuntimeDescriptorCompanionKind(binding),
-			EngineSlot:       strings.TrimSpace(companion.EngineSlot),
-			CompanionAssetID: companionAssetID,
-			ParentAssetID:    mainAssetID,
+			AssetID:               mainAssetID,
+			LocalAssetID:          mainLocalAssetID,
+			CompanionKind:         profileRuntimeDescriptorCompanionKind(binding),
+			EngineSlot:            strings.TrimSpace(companion.EngineSlot),
+			CompanionAssetID:      companionAssetID,
+			CompanionLocalAssetID: companionLocalAssetID,
+			ParentAssetID:         mainAssetID,
 		})
 	}
 	return mainLocalAssetID, materializationBindings, nil

@@ -268,7 +268,7 @@ func validateSourceMaterializationProfileCoverageShapeV3(value any, path string)
 			if err != nil {
 				return err
 			}
-			if err := sourceMaterializationProfileRequiredStringV3(entry["path"], itemPath+".path"); err != nil {
+			if err := validateSourceMaterializationProfileCoveragePathV3(entry["path"], itemPath+".path"); err != nil {
 				return err
 			}
 			if err := sourceMaterializationProfileEnumStringV3(entry["state"], itemPath+".state", "present", "missing", "empty", "invalid"); err != nil {
@@ -287,7 +287,7 @@ func validateSourceMaterializationProfileCoverageShapeV3(value any, path string)
 			if err != nil {
 				return err
 			}
-			if err := sourceMaterializationProfileRequiredStringV3(entry["path"], itemPath+".path"); err != nil {
+			if err := validateSourceMaterializationProfileCoveragePathV3(entry["path"], itemPath+".path"); err != nil {
 				return err
 			}
 			if err := sourceMaterializationProfileRequiredStringV3(entry["refKind"], itemPath+".refKind"); err != nil {
@@ -311,13 +311,34 @@ func validateSourceMaterializationProfileCoverageShapeV3(value any, path string)
 		if err != nil {
 			return err
 		}
-		for _, field := range []string{"path", "code", "message"} {
+		if err := validateSourceMaterializationProfileCoveragePathV3(entry["path"], itemPath+".path"); err != nil {
+			return err
+		}
+		for _, field := range []string{"code", "message"} {
 			if err := sourceMaterializationProfileRequiredStringV3(entry[field], itemPath+"."+field); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+func validateSourceMaterializationProfileCoveragePathV3(value any, path string) error {
+	text, err := sourceMaterializationProfileStringV3(value, path, true)
+	if err != nil {
+		return err
+	}
+	root := text
+	if index := strings.IndexByte(root, '.'); index >= 0 {
+		root = root[:index]
+	}
+	switch root {
+	case "identity", "presentation", "narrative", "psychology", "knowledge",
+		"relationships", "capabilities", "interactionProfile", "assets", "authoring":
+		return nil
+	default:
+		return sourceMaterializationSchemaErrorV3(path, "must target an admitted CharacterProfileCore section")
+	}
 }
 
 func sourceMaterializationProfileEnumStringV3(value any, path string, admitted ...string) error {

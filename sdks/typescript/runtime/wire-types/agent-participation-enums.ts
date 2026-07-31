@@ -124,7 +124,6 @@ export enum AgentLocalSourceCoverageSection {
   UNSPECIFIED = 0,
   IDENTITY = 1,
   PRESENTATION = 2,
-  PLACEMENT = 3,
   BIOGRAPHY = 4,
   PSYCHOLOGY = 5,
   KNOWLEDGE = 6,
@@ -133,14 +132,12 @@ export enum AgentLocalSourceCoverageSection {
   INTERACTION_PROFILE = 9,
   ASSETS = 10,
   AUTHORING = 11,
-  PERSONA_STYLE = 12,
-  CONTENT_PROFILE = 13,
   WORLD_CORE = 14,
   BOUND_ENTITY = 15,
   DEPENDENCY_CLOSURE = 16,
 }
 
-const KNOWN_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+const KNOWN_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 16]);
 
 export function isKnownAgentLocalSourceCoverageSection(value: unknown): value is AgentLocalSourceCoverageSection {
   return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_VALUES.has(value);

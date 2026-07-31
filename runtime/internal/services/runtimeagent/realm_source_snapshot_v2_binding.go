@@ -86,9 +86,7 @@ func localAgentSourceCoverageSection(path string) runtimev1.AgentLocalSourceCove
 		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY
 	case "source.core.presentation":
 		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION
-	case "source.core.placement":
-		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT
-	case "source.core.biography", "source.core.narrative":
+	case "source.core.narrative":
 		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY
 	case "source.core.psychology":
 		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY
@@ -104,10 +102,6 @@ func localAgentSourceCoverageSection(path string) runtimev1.AgentLocalSourceCove
 		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS
 	case "source.core.authoring":
 		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING
-	case "source.core.personaStyle":
-		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE
-	case "source.core.contentProfile":
-		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE
 	case "world.core":
 		return runtimev1.AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE
 	case "closure.boundEntity":

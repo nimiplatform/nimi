@@ -54,7 +54,6 @@ export type NimiRuntimeAgentSourceRef =
 export type NimiRuntimeAgentSourceCoverageSection =
   | 'identity'
   | 'presentation'
-  | 'placement'
   | 'biography'
   | 'psychology'
   | 'knowledge'
@@ -63,8 +62,6 @@ export type NimiRuntimeAgentSourceCoverageSection =
   | 'interaction_profile'
   | 'assets'
   | 'authoring'
-  | 'persona_style'
-  | 'content_profile'
   | 'world_core'
   | 'bound_entity'
   | 'dependency_closure';
@@ -150,7 +147,6 @@ const SOURCE_KIND = new Map<unknown, NimiRuntimeAgentSourceKind>([
 const COVERAGE_SECTION = new Map<unknown, NimiRuntimeAgentSourceCoverageSection>([
   [AgentLocalSourceCoverageSection.IDENTITY, 'identity'],
   [AgentLocalSourceCoverageSection.PRESENTATION, 'presentation'],
-  [AgentLocalSourceCoverageSection.PLACEMENT, 'placement'],
   [AgentLocalSourceCoverageSection.BIOGRAPHY, 'biography'],
   [AgentLocalSourceCoverageSection.PSYCHOLOGY, 'psychology'],
   [AgentLocalSourceCoverageSection.KNOWLEDGE, 'knowledge'],
@@ -159,16 +155,14 @@ const COVERAGE_SECTION = new Map<unknown, NimiRuntimeAgentSourceCoverageSection>
   [AgentLocalSourceCoverageSection.INTERACTION_PROFILE, 'interaction_profile'],
   [AgentLocalSourceCoverageSection.ASSETS, 'assets'],
   [AgentLocalSourceCoverageSection.AUTHORING, 'authoring'],
-  [AgentLocalSourceCoverageSection.PERSONA_STYLE, 'persona_style'],
-  [AgentLocalSourceCoverageSection.CONTENT_PROFILE, 'content_profile'],
   [AgentLocalSourceCoverageSection.WORLD_CORE, 'world_core'],
   [AgentLocalSourceCoverageSection.BOUND_ENTITY, 'bound_entity'],
   [AgentLocalSourceCoverageSection.DEPENDENCY_CLOSURE, 'dependency_closure'],
   ...Object.entries({
-    IDENTITY: 'identity', PRESENTATION: 'presentation', PLACEMENT: 'placement', BIOGRAPHY: 'biography',
+    IDENTITY: 'identity', PRESENTATION: 'presentation', BIOGRAPHY: 'biography',
     PSYCHOLOGY: 'psychology', KNOWLEDGE: 'knowledge', RELATIONSHIPS: 'relationships', CAPABILITIES: 'capabilities',
-    INTERACTION_PROFILE: 'interaction_profile', ASSETS: 'assets', AUTHORING: 'authoring', PERSONA_STYLE: 'persona_style',
-    CONTENT_PROFILE: 'content_profile', WORLD_CORE: 'world_core', BOUND_ENTITY: 'bound_entity',
+    INTERACTION_PROFILE: 'interaction_profile', ASSETS: 'assets', AUTHORING: 'authoring',
+    WORLD_CORE: 'world_core', BOUND_ENTITY: 'bound_entity',
     DEPENDENCY_CLOSURE: 'dependency_closure',
   }).map(([name, projected]) => [
     `AGENT_LOCAL_SOURCE_COVERAGE_SECTION_${name}`,

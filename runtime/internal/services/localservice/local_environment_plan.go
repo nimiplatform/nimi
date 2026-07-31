@@ -345,16 +345,6 @@ func (s *Service) resolveCachedProfileModelAssetDependencies(
 	}
 	cached, ok := s.cachedManagedMediaImageProfile(cacheLocalAssetID)
 	if !ok || !cached.MaterializationResolved {
-		if s.ensureManagedImageProfileMaterializationFromSelectedSources(req.LocalAssetID, req.AssetID) {
-			if cacheLocalAssetID == "" {
-				if model := s.resolveManagedMediaImageModel(strings.TrimSpace(req.AssetID)); model != nil {
-					cacheLocalAssetID = strings.TrimSpace(model.GetLocalAssetId())
-				}
-			}
-			cached, ok = s.cachedManagedMediaImageProfile(cacheLocalAssetID)
-		}
-	}
-	if !ok || !cached.MaterializationResolved {
 		return map[string][]localEnvironmentPlanDependency{
 			localEnvironmentFamilyModelCompanion: {
 				localEnvironmentImageProfileBindingsRequiredDependency(def, hostState, platformTuple, runtimeDataRoot, consumerScope, req),
@@ -416,7 +406,7 @@ func localEnvironmentImageProfileBindingsRequiredDependency(
 		ConfirmationRequired: false,
 		EnvironmentKey:       localEnvironmentKey(localEnvironmentFamilyModelCompanion, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot),
 		ReasonCode:           "LOCAL_ENVIRONMENT_IMAGE_PROFILE_BINDINGS_REQUIRED",
-		Detail:               "image profile materialization bindings are required before resolving companion assets; supply runtime profile_entries for this image model",
+		Detail:               "image profile materialization bindings are required before resolving companion assets; call Runtime descriptor prepare to materialize this image profile",
 	}
 }
 

@@ -33,7 +33,7 @@ var (
 	localRuntimeGOOS            = runtime.GOOS
 	localRuntimeGOARCH          = runtime.GOARCH
 	localRuntimeLookPath        = exec.LookPath
-	localRuntimeCommand         = exec.CommandContext
+	localRuntimeCommand         = newLocalRuntimeProbeCommand
 	localRuntimeCommandOutput   = defaultLocalRuntimeCommandOutput
 	localRuntimeStat            = os.Stat
 	localRuntimeProbeRAM        = probeRAM
@@ -249,10 +249,10 @@ func probePythonProfile() *runtimev1.LocalPythonProfile {
 		ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
 		output, runErr := localRuntimeCommand(ctx, path, candidate.args...).CombinedOutput()
 		cancel()
-		version := strings.TrimSpace(string(output))
-		if runErr != nil && version == "" {
-			version = runErr.Error()
+		if runErr != nil {
+			continue
 		}
+		version := strings.TrimSpace(string(output))
 		return &runtimev1.LocalPythonProfile{
 			Available: true,
 			Version:   version,

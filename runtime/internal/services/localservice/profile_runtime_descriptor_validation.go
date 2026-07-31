@@ -31,6 +31,20 @@ var profileRuntimeDescriptorForbiddenFields = map[string]struct{}{
 	"endpoint":                     {},
 	"localModelId":                 {},
 	"goRuntimeLocalModelId":        {},
+	"prepared_asset_id":            {},
+	"preparedAssetId":              {},
+}
+
+func profileRuntimeDescriptorFieldIsForbidden(field string) bool {
+	if _, forbidden := profileRuntimeDescriptorForbiddenFields[field]; forbidden {
+		return true
+	}
+	switch strings.ToLower(strings.TrimSpace(field)) {
+	case "prepared_asset_id", "preparedassetid":
+		return true
+	default:
+		return false
+	}
 }
 
 func validateProfileRuntimeDescriptor(raw []byte) (*profileRuntimeDescriptor, error) {
@@ -140,6 +154,12 @@ func validateProfileRuntimeWorkflowContract(slice *profileRuntimeDescriptorCapab
 		}
 		if !profileRuntimeWorkflowFamilyAllowed(family, "flux", "ideogram4", "sdxl", "z-image", "z-image-turbo") {
 			return profileRuntimeDescriptorError("profile_model_family_mismatch", family)
+		}
+		if strings.TrimSpace(slice.RuntimeConsumerID) == "" {
+			return profileRuntimeDescriptorError("descriptor.runtime_consumer_missing", slice.SliceID)
+		}
+		if _, _, ok := profileRuntimeNativeImageBackendRequirement(*slice); !ok {
+			return profileRuntimeDescriptorError("descriptor.runtime_consumer_invalid", slice.RuntimeConsumerID)
 		}
 	case "diffusers":
 		if capability != "image.generate" {
@@ -263,7 +283,8 @@ func validateProfileRuntimeDescriptorAssetBinding(binding *profileRuntimeDescrip
 	}
 	switch binding.Source {
 	case "huggingface":
-		if binding.HuggingFace == nil || strings.TrimSpace(binding.HuggingFace.RepoID) == "" ||
+		if binding.HuggingFace == nil || binding.Manual != nil ||
+			strings.TrimSpace(binding.HuggingFace.RepoID) == "" ||
 			strings.TrimSpace(binding.HuggingFace.Revision) == "" || len(binding.HuggingFace.Entries) == 0 {
 			return profileRuntimeDescriptorError("descriptor.asset_binding.huggingface_required_field_missing", binding.BindingID)
 		}
@@ -273,7 +294,8 @@ func validateProfileRuntimeDescriptorAssetBinding(binding *profileRuntimeDescrip
 			return profileRuntimeDescriptorError("descriptor.asset_binding.huggingface_access_policy_invalid", binding.BindingID)
 		}
 	case "manual":
-		if binding.Manual == nil || strings.TrimSpace(binding.Manual.ExpectedName) == "" ||
+		if binding.Manual == nil || binding.HuggingFace != nil ||
+			strings.TrimSpace(binding.Manual.ExpectedName) == "" ||
 			strings.TrimSpace(binding.Manual.AssociationInstructions) == "" {
 			return profileRuntimeDescriptorError("descriptor.asset_binding.manual_required_field_missing", binding.BindingID)
 		}

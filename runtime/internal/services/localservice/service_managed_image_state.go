@@ -60,6 +60,12 @@ func (s *Service) cacheManagedMediaImageProfileResolution(
 	if s.managedImageProfiles == nil {
 		s.managedImageProfiles = make(map[string]managedImageProfileState)
 	}
+	if existing, ok := s.managedImageProfiles[id]; ok &&
+		existing.MaterializationResolved &&
+		strings.HasPrefix(strings.TrimSpace(existing.Alias), profileRuntimeMaterializationKeyPrefix) &&
+		!strings.HasPrefix(strings.TrimSpace(alias), profileRuntimeMaterializationKeyPrefix) {
+		return
+	}
 	if !materializationResolved {
 		if existing, ok := s.managedImageProfiles[id]; ok && existing.MaterializationResolved && len(existing.MaterializationBindings) > 0 {
 			existingProfileHash := managedImageLoadHash(existing.Profile)
@@ -68,6 +74,9 @@ func (s *Service) cacheManagedMediaImageProfileResolution(
 			if profileMatches {
 				materializationResolved = true
 				bindings = existing.MaterializationBindings
+				if strings.HasPrefix(strings.TrimSpace(existing.Alias), profileRuntimeMaterializationKeyPrefix) {
+					alias = existing.Alias
+				}
 			}
 		}
 	}

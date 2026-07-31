@@ -18,6 +18,7 @@ func validGemma4TestGGUF() []byte {
 	return buildImageTestGGUF([]ggufTestMetadataEntry{
 		{Key: "general.architecture", Type: 8, StringValue: "gemma4"},
 		{Key: "general.name", Type: 8, StringValue: "gemma-4-test"},
+		{Key: "gemma4.context_length", Type: 4, Uint32Value: 262144},
 	}, []string{"tok_embeddings.weight"})
 }
 

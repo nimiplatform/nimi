@@ -562,10 +562,6 @@ export enum AgentLocalSourceCoverageSection {
      */
     PRESENTATION = 2,
     /**
-     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT = 3;
-     */
-    PLACEMENT = 3,
-    /**
      * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY = 4;
      */
     BIOGRAPHY = 4,
@@ -597,14 +593,6 @@ export enum AgentLocalSourceCoverageSection {
      * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING = 11;
      */
     AUTHORING = 11,
-    /**
-     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE = 12;
-     */
-    PERSONA_STYLE = 12,
-    /**
-     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE = 13;
-     */
-    CONTENT_PROFILE = 13,
     /**
      * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE = 14;
      */

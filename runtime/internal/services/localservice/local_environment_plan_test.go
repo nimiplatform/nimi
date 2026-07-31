@@ -741,55 +741,6 @@ func TestResolveLocalImageNativePlanAcceptsAssetIDLocalAssetIdentity(t *testing.
 	}
 }
 
-func TestResolveLocalImageNativePlanRecoversProfileBindingsFromImportedCompanionModelAssetSources(t *testing.T) {
-	svc := newLocalEnvironmentTestService(t)
-	defer func() { svc.Close() }()
-	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
-	profile := localEnvironmentNvidiaProfile()
-	main := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "local-import/ideogram4-Q4_0",
-		capabilities: []string{"image.generate"},
-		engine:       "media",
-		entry:        "ideogram4-Q4_0.gguf",
-	})
-	uncond := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "local-import/ideogram4_uncond-Q4_0",
-		capabilities: []string{"image.generate"},
-		engine:       "media",
-		entry:        "ideogram4_uncond-Q4_0.gguf",
-	})
-	upsertImportedModelAssetSelectedSourceForTest(t, svc, main, stableDiffusionCUDAConsumerID)
-	upsertImportedModelAssetSelectedSourceForTest(t, svc, uncond, stableDiffusionCUDAConsumerID)
-
-	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-image-native",
-		HostProfile:     profile,
-		RuntimeDataRoot: runtimeDataRoot,
-		AssetID:         main.GetAssetId(),
-		LocalAssetID:    main.GetLocalAssetId(),
-	})
-
-	for _, dep := range plan.Dependencies {
-		if dep.ReasonCode == "LOCAL_ENVIRONMENT_IMAGE_PROFILE_BINDINGS_REQUIRED" {
-			t.Fatalf("main image plan must recover bindings from imported companion model.asset source, got %+v", dep)
-		}
-	}
-	depIDs := map[string]bool{}
-	for _, dep := range plan.Dependencies {
-		if dep.DependencyFamily == localEnvironmentFamilyModelCompanion {
-			depIDs[dep.DependencyID] = true
-		}
-	}
-	wantDepID := localEnvironmentCompanionAssetDependencyID(uncond.GetAssetId(), main.GetAssetId())
-	if !depIDs[wantDepID] {
-		t.Fatalf("missing recovered uncond companion dependency %q in %+v", wantDepID, plan.Dependencies)
-	}
-	cached, ok := svc.cachedManagedMediaImageProfile(main.GetLocalAssetId())
-	if !ok || !cached.MaterializationResolved || len(cached.MaterializationBindings) != 2 {
-		t.Fatalf("expected recovered main + uncond materialization bindings, got ok=%v cached=%+v", ok, cached)
-	}
-}
-
 func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
@@ -884,28 +835,6 @@ func localEnvironmentNvidiaProfile() *runtimev1.LocalDeviceProfile {
 func assertLocalEnvironmentFamily(t *testing.T, plan localEnvironmentPlan, family string) {
 	t.Helper()
 	_ = findLocalEnvironmentDependency(t, plan, family)
-}
-
-func upsertImportedModelAssetSelectedSourceForTest(t *testing.T, svc *Service, asset *runtimev1.LocalAssetRecord, consumer string) {
-	t.Helper()
-	root := filepath.Join(t.TempDir(), strings.NewReplacer("/", "_", "\\", "_").Replace(asset.GetAssetId()), filepath.Base(asset.GetEntry()))
-	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
-		DependencyFamily: localEnvironmentFamilyModelAsset,
-		DependencyID:     asset.GetAssetId(),
-		EnvironmentKey:   "model.asset|" + asset.GetAssetId() + "|host|windows/amd64|test",
-		SourceKind:       localEnvironmentSourceImported,
-		CanonicalRoot:    root,
-		VerifiedArtifacts: []string{
-			root,
-		},
-		Hashes: map[string]string{
-			"asset_id":       asset.GetAssetId(),
-			"local_asset_id": asset.GetLocalAssetId(),
-		},
-		SelectedConsumers: []string{consumer},
-	})
-	writeSelectedSourceLocalArtifactsForTest(t, record)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 }
 
 func findLocalEnvironmentDependency(t *testing.T, plan localEnvironmentPlan, family string) localEnvironmentPlanDependency {
