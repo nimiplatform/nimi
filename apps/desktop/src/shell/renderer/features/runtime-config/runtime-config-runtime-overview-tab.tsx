@@ -1,11 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import type { NimiRuntimeRouteCapabilityCoverageProjection } from '@nimiplatform/sdk/runtime';
 import { Surface, StatusBadge as KitStatusBadge, cn } from '@nimiplatform/kit/ui';
-import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { Button } from './runtime-config-primitives';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import {
   KeyIcon,
@@ -34,11 +32,8 @@ export function RuntimeOverviewTab({
   onOpenHealth,
 }: RuntimeOverviewTabProps) {
   const i18n = useDesktopI18nResource();
-  const commands = useDesktopRendererCommands();
   const { t } = useTranslation();
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
-  const daemonBusy = model.runtimeDaemonBusyAction !== null;
-  const canManageDaemon = commands.runtimeDaemon.available();
   const daemonIssue = describeRuntimeDaemonIssue({
     status: model.runtimeDaemonStatus,
     runtimeDaemonError: model.runtimeDaemonError,
@@ -67,20 +62,16 @@ export function RuntimeOverviewTab({
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Button data-testid="runtime-service-refresh" variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
-                {daemonBusy
-                  ? t('runtimeConfig.overview.working', { defaultValue: 'Working...' })
-                  : t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
-              </Button>
-              {daemonRunning ? (
-                <Button data-testid="runtime-service-restart" variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy} onClick={() => void model.restartRuntimeDaemon()}>
-                  {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
-                </Button>
-              ) : (
-                <Button variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy} onClick={() => void model.startRuntimeDaemon()}>
-                  {t('runtimeConfig.overview.start', { defaultValue: 'Start' })}
-                </Button>
-              )}
+              {/* Daemon lifecycle actions are single-homed on the Overview
+                  page; this tab keeps the read-only projection and routes. */}
+              <button
+                type="button"
+                data-testid="runtime-service-manage"
+                onClick={() => model.onChangePage('overview')}
+                className="text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline"
+              >
+                {t('runtimeConfig.runtime.manageDaemon', { defaultValue: 'Manage in Overview' })}
+              </button>
             </div>
           </div>
 

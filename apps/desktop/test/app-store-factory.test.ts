@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import {
   createEmptyNimiAIConfig,
   createNimiBuiltInChatAIScopeRef,
+  projectNimiRuntimeLocalAgentAIScopeRef,
   type NimiAIConfig,
 } from '@nimiplatform/sdk/ai';
 
@@ -39,8 +40,8 @@ import type {
 import { createUnavailableDesktopFirstRunPort } from '../src/shell/renderer/renderer/first-run-port.js';
 import {
   createMemoryDesktopRendererSettingsPort,
-  type PerformancePreferences,
 } from '../src/shell/renderer/renderer/settings-port.js';
+import type { AppearancePreferences } from '../src/shell/renderer/features/settings/settings-device-preferences.js';
 import { createTestStreamController } from './helpers/test-stream-controller.js';
 import { createScenarioJobController } from '../src/shell/renderer/features/turns/scenario-job-controller.js';
 import { createUnavailableDesktopRendererAuthPort } from '../src/shell/renderer/renderer/auth-port.js';
@@ -65,6 +66,12 @@ import type { RealmHumanChatData } from '../src/shell/renderer/features/chat/dat
 import { createRuntimeConfigConnectorSdkService } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.js';
 import { createAccountProfileLibraryResource } from '../src/shell/renderer/features/runtime-config/runtime-config-profile-library.js';
 
+function testChatScope(surface: 'nimi' | 'agent') {
+  return surface === 'nimi'
+    ? createNimiBuiltInChatAIScopeRef('nimi')
+    : projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test');
+}
+
 function createDependencies(input: {
   readonly commits: NimiAIConfig[];
   readonly preferences: string[];
@@ -72,9 +79,7 @@ function createDependencies(input: {
   readonly initialSurface?: 'nimi' | 'agent';
 }): AppStoreDependencies {
   return {
-    initialAIConfig: createEmptyNimiAIConfig(
-      createNimiBuiltInChatAIScopeRef(input.initialSurface ?? 'nimi'),
-    ),
+    initialAIConfig: createEmptyNimiAIConfig(testChatScope(input.initialSurface ?? 'nimi')),
     commitAIConfig(config) {
       input.commits.push(config);
     },
@@ -119,7 +124,7 @@ test('createAppStore commits AIConfig through only the owning instance dependenc
   const secondEffects = { commits: [] as NimiAIConfig[], preferences: [] as string[], modes: [] as string[] };
   const first = createAppStore(createDependencies(firstEffects));
   const second = createAppStore(createDependencies(secondEffects));
-  const nextConfig = createEmptyNimiAIConfig(createNimiBuiltInChatAIScopeRef('agent'));
+  const nextConfig = createEmptyNimiAIConfig(testChatScope('agent'));
 
   first.getState().setAIConfig(nextConfig);
 
@@ -140,7 +145,8 @@ test('AppStoreProvider resolves the store belonging to the current renderer tree
   const first = createAppStore(createDependencies(firstEffects));
   const second = createAppStore(createDependencies(secondEffects));
   function ActiveScope() {
-    return createElement('span', null, useAppStore((state) => state.aiConfig.scopeRef.surfaceId));
+    return createElement('span', null, useAppStore((state) =>
+      state.aiConfig.scopeRef.kind === 'local-agent' ? 'agent' : state.aiConfig.scopeRef.surfaceId));
   }
   const render = (store: typeof first) => renderToStaticMarkup(
     createElement(AppStoreProvider, { store }, createElement(ActiveScope)),
@@ -193,7 +199,8 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
   function InstanceSnapshot() {
     const location = useLocation();
     const { i18n } = useTranslation();
-    const surfaceId = useAppStore((state) => state.aiConfig.scopeRef.surfaceId);
+    const surfaceId = useAppStore((state) =>
+      state.aiConfig.scopeRef.kind === 'local-agent' ? 'agent' : state.aiConfig.scopeRef.surfaceId);
     return createElement(
       'span',
       null,
@@ -363,7 +370,7 @@ function createCanonicalBindings(input: {
     app: {
       projection: Object.freeze({
         initialState: () => ({
-          aiConfig: createEmptyNimiAIConfig(createNimiBuiltInChatAIScopeRef(input.surface)),
+          aiConfig: createEmptyNimiAIConfig(testChatScope(input.surface)),
           bootstrapError: null,
           bootstrapReady: true,
           chatThinkingPreference: 'off' as const,
@@ -523,21 +530,21 @@ test('renderer settings ports isolate selection, subscriptions, and preferences 
   const second = createMemoryDesktopRendererSettingsPort();
   const opened: string[] = [];
   const unsubscribe = first.subscribeOpenSection((id) => opened.push(id));
-  const firstPreferences: PerformancePreferences = {
-    hardwareAcceleration: false,
-    reduceAnimations: true,
+  const firstPreferences: AppearancePreferences = {
+    theme: 'dark',
+    reduceMotion: true,
   };
 
   first.openSection('performance');
-  first.persistPerformancePreferences(firstPreferences);
+  first.persistAppearancePreferences(firstPreferences);
 
   assert.equal(first.loadSelected('profile'), 'performance');
   assert.equal(second.loadSelected('profile'), 'profile');
   assert.deepEqual(opened, ['performance']);
-  assert.deepEqual(first.loadPerformancePreferences(), firstPreferences);
-  assert.deepEqual(second.loadPerformancePreferences(), {
-    hardwareAcceleration: true,
-    reduceAnimations: false,
+  assert.deepEqual(first.loadAppearancePreferences(), firstPreferences);
+  assert.deepEqual(second.loadAppearancePreferences(), {
+    theme: 'system',
+    reduceMotion: false,
   });
 
   unsubscribe();

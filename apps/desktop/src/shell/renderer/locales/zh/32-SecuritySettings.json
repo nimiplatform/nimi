@@ -16,6 +16,7 @@
   "enable2faLabel": "启用 2FA",
   "enable2faDescription": "登录时需要输入验证码",
   "twoFactorEnabled": "两步验证已启用",
+  "twoFactorPendingSave": "将在保存更改后生效。",
   "prepareTwoFactorFailed": "准备两步验证失败",
   "twoFactorCodeRequired": "请先输入 6 位 2FA 验证码以确认本次变更。",
   "updateSuccess": "安全设置已更新。",

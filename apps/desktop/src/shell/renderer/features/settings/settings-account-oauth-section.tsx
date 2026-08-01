@@ -5,13 +5,20 @@ import {
 } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { ICON_MAIL } from './settings-assets.js';
-import { SectionTitle } from './settings-layout-components.js';
+import {
+  Button,
+  Card,
+  Section,
+  SettingRow,
+  StatusBadge,
+} from './settings-layout-components.js';
 import { profileOauthPlatform } from './profile-oauth-platform.js';
 
 type ProfileOauthRow = {
   provider: NimiRealmOAuthProvider;
   label: string;
   subtitle: string;
+  /** i18n key for the user-facing disabled reason; render via t(). */
   disabledReason: string;
   icon: ReactNode;
 };
@@ -87,68 +94,54 @@ export function ProfileConnectedAccountsSection({
   const { t } = useTranslation();
   const oauthRows = buildProfileOauthRows();
   return (
-    <section className="mt-8">
-      <SectionTitle description={t('Profile.connectedAccountsDescription')}>
-        {t('Profile.sectionConnectedAccounts')}
-      </SectionTitle>
-      <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 hover:bg-gray-50/50 transition-colors">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
-              {ICON_MAIL}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{t('Profile.email')}</p>
-              <p className="text-xs text-gray-500">{email || t('Common.notConnected')}</p>
-            </div>
-          </div>
-          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-            {t('Common.connected')}
-          </span>
+    <Section
+      title={t('Profile.sectionConnectedAccounts')}
+      description={t('Profile.connectedAccountsDescription')}
+    >
+      <Card>
+        <div className="flex flex-col divide-y divide-[var(--nimi-border-subtle)]">
+          <SettingRow
+            icon={ICON_MAIL}
+            title={t('Profile.email')}
+            description={email || t('Common.notConnected')}
+            control={<StatusBadge status="success" text={t('Common.connected')} />}
+          />
+          {oauthRows.map((row) => {
+            const connected = connectedProviderSet.has(row.provider);
+            const pending = linkingProvider === row.provider || unlinkingProvider === row.provider;
+            const disabled = pending || (!connected && Boolean(row.disabledReason));
+            const description = connected
+              ? row.subtitle
+              : row.disabledReason
+                ? t(row.disabledReason)
+                : t('Common.notConnected');
+            return (
+              <SettingRow
+                key={row.provider}
+                icon={row.icon}
+                title={row.label}
+                description={description}
+                control={(
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={disabled}
+                    onClick={() => {
+                      if (connected) {
+                        onUnlinkProvider(row.provider);
+                      } else {
+                        onLinkProvider(row.provider);
+                      }
+                    }}
+                  >
+                    {pending ? t('Common.working') : connected ? t('Common.disconnect') : t('Common.connect')}
+                  </Button>
+                )}
+              />
+            );
+          })}
         </div>
-
-        {oauthRows.map((row) => {
-          const connected = connectedProviderSet.has(row.provider);
-          const pending = linkingProvider === row.provider || unlinkingProvider === row.provider;
-          const disabled = pending || (!connected && Boolean(row.disabledReason));
-          const actionLabel = connected ? 'Disconnect' : t('Common.connect');
-          return (
-            <div key={row.provider}>
-              <div className="h-px bg-gray-100 mx-5" />
-              <div className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-gray-50/50">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-700">
-                    {row.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{row.label}</p>
-                    <p className="text-xs text-gray-500">
-                      {connected ? row.subtitle : t('Common.notConnected')}
-                    </p>
-                    {!connected && row.disabledReason ? (
-                      <p className="mt-0.5 text-[11px] text-amber-600">{row.disabledReason}</p>
-                    ) : null}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => {
-                    if (connected) {
-                      onUnlinkProvider(row.provider);
-                    } else {
-                      onLinkProvider(row.provider);
-                    }
-                  }}
-                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-mint-400 hover:text-mint-600 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {pending ? 'Working...' : actionLabel}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+      </Card>
+    </Section>
   );
 }

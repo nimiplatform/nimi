@@ -7,10 +7,14 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useQuery } from '@tanstack/react-query';
+import { NimiText } from '@nimiplatform/kit/ui';
 import {
+  Card,
   FormFeedback,
   PageShell,
-  SectionTitle,
+  Section,
+  StatusBadge,
+  ToggleRow,
 } from './settings-layout-components.js';
 import {
   AlertCircleIcon,
@@ -21,7 +25,6 @@ import {
   InfoIcon,
   MailIcon,
   MonitorIcon,
-  SettingRow,
   UserPlusIcon,
 } from './settings-preferences-panel-parts.js';
 
@@ -130,17 +133,24 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 export function NotificationsPage() {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const [form, setForm] = useState<NotificationForm>({ ...DEFAULT_NOTIFICATION_FORM });
   const [baseline, setBaseline] = useState<NotificationForm>({ ...DEFAULT_NOTIFICATION_FORM });
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [feedback, setFeedback] = useState<{
     kind: 'info' | 'success' | 'warning' | 'error';
     message: string;
   } | null>(null);
   const autosaveTimerRef = useRef<(() => void) | null>(null);
+  // Monotonic counter bumped on every user edit; a save snapshots it so that
+  // server data landing after the save can be ignored when newer edits exist.
+  const editVersionRef = useRef(0);
+  const saveSnapshotRef = useRef<number | null>(null);
 
   const settingsQuery = useQuery({
     queryKey: ['settings-notification'],
@@ -150,6 +160,14 @@ export function NotificationsPage() {
   useEffect(() => {
     if (!settingsQuery.data) {
       return;
+    }
+    const armedSnapshot = saveSnapshotRef.current;
+    if (armedSnapshot !== null) {
+      if (editVersionRef.current !== armedSnapshot) {
+        // Newer edits landed while this save/refetch was in flight; they win.
+        return;
+      }
+      saveSnapshotRef.current = null;
     }
     const next = toNotificationForm(settingsQuery.data);
     setForm(next);
@@ -163,6 +181,12 @@ export function NotificationsPage() {
 
   const hasChanges = useMemo(() => !notificationsEqual(form, baseline), [form, baseline]);
 
+  const applyUserEdit = (patch: Partial<NotificationForm>) => {
+    editVersionRef.current += 1;
+    setSaveStatus('idle');
+    setForm((previous) => ({ ...previous, ...patch }));
+  };
+
   const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
     if (saving || !hasChanges) {
       if (!hasChanges) {
@@ -174,9 +198,19 @@ export function NotificationsPage() {
       return;
     }
     setSaving(true);
+    setSaveStatus('saving');
+    const saveSnapshot = editVersionRef.current;
+    const savedForm = form;
     try {
-      await updateNimiRealmUserNotificationSettings(bindings.sdk.realm(), toNotificationPayload(form));
+      await updateNimiRealmUserNotificationSettings(bindings.sdk.realm(), toNotificationPayload(savedForm));
+      saveSnapshotRef.current = saveSnapshot;
       await settingsQuery.refetch();
+      if (editVersionRef.current === saveSnapshot) {
+        // No newer edits arrived in flight; the saved form is the new baseline
+        // even when the refetch returns structurally identical data.
+        setBaseline(savedForm);
+      }
+      setSaveStatus('saved');
       if (!silentSuccess) {
         setFeedback({
           kind: 'success',
@@ -184,6 +218,8 @@ export function NotificationsPage() {
         });
       }
     } catch (error) {
+      saveSnapshotRef.current = null;
+      setSaveStatus('error');
       setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Notifications.updateError')),
@@ -204,6 +240,7 @@ export function NotificationsPage() {
     autosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
       autosaveTimerRef.current = null;
       if (!result.ok) {
+        setSaveStatus('error');
         setFeedback({
           kind: 'error',
           message: result.error,
@@ -219,15 +256,23 @@ export function NotificationsPage() {
     };
   }, [bindings.clock, form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
 
+  const statusNode = saveStatus === 'saving'
+    ? <StatusBadge status="info" text={t('Settings.statusSaving')} />
+    : saveStatus === 'saved'
+      ? <StatusBadge status="success" text={t('Settings.statusSaved')} />
+      : saveStatus === 'error'
+        ? <StatusBadge status="error" text={t('Settings.statusFailed')} />
+        : null;
+
   if (settingsQuery.isPending) {
     return (
       <PageShell title={t('Notifications.pageTitle')} description={t('Notifications.pageDescription')}>
-        <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-            <BellIcon className="h-6 w-6 text-gray-400" />
+        <Card>
+          <div className="flex items-center gap-3">
+            <BellIcon className="h-5 w-5 text-[var(--nimi-text-muted)]" />
+            <NimiText role="body">{t('Notifications.loading')}</NimiText>
           </div>
-          <p className="text-sm text-gray-500">{t('Notifications.loading')}</p>
-        </div>
+        </Card>
       </PageShell>
     );
   }
@@ -235,9 +280,10 @@ export function NotificationsPage() {
   if (settingsQuery.isError) {
     return (
       <PageShell title={t('Notifications.pageTitle')} description={t('Notifications.pageDescription')}>
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-          {t('Notifications.loadError')}
-        </div>
+        <FormFeedback
+          feedback={{ kind: 'error', message: t('Notifications.loadError') }}
+          title={t('Notifications.pageTitle')}
+        />
       </PageShell>
     );
   }
@@ -246,120 +292,113 @@ export function NotificationsPage() {
     <PageShell
       title={t('Notifications.pageTitle')}
       description={t('Notifications.pageDescription')}
+      status={statusNode}
     >
       <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('Notifications.pageTitle')} />
       {/* Activity Notifications */}
-      <section>
-        <SectionTitle description={t('Notifications.sectionActivityDescription')}>
-          {t('Notifications.sectionActivity')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <SettingRow
+      <Section
+        title={t('Notifications.sectionActivity')}
+        description={t('Notifications.sectionActivityDescription')}
+      >
+        <Card>
+          <ToggleRow
             icon={<MailIcon className="h-5 w-5" />}
             title={t('Notifications.directMessages')}
             description={t('Notifications.directMessagesDescription')}
             checked={form.directMessages}
-            onChange={(value) => setForm((previous) => ({ ...previous, directMessages: value }))}
+            onChange={(value) => applyUserEdit({ directMessages: value })}
           />
-          <div className="h-px bg-gray-100 mx-5" />
-          <SettingRow
+          <ToggleRow
             icon={<UserPlusIcon className="h-5 w-5" />}
             title={t('Notifications.friendRequests')}
             description={t('Notifications.friendRequestsDescription')}
             checked={form.friendRequests}
-            onChange={(value) => setForm((previous) => ({ ...previous, friendRequests: value }))}
+            onChange={(value) => applyUserEdit({ friendRequests: value })}
           />
-          <div className="h-px bg-gray-100 mx-5" />
-          <SettingRow
+          <ToggleRow
             icon={<AtSignIcon className="h-5 w-5" />}
             title={t('Notifications.mentions')}
             description={t('Notifications.mentionsDescription')}
             checked={form.mentions}
-            onChange={(value) => setForm((previous) => ({ ...previous, mentions: value }))}
+            onChange={(value) => applyUserEdit({ mentions: value })}
           />
-          <div className="h-px bg-gray-100 mx-5" />
-          <SettingRow
+          <ToggleRow
             icon={<HeartIcon className="h-5 w-5" />}
             title={t('Notifications.likes')}
             description={t('Notifications.likesDescription')}
             checked={form.likes}
-            onChange={(value) => setForm((previous) => ({ ...previous, likes: value }))}
+            onChange={(value) => applyUserEdit({ likes: value })}
           />
-        </div>
-      </section>
+        </Card>
+      </Section>
 
       {/* Gift Notifications */}
-      <section className="mt-8">
-        <SectionTitle description={t('Notifications.sectionGiftsDescription')}>
-          {t('Notifications.sectionGifts')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <SettingRow
+      <Section
+        title={t('Notifications.sectionGifts')}
+        description={t('Notifications.sectionGiftsDescription')}
+      >
+        <Card>
+          <ToggleRow
             icon={<GiftIcon className="h-5 w-5" />}
             title={t('Notifications.giftReceived')}
             description={t('Notifications.giftReceivedDescription')}
             checked={form.giftReceived}
-            onChange={(value) => setForm((previous) => ({ ...previous, giftReceived: value }))}
+            onChange={(value) => applyUserEdit({ giftReceived: value })}
           />
-          <div className="h-px bg-gray-100 mx-5" />
-          <SettingRow
+          <ToggleRow
             icon={<AlertCircleIcon className="h-5 w-5" />}
             title={t('Notifications.giftActionRequired')}
             description={t('Notifications.giftActionRequiredDescription')}
             checked={form.giftActionRequired}
-            onChange={(value) => setForm((previous) => ({ ...previous, giftActionRequired: value }))}
+            onChange={(value) => applyUserEdit({ giftActionRequired: value })}
           />
-        </div>
-      </section>
+        </Card>
+      </Section>
 
       {/* Channel Notifications */}
-      <section className="mt-8">
-        <SectionTitle description={t('Notifications.sectionChannelsDescription')}>
-          {t('Notifications.sectionChannels')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <SettingRow
+      <Section
+        title={t('Notifications.sectionChannels')}
+        description={t('Notifications.sectionChannelsDescription')}
+      >
+        <Card>
+          <ToggleRow
             icon={<BellIcon className="h-5 w-5" />}
             title={t('Notifications.inApp')}
             description={t('Notifications.inAppDescription')}
             checked={form.inApp}
-            onChange={(value) => setForm((previous) => ({ ...previous, inApp: value }))}
+            onChange={(value) => applyUserEdit({ inApp: value })}
           />
-          <div className="h-px bg-gray-100 mx-5" />
-          <SettingRow
+          <ToggleRow
             icon={<MonitorIcon className="h-5 w-5" />}
             title={t('Notifications.push')}
             description={t('Notifications.pushDescription')}
             checked={form.push}
-            onChange={(value) => setForm((previous) => ({ ...previous, push: value }))}
+            onChange={(value) => applyUserEdit({ push: value })}
           />
-          <div className="h-px bg-gray-100 mx-5" />
-          <SettingRow
+          <ToggleRow
             icon={<MailIcon className="h-5 w-5" />}
             title={t('Notifications.emailChannel')}
             description={t('Notifications.emailChannelDescription')}
             checked={form.email}
-            onChange={(value) => setForm((previous) => ({ ...previous, email: value }))}
+            onChange={(value) => applyUserEdit({ email: value })}
           />
-        </div>
-      </section>
+        </Card>
+      </Section>
 
       {/* SSOT Note */}
-      <section className="mt-8">
-        <div className="rounded-2xl border border-mint-100 bg-mint-50/50 p-5">
-          <div className="flex gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
-              <InfoIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{t('Notifications.ssotNoteTitle')}</p>
-              <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                {t('Notifications.ssotNoteDescription')}
-              </p>
-            </div>
+      <Card>
+        <div className="flex gap-3">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] text-mint-600">
+            <InfoIcon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <NimiText role="card-title">{t('Notifications.ssotNoteTitle')}</NimiText>
+            <NimiText role="helper" className="mt-0.5">
+              {t('Notifications.ssotNoteDescription')}
+            </NimiText>
           </div>
         </div>
-      </section>
+      </Card>
     </PageShell>
   );
 }

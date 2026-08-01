@@ -16,6 +16,7 @@
   "enable2faLabel": "Enable 2FA",
   "enable2faDescription": "Require a verification code when signing in",
   "twoFactorEnabled": "Two-factor authentication is enabled",
+  "twoFactorPendingSave": "Takes effect after you save your changes.",
   "prepareTwoFactorFailed": "Failed to prepare two-factor authentication",
   "twoFactorCodeRequired": "Please enter a 6-digit 2FA code to confirm this change.",
   "updateSuccess": "Security settings updated.",

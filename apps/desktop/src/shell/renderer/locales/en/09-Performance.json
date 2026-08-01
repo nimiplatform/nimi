@@ -1,22 +1,5 @@
 {
-  "pageTitle": "Performance",
-  "pageDescription": "Optimize your application performance",
-  "sectionRendering": "Rendering",
-  "hardwareAcceleration": "Hardware Acceleration",
-  "hardwareAccelerationDescription": "Use GPU for smoother rendering (restart required)",
-  "reduceAnimations": "Reduce Animations",
-  "reduceAnimationsDescription": "Minimize motion for better accessibility",
-  "sectionDeveloper": "Developer",
-  "developerMode": "Developer Mode",
-  "developerModeDescription": "Show developer tools and debug information",
-  "sectionCreatorEligibility": "Creator Eligibility",
-  "eligibility": "Eligibility",
-  "loadingEligibility": "Loading creator eligibility...",
-  "eligibilityLoadingStatus": "Loading",
-  "eligibilityLoadError": "Creator eligibility is temporarily unavailable. Try again later.",
-  "eligibilityUnavailable": "Unavailable",
-  "eligible": "Eligible",
-  "notEligible": "Not eligible",
-  "noChanges": "No performance changes to save",
-  "saveSuccess": "Performance preferences saved"
+  "pageTitle": "Developer",
+  "pageDescription": "Manage developer options for this device.",
+  "sectionDeveloper": "Developer"
 }

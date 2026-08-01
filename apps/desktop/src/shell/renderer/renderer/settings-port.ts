@@ -1,12 +1,6 @@
 import type {
   AppearancePreferences,
-  DownloadPreferences,
 } from '../features/settings/settings-device-preferences.js';
-
-export type PerformancePreferences = {
-  readonly hardwareAcceleration: boolean;
-  readonly reduceAnimations: boolean;
-};
 
 export type DesktopRendererStorageUsage = {
   readonly localStorageBytes: number;
@@ -25,28 +19,32 @@ export type DesktopRendererStorageDirs = {
   readonly auditDir: string;
 };
 
-export const DEFAULT_PERFORMANCE_PREFERENCES: PerformancePreferences = Object.freeze({
-  hardwareAcceleration: true,
-  reduceAnimations: false,
-});
-
 const VISIBLE_SETTINGS_SELECTED_IDS = Object.freeze([
   'profile',
-  'language',
   'appearance',
   'privacy',
   'security',
   'notifications',
-  'downloads',
   'performance',
   'data',
   'about-legal',
 ]);
 
+// Retired settings ids that must resolve to their successor page instead of
+// the global fallback, so persisted selections and stale deep links keep
+// landing on the content the user meant.
+const LEGACY_SETTINGS_SELECTED_ID_MAP: Readonly<Record<string, string>> = Object.freeze({
+  language: 'appearance',
+});
+
 export function normalizeSettingsSelectedId(id: string, fallback: string): string {
   const candidate = String(id || '').trim();
   if (VISIBLE_SETTINGS_SELECTED_IDS.includes(candidate)) {
     return candidate;
+  }
+  const legacyTarget = LEGACY_SETTINGS_SELECTED_ID_MAP[candidate];
+  if (legacyTarget && VISIBLE_SETTINGS_SELECTED_IDS.includes(legacyTarget)) {
+    return legacyTarget;
   }
   const fallbackCandidate = String(fallback || '').trim();
   if (VISIBLE_SETTINGS_SELECTED_IDS.includes(fallbackCandidate)) {
@@ -55,48 +53,25 @@ export function normalizeSettingsSelectedId(id: string, fallback: string): strin
   return 'profile';
 }
 
-export function normalizePerformancePreferences(
-  preferences: PerformancePreferences,
-): PerformancePreferences {
-  return Object.freeze({
-    hardwareAcceleration: preferences.hardwareAcceleration === true,
-    reduceAnimations: preferences.reduceAnimations === true,
-  });
-}
-
 export interface DesktopRendererSettingsPort {
   loadSelected(fallback: string): string;
   persistSelected(id: string): void;
   openSection(id: string): void;
   subscribeOpenSection(listener: (id: string) => void): () => void;
-  loadPerformancePreferences(): PerformancePreferences;
-  persistPerformancePreferences(preferences: PerformancePreferences): void;
   loadAppearancePreferences(): AppearancePreferences;
   persistAppearancePreferences(preferences: AppearancePreferences): void;
   subscribeAppearancePreferences(listener: (preferences: AppearancePreferences) => void): () => void;
-  loadDownloadPreferences(): DownloadPreferences;
-  persistDownloadPreferences(preferences: DownloadPreferences): void;
-  subscribeDownloadPreferences(listener: (preferences: DownloadPreferences) => void): () => void;
   estimateStorageUsage(): Promise<DesktopRendererStorageUsage>;
   loadStorageDirs(): Promise<DesktopRendererStorageDirs>;
 }
 
 export function createMemoryDesktopRendererSettingsPort(): DesktopRendererSettingsPort {
   let selectedId = 'profile';
-  let performancePreferences = DEFAULT_PERFORMANCE_PREFERENCES;
   let appearancePreferences: AppearancePreferences = {
     theme: 'system',
     reduceMotion: false,
-    highContrast: false,
-    largerText: false,
-  };
-  let downloadPreferences: DownloadPreferences = {
-    downloadLocation: '',
-    askEachTime: false,
-    autoOpenOnComplete: false,
   };
   const appearanceListeners = new Set<(preferences: AppearancePreferences) => void>();
-  const downloadListeners = new Set<(preferences: DownloadPreferences) => void>();
   const openSectionListeners = new Set<(id: string) => void>();
 
   return Object.freeze({
@@ -112,10 +87,6 @@ export function createMemoryDesktopRendererSettingsPort(): DesktopRendererSettin
       openSectionListeners.add(listener);
       return () => openSectionListeners.delete(listener);
     },
-    loadPerformancePreferences: () => ({ ...performancePreferences }),
-    persistPerformancePreferences(preferences: PerformancePreferences) {
-      performancePreferences = normalizePerformancePreferences(preferences);
-    },
     loadAppearancePreferences: () => ({ ...appearancePreferences }),
     persistAppearancePreferences(preferences: AppearancePreferences) {
       appearancePreferences = { ...preferences };
@@ -124,15 +95,6 @@ export function createMemoryDesktopRendererSettingsPort(): DesktopRendererSettin
     subscribeAppearancePreferences(listener: (preferences: AppearancePreferences) => void) {
       appearanceListeners.add(listener);
       return () => appearanceListeners.delete(listener);
-    },
-    loadDownloadPreferences: () => ({ ...downloadPreferences }),
-    persistDownloadPreferences(preferences: DownloadPreferences) {
-      downloadPreferences = { ...preferences };
-      for (const listener of downloadListeners) listener({ ...downloadPreferences });
-    },
-    subscribeDownloadPreferences(listener: (preferences: DownloadPreferences) => void) {
-      downloadListeners.add(listener);
-      return () => downloadListeners.delete(listener);
     },
     async estimateStorageUsage() {
       return Object.freeze({

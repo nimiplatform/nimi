@@ -9,29 +9,18 @@ import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge
 import { desktopBridge } from '../../bridge.js';
 import {
   DEFAULT_APPEARANCE_PREFERENCES,
-  DEFAULT_DOWNLOAD_PREFERENCES,
   DevicePreferenceProjectionError,
   projectAppearancePreferences,
-  projectDownloadPreferences,
   SETTINGS_APPEARANCE_PREFERENCES_STORAGE_KEY,
-  SETTINGS_DOWNLOAD_PREFERENCES_STORAGE_KEY,
   type AppearancePreferences,
-  type DownloadPreferences,
 } from './settings-device-preferences.js';
 import {
-  DEFAULT_PERFORMANCE_PREFERENCES,
-  normalizePerformancePreferences,
   normalizeSettingsSelectedId,
   type DesktopRendererSettingsPort,
-  type PerformancePreferences,
 } from '../../renderer/settings-port.js';
-
-export type { PerformancePreferences } from '../../renderer/settings-port.js';
 
 export const SETTINGS_SELECTED_STORAGE_KEY = 'nimi.settings.selected';
 export const SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY = 'nimi.settings.targetId';
-export const SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY = 'nimi.settings.performance.preferences.v1';
-export const SETTINGS_PERFORMANCE_PREFERENCES_EVENT = 'nimi:settings:performance-preferences-changed';
 export const SETTINGS_OPEN_SECTION_EVENT = 'nimi://settings-open-section';
 
 export function loadStoredSettingsSelected(fallback: string): string {
@@ -79,76 +68,6 @@ export function persistStoredSettingsTargetId(targetId: string): void {
   writeStorageTextTo(resolveBrowserStorage('local'), SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY, String(targetId || '').trim());
 }
 
-export function loadStoredPerformancePreferences(): PerformancePreferences {
-  const result = readStorageJsonFrom(
-    resolveBrowserStorage('local'),
-    SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY,
-    (parsed) => {
-      const payload = parseOptionalJsonObject(parsed);
-      if (!payload) {
-        return { ...DEFAULT_PERFORMANCE_PREFERENCES };
-      }
-      return {
-        hardwareAcceleration: payload.hardwareAcceleration !== false,
-        reduceAnimations: payload.reduceAnimations === true,
-      };
-    },
-  );
-  return result.state === 'ready'
-    ? result.value
-    : { ...DEFAULT_PERFORMANCE_PREFERENCES };
-}
-
-export function persistStoredPerformancePreferences(prefs: PerformancePreferences): void {
-  try {
-    const normalized = normalizePerformancePreferences(prefs);
-    const result = writeStorageJsonTo(
-      resolveBrowserStorage('local'),
-      SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY,
-      normalized,
-    );
-    if (result.state !== 'saved') {
-      return;
-    }
-    globalThis.window?.dispatchEvent?.(
-      new CustomEvent(SETTINGS_PERFORMANCE_PREFERENCES_EVENT, {
-        detail: normalized,
-      }),
-    );
-  } catch {
-    // ignore
-  }
-}
-
-export function subscribeStoredPerformancePreferences(
-  onChange: (prefs: PerformancePreferences) => void,
-): () => void {
-  const eventTarget = globalThis.window;
-  if (!eventTarget?.addEventListener) {
-    return () => undefined;
-  }
-
-  const onPreferenceEvent = (event: Event) => {
-    if (event.type === SETTINGS_PERFORMANCE_PREFERENCES_EVENT) {
-      const detail = (event as CustomEvent<PerformancePreferences>).detail;
-      onChange(normalizePerformancePreferences(detail));
-      return;
-    }
-    const storageEvent = event as StorageEvent;
-    if (storageEvent.key && storageEvent.key !== SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY) {
-      return;
-    }
-    onChange(loadStoredPerformancePreferences());
-  };
-
-  eventTarget.addEventListener(SETTINGS_PERFORMANCE_PREFERENCES_EVENT, onPreferenceEvent);
-  eventTarget.addEventListener('storage', onPreferenceEvent);
-  return () => {
-    eventTarget.removeEventListener(SETTINGS_PERFORMANCE_PREFERENCES_EVENT, onPreferenceEvent);
-    eventTarget.removeEventListener('storage', onPreferenceEvent);
-  };
-}
-
 async function estimateProductionStorageUsage() {
   const storage = resolveBrowserStorage('local');
   let localStorageBytes = 0;
@@ -176,7 +95,6 @@ async function estimateProductionStorageUsage() {
 
 export function createDesktopProductionSettingsPort(): DesktopRendererSettingsPort {
   const appearanceListeners = new Set<(value: AppearancePreferences) => void>();
-  const downloadListeners = new Set<(value: DownloadPreferences) => void>();
 
   function loadDevicePreferences<T>(
     storageKey: string,
@@ -238,19 +156,12 @@ export function createDesktopProductionSettingsPort(): DesktopRendererSettingsPo
     DEFAULT_APPEARANCE_PREFERENCES,
     projectAppearancePreferences,
   );
-  const loadDownloadPreferences = () => loadDevicePreferences(
-    SETTINGS_DOWNLOAD_PREFERENCES_STORAGE_KEY,
-    DEFAULT_DOWNLOAD_PREFERENCES,
-    projectDownloadPreferences,
-  );
 
   return Object.freeze({
     loadSelected: loadStoredSettingsSelected,
     persistSelected: persistStoredSettingsSelected,
     openSection: dispatchSettingsOpenSection,
     subscribeOpenSection: addSettingsOpenSectionListener,
-    loadPerformancePreferences: loadStoredPerformancePreferences,
-    persistPerformancePreferences: persistStoredPerformancePreferences,
     loadAppearancePreferences,
     persistAppearancePreferences: (value: AppearancePreferences) => persistDevicePreferences(
       SETTINGS_APPEARANCE_PREFERENCES_STORAGE_KEY,
@@ -261,18 +172,6 @@ export function createDesktopProductionSettingsPort(): DesktopRendererSettingsPo
       SETTINGS_APPEARANCE_PREFERENCES_STORAGE_KEY,
       appearanceListeners,
       loadAppearancePreferences,
-      listener,
-    ),
-    loadDownloadPreferences,
-    persistDownloadPreferences: (value: DownloadPreferences) => persistDevicePreferences(
-      SETTINGS_DOWNLOAD_PREFERENCES_STORAGE_KEY,
-      downloadListeners,
-      value,
-    ),
-    subscribeDownloadPreferences: (listener: (value: DownloadPreferences) => void) => subscribeDevicePreferences(
-      SETTINGS_DOWNLOAD_PREFERENCES_STORAGE_KEY,
-      downloadListeners,
-      loadDownloadPreferences,
       listener,
     ),
     estimateStorageUsage: estimateProductionStorageUsage,

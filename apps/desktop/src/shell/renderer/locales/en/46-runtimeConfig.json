@@ -40,8 +40,6 @@
     "cloudDesc": "API key connectors",
     "environment": "Environment",
     "environmentDesc": "Dependencies, engines, data root & repair",
-    "advanced": "Advanced",
-    "advancedDesc": "Rendering, updates & developer tools",
     "section": {
       "runtime": "Runtime"
     }
@@ -53,13 +51,14 @@
   },
   "environment": {
     "tabDependencies": "Dependencies & Engines",
-    "tabData": "Data & Storage"
-  },
-  "advanced": {
-    "tabPreferences": "Preferences & Updates",
-    "tabDeveloper": "Developer Tools",
-    "developerLocked": "Developer tools are hidden. Enable Developer Mode in Preferences & Updates to access internal diagnostics.",
-    "developerSectionTitle": "Developer Surfaces"
+    "tabData": "Data & Storage",
+    "dataLoadFailed": "Storage information is unavailable.",
+    "dataStorageTitle": "Storage Usage",
+    "dataStorageUsed": "Estimated used",
+    "dataStorageQuota": "Quota",
+    "dataRefresh": "Refresh",
+    "dataRootTitle": "Data Root",
+    "dataManageInSettings": "Manage cache and account data in Settings"
   },
   "overview": {
     "installedModels": "Installed Models",
@@ -341,6 +340,7 @@
     "tabAccess": "Access",
     "daemonIsRunning": "Daemon is running",
     "daemonIsStopped": "Daemon is stopped",
+    "manageDaemon": "Manage in Overview",
     "grpcBind": "gRPC Bind",
     "localEndpointShort": "Local Endpoint",
     "copy": "Copy",

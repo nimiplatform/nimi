@@ -18,7 +18,6 @@ import { OverviewPage } from './runtime-config-page-overview';
 import { CloudPage } from './runtime-config-page-cloud';
 import { ModelsPage } from './runtime-config-page-models';
 import { EnvironmentPage } from './runtime-config-page-environment';
-import { AdvancedPage } from './runtime-config-page-advanced';
 import { ProfileCatalogPage } from './runtime-config-page-profiles';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
@@ -215,11 +214,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           {activePage === 'environment' && (
             <div data-testid={E2E_IDS.runtimePageRoot('environment')} className="flex min-h-0 min-w-0 flex-1 flex-col">
               <EnvironmentPage model={model} state={state} />
-            </div>
-          )}
-          {activePage === 'advanced' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('advanced')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <AdvancedPage />
             </div>
           )}
         </ScrollArea>

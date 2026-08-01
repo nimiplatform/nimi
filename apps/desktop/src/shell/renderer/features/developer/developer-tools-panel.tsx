@@ -7,8 +7,10 @@
  * mounted only when admitted Developer Mode is on — the renderer enforces that
  * gate before this panel is ever reached (`main-layout-view.tsx`).
  *
- * The host renders developer diagnostics. It hosts no ordinary-user product
- * functionality.
+ * The host presents local-development authorization posture and activity
+ * (`LocalDevelopmentAuthorizations`) and routes technical diagnostics to the
+ * Support surface instead of duplicating it. It hosts no ordinary-user
+ * product functionality.
  */
 
 import { useCallback, useState } from 'react';
@@ -31,19 +33,49 @@ import {
   loadStoredDeveloperToolsSection,
   persistStoredDeveloperToolsSection,
 } from './developer-tools-storage.js';
-import { SupportDiagnosticsSection } from '../support/support-diagnostics-section.js';
+import { LocalDevelopmentAuthorizations } from '../local-development/local-development-authorizations.js';
+import { useAppStore } from '../../app-shell/providers/app-store.js';
 
-function renderDeveloperToolsSection(section: DeveloperToolsSectionId) {
+function DeveloperToolsDiagnosticsRoute({ onOpenSupport }: { onOpenSupport: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4 px-6 py-6">
+      <Surface tone="card" padding="none" className="max-w-xl p-5">
+        <h2 className="text-[length:var(--nimi-type-section-title-size)] font-semibold text-[var(--nimi-text-primary)]">
+          {t('DeveloperTools.diagnosticsLinkTitle')}
+        </h2>
+        <p className="mt-2 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-secondary)]">
+          {t('DeveloperTools.diagnosticsLinkBody')}
+        </p>
+        <button
+          type="button"
+          onClick={onOpenSupport}
+          data-testid="developer-tools-open-support-diagnostics"
+          className="mt-4 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline"
+        >
+          {t('DeveloperTools.diagnosticsLinkAction')}
+        </button>
+      </Surface>
+    </div>
+  );
+}
+
+function renderDeveloperToolsSection(section: DeveloperToolsSectionId, onOpenSupport: () => void) {
   switch (section) {
+    case 'local-development':
+      // D-DEV-003 local-development posture — authorization activity and
+      // management, relocated from Settings > Security to the developer surface.
+      return <LocalDevelopmentAuthorizations />;
     case 'diagnostics':
-      // D-DEV-003 technical diagnostics — reuses the typed diagnostics
-      // projection surface rather than recreating a parallel diagnostics view.
-      return <SupportDiagnosticsSection />;
+      // D-DEV-003 technical diagnostics stay single-homed in Support; the
+      // developer surface routes there instead of re-rendering a copy.
+      return <DeveloperToolsDiagnosticsRoute onOpenSupport={onOpenSupport} />;
   }
 }
 
 export function DeveloperToolsPanel() {
   const { t } = useTranslation();
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [selected, setSelected] = useState<DeveloperToolsSectionId>(
     () => loadStoredDeveloperToolsSection(),
   );
@@ -52,6 +84,10 @@ export function DeveloperToolsPanel() {
     persistStoredDeveloperToolsSection(next);
     setSelected(next);
   }, []);
+
+  const openSupportDiagnostics = useCallback(() => {
+    setActiveTab('support');
+  }, [setActiveTab]);
 
   return (
     <div
@@ -93,7 +129,7 @@ export function DeveloperToolsPanel() {
         padding="none"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl"
       >
-        {renderDeveloperToolsSection(selected)}
+        {renderDeveloperToolsSection(selected, openSupportDiagnostics)}
       </Surface>
     </div>
   );

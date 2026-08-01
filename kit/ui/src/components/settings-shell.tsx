@@ -2,6 +2,7 @@ import React, { type CSSProperties, type ReactNode } from 'react';
 import { cn, type SurfaceMaterial } from '../design-tokens.js';
 import { ScrollArea } from './scroll-area.js';
 import { Surface } from './surface.js';
+import { NimiText } from './typography.js';
 
 export function SettingsCard({
   children,
@@ -68,9 +69,9 @@ export function SettingsSectionTitle({
 }) {
   return (
     <div className={className}>
-      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{children}</h3>
+      <NimiText as="h3" role="section-title">{children}</NimiText>
       {description ? (
-        <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{description}</p>
+        <NimiText as="p" role="caption" className="mt-0.5 block">{description}</NimiText>
       ) : null}
     </div>
   );

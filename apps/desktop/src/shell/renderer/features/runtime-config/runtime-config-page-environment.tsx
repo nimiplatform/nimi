@@ -1,13 +1,13 @@
 /**
- * Environment section — canonical six-section Runtime IA.
+ * Environment section — canonical five-section Runtime IA.
  *
  * Merges the retired `runtime` (Operations) and `data-management` sections
  * (Runtime Surface Cleanup table): Nimi-managed dependencies, engines, data
- * root, storage, and repair.
+ * root, and storage.
  *
- * Data-root relocation is not an admitted ordinary Desktop feature. This
- * surface shows current storage and repair controls without exposing a
- * placeholder migration path.
+ * Data-root relocation is not an admitted ordinary Desktop feature. The data
+ * tab shows the runtime-scoped storage view only; account-level data actions
+ * (cache, account deletion, logout) live exclusively in Settings.
  */
 
 import { useState } from 'react';
@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePage } from './runtime-config-page-runtime';
-import { DataManagementPage } from '../settings/settings-data-management-page';
+import { EnvironmentDataTab } from './runtime-config-environment-data-tab';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 type EnvironmentSubTabId = 'dependencies' | 'data';
@@ -68,7 +68,7 @@ export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
         ) : null}
         {subTab === 'data' ? (
           <div data-testid={E2E_IDS.runtimeEnvironmentPane('data')} className="min-w-0">
-            <DataManagementPage />
+            <EnvironmentDataTab />
           </div>
         ) : null}
       </div>

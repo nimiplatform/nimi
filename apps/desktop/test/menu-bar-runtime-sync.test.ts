@@ -91,8 +91,12 @@ test('menu-bar Runtime sync dedupes unchanged payloads until the 10s heartbeat',
 
 test('menu-bar navigation accepts only the closed runtime pages and Settings shape', () => {
   assert.deepEqual(
-    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'advanced' }),
-    { tab: 'runtime', page: 'advanced' },
+    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'environment' }),
+    { tab: 'runtime', page: 'environment' },
+  );
+  assert.throws(
+    () => parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'advanced' }),
+    /menu-bar-open-tab-payload-invalid/u,
   );
   assert.deepEqual(parseMenuBarOpenTabPayload({ tab: 'settings' }), { tab: 'settings' });
   assert.throws(

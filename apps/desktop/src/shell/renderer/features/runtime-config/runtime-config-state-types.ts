@@ -35,20 +35,18 @@ export type CapabilityV11 = NimiRuntimeLocalRunnableAssetKindId;
 
 export type SourceIdV11 = 'local' | 'cloud';
 /**
- * Canonical six-section Runtime IA per
+ * Canonical five-section Runtime IA per
  * `.nimi/spec/desktop/shell-ui.authority.yaml`.
  * Section merges from the Runtime Surface Cleanup table:
  *  - recommend + local (Local Models) + catalog  -> models
  *  - data-management + runtime (Operations)      -> environment
- *  - performance + developer-gated tools         -> advanced
  */
 export type RuntimePageIdV11 =
   | 'overview'
   | 'profiles'
   | 'models'
   | 'cloud'
-  | 'environment'
-  | 'advanced';
+  | 'environment';
 /**
  * Sub-navigation targets used inside a section (e.g. the Models section's
  * recommend/installed/catalog sub-tabs, or cross-section "open Cloud Connectors"
@@ -125,7 +123,6 @@ export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
     || value === 'models'
     || value === 'cloud'
     || value === 'environment'
-    || value === 'advanced'
   ) {
     return value;
   }

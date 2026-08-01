@@ -1,16 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  DELETE_ACCOUNT_CONFIRMATION_TEXT,
-  isDeleteAccountConfirmationMatch,
-} from '../src/shell/renderer/features/settings/settings-data-management-page';
+import { projectAccountDeletionConfirmationState } from '../src/shell/renderer/features/settings/settings-data-management-page';
 
-test('account deletion requires the exact typed acknowledgement', () => {
-  assert.equal(DELETE_ACCOUNT_CONFIRMATION_TEXT, 'DELETE');
-  assert.equal(isDeleteAccountConfirmationMatch('DELETE'), true);
-  assert.equal(isDeleteAccountConfirmationMatch('  DELETE  '), true);
-  assert.equal(isDeleteAccountConfirmationMatch('delete'), false);
-  assert.equal(isDeleteAccountConfirmationMatch('DELETE account'), false);
-  assert.equal(isDeleteAccountConfirmationMatch(''), false);
+test('account deletion requires the explicit confirm-dialog step and gates it while pending', () => {
+  // Idle: the confirm dialog's actions are live and the dialog can be
+  // dismissed without sending any deletion request.
+  assert.deepEqual(projectAccountDeletionConfirmationState(false), {
+    actionsDisabled: false,
+    canDismiss: true,
+  });
+
+  // Pending: the in-flight deletion request locks the dialog actions and
+  // blocks dismissal so the request cannot be doubled or abandoned silently.
+  assert.deepEqual(projectAccountDeletionConfirmationState(true), {
+    actionsDisabled: true,
+    canDismiss: false,
+  });
 });

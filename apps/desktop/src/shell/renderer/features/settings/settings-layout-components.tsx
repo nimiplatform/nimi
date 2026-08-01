@@ -1,16 +1,17 @@
-import { useEffect, type ComponentProps, type ReactNode } from 'react';
+import { type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import {
   AppCardSurface,
   Button as KitButton,
+  NimiText,
   SettingsPageShell as KitSettingsPageShell,
   SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
+  Toggle as KitToggle,
   cn,
 } from '@nimiplatform/kit/ui';
-import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
-import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import {
   useDesktopCardMotion,
   useDesktopInteractiveMotion,
@@ -18,6 +19,77 @@ import {
 } from '../../ui/motion/desktop-motion';
 
 type AppCardSurfaceStyle = ComponentProps<typeof AppCardSurface>['style'];
+
+/* ------------------------------------------------------------------ */
+/*  PageShell — settings page chrome: header + kit scroll shell       */
+/* ------------------------------------------------------------------ */
+
+export function PageShell({
+  title,
+  description,
+  status,
+  children,
+  footer,
+  contentClassName,
+}: {
+  title: string;
+  description?: string;
+  status?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  contentClassName?: string;
+}) {
+  return (
+    <KitSettingsPageShell
+      footer={footer}
+      scrollClassName="bg-transparent"
+      viewportClassName="bg-transparent"
+      contentClassName={cn('w-full max-w-4xl gap-4 px-5 py-5', contentClassName)}
+    >
+      <header className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <NimiText as="h2" role="page-title">
+            {title}
+          </NimiText>
+          {description ? (
+            <NimiText role="helper" className="mt-1">
+              {description}
+            </NimiText>
+          ) : null}
+        </div>
+        {status ? <div className="flex shrink-0 items-center pt-1">{status}</div> : null}
+      </header>
+      {children}
+    </KitSettingsPageShell>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Section — titled settings section (16px rhythm via PageShell gap) */
+/* ------------------------------------------------------------------ */
+
+export function Section({
+  title,
+  description,
+  children,
+  className,
+}: {
+  title?: string;
+  description?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn('flex flex-col gap-2', className)}>
+      {title ? <KitSettingsSectionTitle description={description}>{title}</KitSettingsSectionTitle> : null}
+      {children}
+    </section>
+  );
+}
+
+export function SectionTitle({ children, description }: { children: ReactNode; description?: string }) {
+  return <KitSettingsSectionTitle description={description}>{children}</KitSettingsSectionTitle>;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Card — thin wrapper around kit Surface with tone="card"           */
@@ -39,12 +111,8 @@ export function Card({
       whileHover={cardMotion.whileHover}
       whileTap={cardMotion.whileTap}
       transition={cardMotion.transition}
-      className={cn(
-        className,
-      )}
-      style={style}
     >
-      <AppCardSurface kind="operational-solid">
+      <AppCardSurface kind="operational-solid" className={cn('p-4', className)} style={style}>
         {children}
       </AppCardSurface>
     </motion.div>
@@ -52,49 +120,84 @@ export function Card({
 }
 
 /* ------------------------------------------------------------------ */
-/*  PageShell — settings page chrome with kit ScrollArea              */
+/*  SettingRow / ToggleRow — canonical row composition                */
 /* ------------------------------------------------------------------ */
 
-export function PageShell({
-  children,
-  footer,
-  contentClassName,
+export function SettingRow({
+  icon,
+  title,
+  description,
+  control,
+  className,
 }: {
+  icon?: ReactNode;
   title: string;
   description?: string;
-  children: ReactNode;
-  footer?: ReactNode;
-  contentClassName?: string;
+  control: ReactNode;
+  className?: string;
 }) {
   return (
-    <KitSettingsPageShell
-      footer={footer}
-      scrollClassName="bg-transparent"
-      viewportClassName="bg-transparent"
-      contentClassName={cn('w-full max-w-4xl px-5 py-5', contentClassName)}
-    >
-      {children}
-    </KitSettingsPageShell>
+    <div className={cn('flex flex-wrap items-center gap-3 py-3', className)}>
+      {icon ? (
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] text-[var(--nimi-text-muted)]">
+          {icon}
+        </span>
+      ) : null}
+      <div className="min-w-0 flex-1 basis-48">
+        <p className="text-[length:var(--nimi-type-label-size)] font-medium text-[var(--nimi-text-primary)]">{title}</p>
+        {description ? (
+          <p className="mt-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{description}</p>
+        ) : null}
+      </div>
+      <div className="max-w-full shrink-0">{control}</div>
+    </div>
+  );
+}
+
+export function ToggleRow({
+  icon,
+  title,
+  description,
+  checked,
+  onChange,
+  disabled,
+  className,
+}: {
+  icon?: ReactNode;
+  title: string;
+  description?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <SettingRow
+      icon={icon}
+      title={title}
+      description={description}
+      className={className}
+      control={<KitToggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={title} />}
+    />
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  SectionTitle — typography composition (kept as-is)                */
-/* ------------------------------------------------------------------ */
-
-export function SectionTitle({ children, description }: { children: ReactNode; description?: string }) {
-  return <KitSettingsSectionTitle description={description}>{children}</KitSettingsSectionTitle>;
-}
-
-/* ------------------------------------------------------------------ */
-/*  InfoRow — layout composition (kept as-is)                         */
+/*  InfoRow — label/value row                                         */
 /* ------------------------------------------------------------------ */
 
 export function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex items-center justify-between py-2">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className={`text-sm font-medium ${highlight ? 'text-mint-600' : 'text-gray-900'}`}>{value}</span>
+      <span className="text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-secondary)]">{label}</span>
+      <span
+        className={cn(
+          'text-[length:var(--nimi-type-body-size)] font-medium',
+          highlight ? 'text-mint-600' : 'text-[var(--nimi-text-primary)]',
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -151,11 +254,13 @@ export function SaveFooter({
   onSave,
   saving,
   showCancel = true,
+  disabled = false,
 }: {
   onCancel?: () => void;
   onSave?: () => void;
   saving?: boolean;
   showCancel?: boolean;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation();
   const reducedMotion = useDesktopReducedMotion();
@@ -172,7 +277,7 @@ export function SaveFooter({
           {t('Common.cancel')}
         </Button>
       ) : null}
-      <Button variant="primary" onClick={onSave} disabled={saving}>
+      <Button variant="primary" onClick={onSave} disabled={saving || disabled}>
         {saving ? t('Common.saving') : t('Common.saveChanges')}
       </Button>
     </motion.div>
@@ -204,15 +309,22 @@ export function StatusBadge({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  FormFeedback — real inline feedback (no toast-only dead props)    */
+/* ------------------------------------------------------------------ */
+
 export function FormFeedback(props: {
   feedback: InlineFeedbackState | null;
   title?: string;
   onDismiss?: () => void;
   className?: string;
 }) {
-  const { feedback } = props;
-  useEffect(() => {
-    emitFeedbackToast(feedback);
-  }, [feedback]);
-  return null;
+  return (
+    <InlineFeedback
+      feedback={props.feedback}
+      title={props.title}
+      onDismiss={props.onDismiss}
+      className={props.className}
+    />
+  );
 }

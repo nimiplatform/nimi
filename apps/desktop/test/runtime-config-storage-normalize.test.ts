@@ -7,7 +7,7 @@ test('runtime config storage normalization drops stale local runtime endpoint an
   const normalized = normalizeStoredStateV11({
     version: 12,
     initializedByV11: true,
-    activePage: 'advanced',
+    activePage: 'environment',
     diagnosticsCollapsed: false,
     uiMode: 'advanced',
     selectedSource: 'local',

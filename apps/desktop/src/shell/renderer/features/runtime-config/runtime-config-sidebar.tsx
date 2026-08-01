@@ -57,21 +57,11 @@ const ICON_ENVIRONMENT = (
   </svg>
 );
 
-const ICON_ADVANCED = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33" />
-    <path d="M4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.3l.06.06A1.65 1.65 0 0 0 8.92 4" />
-    <path d="M9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 4.3 16.96l.06-.06A1.65 1.65 0 0 0 4 15.08" />
-    <path d="M15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06A2 2 0 1 1 19.7 7.04l-.06.06A1.65 1.65 0 0 0 20 8.92" />
-  </svg>
-);
-
 /**
- * Canonical six-section Runtime IA per
+ * Canonical five-section Runtime IA per
  * `.nimi/spec/desktop/shell-ui.authority.yaml`.
  * Developer-only surfaces are NOT ordinary entries — they
- * live behind admitted developer mode inside the Advanced section.
+ * live in the developer-mode-gated Developer Tools tab.
  */
 export const RUNTIME_SIDEBAR_ITEMS: Array<{
   id: RuntimePageIdV11;
@@ -108,12 +98,6 @@ export const RUNTIME_SIDEBAR_ITEMS: Array<{
     section: 'Runtime',
     label: 'Environment',
     icon: ICON_ENVIRONMENT,
-  },
-  {
-    id: 'advanced',
-    section: 'Runtime',
-    label: 'Advanced',
-    icon: ICON_ADVANCED,
   },
 ];
 

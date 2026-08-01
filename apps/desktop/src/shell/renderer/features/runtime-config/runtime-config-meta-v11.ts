@@ -21,8 +21,4 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Environment',
     description: 'Nimi-managed dependencies, engines, data root, storage, and repair.',
   },
-  advanced: {
-    name: 'Advanced',
-    description: 'Rendering preferences, updates, and developer-only surfaces.',
-  },
 };

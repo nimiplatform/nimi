@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   Button,
+  Card,
   PageShell,
-  SectionTitle,
+  Section,
 } from './settings-layout-components.js';
 
 function FileTextIcon({ className = '' }: { className?: string }) {
@@ -49,14 +50,14 @@ function LegalDocumentCard({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] bg-mint-100 text-mint-600">
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{title}</p>
-          <p className="mt-1 text-sm text-gray-500">{description}</p>
+          <p className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{title}</p>
+          <p className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">{description}</p>
         </div>
       </div>
       <Button
@@ -67,7 +68,7 @@ function LegalDocumentCard({
       >
         {t('Settings.aboutLegalOpenDocument')}
       </Button>
-    </div>
+    </Card>
   );
 }
 
@@ -79,13 +80,9 @@ export function AboutLegalPage() {
     <PageShell
       title={t('Settings.aboutLegalTitle')}
       description={t('Settings.aboutLegalDescription')}
-      contentClassName="max-w-3xl"
     >
-      <section>
-        <SectionTitle>
-          {t('Settings.sectionAboutLegal')}
-        </SectionTitle>
-        <div className="mt-3 grid gap-3">
+      <Section title={t('Settings.sectionAboutLegal')}>
+        <div className="grid gap-3">
           <LegalDocumentCard
             title={t('Legal.terms.title')}
             description={t('Settings.aboutLegalTermsDescription')}
@@ -99,7 +96,7 @@ export function AboutLegalPage() {
             onOpen={() => setActiveTab('privacy-policy')}
           />
         </div>
-      </section>
+      </Section>
     </PageShell>
   );
 }

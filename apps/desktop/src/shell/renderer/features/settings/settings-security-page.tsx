@@ -7,22 +7,29 @@ import {
   prepareNimiRealmTwoFactor,
   updateNimiRealmPassword,
 } from '@nimiplatform/sdk/realm';
+import { FieldShell, InlineAlert, NimiText, TextField } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { FormFeedback, PageShell, SaveFooter, SectionTitle } from './settings-layout-components.js';
+import {
+  Button,
+  Card,
+  FormFeedback,
+  PageShell,
+  SaveFooter,
+  Section,
+  StatusBadge,
+  ToggleRow,
+} from './settings-layout-components.js';
 import {
   CheckIcon,
   EyeIcon,
   EyeOffIcon,
   LockIcon,
   MonitorIcon,
-  PasswordField,
-  SettingRow,
   ShieldIcon,
 } from './settings-security-controls.js';
-import { LocalDevelopmentAuthorizations } from '../local-development/local-development-authorizations';
 
 export function SecurityPage() {
   const realmSocialData = useRealmSocialData();
@@ -30,12 +37,15 @@ export function SecurityPage() {
   const bindings = useDesktopRendererBindings();
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
-  const initialTwoFactorEnabled = authUser?.isTwoFactorEnabled === true;
+  // Server-confirmed 2FA state, sourced from the auth session store. The
+  // "enabled" confirmation may only render from this value.
+  const serverTwoFactorEnabled = authUser?.isTwoFactorEnabled === true;
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [twoFactor, setTwoFactor] = useState(initialTwoFactorEnabled);
+  // Pending user intent; only becomes server-confirmed after a successful save.
+  const [twoFactorIntent, setTwoFactorIntent] = useState(serverTwoFactorEnabled);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [twoFactorSecret, setTwoFactorSecret] = useState('');
   const [twoFactorUri, setTwoFactorUri] = useState('');
@@ -44,19 +54,21 @@ export function SecurityPage() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const passwordsMatch = newPw === confirmPw;
+  const twoFactorDirty = twoFactorIntent !== serverTwoFactorEnabled;
+  const isDirty = newPw.trim().length > 0 || twoFactorDirty;
 
   useEffect(() => {
-    setTwoFactor(initialTwoFactorEnabled);
-  }, [initialTwoFactorEnabled]);
+    setTwoFactorIntent(serverTwoFactorEnabled);
+  }, [serverTwoFactorEnabled]);
 
   useEffect(() => {
-    if (!twoFactor) {
+    if (!twoFactorIntent) {
       setRevealTwoFactorSecret(false);
     }
-  }, [twoFactor]);
+  }, [twoFactorIntent]);
 
   useEffect(() => {
-    if (!twoFactor || initialTwoFactorEnabled || twoFactorSecret || preparingTwoFactor) {
+    if (!twoFactorIntent || serverTwoFactorEnabled || twoFactorSecret || preparingTwoFactor) {
       return;
     }
     setPreparingTwoFactor(true);
@@ -70,17 +82,17 @@ export function SecurityPage() {
           kind: 'error',
           message: error instanceof Error ? error.message : t('SecuritySettings.prepareTwoFactorFailed'),
         });
-        setTwoFactor(false);
+        setTwoFactorIntent(serverTwoFactorEnabled);
       })
       .finally(() => {
         setPreparingTwoFactor(false);
       });
   }, [
-    initialTwoFactorEnabled,
+    serverTwoFactorEnabled,
     bindings.sdk,
     preparingTwoFactor,
     t,
-    twoFactor,
+    twoFactorIntent,
     twoFactorSecret,
   ]);
 
@@ -109,7 +121,7 @@ export function SecurityPage() {
   };
 
   const handleSave = async () => {
-    if (saving) {
+    if (saving || !isDirty) {
       return;
     }
     if (newPw && !passwordsMatch) {
@@ -119,7 +131,7 @@ export function SecurityPage() {
       });
       return;
     }
-    if (twoFactor !== initialTwoFactorEnabled && twoFactorCode.trim().length !== 6) {
+    if (twoFactorDirty && twoFactorCode.trim().length !== 6) {
       setFeedback({
         kind: 'error',
         message: t('SecuritySettings.twoFactorCodeRequired'),
@@ -135,26 +147,26 @@ export function SecurityPage() {
         });
       }
 
-      if (twoFactor !== initialTwoFactorEnabled) {
+      if (twoFactorDirty) {
         const payload = {
           code: twoFactorCode.trim(),
         };
-        if (twoFactor) {
+        if (twoFactorIntent) {
           await enableNimiRealmTwoFactor(bindings.sdk.realm(), payload);
         } else {
           await disableNimiRealmTwoFactor(bindings.sdk.realm(), payload);
         }
       }
 
-      if (newPw.trim() || twoFactor !== initialTwoFactorEnabled) {
-        await refreshCurrentUser();
-      }
+      // Refetch the current user so the store (and thus the server-confirmed
+      // 2FA state) reflects the save; the sync effect then promotes intent.
+      await refreshCurrentUser();
 
       setCurrentPw('');
       setNewPw('');
       setConfirmPw('');
       setTwoFactorCode('');
-      if (!twoFactor) {
+      if (!twoFactorIntent) {
         setTwoFactorSecret('');
         setTwoFactorUri('');
         setRevealTwoFactorSecret(false);
@@ -180,118 +192,140 @@ export function SecurityPage() {
   const maskedTwoFactorUri = revealTwoFactorSecret
     ? twoFactorUri
     : '•'.repeat(Math.max(12, Math.min(twoFactorUri.length, 32)));
+  const showPasswordMismatch = Boolean(newPw && confirmPw && !passwordsMatch);
 
   return (
     <PageShell
       title={t('SecuritySettings.pageTitle')}
       description={t('SecuritySettings.pageDescription')}
+      footer={(
+        <SaveFooter
+          onSave={() => {
+            void handleSave();
+          }}
+          saving={saving}
+          disabled={!isDirty}
+          showCancel={false}
+        />
+      )}
     >
       {feedback ? (
-        <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-6" />
+        <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
       ) : null}
-      {/* Change Password */}
-      <section>
-        <SectionTitle>{t('SecuritySettings.changePasswordTitle')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="space-y-4">
-            <PasswordField
-              label={t('SecuritySettings.currentPasswordLabel')}
-              value={currentPw}
-              onChange={setCurrentPw}
-              placeholder={t('SecuritySettings.currentPasswordPlaceholder')}
-              showPassword={showPassword}
-              icon={<LockIcon className="h-5 w-5" />}
-            />
-            <PasswordField
-              label={t('SecuritySettings.newPasswordLabel')}
-              value={newPw}
-              onChange={setNewPw}
-              placeholder={t('SecuritySettings.newPasswordPlaceholder')}
-              showPassword={showPassword}
-            />
-            <div>
-              <PasswordField
-                label={t('SecuritySettings.confirmPasswordLabel')}
-                value={confirmPw}
-                onChange={setConfirmPw}
-                placeholder={t('SecuritySettings.confirmPasswordPlaceholder')}
-                showPassword={showPassword}
-              />
-              {newPw && confirmPw && !passwordsMatch && (
-                <p className="mt-1.5 text-xs text-red-500">{t('SecuritySettings.passwordMismatch')}</p>
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="mt-4 flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-            {showPassword ? t('SecuritySettings.hidePasswords') : t('SecuritySettings.showPasswords')}
-          </button>
-        </div>
-      </section>
 
-      {/* Two-Factor Authentication */}
-      <section className="mt-8">
-        <SectionTitle description={t('SecuritySettings.twoFactorDescription')}>
-          {t('SecuritySettings.twoFactorTitle')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <SettingRow
+      <Section title={t('SecuritySettings.changePasswordTitle')}>
+        <Card>
+          <div className="flex flex-col gap-4">
+            <FieldShell label={t('SecuritySettings.currentPasswordLabel')}>
+              <TextField
+                type={showPassword ? 'text' : 'password'}
+                value={currentPw}
+                onChange={(event) => setCurrentPw(event.target.value)}
+                placeholder={t('SecuritySettings.currentPasswordPlaceholder')}
+                leading={<LockIcon className="h-4 w-4" />}
+                autoComplete="current-password"
+              />
+            </FieldShell>
+            <FieldShell label={t('SecuritySettings.newPasswordLabel')}>
+              <TextField
+                type={showPassword ? 'text' : 'password'}
+                value={newPw}
+                onChange={(event) => setNewPw(event.target.value)}
+                placeholder={t('SecuritySettings.newPasswordPlaceholder')}
+                autoComplete="new-password"
+              />
+            </FieldShell>
+            <FieldShell
+              label={t('SecuritySettings.confirmPasswordLabel')}
+              message={showPasswordMismatch ? t('SecuritySettings.passwordMismatch') : undefined}
+              messageTone="danger"
+            >
+              <TextField
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPw}
+                onChange={(event) => setConfirmPw(event.target.value)}
+                placeholder={t('SecuritySettings.confirmPasswordPlaceholder')}
+                tone={showPasswordMismatch ? 'danger' : 'default'}
+                autoComplete="new-password"
+              />
+            </FieldShell>
+          </div>
+          <div className="mt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? t('SecuritySettings.hidePasswords') : t('SecuritySettings.showPasswords')}
+            </Button>
+          </div>
+        </Card>
+      </Section>
+
+      <Section
+        title={t('SecuritySettings.twoFactorTitle')}
+        description={t('SecuritySettings.twoFactorDescription')}
+      >
+        <Card>
+          <ToggleRow
             icon={<ShieldIcon className="h-5 w-5" />}
             title={t('SecuritySettings.enable2faLabel')}
             description={t('SecuritySettings.enable2faDescription')}
-            checked={twoFactor}
-            onChange={setTwoFactor}
+            checked={twoFactorIntent}
+            onChange={setTwoFactorIntent}
             disabled={preparingTwoFactor || saving}
           />
-        </div>
-        {twoFactor && (
-          <div className="mt-3 rounded-2xl border border-green-100 bg-green-50/50 p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
-                <CheckIcon className="h-4 w-4" />
-              </div>
-              <p className="text-sm text-green-700">{t('SecuritySettings.twoFactorEnabled')}</p>
-            </div>
-          </div>
-        )}
-        {twoFactor && !initialTwoFactorEnabled ? (
-          <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-medium text-gray-700">{t('SecuritySettings.newTwoFactorSetup')}</p>
+        </Card>
+        {serverTwoFactorEnabled ? (
+          <InlineAlert tone="success" icon={<CheckIcon className="h-4 w-4" />}>
+            {t('SecuritySettings.twoFactorEnabled')}
+          </InlineAlert>
+        ) : null}
+        {twoFactorDirty ? (
+          <InlineAlert tone="info">
+            {t('SecuritySettings.twoFactorPendingSave')}
+          </InlineAlert>
+        ) : null}
+        {twoFactorIntent && !serverTwoFactorEnabled ? (
+          <Card>
+            <NimiText role="label">{t('SecuritySettings.newTwoFactorSetup')}</NimiText>
             {twoFactorSecret || twoFactorUri ? (
-              <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <div className="mt-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3">
                 {twoFactorSecret ? (
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                  <div className="flex flex-col gap-1">
+                    <NimiText role="caption" className="uppercase tracking-wide">
                       {t('SecuritySettings.secretLabel', { defaultValue: 'Secret' })}
+                    </NimiText>
+                    <p className="break-all font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-primary)]">
+                      {maskedTwoFactorSecret}
                     </p>
-                    <p className="break-all font-mono text-xs text-gray-700">{maskedTwoFactorSecret}</p>
                   </div>
                 ) : null}
                 {twoFactorUri ? (
-                  <div className="mt-3 space-y-1">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                  <div className="mt-3 flex flex-col gap-1">
+                    <NimiText role="caption" className="uppercase tracking-wide">
                       {t('SecuritySettings.uriLabel', { defaultValue: 'URI' })}
+                    </NimiText>
+                    <p className="break-all font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+                      {maskedTwoFactorUri}
                     </p>
-                    <p className="break-all font-mono text-[11px] text-gray-500">{maskedTwoFactorUri}</p>
                   </div>
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setRevealTwoFactorSecret((current) => !current)}
-                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
                   >
                     {revealTwoFactorSecret
                       ? t('SecuritySettings.hideSecret', { defaultValue: 'Hide secret' })
                       : t('SecuritySettings.revealSecret', { defaultValue: 'Reveal secret' })}
-                  </button>
+                  </Button>
                   {twoFactorSecret ? (
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => {
                         void copyTwoFactorValue(
                           twoFactorSecret,
@@ -299,80 +333,70 @@ export function SecurityPage() {
                           'Secret copied',
                         );
                       }}
-                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
                     >
                       {t('SecuritySettings.copySecret', { defaultValue: 'Copy secret' })}
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               </div>
             ) : null}
             <div className="mt-3">
-              <label className="mb-2 block text-xs font-medium text-gray-700">
-                {t('SecuritySettings.authenticatorCodeLabel')}
-              </label>
-              <input
+              <FieldShell label={t('SecuritySettings.authenticatorCodeLabel')}>
+                <TextField
+                  type="text"
+                  value={twoFactorCode}
+                  onChange={(event) => {
+                    setTwoFactorCode(event.target.value.replace(/\D+/g, '').slice(0, 6));
+                  }}
+                  placeholder="123456"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                />
+              </FieldShell>
+            </div>
+          </Card>
+        ) : null}
+        {!twoFactorIntent && serverTwoFactorEnabled ? (
+          <Card>
+            <FieldShell label={t('SecuritySettings.disableTwoFactorCodeLabel')}>
+              <TextField
                 type="text"
                 value={twoFactorCode}
                 onChange={(event) => {
                   setTwoFactorCode(event.target.value.replace(/\D+/g, '').slice(0, 6));
                 }}
                 placeholder="123456"
-                className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+                inputMode="numeric"
+                autoComplete="one-time-code"
               />
-            </div>
-          </div>
+            </FieldShell>
+          </Card>
         ) : null}
-        {!twoFactor && initialTwoFactorEnabled ? (
-          <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <label className="mb-2 block text-xs font-medium text-gray-700">
-              {t('SecuritySettings.disableTwoFactorCodeLabel')}
-            </label>
-            <input
-              type="text"
-              value={twoFactorCode}
-              onChange={(event) => {
-                setTwoFactorCode(event.target.value.replace(/\D+/g, '').slice(0, 6));
-              }}
-              placeholder="123456"
-              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
-            />
-          </div>
-        ) : null}
-      </section>
+      </Section>
 
-      {/* Active Sessions */}
-      <section className="mt-8">
-        <SectionTitle description={t('SecuritySettings.activeSessionsDescription')}>
-          {t('SecuritySettings.activeSessionsTitle')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <Section
+        title={t('SecuritySettings.activeSessionsTitle')}
+        description={t('SecuritySettings.activeSessionsDescription')}
+      >
+        <Card>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]">
                 <MonitorIcon className="h-5 w-5" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">{t('SecuritySettings.thisDevice')}</p>
-                <p className="text-xs text-gray-500">{t('SecuritySettings.thisDeviceLastActive')}</p>
+              <div className="flex flex-col">
+                <NimiText role="label" className="text-[var(--nimi-text-primary)]">
+                  {t('SecuritySettings.thisDevice')}
+                </NimiText>
+                <NimiText role="caption">
+                  {t('SecuritySettings.thisDeviceLastActive')}
+                </NimiText>
               </div>
             </div>
-            <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-              {t('SecuritySettings.currentSession')}
-            </span>
+            <StatusBadge status="success" text={t('SecuritySettings.currentSession')} />
           </div>
-        </div>
-      </section>
-
-      <LocalDevelopmentAuthorizations />
-
-      <SaveFooter
-        onSave={() => {
-          void handleSave();
-        }}
-        saving={saving}
-        showCancel={false}
-      />
+        </Card>
+      </Section>
     </PageShell>
   );
 }

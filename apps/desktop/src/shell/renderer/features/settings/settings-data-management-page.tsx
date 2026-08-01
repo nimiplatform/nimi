@@ -3,15 +3,18 @@ import { requestNimiRealmAccountDeletion } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { logoutAndClearSession, useLogoutSessionDependencies } from '../auth/logout';
 import type { DesktopRendererStorageDirs } from '../../renderer/settings-port.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   Button,
+  Card,
   FormFeedback,
+  InfoRow,
   PageShell,
-  SectionTitle,
+  Section,
 } from './settings-layout-components.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
@@ -22,10 +25,14 @@ type StorageSnapshot = {
   estimatedQuotaBytes: number;
 };
 
-export const DELETE_ACCOUNT_CONFIRMATION_TEXT = 'DELETE';
-
-export function isDeleteAccountConfirmationMatch(value: string): boolean {
-  return value.trim() === DELETE_ACCOUNT_CONFIRMATION_TEXT;
+export function projectAccountDeletionConfirmationState(deleting: boolean): {
+  readonly actionsDisabled: boolean;
+  readonly canDismiss: boolean;
+} {
+  return {
+    actionsDisabled: deleting,
+    canDismiss: !deleting,
+  };
 }
 
 function formatBytes(bytes: number): string {
@@ -59,7 +66,6 @@ export function DataManagementPage() {
   const logoutDependencies = useLogoutSessionDependencies();
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
-  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [resolvedDataRoot, setResolvedDataRoot] = useState('');
   const [storage, setStorage] = useState<StorageSnapshot>({
@@ -113,7 +119,7 @@ export function DataManagementPage() {
   const usagePercent = storage.estimatedQuotaBytes > 0
     ? Math.min(100, Math.round((storage.estimatedUsageBytes / storage.estimatedQuotaBytes) * 100))
     : 0;
-  const deleteConfirmationMatches = isDeleteAccountConfirmationMatch(deleteConfirmationText);
+  const deleteConfirmationState = projectAccountDeletionConfirmationState(deleting);
 
   const handleClearCache = () => {
     queryClient.clear();
@@ -125,15 +131,12 @@ export function DataManagementPage() {
     if (deleting) {
       return;
     }
-    if (!deleteConfirmationMatches) {
-      setFeedback({ kind: 'warning', message: t('DataManagement.deleteAccountConfirmationRequired') });
-      return;
-    }
     setDeleting(true);
     try {
       const result = await requestNimiRealmAccountDeletion(bindings.sdk.realm(), {
         reason: 'user_request',
       });
+      setDeleteConfirmationOpen(false);
       if (!result.accepted) {
         setFeedback({
           kind: 'warning',
@@ -144,11 +147,9 @@ export function DataManagementPage() {
       setFeedback({
         kind: 'warning',
         message: result.taskId
-          ? `Account deletion requested (task ${result.taskId}).`
+          ? t('DataManagement.deleteAccountRequested', { taskId: result.taskId })
           : t('DataManagement.deleteAccountWarning'),
       });
-      setDeleteConfirmationOpen(false);
-      setDeleteConfirmationText('');
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -160,152 +161,101 @@ export function DataManagementPage() {
   };
 
   return (
-    <PageShell title={t('DataManagement.pageTitle')} description={t('DataManagement.pageDescription')} contentClassName="max-w-4xl">
+    <PageShell title={t('DataManagement.pageTitle')} description={t('DataManagement.pageDescription')}>
       {feedback ? (
         <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-6" />
       ) : null}
       {/* Storage Usage */}
-      <section>
-        <SectionTitle>{t('DataManagement.storageUsageTitle')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="divide-y divide-gray-100">
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm text-gray-600">{t('DataManagement.storageChats')}</span>
-              <span className="text-sm font-medium text-gray-900">{formatBytes(storage.queryCacheBytes)}</span>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm text-gray-600">{t('DataManagement.storageMediaFiles')}</span>
-              <span className="text-sm font-medium text-gray-900">{formatBytes(storage.estimatedUsageBytes)}</span>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm text-gray-600">{t('DataManagement.storageCache')}</span>
-              <span className="text-sm font-medium text-gray-900">{formatBytes(storage.localStorageBytes)}</span>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <span className="text-sm font-medium text-gray-900">{t('DataManagement.storageTotalUsed')}</span>
-              <span className="text-sm font-semibold text-mint-600">{formatBytes(totalTrackedBytes)}</span>
-            </div>
+      <Section title={t('DataManagement.storageUsageTitle')}>
+        <Card>
+          <div className="divide-y divide-[var(--nimi-border-subtle)]">
+            <InfoRow label={t('DataManagement.storageChats')} value={formatBytes(storage.queryCacheBytes)} />
+            <InfoRow label={t('DataManagement.storageMediaFiles')} value={formatBytes(storage.estimatedUsageBytes)} />
+            <InfoRow label={t('DataManagement.storageCache')} value={formatBytes(storage.localStorageBytes)} />
+            <InfoRow label={t('DataManagement.storageTotalUsed')} value={formatBytes(totalTrackedBytes)} highlight />
           </div>
           {/* Progress Bar */}
-          <div className="mt-4 rounded-xl bg-gray-50 p-4">
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
+          <div className="mt-4 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-4">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--nimi-surface-active)]">
               <div
                 className="h-full rounded-full bg-mint-500 transition-all duration-500 ease-out"
                 style={{ width: `${usagePercent}%` }}
               />
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
               {storage.estimatedQuotaBytes > 0
-                ? `${usagePercent}% of ${formatBytes(storage.estimatedQuotaBytes)} used`
+                ? t('DataManagement.storageUsageSummary', {
+                  percent: usagePercent,
+                  quota: formatBytes(storage.estimatedQuotaBytes),
+                })
                 : t('DataManagement.storageUsageFootnote')}
             </p>
           </div>
-        </div>
-      </section>
+        </Card>
+      </Section>
 
-      <section className="mt-8">
-        <SectionTitle>{t('DataManagement.dataDirTitle')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-          <div className="space-y-1 text-xs text-gray-500">
-            <p>{t('DataManagement.dataRootLabel')}: <span className="break-all text-gray-700">{resolvedDataRoot || '-'}</span></p>
+      <Section title={t('DataManagement.dataDirTitle')}>
+        <Card>
+          <div className="space-y-4">
+            <div className="space-y-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+              <p>{t('DataManagement.dataRootLabel')}: <span className="break-all text-[var(--nimi-text-secondary)]">{resolvedDataRoot || '-'}</span></p>
+            </div>
+            <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning)]">
+              {t('DataManagement.dataDirHelp')}
+            </p>
           </div>
-          <p className="text-xs text-amber-700">
-            {t('DataManagement.dataDirHelp')}
-          </p>
-        </div>
-      </section>
+        </Card>
+      </Section>
 
       {/* Clear Cache */}
-      <section className="mt-8">
-        <SectionTitle>
-          {t('DataManagement.clearCacheTitle')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-600">{t('DataManagement.clearCacheBody')}</p>
-          <button
-            type="button"
+      <Section title={t('DataManagement.clearCacheTitle')}>
+        <Card>
+          <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">{t('DataManagement.clearCacheBody')}</p>
+          <Button
+            variant="secondary"
+            className="mt-4"
+            icon={<TrashIcon className="h-4 w-4" />}
             onClick={handleClearCache}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-300"
           >
-            <TrashIcon className="h-4 w-4" />
             {t('DataManagement.clearCacheButton')}
-          </button>
-        </div>
-      </section>
+          </Button>
+        </Card>
+      </Section>
 
       {/* Danger Zone */}
-      <section className="mt-8">
-        <SectionTitle>
-          {t('DataManagement.dangerTitle')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-red-100 bg-red-50/50 p-5">
+      <Section title={t('DataManagement.dangerTitle')}>
+        <Card>
           <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,var(--nimi-surface-card))] text-[var(--nimi-status-danger)]">
               <AlertTriangleIcon className="h-5 w-5" />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-red-700">{t('DataManagement.deleteAccountTitle')}</h4>
-              <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+              <h4 className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-status-danger)]">{t('DataManagement.deleteAccountTitle')}</h4>
+              <p className="mt-1 text-[length:var(--nimi-type-caption-size)] leading-relaxed text-[var(--nimi-text-secondary)]">
                 {t('DataManagement.deleteAccountBody')}
               </p>
-              <button
-                type="button"
+              <Button
+                variant="danger"
+                className="mt-4"
+                icon={<TrashIcon className="h-4 w-4" />}
                 onClick={() => setDeleteConfirmationOpen(true)}
-                disabled={deleting}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-sm transition-all hover:bg-red-50"
+                disabled={deleteConfirmationState.actionsDisabled}
               >
-                <TrashIcon className="h-4 w-4" />
                 {deleting ? t('DataManagement.requesting') : t('DataManagement.deleteAccountButton')}
-              </button>
-              {deleteConfirmationOpen ? (
-                <div
-                  className="mt-4 rounded-xl border border-red-200 bg-white p-4"
-                  data-testid="settings-delete-account-confirmation"
-                >
-                  <label className="block text-xs font-medium text-red-700" htmlFor="settings-delete-account-confirmation-input">
-                    {t('DataManagement.deleteAccountConfirmationLabel', { confirmation: DELETE_ACCOUNT_CONFIRMATION_TEXT })}
-                  </label>
-                  <input
-                    id="settings-delete-account-confirmation-input"
-                    value={deleteConfirmationText}
-                    onChange={(event) => setDeleteConfirmationText(event.target.value)}
-                    className="mt-2 w-full rounded-[10px] border border-red-200 bg-white px-3 py-2 text-sm text-gray-900"
-                    autoComplete="off"
-                    data-testid="settings-delete-account-confirmation-input"
-                  />
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setDeleteConfirmationOpen(false);
-                        setDeleteConfirmationText('');
-                      }}
-                      disabled={deleting}
-                    >
-                      {t('DataManagement.deleteAccountCancelButton')}
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={() => { void handleDeleteAccount(); }}
-                      disabled={deleting || !deleteConfirmationMatches}
-                    >
-                      {deleting ? t('DataManagement.requesting') : t('DataManagement.deleteAccountConfirmButton')}
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
+              </Button>
             </div>
           </div>
-        </div>
-      </section>
+        </Card>
+      </Section>
 
       {/* Session */}
-      <section className="mt-8">
-        <SectionTitle>{t('DataManagement.sessionTitle')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-600">{t('DataManagement.sessionBody')}</p>
-          <button
-            type="button"
+      <Section title={t('DataManagement.sessionTitle')}>
+        <Card>
+          <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">{t('DataManagement.sessionBody')}</p>
+          <Button
+            variant="secondary"
+            className="mt-4"
+            icon={<LogOutIcon className="h-4 w-4" />}
             onClick={() => {
               void logoutAndClearSession(
                 {
@@ -315,13 +265,28 @@ export function DataManagementPage() {
                 logoutDependencies.logout,
               );
             }}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-300"
           >
-            <LogOutIcon className="h-4 w-4" />
             {t('DataManagement.logOut')}
-          </button>
-        </div>
-      </section>
+          </Button>
+        </Card>
+      </Section>
+
+      <ConfirmDialog
+        open={deleteConfirmationOpen}
+        title={t('DataManagement.deleteAccountTitle')}
+        message={t('DataManagement.deleteAccountDialogMessage')}
+        confirmLabel={t('DataManagement.deleteAccountConfirmButton')}
+        cancelLabel={t('DataManagement.deleteAccountCancelButton')}
+        confirmTone="danger"
+        pending={deleting}
+        pendingLabel={t('DataManagement.requesting')}
+        onConfirm={() => { void handleDeleteAccount(); }}
+        onClose={() => {
+          if (deleteConfirmationState.canDismiss) {
+            setDeleteConfirmationOpen(false);
+          }
+        }}
+      />
     </PageShell>
   );
 }

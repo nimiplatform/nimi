@@ -40,8 +40,6 @@
     "cloudDesc": "API 密钥连接器",
     "environment": "环境",
     "environmentDesc": "依赖、引擎、数据根目录与修复",
-    "advanced": "高级",
-    "advancedDesc": "渲染、更新与开发者工具",
     "section": {
       "runtime": "运行时"
     }
@@ -53,13 +51,14 @@
   },
   "environment": {
     "tabDependencies": "依赖与引擎",
-    "tabData": "数据与存储"
-  },
-  "advanced": {
-    "tabPreferences": "偏好与更新",
-    "tabDeveloper": "开发者工具",
-    "developerLocked": "开发者工具已隐藏。请在“偏好与更新”中启用开发者模式以访问内部诊断。",
-    "developerSectionTitle": "开发者界面"
+    "tabData": "数据与存储",
+    "dataLoadFailed": "存储信息不可用。",
+    "dataStorageTitle": "存储用量",
+    "dataStorageUsed": "已用（估计）",
+    "dataStorageQuota": "配额",
+    "dataRefresh": "刷新",
+    "dataRootTitle": "数据根目录",
+    "dataManageInSettings": "在设置中管理缓存与账户数据"
   },
   "overview": {
     "installedModels": "已安装模型",
@@ -341,6 +340,7 @@
     "tabAccess": "访问",
     "daemonIsRunning": "守护进程运行中",
     "daemonIsStopped": "守护进程已停止",
+    "manageDaemon": "前往概览管理",
     "grpcBind": "gRPC 绑定",
     "localEndpointShort": "本地端点",
     "copy": "复制",

@@ -7,7 +7,6 @@ export const MENU_BAR_RUNTIME_PAGES = [
   'models',
   'cloud',
   'environment',
-  'advanced',
 ] as const;
 
 export type MenuBarRuntimePage = typeof MENU_BAR_RUNTIME_PAGES[number];

@@ -19,13 +19,12 @@ import { RUNTIME_SIDEBAR_ITEMS } from '../src/shell/renderer/features/runtime-co
 // normalizePageIdV11
 // ---------------------------------------------------------------------------
 
-test('normalizePageIdV11: canonical six-section IA values pass through unchanged', () => {
+test('normalizePageIdV11: canonical five-section IA values pass through unchanged', () => {
   assert.equal(normalizePageIdV11('overview'), 'overview');
   assert.equal(normalizePageIdV11('profiles'), 'profiles');
   assert.equal(normalizePageIdV11('models'), 'models');
   assert.equal(normalizePageIdV11('cloud'), 'cloud');
   assert.equal(normalizePageIdV11('environment'), 'environment');
-  assert.equal(normalizePageIdV11('advanced'), 'advanced');
 });
 
 test('normalizePageIdV11: unknown values fall back to "overview"', () => {
@@ -35,6 +34,7 @@ test('normalizePageIdV11: unknown values fall back to "overview"', () => {
   assert.equal(normalizePageIdV11(42), 'overview');
   assert.equal(normalizePageIdV11('nonexistent'), 'overview');
   assert.equal(normalizePageIdV11('knowledge'), 'overview');
+  assert.equal(normalizePageIdV11('advanced'), 'overview');
   assert.equal(normalizePageIdV11({}), 'overview');
 });
 
@@ -54,7 +54,7 @@ test('createDefaultStateV11: activePage defaults to "overview"', () => {
 // RUNTIME_PAGE_META
 // ---------------------------------------------------------------------------
 
-test('ordinary Runtime sidebar is the canonical six-section IA without Mods/developer pages', () => {
+test('ordinary Runtime sidebar is the canonical five-section IA without Mods/developer pages', () => {
   const pageIds = RUNTIME_SIDEBAR_ITEMS.map((item) => item.id);
   const labels = RUNTIME_SIDEBAR_ITEMS.map((item) => item.label);
 
@@ -64,10 +64,9 @@ test('ordinary Runtime sidebar is the canonical six-section IA without Mods/deve
     'models',
     'cloud',
     'environment',
-    'advanced',
   ]);
   // Retired top-level entries must not survive the T2.4 hard cut.
-  for (const retired of ['recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer']) {
+  for (const retired of ['recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer', 'advanced']) {
     assert.equal((pageIds as string[]).includes(retired), false, `retired id "${retired}" must not be a top-level section`);
   }
   assert.equal(labels.includes('Mods'), false);

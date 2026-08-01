@@ -190,14 +190,6 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-029
-  - id: settings.operational.wallet_sections
-    module: features/settings/settings-wallet-sections.tsx
-    role: settings_operational_wallet_sections
-    surface_profile: secondary
-    density_mode: compact
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-029
   - id: settings.operational.account_panel
     module: features/settings/settings-account-panel.tsx
     role: settings_operational_account_panel

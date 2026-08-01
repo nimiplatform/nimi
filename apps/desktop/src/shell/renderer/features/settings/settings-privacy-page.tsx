@@ -7,14 +7,19 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useQuery } from '@tanstack/react-query';
-import { FormFeedback, PageShell, SectionTitle } from './settings-layout-components.js';
+import { InlineAlert, NimiText, SegmentedControl } from '@nimiplatform/kit/ui';
 import {
-  EyeIcon,
+  Card,
+  FormFeedback,
+  PageShell,
+  Section,
+  SettingRow,
+  StatusBadge,
+} from './settings-layout-components.js';
+import {
   GlobeIcon,
   InfoIcon,
   MailIcon,
-  SegmentedControl,
-  ShieldIcon,
   UserIcon,
   ZapIcon,
 } from './settings-privacy-controls.js';
@@ -139,36 +144,50 @@ function getCurrentMode(form: PrivacyForm): VisibilityMode | 'CUSTOM' {
   return 'CUSTOM';
 }
 
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
 export function PrivacyPage() {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const [form, setForm] = useState<PrivacyForm>({ ...DEFAULT_FORM });
   const [baseline, setBaseline] = useState<PrivacyForm>({ ...DEFAULT_FORM });
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
   const [feedback, setFeedback] = useState<{
-    kind: 'info' | 'success' | 'warning' | 'error';
+    kind: 'error';
     message: string;
   } | null>(null);
   const autosaveTimerRef = useRef<(() => void) | null>(null);
+  // Edit-version race guard: every user edit bumps editVersionRef; a save
+  // snapshots it on start. When the save+refetch resolves, the server-data
+  // effect only resets form/baseline when the counter still equals the
+  // snapshot — otherwise newer local edits win and only the baseline moves.
+  const editVersionRef = useRef(0);
+  const saveStartVersionRef = useRef<number | null>(null);
+
+  const saving = saveState === 'saving';
+
   const visibilitySelectOptions = useMemo(() => ([
     { value: 'PUBLIC', label: t('PrivacySettings.visibilityPublic') },
     { value: 'FRIENDS', label: t('PrivacySettings.visibilityFriends') },
     { value: 'PRIVATE', label: t('PrivacySettings.visibilityPrivate') },
   ]), [t]);
 
-  const modeOptions = useMemo(() => [
-    { value: 'OPEN', label: 'Open' },
-    { value: 'SMARTER_FILTER', label: 'Smarter Filter' },
-    { value: 'STRICT', label: 'Strict' },
-  ], []);
+  const modeOptions = useMemo(() => ([
+    { value: 'OPEN', label: t('PrivacySettings.modeOpen') },
+    { value: 'SMARTER_FILTER', label: t('PrivacySettings.modeSmarterFilter') },
+    { value: 'STRICT', label: t('PrivacySettings.modeStrict') },
+  ]), [t]);
 
   const currentMode = useMemo(() => getCurrentMode(form), [form]);
 
+  const applyUserEdit = (patch: Partial<PrivacyForm>) => {
+    editVersionRef.current += 1;
+    setSaveState('idle');
+    setForm((previous) => ({ ...previous, ...patch }));
+  };
+
   const handleModeChange = (mode: VisibilityMode) => {
-    setForm((previous) => ({
-      ...previous,
-      ...MODE_PRESETS[mode],
-    }));
+    applyUserEdit({ ...MODE_PRESETS[mode] });
   };
 
   const settingsQuery = useQuery({
@@ -181,6 +200,14 @@ export function PrivacyPage() {
       return;
     }
     const next = toPrivacyForm(settingsQuery.data);
+    const saveStartVersion = saveStartVersionRef.current;
+    if (saveStartVersion !== null && editVersionRef.current !== saveStartVersion) {
+      // A save+refetch resolved while the user kept editing: newer local edits
+      // win, so the form is left untouched and only the baseline adopts the
+      // persisted server data.
+      setBaseline(next);
+      return;
+    }
     setForm(next);
     setBaseline(next);
   }, [settingsQuery.data]);
@@ -192,33 +219,28 @@ export function PrivacyPage() {
 
   const hasChanges = useMemo(() => !formsEqual(form, baseline), [form, baseline]);
 
-  const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
+  const handleSave = async () => {
     if (saving || !hasChanges) {
-      if (!hasChanges) {
-        setFeedback({
-          kind: 'info',
-          message: t('PrivacySettings.noChanges'),
-        });
-      }
       return;
     }
-    setSaving(true);
+    const persistedForm = form;
+    saveStartVersionRef.current = editVersionRef.current;
+    setSaveState('saving');
+    setFeedback(null);
     try {
-      await updateNimiRealmUserSettings(bindings.sdk.realm(), toUpdatePayload(form));
+      await updateNimiRealmUserSettings(bindings.sdk.realm(), toUpdatePayload(persistedForm));
       await settingsQuery.refetch();
-      if (!silentSuccess) {
-        setFeedback({
-          kind: 'success',
-          message: t('PrivacySettings.updateSuccess'),
-        });
-      }
+      // The baseline must reflect exactly what was persisted, even when the
+      // refetch returns deep-equal data and the server-data effect above does
+      // not re-run.
+      setBaseline(persistedForm);
+      setSaveState('saved');
     } catch (error) {
       setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('PrivacySettings.updateError')),
       });
-    } finally {
-      setSaving(false);
+      setSaveState('error');
     }
   };
 
@@ -236,7 +258,7 @@ export function PrivacyPage() {
         setFeedback({ kind: 'error', message: result.error });
         return;
       }
-      void handleSave({ silentSuccess: true });
+      void handleSave();
     });
 
     return () => {
@@ -245,18 +267,23 @@ export function PrivacyPage() {
     };
   }, [bindings.clock, form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
 
+  const saveStatus = saveState === 'saving'
+    ? <StatusBadge status="info" text={t('Settings.statusSaving')} />
+    : saveState === 'saved'
+      ? <StatusBadge status="success" text={t('Settings.statusSaved')} />
+      : saveState === 'error'
+        ? <StatusBadge status="error" text={t('Settings.statusFailed')} />
+        : null;
+
   if (settingsQuery.isPending) {
     return (
       <PageShell
         title={t('PrivacySettings.pageTitle')}
         description={t('PrivacySettings.pageDescription')}
       >
-        <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-            <EyeIcon className="h-6 w-6 text-gray-400" />
-          </div>
-          <p className="text-sm text-gray-500">{t('PrivacySettings.loading')}</p>
-        </div>
+        <NimiText role="body" className="px-1 py-6 text-center">
+          {t('PrivacySettings.loading')}
+        </NimiText>
       </PageShell>
     );
   }
@@ -267,9 +294,7 @@ export function PrivacyPage() {
         title={t('PrivacySettings.pageTitle')}
         description={t('PrivacySettings.pageDescription')}
       >
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-          {t('PrivacySettings.loadError')}
-        </div>
+        <InlineAlert tone="danger">{t('PrivacySettings.loadError')}</InlineAlert>
       </PageShell>
     );
   }
@@ -278,162 +303,176 @@ export function PrivacyPage() {
     <PageShell
       title={t('PrivacySettings.pageTitle')}
       description={t('PrivacySettings.pageDescription')}
+      status={saveStatus}
     >
       <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('PrivacySettings.pageTitle')} />
       {/* Visibility Section */}
-      <section>
-        <SectionTitle description={t('PrivacySettings.visibilitySectionDescription')}>
-          {t('PrivacySettings.visibilitySectionTitle')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <Section
+        title={t('PrivacySettings.visibilitySectionTitle')}
+        description={t('PrivacySettings.visibilitySectionDescription')}
+      >
+        <Card>
           {/* Visibility Mode Master Control */}
-          <div className="mb-6 rounded-xl bg-gradient-to-r from-mint-50 to-mint-100/50 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-mint-600 shadow-sm">
-                  <ShieldIcon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{t('PrivacySettings.visibilityModeTitle')}</p>
-                  <p className="text-xs text-gray-500">{t('PrivacySettings.visibilityModeDescription')}</p>
-                </div>
-              </div>
+          <div className="flex flex-col gap-2">
+            <div>
+              <NimiText role="card-title">{t('PrivacySettings.visibilityModeTitle')}</NimiText>
+              <NimiText role="helper" className="mt-0.5">
+                {t('PrivacySettings.visibilityModeDescription')}
+              </NimiText>
             </div>
-            <div className="mt-3 flex rounded-xl bg-white p-1 shadow-sm">
-              {modeOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleModeChange(option.value as VisibilityMode)}
-                  className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                    currentMode === option.value
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div>
+              <SegmentedControl
+                items={modeOptions}
+                value={currentMode === 'CUSTOM' ? '' : currentMode}
+                onValueChange={(value) => handleModeChange(value as VisibilityMode)}
+                ariaLabel={t('PrivacySettings.visibilityModeTitle')}
+              />
             </div>
-            {currentMode === 'CUSTOM' && (
-              <p className="mt-2 text-xs text-amber-600">{t('PrivacySettings.customModeHint')}</p>
-            )}
+            {currentMode === 'CUSTOM' ? (
+              <NimiText role="caption">{t('PrivacySettings.customModeHint')}</NimiText>
+            ) : null}
           </div>
-          <div className="h-px bg-gray-100 mb-6" />
-          <div className="space-y-5">
-            <SegmentedControl
-              label={t('PrivacySettings.profileVisibilityLabel')}
-              value={form.profileVisibility}
-              onChange={(value) => setForm((previous) => ({
-                ...previous,
-                profileVisibility: normalizeVisibility(value, previous.profileVisibility),
-              }))}
-              options={visibilitySelectOptions}
-              helper={t('PrivacySettings.profileVisibilityHelper')}
+          <div className="my-2 h-px bg-[var(--nimi-border-subtle)]" />
+          <div className="divide-y divide-[color:var(--nimi-border-subtle)]">
+            <SettingRow
+              title={t('PrivacySettings.profileVisibilityLabel')}
+              description={t('PrivacySettings.profileVisibilityHelper')}
+              control={(
+                <SegmentedControl
+                  items={visibilitySelectOptions}
+                  value={form.profileVisibility}
+                  onValueChange={(value) => applyUserEdit({
+                    profileVisibility: normalizeVisibility(value, form.profileVisibility),
+                  })}
+                  ariaLabel={t('PrivacySettings.profileVisibilityLabel')}
+                  size="sm"
+                />
+              )}
             />
-            <div className="h-px bg-gray-100" />
-            <SegmentedControl
-              label={t('PrivacySettings.friendRequestVisibilityLabel')}
-              value={form.friendRequestVisibility}
-              onChange={(value) => setForm((previous) => ({
-                ...previous,
-                friendRequestVisibility: normalizeVisibility(value, previous.friendRequestVisibility),
-              }))}
-              options={visibilitySelectOptions}
-              helper={t('PrivacySettings.friendRequestVisibilityHelper')}
+            <SettingRow
+              title={t('PrivacySettings.friendRequestVisibilityLabel')}
+              description={t('PrivacySettings.friendRequestVisibilityHelper')}
+              control={(
+                <SegmentedControl
+                  items={visibilitySelectOptions}
+                  value={form.friendRequestVisibility}
+                  onValueChange={(value) => applyUserEdit({
+                    friendRequestVisibility: normalizeVisibility(value, form.friendRequestVisibility),
+                  })}
+                  ariaLabel={t('PrivacySettings.friendRequestVisibilityLabel')}
+                  size="sm"
+                />
+              )}
             />
-            <div className="h-px bg-gray-100" />
-            <SegmentedControl
-              label={t('PrivacySettings.socialVisibilityLabel')}
-              value={form.socialVisibility}
-              onChange={(value) => setForm((previous) => ({
-                ...previous,
-                socialVisibility: normalizeVisibility(value, previous.socialVisibility),
-              }))}
-              options={visibilitySelectOptions}
-              helper={t('PrivacySettings.socialVisibilityHelper')}
+            <SettingRow
+              title={t('PrivacySettings.socialVisibilityLabel')}
+              description={t('PrivacySettings.socialVisibilityHelper')}
+              control={(
+                <SegmentedControl
+                  items={visibilitySelectOptions}
+                  value={form.socialVisibility}
+                  onValueChange={(value) => applyUserEdit({
+                    socialVisibility: normalizeVisibility(value, form.socialVisibility),
+                  })}
+                  ariaLabel={t('PrivacySettings.socialVisibilityLabel')}
+                  size="sm"
+                />
+              )}
             />
-            <div className="h-px bg-gray-100" />
-            <SegmentedControl
-              label={t('PrivacySettings.onlineStatusVisibilityLabel')}
-              value={form.onlineStatusVisibility}
-              onChange={(value) => setForm((previous) => ({
-                ...previous,
-                onlineStatusVisibility: normalizeVisibility(value, previous.onlineStatusVisibility),
-              }))}
-              options={visibilitySelectOptions}
-              helper={t('PrivacySettings.onlineStatusVisibilityHelper')}
+            <SettingRow
+              title={t('PrivacySettings.onlineStatusVisibilityLabel')}
+              description={t('PrivacySettings.onlineStatusVisibilityHelper')}
+              control={(
+                <SegmentedControl
+                  items={visibilitySelectOptions}
+                  value={form.onlineStatusVisibility}
+                  onValueChange={(value) => applyUserEdit({
+                    onlineStatusVisibility: normalizeVisibility(value, form.onlineStatusVisibility),
+                  })}
+                  ariaLabel={t('PrivacySettings.onlineStatusVisibilityLabel')}
+                  size="sm"
+                />
+              )}
             />
           </div>
-        </div>
-      </section>
+        </Card>
+      </Section>
 
       {/* Messaging & Post Section */}
-      <section className="mt-8">
-        <SectionTitle description={t('PrivacySettings.messagingSectionDescription')}>
-          {t('PrivacySettings.messagingSectionTitle')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="space-y-5">
-            <SegmentedControl
-              label={t('PrivacySettings.defaultPostVisibilityLabel')}
-              value={form.defaultPostVisibility}
-              onChange={(value) => setForm((previous) => ({
-                ...previous,
-                defaultPostVisibility: normalizeVisibility(value, previous.defaultPostVisibility),
-              }))}
-              options={visibilitySelectOptions}
-              helper={t('PrivacySettings.defaultPostVisibilityHelper')}
+      <Section
+        title={t('PrivacySettings.messagingSectionTitle')}
+        description={t('PrivacySettings.messagingSectionDescription')}
+      >
+        <Card>
+          <div className="divide-y divide-[color:var(--nimi-border-subtle)]">
+            <SettingRow
+              title={t('PrivacySettings.defaultPostVisibilityLabel')}
+              description={t('PrivacySettings.defaultPostVisibilityHelper')}
+              control={(
+                <SegmentedControl
+                  items={visibilitySelectOptions}
+                  value={form.defaultPostVisibility}
+                  onValueChange={(value) => applyUserEdit({
+                    defaultPostVisibility: normalizeVisibility(value, form.defaultPostVisibility),
+                  })}
+                  ariaLabel={t('PrivacySettings.defaultPostVisibilityLabel')}
+                  size="sm"
+                />
+              )}
             />
-            <div className="h-px bg-gray-100" />
-            <SegmentedControl
-              label={t('PrivacySettings.directMessageVisibilityLabel')}
-              value={form.dmVisibility}
-              onChange={(value) => setForm((previous) => ({
-                ...previous,
-                dmVisibility: normalizeVisibility(value, previous.dmVisibility),
-              }))}
-              options={visibilitySelectOptions}
-              helper={t('PrivacySettings.directMessageVisibilityHelper')}
+            <SettingRow
+              title={t('PrivacySettings.directMessageVisibilityLabel')}
+              description={t('PrivacySettings.directMessageVisibilityHelper')}
+              control={(
+                <SegmentedControl
+                  items={visibilitySelectOptions}
+                  value={form.dmVisibility}
+                  onValueChange={(value) => applyUserEdit({
+                    dmVisibility: normalizeVisibility(value, form.dmVisibility),
+                  })}
+                  ariaLabel={t('PrivacySettings.directMessageVisibilityLabel')}
+                  size="sm"
+                />
+              )}
             />
           </div>
-        </div>
-      </section>
+        </Card>
+      </Section>
 
       {/* Defaults Info Card */}
-      <section className="mt-8">
-        <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-card))] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.045)]">
-          <div className="flex gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
+      <Section>
+        <Card>
+          <div className="flex gap-3">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] text-[var(--nimi-text-muted)]">
               <InfoIcon className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">{t('PrivacySettings.ssotDefaultsTitle')}</p>
-              <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+            </span>
+            <div className="min-w-0 flex-1">
+              <NimiText role="card-title">{t('PrivacySettings.ssotDefaultsTitle')}</NimiText>
+              <NimiText role="helper" className="mt-1">
                 {t('PrivacySettings.ssotDefaultsDescription')}
-              </p>
+              </NimiText>
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs text-gray-600 shadow-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
                   <GlobeIcon className="h-3.5 w-3.5" />
                   {t('PrivacySettings.tagProfile')}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs text-gray-600 shadow-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
                   <UserIcon className="h-3.5 w-3.5" />
                   {t('PrivacySettings.tagRequests')}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs text-gray-600 shadow-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
                   <ZapIcon className="h-3.5 w-3.5" />
                   {t('PrivacySettings.tagSocial')}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs text-gray-600 shadow-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
                   <MailIcon className="h-3.5 w-3.5" />
                   {t('PrivacySettings.tagDirectMessage')}
                 </span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </Card>
+      </Section>
     </PageShell>
   );
 }

@@ -14,6 +14,8 @@
   "connect": "连接",
   "connected": "已连接",
   "notConnected": "未连接",
+  "disconnect": "断开连接",
+  "working": "处理中…",
   "openWalletSpark": "打开钱包（Spark）",
   "openWalletGem": "打开钱包（Gem）",
   "openNotifications": "打开通知",

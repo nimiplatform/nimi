@@ -202,6 +202,7 @@ export function SidebarItem({
   return (
     <button
       type={type}
+      aria-current={active ? 'page' : undefined}
       className={cn(
         'nimi-sidebar-item flex w-full items-center gap-2 rounded-[var(--nimi-radius-sidebar-item)] px-2 min-h-[var(--nimi-sizing-sidebar-item-height)] text-left text-sm transition-[background-color,color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:bg-[var(--nimi-sidebar-item-active)] cursor-pointer',
         `nimi-sidebar-item--${kind}`,
@@ -229,6 +230,7 @@ type SidebarResizeHandleProps = Omit<ComponentPropsWithoutRef<'div'>, 'children'
 export function SidebarResizeHandle({
   ariaLabel,
   className,
+  tabIndex = 0,
   ...rest
 }: SidebarResizeHandleProps) {
   return (
@@ -236,6 +238,7 @@ export function SidebarResizeHandle({
       role="separator"
       aria-orientation="vertical"
       aria-label={ariaLabel}
+      tabIndex={tabIndex}
       className={cn(
         'nimi-sidebar-resize-handle absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize hover:bg-[var(--nimi-sidebar-resize-handle)]',
         className,

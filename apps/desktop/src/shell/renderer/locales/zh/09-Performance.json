@@ -1,22 +1,5 @@
 {
-  "pageTitle": "性能",
-  "pageDescription": "优化应用性能",
-  "sectionRendering": "渲染",
-  "hardwareAcceleration": "硬件加速",
-  "hardwareAccelerationDescription": "使用 GPU 进行更流畅的渲染（需要重启）",
-  "reduceAnimations": "减少动画",
-  "reduceAnimationsDescription": "减少动效以提升无障碍体验",
-  "sectionDeveloper": "开发者",
-  "developerMode": "开发者模式",
-  "developerModeDescription": "显示开发者工具和调试信息",
-  "sectionCreatorEligibility": "创作者资格",
-  "eligibility": "资格",
-  "loadingEligibility": "正在加载创作者资格...",
-  "eligibilityLoadingStatus": "加载中",
-  "eligibilityLoadError": "暂时无法获取创作者资格，请稍后重试。",
-  "eligibilityUnavailable": "暂不可用",
-  "eligible": "符合资格",
-  "notEligible": "不符合资格",
-  "noChanges": "性能设置无变更",
-  "saveSuccess": "性能偏好已保存"
+  "pageTitle": "开发者",
+  "pageDescription": "管理此设备的开发者选项。",
+  "sectionDeveloper": "开发者"
 }

@@ -1,20 +1,23 @@
 /**
  * Developer Tools surface sub-area enumeration (`D-DEV-003`).
  *
- * The `Developer Tools` developer-group surface hosts exactly — and only —
- * developer-mode technical diagnostics. It MUST NOT host ordinary-user product
+ * The `Developer Tools` developer-group surface hosts only developer-mode
+ * technical content: local-development authorization posture/activity and a
+ * diagnostics route into Support. It MUST NOT host ordinary-user product
  * functionality (`D-DEV-003` MUST NOT).
  */
 
-export type DeveloperToolsSectionId = 'diagnostics';
+export type DeveloperToolsSectionId = 'local-development' | 'diagnostics';
 
 /** The canonical, contract-fixed `D-DEV-003` sub-area set, in render order. */
 export const DEVELOPER_TOOLS_SECTION_IDS: readonly DeveloperToolsSectionId[] = [
+  'local-development',
   'diagnostics',
 ] as const;
 
 /** i18n key for each sub-area's sidebar label. */
 export const DEVELOPER_TOOLS_SECTION_LABEL_KEY: Record<DeveloperToolsSectionId, string> = {
+  'local-development': 'DeveloperTools.sectionLocalDevelopment',
   diagnostics: 'DeveloperTools.sectionDiagnostics',
 };
 
@@ -25,5 +28,5 @@ export function isDeveloperToolsSectionId(value: unknown): value is DeveloperToo
 
 /** Resolve the persisted / requested section to a valid `D-DEV-003` sub-area. */
 export function resolveDeveloperToolsSection(value: unknown): DeveloperToolsSectionId {
-  return isDeveloperToolsSectionId(value) ? value : 'diagnostics';
+  return isDeveloperToolsSectionId(value) ? value : 'local-development';
 }

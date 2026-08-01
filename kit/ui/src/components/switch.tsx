@@ -5,15 +5,17 @@ type ToggleProps = {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   className?: string;
+  ariaLabel?: string;
 };
 
-export function Toggle({ checked, onChange, disabled = false, className }: ToggleProps) {
+export function Toggle({ checked, onChange, disabled = false, className, ariaLabel }: ToggleProps) {
   const state = checked ? 'checked' : 'unchecked';
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={ariaLabel}
       data-state={state}
       data-disabled={disabled ? '' : undefined}
       disabled={disabled}

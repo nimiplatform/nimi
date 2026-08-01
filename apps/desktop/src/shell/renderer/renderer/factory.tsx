@@ -3,6 +3,7 @@ import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 
 import { AppProviders } from '../app-shell/providers/app-providers.js';
 import { AppErrorBoundary } from '../infra/error-boundary/app-error-boundary.js';
+import { AppearanceEffects } from '../features/settings/appearance-effects.js';
 import type { DesktopCanonicalRendererBindings } from './contract.js';
 import { DesktopRendererContent } from './content.js';
 import { createDesktopRendererResources } from './resources.js';
@@ -35,6 +36,7 @@ function DesktopMainSurface(props: {
       >
         {localizationReady ? (
           <DesktopRendererBindingProvider bindings={props.bindings}>
+            <AppearanceEffects />
             <AppProviders
             accountProfileLibrary={props.resources.accountProfileLibrary}
             agentVisibleProjections={props.resources.agentVisibleProjections}
