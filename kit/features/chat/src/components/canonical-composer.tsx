@@ -22,6 +22,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   mode?: 'stage' | 'chat';
   className?: string;
   toolbarSlot?: ReactNode;
+  trailingSlot?: ReactNode;
   sendHint?: ReactNode;
   modelLabel?: ReactNode;
   onInputCaptureText?: (text: string) => void;
@@ -48,6 +49,7 @@ export function CanonicalComposer<TAttachment = never>({
   mode = 'chat',
   className,
   toolbarSlot,
+  trailingSlot,
   sendHint,
   modelLabel,
   onInputCaptureText,
@@ -86,6 +88,7 @@ export function CanonicalComposer<TAttachment = never>({
               disabled={disabled}
               placeholder={placeholder}
               toolbarSlot={toolbarSlot}
+              trailingSlot={trailingSlot}
               modelLabel={modelLabel}
               sendHint={sendHint}
               attachmentAdapter={attachmentAdapter}

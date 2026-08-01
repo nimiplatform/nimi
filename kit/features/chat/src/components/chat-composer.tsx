@@ -36,6 +36,8 @@ export type ChatComposerProps<TAttachment = never> = UseChatComposerOptions<TAtt
   className?: string;
   toolbar?: ReactNode;
   toolbarSlot?: ReactNode;
+  /** Optional slot rendered in the trailing controls row, directly before the send button (stacked layout). */
+  trailingSlot?: ReactNode;
   modelLabel?: ReactNode;
   sendHint?: ReactNode;
   sendLabel?: string;
@@ -58,6 +60,7 @@ export function ChatComposer<TAttachment = never>({
   sendLabel = 'Send',
   attachLabel = 'Attach',
   toolbarSlot,
+  trailingSlot,
   attachmentsSlot,
   voiceState,
   mediaActions,
@@ -334,6 +337,11 @@ export function ChatComposer<TAttachment = never>({
                 className="flex shrink-0 items-center justify-end gap-1"
               >
                 {attachmentButtonNode}
+                {trailingSlot ? (
+                  <div data-chat-composer-toolbar-trailing-slot="true" className="flex shrink-0 items-center gap-1">
+                    {trailingSlot}
+                  </div>
+                ) : null}
                 {sendButtonNode}
               </div>
             </div>

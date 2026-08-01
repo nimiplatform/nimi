@@ -117,7 +117,15 @@ export function CanonicalConversationPane(props: CanonicalConversationPaneProps)
             </div>
           )}
         </div>
-        {props.composer ? <div className="relative z-[2] shrink-0">{props.composer}</div> : null}
+        {props.composer ? (
+          props.viewMode === 'chat' ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2]" data-canonical-composer-overlay="true">
+              <div className="pointer-events-auto">{props.composer}</div>
+            </div>
+          ) : (
+            <div className="relative z-[2] shrink-0">{props.composer}</div>
+          )
+        ) : null}
       </div>
     </section>
   );

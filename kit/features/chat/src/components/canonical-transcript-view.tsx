@@ -192,7 +192,7 @@ export function CanonicalTranscriptView({
   }, [footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat]);
 
   return (
-    <div className="min-h-0 flex flex-1 overflow-hidden px-6 pt-0">
+    <div className="min-h-0 flex flex-1 overflow-hidden pl-6 pr-2 pt-0">
       <div
         ref={scrollRootRef}
         className={cn(
@@ -210,7 +210,7 @@ export function CanonicalTranscriptView({
         }}
       >
         <div
-          className={cn(widthPositionClassName, 'space-y-5 pt-2', widthClassName, contentPaddingBottomClassName)}
+          className={cn(widthPositionClassName, 'space-y-5 pt-1', widthClassName, contentPaddingBottomClassName)}
           data-canonical-transcript-width={widthClassName}
         >
         {loading ? (
