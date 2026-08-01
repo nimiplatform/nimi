@@ -1,9 +1,8 @@
-import type { MouseEvent, ReactNode } from 'react';
+import type { MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { motion } from 'motion/react';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { HomeCreatePostButton } from '../../features/home/home-feed-controls';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
 } from './shell-chrome-classes';
@@ -14,12 +13,10 @@ type MainLayoutTopBarProps = {
   authStatus: AuthStatus;
   titlebarTopInsetClass: string;
   titlebarLeftInsetClass: string;
-  titlebarContent?: ReactNode;
   activeTab: string;
   onLogin: () => void;
   onOpenChat: () => void;
   onOpenRuntimeConfig: () => void;
-  onCreatePostRequest: () => void;
   onMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
 };
 
@@ -35,11 +32,6 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
       onMouseDown={props.onMouseDown}
     >
       <div className="flex h-full w-full min-w-0 items-center overflow-hidden border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_78%,white)] px-1">
-        {props.titlebarContent ? (
-          <div className="min-w-0 flex-1 overflow-hidden" data-titlebar-region="content">
-            {props.titlebarContent}
-          </div>
-        ) : null}
         <div className="desktop-shell-topbar__actions ml-2 flex shrink-0 items-center gap-2" data-titlebar-region="actions">
           {anonymousMode ? (
             <div className="flex items-center gap-2">
@@ -103,13 +95,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                 </motion.button>
               </Tooltip>
             </div>
-          ) : (
-            <>
-              {props.activeTab === 'home' ? (
-                <HomeCreatePostButton onClick={props.onCreatePostRequest} />
-              ) : null}
-            </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

@@ -11,7 +11,6 @@ import {
   notificationQueryKeys,
   resolveNotificationIdentityRef,
 } from '../../features/notification/notification-query.js';
-import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '../../features/home/home-feed-controls';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
 import { shouldHideMainLayoutPrimaryRail } from './main-layout-primary-rail';
@@ -21,7 +20,6 @@ import {
   type SettingsMenuAnchorPosition,
   type SettingsSubmenuItemId,
 } from './main-layout-settings-menu';
-import { MainLayoutTitlebarContent } from './main-layout-titlebar-content';
 import { OfflineShellStrip } from './offline-shell-strip';
 import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
@@ -67,9 +65,8 @@ type MainLayoutViewProps = {
 export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
-  const titlebarFrame = resolveMainLayoutTitlebarFrame(
-    bindings.app.projection.titlebarDragEnabled(),
-  );
+  const titlebarDragEnabled = bindings.app.projection.titlebarDragEnabled();
+  const titlebarFrame = resolveMainLayoutTitlebarFrame(titlebarDragEnabled);
   const titlebarTopInsetClass = titlebarFrame.topInsetClass;
   const shellContentTopPaddingClass = titlebarFrame.contentTopPaddingClass;
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
@@ -80,6 +77,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const exploreSearchText = useAppStore((state) => state.exploreSearchText);
   const setExploreSearchText = useAppStore((state) => state.setExploreSearchText);
   const isAnonymousShell = props.authStatus !== 'authenticated';
+  // Authenticated shells render all surface controls in-page (chat is bare,
+  // home/explore own their headers), so the floating glass topbar only serves
+  // the anonymous shell's nav/login actions. Frameless builds keep a slim
+  // invisible drag strip.
+  const collapseTopbar = !isAnonymousShell;
   const notificationIdentityRef = useMemo(
     () => resolveNotificationIdentityRef(props.authStatus, authUser),
     [props.authStatus, authUser],
@@ -110,7 +112,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const sidebarWidthClass = 'w-[60px]';
   const titlebarLeftInsetClass = titlebarFrame.leftInsetClass;
   const [homeFeedScope, setHomeFeedScope] = useState(DEFAULT_HOME_FEED_SCOPE);
-  const [homeCreatePostRequestKey, setHomeCreatePostRequestKey] = useState(0);
   const reducedMotion = useDesktopReducedMotion();
   const interactiveMotion = useDesktopInteractiveMotion();
 
@@ -279,30 +280,28 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       variant="mesh"
       className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--nimi-surface-canvas)]"
     >
+      {collapseTopbar ? (
+        titlebarDragEnabled ? (
+          <div
+            className={`absolute inset-x-0 ${titlebarTopInsetClass} z-[11000] h-7 ${titlebarLeftInsetClass}`}
+            data-shell-titlebar="true"
+            onMouseDown={props.onTitlebarMouseDown}
+          />
+        ) : null
+      ) : (
       <MainLayoutTopBar
         authStatus={props.authStatus}
         titlebarTopInsetClass={titlebarTopInsetClass}
         titlebarLeftInsetClass={titlebarLeftInsetClass}
-        titlebarContent={(
-          <MainLayoutTitlebarContent
-            activeTab={props.activeTab}
-            homeFeedScope={homeFeedScope}
-            onHomeFeedScopeChange={(scope: NimiRealmFeedScope) => setHomeFeedScope(scope)}
-            exploreActiveSection={exploreActiveSection}
-            onExploreSectionChange={setExploreActiveSection}
-            exploreSearchText={exploreSearchText}
-            onExploreSearchTextChange={setExploreSearchText}
-          />
-        )}
         activeTab={props.activeTab}
         onLogin={props.onLogin}
         onOpenChat={() => props.onNav('chat')}
         onOpenRuntimeConfig={() => props.onNav('runtime')}
-        onCreatePostRequest={() => setHomeCreatePostRequestKey((current) => current + 1)}
         onMouseDown={props.onTitlebarMouseDown}
       />
+      )}
 
-      <div className={`relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 ${shellContentTopPaddingClass}`}>
+      <div className={`relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 ${collapseTopbar ? (titlebarDragEnabled ? 'pt-14' : 'pt-3') : shellContentTopPaddingClass}`}>
         {hidePrimaryRail || isAnonymousShell ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
@@ -424,10 +423,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             developerModeEnabled={developerModeEnabled}
             exploreActiveSection={exploreActiveSection}
             exploreSearchText={exploreSearchText}
-            homeCreatePostRequestKey={homeCreatePostRequestKey}
             homeFeedScope={homeFeedScope}
             runtimeActive={runtimeActive}
             runtimeEverMounted={runtimeEverMounted}
+            onHomeFeedScopeChange={setHomeFeedScope}
+            onExploreSectionChange={setExploreActiveSection}
+            onExploreSearchTextChange={setExploreSearchText}
           />
         </div>
       </div>

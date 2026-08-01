@@ -9,6 +9,7 @@ import { CreatePostModal } from '../profile/create-post-modal.js';
 import { PostCard, type PostCardAuthorProfileTarget } from './post-card';
 import { usePostCardActionAdapter } from './post-card-action-adapter';
 import { PostFeed } from './post-feed';
+import { HomeCreatePostButton, HomeFeedScopeNav } from './home-feed-controls';
 import { prepareHomeFeedItems } from './utils';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -50,8 +51,8 @@ const PAGE_SIZE = 15;
 type HomeFeedColumns = 1 | 2;
 
 type HomeViewProps = {
-  createPostRequestKey?: number;
   feedScope: NimiRealmFeedScope;
+  onFeedScopeChange: (scope: NimiRealmFeedScope) => void;
 };
 
 function resolveHomeFeedColumns(isWide: boolean): HomeFeedColumns {
@@ -82,7 +83,6 @@ export function HomeView(props: HomeViewProps) {
   >(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
-  const createPostRequestRef = useRef<number>(props.createPostRequestKey ?? 0);
   const feedScrollRef = useRef<HTMLDivElement>(null);
   // PostFeed remounts when scope or refreshKey changes so each scope is read
   // fresh through the SDK typed Realm feed projection — no carried-over
@@ -114,15 +114,6 @@ export function HomeView(props: HomeViewProps) {
   );
 
   useEffect(() => {
-    const nextKey = props.createPostRequestKey ?? 0;
-    if (nextKey === createPostRequestRef.current) {
-      return;
-    }
-    createPostRequestRef.current = nextKey;
-    setCreatePostOpen(true);
-  }, [props.createPostRequestKey]);
-
-  useEffect(() => {
     const handleBlockedUsersUpdated = () => {
       setRefreshKey((current) => current + 1);
     };
@@ -134,6 +125,12 @@ export function HomeView(props: HomeViewProps) {
       data-testid={E2E_IDS.panel('home')}
       className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-5 pt-4"
     >
+      <div className={`mx-auto w-full shrink-0 px-1 pb-2 ${homeFeedColumns === 2 ? 'max-w-[1144px]' : 'max-w-[560px]'}`}>
+        <div className="flex items-center justify-between">
+          <HomeFeedScopeNav active={props.feedScope} onSelect={props.onFeedScopeChange} />
+          <HomeCreatePostButton onClick={() => setCreatePostOpen(true)} />
+        </div>
+      </div>
       <ScrollArea
         className="flex-1"
         viewportClassName="bg-transparent"

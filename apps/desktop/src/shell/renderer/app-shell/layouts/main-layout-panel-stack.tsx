@@ -80,10 +80,12 @@ type MainLayoutPanelStackProps = {
   developerModeEnabled: boolean;
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
-  homeCreatePostRequestKey: number;
   homeFeedScope: NimiRealmFeedScope;
   runtimeActive: boolean;
   runtimeEverMounted: boolean;
+  onHomeFeedScopeChange: (scope: NimiRealmFeedScope) => void;
+  onExploreSectionChange: (section: ExploreSectionId) => void;
+  onExploreSearchTextChange: (value: string) => void;
 };
 
 function MotionPanelFrame({
@@ -117,10 +119,12 @@ export function MainLayoutPanelStack({
   developerModeEnabled,
   exploreActiveSection,
   exploreSearchText,
-  homeCreatePostRequestKey,
   homeFeedScope,
   runtimeActive,
   runtimeEverMounted,
+  onHomeFeedScopeChange,
+  onExploreSectionChange,
+  onExploreSearchTextChange,
 }: MainLayoutPanelStackProps) {
   return (
     <>
@@ -140,8 +144,8 @@ export function MainLayoutPanelStack({
         {activeTab === 'home' ? (
           <MotionPanelFrame panelId="home">
             <HomePanel
-              createPostRequestKey={homeCreatePostRequestKey}
               feedScope={homeFeedScope}
+              onFeedScopeChange={onHomeFeedScopeChange}
             />
           </MotionPanelFrame>
         ) : null}
@@ -163,6 +167,8 @@ export function MainLayoutPanelStack({
             <ExplorePanel
               activeSection={exploreActiveSection}
               searchText={exploreSearchText}
+              onSectionChange={onExploreSectionChange}
+              onSearchTextChange={onExploreSearchTextChange}
             />
           </MotionPanelFrame>
         ) : null}

@@ -48,6 +48,8 @@ function toRecord(value: unknown): JsonObject | null {
 type ExplorePanelProps = {
   activeSection: ExploreSectionId;
   searchText: string;
+  onSectionChange: (section: ExploreSectionId) => void;
+  onSearchTextChange: (value: string) => void;
 };
 
 export function ExplorePanel(props: ExplorePanelProps) {
@@ -341,6 +343,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
         worldsLoading={worldsQuery.isPending}
         worldsError={worldsQuery.isError}
         activeSection={props.activeSection}
+        onSectionChange={props.onSectionChange}
+        onSearchTextChange={props.onSearchTextChange}
         fetchPostPage={fetchPostPage}
         postFeedKey={postFeedKey}
         onPostDelete={() => setRefreshKey((k) => k + 1)}

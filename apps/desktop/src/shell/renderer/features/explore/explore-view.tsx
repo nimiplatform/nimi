@@ -20,7 +20,9 @@ import {
   type ExplorePersonaSourceCardData,
 } from './explore-cards';
 import {
+  ExploreSearchField,
   ExploreSectionHeader,
+  ExploreSectionNav,
   type ExploreSectionId,
 } from './explore-section-nav';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -36,6 +38,8 @@ type ExploreViewProps = {
   worldsLoading: boolean;
   worldsError: boolean;
   activeSection: ExploreSectionId;
+  onSectionChange: (section: ExploreSectionId) => void;
+  onSearchTextChange: (value: string) => void;
   fetchPostPage: (cursor: string | null) => Promise<{ items: PostDto[]; nextCursor: string | null }>;
   postFeedKey: string;
   onPostDelete?: () => void;
@@ -115,9 +119,31 @@ export function ExploreView(props: ExploreViewProps) {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
   }, [props.activeSection]);
 
+  const searchPlaceholder = props.activeSection === 'worlds'
+    ? t('World.searchPlaceholder', { defaultValue: 'Search worlds, themes, personas...' })
+    : t('Explore.searchPlaceholder', { defaultValue: 'Search personas by name/handle...' });
+  const sectionHeader = (
+    <div className={`shrink-0 pb-3 ${props.activeSection === 'worlds' ? 'px-3 pt-4 sm:px-5' : ''}`}>
+      <div className={props.activeSection === 'worlds' ? 'mx-auto w-full max-w-[min(100%,1390px)]' : 'mx-auto w-full max-w-6xl'}>
+        <ExploreSectionNav
+          active={props.activeSection}
+          onSelect={props.onSectionChange}
+          trailing={(
+            <ExploreSearchField
+              value={props.worldSearchText}
+              onChange={props.onSearchTextChange}
+              placeholder={searchPlaceholder}
+            />
+          )}
+        />
+      </div>
+    </div>
+  );
+
   if (props.loading) {
     return (
       <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
+        {sectionHeader}
         <ScrollArea className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto w-full max-w-6xl space-y-10 px-1 py-5">
             <section className="space-y-3">
               <ExploreSkeletonBlock className="h-6 w-24 rounded-lg" />
@@ -152,6 +178,7 @@ export function ExploreView(props: ExploreViewProps) {
         ? 'flex min-h-0 flex-1 flex-col'
         : 'flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4'}
     >
+      {sectionHeader}
       {/* Scrollable section content */}
       <ScrollArea
         ref={scrollContainerRef}
