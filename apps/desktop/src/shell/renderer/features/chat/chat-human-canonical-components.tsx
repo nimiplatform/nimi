@@ -28,7 +28,7 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { GiftMessageBubble, type GiftMessagePayload } from '../economy/gift-message-bubble.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
+import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
 import type { StreamState } from '../turns/stream-controller';
 import { useStreamController } from '../turns/stream-controller-context.js';
 import {
@@ -330,6 +330,9 @@ function createHumanCanonicalTranscriptProps(input: {
     footerContent: input.renderers.footerContent,
     widthClassName: CHAT_CONTENT_WIDTH_CLASS,
     widthPositionClassName: CHAT_CONTENT_POSITION_CLASS,
+    scrollViewportWidthClassName: CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS,
+    scrollViewportPositionClassName: CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS,
+    contentPaddingBottomClassName: CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
   };
 }
 

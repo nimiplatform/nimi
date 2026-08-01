@@ -5,7 +5,7 @@ import type {
   NimiRuntimeRouteOptionsSnapshot,
   NimiRuntimeRouteTargetRef,
 } from '@nimiplatform/sdk/runtime';
-import { createNimiBuiltInChatAIScopeRef } from '@nimiplatform/sdk/ai';
+import { projectNimiRuntimeLocalAgentAIScopeRef } from '@nimiplatform/sdk/ai';
 import {
   buildConversationCapabilityProjection,
   createDefaultConversationCapabilitySelectionStore,
@@ -194,11 +194,13 @@ test('desktop bootstrap route runtime resolves local import text routes through 
 test('desktop bootstrap route runtime resolves AIConfig local profileBindingId targetRefs through runtime describe metadata', async () => {
   const routeRuntime = createRouteRuntime();
   const store = selectionStoreFromAIConfig({
-    scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
+    scopeRef: projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test'),
     capabilities: {
+      logicalModelIds: { 'text.generate': 'local/gemma' },
       targetRefs: {
         'text.generate': selectedLocalTargetRef,
       },
+      selectedComponents: {},
       selectedParams: {},
     },
     profileOrigin: null,
@@ -217,11 +219,13 @@ test('desktop bootstrap route runtime resolves AIConfig local profileBindingId t
 test('desktop bootstrap route runtime resolves AIConfig local readinessRef targetRefs through runtime describe metadata', async () => {
   const routeRuntime = createRouteRuntime({ selectedTargetRef: selectedLocalReadinessRef });
   const store = selectionStoreFromAIConfig({
-    scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
+    scopeRef: projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test'),
     capabilities: {
+      logicalModelIds: { 'text.generate': 'local/gemma' },
       targetRefs: {
         'text.generate': selectedLocalReadinessRef,
       },
+      selectedComponents: {},
       selectedParams: {},
     },
     profileOrigin: null,

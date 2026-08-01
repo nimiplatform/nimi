@@ -82,6 +82,8 @@ export type UseAgentConversationPresentationInput = {
   developerModeEnabled: boolean;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   onOpenAgentCenter?: () => void;
+  onCloseAgentCenter?: () => void;
+  agentCenterOpen?: boolean;
   voiceSessionState: AgentVoiceSessionShellState;
   voiceCaptureState: {
     active: boolean;

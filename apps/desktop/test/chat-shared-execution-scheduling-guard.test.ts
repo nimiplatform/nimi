@@ -3,8 +3,8 @@ import test from 'node:test';
 import type { TFunction } from 'i18next';
 
 import {
-  createNimiBuiltInChatAIScopeRef,
   createEmptyNimiAIConfig,
+  projectNimiRuntimeLocalAgentAIScopeRef,
   type NimiAIConfig,
   type NimiAISchedulingJudgement,
 } from '@nimiplatform/sdk/ai';
@@ -49,7 +49,7 @@ const TEST_SDK = {
 } as unknown as DesktopRendererSdkPort;
 
 function createLocalTextSubmitConfig(): NimiAIConfig {
-  const scopeRef = createNimiBuiltInChatAIScopeRef('agent');
+  const scopeRef = projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test');
   const config = createEmptyNimiAIConfig(scopeRef);
   return {
     ...config,

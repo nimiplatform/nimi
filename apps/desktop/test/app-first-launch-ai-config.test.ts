@@ -65,6 +65,7 @@ const ACCOUNT_DEFAULT_PROFILE: NimiAIProfile = {
   tags: ['account-default'],
   capabilities: {
     'text.generate': {
+      logicalModelId: 'local/account-default-text',
       targetRef: {
         kind: 'local-runtime',
         version: 'v2',

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
-import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiRuntimeAgentConsumeClient,
+  type NimiRuntimeAgentSessionSnapshot,
+} from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
   AgentLocalThreadBundle,
@@ -10,6 +13,7 @@ import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   bundleQueryKey,
 } from './chat-agent-shell-core';
+import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
 import {
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
   shouldRefreshAgentRuntimeSessionSnapshotForEvent,
@@ -41,6 +45,45 @@ function normalizeText(value: unknown): string {
 
 function elapsedMs(startedAt: number, now: number): number {
   return Math.max(0, Math.round(now - startedAt));
+}
+
+type DesktopSessionSnapshotSdk = ReturnType<typeof useDesktopRendererBindings>['sdk'];
+
+async function resolveSnapshotTranscriptImageMediaUrls(
+  snapshot: NimiRuntimeAgentSessionSnapshot,
+  sdk: DesktopSessionSnapshotSdk,
+): Promise<NimiRuntimeAgentSessionSnapshot> {
+  const transcript = Array.isArray(snapshot.transcript) ? snapshot.transcript : null;
+  if (!transcript || !transcript.some((message) => (
+    message.kind === 'image' && normalizeText(message.artifactId) && !normalizeText(message.mediaUrl)
+  ))) {
+    return snapshot;
+  }
+  const resolvedTranscript = await Promise.all(transcript.map(async (message) => {
+    const artifactId = normalizeText(message.artifactId);
+    if (message.kind !== 'image' || !artifactId || normalizeText(message.mediaUrl)) {
+      return message;
+    }
+    try {
+      const artifact = await sdk.accountProduct().artifacts.readArtifactBytes({ artifactId });
+      const mimeType = normalizeText(artifact.mimeType)
+        || normalizeText(message.mediaMimeType)
+        || 'application/octet-stream';
+      return { ...message, mediaUrl: encodeBytesAsDataUrl(mimeType, artifact.bytes) };
+    } catch (error) {
+      logRendererEvent({
+        level: 'warn',
+        area: 'agent-chat-shell',
+        message: 'action:desktop_runtime_agent_snapshot_image_media_resolve_failed',
+        details: {
+          artifactId,
+          error: error instanceof Error ? error.message : String(error || ''),
+        },
+      });
+      return message;
+    }
+  }));
+  return { ...snapshot, transcript: resolvedTranscript };
 }
 
 export function useAgentRuntimeSessionSnapshotHydration(
@@ -148,6 +191,12 @@ export function useAgentRuntimeSessionSnapshotHydration(
             hasPendingFollowUp: Boolean(snapshot?.pendingFollowUp),
           },
         });
+        return resolveSnapshotTranscriptImageMediaUrls(snapshot, bindings.sdk);
+      })
+      .then((snapshot) => {
+        if (cancelled || !snapshot) {
+          return;
+        }
         const currentBundle = input.queryClient.getQueryData<AgentLocalThreadBundle | null>(
           bundleQueryKey(thread.id),
         );

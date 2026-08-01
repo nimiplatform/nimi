@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createNimiBuiltInChatAIScopeRef } from '@nimiplatform/sdk/ai';
+import {
+  createNimiBuiltInChatAIScopeRef,
+  projectNimiRuntimeLocalAgentAIScopeRef,
+} from '@nimiplatform/sdk/ai';
 import {
   aiConfigFromSelectionStore,
   createDefaultConversationCapabilitySelectionStore,
@@ -31,8 +34,9 @@ test('conversation capability bridge preserves local runtime targetRefs in AICon
 
 test('conversation capability bridge hydrates cloud connector targetRefs into route targetRefs', () => {
   const store = selectionStoreFromAIConfig({
-    scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
+    scopeRef: projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test'),
     capabilities: {
+      logicalModelIds: { 'text.generate': 'anthropic/claude-sonnet' },
       targetRefs: {
         'text.generate': {
           kind: 'cloud-connector',
@@ -42,6 +46,7 @@ test('conversation capability bridge hydrates cloud connector targetRefs into ro
           provider: 'openrouter',
         },
       },
+      selectedComponents: {},
       selectedParams: {},
     },
     profileOrigin: null,
@@ -59,8 +64,9 @@ test('conversation capability bridge hydrates cloud connector targetRefs into ro
 
 test('conversation capability bridge hydrates local runtime readiness refs', () => {
   const store = selectionStoreFromAIConfig({
-    scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
+    scopeRef: projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test'),
     capabilities: {
+      logicalModelIds: { 'text.generate': 'local/llama' },
       targetRefs: {
         'text.generate': {
           kind: 'local-runtime',
@@ -68,6 +74,7 @@ test('conversation capability bridge hydrates local runtime readiness refs', () 
           readinessRef: 'readiness:llama:01KTEX08DS2GR9HJ1X3R459P1B',
         },
       },
+      selectedComponents: {},
       selectedParams: {},
     },
     profileOrigin: null,

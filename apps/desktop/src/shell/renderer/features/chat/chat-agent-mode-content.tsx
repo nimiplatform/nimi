@@ -38,6 +38,8 @@ export function ChatAgentModeContent({
     diagnosticsVisible: settingsOpen && diagnosticsSectionVisible,
     onDiagnosticsVisibilityChange: setDiagnosticsSectionVisible,
     onOpenAgentCenter: onOpenSettings,
+    onCloseAgentCenter: onCloseSettings,
+    agentCenterOpen: settingsOpen,
     runtimeFields,
     selection: agentConversationSelection,
     setSelection: setAgentConversationSelection,

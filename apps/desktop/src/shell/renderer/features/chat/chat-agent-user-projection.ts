@@ -1,12 +1,18 @@
 import type {
   AgentLocalMessageRecord,
 } from '../../bridge/runtime-bridge/types';
-import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 
 function normalizeText(value: string): string {
   return value.trim();
 }
+
+export type AgentUserProjectionAttachment = {
+  readonly kind: 'image';
+  readonly mediaUrl: string | null;
+  readonly mediaMimeType: string | null;
+  readonly artifactId: string | null;
+};
 
 export function buildAgentUserProjection(input: {
   threadId: string;
@@ -14,7 +20,7 @@ export function buildAgentUserProjection(input: {
   conversationAnchorId: string;
   turnId: string;
   submittedText: string;
-  uploadedAttachments: readonly AgentChatUserAttachment[];
+  uploadedAttachments: readonly AgentUserProjectionAttachment[];
   createdAtMs: number;
 }): {
   messages: AgentLocalMessageRecord[];
@@ -69,9 +75,9 @@ export function buildAgentUserProjection(input: {
       error: null,
       traceId: null,
       parentMessageId: previousMessageId,
-      mediaUrl: attachment.url,
-      mediaMimeType: attachment.mimeType,
-      artifactId: attachment.resourceId,
+      mediaUrl: attachment.mediaUrl,
+      mediaMimeType: attachment.mediaMimeType,
+      artifactId: attachment.artifactId,
       metadataJson: {
         transport: 'runtime.agent.turns',
         agentId: input.agentId,

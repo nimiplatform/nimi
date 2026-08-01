@@ -116,10 +116,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
   let outputDiagnostics: Record<string, unknown> | null = null;
   let textMessageState: AgentLocalTextMessageState | null = null;
 
-  if (input.userAttachments.length > 0) {
-    throw new Error('runtime.agent.turns does not yet admit Desktop-submitted image attachments');
-  }
-
   const stopKeepalive = input.streamController.startKeepalive(
     input.baseInput.threadId,
     RUNTIME_AGENT_WAIT_KEEPALIVE_MS,

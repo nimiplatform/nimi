@@ -6,7 +6,13 @@ import type {
 } from '@nimiplatform/kit/features/chat/headless';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
-import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
+import {
+  CHAT_CONTENT_POSITION_CLASS,
+  CHAT_CONTENT_WIDTH_CLASS,
+  CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
+  CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS,
+  CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS,
+} from './chat-shared-content-layout';
 
 export type AgentConversationHostView = Pick<
   DesktopConversationModeHost,
@@ -73,9 +79,9 @@ export function resolveAgentConversationHostView(input: {
       formatDateLabel,
       widthClassName: input.transcriptWidthClassName || CHAT_CONTENT_WIDTH_CLASS,
       widthPositionClassName: input.transcriptWidthPositionClassName || CHAT_CONTENT_POSITION_CLASS,
-      scrollViewportWidthClassName: input.transcriptScrollViewportWidthClassName || 'w-full',
-      scrollViewportPositionClassName: input.transcriptScrollViewportPositionClassName || '',
-      contentPaddingBottomClassName: input.transcriptContentPaddingBottomClassName || 'pb-6',
+      scrollViewportWidthClassName: input.transcriptScrollViewportWidthClassName || CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS,
+      scrollViewportPositionClassName: input.transcriptScrollViewportPositionClassName || CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS,
+      contentPaddingBottomClassName: input.transcriptContentPaddingBottomClassName || CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       renderMessageAccessory: input.renderMessageAccessory,

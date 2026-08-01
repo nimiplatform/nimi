@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AppCardSurface, cn, IconToggleAction, ScrollShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar';
+import { CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS } from './chat-shared-content-layout';
 
 export type ChatSideSheetProps = {
   title: ReactNode;
@@ -35,7 +36,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
 
   return (
     <aside
-      className={cn('mr-2 flex min-h-0 shrink-0', widthClassName, props.className)}
+      className={cn(CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS, 'flex min-h-0 shrink-0', widthClassName, props.className)}
       data-chat-shared-side-sheet={props.sheetKey}
     >
       <AppCardSurface

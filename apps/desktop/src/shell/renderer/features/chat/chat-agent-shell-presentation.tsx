@@ -27,12 +27,9 @@ import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
 import { useAgentConversationLocalAvatarControls } from './chat-agent-shell-local-avatar-controls';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
-import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
+import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS } from './chat-shared-content-layout';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
-
-
-const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-[clamp(140px,16vh,200px)]';
 
 export function useAgentConversationPresentation(
   input: UseAgentConversationPresentationInput,
@@ -217,7 +214,7 @@ export function useAgentConversationPresentation(
     },
     transcriptWidthClassName: CHAT_CONTENT_WIDTH_CLASS,
     transcriptWidthPositionClassName: CHAT_CONTENT_POSITION_CLASS,
-    transcriptContentPaddingBottomClassName: AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
+    transcriptContentPaddingBottomClassName: CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
     renderMessageContent: input.renderMessageContent,
     renderMessageAccessory: input.renderMessageAccessory,
     onStopGenerating: handleStopGenerating,
@@ -338,6 +335,10 @@ export function useAgentConversationPresentation(
               onConfigure: input.onOpenAgentCenter,
               onActivate: localAvatar.handleComposerAvatarAction,
             }}
+            agentCenterOpen={input.agentCenterOpen}
+            onOpenAgentCenter={input.agentCenterOpen && input.onCloseAgentCenter
+              ? input.onCloseAgentCenter
+              : input.onOpenAgentCenter}
             widthClassName={CHAT_CONTENT_WIDTH_CLASS}
             widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
           />
@@ -397,6 +398,8 @@ export function useAgentConversationPresentation(
     surfaceState.composer,
     resolvedAgentDisplayName,
     input.onOpenAgentCenter,
+    input.onCloseAgentCenter,
+    input.agentCenterOpen,
     characterProfilePreviewTarget,
   ]);
 }

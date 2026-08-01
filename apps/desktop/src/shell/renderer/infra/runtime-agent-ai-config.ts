@@ -3,6 +3,7 @@ import {
   type NimiRuntimeAgentAIConfigModule,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
   type NimiRuntimeAgentAIConfigRuntime,
+  type NimiRuntimeAgentAIProfileSource,
   type NimiRuntimeAgentScopeRunner,
 } from '@nimiplatform/sdk/runtime';
 
@@ -16,6 +17,7 @@ type RuntimeAgentAIConfigDeps = {
   runtime: NimiRuntimeAgentAIConfigRuntime;
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
   withScopes?: NimiRuntimeAgentScopeRunner;
+  profileSource?: NimiRuntimeAgentAIProfileSource;
 };
 
 export function createRuntimeAgentAIConfigAdapter(
@@ -25,6 +27,7 @@ export function createRuntimeAgentAIConfigAdapter(
     runtime: deps.runtime,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
     ...(deps.withScopes ? { withScopes: deps.withScopes } : {}),
+    ...(deps.profileSource ? { profileSource: deps.profileSource } : {}),
   });
 }
 

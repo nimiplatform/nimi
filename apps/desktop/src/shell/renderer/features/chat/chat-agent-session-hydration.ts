@@ -26,6 +26,17 @@ function isTranscriptTextMessage(message: NimiRuntimeAgentMessage | null | undef
     && contentText.length > 0;
 }
 
+function isTranscriptImageMessage(message: NimiRuntimeAgentMessage | null | undefined): boolean {
+  const role = normalizeText(message?.role);
+  return (role === 'user' || role === 'assistant')
+    && normalizeText(message?.kind) === 'image'
+    && Boolean(normalizeText(message?.artifactId));
+}
+
+function isTranscriptHydratableMessage(message: NimiRuntimeAgentMessage | null | undefined): boolean {
+  return isTranscriptTextMessage(message) || isTranscriptImageMessage(message);
+}
+
 function isCommittedMediaProjectionMessage(message: AgentLocalMessageRecord): boolean {
   return message.status === 'complete'
     && !message.error
@@ -107,7 +118,7 @@ function hasRuntimeReplayEnvelope(message: NimiRuntimeAgentMessage | null | unde
 function transcriptHasRuntimeReplayEnvelope(
   transcript: readonly NimiRuntimeAgentMessage[],
 ): transcript is readonly NimiRuntimeAgentTranscriptMessage[] {
-  const replayMessages = transcript.filter(isTranscriptTextMessage);
+  const replayMessages = transcript.filter(isTranscriptHydratableMessage);
   return replayMessages.length > 0 && replayMessages.every(hasRuntimeReplayEnvelope);
 }
 
@@ -123,14 +134,16 @@ function toHydratedMessageRecord(input: {
   }
   const role = normalizeText(message.role);
   const contentText = typeof message.content === 'string' ? message.content : '';
+  const status = toMessageStatus(message.status);
+  const kind = toMessageKind(message.kind);
+  const artifactId = normalizeText(message.artifactId);
+  const imageWithArtifact = kind === 'image' && Boolean(artifactId);
   if (
     (role !== 'system' && role !== 'user' && role !== 'assistant')
-    || contentText.length === 0
+    || (contentText.length === 0 && !imageWithArtifact)
   ) {
     return null;
   }
-  const status = toMessageStatus(message.status);
-  const kind = toMessageKind(message.kind);
   const createdAtMs = parseIsoTimestampMs(message.createdAt);
   const updatedAtMs = parseIsoTimestampMs(message.updatedAt);
   if (!status || !kind || createdAtMs === null || updatedAtMs === null) {
@@ -149,7 +162,7 @@ function toHydratedMessageRecord(input: {
     parentMessageId: normalizeText(message.parentMessageId) || null,
     mediaUrl: normalizeText(message.mediaUrl) || null,
     mediaMimeType: normalizeText(message.mediaMimeType) || null,
-    artifactId: normalizeText(message.artifactId) || null,
+    artifactId: artifactId || null,
     metadataJson: message.metadata && Object.keys(message.metadata).length > 0 ? message.metadata : null,
     createdAtMs,
     updatedAtMs,
@@ -183,6 +196,19 @@ function transcriptMatchesBundle(
   const transcriptMessages = transcript.filter(isTranscriptTextMessage);
   const currentMessages = bundle.messages.filter(isCommittedTextProjectionMessage);
   if (currentMessages.length !== transcriptMessages.length) {
+    return false;
+  }
+  const transcriptImageArtifactIds = transcript
+    .filter(isTranscriptImageMessage)
+    .map((message) => normalizeText(message.artifactId))
+    .filter(Boolean);
+  const currentImageArtifactIds = new Set(
+    bundle.messages
+      .filter((message) => isCommittedMediaProjectionMessage(message) && message.kind === 'image')
+      .map((message) => normalizeText(message.artifactId))
+      .filter(Boolean),
+  );
+  if (!transcriptImageArtifactIds.every((artifactId) => currentImageArtifactIds.has(artifactId))) {
     return false;
   }
   return currentMessages.every((message, index) => {
@@ -230,10 +256,18 @@ function mergeHydratedTextAndLocalProjectionMessages(input: {
   ) {
     return input.hydratedMessages;
   }
+  const hydratedArtifactIds = new Set(
+    input.hydratedMessages
+      .map((message) => normalizeText(message.artifactId))
+      .filter(Boolean),
+  );
   const seenIds = new Set<string>();
   return [
     ...input.hydratedMessages,
-    ...input.committedMediaMessages,
+    ...input.committedMediaMessages.filter((message) => {
+      const artifactId = normalizeText(message.artifactId);
+      return !artifactId || !hydratedArtifactIds.has(artifactId);
+    }),
     ...input.locallyRetainedMessages,
   ]
     .filter((message) => {

@@ -29,9 +29,6 @@ import {
 } from '@nimiplatform/sdk/ai';
 import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
 import {
-  loadNimiAppAIProfileFactoryCatalog,
-} from '@nimiplatform/sdk/app';
-import {
   listPersistedScopeKeys,
   loadAIConfigForScope,
   parseScopeKey,
@@ -235,15 +232,6 @@ export async function ensureAppFirstLaunchAIConfig(
 // NimiAIProfile surface implementation (S-AICONF-001 catalog + apply)
 // ---------------------------------------------------------------------------
 
-function resolveFactoryAIProfile(profileId: string): NimiAIProfile | null {
-  const normalizedProfileId = String(profileId || '').trim();
-  if (!normalizedProfileId) {
-    return null;
-  }
-  return loadNimiAppAIProfileFactoryCatalog()
-    .find((profile) => profile.profileId === normalizedProfileId) ?? null;
-}
-
 async function resolveAccountLibraryAIProfile(profileId: string): Promise<NimiAIProfile | null> {
   try {
     const projection = await listAccountProfileLibrary();
@@ -260,8 +248,7 @@ async function resolveDesktopAIProfile(profileId: string): Promise<NimiAIProfile
   if (!normalizedProfileId) {
     return null;
   }
-  return resolveFactoryAIProfile(normalizedProfileId)
-    ?? await resolveAccountLibraryAIProfile(normalizedProfileId);
+  return resolveAccountLibraryAIProfile(normalizedProfileId);
 }
 
 function createMissingProfileApplyResult(profileId: string): NimiAIProfileApplyResult {
@@ -300,12 +287,13 @@ function createAIProfileSurface(): DesktopAIProfileSurface {
   }
 
   return {
-    // `list` intentionally returns factory profiles only. Runtime Config and
-    // Apps pass Account Default / account-library profiles through the Kit
-    // controller's user profile source, while `get` / `previewApply` / `apply`
-    // resolve those host-owned profiles by id when the user selects them.
     async list(): Promise<NimiAIProfile[]> {
-      return [...loadNimiAppAIProfileFactoryCatalog()];
+      try {
+        const projection = await listAccountProfileLibrary();
+        return projection.profiles.map((entry) => entry.profile);
+      } catch {
+        return [];
+      }
     },
 
     async get(profileId: string): Promise<NimiAIProfile | null> {

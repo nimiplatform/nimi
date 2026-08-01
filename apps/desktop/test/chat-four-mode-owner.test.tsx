@@ -7,7 +7,6 @@ import type { AIScopeRef } from '@nimiplatform/sdk/ai';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 
 const NIMI_SCOPE: AIScopeRef = { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'nimi' };
-const AGENT_SCOPE: AIScopeRef = { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'agent' };
 
 function readDesktopFile(relativePath: string): string {
   return readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
@@ -80,7 +79,7 @@ test('the chat mode switcher exercises exactly the four product modes', async ()
   }
 });
 
-test('Nimi binds feature:desktop.chat:nimi; Agent binds feature:desktop.chat:agent', async () => {
+test('Nimi binds feature:desktop.chat:nimi; Agent binds no Desktop-owned chat scope', async () => {
   const {
     resolveChatModeAIScopeRef,
     setActiveScopeForMode,
@@ -90,18 +89,20 @@ test('Nimi binds feature:desktop.chat:nimi; Agent binds feature:desktop.chat:age
 
   const originalMode = getActiveScopeMode();
   try {
-    // Static resolution — built-in chat scopes use the canonical `feature` shape.
+    // Static resolution — the Nimi built-in chat scope uses the canonical
+    // `feature` shape; Agent chat binds no Desktop-owned scope (P-AISC-006):
+    // the Runtime projects the selected LocalAgent's local-agent scope instead.
     assert.deepEqual(resolveChatModeAIScopeRef('ai'), NIMI_SCOPE);
-    assert.deepEqual(resolveChatModeAIScopeRef('agent'), AGENT_SCOPE);
+    assert.equal(resolveChatModeAIScopeRef('agent'), null);
     assert.equal(NIMI_SCOPE.kind, 'feature');
-    assert.equal(AGENT_SCOPE.kind, 'feature');
 
-    // Live switch — entering Nimi/Agent mode rebinds the active scope to the
-    // canonical built-in feature scope, never the generic app:desktop:chat.
+    // Live switch — entering Nimi mode rebinds the active scope to the
+    // canonical built-in feature scope, never the generic app:desktop:chat;
+    // entering Agent mode clears the Desktop-owned active scope.
     setActiveScopeForMode('ai');
     assert.deepEqual(getActiveScope(), NIMI_SCOPE);
     setActiveScopeForMode('agent');
-    assert.deepEqual(getActiveScope(), AGENT_SCOPE);
+    assert.equal(getActiveScope(), null);
   } finally {
     setActiveScopeForMode(originalMode);
   }

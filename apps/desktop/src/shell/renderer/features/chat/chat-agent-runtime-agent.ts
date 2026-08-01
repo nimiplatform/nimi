@@ -60,6 +60,14 @@ export async function streamChatAgentRuntimeAgentTurn(
     messages: [{
       role: 'user' as const,
       content: normalizeText(request.userText),
+      ...(request.userAttachments && request.userAttachments.length > 0
+        ? {
+          attachments: request.userAttachments.map((attachment) => ({
+            artifactId: attachment.artifactId,
+            displayName: attachment.name,
+          })),
+        }
+        : {}),
     }] as const,
     reasoning: (() => {
       const resolved = resolveChatThinkingConfig(

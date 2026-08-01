@@ -14,6 +14,7 @@ import type {
 } from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
+import { CHAT_COMPOSER_RAIL_RESERVE_CLASS } from './chat-shared-content-layout';
 import { ChatSideSheet } from './chat-shared-side-sheet';
 
 export type ChatCanonicalModeFrameProps = {
@@ -92,7 +93,11 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
         stagePanelProps={props.stagePanelPropsOverride ?? props.host.stagePanelProps}
         topContent={props.host.topContent}
         sceneBackground={props.sceneBackground}
-        composer={props.host.composerContent}
+        composer={props.host.composerContent ? (
+          <div className={CHAT_COMPOSER_RAIL_RESERVE_CLASS}>
+            {props.host.composerContent}
+          </div>
+        ) : null}
         auxiliaryOverlayContent={props.host.auxiliaryOverlayContent}
       />
       {props.afterShell}

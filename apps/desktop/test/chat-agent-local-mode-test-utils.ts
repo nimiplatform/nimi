@@ -48,14 +48,14 @@ import {
   resolveAgentImageProjectionForExecution,
   } from '../src/shell/renderer/features/chat/conversation-capability.js';
 import {
-  createNimiBuiltInChatAIScopeRef,
+  projectNimiRuntimeLocalAgentAIScopeRef,
   createEmptyNimiAIConfig as createSdkEmptyAIConfig,
 } from '@nimiplatform/sdk/ai';
 import { findNimiRuntimeRouteModelProfile } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 import { createDesktopRuntimeRouteAccess } from '../src/shell/renderer/infra/runtime-route-host-access.js';
 
-const TEST_CHAT_SCOPE_REF = createNimiBuiltInChatAIScopeRef('agent');
+const TEST_CHAT_SCOPE_REF = projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test');
 type DesktopTestRuntime =
   & NimiDesktopMachineProductRuntimeClient
   & NimiDesktopAccountProductRuntimeClient

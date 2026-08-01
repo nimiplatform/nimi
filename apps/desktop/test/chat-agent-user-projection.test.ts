@@ -11,16 +11,14 @@ test('agent user projection assigns unique message ids for text plus images', ()
     submittedText: 'Please inspect these.',
     uploadedAttachments: [{
       kind: 'image',
-      url: 'https://cdn.nimi.test/image-1.png',
-      mimeType: 'image/png',
-      name: 'image-1.png',
-      resourceId: 'resource-1',
+      mediaUrl: 'data:image/png;base64,aW1hZ2UtMQ==',
+      mediaMimeType: 'image/png',
+      artifactId: 'artifact-1',
     }, {
       kind: 'image',
-      url: 'https://cdn.nimi.test/image-2.png',
-      mimeType: 'image/png',
-      name: 'image-2.png',
-      resourceId: 'resource-2',
+      mediaUrl: 'data:image/png;base64,aW1hZ2UtMg==',
+      mediaMimeType: 'image/png',
+      artifactId: 'artifact-2',
     }],
     createdAtMs: 100,
   });
@@ -49,6 +47,9 @@ test('agent user projection assigns unique message ids for text plus images', ()
       contentText: '',
     }],
   );
+  assert.equal(projection.messages[1]?.mediaUrl, 'data:image/png;base64,aW1hZ2UtMQ==');
+  assert.equal(projection.messages[1]?.mediaMimeType, 'image/png');
+  assert.equal(projection.messages[1]?.artifactId, 'artifact-1');
   assert.equal(projection.firstMessageId, 'turn-user-1:message:0');
   assert.equal(projection.lastMessageId, 'turn-user-1:message:2');
   assert.equal(projection.lastMessageAtMs, 102);
@@ -63,15 +64,15 @@ test('agent user projection supports attachment-only turns', () => {
     submittedText: '   ',
     uploadedAttachments: [{
       kind: 'image',
-      url: 'https://cdn.nimi.test/image-only.png',
-      mimeType: 'image/png',
-      name: 'image-only.png',
-      resourceId: 'resource-image-only',
+      mediaUrl: 'data:image/png;base64,aW1hZ2Utb25seQ==',
+      mediaMimeType: 'image/png',
+      artifactId: 'artifact-image-only',
     }],
     createdAtMs: 200,
   });
 
   assert.equal(projection.messages[0]?.kind, 'image');
   assert.equal(projection.messages[0]?.parentMessageId, null);
+  assert.equal(projection.messages[0]?.artifactId, 'artifact-image-only');
   assert.equal(projection.lastMessageId, 'turn-user-2:message:0');
 });

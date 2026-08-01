@@ -4,11 +4,12 @@ import path from 'node:path';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { AgentCenterI18n } from '@nimiplatform/kit/features/agent-center';
-import {
-  createNimiRuntimeAgentModelSettingsScopeRef,
-  type NimiRuntimeAgentAutonomySnapshot,
-} from '@nimiplatform/sdk/runtime';
+import type {
+  AgentCenterI18n,
+  AgentCenterRuntimeAIConfigProjection,
+} from '@nimiplatform/kit/features/agent-center';
+import { createNimiAIScopeRef } from '@nimiplatform/sdk/ai';
+import type { NimiRuntimeAgentAutonomySnapshot } from '@nimiplatform/sdk/runtime';
 import { createDesktopAgentCenterAvatarPreviewAdapter } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-preview-adapter.js';
 import {
   createDesktopAgentCenterAutonomyAdapter,
@@ -47,20 +48,40 @@ function desktopAgentCenterI18n(): AgentCenterI18n {
 }
 
 async function desktopAgentCenterSession() {
+  // Runtime Agent model settings converged into the Runtime Agent AIConfig
+  // module: the session now reads a typed AIConfig projection bound to the
+  // Runtime-issued local-agent scope of the selected LocalAgent.
+  const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: identity.localAgentRef });
+  let projection: AgentCenterRuntimeAIConfigProjection = {
+    aiConfig: {
+      scopeRef,
+      profileOrigin: null,
+      capabilities: {
+        logicalModelIds: {},
+        targetRefs: {},
+        selectedComponents: {},
+        selectedParams: {},
+      },
+    },
+    scopeRef,
+    capabilities: [],
+    routeIntents: [],
+    readiness: [],
+    configurationRevision: '1',
+  };
   const session = createFirstPartyAgentCenterSession({
     identity,
-    modelSettings: {
+    aiConfig: {
       async snapshot() {
-        return {
-          scopeRef: createNimiRuntimeAgentModelSettingsScopeRef(identity.localAgentRef),
-          capabilities: [], routeIntents: [], readiness: [], configurationRevision: '1',
-        };
+        return projection;
       },
       async update(input) {
-        return {
-          scopeRef: createNimiRuntimeAgentModelSettingsScopeRef(identity.localAgentRef),
-          capabilities: [], routeIntents: input.routeIntents, readiness: [], configurationRevision: '2',
+        projection = {
+          ...projection,
+          aiConfig: input.config,
+          configurationRevision: '2',
         };
+        return projection;
       },
     },
   });

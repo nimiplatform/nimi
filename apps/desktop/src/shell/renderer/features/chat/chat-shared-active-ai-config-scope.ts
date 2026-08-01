@@ -13,12 +13,13 @@ import { pushDesktopAIConfigToBoundStore } from '../../app-shell/providers/deskt
  * It is not shared Desktop NimiAIConfig authority and must not become a cross-domain
  * singleton for future app consumers.
  *
- * T3-1: the active chat scope is mode-aware. Each chat mode binds to its
- * canonical built-in `NimiAIScopeRef`
+ * The active chat scope is mode-aware. Only Nimi Chat binds a Desktop-owned
+ * built-in `NimiAIScopeRef`
  * (`rule.nimi.platform.core-protocol.p-aisc-006a` /
  * `rule.nimi.platform.core-protocol.p-aisc-006b`):
  *   - `ai`    (Nimi Chat)  -> feature:desktop.chat:nimi
- *   - `agent` (Agent Chat) -> feature:desktop.chat:agent
+ *   - `agent` (Agent Chat) -> no Desktop-owned scope; Runtime projects the
+ *                             selected LocalAgent's `local-agent` scope
  *   - `human` (Human Chat) -> no built-in chat NimiAIConfig scope
  *   - `group` (Group Chat) -> no built-in chat NimiAIConfig scope
  *
@@ -37,7 +38,6 @@ export function resolveChatModeAIScopeRef(mode: ConversationMode): NimiAIScopeRe
     case 'ai':
       return createNimiBuiltInChatAIScopeRef('nimi');
     case 'agent':
-      return createNimiBuiltInChatAIScopeRef('agent');
     case 'human':
     case 'group':
       return null;
@@ -106,9 +106,9 @@ function rebindActiveScope(): void {
 /**
  * Rebind the active chat scope to the canonical built-in scope for `mode`.
  *
- * Called by the chat-mode store transition. Switching Nimi <-> Agent rebinds
- * the active scope (and every active-scope subscriber) to the correct built-in
- * `feature` scope; switching to Human or Group clears the active chat scope.
+ * Called by the chat-mode store transition. Switching away from Nimi clears
+ * the Desktop-owned active scope; Agent mode receives its scope only from the
+ * selected Runtime LocalAgent projection.
  *
  * Per-mode thread/session selection state is owned by the store and is not
  * touched here — this only rewires the NimiAIConfig scope projection.

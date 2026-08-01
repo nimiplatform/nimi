@@ -232,7 +232,7 @@ export function ChatRelationshipRail({
     <aside
       data-testid={E2E_IDS.chatList}
       data-chat-relationship-rail-chrome="transparent"
-      className="ml-4 mr-1 flex h-full w-14 shrink-0 flex-col items-center bg-transparent py-2"
+      className="absolute right-4 top-0 z-10 flex h-full w-14 flex-col items-center bg-transparent py-2"
     >
       <ScrollArea
         className="w-full flex-1 px-1 py-1"
@@ -333,6 +333,7 @@ export function ChatRelationshipRail({
             className="h-10 w-10 rounded-2xl"
           />
         ) : null}
+        {activeMode === 'agent' ? null : (
         <IconToggleAction
           icon={(
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -349,6 +350,7 @@ export function ChatRelationshipRail({
           data-chat-settings-toggle="true"
           className="h-10 w-10 rounded-2xl"
         />
+        )}
       </div>
     </aside>
   );

@@ -9,14 +9,15 @@ import {
 } from 'react';
 import {
   createNimiRuntimeAgentConsumeClient,
-  createNimiRuntimeAgentModelSettingsModule,
 } from '@nimiplatform/sdk/runtime';
+import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import type { TFunction } from 'i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   createFirstPartyAgentCenterSession,
   createAgentCenterShellAppearanceAdapter,
+  type AgentCenterRuntimeAIConfigProjection,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -52,6 +53,12 @@ import { useLocalAssets } from './capability-settings-shared';
 import { createDesktopAgentCenterAutonomyAdapter } from './chat-agent-center-autonomy-adapter.js';
 import { createDesktopAgentCenterAvatarPreviewAdapter } from './chat-agent-center-avatar-preview-adapter.js';
 import { createRuntimeAgentPresentationProfileAdapter } from '../../infra/runtime-agent-presentation-profile';
+import { listAccountProfileLibrary } from '../../bridge/runtime-bridge/account-profile-library.js';
+
+async function listRuntimeAgentAIProfiles(): Promise<NimiAIProfile[]> {
+  const accountLibrary = await listAccountProfileLibrary();
+  return accountLibrary.profiles.map((entry) => entry.profile);
+}
 
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,
@@ -116,6 +123,41 @@ function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdenti
     localAgentRef: target.localAgentRef,
     ownerUserId: target.ownerUserId,
     runtimeSourceRef: target.runtimeSourceRef,
+  };
+}
+
+function projectAgentCenterAIConfig(
+  snapshot: NimiRuntimeAgentAIConfigSnapshot,
+  readiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
+): AgentCenterRuntimeAIConfigProjection {
+  if (readiness.configRevision !== snapshot.revision) {
+    throw new Error('Runtime Agent AIConfig and readiness revisions do not match.');
+  }
+  const readinessByCapability = readiness.capabilities.map((entry) => ({
+    capability: entry.capability,
+    state: entry.state === 'not_configured' ? 'blocked' as const : entry.state,
+    reason: entry.reasonCode,
+    observedAt: entry.probedAt,
+  }));
+  const capabilities = [...new Set([
+    ...Object.keys(snapshot.intents),
+    ...readiness.capabilities.map((entry) => entry.capability),
+  ])];
+  return {
+    aiConfig: snapshot.aiConfig,
+    scopeRef: snapshot.aiConfig.scopeRef,
+    capabilities,
+    routeIntents: Object.entries(snapshot.intents).map(([capability, binding]) => ({
+      capability,
+      provider: binding.targetRef?.kind === 'cloud-connector'
+        ? (binding.targetRef.provider || '')
+        : '',
+      model: binding.modelId,
+      routePolicy: binding.route,
+      ...(binding.targetRef ? { targetRef: binding.targetRef } : {}),
+    })),
+    readiness: readinessByCapability,
+    configurationRevision: String(snapshot.revision),
   };
 }
 
@@ -186,16 +228,44 @@ export function useAgentConversationRuntimeController(
     },
     getSubjectUserId,
     withScopes: bindings.sdk.withRuntimeProtectedScopes,
-  }), [bindings, getSubjectUserId]);
-  const runtimeAgentModelSettings = useMemo(() => createNimiRuntimeAgentModelSettingsModule({
-    runtime: {
-      get appId() { return bindings.sdk.appId(); },
-      get auth() { return bindings.sdk.accountRuntime().auth; },
-      get agent() { return bindings.sdk.accountProduct().agents; },
+    profileSource: {
+      list: listRuntimeAgentAIProfiles,
+      async get(profileId) {
+        return (await listRuntimeAgentAIProfiles())
+          .find((profile) => profile.profileId === profileId) ?? null;
+      },
     },
-    getSubjectUserId,
-    withScopes: bindings.sdk.withRuntimeProtectedScopes,
   }), [bindings, getSubjectUserId]);
+  const runtimeAgentCenterAIConfig = useMemo(() => ({
+    async snapshot(identity: RuntimeIdentityInput & { readonly subjectUserId?: string }) {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const [config, readiness] = await Promise.all([
+          runtimeAgentAIConfigAdapter.get(identity),
+          runtimeAgentAIConfigAdapter.readiness(identity),
+        ]);
+        if (config.revision === readiness.configRevision) {
+          return projectAgentCenterAIConfig(config, readiness);
+        }
+      }
+      throw new Error('Runtime Agent AIConfig changed while Agent Center was reading a coherent snapshot.');
+    },
+    async update(updateInput: RuntimeIdentityInput & {
+      readonly subjectUserId?: string;
+      readonly expectedConfigurationRevision: string;
+      readonly config: NimiRuntimeAgentAIConfigSnapshot['aiConfig'];
+    }) {
+      const expectedRevision = Number(updateInput.expectedConfigurationRevision);
+      if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) {
+        throw new Error('Runtime Agent AIConfig revision is invalid.');
+      }
+      const config = await runtimeAgentAIConfigAdapter.update({
+        ...updateInput,
+        expectedRevision,
+      });
+      const readiness = await runtimeAgentAIConfigAdapter.readiness(updateInput);
+      return projectAgentCenterAIConfig(config, readiness);
+    },
+  }), [runtimeAgentAIConfigAdapter]);
   const runtimeAgentCenterAdapter = useMemo(() => {
     if (authStatus !== 'authenticated' || !activeTarget || !subjectUserId) {
       return null;
@@ -225,12 +295,36 @@ export function useAgentConversationRuntimeController(
     return createFirstPartyAgentCenterSession({
       identity,
       appearance,
-      modelSettings: runtimeAgentModelSettings,
+      aiConfig: runtimeAgentCenterAIConfig,
       autonomy: createDesktopAgentCenterAutonomyAdapter(runtimeAgentInspect),
       inspect: runtimeAgentInspect,
       modelConfig: {
         localAssetSource,
         providerResolver,
+        aiProfile: {
+          async list() {
+            return [...await runtimeAgentAIConfigAdapter.aiProfile.list()];
+          },
+          previewApply: (scopeRef, profileId, options) => (
+            runtimeAgentAIConfigAdapter.aiProfile.previewApply({
+              ...identity,
+              subjectUserId,
+              scopeRef,
+              profileId,
+              requirementDeclarations: options.requirementDeclarations,
+            })
+          ),
+          apply: (scopeRef, profileId, options) => (
+            runtimeAgentAIConfigAdapter.aiProfile.apply({
+              ...identity,
+              subjectUserId,
+              scopeRef,
+              profileId,
+              requirementDeclarations: options.requirementDeclarations,
+              ...(options.expectedBaseVersion ? { expectedBaseVersion: options.expectedBaseVersion } : {}),
+            })
+          ),
+        },
       },
       async loadSourceContextStatus(identity) {
         const discovered = await lifecycle.discoverLocalAgentsBySource({
@@ -255,7 +349,7 @@ export function useAgentConversationRuntimeController(
         return snapshot.turnContextSummary ?? null;
       },
     });
-  }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, localAssetSource, providerResolver, runtimeAgentInspect, runtimeAgentModelSettings, runtimeInspect, subjectUserId]);
+  }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, localAssetSource, providerResolver, runtimeAgentCenterAIConfig, runtimeAgentInspect, runtimeInspect, subjectUserId]);
 
   const requireActiveRuntimeIdentity = useCallback(() => {
     if (!activeTarget) {

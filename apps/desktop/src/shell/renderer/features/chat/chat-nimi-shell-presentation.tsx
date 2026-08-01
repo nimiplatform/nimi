@@ -12,7 +12,7 @@ import type {
   ChatAiThreadSummary,
 } from '../../bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
-import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
+import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
 import {
   RuntimeInspectCard,
 } from './chat-runtime-inspect-content';
@@ -162,6 +162,9 @@ export function useAiConversationPresentation(
       disableRpContent: true,
       widthClassName: CHAT_CONTENT_WIDTH_CLASS,
       widthPositionClassName: CHAT_CONTENT_POSITION_CLASS,
+      scrollViewportWidthClassName: CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS,
+      scrollViewportPositionClassName: CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS,
+      contentPaddingBottomClassName: CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
     },
     stagePanelProps: {
       footerContent: input.footerContent,

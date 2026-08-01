@@ -1,4 +1,3 @@
-import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import {
   createNimiRuntimeAgentConsumeClient,
 } from '@nimiplatform/sdk/runtime';
@@ -18,9 +17,11 @@ import {
 } from './chat-agent-shell-core';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
 import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
+import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
 import type { AgentConversationAnchorBinding } from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
+import type { AgentUserProjectionAttachment } from './chat-agent-user-projection';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
 
 export function isAbortLikeSubmitError(error: unknown): boolean {
@@ -305,25 +306,45 @@ export async function uploadPendingAttachment(
       defaultValue: 'Agent chat currently supports image attachments only.',
     }));
   }
-  const uploaded = await uploadNimiRealmResourceFile(input.sdk.realm(), {
-    kind: 'image',
-    file: attachment.file,
-    failureMessage: input.t('Chat.agentAttachmentUploadFailed', {
-      defaultValue: 'Failed to upload image attachment.',
-    }),
-    transportMode: 'multipart_post_then_binary_put',
+  const uploadFailureMessage = input.t('Chat.agentAttachmentUploadFailed', {
+    defaultValue: 'Failed to upload image attachment.',
   });
-  const url = normalizeText(uploaded.resource.url);
-  if (!url) {
-    throw new Error(input.t('Chat.agentAttachmentUploadFailed', {
-      defaultValue: 'Failed to upload image attachment.',
-    }));
+  const bytes = new Uint8Array(await attachment.file.arrayBuffer());
+  const uploaded = await input.sdk.accountProduct().artifacts.putArtifact({
+    mimeType: attachment.file.type || 'application/octet-stream',
+    displayName: attachment.name,
+    data: bytes,
+  }).catch((error: unknown) => {
+    throw new Error(uploadFailureMessage, { cause: error });
+  });
+  const artifactId = normalizeText(uploaded.artifactId);
+  if (!artifactId) {
+    throw new Error(uploadFailureMessage);
   }
   return {
     kind: 'image',
-    url,
-    mimeType: normalizeText(uploaded.resource.mimeType) || attachment.file.type || null,
+    artifactId,
+    mimeType: normalizeText(attachment.file.type) || null,
     name: attachment.name,
-    resourceId: normalizeText(uploaded.resource.id) || normalizeText(uploaded.resourceId) || null,
+  };
+}
+
+export async function resolveUploadedAttachmentProjection(
+  input: UseAgentConversationHostActionsInput,
+  attachment: AgentChatUserAttachment,
+): Promise<AgentUserProjectionAttachment> {
+  const artifact = await input.sdk.accountProduct().artifacts.readArtifactBytes({
+    artifactId: attachment.artifactId,
+  }).catch((error: unknown) => {
+    throw new Error(input.t('Chat.agentAttachmentUploadFailed', {
+      defaultValue: 'Failed to upload image attachment.',
+    }), { cause: error });
+  });
+  const mimeType = normalizeText(artifact.mimeType) || attachment.mimeType || 'application/octet-stream';
+  return {
+    kind: 'image',
+    mediaUrl: encodeBytesAsDataUrl(mimeType, artifact.bytes),
+    mediaMimeType: attachment.mimeType,
+    artifactId: attachment.artifactId,
   };
 }

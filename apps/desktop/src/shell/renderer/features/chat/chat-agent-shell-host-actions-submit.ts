@@ -31,6 +31,7 @@ import {
   assertAgentSubmitSchedulingAllowed,
   ensureThreadAnchorBindingForTarget,
   isAbortLikeSubmitError,
+  resolveUploadedAttachmentProjection,
   uploadPendingAttachment,
 } from './chat-agent-shell-host-actions-helpers';
 import { runActiveAgentSubmit } from './chat-agent-shell-host-actions-submit-run';
@@ -163,10 +164,9 @@ export async function submitAgentConversationTurn(input: {
       .filter((attachment) => attachment.kind === 'image' && normalizeText(attachment.previewUrl))
       .map((attachment) => ({
         kind: 'image' as const,
-        url: attachment.previewUrl,
-        mimeType: normalizeText(attachment.file.type) || null,
-        name: attachment.name,
-        resourceId: null,
+        mediaUrl: attachment.previewUrl,
+        mediaMimeType: normalizeText(attachment.file.type) || null,
+        artifactId: null,
       }));
     const optimisticUserProjection = submittedText || optimisticPreviewAttachments.length > 0
       ? buildAgentUserProjection({
@@ -211,13 +211,16 @@ export async function submitAgentConversationTurn(input: {
     const uploadedAttachments = input.payload.attachments.length > 0
       ? await Promise.all(input.payload.attachments.map((attachment) => uploadPendingAttachment(input.hostInput, attachment)))
       : [];
+    const uploadedAttachmentProjections = await Promise.all(
+      uploadedAttachments.map((attachment) => resolveUploadedAttachmentProjection(input.hostInput, attachment)),
+    );
     const userProjection = buildAgentUserProjection({
       threadId: effectiveThreadId,
       agentId: activeTarget.localAgentRef,
       conversationAnchorId,
       turnId: userTurnId,
       submittedText,
-      uploadedAttachments,
+      uploadedAttachments: uploadedAttachmentProjections,
       createdAtMs,
     });
     const assistantPlaceholder: AgentLocalMessageRecord = {

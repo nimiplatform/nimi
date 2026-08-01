@@ -65,6 +65,8 @@ type UseAgentConversationModeHostInput = {
   diagnosticsVisible: boolean;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   onOpenAgentCenter?: () => void;
+  onCloseAgentCenter?: () => void;
+  agentCenterOpen?: boolean;
   runtimeFields: RuntimeFieldMap;
   selection: AgentConversationSelection;
   setSelection: (selection: AgentConversationSelection) => void;
@@ -537,6 +539,8 @@ export function useAgentConversationModeHost(
     developerModeEnabled,
     onDiagnosticsVisibilityChange: input.onDiagnosticsVisibilityChange,
     onOpenAgentCenter: input.onOpenAgentCenter,
+    onCloseAgentCenter: input.onCloseAgentCenter,
+    agentCenterOpen: input.agentCenterOpen,
     voiceSessionState,
     voiceCaptureState,
     voicePlaybackState,

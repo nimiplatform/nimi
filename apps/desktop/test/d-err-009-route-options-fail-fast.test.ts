@@ -38,7 +38,7 @@ function localTargetRefFor(localAssetId: string): NimiRuntimeRouteTargetRef {
   return {
     kind: 'local-runtime',
     version: 'v2',
-    profileBindingId: `local-runtime:${localAssetId}`,
+    readinessRef: `runtime_readiness:test:${localAssetId}`,
   };
 }
 
@@ -158,7 +158,9 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
     aiConfig: {
       ...initialAIConfig,
       capabilities: {
+        logicalModelIds: {},
         targetRefs: {},
+        selectedComponents: {},
         selectedParams: {},
       },
     },
@@ -220,7 +222,9 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
     aiConfig: {
       ...initialAIConfig,
       capabilities: {
+        logicalModelIds: {},
         targetRefs: {},
+        selectedComponents: {},
         selectedParams: {},
       },
     },
@@ -418,6 +422,8 @@ test('loadRuntimeRouteOptions preserves local models when connector listing fail
       runtimeLocalModels: [{
         localAssetId: '01KLOCALCHAT',
         assetId: 'local/Qwen3-4B-Q4_K_M',
+        logicalModelId: 'local.chat.qwen3-4b-q4-k-m',
+        displayName: 'Qwen3 4B Q4_K_M',
         kind: 'chat',
         engine: 'llama',
         entry: 'Qwen3-4B-Q4_K_M.gguf',
@@ -431,7 +437,16 @@ test('loadRuntimeRouteOptions preserves local models when connector listing fail
         updatedAt: '2026-03-08T00:00:00Z',
         endpoint: 'http://127.0.0.1:1234/v1',
         capabilities: ['text.generate'],
+        artifactRoles: [],
         engineConfig: {},
+        durableTargetRef: {
+          version: 'v2',
+          ref: {
+            oneofKind: 'readinessRef',
+            readinessRef: 'runtime_readiness:test:01KLOCALCHAT',
+          },
+        },
+        durableTargetStatus: 'active',
       }] as never[],
     }),
   }));
@@ -486,6 +501,8 @@ test('loadRuntimeRouteOptions preserves local models when connector model discov
       runtimeLocalModels: [{
         localAssetId: '01KLOCALCHAT',
         assetId: 'local/Qwen3-4B-Q4_K_M',
+        logicalModelId: 'local.chat.qwen3-4b-q4-k-m',
+        displayName: 'Qwen3 4B Q4_K_M',
         kind: 'chat',
         engine: 'llama',
         entry: 'Qwen3-4B-Q4_K_M.gguf',
@@ -499,7 +516,16 @@ test('loadRuntimeRouteOptions preserves local models when connector model discov
         updatedAt: '2026-03-08T00:00:00Z',
         endpoint: 'http://127.0.0.1:1234/v1',
         capabilities: ['text.generate'],
+        artifactRoles: [],
         engineConfig: {},
+        durableTargetRef: {
+          version: 'v2',
+          ref: {
+            oneofKind: 'readinessRef',
+            readinessRef: 'runtime_readiness:test:01KLOCALCHAT',
+          },
+        },
+        durableTargetStatus: 'active',
       }] as never[],
     }),
   }));

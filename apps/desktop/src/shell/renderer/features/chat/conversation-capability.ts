@@ -273,7 +273,9 @@ export function aiConfigFromSelectionStore(
   return {
     ...createEmptyNimiAIConfig(scopeRef),
     capabilities: {
+      logicalModelIds: {},
       targetRefs,
+      selectedComponents: {},
       selectedParams: {},
     },
   };

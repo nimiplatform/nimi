@@ -18,10 +18,9 @@ export const AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES = {
 
 export type AgentChatUserAttachment = {
   kind: 'image';
-  url: string;
+  artifactId: string;
   mimeType: string | null;
   name: string;
-  resourceId: string | null;
 };
 
 export type AgentRuntimeChatTurnRequest = {

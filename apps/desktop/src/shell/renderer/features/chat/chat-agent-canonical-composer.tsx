@@ -54,6 +54,20 @@ const ICON_AVATAR = (
   </svg>
 );
 
+const ICON_AGENT_CENTER = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="21" x2="14" y1="4" y2="4" />
+    <line x1="10" x2="3" y1="4" y2="4" />
+    <line x1="21" x2="12" y1="12" y2="12" />
+    <line x1="8" x2="3" y1="12" y2="12" />
+    <line x1="21" x2="16" y1="20" y2="20" />
+    <line x1="12" x2="3" y1="20" y2="20" />
+    <line x1="14" x2="14" y1="2" y2="6" />
+    <line x1="8" x2="8" y1="10" y2="14" />
+    <line x1="16" x2="16" y1="18" y2="22" />
+  </svg>
+);
+
 const AGENT_COMPOSER_TOOL_BUTTON_CLASS = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors';
 
 function AgentComposerToolbarControls(props: {
@@ -191,6 +205,33 @@ function AgentComposerToolbarControls(props: {
   );
 }
 
+function AgentComposerAgentCenterButton(props: {
+  open?: boolean;
+  onClick: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      data-agent-composer-agent-center="true"
+      aria-label={t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' })}
+      aria-pressed={Boolean(props.open)}
+      title={props.open
+        ? t('Chat.agentCenterClose', { defaultValue: 'Close Agent Center' })
+        : t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' })}
+      onClick={props.onClick}
+      className={cn(
+        AGENT_COMPOSER_TOOL_BUTTON_CLASS,
+        props.open
+          ? 'border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-700'
+          : 'border-transparent bg-transparent text-slate-500 hover:bg-slate-900/[0.06] hover:text-slate-700',
+      )}
+    >
+      {ICON_AGENT_CENTER}
+    </button>
+  );
+}
+
 function AgentAttachmentStrip(props: {
   attachments: readonly PendingAttachment[];
   removeAttachment: (index: number) => void;
@@ -243,6 +284,8 @@ export function AgentCanonicalComposer(props: {
   thinkingState?: 'on' | 'off' | 'unsupported';
   onThinkingToggle?: () => void;
   handsFreeState?: AgentComposerHandsFreeState;
+  onOpenAgentCenter?: () => void;
+  agentCenterOpen?: boolean;
   widthClassName?: string;
   widthPositionClassName?: string;
 }) {
@@ -410,6 +453,12 @@ export function AgentCanonicalComposer(props: {
             handsFreeState={props.handsFreeState}
           />
         )}
+        trailingSlot={props.onOpenAgentCenter ? (
+          <AgentComposerAgentCenterButton
+            open={props.agentCenterOpen}
+            onClick={props.onOpenAgentCenter}
+          />
+        ) : null}
         leadingSlot={props.leadingSlot}
       />
       <input
