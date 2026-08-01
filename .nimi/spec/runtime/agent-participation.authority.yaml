@@ -33,7 +33,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.ai-config-plane
     kind: definition
     title: Runtime LocalAgent AI configuration plane
-    meaning: Runtime owns LocalAgent AI route intents, dedicated typed model-settings projection, readiness, Token, Quota, Budget, metering, and resource admission used by LocalAgent execution; Apps may observe bounded status but never fabricate NimiAIConfig or own or bypass those decisions.
+    meaning: Runtime owns the canonical local-agent-scoped AIConfig, its persistence, AIProfile prepare and apply boundary, readiness, Token, Quota, Budget, metering, and resource admission used by LocalAgent execution; the wider Runtime LocalAgent configuration aggregate may independently own non-AI behavior such as autonomy, presentation, voice playback, Memory, and Knowledge without redefining the AIConfig submodel.
   - id: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
     kind: definition
     title: Runtime LocalAgent autonomy configuration plane
@@ -202,9 +202,9 @@ units:
     kind: rule
     title: LocalAgent AI configuration is Runtime-owned
     modality: must
-    statement: Runtime owns the admitted AI route, readiness, Token, Quota, Budget, metering, and resource admission for each LocalAgent and never accepts App-owned provider credentials, hidden provider calls, or caller-declared route truth.
+    statement: Runtime issues one local-agent AIScopeRef per Runtime LocalAgent, persists exactly one full canonical AIConfig for that scope, owns admitted target materialization, readiness, Token, Quota, Budget, metering, and resource admission, and never accepts App-owned provider credentials, hidden provider calls, caller-fabricated scope identity, or caller-declared execution truth.
     condition: Whenever LocalAgent AI configuration is selected or consumed.
-    failure: Reject unavailable or unauthorized routes and expose a bounded typed status.
+    failure: Reject a parallel model-settings truth, unavailable or unauthorized target, fabricated scope, or partial overlay and expose the canonical config plus bounded typed readiness.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.ai-config-plane
@@ -370,11 +370,67 @@ units:
         target: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
   - id: rule.nimi.runtime.agent-participation.r169
     kind: rule
-    title: Model settings v1 projection is closed and typed
+    title: LocalAgent AI configuration uses canonical AIConfig
     modality: must
-    statement: Runtime and SDK project model settings v1 as a dedicated typed projection containing dynamic capabilities from the canonical capability catalog, provider and model route intents, readiness, and audio.transcribe configuration, and every AIScopeRef resolves through the canonical factory or registry; typed per-capability parameters and AI Profile flows remain unavailable until typed Runtime and SDK schema and real backends are admitted.
-    condition: Whenever LocalAgent model settings are projected or mutated.
-    failure: Reject a fabricated NimiAIConfig value, hand-enumerated capability set, caller-fabricated AIScopeRef, unsupported parameter or AI Profile flow, or stub success.
+    statement: Runtime and SDK project the Runtime-owned LocalAgent AI member as the standard full AIConfig containing its Runtime-issued local-agent scopeRef, dynamic canonical capabilities, per-capability public logical primary model identity and v2 durable targetRef, ordered concrete component selections with public logical identity and exact compact targetRef, selectedParams containing only capability parameters, and optional profileOrigin provenance, with readiness and resolved execution evidence remaining adjacent Runtime projections; AIProfile preview and apply use the standard typed flow, Runtime descriptor preparation copies and materializes the profile's component occurrences and defaults before commit, and successful apply or direct customization atomically replaces the full AIConfig under expected-revision compare-and-swap without leaving a live profile binding or a second route-only AI truth.
+    condition: Whenever LocalAgent AIConfig is projected, customized, previewed, applied, or consumed for execution.
+    failure: Reject a dedicated route-only model-settings truth, fabricated NimiAIConfig, hand-enumerated capability set, caller-fabricated AIScopeRef, untyped parameter, profile-as-live-config binding, partial write, fallback, or stub success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: definition.nimi.runtime.agent-participation.user-attachment-plane
+    kind: definition
+    title: Runtime user attachment intake plane
+    meaning: Runtime owns user-submitted attachment intake for LocalAgent Conversation as one authorized upload-and-reference plane; the caller uploads bounded image material to a Runtime-owned artifact store that records owner metadata, a turn references that artifact only by id, Runtime alone validates authenticity, ownership, size, and type, persists the attachment with the owning conversation transcript, and projects it for authorized rendering; the artifact id is never a credential, and no surface passes attachment bytes or attachment truth through App-local storage.
+  - id: rule.nimi.runtime.agent-participation.r170
+    kind: rule
+    title: Attachment upload authenticity and bounds are Runtime-validated
+    modality: must
+    statement: Runtime validates uploaded attachment material before admission by checking the raw byte length against the admitted per-file bound, the declared image mime against the admitted whitelist, and the file signature against the declared mime, and the Runtime artifact store remains the only source of trusted attachment mime and size.
+    condition: Whenever a caller uploads attachment material for a LocalAgent Conversation.
+    failure: Reject oversize, non-admitted type, corrupt, or signature-mismatched material with a typed failure and store nothing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.user-attachment-plane
+  - id: rule.nimi.runtime.agent-participation.r171
+    kind: rule
+    title: Attachment reference requires owner identity
+    modality: must
+    statement: An attachment artifact record carries Runtime-owned owner metadata written at upload, a turn may reference an attachment only when the caller identity matches the artifact owner, and the artifact id alone never authorizes reference or read.
+    condition: Whenever an attachment artifact is uploaded, referenced by a turn, or read back for rendering.
+    failure: Reject cross-owner reference or read as typed forbidden, and never authorize by artifact id possession alone.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.user-attachment-plane
+  - id: rule.nimi.runtime.agent-participation.r172
+    kind: rule
+    title: A turn carries at most one referenced attachment
+    modality: must
+    statement: A LocalAgent Conversation turn carries at most one user attachment as a Runtime artifact reference, the request requires text or attachment at minimum one, and Runtime admits the attachment into turn context composition only through the standard turn admission path.
+    condition: Whenever a user submits a turn carrying an attachment.
+    failure: Reject excess attachments, missing text and attachment, or a bypass reference with a typed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.user-attachment-plane
+  - id: rule.nimi.runtime.agent-participation.r173
+    kind: rule
+    title: Attachment messages persist and project as media
+    modality: must
+    statement: A committed user attachment message is durably persisted with the owning conversation transcript and projected with its media kind, artifact reference, and trusted mime for authorized rendering, so the user's own attachment remains visible after a restart.
+    condition: Whenever a turn carrying an attachment is committed or projected.
+    failure: Never silently drop or text-flatten an attachment message; project a typed unavailable state instead.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.user-attachment-plane
+  - id: rule.nimi.runtime.agent-participation.r174
+    kind: rule
+    title: Vision-unsupported routes fail without losing the attachment
+    modality: must
+    statement: When the current route cannot consume image content, Runtime still commits and persists the user attachment message and emits a structured failure projection with an explicit reason, never dropping the attachment, rejecting the user message, or pretending the image was consumed.
+    condition: Whenever a route without image capability receives an attachment turn.
+    failure: Surface the typed vision-unsupported failure on the assistant side while the user attachment stays committed and visible.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.user-attachment-plane

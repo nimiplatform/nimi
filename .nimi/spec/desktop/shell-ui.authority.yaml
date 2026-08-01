@@ -709,7 +709,7 @@ units:
     kind: rule
     title: Menu-bar navigation is event-dispatched
     modality: must
-    statement: Menu-bar navigation first shows and focuses the main window, emits menu-bar://open-tab with only Runtime overview, profiles, models, cloud, environment, or advanced page selection or Settings selection, and lets renderer state apply the route without coupling native code to React instances.
+    statement: Menu-bar navigation first shows and focuses the main window, emits menu-bar://open-tab with only Runtime overview, profiles, models, cloud, or environment page selection or Settings selection, and lets renderer state apply the route without coupling native code to React instances.
     condition: Whenever a menu-bar navigation item is activated.
     failure: Reject invalid payloads and report navigation failure without mutating a React component directly.
     relations:
@@ -917,9 +917,9 @@ units:
         target: definition.nimi.desktop.shell-ui.developer-tools
   - id: rule.nimi.desktop.shell-ui.r085
     kind: rule
-    title: Developer Tools contains diagnostics only
+    title: Developer Tools contains only developer-mode technical content
     modality: must
-    statement: Developer Tools makes the previously orphaned Developer page reachable only inside Developer Mode and hosts typed technical diagnostics without ordinary-user product functions or product dependencies.
+    statement: Developer Tools makes the previously orphaned Developer page reachable only inside Developer Mode, presents local-development authorization posture and activity, and routes technical diagnostics to Support, without ordinary-user product functions or product dependencies.
     condition: Whenever Desktop composes the Developer Tools surface.
     failure: Reject orphan, default-visible, or ordinary-product content and dependencies.
     relations:

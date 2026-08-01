@@ -748,9 +748,9 @@ units:
     kind: rule
     title: P-MODEL-CONFIG-001 public shared configuration surface
     modality: must
-    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, is the sole shared model-configuration UI composed by AgentCenter, consumes the Kit-core code-generated canonical capability catalog and dedicated typed model-settings projections through typed adapters only, and renders no typed per-capability parameter, AI Profile, stub, or other unsupported affordance before its Runtime and SDK schema and real backend are admitted.
+    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, is the sole shared AIConfig editing UI composed by AgentCenter, consumes the Kit-core code-generated canonical capability catalog and scope-owner-provided standard AIConfig, AIProfile, readiness, and route-option adapters only, renders admitted typed per-capability parameters and AIProfile preview and apply for Runtime LocalAgent scopes, and renders no stub or parameter whose Runtime schema and real backend are not admitted.
     condition: Whenever model-config is published, integrated, or rendered.
-    failure: Reject a private or parallel model-config surface, catalog shadow, fabricated NimiAIConfig value, direct app seam, or unsupported control.
+    failure: Reject a private or parallel model-config surface, dedicated LocalAgent model-settings truth, catalog shadow, fabricated NimiAIConfig value, direct app seam, unsupported control, or profile apply that bypasses Runtime preparation and owner commit.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family

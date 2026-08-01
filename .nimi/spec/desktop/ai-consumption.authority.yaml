@@ -78,7 +78,7 @@ units:
     kind: rule
     title: AIConfig is full and scope-bound
     modality: must
-    statement: Every live AIConfig binds exactly one canonical AIScopeRef and is the full materialized configuration for that scope's declared app, module, or feature capability requirements without partial overlays, cross-scope fallback chains, disabled placeholders, or unresolved required slices.
+    statement: Every live AIConfig binds exactly one canonical AIScopeRef and is the full materialized configuration for that scope's declared app, module, feature, or local-agent capability requirements without partial overlays, cross-scope fallback chains, disabled placeholders, or unresolved required slices.
     condition: Whenever a live AIConfig is committed, read, subscribed, or presented.
     failure: Keep the prior valid config or report typed setup-required with no live config instead of accepting a partial or inherited config.
     relations:
@@ -88,7 +88,7 @@ units:
     kind: rule
     title: AIConfig preserves its canonical envelope
     modality: must
-    statement: AIConfig contains scopeRef, per-capability materialized configuration, and an optional profileOrigin used only for user-facing provenance; sharing schema subsets with AIProfile does not change the bound live-config owner semantics.
+    statement: AIConfig contains scopeRef, per-capability materialized configuration with one primary selection, ordered concrete component selections, and selected parameters, plus an optional profileOrigin used only for user-facing provenance; applying an AIProfile copies its structure and defaults into these concrete fields, and sharing schema subsets with AIProfile does not change the bound live-config owner semantics.
     condition: Whenever Desktop serializes or projects an AIConfig.
     failure: Reject an envelope without exact scope identity or one that treats profileOrigin as a live shared binding.
     relations:
@@ -98,7 +98,7 @@ units:
     kind: rule
     title: AIConfig capability payload stays compact
     modality: must
-    statement: AIConfig capability entries contain only consumer requirement and capability identity, source profile and slice identity, admitted mode-specific v2 compact target references, slice-bounded editable parameters, and profile origin content, hash, and version evidence owned by the scope.
+    statement: AIConfig capability entries contain only consumer requirement and capability identity, a public logical primary model identity with its admitted mode-specific v2 compact target reference, ordered concrete component selections carrying stable occurrence id, order, admitted role and component kind, public logical model identity, required policy, bounded options, and an admitted v2 compact target reference, slice-bounded selected parameters, and optional source profile and slice provenance owned by the scope.
     condition: Whenever a capability entry is materialized or persisted in AIConfig.
     failure: Reject a capability entry that lacks admitted target identity or exceeds the compact intent boundary.
     relations:
@@ -108,7 +108,7 @@ units:
     kind: rule
     title: AIConfig excludes Runtime and credential evidence
     modality: must_not
-    statement: AIConfig persists RuntimeRouteBinding, Runtime selectedBindings evidence, route endpoints, local paths, selected source records, install or materialization records, workflow binding identity, backend package or Python, Torch, CUDA details, provider health, scheduler state, raw secrets, tokens, API keys, or credential payloads.
+    statement: AIConfig persists RuntimeRouteBinding, Runtime selectedBindings evidence, route endpoints, local paths, local asset ids, selected source records, install or materialization records, raw workflow binding identity outside an admitted v2 compact target reference, backend package or Python, Torch, CUDA details, provider health, scheduler state, raw secrets, tokens, API keys, or credential payloads; selectedParams never carries primary or component asset identity.
     condition: Whenever Desktop writes or exports live AIConfig.
     failure: Reject the write and retain the Runtime-owned facts or credentials solely in their typed owner projection.
     relations:
@@ -258,7 +258,7 @@ units:
     kind: rule
     title: AIConfig and AISnapshot remain the conversation capability umbrella
     modality: must
-    statement: Conversation capability selection and derived projection remain an AIConfig capabilities submodel, execution capability evidence remains a typed owner projection, and voice and Runtime-field boundaries remain subordinate invariants; Desktop LocalAgent projection remains adjacent presentation behavior rather than configuration truth.
+    statement: Conversation capability selection and derived projection remain an AIConfig capabilities submodel, LocalAgent AI settings consume the Runtime-owned canonical local-agent AIConfig through the SDK, execution capability evidence remains a typed owner projection, and non-AI LocalAgent autonomy, Memory, Knowledge, voice playback, and presentation settings remain adjacent Runtime configuration rather than AIConfig fields.
     condition: Whenever Desktop composes conversation capability and AI configuration models.
     failure: Reject peer ownership between configuration models or absorption of LocalAgent presentation truth into configuration.
     relations:
@@ -308,8 +308,8 @@ units:
     kind: rule
     title: Built-in chat config materializes through atomic apply
     modality: must
-    statement: Desktop initializes desktop.chat.nimi and desktop.chat.agent independently through the scope owner's SDK and Runtime boundary from the selected local factory AIProfile and current Runtime-resolved live bindings only after every required consumer slice is ready.
-    condition: Whenever either built-in chat scope is initialized or reconfigured.
+    statement: Desktop initializes desktop.chat.nimi through its owning host boundary and applies or customizes each Runtime LocalAgent through that agent's Runtime-issued local-agent AIConfig boundary, using the selected AIProfile and current Runtime-resolved live bindings only after every required consumer slice is ready; desktop.chat.agent is not a live LocalAgent configuration scope.
+    condition: Whenever built-in Nimi chat or a Runtime LocalAgent AIConfig is initialized or reconfigured.
     failure: Leave only the affected scope setup-required without changing Product Control readiness or synthesizing a partial live AIConfig.
     relations:
       - type: applies_to
@@ -323,7 +323,7 @@ units:
     kind: rule
     title: Built-in config has no inferred success or fallback scope
     modality: must_not
-    statement: Desktop synthesizes a built-in AIConfig live target from renderer state, selected tab, conversation state, route health, or caller-provided references; shares a fallback scope between built-in chats; or hardcodes provider, connector, engine, or model identity.
+    statement: Desktop synthesizes a built-in or LocalAgent AIConfig live target from renderer state, selected tab, conversation state, route health, caller-provided LocalAgent identity, or caller-provided execution references; shares a fallback between desktop.chat.nimi and a local-agent scope; retains desktop.chat.agent as a second LocalAgent truth; or hardcodes provider, connector, engine, or model identity.
     condition: Whenever built-in chat configuration or readiness is evaluated.
     failure: Preserve setup-required with no live config for the affected scope.
     relations:

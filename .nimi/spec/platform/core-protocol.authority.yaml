@@ -53,7 +53,7 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-scope-ref
     kind: definition
     title: AIScopeRef canonical identity
-    meaning: AIScopeRef is the canonical cross-surface AI configuration scope identity with kind app, module, or feature, an ownerId, and an optional surfaceId, whose tuple forms a stable unique key.
+    meaning: AIScopeRef is the canonical cross-surface AI configuration scope identity with kind app, module, feature, or local-agent, an ownerId, and an optional surfaceId, whose tuple forms a stable unique key; local-agent identity is Runtime-issued for one Runtime LocalAgent and carries no surfaceId.
   - id: definition.nimi.platform.core-protocol.ai-scope-lifecycle
     kind: definition
     title: AIScopeRef lifecycle
@@ -61,11 +61,11 @@ units:
   - id: definition.nimi.platform.core-protocol.materialized-ai-config
     kind: definition
     title: Materialized scoped AI configuration
-    meaning: A scoped AIConfig is fully materialized without an implicit inheritance or runtime fallback chain, while profile application may copy defaults before independent use.
+    meaning: A scoped AIConfig is the concrete independently editable configuration for one canonical scope, contains each configured capability's public logical primary selection, ordered concrete component selections whose logicalModelId field carries either a runnable component logical model identity or a passive component effective public identity, Runtime-private exact targets, and selected parameters, is fully materialized without an implicit inheritance or runtime fallback chain, and may receive copied structure and defaults from AIProfile only at apply time without retaining the profile as its live configuration.
   - id: definition.nimi.platform.core-protocol.built-in-chat-scopes
     kind: definition
     title: First-run built-in chat scopes
-    meaning: The required first-run built-in chat scopes are feature owner desktop.chat with surfaceId nimi and feature owner desktop.chat with surfaceId agent, representing two stable Desktop chat sub-surfaces rather than routes, conversations, tabs, agents, messages, or generic active-chat keys.
+    meaning: The required first-run Desktop-owned chat scope is feature owner desktop.chat with surfaceId nimi; LocalAgent chat uses the Runtime-issued local-agent AIScopeRef of the selected Runtime LocalAgent rather than a second Desktop-owned agent scope, route, conversation, tab, message, or generic active-chat key.
   - id: definition.nimi.platform.core-protocol.app-launch-ai-scope
     kind: definition
     title: Nimi App launch AI scope
@@ -446,9 +446,9 @@ units:
     kind: rule
     title: P-AISC-001 AIScopeRef identity semantics
     modality: must
-    statement: AIScopeRef uses the closed app, module, and feature kind set, gives app to app identity, module only to a canonical module owner, and feature only to an independently reusable feature owner without fragmenting app or module truth.
+    statement: AIScopeRef uses the closed app, module, feature, and local-agent kind set, gives app to app identity, module only to a canonical module owner, feature only to an independently reusable feature owner without fragmenting app or module truth, and local-agent only to a Runtime-issued ownerId equal to one canonical Runtime LocalAgent reference with no surfaceId.
     condition: Whenever an AI configuration scope identity is created or interpreted.
-    failure: Reject an unknown kind, unstable tuple, ineligible owner, or fragmented identity.
+    failure: Reject an unknown kind, unstable tuple, ineligible owner, caller-fabricated local-agent identity, local-agent surfaceId, or fragmented identity.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-scope-ref
@@ -506,9 +506,9 @@ units:
     kind: rule
     title: P-AISC-006 exact built-in chat scopes
     modality: must
-    statement: Built-in chat configuration uses exactly two independent desktop.chat feature scopes with nimi and agent surfaceId values.
+    statement: Built-in Nimi chat configuration uses exactly feature owner desktop.chat with surfaceId nimi, while built-in LocalAgent chat configuration uses exactly the Runtime-issued local-agent AIScopeRef of the selected Runtime LocalAgent and never desktop.chat with surfaceId agent.
     condition: Whenever built-in chat AIConfig is initialized, stored, or consumed.
-    failure: Reject an incomplete, additional, merged, or differently shaped required built-in chat scope set.
+    failure: Reject an omitted or differently shaped Nimi scope, a Desktop-owned substitute for LocalAgent scope, a merged scope, or a scope that is not owned by the active chat subject.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.built-in-chat-scopes
@@ -516,9 +516,9 @@ units:
     kind: rule
     title: P-AISC-006 no built-in chat substitutes
     modality: must_not
-    statement: First-run substitutes an app-kind desktop or desktop-chat identity, one merged desktop.chat scope, a feature scope without surfaceId, a consumer-local string, or a generic fallback for either required built-in chat scope.
+    statement: First-run substitutes an app-kind desktop or desktop-chat identity, a merged desktop.chat scope, a feature scope without surfaceId for Nimi chat, desktop.chat with surfaceId agent for LocalAgent chat, a caller-built local-agent tuple, a consumer-local string, or a generic fallback for either chat owner.
     condition: Whenever a built-in chat scope is resolved.
-    failure: Reject the substitute and require the exact feature identity.
+    failure: Reject the substitute and require the exact canonical owner-issued identity.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.built-in-chat-scopes
@@ -990,7 +990,7 @@ units:
     kind: rule
     title: P-AIPS-003 fixed apply chain
     modality: must
-    statement: Selection returns a typed factory reference, descriptor preparation and Runtime readiness precede aiProfile.apply, successful apply atomically overwrites one scope-bound fully materialized AIConfig, each turn freezes AISnapshot, and Runtime execution consumes materialization evidence.
+    statement: Selection returns a typed factory reference, descriptor preparation and static Runtime apply eligibility precede aiProfile.apply while execution readiness does not, a portable Profile source declares stable expected identity, name, integrity, kind, and family facts without local asset, import instance, path, or profile binding identity, successful apply atomically associates each source against exactly one verified selected-source and manifest record and copies the profile's admitted capability structure, ordered component occurrences, defaults, public logical or effective component identities, and Runtime-private exact targets into and overwrites one scope-bound fully materialized AIConfig without warming, starting, loading, or probing an image composition, later edits change that AIConfig independently, each turn freezes AISnapshot, and Runtime execution consumes the exact materialization evidence for the committed primary and component selections.
     condition: Whenever a factory profile enters the apply or execution chain.
     failure: Reject a bypass, partial overlay, placeholder disabled capability, scope fallback, or out-of-order execution.
     relations:
@@ -1000,9 +1000,9 @@ units:
         target: definition.nimi.platform.core-protocol.materialized-ai-config
   - id: rule.nimi.platform.core-protocol.p-aips-003b
     kind: rule
-    title: P-AIPS-003 readiness before live write
+    title: P-AIPS-003 static eligibility before live write
     modality: must
-    statement: Alias acceptance, preview, probe, and prepare do not prove readiness, every required slice proves apply eligibility before a live write, and an unresolved, unsupported, credential-missing, association-missing, or unready result returns typed setup-required with no new live config while preserving any valid existing AIConfig.
+    statement: Alias acceptance alone does not prove apply eligibility, every required slice proves static target existence, runnable logical identity or passive effective public component identity, asset kind, capability, backend and family compatibility, expected source integrity and name against verified selected-source and manifest evidence, file and manifest completeness, occurrence structure, and one non-ambiguous non-unhealthy association before a live write without requiring a portable expected identity to equal a machine-specific concrete asset id, an exact INSTALLED image main or passive component that passes those checks is eligible without warm, process start, resident load, or runtime probe, execution readiness is evaluated only when the committed configuration is invoked, and an unresolved, unsupported, credential-missing, association-missing, missing, ambiguous, unhealthy, or removed result returns typed setup-required with no new live config while preserving any valid existing AIConfig.
     condition: Whenever profile apply eligibility is evaluated.
     failure: Fail closed without writing or replacing live AIConfig and report the typed apply failure.
     relations:
@@ -1014,7 +1014,7 @@ units:
     kind: rule
     title: P-AIPS-003 independent local customization
     modality: must_not
-    statement: Scope-local AIConfig customization mutates its source AIProfile or factory catalog row, or a first-run, app hint, or apply path directly creates a selected-source record or bypasses the Runtime activation request and response boundary.
+    statement: Scope-local AIConfig customization mutates its source AIProfile or factory catalog row, leaves a component choice only in the source profile instead of the concrete AIConfig, uses localAssetId, importInstanceId, path, file source, or profileBindingId as public or portable identity, directly upserts an image main into a blank capability without a committed occurrence structure, infers companion slots or source association from current inventory or filenames, creates a main-only composition in place of the authored complete profile, or a first-run, app hint, or apply path directly creates a selected-source record or bypasses the Runtime activation request and response boundary.
     condition: Whenever an applied configuration is customized or a profile path requests activation.
     failure: Preserve the profile and catalog unchanged and route activation through its canonical Runtime boundary.
     relations:
