@@ -195,26 +195,6 @@ func publicChatReasoningPayloadFromConfig(input *publicChatReasoningConfig) *pub
 	}
 }
 
-func publicChatMessagePayloadsFromProto(input []*runtimev1.ChatMessage) []publicChatMessagePayload {
-	out := make([]publicChatMessagePayload, 0, len(input))
-	for _, item := range input {
-		if item == nil {
-			continue
-		}
-		role := strings.TrimSpace(item.GetRole())
-		content := strings.TrimSpace(item.GetContent())
-		if role == "" || content == "" {
-			continue
-		}
-		out = append(out, publicChatMessagePayload{
-			Role:    role,
-			Content: content,
-			Name:    strings.TrimSpace(item.GetName()),
-		})
-	}
-	return out
-}
-
 func publicChatTranscriptMessageID(anchorID string, index int) string {
 	trimmedAnchorID := strings.TrimSpace(anchorID)
 	if trimmedAnchorID == "" {
@@ -234,28 +214,94 @@ func publicChatTranscriptMessageTimestamp(createdAt time.Time, updatedAt time.Ti
 	return base.Add(time.Duration(index) * time.Millisecond).Format(time.RFC3339Nano)
 }
 
+// publicChatMessageEnvelopePayloads projects the app-facing transcript
+// message envelopes (rule.nimi.runtime.agent-participation.r173). A user
+// attachment message keeps its media kind, artifact reference, and
+// store-trusted mime; an empty-content image message is never dropped.
 func publicChatMessageEnvelopePayloads(input []*runtimev1.ChatMessage, anchorID string, createdAt time.Time, updatedAt time.Time) []any {
-	payloads := publicChatMessagePayloadsFromProto(input)
-	out := make([]any, 0, len(payloads))
-	for index, item := range payloads {
+	type envelopeMessage struct {
+		role       string
+		content    string
+		name       string
+		artifactID string
+		mediaMime  string
+	}
+	messages := make([]envelopeMessage, 0, len(input))
+	for _, item := range input {
+		if item == nil {
+			continue
+		}
+		role := strings.TrimSpace(item.GetRole())
+		content := strings.TrimSpace(item.GetContent())
+		artifactID, mediaMime := publicChatEnvelopeAttachmentRef(item)
+		if role == "" || (content == "" && artifactID == "") {
+			continue
+		}
+		messages = append(messages, envelopeMessage{
+			role:       role,
+			content:    content,
+			name:       strings.TrimSpace(item.GetName()),
+			artifactID: artifactID,
+			mediaMime:  mediaMime,
+		})
+	}
+	out := make([]any, 0, len(messages))
+	for index, item := range messages {
 		timestamp := publicChatTranscriptMessageTimestamp(createdAt, updatedAt, index)
 		messageID := publicChatTranscriptMessageID(anchorID, index)
 		payload := map[string]any{
 			"id":         messageID,
-			"role":       item.Role,
-			"content":    item.Content,
-			"name":       item.Name,
+			"role":       item.role,
+			"content":    item.content,
+			"name":       item.name,
 			"status":     "complete",
 			"kind":       "text",
 			"created_at": timestamp,
 			"updated_at": timestamp,
 		}
-		if item.Role == "assistant" && index > 0 && payloads[index-1].Role == "user" {
+		if item.artifactID != "" {
+			payload["kind"] = "image"
+			payload["artifact_id"] = item.artifactID
+			payload["media_mime_type"] = item.mediaMime
+		}
+		if item.role == "assistant" && index > 0 && messages[index-1].role == "user" {
 			payload["parent_message_id"] = publicChatTranscriptMessageID(anchorID, index-1)
 		}
 		out = append(out, payload)
 	}
 	return out
+}
+
+// publicChatEnvelopeAttachmentRef extracts the admitted artifact reference of
+// a transcript message: exactly one artifact_ref part with an admitted image
+// mime. Any other part shape yields no reference so the projection stays
+// text-only rather than fabricating media truth.
+func publicChatEnvelopeAttachmentRef(message *runtimev1.ChatMessage) (string, string) {
+	if message == nil || len(message.GetParts()) != 1 {
+		return "", ""
+	}
+	part := message.GetParts()[0]
+	if part == nil || part.GetType() != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF {
+		return "", ""
+	}
+	ref := part.GetArtifactRef()
+	if ref == nil {
+		return "", ""
+	}
+	mimeType := strings.ToLower(strings.TrimSpace(ref.GetMimeType()))
+	switch mimeType {
+	case "image/png", "image/jpeg", "image/webp", "image/gif":
+	default:
+		return "", ""
+	}
+	artifactID := strings.TrimSpace(ref.GetLocalArtifactId())
+	if artifactID == "" {
+		artifactID = strings.TrimSpace(ref.GetArtifactId())
+	}
+	if artifactID == "" {
+		return "", ""
+	}
+	return artifactID, mimeType
 }
 
 func (s *Service) publicChatAnchorSnapshot(anchorID string) (publicChatAnchorState, bool) {

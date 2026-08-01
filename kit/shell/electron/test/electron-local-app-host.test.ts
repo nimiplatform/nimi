@@ -100,6 +100,15 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ closed: true });
     await expect(host.conversationSnapshot({ agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }))
       .resolves.toEqual({ anchor: { conversationAnchorId: 'anchor-1' } });
+    await expect(host.artifactPut({
+      mimeType: 'image/png',
+      displayName: 'photo.png',
+      data: new Uint8Array([137, 80, 78, 71]),
+    })).resolves.toEqual({ artifactId: 'artifact_01J' });
+    const artifactBytes = await host.artifactReadBytes({ artifactId: 'artifact_01J' });
+    expect(artifactBytes.mimeType).toBe('image/png');
+    expect(artifactBytes.bytes).toBeInstanceOf(Uint8Array);
+    expect([...artifactBytes.bytes as Uint8Array]).toEqual([137, 80, 78, 71]);
 
     expect(calls.map(({ method }) => method)).toEqual([
       'localAppSessionStatus',
@@ -117,14 +126,66 @@ describe('Electron protected local-app host', () => {
       'localAppConversationStreamNext',
       'localAppConversationStreamClose',
       'localAppConversationSnapshot',
+      'localAppArtifactPut',
+      'localAppArtifactReadBytes',
     ]);
+  });
+
+  it('preserves public AI Config components through native configuration round-trip', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const selectedComponents = [{
+      occurrenceId: 'text-encoder',
+      order: 0,
+      role: 'encoder',
+      componentKind: 'text_encoder',
+      logicalModelId: 'local/text-encoder',
+      required: true,
+    }];
+    const projection = {
+      configurationRevision: '2',
+      intents: [{
+        capability: 'text.generate',
+        provider: '',
+        logicalModelId: 'local/default',
+        routePolicy: 'local',
+        selectedComponents,
+        selectedParams: null,
+      }],
+    };
+    const candidate = {
+      ...binding(calls),
+      localAppAgentConfigurationSnapshot: async (input: unknown) => {
+        calls.push({ method: 'localAppAgentConfigurationSnapshot', input });
+        return { status: 'ok' as const, value: projection };
+      },
+      localAppAgentUpdateConfiguration: async (input: unknown) => {
+        calls.push({ method: 'localAppAgentUpdateConfiguration', input });
+        return { status: 'ok' as const, value: projection };
+      },
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.agentConfigurationSnapshot({ agentHandle: 'lash_one' }))
+      .resolves.toMatchObject({ intents: [{ selectedComponents }] });
+    await expect(host.agentUpdateConfiguration({
+      agentHandle: 'lash_one',
+      expectedConfigurationRevision: '1',
+      intents: projection.intents,
+      profileOrigin: null,
+    })).resolves.toMatchObject({ intents: [{ selectedComponents }] });
+    expect(calls[1]?.input).toMatchObject({
+      intents: [{ selectedComponents }],
+    });
   });
 
   it('preserves closed product permission reasons and rejects unknown native reasons', async () => {
     for (const reasonCode of [
       'permission-unavailable', 'local-app-operation-unavailable', 'request-pending',
       'process-replaced', 'account-changed', 'revoked', 'permission-reserved-not-admitted',
-      'permission-unknown', 'agent-ai-config-revision-conflict',
+      'permission-unknown', 'ai-voice-target-model-mismatch',
+      'agent-ai-config-revision-conflict', 'agent-ai-config-invalid',
+      'agent-ai-config-target-required', 'agent-ai-config-target-invalid',
+      'agent-ai-config-target-unavailable', 'agent-ai-config-capability-mismatch',
+      'agent-ai-config-model-target-mismatch',
       'agent-autonomy-revision-conflict', 'agent-presentation-revision-conflict',
     ]) {
       const candidate = {
@@ -288,6 +349,11 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppConversationStreamClose: record('localAppConversationStreamClose', { closed: true }),
     localAppConversationSnapshot: record('localAppConversationSnapshot', {
       anchor: { conversationAnchorId: 'anchor-1' },
+    }),
+    localAppArtifactPut: record('localAppArtifactPut', { artifactId: 'artifact_01J' }),
+    localAppArtifactReadBytes: record('localAppArtifactReadBytes', {
+      bytes: new Uint8Array([137, 80, 78, 71]),
+      mimeType: 'image/png',
     }),
     localAppAgentConfigurationSnapshot: record('localAppAgentConfigurationSnapshot', { configurationRevision: '1' }),
     localAppAgentUpdateConfiguration: record('localAppAgentUpdateConfiguration', { configurationRevision: '2' }),

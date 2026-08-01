@@ -58,6 +58,23 @@ service RuntimeArtifactService {
   // K-VOICE-020. It does not delete scenario images/video/music, uploaded
   // user files, committed text messages, or conversation history.
   rpc CleanupGeneratedVoiceArtifacts(CleanupGeneratedVoiceArtifactsRequest) returns (CleanupGeneratedVoiceArtifactsResponse) {}
+
+  // Upload bounded user attachment material into the runtime artifact store
+  // so that a conversation turn can later reference it by artifact_id.
+  //
+  // Admission (fail closed, checked before the body is fully allocated):
+  // - mime_type must be image/png, image/jpeg, image/webp, or image/gif and
+  //   must match the payload file signature; mismatch or corrupt payloads are
+  //   rejected with ARTIFACT_UPLOAD_CONTENT_MISMATCH.
+  // - data is limited to 4 MiB (4 * 1024 * 1024) raw bytes; oversize payloads
+  //   are rejected with ARTIFACT_UPLOAD_TOO_LARGE before allocation.
+  // - ARTIFACT_UPLOAD_MIME_UNSUPPORTED covers every other media type.
+  //
+  // The stored record carries owner metadata (subject_user_id + calling app
+  // identity); the artifact_id is never an authorization credential, and the
+  // store record's mime/size are the only trusted values for later turn
+  // admission.
+  rpc PutArtifact(PutArtifactRequest) returns (PutArtifactResponse) {}
 }
 
 message ReadArtifactBytesRequest {
@@ -100,4 +117,28 @@ message CleanupGeneratedVoiceArtifactsResponse {
 
   // Runtime artifact ids removed by this call.
   repeated string deleted_artifact_ids = 2;
+}
+
+message PutArtifactRequest {
+  // Declared media type of the uploaded material. Must be one of image/png,
+  // image/jpeg, image/webp, or image/gif, and must agree with the payload
+  // file signature; the server validates the signature instead of trusting
+  // the declared value.
+  string mime_type = 1;
+
+  // Human-readable display name projected back to consumers (for example the
+  // original file name). May be empty; the server falls back to a generic
+  // attachment label for rendering.
+  string display_name = 2;
+
+  // Raw file bytes. Limited to 4 MiB (4 * 1024 * 1024); the server must
+  // reject oversize payloads before allocating the full body.
+  bytes data = 3;
+}
+
+message PutArtifactResponse {
+  // Runtime-owned, opaque, globally-unique artifact identity
+  // ("artifact_<ulid>") used for later turn attachment references and
+  // ReadArtifactBytes retrieval. It is not an authorization credential.
+  string artifact_id = 1;
 }

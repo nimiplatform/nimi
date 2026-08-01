@@ -2,6 +2,8 @@ import type {
   AgentEvent,
   RuntimeAgentAIConfigReadinessSnapshot,
   AppMessageEvent,
+  ApplyRuntimeAgentAIProfileRequest,
+  ApplyRuntimeAgentAIProfileResponse,
   GetAgentCanonicalMemoryBankStatusRequest,
   GetAgentCanonicalMemoryBankStatusResponse,
   GetRuntimeAgentAIConfigRequest,
@@ -16,6 +18,8 @@ import type {
   ListAgentsResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  PreviewRuntimeAgentAIProfileRequest,
+  PreviewRuntimeAgentAIProfileResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   RequestAgentCanonicalMemoryBankBindRequest,
@@ -135,6 +139,14 @@ export interface NimiRuntimeAgentClientAgentModule {
     request: SubscribeRuntimeAgentAIConfigReadinessRequest,
     options?: RuntimeTypedCallOptions,
   ): AsyncIterable<RuntimeAgentAIConfigReadinessSnapshot>;
+  previewRuntimeAgentAIProfile?(
+    request: PreviewRuntimeAgentAIProfileRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<PreviewRuntimeAgentAIProfileResponse>;
+  applyRuntimeAgentAIProfile?(
+    request: ApplyRuntimeAgentAIProfileRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<ApplyRuntimeAgentAIProfileResponse>;
 }
 
 export interface NimiRuntimeAgentClientAppMessagesModule {

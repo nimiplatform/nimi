@@ -1,7 +1,7 @@
 import type { NimiJsonObject, NimiJsonValue } from '../contracts';
 
-export type NimiAIScopeKind = 'app' | 'module' | 'feature';
-export type NimiBuiltInChatSurfaceId = 'nimi' | 'agent';
+export type NimiAIScopeKind = 'app' | 'module' | 'feature' | 'local-agent';
+export type NimiBuiltInChatSurfaceId = 'nimi';
 
 export interface NimiAIScopeRef {
   readonly kind: NimiAIScopeKind;
@@ -103,7 +103,20 @@ export type NimiAIConfigTargetRef =
     readonly provider?: string;
   };
 
+export interface NimiAIConfigComponentSelection {
+  readonly occurrenceId: string;
+  readonly order: number;
+  readonly role: string;
+  readonly componentKind: string;
+  readonly logicalModelId: string;
+  readonly targetRef?: NimiAIConfigTargetRef;
+  readonly required: boolean;
+  readonly weight?: string;
+  readonly options?: NimiJsonObject;
+}
+
 export interface NimiAIProfileCapabilityIntent {
+  readonly logicalModelId?: string;
   readonly targetRef?: NimiAIConfigTargetRef | null;
   readonly params?: NimiJsonValue;
   readonly readinessPolicy?: NimiAIConfigReadinessPolicy;
@@ -130,7 +143,9 @@ export interface NimiAIProfile {
 export interface NimiAIConfig {
   readonly scopeRef: NimiAIScopeRef;
   readonly capabilities: {
+    readonly logicalModelIds: Readonly<Record<string, string>>;
     readonly targetRefs: Readonly<Record<string, NimiAIConfigTargetRef>>;
+    readonly selectedComponents: Readonly<Record<string, readonly NimiAIConfigComponentSelection[]>>;
     readonly selectedParams: Readonly<Record<string, NimiJsonValue>>;
   };
   readonly profileOrigin: NimiAIProfileOriginRef | null;

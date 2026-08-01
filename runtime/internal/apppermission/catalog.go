@@ -51,6 +51,8 @@ var operationPermissions = map[string]string{
 	"runtime_agent.configuration.snapshot":      "agents.configure",
 	"runtime_agent.configuration.update":        "agents.configure",
 	"runtime_agent.readiness.snapshot":          "agents.configure",
+	"runtime_agent.ai_profile.preview":          "agents.configure",
+	"runtime_agent.ai_profile.apply":            "agents.configure",
 	"runtime_agent.autonomy.snapshot":           "agents.configure",
 	"runtime_agent.autonomy.update":             "agents.configure",
 	"runtime_agent.presentation.snapshot":       "agents.configure",

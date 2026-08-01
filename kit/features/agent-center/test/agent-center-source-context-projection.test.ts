@@ -50,7 +50,6 @@ function readySource(): NimiRuntimeAgentSourceContextStatus {
     coverageSections: [
       { section: 'identity', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
       { section: 'presentation', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
-      { section: 'placement', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
       { section: 'biography', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
       { section: 'psychology', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
       { section: 'knowledge', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },

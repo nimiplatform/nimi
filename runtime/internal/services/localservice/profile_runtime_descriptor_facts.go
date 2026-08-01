@@ -79,6 +79,7 @@ func (s *Service) profileRuntimePrepareFactsForDescriptor(descriptor *profileRun
 			PreparedAssetID: preparedID,
 			AssetID:         strings.TrimSpace(asset.GetAssetId()),
 			LocalAssetID:    preparedID,
+			LogicalModelID:  effectiveLocalComponentPublicIdentity(asset),
 			Kind:            kind,
 			Role:            strings.TrimSpace(binding.AssetRole),
 			Status:          status.String(),

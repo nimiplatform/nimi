@@ -65,7 +65,7 @@ const requirementDeclaration: NimiAICapabilityRequirementDeclaration = {
 
 const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { targetRefs: {}, selectedParams: {} },
+  capabilities: { logicalModelIds: {}, targetRefs: {}, selectedComponents: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
@@ -141,6 +141,7 @@ describe('useModelConfigProfileController', () => {
         }),
         apply: async (_scope, _profileId, options) => {
           applyBaseVersions.push(options?.expectedBaseVersion);
+          currentConfig = appliedConfig;
           return {
             success: true,
             config: appliedConfig,
@@ -173,9 +174,9 @@ describe('useModelConfigProfileController', () => {
       await flush();
       await flush();
     });
-    expect(updates).toHaveLength(1);
+    expect(updates).toHaveLength(0);
     expect(applyBaseVersions).toEqual(['base-v1']);
-    expect(updates[0].profileOrigin?.profileId).toBe('remote-profile');
+    expect(currentConfig.profileOrigin?.profileId).toBe('remote-profile');
     expect(captured.controller?.preview).toBeNull();
   });
 

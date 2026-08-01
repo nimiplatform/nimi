@@ -11,6 +11,7 @@
 
 import type {
   NimiAIConfig,
+  NimiAIConfigComponentSelection,
   NimiAIConfigSetupProjection,
   NimiAIConfigTargetRef,
   NimiAIProfile,
@@ -48,40 +49,15 @@ export interface ModelConfigRouteIntent {
   readonly targetRef?: ModelConfigTargetRef;
 }
 
-export interface ModelConfigSettingsReadiness {
-  readonly capability: string;
-  readonly state: 'ready' | 'blocked' | 'unavailable' | 'failed';
-  readonly reason: string;
-  readonly observedAt: string | null;
-}
-
-/** Dedicated Runtime/SDK model-settings projection. It is not NimiAIConfig. */
-export interface ModelConfigSettingsProjection {
-  readonly scopeRef: NimiAIScopeRef;
-  readonly capabilities: readonly string[];
-  readonly routeIntents: readonly ModelConfigRouteIntent[];
-  readonly readiness: readonly ModelConfigSettingsReadiness[];
-  readonly configurationRevision: string;
-}
-
-export type ModelConfigSettingsSubscribeListener = (projection: ModelConfigSettingsProjection) => void;
-
-export interface ModelConfigSettingsService {
-  get(scopeRef: NimiAIScopeRef): ModelConfigSettingsProjection;
-  update(input: {
-    readonly scopeRef: NimiAIScopeRef;
-    readonly expectedConfigurationRevision: string;
-    readonly routeIntents: readonly ModelConfigRouteIntent[];
-  }): Promise<ModelConfigSettingsProjection>;
-  subscribe(scopeRef: NimiAIScopeRef, listener: ModelConfigSettingsSubscribeListener): SharedAIConfigUnsubscribe;
-}
-
-export interface SharedAIConfigService {
+export interface SharedAIConfigPersistenceService {
   readonly aiConfig: {
     get(scopeRef: NimiAIScopeRef): NimiAIConfig;
     update(scopeRef: NimiAIScopeRef, next: NimiAIConfig): void | Promise<void>;
     subscribe(scopeRef: NimiAIScopeRef, listener: SharedAIConfigSubscribeListener): SharedAIConfigUnsubscribe;
   };
+}
+
+export interface SharedAIProfileService {
   readonly aiProfile: {
     list(): Promise<NimiAIProfile[]>;
     /**
@@ -101,6 +77,9 @@ export interface SharedAIConfigService {
     ): Promise<NimiAIProfileApplyResult>;
   };
 }
+
+export interface SharedAIConfigService
+  extends SharedAIConfigPersistenceService, SharedAIProfileService {}
 
 // ---------------------------------------------------------------------------
 // AppModelConfigSurface — the sole consumer-injection contract for the hub.
@@ -123,13 +102,16 @@ export interface ModelConfigBindingSummary {
 }
 
 export interface ModelConfigCapabilityPatch {
+  readonly logicalModelId?: string | null;
   readonly targetRef?: ModelConfigTargetRef | null;
+  readonly selectedComponents?: readonly NimiAIConfigComponentSelection[];
   readonly params?: NimiJsonValue;
 }
 
 export interface ModelConfigBindingSnapshot {
   readonly capabilityId: string;
   readonly targetRef: ModelConfigTargetRef | null;
+  readonly selectedComponents: readonly NimiAIConfigComponentSelection[];
   readonly params?: NimiJsonValue;
 }
 
@@ -146,12 +128,18 @@ export interface ModelConfigProjectionStatus {
 export interface ModelConfigLocalAssetDescriptor {
   readonly localAssetId: string;
   readonly assetId: string;
+  readonly logicalModelId?: string;
+  readonly displayName?: string;
+  readonly sourceFileName?: string;
   readonly kind: string;
   readonly engine: string;
   readonly status: string;
   readonly family?: string;
   readonly modelFamily?: string;
   readonly artifactRoles?: readonly string[];
+  readonly durableTargetRef?: ModelConfigTargetRef;
+  readonly durableTargetStatus?: string;
+  readonly durableTargetReasonCode?: string;
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
@@ -192,17 +180,21 @@ interface AppModelConfigSurfaceBase {
   readonly requirementDeclaration: NimiAICapabilityRequirementDeclaration;
   readonly providerResolver: ModelConfigProviderResolver;
   readonly projectionResolver: ModelConfigProjectionResolver;
+  readonly routeIntentResolver?: (capabilityId: string) => ModelConfigRouteIntent | null;
   readonly localAssetSource?: ModelConfigLocalAssetSource;
   readonly capabilityOverrides?: Readonly<Record<string, CapabilityItemOverride>>;
   readonly runtimeNotReadyLabel?: string;
   readonly i18n: ModelConfigI18nBinding;
 }
 
-/** Existing host-owned AIConfig surfaces and dedicated Runtime model-settings are mutually exclusive. */
-export type AppModelConfigSurface = AppModelConfigSurfaceBase & (
-  | { readonly aiConfigService: SharedAIConfigService; readonly modelSettingsService?: ModelConfigSettingsService }
-  | { readonly modelSettingsService: ModelConfigSettingsService; readonly aiConfigService?: SharedAIConfigService }
-);
+/**
+ * Every editable model-config surface persists the standard NimiAIConfig.
+ * Runtime execution route state may be projected through routeIntentResolver,
+ * but it is never an alternative settings authority.
+ */
+export type AppModelConfigSurface = AppModelConfigSurfaceBase & {
+  readonly aiConfigService: SharedAIConfigPersistenceService;
+};
 
 export interface ModelConfigRequirementEvaluation {
   readonly capabilityId: string;

@@ -179,7 +179,6 @@ export * from './runtime-agent-presentation';
 export * from './runtime-agent-lifecycle';
 export * from './runtime-agent-delegated';
 export * from './runtime-agent-ai-config';
-export * from './runtime-agent-model-settings';
 export * from './runtime-agent-inspect';
 export * from './scenario-jobs';
 export * from './speech';

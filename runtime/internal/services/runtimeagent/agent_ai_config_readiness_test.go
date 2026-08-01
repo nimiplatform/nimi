@@ -7,7 +7,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func requireExecutionCapabilityReadiness(t *testing.T, snapshot *runtimev1.RuntimeAgentAIConfigReadinessSnapshot, capability string) *runtimev1.RuntimeAgentAIConfigCapabilityReadiness {
@@ -47,7 +49,7 @@ func waitForAgentAIConfigReadinessState(t *testing.T, svc *Service, capability s
 	return nil
 }
 
-func TestAgentAIConfigReadinessSeededProjection(t *testing.T) {
+func TestAgentAIConfigReadinessInitialProjectionHasNoImplicitModels(t *testing.T) {
 	t.Parallel()
 	svc := newAgentAIConfigTestService(t)
 
@@ -62,15 +64,15 @@ func TestAgentAIConfigReadinessSeededProjection(t *testing.T) {
 		t.Fatalf("expected %d admitted capabilities in projection, got %d", len(admittedRuntimeAgentAIConfigCapabilities), len(snapshot.GetCapabilities()))
 	}
 	text := requireExecutionCapabilityReadiness(t, snapshot, runtimeAgentAIConfigCapabilityTextGenerate)
-	if text.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY {
-		t.Fatalf("expected seeded text.generate READY, got %v (%q)", text.GetState(), text.GetReasonCode())
+	if text.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED {
+		t.Fatalf("expected initial text.generate NOT_CONFIGURED, got %v (%q)", text.GetState(), text.GetReasonCode())
 	}
 	if text.GetProbedAt() == nil {
 		t.Fatal("expected text.generate probed_at timestamp")
 	}
 	embed := requireExecutionCapabilityReadiness(t, snapshot, runtimeAgentAIConfigCapabilityTextEmbed)
-	if embed.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY {
-		t.Fatalf("expected seeded text.embed READY, got %v (%q)", embed.GetState(), embed.GetReasonCode())
+	if embed.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED {
+		t.Fatalf("expected initial text.embed NOT_CONFIGURED, got %v (%q)", embed.GetState(), embed.GetReasonCode())
 	}
 	image := requireExecutionCapabilityReadiness(t, snapshot, runtimeAgentAIConfigCapabilityImageGenerate)
 	if image.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED {
@@ -94,7 +96,7 @@ func TestAgentAIConfigReadinessTransitionsOnImageBindingUpsert(t *testing.T) {
 	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
 		Context:          agentAIConfigTestContext("nimi.desktop"),
 		ExpectedRevision: 1,
-		Intents: requiredRuntimeAgentAIConfigTestIntents(
+		Intents: runtimeAgentAIConfigTestIntents(
 			&runtimev1.RuntimeAgentAIConfigIntent{
 				Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 				ModelId:     "openai/gpt-image-1",
@@ -117,7 +119,7 @@ func TestAgentAIConfigReadinessTransitionsOnImageBindingUpsert(t *testing.T) {
 	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
 		Context:          agentAIConfigTestContext("nimi.desktop"),
 		ExpectedRevision: 1,
-		Intents: requiredRuntimeAgentAIConfigTestIntents(
+		Intents: runtimeAgentAIConfigTestIntents(
 			&runtimev1.RuntimeAgentAIConfigIntent{
 				Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 				ModelId:     "openai/gpt-image-1",
@@ -193,6 +195,7 @@ func TestAgentAIConfigReadinessUsesCapabilitySpecificReasons(t *testing.T) {
 		Capability:  runtimeAgentAIConfigCapabilityVoiceWorkflowClone,
 		ModelId:     "voice/clone",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   runtimeAgentAIConfigTestLocalTarget("voice-clone"),
 	})
 	if voiceState != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE {
 		t.Fatalf("expected missing voice reference unavailable, got %v", voiceState)
@@ -224,6 +227,7 @@ func TestAgentAIConfigReadinessUsesCapabilitySpecificReasons(t *testing.T) {
 		Capability:        runtimeAgentAIConfigCapabilityVoiceWorkflowDesign,
 		ModelId:           "voice/design",
 		RoutePolicy:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:         runtimeAgentAIConfigTestLocalTarget("voice-design"),
 		VoiceReferenceRef: "voice-reference:seed",
 	})
 	if voiceRouteState != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE {
@@ -266,12 +270,80 @@ func TestAgentAIConfigReadinessUsesLocalImageHealthForImageGenerate(t *testing.T
 	}
 }
 
+func TestAgentAIConfigReadinessRejectsUnsupportedImageComponentMetadata(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+	inventory := runtimeAgentAIConfigTestRouteInventory()
+	componentTarget := runtimeAgentAIConfigTestLocalTarget("image-vae").GetLocalRuntime()
+	inventory.assets = append(inventory.assets, &runtimev1.LocalAssetRecord{
+		LocalAssetId:        "private-image-vae",
+		LogicalModelId:      "local/image-vae",
+		Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Capabilities:        []string{runtimeAgentAIConfigCapabilityImageGenerate},
+		DurableTargetRef:    componentTarget,
+	})
+	options, err := structpb.NewStruct(map[string]any{"precision": "fp16"})
+	if err != nil {
+		t.Fatalf("component options: %v", err)
+	}
+	component := localservice.DurableLocalComponentSelection{
+		OccurrenceID:   "image-vae",
+		Order:          0,
+		Role:           "vae",
+		ComponentKind:  "vae",
+		LogicalModelID: "local/image-vae",
+		TargetRef:      componentTarget,
+		Required:       true,
+		Weight:         "0.75",
+		Options:        options.AsMap(),
+	}
+	mainTarget := runtimeAgentAIConfigTestLocalTarget("image").GetLocalRuntime()
+	inventory.imageComponents = map[string][]localservice.DurableLocalComponentSelection{
+		mainTarget.GetProfileBindingId(): {component},
+	}
+	svc.SetLocalAppRouteOptionInventory(inventory)
+	state, reason := svc.evaluateRuntimeAgentAIConfigCapabilityReadiness(&runtimev1.RuntimeAgentAIConfigIntent{
+		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
+		ModelId:     "local/image",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   runtimeAgentAIConfigTestLocalTarget("image"),
+		SelectedComponents: []*runtimev1.RuntimeAgentAIConfigComponentSelection{{
+			OccurrenceId:   "image-vae",
+			Order:          0,
+			Role:           "vae",
+			ComponentKind:  "vae",
+			LogicalModelId: "local/image-vae",
+			TargetRef:      &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: componentTarget}},
+			Required:       true,
+			Weight:         "0.75",
+			Options:        options,
+		}},
+	})
+	if state != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE ||
+		reason != agentAIConfigReadinessReasonCapabilityMismatch {
+		t.Fatalf("unsupported image component metadata readiness = %v (%q), want unavailable/capability_mismatch", state, reason)
+	}
+}
+
 func TestAgentAIConfigReadinessRecomputesOnProviderHealthChange(t *testing.T) {
 	t.Parallel()
 	svc := newAgentAIConfigTestService(t)
 	tracker := providerhealth.New()
 	svc.SetProviderHealthTracker(tracker)
 
+	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 1,
+		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{{
+			Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
+			ModelId:     "local/default",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-text"),
+		}},
+	}); err != nil {
+		t.Fatalf("configure text.generate: %v", err)
+	}
 	text := requireExecutionCapabilityReadiness(t, agentAIConfigReadinessSnapshot(t, svc), runtimeAgentAIConfigCapabilityTextGenerate)
 	if text.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY {
 		t.Fatalf("expected text.generate READY with unknown local health, got %v", text.GetState())
@@ -345,14 +417,14 @@ func TestSubscribeRuntimeAgentAIConfigReadinessInitialAndMutationSnapshots(t *te
 		t.Fatalf("expected initial snapshot config_revision 1, got %d", initial.GetConfigRevision())
 	}
 	text := requireExecutionCapabilityReadiness(t, initial, runtimeAgentAIConfigCapabilityTextGenerate)
-	if text.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY {
-		t.Fatalf("expected initial text.generate READY, got %v", text.GetState())
+	if text.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED {
+		t.Fatalf("expected initial text.generate NOT_CONFIGURED, got %v", text.GetState())
 	}
 
 	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
 		Context:          agentAIConfigTestContext("nimi.desktop"),
 		ExpectedRevision: 1,
-		Intents: requiredRuntimeAgentAIConfigTestIntents(
+		Intents: runtimeAgentAIConfigTestIntents(
 			&runtimev1.RuntimeAgentAIConfigIntent{
 				Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 				ModelId:     "openai/gpt-image-1",

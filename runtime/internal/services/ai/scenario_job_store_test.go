@@ -14,10 +14,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func scenarioJobContext(appID string) context.Context {
@@ -304,70 +302,9 @@ func TestSubmitScenarioJobStoresScenarioNativeState(t *testing.T) {
 	}
 }
 
-func TestSubmitScenarioJobLocalImageStartFailureFailsBeforeAsyncJobCreation(t *testing.T) {
+func TestSubmitScenarioJobInstalledImageCreatesExactExecutionJobWithoutWarmOrStart(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{EnforceEndpointSecurity: true})
-	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
-		Assets: []*runtimev1.LocalAssetRecord{{
-			LocalAssetId:         "local-image-installed",
-			AssetId:              "flux.1-schnell",
-			Engine:               "media",
-			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-			LocalInvokeProfileId: "invoke",
-			Capabilities:         []string{"image.generate"},
-			Endpoint:             "http://127.0.0.1:8321/v1",
-		}},
-	}},
-		startResp: &runtimev1.StartLocalAssetResponse{
-			Asset: &runtimev1.LocalAssetRecord{
-				LocalAssetId:         "local-image-installed",
-				AssetId:              "flux.1-schnell",
-				Engine:               "media",
-				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
-				LocalInvokeProfileId: "invoke",
-				Capabilities:         []string{"image.generate"},
-				Endpoint:             "http://127.0.0.1:8321/v1",
-				HealthDetail:         "probe request failed: dial tcp 127.0.0.1:8321: connect: connection refused",
-			},
-		},
-	}
-
-	resp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.desktop",
-			SubjectUserId: "user-001",
-			ModelId:       "local/flux.1-schnell",
-			TargetRef:     localScenarioTargetRefForModel("local/flux.1-schnell"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     120_000,
-		},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
-				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
-					Prompt: "orange cat",
-					N:      1,
-					Size:   "1024x1024",
-				},
-			},
-		},
-	})
-	if resp != nil {
-		t.Fatalf("expected submit to fail before job creation, got response=%v", resp)
-	}
-	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
-		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
-	}
-	if jobs := len(svc.scenarioJobs.jobs); jobs != 0 {
-		t.Fatalf("expected no async job to be created on local image activation failure, got %d", jobs)
-	}
-}
-
-func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStart(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{EnforceEndpointSecurity: true})
-	svc.localModel = &fakeLocalModelLister{
+	localModels := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
 			Assets: []*runtimev1.LocalAssetRecord{{
 				LocalAssetId:         "local-image-installed",
@@ -391,7 +328,8 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 			},
 		},
 	}
-	svc.localImageProfile = &fakeLocalImageProfileResolver{
+	svc.localModel = localModels
+	resolver := &fakeLocalImageProfileResolver{
 		alias: "managed-image-alias",
 		profile: map[string]any{
 			"backend": "stablediffusion-ggml",
@@ -417,28 +355,14 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 			},
 		},
 	}
+	svc.localImageProfile = resolver
 
-	payload, err := structpb.NewStruct(map[string]any{
-		"profile_entries": []any{
-			map[string]any{
-				"entryId":    "main",
-				"kind":       "asset",
-				"capability": "image",
-				"assetId":    "flux.1-schnell",
-				"assetKind":  "image",
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("build scenario extension payload: %v", err)
-	}
-
-	resp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+	request := &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/flux.1-schnell",
-			TargetRef:     localScenarioTargetRefForModel("local/flux.1-schnell"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/flux.1-schnell", "image.generate", localModels.responses[0].Assets[0]),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     120_000,
@@ -454,30 +378,28 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 				},
 			},
 		},
-		Extensions: []*runtimev1.ScenarioExtension{{
-			Namespace: "nimi.scenario.image.request",
-			Payload:   payload,
-		}},
-	})
-	if err != nil {
-		t.Fatalf("submit scenario job: %v", err)
 	}
-	if resp == nil || resp.GetJob() == nil || strings.TrimSpace(resp.GetJob().GetJobId()) == "" {
-		t.Fatalf("expected submit response with job, got %#v", resp)
+	_, localPlan, prepareErr := svc.prepareScenarioRequestWithExtensionsAndLocalPlan(
+		context.Background(),
+		request.GetHead(),
+		request.GetScenarioType(),
+		request.GetExtensions(),
+	)
+	if prepareErr != nil || localPlan == nil || localPlan.selectedLocalAssetID() != "local-image-installed" {
+		t.Fatalf("prepare INSTALLED exact image execution plan: plan=%+v err=%v", localPlan, prepareErr)
 	}
-	// SubmitScenarioJob deliberately returns before the async execution path
-	// completes. Wait for that path before inspecting the shared resolver so
-	// this test cannot leak a writer into the following test.
-	waitScenarioJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
-	resolver, _ := svc.localImageProfile.(*fakeLocalImageProfileResolver)
-	if resolver == nil || resolver.resolveProfileCalls < 1 {
-		t.Fatalf("expected managed image profile to be resolved during submit, got resolver=%#v", resolver)
+	resp, err := svc.SubmitScenarioJob(context.Background(), request)
+	if err != nil || resp == nil || strings.TrimSpace(resp.GetJob().GetJobId()) == "" {
+		t.Fatalf("INSTALLED exact image target did not create async execution job: response=%#v err=%v", resp, err)
 	}
-	if resolver.lastExtensions == nil || resolver.lastExtensions["profile_entries"] == nil {
-		t.Fatalf("expected submit path to forward scenario extensions, got %#v", resolver.lastExtensions)
+	if jobs := len(svc.scenarioJobs.jobs); jobs != 1 {
+		t.Fatalf("INSTALLED exact image target created %d async jobs, want 1", jobs)
 	}
-	if svc.localModel.(*fakeLocalModelLister).startCalls != 1 {
-		t.Fatalf("expected submit path to start installed image asset once, got %d", svc.localModel.(*fakeLocalModelLister).startCalls)
+	if localModels.calls != 0 || localModels.warmCalls != 0 || localModels.startCalls != 0 {
+		t.Fatalf("INSTALLED exact image target must not search inventory/warm/start: list=%d warm=%d start=%d", localModels.calls, localModels.warmCalls, localModels.startCalls)
+	}
+	if resolver.resolveProfileCalls != 0 || resolver.ensureLoadCalls != 0 {
+		t.Fatalf("async admission must defer exact profile load to execution: resolve=%d load=%d", resolver.resolveProfileCalls, resolver.ensureLoadCalls)
 	}
 }
 

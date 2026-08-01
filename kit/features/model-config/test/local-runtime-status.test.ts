@@ -29,7 +29,9 @@ function configWithImageTarget(
   return {
     scopeRef,
     capabilities: {
+      logicalModelIds: {},
       targetRefs: { 'image.generate': targetRef },
+      selectedComponents: {},
       selectedParams: { 'image.generate': selectedParams },
     },
     profileOrigin: null,

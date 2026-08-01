@@ -164,11 +164,13 @@ func (s *Service) ReadArtifactBytes(
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
 	if protectedCaller {
-		if s.protectedGeneratedVoiceAuthorizer == nil ||
-			!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceArtifact(ctx, record) {
+		if !artifactOwnerMatches(record.Owner, principal.AccountID, principal.AppID) &&
+			(s.protectedGeneratedVoiceAuthorizer == nil ||
+				!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceArtifact(ctx, record)) {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 		}
-	} else if !artifactAudienceMatches(record.Audience, decision, now) {
+	} else if !artifactAudienceMatches(record.Audience, decision, now) &&
+		!artifactOwnerMatches(record.Owner, decision.AccountID, decision.AppID) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 	if !artifactRecordIntegrityValid(record) {
@@ -211,6 +213,19 @@ func validLocalAppArtifactDecision(decision accountservice.LocalAppCallerDecisio
 		protectedlocal.IsLocalDevelopmentProcessTrustSet(decision.Process) &&
 		protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.Process.CanonicalExecutablePath)
 	return direct || sessionScoped
+}
+
+// artifactOwnerMatches authorizes the uploader-owned read path
+// (rule.nimi.runtime.agent-participation.r171): the exact subject + app that
+// uploaded the artifact may read it back. Records without owner metadata
+// (historical or producer records) never match.
+func artifactOwnerMatches(owner *ArtifactOwner, subjectUserID string, appID string) bool {
+	if owner == nil {
+		return false
+	}
+	subjectUserID = strings.TrimSpace(subjectUserID)
+	appID = strings.TrimSpace(appID)
+	return subjectUserID != "" && appID != "" && owner.SubjectUserID == subjectUserID && owner.AppID == appID
 }
 
 func artifactAudienceMatches(audience *ArtifactAudience, decision accountservice.LocalAppCallerDecision, now time.Time) bool {

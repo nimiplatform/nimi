@@ -18,9 +18,20 @@ func decodeLoadModelState(message *dynamicpb.Message) (loadModelState, error) {
 	if strings.TrimSpace(modelPath) == "" {
 		return loadModelState{}, fmt.Errorf("managed image model path is required")
 	}
-	options, err := parseManagedImageOptions(modelsRoot, dynamicMessageStringListField(message, "Options"))
+	rawOptions := dynamicMessageStringListField(message, "Options")
+	components, err := dynamicMessageComponentBindingsField(message, modelsRoot)
 	if err != nil {
 		return loadModelState{}, err
+	}
+	if len(components) > 0 {
+		rawOptions = filterManagedImageComponentOptions(rawOptions)
+	}
+	options, err := parseManagedImageOptions(modelsRoot, rawOptions)
+	if err != nil {
+		return loadModelState{}, err
+	}
+	if len(components) > 0 {
+		options.Components = components
 	}
 	return loadModelState{
 		ModelsRoot: modelsRoot,
@@ -29,6 +40,78 @@ func decodeLoadModelState(message *dynamicpb.Message) (loadModelState, error) {
 		CFGScale:   dynamicMessageFloat32Field(message, "CFGScale"),
 		Threads:    dynamicMessageInt32Field(message, "Threads"),
 	}, nil
+}
+
+func dynamicMessageComponentBindingsField(message *dynamicpb.Message, modelsRoot string) ([]managedImageComponent, error) {
+	if message == nil {
+		return nil, nil
+	}
+	field := message.Descriptor().Fields().ByName(protoreflect.Name("components"))
+	if field == nil || !message.Has(field) {
+		return nil, nil
+	}
+	list := message.Get(field).List()
+	components := make([]managedImageComponent, 0, list.Len())
+	for index := 0; index < list.Len(); index++ {
+		value := list.Get(index).Message()
+		component := managedImageComponent{
+			OccurrenceID:  strings.TrimSpace(dynamicProtoMessageStringField(value, "occurrence_id")),
+			Order:         dynamicProtoMessageInt32Field(value, "order"),
+			Role:          strings.TrimSpace(dynamicProtoMessageStringField(value, "role")),
+			ComponentKind: strings.TrimSpace(dynamicProtoMessageStringField(value, "component_kind")),
+			EngineSlot:    strings.TrimSpace(dynamicProtoMessageStringField(value, "engine_slot")),
+			Path:          resolveManagedImagePath(modelsRoot, dynamicProtoMessageStringField(value, "path")),
+			Required:      dynamicProtoMessageBoolField(value, "required"),
+			Weight:        strings.TrimSpace(dynamicProtoMessageStringField(value, "weight")),
+			OptionsJSON:   strings.TrimSpace(dynamicProtoMessageStringField(value, "options_json")),
+		}
+		components = append(components, component)
+	}
+	return normalizeStableDiffusionCPPComponents(components)
+}
+
+func dynamicProtoMessageStringField(message protoreflect.Message, fieldName string) string {
+	if message == nil {
+		return ""
+	}
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	if field == nil || !message.Has(field) {
+		return ""
+	}
+	return strings.TrimSpace(message.Get(field).String())
+}
+
+func dynamicProtoMessageInt32Field(message protoreflect.Message, fieldName string) int32 {
+	if message == nil {
+		return 0
+	}
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	if field == nil || !message.Has(field) {
+		return 0
+	}
+	return int32(message.Get(field).Int())
+}
+
+func dynamicProtoMessageBoolField(message protoreflect.Message, fieldName string) bool {
+	if message == nil {
+		return false
+	}
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	return field != nil && message.Has(field) && message.Get(field).Bool()
+}
+
+func filterManagedImageComponentOptions(options []string) []string {
+	filtered := make([]string, 0, len(options))
+	for _, option := range options {
+		key, _, hasValue := strings.Cut(strings.TrimSpace(option), ":")
+		if hasValue {
+			if _, isComponent := stableDiffusionCPPSlotBindings[strings.ToLower(strings.TrimSpace(key))]; isComponent {
+				continue
+			}
+		}
+		filtered = append(filtered, option)
+	}
+	return filtered
 }
 
 func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, error) {

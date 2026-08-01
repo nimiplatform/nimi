@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -118,7 +119,7 @@ func TestProfileRuntimeSelectedSourceSatisfiesVerifiedManualBindingExactly(t *te
 		AssetRole:        "companion",
 		ComponentKind:    "vae",
 		Source:           "manual",
-		ExpectedIdentity: "z_image_ae",
+		ExpectedIdentity: "portable:z-image-ae",
 		ReadinessPolicy:  "required",
 		Manual: &profileRuntimeDescriptorManualSource{
 			ExpectedName:            "ae.safetensors",
@@ -135,7 +136,7 @@ func TestProfileRuntimeSelectedSourceSatisfiesVerifiedManualBindingExactly(t *te
 	}
 	asset := &runtimev1.LocalAssetRecord{
 		LocalAssetId:   "artifact_ae",
-		AssetId:        "z_image_ae",
+		AssetId:        "local-import/ae/import-instance-01",
 		Entry:          "ae.safetensors",
 		SourceFileName: "ae.safetensors",
 		Hashes: map[string]string{
@@ -143,7 +144,7 @@ func TestProfileRuntimeSelectedSourceSatisfiesVerifiedManualBindingExactly(t *te
 		},
 	}
 	if !svc.profileRuntimeSelectedSourceSatisfiesPortableBinding(binding, record, asset) {
-		t.Fatal("verified imported manual binding must be satisfied")
+		t.Fatal("verified imported manual binding must not depend on the machine-specific asset id")
 	}
 
 	t.Run("managed source is not manual verification", func(t *testing.T) {
@@ -187,6 +188,69 @@ func TestProfileRuntimeSelectedSourceSatisfiesVerifiedManualBindingExactly(t *te
 			t.Fatal("manual association must require exact source_file_name")
 		}
 	})
+}
+
+func TestProfileRuntimePortableManualAssociationRejectsAmbiguousSelectedSources(t *testing.T) {
+	svc := newTestService(t)
+	content := []byte("same verified VAE content")
+	contentHash := ""
+	for index := 1; index <= 2; index++ {
+		entryPath := filepath.Join(t.TempDir(), "ae.safetensors")
+		if err := os.WriteFile(entryPath, content, 0o600); err != nil {
+			t.Fatalf("write selected-source fixture: %v", err)
+		}
+		if contentHash == "" {
+			var err error
+			contentHash, err = computeFileSHA256(entryPath)
+			if err != nil {
+				t.Fatalf("hash selected-source fixture: %v", err)
+			}
+		}
+		localAssetID := "local-vae-" + string(rune('0'+index))
+		asset := &runtimev1.LocalAssetRecord{
+			LocalAssetId:   localAssetID,
+			AssetId:        "local-import/ae/import-instance-0" + string(rune('0'+index)),
+			Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+			Entry:          "ae.safetensors",
+			SourceFileName: "ae.safetensors",
+			Hashes:         map[string]string{"ae.safetensors": "sha256:" + contentHash},
+			Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		}
+		svc.assets[localAssetID] = asset
+		seedProfileRuntimePreparedAssetSelectedSourceForService(
+			t,
+			svc,
+			localEnvironmentFamilyModelCompanion,
+			asset,
+			"machine-specific-main-asset",
+			"parent-selected-source-record",
+			entryPath,
+			"stable-diffusion.cpp.cuda",
+		)
+	}
+	binding := profileRuntimeDescriptorAssetBinding{
+		BindingID:        "ae",
+		AssetRole:        "companion",
+		ComponentKind:    "vae",
+		Source:           "manual",
+		ExpectedIdentity: "portable:z-image-ae",
+		ReadinessPolicy:  "required",
+		Manual: &profileRuntimeDescriptorManualSource{
+			ExpectedName:        "ae.safetensors",
+			ExpectedIntegrity:   "sha256:" + contentHash,
+			AllowedFilePatterns: []string{"*.safetensors"},
+		},
+	}
+	_, _, found, err := svc.profileRuntimeSelectedSourcePreparedAsset(
+		binding,
+		localEnvironmentFamilyModelCompanion,
+		"portable-main-identity",
+		"stable-diffusion.cpp.cuda",
+		"parent-selected-source-record",
+	)
+	if err == nil || found || !strings.Contains(err.Error(), "prepared_asset_association_ambiguous") {
+		t.Fatalf("ambiguous portable association: found=%v err=%v", found, err)
+	}
 }
 
 func TestProfileRuntimeExpectedIntegrityRequiresSelectedSourceObservedEntryHash(t *testing.T) {

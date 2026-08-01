@@ -376,6 +376,22 @@ func (s *Service) ResolveCanonicalImageSelection(_ context.Context, requestedMod
 	return canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile()), nil
 }
 
+// ResolveCanonicalImageSelectionForLocalAsset accepts only the exact
+// local_asset_id already produced by durable target resolution.
+func (s *Service) ResolveCanonicalImageSelectionForLocalAsset(_ context.Context, localAssetID string) (engine.ImageSupervisedMatrixSelection, error) {
+	id := strings.TrimSpace(localAssetID)
+	if id == "" {
+		return engine.ImageSupervisedMatrixSelection{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	s.mu.RLock()
+	model := cloneLocalAsset(s.assets[id])
+	s.mu.RUnlock()
+	if model == nil || strings.TrimSpace(model.GetLocalAssetId()) != id {
+		return engine.ImageSupervisedMatrixSelection{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	return canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile()), nil
+}
+
 // ManagedSupervisedImageBootstrapSelection returns the canonical image matrix
 // selection currently required by supervised local image assets. The boolean
 // reports whether any supervised canonical image asset is present at all.

@@ -18,6 +18,7 @@ import {
   ConnectorStatus,
   LocalAssetKind,
   LocalAssetStatus,
+  type RuntimeDurableLocalTargetRef,
 } from '../core-generated/runtime-typed-client';
 
 function localAssetRecord(overrides: Partial<{
@@ -31,22 +32,45 @@ function localAssetRecord(overrides: Partial<{
   capabilities: string[];
   artifactRoles: string[];
   updatedAt: string;
+  durableTargetRef: RuntimeDurableLocalTargetRef;
+  durableTargetStatus: LocalAssetStatus;
 }> = {}) {
+  const localAssetId = overrides.localAssetId ?? 'asset-local-1';
+  const assetId = overrides.assetId ?? 'llama/tester';
+  const kind = overrides.kind ?? LocalAssetKind.CHAT;
+  const status = overrides.status ?? LocalAssetStatus.ACTIVE;
+  const durableTargetRef = overrides.durableTargetRef ?? (
+    kind === LocalAssetKind.IMAGE
+      ? {
+        version: 'v2',
+        ref: {
+          oneofKind: 'profileBindingId' as const,
+          profileBindingId: `workflow_binding:test:${localAssetId}`,
+        },
+      }
+      : {
+        version: 'v2',
+        ref: {
+          oneofKind: 'readinessRef' as const,
+          readinessRef: `runtime_readiness:test:${localAssetId}`,
+        },
+      }
+  );
   return {
-    localAssetId: overrides.localAssetId ?? 'asset-local-1',
-    assetId: overrides.assetId ?? 'llama/tester',
-    kind: overrides.kind ?? LocalAssetKind.CHAT,
+    localAssetId,
+    assetId,
+    kind,
     engine: overrides.engine ?? 'llama',
     entry: '',
     files: [],
     license: '',
     hashes: {},
-    status: overrides.status ?? LocalAssetStatus.ACTIVE,
+    status,
     installedAt: '',
     updatedAt: overrides.updatedAt ?? '',
     healthDetail: '',
     capabilities: overrides.capabilities ?? ['text.generate'],
-    logicalModelId: overrides.logicalModelId ?? '',
+    logicalModelId: overrides.logicalModelId ?? assetId,
     family: '',
     artifactRoles: overrides.artifactRoles ?? [],
     preferredEngine: '',
@@ -56,6 +80,9 @@ function localAssetRecord(overrides: Partial<{
     localInvokeProfileId: '',
     endpoint: overrides.endpoint ?? 'http://127.0.0.1:11434',
     reasonCode: 0,
+    durableTargetRef,
+    durableTargetStatus: overrides.durableTargetStatus ?? status,
+    durableTargetReasonCode: 0,
   };
 }
 
@@ -150,7 +177,7 @@ test('Runtime host route options use logical model identity while retaining the 
   assert.deepEqual(target?.targetRef, {
     kind: 'local-runtime',
     version: 'v2',
-    profileBindingId: 'local-runtime:private-image-local-asset',
+    profileBindingId: 'workflow_binding:test:private-image-local-asset',
   });
 });
 
@@ -158,7 +185,7 @@ test('Runtime host route options project generated Runtime enums to SDK route st
   const selectedTargetRef = {
     kind: 'local-runtime' as const,
     version: 'v2' as const,
-    profileBindingId: 'local-runtime:asset-local-1',
+    readinessRef: 'runtime_readiness:test:asset-local-1',
   };
   const snapshot = await listNimiRuntimeRouteOptionsWithHost({
     capability: 'text.generate',
@@ -188,10 +215,19 @@ test('Runtime host route options project generated Runtime enums to SDK route st
       runtimeLocalModels: [{
         localAssetId: 'asset-local-1',
         assetId: 'llama/tester',
+        logicalModelId: 'llama/tester',
         kind: LocalAssetKind.CHAT,
         engine: 'llama',
         endpoint: 'http://127.0.0.1:11434',
         status: LocalAssetStatus.ACTIVE,
+        durableTargetRef: {
+          version: 'v2',
+          ref: {
+            oneofKind: 'readinessRef',
+            readinessRef: 'runtime_readiness:test:asset-local-1',
+          },
+        },
+        durableTargetStatus: LocalAssetStatus.ACTIVE,
       }],
     }),
   });

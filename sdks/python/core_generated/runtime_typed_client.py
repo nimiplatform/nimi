@@ -168,8 +168,9 @@ HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED"]
 HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
+LocalAppAgentAIProfileApplyOutcome = Literal["LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
-LocalAppAgentReadinessState = Literal["LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED", "LOCAL_APP_AGENT_READINESS_STATE_READY", "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED", "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE", "LOCAL_APP_AGENT_READINESS_STATE_FAILED"]
+LocalAppAgentReadinessState = Literal["LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED", "LOCAL_APP_AGENT_READINESS_STATE_READY", "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED", "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE", "LOCAL_APP_AGENT_READINESS_STATE_FAILED", "LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED"]
 LocalAppAgentRouteOptionAvailability = Literal["LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED", "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY", "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED"]
 LocalAppPermissionOwnerPosture = Literal["LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING", "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED"]
 LocalAppPermissionPosture = Literal["LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED", "LOCAL_APP_PERMISSION_POSTURE_PROMPT", "LOCAL_APP_PERMISSION_POSTURE_PENDING", "LOCAL_APP_PERMISSION_POSTURE_GRANTED", "LOCAL_APP_PERMISSION_POSTURE_DENIED", "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"]
@@ -212,12 +213,13 @@ PresenceVerificationMethod = Literal["PRESENCE_VERIFICATION_METHOD_UNSPECIFIED",
 PresenceVerificationState = Literal["PRESENCE_VERIFICATION_STATE_UNSPECIFIED", "PRESENCE_VERIFICATION_STATE_REJECTED", "PRESENCE_VERIFICATION_STATE_VERIFIED", "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"]
 RealmSourceMaterializationReasonCode = Literal["REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"]
 RealtimeEventType = Literal["REALTIME_EVENT_TYPE_UNSPECIFIED", "REALTIME_EVENT_OPENED", "REALTIME_EVENT_TEXT_DELTA", "REALTIME_EVENT_AUDIO_CHUNK", "REALTIME_EVENT_COMPLETED", "REALTIME_EVENT_FAILED"]
-ReasonCode = Literal["REASON_CODE_UNSPECIFIED", "ACTION_EXECUTED", "PROTOCOL_ENVELOPE_INVALID", "PROTOCOL_DOMAIN_FIELD_CONFLICT", "CAPABILITY_CATALOG_MISMATCH", "APP_NOT_REGISTERED", "EXTERNAL_PRINCIPAL_NOT_REGISTERED", "SESSION_EXPIRED", "PRINCIPAL_UNAUTHORIZED", "APP_AUTHORIZATION_DENIED", "APP_GRANT_INVALID", "APP_TOKEN_EXPIRED", "APP_TOKEN_REVOKED", "APP_SCOPE_CATALOG_UNPUBLISHED", "APP_DELEGATION_FORBIDDEN", "APP_DELEGATION_DEPTH_EXCEEDED", "APP_RESOURCE_SELECTOR_INVALID", "APP_RESOURCE_OUT_OF_SCOPE", "APP_CONSENT_MISSING", "APP_CONSENT_INVALID", "EXTERNAL_PRINCIPAL_PROOF_MISSING", "EXTERNAL_PRINCIPAL_PROOF_INVALID", "APP_MODE_WORLD_RELATION_FORBIDDEN", "AI_MODEL_NOT_FOUND", "AI_MODEL_NOT_READY", "AI_PROVIDER_UNAVAILABLE", "AI_ROUTE_UNSUPPORTED", "AI_ROUTE_FALLBACK_DENIED", "AI_INPUT_INVALID", "AI_OUTPUT_INVALID", "AI_STREAM_BROKEN", "AI_CONTENT_FILTER_BLOCKED", "AI_REQUEST_CREDENTIAL_REQUIRED", "AI_REQUEST_CREDENTIAL_MISSING", "AI_REQUEST_CREDENTIAL_INVALID", "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN", "AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED", "AUTH_UNSUPPORTED_PROOF_TYPE", "AUTH_REVOCATION_UNAVAILABLE", "AI_CONNECTOR_NOT_FOUND", "AI_CONNECTOR_DISABLED", "AI_CONNECTOR_CREDENTIAL_MISSING", "AI_CONNECTOR_INVALID", "AI_CONNECTOR_IMMUTABLE", "AI_CONNECTOR_LIMIT_EXCEEDED", "AI_CONNECTOR_ID_REQUIRED", "AI_LOCAL_CONNECTOR_RETIRED", "AI_REQUEST_CREDENTIAL_CONFLICT", "AI_APP_ID_REQUIRED", "AI_APP_ID_CONFLICT", "AI_MODEL_ID_REQUIRED", "AI_MODALITY_NOT_SUPPORTED", "AI_LOCAL_MODEL_UNAVAILABLE", "AI_LOCAL_MODEL_PROFILE_MISSING", "AI_LOCAL_MODEL_ALREADY_INSTALLED", "AI_LOCAL_ENDPOINT_REQUIRED", "AI_LOCAL_TEMPLATE_NOT_FOUND", "AI_LOCAL_MANIFEST_INVALID", "AI_LOCAL_MODEL_INVALID_TRANSITION", "AI_LOCAL_DOWNLOAD_FAILED", "AI_LOCAL_DOWNLOAD_HASH_MISMATCH", "AI_LOCAL_HF_REPO_INVALID", "AI_LOCAL_HF_SEARCH_FAILED", "AI_LOCAL_MANIFEST_SCHEMA_INVALID", "AI_LOCAL_SERVICE_UNAVAILABLE", "AI_LOCAL_SERVICE_ALREADY_INSTALLED", "AI_LOCAL_SERVICE_INVALID_TRANSITION", "AI_LOCAL_ASSET_ALREADY_INSTALLED", "AI_LOCAL_ASSET_SLOT_MISSING", "AI_LOCAL_ASSET_SLOT_FORBIDDEN", "AI_FINISH_LENGTH", "AI_FINISH_CONTENT_FILTER", "AI_LOCAL_PROFILE_SLOT_CONFLICT", "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN", "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN", "AI_LOCAL_COMPONENT_INCOMPATIBLE", "AI_MODEL_PROVIDER_MISMATCH", "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED", "AI_REMOTE_MODEL_CATALOG_STALE", "AI_PROVIDER_ENDPOINT_FORBIDDEN", "AI_PROVIDER_AUTH_FAILED", "AI_PROVIDER_INTERNAL", "AI_PROVIDER_RATE_LIMITED", "AI_PROVIDER_TIMEOUT", "AI_MEDIA_SPEC_INVALID", "AI_MEDIA_OPTION_UNSUPPORTED", "AI_MEDIA_JOB_NOT_FOUND", "AI_MEDIA_JOB_NOT_CANCELLABLE", "AI_MEDIA_IDEMPOTENCY_CONFLICT", "AI_ARTIFACT_UPLOAD_INVALID", "AI_ARTIFACT_UPLOAD_TOO_LARGE", "AI_REALTIME_SESSION_NOT_FOUND", "AI_REALTIME_SESSION_CLOSED", "AI_VOICE_INPUT_INVALID", "AI_VOICE_WORKFLOW_UNSUPPORTED", "AI_VOICE_ASSET_NOT_FOUND", "AI_VOICE_ASSET_EXPIRED", "AI_VOICE_ASSET_SCOPE_FORBIDDEN", "AI_VOICE_TARGET_MODEL_MISMATCH", "AI_VOICE_JOB_NOT_FOUND", "AI_VOICE_JOB_NOT_CANCELLABLE", "AI_MODULE_CONFIG_INVALID", "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID", "APP_MODE_DOMAIN_FORBIDDEN", "APP_MODE_SCOPE_FORBIDDEN", "APP_MODE_MANIFEST_INVALID", "APP_SCOPE_FORBIDDEN", "APP_SCOPE_REVOKED", "APP_MESSAGE_PAYLOAD_TOO_LARGE", "APP_MESSAGE_RATE_LIMITED", "APP_MESSAGE_LOOP_DETECTED", "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED", "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED", "AI_LOCAL_SPEECH_ENV_INIT_FAILED", "AI_LOCAL_SPEECH_HOST_INIT_FAILED", "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED", "AI_LOCAL_SPEECH_BUNDLE_DEGRADED", "APP_STORAGE_PATH_INVALID", "APP_STORAGE_ENTRY_NOT_FOUND", "APP_STORAGE_QUOTA_EXCEEDED", "APP_STORAGE_UNAVAILABLE", "WORKSPACE_BINDING_MISSING", "WORKSPACE_BINDING_MALFORMED", "WORKSPACE_BINDING_NOT_FOUND", "WORKSPACE_BINDING_REVOKED", "WORKSPACE_BINDING_EXPIRED", "WORKSPACE_BINDING_REPLAY", "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE", "WORKSPACE_BINDING_CALLER_MISMATCH", "WORKSPACE_BINDING_WORKSPACE_MISMATCH", "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH", "WORKSPACE_BINDING_SCOPE_MISSING", "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", "GRANT_TOKEN_CHAIN_ROOT_REQUIRED", "PAGE_TOKEN_INVALID", "KNOWLEDGE_BANK_ALREADY_EXISTS", "KNOWLEDGE_BANK_NOT_FOUND", "KNOWLEDGE_BANK_SCOPE_INVALID", "KNOWLEDGE_BANK_ACCESS_DENIED", "KNOWLEDGE_PAGE_NOT_FOUND", "KNOWLEDGE_PAGE_SLUG_CONFLICT", "KNOWLEDGE_PAGE_ACCESS_DENIED", "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE", "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE", "KNOWLEDGE_VECTOR_INDEX_NOT_READY", "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS", "KNOWLEDGE_LINK_NOT_FOUND", "KNOWLEDGE_LINK_ALREADY_EXISTS", "KNOWLEDGE_LINK_INVALID", "KNOWLEDGE_GRAPH_DEPTH_INVALID", "KNOWLEDGE_INGEST_TASK_NOT_FOUND", "ARTIFACT_INVALID_INPUT", "ARTIFACT_NOT_FOUND", "ARTIFACT_TOO_LARGE", "ARTIFACT_FORBIDDEN", "ARTIFACT_MIME_MISMATCH", "APP_OPEN_SCOPE_REF_REQUIRED", "APP_OPEN_SCOPE_REF_INVALID", "APP_OPEN_PACKAGE_NOT_VERIFIED", "APP_OPEN_LIBRARY_STATE_INVALID", "APP_OPEN_APP_DATA_INVALID", "APP_OPEN_PERMISSION_NOT_GRANTED", "APP_OPEN_AICONFIG_UNRESOLVED", "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED", "APP_OPEN_LAUNCH_FAILED", "AGENT_PRESENTATION_REVISION_CONFLICT", "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED", "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED", "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED", "DESKTOP_CONTROL_TRANSPORT_REQUIRED", "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE", "DESKTOP_EXECUTABLE_TRUST_FAILED", "DESKTOP_TEST_TRUST_FORBIDDEN", "PROTECTED_ORIGIN_ROLE_MISMATCH", "LIFECYCLE_CHALLENGE_REQUIRED", "LIFECYCLE_CHALLENGE_MISMATCH", "LIFECYCLE_CHALLENGE_REPLAY", "PROTECTED_LOCAL_LEDGER_UNAVAILABLE", "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED", "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH", "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED", "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE", "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN", "RUNTIME_EXECUTABLE_TRUST_INVALID", "LOCAL_APP_PRINCIPAL_REQUIRED", "LOCAL_APP_RECORD_NOT_FOUND", "LOCAL_APP_RECORD_TOMBSTONED", "LOCAL_APP_PROVENANCE_UNAVAILABLE", "LOCAL_APP_LAUNCH_LEASE_REQUIRED", "LOCAL_APP_LAUNCH_LEASE_MISMATCH", "LOCAL_APP_LAUNCH_LEASE_REPLAY", "LOCAL_APP_PROCESS_MISMATCH", "LOCAL_APP_SESSION_REVOKED", "LOCAL_APP_PERMISSION_REQUIRED", "LOCAL_APP_PERMISSION_DENIED", "LOCAL_APP_PERMISSION_REVOKED", "LOCAL_APP_ACCOUNT_CHANGED", "LOCAL_APP_OPERATION_UNAVAILABLE", "LOCAL_APP_PRESENCE_REQUIRED", "LOCAL_APP_PRESENCE_EXPIRED", "LOCAL_APP_DEVELOPER_MODE_DISABLED", "LOCAL_APP_RISK_DISCLOSURE_REQUIRED", "REALM_UNAVAILABLE", "REALM_NOT_FOUND", "REALM_CONFLICT", "REALM_RATE_LIMITED", "REALM_REQUEST_REJECTED", "REALM_CONTRACT_INVALID", "REALM_OPERATION_FAILED", "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED", "LOCAL_APP_PERMISSION_UNKNOWN", "AGENT_AI_CONFIG_REVISION_CONFLICT", "AGENT_AUTONOMY_REVISION_CONFLICT", "AGENT_PRESENTATION_ASSET_TYPE_INVALID", "AGENT_PRESENTATION_ASSET_TOO_LARGE", "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID", "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING", "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH", "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE", "AGENT_PRESENTATION_ASSET_NOT_VALIDATED"]
+ReasonCode = Literal["REASON_CODE_UNSPECIFIED", "ACTION_EXECUTED", "PROTOCOL_ENVELOPE_INVALID", "PROTOCOL_DOMAIN_FIELD_CONFLICT", "CAPABILITY_CATALOG_MISMATCH", "APP_NOT_REGISTERED", "EXTERNAL_PRINCIPAL_NOT_REGISTERED", "SESSION_EXPIRED", "PRINCIPAL_UNAUTHORIZED", "APP_AUTHORIZATION_DENIED", "APP_GRANT_INVALID", "APP_TOKEN_EXPIRED", "APP_TOKEN_REVOKED", "APP_SCOPE_CATALOG_UNPUBLISHED", "APP_DELEGATION_FORBIDDEN", "APP_DELEGATION_DEPTH_EXCEEDED", "APP_RESOURCE_SELECTOR_INVALID", "APP_RESOURCE_OUT_OF_SCOPE", "APP_CONSENT_MISSING", "APP_CONSENT_INVALID", "EXTERNAL_PRINCIPAL_PROOF_MISSING", "EXTERNAL_PRINCIPAL_PROOF_INVALID", "APP_MODE_WORLD_RELATION_FORBIDDEN", "AI_MODEL_NOT_FOUND", "AI_MODEL_NOT_READY", "AI_PROVIDER_UNAVAILABLE", "AI_ROUTE_UNSUPPORTED", "AI_ROUTE_FALLBACK_DENIED", "AI_INPUT_INVALID", "AI_OUTPUT_INVALID", "AI_STREAM_BROKEN", "AI_CONTENT_FILTER_BLOCKED", "AI_REQUEST_CREDENTIAL_REQUIRED", "AI_REQUEST_CREDENTIAL_MISSING", "AI_REQUEST_CREDENTIAL_INVALID", "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN", "AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED", "AUTH_UNSUPPORTED_PROOF_TYPE", "AUTH_REVOCATION_UNAVAILABLE", "AI_CONNECTOR_NOT_FOUND", "AI_CONNECTOR_DISABLED", "AI_CONNECTOR_CREDENTIAL_MISSING", "AI_CONNECTOR_INVALID", "AI_CONNECTOR_IMMUTABLE", "AI_CONNECTOR_LIMIT_EXCEEDED", "AI_CONNECTOR_ID_REQUIRED", "AI_LOCAL_CONNECTOR_RETIRED", "AI_REQUEST_CREDENTIAL_CONFLICT", "AI_APP_ID_REQUIRED", "AI_APP_ID_CONFLICT", "AI_MODEL_ID_REQUIRED", "AI_MODALITY_NOT_SUPPORTED", "AI_LOCAL_MODEL_UNAVAILABLE", "AI_LOCAL_MODEL_PROFILE_MISSING", "AI_LOCAL_MODEL_ALREADY_INSTALLED", "AI_LOCAL_ENDPOINT_REQUIRED", "AI_LOCAL_TEMPLATE_NOT_FOUND", "AI_LOCAL_MANIFEST_INVALID", "AI_LOCAL_MODEL_INVALID_TRANSITION", "AI_LOCAL_DOWNLOAD_FAILED", "AI_LOCAL_DOWNLOAD_HASH_MISMATCH", "AI_LOCAL_HF_REPO_INVALID", "AI_LOCAL_HF_SEARCH_FAILED", "AI_LOCAL_MANIFEST_SCHEMA_INVALID", "AI_LOCAL_SERVICE_UNAVAILABLE", "AI_LOCAL_SERVICE_ALREADY_INSTALLED", "AI_LOCAL_SERVICE_INVALID_TRANSITION", "AI_LOCAL_ASSET_ALREADY_INSTALLED", "AI_LOCAL_ASSET_SLOT_MISSING", "AI_LOCAL_ASSET_SLOT_FORBIDDEN", "AI_FINISH_LENGTH", "AI_FINISH_CONTENT_FILTER", "AI_LOCAL_PROFILE_SLOT_CONFLICT", "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN", "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN", "AI_LOCAL_COMPONENT_INCOMPATIBLE", "AI_MODEL_PROVIDER_MISMATCH", "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED", "AI_REMOTE_MODEL_CATALOG_STALE", "AI_PROVIDER_ENDPOINT_FORBIDDEN", "AI_PROVIDER_AUTH_FAILED", "AI_PROVIDER_INTERNAL", "AI_PROVIDER_RATE_LIMITED", "AI_PROVIDER_TIMEOUT", "AI_MEDIA_SPEC_INVALID", "AI_MEDIA_OPTION_UNSUPPORTED", "AI_MEDIA_JOB_NOT_FOUND", "AI_MEDIA_JOB_NOT_CANCELLABLE", "AI_MEDIA_IDEMPOTENCY_CONFLICT", "AI_ARTIFACT_UPLOAD_INVALID", "AI_ARTIFACT_UPLOAD_TOO_LARGE", "AI_REALTIME_SESSION_NOT_FOUND", "AI_REALTIME_SESSION_CLOSED", "AI_VOICE_INPUT_INVALID", "AI_VOICE_WORKFLOW_UNSUPPORTED", "AI_VOICE_ASSET_NOT_FOUND", "AI_VOICE_ASSET_EXPIRED", "AI_VOICE_ASSET_SCOPE_FORBIDDEN", "AI_VOICE_TARGET_MODEL_MISMATCH", "AI_VOICE_JOB_NOT_FOUND", "AI_VOICE_JOB_NOT_CANCELLABLE", "AI_MODULE_CONFIG_INVALID", "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID", "APP_MODE_DOMAIN_FORBIDDEN", "APP_MODE_SCOPE_FORBIDDEN", "APP_MODE_MANIFEST_INVALID", "APP_SCOPE_FORBIDDEN", "APP_SCOPE_REVOKED", "APP_MESSAGE_PAYLOAD_TOO_LARGE", "APP_MESSAGE_RATE_LIMITED", "APP_MESSAGE_LOOP_DETECTED", "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED", "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED", "AI_LOCAL_SPEECH_ENV_INIT_FAILED", "AI_LOCAL_SPEECH_HOST_INIT_FAILED", "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED", "AI_LOCAL_SPEECH_BUNDLE_DEGRADED", "APP_STORAGE_PATH_INVALID", "APP_STORAGE_ENTRY_NOT_FOUND", "APP_STORAGE_QUOTA_EXCEEDED", "APP_STORAGE_UNAVAILABLE", "WORKSPACE_BINDING_MISSING", "WORKSPACE_BINDING_MALFORMED", "WORKSPACE_BINDING_NOT_FOUND", "WORKSPACE_BINDING_REVOKED", "WORKSPACE_BINDING_EXPIRED", "WORKSPACE_BINDING_REPLAY", "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE", "WORKSPACE_BINDING_CALLER_MISMATCH", "WORKSPACE_BINDING_WORKSPACE_MISMATCH", "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH", "WORKSPACE_BINDING_SCOPE_MISSING", "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", "GRANT_TOKEN_CHAIN_ROOT_REQUIRED", "PAGE_TOKEN_INVALID", "KNOWLEDGE_BANK_ALREADY_EXISTS", "KNOWLEDGE_BANK_NOT_FOUND", "KNOWLEDGE_BANK_SCOPE_INVALID", "KNOWLEDGE_BANK_ACCESS_DENIED", "KNOWLEDGE_PAGE_NOT_FOUND", "KNOWLEDGE_PAGE_SLUG_CONFLICT", "KNOWLEDGE_PAGE_ACCESS_DENIED", "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE", "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE", "KNOWLEDGE_VECTOR_INDEX_NOT_READY", "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS", "KNOWLEDGE_LINK_NOT_FOUND", "KNOWLEDGE_LINK_ALREADY_EXISTS", "KNOWLEDGE_LINK_INVALID", "KNOWLEDGE_GRAPH_DEPTH_INVALID", "KNOWLEDGE_INGEST_TASK_NOT_FOUND", "ARTIFACT_INVALID_INPUT", "ARTIFACT_NOT_FOUND", "ARTIFACT_TOO_LARGE", "ARTIFACT_FORBIDDEN", "ARTIFACT_MIME_MISMATCH", "APP_OPEN_SCOPE_REF_REQUIRED", "APP_OPEN_SCOPE_REF_INVALID", "APP_OPEN_PACKAGE_NOT_VERIFIED", "APP_OPEN_LIBRARY_STATE_INVALID", "APP_OPEN_APP_DATA_INVALID", "APP_OPEN_PERMISSION_NOT_GRANTED", "APP_OPEN_AICONFIG_UNRESOLVED", "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED", "APP_OPEN_LAUNCH_FAILED", "AGENT_PRESENTATION_REVISION_CONFLICT", "ARTIFACT_UPLOAD_MIME_UNSUPPORTED", "ARTIFACT_UPLOAD_TOO_LARGE", "ARTIFACT_UPLOAD_CONTENT_MISMATCH", "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED", "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED", "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED", "DESKTOP_CONTROL_TRANSPORT_REQUIRED", "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE", "DESKTOP_EXECUTABLE_TRUST_FAILED", "DESKTOP_TEST_TRUST_FORBIDDEN", "PROTECTED_ORIGIN_ROLE_MISMATCH", "LIFECYCLE_CHALLENGE_REQUIRED", "LIFECYCLE_CHALLENGE_MISMATCH", "LIFECYCLE_CHALLENGE_REPLAY", "PROTECTED_LOCAL_LEDGER_UNAVAILABLE", "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED", "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH", "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED", "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE", "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN", "RUNTIME_EXECUTABLE_TRUST_INVALID", "LOCAL_APP_PRINCIPAL_REQUIRED", "LOCAL_APP_RECORD_NOT_FOUND", "LOCAL_APP_RECORD_TOMBSTONED", "LOCAL_APP_PROVENANCE_UNAVAILABLE", "LOCAL_APP_LAUNCH_LEASE_REQUIRED", "LOCAL_APP_LAUNCH_LEASE_MISMATCH", "LOCAL_APP_LAUNCH_LEASE_REPLAY", "LOCAL_APP_PROCESS_MISMATCH", "LOCAL_APP_SESSION_REVOKED", "LOCAL_APP_PERMISSION_REQUIRED", "LOCAL_APP_PERMISSION_DENIED", "LOCAL_APP_PERMISSION_REVOKED", "LOCAL_APP_ACCOUNT_CHANGED", "LOCAL_APP_OPERATION_UNAVAILABLE", "LOCAL_APP_PRESENCE_REQUIRED", "LOCAL_APP_PRESENCE_EXPIRED", "LOCAL_APP_DEVELOPER_MODE_DISABLED", "LOCAL_APP_RISK_DISCLOSURE_REQUIRED", "REALM_UNAVAILABLE", "REALM_NOT_FOUND", "REALM_CONFLICT", "REALM_RATE_LIMITED", "REALM_REQUEST_REJECTED", "REALM_CONTRACT_INVALID", "REALM_OPERATION_FAILED", "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED", "LOCAL_APP_PERMISSION_UNKNOWN", "AGENT_AI_CONFIG_REVISION_CONFLICT", "AGENT_AUTONOMY_REVISION_CONFLICT", "AGENT_PRESENTATION_ASSET_TYPE_INVALID", "AGENT_PRESENTATION_ASSET_TOO_LARGE", "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID", "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING", "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH", "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE", "AGENT_PRESENTATION_ASSET_NOT_VALIDATED", "AGENT_AI_CONFIG_INVALID", "AGENT_AI_CONFIG_TARGET_REQUIRED", "AGENT_AI_CONFIG_TARGET_INVALID", "AGENT_AI_CONFIG_TARGET_UNAVAILABLE", "AGENT_AI_CONFIG_CAPABILITY_MISMATCH", "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH"]
 ReasoningMode = Literal["REASONING_MODE_UNSPECIFIED", "REASONING_MODE_OFF", "REASONING_MODE_ON"]
 ReasoningTraceMode = Literal["REASONING_TRACE_MODE_UNSPECIFIED", "REASONING_TRACE_MODE_HIDE", "REASONING_TRACE_MODE_SEPARATE"]
 ResponseFormatKind = Literal["RESPONSE_FORMAT_KIND_UNSPECIFIED", "RESPONSE_FORMAT_KIND_TEXT", "RESPONSE_FORMAT_KIND_JSON_OBJECT", "RESPONSE_FORMAT_KIND_JSON_SCHEMA"]
 RoutePolicy = Literal["ROUTE_POLICY_UNSPECIFIED", "ROUTE_POLICY_LOCAL", "ROUTE_POLICY_CLOUD"]
-RuntimeAgentAIConfigReadinessState = Literal["RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE"]
+RuntimeAgentAIConfigReadinessState = Literal["RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED"]
+RuntimeAgentAIProfileApplyOutcome = Literal["RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED"]
 RuntimeHealthStatus = Literal["RUNTIME_HEALTH_STATUS_UNSPECIFIED", "RUNTIME_HEALTH_STATUS_STOPPED", "RUNTIME_HEALTH_STATUS_STARTING", "RUNTIME_HEALTH_STATUS_READY", "RUNTIME_HEALTH_STATUS_DEGRADED", "RUNTIME_HEALTH_STATUS_STOPPING"]
 ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_JOB_EVENT_SUBMITTED", "SCENARIO_JOB_EVENT_QUEUED", "SCENARIO_JOB_EVENT_RUNNING", "SCENARIO_JOB_EVENT_COMPLETED", "SCENARIO_JOB_EVENT_FAILED", "SCENARIO_JOB_EVENT_CANCELED", "SCENARIO_JOB_EVENT_TIMEOUT"]
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
@@ -790,12 +792,35 @@ class AppendRuntimeAuditRequest:
     payload: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
+class ApplyLocalAppAgentAIProfileRequest:
+    agent_handle: str | None = None
+    expected_configuration_revision: int | None = None
+    profile_json: bytes | None = None
+    runtime_descriptor_json: bytes | None = None
+
+@dataclass(frozen=True)
 class ApplyProfileRequest:
     plan: LocalProfileResolutionPlan | None = None
 
 @dataclass(frozen=True)
 class ApplyProfileResponse:
     result: LocalProfileApplyResult | None = None
+
+@dataclass(frozen=True)
+class ApplyRuntimeAgentAIProfileRequest:
+    context: AgentRequestContext | None = None
+    expected_revision: int | None = None
+    profile_json: bytes | None = None
+    runtime_descriptor_json: bytes | None = None
+
+@dataclass(frozen=True)
+class ApplyRuntimeAgentAIProfileResponse:
+    config: RuntimeAgentAIConfig | None = None
+    outcome: RuntimeAgentAIProfileApplyOutcome | None = None
+    blocking_capabilities: tuple[str, ...] = field(default_factory=tuple)
+    reason_codes: tuple[str, ...] = field(default_factory=tuple)
+    action_refs: tuple[str, ...] = field(default_factory=tuple)
+    probe_warnings: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ArtifactChunk:
@@ -2933,6 +2958,62 @@ class LocalAgentSourceCoverageSectionStatus:
     omitted_count: int | None = None
 
 @dataclass(frozen=True)
+class LocalAppAgentAIConfigComponentSelection:
+    occurrence_id: str | None = None
+    order: int | None = None
+    role: str | None = None
+    component_kind: str | None = None
+    logical_model_id: str | None = None
+    required: bool | None = None
+    weight: str | None = None
+    options: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentAIConfigIntent:
+    capability: str | None = None
+    provider: str | None = None
+    logical_model_id: str | None = None
+    route_policy: RoutePolicy | None = None
+    selected_params: Mapping[str, object] | None = None
+    selected_components: tuple[LocalAppAgentAIConfigComponentSelection, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppAgentAIConfigProjection:
+    capabilities: tuple[str, ...] = field(default_factory=tuple)
+    intents: tuple[LocalAppAgentAIConfigIntent, ...] = field(default_factory=tuple)
+    readiness: tuple[LocalAppAgentCapabilityReadiness, ...] = field(default_factory=tuple)
+    configuration_revision: int | None = None
+    route_options: tuple[LocalAppAgentRouteOption, ...] = field(default_factory=tuple)
+    scope_owner_id: str | None = None
+    profile_origin: LocalAppAgentAIProfileOrigin | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentAIProfileApplyResponse:
+    projection: LocalAppAgentAIConfigProjection | None = None
+    outcome: LocalAppAgentAIProfileApplyOutcome | None = None
+    blocking_capabilities: tuple[str, ...] = field(default_factory=tuple)
+    reason_codes: tuple[str, ...] = field(default_factory=tuple)
+    action_refs: tuple[str, ...] = field(default_factory=tuple)
+    probe_warnings: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppAgentAIProfileOrigin:
+    profile_id: str | None = None
+    title: str | None = None
+    applied_at: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentAIProfilePreviewResponse:
+    before: LocalAppAgentAIConfigProjection | None = None
+    after: LocalAppAgentAIConfigProjection | None = None
+    outcome: LocalAppAgentAIProfileApplyOutcome | None = None
+    base_revision: int | None = None
+    blocking_capabilities: tuple[str, ...] = field(default_factory=tuple)
+    reason_codes: tuple[str, ...] = field(default_factory=tuple)
+    action_refs: tuple[str, ...] = field(default_factory=tuple)
+    probe_warnings: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class LocalAppAgentAutonomyConfig:
     daily_token_budget: int | None = None
     max_tokens_per_hook: int | None = None
@@ -2972,15 +3053,7 @@ class LocalAppAgentCommitPresentationResponse:
 
 @dataclass(frozen=True)
 class LocalAppAgentConfigurationSnapshotResponse:
-    projection: LocalAppAgentModelSettingsProjection | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentModelSettingsProjection:
-    capabilities: tuple[str, ...] = field(default_factory=tuple)
-    route_intents: tuple[LocalAppAgentRouteIntent, ...] = field(default_factory=tuple)
-    readiness: tuple[LocalAppAgentCapabilityReadiness, ...] = field(default_factory=tuple)
-    configuration_revision: int | None = None
-    route_options: tuple[LocalAppAgentRouteOption, ...] = field(default_factory=tuple)
+    projection: LocalAppAgentAIConfigProjection | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationIntent:
@@ -3014,17 +3087,10 @@ class LocalAppAgentReadinessSnapshotResponse:
     projection: LocalAppAgentReadinessProjection | None = None
 
 @dataclass(frozen=True)
-class LocalAppAgentRouteIntent:
-    capability: str | None = None
-    provider: str | None = None
-    model: str | None = None
-    route_policy: RoutePolicy | None = None
-
-@dataclass(frozen=True)
 class LocalAppAgentRouteOption:
     capability: str | None = None
     provider: str | None = None
-    model: str | None = None
+    logical_model_id: str | None = None
     route_policy: RoutePolicy | None = None
     label: str | None = None
     availability: LocalAppAgentRouteOptionAvailability | None = None
@@ -3035,7 +3101,7 @@ class LocalAppAgentUpdateAutonomyResponse:
 
 @dataclass(frozen=True)
 class LocalAppAgentUpdateConfigurationResponse:
-    projection: LocalAppAgentModelSettingsProjection | None = None
+    projection: LocalAppAgentAIConfigProjection | None = None
 
 @dataclass(frozen=True)
 class LocalAppPermissionAgentHandle:
@@ -3124,6 +3190,9 @@ class LocalAssetRecord:
     display_name: str | None = None
     source_file_name: str | None = None
     import_instance_id: str | None = None
+    durable_target_ref: RuntimeDurableLocalTargetRef | None = None
+    durable_target_status: LocalAssetStatus | None = None
+    durable_target_reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
 class LocalAssetSource:
@@ -4271,6 +4340,29 @@ class PrepareProfileRuntimeDescriptorResponse:
     slice_results: tuple[ProfileRuntimeDescriptorSlicePrepareResult, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class PreviewLocalAppAgentAIProfileRequest:
+    agent_handle: str | None = None
+    profile_json: bytes | None = None
+    runtime_descriptor_json: bytes | None = None
+
+@dataclass(frozen=True)
+class PreviewRuntimeAgentAIProfileRequest:
+    context: AgentRequestContext | None = None
+    profile_json: bytes | None = None
+    runtime_descriptor_json: bytes | None = None
+
+@dataclass(frozen=True)
+class PreviewRuntimeAgentAIProfileResponse:
+    before: RuntimeAgentAIConfig | None = None
+    after: RuntimeAgentAIConfig | None = None
+    outcome: RuntimeAgentAIProfileApplyOutcome | None = None
+    base_revision: int | None = None
+    blocking_capabilities: tuple[str, ...] = field(default_factory=tuple)
+    reason_codes: tuple[str, ...] = field(default_factory=tuple)
+    action_refs: tuple[str, ...] = field(default_factory=tuple)
+    probe_warnings: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ProductControlProjectionJson:
     json: str | None = None
 
@@ -4322,6 +4414,16 @@ class PullModelResponse:
     task_id: str | None = None
     accepted: bool | None = None
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class PutArtifactRequest:
+    mime_type: str | None = None
+    display_name: str | None = None
+    data: bytes | None = None
+
+@dataclass(frozen=True)
+class PutArtifactResponse:
+    artifact_id: str | None = None
 
 @dataclass(frozen=True)
 class PutPageRequest:
@@ -4861,6 +4963,7 @@ class RuntimeAgentAIConfig:
     intents: tuple[RuntimeAgentAIConfigIntent, ...] = field(default_factory=tuple)
     updated_at: str | None = None
     updated_by_app_id: str | None = None
+    profile_origin: RuntimeAgentAIProfileOrigin | None = None
 
 @dataclass(frozen=True)
 class RuntimeAgentAIConfigCapabilityReadiness:
@@ -4868,6 +4971,18 @@ class RuntimeAgentAIConfigCapabilityReadiness:
     state: RuntimeAgentAIConfigReadinessState | None = None
     reason_code: str | None = None
     probed_at: str | None = None
+
+@dataclass(frozen=True)
+class RuntimeAgentAIConfigComponentSelection:
+    occurrence_id: str | None = None
+    order: int | None = None
+    role: str | None = None
+    component_kind: str | None = None
+    logical_model_id: str | None = None
+    target_ref: RuntimeDurableTargetRef | None = None
+    required: bool | None = None
+    weight: str | None = None
+    options: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
 class RuntimeAgentAIConfigIntent:
@@ -4879,12 +4994,20 @@ class RuntimeAgentAIConfigIntent:
     voice_reference_ref: str | None = None
     image_policy_ref: str | None = None
     provider: str | None = None
+    selected_params: Mapping[str, object] | None = None
+    selected_components: tuple[RuntimeAgentAIConfigComponentSelection, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class RuntimeAgentAIConfigReadinessSnapshot:
     agent_instance_id: str | None = None
     config_revision: int | None = None
     capabilities: tuple[RuntimeAgentAIConfigCapabilityReadiness, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class RuntimeAgentAIProfileOrigin:
+    profile_id: str | None = None
+    title: str | None = None
+    applied_at: str | None = None
 
 @dataclass(frozen=True)
 class RuntimeDurableCloudTargetRef:
@@ -5639,7 +5762,8 @@ class UpdateLocalAppAgentAutonomyRequest:
 class UpdateLocalAppAgentConfigurationRequest:
     agent_handle: str | None = None
     expected_configuration_revision: int | None = None
-    route_intents: tuple[LocalAppAgentRouteIntent, ...] = field(default_factory=tuple)
+    intents: tuple[LocalAppAgentAIConfigIntent, ...] = field(default_factory=tuple)
+    profile_origin: LocalAppAgentAIProfileOrigin | None = None
 
 @dataclass(frozen=True)
 class UploadArtifactChunk:
@@ -5691,6 +5815,7 @@ class UpsertRuntimeAgentAIConfigRequest:
     context: AgentRequestContext | None = None
     expected_revision: int | None = None
     intents: tuple[RuntimeAgentAIConfigIntent, ...] = field(default_factory=tuple)
+    profile_origin: RuntimeAgentAIProfileOrigin | None = None
 
 @dataclass(frozen=True)
 class UpsertRuntimeAgentAIConfigResponse:
@@ -6069,6 +6194,14 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/SwitchAccount", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SwitchAccountResponse, raw)
 
+    async def apply_local_app_agent_aiprofile(self, request: ApplyLocalAppAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentAIProfileApplyResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(LocalAppAgentAIProfileApplyResponse, raw)
+
+    async def apply_runtime_agent_aiprofile(self, request: ApplyRuntimeAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ApplyRuntimeAgentAIProfileResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ApplyRuntimeAgentAIProfileResponse, raw)
+
     async def cancel_companion_participation(self, request: CancelCompanionParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelCompanionParticipationResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelCompanionParticipationResponse, raw)
@@ -6204,6 +6337,14 @@ class RuntimeTypedClient:
     async def open_conversation_anchor(self, request: OpenConversationAnchorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenConversationAnchorResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenConversationAnchorResponse, raw)
+
+    async def preview_local_app_agent_aiprofile(self, request: PreviewLocalAppAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentAIProfilePreviewResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(LocalAppAgentAIProfilePreviewResponse, raw)
+
+    async def preview_runtime_agent_aiprofile(self, request: PreviewRuntimeAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PreviewRuntimeAgentAIProfileResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PreviewRuntimeAgentAIProfileResponse, raw)
 
     async def query_agent_memory(self, request: QueryAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> QueryAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6380,6 +6521,10 @@ class RuntimeTypedClient:
     async def cleanup_generated_voice_artifacts(self, request: CleanupGeneratedVoiceArtifactsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CleanupGeneratedVoiceArtifactsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CleanupGeneratedVoiceArtifactsResponse, raw)
+
+    async def put_artifact(self, request: PutArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PutArtifactResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeArtifactService/PutArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PutArtifactResponse, raw)
 
     async def read_artifact_bytes(self, request: ReadArtifactBytesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadArtifactBytesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

@@ -10,6 +10,13 @@ import {
   type NimiLocalAppAgentConfigureShell,
 } from './local-app-runtime-platform-configure.js';
 import {
+  createNimiLocalAppArtifactsClient,
+  type NimiLocalAppArtifactsClient,
+  type NimiLocalAppArtifactPutInput,
+  type NimiLocalAppArtifactPutResult,
+  type NimiLocalAppArtifactsShell,
+} from './local-app-runtime-platform-artifacts.js';
+import {
   createNimiLocalAppConversationClient,
   type NimiLocalAppConversationOpenInput,
   type NimiLocalAppConversationOpenResult,
@@ -53,6 +60,7 @@ import {
 } from './permission-types.js';
 
 export type {
+  NimiLocalAppConversationAttachment,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
@@ -65,6 +73,12 @@ export type {
   NimiLocalAppConversationSubscription,
   NimiLocalAppAgentHandle,
 } from './local-app-runtime-platform-conversation.js';
+export type {
+  NimiLocalAppArtifactBytes,
+  NimiLocalAppArtifactPutInput,
+  NimiLocalAppArtifactPutResult,
+  NimiLocalAppArtifactReadInput,
+} from './local-app-runtime-platform-artifacts.js';
 export type { NimiLocalAppAgent } from './permission-types.js';
 export type {
   NimiAppRuntimeStorageDocument,
@@ -137,6 +151,7 @@ export type NimiLocalAppStandardShell = {
   };
   readonly conversation: NimiLocalAppConversationShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
+  readonly artifacts: NimiLocalAppArtifactsShell;
 };
 
 export type NimiLocalAppClientInput = {
@@ -180,6 +195,7 @@ export type NimiLocalAppClient = {
     };
   };
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
+  readonly artifacts: NimiLocalAppArtifactsClient;
   readonly conversation: {
     readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
     readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
@@ -194,8 +210,8 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  assertExactKeys(standardShell, ['session', 'permission', 'storage', 'realm', 'conversation', 'agentConfigure'], 'local-app standardShell');
-  if (Object.keys(standardShell).length !== 6) {
+  assertExactKeys(standardShell, ['session', 'permission', 'storage', 'realm', 'conversation', 'agentConfigure', 'artifacts'], 'local-app standardShell');
+  if (Object.keys(standardShell).length !== 7) {
     return localAppError(
       'Host-injected local-app standardShell namespaces are incomplete.',
       'SDK_LOCAL_APP_CARRIER_REQUIRED',
@@ -215,6 +231,7 @@ export function createNimiLocalAppClient(
   }
   assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
+  assertExactMethodNamespace(standardShell.artifacts, ['put', 'readBytes'], 'artifacts');
 
   const permissionStatus = async (permissionId: NimiAppPermissionStatusInput): Promise<NimiAppPermissionStatus> => {
     const normalized = requireKnownPermissionID(permissionId);
@@ -280,6 +297,7 @@ export function createNimiLocalAppClient(
       worldCore: createWorldCoreClient(standardShell.realm.worldCore),
     }),
     agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
+    artifacts: createNimiLocalAppArtifactsClient(standardShell.artifacts),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
   });
 }

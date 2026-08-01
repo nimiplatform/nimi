@@ -89,6 +89,13 @@ func managedImageMaterializationBindingsToLocalState(bindings []managedMediaProf
 		out = append(out, localStateManagedImageMaterializationBindingState{
 			AssetID:               strings.TrimSpace(binding.AssetID),
 			LocalAssetID:          strings.TrimSpace(binding.LocalAssetID),
+			OccurrenceID:          strings.TrimSpace(binding.OccurrenceID),
+			Order:                 binding.Order,
+			Role:                  strings.TrimSpace(binding.Role),
+			LogicalModelID:        strings.TrimSpace(binding.LogicalModelID),
+			Required:              binding.Required,
+			Weight:                strings.TrimSpace(binding.Weight),
+			Options:               cloneAnyMap(binding.Options),
 			CompanionKind:         strings.TrimSpace(binding.CompanionKind),
 			EngineSlot:            strings.TrimSpace(binding.EngineSlot),
 			CompanionAssetID:      strings.TrimSpace(binding.CompanionAssetID),
@@ -102,22 +109,25 @@ func managedImageMaterializationBindingsToLocalState(bindings []managedMediaProf
 func restoreManagedImageProfileMaterialization(
 	item localStateManagedImageProfileMaterializationState,
 	assets map[string]*runtimev1.LocalAssetRecord,
-) (string, string, []managedMediaProfileMaterializationBinding, bool) {
+) (string, string, string, []managedMediaProfileMaterializationBinding, bool) {
+	profileBindingID := strings.TrimSpace(item.ProfileBindingID)
 	localAssetID := strings.TrimSpace(item.LocalAssetID)
 	materializationKey := strings.TrimSpace(item.MaterializationKey)
-	if localAssetID == "" ||
+	if !strings.HasPrefix(profileBindingID, workflowBindingIDPrefix+profileRuntimeMaterializationKeyPrefix) ||
+		localAssetID == "" ||
 		!strings.HasPrefix(materializationKey, profileRuntimeMaterializationKeyPrefix) ||
+		profileBindingID != workflowBindingIDPrefix+materializationKey ||
 		!item.MaterializationResolved ||
 		len(item.MaterializationBindings) == 0 {
-		return "", "", nil, false
+		return "", "", "", nil, false
 	}
 	mainAsset := assets[localAssetID]
 	if !localStateAssetAdmitted(mainAsset) {
-		return "", "", nil, false
+		return "", "", "", nil, false
 	}
 	bindings := managedImageMaterializationBindingsFromLocalState(item.MaterializationBindings)
 	if len(bindings) == 0 {
-		return "", "", nil, false
+		return "", "", "", nil, false
 	}
 	mainBinding := managedMediaProfileMaterializationBinding{}
 	mainBindingCount := 0
@@ -133,7 +143,7 @@ func restoreManagedImageProfileMaterialization(
 		mainAssetID == "" ||
 		strings.TrimSpace(mainBinding.LocalAssetID) != localAssetID ||
 		strings.TrimSpace(mainAsset.GetAssetId()) != mainAssetID {
-		return "", "", nil, false
+		return "", "", "", nil, false
 	}
 	for _, binding := range bindings {
 		companionAssetID := strings.TrimSpace(binding.CompanionAssetID)
@@ -147,20 +157,20 @@ func restoreManagedImageProfileMaterialization(
 			strings.TrimSpace(binding.CompanionKind) == "" ||
 			strings.TrimSpace(binding.EngineSlot) == "" ||
 			companionLocalAssetID == "" {
-			return "", "", nil, false
+			return "", "", "", nil, false
 		}
 		companionAsset := assets[companionLocalAssetID]
 		if !localStateAssetAdmitted(companionAsset) ||
 			strings.TrimSpace(companionAsset.GetLocalAssetId()) != companionLocalAssetID ||
 			strings.TrimSpace(companionAsset.GetAssetId()) != companionAssetID {
-			return "", "", nil, false
+			return "", "", "", nil, false
 		}
 		companionKind, ok := parseLocalAssetKindToken(binding.CompanionKind)
 		if !ok || effectiveAssetKind(companionAsset.GetKind(), companionAsset.GetCapabilities()) != companionKind {
-			return "", "", nil, false
+			return "", "", "", nil, false
 		}
 	}
-	return localAssetID, materializationKey, bindings, true
+	return profileBindingID, localAssetID, materializationKey, bindings, true
 }
 
 func localStateAssetAdmitted(asset *runtimev1.LocalAssetRecord) bool {
@@ -188,6 +198,13 @@ func managedImageMaterializationBindingsFromLocalState(bindings []localStateMana
 		out = append(out, managedMediaProfileMaterializationBinding{
 			AssetID:               strings.TrimSpace(binding.AssetID),
 			LocalAssetID:          strings.TrimSpace(binding.LocalAssetID),
+			OccurrenceID:          strings.TrimSpace(binding.OccurrenceID),
+			Order:                 binding.Order,
+			Role:                  strings.TrimSpace(binding.Role),
+			LogicalModelID:        strings.TrimSpace(binding.LogicalModelID),
+			Required:              binding.Required,
+			Weight:                strings.TrimSpace(binding.Weight),
+			Options:               cloneAnyMap(binding.Options),
 			CompanionKind:         strings.TrimSpace(binding.CompanionKind),
 			EngineSlot:            strings.TrimSpace(binding.EngineSlot),
 			CompanionAssetID:      strings.TrimSpace(binding.CompanionAssetID),

@@ -77,7 +77,7 @@ const requirementDeclaration: NimiAICapabilityRequirementDeclaration = {
 
 const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { targetRefs: {}, selectedParams: {} },
+  capabilities: { logicalModelIds: {}, targetRefs: {}, selectedComponents: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
@@ -218,6 +218,7 @@ describe('useModelConfigProfileController apply paths', () => {
         }),
         apply: async (_scope, _profileId, options) => {
           applyBaseVersions.push(options?.expectedBaseVersion);
+          currentConfig = appliedConfig;
           return {
             success: true,
             config: appliedConfig,
@@ -255,15 +256,15 @@ describe('useModelConfigProfileController apply paths', () => {
       await flush();
     });
 
-    expect(updates).toHaveLength(1);
+    expect(updates).toHaveLength(0);
     expect(applyBaseVersions).toEqual(['base-v1']);
-    expect(updates[0].profileOrigin?.profileId).toBe('remote-profile');
+    expect(currentConfig.profileOrigin?.profileId).toBe('remote-profile');
     expect(captured.controller?.error).toBeNull();
     expect(captured.controller?.applying).toBe(false);
     expect(captured.controller?.preview).toBeNull();
   });
 
-  it('path 1b — host update rejection after remote success fails closed and preserves preview', async () => {
+  it('path 1b — owner apply rejection fails closed and is never followed by aiConfig.update', async () => {
     let currentConfig = baseConfig;
     let updateCalls = 0;
     const service: SharedAIConfigService = {
@@ -282,10 +283,10 @@ describe('useModelConfigProfileController apply paths', () => {
           profilesById: [remoteProfile],
         }),
         apply: async () => ({
-          success: true,
-          config: appliedConfig,
-          failureReason: null,
-          outcome: 'ready_to_apply',
+          success: false,
+          config: null,
+          failureReason: 'host commit rejected',
+          outcome: 'failed',
           probeWarnings: [],
         }) satisfies NimiAIProfileApplyResult,
       },
@@ -314,7 +315,7 @@ describe('useModelConfigProfileController apply paths', () => {
       await flush();
     });
 
-    expect(updateCalls).toBe(1);
+    expect(updateCalls).toBe(0);
     expect(captured.controller?.error).toBe('host commit rejected');
     expect(captured.controller?.applying).toBe(false);
     expect(captured.controller?.preview).toBeTruthy();

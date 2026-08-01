@@ -34,6 +34,8 @@ const (
 	protectedConfigurationSnapshotMethod       = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot"
 	protectedUpdateConfigurationMethod         = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration"
 	protectedReadinessSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot"
+	protectedAIProfilePreviewMethod            = "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile"
+	protectedAIProfileApplyMethod              = "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile"
 	protectedAutonomySnapshotMethod            = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	protectedUpdateAutonomyMethod              = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	protectedPresentationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
@@ -69,6 +71,8 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedConfigurationSnapshotMethod:       localAppSessionMethodPolicy(),
 	protectedUpdateConfigurationMethod:         localAppSessionMethodPolicy(),
 	protectedReadinessSnapshotMethod:           localAppSessionMethodPolicy(),
+	protectedAIProfilePreviewMethod:            localAppSessionMethodPolicy(),
+	protectedAIProfileApplyMethod:              localAppSessionMethodPolicy(),
 	protectedAutonomySnapshotMethod:            localAppSessionMethodPolicy(),
 	protectedUpdateAutonomyMethod:              localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:        localAppSessionMethodPolicy(),
@@ -357,6 +361,18 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 			return "", localappop.Selector{}, true
 		}
 		return accountservice.LocalAppOperationReadinessSnapshot, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedAIProfilePreviewMethod:
+		req, ok := request.(*runtimev1.PreviewLocalAppAgentAIProfileRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationAIProfilePreview, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+	case protectedAIProfileApplyMethod:
+		req, ok := request.(*runtimev1.ApplyLocalAppAgentAIProfileRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationAIProfileApply, localappop.Selector{AgentID: req.GetAgentHandle()}, true
 	case protectedAutonomySnapshotMethod:
 		req, ok := request.(*runtimev1.GetLocalAppAgentAutonomySnapshotRequest)
 		if !ok {

@@ -152,6 +152,39 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     async writeJson() { return {}; },
     async removeJson() { return {}; },
   },
+  realm: {
+    worldCore: {
+      async list() { return []; },
+      async create() { return {}; },
+    },
+  },
+  conversation: {
+    async open() { return { conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }; },
+    async send() { return { messageId: 'message-1' }; },
+    async interruptTurn() { return { messageId: 'interrupt-message-1' }; },
+    async subscribe() {
+      return {
+        events: { async *[Symbol.asyncIterator]() {} },
+        async cancel() { return undefined; },
+      };
+    },
+    async snapshot() { return {}; },
+  },
+  agentConfigure: {
+    async configurationSnapshot() { return {}; },
+    async updateConfiguration() { return {}; },
+    async readinessSnapshot() { return {}; },
+    async aiProfilePreview() { return {}; },
+    async aiProfileApply() { return {}; },
+    async autonomySnapshot() { return {}; },
+    async updateAutonomy() { return {}; },
+    async presentationSnapshot() { return {}; },
+    async commitPresentation() { return {}; },
+  },
+  artifacts: {
+    async put() { return { artifactId: 'artifact-1' }; },
+    async readBytes() { return { bytes: new Uint8Array([137, 80, 78, 71]), mimeType: 'image/png' }; },
+  },
 };
 const localApp = createNimiClient({ localApp: { standardShell: localAppStandardShell } });
 const error: NimiError = createNimiError({ message: 'x', reasonCode: 'SDK_SURFACE', source: 'sdk' });

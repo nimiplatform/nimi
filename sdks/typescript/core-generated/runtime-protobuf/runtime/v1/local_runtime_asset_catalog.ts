@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { RuntimeDurableLocalTargetRef } from "./runtime_target_identity";
 import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 // === Source ===
@@ -186,6 +187,22 @@ export interface LocalAssetRecord {
      * @generated from protobuf field: string import_instance_id = 43
      */
     importInstanceId: string;
+    /**
+     * Runtime-issued v2 execution identity and its target-specific readiness.
+     * The target is opaque to consumers and never derived from asset_id,
+     * local_asset_id, or logical_model_id outside Runtime.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableLocalTargetRef durable_target_ref = 44
+     */
+    durableTargetRef?: RuntimeDurableLocalTargetRef;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAssetStatus durable_target_status = 45
+     */
+    durableTargetStatus: LocalAssetStatus;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode durable_target_reason_code = 46
+     */
+    durableTargetReasonCode: ReasonCode;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAssetHealth
@@ -1037,7 +1054,10 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
             { no: 40, name: "metadata", kind: "message", T: () => Struct },
             { no: 41, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 42, name: "source_file_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 43, name: "import_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 43, name: "import_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 44, name: "durable_target_ref", kind: "message", T: () => RuntimeDurableLocalTargetRef },
+            { no: 45, name: "durable_target_status", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetStatus", LocalAssetStatus, "LOCAL_ASSET_STATUS_"] },
+            { no: 46, name: "durable_target_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
     create(value?: PartialMessage<LocalAssetRecord>): LocalAssetRecord {
@@ -1068,6 +1088,8 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         message.displayName = "";
         message.sourceFileName = "";
         message.importInstanceId = "";
+        message.durableTargetStatus = 0;
+        message.durableTargetReasonCode = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAssetRecord>(this, message, value);
         return message;
@@ -1166,6 +1188,15 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
                     break;
                 case /* string import_instance_id */ 43:
                     message.importInstanceId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RuntimeDurableLocalTargetRef durable_target_ref */ 44:
+                    message.durableTargetRef = RuntimeDurableLocalTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.durableTargetRef);
+                    break;
+                case /* nimi.runtime.v1.LocalAssetStatus durable_target_status */ 45:
+                    message.durableTargetStatus = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode durable_target_reason_code */ 46:
+                    message.durableTargetReasonCode = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1285,6 +1316,15 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         /* string import_instance_id = 43; */
         if (message.importInstanceId !== "")
             writer.tag(43, WireType.LengthDelimited).string(message.importInstanceId);
+        /* nimi.runtime.v1.RuntimeDurableLocalTargetRef durable_target_ref = 44; */
+        if (message.durableTargetRef)
+            RuntimeDurableLocalTargetRef.internalBinaryWrite(message.durableTargetRef, writer.tag(44, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAssetStatus durable_target_status = 45; */
+        if (message.durableTargetStatus !== 0)
+            writer.tag(45, WireType.Varint).int32(message.durableTargetStatus);
+        /* nimi.runtime.v1.ReasonCode durable_target_reason_code = 46; */
+        if (message.durableTargetReasonCode !== 0)
+            writer.tag(46, WireType.Varint).int32(message.durableTargetReasonCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

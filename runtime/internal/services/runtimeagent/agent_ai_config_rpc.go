@@ -38,7 +38,12 @@ func (s *Service) UpsertRuntimeAgentAIConfig(ctx context.Context, req *runtimev1
 	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.write"); err != nil {
 		return nil, err
 	}
-	config, err := s.upsertRuntimeAgentAIConfig(req.GetContext(), req.GetExpectedRevision(), req.GetIntents())
+	config, err := s.upsertRuntimeAgentAIConfig(
+		req.GetContext(),
+		req.GetExpectedRevision(),
+		req.GetIntents(),
+		req.GetProfileOrigin(),
+	)
 	if err != nil {
 		return nil, err
 	}

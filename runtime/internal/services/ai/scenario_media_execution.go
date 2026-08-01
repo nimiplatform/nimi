@@ -34,6 +34,7 @@ func executeBackendSyncMedia(
 	modelResolved string,
 	adapterName string,
 	remoteTarget *nimillm.RemoteTarget,
+	localPlan *localModelExecutionPlan,
 	cloudProvider *nimillm.CloudProvider,
 	voiceCatalog *catalog.Resolver,
 	onProgress func(nimillm.ManagedMediaImageProgress),
@@ -65,7 +66,14 @@ func executeBackendSyncMedia(
 	if backendModelID == "" {
 		backendModelID = modelResolved
 	}
-	releaseLease, err := s.acquireSelectedLocalModelLease(ctx, req.GetHead().GetModelId(), remoteTarget, modal, "scenario_media_request")
+	releaseLease, err := s.acquireSelectedLocalModelLeaseWithPlan(
+		ctx,
+		localPlan,
+		req.GetHead().GetModelId(),
+		remoteTarget,
+		modal,
+		"scenario_media_request",
+	)
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -100,7 +108,7 @@ func executeBackendSyncMedia(
 		if remoteTarget != nil {
 			payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec, scenarioExtensions)
 		} else {
-			if s == nil || s.localImageProfile == nil {
+			if s == nil || s.localImageProfile == nil || localPlan == nil || localPlan.selectedLocalAssetID() == "" {
 				if logger != nil {
 					logger.Warn("managed image resolver unavailable",
 						"model_id", strings.TrimSpace(backendModelID),
@@ -113,8 +121,9 @@ func executeBackendSyncMedia(
 					grpcerr.ReasonOptions{Message: "canonical image resolver unavailable for local image execution"},
 				)
 			}
+			localAssetID := localPlan.selectedLocalAssetID()
 			var imageSelection engine.ImageSupervisedMatrixSelection
-			resolvedSelection, resolveErr := s.localImageProfile.ResolveCanonicalImageSelection(ctx, backendModelID)
+			resolvedSelection, resolveErr := s.localImageProfile.ResolveCanonicalImageSelectionForLocalAsset(ctx, localAssetID)
 			if resolveErr != nil {
 				if logger != nil {
 					logger.Warn("managed image selection resolve failed",
@@ -158,7 +167,20 @@ func executeBackendSyncMedia(
 			case imageSelection.ControlPlane == engine.ImageControlPlaneRuntime &&
 				imageSelection.ExecutionPlane == engine.EngineMedia &&
 				imageSelection.BackendClass == engine.ImageBackendClassNativeBinary:
-				alias, profile, forwardedExtensions, managedErr := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, backendModelID, scenarioExtensions)
+				profileBindingID := strings.TrimSpace(localPlan.targetBinding.GetProfileBindingId())
+				if profileBindingID == "" {
+					return nil, nil, "", grpcerr.WithReasonCodeOptions(
+						codes.FailedPrecondition,
+						runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+						grpcerr.ReasonOptions{Message: "committed image target has no exact workflow binding"},
+					)
+				}
+				alias, profile, forwardedExtensions, managedErr := s.localImageProfile.ResolveManagedMediaImageProfileForBinding(
+					ctx,
+					profileBindingID,
+					localAssetID,
+					scenarioExtensions,
+				)
 				if managedErr != nil {
 					if logger != nil {
 						logger.Warn("managed image profile resolve failed",
@@ -207,7 +229,7 @@ func executeBackendSyncMedia(
 						"extension_count", len(scenarioExtensions),
 					)
 				}
-				loadDiag, err = s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, alias, profile, scenarioExtensions, "generate_request")
+				loadDiag, err = s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, localAssetID, alias, profile, scenarioExtensions, "generate_request")
 				if err != nil {
 					if logger != nil {
 						logger.Warn("managed image generate load failed",
@@ -216,20 +238,20 @@ func executeBackendSyncMedia(
 							"error", err,
 						)
 					}
-					_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
+					_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, localAssetID, false, scenarioExecutionProviderMessage(err))
 					return nil, nil, "", err
 				}
 				defer func() {
-					if releaseErr := s.localImageProfile.ReleaseManagedMediaImage(ctx, backendModelID, alias, profile, scenarioExtensions, "generate_request_cleanup"); releaseErr != nil && logger != nil {
+					if releaseErr := s.localImageProfile.ReleaseManagedMediaImage(ctx, localAssetID, alias, profile, scenarioExtensions, "generate_request_cleanup"); releaseErr != nil && logger != nil {
 						logger.Warn("managed image release after generate failed", "model_id", backendModelID, "error", releaseErr)
 					}
 				}()
 				payload, usage, diag, err = backend.GenerateImageManagedMediaDirect(ctx, modelsRoot, backendAddress, profile, spec, scenarioExtensions, onProgress)
 				if err != nil {
-					_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
+					_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, localAssetID, false, scenarioExecutionProviderMessage(err))
 					return nil, nil, "", err
 				}
-				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, true, "")
+				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, localAssetID, true, "")
 			case imageSelection.ControlPlane == engine.ImageControlPlaneRuntime &&
 				imageSelection.ExecutionPlane == engine.EngineMedia &&
 				imageSelection.BackendClass == engine.ImageBackendClassPythonPipeline:

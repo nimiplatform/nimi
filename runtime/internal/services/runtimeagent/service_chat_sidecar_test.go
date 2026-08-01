@@ -251,11 +251,13 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-chat-exec")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-chat-exec"),
+		Context: identityContext,
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 
 	now := time.Now()
 	scheduledFor := now.Add(5 * time.Minute)
@@ -344,11 +346,13 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIE
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-chat-sidecar-caller-app")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-caller-app"),
+		Context: identityContext,
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
@@ -537,11 +541,13 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-chat-sidecar-ingress")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-ingress"),
+		Context: identityContext,
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 
 	fakeAI := &fakeLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{

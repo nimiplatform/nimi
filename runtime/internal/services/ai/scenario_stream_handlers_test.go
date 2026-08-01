@@ -414,7 +414,7 @@ func TestStreamScenarioTextGenerateDoesNotSetSpeechVoiceOutputMode(t *testing.T)
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen2.5"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen2.5", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -474,7 +474,7 @@ func TestStreamScenarioSpeechSynthesizeLocalRouteUsesAssetLease(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "speech/qwen3tts",
-			TargetRef:     localScenarioTargetRefForModel("speech/qwen3tts"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "speech/qwen3tts", "audio.synthesize", localModels.responses[0].Assets[0]),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -920,7 +920,7 @@ func TestStreamCloseModeDoneTrueCarriesUsage(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -1165,7 +1165,7 @@ func TestStreamCloseModeTerminalEventOnError(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -1234,7 +1234,7 @@ func TestStreamTextFirstPacketTimeoutStartsAfterStreamEstablished(t *testing.T) 
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen", "text.generate", localLister.responses[0].Assets[0]),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     500,
@@ -1260,8 +1260,8 @@ func TestStreamTextFirstPacketTimeoutStartsAfterStreamEstablished(t *testing.T) 
 	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
 		t.Fatalf("expected completed terminal event, got %v", last.GetEventType())
 	}
-	if localLister.calls != 1 {
-		t.Fatalf("expected stream text validation and lease to share one local model list, got %d", localLister.calls)
+	if localLister.calls != 0 {
+		t.Fatalf("exact target stream must not search local model inventory, got %d calls", localLister.calls)
 	}
 	if len(localLister.leaseCalls) == 0 || localLister.leaseCalls[0] != "acquire:local_qwen:stream_text_generate_request" {
 		t.Fatalf("expected lease to acquire selected plan asset, got %#v", localLister.leaseCalls)
@@ -1295,7 +1295,7 @@ func TestStreamTextFirstPacketTimeoutTreatsToolCallChunksAsActivity(t *testing.T
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen2.5"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen2.5", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     500,

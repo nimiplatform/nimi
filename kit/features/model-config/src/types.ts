@@ -84,6 +84,25 @@ export type ModelConfigProfileOption = {
   profileId: string;
   title: string;
   description?: string;
+  capabilitySummaries: readonly ModelConfigProfileCapabilitySummary[];
+  setupRequired: boolean;
+};
+
+export type ModelConfigProfileComponentSummary = {
+  role: string;
+  engineSlot: string;
+  label: string;
+  required: boolean;
+};
+
+export type ModelConfigProfileCapabilitySummary = {
+  capabilityId: string;
+  logicalModelId?: string;
+  modelLabel?: string;
+  modelFamily?: string;
+  executionMode?: 'local' | 'cloud_connector';
+  components: readonly ModelConfigProfileComponentSummary[];
+  parameterSummary: readonly string[];
 };
 
 export type ModelConfigProfileCopy = {
@@ -141,6 +160,7 @@ export type ModelConfigProfileController = {
     profileId: string;
     title?: string | null;
   } | null;
+  currentProfile: ModelConfigProfileOption | null;
   profiles: ModelConfigProfileOption[];
   selectedProfileId: string | null;
   isLoading?: boolean;
@@ -216,7 +236,6 @@ export type VoiceWorkflowParamsState = {
 };
 
 export type ImageParamsState = {
-  modelFamily?: string;
   size: string;
   responseFormat: string;
   seed: string;
@@ -225,7 +244,6 @@ export type ImageParamsState = {
   cfgScale: string;
   sampler: string;
   scheduler: string;
-  optionsText: string;
 };
 
 export type VideoParamsState = {
@@ -252,12 +270,18 @@ export type CompanionSlotDef = {
 export type LocalAssetEntry = {
   localAssetId: string;
   assetId: string;
+  logicalModelId?: string;
+  displayName?: string;
+  sourceFileName?: string;
   kind: string;
   engine: string;
   status: string;
   family?: string;
   modelFamily?: string;
   artifactRoles?: readonly string[];
+  durableTargetRef?: ModelConfigTargetRef;
+  durableTargetStatus?: string;
+  durableTargetReasonCode?: string;
   metadata?: Readonly<Record<string, unknown>>;
 };
 

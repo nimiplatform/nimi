@@ -3,7 +3,13 @@ import type {
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentAutonomySnapshot,
   NimiRuntimeAgentAIConfigReadinessCapabilityState,
-  NimiRuntimeAgentModelSettingsRouteIntent,
+  NimiAIConfig,
+  NimiAIConfigTargetRef,
+  NimiAIProfile,
+  NimiAIProfileApplyOptions,
+  NimiAIProfileApplyResult,
+  NimiAIProfilePreviewOptions,
+  NimiAIProfilePreviewResult,
   NimiAIScopeRef,
   NimiRuntimeAgentInspectSnapshot,
   NimiRuntimeAgentInspectSurface,
@@ -19,6 +25,7 @@ import type {
 import type {
   ModelConfigLocalAssetSource,
   ModelConfigProviderResolver,
+  SharedAIProfileService,
 } from '@nimiplatform/kit/core/model-config';
 import type { AgentCenterAvatarPreviewServiceResult } from '@nimiplatform/kit/features/avatar/headless';
 
@@ -272,8 +279,8 @@ export type AgentCenterAIConfigMutationDisabledReason =
   | 'action-unavailable';
 
 export type AgentCenterProductAction =
-  | 'readModelSettings'
-  | 'updateModelSettings'
+  | 'readAIConfig'
+  | 'updateAIConfig'
   | 'readAutonomy'
   | 'updateAutonomy'
   | 'readMemorySummary'
@@ -347,9 +354,9 @@ export interface AgentCenterPermissionedLoadOptions {
   readonly conversationAnchor?: string;
 }
 
-export interface AgentCenterPermissionedConfigurationMutation {
+export interface AgentCenterPermissionedAIConfigMutation {
   readonly expectedConfigurationRevision: string;
-  readonly routeIntents: readonly NimiRuntimeAgentModelSettingsRouteIntent[];
+  readonly config: NimiAIConfig;
 }
 
 export type AgentCenterPermissionedAutonomyMutation = AgentCenterAutonomyMutationInput;
@@ -384,8 +391,21 @@ export interface AgentCenterPermissionedSdkSurfaceInput {
   ): Promise<AgentCenterStateInput>;
   updateConfiguration(
     handle: AgentCenterOpaqueHandle,
-    input: AgentCenterPermissionedConfigurationMutation,
+    input: AgentCenterPermissionedAIConfigMutation,
   ): Promise<AgentCenterStateInput>;
+  listAIProfiles(handle: AgentCenterOpaqueHandle): Promise<readonly NimiAIProfile[]>;
+  previewAIProfile(
+    handle: AgentCenterOpaqueHandle,
+    scopeRef: NimiAIScopeRef,
+    profileId: string,
+    options: NimiAIProfilePreviewOptions,
+  ): Promise<NimiAIProfilePreviewResult>;
+  applyAIProfile(
+    handle: AgentCenterOpaqueHandle,
+    scopeRef: NimiAIScopeRef,
+    profileId: string,
+    options: NimiAIProfileApplyOptions,
+  ): Promise<NimiAIProfileApplyResult>;
   updateAutonomy(
     handle: AgentCenterOpaqueHandle,
     input: AgentCenterPermissionedAutonomyMutation,
@@ -415,6 +435,7 @@ export interface AgentCenterPermissionedSdkSurface extends AgentCenterPermission
 export interface AgentCenterRuntimeModelConfigAdapter {
   readonly providerResolver?: ModelConfigProviderResolver | null;
   readonly localAssetSource?: ModelConfigLocalAssetSource | null;
+  readonly aiProfile: SharedAIProfileService['aiProfile'];
 }
 
 export interface AgentCenterModelRouteOption {
@@ -436,14 +457,23 @@ export interface AgentCenterTurnContextLoadInput extends RuntimeLocalAgentIdenti
   readonly conversationAnchorId?: string;
 }
 
-export interface AgentCenterRuntimeModelSettingsProjection {
+export interface AgentCenterAIConfigRouteProjection {
+  readonly capability: string;
+  readonly provider: string;
+  readonly model: string;
+  readonly routePolicy: 'local' | 'cloud';
+  readonly targetRef?: NimiAIConfigTargetRef;
+}
+
+export interface AgentCenterRuntimeAIConfigProjection {
+  readonly aiConfig: NimiAIConfig;
   readonly scopeRef: NimiAIScopeRef;
   readonly capabilities: readonly string[];
-  readonly routeIntents: readonly NimiRuntimeAgentModelSettingsRouteIntent[];
+  readonly routeIntents: readonly AgentCenterAIConfigRouteProjection[];
   readonly routeOptions?: readonly AgentCenterModelRouteOption[];
   readonly readiness: readonly {
     readonly capability: string;
-    readonly state: 'ready' | 'blocked' | 'unavailable' | 'failed';
+    readonly state: 'ready' | 'blocked' | 'unavailable' | 'failed' | 'configured_unverified';
     readonly reason: string;
     readonly observedAt: string | null;
   }[];
@@ -451,7 +481,7 @@ export interface AgentCenterRuntimeModelSettingsProjection {
 }
 
 export interface AgentCenterRuntimeSnapshot {
-  readonly modelSettings?: AgentCenterRuntimeModelSettingsProjection | null;
+  readonly aiConfig?: AgentCenterRuntimeAIConfigProjection | null;
   readonly autonomy?: AgentCenterAutonomyProjection | null;
   readonly inspect?: NimiRuntimeAgentInspectSnapshot | null;
   readonly memory?: NimiRuntimeAgentMemoryObservatorySnapshot | null;
@@ -844,7 +874,7 @@ export interface AgentCenterCapabilityState {
   readonly required: boolean;
   readonly readinessState: NimiRuntimeAgentAIConfigReadinessCapabilityState | 'blocked' | 'failed' | 'unknown';
   readonly probedAt: string | null;
-  readonly binding: NimiRuntimeAgentModelSettingsRouteIntent | null;
+  readonly binding: AgentCenterAIConfigRouteProjection | null;
   readonly blocksTextTurns: boolean;
   readonly editable: boolean;
   readonly summary: string;
@@ -884,7 +914,7 @@ export interface AgentCenterState {
   readonly runtimeStatus: AgentCenterRuntimeStatus;
   readonly statusTone: AgentCenterStatusTone;
   readonly baseTextReady: boolean;
-  readonly modelSettings: AgentCenterRuntimeModelSettingsProjection | null;
+  readonly aiConfig: AgentCenterRuntimeAIConfigProjection | null;
   readonly baseTextDisabledReason: string | null;
   readonly configRevision: string | null;
   readonly autonomyRevision: string | null;
@@ -919,7 +949,7 @@ export interface AgentCenterSession {
   getSnapshot(): AgentCenterSnapshot;
   subscribe(listener: () => void): () => void;
   refresh(): Promise<void>;
-  updateModelSettings(input: AgentCenterPermissionedConfigurationMutation): Promise<void>;
+  updateAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<void>;
   updateAutonomy(input: AgentCenterPermissionedAutonomyMutation): Promise<void>;
   replaceAppearance(input: AgentCenterPermissionedPresentationCommitInput): Promise<void>;
   restorePreviousAppearance(): Promise<void>;
@@ -951,12 +981,12 @@ export interface AgentCenterProps {
   readonly density?: 'compact' | 'regular';
 }
 
-export interface AgentCenterModelSettingsModule {
-  snapshot(input: RuntimeLocalAgentIdentityInput & { readonly subjectUserId?: string }): Promise<AgentCenterRuntimeModelSettingsProjection>;
+export interface AgentCenterAIConfigModule {
+  snapshot(input: RuntimeLocalAgentIdentityInput & { readonly subjectUserId?: string }): Promise<AgentCenterRuntimeAIConfigProjection>;
   update(input: RuntimeLocalAgentIdentityInput & {
     readonly subjectUserId?: string;
     readonly expectedConfigurationRevision: string;
-    readonly routeIntents: readonly NimiRuntimeAgentModelSettingsRouteIntent[];
-  }): Promise<AgentCenterRuntimeModelSettingsProjection>;
+    readonly config: NimiAIConfig;
+  }): Promise<AgentCenterRuntimeAIConfigProjection>;
 }
-export type AgentCenterModelSettingsRouteIntent = NimiRuntimeAgentModelSettingsRouteIntent;
+export type AgentCenterAIConfigRouteIntent = AgentCenterAIConfigRouteProjection;

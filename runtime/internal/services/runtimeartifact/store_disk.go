@@ -40,6 +40,15 @@ type diskArtifactRecord struct {
 	CreatedAt      time.Time                       `json:"created_at"`
 	Audience       *diskArtifactAudience           `json:"audience,omitempty"`
 	GeneratedVoice *GeneratedVoiceArtifactMetadata `json:"generated_voice,omitempty"`
+	Owner          *diskArtifactOwner              `json:"owner,omitempty"`
+}
+
+// diskArtifactOwner persists the PutArtifact uploader identity. It is absent
+// on records written before the user attachment plane existed; such records
+// load with a nil owner and keep their historical behavior.
+type diskArtifactOwner struct {
+	SubjectUserID string `json:"subject_user_id"`
+	AppID         string `json:"app_id"`
 }
 
 type diskArtifactAudience struct {
@@ -107,6 +116,7 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 		CreatedAt:      normalized.CreatedAt,
 		Audience:       diskArtifactAudienceFromRecord(normalized.Audience),
 		GeneratedVoice: normalized.GeneratedVoice,
+		Owner:          diskArtifactOwnerFromRecord(normalized.Owner),
 	}
 	metadata, err := json.MarshalIndent(diskRecord, "", "  ")
 	if err != nil {
@@ -140,6 +150,7 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 			CreatedAt:      existing.CreatedAt,
 			Audience:       diskArtifactAudienceFromRecord(merged.Audience),
 			GeneratedVoice: merged.GeneratedVoice,
+			Owner:          diskArtifactOwnerFromRecord(merged.Owner),
 		}
 		mergedMetadata, err := json.MarshalIndent(mergedDisk, "", "  ")
 		if err != nil {
@@ -192,6 +203,7 @@ func (s *DiskStore) artifactFromDiskRecordLocked(diskRecord diskArtifactRecord) 
 		CreatedAt:      diskRecord.CreatedAt,
 		Audience:       audience,
 		GeneratedVoice: diskRecord.GeneratedVoice,
+		Owner:          artifactOwnerFromDisk(diskRecord.Owner),
 	})
 	if err != nil {
 		return ArtifactRecord{}, false
@@ -407,6 +419,26 @@ func artifactAudienceFromDisk(audience *diskArtifactAudience) (*ArtifactAudience
 		ProjectRoot:             audience.ProjectRoot,
 		CapabilityFingerprint:   capabilityFingerprint,
 	}, true
+}
+
+func diskArtifactOwnerFromRecord(owner *ArtifactOwner) *diskArtifactOwner {
+	if owner == nil {
+		return nil
+	}
+	return &diskArtifactOwner{
+		SubjectUserID: owner.SubjectUserID,
+		AppID:         owner.AppID,
+	}
+}
+
+func artifactOwnerFromDisk(owner *diskArtifactOwner) *ArtifactOwner {
+	if owner == nil {
+		return nil
+	}
+	return &ArtifactOwner{
+		SubjectUserID: owner.SubjectUserID,
+		AppID:         owner.AppID,
+	}
 }
 
 func encodeOptionalArtifactIdentifier(identifier protectedlocal.Identifier) string {

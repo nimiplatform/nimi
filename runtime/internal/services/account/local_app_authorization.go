@@ -32,6 +32,8 @@ const (
 	LocalAppOperationConfigurationSnapshot LocalAppOperation = "runtime_agent.configuration.snapshot"
 	LocalAppOperationUpdateConfiguration   LocalAppOperation = "runtime_agent.configuration.update"
 	LocalAppOperationReadinessSnapshot     LocalAppOperation = "runtime_agent.readiness.snapshot"
+	LocalAppOperationAIProfilePreview      LocalAppOperation = "runtime_agent.ai_profile.preview"
+	LocalAppOperationAIProfileApply        LocalAppOperation = "runtime_agent.ai_profile.apply"
 	LocalAppOperationAutonomySnapshot      LocalAppOperation = "runtime_agent.autonomy.snapshot"
 	LocalAppOperationUpdateAutonomy        LocalAppOperation = "runtime_agent.autonomy.update"
 	LocalAppOperationPresentationSnapshot  LocalAppOperation = "runtime_agent.presentation.snapshot"
@@ -295,7 +297,8 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 		LocalAppOperationConversationSnapshot:
 		return localAppAgentPermissionID, true
 	case LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
-		LocalAppOperationReadinessSnapshot, LocalAppOperationAutonomySnapshot,
+		LocalAppOperationReadinessSnapshot, LocalAppOperationAIProfilePreview,
+		LocalAppOperationAIProfileApply, LocalAppOperationAutonomySnapshot,
 		LocalAppOperationUpdateAutonomy, LocalAppOperationPresentationSnapshot,
 		LocalAppOperationCommitPresentation:
 		return "agents.configure", true

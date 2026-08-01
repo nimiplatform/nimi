@@ -215,6 +215,10 @@ func (r publicChatRuntime) runTurn(
 			return
 		}
 		failure := runtimeErrorDetailFromError(err)
+		if failure.ReasonCode == runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED && publicChatTurnCarriesUserAttachment(req) {
+			r.failVisionUnsupportedAttachmentTurn(ctx, session, turn, req, traceID, modelResolved, routeDecision)
+			return
+		}
 		r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 			projection.Status = publicChatTurnStatusFailed
 			projection.TraceID = traceID
@@ -241,6 +245,10 @@ func (r publicChatRuntime) runTurn(
 		return
 	}
 	if failed != nil {
+		if failed.GetReasonCode() == runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED && publicChatTurnCarriesUserAttachment(req) {
+			r.failVisionUnsupportedAttachmentTurn(ctx, session, turn, req, traceID, modelResolved, routeDecision)
+			return
+		}
 		r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 			projection.Status = publicChatTurnStatusFailed
 			projection.TraceID = traceID
@@ -322,12 +330,11 @@ func (r publicChatRuntime) runTurn(
 	}
 	var commitErr error
 	if len(req.Messages) == 1 && strings.TrimSpace(req.Messages[0].Role) == "user" {
-		currentUser := &runtimev1.ChatMessage{Role: "user", Content: strings.TrimSpace(req.Messages[0].Content)}
 		commitErr = r.svc.commitPublicChatTurnTranscriptForTurnWithProjection(
 			ctx,
 			session.ConversationAnchorID,
 			turn.TurnID,
-			currentUser,
+			publicChatCurrentUserCommitMessage(req),
 			structured.Message.Text,
 			finalizeCommittedProjection,
 		)

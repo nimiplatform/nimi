@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type publicChatBindingResolverService interface {
@@ -70,12 +71,17 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 	if r == nil || r.ai == nil {
 		return PublicChatBindingResolution{}, fmt.Errorf("runtime public chat binding resolver unavailable or not admitted")
 	}
-	routeDecision, modelResolved, err := r.ai.ResolvePublicChatTextBinding(ctx, req.RouteHint, req.ModelID)
-	if err != nil {
-		return PublicChatBindingResolution{}, publicChatDiagnosticError(
-			err,
-			"runtime_agent_public_chat_route_resolution",
-		)
+	routeDecision := req.RouteHint
+	modelResolved := strings.TrimSpace(req.ModelID)
+	if req.TargetRef == nil || req.TargetRef.GetTarget() == nil {
+		var err error
+		routeDecision, modelResolved, err = r.ai.ResolvePublicChatTextBinding(ctx, req.RouteHint, req.ModelID)
+		if err != nil {
+			return PublicChatBindingResolution{}, publicChatDiagnosticError(
+				err,
+				"runtime_agent_public_chat_route_resolution",
+			)
+		}
 	}
 	contextWindow, catalogRevision, modelRevision, providerID, resolvedTargetRef, release, err := r.ai.ResolvePublicChatTextContextMetadataLease(
 		ctx,
@@ -180,11 +186,12 @@ func runtimeAgentAIConfigIntentToPublicChatBinding(intent *runtimev1.RuntimeAgen
 		return publicChatExecutionBinding{}
 	}
 	return publicChatExecutionBinding{
-		BindingAlias: runtimeAgentAIConfigIntentBindingAlias(intent),
-		ModelID:      strings.TrimSpace(intent.GetModelId()),
-		RoutePolicy:  intent.GetRoutePolicy(),
-		ConnectorID:  strings.TrimSpace(intent.GetConnectorId()),
-		TargetRef:    clonePublicChatTargetRef(intent.GetTargetRef()),
+		BindingAlias:   runtimeAgentAIConfigIntentBindingAlias(intent),
+		ModelID:        strings.TrimSpace(intent.GetModelId()),
+		RoutePolicy:    intent.GetRoutePolicy(),
+		ConnectorID:    strings.TrimSpace(intent.GetConnectorId()),
+		TargetRef:      clonePublicChatTargetRef(intent.GetTargetRef()),
+		SelectedParams: clonePublicChatSelectedParams(intent.GetSelectedParams()),
 	}
 }
 
@@ -387,6 +394,7 @@ func clonePublicChatExecutionBindings(input publicChatExecutionBindings) publicC
 			RoutePolicy:         binding.RoutePolicy,
 			ConnectorID:         strings.TrimSpace(binding.ConnectorID),
 			TargetRef:           clonePublicChatTargetRef(binding.TargetRef),
+			SelectedParams:      clonePublicChatSelectedParams(binding.SelectedParams),
 			ContextWindowTokens: binding.ContextWindowTokens,
 			CatalogRevision:     strings.TrimSpace(binding.CatalogRevision),
 			ModelRevision:       strings.TrimSpace(binding.ModelRevision),
@@ -395,6 +403,17 @@ func clonePublicChatExecutionBindings(input publicChatExecutionBindings) publicC
 		}
 	}
 	return out
+}
+
+func clonePublicChatSelectedParams(input *structpb.Struct) *structpb.Struct {
+	if input == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(input).(*structpb.Struct)
+	if !ok {
+		return nil
+	}
+	return cloned
 }
 
 // resolveRuntimeDefaultPublicChatBinding resolves the runtime-owned default

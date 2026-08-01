@@ -20,11 +20,11 @@ import type {
 } from '../src/types.js';
 
 const ACTIONS: readonly AgentCenterProductAction[] = [
-  'readModelSettings', 'updateModelSettings', 'readAutonomy', 'updateAutonomy',
+  'readAIConfig', 'updateAIConfig', 'readAutonomy', 'updateAutonomy',
   'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
   'requestPermission', 'openPermissionSettings',
 ];
-const scopeRef = createNimiAIScopeRef({ kind: 'feature', ownerId: 'runtime.agent.model-settings', surfaceId: 'agent' });
+const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'agent' });
 
 function transportProjection(reason: AgentCenterTransportActionReason | null = null): AgentCenterTransportActionProjection {
   return Object.fromEntries(ACTIONS.map((action) => [action, {
@@ -45,7 +45,17 @@ function recoveryProjection(
 
 function emptyProjection(revision = '1'): AgentCenterStateInput {
   return {
-    modelSettings: {
+    aiConfig: {
+      aiConfig: {
+        scopeRef,
+        profileOrigin: null,
+        capabilities: {
+          logicalModelIds: { 'text.generate': 'local/default' },
+          targetRefs: {},
+          selectedComponents: {},
+          selectedParams: {},
+        },
+      },
       scopeRef,
       capabilities: ['text.generate'],
       routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/default', routePolicy: 'local' }],
@@ -77,9 +87,24 @@ function permissionedSurface(overrides: Partial<AgentCenterPermissionedSdkSurfac
     async read() { return emptyProjection(); },
     async updateConfiguration(_handle, input) {
       const revision = String(BigInt(input.expectedConfigurationRevision) + 1n);
-      return { ...emptyProjection(revision), modelSettings: {
-        ...emptyProjection(revision).modelSettings!, routeIntents: input.routeIntents,
+      return { ...emptyProjection(revision), aiConfig: {
+        ...emptyProjection(revision).aiConfig!,
+        aiConfig: input.config,
       } };
+    },
+    async listAIProfiles() { return []; },
+    async previewAIProfile() {
+      return {
+        before: null, after: null, outcome: 'failed',
+        diff: { identical: true, fields: [] },
+        baseVersion: 'runtime-agent-revision:1', probeWarnings: [],
+      };
+    },
+    async applyAIProfile() {
+      return {
+        success: false, config: null, failureReason: 'not_configured',
+        outcome: 'failed', probeWarnings: [],
+      };
     },
     async updateAutonomy(_handle, input) {
       return { ...emptyProjection('2'), autonomy: {
@@ -101,18 +126,24 @@ async function flush(): Promise<void> {
 }
 
 describe('AgentCenterSession', () => {
-  it('awaits the committed dedicated model-settings projection before write-back', async () => {
+  it('awaits the committed canonical AIConfig projection before write-back', async () => {
     const calls: string[] = [];
-    let modelSettings = emptyProjection().modelSettings!;
+    let aiConfig = emptyProjection().aiConfig!;
     const session = createFirstPartyAgentCenterSession({
       identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
-      modelSettings: {
-        async snapshot() { calls.push('model.read'); return modelSettings; },
+      aiConfig: {
+        async snapshot() { calls.push('model.read'); return aiConfig; },
         async update(input) {
           calls.push(`model.write:${input.expectedConfigurationRevision}`);
           await Promise.resolve();
-          modelSettings = { ...modelSettings, configurationRevision: '2', routeIntents: input.routeIntents };
-          return modelSettings;
+          const model = input.config.capabilities.logicalModelIds['text.generate'] || '';
+          aiConfig = {
+            ...aiConfig,
+            aiConfig: input.config,
+            configurationRevision: '2',
+            routeIntents: [{ capability: 'text.generate', provider: '', model, routePolicy: 'local' }],
+          };
+          return aiConfig;
         },
       },
       autonomy: {
@@ -129,12 +160,19 @@ describe('AgentCenterSession', () => {
       },
     });
     await session.refresh();
-    await session.updateModelSettings({
+    await session.updateAIConfig({
       expectedConfigurationRevision: '1',
-      routeIntents: [{ capability: 'text.generate', provider: '', model: 'm2', routePolicy: 'local' }],
+      config: {
+        ...aiConfig.aiConfig,
+        capabilities: {
+          ...aiConfig.aiConfig.capabilities,
+          logicalModelIds: { 'text.generate': 'm2' },
+        },
+      },
     });
     expect(session.getSnapshot().state.configRevision).toBe('2');
-    expect(session.getSnapshot().state.modelSettings?.routeIntents[0]?.model).toBe('m2');
+    expect(session.getSnapshot().state.aiConfig?.routeIntents[0]?.model).toBe('m2');
+    expect(session.getSnapshot().state.aiConfig?.aiConfig.capabilities.logicalModelIds['text.generate']).toBe('m2');
     expect(calls).toContain('model.write:1');
   });
 
@@ -173,7 +211,10 @@ describe('AgentCenterSession', () => {
     });
     const unsubscribe = session.subscribe(() => undefined);
     await flush();
-    await session.updateModelSettings({ expectedConfigurationRevision: '1', routeIntents: [] });
+    await session.updateAIConfig({
+      expectedConfigurationRevision: '1',
+      config: emptyProjection().aiConfig!.aiConfig,
+    });
     expect(calls).toEqual(['model:opaque:1']);
     emit = (value) => waiters.shift()?.({ done: false, value });
     emit(emptyProjection('9007199254740993'));
@@ -242,6 +283,51 @@ describe('AgentCenterSession', () => {
     ]);
   });
 
+  it('enables cloud model picking when the bounded snapshot contains multiple providers', async () => {
+    const state = emptyProjection();
+    const session = createPermissionedAgentCenterSession({
+      handle: 'opaque' as AgentCenterOpaqueHandle,
+      surface: permissionedSurface({
+        async read() {
+          return {
+            ...state,
+            aiConfig: {
+              ...state.aiConfig!,
+              routeOptions: [
+                ...state.aiConfig!.routeOptions!,
+                {
+                  capability: 'text.generate', provider: 'openai', model: 'gpt-5-mini',
+                  routePolicy: 'cloud', label: 'GPT-5 mini', availability: 'ready',
+                },
+                {
+                  capability: 'text.generate', provider: 'dashscope', model: 'qwen-plus',
+                  routePolicy: 'cloud', label: 'Qwen Plus', availability: 'ready',
+                },
+              ],
+            },
+          };
+        },
+      }),
+    });
+    await session.refresh();
+    const provider = session.modelConfig?.providerResolver?.('text.generate') as {
+      listConnectors(): Promise<Array<{ connectorId: string; provider: string }>>;
+      listConnectorModels(connectorId: string): Promise<Array<{
+        providerModelId: string;
+        modelLabel: string;
+        available: boolean;
+      }>>;
+    } | null;
+    expect(provider).toBeTruthy();
+    await expect(provider!.listConnectors()).resolves.toEqual([
+      expect.objectContaining({ connectorId: 'openai', provider: 'openai' }),
+      expect.objectContaining({ connectorId: 'dashscope', provider: 'dashscope' }),
+    ]);
+    await expect(provider!.listConnectorModels('openai')).resolves.toEqual([
+      expect.objectContaining({ providerModelId: 'gpt-5-mini', modelLabel: 'GPT-5 mini', available: true }),
+    ]);
+  });
+
   it('recomputes granted posture live as prompt and requestable without remounting', async () => {
     let emit!: (projection: AgentCenterTransportActionProjection) => void;
     let unsubscribed = false;
@@ -276,7 +362,7 @@ describe('AgentCenterSession', () => {
     // @ts-expect-error Manager Sessions are nominal factory outputs, not structural caller state.
     const fabricated: AgentCenterSession = {
       getSnapshot() { throw new Error('fabricated'); }, subscribe() { return () => undefined; },
-      async refresh() {}, async updateModelSettings() {}, async updateAutonomy() {},
+      async refresh() {}, async updateAIConfig() {}, async updateAutonomy() {},
       async replaceAppearance() {}, async restorePreviousAppearance() {},
       async requestPermission() {}, async openPermissionSettings() {}, modelConfig: null, appearance: {},
     };

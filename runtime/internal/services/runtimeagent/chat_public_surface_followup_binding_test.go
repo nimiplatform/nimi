@@ -275,8 +275,8 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 
 	firstSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-config-revision-first")
 	firstDetail := publicChatSessionSnapshotDetail(t, firstSnapshot)
-	if got := firstDetail["config_revision"]; got != float64(1) {
-		t.Fatalf("expected first turn to stamp seeded config_revision=1, got=%v", firstDetail)
+	if got := firstDetail["config_revision"]; got != float64(2) {
+		t.Fatalf("expected first turn to stamp explicit config_revision=2, got=%v", firstDetail)
 	}
 	firstBindings := firstDetail["execution_bindings"].(map[string]any)
 	firstText := firstBindings["text.generate"].(map[string]any)
@@ -288,17 +288,19 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 	// committed truth and stamp the new revision.
 	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
 		Context:          publicChatTestAIConfigContext(t, svc),
-		ExpectedRevision: 1,
+		ExpectedRevision: 2,
 		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{
 			{
 				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
 				ModelId:     "local/qwen3-chat",
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				TargetRef:   runtimeAgentAIConfigTestLocalTarget("qwen3-chat"),
 			},
 			{
 				Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
-				ModelId:     runtimeAgentAIConfigDefaultEmbeddingModelID,
+				ModelId:     runtimeAgentAIConfigTestEmbedModel,
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-embed"),
 			},
 		},
 	}); err != nil {
@@ -330,8 +332,8 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 
 	secondSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-config-revision-second")
 	secondDetail := publicChatSessionSnapshotDetail(t, secondSnapshot)
-	if got := secondDetail["config_revision"]; got != float64(2) {
-		t.Fatalf("expected post-mutation turn to stamp config_revision=2, got=%v", secondDetail)
+	if got := secondDetail["config_revision"]; got != float64(3) {
+		t.Fatalf("expected post-mutation turn to stamp config_revision=3, got=%v", secondDetail)
 	}
 	secondBindings := secondDetail["execution_bindings"].(map[string]any)
 	secondText := secondBindings["text.generate"].(map[string]any)

@@ -95,7 +95,7 @@ func publicChatTestAudioSynthesizeBinding() *runtimev1.RuntimeAgentAIConfigInten
 		Capability:  runtimeAgentAIConfigCapabilityAudioSynthesize,
 		ModelId:     "speech/qwen3tts",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef:   publicChatTestLocalRuntimeTargetRef("local-runtime:speech/qwen3tts"),
+		TargetRef:   runtimeAgentAIConfigTestLocalTarget("speech-qwen3tts"),
 	}
 }
 
@@ -357,6 +357,7 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	svc.SetLocalAppRouteOptionInventory(runtimeAgentAIConfigTestRouteInventory())
 	svc.SetRuntimeAccountProjectionProvider(bundledAvatarTestProjectionProvider{accountID: "user-1"})
 	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-alpha"),
@@ -365,6 +366,7 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 			t.Fatalf("RealmSourceMaterialization: %v", err)
 		}
 	}
+	ensurePublicChatTestAgentAIConfig(t, svc)
 	vector := loadSourceMaterializationReferenceVectorV3(t, "world-character")
 	verified, err := verifySourceMaterializationPacketV3(
 		bytes.NewReader(vector.Packet),

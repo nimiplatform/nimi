@@ -80,7 +80,7 @@ func memoryEmbeddingTextEmbedIntentFromRuntimeAgentAIConfig(config *runtimev1.Ru
 		profileBindingID := strings.TrimSpace(local.GetProfileBindingId())
 		readinessRef := strings.TrimSpace(local.GetReadinessRef())
 		if profileBindingID == "" && readinessRef == "" {
-			profileBindingID = strings.TrimSpace(intent.GetModelId())
+			return nil
 		}
 		snapshot.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{
 			ProfileBindingID: profileBindingID,

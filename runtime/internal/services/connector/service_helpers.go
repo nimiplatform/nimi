@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
 const retiredLocalConnectorKindNumber int32 = 1
@@ -36,15 +37,20 @@ func (s *Service) internalProviderError(operation string, err error) error {
 }
 
 func subjectUserIDFromContext(ctx context.Context) (string, bool) {
+	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
+		subject := strings.TrimSpace(decision.AccountID)
+		if subject != "" {
+			return subject, true
+		}
+	}
 	identity := authn.IdentityFromContext(ctx)
-	if identity == nil {
-		return "", false
+	if identity != nil {
+		subject := strings.TrimSpace(identity.SubjectUserID)
+		if subject != "" {
+			return subject, true
+		}
 	}
-	subject := strings.TrimSpace(identity.SubjectUserID)
-	if subject == "" {
-		return "", false
-	}
-	return subject, true
+	return "", false
 }
 
 func requireSubjectUserID(ctx context.Context) (string, error) {

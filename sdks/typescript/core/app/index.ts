@@ -104,6 +104,7 @@ export type {
   NimiLocalAppClientInput,
   NimiLocalAppStandardShell,
   NimiLocalAppConversationEvent,
+  NimiLocalAppConversationAttachment,
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,
@@ -115,14 +116,16 @@ export type {
   NimiLocalAppConversationSubscription,
   NimiLocalAppAgent,
   NimiLocalAppAgentHandle,
+  NimiLocalAppArtifactBytes,
+  NimiLocalAppArtifactPutInput,
+  NimiLocalAppArtifactPutResult,
+  NimiLocalAppArtifactReadInput,
   NimiLocalAppWorldCoreListInput,
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform.js';
 export {
-  NIMI_APP_AI_PROFILE_FACTORY_CATALOG,
   NIMI_APP_AI_PROFILE_FACTORY_ROWS,
-  loadNimiAppAIProfileFactoryCatalog,
   loadNimiAppAIProfileFactoryRows,
 } from './ai-profile-factory.generated.js';
 export type { NimiAppAIProfileFactoryRow } from './ai-profile-factory.generated.js';

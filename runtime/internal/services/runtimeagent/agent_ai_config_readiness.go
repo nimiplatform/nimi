@@ -1,10 +1,12 @@
 package runtimeagent
 
 import (
+	"context"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,11 +21,15 @@ const (
 	agentAIConfigReadinessReasonConnectorMissing            = "connector_missing"
 	agentAIConfigReadinessReasonModelMissing                = "model_missing"
 	agentAIConfigReadinessReasonTargetMissing               = "target_missing"
+	agentAIConfigReadinessReasonTargetUnavailable           = "target_unavailable"
+	agentAIConfigReadinessReasonCapabilityMismatch          = "capability_mismatch"
+	agentAIConfigReadinessReasonModelTargetMismatch         = "model_target_mismatch"
 	agentAIConfigReadinessReasonProbeFailed                 = "probe_failed"
 	agentAIConfigReadinessReasonEmbeddingProfileUnavailable = "embedding_profile_unavailable"
 	agentAIConfigReadinessReasonVoiceReferenceMissing       = "voice_reference_missing"
 	agentAIConfigReadinessReasonVoiceWorkflowUnavailable    = "voice_workflow_unavailable"
 	agentAIConfigReadinessReasonImageRouteUnavailable       = "image_route_unavailable"
+	agentAIConfigReadinessReasonImageConfiguredUnverified   = "image_configured_unverified"
 )
 
 // localProviderHealthKey is the providerhealth.Tracker key the daemon marks
@@ -186,21 +192,25 @@ func (s *Service) computeRuntimeAgentAIConfigReadiness(agentInstanceID string) (
 	}
 	for _, capability := range admittedRuntimeAgentAIConfigCapabilities {
 		state, reason := s.evaluateRuntimeAgentAIConfigCapabilityReadiness(byCapability[capability])
+		capabilityProbedAt := probedAt
+		if state == runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED {
+			capabilityProbedAt = nil
+		}
 		snapshot.Capabilities = append(snapshot.Capabilities, &runtimev1.RuntimeAgentAIConfigCapabilityReadiness{
 			Capability: capability,
 			State:      state,
 			ReasonCode: reason,
-			ProbedAt:   probedAt,
+			ProbedAt:   capabilityProbedAt,
 		})
 	}
 	return snapshot, nil
 }
 
-// evaluateRuntimeAgentAIConfigCapabilityReadiness is the honest v1 probe: a
-// missing intent is NOT_CONFIGURED, a structurally incomplete intent is
-// UNAVAILABLE with a typed reason, and a structurally complete intent is READY
-// unless provider health evidence marks its route unhealthy. It never
-// fabricates success for a state it cannot evaluate.
+// evaluateRuntimeAgentAIConfigCapabilityReadiness is the honest v1 projection:
+// a missing intent is NOT_CONFIGURED, a structurally incomplete intent is
+// UNAVAILABLE with a typed reason, and an exact installed image composition is
+// CONFIGURED_UNVERIFIED until execution produces resident load evidence. It
+// never fabricates success for a state it cannot evaluate.
 func (s *Service) evaluateRuntimeAgentAIConfigCapabilityReadiness(intent *runtimev1.RuntimeAgentAIConfigIntent) (runtimev1.RuntimeAgentAIConfigReadinessState, string) {
 	if intent == nil {
 		return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED, ""
@@ -221,6 +231,66 @@ func (s *Service) evaluateRuntimeAgentAIConfigCapabilityReadiness(intent *runtim
 	tracker := s.providerHealthTracker()
 	switch intent.GetRoutePolicy() {
 	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
+		if localTarget := intent.GetTargetRef().GetLocalRuntime(); localTarget != nil {
+			s.localAppRouteOptionsMu.RLock()
+			resolver := s.localTargetResolver
+			s.localAppRouteOptionsMu.RUnlock()
+			if resolver == nil {
+				return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonTargetUnavailable
+			}
+			binding, asset, err := resolver.ResolveDurableLocalTarget(context.Background(), localTarget, capability)
+			if err != nil {
+				reason, _ := grpcerr.ExtractReasonCode(err)
+				switch reason {
+				case runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED:
+					return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonCapabilityMismatch
+				default:
+					return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonTargetUnavailable
+				}
+			}
+			if binding == nil || asset == nil ||
+				strings.TrimSpace(binding.GetResolvedModelId()) != strings.TrimSpace(intent.GetModelId()) {
+				return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonModelTargetMismatch
+			}
+			targetStatus := asset.GetDurableTargetStatus()
+			if targetStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
+				targetStatus = asset.GetStatus()
+			}
+			if targetStatus != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE &&
+				!(targetStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED &&
+					(capability == runtimeAgentAIConfigCapabilityTextGenerate ||
+						capability == runtimeAgentAIConfigCapabilityTextEmbed ||
+						capability == runtimeAgentAIConfigCapabilityImageGenerate)) {
+				return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, routeUnavailableReadinessReason(capability)
+			}
+			if capability == runtimeAgentAIConfigCapabilityImageGenerate {
+				materializer, ok := resolver.(runtimeAgentDurableLocalImageTargetMaterializer)
+				if len(intent.GetSelectedComponents()) > 0 && !ok {
+					return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonCapabilityMismatch
+				}
+				if ok {
+					components, componentErr := runtimeAgentAIConfigLocalComponentSelections(intent)
+					if componentErr != nil {
+						return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonCapabilityMismatch
+					}
+					if componentErr = materializer.ValidateDurableLocalImageTargetComponents(
+						context.Background(),
+						localTarget,
+						components,
+					); componentErr != nil {
+						reason, _ := grpcerr.ExtractReasonCode(componentErr)
+						if reason == runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+							return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonCapabilityMismatch
+						}
+						return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonTargetUnavailable
+					}
+				}
+			}
+			if capability == runtimeAgentAIConfigCapabilityImageGenerate &&
+				targetStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+				return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED, agentAIConfigReadinessReasonImageConfiguredUnverified
+			}
+		}
 		healthKey := localProviderHealthKey
 		if capability == runtimeAgentAIConfigCapabilityImageGenerate {
 			healthKey = localImageProviderHealthKey
@@ -230,6 +300,9 @@ func (s *Service) evaluateRuntimeAgentAIConfigCapabilityReadiness(intent *runtim
 		}
 		return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY, ""
 	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
+		if capability == runtimeAgentAIConfigCapabilityImageGenerate && len(intent.GetSelectedComponents()) > 0 {
+			return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, agentAIConfigReadinessReasonCapabilityMismatch
+		}
 		connectorID := firstNonEmpty(intent.GetConnectorId(), intent.GetTargetRef().GetCloud().GetConnectorId())
 		if connectorID == "" {
 			return runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE, connectorMissingReadinessReason(capability)
@@ -250,8 +323,7 @@ func (s *Service) evaluateRuntimeAgentAIConfigCapabilityReadiness(intent *runtim
 }
 
 func runtimeAgentAIConfigCapabilityRequiresTargetRef(capability string) bool {
-	return capability == runtimeAgentAIConfigCapabilityImageGenerate ||
-		capability == runtimeAgentAIConfigCapabilityAudioSynthesize
+	return isAdmittedRuntimeAgentAIConfigCapability(capability)
 }
 
 func isRuntimeAgentAIConfigVoiceWorkflowCapability(capability string) bool {
@@ -298,17 +370,11 @@ func (s *Service) currentRuntimeAgentAIConfigReadinessSnapshot(agentInstanceID s
 	if trimmedAgentInstanceID == "" {
 		return nil, status.Error(codes.InvalidArgument, "agent_instance_id is required")
 	}
-	s.agentAIConfigReadinessMu.RLock()
-	snapshot := s.agentAIConfigReadiness[trimmedAgentInstanceID]
-	s.agentAIConfigReadinessMu.RUnlock()
-	if snapshot != nil {
-		return cloneAgentAIConfigReadinessSnapshot(snapshot), nil
-	}
 	if err := s.refreshRuntimeAgentAIConfigReadiness(trimmedAgentInstanceID); err != nil {
 		return nil, err
 	}
 	s.agentAIConfigReadinessMu.RLock()
-	snapshot = s.agentAIConfigReadiness[trimmedAgentInstanceID]
+	snapshot := s.agentAIConfigReadiness[trimmedAgentInstanceID]
 	s.agentAIConfigReadinessMu.RUnlock()
 	return cloneAgentAIConfigReadinessSnapshot(snapshot), nil
 }

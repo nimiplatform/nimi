@@ -6,6 +6,7 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 
 import "google/protobuf/struct.proto";
 import "runtime/v1/common.proto";
+import "runtime/v1/runtime_target_identity.proto";
 
 // === Asset Kind & Status (unified from Model + Artifact) ===
 
@@ -141,6 +142,13 @@ message LocalAssetRecord {
   string display_name = 41;
   string source_file_name = 42;
   string import_instance_id = 43;
+
+  // Runtime-issued v2 execution identity and its target-specific readiness.
+  // The target is opaque to consumers and never derived from asset_id,
+  // local_asset_id, or logical_model_id outside Runtime.
+  RuntimeDurableLocalTargetRef durable_target_ref = 44;
+  LocalAssetStatus durable_target_status = 45;
+  ReasonCode durable_target_reason_code = 46;
 }
 
 message LocalAssetHealth {

@@ -30,6 +30,7 @@ type LocalTargetInput = {
   engine?: string;
   status?: string;
   capabilities?: readonly string[];
+  artifactRoles?: readonly string[];
 };
 
 type CloudTargetInput = {
@@ -77,6 +78,7 @@ function localTarget(input: LocalTargetInput): RouteInventoryTarget {
       localAssetId: input.localModelId,
       resolvedModelId: input.modelId || input.model || input.localModelId,
       engine: input.engine || 'llama',
+      artifactRoles: input.artifactRoles,
     },
   };
 }
@@ -190,6 +192,47 @@ describe('createSnapshotRouteDataProvider', () => {
     expect(models[0]!.status).toBe('active');
     expect(models[1]!.localModelId).toBe('local-flux');
     expect(models[1]!.status).toBe('installed');
+  });
+
+  it('excludes companion-only image artifacts from the main model picker', async () => {
+    const snapshot = makeSnapshot({
+      capability: 'image.generate',
+      targets: [
+        localTarget({
+          localModelId: 'image-main',
+          model: 'Image Main',
+          engine: 'media',
+          capabilities: ['image.generate'],
+          artifactRoles: ['diffusion_model'],
+        }),
+        localTarget({
+          localModelId: 'image-vae',
+          model: 'Image VAE',
+          engine: 'media',
+          capabilities: ['image.generate'],
+          artifactRoles: ['vae'],
+        }),
+        localTarget({
+          localModelId: 'image-qwen-encoder',
+          model: 'Qwen Encoder',
+          engine: 'media',
+          capabilities: ['image.generate'],
+          artifactRoles: ['text_encoder'],
+        }),
+        localTarget({
+          localModelId: 'image-clip',
+          model: 'CLIP-L',
+          engine: 'media',
+          capabilities: ['image.generate'],
+          artifactRoles: ['clip_l'],
+        }),
+      ],
+    });
+
+    const provider = createSnapshotRouteDataProvider(async () => snapshot);
+    const models = await provider.listLocalModels();
+
+    expect(models.map((model) => model.localModelId)).toEqual(['image-main']);
   });
 
   it('does not expose local inventory targets that lack a v2 durable target ref', async () => {

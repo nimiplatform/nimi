@@ -94,6 +94,7 @@ type Service struct {
 	verified                                []*runtimev1.LocalVerifiedAssetDescriptor
 	catalog                                 []*runtimev1.LocalCatalogModelDescriptor
 	managedImageProfiles                    map[string]managedImageProfileState
+	managedImageProfileBindings             map[string]managedImageProfileState
 	managedImageLoadCache                   map[string]managedImageLoadedState
 	managedImageLoadInflight                map[string]*managedImageLoadInflight
 	localAssetProbeInflight                 map[string]*localAssetProbeInflight
@@ -205,6 +206,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		verified:                                verified,
 		catalog:                                 make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified)),
 		managedImageProfiles:                    make(map[string]managedImageProfileState),
+		managedImageProfileBindings:             make(map[string]managedImageProfileState),
 		managedImageLoadCache:                   make(map[string]managedImageLoadedState),
 		managedImageLoadInflight:                make(map[string]*managedImageLoadInflight),
 		localAssetProbeInflight:                 make(map[string]*localAssetProbeInflight),

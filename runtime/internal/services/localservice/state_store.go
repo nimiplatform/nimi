@@ -36,6 +36,9 @@ type localStateSnapshot struct {
 type localStateAssetState struct {
 	LocalAssetID      string            `json:"localAssetId"`
 	AssetID           string            `json:"assetId"`
+	DisplayName       string            `json:"displayName,omitempty"`
+	SourceFileName    string            `json:"sourceFileName,omitempty"`
+	ImportInstanceID  string            `json:"importInstanceId,omitempty"`
 	Kind              int32             `json:"kind"`
 	Engine            string            `json:"engine"`
 	Entry             string            `json:"entry"`
@@ -120,6 +123,7 @@ type localStateTransferState struct {
 }
 
 type localStateManagedImageProfileMaterializationState struct {
+	ProfileBindingID        string                                              `json:"profileBindingId"`
 	LocalAssetID            string                                              `json:"localAssetId"`
 	MaterializationKey      string                                              `json:"materializationKey,omitempty"`
 	MaterializationResolved bool                                                `json:"materializationResolved"`
@@ -127,13 +131,20 @@ type localStateManagedImageProfileMaterializationState struct {
 }
 
 type localStateManagedImageMaterializationBindingState struct {
-	AssetID               string `json:"assetId,omitempty"`
-	LocalAssetID          string `json:"localAssetId,omitempty"`
-	CompanionKind         string `json:"companionKind,omitempty"`
-	EngineSlot            string `json:"engineSlot,omitempty"`
-	CompanionAssetID      string `json:"companionAssetId,omitempty"`
-	CompanionLocalAssetID string `json:"companionLocalAssetId,omitempty"`
-	ParentAssetID         string `json:"parentAssetId,omitempty"`
+	AssetID               string         `json:"assetId,omitempty"`
+	LocalAssetID          string         `json:"localAssetId,omitempty"`
+	OccurrenceID          string         `json:"occurrenceId,omitempty"`
+	Order                 int            `json:"order,omitempty"`
+	Role                  string         `json:"role,omitempty"`
+	LogicalModelID        string         `json:"logicalModelId,omitempty"`
+	Required              bool           `json:"required,omitempty"`
+	Weight                string         `json:"weight,omitempty"`
+	Options               map[string]any `json:"options,omitempty"`
+	CompanionKind         string         `json:"companionKind,omitempty"`
+	EngineSlot            string         `json:"engineSlot,omitempty"`
+	CompanionAssetID      string         `json:"companionAssetId,omitempty"`
+	CompanionLocalAssetID string         `json:"companionLocalAssetId,omitempty"`
+	ParentAssetID         string         `json:"parentAssetId,omitempty"`
 }
 
 func resolveLocalStatePath(configuredPath string) string {
@@ -166,13 +177,16 @@ func (s *Service) restoreState() error {
 	assetRows := make([]*runtimev1.LocalAssetRecord, 0, len(snapshot.Assets))
 	for _, item := range snapshot.Assets {
 		record := &runtimev1.LocalAssetRecord{
-			LocalAssetId: item.LocalAssetID,
-			AssetId:      item.AssetID,
-			Kind:         runtimev1.LocalAssetKind(item.Kind),
-			Engine:       item.Engine,
-			Entry:        item.Entry,
-			Files:        normalizeStringSlice(item.Files),
-			License:      item.License,
+			LocalAssetId:     item.LocalAssetID,
+			AssetId:          item.AssetID,
+			DisplayName:      item.DisplayName,
+			SourceFileName:   item.SourceFileName,
+			ImportInstanceId: item.ImportInstanceID,
+			Kind:             runtimev1.LocalAssetKind(item.Kind),
+			Engine:           item.Engine,
+			Entry:            item.Entry,
+			Files:            normalizeStringSlice(item.Files),
+			License:          item.License,
 			Source: &runtimev1.LocalAssetSource{
 				Repo:     item.SourceRepo,
 				Revision: item.SourceRev,
@@ -339,16 +353,20 @@ func (s *Service) restoreState() error {
 		s.localEnvironmentPlanDependencyContracts[key] = item
 	}
 	s.managedImageProfiles = make(map[string]managedImageProfileState, len(snapshot.ManagedImageProfileMaterializations))
+	s.managedImageProfileBindings = make(map[string]managedImageProfileState, len(snapshot.ManagedImageProfileMaterializations))
 	for _, item := range snapshot.ManagedImageProfileMaterializations {
-		localAssetID, materializationKey, bindings, ok := restoreManagedImageProfileMaterialization(item, s.assets)
+		profileBindingID, localAssetID, materializationKey, bindings, ok := restoreManagedImageProfileMaterialization(item, s.assets)
 		if !ok {
 			continue
 		}
-		s.managedImageProfiles[localAssetID] = managedImageProfileState{
+		state := managedImageProfileState{
+			BindingID:               profileBindingID,
+			MainLocalAssetID:        localAssetID,
 			Alias:                   materializationKey,
 			MaterializationResolved: true,
 			MaterializationBindings: bindings,
 		}
+		s.managedImageProfileBindings[profileBindingID] = state
 	}
 	// Crash recovery: a job persisted at a non-terminal state across a daemon
 	// restart has no background goroutine driving it. Fail every orphan closed
@@ -396,6 +414,9 @@ func (s *Service) persistStateLocked() {
 		snapshot.Assets = append(snapshot.Assets, localStateAssetState{
 			LocalAssetID:         asset.GetLocalAssetId(),
 			AssetID:              asset.GetAssetId(),
+			DisplayName:          asset.GetDisplayName(),
+			SourceFileName:       asset.GetSourceFileName(),
+			ImportInstanceID:     asset.GetImportInstanceId(),
 			Kind:                 int32(asset.GetKind()),
 			Engine:               asset.GetEngine(),
 			Entry:                asset.GetEntry(),
@@ -544,22 +565,23 @@ func (s *Service) persistStateLocked() {
 		snapshot.LocalEnvironmentPlanContracts = append(snapshot.LocalEnvironmentPlanContracts, s.localEnvironmentPlanDependencyContracts[key])
 	}
 
-	managedImageProfileIDs := make([]string, 0, len(s.managedImageProfiles))
-	for localAssetID, profile := range s.managedImageProfiles {
+	managedImageProfileIDs := make([]string, 0, len(s.managedImageProfileBindings))
+	for profileBindingID, profile := range s.managedImageProfileBindings {
 		if !profile.MaterializationResolved || len(profile.MaterializationBindings) == 0 {
 			continue
 		}
-		managedImageProfileIDs = append(managedImageProfileIDs, localAssetID)
+		managedImageProfileIDs = append(managedImageProfileIDs, profileBindingID)
 	}
 	sort.Strings(managedImageProfileIDs)
-	for _, localAssetID := range managedImageProfileIDs {
-		profile := s.managedImageProfiles[localAssetID]
+	for _, profileBindingID := range managedImageProfileIDs {
+		profile := s.managedImageProfileBindings[profileBindingID]
 		bindings := managedImageMaterializationBindingsToLocalState(profile.MaterializationBindings)
 		if len(bindings) == 0 {
 			continue
 		}
 		snapshot.ManagedImageProfileMaterializations = append(snapshot.ManagedImageProfileMaterializations, localStateManagedImageProfileMaterializationState{
-			LocalAssetID:            localAssetID,
+			ProfileBindingID:        profileBindingID,
+			LocalAssetID:            strings.TrimSpace(profile.MainLocalAssetID),
 			MaterializationKey:      strings.TrimSpace(profile.Alias),
 			MaterializationResolved: true,
 			MaterializationBindings: bindings,

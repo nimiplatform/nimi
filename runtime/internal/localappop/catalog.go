@@ -28,6 +28,8 @@ var operationSpecs = map[Operation]operationSpec{
 	OperationConfigurationSnapshot: {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
 	OperationUpdateConfiguration:   {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
 	OperationReadinessSnapshot:     {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
+	OperationAIProfilePreview:      {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
+	OperationAIProfileApply:        {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
 	OperationAutonomySnapshot:      {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
 	OperationUpdateAutonomy:        {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
 	OperationPresentationSnapshot:  {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},

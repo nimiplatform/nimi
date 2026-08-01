@@ -1,22 +1,31 @@
-use serde_json::{json, Map as JsonMap, Value as JsonValue};
+use std::collections::{BTreeMap, BTreeSet};
+
+use prost_types::{
+    value::Kind as ProtoValueKind, ListValue as ProtoListValue, Struct as ProtoStruct,
+    Value as ProtoValue,
+};
+use serde_json::{json, Map as JsonMap, Number as JsonNumber, Value as JsonValue};
 use tonic::transport::Channel;
 
 use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
 use crate::generated::{
     AgentPresentationAssetMaterial, AgentPresentationAssetRole, AgentPresentationBackendKind,
-    AgentPresentationProfile, CommitLocalAppAgentPresentationRequest,
-    GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentConfigurationSnapshotRequest,
-    GetLocalAppAgentPresentationSnapshotRequest, GetLocalAppAgentReadinessSnapshotRequest,
-    LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyMode,
-    LocalAppAgentAutonomyProjection, LocalAppAgentCapabilityReadiness,
-    LocalAppAgentModelSettingsProjection, LocalAppAgentPresentationIntent,
+    AgentPresentationProfile, ApplyLocalAppAgentAiProfileRequest,
+    CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest,
+    GetLocalAppAgentConfigurationSnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest,
+    GetLocalAppAgentReadinessSnapshotRequest, LocalAppAgentAiConfigComponentSelection,
+    LocalAppAgentAiConfigIntent, LocalAppAgentAiConfigProjection,
+    LocalAppAgentAiProfileApplyOutcome, LocalAppAgentAiProfileOrigin, LocalAppAgentAutonomyConfig,
+    LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyMode, LocalAppAgentAutonomyProjection,
+    LocalAppAgentCapabilityReadiness, LocalAppAgentPresentationIntent,
     LocalAppAgentPresentationProjection, LocalAppAgentReadinessProjection,
-    LocalAppAgentReadinessState, LocalAppAgentRouteIntent, LocalAppAgentRouteOption,
-    LocalAppAgentRouteOptionAvailability, RoutePolicy, UpdateLocalAppAgentAutonomyRequest,
+    LocalAppAgentReadinessState, LocalAppAgentRouteOption, LocalAppAgentRouteOptionAvailability,
+    PreviewLocalAppAgentAiProfileRequest, RoutePolicy, UpdateLocalAppAgentAutonomyRequest,
     UpdateLocalAppAgentConfigurationRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
+    LocalAppAgentAIProfileApplyRequest, LocalAppAgentAIProfilePreviewRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConfigurationRequest,
     LocalAppOperationError,
@@ -47,12 +56,14 @@ pub(super) async fn update_configuration(
     if request.expected_configuration_revision == 0 {
         return Err(invalid_payload());
     }
-    let route_intents = parse_route_intents(request.route_intents)?;
+    let intents = parse_ai_config_intents(request.intents)?;
+    let profile_origin = parse_profile_origin(request.profile_origin)?;
     let response = RuntimeAgentServiceClient::new(channel)
         .update_local_app_agent_configuration(UpdateLocalAppAgentConfigurationRequest {
             agent_handle: request.agent_handle,
             expected_configuration_revision: request.expected_configuration_revision,
-            route_intents,
+            intents,
+            profile_origin,
         })
         .await
         .map_err(local_app_error_from_status)?
@@ -73,6 +84,66 @@ pub(super) async fn readiness_snapshot(
         .map_err(local_app_error_from_status)?
         .into_inner();
     project_readiness(response.projection.ok_or_else(untrusted)?)
+}
+
+pub(super) async fn ai_profile_preview(
+    channel: Channel,
+    request: LocalAppAgentAIProfilePreviewRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_text(&request.agent_handle)?;
+    let profile_json = serde_json::to_vec(&request.profile).map_err(|_| invalid_payload())?;
+    let runtime_descriptor_json =
+        serde_json::to_vec(&request.runtime_descriptor).map_err(|_| invalid_payload())?;
+    let response = RuntimeAgentServiceClient::new(channel)
+        .preview_local_app_agent_ai_profile(PreviewLocalAppAgentAiProfileRequest {
+            agent_handle: request.agent_handle,
+            profile_json,
+            runtime_descriptor_json,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    Ok(json!({
+        "before": response.before.map(project_configuration).transpose()?,
+        "after": response.after.map(project_configuration).transpose()?,
+        "outcome": project_ai_profile_outcome(response.outcome)?,
+        "baseRevision": response.base_revision.to_string(),
+        "blockingCapabilities": response.blocking_capabilities,
+        "reasonCodes": response.reason_codes,
+        "actionRefs": response.action_refs,
+        "probeWarnings": response.probe_warnings,
+    }))
+}
+
+pub(super) async fn ai_profile_apply(
+    channel: Channel,
+    request: LocalAppAgentAIProfileApplyRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_text(&request.agent_handle)?;
+    if request.expected_configuration_revision == 0 {
+        return Err(invalid_payload());
+    }
+    let profile_json = serde_json::to_vec(&request.profile).map_err(|_| invalid_payload())?;
+    let runtime_descriptor_json =
+        serde_json::to_vec(&request.runtime_descriptor).map_err(|_| invalid_payload())?;
+    let response = RuntimeAgentServiceClient::new(channel)
+        .apply_local_app_agent_ai_profile(ApplyLocalAppAgentAiProfileRequest {
+            agent_handle: request.agent_handle,
+            expected_configuration_revision: request.expected_configuration_revision,
+            profile_json,
+            runtime_descriptor_json,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    Ok(json!({
+        "projection": response.projection.map(project_configuration).transpose()?,
+        "outcome": project_ai_profile_outcome(response.outcome)?,
+        "blockingCapabilities": response.blocking_capabilities,
+        "reasonCodes": response.reason_codes,
+        "actionRefs": response.action_refs,
+        "probeWarnings": response.probe_warnings,
+    }))
 }
 
 pub(super) async fn autonomy_snapshot(
@@ -147,15 +218,33 @@ pub(super) async fn commit_presentation(
 }
 
 fn project_configuration(
-    projection: LocalAppAgentModelSettingsProjection,
+    projection: LocalAppAgentAiConfigProjection,
 ) -> Result<JsonValue, LocalAppOperationError> {
     Ok(json!({
         "capabilities": projection.capabilities,
-        "routeIntents": projection.route_intents.into_iter().map(project_route_intent).collect::<Result<Vec<_>, _>>()?,
+        "intents": projection.intents.into_iter().map(project_ai_config_intent).collect::<Result<Vec<_>, _>>()?,
         "readiness": projection.readiness.into_iter().map(project_capability_readiness).collect::<Result<Vec<_>, _>>()?,
         "configurationRevision": projection.configuration_revision.to_string(),
         "routeOptions": projection.route_options.into_iter().map(project_route_option).collect::<Result<Vec<_>, _>>()?,
+        "scopeOwnerId": projection.scope_owner_id,
+        "profileOrigin": projection.profile_origin.map(project_profile_origin),
     }))
+}
+
+fn project_ai_profile_outcome(outcome: i32) -> Result<&'static str, LocalAppOperationError> {
+    match LocalAppAgentAiProfileApplyOutcome::try_from(outcome).map_err(|_| untrusted())? {
+        LocalAppAgentAiProfileApplyOutcome::ReadyToApply => Ok("ready_to_apply"),
+        LocalAppAgentAiProfileApplyOutcome::SetupRequiredNoLiveConfig => {
+            Ok("setup_required_no_live_config")
+        }
+        LocalAppAgentAiProfileApplyOutcome::UnsupportedNoLiveConfig => {
+            Ok("unsupported_no_live_config")
+        }
+        LocalAppAgentAiProfileApplyOutcome::InvalidProfile => Ok("invalid_profile"),
+        LocalAppAgentAiProfileApplyOutcome::StaleBase => Ok("stale_base"),
+        LocalAppAgentAiProfileApplyOutcome::Failed => Ok("failed"),
+        LocalAppAgentAiProfileApplyOutcome::Unspecified => Err(untrusted()),
+    }
 }
 
 fn project_readiness(
@@ -167,20 +256,62 @@ fn project_readiness(
     }))
 }
 
-fn project_route_intent(
-    intent: LocalAppAgentRouteIntent,
+fn project_ai_config_intent(
+    intent: LocalAppAgentAiConfigIntent,
 ) -> Result<JsonValue, LocalAppOperationError> {
     let route_policy = match RoutePolicy::try_from(intent.route_policy).map_err(|_| untrusted())? {
         RoutePolicy::Local => "local",
         RoutePolicy::Cloud => "cloud",
         RoutePolicy::Unspecified => return Err(untrusted()),
     };
-    Ok(json!({
+    let selected_components = intent
+        .selected_components
+        .into_iter()
+        .map(project_ai_config_component)
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut projected = json!({
         "capability": intent.capability,
         "provider": intent.provider,
-        "model": intent.model,
+        "logicalModelId": intent.logical_model_id,
         "routePolicy": route_policy,
-    }))
+        "selectedParams": intent.selected_params.map(proto_struct_to_json).transpose()?,
+    });
+    if !selected_components.is_empty() {
+        projected.as_object_mut().ok_or_else(untrusted)?.insert(
+            "selectedComponents".to_string(),
+            JsonValue::Array(selected_components),
+        );
+    }
+    Ok(projected)
+}
+
+fn project_ai_config_component(
+    component: LocalAppAgentAiConfigComponentSelection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let mut projected = json!({
+        "occurrenceId": component.occurrence_id,
+        "order": component.order,
+        "role": component.role,
+        "componentKind": component.component_kind,
+        "logicalModelId": component.logical_model_id,
+        "required": component.required,
+    });
+    let object = projected.as_object_mut().ok_or_else(untrusted)?;
+    if !component.weight.is_empty() {
+        object.insert("weight".to_string(), JsonValue::String(component.weight));
+    }
+    if let Some(options) = component.options {
+        object.insert("options".to_string(), proto_struct_to_json(options)?);
+    }
+    Ok(projected)
+}
+
+fn project_profile_origin(origin: LocalAppAgentAiProfileOrigin) -> JsonValue {
+    json!({
+        "profileId": origin.profile_id,
+        "title": origin.title,
+        "appliedAt": origin.applied_at.map(project_timestamp),
+    })
 }
 
 fn project_route_option(
@@ -201,7 +332,7 @@ fn project_route_option(
     Ok(json!({
         "capability": option.capability,
         "provider": option.provider,
-        "model": option.model,
+        "logicalModelId": option.logical_model_id,
         "routePolicy": route_policy,
         "label": option.label,
         "availability": availability,
@@ -217,6 +348,7 @@ fn project_capability_readiness(
             LocalAppAgentReadinessState::Blocked => "blocked",
             LocalAppAgentReadinessState::Unavailable => "unavailable",
             LocalAppAgentReadinessState::Failed => "failed",
+            LocalAppAgentReadinessState::ConfiguredUnverified => "configured_unverified",
             LocalAppAgentReadinessState::Unspecified => return Err(untrusted()),
         };
     Ok(json!({
@@ -309,9 +441,67 @@ fn project_duration(value: prost_types::Duration) -> JsonValue {
     json!({"seconds": value.seconds.to_string(), "nanos": value.nanos})
 }
 
-fn parse_route_intents(
+fn proto_struct_to_json(value: ProtoStruct) -> Result<JsonValue, LocalAppOperationError> {
+    let mut fields = JsonMap::new();
+    for (key, value) in value.fields {
+        fields.insert(key, proto_value_to_json(value)?);
+    }
+    Ok(JsonValue::Object(fields))
+}
+
+fn proto_value_to_json(value: ProtoValue) -> Result<JsonValue, LocalAppOperationError> {
+    Ok(match value.kind.ok_or_else(untrusted)? {
+        ProtoValueKind::NullValue(_) => JsonValue::Null,
+        ProtoValueKind::NumberValue(value) => JsonNumber::from_f64(value)
+            .map(JsonValue::Number)
+            .ok_or_else(untrusted)?,
+        ProtoValueKind::StringValue(value) => JsonValue::String(value),
+        ProtoValueKind::BoolValue(value) => JsonValue::Bool(value),
+        ProtoValueKind::StructValue(value) => proto_struct_to_json(value)?,
+        ProtoValueKind::ListValue(value) => JsonValue::Array(
+            value
+                .values
+                .into_iter()
+                .map(proto_value_to_json)
+                .collect::<Result<_, _>>()?,
+        ),
+    })
+}
+
+fn json_to_proto_struct(value: &JsonValue) -> Result<ProtoStruct, LocalAppOperationError> {
+    let object = value.as_object().ok_or_else(invalid_payload)?;
+    let fields = object
+        .iter()
+        .map(|(key, value)| Ok((key.clone(), json_to_proto_value(value)?)))
+        .collect::<Result<BTreeMap<_, _>, LocalAppOperationError>>()?;
+    Ok(ProtoStruct { fields })
+}
+
+fn json_to_proto_value(value: &JsonValue) -> Result<ProtoValue, LocalAppOperationError> {
+    let kind = match value {
+        JsonValue::Null => ProtoValueKind::NullValue(0),
+        JsonValue::Bool(value) => ProtoValueKind::BoolValue(*value),
+        JsonValue::Number(value) => ProtoValueKind::NumberValue(
+            value
+                .as_f64()
+                .filter(|value| value.is_finite())
+                .ok_or_else(invalid_payload)?,
+        ),
+        JsonValue::String(value) => ProtoValueKind::StringValue(value.clone()),
+        JsonValue::Array(values) => ProtoValueKind::ListValue(ProtoListValue {
+            values: values
+                .iter()
+                .map(json_to_proto_value)
+                .collect::<Result<_, _>>()?,
+        }),
+        JsonValue::Object(_) => ProtoValueKind::StructValue(json_to_proto_struct(value)?),
+    };
+    Ok(ProtoValue { kind: Some(kind) })
+}
+
+fn parse_ai_config_intents(
     value: JsonValue,
-) -> Result<Vec<LocalAppAgentRouteIntent>, LocalAppOperationError> {
+) -> Result<Vec<LocalAppAgentAiConfigIntent>, LocalAppOperationError> {
     let values = value.as_array().ok_or_else(invalid_payload)?;
     if values.is_empty() {
         return Err(invalid_payload());
@@ -319,20 +509,121 @@ fn parse_route_intents(
     values
         .iter()
         .map(|value| {
-            let object = exact_object(value, &["capability", "provider", "model", "routePolicy"])?;
+            let object = allowed_object(
+                value,
+                &[
+                    "capability",
+                    "provider",
+                    "logicalModelId",
+                    "routePolicy",
+                    "selectedComponents",
+                    "selectedParams",
+                ],
+            )?;
             let route_policy = match text(object, "routePolicy")? {
                 "local" => RoutePolicy::Local,
                 "cloud" => RoutePolicy::Cloud,
                 _ => return Err(invalid_payload()),
             };
-            Ok(LocalAppAgentRouteIntent {
+            let selected_params = match object.get("selectedParams") {
+                Some(JsonValue::Object(_)) => Some(json_to_proto_struct(
+                    object.get("selectedParams").expect("present"),
+                )?),
+                Some(JsonValue::Null) | None => None,
+                _ => return Err(invalid_payload()),
+            };
+            let selected_components = match object.get("selectedComponents") {
+                None => Vec::new(),
+                Some(JsonValue::Array(values)) => parse_ai_config_components(values)?,
+                _ => return Err(invalid_payload()),
+            };
+            Ok(LocalAppAgentAiConfigIntent {
                 capability: text(object, "capability")?.to_string(),
                 provider: optional_text(object, "provider")?.to_string(),
-                model: text(object, "model")?.to_string(),
+                logical_model_id: text(object, "logicalModelId")?.to_string(),
                 route_policy: route_policy as i32,
+                selected_params,
+                selected_components,
             })
         })
         .collect()
+}
+
+fn parse_ai_config_components(
+    values: &[JsonValue],
+) -> Result<Vec<LocalAppAgentAiConfigComponentSelection>, LocalAppOperationError> {
+    let mut occurrence_ids = BTreeSet::new();
+    let mut orders = BTreeSet::new();
+    let mut prior_order = None;
+    values
+        .iter()
+        .map(|value| {
+            let object = allowed_object(
+                value,
+                &[
+                    "occurrenceId",
+                    "order",
+                    "role",
+                    "componentKind",
+                    "logicalModelId",
+                    "required",
+                    "weight",
+                    "options",
+                ],
+            )?;
+            let occurrence_id = text(object, "occurrenceId")?.to_string();
+            let order = u32::try_from(integer(object, "order")?).map_err(|_| invalid_payload())?;
+            if !occurrence_ids.insert(occurrence_id.clone())
+                || !orders.insert(order)
+                || prior_order.is_some_and(|prior| order <= prior)
+            {
+                return Err(invalid_payload());
+            }
+            prior_order = Some(order);
+            let required = object
+                .get("required")
+                .and_then(JsonValue::as_bool)
+                .ok_or_else(invalid_payload)?;
+            let weight = match object.get("weight") {
+                None => String::new(),
+                Some(JsonValue::String(value)) if value.trim() == value && value.len() <= 512 => {
+                    value.clone()
+                }
+                _ => return Err(invalid_payload()),
+            };
+            let options = match object.get("options") {
+                None => None,
+                Some(JsonValue::Object(_)) => Some(json_to_proto_struct(
+                    object.get("options").expect("present"),
+                )?),
+                _ => return Err(invalid_payload()),
+            };
+            Ok(LocalAppAgentAiConfigComponentSelection {
+                occurrence_id,
+                order,
+                role: text(object, "role")?.to_string(),
+                component_kind: text(object, "componentKind")?.to_string(),
+                logical_model_id: text(object, "logicalModelId")?.to_string(),
+                required,
+                weight,
+                options,
+            })
+        })
+        .collect()
+}
+
+fn parse_profile_origin(
+    value: JsonValue,
+) -> Result<Option<LocalAppAgentAiProfileOrigin>, LocalAppOperationError> {
+    if value.is_null() {
+        return Ok(None);
+    }
+    let object = exact_object(&value, &["profileId", "title", "appliedAt"])?;
+    Ok(Some(LocalAppAgentAiProfileOrigin {
+        profile_id: text(object, "profileId")?.to_string(),
+        title: text(object, "title")?.to_string(),
+        applied_at: optional_timestamp(object.get("appliedAt"))?,
+    }))
 }
 
 fn parse_autonomy_intent(
@@ -589,39 +880,99 @@ mod tests {
 
     #[test]
     fn configuration_projects_only_the_bounded_route_option_shape() {
-        let projected = project_configuration(LocalAppAgentModelSettingsProjection {
+        let projected = project_configuration(LocalAppAgentAiConfigProjection {
             capabilities: vec!["text.generate".to_string()],
-            route_intents: vec![LocalAppAgentRouteIntent {
+            intents: vec![LocalAppAgentAiConfigIntent {
                 capability: "text.generate".to_string(),
                 provider: String::new(),
-                model: "local/default".to_string(),
+                logical_model_id: "local/default".to_string(),
                 route_policy: RoutePolicy::Local as i32,
+                selected_params: None,
+                selected_components: vec![LocalAppAgentAiConfigComponentSelection {
+                    occurrence_id: "text-encoder".to_string(),
+                    order: 0,
+                    role: "encoder".to_string(),
+                    component_kind: "text_encoder".to_string(),
+                    logical_model_id: "local/text-encoder".to_string(),
+                    required: true,
+                    weight: String::new(),
+                    options: None,
+                }],
             }],
             readiness: Vec::new(),
             configuration_revision: 1,
             route_options: vec![LocalAppAgentRouteOption {
                 capability: "text.generate".to_string(),
                 provider: String::new(),
-                model: "local.chat.gemma-test".to_string(),
+                logical_model_id: "local.chat.gemma-test".to_string(),
                 route_policy: RoutePolicy::Local as i32,
                 label: "Gemma Test".to_string(),
                 availability: LocalAppAgentRouteOptionAvailability::Ready as i32,
             }],
+            scope_owner_id: "local-agent:test".to_string(),
+            profile_origin: None,
         })
         .expect("configuration projection");
         assert_eq!(
             projected.as_object().map(|record| record.len()),
-            Some(5),
+            Some(7),
             "configuration keeps the exact public SDK shape",
         );
+        let component = &projected["intents"][0]["selectedComponents"][0];
+        assert_eq!(component["occurrenceId"], "text-encoder");
+        assert_eq!(component["logicalModelId"], "local/text-encoder");
+        assert!(component.get("targetRef").is_none());
         let option = &projected["routeOptions"][0];
-        assert_eq!(option["model"], "local.chat.gemma-test");
+        assert_eq!(option["logicalModelId"], "local.chat.gemma-test");
         assert_eq!(option["availability"], "ready");
         assert_eq!(
             option.as_object().map(|record| record.len()),
             Some(6),
             "route option omits private inventory material",
         );
+    }
+
+    #[test]
+    fn configuration_component_input_accepts_only_the_public_shape() {
+        let public = serde_json::json!([{
+            "capability": "text.generate",
+            "provider": "",
+            "logicalModelId": "local/default",
+            "routePolicy": "local",
+            "selectedComponents": [{
+                "occurrenceId": "text-encoder",
+                "order": 0,
+                "role": "encoder",
+                "componentKind": "text_encoder",
+                "logicalModelId": "local/text-encoder",
+                "required": true
+            }],
+            "selectedParams": null
+        }]);
+        let parsed = parse_ai_config_intents(public).expect("public component input");
+        assert_eq!(parsed[0].selected_components.len(), 1);
+        assert_eq!(
+            parsed[0].selected_components[0].occurrence_id,
+            "text-encoder"
+        );
+
+        let private = serde_json::json!([{
+            "capability": "text.generate",
+            "provider": "",
+            "logicalModelId": "local/default",
+            "routePolicy": "local",
+            "selectedComponents": [{
+                "occurrenceId": "text-encoder",
+                "order": 0,
+                "role": "encoder",
+                "componentKind": "text_encoder",
+                "logicalModelId": "local/text-encoder",
+                "required": true,
+                "localAssetId": "private"
+            }],
+            "selectedParams": null
+        }]);
+        assert!(parse_ai_config_intents(private).is_err());
     }
 
     #[test]

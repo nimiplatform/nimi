@@ -2,6 +2,7 @@ import type {
   ListLocalAssetsRequest,
   ListLocalAssetsResponse,
   LocalAssetRecord,
+  RuntimeDurableLocalTargetRef,
   RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError } from '../types';
@@ -14,20 +15,41 @@ import {
   type NimiRuntimeLocalAssetStatusId,
 } from './local-asset-vocabulary';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
+import { normalizeNimiRuntimeReasonCode } from './reason-messages';
 
 export const NIMI_RUNTIME_LOCAL_ASSET_ENTRY_DEFAULT_PAGE_SIZE = 200;
 
 export interface NimiRuntimeLocalAssetEntry {
   readonly localAssetId: string;
   readonly assetId: string;
+  readonly logicalModelId?: string;
+  readonly displayName?: string;
+  readonly sourceFileName?: string;
   readonly kind: NimiRuntimeLocalAssetKindId;
   readonly engine: string;
   readonly status: NimiRuntimeLocalAssetStatusId;
   readonly family?: string;
   readonly modelFamily?: string;
   readonly artifactRoles?: readonly string[];
+  readonly durableTargetRef?: NimiRuntimeLocalAssetTargetRef;
+  readonly durableTargetStatus?: NimiRuntimeLocalAssetStatusId;
+  readonly durableTargetReasonCode?: string;
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
+
+export type NimiRuntimeLocalAssetTargetRef =
+  | {
+    readonly kind: 'local-runtime';
+    readonly version: 'v2';
+    readonly profileBindingId: string;
+    readonly readinessRef?: never;
+  }
+  | {
+    readonly kind: 'local-runtime';
+    readonly version: 'v2';
+    readonly profileBindingId?: never;
+    readonly readinessRef: string;
+  };
 
 export interface NimiRuntimeLocalAssetListClient {
   readonly local: {
@@ -71,16 +93,29 @@ export function projectNimiRuntimeLocalAssetEntry(
     );
   }
   const family = normalizeText(input.family);
-  const artifactRoles = textListOrUndefined(input.artifactRoles);
   const metadata = nonEmptyRecord(fromNimiRuntimeProtoStruct(input.metadata));
+  const logicalModelId = normalizeText(input.logicalModelId)
+    || normalizeText(metadata?.effectivePublicComponentIdentity);
+  const displayName = normalizeText(input.displayName);
+  const sourceFileName = normalizeText(input.sourceFileName);
+  const artifactRoles = textListOrUndefined(input.artifactRoles);
+  const durableTargetRef = projectLocalAssetTargetRef(input.durableTargetRef);
+  const durableTargetStatus = parseNimiRuntimeLocalAssetStatusId(input.durableTargetStatus);
+  const durableTargetReasonCode = normalizeNimiRuntimeReasonCode(input.durableTargetReasonCode);
   return {
     localAssetId,
     assetId: normalizeText(input.assetId),
+    ...(logicalModelId ? { logicalModelId } : {}),
+    ...(displayName ? { displayName } : {}),
+    ...(sourceFileName ? { sourceFileName } : {}),
     kind,
     engine: normalizeText(input.engine),
     status,
     ...(family ? { family, modelFamily: family } : {}),
     ...(artifactRoles ? { artifactRoles } : {}),
+    ...(durableTargetRef ? { durableTargetRef } : {}),
+    ...(durableTargetStatus ? { durableTargetStatus } : {}),
+    ...(durableTargetReasonCode ? { durableTargetReasonCode } : {}),
     ...(metadata ? { metadata } : {}),
   };
 }
@@ -129,6 +164,25 @@ function textListOrUndefined(value: unknown): readonly string[] | undefined {
     .map((item) => normalizeText(item))
     .filter(Boolean);
   return out.length > 0 ? out : undefined;
+}
+
+function projectLocalAssetTargetRef(
+  input: RuntimeDurableLocalTargetRef | undefined,
+): NimiRuntimeLocalAssetTargetRef | undefined {
+  if (!input || normalizeText(input.version) !== 'v2') return undefined;
+  if (input.ref.oneofKind === 'profileBindingId') {
+    const profileBindingId = normalizeText(input.ref.profileBindingId);
+    return profileBindingId
+      ? { kind: 'local-runtime', version: 'v2', profileBindingId }
+      : undefined;
+  }
+  if (input.ref.oneofKind === 'readinessRef') {
+    const readinessRef = normalizeText(input.ref.readinessRef);
+    return readinessRef
+      ? { kind: 'local-runtime', version: 'v2', readinessRef }
+      : undefined;
+  }
+  return undefined;
 }
 
 function localAssetProjectionError(message: string, actionHint: string): Error {

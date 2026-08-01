@@ -17,18 +17,41 @@ const readiness = {
 };
 const configuration = {
   capabilities: ['text.generate'],
-  routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }],
+  intents: [{
+    capability: 'text.generate',
+    provider: '',
+    logicalModelId: 'local/model',
+    routePolicy: 'local',
+    selectedParams: { temperature: 0.7 },
+  }],
   readiness: [readiness],
   configurationRevision: '3',
   routeOptions: [{
     capability: 'text.generate',
     provider: '',
-    model: 'local/model',
+    logicalModelId: 'local/model',
     routePolicy: 'local',
     label: 'Local model',
     availability: 'ready',
   }],
+  scopeOwnerId: 'runtime-local-agent-opaque',
+  profileOrigin: null,
 };
+const publicAIConfig = {
+  scopeRef: { kind: 'local-agent' as const, ownerId: 'runtime-local-agent-opaque' },
+  capabilities: {
+    logicalModelIds: { 'text.generate': 'local/model' },
+    targetRefs: {},
+    selectedComponents: {},
+    selectedParams: { 'text.generate': { temperature: 0.7 } },
+  },
+  profileOrigin: null,
+};
+const publicRoutes = [{
+  capability: 'text.generate',
+  provider: '',
+  routePolicy: 'local' as const,
+}];
 const autonomy = {
   enabled: true,
   config: {
@@ -50,6 +73,57 @@ const presentation = {
   defaultVoiceReference: '',
   presentationRevision: '5',
 };
+const aiProfile = {
+  profileId: 'cloud-profile',
+  title: 'Cloud Profile',
+  capabilities: {
+    'text.generate': {
+      logicalModelId: 'model-1',
+      targetRef: {
+        kind: 'cloud-connector' as const,
+        connectorId: 'connector-1',
+        remoteModelCatalogId: 'remote-catalog-1',
+        provider: 'openai-compatible',
+        providerModelId: 'model-1',
+      },
+      params: { temperature: 0.2 },
+      runtimeDescriptor: {
+        executionMode: 'cloud_connector' as const,
+        providerCapability: 'text.generate',
+        credentialPolicy: 'managed',
+      },
+    },
+  },
+};
+const aiProfileRequirements = [{
+  requirementId: 'req-cloud',
+  scopeRef: publicAIConfig.scopeRef,
+  setupProjectionPolicy: 'fail-closed' as const,
+  requiredSlices: [{
+    requirementSliceId: 'slice-cloud',
+    capability: 'text.generate',
+    profileSliceRef: 'text-cloud',
+    readinessPolicy: 'required' as const,
+  }],
+}];
+const appliedConfiguration = {
+  ...configuration,
+  intents: [{
+    capability: 'text.generate',
+    provider: 'openai-compatible',
+    logicalModelId: 'model-1',
+    routePolicy: 'cloud',
+    selectedParams: { temperature: 0.2 },
+  }],
+  configurationRevision: '4',
+  readiness: [],
+  routeOptions: [],
+  profileOrigin: {
+    profileId: 'cloud-profile',
+    title: 'Cloud Profile',
+    appliedAt: { seconds: '20', nanos: 0 },
+  },
+};
 
 function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
   return {
@@ -58,6 +132,30 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
     readinessSnapshot: async (input) => {
       calls.push(['readinessSnapshot', input]);
       return { capabilities: [readiness], configurationRevision: '3' };
+    },
+    aiProfilePreview: async (input) => {
+      calls.push(['aiProfilePreview', input]);
+      return {
+        before: configuration,
+        after: appliedConfiguration,
+        outcome: 'ready_to_apply',
+        baseRevision: '3',
+        blockingCapabilities: [],
+        reasonCodes: [],
+        actionRefs: [],
+        probeWarnings: [],
+      };
+    },
+    aiProfileApply: async (input) => {
+      calls.push(['aiProfileApply', input]);
+      return {
+        projection: appliedConfiguration,
+        outcome: 'ready_to_apply',
+        blockingCapabilities: [],
+        reasonCodes: [],
+        actionRefs: [],
+        probeWarnings: [],
+      };
     },
     autonomySnapshot: async (input) => { calls.push(['autonomySnapshot', input]); return autonomy; },
     updateAutonomy: async (input) => { calls.push(['updateAutonomy', input]); return autonomy; },
@@ -77,13 +175,15 @@ const presentationIntent = {
   backgroundAssetRef: '',
 };
 
-test('agents.configure exposes exactly seven opaque-handle-only typed operations', async () => {
+test('agents.configure exposes exactly nine opaque-handle-only typed operations', async () => {
   const calls: unknown[] = [];
   const client = createNimiLocalAppAgentConfigureClient(shell(calls));
   assert.deepEqual(Object.keys(client), [
     'configurationSnapshot',
     'updateConfiguration',
     'readinessSnapshot',
+    'previewAIProfile',
+    'applyAIProfile',
     'autonomySnapshot',
     'updateAutonomy',
     'presentationSnapshot',
@@ -91,13 +191,33 @@ test('agents.configure exposes exactly seven opaque-handle-only typed operations
   ]);
   const snapshot = await client.configurationSnapshot({ agentHandle: handle });
   assert.equal(snapshot.configurationRevision, '3');
+  assert.deepEqual(snapshot.aiConfig, publicAIConfig);
   assert.deepEqual(snapshot.routeOptions, configuration.routeOptions);
   assert.equal((await client.updateConfiguration({
     agentHandle: handle,
     expectedConfigurationRevision: '2',
-    routeIntents: configuration.routeIntents,
+    config: publicAIConfig,
+    routes: publicRoutes,
   })).outcome, 'updated');
   assert.equal((await client.readinessSnapshot({ agentHandle: handle })).capabilities[0]?.state, 'ready');
+  const preview = await client.previewAIProfile({
+    agentHandle: handle,
+    scopeRef: publicAIConfig.scopeRef,
+    profile: aiProfile,
+    requirementDeclarations: aiProfileRequirements,
+  });
+  assert.equal(preview.outcome, 'ready_to_apply');
+  assert.equal(preview.baseVersion, 'runtime-agent-revision:3');
+  assert.deepEqual(preview.after?.capabilities.targetRefs, {});
+  const apply = await client.applyAIProfile({
+    agentHandle: handle,
+    scopeRef: publicAIConfig.scopeRef,
+    profile: aiProfile,
+    requirementDeclarations: aiProfileRequirements,
+    expectedBaseVersion: preview.baseVersion,
+  });
+  assert.equal(apply.success, true);
+  assert.deepEqual(apply.config?.capabilities.targetRefs, {});
   assert.equal((await client.autonomySnapshot({ agentHandle: handle })).autonomyRevision, '4');
   assert.equal((await client.updateAutonomy({
     agentHandle: handle,
@@ -112,12 +232,92 @@ test('agents.configure exposes exactly seven opaque-handle-only typed operations
     importedAssets: [],
   })).outcome, 'committed');
 
-  assert.equal(calls.length, 7);
+  assert.equal(calls.length, 11);
   const serialized = JSON.stringify(calls);
   for (const forbidden of ['ownerUserId', 'runtimeSourceRef', 'localAgentRef', 'subjectUserId', 'accountId', 'sessionId']) {
     assert.equal(serialized.includes(forbidden), false, forbidden);
   }
   assert.equal(calls.every((entry) => JSON.stringify(entry).includes('lah_runtime_opaque')), true);
+});
+
+test('agents.configure preserves configured-unverified image readiness', async () => {
+  const calls: unknown[] = [];
+  const base = shell(calls);
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    readinessSnapshot: async () => ({
+      capabilities: [{
+        capability: 'image.generate',
+        state: 'configured_unverified',
+        reason: 'image_configured_unverified',
+        observedAt: null,
+      }],
+      configurationRevision: '3',
+    }),
+  });
+
+  assert.deepEqual((await client.readinessSnapshot({ agentHandle: handle })).capabilities[0], {
+    capability: 'image.generate',
+    state: 'configured_unverified',
+    reason: 'image_configured_unverified',
+  });
+});
+
+test('configuration selectedComponents accepts absent, empty, and public projections but rejects private fields', async () => {
+  const component = {
+    occurrenceId: 'text-encoder',
+    order: 0,
+    role: 'encoder',
+    componentKind: 'text_encoder',
+    logicalModelId: 'local/text-encoder',
+    required: true,
+  };
+  const intent = configuration.intents[0]!;
+  for (const [selectedComponents, expected] of [
+    [undefined, {}],
+    [[], {}],
+    [[component], { 'text.generate': [component] }],
+  ] as const) {
+    const transport = shell([]);
+    transport.configurationSnapshot = async () => ({
+      ...configuration,
+      intents: [{
+        ...intent,
+        ...(selectedComponents === undefined ? {} : { selectedComponents }),
+      }],
+    });
+    const snapshot = await createNimiLocalAppAgentConfigureClient(transport)
+      .configurationSnapshot({ agentHandle: handle });
+    assert.deepEqual(snapshot.aiConfig.capabilities.selectedComponents, expected);
+  }
+
+  const privateCarrier = shell([]);
+  privateCarrier.configurationSnapshot = async () => ({
+    ...configuration,
+    intents: [{
+      ...intent,
+      selectedComponents: [{ ...component, localAssetId: 'private-asset' }],
+    }],
+  });
+  await assert.rejects(
+    () => createNimiLocalAppAgentConfigureClient(privateCarrier)
+      .configurationSnapshot({ agentHandle: handle }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+
+  const privateParamsCarrier = shell([]);
+  privateParamsCarrier.configurationSnapshot = async () => ({
+    ...configuration,
+    intents: [{
+      ...intent,
+      selectedParams: { steps: 25, localAssetId: 'private-asset' },
+    }],
+  });
+  await assert.rejects(
+    () => createNimiLocalAppAgentConfigureClient(privateParamsCarrier)
+      .configurationSnapshot({ agentHandle: handle }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
 });
 
 test('missing configure carrier is a typed carrier-unavailable construction error', () => {
@@ -127,7 +327,7 @@ test('missing configure carrier is a typed carrier-unavailable construction erro
   );
 });
 
-test('all seven operations preserve reserved denial and permission id from the real carrier', async () => {
+test('all nine operations preserve reserved denial and permission id from the real carrier', async () => {
   const transport = shell([]);
   const reserved = async (): Promise<never> => {
     throw {
@@ -141,8 +341,25 @@ test('all seven operations preserve reserved denial and permission id from the r
   const client = createNimiLocalAppAgentConfigureClient(transport);
   const operations = [
     () => client.configurationSnapshot({ agentHandle: handle }),
-    () => client.updateConfiguration({ agentHandle: handle, expectedConfigurationRevision: '1', routeIntents: configuration.routeIntents }),
+    () => client.updateConfiguration({
+      agentHandle: handle,
+      expectedConfigurationRevision: '1',
+      config: publicAIConfig,
+      routes: publicRoutes,
+    }),
     () => client.readinessSnapshot({ agentHandle: handle }),
+    () => client.previewAIProfile({
+      agentHandle: handle,
+      scopeRef: publicAIConfig.scopeRef,
+      profile: aiProfile,
+      requirementDeclarations: aiProfileRequirements,
+    }),
+    () => client.applyAIProfile({
+      agentHandle: handle,
+      scopeRef: publicAIConfig.scopeRef,
+      profile: aiProfile,
+      requirementDeclarations: aiProfileRequirements,
+    }),
     () => client.autonomySnapshot({ agentHandle: handle }),
     () => client.updateAutonomy({ agentHandle: handle, expectedAutonomyRevision: '1', intent: { enabled: false } }),
     () => client.presentationSnapshot({ agentHandle: handle }),
@@ -225,7 +442,8 @@ test('local-app update-configuration awaits the committed carrier projection', a
   const pending = client.updateConfiguration({
     agentHandle: handle,
     expectedConfigurationRevision: '2',
-    routeIntents: configuration.routeIntents,
+    config: publicAIConfig,
+    routes: publicRoutes,
   }).finally(() => { settled = true; });
   await Promise.resolve();
   assert.equal(settled, false);
@@ -246,7 +464,8 @@ test('configuration and autonomy stale revisions return typed conflicts', async 
   const configResult = await client.updateConfiguration({
     agentHandle: handle,
     expectedConfigurationRevision: '2',
-    routeIntents: configuration.routeIntents,
+    config: publicAIConfig,
+    routes: publicRoutes,
   });
   assert.equal(configResult.outcome, 'conflict');
   if (configResult.outcome === 'conflict') {
@@ -301,6 +520,23 @@ test('configure input rejects raw identity fields before transport', async () =>
   await assert.rejects(
     () => client.configurationSnapshot({ agentHandle: handle, localAgentRef: 'raw' } as never),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  assert.equal(calls, 0);
+
+  await assert.rejects(
+    () => client.updateConfiguration({
+      agentHandle: handle,
+      expectedConfigurationRevision: '3',
+      config: {
+        ...publicAIConfig,
+        capabilities: {
+          ...publicAIConfig.capabilities,
+          selectedParams: { 'text.generate': { localAssetId: 'private-asset' } },
+        },
+      },
+      routes: publicRoutes,
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
   );
   assert.equal(calls, 0);
 });

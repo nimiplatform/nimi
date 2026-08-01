@@ -14,22 +14,45 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
-func (s *Service) normalizeScenarioRuntimeTargetRef(ctx context.Context, head *runtimev1.ScenarioRequestHead) (*connector.RemoteModelCatalogBinding, error) {
+func (s *Service) normalizeScenarioRuntimeTargetRef(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	capability string,
+) (
+	*connector.RemoteModelCatalogBinding,
+	*runtimev1.RuntimeResolvedLocalExecutionBinding,
+	*runtimev1.LocalAssetRecord,
+	error,
+) {
 	if head == nil || head.GetTargetRef() == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
+		return nil, nil, nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "provide_runtime_target_ref",
 		})
 	}
 	if err := runtimeidentity.ValidateDurableTargetRef(head.GetTargetRef()); err != nil {
-		return nil, invalidScenarioDurableTargetRef(head.GetTargetRef())
+		return nil, nil, nil, invalidScenarioDurableTargetRef(head.GetTargetRef())
 	}
 	switch target := head.GetTargetRef().GetTarget().(type) {
 	case *runtimev1.RuntimeDurableTargetRef_Cloud:
-		return s.normalizeScenarioCloudTargetRef(ctx, head, target.Cloud)
+		binding, err := s.normalizeScenarioCloudTargetRef(ctx, head, target.Cloud)
+		return binding, nil, nil, err
 	case *runtimev1.RuntimeDurableTargetRef_LocalRuntime:
-		return nil, nil
+		if head.GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || s == nil || s.localTarget == nil {
+			return nil, nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		}
+		binding, asset, err := s.localTarget.ResolveDurableLocalTarget(ctx, target.LocalRuntime, capability)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if strings.TrimSpace(head.GetModelId()) != strings.TrimSpace(binding.GetResolvedModelId()) {
+			return nil, nil, nil, grpcerr.WithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH,
+			)
+		}
+		return nil, binding, asset, nil
 	default:
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 }
 

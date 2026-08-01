@@ -749,6 +749,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	connSvc.SetCloudProvider(aiSvc.CloudProvider())
 	connSvc.SetLocalModelLister(localSvc)
 	connSvc.SetModelCatalogResolver(aiSvc.SpeechCatalogResolver())
+	agentSvc.SetLocalAppCloudRouteOptionInventory(connSvc)
 	runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 	logger.Info("runtime in-process mode enabled")
 

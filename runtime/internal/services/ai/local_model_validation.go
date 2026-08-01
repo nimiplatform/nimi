@@ -24,6 +24,14 @@ type localModelLister interface {
 	ReleaseLocalAssetLease(context.Context, string, string) error
 }
 
+type durableLocalTargetResolver interface {
+	ResolveDurableLocalTarget(
+		context.Context,
+		*runtimev1.RuntimeDurableLocalTargetRef,
+		string,
+	) (*runtimev1.RuntimeResolvedLocalExecutionBinding, *runtimev1.LocalAssetRecord, error)
+}
+
 type managedLlamaModelResolver interface {
 	ResolveManagedLlamaModelByCapabilities(preferred string, capabilities ...string) (string, bool)
 }
@@ -38,9 +46,12 @@ type localTextContextMetadataResolver interface {
 
 type localImageProfileResolver interface {
 	ResolveManagedMediaImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
+	ResolveManagedMediaImageProfileForLocalAsset(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
+	ResolveManagedMediaImageProfileForBinding(context.Context, string, string, map[string]any) (string, map[string]any, map[string]any, error)
 	ResolveManagedMediaBackendTarget(context.Context) (string, string, error)
 	ResolveManagedAssetPath(context.Context, string) (string, error)
 	ResolveCanonicalImageSelection(context.Context, string) (engine.ImageSupervisedMatrixSelection, error)
+	ResolveCanonicalImageSelectionForLocalAsset(context.Context, string) (engine.ImageSupervisedMatrixSelection, error)
 	EnsureManagedMediaImageLoaded(context.Context, string, string, map[string]any, map[string]any, string) (*nimillm.ManagedMediaImageLoadDiagnostics, error)
 	ReleaseManagedMediaImage(context.Context, string, string, map[string]any, map[string]any, string) error
 	UpdateManagedMediaImageExecutionStatus(context.Context, string, bool, string) error
@@ -59,6 +70,7 @@ type localModelExecutionPlan struct {
 	providerModelID  string
 	modal            runtimev1.Modal
 	selected         *runtimev1.LocalAssetRecord
+	targetBinding    *runtimev1.RuntimeResolvedLocalExecutionBinding
 	warmEndpoint     string
 	readinessSource  string
 	readinessAt      time.Time
@@ -105,6 +117,13 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 	}
 	if preferredRoute(resolvedModelID) != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nil, nil
+	}
+	if modal == runtimev1.Modal_MODAL_IMAGE {
+		return nil, grpcerr.WithReasonCodeOptions(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			grpcerr.ReasonOptions{Message: "local image execution requires a committed exact v2 composition binding"},
+		)
 	}
 	s.observeCounter("runtime_ai_local_validation_total", 1,
 		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, nil)...,
@@ -188,7 +207,7 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 		}
 		readinessSource = "start"
 	}
-	s.hydrateLocalProviderFromModel(selected, warmEndpoint)
+	s.hydrateLocalProviderFromModel(selected, warmEndpoint, false)
 	if modelRequiresInvokeProfile(selected) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
 	}
@@ -206,6 +225,136 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 		readinessSource:  readinessSource,
 		readinessAt:      time.Now(),
 	}, nil
+}
+
+func (s *Service) prepareDurableLocalModelExecutionPlan(
+	ctx context.Context,
+	requestedModelID string,
+	binding *runtimev1.RuntimeResolvedLocalExecutionBinding,
+	selected *runtimev1.LocalAssetRecord,
+	modal runtimev1.Modal,
+	scenarioExtensions map[string]any,
+) (*localModelExecutionPlan, error) {
+	totalStartedAt := time.Now()
+	if s == nil || s.localModel == nil || binding == nil || selected == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	resolvedModelID := strings.TrimSpace(binding.GetResolvedModelId())
+	if resolvedModelID == "" ||
+		strings.TrimSpace(requestedModelID) != resolvedModelID ||
+		strings.TrimSpace(binding.GetLocalAssetId()) == "" ||
+		strings.TrimSpace(binding.GetLocalAssetId()) != strings.TrimSpace(selected.GetLocalAssetId()) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH)
+	}
+	targetStatus := selected.GetDurableTargetStatus()
+	if targetStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
+		targetStatus = selected.GetStatus()
+	}
+	switch targetStatus {
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
+	default:
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+
+	s.observeCounter("runtime_ai_local_validation_total", 1,
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected, "selection_source", "durable_target")...,
+	)
+	var warmEndpoint string
+	readinessSource := "durable_target"
+	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldWarmInstalledLocalModel(selected, modal) {
+		warmed, err := s.localModel.WarmLocalAsset(ctx, &runtimev1.WarmLocalAssetRequest{
+			LocalAssetId: selected.GetLocalAssetId(),
+		})
+		if err != nil {
+			return nil, normalizeLocalModelRPCError(err)
+		}
+		selected.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+		selected.DurableTargetStatus = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+		readinessSource = "durable_target_warm"
+		if warmed != nil {
+			warmEndpoint = strings.TrimSpace(warmed.GetEndpoint())
+		}
+	}
+	if modal != runtimev1.Modal_MODAL_IMAGE &&
+		((selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldStartInstalledLocalModel(selected, modal)) ||
+			(selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY && shouldRetryUnhealthyLocalModelStart(selected, modal))) {
+		if err := s.primeInstalledLocalModelRequest(ctx, selected, selected.GetLocalAssetId(), modal, scenarioExtensions); err != nil {
+			return nil, err
+		}
+		started, err := s.localModel.StartLocalAsset(ctx, &runtimev1.StartLocalAssetRequest{
+			LocalAssetId: selected.GetLocalAssetId(),
+		})
+		if err != nil {
+			return nil, normalizeLocalModelRPCError(err)
+		}
+		if started != nil && started.GetAsset() != nil {
+			if strings.TrimSpace(started.GetAsset().GetLocalAssetId()) != strings.TrimSpace(binding.GetLocalAssetId()) {
+				return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+			}
+			selected = started.GetAsset()
+		}
+		if selected.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+			return nil, localModelUnavailableErrorFromRecord(selected)
+		}
+		readinessSource = "durable_target_start"
+	}
+	if selected.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE &&
+		!(modal == runtimev1.Modal_MODAL_IMAGE && selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED) {
+		return nil, localModelUnavailableErrorFromRecord(selected)
+	}
+	s.hydrateLocalProviderFromModel(selected, warmEndpoint, modal == runtimev1.Modal_MODAL_IMAGE)
+	if modelRequiresInvokeProfile(selected) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
+	}
+	providerModelID, err := s.resolveExactSelectedLocalProviderModelID(selected, modal)
+	if err != nil {
+		return nil, err
+	}
+	s.observeLatency("runtime.ai.local.validation_total_ms", totalStartedAt,
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+			"provider_model_id", providerModelID,
+			"selection_source", "durable_target",
+		)...,
+	)
+	return &localModelExecutionPlan{
+		requestedModelID: requestedModelID,
+		resolvedModelID:  resolvedModelID,
+		providerModelID:  providerModelID,
+		modal:            modal,
+		selected:         selected,
+		targetBinding:    binding,
+		warmEndpoint:     warmEndpoint,
+		readinessSource:  readinessSource,
+		readinessAt:      time.Now(),
+	}, nil
+}
+
+func (s *Service) resolveExactSelectedLocalProviderModelID(
+	selected *runtimev1.LocalAssetRecord,
+	modal runtimev1.Modal,
+) (string, error) {
+	if selected == nil || strings.TrimSpace(selected.GetLocalAssetId()) == "" {
+		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if strings.EqualFold(strings.TrimSpace(selected.GetEngine()), "llama") {
+		resolver, ok := s.localModel.(managedLlamaModelResolver)
+		if !ok || resolver == nil {
+			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		}
+		if resolved, found := resolver.ResolveManagedLlamaModelByCapabilities(
+			selected.GetLocalAssetId(),
+			localRoutingCapabilityForModal(modal),
+		); found && strings.TrimSpace(resolved) != "" {
+			return strings.TrimSpace(resolved), nil
+		}
+		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if assetID := strings.TrimSpace(selected.GetAssetId()); assetID != "" {
+		return assetID, nil
+	}
+	return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func (s *Service) resolveSelectedLocalProviderModelID(selected *runtimev1.LocalAssetRecord, requestedModelID string, modal runtimev1.Modal) string {
@@ -275,7 +424,10 @@ func shouldWarmInstalledLocalModel(model *runtimev1.LocalAssetRecord, modal runt
 	}
 	for _, capability := range model.GetCapabilities() {
 		normalized := strings.ToLower(strings.TrimSpace(capability))
-		if normalized == "chat" || normalized == "text.generate" {
+		if normalized == "chat" ||
+			normalized == "text.generate" ||
+			normalized == "embedding" ||
+			normalized == "text.embed" {
 			return true
 		}
 	}
@@ -300,8 +452,7 @@ func shouldStartInstalledLocalModel(model *runtimev1.LocalAssetRecord, modal run
 		return false
 	}
 	switch modal {
-	case runtimev1.Modal_MODAL_IMAGE,
-		runtimev1.Modal_MODAL_VIDEO,
+	case runtimev1.Modal_MODAL_VIDEO,
 		runtimev1.Modal_MODAL_TTS,
 		runtimev1.Modal_MODAL_STT,
 		runtimev1.Modal_MODAL_MUSIC:
@@ -323,20 +474,6 @@ func shouldRetryUnhealthyLocalModelStart(model *runtimev1.LocalAssetRecord, moda
 	}
 	if shouldRetryUnhealthyManagedSpeechStart(model, modal) {
 		return true
-	}
-	switch modal {
-	case runtimev1.Modal_MODAL_IMAGE:
-	default:
-		return false
-	}
-	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "media") {
-		return false
-	}
-	for _, capability := range model.GetCapabilities() {
-		normalized := strings.ToLower(strings.TrimSpace(capability))
-		if normalized == "image" || normalized == "image.generate" {
-			return true
-		}
 	}
 	return false
 }
@@ -480,13 +617,12 @@ func normalizeLocalModelRPCError(err error) error {
 	return localModelUnavailableCauseError(err, "local model operation could not be completed")
 }
 
-func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalAssetRecord, endpointOverride string) {
+func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalAssetRecord, endpointOverride string, allowInstalled bool) {
 	if s == nil || model == nil {
 		return
 	}
-	switch model.GetStatus() {
-	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
-	default:
+	if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE &&
+		!(allowInstalled && model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED) {
 		return
 	}
 	providerID := strings.ToLower(strings.TrimSpace(model.GetEngine()))

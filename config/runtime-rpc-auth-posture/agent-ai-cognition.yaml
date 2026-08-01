@@ -88,6 +88,28 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream

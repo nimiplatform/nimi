@@ -22,16 +22,16 @@ import type {
   AgentCenterAutonomyProjection,
   AgentCenterNextStepAction,
   AgentCenterOpaqueHandle,
-  AgentCenterModelSettingsModule,
+  AgentCenterAIConfigModule,
   AgentCenterPermissionedAutonomyMutation,
-  AgentCenterPermissionedConfigurationMutation,
+  AgentCenterPermissionedAIConfigMutation,
   AgentCenterPermissionedPresentationCommitInput,
   AgentCenterPermissionedSdkSurface,
   AgentCenterPermissionedSdkSurfaceInput,
   AgentCenterProductAction,
   AgentCenterRuntimeLoadInput,
   AgentCenterRuntimeModelConfigAdapter,
-  AgentCenterRuntimeModelSettingsProjection,
+  AgentCenterRuntimeAIConfigProjection,
   AgentCenterSession,
   AgentCenterSnapshot,
   AgentCenterState,
@@ -40,8 +40,8 @@ import type {
 } from './types.js';
 
 const ACTIONS: readonly AgentCenterProductAction[] = [
-  'readModelSettings',
-  'updateModelSettings',
+  'readAIConfig',
+  'updateAIConfig',
   'readAutonomy',
   'updateAutonomy',
   'readMemorySummary',
@@ -105,7 +105,7 @@ interface SessionTransport {
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
   actionAvailability(): Promise<AgentCenterActionAvailabilityProjection>;
   read(): Promise<AgentCenterStateInput>;
-  updateModelSettings(input: AgentCenterPermissionedConfigurationMutation): Promise<AgentCenterStateInput | AgentCenterState>;
+  updateAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<AgentCenterStateInput | AgentCenterState>;
   updateAutonomy(input: AgentCenterPermissionedAutonomyMutation): Promise<AgentCenterStateInput | AgentCenterState>;
   replaceAppearance(input: AgentCenterPermissionedPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   restorePreviousAppearance(): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
@@ -127,7 +127,7 @@ function stateWithAvailability(
   availability: AgentCenterActionAvailabilityProjection,
 ): AgentCenterState {
   const state = isBuiltState(value) ? value : buildAgentCenterState(value);
-  const modelAvailable = availability.updateModelSettings.state === 'available';
+  const modelAvailable = availability.updateAIConfig.state === 'available';
   const autonomyAvailable = availability.updateAutonomy.state === 'available';
   return {
     ...state,
@@ -221,9 +221,9 @@ class ManagerSession {
     }
   }
 
-  async updateModelSettings(input: AgentCenterPermissionedConfigurationMutation): Promise<void> {
-    this.#requireAvailable('updateModelSettings');
-    const result = await this.transport.updateModelSettings(input);
+  async updateAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<void> {
+    this.#requireAvailable('updateAIConfig');
+    const result = await this.transport.updateAIConfig(input);
     this.#replaceState(result);
   }
 
@@ -301,8 +301,8 @@ class ManagerSession {
   #startActionPosture(): void {
     if (!this.transport.subscribeActionPosture || this.#actionPostureUnsubscribe) return;
     this.#actionPostureUnsubscribe = this.transport.subscribeActionPosture((availability) => {
-      const becameReadable = this.#snapshot.availability.readModelSettings.state === 'unavailable'
-        && availability.readModelSettings.state === 'available';
+      const becameReadable = this.#snapshot.availability.readAIConfig.state === 'unavailable'
+        && availability.readAIConfig.state === 'available';
       this.#set({
         ...this.#snapshot,
         phase: this.#snapshot.phase === 'loading' ? 'loading' : 'ready',
@@ -337,7 +337,7 @@ class ManagerSession {
 }
 
 export interface CreateFirstPartyAgentCenterSessionInput {
-  readonly modelSettings: AgentCenterModelSettingsModule;
+  readonly aiConfig: AgentCenterAIConfigModule;
   readonly inspect?: NimiRuntimeAgentInspectSurface | null;
   readonly identity: RuntimeLocalAgentIdentityInput;
   readonly modelConfig?: AgentCenterRuntimeModelConfigAdapter | null;
@@ -363,8 +363,8 @@ export function createFirstPartyAgentCenterSession(
   const identity = input.loadInput?.identity || input.identity;
   const callInput = { ...identity, subjectUserId: input.loadInput?.subjectUserId };
   const read = async (): Promise<AgentCenterStateInput> => {
-    const [modelSettings, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
-      input.modelSettings.snapshot(callInput),
+    const [aiConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
+      input.aiConfig.snapshot(callInput),
       input.autonomy?.load(identity) ?? Promise.resolve(null),
       input.inspect?.getPublicInspect(identity) ?? Promise.resolve(null),
       input.loadMemory?.(identity) ?? Promise.resolve(null),
@@ -375,21 +375,21 @@ export function createFirstPartyAgentCenterSession(
       }) ?? Promise.resolve(null),
       input.appearance?.load() ?? Promise.resolve(null),
     ]);
-    return { modelSettings, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance };
+    return { aiConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance };
   };
   const transport: SessionTransport = {
     modelConfig: input.modelConfig || null,
     appearanceAdapter: input.appearance || null,
     actionAvailability: async () => allAvailable(),
     read,
-    async updateModelSettings(mutation) {
-      const modelSettings = await input.modelSettings.update({
+    async updateAIConfig(mutation) {
+      const aiConfig = await input.aiConfig.update({
         ...identity,
         subjectUserId: input.loadInput?.subjectUserId,
         expectedConfigurationRevision: mutation.expectedConfigurationRevision,
-        routeIntents: mutation.routeIntents,
+        config: mutation.config,
       });
-      return { ...(await read()), modelSettings };
+      return { ...(await read()), aiConfig };
     },
     async updateAutonomy(mutation) {
       if (!input.autonomy) throw new Error('Agent Center autonomy transport is unavailable.');
@@ -425,7 +425,8 @@ export interface CreatePermissionedAgentCenterSessionInput {
 }
 
 function createPermissionedModelConfigAdapter(
-  loadProjection: () => Promise<AgentCenterRuntimeModelSettingsProjection | null>,
+  loadProjection: () => Promise<AgentCenterRuntimeAIConfigProjection | null>,
+  profile: AgentCenterRuntimeModelConfigAdapter['aiProfile'],
 ): AgentCenterRuntimeModelConfigAdapter {
   const providers = new Map<string, RouteModelPickerDataProvider>();
   const optionsFor = async (capability: string) => {
@@ -436,6 +437,7 @@ function createPermissionedModelConfigAdapter(
     return (projection.routeOptions || []).filter((option) => option.capability === capability);
   };
   return Object.freeze({
+    aiProfile: profile,
     providerResolver(routeCapability: string): RouteModelPickerDataProvider | null {
       const capability = String(routeCapability || '').trim();
       if (!capability) return null;
@@ -518,17 +520,25 @@ export function createPermissionedAgentCenterSession(
   };
   const transport: SessionTransport = {
     modelConfig: createPermissionedModelConfigAdapter(async () => {
-      const current = manager?.getSnapshot().state.modelSettings;
+      const current = manager?.getSnapshot().state.aiConfig;
       if (current) return current;
       const state = await input.surface.read(input.handle, input.loadOptions);
-      return state.modelSettings || null;
+      return state.aiConfig || null;
+    }, {
+      list: async () => [...await input.surface.listAIProfiles(input.handle)],
+      previewApply: (scopeRef, profileId, options) => (
+        input.surface.previewAIProfile(input.handle, scopeRef, profileId, options)
+      ),
+      apply: (scopeRef, profileId, options) => (
+        input.surface.applyAIProfile(input.handle, scopeRef, profileId, options)
+      ),
     }),
     appearanceAdapter,
     async actionAvailability() {
       return projectAgentCenterActionAvailability(await input.surface.actionPosture(input.handle));
     },
     read: () => input.surface.read(input.handle, input.loadOptions),
-    updateModelSettings: (mutation) => input.surface.updateConfiguration(input.handle, mutation),
+    updateAIConfig: (mutation) => input.surface.updateConfiguration(input.handle, mutation),
     updateAutonomy: (mutation) => input.surface.updateAutonomy(input.handle, mutation),
     replaceAppearance: (mutation) => input.surface.replaceAppearance(input.handle, mutation),
     restorePreviousAppearance: () => input.surface.restorePreviousAppearance(input.handle),

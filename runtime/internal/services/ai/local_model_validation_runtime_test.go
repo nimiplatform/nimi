@@ -13,7 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func TestValidateLocalModelRequestPrefersCanonicalModalEngines(t *testing.T) {
+func TestValidateLocalModelRequestPrefersCanonicalTextEngineAndRejectsTargetlessImage(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger)
 
@@ -34,12 +34,13 @@ func TestValidateLocalModelRequestPrefersCanonicalModalEngines(t *testing.T) {
 		},
 	}
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{imagePage}}
-	if err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE); err != nil {
-		t.Fatalf("expected canonical image local model validation success via media, got %v", err)
+	err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("targetless image reason=%v ok=%v err=%v, want AI_LOCAL_MODEL_UNAVAILABLE", reason, ok, err)
 	}
 }
 
-func TestValidateLocalModelRequestInstalledImageDoesNotWarmTextOnlyAssets(t *testing.T) {
+func TestValidateLocalModelRequestTargetlessInstalledImageDoesNotWarmOrStart(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,29 +72,16 @@ func TestValidateLocalModelRequestInstalledImageDoesNotWarmTextOnlyAssets(t *tes
 	}
 	svc.localModel = imageLister
 
-	if err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE); err != nil {
-		t.Fatalf("expected installed image local model validation to start and succeed, got %v", err)
+	err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("targetless installed image reason=%v ok=%v err=%v", reason, ok, err)
 	}
-	if imageLister.warmCalls != 0 {
-		t.Fatalf("installed image local model must not call warm, got %d", imageLister.warmCalls)
-	}
-	if imageLister.startCalls != 1 {
-		t.Fatalf("installed image local model must call start exactly once, got %d", imageLister.startCalls)
-	}
-	local, ok := svc.selector.local.(*localProvider)
-	if !ok || local == nil {
-		t.Fatalf("expected local provider after image validation")
-	}
-	backend, resolved, providerType := local.resolveMediaBackendForModal("media/flux.1-schnell", runtimev1.Modal_MODAL_IMAGE)
-	if backend == nil || providerType != "media" {
-		t.Fatalf("expected installed image local model to hydrate media backend, backend=%v provider=%q", backend, providerType)
-	}
-	if resolved != "flux.1-schnell" {
-		t.Fatalf("unexpected hydrated image backend resolution: %q", resolved)
+	if imageLister.calls != 0 || imageLister.warmCalls != 0 || imageLister.startCalls != 0 {
+		t.Fatalf("targetless image must not scan/warm/start: list=%d warm=%d start=%d", imageLister.calls, imageLister.warmCalls, imageLister.startCalls)
 	}
 }
 
-func TestValidateLocalModelRequestInstalledImagePrimesManagedProfileBeforeStart(t *testing.T) {
+func TestValidateLocalModelRequestTargetlessInstalledImageDoesNotPrimeManagedProfile(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
 	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -159,17 +147,14 @@ func TestValidateLocalModelRequestInstalledImagePrimesManagedProfileBeforeStart(
 			},
 		},
 	)
-	if err != nil {
-		t.Fatalf("expected installed image local model validation success, got %v", err)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("targetless installed image reason=%v ok=%v err=%v", reason, ok, err)
 	}
-	if resolver.resolveProfileCalls != 1 {
-		t.Fatalf("expected managed image profile to be primed once, got %d", resolver.resolveProfileCalls)
+	if resolver.resolveProfileCalls != 0 {
+		t.Fatalf("targetless image must not prime a managed profile, got %d calls", resolver.resolveProfileCalls)
 	}
-	if resolver.lastRequestedModel != "local/flux.1-schnell" {
-		t.Fatalf("unexpected primed model id: %q", resolver.lastRequestedModel)
-	}
-	if imageLister.startCalls != 1 {
-		t.Fatalf("expected installed image local model to start once, got %d", imageLister.startCalls)
+	if imageLister.calls != 0 || imageLister.startCalls != 0 {
+		t.Fatalf("targetless image must not scan or start: list=%d start=%d", imageLister.calls, imageLister.startCalls)
 	}
 }
 
@@ -198,7 +183,7 @@ func TestValidateLocalModelRequestHardCutDoesNotFallbackAcrossEngines(t *testing
 	}
 }
 
-func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartDoesNotActivate(t *testing.T) {
+func TestValidateLocalModelRequestTargetlessInstalledImageIgnoresStartResult(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
 	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -232,9 +217,12 @@ func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartDoesNotActiv
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
 	}
+	if imageLister.calls != 0 || imageLister.startCalls != 0 {
+		t.Fatalf("targetless image must not scan or start: list=%d start=%d", imageLister.calls, imageLister.startCalls)
+	}
 }
 
-func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartLeavesInstalled(t *testing.T) {
+func TestValidateLocalModelRequestTargetlessInstalledImageNeverUsesStartToActivate(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
 	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -268,9 +256,12 @@ func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartLeavesInstal
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
 	}
+	if imageLister.calls != 0 || imageLister.startCalls != 0 {
+		t.Fatalf("targetless image must not scan or start: list=%d start=%d", imageLister.calls, imageLister.startCalls)
+	}
 }
 
-func TestValidateLocalModelRequestUnhealthyImageRetriesStartAndRecovers(t *testing.T) {
+func TestValidateLocalModelRequestTargetlessUnhealthyImageDoesNotRetryStart(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -305,15 +296,16 @@ func TestValidateLocalModelRequestUnhealthyImageRetriesStartAndRecovers(t *testi
 	}
 	svc.localModel = imageLister
 
-	if err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE); err != nil {
-		t.Fatalf("expected unhealthy image local model validation to recover via start, got %v", err)
+	err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("targetless unhealthy image reason=%v ok=%v err=%v", reason, ok, err)
 	}
-	if imageLister.startCalls != 1 {
-		t.Fatalf("expected unhealthy image local model to retry start once, got %d", imageLister.startCalls)
+	if imageLister.calls != 0 || imageLister.startCalls != 0 {
+		t.Fatalf("targetless unhealthy image must not scan or retry start: list=%d start=%d", imageLister.calls, imageLister.startCalls)
 	}
 }
 
-func TestValidateLocalModelRequestUnhealthyImageRequiresStartWithDynamicProfileOverrides(t *testing.T) {
+func TestValidateLocalModelRequestTargetlessUnhealthyImageRejectsDynamicProfileOverrides(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -385,14 +377,14 @@ func TestValidateLocalModelRequestUnhealthyImageRequiresStartWithDynamicProfileO
 			},
 		},
 	)
-	if err != nil {
-		t.Fatalf("expected unhealthy image local model validation to start with dynamic profile, got %v", err)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("targetless unhealthy image reason=%v ok=%v err=%v", reason, ok, err)
 	}
-	if resolver.resolveProfileCalls != 1 {
-		t.Fatalf("expected dynamic profile resolver to run once, got %d", resolver.resolveProfileCalls)
+	if resolver.resolveProfileCalls != 0 {
+		t.Fatalf("targetless image must not resolve dynamic profile overrides, got %d calls", resolver.resolveProfileCalls)
 	}
-	if imageLister.startCalls != 1 {
-		t.Fatalf("expected unhealthy image local model to require StartLocalAsset, got %d", imageLister.startCalls)
+	if imageLister.calls != 0 || imageLister.startCalls != 0 {
+		t.Fatalf("targetless image must not scan or start: list=%d start=%d", imageLister.calls, imageLister.startCalls)
 	}
 }
 

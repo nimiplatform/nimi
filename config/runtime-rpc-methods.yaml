@@ -479,6 +479,11 @@ services:
         protected_transport_ref: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
       - name: CleanupGeneratedVoiceArtifacts
         type: unary
+      - name: PutArtifact
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeArtifactService/PutArtifact
   - name: RuntimeDevelopmentService
     source_rule: K-PLOCAL-009
     methods:
@@ -604,3 +609,7 @@ services:
         type: unary
       - name: SubscribeRuntimeAgentAIConfigReadiness
         type: server_stream
+      - name: PreviewRuntimeAgentAIProfile
+        type: unary
+      - name: ApplyRuntimeAgentAIProfile
+        type: unary

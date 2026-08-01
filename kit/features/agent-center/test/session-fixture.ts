@@ -3,14 +3,26 @@ import { createFirstPartyAgentCenterSession } from '../src/session.js';
 import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAutonomyProjection,
-  AgentCenterRuntimeModelSettingsProjection,
+  AgentCenterRuntimeAIConfigProjection,
+  AgentCenterRuntimeModelConfigAdapter,
   AgentCenterSession,
   AgentCenterStateInput,
 } from '../src/types.js';
 
-function defaultModelSettings(): AgentCenterRuntimeModelSettingsProjection {
+function defaultAIConfig(): AgentCenterRuntimeAIConfigProjection {
+  const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'local-agent:test' });
   return {
-    scopeRef: createNimiAIScopeRef({ kind: 'feature', ownerId: 'runtime.agent.model-settings', surfaceId: 'local-agent:test' }),
+    aiConfig: {
+      scopeRef,
+      profileOrigin: null,
+      capabilities: {
+        logicalModelIds: {},
+        targetRefs: {},
+        selectedComponents: {},
+        selectedParams: {},
+      },
+    },
+    scopeRef,
     capabilities: [],
     routeIntents: [],
     readiness: [],
@@ -21,23 +33,25 @@ function defaultModelSettings(): AgentCenterRuntimeModelSettingsProjection {
 export async function sessionFor(
   projection: AgentCenterStateInput = {},
   appearance?: AgentCenterAppearanceAdapter | null,
+  modelConfig?: AgentCenterRuntimeModelConfigAdapter | null,
 ): Promise<AgentCenterSession> {
-  let modelSettings = projection.modelSettings || defaultModelSettings();
+  let aiConfig = projection.aiConfig || defaultAIConfig();
   const session = createFirstPartyAgentCenterSession({
     identity: {
       ownerUserId: 'owner',
       runtimeSourceRef: 'source',
       localAgentRef: 'local-agent:test',
     },
-    modelSettings: {
-      async snapshot() { return modelSettings; },
+    modelConfig,
+    aiConfig: {
+      async snapshot() { return aiConfig; },
       async update(input) {
-        modelSettings = {
-          ...modelSettings,
-          routeIntents: input.routeIntents,
+        aiConfig = {
+          ...aiConfig,
+          aiConfig: input.config,
           configurationRevision: String(BigInt(input.expectedConfigurationRevision) + 1n),
         };
-        return modelSettings;
+        return aiConfig;
       },
     },
     autonomy: projection.autonomy ? {

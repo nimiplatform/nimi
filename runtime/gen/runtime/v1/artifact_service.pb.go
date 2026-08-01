@@ -253,6 +253,122 @@ func (x *CleanupGeneratedVoiceArtifactsResponse) GetDeletedArtifactIds() []strin
 	return nil
 }
 
+type PutArtifactRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Declared media type of the uploaded material. Must be one of image/png,
+	// image/jpeg, image/webp, or image/gif, and must agree with the payload
+	// file signature; the server validates the signature instead of trusting
+	// the declared value.
+	MimeType string `protobuf:"bytes,1,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	// Human-readable display name projected back to consumers (for example the
+	// original file name). May be empty; the server falls back to a generic
+	// attachment label for rendering.
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// Raw file bytes. Limited to 4 MiB (4 * 1024 * 1024); the server must
+	// reject oversize payloads before allocating the full body.
+	Data          []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PutArtifactRequest) Reset() {
+	*x = PutArtifactRequest{}
+	mi := &file_runtime_v1_artifact_service_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutArtifactRequest) ProtoMessage() {}
+
+func (x *PutArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_artifact_service_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutArtifactRequest.ProtoReflect.Descriptor instead.
+func (*PutArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_artifact_service_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *PutArtifactRequest) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *PutArtifactRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *PutArtifactRequest) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+type PutArtifactResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Runtime-owned, opaque, globally-unique artifact identity
+	// ("artifact_<ulid>") used for later turn attachment references and
+	// ReadArtifactBytes retrieval. It is not an authorization credential.
+	ArtifactId    string `protobuf:"bytes,1,opt,name=artifact_id,json=artifactId,proto3" json:"artifact_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PutArtifactResponse) Reset() {
+	*x = PutArtifactResponse{}
+	mi := &file_runtime_v1_artifact_service_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutArtifactResponse) ProtoMessage() {}
+
+func (x *PutArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_artifact_service_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutArtifactResponse.ProtoReflect.Descriptor instead.
+func (*PutArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_artifact_service_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PutArtifactResponse) GetArtifactId() string {
+	if x != nil {
+		return x.ArtifactId
+	}
+	return ""
+}
+
 var File_runtime_v1_artifact_service_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_artifact_service_proto_rawDesc = "" +
@@ -272,10 +388,18 @@ const file_runtime_v1_artifact_service_proto_rawDesc = "" +
 	"\x16conversation_anchor_id\x18\x02 \x01(\tR\x14conversationAnchorId\"\x7f\n" +
 	"&CleanupGeneratedVoiceArtifactsResponse\x12#\n" +
 	"\rdeleted_count\x18\x01 \x01(\x05R\fdeletedCount\x120\n" +
-	"\x14deleted_artifact_ids\x18\x02 \x03(\tR\x12deletedArtifactIds2\x9c\x02\n" +
+	"\x14deleted_artifact_ids\x18\x02 \x03(\tR\x12deletedArtifactIds\"h\n" +
+	"\x12PutArtifactRequest\x12\x1b\n" +
+	"\tmime_type\x18\x01 \x01(\tR\bmimeType\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x12\n" +
+	"\x04data\x18\x03 \x01(\fR\x04data\"6\n" +
+	"\x13PutArtifactResponse\x12\x1f\n" +
+	"\vartifact_id\x18\x01 \x01(\tR\n" +
+	"artifactId2\xf8\x02\n" +
 	"\x16RuntimeArtifactService\x12l\n" +
 	"\x11ReadArtifactBytes\x12).nimi.runtime.v1.ReadArtifactBytesRequest\x1a*.nimi.runtime.v1.ReadArtifactBytesResponse\"\x00\x12\x93\x01\n" +
-	"\x1eCleanupGeneratedVoiceArtifacts\x126.nimi.runtime.v1.CleanupGeneratedVoiceArtifactsRequest\x1a7.nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse\"\x00B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x1eCleanupGeneratedVoiceArtifacts\x126.nimi.runtime.v1.CleanupGeneratedVoiceArtifactsRequest\x1a7.nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse\"\x00\x12Z\n" +
+	"\vPutArtifact\x12#.nimi.runtime.v1.PutArtifactRequest\x1a$.nimi.runtime.v1.PutArtifactResponse\"\x00B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_artifact_service_proto_rawDescOnce sync.Once
@@ -289,20 +413,24 @@ func file_runtime_v1_artifact_service_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_artifact_service_proto_rawDescData
 }
 
-var file_runtime_v1_artifact_service_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_runtime_v1_artifact_service_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_runtime_v1_artifact_service_proto_goTypes = []any{
 	(*ReadArtifactBytesRequest)(nil),               // 0: nimi.runtime.v1.ReadArtifactBytesRequest
 	(*ReadArtifactBytesResponse)(nil),              // 1: nimi.runtime.v1.ReadArtifactBytesResponse
 	(*CleanupGeneratedVoiceArtifactsRequest)(nil),  // 2: nimi.runtime.v1.CleanupGeneratedVoiceArtifactsRequest
 	(*CleanupGeneratedVoiceArtifactsResponse)(nil), // 3: nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse
+	(*PutArtifactRequest)(nil),                     // 4: nimi.runtime.v1.PutArtifactRequest
+	(*PutArtifactResponse)(nil),                    // 5: nimi.runtime.v1.PutArtifactResponse
 }
 var file_runtime_v1_artifact_service_proto_depIdxs = []int32{
 	0, // 0: nimi.runtime.v1.RuntimeArtifactService.ReadArtifactBytes:input_type -> nimi.runtime.v1.ReadArtifactBytesRequest
 	2, // 1: nimi.runtime.v1.RuntimeArtifactService.CleanupGeneratedVoiceArtifacts:input_type -> nimi.runtime.v1.CleanupGeneratedVoiceArtifactsRequest
-	1, // 2: nimi.runtime.v1.RuntimeArtifactService.ReadArtifactBytes:output_type -> nimi.runtime.v1.ReadArtifactBytesResponse
-	3, // 3: nimi.runtime.v1.RuntimeArtifactService.CleanupGeneratedVoiceArtifacts:output_type -> nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: nimi.runtime.v1.RuntimeArtifactService.PutArtifact:input_type -> nimi.runtime.v1.PutArtifactRequest
+	1, // 3: nimi.runtime.v1.RuntimeArtifactService.ReadArtifactBytes:output_type -> nimi.runtime.v1.ReadArtifactBytesResponse
+	3, // 4: nimi.runtime.v1.RuntimeArtifactService.CleanupGeneratedVoiceArtifacts:output_type -> nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse
+	5, // 5: nimi.runtime.v1.RuntimeArtifactService.PutArtifact:output_type -> nimi.runtime.v1.PutArtifactResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -319,7 +447,7 @@ func file_runtime_v1_artifact_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_artifact_service_proto_rawDesc), len(file_runtime_v1_artifact_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

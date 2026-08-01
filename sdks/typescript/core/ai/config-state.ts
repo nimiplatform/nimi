@@ -14,6 +14,7 @@ import {
   aiConfigError,
   diffJson,
   formatNimiAIValidationIssues,
+  isRecord,
   requireNonEmptyText,
   stableHash,
   stableJson,
@@ -101,7 +102,18 @@ export function normalizeNimiAIConfig(config: NimiAIConfig): NimiAIConfig {
   return {
     scopeRef: assertNimiAIScopeRef(config.scopeRef),
     capabilities: {
+      logicalModelIds: { ...(config.capabilities?.logicalModelIds ?? {}) },
       targetRefs: { ...(config.capabilities?.targetRefs ?? {}) },
+      selectedComponents: Object.fromEntries(
+        Object.entries(config.capabilities?.selectedComponents ?? {}).map(([capability, selections]) => [
+          capability,
+          selections.map((selection) => ({
+            ...selection,
+            ...(selection.targetRef ? { targetRef: { ...selection.targetRef } } : {}),
+            ...(selection.options ? { options: { ...selection.options } } : {}),
+          })),
+        ]),
+      ),
       selectedParams: { ...(config.capabilities?.selectedParams ?? {}) },
     },
     profileOrigin: config.profileOrigin ? { ...config.profileOrigin } : null,
@@ -109,7 +121,22 @@ export function normalizeNimiAIConfig(config: NimiAIConfig): NimiAIConfig {
 }
 
 export function parseStoredNimiAIConfig(raw: string, scopeRef: NimiAIScopeRef): NimiAIConfig {
-  const parsed = normalizeNimiAIConfig(JSON.parse(raw) as NimiAIConfig);
+  const rawValue = JSON.parse(raw) as unknown;
+  const rawRecord = isRecord(rawValue) ? rawValue : null;
+  const rawCapabilities = rawRecord && isRecord(rawRecord.capabilities) ? rawRecord.capabilities : null;
+  if (!rawCapabilities || [
+    'logicalModelIds',
+    'targetRefs',
+    'selectedComponents',
+    'selectedParams',
+  ].some((field) => !Object.hasOwn(rawCapabilities, field))) {
+    throw aiConfigError(
+      'SDK_AI_CONFIG_INVALID',
+      'Stored AIConfig is missing required canonical capability fields.',
+      'repair_ai_config_store',
+    );
+  }
+  const parsed = normalizeNimiAIConfig(rawValue as NimiAIConfig);
   if (!areNimiAIScopeRefsEqual(parsed.scopeRef, scopeRef)) {
     throw aiConfigError('SDK_AI_CONFIG_SCOPE_MISMATCH', 'Stored AIConfig scopeRef does not match requested scopeRef', 'repair_ai_config_store');
   }

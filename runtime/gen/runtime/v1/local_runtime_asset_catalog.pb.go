@@ -632,8 +632,14 @@ type LocalAssetRecord struct {
 	DisplayName      string `protobuf:"bytes,41,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	SourceFileName   string `protobuf:"bytes,42,opt,name=source_file_name,json=sourceFileName,proto3" json:"source_file_name,omitempty"`
 	ImportInstanceId string `protobuf:"bytes,43,opt,name=import_instance_id,json=importInstanceId,proto3" json:"import_instance_id,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Runtime-issued v2 execution identity and its target-specific readiness.
+	// The target is opaque to consumers and never derived from asset_id,
+	// local_asset_id, or logical_model_id outside Runtime.
+	DurableTargetRef        *RuntimeDurableLocalTargetRef `protobuf:"bytes,44,opt,name=durable_target_ref,json=durableTargetRef,proto3" json:"durable_target_ref,omitempty"`
+	DurableTargetStatus     LocalAssetStatus              `protobuf:"varint,45,opt,name=durable_target_status,json=durableTargetStatus,proto3,enum=nimi.runtime.v1.LocalAssetStatus" json:"durable_target_status,omitempty"`
+	DurableTargetReasonCode ReasonCode                    `protobuf:"varint,46,opt,name=durable_target_reason_code,json=durableTargetReasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"durable_target_reason_code,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *LocalAssetRecord) Reset() {
@@ -874,6 +880,27 @@ func (x *LocalAssetRecord) GetImportInstanceId() string {
 		return x.ImportInstanceId
 	}
 	return ""
+}
+
+func (x *LocalAssetRecord) GetDurableTargetRef() *RuntimeDurableLocalTargetRef {
+	if x != nil {
+		return x.DurableTargetRef
+	}
+	return nil
+}
+
+func (x *LocalAssetRecord) GetDurableTargetStatus() LocalAssetStatus {
+	if x != nil {
+		return x.DurableTargetStatus
+	}
+	return LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED
+}
+
+func (x *LocalAssetRecord) GetDurableTargetReasonCode() ReasonCode {
+	if x != nil {
+		return x.DurableTargetReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
 type LocalAssetHealth struct {
@@ -2021,7 +2048,7 @@ var File_runtime_v1_local_runtime_asset_catalog_proto protoreflect.FileDescripto
 
 const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\n" +
-	",runtime/v1/local_runtime_asset_catalog.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\"B\n" +
+	",runtime/v1/local_runtime_asset_catalog.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\x1a(runtime/v1/runtime_target_identity.proto\"B\n" +
 	"\x10LocalAssetSource\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1a\n" +
 	"\brevision\x18\x02 \x01(\tR\brevision\"\xd0\x01\n" +
@@ -2029,7 +2056,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\fgpu_required\x18\x01 \x01(\bR\vgpuRequired\x126\n" +
 	"\x17python_runtime_required\x18\x02 \x01(\bR\x15pythonRuntimeRequired\x12/\n" +
 	"\x13supported_platforms\x18\x03 \x03(\tR\x12supportedPlatforms\x12+\n" +
-	"\x11required_backends\x18\x04 \x03(\tR\x10requiredBackends\"\x82\v\n" +
+	"\x11required_backends\x18\x04 \x03(\tR\x10requiredBackends\"\x90\r\n" +
 	"\x10LocalAssetRecord\x12$\n" +
 	"\x0elocal_asset_id\x18\x01 \x01(\tR\flocalAssetId\x12\x19\n" +
 	"\basset_id\x18\x02 \x01(\tR\aassetId\x123\n" +
@@ -2064,7 +2091,10 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\bmetadata\x18( \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
 	"\fdisplay_name\x18) \x01(\tR\vdisplayName\x12(\n" +
 	"\x10source_file_name\x18* \x01(\tR\x0esourceFileName\x12,\n" +
-	"\x12import_instance_id\x18+ \x01(\tR\x10importInstanceId\x1a9\n" +
+	"\x12import_instance_id\x18+ \x01(\tR\x10importInstanceId\x12[\n" +
+	"\x12durable_target_ref\x18, \x01(\v2-.nimi.runtime.v1.RuntimeDurableLocalTargetRefR\x10durableTargetRef\x12U\n" +
+	"\x15durable_target_status\x18- \x01(\x0e2!.nimi.runtime.v1.LocalAssetStatusR\x13durableTargetStatus\x12X\n" +
+	"\x1adurable_target_reason_code\x18. \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\x17durableTargetReasonCode\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe5\x01\n" +
@@ -2300,6 +2330,7 @@ var file_runtime_v1_local_runtime_asset_catalog_proto_goTypes = []any{
 	nil,                                  // 24: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
 	(*structpb.Struct)(nil),              // 25: google.protobuf.Struct
 	(ReasonCode)(0),                      // 26: nimi.runtime.v1.ReasonCode
+	(*RuntimeDurableLocalTargetRef)(nil), // 27: nimi.runtime.v1.RuntimeDurableLocalTargetRef
 }
 var file_runtime_v1_local_runtime_asset_catalog_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.LocalAssetRecord.kind:type_name -> nimi.runtime.v1.LocalAssetKind
@@ -2312,31 +2343,34 @@ var file_runtime_v1_local_runtime_asset_catalog_proto_depIdxs = []int32{
 	25, // 7: nimi.runtime.v1.LocalAssetRecord.engine_config:type_name -> google.protobuf.Struct
 	26, // 8: nimi.runtime.v1.LocalAssetRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	25, // 9: nimi.runtime.v1.LocalAssetRecord.metadata:type_name -> google.protobuf.Struct
-	1,  // 10: nimi.runtime.v1.LocalAssetHealth.status:type_name -> nimi.runtime.v1.LocalAssetStatus
-	26, // 11: nimi.runtime.v1.LocalAssetHealth.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0,  // 12: nimi.runtime.v1.LocalVerifiedAssetDescriptor.kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	21, // 13: nimi.runtime.v1.LocalVerifiedAssetDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
-	25, // 14: nimi.runtime.v1.LocalVerifiedAssetDescriptor.metadata:type_name -> google.protobuf.Struct
-	25, // 15: nimi.runtime.v1.LocalVerifiedAssetDescriptor.engine_config:type_name -> google.protobuf.Struct
-	9,  // 16: nimi.runtime.v1.LocalVerifiedAssetDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
-	13, // 17: nimi.runtime.v1.LocalProviderHints.llama:type_name -> nimi.runtime.v1.LocalProviderHintsLlama
-	14, // 18: nimi.runtime.v1.LocalProviderHints.media:type_name -> nimi.runtime.v1.LocalProviderHintsMedia
-	15, // 19: nimi.runtime.v1.LocalProviderHints.speech:type_name -> nimi.runtime.v1.LocalProviderHintsSpeech
-	16, // 20: nimi.runtime.v1.LocalProviderHints.sidecar:type_name -> nimi.runtime.v1.LocalProviderHintsSidecar
-	22, // 21: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
-	3,  // 22: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
-	17, // 23: nimi.runtime.v1.LocalCatalogModelDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	23, // 24: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
-	25, // 25: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_config:type_name -> google.protobuf.Struct
-	3,  // 26: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
-	17, // 27: nimi.runtime.v1.LocalInstallPlanDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	24, // 28: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
-	25, // 29: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_config:type_name -> google.protobuf.Struct
-	30, // [30:30] is the sub-list for method output_type
-	30, // [30:30] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	27, // 10: nimi.runtime.v1.LocalAssetRecord.durable_target_ref:type_name -> nimi.runtime.v1.RuntimeDurableLocalTargetRef
+	1,  // 11: nimi.runtime.v1.LocalAssetRecord.durable_target_status:type_name -> nimi.runtime.v1.LocalAssetStatus
+	26, // 12: nimi.runtime.v1.LocalAssetRecord.durable_target_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	1,  // 13: nimi.runtime.v1.LocalAssetHealth.status:type_name -> nimi.runtime.v1.LocalAssetStatus
+	26, // 14: nimi.runtime.v1.LocalAssetHealth.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0,  // 15: nimi.runtime.v1.LocalVerifiedAssetDescriptor.kind:type_name -> nimi.runtime.v1.LocalAssetKind
+	21, // 16: nimi.runtime.v1.LocalVerifiedAssetDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
+	25, // 17: nimi.runtime.v1.LocalVerifiedAssetDescriptor.metadata:type_name -> google.protobuf.Struct
+	25, // 18: nimi.runtime.v1.LocalVerifiedAssetDescriptor.engine_config:type_name -> google.protobuf.Struct
+	9,  // 19: nimi.runtime.v1.LocalVerifiedAssetDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
+	13, // 20: nimi.runtime.v1.LocalProviderHints.llama:type_name -> nimi.runtime.v1.LocalProviderHintsLlama
+	14, // 21: nimi.runtime.v1.LocalProviderHints.media:type_name -> nimi.runtime.v1.LocalProviderHintsMedia
+	15, // 22: nimi.runtime.v1.LocalProviderHints.speech:type_name -> nimi.runtime.v1.LocalProviderHintsSpeech
+	16, // 23: nimi.runtime.v1.LocalProviderHints.sidecar:type_name -> nimi.runtime.v1.LocalProviderHintsSidecar
+	22, // 24: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	3,  // 25: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
+	17, // 26: nimi.runtime.v1.LocalCatalogModelDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	23, // 27: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	25, // 28: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_config:type_name -> google.protobuf.Struct
+	3,  // 29: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
+	17, // 30: nimi.runtime.v1.LocalInstallPlanDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	24, // 31: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	25, // 32: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_config:type_name -> google.protobuf.Struct
+	33, // [33:33] is the sub-list for method output_type
+	33, // [33:33] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_asset_catalog_proto_init() }
@@ -2345,6 +2379,7 @@ func file_runtime_v1_local_runtime_asset_catalog_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
+	file_runtime_v1_runtime_target_identity_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

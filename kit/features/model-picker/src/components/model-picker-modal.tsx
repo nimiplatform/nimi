@@ -44,9 +44,15 @@ const DEFAULT_MODEL_PICKER_MODAL_COPY: Required<ModelPickerModalCopy> = {
   noModelsAvailable: 'No models available.',
 };
 
-const SENDABLE_LOCAL_MODEL_STATUSES = new Set(['active', 'installed']);
 export const FIRST_UNAVAILABLE_LOCAL_MODEL_TEST_ID = 'model-picker-option:local-unavailable';
 export const FIRST_READY_LOCAL_MODEL_TEST_ID = 'model-picker-option:local-ready';
+
+function isSelectableLocalModel(status: string, capability: string): boolean {
+  return status === 'active' || (
+    status === 'installed'
+    && (capability === 'text.generate' || capability === 'image.generate')
+  );
+}
 
 const LOCAL_ICON = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -139,12 +145,12 @@ export function ModelPickerModal({
   }, [search, pickerState.models, pickerState.adapter]);
 
   const firstReadyLocalModelId = useMemo(
-    () => localModels.find((model) => SENDABLE_LOCAL_MODEL_STATUSES.has(model.status))?.localModelId || null,
-    [localModels],
+    () => localModels.find((model) => isSelectableLocalModel(model.status, capability))?.localModelId || null,
+    [capability, localModels],
   );
   const firstUnavailableLocalModelId = useMemo(
-    () => localModels.find((model) => !SENDABLE_LOCAL_MODEL_STATUSES.has(model.status))?.localModelId || null,
-    [localModels],
+    () => localModels.find((model) => !isSelectableLocalModel(model.status, capability))?.localModelId || null,
+    [capability, localModels],
   );
 
   const handleSelect = useCallback((modelId: string) => {
@@ -162,6 +168,9 @@ export function ModelPickerModal({
     if (selection.source === 'local') {
       const localModel = localModels.find((m) => m.localModelId === modelId);
       if (localModel) {
+        if (!isSelectableLocalModel(localModel.status, capability)) {
+          return;
+        }
         base.localModelId = localModel.localModelId;
         base.goRuntimeLocalModelId = localModel.goRuntimeLocalModelId;
         base.profileBindingId = localModel.profileBindingId;
@@ -181,7 +190,7 @@ export function ModelPickerModal({
     }
     onSelect(base);
     onClose();
-  }, [connectorModels, localModels, onClose, onSelect, pickerState.adapter, pickerState.models, selection.connectorId, selection.provider, selection.source]);
+  }, [capability, connectorModels, localModels, onClose, onSelect, pickerState.adapter, pickerState.models, selection.connectorId, selection.provider, selection.source]);
 
   // Reset search when modal opens
   useEffect(() => {
@@ -309,6 +318,7 @@ export function ModelPickerModal({
                 const localModel = selection.source === 'local'
                   ? localModels.find((candidate) => candidate.localModelId === id) || null
                   : null;
+                const disabled = Boolean(localModel && !isSelectableLocalModel(localModel.status, capability));
                 const dataTestId = id === firstUnavailableLocalModelId
                   ? FIRST_UNAVAILABLE_LOCAL_MODEL_TEST_ID
                   : id === firstReadyLocalModelId
@@ -322,12 +332,17 @@ export function ModelPickerModal({
                     data-nimi-route-source={selection.source}
                     data-nimi-route-readiness={localModel?.status}
                     data-nimi-local-model-id={localModel?.localModelId}
+                    disabled={disabled}
+                    aria-disabled={disabled}
                     onClick={() => handleSelect(id)}
                     className={cn(
                       'flex w-full items-center gap-3 px-5 py-2.5 text-left transition-colors',
+                      disabled ? 'cursor-not-allowed opacity-50' : '',
                       selected
                         ? 'bg-emerald-50 text-emerald-700'
-                        : 'text-slate-700 hover:bg-slate-50',
+                        : disabled
+                          ? 'text-slate-500'
+                          : 'text-slate-700 hover:bg-slate-50',
                     )}
                   >
                     <div className="min-w-0 flex-1">

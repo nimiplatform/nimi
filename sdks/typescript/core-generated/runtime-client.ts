@@ -159,6 +159,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SwitchAccountResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "ApplyLocalAppAgentAIProfile",
+    "kind": "unary",
+    "requestType": "ApplyLocalAppAgentAIProfileRequest",
+    "responseType": "LocalAppAgentAIProfileApplyResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "ApplyRuntimeAgentAIProfile",
+    "kind": "unary",
+    "requestType": "ApplyRuntimeAgentAIProfileRequest",
+    "responseType": "ApplyRuntimeAgentAIProfileResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "service": "RuntimeAgentService",
     "method": "CancelCompanionParticipation",
@@ -429,6 +445,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "OpenConversationAnchorRequest",
     "responseType": "OpenConversationAnchorResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "PreviewLocalAppAgentAIProfile",
+    "kind": "unary",
+    "requestType": "PreviewLocalAppAgentAIProfileRequest",
+    "responseType": "LocalAppAgentAIProfilePreviewResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "PreviewRuntimeAgentAIProfile",
+    "kind": "unary",
+    "requestType": "PreviewRuntimeAgentAIProfileRequest",
+    "responseType": "PreviewRuntimeAgentAIProfileResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
@@ -797,6 +829,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "CleanupGeneratedVoiceArtifactsRequest",
     "responseType": "CleanupGeneratedVoiceArtifactsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeArtifactService/PutArtifact",
+    "service": "RuntimeArtifactService",
+    "method": "PutArtifact",
+    "kind": "unary",
+    "requestType": "PutArtifactRequest",
+    "responseType": "PutArtifactResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",

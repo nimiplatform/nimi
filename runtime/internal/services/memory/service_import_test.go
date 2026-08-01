@@ -395,12 +395,16 @@ type fakeReplicationBridgeAdapter struct {
 	mu      sync.Mutex
 	results map[string]*runtimev1.MemoryReplicationState
 	seen    []string
+	err     error
 }
 
 func (f *fakeReplicationBridgeAdapter) SyncPendingMemory(_ context.Context, item *ReplicationBacklogItem) (*runtimev1.MemoryReplicationState, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.seen = append(f.seen, item.MemoryID)
+	if f.err != nil {
+		return nil, f.err
+	}
 	if f.results == nil {
 		return nil, nil
 	}

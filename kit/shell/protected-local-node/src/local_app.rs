@@ -147,7 +147,45 @@ pub async fn local_app_agent_update_configuration(
             .agent_update_configuration(LocalAppAgentUpdateConfigurationRequest {
                 agent_handle: input.agent_handle,
                 expected_configuration_revision: revision,
-                route_intents: input.route_intents,
+                intents: input.intents,
+                profile_origin: input.profile_origin,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentAIProfilePreview")]
+pub async fn local_app_agent_ai_profile_preview(
+    input: NativeAgentAIProfilePreviewInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_ai_profile_preview(LocalAppAgentAIProfilePreviewRequest {
+                agent_handle: input.agent_handle,
+                profile: input.profile,
+                runtime_descriptor: input.runtime_descriptor,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentAIProfileApply")]
+pub async fn local_app_agent_ai_profile_apply(
+    input: NativeAgentAIProfileApplyInput,
+) -> NativeJsonOutcome {
+    let revision = match decimal_revision(&input.expected_configuration_revision, false) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_ai_profile_apply(LocalAppAgentAIProfileApplyRequest {
+                agent_handle: input.agent_handle,
+                expected_configuration_revision: revision,
+                profile: input.profile,
+                runtime_descriptor: input.runtime_descriptor,
             })
             .await
     })
@@ -305,11 +343,52 @@ pub async fn local_app_conversation_send_turn(
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
                 text: input.text,
+                attachments: input.attachments,
             })
             .await
             .map(|result| json!({ "messageId": result.message_id }))
     })
     .await
+}
+
+#[napi(js_name = "localAppArtifactPut")]
+pub async fn local_app_artifact_put(input: NativeArtifactPutInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .artifact_put(LocalAppArtifactPutRequest {
+                mime_type: input.mime_type,
+                display_name: input.display_name,
+                data: input.data.to_vec(),
+            })
+            .await
+            .map(|result| json!({ "artifactId": result.artifact_id }))
+    })
+    .await
+}
+
+#[napi(js_name = "localAppArtifactReadBytes")]
+pub async fn local_app_artifact_read_bytes(
+    input: NativeArtifactReadInput,
+) -> NativeArtifactReadOutcome {
+    let session = match current_or_open_session().await {
+        Ok(session) => session,
+        Err(error) => return NativeArtifactReadOutcome::error(error),
+    };
+    match session
+        .artifact_read_bytes(LocalAppArtifactReadRequest {
+            artifact_id: input.artifact_id,
+        })
+        .await
+    {
+        Ok(result) => NativeArtifactReadOutcome::success(NativeArtifactReadValue {
+            bytes: result.bytes.into(),
+            mime_type: result.mime_type,
+        }),
+        Err(error) => {
+            clear_session_on_transport_failure(&session, &error).await;
+            NativeArtifactReadOutcome::error(error)
+        }
+    }
 }
 
 #[napi(js_name = "localAppConversationInterruptTurn")]

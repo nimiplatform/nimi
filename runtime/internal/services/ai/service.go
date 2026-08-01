@@ -63,6 +63,7 @@ type Service struct {
 	spendDisclosureReporter                SpendDisclosureReporter
 	connStore                              *connector.ConnectorStore
 	localModel                             localModelLister
+	localTarget                            durableLocalTargetResolver
 	localImageProfile                      localImageProfileResolver
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
@@ -205,6 +206,10 @@ func (s *Service) SetModelRegistryPersistencePath(path string) {
 // SetLocalModelLister wires RuntimeLocalService for local model availability checks.
 func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 	s.localModel = localSvc
+	s.localTarget = nil
+	if resolver, ok := localSvc.(durableLocalTargetResolver); ok {
+		s.localTarget = resolver
+	}
 }
 
 // SetRuntimeArtifactStore wires the generic by-id artifact byte store used by
@@ -347,18 +352,36 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 	switch route {
 	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
 		provider = "local"
-		requestedLocalModelID := ""
-		if targetRef != nil {
-			localTarget := targetRef.GetLocalRuntime()
-			if localTarget == nil {
-				return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-			}
-			requestedLocalModelID = strings.TrimSpace(localTarget.GetProfileBindingId())
+		localTarget := targetRef.GetLocalRuntime()
+		if localTarget == nil || s.localTarget == nil {
+			return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			)
 		}
-		if requestedLocalModelID == "" {
-			requestedLocalModelID = resolvedModelID
+		binding, selected, resolveErr := s.localTarget.ResolveDurableLocalTarget(
+			ctx,
+			localTarget,
+			"text.generate",
+		)
+		if resolveErr != nil {
+			return publicChatTextContextMetadataResolution{}, resolveErr
 		}
-		plan, resolveErr := s.prepareLocalModelExecutionPlan(ctx, requestedLocalModelID, nil, runtimev1.Modal_MODAL_TEXT, nil)
+		if binding == nil ||
+			strings.TrimSpace(binding.GetResolvedModelId()) != resolvedModelID {
+			return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(
+				codes.FailedPrecondition,
+				runtimev1.ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH,
+			)
+		}
+		plan, resolveErr := s.prepareDurableLocalModelExecutionPlan(
+			ctx,
+			resolvedModelID,
+			binding,
+			selected,
+			runtimev1.Modal_MODAL_TEXT,
+			nil,
+		)
 		if resolveErr != nil {
 			return publicChatTextContextMetadataResolution{}, resolveErr
 		}
@@ -372,22 +395,6 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 			if catalogIdentityResolver, ok := s.localModel.(localCatalogModelIdentityResolver); ok {
 				if catalogModelID, found := catalogIdentityResolver.ResolveCatalogModelIDForLocalAsset(plan.selected.GetLocalAssetId()); found {
 					resolvedModelID = catalogModelID
-				}
-			}
-			if resolvedTargetRef == nil {
-				localAssetID := strings.TrimSpace(plan.selected.GetLocalAssetId())
-				if localAssetID == "" {
-					return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
-				}
-				resolvedTargetRef = &runtimev1.RuntimeDurableTargetRef{
-					Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-						LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-							Version: "v2",
-							Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-								ProfileBindingId: "local-runtime:" + localAssetID,
-							},
-						},
-					},
 				}
 			}
 		}

@@ -90,6 +90,8 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'upsertRuntimeAgentAIConfig'
     | 'getRuntimeAgentAIConfigReadiness'
     | 'subscribeRuntimeAgentAIConfigReadiness'
+    | 'previewRuntimeAgentAIProfile'
+    | 'applyRuntimeAgentAIProfile'
     | 'getAgentCanonicalMemoryBankStatus'
     | 'requestAgentCanonicalMemoryBankBind'
     | 'subscribeAgentEvents'
@@ -123,7 +125,8 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'subscribeAppMessages'>;
   readonly artifacts: Pick<DesktopAccountProductRuntimeMethods,
     | 'readArtifactBytes'
-    | 'cleanupGeneratedVoiceArtifacts'>;
+    | 'cleanupGeneratedVoiceArtifacts'
+    | 'putArtifact'>;
   readonly materializeRealmSource: (
     input: RuntimeMaterializeRealmSourceInput,
   ) => Promise<RuntimeMaterializeRealmSourceResult>;
@@ -216,6 +219,8 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     upsertRuntimeAgentAIConfig: runtime.agents.upsertRuntimeAgentAIConfig,
     getRuntimeAgentAIConfigReadiness: runtime.agents.getRuntimeAgentAIConfigReadiness,
     subscribeRuntimeAgentAIConfigReadiness: runtime.agents.subscribeRuntimeAgentAIConfigReadiness,
+    previewRuntimeAgentAIProfile: runtime.agents.previewRuntimeAgentAIProfile,
+    applyRuntimeAgentAIProfile: runtime.agents.applyRuntimeAgentAIProfile,
     getAgentCanonicalMemoryBankStatus: runtime.agents.getAgentCanonicalMemoryBankStatus,
     requestAgentCanonicalMemoryBankBind: runtime.agents.requestAgentCanonicalMemoryBankBind,
     subscribeAgentEvents: runtime.agents.subscribeAgentEvents,
@@ -321,6 +326,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       artifacts: Object.freeze({
         readArtifactBytes: runtime.artifacts.readArtifactBytes,
         cleanupGeneratedVoiceArtifacts: runtime.artifacts.cleanupGeneratedVoiceArtifacts,
+        putArtifact: runtime.artifacts.putArtifact,
       }),
       materializeRealmSource: runtime.materializeRealmSource.bind(runtime),
     }),

@@ -58,6 +58,8 @@ export function createLocalAssetRecordFixture(input: {
     displayName: '',
     sourceFileName: '',
     importInstanceId: '',
+    durableTargetStatus: 0,
+    durableTargetReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
   };
 }
 

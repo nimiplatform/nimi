@@ -8,6 +8,10 @@ import {
   sealAgentCenterPermissionedSdkSurface,
 } from '../src/session.js';
 import type {
+  NimiAICapabilityRequirementDeclaration,
+  NimiAIProfile,
+} from '@nimiplatform/sdk/ai';
+import type {
   AgentCenterOpaqueHandle,
   AgentCenterProductAction,
   AgentCenterTransportActionProjection,
@@ -42,7 +46,7 @@ async function flush(): Promise<void> {
 }
 
 const PRODUCT_ACTIONS: readonly AgentCenterProductAction[] = [
-  'readModelSettings', 'updateModelSettings', 'readAutonomy', 'updateAutonomy',
+  'readAIConfig', 'updateAIConfig', 'readAutonomy', 'updateAutonomy',
   'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
   'requestPermission', 'openPermissionSettings',
 ];
@@ -78,6 +82,20 @@ function permissionedSession(input: {
         };
       },
       async updateConfiguration() { return {}; },
+      async listAIProfiles() { return []; },
+      async previewAIProfile() {
+        return {
+          before: null, after: null, outcome: 'failed',
+          diff: { identical: true, fields: [] },
+          baseVersion: 'runtime-agent-revision:1', probeWarnings: [],
+        };
+      },
+      async applyAIProfile() {
+        return {
+          success: false, config: null, failureReason: 'not_configured',
+          outcome: 'failed', probeWarnings: [],
+        };
+      },
       async updateAutonomy() { return {}; },
       async replaceAppearance() { return {}; },
       async restorePreviousAppearance() { return {}; },
@@ -95,9 +113,20 @@ function permissionedSession(input: {
 
 describe('AgentCenter UI session contract', () => {
   it('renders from the Manager Session and exposes only UI composition props', async () => {
+    const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'local-agent:test' });
     const session = await sessionFor({
-      modelSettings: {
-        scopeRef: createNimiAIScopeRef({ kind: 'feature', ownerId: 'runtime.agent.model-settings', surfaceId: 'local-agent:test' }),
+      aiConfig: {
+        aiConfig: {
+          scopeRef,
+          profileOrigin: null,
+          capabilities: {
+            logicalModelIds: { 'text.generate': 'model-a' },
+            targetRefs: {},
+            selectedComponents: {},
+            selectedParams: {},
+          },
+        },
+        scopeRef,
         capabilities: ['text.generate'],
         routeIntents: [{ capability: 'text.generate', provider: '', model: 'model-a', routePolicy: 'local' }],
         readiness: [{ capability: 'text.generate', state: 'ready', reason: '', observedAt: null }],
@@ -229,5 +258,79 @@ describe('AgentCenter UI session contract', () => {
       container?.remove();
       container = null;
     }
+  });
+
+  it('partitions optional Agent capabilities out of required AIProfile slices', async () => {
+    const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'local-agent:test' });
+    const profile: NimiAIProfile = {
+      profileId: 'profile:image',
+      title: 'Image profile',
+      capabilities: {
+        'image.generate': { logicalModelId: 'image-model', readinessPolicy: 'optional' },
+      },
+    };
+    let declaration: NimiAICapabilityRequirementDeclaration | null = null;
+    const session = await sessionFor({
+      aiConfig: {
+        aiConfig: {
+          scopeRef,
+          profileOrigin: null,
+          capabilities: {
+            logicalModelIds: {}, targetRefs: {}, selectedComponents: {}, selectedParams: {},
+          },
+        },
+        scopeRef,
+        capabilities: ['text.generate', 'image.generate'],
+        routeIntents: [],
+        readiness: [
+          { capability: 'text.generate', state: 'blocked', reason: 'not_configured', observedAt: null },
+          { capability: 'image.generate', state: 'blocked', reason: 'not_configured', observedAt: null },
+        ],
+        configurationRevision: '1',
+      },
+    }, null, {
+      aiProfile: {
+        async list() { return [profile]; },
+        async previewApply(_scopeRef, _profileId, options) {
+          declaration = options.requirementDeclarations[0] ?? null;
+          return {
+            before: null,
+            after: null,
+            outcome: 'setup_required_no_live_config',
+            diff: { identical: true, fields: [] },
+            baseVersion: 'runtime-agent-revision:1',
+            probeWarnings: [],
+          };
+        },
+        async apply() {
+          throw new Error('apply must remain preview-gated');
+        },
+      },
+    });
+    const node = render(<AgentCenter activeSection="model" session={session} />);
+    await flush();
+    act(() => {
+      (Array.from(node.querySelectorAll('button'))
+        .find((button) => button.textContent?.includes('Import AI Profile')) as HTMLButtonElement).click();
+    });
+    await flush();
+    act(() => {
+      (Array.from(node.querySelectorAll('button'))
+        .find((button) => button.textContent?.includes('Image profile')) as HTMLButtonElement).click();
+    });
+    await flush();
+    act(() => {
+      (Array.from(node.querySelectorAll('button'))
+        .find((button) => button.textContent?.trim() === 'Confirm') as HTMLButtonElement).click();
+    });
+    await flush();
+
+    const capturedDeclaration = declaration as NimiAICapabilityRequirementDeclaration | null;
+    expect(capturedDeclaration?.requiredSlices).toEqual([expect.objectContaining({
+      capability: 'text.generate', readinessPolicy: 'required',
+    })]);
+    expect(capturedDeclaration?.optionalSlices).toEqual([expect.objectContaining({
+      capability: 'image.generate', readinessPolicy: 'optional',
+    })]);
   });
 });

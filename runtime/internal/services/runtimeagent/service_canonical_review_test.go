@@ -406,11 +406,13 @@ func TestRuntimeAgentExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) 
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-canonical-review")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-canonical-review"),
+		Context: identityContext,
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{

@@ -44,7 +44,14 @@ pub enum LocalAppReasonCode {
     PermissionUnknown,
     PresenceExpired,
     RuntimePermissionDenied,
+    AiVoiceTargetModelMismatch,
     AgentAiConfigRevisionConflict,
+    AgentAiConfigInvalid,
+    AgentAiConfigTargetRequired,
+    AgentAiConfigTargetInvalid,
+    AgentAiConfigTargetUnavailable,
+    AgentAiConfigCapabilityMismatch,
+    AgentAiConfigModelTargetMismatch,
     AgentAutonomyRevisionConflict,
     AgentPresentationRevisionConflict,
     OperationUnavailable,
@@ -76,7 +83,14 @@ impl LocalAppReasonCode {
             Self::PermissionUnknown => "permission-unknown",
             Self::PresenceExpired => "presence-expired",
             Self::RuntimePermissionDenied => "runtime-permission-denied",
+            Self::AiVoiceTargetModelMismatch => "ai-voice-target-model-mismatch",
             Self::AgentAiConfigRevisionConflict => "agent-ai-config-revision-conflict",
+            Self::AgentAiConfigInvalid => "agent-ai-config-invalid",
+            Self::AgentAiConfigTargetRequired => "agent-ai-config-target-required",
+            Self::AgentAiConfigTargetInvalid => "agent-ai-config-target-invalid",
+            Self::AgentAiConfigTargetUnavailable => "agent-ai-config-target-unavailable",
+            Self::AgentAiConfigCapabilityMismatch => "agent-ai-config-capability-mismatch",
+            Self::AgentAiConfigModelTargetMismatch => "agent-ai-config-model-target-mismatch",
             Self::AgentAutonomyRevisionConflict => "agent-autonomy-revision-conflict",
             Self::AgentPresentationRevisionConflict => "agent-presentation-revision-conflict",
             Self::OperationUnavailable => "local-app-operation-unavailable",
@@ -266,11 +280,35 @@ pub struct LocalAppConversationSendRequest {
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub text: String,
+    pub attachments: JsonValue,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationSendResult {
     pub message_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppArtifactPutRequest {
+    pub mime_type: String,
+    pub display_name: String,
+    pub data: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppArtifactPutResult {
+    pub artifact_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppArtifactReadRequest {
+    pub artifact_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppArtifactReadResult {
+    pub bytes: Vec<u8>,
+    pub mime_type: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -305,7 +343,23 @@ pub struct LocalAppAgentHandleRequest {
 pub struct LocalAppAgentUpdateConfigurationRequest {
     pub agent_handle: String,
     pub expected_configuration_revision: u64,
-    pub route_intents: JsonValue,
+    pub intents: JsonValue,
+    pub profile_origin: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentAIProfilePreviewRequest {
+    pub agent_handle: String,
+    pub profile: JsonValue,
+    pub runtime_descriptor: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentAIProfileApplyRequest {
+    pub agent_handle: String,
+    pub expected_configuration_revision: u64,
+    pub profile: JsonValue,
+    pub runtime_descriptor: JsonValue,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -712,6 +766,28 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppConversationSnapshotRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
+    fn artifact_put(
+        &self,
+        request: LocalAppArtifactPutRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppArtifactPutResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn artifact_read_bytes(
+        &self,
+        request: LocalAppArtifactReadRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppArtifactReadResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
     fn agent_configuration_snapshot(
         &self,
         request: LocalAppAgentHandleRequest,
@@ -725,6 +801,16 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn agent_readiness_snapshot(
         &self,
         request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_ai_profile_preview(
+        &self,
+        request: LocalAppAgentAIProfilePreviewRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_ai_profile_apply(
+        &self,
+        request: LocalAppAgentAIProfileApplyRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_autonomy_snapshot(

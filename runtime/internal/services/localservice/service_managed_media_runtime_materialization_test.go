@@ -9,11 +9,88 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestResolveManagedMediaImageProfileAssociatesPortableSDKDescriptorAcrossRestart(t *testing.T) {
 	testResolveManagedMediaImageProfileDescriptorAcrossRestart(t)
+}
+
+func TestResolveManagedMediaImageProfilePreservesRepeatedOccurrenceBindingsToBackend(t *testing.T) {
+	svc := newTestService(t)
+	main := &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "local-main-repeated",
+		AssetId:        "main-repeated",
+		LogicalModelId: "local/main-repeated",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine:         "media",
+		Entry:          "main.gguf",
+		Capabilities:   []string{"image"},
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Source:         &runtimev1.LocalAssetSource{Repo: "nimiplatform/main"},
+	}
+	first := &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "local-vae-first",
+		AssetId:        "vae-first",
+		LogicalModelId: "local/vae-first",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:         "media",
+		Entry:          "first.safetensors",
+		ArtifactRoles:  []string{"vae"},
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Source:         &runtimev1.LocalAssetSource{Repo: "nimiplatform/vae"},
+	}
+	second := proto.Clone(first).(*runtimev1.LocalAssetRecord)
+	second.LocalAssetId = "local-vae-second"
+	second.AssetId = "vae-second"
+	second.LogicalModelId = "local/vae-second"
+	second.Entry = "second.safetensors"
+	svc.mu.Lock()
+	svc.assets[main.GetLocalAssetId()] = main
+	svc.assets[first.GetLocalAssetId()] = first
+	svc.assets[second.GetLocalAssetId()] = second
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, svc.resolvedLocalModelsPath(), main, "main")
+	writeManagedAssetEntryFixture(t, svc.resolvedLocalModelsPath(), first, "first")
+	writeManagedAssetEntryFixture(t, svc.resolvedLocalModelsPath(), second, "second")
+
+	key := profileRuntimeMaterializationKeyPrefix + "repeated-occurrences"
+	svc.cacheManagedMediaImageProfileResolution(main.GetLocalAssetId(), key, nil, true, []managedMediaProfileMaterializationBinding{
+		{AssetID: main.GetAssetId(), LocalAssetID: main.GetLocalAssetId()},
+		{
+			AssetID: main.GetAssetId(), LocalAssetID: main.GetLocalAssetId(), ParentAssetID: main.GetAssetId(),
+			OccurrenceID: "vae-first-occurrence", Order: 0, Role: "vae", LogicalModelID: first.GetLogicalModelId(), Required: true,
+			Weight: "0.4", Options: map[string]any{"adapter": "first"}, CompanionKind: "vae", EngineSlot: "vae_path",
+			CompanionAssetID: first.GetAssetId(), CompanionLocalAssetID: first.GetLocalAssetId(),
+		},
+		{
+			AssetID: main.GetAssetId(), LocalAssetID: main.GetLocalAssetId(), ParentAssetID: main.GetAssetId(),
+			OccurrenceID: "vae-second-occurrence", Order: 1, Role: "vae", LogicalModelID: second.GetLogicalModelId(), Required: false,
+			Weight: "0.7", Options: map[string]any{"adapter": "second"}, CompanionKind: "vae", EngineSlot: "vae_path",
+			CompanionAssetID: second.GetAssetId(), CompanionLocalAssetID: second.GetLocalAssetId(),
+		},
+	})
+
+	_, profile, _, err := svc.ResolveManagedMediaImageProfileForBinding(
+		context.Background(), workflowBindingIDPrefix+key, main.GetLocalAssetId(), nil,
+	)
+	if err != nil {
+		t.Fatalf("resolve repeated exact materialization: %v", err)
+	}
+	req, err := managedImageLoadRequest(svc.resolvedLocalModelsPath(), "127.0.0.1:1", profile, nil)
+	if err != nil {
+		t.Fatalf("build repeated exact backend request: %v", err)
+	}
+	if len(req.Components) != 2 {
+		t.Fatalf("backend component count = %d, want 2: %+v", len(req.Components), req.Components)
+	}
+	if req.Components[0].OccurrenceID != "vae-first-occurrence" || req.Components[1].OccurrenceID != "vae-second-occurrence" ||
+		req.Components[0].Order != 0 || req.Components[1].Order != 1 || req.Components[0].EngineSlot != "vae_path" || req.Components[1].EngineSlot != "vae_path" ||
+		req.Components[0].Weight != "0.4" || req.Components[1].Weight != "0.7" ||
+		!strings.Contains(req.Components[0].OptionsJSON, "first") || !strings.Contains(req.Components[1].OptionsJSON, "second") {
+		t.Fatalf("backend lost occurrence contract: %+v", req.Components)
+	}
 }
 
 func TestPrepareProfileRuntimeDescriptorRejectsPortablePreparedAssetIDs(t *testing.T) {
@@ -316,6 +393,7 @@ func seedProfileRuntimePreparedAssetSelectedSourceForService(
 	parentAssetID string,
 	parentSelectedSourceRecordID string,
 	canonicalRoot string,
+	selectedConsumers ...string,
 ) localEnvironmentSelectedSourceRecordState {
 	t.Helper()
 	if asset == nil {
@@ -336,6 +414,10 @@ func seedProfileRuntimePreparedAssetSelectedSourceForService(
 		semanticHashKey = "companion_asset_id"
 		localIDHashKey = "companion_local_asset_id"
 		localIDCompatibilityKey = localIDHashKey
+	}
+	consumers := normalizeStringSlice(selectedConsumers)
+	if len(consumers) == 0 {
+		consumers = []string{"stable-diffusion.cpp.metal"}
 	}
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
 	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
@@ -361,7 +443,7 @@ func seedProfileRuntimePreparedAssetSelectedSourceForService(
 			localIDHashKey:  strings.TrimSpace(localAssetID),
 			"entry_sha256":  entrySHA256,
 		},
-		SelectedConsumers: []string{"stable-diffusion.cpp.metal"},
+		SelectedConsumers: consumers,
 	})
 	if family == localEnvironmentFamilyModelCompanion {
 		record.SourceKind = localEnvironmentSourceManaged

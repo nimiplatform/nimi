@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	RuntimeArtifactService_ReadArtifactBytes_FullMethodName              = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
 	RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_FullMethodName = "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts"
+	RuntimeArtifactService_PutArtifact_FullMethodName                    = "/nimi.runtime.v1.RuntimeArtifactService/PutArtifact"
 )
 
 // RuntimeArtifactServiceClient is the client API for RuntimeArtifactService service.
@@ -80,6 +81,22 @@ type RuntimeArtifactServiceClient interface {
 	// K-VOICE-020. It does not delete scenario images/video/music, uploaded
 	// user files, committed text messages, or conversation history.
 	CleanupGeneratedVoiceArtifacts(ctx context.Context, in *CleanupGeneratedVoiceArtifactsRequest, opts ...grpc.CallOption) (*CleanupGeneratedVoiceArtifactsResponse, error)
+	// Upload bounded user attachment material into the runtime artifact store
+	// so that a conversation turn can later reference it by artifact_id.
+	//
+	// Admission (fail closed, checked before the body is fully allocated):
+	//   - mime_type must be image/png, image/jpeg, image/webp, or image/gif and
+	//     must match the payload file signature; mismatch or corrupt payloads are
+	//     rejected with ARTIFACT_UPLOAD_CONTENT_MISMATCH.
+	//   - data is limited to 4 MiB (4 * 1024 * 1024) raw bytes; oversize payloads
+	//     are rejected with ARTIFACT_UPLOAD_TOO_LARGE before allocation.
+	//   - ARTIFACT_UPLOAD_MIME_UNSUPPORTED covers every other media type.
+	//
+	// The stored record carries owner metadata (subject_user_id + calling app
+	// identity); the artifact_id is never an authorization credential, and the
+	// store record's mime/size are the only trusted values for later turn
+	// admission.
+	PutArtifact(ctx context.Context, in *PutArtifactRequest, opts ...grpc.CallOption) (*PutArtifactResponse, error)
 }
 
 type runtimeArtifactServiceClient struct {
@@ -104,6 +121,16 @@ func (c *runtimeArtifactServiceClient) CleanupGeneratedVoiceArtifacts(ctx contex
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CleanupGeneratedVoiceArtifactsResponse)
 	err := c.cc.Invoke(ctx, RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeArtifactServiceClient) PutArtifact(ctx context.Context, in *PutArtifactRequest, opts ...grpc.CallOption) (*PutArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PutArtifactResponse)
+	err := c.cc.Invoke(ctx, RuntimeArtifactService_PutArtifact_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +194,22 @@ type RuntimeArtifactServiceServer interface {
 	// K-VOICE-020. It does not delete scenario images/video/music, uploaded
 	// user files, committed text messages, or conversation history.
 	CleanupGeneratedVoiceArtifacts(context.Context, *CleanupGeneratedVoiceArtifactsRequest) (*CleanupGeneratedVoiceArtifactsResponse, error)
+	// Upload bounded user attachment material into the runtime artifact store
+	// so that a conversation turn can later reference it by artifact_id.
+	//
+	// Admission (fail closed, checked before the body is fully allocated):
+	//   - mime_type must be image/png, image/jpeg, image/webp, or image/gif and
+	//     must match the payload file signature; mismatch or corrupt payloads are
+	//     rejected with ARTIFACT_UPLOAD_CONTENT_MISMATCH.
+	//   - data is limited to 4 MiB (4 * 1024 * 1024) raw bytes; oversize payloads
+	//     are rejected with ARTIFACT_UPLOAD_TOO_LARGE before allocation.
+	//   - ARTIFACT_UPLOAD_MIME_UNSUPPORTED covers every other media type.
+	//
+	// The stored record carries owner metadata (subject_user_id + calling app
+	// identity); the artifact_id is never an authorization credential, and the
+	// store record's mime/size are the only trusted values for later turn
+	// admission.
+	PutArtifact(context.Context, *PutArtifactRequest) (*PutArtifactResponse, error)
 }
 
 // UnimplementedRuntimeArtifactServiceServer should be embedded to have
@@ -181,6 +224,9 @@ func (UnimplementedRuntimeArtifactServiceServer) ReadArtifactBytes(context.Conte
 }
 func (UnimplementedRuntimeArtifactServiceServer) CleanupGeneratedVoiceArtifacts(context.Context, *CleanupGeneratedVoiceArtifactsRequest) (*CleanupGeneratedVoiceArtifactsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CleanupGeneratedVoiceArtifacts not implemented")
+}
+func (UnimplementedRuntimeArtifactServiceServer) PutArtifact(context.Context, *PutArtifactRequest) (*PutArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PutArtifact not implemented")
 }
 func (UnimplementedRuntimeArtifactServiceServer) testEmbeddedByValue() {}
 
@@ -238,6 +284,24 @@ func _RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_Handler(srv interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeArtifactService_PutArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeArtifactServiceServer).PutArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeArtifactService_PutArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeArtifactServiceServer).PutArtifact(ctx, req.(*PutArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeArtifactService_ServiceDesc is the grpc.ServiceDesc for RuntimeArtifactService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +316,10 @@ var RuntimeArtifactService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CleanupGeneratedVoiceArtifacts",
 			Handler:    _RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_Handler,
+		},
+		{
+			MethodName: "PutArtifact",
+			Handler:    _RuntimeArtifactService_PutArtifact_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

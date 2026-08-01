@@ -5,12 +5,13 @@ import type {
 import type {
   AppModelConfigSurface,
   ModelConfigProjectionStatus,
-  ModelConfigSettingsProjection,
-  ModelConfigSettingsService,
+  SharedAIConfigService,
 } from '@nimiplatform/kit/core/model-config';
 import {
+  defaultModelConfigProfileCopy,
   ModelConfigAiModelHub,
   type ModelConfigSuperSection,
+  useModelConfigProfileController,
 } from '@nimiplatform/kit/features/model-config';
 import type {
   AgentCenterCapabilityState,
@@ -18,7 +19,8 @@ import type {
   AgentCenterI18n,
   AgentCenterModelCopy,
   AgentCenterModelSuperSectionId,
-  AgentCenterRuntimeModelSettingsProjection,
+  AgentCenterRuntimeAIConfigProjection,
+  AgentCenterRuntimeModelConfigAdapter,
   AgentCenterSession,
   AgentCenterSnapshot,
 } from '../types.js';
@@ -122,19 +124,22 @@ function superSectionsForCopy(copy: ResolvedAgentCenterModelCopy): readonly Mode
 }
 
 function buildRequirementDeclaration(
-  projection: AgentCenterRuntimeModelSettingsProjection,
+  projection: AgentCenterRuntimeAIConfigProjection,
   capabilities: readonly AgentCenterCapabilityState[],
 ): NimiAICapabilityRequirementDeclaration {
+  const slices = capabilities.map((capability) => ({
+    requirementSliceId: `runtime-agent:${capability.capability}`,
+    capability: capability.capability,
+    profileSliceRef: `runtime-agent:${capability.capability}`,
+    readinessPolicy: capability.required ? 'required' as const : 'optional' as const,
+  }));
+  const optionalSlices = slices.filter((slice) => slice.readinessPolicy === 'optional');
   return {
-    requirementId: 'runtime-agent-model-settings:agent-center',
+    requirementId: 'runtime-agent-ai-config:agent-center',
     scopeRef: projection.scopeRef,
-    requiredSlices: capabilities.map((capability) => ({
-      requirementSliceId: `runtime-agent:${capability.capability}`,
-      capability: capability.capability,
-      profileSliceRef: `runtime-agent:${capability.capability}`,
-      readinessPolicy: capability.required ? 'required' : 'optional',
-    })),
-    setupProjectionPolicy: 'runtime-agent-model-settings',
+    requiredSlices: slices.filter((slice) => slice.readinessPolicy === 'required'),
+    ...(optionalSlices.length > 0 ? { optionalSlices } : {}),
+    setupProjectionPolicy: 'runtime-agent-ai-config',
   };
 }
 
@@ -148,6 +153,15 @@ function projectionForCapability(
       tone: 'ready',
       badgeLabel: copy.projectionReadyBadge,
       title: copy.projectionReadyTitle,
+      detail: null,
+    };
+  }
+  if (capability.readinessState === 'configured_unverified') {
+    return {
+      supported: true,
+      tone: 'neutral',
+      badgeLabel: capability.readinessState,
+      title: capability.summary,
       detail: null,
     };
   }
@@ -169,45 +183,80 @@ function projectionForCapability(
   };
 }
 
-function createModelSettingsService(
+function createAIConfigService(
   session: AgentCenterSession,
-  initial: AgentCenterRuntimeModelSettingsProjection,
-): ModelConfigSettingsService & { sync(projection: AgentCenterRuntimeModelSettingsProjection): void } {
-  let current: ModelConfigSettingsProjection = initial;
-  const listeners = new Set<(projection: ModelConfigSettingsProjection) => void>();
-  const publish = (projection: ModelConfigSettingsProjection) => {
+  initial: AgentCenterRuntimeAIConfigProjection,
+  modelConfig: AgentCenterRuntimeModelConfigAdapter,
+): SharedAIConfigService & { sync(projection: AgentCenterRuntimeAIConfigProjection): void } {
+  let current = initial;
+  const listeners = new Set<(config: AgentCenterRuntimeAIConfigProjection['aiConfig']) => void>();
+  const publish = (projection: AgentCenterRuntimeAIConfigProjection) => {
     current = projection;
-    for (const listener of listeners) listener(projection);
+    for (const listener of listeners) listener(projection.aiConfig);
   };
   return {
     sync: publish,
-    get: () => current,
-    async update(input) {
-      await session.updateModelSettings({
-        expectedConfigurationRevision: input.expectedConfigurationRevision,
-        routeIntents: input.routeIntents,
-      });
-      const committed = session.getSnapshot().state.modelSettings;
-      if (!committed) throw new Error('Committed model-settings projection is unavailable.');
-      publish(committed);
-      return committed;
-    },
-    subscribe(_scopeRef, listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
+    aiProfile: modelConfig.aiProfile,
+    aiConfig: {
+      get: () => current.aiConfig,
+      async update(_scopeRef, config) {
+        await session.updateAIConfig({
+          expectedConfigurationRevision: current.configurationRevision,
+          config,
+        });
+        const committed = session.getSnapshot().state.aiConfig;
+        if (!committed) throw new Error('Committed Runtime Agent AIConfig projection is unavailable.');
+        publish(committed);
+      },
+      subscribe(_scopeRef, listener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
     },
   };
+}
+
+function AgentCenterConfiguredModelHub(props: {
+  readonly labels: ResolvedAgentCenterModelCopy;
+  readonly projection: AgentCenterRuntimeAIConfigProjection;
+  readonly requirementDeclaration: NimiAICapabilityRequirementDeclaration;
+  readonly service: SharedAIConfigService;
+  readonly superSections: readonly ModelConfigSuperSection[];
+  readonly surface: AppModelConfigSurface;
+  readonly t: (key: string, vars?: Readonly<Record<string, string | number>>) => string;
+}) {
+  const profile = useModelConfigProfileController({
+    scopeRef: props.projection.scopeRef,
+    aiConfigService: props.service,
+    requirementDeclaration: props.requirementDeclaration,
+    copy: defaultModelConfigProfileCopy(props.t),
+    currentOrigin: props.projection.aiConfig.profileOrigin,
+  });
+  return (
+    <ModelConfigAiModelHub
+      detailActiveModelHint={props.labels.detailActiveModelHint}
+      profile={profile}
+      superSections={props.superSections}
+      surface={props.surface}
+    />
+  );
 }
 
 export function AgentCenterModelSection({ session, snapshot, i18n }: AgentCenterModelSectionProps) {
   const [status] = useState('');
   const modelState = snapshot.state;
-  const projection = modelState.modelSettings;
+  const projection = modelState.aiConfig;
   const labels = useMemo(() => resolveModelCopy(undefined, i18n), [i18n]);
   const t = useMemo(() => createTranslator(labels, i18n), [i18n, labels]);
   const superSections = useMemo(() => superSectionsForCopy(labels), [labels]);
+  const requirementDeclaration = useMemo(
+    () => projection ? buildRequirementDeclaration(projection, modelState.capabilities) : null,
+    [modelState.capabilities, projection],
+  );
   const service = useMemo(
-    () => projection ? createModelSettingsService(session, projection) : null,
+    () => projection && session.modelConfig
+      ? createAIConfigService(session, projection, session.modelConfig)
+      : null,
     [projection?.scopeRef, session],
   );
   useEffect(() => {
@@ -216,7 +265,7 @@ export function AgentCenterModelSection({ session, snapshot, i18n }: AgentCenter
   const capabilityById = useMemo(() => new Map(
     modelState.capabilities.map((capability) => [capability.capability, capability]),
   ), [modelState.capabilities]);
-  const availability = snapshot.availability.updateModelSettings;
+  const availability = snapshot.availability.updateAIConfig;
   const actionAvailable = availability.state === 'available';
   const modelMutationDisabled = !actionAvailable
     || modelState.agentAIConfigMutationDisabledReason !== null
@@ -225,22 +274,24 @@ export function AgentCenterModelSection({ session, snapshot, i18n }: AgentCenter
     || !service;
 
   const surface = useMemo<AppModelConfigSurface | null>(() => {
-    if (!projection || !service) return null;
+    if (!projection || !service || !requirementDeclaration) return null;
     return {
       scopeRef: projection.scopeRef,
-      modelSettingsService: service,
-      requirementDeclaration: buildRequirementDeclaration(projection, modelState.capabilities),
+      aiConfigService: service,
+      requirementDeclaration,
       providerResolver: (routeCapability) => session.modelConfig?.providerResolver?.(routeCapability) ?? null,
       projectionResolver: (capabilityId) => {
         const capability = capabilityById.get(capabilityId);
         return capability ? projectionForCapability(capability, labels) : null;
       },
+      routeIntentResolver: (capabilityId) => (
+        projection.routeIntents.find((intent) => intent.capability === capabilityId) ?? null
+      ),
       localAssetSource: session.modelConfig?.localAssetSource || undefined,
       capabilityOverrides: Object.fromEntries(modelState.capabilities.map((capabilityState) => [
         capabilityState.capability,
         {
           disabled: modelMutationDisabled,
-          hideEditor: true,
           showClearButton: !capabilityState.required,
           placeholder: modelState.agentAIConfigMutationDisabledReason
             ? labels.revisionUnavailable
@@ -256,15 +307,15 @@ export function AgentCenterModelSection({ session, snapshot, i18n }: AgentCenter
           : labels.runtimeModelPickerUnavailableLabel,
       i18n: { t },
     };
-  }, [capabilityById, labels, modelMutationDisabled, modelState.agentAIConfigMutationDisabledReason, modelState.capabilities, projection, service, session.modelConfig, t]);
+  }, [capabilityById, labels, modelMutationDisabled, modelState.agentAIConfigMutationDisabledReason, modelState.capabilities, projection, requirementDeclaration, service, session.modelConfig, t]);
 
-  if (!actionAvailable || !surface) {
+  if (!actionAvailable || !surface || !projection || !service || !requirementDeclaration) {
     return (
       <SectionShell labelledBy="agent-center-model-title">
         <SectionHeader id="agent-center-model-title" title={labels.sectionTitle} />
         {availability.state === 'unavailable' ? (
           <AgentCenterProductActionNotice
-            action="updateModelSettings"
+            action="updateAIConfig"
             availability={availability}
             i18n={i18n}
             session={session}
@@ -277,16 +328,20 @@ export function AgentCenterModelSection({ session, snapshot, i18n }: AgentCenter
   return (
     <SectionShell labelledBy="agent-center-model-title">
       <SectionHeader id="agent-center-model-title" title={labels.sectionTitle} />
-      <div data-agent-center-model-apply="runtime-agent-model-settings" data-agent-center-model-surface="runtime-model-config-hub">
+      <div data-agent-center-model-apply="runtime-agent-ai-config" data-agent-center-model-surface="runtime-model-config-hub">
         {modelState.capabilities.map((capability) => (
           <span data-agent-center-model-binding={capability.capability} hidden key={capability.capability}>
             {capability.binding?.model || labels.notConfiguredLabel}
           </span>
         ))}
-        <ModelConfigAiModelHub
-          detailActiveModelHint={labels.detailActiveModelHint}
+        <AgentCenterConfiguredModelHub
+          labels={labels}
+          projection={projection}
+          requirementDeclaration={requirementDeclaration}
+          service={service}
           superSections={superSections}
           surface={surface}
+          t={t}
         />
       </div>
       {modelMutationDisabled ? <Notice>{labels.revisionUnavailable}</Notice> : null}

@@ -45,7 +45,10 @@ type fakeLocalImageProfileResolver struct {
 	resolveProfileCalls int
 	resolveProfileErr   error
 	resolveSelectionErr error
+	ensureLoadErr       error
 	lastRequestedModel  string
+	lastExecutionModel  string
+	lastProfileBinding  string
 	lastExtensions      map[string]any
 }
 
@@ -57,6 +60,20 @@ func (f *fakeLocalImageProfileResolver) ResolveManagedMediaImageProfile(_ contex
 		return "", nil, nil, f.resolveProfileErr
 	}
 	return f.alias, f.profile, f.forwardedExtensions, nil
+}
+
+func (f *fakeLocalImageProfileResolver) ResolveManagedMediaImageProfileForLocalAsset(ctx context.Context, localAssetID string, scenarioExtensions map[string]any) (string, map[string]any, map[string]any, error) {
+	return f.ResolveManagedMediaImageProfile(ctx, localAssetID, scenarioExtensions)
+}
+
+func (f *fakeLocalImageProfileResolver) ResolveManagedMediaImageProfileForBinding(
+	ctx context.Context,
+	profileBindingID string,
+	localAssetID string,
+	scenarioExtensions map[string]any,
+) (string, map[string]any, map[string]any, error) {
+	f.lastProfileBinding = profileBindingID
+	return f.ResolveManagedMediaImageProfileForLocalAsset(ctx, localAssetID, scenarioExtensions)
 }
 
 func (f *fakeLocalImageProfileResolver) ResolveManagedAssetPath(_ context.Context, _ string) (string, error) {
@@ -74,6 +91,20 @@ func (f *fakeLocalImageProfileResolver) ResolveCanonicalImageSelection(_ context
 	return f.selection, nil
 }
 
+func (f *fakeLocalImageProfileResolver) ResolveCanonicalImageSelectionForLocalAsset(ctx context.Context, localAssetID string) (engine.ImageSupervisedMatrixSelection, error) {
+	return f.ResolveCanonicalImageSelection(ctx, localAssetID)
+}
+
+func testLocalImageExecutionPlan(localAssetID string) *localModelExecutionPlan {
+	return &localModelExecutionPlan{
+		selected: &runtimev1.LocalAssetRecord{LocalAssetId: localAssetID},
+		targetBinding: &runtimev1.RuntimeResolvedLocalExecutionBinding{
+			ProfileBindingId: "test_workflow_binding:v2:" + localAssetID,
+		},
+		modal: runtimev1.Modal_MODAL_IMAGE,
+	}
+}
+
 func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) (*nimillm.ManagedMediaImageLoadDiagnostics, error) {
 	f.ensureLoadCalls++
 	f.lastRequestedModel = requestedModelID
@@ -81,6 +112,9 @@ func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.
 	f.lastEnsureAlias = alias
 	f.lastEnsureExt = scenarioExtensions
 	f.profile = profile
+	if f.ensureLoadErr != nil {
+		return nil, f.ensureLoadErr
+	}
 	return &nimillm.ManagedMediaImageLoadDiagnostics{
 		LoadDurationMs:    23,
 		LoadCacheHit:      true,
@@ -99,7 +133,8 @@ func (f *fakeLocalImageProfileResolver) ReleaseManagedMediaImage(_ context.Conte
 	return nil
 }
 
-func (f *fakeLocalImageProfileResolver) UpdateManagedMediaImageExecutionStatus(_ context.Context, _ string, healthy bool, detail string) error {
+func (f *fakeLocalImageProfileResolver) UpdateManagedMediaImageExecutionStatus(_ context.Context, localAssetID string, healthy bool, detail string) error {
+	f.lastExecutionModel = localAssetID
 	f.executionHealthy = healthy
 	f.executionDetail = detail
 	return nil
@@ -202,6 +237,7 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 		"media/local-import/z_image_turbo-Q4_K",
 		adapterMediaNative,
 		nil,
+		testLocalImageExecutionPlan("private-local-asset-z-image-turbo"),
 		nil,
 		nil,
 		nil,
@@ -217,6 +253,13 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	}
 	if resolver.releaseCalls != 1 {
 		t.Fatalf("expected exactly one managed image release, got %d", resolver.releaseCalls)
+	}
+	if resolver.lastRequestedModel != "private-local-asset-z-image-turbo" ||
+		resolver.lastExecutionModel != "private-local-asset-z-image-turbo" {
+		t.Fatalf("managed image execution did not retain exact local asset identity: requested=%q execution=%q", resolver.lastRequestedModel, resolver.lastExecutionModel)
+	}
+	if resolver.lastProfileBinding != "test_workflow_binding:v2:private-local-asset-z-image-turbo" {
+		t.Fatalf("managed image execution did not resolve committed profile binding: %q", resolver.lastProfileBinding)
 	}
 	if resolver.lastLoadReason != "generate_request" {
 		t.Fatalf("expected generate load reason, got %q", resolver.lastLoadReason)
@@ -265,6 +308,61 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	}
 	if !resolver.executionHealthy {
 		t.Fatalf("expected successful execution status callback, detail=%q", resolver.executionDetail)
+	}
+}
+
+func TestExecuteBackendSyncMediaImageReturnsTypedLoadFailureForExactBinding(t *testing.T) {
+	resolver := &fakeLocalImageProfileResolver{
+		alias:          "managed-image-alias",
+		profile:        map[string]any{"backend": "stablediffusion-ggml", "parameters": map[string]any{"model": "resolved/example/model.gguf"}},
+		modelsRoot:     t.TempDir(),
+		backendAddress: "127.0.0.1:50052",
+		ensureLoadErr:  grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE),
+		selection: engine.ImageSupervisedMatrixSelection{
+			Matched:        true,
+			ProductState:   engine.ImageProductStateSupported,
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
+			ExecutionPlane: engine.EngineMedia,
+			Entry: &engine.ImageSupervisedMatrixEntry{
+				ProductState:   engine.ImageProductStateSupported,
+				BackendClass:   engine.ImageBackendClassNativeBinary,
+				ControlPlane:   engine.ImageControlPlaneRuntime,
+				ExecutionPlane: engine.EngineMedia,
+			},
+		},
+	}
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head:         &runtimev1.ScenarioRequestHead{ModelId: "local/z-image-turbo"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+			ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "orange cat", N: 1, Size: "1024x1024"},
+		}},
+	}
+	exactLocalAssetID := "private-local-asset-load-failure"
+	_, _, _, err := executeBackendSyncMedia(
+		context.Background(),
+		&Service{localImageProfile: resolver},
+		nil,
+		req,
+		&localProvider{media: nimillm.NewBackend("local-media", "http://127.0.0.1:1", "", 0)},
+		"media/z-image-turbo",
+		adapterMediaNative,
+		nil,
+		testLocalImageExecutionPlan(exactLocalAssetID),
+		nil,
+		nil,
+		nil,
+	)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("managed image load failure reason=%v ok=%v err=%v", reason, ok, err)
+	}
+	if resolver.ensureLoadCalls != 1 || resolver.releaseCalls != 0 || resolver.executionHealthy ||
+		resolver.lastRequestedModel != exactLocalAssetID || resolver.lastExecutionModel != exactLocalAssetID {
+		t.Fatalf("exact load failure lifecycle = %+v", resolver)
+	}
+	if resolver.lastProfileBinding != "test_workflow_binding:v2:"+exactLocalAssetID {
+		t.Fatalf("exact load failure resolved wrong profile binding: %q", resolver.lastProfileBinding)
 	}
 }
 
@@ -342,6 +440,7 @@ func TestExecuteBackendSyncMediaImageUsesPlainPathForPythonPipelineSelection(t *
 		"media/flux.1-schnell",
 		adapterMediaNative,
 		nil,
+		testLocalImageExecutionPlan("media/flux.1-schnell"),
 		nil,
 		nil,
 		nil,
@@ -423,6 +522,7 @@ func TestExecuteBackendSyncMediaImageUsesCloudTargetWithoutLocalResolver(t *test
 		"openai/gpt-image-1.5",
 		"openai_compat_adapter",
 		remoteTarget,
+		nil,
 		cloudProvider,
 		nil,
 		nil,
@@ -514,6 +614,7 @@ func TestExecuteBackendSyncMediaImageFailsClosedWhenBackendTargetUnavailable(t *
 		"media/local-import/z_image_turbo-Q4_K",
 		adapterMediaNative,
 		nil,
+		testLocalImageExecutionPlan("media/local-import/z_image_turbo-Q4_K"),
 		nil,
 		nil,
 		nil,
@@ -704,6 +805,7 @@ func TestExecuteBackendSyncMediaImageFailsClosedWithoutLocalImageResolver(t *tes
 		"media/local-import/z_image_turbo-Q4_K",
 		adapterMediaNative,
 		nil,
+		testLocalImageExecutionPlan("media/local-import/z_image_turbo-Q4_K"),
 		nil,
 		nil,
 		nil,
@@ -760,6 +862,7 @@ func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSelection(t *testi
 		"media/local-import/z_image_turbo-Q4_K",
 		adapterMediaNative,
 		nil,
+		testLocalImageExecutionPlan("media/local-import/z_image_turbo-Q4_K"),
 		nil,
 		nil,
 		nil,
@@ -824,6 +927,7 @@ func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSafetensorsNativeS
 		"media/local-import/safetensors-native",
 		adapterMediaNative,
 		nil,
+		testLocalImageExecutionPlan("media/local-import/safetensors-native"),
 		nil,
 		nil,
 		nil,

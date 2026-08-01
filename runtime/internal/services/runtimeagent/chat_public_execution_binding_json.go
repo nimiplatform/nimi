@@ -9,14 +9,16 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type publicChatExecutionBindingJSON struct {
-	BindingAlias string                `json:"BindingAlias,omitempty"`
-	ModelID      string                `json:"ModelID,omitempty"`
-	RoutePolicy  runtimev1.RoutePolicy `json:"RoutePolicy,omitempty"`
-	ConnectorID  string                `json:"ConnectorID,omitempty"`
-	TargetRef    json.RawMessage       `json:"TargetRef,omitempty"`
+	BindingAlias   string                `json:"BindingAlias,omitempty"`
+	ModelID        string                `json:"ModelID,omitempty"`
+	RoutePolicy    runtimev1.RoutePolicy `json:"RoutePolicy,omitempty"`
+	ConnectorID    string                `json:"ConnectorID,omitempty"`
+	TargetRef      json.RawMessage       `json:"TargetRef,omitempty"`
+	SelectedParams map[string]any        `json:"SelectedParams,omitempty"`
 }
 
 func (b publicChatExecutionBinding) MarshalJSON() ([]byte, error) {
@@ -25,6 +27,9 @@ func (b publicChatExecutionBinding) MarshalJSON() ([]byte, error) {
 		ModelID:      b.ModelID,
 		RoutePolicy:  b.RoutePolicy,
 		ConnectorID:  b.ConnectorID,
+	}
+	if b.SelectedParams != nil && len(b.SelectedParams.GetFields()) > 0 {
+		out.SelectedParams = b.SelectedParams.AsMap()
 	}
 	if b.TargetRef != nil && b.TargetRef.GetTarget() != nil {
 		raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(b.TargetRef)
@@ -59,6 +64,19 @@ func (b *publicChatExecutionBinding) UnmarshalJSON(raw []byte) error {
 			return err
 		}
 		out.TargetRef = targetRef
+	}
+	if paramsRaw := firstPublicChatBindingRaw(fields, "SelectedParams", "selectedParams", "selected_params"); len(bytes.TrimSpace(paramsRaw)) > 0 {
+		var params map[string]any
+		if err := json.Unmarshal(paramsRaw, &params); err != nil {
+			return fmt.Errorf("parse public chat execution binding selected params: %w", err)
+		}
+		if len(params) > 0 {
+			selectedParams, err := structpb.NewStruct(params)
+			if err != nil {
+				return fmt.Errorf("parse public chat execution binding selected params: %w", err)
+			}
+			out.SelectedParams = selectedParams
+		}
 	}
 	*b = out
 	return nil

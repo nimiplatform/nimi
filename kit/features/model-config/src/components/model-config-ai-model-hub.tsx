@@ -13,7 +13,6 @@ import {
   summarizeAiModelAggregate,
   type AppModelConfigSurface,
   type CapabilityEvaluation,
-  type ModelConfigSettingsProjection,
   type ModelConfigStatusTone,
 } from '@nimiplatform/kit/core/model-config';
 import type { ModelConfigCapabilityStatus, ModelConfigProfileController } from '../types.js';
@@ -202,33 +201,15 @@ function groupDescriptorsBySection(
   return map;
 }
 
-type ModelConfigLiveProjection = {
-  readonly config: NimiAIConfig | null;
-  readonly settings: ModelConfigSettingsProjection | null;
-};
-
-function readLiveProjection(surface: AppModelConfigSurface): ModelConfigLiveProjection {
-  if ('modelSettingsService' in surface && surface.modelSettingsService) {
-    return { config: null, settings: surface.modelSettingsService.get(surface.scopeRef) };
-  }
-  if (!surface.aiConfigService) throw new Error('Model Config surface has no settings service.');
-  return { config: surface.aiConfigService.aiConfig.get(surface.scopeRef), settings: null };
+function readLiveProjection(surface: AppModelConfigSurface): NimiAIConfig {
+  return surface.aiConfigService.aiConfig.get(surface.scopeRef);
 }
 
-function useLiveProjection(surface: AppModelConfigSurface): ModelConfigLiveProjection {
-  const [projection, setProjection] = useState<ModelConfigLiveProjection>(() => readLiveProjection(surface));
+function useLiveProjection(surface: AppModelConfigSurface): NimiAIConfig {
+  const [projection, setProjection] = useState<NimiAIConfig>(() => readLiveProjection(surface));
   useEffect(() => {
     setProjection(readLiveProjection(surface));
-    if ('modelSettingsService' in surface && surface.modelSettingsService) {
-      return surface.modelSettingsService.subscribe(surface.scopeRef, (settings) => {
-        setProjection({ config: null, settings });
-      });
-    }
-    const aiConfigService = surface.aiConfigService;
-    if (!aiConfigService) throw new Error('Model Config surface has no settings service.');
-    return aiConfigService.aiConfig.subscribe(surface.scopeRef, (config) => {
-      setProjection({ config, settings: null });
-    });
+    return surface.aiConfigService.aiConfig.subscribe(surface.scopeRef, setProjection);
   }, [surface, surface.scopeRef]);
   return projection;
 }
@@ -246,8 +227,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
     detailHeaderAction,
     detailActiveModelHint,
   } = props;
-  const liveProjection = useLiveProjection(surface);
-  const { config, settings } = liveProjection;
+  const config = useLiveProjection(surface);
   const t = surface.i18n.t;
   const [activeSection, setActiveSectionState] = useState<CanonicalCapabilitySectionId | null>(initialSection);
 
@@ -277,9 +257,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
     const out: CapabilityEvaluation[] = [];
     for (const descriptor of descriptors) {
       const projection = surface.projectionResolver(descriptor.capabilityId);
-      const bindingPresent = config
-        ? hasModelConfigTargetRef(config, descriptor.capabilityId)
-        : Boolean(settings?.routeIntents.some((intent) => intent.capability === descriptor.capabilityId));
+      const bindingPresent = hasModelConfigTargetRef(config, descriptor.capabilityId);
       out.push({
         capabilityId: descriptor.capabilityId,
         descriptor,
@@ -288,7 +266,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
       });
     }
     return out;
-  }, [config, descriptors, settings, surface]);
+  }, [config, descriptors, surface]);
 
   const aggregate = useMemo(
     () => summarizeAiModelAggregate(evaluations, {
@@ -421,7 +399,9 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
           capabilityId={descriptor.capabilityId}
           surface={surface}
           config={config}
-          modelSettings={settings}
+          profileCapability={profile?.currentProfile?.capabilitySummaries.find(
+            (summary) => summary.capabilityId === descriptor.capabilityId,
+          ) ?? null}
           activeModelLabel={detailDescriptors.length > 1 && index === 0 ? t(descriptor.i18nKeys.title) : detailDescriptors.length > 1 ? null : undefined}
           activeModelHint={index === 0 ? detailActiveModelHint : null}
         />

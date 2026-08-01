@@ -34,6 +34,7 @@ func (s *Service) executeScenarioAsyncJob(
 	selectedProvider provider,
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
+	localPlan *localModelExecutionPlan,
 ) {
 	_, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil)
 	if !ok {
@@ -198,6 +199,7 @@ func (s *Service) executeScenarioAsyncJob(
 				apiModelID,
 				adapterName,
 				remoteTarget,
+				localPlan,
 				s.selector.cloudProvider,
 				s.speechCatalog,
 				func(progress nimillm.ManagedMediaImageProgress) {

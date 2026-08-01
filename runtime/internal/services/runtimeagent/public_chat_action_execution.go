@@ -95,9 +95,13 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	if !ok || strings.TrimSpace(binding.ModelID) == "" || binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		return PublicChatActionExecutionResult{}, fmt.Errorf("runtime public chat image action %s has no committed image.generate Runtime Agent AI Config binding", actionID)
 	}
-	// Image execution options are Runtime-owned policy. Caller-carried
-	// execution_params are rejected at ingress and never become provider truth.
+	// Caller-carried execution_params remain rejected at ingress. Concrete
+	// generation parameters come only from the committed Runtime Agent
+	// AIConfig fixed at turn admission.
 	var params map[string]any
+	if binding.SelectedParams != nil {
+		params = binding.SelectedParams.AsMap()
+	}
 	waitTimeout := e.waitTimeout
 	if timeoutMs := publicChatPositiveIntParam(params, "timeoutMs", "timeout_ms"); timeoutMs > 0 {
 		waitTimeout = time.Duration(timeoutMs) * time.Millisecond
@@ -234,17 +238,8 @@ func publicChatImageScenarioExtensions(params map[string]any) []*runtimev1.Scena
 	copyImageActionParam(payload, params, "step", "steps")
 	copyImageActionParam(payload, params, "cfg_scale", "cfgScale", "cfg_scale")
 	copyImageActionParam(payload, params, "guidance_scale", "cfgScale", "guidance_scale")
-	copyImageActionParam(payload, params, "sampler", "sampler")
+	copyImageActionParam(payload, params, "mode", "sampler", "mode")
 	copyImageActionParam(payload, params, "scheduler", "scheduler")
-	if entries, ok := params["profile_entries"]; ok {
-		payload["profile_entries"] = entries
-	}
-	if overrides, ok := params["entry_overrides"]; ok {
-		payload["entry_overrides"] = overrides
-	}
-	if profileOverrides, ok := params["profile_overrides"]; ok {
-		payload["profile_overrides"] = profileOverrides
-	}
 	if len(payload) == 0 {
 		return nil
 	}

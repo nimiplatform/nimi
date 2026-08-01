@@ -71,7 +71,6 @@ describe('renderer local-app standard-shell surface', () => {
       },
     ]);
     expect(surface).not.toHaveProperty('agent');
-    expect(surface).not.toHaveProperty('artifacts');
   });
 
   it('rejects a permission reason beyond 240 UTF-8 bytes before host invocation', () => {
@@ -163,7 +162,7 @@ describe('renderer local-app standard-shell surface', () => {
     expect(JSON.stringify(invocations)).not.toMatch(/methodId|realmBaseUrl|caller|authorization/u);
   });
 
-  it('exposes exactly seven configure operations and preserves decimal revision strings', async () => {
+  it('exposes exactly nine configure operations and preserves decimal revision strings', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
@@ -174,18 +173,32 @@ describe('renderer local-app standard-shell surface', () => {
     };
     const configure = createNimiLocalAppStandardShellSurface().agentConfigure;
     const intent = { backendKind: 'vrm', avatarAssetRef: 'asset-1', expressionProfileRef: '', idlePreset: '', interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false, backgroundAssetRef: '' };
+    const profile = { alias: 'local-gpu' };
+    const runtimeDescriptor = { runtimeId: 'local-runtime' };
     await configure.configurationSnapshot({ agentHandle: 'lash_owner_issued' });
-    await configure.updateConfiguration({ agentHandle: 'lash_owner_issued', expectedConfigurationRevision: '1', routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }] });
+    await configure.updateConfiguration({ agentHandle: 'lash_owner_issued', expectedConfigurationRevision: '1', intents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }], profileOrigin: null });
     await configure.readinessSnapshot({ agentHandle: 'lash_owner_issued' });
+    await configure.aiProfilePreview({ agentHandle: 'lash_owner_issued', profile, runtimeDescriptor });
+    await configure.aiProfileApply({ agentHandle: 'lash_owner_issued', expectedConfigurationRevision: '2', profile, runtimeDescriptor });
     await configure.autonomySnapshot({ agentHandle: 'lash_owner_issued' });
     await configure.updateAutonomy({ agentHandle: 'lash_owner_issued', expectedAutonomyRevision: '1', intent: { enabled: false } });
     await configure.presentationSnapshot({ agentHandle: 'lash_owner_issued' });
     await configure.commitPresentation({ agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent, importedAssets: [] });
     expect(Object.keys(configure)).toEqual([
-      'configurationSnapshot', 'updateConfiguration', 'readinessSnapshot', 'autonomySnapshot',
-      'updateAutonomy', 'presentationSnapshot', 'commitPresentation',
+      'configurationSnapshot', 'updateConfiguration', 'readinessSnapshot', 'aiProfilePreview',
+      'aiProfileApply', 'autonomySnapshot', 'updateAutonomy', 'presentationSnapshot', 'commitPresentation',
     ]);
-    expect(invocations).toHaveLength(7);
+    expect(invocations).toHaveLength(9);
+    expect(invocations.slice(3, 5)).toEqual([
+      {
+        command: 'nimi.shell.localApp.agentAIProfilePreview',
+        payload: { payload: { agentHandle: 'lash_owner_issued', profile, runtimeDescriptor } },
+      },
+      {
+        command: 'nimi.shell.localApp.agentAIProfileApply',
+        payload: { payload: { agentHandle: 'lash_owner_issued', expectedConfigurationRevision: '2', profile, runtimeDescriptor } },
+      },
+    ]);
     expect(invocations.at(-1)).toEqual({
       command: 'nimi.shell.localApp.agentCommitPresentation',
       payload: { payload: { agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent, importedAssets: [] } },
@@ -264,6 +277,110 @@ describe('renderer local-app standard-shell surface', () => {
         payload: { payload: { action: 'cancel', subscriptionId: 'conversation-1' } },
       },
     ]);
+  });
+
+  it('sends a conversation turn with one exact artifact attachment', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { messageId: 'message-1' };
+      },
+      listen: () => () => {},
+    };
+    const conversation = createNimiLocalAppStandardShellSurface().conversation;
+    await expect(conversation.send({
+      agentHandle: 'lash_owner_issued',
+      conversationAnchorId: 'anchor-1',
+      requestId: 'request-1',
+      text: '',
+      attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
+    })).resolves.toEqual({ messageId: 'message-1' });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.conversationSendTurn',
+      payload: {
+        payload: {
+          agentHandle: 'lash_owner_issued',
+          conversationAnchorId: 'anchor-1',
+          requestId: 'request-1',
+          text: '',
+          attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
+        },
+      },
+    }]);
+    expect(() => conversation.send({
+      agentHandle: 'lash_owner_issued',
+      conversationAnchorId: 'anchor-1',
+      requestId: 'request-1',
+      text: 'hello',
+      attachments: [{ artifactId: 'a' }, { artifactId: 'b' }],
+    })).toThrow(/attachments is invalid/u);
+    expect(() => conversation.send({
+      agentHandle: 'lash_owner_issued',
+      conversationAnchorId: 'anchor-1',
+      requestId: 'request-1',
+      text: '',
+      attachments: [],
+    })).toThrow(/text is invalid/u);
+    expect(invocations).toHaveLength(1);
+  });
+
+  it('puts artifacts with bounded bytes through the exact artifact command', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { artifactId: 'artifact_01J' };
+      },
+      listen: () => () => {},
+    };
+    const artifacts = createNimiLocalAppStandardShellSurface().artifacts;
+    const data = new Uint8Array([137, 80, 78, 71]);
+    await expect(artifacts.put({
+      mimeType: 'image/png',
+      displayName: 'photo.png',
+      data,
+    })).resolves.toEqual({ artifactId: 'artifact_01J' });
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0]?.command).toBe('nimi.shell.localApp.artifactPut');
+    const forwarded = (invocations[0]?.payload as { payload: Record<string, unknown> }).payload;
+    expect(forwarded.mimeType).toBe('image/png');
+    expect(forwarded.displayName).toBe('photo.png');
+    expect(forwarded.data).toBeInstanceOf(Uint8Array);
+    expect([...(forwarded.data as Uint8Array)]).toEqual([137, 80, 78, 71]);
+    expect(() => artifacts.put({
+      mimeType: 'image/png',
+      displayName: 'photo.png',
+      data: new Uint8Array(0),
+    })).toThrow(/data is invalid/u);
+    expect(() => artifacts.put({
+      mimeType: 'image/png',
+      displayName: 'photo.png',
+      data: new Uint8Array(4 * 1024 * 1024 + 1),
+    })).toThrow(/data is invalid/u);
+    expect(invocations).toHaveLength(1);
+  });
+
+  it('reads artifact bytes through the exact artifact command', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { bytes: new Uint8Array([137, 80, 78, 71]), mimeType: 'image/png' };
+      },
+      listen: () => () => {},
+    };
+    const artifacts = createNimiLocalAppStandardShellSurface().artifacts;
+    const result = await artifacts.readBytes({ artifactId: 'artifact_01J' });
+    expect(result.mimeType).toBe('image/png');
+    expect(result.bytes).toBeInstanceOf(Uint8Array);
+    expect([...result.bytes]).toEqual([137, 80, 78, 71]);
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.artifactReadBytes',
+      payload: { payload: { artifactId: 'artifact_01J' } },
+    }]);
+    expect(() => artifacts.readBytes({ artifactId: '  ' })).toThrow(/artifactId is invalid/u);
+    expect(invocations).toHaveLength(1);
   });
 
   it('carries bounded app-private storage documents without exposing a path or root', async () => {

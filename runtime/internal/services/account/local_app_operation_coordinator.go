@@ -333,7 +333,8 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 		return "artifact:" + selector.ArtifactID, nil
 	case LocalAppOperationOpenConversation,
 		LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
-		LocalAppOperationReadinessSnapshot, LocalAppOperationAutonomySnapshot,
+		LocalAppOperationReadinessSnapshot, LocalAppOperationAIProfilePreview,
+		LocalAppOperationAIProfileApply, LocalAppOperationAutonomySnapshot,
 		LocalAppOperationUpdateAutonomy, LocalAppOperationPresentationSnapshot,
 		LocalAppOperationCommitPresentation:
 		if !require(selector.AgentID) || selector.ArtifactID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {

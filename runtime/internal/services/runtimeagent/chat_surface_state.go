@@ -86,6 +86,7 @@ type persistedPublicChatTurnSnapshot struct {
 	FinishReason      string                            `json:"finishReason,omitempty"`
 	StreamSimulated   bool                              `json:"streamSimulated,omitempty"`
 	ReasonCode        runtimev1.ReasonCode              `json:"reasonCode,omitempty"`
+	ReasonCodeToken   string                            `json:"reasonCodeToken,omitempty"`
 	ActionHint        string                            `json:"actionHint,omitempty"`
 	Message           string                            `json:"message,omitempty"`
 	UpdatedAt         string                            `json:"updatedAt,omitempty"`

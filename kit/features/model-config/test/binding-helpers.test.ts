@@ -17,7 +17,9 @@ function configWithTargetRef(targetRef: NimiAIConfigTargetRef | null): NimiAICon
   return {
     scopeRef,
     capabilities: {
+      logicalModelIds: {},
       targetRefs: targetRef ? { 'text.generate': targetRef } : {},
+      selectedComponents: {},
       selectedParams: {},
     },
     profileOrigin: null,
@@ -241,6 +243,7 @@ describe('model config runtime target summary', () => {
         providerModelId: 'qwen3-max',
       }),
       capabilities: {
+        logicalModelIds: {},
         targetRefs: {
           'text.generate': {
           kind: 'cloud-connector' as const,
@@ -250,6 +253,7 @@ describe('model config runtime target summary', () => {
           providerModelId: 'qwen3-max',
         },
         },
+        selectedComponents: {},
         selectedParams: {
           'text.generate': { temperature: '0.7', maxTokens: 1024 },
         },

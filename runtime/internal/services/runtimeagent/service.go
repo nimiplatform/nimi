@@ -135,8 +135,11 @@ type Service struct {
 	agentAIConfigReadinessMu sync.RWMutex
 	agentAIConfigReadiness   map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot
 
-	localAppRouteOptionsMu sync.RWMutex
-	localAppRouteOptions   localAppRouteOptionInventory
+	localAppRouteOptionsMu    sync.RWMutex
+	localAppRouteOptions      localAppRouteOptionInventory
+	localAppCloudOptions      localAppCloudRouteOptionInventory
+	localTargetResolver       runtimeAgentDurableLocalTargetResolver
+	profileDescriptorPreparer runtimeAgentAIProfileDescriptorPreparer
 
 	execSubMu     sync.Mutex
 	execNextSubID uint64
@@ -236,9 +239,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	}
 	if err := svc.validateLoadedSourceSnapshotBindings(context.Background()); err != nil {
 		return nil, fmt.Errorf("validate loaded source snapshot bindings: %w", err)
-	}
-	if err := svc.seedRuntimeAgentAIConfigsForLoadedAgents(); err != nil {
-		return nil, err
 	}
 	if err := svc.loadDelegatedControlStateFromDB(); err != nil {
 		return nil, err

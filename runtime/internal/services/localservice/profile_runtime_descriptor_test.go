@@ -448,11 +448,12 @@ func seedProfileRuntimePortableSelectedSourcesForService(
 			t.Fatalf("binding %q fixture requires an internal local asset id", binding.BindingID)
 		}
 		asset := &runtimev1.LocalAssetRecord{
-			LocalAssetId: localAssetID,
-			AssetId:      strings.TrimSpace(binding.ExpectedIdentity),
-			Kind:         profileRuntimeAssetKindForComponentKindForTest(binding.ComponentKind),
-			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-			Source:       &runtimev1.LocalAssetSource{},
+			LocalAssetId:   localAssetID,
+			AssetId:        strings.TrimSpace(binding.ExpectedIdentity),
+			LogicalModelId: "logical-model-" + strings.TrimSpace(binding.BindingID),
+			Kind:           profileRuntimeAssetKindForComponentKindForTest(binding.ComponentKind),
+			Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			Source:         &runtimev1.LocalAssetSource{},
 		}
 		switch strings.TrimSpace(binding.Source) {
 		case "huggingface":
@@ -560,6 +561,8 @@ func profileRuntimeAssetKindForComponentKindForTest(componentKind string) runtim
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE
 	case "chat", "text_encoder":
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+	case "embedding":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
 	case "lora":
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA
 	default:
@@ -735,6 +738,14 @@ func TestServicePrepareProfileRuntimeDescriptorReadyAfterCanonicalMaterializatio
 	t.Parallel()
 	svc := newTestService(t)
 	descriptor := testProfileRuntimeDescriptor()
+	// stable-diffusion.cpp currently admits no component weight/options; this
+	// service-level readiness fixture exercises the admitted empty metadata
+	// schema. Occurrence identity and duplicate-slot ordering remain covered by
+	// the descriptor validation tests using the richer portable fixture.
+	for index := range descriptor.CapabilitySlices[0].OrderedCompanionOccurrences {
+		descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[index].Weight = ""
+		descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[index].Options = nil
+	}
 	seedProfileRuntimeNativeImageBackendForService(t, svc)
 	seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
 
@@ -834,6 +845,316 @@ func TestServicePrepareProfileRuntimeDescriptorCachesDescriptorBackedImageMateri
 	if !depIDs["asset_id=z_image_ae|parent_asset_id=z_image_turbo"] ||
 		!depIDs["asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo"] {
 		t.Fatalf("missing concrete companion dependencies: %+v", companionDeps)
+	}
+}
+
+func TestPrepareProfileRuntimeDescriptorForAIConfigAcceptsPortableInstalledCompositionWithPassiveVAE(t *testing.T) {
+	svc := newTestService(t)
+	seedProfileRuntimeNativeImageBackendForService(t, svc)
+	descriptor := testProfileRuntimeImageCompanionDescriptor()
+	entryNames := map[string]string{
+		"main": "z_image_turbo-Q4_K.gguf",
+		"qwen": "Qwen3-4B-Q4_K_M.gguf",
+		"ae":   "ae.safetensors",
+	}
+	logicalModelIDs := map[string]string{
+		"main": "nimi/z-image-turbo",
+		"qwen": "nimi/qwen3-4b",
+	}
+	assets := make(map[string]*runtimev1.LocalAssetRecord, len(descriptor.AssetBindings))
+	for index := range descriptor.AssetBindings {
+		binding := &descriptor.AssetBindings[index]
+		binding.Source = "manual"
+		binding.ExpectedIdentity = "portable:z-image:" + binding.BindingID
+		binding.HuggingFace = nil
+		binding.Manual = &profileRuntimeDescriptorManualSource{
+			ExpectedName:            entryNames[binding.BindingID],
+			AssociationInstructions: "Associate the exact verified portable Z Image source.",
+			AllowedFilePatterns:     []string{entryNames[binding.BindingID]},
+		}
+		asset := &runtimev1.LocalAssetRecord{
+			LocalAssetId:   binding.PreparedAssetID,
+			AssetId:        "local-import/" + binding.BindingID + "/machine-instance-01",
+			LogicalModelId: logicalModelIDs[binding.BindingID],
+			Kind:           profileRuntimeAssetKindForComponentKindForTest(binding.ComponentKind),
+			Engine:         "media",
+			Entry:          entryNames[binding.BindingID],
+			SourceFileName: entryNames[binding.BindingID],
+			Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			Source:         &runtimev1.LocalAssetSource{},
+		}
+		switch binding.BindingID {
+		case "main":
+			asset.Family = "z-image"
+			asset.Capabilities = []string{"image.generate"}
+		case "ae":
+			asset.Family = "flux2-vae"
+			asset.ArtifactRoles = []string{"vae"}
+		}
+		svc.assets[asset.GetLocalAssetId()] = asset
+		entryPath := writeProfileRuntimeSelectedSourceEntryFixture(
+			t,
+			svc.resolvedLocalModelsPath(),
+			asset,
+			"portable-installed-composition:"+binding.BindingID,
+		)
+		entrySHA256, err := computeFileSHA256(entryPath)
+		if err != nil {
+			t.Fatalf("hash %s selected source: %v", binding.BindingID, err)
+		}
+		asset.Hashes = map[string]string{asset.GetEntry(): "sha256:" + entrySHA256}
+		binding.Manual.ExpectedIntegrity = "sha256:" + entrySHA256
+		assets[binding.BindingID] = asset
+	}
+	mainRecord := seedProfileRuntimePreparedAssetSelectedSourceForService(
+		t,
+		svc,
+		localEnvironmentFamilyModelAsset,
+		assets["main"],
+		"",
+		"",
+		mustResolveManagedModelEntryPathForTest(t, svc, assets["main"]),
+		"stable-diffusion.cpp.metal",
+	)
+	mainRecord.SourceKind = localEnvironmentSourceImported
+	mainRecord = svc.upsertLocalEnvironmentSelectedSourceRecord(mainRecord)
+	for _, bindingID := range []string{"qwen", "ae"} {
+		seedProfileRuntimePreparedAssetSelectedSourceForService(
+			t,
+			svc,
+			localEnvironmentFamilyModelCompanion,
+			assets[bindingID],
+			assets["main"].GetAssetId(),
+			mainRecord.RecordID,
+			mustResolveManagedModelEntryPathForTest(t, svc, assets[bindingID]),
+			"stable-diffusion.cpp.metal",
+		)
+	}
+
+	prepared, err := svc.PrepareProfileRuntimeDescriptorForAIConfig(
+		context.Background(),
+		marshalProfileRuntimeDescriptor(t, descriptor),
+	)
+	if err != nil {
+		t.Fatalf("prepare portable installed composition: %v", err)
+	}
+	if len(prepared.SliceResults) != 1 || prepared.SliceResults[0].Outcome != string(profileRuntimePrepareReady) {
+		t.Fatalf("portable installed composition outcome: %+v", prepared.SliceResults)
+	}
+	image := prepared.SliceResults[0]
+	if image.LogicalModelID != assets["main"].GetLogicalModelId() || image.TargetRef.GetProfileBindingId() == "" {
+		t.Fatalf("portable installed main target: %+v", image)
+	}
+	if len(image.SelectedComponents) != 2 ||
+		image.SelectedComponents[0].OccurrenceID != "qwen-text-encoder" ||
+		image.SelectedComponents[0].LogicalModelID != assets["qwen"].GetLogicalModelId() ||
+		image.SelectedComponents[1].OccurrenceID != "z-image-ae" ||
+		image.SelectedComponents[1].LogicalModelID != effectiveLocalComponentPublicIdentity(assets["ae"]) ||
+		image.SelectedComponents[1].TargetRef.GetReadinessRef() == "" {
+		t.Fatalf("portable installed ordered components: %+v", image.SelectedComponents)
+	}
+	if assets["ae"].GetLogicalModelId() != "" || len(svc.managedImageLoadCache) != 0 {
+		t.Fatalf("prepare mutated passive identity or loaded backend: vae=%+v loads=%+v", assets["ae"], svc.managedImageLoadCache)
+	}
+	for bindingID, asset := range assets {
+		if asset.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+			t.Fatalf("prepare activated %s: %s", bindingID, asset.GetStatus())
+		}
+	}
+}
+
+func mustResolveManagedModelEntryPathForTest(t *testing.T, svc *Service, asset *runtimev1.LocalAssetRecord) string {
+	t.Helper()
+	path, err := resolveManagedModelEntryAbsolutePath(svc.resolvedLocalModelsPath(), asset)
+	if err != nil {
+		t.Fatalf("resolve selected-source fixture path: %v", err)
+	}
+	return path
+}
+
+func TestPrepareProfileRuntimeDescriptorForAIConfigReturnsExactPrivateTarget(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	descriptor := testProfileRuntimeImageCompanionDescriptor()
+	seedProfileRuntimeNativeImageBackendForService(t, svc)
+	seedProfileRuntimePortableSelectedSourcesForService(t, svc, descriptor)
+
+	result, err := svc.PrepareProfileRuntimeDescriptorForAIConfig(
+		context.Background(),
+		marshalProfileRuntimeDescriptor(t, descriptor),
+	)
+	if err != nil {
+		t.Fatalf("prepare descriptor for AIConfig: %v", err)
+	}
+	if len(result.SliceResults) != 1 {
+		t.Fatalf("expected one slice result, got %+v", result.SliceResults)
+	}
+	slice := result.SliceResults[0]
+	if slice.Outcome != string(profileRuntimePrepareReady) ||
+		slice.LogicalModelID != "logical-model-main" ||
+		slice.TargetRef == nil ||
+		slice.TargetRef.GetProfileBindingId() == "" {
+		t.Fatalf("AIConfig preparation must return one exact private target: %+v", slice)
+	}
+	binding, asset, resolveErr := svc.ResolveDurableLocalTarget(
+		context.Background(),
+		slice.TargetRef,
+		"image.generate",
+	)
+	if resolveErr != nil {
+		t.Fatalf("resolve prepared target: %v", resolveErr)
+	}
+	if binding.GetResolvedModelId() != slice.LogicalModelID ||
+		asset.GetLocalAssetId() != "local-z-image" {
+		t.Fatalf("prepared target resolved to the wrong exact asset: binding=%+v asset=%+v", binding, asset)
+	}
+}
+
+func TestPrepareProfileRuntimeDescriptorForAIConfigMaterializesExactTextAndEmbeddingTargets(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	svc.SetManagedLlamaRegistrationConfig(filepath.Join(t.TempDir(), "models"), "", false)
+	descriptor := profileRuntimeDescriptor{
+		SchemaVersion:       profileRuntimeDescriptorSchemaVersion,
+		DescriptorID:        "descriptor-exact-text",
+		ProfileRef:          profileRuntimeDescriptorProfileRef{ProfileID: "profile-exact-text"},
+		SourceProfileDigest: "sha256:exact-text",
+		ProjectionOrigin:    map[string]any{"component": "test"},
+		RequirementRefs:     []string{"requirement:exact-text"},
+		CapabilitySlices: []profileRuntimeDescriptorCapability{
+			{
+				SliceID:           "slice:text-generate",
+				Capability:        "text.generate",
+				ExecutionMode:     "local",
+				ContractState:     "declared",
+				ReadinessPolicy:   "required",
+				ParamsRef:         "params:text.generate",
+				RuntimeConsumerID: "llama.cpp.cpu",
+				Execution: profileRuntimeDescriptorExecution{
+					Backend:       "llama.cpp",
+					BackendFamily: "llama.cpp",
+				},
+				Model:     profileRuntimeDescriptorModel{Family: "gemma"},
+				AssetRefs: []string{"text-main"},
+			},
+			{
+				SliceID:           "slice:text-embed",
+				Capability:        "text.embed",
+				ExecutionMode:     "local",
+				ContractState:     "declared",
+				ReadinessPolicy:   "required",
+				ParamsRef:         "params:text.embed",
+				RuntimeConsumerID: "llama.cpp.cpu",
+				Execution: profileRuntimeDescriptorExecution{
+					Backend:       "llama.cpp",
+					BackendFamily: "llama.cpp",
+				},
+				Model:     profileRuntimeDescriptorModel{Family: "embedding"},
+				AssetRefs: []string{"embed-main"},
+			},
+		},
+		AssetBindings: []profileRuntimeDescriptorAssetBinding{
+			{
+				BindingID:        "text-main",
+				AssetRole:        "main",
+				ComponentKind:    "chat",
+				Source:           "huggingface",
+				ExpectedIdentity: "gemma-4-26b",
+				ReadinessPolicy:  "required",
+				PreparedAssetID:  "local-gemma-4-26b",
+				HuggingFace: &profileRuntimeDescriptorHFSource{
+					RepoID:       "nimi/gemma-4-26b",
+					Revision:     "revision-gemma",
+					Entries:      []string{"gemma-4-26b.gguf"},
+					AccessPolicy: "public",
+				},
+			},
+			{
+				BindingID:        "embed-main",
+				AssetRole:        "main",
+				ComponentKind:    "embedding",
+				Source:           "huggingface",
+				ExpectedIdentity: "nimi-embed",
+				ReadinessPolicy:  "required",
+				PreparedAssetID:  "local-nimi-embed",
+				HuggingFace: &profileRuntimeDescriptorHFSource{
+					RepoID:       "nimi/nimi-embed",
+					Revision:     "revision-embed",
+					Entries:      []string{"nimi-embed.gguf"},
+					AccessPolicy: "public",
+				},
+			},
+		},
+	}
+	for index, binding := range descriptor.AssetBindings {
+		asset := &runtimev1.LocalAssetRecord{
+			LocalAssetId:   binding.PreparedAssetID,
+			AssetId:        binding.ExpectedIdentity,
+			LogicalModelId: []string{"google/gemma-4-26b", "local/nimi-embed"}[index],
+			Kind:           profileRuntimeAssetKindForComponentKindForTest(binding.ComponentKind),
+			Capabilities:   []string{descriptor.CapabilitySlices[index].Capability},
+			Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			Entry:          binding.HuggingFace.Entries[0],
+			Source: &runtimev1.LocalAssetSource{
+				Repo:     binding.HuggingFace.RepoID,
+				Revision: binding.HuggingFace.Revision,
+			},
+		}
+		svc.mu.Lock()
+		svc.assets[asset.GetLocalAssetId()] = asset
+		svc.mu.Unlock()
+		entryPath := writeProfileRuntimeSelectedSourceEntryFixture(
+			t,
+			svc.resolvedLocalModelsPath(),
+			asset,
+			"selected-source-entry:"+binding.BindingID,
+		)
+		seedProfileRuntimePreparedAssetSelectedSourceForService(
+			t,
+			svc,
+			localEnvironmentFamilyModelAsset,
+			asset,
+			"",
+			"",
+			entryPath,
+			"llama.cpp.cpu",
+		)
+	}
+
+	result, err := svc.PrepareProfileRuntimeDescriptorForAIConfig(
+		context.Background(),
+		marshalProfileRuntimeDescriptor(t, descriptor),
+	)
+	if err != nil {
+		t.Fatalf("prepare exact text descriptor for AIConfig: %v", err)
+	}
+	if len(result.SliceResults) != 2 {
+		t.Fatalf("expected two slice results, got %+v", result.SliceResults)
+	}
+	expected := map[string]string{
+		"text.generate": "local-gemma-4-26b",
+		"text.embed":    "local-nimi-embed",
+	}
+	for _, slice := range result.SliceResults {
+		if slice.Outcome != string(profileRuntimePrepareReady) ||
+			slice.ExecutionMode != "local" ||
+			slice.TargetRef == nil ||
+			slice.TargetRef.GetReadinessRef() == "" ||
+			slice.LogicalModelID == "" {
+			t.Fatalf("AIConfig text preparation must return an exact target: %+v", slice)
+		}
+		binding, asset, resolveErr := svc.ResolveDurableLocalTarget(
+			context.Background(),
+			slice.TargetRef,
+			slice.Capability,
+		)
+		if resolveErr != nil {
+			t.Fatalf("resolve %s target: %v", slice.Capability, resolveErr)
+		}
+		if binding.GetResolvedModelId() != slice.LogicalModelID ||
+			asset.GetLocalAssetId() != expected[slice.Capability] {
+			t.Fatalf("%s resolved to wrong exact asset: binding=%+v asset=%+v", slice.Capability, binding, asset)
+		}
 	}
 }
 

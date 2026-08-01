@@ -103,6 +103,7 @@ func TestPublicChatLegacyMultiAnchorFailsClosedAndDifferentAgentIsolation(t *tes
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization(agent-beta): %v", err)
 	}
+	upsertPublicChatTestAgentAIConfigForContext(t, svc, testRuntimeAgentIdentityContext("agent-beta"))
 
 	anchorA1 := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	anchorA2 := addLegacyPublicChatTestAnchor(
@@ -496,6 +497,8 @@ func TestPublicChatTrackHookProposalUsesCanonicalHookLifecycle(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	svc.SetLocalAppRouteOptionInventory(runtimeAgentAIConfigTestRouteInventory())
+	upsertPublicChatTestAgentAIConfigForContext(t, svc, testRuntimeAgentIdentityContext("agent-pack4-chat-track"))
 
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{
 		result: &ChatTrackSidecarResult{

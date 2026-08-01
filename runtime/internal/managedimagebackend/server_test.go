@@ -125,6 +125,10 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 			"sampler:euler",
 			"vae_path:resolved/ae.safetensors",
 		},
+		Components: []ComponentBinding{
+			{OccurrenceID: "vae-first", Order: 0, Role: "vae", ComponentKind: "vae", EngineSlot: "vae_path", Path: "resolved/ae.safetensors", Required: true, Weight: "0.4", OptionsJSON: `{"adapter":"first"}`},
+			{OccurrenceID: "vae-second", Order: 1, Role: "vae", ComponentKind: "vae", EngineSlot: "vae_path", Path: "resolved/ae.safetensors", Weight: "0.7", OptionsJSON: `{"adapter":"second"}`},
+		},
 		CFGScale: 1,
 	}); err != nil {
 		t.Fatalf("LoadModel: %v", err)
@@ -154,6 +158,15 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 	}
 	if got := driver.loads[0].Options.ComponentsBySlot()["vae_path"]; got != vaePath {
 		t.Fatalf("unexpected resolved VAE path: %q", got)
+	}
+	if len(driver.loads[0].Options.Components) != 2 ||
+		driver.loads[0].Options.Components[0].OccurrenceID != "vae-first" ||
+		driver.loads[0].Options.Components[1].OccurrenceID != "vae-second" ||
+		driver.loads[0].Options.Components[0].Weight != "0.4" ||
+		driver.loads[0].Options.Components[1].Weight != "0.7" ||
+		!strings.Contains(driver.loads[0].Options.Components[0].OptionsJSON, "first") ||
+		!strings.Contains(driver.loads[0].Options.Components[1].OptionsJSON, "second") {
+		t.Fatalf("backend lost ordered component metadata: %+v", driver.loads[0].Options.Components)
 	}
 	if len(driver.generates) != 1 {
 		t.Fatalf("expected one generate, got %d", len(driver.generates))
@@ -415,6 +428,16 @@ func TestStableDiffusionCPPResidentStartupArgsRejectsInvalidComponents(t *testin
 			name:      "empty path",
 			component: managedImageComponent{EngineSlot: "vae_path"},
 			want:      `managed image component path is required for slot "vae_path"`,
+		},
+		{
+			name:      "weight not admitted",
+			component: managedImageComponent{EngineSlot: "vae_path", Path: "vae.safetensors", Weight: "0.5"},
+			want:      "weight is not admitted",
+		},
+		{
+			name:      "options not admitted",
+			component: managedImageComponent{EngineSlot: "vae_path", Path: "vae.safetensors", OptionsJSON: `{"precision":"fp16"}`},
+			want:      "options are not admitted",
 		},
 	}
 	for _, tc := range cases {

@@ -116,7 +116,7 @@ func TestAuthorizedLocalAppPrincipalInterruptsSharedAccountConversation(t *testi
 	}
 }
 
-func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.T) {
+func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesExactTargetWithoutAliasSelection(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
 	decision := accountservice.LocalAppCallerDecision{
@@ -232,8 +232,8 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 	if execution.SubjectUserID != decision.AccountID {
 		t.Fatalf("execution subject = %q", execution.SubjectUserID)
 	}
-	if execution.Binding.BindingAlias != "local/default" {
-		t.Fatalf("execution binding alias = %q", execution.Binding.BindingAlias)
+	if execution.Binding.BindingAlias != "" {
+		t.Fatalf("exact-target execution must not retain model-selection alias, got %q", execution.Binding.BindingAlias)
 	}
 	if got := execution.Binding.TargetRef.GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:local-asset-live" {
 		t.Fatalf("execution durable target = %q", got)
@@ -265,7 +265,7 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 		t.Fatalf("GetPublicChatSessionSnapshot(local app): %v", err)
 	}
 	detail := snapshot.GetSnapshot().AsMap()
-	if detail["config_revision"] != float64(1) {
+	if detail["config_revision"] != float64(2) {
 		t.Fatalf("snapshot config revision = %v", detail["config_revision"])
 	}
 	bindings, ok := detail["execution_bindings"].(map[string]any)
@@ -276,8 +276,8 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 	if !ok {
 		t.Fatalf("snapshot text.generate binding = %#v", bindings[runtimeAgentAIConfigCapabilityTextGenerate])
 	}
-	if textBinding["binding_alias"] != "local/default" {
-		t.Fatalf("snapshot binding alias = %v", textBinding["binding_alias"])
+	if bindingAlias, present := textBinding["binding_alias"]; present {
+		t.Fatalf("exact-target snapshot must not retain model-selection alias, got %v", bindingAlias)
 	}
 	targetRef, ok := textBinding["target_ref"].(map[string]any)
 	if !ok {

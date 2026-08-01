@@ -180,37 +180,27 @@ func TestResolveLocalRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *t
 	}
 }
 
-// memoryEmbeddingLocalCatalogModelRef prefers the logical model id (catalog
-// facing identity) and falls back to the variant-level asset id.
-func TestMemoryEmbeddingLocalCatalogModelRefPrefersLogicalID(t *testing.T) {
-	withLogical := &runtimev1.LocalAssetRecord{
-		AssetId:        "local.embed.nomic.gguf",
-		LogicalModelId: "local/nomic-embed-text",
+func TestRuntimeMemoryEmbeddingDurableLocalTargetPreservesOpaqueV2Binding(t *testing.T) {
+	profileTarget := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{
+		ProfileBindingID: "opaque-profile-binding",
+		ReadinessRef:     "ignored-readiness-ref",
+	})
+	if profileTarget.GetVersion() != "v2" ||
+		profileTarget.GetProfileBindingId() != "opaque-profile-binding" ||
+		profileTarget.GetReadinessRef() != "" {
+		t.Fatalf("profile target = %+v", profileTarget)
 	}
-	if got := memoryEmbeddingLocalCatalogModelRef(withLogical); got != "local/nomic-embed-text" {
-		t.Fatalf("expected logical model id, got %q", got)
-	}
-	assetOnly := &runtimev1.LocalAssetRecord{AssetId: "local.embed.nomic.gguf"}
-	if got := memoryEmbeddingLocalCatalogModelRef(assetOnly); got != "local.embed.nomic.gguf" {
-		t.Fatalf("expected asset id fallback, got %q", got)
-	}
-	if got := memoryEmbeddingLocalCatalogModelRef(nil); got != "" {
-		t.Fatalf("expected empty ref for nil asset, got %q", got)
-	}
-}
 
-func TestMemoryEmbeddingLocalTargetMatchesPrefixedRuntimeRef(t *testing.T) {
-	asset := &runtimev1.LocalAssetRecord{
-		LocalAssetId: "01KLOCALNOMIC",
-		AssetId:      "local.embed.nomic.gguf",
+	readinessTarget := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{
+		ReadinessRef: "opaque-readiness-ref",
+	})
+	if readinessTarget.GetVersion() != "v2" ||
+		readinessTarget.GetReadinessRef() != "opaque-readiness-ref" ||
+		readinessTarget.GetProfileBindingId() != "" {
+		t.Fatalf("readiness target = %+v", readinessTarget)
 	}
-	if !memoryEmbeddingLocalTargetMatches(asset, "local-runtime:01KLOCALNOMIC") {
-		t.Fatalf("expected prefixed local-runtime profile binding id to match local asset id")
-	}
-	if !memoryEmbeddingLocalTargetMatches(asset, "01KLOCALNOMIC") {
-		t.Fatalf("expected bare local asset id to remain accepted inside resolver")
-	}
-	if memoryEmbeddingLocalTargetMatches(asset, "local-runtime:local.embed.nomic.gguf") {
-		t.Fatalf("prefixed runtime ref must resolve to local asset id only, not catalog asset id")
+
+	if got := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{}); got != nil {
+		t.Fatalf("empty binding target = %+v", got)
 	}
 }

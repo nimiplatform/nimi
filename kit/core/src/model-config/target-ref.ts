@@ -101,14 +101,31 @@ export function applyModelConfigCapabilityPatch(
   capabilityId: string,
   patch: ModelConfigCapabilityPatch,
 ): NimiAIConfig {
+  const nextLogicalModelIds = { ...config.capabilities.logicalModelIds };
   const nextTargetRefs = { ...config.capabilities.targetRefs };
+  const nextSelectedComponents = { ...config.capabilities.selectedComponents };
   const nextParams = { ...config.capabilities.selectedParams };
 
+  if (Object.prototype.hasOwnProperty.call(patch, 'logicalModelId')) {
+    const logicalModelId = normalizeText(patch.logicalModelId);
+    if (logicalModelId) {
+      nextLogicalModelIds[capabilityId] = logicalModelId;
+    } else {
+      delete nextLogicalModelIds[capabilityId];
+    }
+  }
   if (Object.prototype.hasOwnProperty.call(patch, 'targetRef')) {
     if (patch.targetRef) {
       nextTargetRefs[capabilityId] = patch.targetRef;
     } else {
       delete nextTargetRefs[capabilityId];
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'selectedComponents')) {
+    if (patch.selectedComponents === undefined || patch.selectedComponents.length === 0) {
+      delete nextSelectedComponents[capabilityId];
+    } else {
+      nextSelectedComponents[capabilityId] = patch.selectedComponents;
     }
   }
   if (Object.prototype.hasOwnProperty.call(patch, 'params')) {
@@ -122,7 +139,9 @@ export function applyModelConfigCapabilityPatch(
   return {
     ...config,
     capabilities: {
+      logicalModelIds: nextLogicalModelIds,
       targetRefs: nextTargetRefs,
+      selectedComponents: nextSelectedComponents,
       selectedParams: nextParams,
     },
   };

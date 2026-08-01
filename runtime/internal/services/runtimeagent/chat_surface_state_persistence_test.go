@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestPublicChatTranscriptAndContextSummaryRecoverAcrossRestart(t *testing.T) {
@@ -419,6 +420,13 @@ func TestPublicChatSurfaceStateStrictlyRoundTripsTurnContextSummary(t *testing.T
 }
 
 func TestPublicChatSurfaceStateRoundTripsDurableTargetRef(t *testing.T) {
+	selectedParams, err := structpb.NewStruct(map[string]any{
+		"size":  "768x768",
+		"steps": "7",
+	})
+	if err != nil {
+		t.Fatalf("selected params: %v", err)
+	}
 	targetRef := &runtimev1.RuntimeDurableTargetRef{
 		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
 			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
@@ -440,17 +448,19 @@ func TestPublicChatSurfaceStateRoundTripsDurableTargetRef(t *testing.T) {
 			CallerAppID:          "nimi.zhiyu",
 			SubjectUserID:        "user-1",
 			Binding: publicChatExecutionBinding{
-				BindingAlias: "local/default",
-				ModelID:      "local.chat.gemma",
-				RoutePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				TargetRef:    targetRef,
+				BindingAlias:   "local/default",
+				ModelID:        "local.chat.gemma",
+				RoutePolicy:    runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				TargetRef:      targetRef,
+				SelectedParams: selectedParams,
 			},
 			Bindings: publicChatExecutionBindings{
 				"text.generate": {
-					BindingAlias: "local/default",
-					ModelID:      "local.chat.gemma",
-					RoutePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-					TargetRef:    targetRef,
+					BindingAlias:   "local/default",
+					ModelID:        "local.chat.gemma",
+					RoutePolicy:    runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+					TargetRef:      targetRef,
+					SelectedParams: selectedParams,
 				},
 			},
 		}},
@@ -475,6 +485,12 @@ func TestPublicChatSurfaceStateRoundTripsDurableTargetRef(t *testing.T) {
 	assertPublicChatBindingProfileTarget(t, restored.Anchors[0].Bindings["text.generate"], "local-runtime:profile-1")
 	if restored.Anchors[0].Binding.BindingAlias != "local/default" || restored.Anchors[0].Bindings["text.generate"].BindingAlias != "local/default" {
 		t.Fatalf("public chat state lost alias binding: %#v", restored.Anchors[0])
+	}
+	if got := restored.Anchors[0].Binding.SelectedParams.AsMap(); got["size"] != "768x768" || got["steps"] != "7" {
+		t.Fatalf("public chat state lost selected params: %#v", got)
+	}
+	if got := restored.Anchors[0].Bindings["text.generate"].SelectedParams.AsMap(); got["size"] != "768x768" || got["steps"] != "7" {
+		t.Fatalf("public chat bindings lost selected params: %#v", got)
 	}
 }
 

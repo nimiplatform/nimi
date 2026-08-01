@@ -24,6 +24,8 @@ const (
 	OperationConfigurationSnapshot Operation = "runtime_agent.configuration.snapshot"
 	OperationUpdateConfiguration   Operation = "runtime_agent.configuration.update"
 	OperationReadinessSnapshot     Operation = "runtime_agent.readiness.snapshot"
+	OperationAIProfilePreview      Operation = "runtime_agent.ai_profile.preview"
+	OperationAIProfileApply        Operation = "runtime_agent.ai_profile.apply"
 	OperationAutonomySnapshot      Operation = "runtime_agent.autonomy.snapshot"
 	OperationUpdateAutonomy        Operation = "runtime_agent.autonomy.update"
 	OperationPresentationSnapshot  Operation = "runtime_agent.presentation.snapshot"

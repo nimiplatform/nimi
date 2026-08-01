@@ -246,6 +246,21 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	}
 }
 
+func TestResolveManagedMediaImageProfileForBindingRejectsWorkflowOverrides(t *testing.T) {
+	svc := newTestService(t)
+	_, _, _, err := svc.resolveManagedMediaImageProfileForModel(
+		&runtimev1.LocalAssetRecord{LocalAssetId: "image-local-asset"},
+		"committed-binding",
+		map[string]any{
+			"profile_entries": []any{},
+		},
+	)
+	if err == nil {
+		t.Fatal("committed image binding must reject caller-provided workflow definitions")
+	}
+	assertGRPCReasonCode(t, err, "committed workflow override", runtimev1.ReasonCode_AI_INPUT_INVALID)
+}
+
 func TestResolveManagedMediaImageProfileAcceptsLocalAssetIDRequestIdentity(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")

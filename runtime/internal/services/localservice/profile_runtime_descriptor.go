@@ -4,6 +4,8 @@ import (
 	"context"
 	"sort"
 	"strings"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 const profileRuntimeDescriptorSchemaVersion = 1
@@ -116,6 +118,7 @@ type profileRuntimePreparedAssetFact struct {
 	PreparedAssetID string
 	AssetID         string
 	LocalAssetID    string
+	LogicalModelID  string
 	Kind            string
 	Role            string
 	Status          string
@@ -178,11 +181,52 @@ type ProfileRuntimeDescriptorPrepareSliceResult struct {
 	MaterializationKey   string
 	WorkflowBindingID    string
 	ReusableAssetHealthy bool
+	ExecutionMode        string
+	ReadinessPolicy      string
+	LogicalModelID       string
+	Provider             string
+	ProviderModelID      string
+	ConnectorSelector    string
+	TargetRef            *runtimev1.RuntimeDurableLocalTargetRef
+	SelectedComponents   []ProfileRuntimeDescriptorPreparedComponentSelection
+}
+
+type ProfileRuntimeDescriptorPreparedComponentSelection struct {
+	OccurrenceID   string
+	Order          int
+	Role           string
+	ComponentKind  string
+	LogicalModelID string
+	TargetRef      *runtimev1.RuntimeDurableLocalTargetRef
+	Required       bool
+	Weight         string
+	Options        map[string]any
+}
+
+// PrepareProfileRuntimeDescriptorForAIConfig is the Runtime-private bridge used
+// by the LocalAgent AIConfig owner. It validates and prepares the portable
+// descriptor, then returns exact Runtime-issued targets for ready local slices.
+// The public LocalService RPC deliberately omits these private target fields.
+func (s *Service) PrepareProfileRuntimeDescriptorForAIConfig(
+	ctx context.Context,
+	descriptorJSON []byte,
+) (*ProfileRuntimeDescriptorPrepareResult, error) {
+	return s.prepareProfileRuntimeDescriptorInternal(ctx, ProfileRuntimeDescriptorPrepareRequest{
+		DescriptorJSON: descriptorJSON,
+	}, true)
 }
 
 func (s *Service) prepareProfileRuntimeDescriptor(
 	ctx context.Context,
 	req ProfileRuntimeDescriptorPrepareRequest,
+) (*ProfileRuntimeDescriptorPrepareResult, error) {
+	return s.prepareProfileRuntimeDescriptorInternal(ctx, req, false)
+}
+
+func (s *Service) prepareProfileRuntimeDescriptorInternal(
+	ctx context.Context,
+	req ProfileRuntimeDescriptorPrepareRequest,
+	requireExactTargets bool,
 ) (*ProfileRuntimeDescriptorPrepareResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -210,6 +254,11 @@ func (s *Service) prepareProfileRuntimeDescriptor(
 	if err := s.projectProfileRuntimeDescriptorMaterialization(descriptor, facts, results); err != nil {
 		return nil, err
 	}
+	slicesByID := make(map[string]profileRuntimeDescriptorCapability, len(descriptor.CapabilitySlices))
+	for _, slice := range descriptor.CapabilitySlices {
+		slicesByID[strings.TrimSpace(slice.SliceID)] = slice
+	}
+	assetBindings := profileRuntimeAssetBindingsByID(descriptor.AssetBindings)
 	out := &ProfileRuntimeDescriptorPrepareResult{
 		DescriptorID:   descriptor.DescriptorID,
 		ProfileID:      descriptor.ProfileRef.ProfileID,
@@ -217,7 +266,8 @@ func (s *Service) prepareProfileRuntimeDescriptor(
 		SliceResults:   make([]ProfileRuntimeDescriptorPrepareSliceResult, 0, len(results)),
 	}
 	for _, result := range results {
-		out.SliceResults = append(out.SliceResults, ProfileRuntimeDescriptorPrepareSliceResult{
+		slice := slicesByID[strings.TrimSpace(result.SliceID)]
+		projected := ProfileRuntimeDescriptorPrepareSliceResult{
 			SliceID:              result.SliceID,
 			Capability:           result.Capability,
 			Outcome:              string(result.Outcome),
@@ -225,9 +275,72 @@ func (s *Service) prepareProfileRuntimeDescriptor(
 			MaterializationKey:   result.MaterializationKey,
 			WorkflowBindingID:    result.WorkflowBindingID,
 			ReusableAssetHealthy: result.ReusableAssetHealthy,
-		})
+			ExecutionMode:        strings.TrimSpace(slice.ExecutionMode),
+			ReadinessPolicy:      strings.TrimSpace(slice.ReadinessPolicy),
+			Provider:             strings.TrimSpace(slice.Provider),
+			ProviderModelID:      strings.TrimSpace(slice.ModelID),
+			ConnectorSelector:    strings.TrimSpace(slice.ConnectorSelector),
+		}
+		if requireExactTargets &&
+			result.Outcome == profileRuntimePrepareReady &&
+			projected.ExecutionMode == "local" {
+			_, mainFact, err := profileRuntimeDescriptorMainAssetFact(slice, assetBindings, facts)
+			if err != nil {
+				return nil, err
+			}
+			asset := s.localAssetByID(mainFact.LocalAssetID)
+			var (
+				target *runtimev1.RuntimeDurableLocalTargetRef
+				status runtimev1.LocalAssetStatus
+			)
+			if strings.TrimSpace(result.Capability) == "image.generate" &&
+				strings.TrimSpace(result.WorkflowBindingID) != "" {
+				target = durableLocalWorkflowBindingTargetRef(result.WorkflowBindingID)
+				status = asset.GetStatus()
+			} else {
+				target, status, _ = s.projectDurableLocalTargetForAsset(asset)
+			}
+			if target == nil {
+				return nil, profileRuntimeDescriptorError("materialization.target_unavailable", result.SliceID)
+			}
+			if !profileRuntimeAIConfigTargetStatusApplyReady(result.Capability, status) {
+				projected.Outcome = string(profileRuntimePrepareSetupRequiredNoLiveConfig)
+				projected.ReasonCodes = append(projected.ReasonCodes, "target_unavailable")
+			} else {
+				binding, _, resolveErr := s.ResolveDurableLocalTarget(ctx, target, result.Capability)
+				if resolveErr != nil {
+					return nil, resolveErr
+				}
+				projected.LogicalModelID = strings.TrimSpace(binding.GetResolvedModelId())
+				projected.TargetRef = cloneDurableLocalTargetRef(target)
+				components, componentErr := s.profileRuntimeDescriptorPreparedComponents(
+					ctx,
+					slice,
+					assetBindings,
+					facts,
+				)
+				if componentErr != nil {
+					return nil, componentErr
+				}
+				projected.SelectedComponents = components
+			}
+		}
+		out.SliceResults = append(out.SliceResults, projected)
 	}
 	return out, nil
+}
+
+func profileRuntimeAIConfigTargetStatusApplyReady(
+	capability string,
+	status runtimev1.LocalAssetStatus,
+) bool {
+	if status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		return true
+	}
+	return status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED &&
+		(strings.TrimSpace(capability) == "text.generate" ||
+			strings.TrimSpace(capability) == "text.embed" ||
+			strings.TrimSpace(capability) == "image.generate")
 }
 
 func (s *Service) projectProfileRuntimeDescriptorMaterialization(
@@ -254,6 +367,21 @@ func (s *Service) projectProfileRuntimeDescriptorMaterialization(
 		mainLocalAssetID, materializationBindings, err := profileRuntimeDescriptorMaterializationBindings(slice, bindings, facts)
 		if err != nil {
 			return err
+		}
+		mainAsset := s.localAssetByID(mainLocalAssetID)
+		for _, binding := range materializationBindings {
+			if strings.TrimSpace(binding.OccurrenceID) == "" {
+				continue
+			}
+			if err := ValidateDurableLocalImageComponentMetadata(
+				mainAsset,
+				binding.CompanionKind,
+				binding.EngineSlot,
+				binding.Weight,
+				binding.Options,
+			); err != nil {
+				return err
+			}
 		}
 		s.cacheManagedMediaImageProfileResolution(
 			mainLocalAssetID,
@@ -342,6 +470,13 @@ func profileRuntimeDescriptorMaterializationBindings(
 		materializationBindings = append(materializationBindings, managedMediaProfileMaterializationBinding{
 			AssetID:               mainAssetID,
 			LocalAssetID:          mainLocalAssetID,
+			OccurrenceID:          strings.TrimSpace(companion.OccurrenceID),
+			Order:                 companion.Order,
+			Role:                  strings.TrimSpace(companion.Role),
+			LogicalModelID:        strings.TrimSpace(companionFact.LogicalModelID),
+			Required:              companion.Required,
+			Weight:                strings.TrimSpace(companion.Weight),
+			Options:               cloneAnyMap(companion.Options),
 			CompanionKind:         profileRuntimeDescriptorCompanionKind(binding),
 			EngineSlot:            strings.TrimSpace(companion.EngineSlot),
 			CompanionAssetID:      companionAssetID,
@@ -350,6 +485,73 @@ func profileRuntimeDescriptorMaterializationBindings(
 		})
 	}
 	return mainLocalAssetID, materializationBindings, nil
+}
+
+func (s *Service) profileRuntimeDescriptorPreparedComponents(
+	ctx context.Context,
+	slice profileRuntimeDescriptorCapability,
+	bindings map[string]profileRuntimeDescriptorAssetBinding,
+	facts profileRuntimePrepareFacts,
+) ([]ProfileRuntimeDescriptorPreparedComponentSelection, error) {
+	companions := append([]profileRuntimeDescriptorCompanionOccurrence(nil), slice.OrderedCompanionOccurrences...)
+	sort.SliceStable(companions, func(i, j int) bool {
+		return companions[i].Order < companions[j].Order
+	})
+	out := make([]ProfileRuntimeDescriptorPreparedComponentSelection, 0, len(companions))
+	for _, companion := range companions {
+		binding, ok := bindings[strings.TrimSpace(companion.AssetBindingRef)]
+		if !ok {
+			if companion.Required {
+				return nil, profileRuntimeDescriptorError("materialization.required_companion_missing", companion.OccurrenceID)
+			}
+			continue
+		}
+		fact, err := profileRuntimeReadyFactForBinding(binding, facts)
+		if err != nil {
+			if companion.Required {
+				return nil, err
+			}
+			continue
+		}
+		asset := s.localAssetByID(fact.LocalAssetID)
+		target := s.projectDurableLocalSelectionTargetForAsset(asset)
+		if target == nil {
+			return nil, profileRuntimeDescriptorError("materialization.component_target_unavailable", companion.OccurrenceID)
+		}
+		resolved, _, err := s.ResolveDurableLocalComponentTarget(ctx, target, binding.ComponentKind)
+		if err != nil {
+			return nil, err
+		}
+		logicalModelID := strings.TrimSpace(resolved.GetResolvedModelId())
+		if logicalModelID == "" {
+			return nil, profileRuntimeDescriptorError("materialization.component_logical_model_missing", companion.OccurrenceID)
+		}
+		out = append(out, ProfileRuntimeDescriptorPreparedComponentSelection{
+			OccurrenceID:   strings.TrimSpace(companion.OccurrenceID),
+			Order:          companion.Order,
+			Role:           strings.TrimSpace(companion.Role),
+			ComponentKind:  strings.TrimSpace(binding.ComponentKind),
+			LogicalModelID: logicalModelID,
+			TargetRef:      cloneDurableLocalTargetRef(target),
+			Required:       companion.Required,
+			Weight:         strings.TrimSpace(companion.Weight),
+			Options:        cloneAnyMap(companion.Options),
+		})
+	}
+	return out, nil
+}
+
+func durableLocalWorkflowBindingTargetRef(profileBindingID string) *runtimev1.RuntimeDurableLocalTargetRef {
+	bindingID := strings.TrimSpace(profileBindingID)
+	if !strings.HasPrefix(bindingID, workflowBindingIDPrefix+profileRuntimeMaterializationKeyPrefix) {
+		return nil
+	}
+	return &runtimev1.RuntimeDurableLocalTargetRef{
+		Version: "v2",
+		Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
+			ProfileBindingId: bindingID,
+		},
+	}
 }
 
 func profileRuntimeDescriptorMainAssetFact(
@@ -393,7 +595,7 @@ func profileRuntimeReadyFactForBinding(binding profileRuntimeDescriptorAssetBind
 		}
 		return profileRuntimePreparedAssetFact{}, profileRuntimeDescriptorError("materialization.prepared_asset_not_admitted", binding.BindingID)
 	}
-	if strings.TrimSpace(binding.ExpectedIdentity) == "" || strings.TrimSpace(fact.AssetID) != strings.TrimSpace(binding.ExpectedIdentity) {
+	if !profileRuntimePreparedAssetIdentityMatches(binding, fact) {
 		return profileRuntimePreparedAssetFact{}, profileRuntimeDescriptorError("materialization.prepared_asset_identity_mismatch", binding.BindingID)
 	}
 	if !profileRuntimePreparedAssetKindMatches(fact.Kind, binding.ComponentKind) {
@@ -409,6 +611,19 @@ func profileRuntimeReadyFactForBinding(binding profileRuntimeDescriptorAssetBind
 		return profileRuntimePreparedAssetFact{}, profileRuntimeDescriptorError("materialization.prepared_asset_source_unready", binding.BindingID)
 	}
 	return fact, nil
+}
+
+func profileRuntimePreparedAssetIdentityMatches(
+	binding profileRuntimeDescriptorAssetBinding,
+	fact profileRuntimePreparedAssetFact,
+) bool {
+	if strings.TrimSpace(binding.ExpectedIdentity) == "" {
+		return false
+	}
+	if strings.TrimSpace(binding.Source) == "manual" {
+		return strings.TrimSpace(fact.PreparedAssetID) != "" && strings.TrimSpace(fact.LocalAssetID) != ""
+	}
+	return strings.TrimSpace(fact.AssetID) == strings.TrimSpace(binding.ExpectedIdentity)
 }
 
 func profileRuntimeDescriptorCompanionKind(binding profileRuntimeDescriptorAssetBinding) string {

@@ -5,6 +5,7 @@ package nimi.runtime.v1;
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/ai.proto";
@@ -12,11 +13,24 @@ import "runtime/v1/ai.proto";
 // The local-app agents.configure carrier accepts only Runtime-issued opaque
 // Agent handles. Raw Runtime/Realm identity and authorization fields are
 // intentionally absent from every request and response.
-message LocalAppAgentRouteIntent {
+message LocalAppAgentAIConfigComponentSelection {
+  string occurrence_id = 1;
+  uint32 order = 2;
+  string role = 3;
+  string component_kind = 4;
+  string logical_model_id = 5;
+  bool required = 6;
+  string weight = 7;
+  google.protobuf.Struct options = 8;
+}
+
+message LocalAppAgentAIConfigIntent {
   string capability = 1;
   string provider = 2;
-  string model = 3;
+  string logical_model_id = 3;
   RoutePolicy route_policy = 4;
+  google.protobuf.Struct selected_params = 5;
+  repeated LocalAppAgentAIConfigComponentSelection selected_components = 6;
 }
 
 enum LocalAppAgentReadinessState {
@@ -25,6 +39,7 @@ enum LocalAppAgentReadinessState {
   LOCAL_APP_AGENT_READINESS_STATE_BLOCKED = 2;
   LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE = 3;
   LOCAL_APP_AGENT_READINESS_STATE_FAILED = 4;
+  LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED = 5;
 }
 message LocalAppAgentCapabilityReadiness {
   string capability = 1;
@@ -45,18 +60,26 @@ enum LocalAppAgentRouteOptionAvailability {
 message LocalAppAgentRouteOption {
   string capability = 1;
   string provider = 2;
-  string model = 3;
+  string logical_model_id = 3;
   RoutePolicy route_policy = 4;
   string label = 5;
   LocalAppAgentRouteOptionAvailability availability = 6;
 }
 
-message LocalAppAgentModelSettingsProjection {
+message LocalAppAgentAIProfileOrigin {
+  string profile_id = 1;
+  string title = 2;
+  google.protobuf.Timestamp applied_at = 3;
+}
+
+message LocalAppAgentAIConfigProjection {
   repeated string capabilities = 1;
-  repeated LocalAppAgentRouteIntent route_intents = 2;
+  repeated LocalAppAgentAIConfigIntent intents = 2;
   repeated LocalAppAgentCapabilityReadiness readiness = 3;
   uint64 configuration_revision = 4;
   repeated LocalAppAgentRouteOption route_options = 5;
+  string scope_owner_id = 6;
+  LocalAppAgentAIProfileOrigin profile_origin = 7;
 }
 
 message LocalAppAgentReadinessProjection {
@@ -65,15 +88,59 @@ message LocalAppAgentReadinessProjection {
 }
 
 message GetLocalAppAgentConfigurationSnapshotRequest { string agent_handle = 1; }
-message LocalAppAgentConfigurationSnapshotResponse { LocalAppAgentModelSettingsProjection projection = 1; }
+message LocalAppAgentConfigurationSnapshotResponse { LocalAppAgentAIConfigProjection projection = 1; }
 message UpdateLocalAppAgentConfigurationRequest {
   string agent_handle = 1;
   uint64 expected_configuration_revision = 2;
-  repeated LocalAppAgentRouteIntent route_intents = 3;
+  repeated LocalAppAgentAIConfigIntent intents = 3;
+  LocalAppAgentAIProfileOrigin profile_origin = 4;
 }
-message LocalAppAgentUpdateConfigurationResponse { LocalAppAgentModelSettingsProjection projection = 1; }
+message LocalAppAgentUpdateConfigurationResponse { LocalAppAgentAIConfigProjection projection = 1; }
 message GetLocalAppAgentReadinessSnapshotRequest { string agent_handle = 1; }
 message LocalAppAgentReadinessSnapshotResponse { LocalAppAgentReadinessProjection projection = 1; }
+
+enum LocalAppAgentAIProfileApplyOutcome {
+  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY = 1;
+  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG = 2;
+  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG = 3;
+  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE = 4;
+  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE = 5;
+  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED = 6;
+}
+
+message PreviewLocalAppAgentAIProfileRequest {
+  string agent_handle = 1;
+  bytes profile_json = 2;
+  bytes runtime_descriptor_json = 3;
+}
+
+message LocalAppAgentAIProfilePreviewResponse {
+  LocalAppAgentAIConfigProjection before = 1;
+  LocalAppAgentAIConfigProjection after = 2;
+  LocalAppAgentAIProfileApplyOutcome outcome = 3;
+  uint64 base_revision = 4;
+  repeated string blocking_capabilities = 5;
+  repeated string reason_codes = 6;
+  repeated string action_refs = 7;
+  repeated string probe_warnings = 8;
+}
+
+message ApplyLocalAppAgentAIProfileRequest {
+  string agent_handle = 1;
+  uint64 expected_configuration_revision = 2;
+  bytes profile_json = 3;
+  bytes runtime_descriptor_json = 4;
+}
+
+message LocalAppAgentAIProfileApplyResponse {
+  LocalAppAgentAIConfigProjection projection = 1;
+  LocalAppAgentAIProfileApplyOutcome outcome = 2;
+  repeated string blocking_capabilities = 3;
+  repeated string reason_codes = 4;
+  repeated string action_refs = 5;
+  repeated string probe_warnings = 6;
+}
 
 enum LocalAppAgentAutonomyMode {
   LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED = 0;

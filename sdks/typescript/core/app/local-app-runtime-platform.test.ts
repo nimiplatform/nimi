@@ -53,10 +53,16 @@ function standardShell(overrides: Record<string, unknown> = {}) {
       }),
       snapshot: async () => ({ anchor: { conversationAnchorId: 'anchor-1' } }),
     },
+    artifacts: {
+      put: async () => ({ artifactId: 'artifact-1' }),
+      readBytes: async () => ({ bytes: new Uint8Array([137, 80, 78, 71]), mimeType: 'image/png' }),
+    },
     agentConfigure: {
       configurationSnapshot: async () => ({}),
       updateConfiguration: async () => ({}),
       readinessSnapshot: async () => ({}),
+      aiProfilePreview: async () => ({}),
+      aiProfileApply: async () => ({}),
       autonomySnapshot: async () => ({}),
       updateAutonomy: async () => ({}),
       presentationSnapshot: async () => ({}),
@@ -68,7 +74,7 @@ function standardShell(overrides: Record<string, unknown> = {}) {
 
 test('local-app client exposes only admitted typed namespaces', async () => {
   const client = createLocalAppClient({ standardShell: standardShell() });
-  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'auth', 'conversation', 'permissions', 'realm', 'storage']);
+  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'artifacts', 'auth', 'conversation', 'permissions', 'realm', 'storage']);
   assert.deepEqual(await client.auth.status(), {
     mode: 'local-app',
     state: 'session-bound',
@@ -78,7 +84,6 @@ test('local-app client exposes only admitted typed namespaces', async () => {
     retryable: false,
   });
   assert.equal('agent' in client, false);
-  assert.equal('artifacts' in client, false);
 });
 
 test('exact WorldCore list/create carrier exposes no Runtime selector or authority material', async () => {
@@ -476,6 +481,7 @@ test('conversation namespace preserves opaque Agent handles and reserved typed f
       conversationAnchorId: 'anchor-1',
       requestId: 'request-1',
       text: 'hello',
+      attachments: [],
     }),
     () => client.conversation.interruptTurn({ agentHandle: handle, conversationAnchorId: 'anchor-1' }),
     () => client.conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'anchor-1' }),
@@ -571,6 +577,167 @@ test('auth projection rejects host pseudo-success flags', async () => {
   });
   await assert.rejects(
     () => client.auth.status(),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+});
+
+test('conversation send forwards one exact artifact attachment and admits attachment-only turns', async () => {
+  const handle = 'lash_runtime_materialized' as NimiLocalAppAgentHandle;
+  const calls: unknown[] = [];
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      conversation: {
+        open: async () => ({ conversationAnchorId: 'anchor-1', activeTurnId: null, activeStreamId: null }),
+        send: async (input: unknown) => {
+          calls.push(input);
+          return { messageId: 'message-1' };
+        },
+        interruptTurn: async () => ({ messageId: 'interrupt-message-1' }),
+        subscribe: async () => ({
+          events: { async *[Symbol.asyncIterator]() {} },
+          cancel: async () => undefined,
+        }),
+        snapshot: async () => ({ anchor: { conversationAnchorId: 'anchor-1' } }),
+      },
+    }),
+  });
+  const sent = await client.conversation.send({
+    agentHandle: handle,
+    conversationAnchorId: 'anchor-1',
+    requestId: 'request-1',
+    text: '',
+    attachments: [{ artifactId: 'artifact_01J', displayName: ' photo.png ' }],
+  });
+  assert.deepEqual(sent, { messageId: 'message-1' });
+  assert.deepEqual(calls, [{
+    agentHandle: handle,
+    conversationAnchorId: 'anchor-1',
+    requestId: 'request-1',
+    text: '',
+    attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
+  }]);
+  assert.equal(JSON.stringify(calls).includes('mimeType'), false);
+});
+
+test('conversation send fails closed on attachment shape violations and empty input', async () => {
+  const handle = 'lash_runtime_materialized' as NimiLocalAppAgentHandle;
+  const client = createLocalAppClient({ standardShell: standardShell() });
+  const base = {
+    agentHandle: handle,
+    conversationAnchorId: 'anchor-1',
+    requestId: 'request-1',
+  };
+  const invalid = [
+    { ...base, text: '', attachments: [] },
+    { ...base, text: 'hello', attachments: [{ artifactId: 'a' }, { artifactId: 'b' }] },
+    { ...base, text: 'hello', attachments: [{ artifactId: '' }] },
+    { ...base, text: 'hello', attachments: [{ artifactId: '  ' }] },
+    { ...base, text: 'hello', attachments: [{ displayName: 'photo.png' }] },
+    { ...base, text: 'hello', attachments: [{ artifactId: 'a', mimeType: 'image/png' }] },
+    { ...base, text: 'hello', attachments: [{ artifactId: 'a', displayName: 7 }] },
+    { ...base, text: 'hello', attachments: 'artifact_01J' },
+  ];
+  for (const input of invalid) {
+    await assert.rejects(
+      () => client.conversation.send(input as never),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+    );
+  }
+});
+
+test('artifacts putArtifact uploads bounded bytes and projects the exact artifact id', async () => {
+  const calls: unknown[] = [];
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      artifacts: {
+        put: async (input: unknown) => {
+          calls.push(input);
+          return { artifactId: 'artifact_01J' };
+        },
+        readBytes: async () => ({ bytes: new Uint8Array([1]), mimeType: 'image/png' }),
+      },
+    }),
+  });
+  const data = new Uint8Array([137, 80, 78, 71]);
+  const result = await client.artifacts.putArtifact({
+    mimeType: 'image/png',
+    displayName: 'photo.png',
+    data,
+  });
+  assert.deepEqual(result, { artifactId: 'artifact_01J' });
+  assert.equal(calls.length, 1);
+  const forwarded = calls[0] as { mimeType?: unknown; displayName?: unknown; data?: unknown };
+  assert.equal(forwarded.mimeType, 'image/png');
+  assert.equal(forwarded.displayName, 'photo.png');
+  assert.ok(forwarded.data instanceof Uint8Array);
+  assert.deepEqual([...(forwarded.data as Uint8Array)], [137, 80, 78, 71]);
+});
+
+test('artifacts putArtifact fails closed on unbounded or malformed input', async () => {
+  const client = createLocalAppClient({ standardShell: standardShell() });
+  const oversized = new Uint8Array(4 * 1024 * 1024 + 1);
+  const invalid = [
+    { mimeType: '', displayName: 'photo.png', data: new Uint8Array([1]) },
+    { mimeType: ' image/png', displayName: 'photo.png', data: new Uint8Array([1]) },
+    { mimeType: 'image/png', displayName: 'photo.png ', data: new Uint8Array([1]) },
+    { mimeType: 'image/png', displayName: 'photo.png', data: new Uint8Array(0) },
+    { mimeType: 'image/png', displayName: 'photo.png', data: oversized },
+    { mimeType: 'image/png', displayName: 'photo.png', data: [1, 2, 3] },
+  ];
+  for (const input of invalid) {
+    await assert.rejects(
+      () => client.artifacts.putArtifact(input as never),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+    );
+  }
+  await assert.rejects(
+    () => client.artifacts.putArtifact({
+      mimeType: 'image/png',
+      displayName: 'photo.png',
+      data: new Uint8Array([1]),
+      artifactId: 'forged',
+    } as never),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+});
+
+test('artifacts readArtifactBytes projects bounded bytes and fails closed on malformed projections', async () => {
+  const calls: unknown[] = [];
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      artifacts: {
+        put: async () => ({ artifactId: 'artifact-1' }),
+        readBytes: async (input: unknown) => {
+          calls.push(input);
+          return { bytes: new Uint8Array([137, 80, 78, 71]), mimeType: 'image/png' };
+        },
+      },
+    }),
+  });
+  const result = await client.artifacts.readArtifactBytes({ artifactId: 'artifact_01J' });
+  assert.equal(result.mimeType, 'image/png');
+  assert.deepEqual([...result.bytes], [137, 80, 78, 71]);
+  assert.deepEqual(calls, [{ artifactId: 'artifact_01J' }]);
+
+  await assert.rejects(
+    () => client.artifacts.readArtifactBytes({ artifactId: '  ' }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  await assert.rejects(
+    () => client.artifacts.readArtifactBytes({ artifactId: 'artifact_01J', ownerUserId: 'forged' } as never),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+
+  const malformed = createLocalAppClient({
+    standardShell: standardShell({
+      artifacts: {
+        put: async () => ({ artifactId: 'artifact-1' }),
+        readBytes: async () => ({ bytes: [1, 2, 3], mimeType: 'image/png' }),
+      },
+    }),
+  });
+  await assert.rejects(
+    () => malformed.artifacts.readArtifactBytes({ artifactId: 'artifact_01J' }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
   );
 });

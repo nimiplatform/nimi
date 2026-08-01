@@ -1,4 +1,4 @@
-use napi::bindgen_prelude::Buffer;
+use napi::bindgen_prelude::{Buffer, Uint8Array};
 use napi_derive::napi;
 use serde_json::Value as JsonValue;
 
@@ -192,6 +192,34 @@ pub struct NativeConversationSendInput {
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub text: String,
+    pub attachments: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeArtifactPutInput {
+    pub mime_type: String,
+    pub display_name: String,
+    pub data: Uint8Array,
+}
+
+#[napi(object)]
+pub struct NativeArtifactReadInput {
+    pub artifact_id: String,
+}
+
+#[napi(object)]
+pub struct NativeArtifactReadValue {
+    pub bytes: Buffer,
+    pub mime_type: String,
+}
+
+#[napi(object)]
+pub struct NativeArtifactReadOutcome {
+    pub status: String,
+    pub value: Option<NativeArtifactReadValue>,
+    pub reason_code: Option<String>,
+    pub retryable: Option<bool>,
+    pub reason_metadata: Option<JsonValue>,
 }
 
 #[napi(object)]
@@ -214,7 +242,23 @@ pub struct NativeAgentHandleInput {
 pub struct NativeAgentUpdateConfigurationInput {
     pub agent_handle: String,
     pub expected_configuration_revision: String,
-    pub route_intents: JsonValue,
+    pub intents: JsonValue,
+    pub profile_origin: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAgentAIProfilePreviewInput {
+    pub agent_handle: String,
+    pub profile: JsonValue,
+    pub runtime_descriptor: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAgentAIProfileApplyInput {
+    pub agent_handle: String,
+    pub expected_configuration_revision: String,
+    pub profile: JsonValue,
+    pub runtime_descriptor: JsonValue,
 }
 
 #[napi(object)]

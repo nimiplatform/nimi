@@ -1,15 +1,14 @@
-import type { CompanionSlotDef, ImageParamsState, LocalAssetEntry } from '../types.js';
+import type { ImageParamsState, ModelConfigProfileCapabilitySummary } from '../types.js';
+import type { ModelConfigLocalAssetDescriptor } from '@nimiplatform/kit/core/model-config';
+import type { NimiAIConfigComponentSelection } from '@nimiplatform/kit/core/sdk-contract';
 import {
-  IMAGE_MODEL_FAMILY_OPTIONS,
   IMAGE_RESPONSE_FORMAT_OPTIONS,
   IMAGE_SIZE_PRESETS,
-  resolveImageCompanionSlotsForModelFamily,
 } from '../constants.js';
+import { FieldInput, FieldRow, FieldSelect, SubSectionLabel } from './field-primitives.js';
 import { CompanionSlotSelector } from './companion-slot-selector.js';
-import { FieldInput, FieldRow, FieldSelect, FieldTextarea, SubSectionLabel } from './field-primitives.js';
 
 export type ImageParamsEditorCopy = {
-  modelFamilyLabel?: string;
   companionModelsLabel: string;
   parametersLabel: string;
   sizeLabel: string;
@@ -21,35 +20,39 @@ export type ImageParamsEditorCopy = {
   cfgScaleLabel: string;
   samplerLabel: string;
   schedulerLabel: string;
-  customOptionsLabel: string;
-  customOptionsHint?: string;
   defaultPlaceholder?: string;
   randomPlaceholder?: string;
-  oneOptionPerLinePlaceholder?: string;
   noneLabel?: string;
   requiredLabel?: string;
   requiredSetupPlaceholder?: string;
   setupPendingLabel?: string;
+  mainModelLabel?: string;
+  compositionRuntimeOwnedHint?: string;
+  compositionUnavailableHint?: string;
+  componentPickerTitle?: string;
+  componentSearchPlaceholder?: string;
+  componentLoadingLabel?: string;
+  componentEmptyLabel?: string;
+  componentSelectedLabel?: string;
+  currentUnavailableLabel?: string;
 };
 
 export type ImageParamsEditorProps = {
   params: ImageParamsState;
-  companionSlots: Record<string, string>;
-  companionSlotDefs?: ReadonlyArray<CompanionSlotDef>;
   onParamsChange: (next: ImageParamsState) => void;
-  onCompanionSlotsChange: (next: Record<string, string>) => void;
-  assets: LocalAssetEntry[];
-  assetsLoading?: boolean;
+  profileComposition?: ModelConfigProfileCapabilitySummary | null;
+  selectedComponents?: readonly NimiAIConfigComponentSelection[];
+  componentCandidates?: readonly ModelConfigLocalAssetDescriptor[];
+  componentsLoading?: boolean;
+  onComponentsChange?: (next: readonly NimiAIConfigComponentSelection[]) => void;
   copy: ImageParamsEditorCopy;
 };
 
 export function ImageParamsEditor(props: ImageParamsEditorProps) {
-  const { assets, companionSlots, copy, params } = props;
-  const companionSlotDefs = props.companionSlotDefs ?? resolveImageCompanionSlotsForModelFamily(params.modelFamily);
-
-  const updateSlot = (slot: string, value: string) => {
-    props.onCompanionSlotsChange({ ...companionSlots, [slot]: value });
-  };
+  const { copy, params, profileComposition } = props;
+  const selectedComponents = props.selectedComponents || [];
+  const renderedComponents = [...selectedComponents]
+    .sort((left, right) => left.order - right.order);
 
   const updateParam = <K extends keyof ImageParamsState>(key: K, value: ImageParamsState[K]) => {
     props.onParamsChange({ ...params, [key]: value });
@@ -57,33 +60,64 @@ export function ImageParamsEditor(props: ImageParamsEditorProps) {
 
   return (
     <div className="space-y-3">
-      <FieldRow label={copy.modelFamilyLabel ?? 'Model type'}>
-        <FieldSelect
-          value={params.modelFamily ?? ''}
-          onChange={(value) => updateParam('modelFamily', value)}
-          options={IMAGE_MODEL_FAMILY_OPTIONS}
-        />
-      </FieldRow>
-
       <SubSectionLabel label={copy.companionModelsLabel} />
 
-      <div className="grid grid-cols-2 gap-3">
-        {companionSlotDefs.map((slot) => (
-          <CompanionSlotSelector
-            key={slot.slot}
-            slot={slot}
-            value={companionSlots[slot.slot] || ''}
-            onChange={(value) => updateSlot(slot.slot, value)}
-            assets={assets}
-            loading={props.assetsLoading}
-            noneLabel={copy.noneLabel}
-            required={slot.required}
-            requiredLabel={copy.requiredLabel}
-            requiredSetupPlaceholder={copy.requiredSetupPlaceholder}
-            setupPendingLabel={copy.setupPendingLabel}
-          />
-        ))}
-      </div>
+      {profileComposition?.modelLabel ? (
+        <div
+          data-nimi-image-profile-provenance="portable"
+          className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2.5"
+        >
+          <div className="flex items-start justify-between gap-3 text-xs">
+            <span className="text-[var(--nimi-text-muted)]">{copy.mainModelLabel ?? 'Main model'}</span>
+            <span className="break-all text-right font-medium text-[var(--nimi-text-primary)]">
+              {profileComposition.modelLabel}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {renderedComponents.length > 0 ? (
+        <div data-nimi-image-component-slots={renderedComponents.length} className="space-y-3">
+          {renderedComponents.map((selection) => (
+            <CompanionSlotSelector
+              key={selection.occurrenceId}
+              slot={selection}
+              value={selection}
+              candidates={props.componentCandidates || []}
+              loading={props.componentsLoading}
+              copy={{
+                dialogTitle: copy.componentPickerTitle,
+                searchPlaceholder: copy.componentSearchPlaceholder,
+                loadingLabel: copy.componentLoadingLabel,
+                emptyLabel: copy.componentEmptyLabel,
+                selectedLabel: copy.componentSelectedLabel,
+                currentUnavailableLabel: copy.currentUnavailableLabel,
+                requiredLabel: copy.requiredLabel,
+              }}
+              onChange={(nextSelection) => {
+                if (!props.onComponentsChange) return;
+                props.onComponentsChange(selectedComponents.map((current) => (
+                  current.occurrenceId === selection.occurrenceId ? nextSelection : current
+                )));
+              }}
+            />
+          ))}
+          {profileComposition ? (
+            <p className="text-[10px] leading-relaxed text-[var(--nimi-text-muted)]">
+              {copy.compositionRuntimeOwnedHint
+                ?? 'Component slots came from the applied AI Profile. Changes are saved only to this AI configuration.'}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <p
+          data-nimi-image-component-slots="0"
+          className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2.5 text-[11px] leading-relaxed text-[var(--nimi-text-muted)]"
+        >
+          {copy.compositionUnavailableHint
+            ?? 'Apply an AI Profile with component slots before configuring this workflow.'}
+        </p>
+      )}
 
       <SubSectionLabel label={copy.parametersLabel} />
 
@@ -153,14 +187,6 @@ export function ImageParamsEditor(props: ImageParamsEditorProps) {
         </FieldRow>
       </div>
 
-      <FieldRow label={copy.customOptionsLabel} tooltip={copy.customOptionsHint}>
-        <FieldTextarea
-          value={params.optionsText}
-          onChange={(value) => updateParam('optionsText', value)}
-          placeholder={copy.oneOptionPerLinePlaceholder}
-          rows={3}
-        />
-      </FieldRow>
     </div>
   );
 }

@@ -763,6 +763,18 @@ const (
 	KNOWLEDGEINGESTTASKSTATUSFAILED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
 )
 
+type LocalAppAgentAIProfileApplyOutcome string
+
+const (
+	LOCALAPPAGENTAIPROFILEAPPLYOUTCOMEUNSPECIFIED LocalAppAgentAIProfileApplyOutcome = "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED"
+	LOCALAPPAGENTAIPROFILEAPPLYOUTCOMEREADYTOAPPLY LocalAppAgentAIProfileApplyOutcome = "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY"
+	LOCALAPPAGENTAIPROFILEAPPLYOUTCOMESETUPREQUIREDNOLIVECONFIG LocalAppAgentAIProfileApplyOutcome = "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG"
+	LOCALAPPAGENTAIPROFILEAPPLYOUTCOMEUNSUPPORTEDNOLIVECONFIG LocalAppAgentAIProfileApplyOutcome = "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG"
+	LOCALAPPAGENTAIPROFILEAPPLYOUTCOMEINVALIDPROFILE LocalAppAgentAIProfileApplyOutcome = "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE"
+	LOCALAPPAGENTAIPROFILEAPPLYOUTCOMESTALEBASE LocalAppAgentAIProfileApplyOutcome = "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE"
+	LOCALAPPAGENTAIPROFILEAPPLYOUTCOMEFAILED LocalAppAgentAIProfileApplyOutcome = "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED"
+)
+
 type LocalAppAgentAutonomyMode string
 
 const (
@@ -781,6 +793,7 @@ const (
 	LOCALAPPAGENTREADINESSSTATEBLOCKED LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED"
 	LOCALAPPAGENTREADINESSSTATEUNAVAILABLE LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE"
 	LOCALAPPAGENTREADINESSSTATEFAILED LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_FAILED"
+	LOCALAPPAGENTREADINESSSTATECONFIGUREDUNVERIFIED LocalAppAgentReadinessState = "LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED"
 )
 
 type LocalAppAgentRouteOptionAvailability string
@@ -1372,6 +1385,9 @@ const (
 	APPOPENMANIFESTREQUIREMENTUNSATISFIED ReasonCode = "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED"
 	APPOPENLAUNCHFAILED ReasonCode = "APP_OPEN_LAUNCH_FAILED"
 	AGENTPRESENTATIONREVISIONCONFLICT ReasonCode = "AGENT_PRESENTATION_REVISION_CONFLICT"
+	ARTIFACTUPLOADMIMEUNSUPPORTED ReasonCode = "ARTIFACT_UPLOAD_MIME_UNSUPPORTED"
+	ARTIFACTUPLOADTOOLARGE ReasonCode = "ARTIFACT_UPLOAD_TOO_LARGE"
+	ARTIFACTUPLOADCONTENTMISMATCH ReasonCode = "ARTIFACT_UPLOAD_CONTENT_MISMATCH"
 	PROTECTEDLOCALTRANSPORTUNSUPPORTED ReasonCode = "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED"
 	PROTECTEDLOCALENDPOINTOWNERSHIPFAILED ReasonCode = "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED"
 	PROTECTEDLOCALSERVERVERIFICATIONFAILED ReasonCode = "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED"
@@ -1426,6 +1442,12 @@ const (
 	AGENTPRESENTATIONASSETINTEGRITYMISMATCH ReasonCode = "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH"
 	AGENTPRESENTATIONBACKENDINCOMPATIBLE ReasonCode = "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE"
 	AGENTPRESENTATIONASSETNOTVALIDATED ReasonCode = "AGENT_PRESENTATION_ASSET_NOT_VALIDATED"
+	AGENTAICONFIGINVALID ReasonCode = "AGENT_AI_CONFIG_INVALID"
+	AGENTAICONFIGTARGETREQUIRED ReasonCode = "AGENT_AI_CONFIG_TARGET_REQUIRED"
+	AGENTAICONFIGTARGETINVALID ReasonCode = "AGENT_AI_CONFIG_TARGET_INVALID"
+	AGENTAICONFIGTARGETUNAVAILABLE ReasonCode = "AGENT_AI_CONFIG_TARGET_UNAVAILABLE"
+	AGENTAICONFIGCAPABILITYMISMATCH ReasonCode = "AGENT_AI_CONFIG_CAPABILITY_MISMATCH"
+	AGENTAICONFIGMODELTARGETMISMATCH ReasonCode = "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH"
 )
 
 type ReasoningMode string
@@ -1468,6 +1490,19 @@ const (
 	RUNTIMEAGENTAICONFIGREADINESSSTATEREADY RuntimeAgentAIConfigReadinessState = "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY"
 	RUNTIMEAGENTAICONFIGREADINESSSTATENOTCONFIGURED RuntimeAgentAIConfigReadinessState = "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED"
 	RUNTIMEAGENTAICONFIGREADINESSSTATEUNAVAILABLE RuntimeAgentAIConfigReadinessState = "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE"
+	RUNTIMEAGENTAICONFIGREADINESSSTATECONFIGUREDUNVERIFIED RuntimeAgentAIConfigReadinessState = "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED"
+)
+
+type RuntimeAgentAIProfileApplyOutcome string
+
+const (
+	RUNTIMEAGENTAIPROFILEAPPLYOUTCOMEUNSPECIFIED RuntimeAgentAIProfileApplyOutcome = "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED"
+	RUNTIMEAGENTAIPROFILEAPPLYOUTCOMEREADYTOAPPLY RuntimeAgentAIProfileApplyOutcome = "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY"
+	RUNTIMEAGENTAIPROFILEAPPLYOUTCOMESETUPREQUIREDNOLIVECONFIG RuntimeAgentAIProfileApplyOutcome = "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG"
+	RUNTIMEAGENTAIPROFILEAPPLYOUTCOMEUNSUPPORTEDNOLIVECONFIG RuntimeAgentAIProfileApplyOutcome = "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG"
+	RUNTIMEAGENTAIPROFILEAPPLYOUTCOMEINVALIDPROFILE RuntimeAgentAIProfileApplyOutcome = "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE"
+	RUNTIMEAGENTAIPROFILEAPPLYOUTCOMESTALEBASE RuntimeAgentAIProfileApplyOutcome = "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE"
+	RUNTIMEAGENTAIPROFILEAPPLYOUTCOMEFAILED RuntimeAgentAIProfileApplyOutcome = "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED"
 )
 
 type RuntimeHealthStatus string
@@ -2297,12 +2332,35 @@ type AppendRuntimeAuditRequest struct {
 	Payload map[string]any `json:"payload,omitempty"`
 }
 
+type ApplyLocalAppAgentAIProfileRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ExpectedConfigurationRevision uint64 `json:"expected_configuration_revision,omitempty"`
+	ProfileJson []byte `json:"profile_json,omitempty"`
+	RuntimeDescriptorJson []byte `json:"runtime_descriptor_json,omitempty"`
+}
+
 type ApplyProfileRequest struct {
 	Plan *LocalProfileResolutionPlan `json:"plan,omitempty"`
 }
 
 type ApplyProfileResponse struct {
 	Result *LocalProfileApplyResult `json:"result,omitempty"`
+}
+
+type ApplyRuntimeAgentAIProfileRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	ExpectedRevision uint64 `json:"expected_revision,omitempty"`
+	ProfileJson []byte `json:"profile_json,omitempty"`
+	RuntimeDescriptorJson []byte `json:"runtime_descriptor_json,omitempty"`
+}
+
+type ApplyRuntimeAgentAIProfileResponse struct {
+	Config *RuntimeAgentAIConfig `json:"config,omitempty"`
+	Outcome RuntimeAgentAIProfileApplyOutcome `json:"outcome,omitempty"`
+	BlockingCapabilities []string `json:"blocking_capabilities,omitempty"`
+	ReasonCodes []string `json:"reason_codes,omitempty"`
+	ActionRefs []string `json:"action_refs,omitempty"`
+	ProbeWarnings []string `json:"probe_warnings,omitempty"`
 }
 
 type ArtifactChunk struct {
@@ -4440,6 +4498,62 @@ type LocalAgentSourceCoverageSectionStatus struct {
 	OmittedCount uint32 `json:"omitted_count,omitempty"`
 }
 
+type LocalAppAgentAIConfigComponentSelection struct {
+	OccurrenceId string `json:"occurrence_id,omitempty"`
+	Order uint32 `json:"order,omitempty"`
+	Role string `json:"role,omitempty"`
+	ComponentKind string `json:"component_kind,omitempty"`
+	LogicalModelId string `json:"logical_model_id,omitempty"`
+	Required bool `json:"required,omitempty"`
+	Weight string `json:"weight,omitempty"`
+	Options map[string]any `json:"options,omitempty"`
+}
+
+type LocalAppAgentAIConfigIntent struct {
+	Capability string `json:"capability,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	LogicalModelId string `json:"logical_model_id,omitempty"`
+	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
+	SelectedParams map[string]any `json:"selected_params,omitempty"`
+	SelectedComponents []LocalAppAgentAIConfigComponentSelection `json:"selected_components,omitempty"`
+}
+
+type LocalAppAgentAIConfigProjection struct {
+	Capabilities []string `json:"capabilities,omitempty"`
+	Intents []LocalAppAgentAIConfigIntent `json:"intents,omitempty"`
+	Readiness []LocalAppAgentCapabilityReadiness `json:"readiness,omitempty"`
+	ConfigurationRevision uint64 `json:"configuration_revision,omitempty"`
+	RouteOptions []LocalAppAgentRouteOption `json:"route_options,omitempty"`
+	ScopeOwnerId string `json:"scope_owner_id,omitempty"`
+	ProfileOrigin *LocalAppAgentAIProfileOrigin `json:"profile_origin,omitempty"`
+}
+
+type LocalAppAgentAIProfileApplyResponse struct {
+	Projection *LocalAppAgentAIConfigProjection `json:"projection,omitempty"`
+	Outcome LocalAppAgentAIProfileApplyOutcome `json:"outcome,omitempty"`
+	BlockingCapabilities []string `json:"blocking_capabilities,omitempty"`
+	ReasonCodes []string `json:"reason_codes,omitempty"`
+	ActionRefs []string `json:"action_refs,omitempty"`
+	ProbeWarnings []string `json:"probe_warnings,omitempty"`
+}
+
+type LocalAppAgentAIProfileOrigin struct {
+	ProfileId string `json:"profile_id,omitempty"`
+	Title string `json:"title,omitempty"`
+	AppliedAt string `json:"applied_at,omitempty"`
+}
+
+type LocalAppAgentAIProfilePreviewResponse struct {
+	Before *LocalAppAgentAIConfigProjection `json:"before,omitempty"`
+	After *LocalAppAgentAIConfigProjection `json:"after,omitempty"`
+	Outcome LocalAppAgentAIProfileApplyOutcome `json:"outcome,omitempty"`
+	BaseRevision uint64 `json:"base_revision,omitempty"`
+	BlockingCapabilities []string `json:"blocking_capabilities,omitempty"`
+	ReasonCodes []string `json:"reason_codes,omitempty"`
+	ActionRefs []string `json:"action_refs,omitempty"`
+	ProbeWarnings []string `json:"probe_warnings,omitempty"`
+}
+
 type LocalAppAgentAutonomyConfig struct {
 	DailyTokenBudget int64 `json:"daily_token_budget,omitempty"`
 	MaxTokensPerHook int64 `json:"max_tokens_per_hook,omitempty"`
@@ -4479,15 +4593,7 @@ type LocalAppAgentCommitPresentationResponse struct {
 }
 
 type LocalAppAgentConfigurationSnapshotResponse struct {
-	Projection *LocalAppAgentModelSettingsProjection `json:"projection,omitempty"`
-}
-
-type LocalAppAgentModelSettingsProjection struct {
-	Capabilities []string `json:"capabilities,omitempty"`
-	RouteIntents []LocalAppAgentRouteIntent `json:"route_intents,omitempty"`
-	Readiness []LocalAppAgentCapabilityReadiness `json:"readiness,omitempty"`
-	ConfigurationRevision uint64 `json:"configuration_revision,omitempty"`
-	RouteOptions []LocalAppAgentRouteOption `json:"route_options,omitempty"`
+	Projection *LocalAppAgentAIConfigProjection `json:"projection,omitempty"`
 }
 
 type LocalAppAgentPresentationIntent struct {
@@ -4521,17 +4627,10 @@ type LocalAppAgentReadinessSnapshotResponse struct {
 	Projection *LocalAppAgentReadinessProjection `json:"projection,omitempty"`
 }
 
-type LocalAppAgentRouteIntent struct {
-	Capability string `json:"capability,omitempty"`
-	Provider string `json:"provider,omitempty"`
-	Model string `json:"model,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-}
-
 type LocalAppAgentRouteOption struct {
 	Capability string `json:"capability,omitempty"`
 	Provider string `json:"provider,omitempty"`
-	Model string `json:"model,omitempty"`
+	LogicalModelId string `json:"logical_model_id,omitempty"`
 	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
 	Label string `json:"label,omitempty"`
 	Availability LocalAppAgentRouteOptionAvailability `json:"availability,omitempty"`
@@ -4542,7 +4641,7 @@ type LocalAppAgentUpdateAutonomyResponse struct {
 }
 
 type LocalAppAgentUpdateConfigurationResponse struct {
-	Projection *LocalAppAgentModelSettingsProjection `json:"projection,omitempty"`
+	Projection *LocalAppAgentAIConfigProjection `json:"projection,omitempty"`
 }
 
 type LocalAppPermissionAgentHandle struct {
@@ -4631,6 +4730,9 @@ type LocalAssetRecord struct {
 	DisplayName string `json:"display_name,omitempty"`
 	SourceFileName string `json:"source_file_name,omitempty"`
 	ImportInstanceId string `json:"import_instance_id,omitempty"`
+	DurableTargetRef *RuntimeDurableLocalTargetRef `json:"durable_target_ref,omitempty"`
+	DurableTargetStatus LocalAssetStatus `json:"durable_target_status,omitempty"`
+	DurableTargetReasonCode ReasonCode `json:"durable_target_reason_code,omitempty"`
 }
 
 type LocalAssetSource struct {
@@ -5778,6 +5880,29 @@ type PrepareProfileRuntimeDescriptorResponse struct {
 	SliceResults []ProfileRuntimeDescriptorSlicePrepareResult `json:"slice_results,omitempty"`
 }
 
+type PreviewLocalAppAgentAIProfileRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ProfileJson []byte `json:"profile_json,omitempty"`
+	RuntimeDescriptorJson []byte `json:"runtime_descriptor_json,omitempty"`
+}
+
+type PreviewRuntimeAgentAIProfileRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	ProfileJson []byte `json:"profile_json,omitempty"`
+	RuntimeDescriptorJson []byte `json:"runtime_descriptor_json,omitempty"`
+}
+
+type PreviewRuntimeAgentAIProfileResponse struct {
+	Before *RuntimeAgentAIConfig `json:"before,omitempty"`
+	After *RuntimeAgentAIConfig `json:"after,omitempty"`
+	Outcome RuntimeAgentAIProfileApplyOutcome `json:"outcome,omitempty"`
+	BaseRevision uint64 `json:"base_revision,omitempty"`
+	BlockingCapabilities []string `json:"blocking_capabilities,omitempty"`
+	ReasonCodes []string `json:"reason_codes,omitempty"`
+	ActionRefs []string `json:"action_refs,omitempty"`
+	ProbeWarnings []string `json:"probe_warnings,omitempty"`
+}
+
 type ProductControlProjectionJson struct {
 	Json string `json:"json,omitempty"`
 }
@@ -5829,6 +5954,16 @@ type PullModelResponse struct {
 	TaskId string `json:"task_id,omitempty"`
 	Accepted bool `json:"accepted,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type PutArtifactRequest struct {
+	MimeType string `json:"mime_type,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	Data []byte `json:"data,omitempty"`
+}
+
+type PutArtifactResponse struct {
+	ArtifactId string `json:"artifact_id,omitempty"`
 }
 
 type PutPageRequest struct {
@@ -6368,6 +6503,7 @@ type RuntimeAgentAIConfig struct {
 	Intents []RuntimeAgentAIConfigIntent `json:"intents,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
 	UpdatedByAppId string `json:"updated_by_app_id,omitempty"`
+	ProfileOrigin *RuntimeAgentAIProfileOrigin `json:"profile_origin,omitempty"`
 }
 
 type RuntimeAgentAIConfigCapabilityReadiness struct {
@@ -6375,6 +6511,18 @@ type RuntimeAgentAIConfigCapabilityReadiness struct {
 	State RuntimeAgentAIConfigReadinessState `json:"state,omitempty"`
 	ReasonCode string `json:"reason_code,omitempty"`
 	ProbedAt string `json:"probed_at,omitempty"`
+}
+
+type RuntimeAgentAIConfigComponentSelection struct {
+	OccurrenceId string `json:"occurrence_id,omitempty"`
+	Order uint32 `json:"order,omitempty"`
+	Role string `json:"role,omitempty"`
+	ComponentKind string `json:"component_kind,omitempty"`
+	LogicalModelId string `json:"logical_model_id,omitempty"`
+	TargetRef *RuntimeDurableTargetRef `json:"target_ref,omitempty"`
+	Required bool `json:"required,omitempty"`
+	Weight string `json:"weight,omitempty"`
+	Options map[string]any `json:"options,omitempty"`
 }
 
 type RuntimeAgentAIConfigIntent struct {
@@ -6386,12 +6534,20 @@ type RuntimeAgentAIConfigIntent struct {
 	VoiceReferenceRef string `json:"voice_reference_ref,omitempty"`
 	ImagePolicyRef string `json:"image_policy_ref,omitempty"`
 	Provider string `json:"provider,omitempty"`
+	SelectedParams map[string]any `json:"selected_params,omitempty"`
+	SelectedComponents []RuntimeAgentAIConfigComponentSelection `json:"selected_components,omitempty"`
 }
 
 type RuntimeAgentAIConfigReadinessSnapshot struct {
 	AgentInstanceId string `json:"agent_instance_id,omitempty"`
 	ConfigRevision uint64 `json:"config_revision,omitempty"`
 	Capabilities []RuntimeAgentAIConfigCapabilityReadiness `json:"capabilities,omitempty"`
+}
+
+type RuntimeAgentAIProfileOrigin struct {
+	ProfileId string `json:"profile_id,omitempty"`
+	Title string `json:"title,omitempty"`
+	AppliedAt string `json:"applied_at,omitempty"`
 }
 
 type RuntimeDurableCloudTargetRef struct {
@@ -7146,7 +7302,8 @@ type UpdateLocalAppAgentAutonomyRequest struct {
 type UpdateLocalAppAgentConfigurationRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	ExpectedConfigurationRevision uint64 `json:"expected_configuration_revision,omitempty"`
-	RouteIntents []LocalAppAgentRouteIntent `json:"route_intents,omitempty"`
+	Intents []LocalAppAgentAIConfigIntent `json:"intents,omitempty"`
+	ProfileOrigin *LocalAppAgentAIProfileOrigin `json:"profile_origin,omitempty"`
 }
 
 type UploadArtifactChunk struct {
@@ -7198,6 +7355,7 @@ type UpsertRuntimeAgentAIConfigRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	ExpectedRevision uint64 `json:"expected_revision,omitempty"`
 	Intents []RuntimeAgentAIConfigIntent `json:"intents,omitempty"`
+	ProfileOrigin *RuntimeAgentAIProfileOrigin `json:"profile_origin,omitempty"`
 }
 
 type UpsertRuntimeAgentAIConfigResponse struct {
@@ -7750,6 +7908,22 @@ func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAcc
 	return decodeRuntimeTypedResponse[SwitchAccountResponse](raw, "SwitchAccountResponse")
 }
 
+func (c RuntimeTypedClient) ApplyLocalAppAgentAIProfile(ctx context.Context, request ApplyLocalAppAgentAIProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentAIProfileApplyResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentAIProfileApplyResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentAIProfileApplyResponse](raw, "LocalAppAgentAIProfileApplyResponse")
+}
+
+func (c RuntimeTypedClient) ApplyRuntimeAgentAIProfile(ctx context.Context, request ApplyRuntimeAgentAIProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ApplyRuntimeAgentAIProfileResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile", request, metadata, timeoutMS)
+	if err != nil {
+		return ApplyRuntimeAgentAIProfileResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ApplyRuntimeAgentAIProfileResponse](raw, "ApplyRuntimeAgentAIProfileResponse")
+}
+
 func (c RuntimeTypedClient) CancelCompanionParticipation(ctx context.Context, request CancelCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelCompanionParticipationResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", request, metadata, timeoutMS)
 	if err != nil {
@@ -8020,6 +8194,22 @@ func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request 
 		return OpenConversationAnchorResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[OpenConversationAnchorResponse](raw, "OpenConversationAnchorResponse")
+}
+
+func (c RuntimeTypedClient) PreviewLocalAppAgentAIProfile(ctx context.Context, request PreviewLocalAppAgentAIProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentAIProfilePreviewResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile", request, metadata, timeoutMS)
+	if err != nil {
+		return LocalAppAgentAIProfilePreviewResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[LocalAppAgentAIProfilePreviewResponse](raw, "LocalAppAgentAIProfilePreviewResponse")
+}
+
+func (c RuntimeTypedClient) PreviewRuntimeAgentAIProfile(ctx context.Context, request PreviewRuntimeAgentAIProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PreviewRuntimeAgentAIProfileResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile", request, metadata, timeoutMS)
+	if err != nil {
+		return PreviewRuntimeAgentAIProfileResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PreviewRuntimeAgentAIProfileResponse](raw, "PreviewRuntimeAgentAIProfileResponse")
 }
 
 func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (QueryAgentMemoryResponse, error) {
@@ -8384,6 +8574,14 @@ func (c RuntimeTypedClient) CleanupGeneratedVoiceArtifacts(ctx context.Context, 
 		return CleanupGeneratedVoiceArtifactsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[CleanupGeneratedVoiceArtifactsResponse](raw, "CleanupGeneratedVoiceArtifactsResponse")
+}
+
+func (c RuntimeTypedClient) PutArtifact(ctx context.Context, request PutArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PutArtifactResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeArtifactService/PutArtifact", request, metadata, timeoutMS)
+	if err != nil {
+		return PutArtifactResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PutArtifactResponse](raw, "PutArtifactResponse")
 }
 
 func (c RuntimeTypedClient) ReadArtifactBytes(ctx context.Context, request ReadArtifactBytesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadArtifactBytesResponse, error) {

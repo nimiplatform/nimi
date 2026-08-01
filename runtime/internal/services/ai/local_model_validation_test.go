@@ -840,14 +840,17 @@ func TestValidateLocalModelRequestIncludesUnhealthyDetail(t *testing.T) {
 	svc := newTestService(logger)
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
-			AssetId:      "unsloth/Z-Image-Turbo-GGUF",
+			AssetId:      "wan2.2",
 			Engine:       "media",
 			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 			HealthDetail: "media supervised mode requires a CUDA-ready NVIDIA runtime",
 		}},
 	}}}
 
-	err := svc.validateLocalModelRequest(context.Background(), "local/unsloth/Z-Image-Turbo-GGUF", nil, runtimev1.Modal_MODAL_IMAGE)
+	// Targetless image execution now fails before catalog inspection because it
+	// requires an exact durable composition binding. Use the media video path to
+	// exercise the unhealthy-record detail projection owned by this test.
+	err := svc.validateLocalModelRequest(context.Background(), "media/wan2.2", nil, runtimev1.Modal_MODAL_VIDEO)
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected local model unavailable, got=%v ok=%v", reason, ok)

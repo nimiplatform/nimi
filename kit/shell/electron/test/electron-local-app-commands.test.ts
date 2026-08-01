@@ -73,7 +73,7 @@ describe('Electron local-app standard-shell operations', () => {
   it('reaches all five conversation operations but preserves typed failures', async () => {
     const requests = [
       ['local-app.conversationOpen', { agentHandle: 'lash_one' }],
-      ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello' }],
+      ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', text: 'hello', attachments: [] }],
       ['local-app.conversationInterruptTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSubscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSnapshot', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
@@ -93,11 +93,13 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
-  it('routes all seven configure operations to the protected carrier with decimal revisions', async () => {
+  it('routes all nine configure operations to the protected carrier with decimal revisions', async () => {
     const requests = [
       ['local-app.agentConfigurationSnapshot', { agentHandle: 'lash_one' }],
-      ['local-app.agentUpdateConfiguration', { agentHandle: 'lash_one', expectedConfigurationRevision: '1', routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }] }],
+      ['local-app.agentUpdateConfiguration', { agentHandle: 'lash_one', expectedConfigurationRevision: '1', intents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }], profileOrigin: null }],
       ['local-app.agentReadinessSnapshot', { agentHandle: 'lash_one' }],
+      ['local-app.agentAIProfilePreview', { agentHandle: 'lash_one', profile: { alias: 'local-gpu' }, runtimeDescriptor: { runtimeId: 'local-runtime' } }],
+      ['local-app.agentAIProfileApply', { agentHandle: 'lash_one', expectedConfigurationRevision: '2', profile: { alias: 'local-gpu' }, runtimeDescriptor: { runtimeId: 'local-runtime' } }],
       ['local-app.agentAutonomySnapshot', { agentHandle: 'lash_one' }],
       ['local-app.agentUpdateAutonomy', { agentHandle: 'lash_one', expectedAutonomyRevision: '1', intent: { enabled: false } }],
       ['local-app.agentPresentationSnapshot', { agentHandle: 'lash_one' }],
@@ -151,6 +153,7 @@ describe('Electron local-app standard-shell operations', () => {
           conversationAnchorId: 'anchor-1',
           requestId: 'request-1',
           text: 'hello',
+          attachments: [],
         },
       },
     })).rejects.toMatchObject({
@@ -225,6 +228,140 @@ describe('Electron local-app standard-shell operations', () => {
       payload: { payload: { relativePath: '../escape.json' } },
     })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
   });
+
+  it('forwards one exact turn attachment and admits attachment-only text before the carrier', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'],
+      payload: {
+        payload: {
+          agentHandle: 'lash_one',
+          conversationAnchorId: 'anchor-1',
+          requestId: 'request-1',
+          text: '',
+          attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
+        },
+      },
+    })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable' });
+    expect(calls).toEqual([['conversationSendTurn', {
+      agentHandle: 'lash_one',
+      conversationAnchorId: 'anchor-1',
+      requestId: 'request-1',
+      text: '',
+      attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
+    }]]);
+  });
+
+  it('rejects malformed turn attachments before invoking the protected host', async () => {
+    const invalidAttachments: unknown[] = [
+      'artifact_01J',
+      [{ artifactId: 'a' }, { artifactId: 'b' }],
+      [{ artifactId: '' }],
+      [{ artifactId: 'a', mimeType: 'image/png' }],
+      [{ artifactId: 'a', displayName: 7 }],
+    ];
+    for (const attachments of invalidAttachments) {
+      const ipcMain = new FakeIpcMain();
+      const calls: unknown[] = [];
+      registerBridge(ipcMain, calls);
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'],
+        payload: {
+          payload: {
+            agentHandle: 'lash_one',
+            conversationAnchorId: 'anchor-1',
+            requestId: 'request-1',
+            text: 'hello',
+            attachments,
+          },
+        },
+      })).rejects.toMatchObject({ code: 'invalid-payload' });
+      expect(calls).toEqual([]);
+    }
+    const emptyTurn = new FakeIpcMain();
+    const emptyCalls: unknown[] = [];
+    registerBridge(emptyTurn, emptyCalls);
+    await expect(invokeBridge(emptyTurn, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'],
+      payload: {
+        payload: {
+          agentHandle: 'lash_one',
+          conversationAnchorId: 'anchor-1',
+          requestId: 'request-1',
+          text: '',
+          attachments: [],
+        },
+      },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    expect(emptyCalls).toEqual([]);
+  });
+
+  it('routes artifact byte reads with an exact artifact id and rejects malformed ids', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'],
+      payload: { payload: { artifactId: 'artifact_01J' } },
+    })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable' });
+    expect(calls).toEqual([['artifactReadBytes', { artifactId: 'artifact_01J' }]]);
+
+    const rejectingIpcMain = new FakeIpcMain();
+    const rejectingCalls: unknown[] = [];
+    registerBridge(rejectingIpcMain, rejectingCalls);
+    await expect(invokeBridge(rejectingIpcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'],
+      payload: { payload: { artifactId: '  ' } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    await expect(invokeBridge(rejectingIpcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'],
+      payload: { payload: { artifactId: 'artifact_01J', ownerUserId: 'forged' } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    expect(rejectingCalls).toEqual([]);
+  });
+
+  it('routes artifact puts with bounded bytes and rejects malformed uploads', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactPut'],
+      payload: {
+        payload: {
+          mimeType: 'image/png',
+          displayName: 'photo.png',
+          data: new Uint8Array([137, 80, 78, 71]),
+        },
+      },
+    })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable' });
+    expect(calls).toHaveLength(1);
+    const [method, forwarded] = calls[0] as [string, { mimeType: string; displayName: string; data: Uint8Array }];
+    expect(method).toBe('artifactPut');
+    expect(forwarded.mimeType).toBe('image/png');
+    expect(forwarded.displayName).toBe('photo.png');
+    expect(forwarded.data).toBeInstanceOf(Uint8Array);
+    expect([...forwarded.data]).toEqual([137, 80, 78, 71]);
+
+    const invalidPayloads: unknown[] = [
+      { mimeType: '', displayName: 'photo.png', data: new Uint8Array([1]) },
+      { mimeType: 'image/png', displayName: 'photo.png ', data: new Uint8Array([1]) },
+      { mimeType: 'image/png', displayName: 'photo.png', data: new Uint8Array(0) },
+      { mimeType: 'image/png', displayName: 'photo.png', data: [1, 2, 3] },
+      { mimeType: 'image/png', displayName: 'photo.png' },
+    ];
+    for (const payload of invalidPayloads) {
+      const rejectingIpcMain = new FakeIpcMain();
+      const rejectingCalls: unknown[] = [];
+      registerBridge(rejectingIpcMain, rejectingCalls);
+      await expect(invokeBridge(rejectingIpcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactPut'],
+        payload: { payload },
+      })).rejects.toMatchObject({ code: 'invalid-payload' });
+      expect(rejectingCalls).toEqual([]);
+    }
+  });
 });
 
 function registerBridge(ipcMain: FakeIpcMain, calls: unknown[]) {
@@ -274,9 +411,13 @@ function localAppHost(calls: unknown[]) {
     conversationInterruptTurn: unavailable('conversationInterruptTurn', calls),
     conversationSubscribe: unavailable('conversationSubscribe', calls),
     conversationSnapshot: unavailable('conversationSnapshot', calls),
+    artifactPut: unavailable('artifactPut', calls),
+    artifactReadBytes: unavailable('artifactReadBytes', calls),
     agentConfigurationSnapshot: unavailable('agentConfigurationSnapshot', calls),
     agentUpdateConfiguration: unavailable('agentUpdateConfiguration', calls),
     agentReadinessSnapshot: unavailable('agentReadinessSnapshot', calls),
+    agentAIProfilePreview: unavailable('agentAIProfilePreview', calls),
+    agentAIProfileApply: unavailable('agentAIProfileApply', calls),
     agentAutonomySnapshot: unavailable('agentAutonomySnapshot', calls),
     agentUpdateAutonomy: unavailable('agentUpdateAutonomy', calls),
     agentPresentationSnapshot: unavailable('agentPresentationSnapshot', calls),

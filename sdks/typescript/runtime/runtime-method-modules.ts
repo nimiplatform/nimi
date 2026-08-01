@@ -61,6 +61,8 @@ export const RUNTIME_AGENT_METHODS = [
   'upsertRuntimeAgentAIConfig',
   'getRuntimeAgentAIConfigReadiness',
   'subscribeRuntimeAgentAIConfigReadiness',
+  'previewRuntimeAgentAIProfile',
+  'applyRuntimeAgentAIProfile',
   'subscribeAgentEvents',
   'subscribeAgentVoiceStream',
   'interruptAgentVoicePlayback',
@@ -242,6 +244,7 @@ export const RUNTIME_APP_MESSAGE_METHODS = [
 export const RUNTIME_ARTIFACT_METHODS = [
   'readArtifactBytes',
   'cleanupGeneratedVoiceArtifacts',
+  'putArtifact',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export type RuntimeAccountModule = RuntimeMethodModule<typeof RUNTIME_ACCOUNT_METHODS>;

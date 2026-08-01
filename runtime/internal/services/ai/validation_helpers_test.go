@@ -202,14 +202,15 @@ func TestPrepareScenarioRequestAllowsAnonymousLocal(t *testing.T) {
 		AppId:       "nimi.desktop",
 		ModelId:     "local/qwen",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef: &runtimev1.RuntimeDurableTargetRef{
-			Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-				LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-					Version: "v2",
-					Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "local-runtime:lm-1"},
-				},
-			},
-		},
+		TargetRef: setExactLocalScenarioTargetForTest(t, svc, "local/qwen", "text.generate", &runtimev1.LocalAssetRecord{
+			LocalAssetId:        "lm-1",
+			AssetId:             "qwen",
+			LogicalModelId:      "local/qwen",
+			Engine:              "llama",
+			Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			Capabilities:        []string{"text.generate"},
+		}),
 	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err != nil {
 		t.Fatalf("expected anonymous local request to succeed, got %v", err)
@@ -265,15 +266,100 @@ func TestNormalizeScenarioRuntimeTargetRefRejectsNoncanonicalDurableIdentity(t *
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-			_, err := svc.normalizeScenarioRuntimeTargetRef(context.Background(), &runtimev1.ScenarioRequestHead{
+			_, _, _, err := svc.normalizeScenarioRuntimeTargetRef(context.Background(), &runtimev1.ScenarioRequestHead{
 				AppId:         "nimi.desktop",
 				SubjectUserId: "user-1",
 				TargetRef:     tc.targetRef,
-			})
+			}, "text.generate")
 			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
 				t.Fatalf("reason = %s, %v; want PROTOCOL_ENVELOPE_INVALID: %v", reason, ok, err)
 			}
 		})
+	}
+}
+
+type exactTargetLocalModelLister struct {
+	*fakeLocalModelLister
+	binding      *runtimev1.RuntimeResolvedLocalExecutionBinding
+	asset        *runtimev1.LocalAssetRecord
+	resolveCalls int
+}
+
+func (f *exactTargetLocalModelLister) ResolveDurableLocalTarget(
+	_ context.Context,
+	_ *runtimev1.RuntimeDurableLocalTargetRef,
+	_ string,
+) (*runtimev1.RuntimeResolvedLocalExecutionBinding, *runtimev1.LocalAssetRecord, error) {
+	f.resolveCalls++
+	return f.binding, f.asset, nil
+}
+
+func TestDurableTargetSelectsExactAssetAndRejectsConflictingModelID(t *testing.T) {
+	t.Parallel()
+	base := &fakeLocalModelLister{
+		managedNames: map[string]string{"local-target-a": "llama-runtime-target-a"},
+	}
+	resolver := &exactTargetLocalModelLister{
+		fakeLocalModelLister: base,
+		binding: &runtimev1.RuntimeResolvedLocalExecutionBinding{
+			ReadinessRef:    "local_asset_readiness:v2:opaque",
+			LocalAssetId:    "local-target-a",
+			ResolvedModelId: "logical/target-a",
+		},
+		asset: &runtimev1.LocalAssetRecord{
+			LocalAssetId:        "local-target-a",
+			AssetId:             "catalog/target-a",
+			LogicalModelId:      "logical/target-a",
+			Kind:                runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+			Engine:              "llama",
+			Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			Capabilities:        []string{"text.generate"},
+		},
+	}
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(resolver)
+	targetRef := &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+				Version: "v2",
+				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{
+					ReadinessRef: "local_asset_readiness:v2:opaque",
+				},
+			},
+		},
+	}
+
+	_, _, _, err := svc.normalizeScenarioRuntimeTargetRef(context.Background(), &runtimev1.ScenarioRequestHead{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-1",
+		ModelId:       "logical/other",
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:     targetRef,
+	}, "text.generate")
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH {
+		t.Fatalf("conflicting model reason = %s, %v; want AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH: %v", reason, ok, err)
+	}
+
+	plan, err := svc.prepareDurableLocalModelExecutionPlan(
+		context.Background(),
+		"logical/target-a",
+		resolver.binding,
+		resolver.asset,
+		runtimev1.Modal_MODAL_TEXT,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("prepare exact target plan: %v", err)
+	}
+	if plan.selectedLocalAssetID() != "local-target-a" || plan.providerModelID != "llama-runtime-target-a" {
+		t.Fatalf("exact target plan selected wrong asset: %+v", plan)
+	}
+	if base.calls != 0 {
+		t.Fatalf("exact target plan performed model inventory search: calls=%d", base.calls)
+	}
+	if resolver.resolveCalls != 1 {
+		t.Fatalf("durable target resolver calls = %d, want 1", resolver.resolveCalls)
 	}
 }
 

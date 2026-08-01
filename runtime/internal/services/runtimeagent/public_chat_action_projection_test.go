@@ -21,6 +21,41 @@ type stubPublicChatActionExecutor struct {
 	request PublicChatActionExecutionRequest
 }
 
+type capturePublicChatImageScenarioExecutor struct {
+	submitRequest *runtimev1.SubmitScenarioJobRequest
+}
+
+func (f *capturePublicChatImageScenarioExecutor) SubmitScenarioJob(_ context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
+	f.submitRequest = proto.Clone(req).(*runtimev1.SubmitScenarioJobRequest)
+	return &runtimev1.SubmitScenarioJobResponse{
+		Job: &runtimev1.ScenarioJob{
+			JobId:         "job-image-config-params",
+			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+			ModelResolved: req.GetHead().GetModelId(),
+		},
+	}, nil
+}
+
+func (f *capturePublicChatImageScenarioExecutor) GetScenarioJob(_ context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
+	return &runtimev1.GetScenarioJobResponse{
+		Job: &runtimev1.ScenarioJob{
+			JobId:         req.GetJobId(),
+			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+			ModelResolved: "z-image-turbo",
+		},
+	}, nil
+}
+
+func (f *capturePublicChatImageScenarioExecutor) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {
+	return &runtimev1.GetScenarioArtifactsResponse{
+		JobId: req.GetJobId(),
+		Artifacts: []*runtimev1.ScenarioArtifact{{
+			ArtifactId: "artifact-image-config-params",
+			MimeType:   "image/png",
+		}},
+	}, nil
+}
+
 func (s *stubPublicChatActionExecutor) ExecuteImageAction(_ context.Context, req PublicChatActionExecutionRequest) (PublicChatActionExecutionResult, error) {
 	s.calls++
 	s.request = req
@@ -117,6 +152,91 @@ func TestPublicChatImageActionSubmitRequestCarriesRuntimeTargetRef(t *testing.T)
 	}
 }
 
+func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) {
+	t.Parallel()
+	selectedParams, err := structpb.NewStruct(map[string]any{
+		"size":              "768x768",
+		"responseFormat":    "base64",
+		"seed":              "42",
+		"timeoutMs":         "120000",
+		"steps":             "7",
+		"cfgScale":          "1.5",
+		"sampler":           "euler_a",
+		"scheduler":         "karras",
+		"profile_entries":   []any{map[string]any{"entry_id": "caller-workflow"}},
+		"entry_overrides":   map[string]any{"main": "caller-asset"},
+		"profile_overrides": map[string]any{"backend": "caller-backend"},
+	})
+	if err != nil {
+		t.Fatalf("selected params: %v", err)
+	}
+	targetRef := publicChatTestLocalRuntimeTargetRef("profile_workflow:z-image-turbo")
+	binding := runtimeAgentAIConfigIntentToPublicChatBinding(&runtimev1.RuntimeAgentAIConfigIntent{
+		Capability:     runtimeAgentAIConfigCapabilityImageGenerate,
+		ModelId:        "z-image-turbo",
+		RoutePolicy:    runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:      targetRef,
+		SelectedParams: selectedParams,
+	})
+	selectedParams.Fields["steps"] = structpb.NewStringValue("99")
+
+	scenario := &capturePublicChatImageScenarioExecutor{}
+	executor := NewAIBackedPublicChatActionExecutor(scenario)
+	_, err = executor.ExecuteImageAction(context.Background(), PublicChatActionExecutionRequest{
+		Session: publicChatAnchorState{
+			Bindings: publicChatExecutionBindings{
+				runtimeAgentAIConfigCapabilityImageGenerate: binding,
+			},
+		},
+		Turn: publicChatTurnState{TurnID: "turn-image-config-params"},
+		Action: publicChatStructuredAction{
+			ActionID:  "action-image-config-params",
+			Modality:  "image",
+			Operation: "image.generate",
+			PromptPayload: publicChatStructuredPromptPayload{
+				Kind:       "image-prompt",
+				PromptText: "minimal watercolor forest",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteImageAction: %v", err)
+	}
+	req := scenario.submitRequest
+	if req == nil {
+		t.Fatal("expected SubmitScenarioJob request")
+	}
+	if !proto.Equal(req.GetHead().GetTargetRef(), targetRef) {
+		t.Fatalf("target_ref changed: got=%v want=%v", req.GetHead().GetTargetRef(), targetRef)
+	}
+	if got := req.GetHead().GetTimeoutMs(); got != 120000 {
+		t.Fatalf("timeout_ms = %d, want 120000", got)
+	}
+	spec := req.GetSpec().GetImageGenerate()
+	if spec.GetSize() != "768x768" || spec.GetResponseFormat() != "base64" || spec.GetSeed() != 42 {
+		t.Fatalf("image spec did not use committed selected params: %+v", spec)
+	}
+	if len(req.GetExtensions()) != 1 {
+		t.Fatalf("image extensions = %d, want 1", len(req.GetExtensions()))
+	}
+	payload := req.GetExtensions()[0].GetPayload().AsMap()
+	for key, want := range map[string]any{
+		"step":      "7",
+		"cfg_scale": "1.5",
+		"mode":      "euler_a",
+		"scheduler": "karras",
+	} {
+		if got := payload[key]; got != want {
+			t.Fatalf("image extension %s = %#v, want %#v; payload=%#v", key, got, want, payload)
+		}
+	}
+	for _, reservedKey := range runtimeAgentAIConfigReservedSelectedParamKeys {
+		if _, exists := payload[reservedKey]; exists {
+			t.Fatalf("AIConfig parameters must not carry private profile composition key %q: %#v", reservedKey, payload)
+		}
+	}
+}
+
 func TestPublicChatImageActionLeavesLocalProfileMaterializationRuntimeOwned(t *testing.T) {
 	t.Parallel()
 	req := buildPublicChatImageActionSubmitRequest(publicChatExecutionBinding{
@@ -155,7 +275,7 @@ func submitPublicChatImageActionTurn(t *testing.T, svc *Service, anchorID string
 			Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 			ModelId:     "local/image",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			TargetRef:   publicChatTestLocalRuntimeTargetRef("local-runtime:local/image"),
+			TargetRef:   runtimeAgentAIConfigTestLocalTarget("image"),
 		})
 	}
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
@@ -317,7 +437,7 @@ func TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable(t *testi
 		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 		ModelId:     "local/image",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef:   publicChatTestLocalRuntimeTargetRef("local-runtime:local/image"),
+		TargetRef:   runtimeAgentAIConfigTestLocalTarget("image"),
 	})
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,

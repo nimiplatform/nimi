@@ -125,8 +125,15 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         657 => LocalAppReasonCode::PresenceExpired,
         668 => LocalAppReasonCode::PermissionReservedNotAdmitted,
         669 => LocalAppReasonCode::PermissionUnknown,
+        425 => LocalAppReasonCode::AiVoiceTargetModelMismatch,
         670 => LocalAppReasonCode::AgentAiConfigRevisionConflict,
         671 => LocalAppReasonCode::AgentAutonomyRevisionConflict,
+        679 => LocalAppReasonCode::AgentAiConfigInvalid,
+        680 => LocalAppReasonCode::AgentAiConfigTargetRequired,
+        681 => LocalAppReasonCode::AgentAiConfigTargetInvalid,
+        682 => LocalAppReasonCode::AgentAiConfigTargetUnavailable,
+        683 => LocalAppReasonCode::AgentAiConfigCapabilityMismatch,
+        684 => LocalAppReasonCode::AgentAiConfigModelTargetMismatch,
         614 => LocalAppReasonCode::AgentPresentationRevisionConflict,
         566 => LocalAppReasonCode::InvalidPath,
         567 => LocalAppReasonCode::NotFound,
@@ -163,7 +170,18 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
             LocalAppReasonCode::PermissionReservedNotAdmitted
         }
         "LOCAL_APP_PERMISSION_UNKNOWN" => LocalAppReasonCode::PermissionUnknown,
+        "AI_VOICE_TARGET_MODEL_MISMATCH" => LocalAppReasonCode::AiVoiceTargetModelMismatch,
         "AGENT_AI_CONFIG_REVISION_CONFLICT" => LocalAppReasonCode::AgentAiConfigRevisionConflict,
+        "AGENT_AI_CONFIG_INVALID" => LocalAppReasonCode::AgentAiConfigInvalid,
+        "AGENT_AI_CONFIG_TARGET_REQUIRED" => LocalAppReasonCode::AgentAiConfigTargetRequired,
+        "AGENT_AI_CONFIG_TARGET_INVALID" => LocalAppReasonCode::AgentAiConfigTargetInvalid,
+        "AGENT_AI_CONFIG_TARGET_UNAVAILABLE" => LocalAppReasonCode::AgentAiConfigTargetUnavailable,
+        "AGENT_AI_CONFIG_CAPABILITY_MISMATCH" => {
+            LocalAppReasonCode::AgentAiConfigCapabilityMismatch
+        }
+        "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH" => {
+            LocalAppReasonCode::AgentAiConfigModelTargetMismatch
+        }
         "AGENT_AUTONOMY_REVISION_CONFLICT" => LocalAppReasonCode::AgentAutonomyRevisionConflict,
         "AGENT_PRESENTATION_REVISION_CONFLICT" => {
             LocalAppReasonCode::AgentPresentationRevisionConflict
@@ -221,8 +239,21 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
             NimiHostErrorReasonCode::LocalAppPermissionReservedNotAdmitted
         }
         "LOCAL_APP_PERMISSION_UNKNOWN" => NimiHostErrorReasonCode::LocalAppPermissionUnknown,
+        "AI_VOICE_TARGET_MODEL_MISMATCH" => NimiHostErrorReasonCode::AiVoiceTargetModelMismatch,
         "AGENT_AI_CONFIG_REVISION_CONFLICT" => {
             NimiHostErrorReasonCode::AgentAiConfigRevisionConflict
+        }
+        "AGENT_AI_CONFIG_INVALID" => NimiHostErrorReasonCode::AgentAiConfigInvalid,
+        "AGENT_AI_CONFIG_TARGET_REQUIRED" => NimiHostErrorReasonCode::AgentAiConfigTargetRequired,
+        "AGENT_AI_CONFIG_TARGET_INVALID" => NimiHostErrorReasonCode::AgentAiConfigTargetInvalid,
+        "AGENT_AI_CONFIG_TARGET_UNAVAILABLE" => {
+            NimiHostErrorReasonCode::AgentAiConfigTargetUnavailable
+        }
+        "AGENT_AI_CONFIG_CAPABILITY_MISMATCH" => {
+            NimiHostErrorReasonCode::AgentAiConfigCapabilityMismatch
+        }
+        "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH" => {
+            NimiHostErrorReasonCode::AgentAiConfigModelTargetMismatch
         }
         "AGENT_AUTONOMY_REVISION_CONFLICT" => {
             NimiHostErrorReasonCode::AgentAutonomyRevisionConflict
@@ -246,12 +277,13 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
 fn public_reason_metadata(
     info: Option<&GoogleRpcErrorInfo>,
 ) -> (Option<String>, BTreeMap<String, String>) {
-    const PUBLIC_KEYS: [&str; 5] = [
+    const PUBLIC_KEYS: [&str; 6] = [
         "permission_id",
         "permission_reason",
         "permission_admission",
         "diagnostic_stage",
         "local_development_reason_code",
+        "capability",
     ];
     let mut metadata = BTreeMap::new();
     if let Some(info) = info {
@@ -445,6 +477,42 @@ mod tests {
                 NimiHostErrorReasonCode::AgentAiConfigRevisionConflict,
             ),
             (
+                679,
+                "AGENT_AI_CONFIG_INVALID",
+                LocalAppReasonCode::AgentAiConfigInvalid,
+                NimiHostErrorReasonCode::AgentAiConfigInvalid,
+            ),
+            (
+                680,
+                "AGENT_AI_CONFIG_TARGET_REQUIRED",
+                LocalAppReasonCode::AgentAiConfigTargetRequired,
+                NimiHostErrorReasonCode::AgentAiConfigTargetRequired,
+            ),
+            (
+                681,
+                "AGENT_AI_CONFIG_TARGET_INVALID",
+                LocalAppReasonCode::AgentAiConfigTargetInvalid,
+                NimiHostErrorReasonCode::AgentAiConfigTargetInvalid,
+            ),
+            (
+                682,
+                "AGENT_AI_CONFIG_TARGET_UNAVAILABLE",
+                LocalAppReasonCode::AgentAiConfigTargetUnavailable,
+                NimiHostErrorReasonCode::AgentAiConfigTargetUnavailable,
+            ),
+            (
+                683,
+                "AGENT_AI_CONFIG_CAPABILITY_MISMATCH",
+                LocalAppReasonCode::AgentAiConfigCapabilityMismatch,
+                NimiHostErrorReasonCode::AgentAiConfigCapabilityMismatch,
+            ),
+            (
+                684,
+                "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH",
+                LocalAppReasonCode::AgentAiConfigModelTargetMismatch,
+                NimiHostErrorReasonCode::AgentAiConfigModelTargetMismatch,
+            ),
+            (
                 671,
                 "AGENT_AUTONOMY_REVISION_CONFLICT",
                 LocalAppReasonCode::AgentAutonomyRevisionConflict,
@@ -461,6 +529,55 @@ mod tests {
                 Some(host_reason)
             );
         }
+    }
+
+    #[test]
+    fn ai_config_error_preserves_only_public_capability_metadata() {
+        let info = GoogleRpcErrorInfo {
+            reason: "AGENT_AI_CONFIG_TARGET_REQUIRED".to_string(),
+            domain: ERROR_INFO_DOMAIN.to_string(),
+            metadata: HashMap::from([
+                ("capability".to_string(), "image.generate".to_string()),
+                ("local_asset_id".to_string(), "must-not-cross".to_string()),
+                ("path".to_string(), "must-not-cross".to_string()),
+            ]),
+        };
+        let envelope = GoogleRpcStatus {
+            code: Code::InvalidArgument as i32,
+            message: "AGENT_AI_CONFIG_TARGET_REQUIRED".to_string(),
+            details: vec![Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        let status = || {
+            Status::with_details(
+                Code::InvalidArgument,
+                "AGENT_AI_CONFIG_TARGET_REQUIRED",
+                envelope.encode_to_vec().into(),
+            )
+        };
+        let local = local_app_error_from_status(status());
+        assert_eq!(
+            local.reason_code(),
+            LocalAppReasonCode::AgentAiConfigTargetRequired
+        );
+        assert_eq!(
+            local
+                .reason_metadata()
+                .get("capability")
+                .map(String::as_str),
+            Some("image.generate")
+        );
+        assert!(!local.reason_metadata().contains_key("local_asset_id"));
+        assert!(!local.reason_metadata().contains_key("path"));
+
+        let host = host_error_from_status(status());
+        assert_eq!(
+            host.reason_code(),
+            NimiHostErrorReasonCode::AgentAiConfigTargetRequired
+        );
+        assert_eq!(host.reason_metadata(), local.reason_metadata());
     }
 
     #[test]

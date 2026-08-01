@@ -4,6 +4,8 @@ version: 1
 methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
     posture: authenticated_or_protected_local_app_operation
+  - method_id: /nimi.runtime.v1.RuntimeArtifactService/PutArtifact
+    posture: authenticated_or_protected_local_app_operation
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAuditEvents

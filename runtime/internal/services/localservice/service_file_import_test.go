@@ -168,6 +168,48 @@ func TestImportLocalModelFileDuplicateNameCreatesDistinctInstances(t *testing.T)
 	}
 }
 
+func TestImportedAssetPublicIdentitySurvivesRuntimeRestart(t *testing.T) {
+	svc := newTestService(t)
+	sourcePath := filepath.Join(t.TempDir(), "Qwen3-4B-Q4_K_M.gguf")
+	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath:     sourcePath,
+		Capabilities: []string{"chat"},
+		Engine:       "llama",
+	})
+	if err != nil {
+		t.Fatalf("ImportLocalAssetFile: %v", err)
+	}
+	imported := resp.GetAsset()
+	if imported == nil {
+		t.Fatal("expected imported asset")
+	}
+	svc.Close()
+
+	restored, err := New(svc.logger, nil, svc.stateStorePath, 0, svc.localModelsPath)
+	if err != nil {
+		t.Fatalf("restore service: %v", err)
+	}
+	t.Cleanup(restored.Close)
+	restored.mu.RLock()
+	asset := cloneLocalAsset(restored.assets[imported.GetLocalAssetId()])
+	restored.mu.RUnlock()
+	if asset == nil {
+		t.Fatal("expected imported asset after restart")
+	}
+	if got, want := asset.GetDisplayName(), imported.GetDisplayName(); got != want {
+		t.Fatalf("display_name after restart = %q want %q", got, want)
+	}
+	if got, want := asset.GetSourceFileName(), imported.GetSourceFileName(); got != want {
+		t.Fatalf("source_file_name after restart = %q want %q", got, want)
+	}
+	if got, want := asset.GetImportInstanceId(), imported.GetImportInstanceId(); got != want {
+		t.Fatalf("import_instance_id after restart = %q want %q", got, want)
+	}
+}
+
 func TestResolveCatalogModelIDForLocalAssetUsesExactCatalogHashProof(t *testing.T) {
 	svc := newTestService(t)
 	var catalogVariant *runtimev1.LocalVerifiedAssetDescriptor

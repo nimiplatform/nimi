@@ -260,13 +260,19 @@ async function defaultLoadLocalRouteMetadata(
       runtimeLocalModels.push({
         localAssetId: asset.localAssetId,
         assetId: asset.assetId,
+        logicalModelId: asset.logicalModelId,
         kind: asset.kind,
         engine: asset.engine,
         endpoint: asset.endpoint,
         status: asset.status,
         capabilities: asset.capabilities,
         artifactRoles: asset.artifactRoles,
+        displayName: asset.displayName,
+        sourceFileName: asset.sourceFileName,
         updatedAt: asset.updatedAt,
+        durableTargetRef: asset.durableTargetRef,
+        durableTargetStatus: asset.durableTargetStatus,
+        durableTargetReasonCode: asset.durableTargetReasonCode,
       });
     }
     pageToken = normalizeText(response.nextPageToken);

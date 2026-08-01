@@ -21,9 +21,9 @@ function capabilityLabel(capability: AgentCenterCapabilityId): string {
 
 function projectedCapabilities(input: AgentCenterStateInput): readonly AgentCenterCapabilityId[] {
   const reported = new Set<string>([
-    ...(input.modelSettings?.capabilities || []),
-    ...(input.modelSettings?.readiness.map((entry) => entry.capability) || []),
-    ...(input.modelSettings?.routeIntents.map((entry) => entry.capability) || []),
+    ...(input.aiConfig?.capabilities || []),
+    ...(input.aiConfig?.readiness.map((entry) => entry.capability) || []),
+    ...(input.aiConfig?.routeIntents.map((entry) => entry.capability) || []),
   ]);
   return CANONICAL_CAPABILITY_CATALOG
     .map((descriptor) => descriptor.capabilityId)
@@ -47,6 +47,7 @@ function readinessSummary(state: AgentCenterCapabilityState): string {
     return state.required ? 'Not configured' : 'Optional route not configured';
   }
   if (state.readinessState === 'unavailable') return 'Unavailable';
+  if (state.readinessState === 'configured_unverified') return 'Configured, not yet execution-verified';
   return 'Readiness unknown';
 }
 
@@ -54,8 +55,8 @@ function buildCapabilityState(
   input: AgentCenterStateInput,
   capability: AgentCenterCapabilityId,
 ): AgentCenterCapabilityState {
-  const readiness = input.modelSettings?.readiness.find((entry) => entry.capability === capability);
-  const binding = input.modelSettings?.routeIntents.find((entry) => entry.capability === capability) ?? null;
+  const readiness = input.aiConfig?.readiness.find((entry) => entry.capability === capability);
+  const binding = input.aiConfig?.routeIntents.find((entry) => entry.capability === capability) ?? null;
   const required = capability === 'text.generate' || capability === 'text.embed';
   const readinessState = readiness?.state === 'blocked' ? 'not_configured' : readiness?.state ?? 'unknown';
   const state: AgentCenterCapabilityState = {
@@ -89,7 +90,7 @@ function statusTone(
   if (sourceContextStatus === 'blocked') {
     return 'attention';
   }
-  if (!input.modelSettings && !input.inspect && !input.sourceContextStatus && !input.turnContextSummary) {
+  if (!input.aiConfig && !input.inspect && !input.sourceContextStatus && !input.turnContextSummary) {
     return 'disabled';
   }
   if (!baseTextReady) {
@@ -111,11 +112,11 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   const presentationRevision = input.appearance?.presentationRevision
     ?? inspect?.presentationProfileRevision
     ?? null;
-  const configRevisionCandidate = input.modelSettings?.configurationRevision;
+  const configRevisionCandidate = input.aiConfig?.configurationRevision;
   const configRevision = typeof configRevisionCandidate === 'string' && /^(?:0|[1-9]\d*)$/u.test(configRevisionCandidate)
     ? configRevisionCandidate
     : null;
-  const agentAIConfigMutationDisabledReason: AgentCenterState['agentAIConfigMutationDisabledReason'] = !input.modelSettings
+  const agentAIConfigMutationDisabledReason: AgentCenterState['agentAIConfigMutationDisabledReason'] = !input.aiConfig
     ? 'agent-ai-config-snapshot-unavailable'
     : configRevision === null
       ? 'agent-ai-config-revision-unavailable'
@@ -124,10 +125,10 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   return {
     runtimeStatus: input.runtimeError
       ? 'failed'
-      : (!input.modelSettings && !inspect && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
+      : (!input.aiConfig && !inspect && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
     statusTone: tone,
     baseTextReady,
-    modelSettings: input.modelSettings ?? null,
+    aiConfig: input.aiConfig ?? null,
     baseTextDisabledReason: baseTextReady ? null : (text?.summary || 'Text readiness unavailable'),
     configRevision,
     autonomyRevision,

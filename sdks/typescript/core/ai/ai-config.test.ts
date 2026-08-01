@@ -88,6 +88,7 @@ const READY_PROFILE: NimiAIProfile = {
   tags: ['chat'],
   capabilities: {
     'text.generate': {
+      logicalModelId: 'local/test-chat',
       targetRef: {
         kind: 'local-runtime',
         version: 'v2',
@@ -313,12 +314,15 @@ test('Nimi AI scope and target validation fail closed across admitted families',
   const builtInNimi = createNimiBuiltInChatAIScopeRef('nimi');
   const builtInAgent = createNimiBuiltInChatAIScopeRef('agent');
 
-  assert.deepEqual(nimiBuiltInChatAIScopeRefs(), [builtInNimi, builtInAgent]);
+  assert.deepEqual(nimiBuiltInChatAIScopeRefs(), [builtInNimi]);
   assert.equal(isNimiBuiltInChatAIScopeRef(builtInNimi), true);
   assert.equal(isNimiBuiltInChatAIScopeRef(SCOPE), false);
   assert.equal(isNimiAppAIScopeRef(SCOPE), true);
   assert.deepEqual(assertNimiAppAIScopeRef(SCOPE), SCOPE);
-  assert.deepEqual(assertNimiBuiltInChatAIScopeRef(builtInAgent), builtInAgent);
+  assert.throws(
+    () => assertNimiBuiltInChatAIScopeRef(builtInAgent),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_SCOPE_CATALOG_INVALID,
+  );
   assert.equal(parseNimiAIScopeRefKey('app:only-two-parts'), null);
   assert.equal(parseNimiAIScopeRefKey('app:%E0%A4%A:chat'), null);
   assert.throws(
@@ -401,6 +405,42 @@ test('Nimi AI profile validation rejects hidden Runtime/private payloads', () =>
     validation.issues,
     'AI_FIELD_FORBIDDEN',
     'profile.capabilities.text.generate.binding.secret',
+  );
+});
+
+test('Nimi AIConfig selectedParams rejects model and asset identity fields', () => {
+  const validation = validateNimiAIConfig({
+    scopeRef: SCOPE,
+    capabilities: {
+      logicalModelIds: { 'image.generate': 'local/z-image' },
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'binding:image',
+        },
+      },
+      selectedComponents: {},
+      selectedParams: {
+        'image.generate': {
+          steps: 25,
+          localAssetId: 'private-asset',
+          profile_entries: [],
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+  assert.equal(validation.valid, false);
+  assertValidationIssue(
+    validation.issues,
+    'AI_FIELD_FORBIDDEN',
+    'config.capabilities.selectedParams.image.generate.localAssetId',
+  );
+  assertValidationIssue(
+    validation.issues,
+    'AI_FIELD_FORBIDDEN',
+    'config.capabilities.selectedParams.image.generate.profile_entries',
   );
 });
 
@@ -721,11 +761,12 @@ test('Nimi AI profile apply is scoped to declared ready requirement slices', () 
     title: 'Scoped profile',
     capabilities: {
       'text.generate': {
-      targetRef: {
-        kind: 'local-runtime',
-        version: 'v2',
-        profileBindingId: 'runtime-profile-binding-text',
-      },
+        logicalModelId: 'local/test-chat',
+        targetRef: {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'runtime-profile-binding-text',
+        },
         params: { temperature: 0.1 },
       },
       'image.generate': {
@@ -757,6 +798,41 @@ test('Nimi AI profile apply is scoped to declared ready requirement slices', () 
   assert.equal(imagePreview.outcome, 'setup_required_no_live_config');
   assert.deepEqual(imagePreview.setupProjection?.blockingCapabilities, ['image.generate']);
   assert.deepEqual(imagePreview.setupProjection?.reasonCodes, ['required_slice_unresolved']);
+});
+
+test('generic AIProfile apply fails closed when a ready slice declares component occurrences', () => {
+  const componentProfile: NimiAIProfile = {
+    profileId: 'profile-components',
+    title: 'Component profile',
+    capabilities: {
+      'text.generate': {
+        logicalModelId: 'local/component-main',
+        targetRef: {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'runtime-profile-binding-main',
+        },
+        runtimeDescriptor: {
+          orderedCompanionOccurrences: [{
+            occurrenceId: 'text-encoder',
+            order: 0,
+            role: 'encoder',
+            engineSlot: 'encoder_path',
+            assetBindingRef: 'component:text-encoder',
+            required: true,
+          }],
+        },
+      },
+    },
+  };
+  assert.throws(
+    () => applyNimiAIProfileToConfig({
+      config: createEmptyNimiAIConfig(SCOPE),
+      profile: componentProfile,
+      requirementDeclarations: [requirementDeclaration(['text.generate'])],
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_PROFILE_NOT_APPLYABLE',
+  );
 });
 
 test('Nimi runtime profile descriptor serialization rejects Runtime evidence and ambiguous consumers', () => {
@@ -973,6 +1049,20 @@ test('Nimi AI config and snapshot stores validate stored state and host boundari
 
   storage.values.set(`nimi:ai-config:${scopeKey}`, JSON.stringify({
     scopeRef: SCOPE,
+    capabilities: {
+      logicalModelIds: {},
+      targetRefs: {},
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  }));
+  assert.throws(
+    () => store.loadOrNull(SCOPE),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_CONFIG_INVALID',
+  );
+
+  storage.values.set(`nimi:ai-config:${scopeKey}`, JSON.stringify({
+    scopeRef: SCOPE,
     capabilities: { targetRefs: { 'text.generate': { kind: 'unknown' } }, selectedParams: {} },
   }));
   assert.throws(
@@ -1115,6 +1205,37 @@ test('Nimi AI profile apply and runtime descriptor formation fail closed on unre
   assert.equal(descriptor.schemaVersion, 1);
   assert.equal(descriptor.capabilitySlices[0]?.execution?.backend, 'llama.cpp');
   assert.equal(descriptor.capabilitySlices[0]?.model?.family, 'llama');
+});
+
+test('generic AIProfile apply fails closed when a ready local slice has no logical model identity', () => {
+  const missingLogicalModelProfile: NimiAIProfile = {
+    profileId: 'profile-missing-logical-model',
+    title: 'Missing logical model',
+    capabilities: {
+      'text.generate': {
+        targetRef: {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'runtime-profile-binding-chat',
+        },
+        params: { temperature: 0.2 },
+        runtimeDescriptor: {
+          executionMode: 'local',
+          execution: { backend: 'llama.cpp' },
+          model: { family: 'llama' },
+        },
+      },
+    },
+  };
+
+  assert.throws(
+    () => applyNimiAIProfileToConfig({
+      config: createEmptyNimiAIConfig(SCOPE),
+      profile: missingLogicalModelProfile,
+      requirementDeclarations: [CHAT_REQUIREMENT],
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_PROFILE_NOT_APPLYABLE',
+  );
 });
 
 test('Nimi AI account profile library parsing validates editable profile projections', () => {

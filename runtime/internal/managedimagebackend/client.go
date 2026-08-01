@@ -29,6 +29,7 @@ type ImageRequest struct {
 	ModelsRoot     string
 	ModelPath      string
 	Options        []string
+	Components     []ComponentBinding
 	CFGScale       float32
 	Threads        int32
 	Width          int32
@@ -49,8 +50,26 @@ type LoadModelRequest struct {
 	ModelsRoot     string
 	ModelPath      string
 	Options        []string
+	Components     []ComponentBinding
 	CFGScale       float32
 	Threads        int32
+}
+
+// ComponentBinding is the ordered, Runtime-resolved component description
+// carried to the managed image backend. EngineSlot remains a backend-private
+// injection hint; occurrence identity, order, policy, weight, and options are
+// retained so a backend cannot collapse two exact workflow occurrences into a
+// slot-only map.
+type ComponentBinding struct {
+	OccurrenceID  string
+	Order         int32
+	Role          string
+	ComponentKind string
+	EngineSlot    string
+	Path          string
+	Required      bool
+	Weight        string
+	OptionsJSON   string
 }
 
 type LoadModelDiagnostics struct {
@@ -76,11 +95,19 @@ var (
 	descriptorOnce sync.Once
 	descriptorErr  error
 
-	resultMessageDescriptor        protoreflect.MessageDescriptor
-	modelOptionsMessageDescriptor  protoreflect.MessageDescriptor
-	generateImageMessageDescriptor protoreflect.MessageDescriptor
-	generateImageEventDescriptor   protoreflect.MessageDescriptor
+	resultMessageDescriptor           protoreflect.MessageDescriptor
+	modelOptionsMessageDescriptor     protoreflect.MessageDescriptor
+	componentBindingMessageDescriptor protoreflect.MessageDescriptor
+	generateImageMessageDescriptor    protoreflect.MessageDescriptor
+	generateImageEventDescriptor      protoreflect.MessageDescriptor
 )
+
+func cloneComponentBindings(input []ComponentBinding) []ComponentBinding {
+	if len(input) == 0 {
+		return nil
+	}
+	return append([]ComponentBinding(nil), input...)
+}
 
 func LoadModelAndGenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnostics, error) {
 	if strings.TrimSpace(req.Dst) == "" {
@@ -91,6 +118,7 @@ func LoadModelAndGenerateImage(ctx context.Context, req ImageRequest) (*ImageGen
 		ModelsRoot:     req.ModelsRoot,
 		ModelPath:      req.ModelPath,
 		Options:        req.Options,
+		Components:     cloneComponentBindings(req.Components),
 		CFGScale:       req.CFGScale,
 		Threads:        req.Threads,
 	}); err != nil {
@@ -275,6 +303,7 @@ func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics
 	setInt32Field(loadReq, "Threads", req.Threads)
 	setFloatField(loadReq, "CFGScale", req.CFGScale)
 	setRepeatedStringField(loadReq, "Options", req.Options)
+	setRepeatedComponentBindingField(loadReq, req.Components)
 
 	loadResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	invokeStartedAt := time.Now()
@@ -334,6 +363,7 @@ func FreeModel(ctx context.Context, req LoadModelRequest) error {
 	setInt32Field(freeReq, "Threads", req.Threads)
 	setFloatField(freeReq, "CFGScale", req.CFGScale)
 	setRepeatedStringField(freeReq, "Options", req.Options)
+	setRepeatedComponentBindingField(freeReq, req.Components)
 
 	freeResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	if err := conn.Invoke(ctx, backendFreeModelMethod, freeReq, freeResp); err != nil {
@@ -388,6 +418,20 @@ func ensureDescriptors() error {
 					},
 				},
 				{
+					Name: stringPtr("ComponentBinding"),
+					Field: []*descriptorpb.FieldDescriptorProto{
+						{Name: stringPtr("occurrence_id"), Number: int32Ptr(1), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("order"), Number: int32Ptr(2), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_INT32.Enum()},
+						{Name: stringPtr("role"), Number: int32Ptr(3), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("component_kind"), Number: int32Ptr(4), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("engine_slot"), Number: int32Ptr(5), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("path"), Number: int32Ptr(6), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("required"), Number: int32Ptr(7), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
+						{Name: stringPtr("weight"), Number: int32Ptr(8), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("options_json"), Number: int32Ptr(9), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+					},
+				},
+				{
 					Name: stringPtr("ModelOptions"),
 					Field: []*descriptorpb.FieldDescriptorProto{
 						{
@@ -425,6 +469,13 @@ func ensureDescriptors() error {
 							Number: int32Ptr(62),
 							Label:  descriptorpb.FieldDescriptorProto_LABEL_REPEATED.Enum(),
 							Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
+						},
+						{
+							Name:     stringPtr("components"),
+							Number:   int32Ptr(63),
+							Label:    descriptorpb.FieldDescriptorProto_LABEL_REPEATED.Enum(),
+							Type:     descriptorpb.FieldDescriptorProto_TYPE_MESSAGE.Enum(),
+							TypeName: stringPtr(".backend.ComponentBinding"),
 						},
 					},
 				},
@@ -590,9 +641,10 @@ func ensureDescriptors() error {
 
 		resultMessageDescriptor = fileDescriptor.Messages().ByName("Result")
 		modelOptionsMessageDescriptor = fileDescriptor.Messages().ByName("ModelOptions")
+		componentBindingMessageDescriptor = fileDescriptor.Messages().ByName("ComponentBinding")
 		generateImageMessageDescriptor = fileDescriptor.Messages().ByName("GenerateImageRequest")
 		generateImageEventDescriptor = fileDescriptor.Messages().ByName("GenerateImageEvent")
-		if resultMessageDescriptor == nil || modelOptionsMessageDescriptor == nil || generateImageMessageDescriptor == nil || generateImageEventDescriptor == nil {
+		if resultMessageDescriptor == nil || modelOptionsMessageDescriptor == nil || componentBindingMessageDescriptor == nil || generateImageMessageDescriptor == nil || generateImageEventDescriptor == nil {
 			descriptorErr = fmt.Errorf("resolve local backend message descriptors")
 		}
 	})
@@ -623,6 +675,14 @@ func setFloatField(message *dynamicpb.Message, fieldName string, value float32) 
 	message.Set(field, protoreflect.ValueOfFloat32(value))
 }
 
+func setBoolField(message *dynamicpb.Message, fieldName string, value bool) {
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	if field == nil || !value {
+		return
+	}
+	message.Set(field, protoreflect.ValueOfBool(value))
+}
+
 func setRepeatedStringField(message *dynamicpb.Message, fieldName string, values []string) {
 	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
 	if field == nil || len(values) == 0 {
@@ -635,6 +695,30 @@ func setRepeatedStringField(message *dynamicpb.Message, fieldName string, values
 			continue
 		}
 		list.Append(protoreflect.ValueOfString(trimmed))
+	}
+}
+
+func setRepeatedComponentBindingField(message *dynamicpb.Message, values []ComponentBinding) {
+	if message == nil || len(values) == 0 || componentBindingMessageDescriptor == nil {
+		return
+	}
+	field := message.Descriptor().Fields().ByName(protoreflect.Name("components"))
+	if field == nil {
+		return
+	}
+	list := message.Mutable(field).List()
+	for _, value := range values {
+		component := dynamicpb.NewMessage(componentBindingMessageDescriptor)
+		setStringField(component, "occurrence_id", value.OccurrenceID)
+		setInt32Field(component, "order", value.Order)
+		setStringField(component, "role", value.Role)
+		setStringField(component, "component_kind", value.ComponentKind)
+		setStringField(component, "engine_slot", value.EngineSlot)
+		setStringField(component, "path", value.Path)
+		setBoolField(component, "required", value.Required)
+		setStringField(component, "weight", value.Weight)
+		setStringField(component, "options_json", value.OptionsJSON)
+		list.Append(protoreflect.ValueOfMessage(component))
 	}
 }
 

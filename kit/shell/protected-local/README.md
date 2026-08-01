@@ -20,7 +20,8 @@ production build requires its compile-time Team ID, Apple trust anchor,
 Developer ID, and notarization policy. Neither path consumes release, role,
 compatibility, artifact-hash, or CDHash records.
 Its complete admitted operation surface is session status, permission posture,
-Runtime artifact bytes, three protected principal-partitioned JSON storage
+Runtime artifact bytes and bounded image artifact upload, three protected
+principal-partitioned JSON storage
 operations, the selected RuntimeAgent conversation operations, bounded
 Runtime-selected agent voice transcription, and exact correlated agent voice
 stream subscription.

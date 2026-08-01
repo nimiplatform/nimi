@@ -10,6 +10,10 @@ import { LocalAppAgentUpdateAutonomyResponse } from "./agent_configure";
 import { UpdateLocalAppAgentAutonomyRequest } from "./agent_configure";
 import { LocalAppAgentAutonomySnapshotResponse } from "./agent_configure";
 import { GetLocalAppAgentAutonomySnapshotRequest } from "./agent_configure";
+import { LocalAppAgentAIProfileApplyResponse } from "./agent_configure";
+import { ApplyLocalAppAgentAIProfileRequest } from "./agent_configure";
+import { LocalAppAgentAIProfilePreviewResponse } from "./agent_configure";
+import { PreviewLocalAppAgentAIProfileRequest } from "./agent_configure";
 import { LocalAppAgentReadinessSnapshotResponse } from "./agent_configure";
 import { GetLocalAppAgentReadinessSnapshotRequest } from "./agent_configure";
 import { LocalAppAgentUpdateConfigurationResponse } from "./agent_configure";
@@ -47,8 +51,8 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { RuntimeDurableTargetRef } from "./runtime_target_identity";
 import { RoutePolicy } from "./ai";
+import { RuntimeDurableTargetRef } from "./runtime_target_identity";
 import { AgentTurnContextSummary } from "./agent_source_materialization";
 import { VoicePlaybackState } from "./voice";
 import { VoiceOutputMode } from "./voice";
@@ -2525,12 +2529,53 @@ export interface GetAvatarDebugReplayResponse {
     replayRef?: AvatarDebugReplayRef;
 }
 /**
- * K-AGCORE-144..150 Runtime Agent AI Config. One committed AI consume config
- * per Runtime Local Agent instance with monotonic revision, expected-revision
- * optimistic concurrency, and a probe-backed readiness projection. Capability,
- * readiness-state, and reason vocabularies are admitted in
- * .nimi/spec/runtime/agent-participation.authority.yaml.
+ * K-AGCORE-144..150 Runtime-owned canonical AIConfig for one LocalAgent scope.
+ * model_id is the public logical model identity; target_ref remains the exact
+ * Runtime-private execution identity. selected_components carries the ordered
+ * concrete AIConfig component choices while selected_params carries only the
+ * admitted per-capability parameter object.
  *
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfigComponentSelection
+ */
+export interface RuntimeAgentAIConfigComponentSelection {
+    /**
+     * @generated from protobuf field: string occurrence_id = 1
+     */
+    occurrenceId: string;
+    /**
+     * @generated from protobuf field: uint32 order = 2
+     */
+    order: number;
+    /**
+     * @generated from protobuf field: string role = 3
+     */
+    role: string;
+    /**
+     * @generated from protobuf field: string component_kind = 4
+     */
+    componentKind: string;
+    /**
+     * @generated from protobuf field: string logical_model_id = 5
+     */
+    logicalModelId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 6
+     */
+    targetRef?: RuntimeDurableTargetRef;
+    /**
+     * @generated from protobuf field: bool required = 7
+     */
+    required: boolean;
+    /**
+     * @generated from protobuf field: string weight = 8
+     */
+    weight: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct options = 9
+     */
+    options?: Struct;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfigIntent
  */
 export interface RuntimeAgentAIConfigIntent {
@@ -2566,6 +2611,31 @@ export interface RuntimeAgentAIConfigIntent {
      * @generated from protobuf field: string provider = 8
      */
     provider: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct selected_params = 9
+     */
+    selectedParams?: Struct;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentAIConfigComponentSelection selected_components = 10
+     */
+    selectedComponents: RuntimeAgentAIConfigComponentSelection[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIProfileOrigin
+ */
+export interface RuntimeAgentAIProfileOrigin {
+    /**
+     * @generated from protobuf field: string profile_id = 1
+     */
+    profileId: string;
+    /**
+     * @generated from protobuf field: string title = 2
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp applied_at = 3
+     */
+    appliedAt?: Timestamp;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfig
@@ -2591,6 +2661,10 @@ export interface RuntimeAgentAIConfig {
      * @generated from protobuf field: string updated_by_app_id = 5
      */
     updatedByAppId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIProfileOrigin profile_origin = 6
+     */
+    profileOrigin?: RuntimeAgentAIProfileOrigin;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness
@@ -2664,6 +2738,10 @@ export interface UpsertRuntimeAgentAIConfigRequest {
      * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents = 3
      */
     intents: RuntimeAgentAIConfigIntent[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIProfileOrigin profile_origin = 4
+     */
+    profileOrigin?: RuntimeAgentAIProfileOrigin;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse
@@ -2700,6 +2778,110 @@ export interface SubscribeRuntimeAgentAIConfigReadinessRequest {
      * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
      */
     context?: AgentRequestContext;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PreviewRuntimeAgentAIProfileRequest
+ */
+export interface PreviewRuntimeAgentAIProfileRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: bytes profile_json = 2
+     */
+    profileJson: Uint8Array;
+    /**
+     * @generated from protobuf field: bytes runtime_descriptor_json = 3
+     */
+    runtimeDescriptorJson: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PreviewRuntimeAgentAIProfileResponse
+ */
+export interface PreviewRuntimeAgentAIProfileResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIConfig before = 1
+     */
+    before?: RuntimeAgentAIConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIConfig after = 2
+     */
+    after?: RuntimeAgentAIConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome outcome = 3
+     */
+    outcome: RuntimeAgentAIProfileApplyOutcome;
+    /**
+     * @generated from protobuf field: uint64 base_revision = 4
+     */
+    baseRevision: string;
+    /**
+     * @generated from protobuf field: repeated string blocking_capabilities = 5
+     */
+    blockingCapabilities: string[];
+    /**
+     * @generated from protobuf field: repeated string reason_codes = 6
+     */
+    reasonCodes: string[];
+    /**
+     * @generated from protobuf field: repeated string action_refs = 7
+     */
+    actionRefs: string[];
+    /**
+     * @generated from protobuf field: repeated string probe_warnings = 8
+     */
+    probeWarnings: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ApplyRuntimeAgentAIProfileRequest
+ */
+export interface ApplyRuntimeAgentAIProfileRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: uint64 expected_revision = 2
+     */
+    expectedRevision: string;
+    /**
+     * @generated from protobuf field: bytes profile_json = 3
+     */
+    profileJson: Uint8Array;
+    /**
+     * @generated from protobuf field: bytes runtime_descriptor_json = 4
+     */
+    runtimeDescriptorJson: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ApplyRuntimeAgentAIProfileResponse
+ */
+export interface ApplyRuntimeAgentAIProfileResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIConfig config = 1
+     */
+    config?: RuntimeAgentAIConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome outcome = 2
+     */
+    outcome: RuntimeAgentAIProfileApplyOutcome;
+    /**
+     * @generated from protobuf field: repeated string blocking_capabilities = 3
+     */
+    blockingCapabilities: string[];
+    /**
+     * @generated from protobuf field: repeated string reason_codes = 4
+     */
+    reasonCodes: string[];
+    /**
+     * @generated from protobuf field: repeated string action_refs = 5
+     */
+    actionRefs: string[];
+    /**
+     * @generated from protobuf field: repeated string probe_warnings = 6
+     */
+    probeWarnings: string[];
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentLifecycleStatus
@@ -3411,7 +3593,48 @@ export enum RuntimeAgentAIConfigReadinessState {
     /**
      * @generated from protobuf enum value: RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE = 3;
      */
-    RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE = 3
+    RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE = 3,
+    /**
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED = 4;
+     */
+    RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED = 4
+}
+/**
+ * AIProfile remains a portable template. These operations accept the standard
+ * AIProfile JSON plus its SDK-formed portable Runtime descriptor, prepare exact
+ * Runtime-private execution targets, and only then form/commit live AIConfig.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome
+ */
+export enum RuntimeAgentAIProfileApplyOutcome {
+    /**
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED = 0;
+     */
+    RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY = 1;
+     */
+    RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY = 1,
+    /**
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG = 2;
+     */
+    RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG = 2,
+    /**
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG = 3;
+     */
+    RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG = 3,
+    /**
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE = 4;
+     */
+    RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE = 4,
+    /**
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE = 5;
+     */
+    RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE = 5,
+    /**
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED = 6;
+     */
+    RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED = 6
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
@@ -10954,6 +11177,115 @@ class GetAvatarDebugReplayResponse$Type extends MessageType<GetAvatarDebugReplay
  */
 export const GetAvatarDebugReplayResponse = new GetAvatarDebugReplayResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class RuntimeAgentAIConfigComponentSelection$Type extends MessageType<RuntimeAgentAIConfigComponentSelection> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeAgentAIConfigComponentSelection", [
+            { no: 1, name: "occurrence_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "order", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "component_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "logical_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef },
+            { no: 7, name: "required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "weight", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "options", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeAgentAIConfigComponentSelection>): RuntimeAgentAIConfigComponentSelection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.occurrenceId = "";
+        message.order = 0;
+        message.role = "";
+        message.componentKind = "";
+        message.logicalModelId = "";
+        message.required = false;
+        message.weight = "";
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeAgentAIConfigComponentSelection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentAIConfigComponentSelection): RuntimeAgentAIConfigComponentSelection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string occurrence_id */ 1:
+                    message.occurrenceId = reader.string();
+                    break;
+                case /* uint32 order */ 2:
+                    message.order = reader.uint32();
+                    break;
+                case /* string role */ 3:
+                    message.role = reader.string();
+                    break;
+                case /* string component_kind */ 4:
+                    message.componentKind = reader.string();
+                    break;
+                case /* string logical_model_id */ 5:
+                    message.logicalModelId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref */ 6:
+                    message.targetRef = RuntimeDurableTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.targetRef);
+                    break;
+                case /* bool required */ 7:
+                    message.required = reader.bool();
+                    break;
+                case /* string weight */ 8:
+                    message.weight = reader.string();
+                    break;
+                case /* google.protobuf.Struct options */ 9:
+                    message.options = Struct.internalBinaryRead(reader, reader.uint32(), options, message.options);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeAgentAIConfigComponentSelection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string occurrence_id = 1; */
+        if (message.occurrenceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.occurrenceId);
+        /* uint32 order = 2; */
+        if (message.order !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.order);
+        /* string role = 3; */
+        if (message.role !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.role);
+        /* string component_kind = 4; */
+        if (message.componentKind !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.componentKind);
+        /* string logical_model_id = 5; */
+        if (message.logicalModelId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.logicalModelId);
+        /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 6; */
+        if (message.targetRef)
+            RuntimeDurableTargetRef.internalBinaryWrite(message.targetRef, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* bool required = 7; */
+        if (message.required !== false)
+            writer.tag(7, WireType.Varint).bool(message.required);
+        /* string weight = 8; */
+        if (message.weight !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.weight);
+        /* google.protobuf.Struct options = 9; */
+        if (message.options)
+            Struct.internalBinaryWrite(message.options, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentAIConfigComponentSelection
+ */
+export const RuntimeAgentAIConfigComponentSelection = new RuntimeAgentAIConfigComponentSelection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIntent> {
     constructor() {
         super("nimi.runtime.v1.RuntimeAgentAIConfigIntent", [
@@ -10964,7 +11296,9 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
             { no: 5, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef },
             { no: 6, name: "voice_reference_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "image_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "selected_params", kind: "message", T: () => Struct },
+            { no: 10, name: "selected_components", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentAIConfigComponentSelection }
         ]);
     }
     create(value?: PartialMessage<RuntimeAgentAIConfigIntent>): RuntimeAgentAIConfigIntent {
@@ -10976,6 +11310,7 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
         message.voiceReferenceRef = "";
         message.imagePolicyRef = "";
         message.provider = "";
+        message.selectedComponents = [];
         if (value !== undefined)
             reflectionMergePartial<RuntimeAgentAIConfigIntent>(this, message, value);
         return message;
@@ -11008,6 +11343,12 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
                     break;
                 case /* string provider */ 8:
                     message.provider = reader.string();
+                    break;
+                case /* google.protobuf.Struct selected_params */ 9:
+                    message.selectedParams = Struct.internalBinaryRead(reader, reader.uint32(), options, message.selectedParams);
+                    break;
+                case /* repeated nimi.runtime.v1.RuntimeAgentAIConfigComponentSelection selected_components */ 10:
+                    message.selectedComponents.push(RuntimeAgentAIConfigComponentSelection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11045,6 +11386,12 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
         /* string provider = 8; */
         if (message.provider !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.provider);
+        /* google.protobuf.Struct selected_params = 9; */
+        if (message.selectedParams)
+            Struct.internalBinaryWrite(message.selectedParams, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.RuntimeAgentAIConfigComponentSelection selected_components = 10; */
+        for (let i = 0; i < message.selectedComponents.length; i++)
+            RuntimeAgentAIConfigComponentSelection.internalBinaryWrite(message.selectedComponents[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11056,6 +11403,68 @@ class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIn
  */
 export const RuntimeAgentAIConfigIntent = new RuntimeAgentAIConfigIntent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class RuntimeAgentAIProfileOrigin$Type extends MessageType<RuntimeAgentAIProfileOrigin> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeAgentAIProfileOrigin", [
+            { no: 1, name: "profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "applied_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeAgentAIProfileOrigin>): RuntimeAgentAIProfileOrigin {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.profileId = "";
+        message.title = "";
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeAgentAIProfileOrigin>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentAIProfileOrigin): RuntimeAgentAIProfileOrigin {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string profile_id */ 1:
+                    message.profileId = reader.string();
+                    break;
+                case /* string title */ 2:
+                    message.title = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp applied_at */ 3:
+                    message.appliedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.appliedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeAgentAIProfileOrigin, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string profile_id = 1; */
+        if (message.profileId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.profileId);
+        /* string title = 2; */
+        if (message.title !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.title);
+        /* google.protobuf.Timestamp applied_at = 3; */
+        if (message.appliedAt)
+            Timestamp.internalBinaryWrite(message.appliedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentAIProfileOrigin
+ */
+export const RuntimeAgentAIProfileOrigin = new RuntimeAgentAIProfileOrigin$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class RuntimeAgentAIConfig$Type extends MessageType<RuntimeAgentAIConfig> {
     constructor() {
         super("nimi.runtime.v1.RuntimeAgentAIConfig", [
@@ -11063,7 +11472,8 @@ class RuntimeAgentAIConfig$Type extends MessageType<RuntimeAgentAIConfig> {
             { no: 2, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 3, name: "intents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentAIConfigIntent },
             { no: 4, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 5, name: "updated_by_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "updated_by_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "profile_origin", kind: "message", T: () => RuntimeAgentAIProfileOrigin }
         ]);
     }
     create(value?: PartialMessage<RuntimeAgentAIConfig>): RuntimeAgentAIConfig {
@@ -11096,6 +11506,9 @@ class RuntimeAgentAIConfig$Type extends MessageType<RuntimeAgentAIConfig> {
                 case /* string updated_by_app_id */ 5:
                     message.updatedByAppId = reader.string();
                     break;
+                case /* nimi.runtime.v1.RuntimeAgentAIProfileOrigin profile_origin */ 6:
+                    message.profileOrigin = RuntimeAgentAIProfileOrigin.internalBinaryRead(reader, reader.uint32(), options, message.profileOrigin);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -11123,6 +11536,9 @@ class RuntimeAgentAIConfig$Type extends MessageType<RuntimeAgentAIConfig> {
         /* string updated_by_app_id = 5; */
         if (message.updatedByAppId !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.updatedByAppId);
+        /* nimi.runtime.v1.RuntimeAgentAIProfileOrigin profile_origin = 6; */
+        if (message.profileOrigin)
+            RuntimeAgentAIProfileOrigin.internalBinaryWrite(message.profileOrigin, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11364,7 +11780,8 @@ class UpsertRuntimeAgentAIConfigRequest$Type extends MessageType<UpsertRuntimeAg
         super("nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 3, name: "intents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentAIConfigIntent }
+            { no: 3, name: "intents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentAIConfigIntent },
+            { no: 4, name: "profile_origin", kind: "message", T: () => RuntimeAgentAIProfileOrigin }
         ]);
     }
     create(value?: PartialMessage<UpsertRuntimeAgentAIConfigRequest>): UpsertRuntimeAgentAIConfigRequest {
@@ -11389,6 +11806,9 @@ class UpsertRuntimeAgentAIConfigRequest$Type extends MessageType<UpsertRuntimeAg
                 case /* repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents */ 3:
                     message.intents.push(RuntimeAgentAIConfigIntent.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.RuntimeAgentAIProfileOrigin profile_origin */ 4:
+                    message.profileOrigin = RuntimeAgentAIProfileOrigin.internalBinaryRead(reader, reader.uint32(), options, message.profileOrigin);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -11410,6 +11830,9 @@ class UpsertRuntimeAgentAIConfigRequest$Type extends MessageType<UpsertRuntimeAg
         /* repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents = 3; */
         for (let i = 0; i < message.intents.length; i++)
             RuntimeAgentAIConfigIntent.internalBinaryWrite(message.intents[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RuntimeAgentAIProfileOrigin profile_origin = 4; */
+        if (message.profileOrigin)
+            RuntimeAgentAIProfileOrigin.internalBinaryWrite(message.profileOrigin, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11604,3 +12027,322 @@ class SubscribeRuntimeAgentAIConfigReadinessRequest$Type extends MessageType<Sub
  * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest
  */
 export const SubscribeRuntimeAgentAIConfigReadinessRequest = new SubscribeRuntimeAgentAIConfigReadinessRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PreviewRuntimeAgentAIProfileRequest$Type extends MessageType<PreviewRuntimeAgentAIProfileRequest> {
+    constructor() {
+        super("nimi.runtime.v1.PreviewRuntimeAgentAIProfileRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "profile_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "runtime_descriptor_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PreviewRuntimeAgentAIProfileRequest>): PreviewRuntimeAgentAIProfileRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.profileJson = new Uint8Array(0);
+        message.runtimeDescriptorJson = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<PreviewRuntimeAgentAIProfileRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PreviewRuntimeAgentAIProfileRequest): PreviewRuntimeAgentAIProfileRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* bytes profile_json */ 2:
+                    message.profileJson = reader.bytes();
+                    break;
+                case /* bytes runtime_descriptor_json */ 3:
+                    message.runtimeDescriptorJson = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PreviewRuntimeAgentAIProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bytes profile_json = 2; */
+        if (message.profileJson.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.profileJson);
+        /* bytes runtime_descriptor_json = 3; */
+        if (message.runtimeDescriptorJson.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.runtimeDescriptorJson);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PreviewRuntimeAgentAIProfileRequest
+ */
+export const PreviewRuntimeAgentAIProfileRequest = new PreviewRuntimeAgentAIProfileRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PreviewRuntimeAgentAIProfileResponse$Type extends MessageType<PreviewRuntimeAgentAIProfileResponse> {
+    constructor() {
+        super("nimi.runtime.v1.PreviewRuntimeAgentAIProfileResponse", [
+            { no: 1, name: "before", kind: "message", T: () => RuntimeAgentAIConfig },
+            { no: 2, name: "after", kind: "message", T: () => RuntimeAgentAIConfig },
+            { no: 3, name: "outcome", kind: "enum", T: () => ["nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome", RuntimeAgentAIProfileApplyOutcome] },
+            { no: 4, name: "base_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "blocking_capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "reason_codes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "action_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "probe_warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PreviewRuntimeAgentAIProfileResponse>): PreviewRuntimeAgentAIProfileResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.outcome = 0;
+        message.baseRevision = "0";
+        message.blockingCapabilities = [];
+        message.reasonCodes = [];
+        message.actionRefs = [];
+        message.probeWarnings = [];
+        if (value !== undefined)
+            reflectionMergePartial<PreviewRuntimeAgentAIProfileResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PreviewRuntimeAgentAIProfileResponse): PreviewRuntimeAgentAIProfileResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RuntimeAgentAIConfig before */ 1:
+                    message.before = RuntimeAgentAIConfig.internalBinaryRead(reader, reader.uint32(), options, message.before);
+                    break;
+                case /* nimi.runtime.v1.RuntimeAgentAIConfig after */ 2:
+                    message.after = RuntimeAgentAIConfig.internalBinaryRead(reader, reader.uint32(), options, message.after);
+                    break;
+                case /* nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome outcome */ 3:
+                    message.outcome = reader.int32();
+                    break;
+                case /* uint64 base_revision */ 4:
+                    message.baseRevision = reader.uint64().toString();
+                    break;
+                case /* repeated string blocking_capabilities */ 5:
+                    message.blockingCapabilities.push(reader.string());
+                    break;
+                case /* repeated string reason_codes */ 6:
+                    message.reasonCodes.push(reader.string());
+                    break;
+                case /* repeated string action_refs */ 7:
+                    message.actionRefs.push(reader.string());
+                    break;
+                case /* repeated string probe_warnings */ 8:
+                    message.probeWarnings.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PreviewRuntimeAgentAIProfileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeAgentAIConfig before = 1; */
+        if (message.before)
+            RuntimeAgentAIConfig.internalBinaryWrite(message.before, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RuntimeAgentAIConfig after = 2; */
+        if (message.after)
+            RuntimeAgentAIConfig.internalBinaryWrite(message.after, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome outcome = 3; */
+        if (message.outcome !== 0)
+            writer.tag(3, WireType.Varint).int32(message.outcome);
+        /* uint64 base_revision = 4; */
+        if (message.baseRevision !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.baseRevision);
+        /* repeated string blocking_capabilities = 5; */
+        for (let i = 0; i < message.blockingCapabilities.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.blockingCapabilities[i]);
+        /* repeated string reason_codes = 6; */
+        for (let i = 0; i < message.reasonCodes.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.reasonCodes[i]);
+        /* repeated string action_refs = 7; */
+        for (let i = 0; i < message.actionRefs.length; i++)
+            writer.tag(7, WireType.LengthDelimited).string(message.actionRefs[i]);
+        /* repeated string probe_warnings = 8; */
+        for (let i = 0; i < message.probeWarnings.length; i++)
+            writer.tag(8, WireType.LengthDelimited).string(message.probeWarnings[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PreviewRuntimeAgentAIProfileResponse
+ */
+export const PreviewRuntimeAgentAIProfileResponse = new PreviewRuntimeAgentAIProfileResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ApplyRuntimeAgentAIProfileRequest$Type extends MessageType<ApplyRuntimeAgentAIProfileRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ApplyRuntimeAgentAIProfileRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "profile_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 4, name: "runtime_descriptor_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ApplyRuntimeAgentAIProfileRequest>): ApplyRuntimeAgentAIProfileRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.expectedRevision = "0";
+        message.profileJson = new Uint8Array(0);
+        message.runtimeDescriptorJson = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<ApplyRuntimeAgentAIProfileRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApplyRuntimeAgentAIProfileRequest): ApplyRuntimeAgentAIProfileRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* uint64 expected_revision */ 2:
+                    message.expectedRevision = reader.uint64().toString();
+                    break;
+                case /* bytes profile_json */ 3:
+                    message.profileJson = reader.bytes();
+                    break;
+                case /* bytes runtime_descriptor_json */ 4:
+                    message.runtimeDescriptorJson = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ApplyRuntimeAgentAIProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 expected_revision = 2; */
+        if (message.expectedRevision !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.expectedRevision);
+        /* bytes profile_json = 3; */
+        if (message.profileJson.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.profileJson);
+        /* bytes runtime_descriptor_json = 4; */
+        if (message.runtimeDescriptorJson.length)
+            writer.tag(4, WireType.LengthDelimited).bytes(message.runtimeDescriptorJson);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ApplyRuntimeAgentAIProfileRequest
+ */
+export const ApplyRuntimeAgentAIProfileRequest = new ApplyRuntimeAgentAIProfileRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ApplyRuntimeAgentAIProfileResponse$Type extends MessageType<ApplyRuntimeAgentAIProfileResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ApplyRuntimeAgentAIProfileResponse", [
+            { no: 1, name: "config", kind: "message", T: () => RuntimeAgentAIConfig },
+            { no: 2, name: "outcome", kind: "enum", T: () => ["nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome", RuntimeAgentAIProfileApplyOutcome] },
+            { no: 3, name: "blocking_capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "reason_codes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "action_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "probe_warnings", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ApplyRuntimeAgentAIProfileResponse>): ApplyRuntimeAgentAIProfileResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.outcome = 0;
+        message.blockingCapabilities = [];
+        message.reasonCodes = [];
+        message.actionRefs = [];
+        message.probeWarnings = [];
+        if (value !== undefined)
+            reflectionMergePartial<ApplyRuntimeAgentAIProfileResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApplyRuntimeAgentAIProfileResponse): ApplyRuntimeAgentAIProfileResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RuntimeAgentAIConfig config */ 1:
+                    message.config = RuntimeAgentAIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                case /* nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome outcome */ 2:
+                    message.outcome = reader.int32();
+                    break;
+                case /* repeated string blocking_capabilities */ 3:
+                    message.blockingCapabilities.push(reader.string());
+                    break;
+                case /* repeated string reason_codes */ 4:
+                    message.reasonCodes.push(reader.string());
+                    break;
+                case /* repeated string action_refs */ 5:
+                    message.actionRefs.push(reader.string());
+                    break;
+                case /* repeated string probe_warnings */ 6:
+                    message.probeWarnings.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ApplyRuntimeAgentAIProfileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeAgentAIConfig config = 1; */
+        if (message.config)
+            RuntimeAgentAIConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RuntimeAgentAIProfileApplyOutcome outcome = 2; */
+        if (message.outcome !== 0)
+            writer.tag(2, WireType.Varint).int32(message.outcome);
+        /* repeated string blocking_capabilities = 3; */
+        for (let i = 0; i < message.blockingCapabilities.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.blockingCapabilities[i]);
+        /* repeated string reason_codes = 4; */
+        for (let i = 0; i < message.reasonCodes.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.reasonCodes[i]);
+        /* repeated string action_refs = 5; */
+        for (let i = 0; i < message.actionRefs.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.actionRefs[i]);
+        /* repeated string probe_warnings = 6; */
+        for (let i = 0; i < message.probeWarnings.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.probeWarnings[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ApplyRuntimeAgentAIProfileResponse
+ */
+export const ApplyRuntimeAgentAIProfileResponse = new ApplyRuntimeAgentAIProfileResponse$Type();

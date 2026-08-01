@@ -18,6 +18,8 @@ import (
 const managedImageLoadTimeout = 45 * time.Second
 
 type managedImageProfileState struct {
+	BindingID               string
+	MainLocalAssetID        string
 	Alias                   string
 	Profile                 map[string]any
 	MaterializationResolved bool
@@ -60,6 +62,9 @@ func (s *Service) cacheManagedMediaImageProfileResolution(
 	if s.managedImageProfiles == nil {
 		s.managedImageProfiles = make(map[string]managedImageProfileState)
 	}
+	if s.managedImageProfileBindings == nil {
+		s.managedImageProfileBindings = make(map[string]managedImageProfileState)
+	}
 	if existing, ok := s.managedImageProfiles[id]; ok &&
 		existing.MaterializationResolved &&
 		strings.HasPrefix(strings.TrimSpace(existing.Alias), profileRuntimeMaterializationKeyPrefix) &&
@@ -81,12 +86,25 @@ func (s *Service) cacheManagedMediaImageProfileResolution(
 		}
 	}
 	s.managedImageProfiles[id] = managedImageProfileState{
+		MainLocalAssetID:        id,
 		Alias:                   strings.TrimSpace(alias),
 		Profile:                 cloneAnyMap(profile),
 		MaterializationResolved: materializationResolved,
 		MaterializationBindings: cloneManagedMediaProfileMaterializationBindings(bindings),
 	}
 	if materializationResolved && len(bindings) > 0 {
+		bindingID := workflowBindingIDPrefix + strings.TrimSpace(alias)
+		if !strings.HasPrefix(bindingID, workflowBindingIDPrefix+profileRuntimeMaterializationKeyPrefix) {
+			return
+		}
+		s.managedImageProfileBindings[bindingID] = managedImageProfileState{
+			BindingID:               bindingID,
+			MainLocalAssetID:        id,
+			Alias:                   strings.TrimSpace(alias),
+			Profile:                 cloneAnyMap(profile),
+			MaterializationResolved: true,
+			MaterializationBindings: cloneManagedMediaProfileMaterializationBindings(bindings),
+		}
 		s.persistStateLocked()
 	}
 }
@@ -100,9 +118,44 @@ func (s *Service) cachedManagedMediaImageProfile(localAssetID string) (managedIm
 	defer s.mu.RUnlock()
 	state, ok := s.managedImageProfiles[id]
 	if !ok {
+		for _, candidate := range s.managedImageProfileBindings {
+			if strings.TrimSpace(candidate.MainLocalAssetID) != id {
+				continue
+			}
+			if ok {
+				return managedImageProfileState{}, false
+			}
+			state = candidate
+			ok = true
+		}
+		if !ok {
+			return managedImageProfileState{}, false
+		}
+	}
+	return managedImageProfileState{
+		BindingID:               state.BindingID,
+		MainLocalAssetID:        state.MainLocalAssetID,
+		Alias:                   state.Alias,
+		Profile:                 cloneAnyMap(state.Profile),
+		MaterializationResolved: state.MaterializationResolved,
+		MaterializationBindings: cloneManagedMediaProfileMaterializationBindings(state.MaterializationBindings),
+	}, true
+}
+
+func (s *Service) cachedManagedMediaImageProfileBinding(profileBindingID string) (managedImageProfileState, bool) {
+	id := strings.TrimSpace(profileBindingID)
+	if s == nil || id == "" {
+		return managedImageProfileState{}, false
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	state, ok := s.managedImageProfileBindings[id]
+	if !ok {
 		return managedImageProfileState{}, false
 	}
 	return managedImageProfileState{
+		BindingID:               state.BindingID,
+		MainLocalAssetID:        state.MainLocalAssetID,
 		Alias:                   state.Alias,
 		Profile:                 cloneAnyMap(state.Profile),
 		MaterializationResolved: state.MaterializationResolved,
@@ -194,24 +247,27 @@ func (s *Service) clearManagedMediaImageLoadCache(localAssetID string) {
 	s.mu.Unlock()
 }
 
-func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
+func (s *Service) ReleaseManagedMediaImage(ctx context.Context, localAssetID string, alias string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
 	if s == nil {
 		return nil
 	}
-	model := s.resolveManagedMediaImageModel(requestedModelID)
+	model := s.localAssetByID(localAssetID)
 	if model == nil {
 		return nil
 	}
 	return s.releaseManagedSupervisedImage(ctx, model, alias, profile, scenarioExtensions, releaseReason)
 }
 
-func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) (*nimillm.ManagedMediaImageLoadDiagnostics, error) {
+func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, localAssetID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) (*nimillm.ManagedMediaImageLoadDiagnostics, error) {
 	if s == nil {
-		return nil, fmt.Errorf("managed local image is unavailable")
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	model := s.resolveManagedMediaImageModel(requestedModelID)
-	if model == nil {
-		return nil, fmt.Errorf("managed local image is unavailable")
+	model := s.localAssetByID(localAssetID)
+	if model == nil ||
+		(model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED &&
+			model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE) ||
+		!hasCapability(model.GetCapabilities(), "image.generate") {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	return s.ensureManagedSupervisedImageLoaded(ctx, model, alias, profile, scenarioExtensions, loadReason)
 }
@@ -746,16 +802,16 @@ func (s *Service) forceReleaseManagedSupervisedImage(
 	return nil
 }
 
-func (s *Service) UpdateManagedMediaImageExecutionStatus(_ context.Context, requestedModelID string, healthy bool, detail string) error {
+func (s *Service) UpdateManagedMediaImageExecutionStatus(_ context.Context, localAssetID string, healthy bool, detail string) error {
 	if s == nil {
 		return nil
 	}
-	model := s.resolveManagedMediaImageModel(requestedModelID)
+	model := s.localAssetByID(localAssetID)
 	if model == nil {
 		return nil
 	}
-	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
-	if localAssetID == "" {
+	exactLocalAssetID := strings.TrimSpace(model.GetLocalAssetId())
+	if exactLocalAssetID == "" {
 		return nil
 	}
 	if healthy {
@@ -764,18 +820,18 @@ func (s *Service) UpdateManagedMediaImageExecutionStatus(_ context.Context, requ
 			readyDetail = strings.TrimSpace(detail)
 		}
 		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-			s.setModelHealthDetail(localAssetID, readyDetail)
+			s.setModelHealthDetail(exactLocalAssetID, readyDetail)
 			return nil
 		}
-		_, err := s.updateModelStatus(localAssetID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, readyDetail)
+		_, err := s.updateModelStatus(exactLocalAssetID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, readyDetail)
 		return err
 	}
-	s.clearManagedMediaImageLoadCache(localAssetID)
+	s.clearManagedMediaImageLoadCache(exactLocalAssetID)
 	failureDetail := managedLocalImageExecutionFailureDetail(detail)
 	if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		s.setModelHealthDetail(localAssetID, failureDetail)
+		s.setModelHealthDetail(exactLocalAssetID, failureDetail)
 		return nil
 	}
-	_, err := s.transitionModelToUnhealthy(localAssetID, failureDetail)
+	_, err := s.transitionModelToUnhealthy(exactLocalAssetID, failureDetail)
 	return err
 }

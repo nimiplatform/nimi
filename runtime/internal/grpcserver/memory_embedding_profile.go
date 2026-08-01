@@ -113,68 +113,83 @@ func resolveLocalRuntimeMemoryEmbeddingProfile(
 			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
 		}
 	}
-	resp, err := localSvc.ListLocalAssets(ctx, &runtimev1.ListLocalAssetsRequest{
-		StatusFilter: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-		KindFilter:   runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
-	})
+	target := runtimeMemoryEmbeddingDurableLocalTarget(snapshot.LocalBinding)
+	if target == nil {
+		return memoryservice.MemoryEmbeddingResolvedProfile{
+			ResolutionState:   "unresolved",
+			BlockedReasonCode: runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID,
+		}
+	}
+	binding, asset, err := localSvc.ResolveDurableLocalTarget(ctx, target, "text.embed")
 	if err != nil {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
-			ResolutionState:   "unavailable",
-			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			ResolutionState:   "unresolved",
+			BlockedReasonCode: memoryEmbeddingReasonCodeFromError(err, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE),
 		}
 	}
-	targetID := strings.TrimSpace(snapshot.LocalBinding.ProfileBindingID)
-	if targetID == "" {
-		targetID = strings.TrimSpace(snapshot.LocalBinding.ReadinessRef)
-	}
-	for _, asset := range resp.GetAssets() {
-		if asset == nil {
-			continue
-		}
-		if !memoryEmbeddingLocalTargetMatches(asset, targetID) {
-			continue
-		}
-		// The local asset is install/inventory evidence only. Resolve the
-		// catalog-authoritative dimension by mapping the asset back to its
-		// `local` catalog row (logical model id, falling back to asset id).
-		// A local embedding asset with no admitted catalog dimension must
-		// fail-close rather than fabricate a dimension.
-		dimension, ok := resolveCatalogEmbeddingDimension(
-			modelCatalog,
-			"local",
-			memoryEmbeddingLocalCatalogModelRef(asset),
-		)
-		if !ok {
-			return memoryservice.MemoryEmbeddingResolvedProfile{
-				ResolutionState:   "unresolved",
-				BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING,
-			}
-		}
+	if binding == nil || asset == nil || strings.TrimSpace(binding.GetResolvedModelId()) == "" {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
-			Profile: &runtimev1.MemoryEmbeddingProfile{
-				Provider:  "local",
-				ModelId:   strings.TrimSpace(asset.GetAssetId()),
-				Dimension: dimension,
-				// DistanceMetric / MigrationPolicy are runtime memory-bank policy,
-				// not model-catalog facts; they remain runtime-owned constants.
-				DistanceMetric: runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-				Version: func() string {
-					if value := strings.TrimSpace(asset.GetLocalAssetId()); value != "" {
-						return value
-					}
-					return strings.TrimSpace(asset.GetAssetId())
-				}(),
-				MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
-				LocalBinding:    runtimeMemoryEmbeddingLocalBinding(snapshot.LocalBinding),
-			},
-			ResolutionState:   "resolved",
-			BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			ResolutionState:   "unresolved",
+			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+		}
+	}
+	// The local asset is install/inventory evidence only. Resolve the
+	// catalog-authoritative dimension from the exact target's logical model.
+	// A local embedding asset with no admitted catalog dimension must
+	// fail-close rather than fabricate a dimension.
+	dimension, ok := resolveCatalogEmbeddingDimension(
+		modelCatalog,
+		"local",
+		strings.TrimSpace(binding.GetResolvedModelId()),
+	)
+	if !ok {
+		return memoryservice.MemoryEmbeddingResolvedProfile{
+			ResolutionState:   "unresolved",
+			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING,
 		}
 	}
 	return memoryservice.MemoryEmbeddingResolvedProfile{
-		ResolutionState:   "unresolved",
-		BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+		Profile: &runtimev1.MemoryEmbeddingProfile{
+			Provider:  "local",
+			ModelId:   strings.TrimSpace(binding.GetResolvedModelId()),
+			Dimension: dimension,
+			// DistanceMetric / MigrationPolicy are runtime memory-bank policy,
+			// not model-catalog facts; they remain runtime-owned constants.
+			DistanceMetric: runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+			Version: func() string {
+				if value := strings.TrimSpace(asset.GetLocalAssetId()); value != "" {
+					return value
+				}
+				return strings.TrimSpace(asset.GetAssetId())
+			}(),
+			MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+			LocalBinding:    runtimeMemoryEmbeddingLocalBinding(snapshot.LocalBinding),
+		},
+		ResolutionState:   "resolved",
+		BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 	}
+}
+
+func runtimeMemoryEmbeddingDurableLocalTarget(
+	input *memoryservice.MemoryEmbeddingLocalBindingRef,
+) *runtimev1.RuntimeDurableLocalTargetRef {
+	if input == nil {
+		return nil
+	}
+	target := &runtimev1.RuntimeDurableLocalTargetRef{Version: "v2"}
+	if profileBindingID := strings.TrimSpace(input.ProfileBindingID); profileBindingID != "" {
+		target.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
+			ProfileBindingId: profileBindingID,
+		}
+		return target
+	}
+	if readinessRef := strings.TrimSpace(input.ReadinessRef); readinessRef != "" {
+		target.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{
+			ReadinessRef: readinessRef,
+		}
+		return target
+	}
+	return nil
 }
 
 func resolveCloudRuntimeMemoryEmbeddingProfile(
@@ -355,33 +370,4 @@ func resolveCatalogEmbeddingDimension(modelCatalog *catalog.Resolver, provider s
 		return 0, false
 	}
 	return entry.Embedding.Dimension, true
-}
-
-// memoryEmbeddingLocalCatalogModelRef chooses the model reference used to look
-// up a local embedding asset's catalog row. The logical model id (e.g.
-// `local/nomic-embed-text`) is the catalog-facing identity; the variant-level
-// asset id is the fallback when no logical id is recorded.
-func memoryEmbeddingLocalCatalogModelRef(asset *runtimev1.LocalAssetRecord) string {
-	if asset == nil {
-		return ""
-	}
-	if logical := strings.TrimSpace(asset.GetLogicalModelId()); logical != "" {
-		return logical
-	}
-	return strings.TrimSpace(asset.GetAssetId())
-}
-
-func memoryEmbeddingLocalTargetMatches(asset *runtimev1.LocalAssetRecord, targetID string) bool {
-	if asset == nil {
-		return false
-	}
-	normalized := strings.TrimSpace(targetID)
-	if normalized == "" {
-		return false
-	}
-	localAssetID := strings.TrimSpace(asset.GetLocalAssetId())
-	if strings.HasPrefix(normalized, "local-runtime:") {
-		return strings.TrimPrefix(normalized, "local-runtime:") == localAssetID
-	}
-	return normalized == strings.TrimSpace(asset.GetAssetId()) || normalized == localAssetID
 }

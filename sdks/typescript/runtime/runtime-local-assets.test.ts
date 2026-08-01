@@ -203,6 +203,69 @@ test('Runtime local asset projection preserves artifact roles for companion depe
   });
 });
 
+test('Runtime local asset projection preserves public model identity and exact Desktop target metadata', () => {
+  const projected = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
+    localAssetId: 'local-qwen',
+    assetId: 'qwen3-companion',
+    logicalModelId: 'local/qwen3-4b-q4_k_m',
+    displayName: 'Qwen3-4B-Q4_K_M',
+    sourceFileName: 'Qwen3-4B-Q4_K_M.gguf',
+    durableTargetRef: {
+      version: 'v2',
+      ref: { oneofKind: 'profileBindingId', profileBindingId: 'binding:qwen' },
+    },
+    durableTargetStatus: LocalAssetStatus.ACTIVE,
+  }));
+
+  assert.deepEqual(projected, {
+    localAssetId: 'local-qwen',
+    assetId: 'qwen3-companion',
+    logicalModelId: 'local/qwen3-4b-q4_k_m',
+    displayName: 'Qwen3-4B-Q4_K_M',
+    sourceFileName: 'Qwen3-4B-Q4_K_M.gguf',
+    kind: 'chat',
+    engine: 'llama',
+    status: 'active',
+    durableTargetRef: {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: 'binding:qwen',
+    },
+    durableTargetStatus: 'active',
+  });
+});
+
+test('Runtime local asset projection uses effective public identity for passive exact components', () => {
+  const publicIdentity = `nimi/component/vae/sha256-${'a'.repeat(64)}`;
+  const projected = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
+    localAssetId: 'private-runtime-vae-record',
+    assetId: 'local-import/z-image-vae/machine-instance',
+    logicalModelId: '',
+    displayName: 'Z Image VAE',
+    kind: LocalAssetKind.VAE,
+    status: LocalAssetStatus.INSTALLED,
+    metadata: toNimiRuntimeProtoStruct({
+      effectivePublicComponentIdentity: publicIdentity,
+    }),
+    durableTargetRef: {
+      version: 'v2',
+      ref: { oneofKind: 'readinessRef', readinessRef: 'runtime_readiness:v2:private-vae-target' },
+    },
+    durableTargetStatus: LocalAssetStatus.INSTALLED,
+  }));
+
+  assert.equal(projected.logicalModelId, publicIdentity);
+  assert.notEqual(projected.logicalModelId, projected.localAssetId);
+  assert.notEqual(projected.logicalModelId, projected.assetId);
+  assert.equal(projected.kind, 'vae');
+  assert.equal(projected.status, 'installed');
+  assert.deepEqual(projected.durableTargetRef, {
+    kind: 'local-runtime',
+    version: 'v2',
+    readinessRef: 'runtime_readiness:v2:private-vae-target',
+  });
+});
+
 function localAssetRecord(input: Partial<LocalAssetRecord> = {}): LocalAssetRecord {
   return {
     localAssetId: 'local-asset',

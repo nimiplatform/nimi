@@ -122,7 +122,8 @@ func (s *Service) prepareScenarioRequestWithExtensionsAndLocalPlan(ctx context.C
 	if head == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	remoteBinding, err := s.normalizeScenarioRuntimeTargetRef(ctx, head)
+	targetCapability := scenarioTargetCapability(scenarioType)
+	remoteBinding, localBinding, localAsset, err := s.normalizeScenarioRuntimeTargetRef(ctx, head, targetCapability)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -145,17 +146,54 @@ func (s *Service) prepareScenarioRequestWithExtensionsAndLocalPlan(ctx context.C
 	); err != nil {
 		return nil, nil, err
 	}
-	localPlan, err := s.prepareLocalModelExecutionPlan(
-		ctx,
-		head.GetModelId(),
-		remoteTarget,
-		scenarioModalFromType(scenarioType),
-		nimillm.ScenarioExtensionPayloadForType(scenarioType, extensions),
-	)
+	var localPlan *localModelExecutionPlan
+	if localBinding != nil {
+		localPlan, err = s.prepareDurableLocalModelExecutionPlan(
+			ctx,
+			head.GetModelId(),
+			localBinding,
+			localAsset,
+			scenarioModalFromType(scenarioType),
+			nimillm.ScenarioExtensionPayloadForType(scenarioType, extensions),
+		)
+	} else {
+		localPlan, err = s.prepareLocalModelExecutionPlan(
+			ctx,
+			head.GetModelId(),
+			remoteTarget,
+			scenarioModalFromType(scenarioType),
+			nimillm.ScenarioExtensionPayloadForType(scenarioType, extensions),
+		)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
 	return remoteTarget, localPlan, nil
+}
+
+func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		return "text.generate"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
+		return "text.embed"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return "image.generate"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		return "video.generate"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		return "audio.synthesize"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		return "audio.transcribe"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return "music.generate"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
+		return "world.generate"
+	default:
+		return ""
+	}
 }
 
 func composeInputText(systemPrompt string, input []*runtimev1.ChatMessage) string {

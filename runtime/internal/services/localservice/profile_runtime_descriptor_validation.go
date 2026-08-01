@@ -176,13 +176,22 @@ func validateProfileRuntimeWorkflowContract(slice *profileRuntimeDescriptorCapab
 			return profileRuntimeDescriptorError("profile_model_family_mismatch", family)
 		}
 	case "llama.cpp":
-		if capability != "text.generate" {
+		if capability != "text.generate" && capability != "text.embed" {
 			return profileRuntimeDescriptorError("descriptor.capability_backend_mismatch", capability)
+		}
+		if consumer := strings.TrimSpace(slice.RuntimeConsumerID); consumer != "" &&
+			!profileRuntimeLlamaConsumerAllowed(consumer) {
+			return profileRuntimeDescriptorError("descriptor.runtime_consumer_invalid", consumer)
 		}
 	default:
 		return profileRuntimeDescriptorError("profile_backend_mismatch", backend)
 	}
 	return nil
+}
+
+func profileRuntimeLlamaConsumerAllowed(consumer string) bool {
+	requirement, ok := localEnvironmentConsumerRequirementByID(strings.TrimSpace(consumer))
+	return ok && requirement.PackID == "local-text"
 }
 
 func profileRuntimeWorkflowFamilyAllowed(family string, allowed ...string) bool {

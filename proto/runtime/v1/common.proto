@@ -243,6 +243,13 @@ enum ReasonCode {
   // Runtime-owned presentation truth (K-AGCORE-023a).
   AGENT_PRESENTATION_REVISION_CONFLICT = 614;
 
+  // ARTIFACT_UPLOAD family (615+) — user attachment upload admission
+  // (RuntimeArtifactService.PutArtifact). Distinct fail-closed reasons;
+  // never collapsed into generic values.
+  ARTIFACT_UPLOAD_MIME_UNSUPPORTED = 615;
+  ARTIFACT_UPLOAD_TOO_LARGE = 616;
+  ARTIFACT_UPLOAD_CONTENT_MISMATCH = 617;
+
   // PROTECTED_LOCAL family (620+). These values are shared by protected
   // transport, verified Desktop origin, and their sanitized fail-closed
   // projections (K-PLOCAL-001..007).
@@ -317,6 +324,16 @@ enum ReasonCode {
   AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH = 676;
   AGENT_PRESENTATION_BACKEND_INCOMPATIBLE = 677;
   AGENT_PRESENTATION_ASSET_NOT_VALIDATED = 678;
+
+  // Runtime-owned LocalAgent AIConfig validation. Metadata is bounded to the
+  // public capability name; exact target, asset, path, and provider material
+  // remain Runtime-private.
+  AGENT_AI_CONFIG_INVALID = 679;
+  AGENT_AI_CONFIG_TARGET_REQUIRED = 680;
+  AGENT_AI_CONFIG_TARGET_INVALID = 681;
+  AGENT_AI_CONFIG_TARGET_UNAVAILABLE = 682;
+  AGENT_AI_CONFIG_CAPABILITY_MISMATCH = 683;
+  AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH = 684;
 
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,

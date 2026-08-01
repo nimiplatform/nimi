@@ -1,4 +1,4 @@
-import { act, useState, type ReactNode } from 'react';
+import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -60,8 +60,15 @@ describe('ModelConfigPanel', () => {
     const props: ModelConfigPanelProps = {
       profile: {
         currentOrigin: null,
+        currentProfile: null,
         profiles: [
-          { profileId: 'alpha', title: 'Alpha Profile', description: 'Primary config' },
+          {
+            profileId: 'alpha',
+            title: 'Alpha Profile',
+            description: 'Primary config',
+            capabilitySummaries: [],
+            setupRequired: false,
+          },
         ],
         selectedProfileId: 'alpha',
         copy: {
@@ -187,7 +194,6 @@ describe('ModelConfigPanel', () => {
             cfgScaleLabel: 'CFG Scale',
             samplerLabel: 'Sampler',
             schedulerLabel: 'Scheduler',
-            customOptionsLabel: 'Custom options',
             noneLabel: 'None',
           }}
           params={{
@@ -199,14 +205,10 @@ describe('ModelConfigPanel', () => {
             cfgScale: '',
             sampler: '',
             scheduler: '',
-            optionsText: '',
           }}
-          companionSlots={{}}
-          assets={[]}
           onParamsChange={(next) => {
             nextImageSeed = next.seed;
           }}
-          onCompanionSlotsChange={() => undefined}
         />
         <VideoParamsEditor
           copy={{
@@ -266,14 +268,12 @@ describe('ModelConfigPanel', () => {
     expect(nextVideoMode).toBe('i2v-reference');
   });
 
-  it('propagates image model family changes', async () => {
-    let nextImageFamily = '';
-
+  it('renders committed AIConfig component slots instead of profile default component labels', async () => {
+    const vaeTarget = { kind: 'local-runtime' as const, version: 'v2' as const, readinessRef: 'readiness:vae' };
     await render(
       <ImageParamsEditor
         copy={{
-          modelFamilyLabel: 'Model type',
-          companionModelsLabel: 'Companion Models',
+          companionModelsLabel: 'Component models',
           parametersLabel: 'Parameters',
           sizeLabel: 'Size',
           responseFormatLabel: 'Response format',
@@ -283,354 +283,63 @@ describe('ModelConfigPanel', () => {
           cfgScaleLabel: 'CFG Scale',
           samplerLabel: 'Sampler',
           schedulerLabel: 'Scheduler',
-          customOptionsLabel: 'Custom options',
-          noneLabel: 'None',
+          mainModelLabel: 'Profile source',
         }}
         params={{
-          modelFamily: '',
-          size: '512x512',
+          size: '768x768',
           responseFormat: 'auto',
           seed: '',
           timeoutMs: '600000',
-          steps: '25',
-          cfgScale: '',
-          sampler: '',
-          scheduler: '',
-          optionsText: '',
+          steps: '7',
+          cfgScale: '1',
+          sampler: 'euler_a',
+          scheduler: 'karras',
         }}
-        companionSlots={{}}
-        assets={[]}
-        onParamsChange={(next) => {
-          nextImageFamily = next.modelFamily ?? '';
+        profileComposition={{
+          capabilityId: 'image.generate',
+          modelLabel: 'Z Image Turbo',
+          components: [
+            { role: 'vae', engineSlot: 'vae_path', label: 'Profile default VAE', required: true },
+          ],
+          parameterSummary: [],
         }}
-        onCompanionSlotsChange={() => undefined}
-      />,
-    );
-
-    const imageFamilySelect = Array.from(document.querySelectorAll('select'))
-      .find((select) => Array.from(select.options)
-        .some((option) => option.textContent?.includes('Ideogram4')));
-    expect(imageFamilySelect).toBeTruthy();
-
-    await act(async () => {
-      if (imageFamilySelect instanceof HTMLSelectElement) {
-        imageFamilySelect.value = 'ideogram4';
-        imageFamilySelect.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      await flush();
-    });
-
-    expect(nextImageFamily).toBe('ideogram4');
-  });
-
-  it('selects image companion slots through the shared picker interaction', async () => {
-    let nextCompanionSlots: Record<string, string> = {};
-
-    function ImageEditorHarness() {
-      const [companionSlots, setCompanionSlots] = useState<Record<string, string>>({});
-      return (
-        <ImageParamsEditor
-          copy={{
-            companionModelsLabel: 'Companion Models',
-            parametersLabel: 'Parameters',
-            sizeLabel: 'Size',
-            responseFormatLabel: 'Response format',
-            seedLabel: 'Seed',
-            timeoutLabel: 'Timeout',
-            stepsLabel: 'Steps',
-            cfgScaleLabel: 'CFG Scale',
-            samplerLabel: 'Sampler',
-            schedulerLabel: 'Scheduler',
-            customOptionsLabel: 'Custom options',
-            noneLabel: 'None',
-          }}
-          params={{
-            size: '512x512',
-            responseFormat: 'auto',
-            seed: '',
-            timeoutMs: '600000',
-            steps: '25',
-            cfgScale: '',
-            sampler: '',
-            scheduler: '',
-            optionsText: '',
-          }}
-          companionSlots={companionSlots}
-          assets={[{
-            localAssetId: 'local-vae',
-            assetId: 'Z Image AE',
-            kind: 'vae',
-            engine: 'media',
-            status: 'installed',
-          }]}
-          onParamsChange={() => undefined}
-          onCompanionSlotsChange={(next) => {
-            nextCompanionSlots = next;
-            setCompanionSlots(next);
-          }}
-        />
-      );
-    }
-
-    await render(
-      <ImageEditorHarness />,
-    );
-
-    expect(container?.textContent).toContain('Required');
-    expect(container?.textContent).toContain('Required setup');
-
-    const vaeTrigger = Array.from(container?.querySelectorAll('button') || [])
-      .find((button) => button.textContent?.includes('Required setup'));
-    expect(vaeTrigger).toBeTruthy();
-
-    await act(async () => {
-      vaeTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    const assetOption = Array.from(document.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Z Image AE'));
-    expect(assetOption).toBeTruthy();
-
-    await act(async () => {
-      assetOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    expect(nextCompanionSlots).toEqual({ vae_path: 'local-vae' });
-    const selectedVaeTrigger = Array.from(container?.querySelectorAll('button') || [])
-      .find((button) => button.textContent?.includes('Z Image AE'));
-    expect(selectedVaeTrigger?.textContent).not.toContain('Required setup');
-  });
-
-  it('selects Ideogram4 uncond dependency assets by artifact role', async () => {
-    let nextCompanionSlots: Record<string, string> = {};
-
-    function ImageEditorHarness() {
-      const [companionSlots, setCompanionSlots] = useState<Record<string, string>>({});
-      return (
-        <ImageParamsEditor
-          copy={{
-            modelFamilyLabel: 'Model type',
-            companionModelsLabel: 'Companion Models',
-            parametersLabel: 'Parameters',
-            sizeLabel: 'Size',
-            responseFormatLabel: 'Response format',
-            seedLabel: 'Seed',
-            timeoutLabel: 'Timeout',
-            stepsLabel: 'Steps',
-            cfgScaleLabel: 'CFG Scale',
-            samplerLabel: 'Sampler',
-            schedulerLabel: 'Scheduler',
-            customOptionsLabel: 'Custom options',
-            noneLabel: 'None',
-            requiredLabel: 'Required',
-            requiredSetupPlaceholder: 'Required setup',
-          }}
-          params={{
-            modelFamily: 'ideogram4',
-            size: '512x512',
-            responseFormat: 'auto',
-            seed: '',
-            timeoutMs: '600000',
-            steps: '25',
-            cfgScale: '',
-            sampler: '',
-            scheduler: '',
-            optionsText: '',
-          }}
-          companionSlots={companionSlots}
-          assets={[
-            {
-              localAssetId: 'local-main-image',
-              assetId: 'local-import/ideogram4-Q4_0',
-              kind: 'image',
-              engine: 'media',
-              status: 'active',
-              artifactRoles: ['diffusion_model'],
-            },
-            {
-              localAssetId: 'local-uncond',
-              assetId: 'local-import/ideogram4_uncond-Q4_0',
-              kind: 'image',
-              engine: 'media',
-              status: 'installed',
-              artifactRoles: ['uncond_diffusion_model'],
-            },
-          ]}
-          onParamsChange={() => undefined}
-          onCompanionSlotsChange={(next) => {
-            nextCompanionSlots = next;
-            setCompanionSlots(next);
-          }}
-        />
-      );
-    }
-
-    await render(<ImageEditorHarness />);
-
-    const uncondLabel = Array.from(container?.querySelectorAll('span[aria-label]') || [])
-      .find((node) => node.getAttribute('aria-label') === 'Uncond diffusion');
-    const uncondTrigger = uncondLabel?.parentElement?.querySelector('button');
-    expect(uncondTrigger).toBeTruthy();
-    expect(uncondTrigger?.textContent).toContain('Required setup');
-    expect(uncondTrigger?.textContent).not.toContain('local-import/ideogram4-Q4_0');
-
-    await act(async () => {
-      uncondTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    const modalButtons = Array.from(document.querySelectorAll('button'));
-    expect(modalButtons.some((button) => button.textContent?.includes('local-import/ideogram4_uncond-Q4_0'))).toBe(true);
-    expect(modalButtons.some((button) => button.textContent?.includes('local-import/ideogram4-Q4_0'))).toBe(false);
-
-    const uncondOption = modalButtons.find((button) => button.textContent?.includes('local-import/ideogram4_uncond-Q4_0'));
-    await act(async () => {
-      uncondOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    expect(nextCompanionSlots).toEqual({ uncond_diffusion_model: 'local-uncond' });
-  });
-
-  it('keeps Ideogram4 LLM companion selection on chat assets when image assets expose text encoder roles', async () => {
-    await render(
-      <ImageParamsEditor
-        copy={{
-          modelFamilyLabel: 'Model type',
-          companionModelsLabel: 'Companion Models',
-          parametersLabel: 'Parameters',
-          sizeLabel: 'Size',
-          responseFormatLabel: 'Response format',
-          seedLabel: 'Seed',
-          timeoutLabel: 'Timeout',
-          stepsLabel: 'Steps',
-          cfgScaleLabel: 'CFG Scale',
-          samplerLabel: 'Sampler',
-          schedulerLabel: 'Scheduler',
-          customOptionsLabel: 'Custom options',
-          noneLabel: 'None',
-          requiredLabel: 'Required',
-          requiredSetupPlaceholder: 'Required setup',
-        }}
-        params={{
-          modelFamily: 'ideogram4',
-          size: '512x512',
-          responseFormat: 'auto',
-          seed: '',
-          timeoutMs: '600000',
-          steps: '25',
-          cfgScale: '',
-          sampler: '',
-          scheduler: '',
-          optionsText: '',
-        }}
-        companionSlots={{}}
-        assets={[
-          {
-            localAssetId: 'local-main-image',
-            assetId: 'local-import/ideogram4-Q4_0',
-            kind: 'image',
-            engine: 'media',
-            status: 'installed',
-            artifactRoles: ['diffusion_transformer', 'text_encoder', 'vae'],
-          },
-          {
-            localAssetId: 'local-chat',
-            assetId: 'local-import/Qwen3-4B-Q4_K_M',
-            kind: 'chat',
-            engine: 'llama',
-            status: 'active',
-          },
-        ]}
-        onParamsChange={() => undefined}
-        onCompanionSlotsChange={() => undefined}
-      />,
-    );
-
-    const llmLabel = Array.from(container?.querySelectorAll('span[aria-label]') || [])
-      .find((node) => node.getAttribute('aria-label') === 'LLM');
-    const llmTrigger = llmLabel?.parentElement?.querySelector('button');
-    expect(llmTrigger).toBeTruthy();
-
-    await act(async () => {
-      llmTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    const modalButtons = Array.from(document.querySelectorAll('button'));
-    expect(modalButtons.some((button) => button.textContent?.includes('local-import/Qwen3-4B-Q4_K_M'))).toBe(true);
-    expect(modalButtons.some((button) => button.textContent?.includes('local-import/ideogram4-Q4_0'))).toBe(false);
-  });
-
-  it('does not treat the main Ideogram4 image model as the uncond dependency', async () => {
-    await render(
-      <ImageParamsEditor
-        copy={{
-          modelFamilyLabel: 'Model type',
-          companionModelsLabel: 'Companion Models',
-          parametersLabel: 'Parameters',
-          sizeLabel: 'Size',
-          responseFormatLabel: 'Response format',
-          seedLabel: 'Seed',
-          timeoutLabel: 'Timeout',
-          stepsLabel: 'Steps',
-          cfgScaleLabel: 'CFG Scale',
-          samplerLabel: 'Sampler',
-          schedulerLabel: 'Scheduler',
-          customOptionsLabel: 'Custom options',
-          noneLabel: 'None',
-          requiredLabel: 'Required',
-          requiredSetupPlaceholder: 'Required setup',
-        }}
-        params={{
-          modelFamily: 'ideogram4',
-          size: '512x512',
-          responseFormat: 'auto',
-          seed: '',
-          timeoutMs: '600000',
-          steps: '25',
-          cfgScale: '',
-          sampler: '',
-          scheduler: '',
-          optionsText: '',
-        }}
-        companionSlots={{ uncond_diffusion_model: 'local-main-image' }}
-        assets={[{
-          localAssetId: 'local-main-image',
-          assetId: 'local-import/ideogram4-Q4_0',
-          kind: 'image',
-          engine: 'media',
-          status: 'installed',
+        selectedComponents={[{
+          occurrenceId: 'vae-primary',
+          order: 1,
+          role: 'vae',
+          componentKind: 'vae',
+          logicalModelId: 'public/vae-committed',
+          targetRef: vaeTarget,
+          required: true,
         }]}
+        componentCandidates={[{
+          localAssetId: '01KPRIVATEASSET000000000000',
+          assetId: '01KPRIVATERECORD0000000000',
+          logicalModelId: 'public/vae-committed',
+          displayName: 'Committed VAE',
+          kind: 'vae',
+          engine: 'media',
+          status: 'active',
+          artifactRoles: ['vae'],
+          durableTargetRef: vaeTarget,
+        }]}
+        onComponentsChange={() => undefined}
         onParamsChange={() => undefined}
-        onCompanionSlotsChange={() => undefined}
       />,
     );
 
-    expect(container?.textContent).toContain('Required setup');
-    expect(container?.textContent).not.toContain('local-import/ideogram4-Q4_0');
-
-    const uncondLabel = Array.from(container?.querySelectorAll('span[aria-label]') || [])
-      .find((node) => node.getAttribute('aria-label') === 'Uncond diffusion');
-    const uncondTrigger = uncondLabel?.parentElement?.querySelector('button');
-    expect(uncondTrigger).toBeTruthy();
-
-    await act(async () => {
-      uncondTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    const modalButtons = Array.from(document.querySelectorAll('button'));
-    expect(modalButtons.some((button) => button.textContent?.includes('local-import/ideogram4-Q4_0'))).toBe(false);
+    expect(container?.textContent).toContain('Z Image Turbo');
+    expect(container?.textContent).toContain('Committed VAE');
+    expect(container?.textContent).not.toContain('Profile default VAE');
+    expect(container?.textContent).not.toContain('01KPRIVATEASSET000000000000');
+    expect(container?.querySelector('[data-nimi-model-config-component-slot="vae-primary"]')).toBeTruthy();
   });
 
-  it('renders only dynamic family companion slots when supplied', async () => {
+  it('fails closed when committed AIConfig has no materialized component slots', async () => {
     await render(
       <ImageParamsEditor
         copy={{
-          companionModelsLabel: 'Companion Models',
+          companionModelsLabel: 'Component models',
           parametersLabel: 'Parameters',
           sizeLabel: 'Size',
           responseFormatLabel: 'Response format',
@@ -640,10 +349,7 @@ describe('ModelConfigPanel', () => {
           cfgScaleLabel: 'CFG Scale',
           samplerLabel: 'Sampler',
           schedulerLabel: 'Scheduler',
-          customOptionsLabel: 'Custom options',
-          noneLabel: 'None',
-          requiredLabel: 'Required',
-          requiredSetupPlaceholder: 'Required setup',
+          compositionUnavailableHint: 'Apply a profile with component slots.',
         }}
         params={{
           size: '512x512',
@@ -654,66 +360,15 @@ describe('ModelConfigPanel', () => {
           cfgScale: '',
           sampler: '',
           scheduler: '',
-          optionsText: '',
         }}
-        companionSlots={{}}
-        companionSlotDefs={[
-          { slot: 'llm_path', label: 'LLM', kind: 'chat', required: true },
-          { slot: 'vae_path', label: 'VAE', kind: 'vae', required: true },
-        ]}
-        assets={[]}
+        selectedComponents={[]}
         onParamsChange={() => undefined}
-        onCompanionSlotsChange={() => undefined}
       />,
     );
 
-    expect(container?.textContent).toContain('LLM');
-    expect(container?.textContent).toContain('VAE');
-    expect(container?.textContent).not.toContain('CLIP-L');
-    expect(container?.textContent).not.toContain('ControlNet');
+    expect(container?.textContent).toContain('Apply a profile with component slots.');
+    expect(container?.querySelector('[data-nimi-image-component-slots="0"]')).toBeTruthy();
+    expect(container?.querySelector('[data-nimi-model-config-component-slot]')).toBeNull();
   });
 
-  it('renders image family companion slots from params', async () => {
-    await render(
-      <ImageParamsEditor
-        copy={{
-          companionModelsLabel: 'Companion Models',
-          parametersLabel: 'Parameters',
-          sizeLabel: 'Size',
-          responseFormatLabel: 'Response format',
-          seedLabel: 'Seed',
-          timeoutLabel: 'Timeout',
-          stepsLabel: 'Steps',
-          cfgScaleLabel: 'CFG Scale',
-          samplerLabel: 'Sampler',
-          schedulerLabel: 'Scheduler',
-          customOptionsLabel: 'Custom options',
-          noneLabel: 'None',
-          requiredLabel: 'Required',
-          requiredSetupPlaceholder: 'Required setup',
-        }}
-        params={{
-          modelFamily: 'ideogram4',
-          size: '512x512',
-          responseFormat: 'auto',
-          seed: '',
-          timeoutMs: '600000',
-          steps: '25',
-          cfgScale: '',
-          sampler: '',
-          scheduler: '',
-          optionsText: '',
-        }}
-        companionSlots={{}}
-        assets={[]}
-        onParamsChange={() => undefined}
-        onCompanionSlotsChange={() => undefined}
-      />,
-    );
-
-    expect(container?.textContent).toContain('Uncond diffusion');
-    expect(container?.textContent).toContain('LLM');
-    expect(container?.textContent).toContain('VAE');
-    expect(container?.textContent).not.toContain('CLIP-L');
-  });
 });

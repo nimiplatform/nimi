@@ -713,11 +713,22 @@ message ListAvatarDebugProbeResultsRequest { AgentRequestContext context = 1; st
 message ListAvatarDebugProbeResultsResponse { repeated AvatarDebugProbeResultEnvelope probe_results = 1; }
 message GetAvatarDebugReplayRequest { AgentRequestContext context = 1; string agent_id = 2; string probe_id = 3; string conversation_anchor_id = 4; }
 message GetAvatarDebugReplayResponse { AvatarDebugProbeRequestEnvelope request = 1; AvatarDebugProbeResultEnvelope result = 2; AvatarDebugReplayRef replay_ref = 3; }
-// K-AGCORE-144..150 Runtime Agent AI Config. One committed AI consume config
-// per Runtime Local Agent instance with monotonic revision, expected-revision
-// optimistic concurrency, and a probe-backed readiness projection. Capability,
-// readiness-state, and reason vocabularies are admitted in
-// .nimi/spec/runtime/agent-participation.authority.yaml.
+// K-AGCORE-144..150 Runtime-owned canonical AIConfig for one LocalAgent scope.
+// model_id is the public logical model identity; target_ref remains the exact
+// Runtime-private execution identity. selected_components carries the ordered
+// concrete AIConfig component choices while selected_params carries only the
+// admitted per-capability parameter object.
+message RuntimeAgentAIConfigComponentSelection {
+  string occurrence_id = 1;
+  uint32 order = 2;
+  string role = 3;
+  string component_kind = 4;
+  string logical_model_id = 5;
+  RuntimeDurableTargetRef target_ref = 6;
+  bool required = 7;
+  string weight = 8;
+  google.protobuf.Struct options = 9;
+}
 message RuntimeAgentAIConfigIntent {
   string capability = 1;
   string model_id = 2;
@@ -727,6 +738,13 @@ message RuntimeAgentAIConfigIntent {
   string voice_reference_ref = 6;
   string image_policy_ref = 7;
   string provider = 8;
+  google.protobuf.Struct selected_params = 9;
+  repeated RuntimeAgentAIConfigComponentSelection selected_components = 10;
+}
+message RuntimeAgentAIProfileOrigin {
+  string profile_id = 1;
+  string title = 2;
+  google.protobuf.Timestamp applied_at = 3;
 }
 message RuntimeAgentAIConfig {
   string agent_instance_id = 1;
@@ -734,12 +752,14 @@ message RuntimeAgentAIConfig {
   repeated RuntimeAgentAIConfigIntent intents = 3;
   google.protobuf.Timestamp updated_at = 4;
   string updated_by_app_id = 5;
+  RuntimeAgentAIProfileOrigin profile_origin = 6;
 }
 enum RuntimeAgentAIConfigReadinessState {
   RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED = 0;
   RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY = 1;
   RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED = 2;
   RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE = 3;
+  RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED = 4;
 }
 message RuntimeAgentAIConfigCapabilityReadiness {
   string capability = 1;
@@ -754,11 +774,57 @@ message RuntimeAgentAIConfigReadinessSnapshot {
 }
 message GetRuntimeAgentAIConfigRequest { AgentRequestContext context = 1; }
 message GetRuntimeAgentAIConfigResponse { RuntimeAgentAIConfig config = 1; }
-message UpsertRuntimeAgentAIConfigRequest { AgentRequestContext context = 1; uint64 expected_revision = 2; repeated RuntimeAgentAIConfigIntent intents = 3; }
+message UpsertRuntimeAgentAIConfigRequest {
+  AgentRequestContext context = 1;
+  uint64 expected_revision = 2;
+  repeated RuntimeAgentAIConfigIntent intents = 3;
+  RuntimeAgentAIProfileOrigin profile_origin = 4;
+}
 message UpsertRuntimeAgentAIConfigResponse { RuntimeAgentAIConfig config = 1; }
 message GetRuntimeAgentAIConfigReadinessRequest { AgentRequestContext context = 1; }
 message GetRuntimeAgentAIConfigReadinessResponse { RuntimeAgentAIConfigReadinessSnapshot snapshot = 1; }
 message SubscribeRuntimeAgentAIConfigReadinessRequest { AgentRequestContext context = 1; }
+// AIProfile remains a portable template. These operations accept the standard
+// AIProfile JSON plus its SDK-formed portable Runtime descriptor, prepare exact
+// Runtime-private execution targets, and only then form/commit live AIConfig.
+enum RuntimeAgentAIProfileApplyOutcome {
+  RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED = 0;
+  RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY = 1;
+  RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG = 2;
+  RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG = 3;
+  RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE = 4;
+  RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE = 5;
+  RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED = 6;
+}
+message PreviewRuntimeAgentAIProfileRequest {
+  AgentRequestContext context = 1;
+  bytes profile_json = 2;
+  bytes runtime_descriptor_json = 3;
+}
+message PreviewRuntimeAgentAIProfileResponse {
+  RuntimeAgentAIConfig before = 1;
+  RuntimeAgentAIConfig after = 2;
+  RuntimeAgentAIProfileApplyOutcome outcome = 3;
+  uint64 base_revision = 4;
+  repeated string blocking_capabilities = 5;
+  repeated string reason_codes = 6;
+  repeated string action_refs = 7;
+  repeated string probe_warnings = 8;
+}
+message ApplyRuntimeAgentAIProfileRequest {
+  AgentRequestContext context = 1;
+  uint64 expected_revision = 2;
+  bytes profile_json = 3;
+  bytes runtime_descriptor_json = 4;
+}
+message ApplyRuntimeAgentAIProfileResponse {
+  RuntimeAgentAIConfig config = 1;
+  RuntimeAgentAIProfileApplyOutcome outcome = 2;
+  repeated string blocking_capabilities = 3;
+  repeated string reason_codes = 4;
+  repeated string action_refs = 5;
+  repeated string probe_warnings = 6;
+}
 service RuntimeAgentService {
   // K-AGCORE-139/K-AGCORE-151: the sole public Realm source ingress. Runtime
   // privately acquires and verifies Packet v3; transport/auth material is not
@@ -810,11 +876,15 @@ service RuntimeAgentService {
   rpc UpsertRuntimeAgentAIConfig(UpsertRuntimeAgentAIConfigRequest) returns (UpsertRuntimeAgentAIConfigResponse);
   rpc GetRuntimeAgentAIConfigReadiness(GetRuntimeAgentAIConfigReadinessRequest) returns (GetRuntimeAgentAIConfigReadinessResponse);
   rpc SubscribeRuntimeAgentAIConfigReadiness(SubscribeRuntimeAgentAIConfigReadinessRequest) returns (stream RuntimeAgentAIConfigReadinessSnapshot);
+  rpc PreviewRuntimeAgentAIProfile(PreviewRuntimeAgentAIProfileRequest) returns (PreviewRuntimeAgentAIProfileResponse);
+  rpc ApplyRuntimeAgentAIProfile(ApplyRuntimeAgentAIProfileRequest) returns (ApplyRuntimeAgentAIProfileResponse);
   // Reserved agents.configure carrier. Protected-local admission remains
   // fail-closed until the owner-complete publication flip.
   rpc GetLocalAppAgentConfigurationSnapshot(GetLocalAppAgentConfigurationSnapshotRequest) returns (LocalAppAgentConfigurationSnapshotResponse);
   rpc UpdateLocalAppAgentConfiguration(UpdateLocalAppAgentConfigurationRequest) returns (LocalAppAgentUpdateConfigurationResponse);
   rpc GetLocalAppAgentReadinessSnapshot(GetLocalAppAgentReadinessSnapshotRequest) returns (LocalAppAgentReadinessSnapshotResponse);
+  rpc PreviewLocalAppAgentAIProfile(PreviewLocalAppAgentAIProfileRequest) returns (LocalAppAgentAIProfilePreviewResponse);
+  rpc ApplyLocalAppAgentAIProfile(ApplyLocalAppAgentAIProfileRequest) returns (LocalAppAgentAIProfileApplyResponse);
   rpc GetLocalAppAgentAutonomySnapshot(GetLocalAppAgentAutonomySnapshotRequest) returns (LocalAppAgentAutonomySnapshotResponse);
   rpc UpdateLocalAppAgentAutonomy(UpdateLocalAppAgentAutonomyRequest) returns (LocalAppAgentUpdateAutonomyResponse);
   rpc GetLocalAppAgentPresentationSnapshot(GetLocalAppAgentPresentationSnapshotRequest) returns (LocalAppAgentPresentationSnapshotResponse);

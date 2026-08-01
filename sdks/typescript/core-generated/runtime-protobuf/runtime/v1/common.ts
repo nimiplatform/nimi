@@ -876,6 +876,22 @@ export enum ReasonCode {
      */
     AGENT_PRESENTATION_REVISION_CONFLICT = 614,
     /**
+     * ARTIFACT_UPLOAD family (615+) — user attachment upload admission
+     * (RuntimeArtifactService.PutArtifact). Distinct fail-closed reasons;
+     * never collapsed into generic values.
+     *
+     * @generated from protobuf enum value: ARTIFACT_UPLOAD_MIME_UNSUPPORTED = 615;
+     */
+    ARTIFACT_UPLOAD_MIME_UNSUPPORTED = 615,
+    /**
+     * @generated from protobuf enum value: ARTIFACT_UPLOAD_TOO_LARGE = 616;
+     */
+    ARTIFACT_UPLOAD_TOO_LARGE = 616,
+    /**
+     * @generated from protobuf enum value: ARTIFACT_UPLOAD_CONTENT_MISMATCH = 617;
+     */
+    ARTIFACT_UPLOAD_CONTENT_MISMATCH = 617,
+    /**
      * PROTECTED_LOCAL family (620+). These values are shared by protected
      * transport, verified Desktop origin, and their sanitized fail-closed
      * projections (K-PLOCAL-001..007).
@@ -1107,7 +1123,35 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_NOT_VALIDATED = 678;
      */
-    AGENT_PRESENTATION_ASSET_NOT_VALIDATED = 678
+    AGENT_PRESENTATION_ASSET_NOT_VALIDATED = 678,
+    /**
+     * Runtime-owned LocalAgent AIConfig validation. Metadata is bounded to the
+     * public capability name; exact target, asset, path, and provider material
+     * remain Runtime-private.
+     *
+     * @generated from protobuf enum value: AGENT_AI_CONFIG_INVALID = 679;
+     */
+    AGENT_AI_CONFIG_INVALID = 679,
+    /**
+     * @generated from protobuf enum value: AGENT_AI_CONFIG_TARGET_REQUIRED = 680;
+     */
+    AGENT_AI_CONFIG_TARGET_REQUIRED = 680,
+    /**
+     * @generated from protobuf enum value: AGENT_AI_CONFIG_TARGET_INVALID = 681;
+     */
+    AGENT_AI_CONFIG_TARGET_INVALID = 681,
+    /**
+     * @generated from protobuf enum value: AGENT_AI_CONFIG_TARGET_UNAVAILABLE = 682;
+     */
+    AGENT_AI_CONFIG_TARGET_UNAVAILABLE = 682,
+    /**
+     * @generated from protobuf enum value: AGENT_AI_CONFIG_CAPABILITY_MISMATCH = 683;
+     */
+    AGENT_AI_CONFIG_CAPABILITY_MISMATCH = 683,
+    /**
+     * @generated from protobuf enum value: AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH = 684;
+     */
+    AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH = 684
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

@@ -37,7 +37,7 @@ func TestExecuteScenarioTextGenerateSuccess(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen2.5"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen2.5", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -99,7 +99,7 @@ func TestExecuteScenarioTextGenerateHydratesLocalEndpointFromActiveModel(t *test
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen3-4b-q4_k_m",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen3-4b-q4_k_m"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen3-4b-q4_k_m", "text.generate", localLister.responses[0].Assets[0]),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -122,8 +122,8 @@ func TestExecuteScenarioTextGenerateHydratesLocalEndpointFromActiveModel(t *test
 	if text := outputText(resp.GetOutput()); text != "ready" {
 		t.Fatalf("unexpected hydrated local output: %q", text)
 	}
-	if localLister.calls != 1 {
-		t.Fatalf("expected sync text validation and lease to share one local model list, got %d", localLister.calls)
+	if localLister.calls != 0 {
+		t.Fatalf("exact target execution must not search local model inventory, got %d calls", localLister.calls)
 	}
 	if len(localLister.leaseCalls) == 0 || localLister.leaseCalls[0] != "acquire:local_qwen3:text_generate_request" {
 		t.Fatalf("expected sync lease to acquire selected plan asset, got %#v", localLister.leaseCalls)
@@ -172,7 +172,7 @@ func TestExecuteScenarioTextGenerateUsesSelectedLocalProviderModelID(t *testing.
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "01KTEX08DS2GR9HJ1X3R459P1B",
-			TargetRef:     localScenarioTargetRefForModel("01KTEX08DS2GR9HJ1X3R459P1B"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "01KTEX08DS2GR9HJ1X3R459P1B", "text.generate", localLister.responses[0].Assets[0]),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -245,7 +245,7 @@ func TestExecuteScenarioTextGenerateConsumesLocalRuntimeProfileBindingRef(t *tes
 			AppId:         "nimi.tester",
 			SubjectUserId: "user-001",
 			ModelId:       "local-runtime:01KTEX08DS2GR9HJ1X3R459P1B",
-			TargetRef:     localScenarioTargetRef("local-runtime:01KTEX08DS2GR9HJ1X3R459P1B"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local-runtime:01KTEX08DS2GR9HJ1X3R459P1B", "text.generate", localLister.responses[0].Assets[0]),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -361,7 +361,7 @@ func TestExecuteScenarioTextGenerateDoesNotSynthesizeSentinelUsage(t *testing.T)
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen2.5"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen2.5", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -413,7 +413,7 @@ func TestStreamScenarioTextGenerateSequence(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen2.5"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen2.5", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     120_000,
@@ -462,7 +462,7 @@ func TestExecuteScenarioTextGenerateFallbackDenied(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "cloud/gpt-4",
-			TargetRef:     localScenarioTargetRefForModel("cloud/gpt-4"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "cloud/gpt-4", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -515,7 +515,7 @@ func TestStreamScenarioTextGenerateTimeoutEmitsFailedEvent(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen2.5"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/qwen2.5", "text.generate"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10,

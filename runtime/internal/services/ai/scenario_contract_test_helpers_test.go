@@ -41,6 +41,101 @@ func localScenarioTargetRefForModel(modelID string) *runtimev1.RuntimeDurableTar
 	return localScenarioTargetRef("local-runtime:" + modelID)
 }
 
+// setExactLocalScenarioTargetForTest installs the exact v2 target resolver that
+// scenario execution now requires. Callers may pass their complete ACTIVE (or
+// intentionally non-ACTIVE) asset fixture; otherwise a minimal ACTIVE asset is
+// created for the requested capability.
+func setExactLocalScenarioTargetForTest(
+	t *testing.T,
+	svc *Service,
+	modelID string,
+	capability string,
+	assets ...*runtimev1.LocalAssetRecord,
+) *runtimev1.RuntimeDurableTargetRef {
+	t.Helper()
+	modelID = strings.TrimSpace(modelID)
+	capability = strings.TrimSpace(capability)
+	if svc == nil || modelID == "" || capability == "" || len(assets) > 1 {
+		t.Fatal("exact local scenario target fixture is incomplete")
+	}
+
+	var asset *runtimev1.LocalAssetRecord
+	if len(assets) == 1 {
+		asset = assets[0]
+	}
+	if asset == nil {
+		engine := "llama"
+		switch {
+		case strings.HasPrefix(capability, "image."):
+			engine = "media"
+		case strings.HasPrefix(capability, "audio."), strings.HasPrefix(capability, "voice_workflow."):
+			engine = "speech"
+		}
+		asset = &runtimev1.LocalAssetRecord{
+			LocalAssetId:        "exact-target:" + modelID,
+			AssetId:             modelID,
+			LogicalModelId:      modelID,
+			Engine:              engine,
+			Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			Capabilities:        []string{capability},
+		}
+	}
+	if strings.TrimSpace(asset.GetLocalAssetId()) == "" {
+		t.Fatal("exact local scenario target asset has no local_asset_id")
+	}
+	if strings.TrimSpace(asset.GetLogicalModelId()) == "" {
+		asset.LogicalModelId = modelID
+	}
+	if asset.GetDurableTargetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
+		asset.DurableTargetStatus = asset.GetStatus()
+	}
+	if len(asset.GetCapabilities()) == 0 {
+		asset.Capabilities = []string{capability}
+	}
+
+	base, _ := svc.localModel.(*fakeLocalModelLister)
+	if existing, ok := svc.localModel.(*exactTargetLocalModelLister); ok {
+		base = existing.fakeLocalModelLister
+	}
+	if base == nil {
+		base = &fakeLocalModelLister{}
+	}
+	if base.managedNames == nil {
+		base.managedNames = map[string]string{}
+	}
+	if strings.EqualFold(strings.TrimSpace(asset.GetEngine()), "llama") {
+		providerModelID := strings.TrimSpace(asset.GetAssetId())
+		if providerModelID == "" {
+			providerModelID = modelID
+		}
+		base.managedNames[asset.GetLocalAssetId()] = providerModelID
+	}
+
+	binding := &runtimev1.RuntimeResolvedLocalExecutionBinding{
+		LocalAssetId:    asset.GetLocalAssetId(),
+		ResolvedModelId: modelID,
+	}
+	localTarget := &runtimev1.RuntimeDurableLocalTargetRef{Version: "v2"}
+	if strings.HasPrefix(capability, "image.") {
+		binding.ProfileBindingId = "test_workflow_binding:v2:" + asset.GetLocalAssetId()
+		localTarget.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: binding.GetProfileBindingId()}
+	} else {
+		// Route-describe metadata still identifies the already-resolved asset from
+		// this opaque readiness ref; the durable resolver itself remains exact.
+		binding.ReadinessRef = "local-runtime:" + asset.GetLocalAssetId()
+		localTarget.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{ReadinessRef: binding.GetReadinessRef()}
+	}
+	svc.SetLocalModelLister(&exactTargetLocalModelLister{
+		fakeLocalModelLister: base,
+		binding:              binding,
+		asset:                asset,
+	})
+	return &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: localTarget},
+	}
+}
+
 func cloudScenarioTargetRef(connectorID string, remoteModelCatalogID string, providerModelID string, provider string) *runtimev1.RuntimeDurableTargetRef {
 	return &runtimev1.RuntimeDurableTargetRef{
 		Target: &runtimev1.RuntimeDurableTargetRef_Cloud{

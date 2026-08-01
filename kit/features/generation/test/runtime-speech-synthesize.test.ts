@@ -376,7 +376,9 @@ function createAIConfig(input: {
       surfaceId: 'zhiyu-agent-home',
     },
     capabilities: {
+      logicalModelIds: {},
       targetRefs: input.targetRefs ?? {},
+      selectedComponents: {},
       selectedParams: input.selectedParams ?? {},
     },
     profileOrigin: null,

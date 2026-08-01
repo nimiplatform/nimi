@@ -25,7 +25,7 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	setRuntimeAgentManagedEmbeddingProfileForTest(memorySvc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
-		ModelId:         "nimi-embed",
+		ModelId:         runtimeAgentAIConfigTestEmbedModel,
 		Dimension:       4,
 		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
 		Version:         "v1",
@@ -39,6 +39,19 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 	closeRuntimeAgentServiceForTest(t, svc)
 	memorySvc.SetRuntimeEmbeddingIntentResolver(svc.ResolveMemoryEmbeddingIntent)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(svc.AuthorizeMemoryEmbeddingTarget)
+	memorySvc.SetRuntimeEmbeddingProfileResolver(func(
+		_ context.Context,
+		snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot,
+	) memoryservice.MemoryEmbeddingResolvedProfile {
+		if snapshot == nil || snapshot.LocalBinding == nil ||
+			snapshot.LocalBinding.ReadinessRef != "test_runtime_readiness:v2:default-embed" {
+			return memoryservice.MemoryEmbeddingResolvedProfile{ResolutionState: "unresolved"}
+		}
+		return memoryservice.MemoryEmbeddingResolvedProfile{
+			Profile:         memorySvc.ManagedEmbeddingProfile(),
+			ResolutionState: "resolved",
+		}
+	})
 
 	agentCtx := testRuntimeAgentIdentityContext("agent-memory-bank")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
@@ -58,24 +71,7 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 		t.Fatalf("initial mode = %s, want unavailable", initial.GetStatus().GetMode())
 	}
 
-	if _, err := svc.UpsertRuntimeAgentAIConfig(ctx, &runtimev1.UpsertRuntimeAgentAIConfigRequest{
-		Context:          agentCtx,
-		ExpectedRevision: 1,
-		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{
-			{
-				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
-				ModelId:     "local/default",
-				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			},
-			{
-				Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
-				ModelId:     "nimi-embed",
-				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			},
-		},
-	}); err != nil {
-		t.Fatalf("UpsertRuntimeAgentAIConfig(text.embed): %v", err)
-	}
+	configureRuntimeAgentTestAIConfig(t, svc, agentCtx)
 
 	baseline, err := svc.GetAgentCanonicalMemoryBankStatus(ctx, &runtimev1.GetAgentCanonicalMemoryBankStatusRequest{
 		Context: agentCtx,
@@ -104,7 +100,7 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 	if bind.GetStatus().GetMode() != runtimev1.AgentCanonicalMemoryBankMode_AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD {
 		t.Fatalf("bind status mode = %s, want standard", bind.GetStatus().GetMode())
 	}
-	if bind.GetStatus().GetEmbeddingProfile().GetModelId() != "nimi-embed" {
-		t.Fatalf("embedding model = %q, want nimi-embed", bind.GetStatus().GetEmbeddingProfile().GetModelId())
+	if bind.GetStatus().GetEmbeddingProfile().GetModelId() != runtimeAgentAIConfigTestEmbedModel {
+		t.Fatalf("embedding model = %q, want %s", bind.GetStatus().GetEmbeddingProfile().GetModelId(), runtimeAgentAIConfigTestEmbedModel)
 	}
 }

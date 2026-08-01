@@ -2,6 +2,52 @@ import { useEffect, useRef, useState } from 'react';
 import type { ModelConfigProfileController, ModelConfigProfilePreview } from '../types.js';
 import { DisabledConfigNote } from './config-section.js';
 
+function ProfileOptionComposition(props: {
+  profile: ModelConfigProfileController['profiles'][number];
+}) {
+  const summaries = props.profile.capabilitySummaries;
+  return (
+    <div className="mt-2 space-y-1.5">
+      {summaries.map((summary) => (
+        <div
+          key={summary.capabilityId}
+          data-nimi-ai-profile-capability={summary.capabilityId}
+          className="rounded-lg bg-[var(--nimi-surface-card,#f8fafc)] px-2.5 py-2 text-[11px] text-[var(--nimi-text-secondary,#475569)]"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">{summary.capabilityId}</span>
+            {summary.modelLabel ? (
+              <span className="truncate text-[var(--nimi-text-primary,#0f172a)]">{summary.modelLabel}</span>
+            ) : null}
+          </div>
+          {summary.components.length > 0 ? (
+            <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-[var(--nimi-text-muted,#64748b)]">
+              {summary.components.map((component) => (
+                <span key={`${component.engineSlot}:${component.label}`}>
+                  {component.role || component.engineSlot}: {component.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {summary.parameterSummary.length > 0 ? (
+            <div className="mt-1 text-[10px] text-[var(--nimi-text-muted,#64748b)]">
+              {summary.parameterSummary.join(' · ')}
+            </div>
+          ) : null}
+        </div>
+      ))}
+      {props.profile.setupRequired ? (
+        <div
+          data-nimi-ai-profile-setup-required="true"
+          className="text-[10px] font-medium text-amber-700"
+        >
+          Selection hint · setup required
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ProfilePreviewView(props: {
   controller: ModelConfigProfileController;
   preview: ModelConfigProfilePreview;
@@ -123,6 +169,10 @@ export function ProfileConfigSection(props: {
     : controller.copy.emptySummaryLabel;
 
   const inPreview = Boolean(controller.preview);
+  const selectedProfile = controller.profiles.find(
+    (profile) => profile.profileId === controller.selectedProfileId,
+  ) ?? null;
+  const selectedProfileNeedsSetup = selectedProfile?.setupRequired === true;
 
   return (
     <>
@@ -205,15 +255,28 @@ export function ProfileConfigSection(props: {
                     {inPreview ? controller.copy.previewHint : controller.copy.modalHint}
                   </p>
                 </div>
-                {!inPreview && controller.onReload && controller.copy.reloadLabel ? (
-                  <button
-                    type="button"
-                    className="rounded-xl border border-[var(--nimi-border-subtle,#e2e8f0)] bg-white px-3 py-1.5 text-[11px] text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-[var(--nimi-surface-card,#f8fafc)]"
-                    onClick={controller.onReload}
-                    disabled={controller.isReloading}
-                  >
-                    {controller.isReloading ? controller.copy.loadingLabel : controller.copy.reloadLabel}
-                  </button>
+                {!inPreview ? (
+                  <div className="flex items-center gap-2">
+                    {controller.onManage ? (
+                      <button
+                        type="button"
+                        className="rounded-xl border border-[var(--nimi-border-subtle,#e2e8f0)] bg-white px-3 py-1.5 text-[11px] text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-[var(--nimi-surface-card,#f8fafc)]"
+                        onClick={controller.onManage}
+                      >
+                        {controller.copy.manageButtonTitle}
+                      </button>
+                    ) : null}
+                    {controller.onReload && controller.copy.reloadLabel ? (
+                      <button
+                        type="button"
+                        className="rounded-xl border border-[var(--nimi-border-subtle,#e2e8f0)] bg-white px-3 py-1.5 text-[11px] text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-[var(--nimi-surface-card,#f8fafc)]"
+                        onClick={controller.onReload}
+                        disabled={controller.isReloading}
+                      >
+                        {controller.isReloading ? controller.copy.loadingLabel : controller.copy.reloadLabel}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -263,6 +326,7 @@ export function ProfileConfigSection(props: {
                                 {profile.description}
                               </p>
                             ) : null}
+                            <ProfileOptionComposition profile={profile} />
                           </button>
                         );
                       })}
@@ -282,10 +346,13 @@ export function ProfileConfigSection(props: {
                     </button>
                     <button
                       type="button"
-                      disabled={!controller.selectedProfileId || controller.previewing}
+                      disabled={!controller.selectedProfileId || controller.previewing || selectedProfileNeedsSetup}
                       className="rounded-xl bg-[var(--nimi-action-primary-bg,#2563eb)] px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                       onClick={() => {
                         if (!controller.selectedProfileId) {
+                          return;
+                        }
+                        if (selectedProfileNeedsSetup) {
                           return;
                         }
                         // Step 1: preview only. The commit happens after the

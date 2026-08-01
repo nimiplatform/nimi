@@ -458,8 +458,9 @@ func TestRuntimeAgentExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-exec")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-exec"),
+		Context: identityContext,
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
@@ -468,6 +469,7 @@ func TestRuntimeAgentExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 	mustEnableAutonomy(t, svc, ctx, "agent-exec")
 
 	admitBase := time.Now().UTC()
@@ -644,8 +646,9 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-loop-reject")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-loop-reject"),
+		Context: identityContext,
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
@@ -653,6 +656,7 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-reject")
 
 	now := time.Now().UTC()
@@ -718,8 +722,9 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
+	identityContext := testRuntimeAgentIdentityContext("agent-loop-events")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-loop-events"),
+		Context: identityContext,
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
@@ -730,6 +735,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-events")
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
 		Context: testRuntimeAgentIdentityContext("agent-loop-events"),

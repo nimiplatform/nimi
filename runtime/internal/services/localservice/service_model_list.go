@@ -19,17 +19,31 @@ func (s *Service) ListLocalAssets(_ context.Context, req *runtimev1.ListLocalAss
 	kindFilter := req.GetKindFilter()
 
 	s.mu.RLock()
-	defer s.mu.RUnlock()
 	modelRows := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
 	for _, model := range s.assets {
-		modelRows = append(modelRows, model)
+		modelRows = append(modelRows, cloneLocalAsset(model))
 	}
+	s.mu.RUnlock()
 	modelRows, _ = dedupeLocalAssetRecords(modelRows)
 
 	models := make([]*runtimev1.LocalAssetRecord, 0, len(modelRows))
 	for _, model := range modelRows {
 		projected := cloneLocalAsset(model)
 		projected.Kind = listLocalAssetProjectedKind(projected)
+		projected.DurableTargetRef, projected.DurableTargetStatus, projected.DurableTargetReasonCode =
+			s.projectDurableLocalTargetForAsset(projected)
+		if projected.GetDurableTargetRef() == nil {
+			componentIdentity := effectiveLocalComponentPublicIdentity(projected)
+			componentTarget := s.projectDurableLocalSelectionTargetForAsset(projected)
+			if componentIdentity != "" && componentTarget != nil {
+				projected.DurableTargetRef = componentTarget
+				projected.DurableTargetStatus = projected.GetStatus()
+				projected.DurableTargetReasonCode = runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+				metadata := structToMap(projected.GetMetadata())
+				metadata[localAssetEffectivePublicComponentIdentityField] = componentIdentity
+				projected.Metadata = toStruct(metadata)
+			}
+		}
 		if statusFilter != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED && model.GetStatus() != statusFilter {
 			continue
 		}

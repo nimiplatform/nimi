@@ -33,7 +33,7 @@ func TestExecuteScenarioTextEmbedSuccess(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/embedding-model",
-			TargetRef:     localScenarioTargetRefForModel("local/embedding-model"),
+			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/embedding-model", "text.embed"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,

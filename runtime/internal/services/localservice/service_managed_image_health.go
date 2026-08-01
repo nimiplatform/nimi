@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -194,13 +195,66 @@ func managedImageLoadRequest(modelsRoot string, backendAddress string, profile m
 	if !filepath.IsAbs(modelPath) {
 		modelPath = filepath.Join(strings.TrimSpace(modelsRoot), filepath.FromSlash(modelPath))
 	}
+	components, err := managedImageBackendComponentBindings(profile[managedMediaWorkflowMaterializationBindingsKey])
+	if err != nil {
+		return managedimagebackend.LoadModelRequest{}, err
+	}
 	return managedimagebackend.LoadModelRequest{
 		BackendAddress: strings.TrimSpace(backendAddress),
 		ModelsRoot:     strings.TrimSpace(modelsRoot),
 		ModelPath:      modelPath,
 		Options:        managedImageEffectiveOptions(profile, scenarioExtensions),
+		Components:     components,
 		CFGScale:       managedImageCFGScale(profile, scenarioExtensions),
 	}, nil
+}
+
+func managedImageBackendComponentBindings(raw any) ([]managedimagebackend.ComponentBinding, error) {
+	values, ok := raw.([]map[string]any)
+	if !ok || len(values) == 0 {
+		return nil, nil
+	}
+	components := make([]managedimagebackend.ComponentBinding, 0, len(values))
+	for _, value := range values {
+		occurrenceID := strings.TrimSpace(valueAsString(value["occurrence_id"]))
+		engineSlot := strings.TrimSpace(valueAsString(value["engine_slot"]))
+		path := strings.TrimSpace(valueAsString(value["path"]))
+		if occurrenceID == "" || engineSlot == "" || path == "" {
+			return nil, fmt.Errorf("runtime image materialization component binding is incomplete")
+		}
+		order := int32(0)
+		switch typed := value["order"].(type) {
+		case int:
+			order = int32(typed)
+		case int32:
+			order = typed
+		case int64:
+			order = int32(typed)
+		case float64:
+			order = int32(typed)
+		}
+		optionsJSON := ""
+		if options, exists := value["options"]; exists && options != nil {
+			rawOptions, err := json.Marshal(options)
+			if err != nil {
+				return nil, fmt.Errorf("runtime image materialization component options could not be serialized: %w", err)
+			}
+			optionsJSON = string(rawOptions)
+		}
+		required, _ := value["required"].(bool)
+		components = append(components, managedimagebackend.ComponentBinding{
+			OccurrenceID:  occurrenceID,
+			Order:         order,
+			Role:          strings.TrimSpace(valueAsString(value["role"])),
+			ComponentKind: strings.TrimSpace(valueAsString(value["component_kind"])),
+			EngineSlot:    engineSlot,
+			Path:          path,
+			Required:      required,
+			Weight:        strings.TrimSpace(valueAsString(value["weight"])),
+			OptionsJSON:   optionsJSON,
+		})
+	}
+	return components, nil
 }
 
 func managedImageCFGScale(profile map[string]any, scenarioExtensions map[string]any) float32 {

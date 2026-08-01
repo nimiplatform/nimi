@@ -29,8 +29,26 @@ func managedImageLoadErrorWithReason(err error) error {
 				ActionHint: "inspect_local_runtime_model_health",
 			},
 		)
+	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+		return grpcerr.WrapWithReasonCode(
+			codes.DeadlineExceeded,
+			reason,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    managedImageFailurePublicDetail(reason),
+				ActionHint: "inspect_local_runtime_model_health",
+			},
+		)
 	default:
-		return err
+		return grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    managedImageFailurePublicDetail(runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE),
+				ActionHint: "inspect_local_runtime_model_health",
+			},
+		)
 	}
 }
 

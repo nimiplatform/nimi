@@ -45,6 +45,35 @@ const FORBIDDEN_AI_CONFIG_FIELD_NAMES = new Set([
   'localProfileRefs',
 ]);
 
+const FORBIDDEN_AI_SELECTED_PARAM_FIELD_NAMES = new Set([
+  'assetId',
+  'assetPath',
+  'componentId',
+  'componentKind',
+  'connectorId',
+  'durableTargetRef',
+  'encoderModelId',
+  'entryOverrides',
+  'filePath',
+  'fileName',
+  'localAssetId',
+  'localProfileRef',
+  'logicalModelId',
+  'model',
+  'modelId',
+  'path',
+  'profileBindingId',
+  'profileEntries',
+  'profileOverrides',
+  'provider',
+  'qwenModelId',
+  'role',
+  'sourceFileName',
+  'targetRef',
+  'vaeModelId',
+  'workflowBindingId',
+].map((value) => normalizeFieldName(value)));
+
 export function createHostStorageAccess(
   label: string,
   storageProvider: (() => NimiAIHostStorage | null) | undefined,
@@ -133,6 +162,28 @@ export function collectForbiddenPayloadIssues(value: unknown, path: string): Nim
     issues.push(...collectForbiddenPayloadIssues(child, `${path}.${key}`));
   }
   return issues;
+}
+
+export function collectForbiddenSelectedParamsIssues(value: unknown, path: string): NimiAIValidationIssue[] {
+  const issues: NimiAIValidationIssue[] = [];
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      issues.push(...collectForbiddenSelectedParamsIssues(item, `${path}[${index}]`));
+    });
+    return issues;
+  }
+  if (!isRecord(value)) return issues;
+  for (const [key, child] of Object.entries(value)) {
+    if (FORBIDDEN_AI_SELECTED_PARAM_FIELD_NAMES.has(normalizeFieldName(key))) {
+      issues.push(aiValidationIssue('AI_FIELD_FORBIDDEN', `${path}.${key}`));
+    }
+    issues.push(...collectForbiddenSelectedParamsIssues(child, `${path}.${key}`));
+  }
+  return issues;
+}
+
+function normalizeFieldName(value: string): string {
+  return value.replace(/[^a-z0-9]/giu, '').toLowerCase();
 }
 
 export function containsPathLikeValue(value: unknown): boolean {

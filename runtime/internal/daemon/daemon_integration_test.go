@@ -3,6 +3,7 @@ package daemon
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -14,7 +15,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
+	runtimepersistence "github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
@@ -371,6 +375,9 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	if err := writeRuntimeLocalAgentState(localStatePath, "agent-daemon-loop", time.Now().UTC().Add(-time.Second)); err != nil {
 		t.Fatalf("writeRuntimeLocalAgentState: %v", err)
 	}
+	if err := writeDaemonRuntimeAgentAIConfig(localStatePath, "agent-daemon-loop"); err != nil {
+		t.Fatalf("writeDaemonRuntimeAgentAIConfig: %v", err)
+	}
 
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
@@ -414,4 +421,54 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	if err := <-done; err != nil {
 		t.Fatalf("daemon run returned error: %v", err)
 	}
+}
+
+func writeDaemonRuntimeAgentAIConfig(localStatePath string, runtimeSourceRef string) error {
+	const ownerUserID = "user-1"
+	localAgentRef := "local-agent:" + ownerUserID + ":" + runtimeSourceRef
+	now := time.Now().UTC()
+	config := &runtimev1.RuntimeAgentAIConfig{
+		AgentInstanceId: localAgentRef,
+		Revision:        1,
+		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{{
+			Capability:  "text.generate",
+			Provider:    "daemon-test-provider",
+			ModelId:     "daemon-test-provider/life-track",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			ConnectorId: "daemon-test-connector",
+			TargetRef: &runtimev1.RuntimeDurableTargetRef{
+				Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
+					Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+						Version:              "v2",
+						ConnectorId:          "daemon-test-connector",
+						RemoteModelCatalogId: "daemon-test-provider/life-track",
+						ProviderModelId:      "life-track",
+						Provider:             "daemon-test-provider",
+					},
+				},
+			},
+		}},
+		UpdatedAt:      timestamppb.New(now),
+		UpdatedByAppId: "daemon.integration.test",
+	}
+	raw, err := protojson.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("marshal daemon runtime agent ai config: %w", err)
+	}
+	backend, err := runtimepersistence.Open(nil, localStatePath)
+	if err != nil {
+		return fmt.Errorf("open daemon runtime agent ai config persistence: %w", err)
+	}
+	defer func() { _ = backend.Close() }()
+	if _, err := backend.DB().Exec(
+		`INSERT INTO runtime_agent_ai_config(agent_instance_id, revision, config_json, updated_at, updated_by_app_id) VALUES (?, ?, ?, ?, ?)`,
+		localAgentRef,
+		config.GetRevision(),
+		string(raw),
+		now.Format(time.RFC3339Nano),
+		config.GetUpdatedByAppId(),
+	); err != nil {
+		return fmt.Errorf("insert daemon runtime agent ai config: %w", err)
+	}
+	return nil
 }

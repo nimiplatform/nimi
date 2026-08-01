@@ -12,6 +12,10 @@ const MAX_PERMISSION_REASON_BYTES = 240;
 const MAX_STORAGE_PATH_BYTES = 240;
 const MAX_STORAGE_DOCUMENT_BYTES = 256 * 1024;
 const MAX_WORLD_CORE_REQUEST_BYTES = 2 * 1024 * 1024;
+const MAX_TURN_ATTACHMENTS = 1;
+const MAX_ARTIFACT_DATA_BYTES = 4 * 1024 * 1024;
+const MAX_ARTIFACT_DISPLAY_NAME_BYTES = 512;
+const MAX_ARTIFACT_READ_BYTES = 32 * 1024 * 1024;
 
 const FORBIDDEN_PROJECTION_KEYS = new Set([
   'endpoint', 'authorization', 'token', 'localappprincipalid', 'localapprecordid',
@@ -74,14 +78,46 @@ export type NimiLocalAppConversationScopeInput = {
   readonly conversationAnchorId: string;
 };
 
+export type NimiLocalAppConversationAttachment = {
+  readonly artifactId: string;
+  readonly displayName?: string;
+};
+
+export type NimiLocalAppArtifactPutInput = {
+  readonly mimeType: string;
+  readonly displayName: string;
+  readonly data: Uint8Array;
+};
+
+export type NimiLocalAppArtifactReadInput = {
+  readonly artifactId: string;
+};
+
+export type NimiLocalAppArtifactBytes = {
+  readonly bytes: Uint8Array;
+  readonly mimeType: string;
+};
+
 export type NimiLocalAppAgentConfigureShell = {
   readonly configurationSnapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
   readonly updateConfiguration: (input: {
     readonly agentHandle: string;
     readonly expectedConfigurationRevision: string;
-    readonly routeIntents: readonly unknown[];
+    readonly intents: readonly unknown[];
+    readonly profileOrigin: unknown | null;
   }) => Promise<JsonObject>;
   readonly readinessSnapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
+  readonly aiProfilePreview: (input: {
+    readonly agentHandle: string;
+    readonly profile: unknown;
+    readonly runtimeDescriptor: unknown;
+  }) => Promise<JsonObject>;
+  readonly aiProfileApply: (input: {
+    readonly agentHandle: string;
+    readonly expectedConfigurationRevision: string;
+    readonly profile: unknown;
+    readonly runtimeDescriptor: unknown;
+  }) => Promise<JsonObject>;
   readonly autonomySnapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
   readonly updateAutonomy: (input: {
     readonly agentHandle: string;
@@ -135,10 +171,15 @@ export type NimiLocalAppStandardShellSurface = {
     readonly send: (input: NimiLocalAppConversationScopeInput & {
       readonly requestId: string;
       readonly text: string;
+      readonly attachments: readonly NimiLocalAppConversationAttachment[];
     }) => Promise<JsonObject>;
     readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
+  };
+  readonly artifacts: {
+    readonly put: (input: NimiLocalAppArtifactPutInput) => Promise<JsonObject>;
+    readonly readBytes: (input: NimiLocalAppArtifactReadInput) => Promise<NimiLocalAppArtifactBytes>;
   };
 };
 
@@ -164,6 +205,8 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       configurationSnapshot: getNimiLocalAppAgentConfigurationSnapshot,
       updateConfiguration: updateNimiLocalAppAgentConfiguration,
       readinessSnapshot: getNimiLocalAppAgentReadinessSnapshot,
+      aiProfilePreview: previewNimiLocalAppAgentAIProfile,
+      aiProfileApply: applyNimiLocalAppAgentAIProfile,
       autonomySnapshot: getNimiLocalAppAgentAutonomySnapshot,
       updateAutonomy: updateNimiLocalAppAgentAutonomy,
       presentationSnapshot: getNimiLocalAppAgentPresentationSnapshot,
@@ -175,6 +218,10 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       interruptTurn: interruptNimiLocalAppConversationTurn,
       subscribe: subscribeNimiLocalAppConversation,
       snapshot: getNimiLocalAppConversationSnapshot,
+    },
+    artifacts: {
+      put: putNimiLocalAppArtifact,
+      readBytes: readNimiLocalAppArtifactBytes,
     },
   };
 }
@@ -267,21 +314,58 @@ export function getNimiLocalAppAgentConfigurationSnapshot(input: { readonly agen
 export function updateNimiLocalAppAgentConfiguration(input: {
   readonly agentHandle: string;
   readonly expectedConfigurationRevision: string;
-  readonly routeIntents: readonly unknown[];
+  readonly intents: readonly unknown[];
+  readonly profileOrigin: unknown | null;
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConfiguration'];
-  assertExactInput(input, ['agentHandle', 'expectedConfigurationRevision', 'routeIntents'], command);
-  if (!Array.isArray(input.routeIntents) || input.routeIntents.length === 0) throw invalidInput(command, 'routeIntents is invalid');
-  validateProjectionValue(input.routeIntents as JsonValue, command);
+  assertExactInput(input, ['agentHandle', 'expectedConfigurationRevision', 'intents', 'profileOrigin'], command);
+  if (!Array.isArray(input.intents) || input.intents.length === 0) throw invalidInput(command, 'intents is invalid');
+  validateProjectionValue(input.intents as JsonValue, command);
+  validateProjectionValue(input.profileOrigin as JsonValue, command);
   return invokeLocalAppRecord(command, {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     expectedConfigurationRevision: decimalRevision(input.expectedConfigurationRevision, 'expectedConfigurationRevision', command, false),
-    routeIntents: input.routeIntents as JsonValue,
+    intents: input.intents as JsonValue,
+    profileOrigin: input.profileOrigin as JsonValue,
   });
 }
 
 export function getNimiLocalAppAgentReadinessSnapshot(input: { readonly agentHandle: string }): Promise<JsonObject> {
   return invokeAgentConfigureHandle('local-app.agentReadinessSnapshot', input);
+}
+
+export function previewNimiLocalAppAgentAIProfile(input: {
+  readonly agentHandle: string;
+  readonly profile: unknown;
+  readonly runtimeDescriptor: unknown;
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAIProfilePreview'];
+  assertExactInput(input, ['agentHandle', 'profile', 'runtimeDescriptor'], command);
+  validateProjectionValue(input.profile as JsonValue, command);
+  validateProjectionValue(input.runtimeDescriptor as JsonValue, command);
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    profile: input.profile as JsonValue,
+    runtimeDescriptor: input.runtimeDescriptor as JsonValue,
+  });
+}
+
+export function applyNimiLocalAppAgentAIProfile(input: {
+  readonly agentHandle: string;
+  readonly expectedConfigurationRevision: string;
+  readonly profile: unknown;
+  readonly runtimeDescriptor: unknown;
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAIProfileApply'];
+  assertExactInput(input, ['agentHandle', 'expectedConfigurationRevision', 'profile', 'runtimeDescriptor'], command);
+  validateProjectionValue(input.profile as JsonValue, command);
+  validateProjectionValue(input.runtimeDescriptor as JsonValue, command);
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    expectedConfigurationRevision: decimalRevision(input.expectedConfigurationRevision, 'expectedConfigurationRevision', command, false),
+    profile: input.profile as JsonValue,
+    runtimeDescriptor: input.runtimeDescriptor as JsonValue,
+  });
 }
 
 export function getNimiLocalAppAgentAutonomySnapshot(input: { readonly agentHandle: string }): Promise<JsonObject> {
@@ -362,15 +446,88 @@ export function openNimiLocalAppConversation(input: {
 export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversationScopeInput & {
   readonly requestId: string;
   readonly text: string;
+  readonly attachments: readonly NimiLocalAppConversationAttachment[];
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'];
-  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments'], command);
+  const attachments = turnAttachments(input.attachments, command);
   return invokeLocalAppRecord(command, {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
     requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
-    text: requiredUtf8Text(input.text, 'text', command, 64 * 1024),
+    text: turnText(input.text, attachments.length > 0, command),
+    attachments,
   });
+}
+
+export function putNimiLocalAppArtifact(input: NimiLocalAppArtifactPutInput): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactPut'];
+  assertExactInput(input, ['mimeType', 'displayName', 'data'], command);
+  if (typeof input.displayName !== 'string'
+    || input.displayName.trim() !== input.displayName
+    || new TextEncoder().encode(input.displayName).byteLength > MAX_ARTIFACT_DISPLAY_NAME_BYTES) {
+    throw invalidInput(command, 'displayName is invalid');
+  }
+  if (!(input.data instanceof Uint8Array)
+    || input.data.byteLength === 0
+    || input.data.byteLength > MAX_ARTIFACT_DATA_BYTES) {
+    throw invalidInput(command, 'data is invalid');
+  }
+  return invokeLocalAppRecord(command, {
+    mimeType: requiredText(input.mimeType, 'mimeType', command, MAX_IDENTIFIER_LENGTH),
+    displayName: input.displayName,
+    data: input.data as unknown as JsonValue,
+  });
+}
+
+export function readNimiLocalAppArtifactBytes(
+  input: NimiLocalAppArtifactReadInput,
+): Promise<NimiLocalAppArtifactBytes> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'];
+  assertExactInput(input, ['artifactId'], command);
+  const artifactId = requiredText(input.artifactId, 'artifactId', command, MAX_IDENTIFIER_LENGTH);
+  return invokeChecked(command, { payload: { artifactId } }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid payload`);
+    if (JSON.stringify(Object.keys(record).sort()) !== JSON.stringify(['bytes', 'mimeType'])) {
+      throw new Error(`${command}: result fields must be bytes, mimeType`);
+    }
+    if (!(record.bytes instanceof Uint8Array)
+      || record.bytes.byteLength === 0
+      || record.bytes.byteLength > MAX_ARTIFACT_READ_BYTES) {
+      throw new Error(`${command}: result bytes are invalid`);
+    }
+    return {
+      bytes: record.bytes,
+      mimeType: parseRequiredString(record.mimeType, 'mimeType', command),
+    };
+  });
+}
+
+function turnAttachments(
+  value: readonly NimiLocalAppConversationAttachment[],
+  command: string,
+): JsonObject[] {
+  if (!Array.isArray(value) || value.length > MAX_TURN_ATTACHMENTS) {
+    throw invalidInput(command, 'attachments is invalid');
+  }
+  return value.map((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw invalidInput(command, 'attachments entry is invalid');
+    }
+    assertAllowedInputKeys(entry, ['artifactId', 'displayName'], ['artifactId'], command);
+    const attachment: JsonObject = {
+      artifactId: requiredText(entry.artifactId, 'attachments.artifactId', command, MAX_IDENTIFIER_LENGTH),
+    };
+    if (entry.displayName !== undefined) {
+      attachment.displayName = requiredText(entry.displayName, 'attachments.displayName', command, MAX_IDENTIFIER_LENGTH);
+    }
+    return attachment;
+  });
+}
+
+function turnText(value: unknown, allowEmpty: boolean, command: string): string {
+  if (allowEmpty && value === '') return '';
+  return requiredUtf8Text(value, 'text', command, 64 * 1024);
 }
 
 export function interruptNimiLocalAppConversationTurn(

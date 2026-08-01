@@ -17,6 +17,35 @@ const FORBIDDEN_AUTHORITY_FIELDS = new Set([
   'trustclass',
 ]);
 
+const FORBIDDEN_AI_CONFIG_IDENTITY_FIELDS = new Set([
+  'assetId',
+  'assetPath',
+  'componentId',
+  'componentKind',
+  'connectorId',
+  'durableTargetRef',
+  'encoderModelId',
+  'entryOverrides',
+  'filePath',
+  'fileName',
+  'localAssetId',
+  'localProfileRef',
+  'logicalModelId',
+  'model',
+  'modelId',
+  'path',
+  'profileBindingId',
+  'profileEntries',
+  'profileOverrides',
+  'provider',
+  'qwenModelId',
+  'role',
+  'sourceFileName',
+  'targetRef',
+  'vaeModelId',
+  'workflowBindingId',
+].map((value) => normalizeFieldName(value)));
+
 export function optionalCursor(value: unknown): string | undefined {
   if (value === undefined || value === '') return undefined;
   return decimalCursor(value, 'cursor');
@@ -106,6 +135,36 @@ export function assertSafeProjection(value: unknown, seen = new Set<object>()): 
       localAppProjectionError(`forbidden ${key}`);
     }
     assertSafeProjection(entry, seen);
+  }
+}
+
+export function assertNoAIConfigPrivateIdentity(
+  value: unknown,
+  field: string,
+  input: boolean,
+  seen = new Set<object>(),
+): void {
+  if (value === null || typeof value !== 'object' || value instanceof Uint8Array) return;
+  if (seen.has(value)) return;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => assertNoAIConfigPrivateIdentity(entry, `${field}[${index}]`, input, seen));
+    return;
+  }
+  const record = asRecord(value);
+  if (!record) return;
+  for (const [key, child] of Object.entries(record)) {
+    if (FORBIDDEN_AI_CONFIG_IDENTITY_FIELDS.has(normalizeFieldName(key))) {
+      if (input) {
+        localAppError(
+          `${field} cannot carry Runtime-private identity ${key}.`,
+          'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
+          'remove_runtime_private_ai_config_identity',
+        );
+      }
+      localAppProjectionError(`${field}.${key}`);
+    }
+    assertNoAIConfigPrivateIdentity(child, `${field}.${key}`, input, seen);
   }
 }
 

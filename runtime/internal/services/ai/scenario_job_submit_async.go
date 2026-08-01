@@ -179,7 +179,7 @@ func (s *Service) submitScenarioAsyncJob(
 	if idempotencyScope != "" {
 		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
 	}
-	go s.executeScenarioAsyncJob(jobCtx, jobID, cloneSubmitScenarioJobRequest(req), selectedProvider, modelResolved, remoteTarget)
+	go s.executeScenarioAsyncJob(jobCtx, jobID, cloneSubmitScenarioJobRequest(req), selectedProvider, modelResolved, remoteTarget, localPlan)
 	if logLocalImageSubmit {
 		s.logger.Info(
 			"submit local image scenario job: submitted",

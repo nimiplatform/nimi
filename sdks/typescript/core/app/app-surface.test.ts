@@ -3,8 +3,6 @@ import { describe, it } from 'node:test';
 
 import {
   createNimiAIScopeRef,
-  previewNimiAIProfileApply,
-  type NimiAICapabilityRequirementDeclaration,
 } from '../ai/index';
 import {
   ADMITTED_PERMISSION_IDS,
@@ -17,7 +15,6 @@ import {
   createPermissionClient,
   isAdmittedNimiFirstRunLocalBaseline,
   isReservedPermissionID,
-  loadNimiAppAIProfileFactoryCatalog,
   selectNimiAppFactoryAIProfileForFirstRun,
   type NimiAppAIProfileFactoryRow,
   type NimiAppInventoryEntry,
@@ -286,24 +283,4 @@ describe('vNext app surface', () => {
     assert.equal(selectNimiAppFactoryAIProfileForFirstRun([local])?.alias, 'local-small');
   });
 
-  it('projects generated factory AIProfiles as setup-required hints', () => {
-    const profile = loadNimiAppAIProfileFactoryCatalog()
-      .find((candidate) => candidate.profileId === 'local-speech-ready');
-    assert.ok(profile);
-    const scope = createNimiAIScopeRef({ kind: 'app', ownerId: 'dev.nimi.factory-profile-audit' });
-    const requirements: readonly NimiAICapabilityRequirementDeclaration[] = [{
-      requirementId: 'factory-profile-audit.requirements',
-      scopeRef: scope,
-      requiredSlices: [{
-        requirementSliceId: 'factory-profile-audit.text.generate',
-        capability: 'text.generate',
-        profileSliceRef: 'capabilities.text.generate',
-        readinessPolicy: 'required',
-      }],
-      setupProjectionPolicy: 'setup-required',
-    }];
-    const preview = previewNimiAIProfileApply({ before: null, scopeRef: scope, profile, requirementDeclarations: requirements });
-    assert.equal(preview.outcome, 'setup_required_no_live_config');
-    assert.equal(preview.after, null);
-  });
 });

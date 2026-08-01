@@ -59,7 +59,7 @@ const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: '
 
 const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { targetRefs: {}, selectedParams: {} },
+  capabilities: { logicalModelIds: {}, targetRefs: {}, selectedComponents: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
@@ -140,6 +140,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'text.generate': {
             kind: 'local-runtime',
@@ -188,6 +190,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'text.generate': {
             kind: 'local-runtime',
@@ -235,19 +239,20 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(container?.textContent).not.toContain('01KTEX08DS2GR9HJ1X3R459P1B');
   });
 
-  it('hydrates dedicated local model-settings routes from the provider label', async () => {
+  it('hydrates the adjacent Runtime route projection while AIConfig remains the editable truth', async () => {
     const localModelId = '01KYSTRPKPAN8WWT102A6A8GH0';
-    const modelSettings = {
-      scopeRef,
-      capabilities: ['text.generate'],
-      routeIntents: [{
+    const localConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: { 'text.generate': localModelId },
+      },
+    };
+    const routeIntent = {
         capability: 'text.generate',
         provider: '',
         model: localModelId,
         routePolicy: 'local' as const,
-      }],
-      readiness: [],
-      configurationRevision: '2',
     };
     const provider: RouteModelPickerDataProvider = {
       listLocalModels: async () => [{
@@ -263,11 +268,14 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     };
     const surface: AppModelConfigSurface = {
       scopeRef,
-      modelSettingsService: {
-        get: () => modelSettings,
-        update: async () => modelSettings,
-        subscribe: () => () => undefined,
+      aiConfigService: {
+        aiConfig: {
+          get: () => localConfig,
+          update: async () => undefined,
+          subscribe: () => () => undefined,
+        },
       },
+      routeIntentResolver: () => routeIntent,
       requirementDeclaration: requirementDeclaration('text.generate'),
       providerResolver: () => provider,
       projectionResolver: () => null,
@@ -278,8 +286,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         <ModelConfigCapabilityDetail
           capabilityId="text.generate"
           surface={surface}
-          config={null}
-          modelSettings={modelSettings}
+          config={localConfig}
         />,
       ),
     );
@@ -296,6 +303,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'text.generate': {
             kind: 'local-runtime',
@@ -343,6 +352,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'image.generate': {
             kind: 'local-runtime',
@@ -387,6 +398,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'text.generate': {
             kind: 'local-runtime',
@@ -428,6 +441,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const cloudConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'image.generate': {
             kind: 'cloud-connector',
@@ -471,10 +486,101 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(container?.textContent).toContain('Setup required');
   });
 
-  it('passes image companion slots and local assets through the shared detail editor', async () => {
+  it('does not direct-upsert a main model into blank image config and guides Profile apply', async () => {
+    const updates: NimiAIConfig[] = [];
+    const provider: RouteModelPickerDataProvider = {
+      listLocalModels: async () => [{
+        localModelId: 'runtime-public-z-image',
+        modelId: 'local/z-image-turbo',
+        label: 'Z Image Turbo',
+        engine: 'stable-diffusion.cpp',
+        status: 'installed',
+        capabilities: ['image.generate'],
+        readinessRef: 'runtime_readiness:v2:z-image',
+      }],
+      listConnectors: async () => [],
+      listConnectorModels: async () => [],
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('image.generate'),
+      aiConfigService: {
+        ...stubService(),
+        aiConfig: {
+          get: () => baseConfig,
+          update: (_scope, next) => { updates.push(next); },
+          subscribe: () => () => undefined,
+        },
+      },
+      providerResolver: () => provider,
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="image.generate"
+          surface={surface}
+          config={baseConfig}
+        />,
+      ),
+    );
+
+    const trigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('Setup required'));
+    expect(trigger).toBeTruthy();
+    await act(async () => {
+      trigger?.click();
+      await flush();
+      await flush();
+    });
+    const modelButton = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Z Image Turbo'));
+    expect(modelButton).toBeTruthy();
+    await act(async () => {
+      modelButton?.click();
+      await flush();
+      await flush();
+    });
+
+    expect(updates).toHaveLength(0);
+    expect(container?.textContent).toContain('Apply an AI Profile first');
+    expect(container?.textContent).toContain('component occurrence structure');
+  });
+
+  it('hydrates committed component slots and patches one INSTALLED durable selection without changing params or structure', async () => {
+    const currentTarget = {
+      kind: 'local-runtime' as const,
+      version: 'v2' as const,
+      readinessRef: 'readiness:vae-current',
+    };
+    const replacementTarget = {
+      kind: 'local-runtime' as const,
+      version: 'v2' as const,
+      profileBindingId: '01KREPLACEMENTTARGET00000000',
+    };
+    const committedComponents = [
+      {
+        occurrenceId: 'vae-primary',
+        order: 10,
+        role: 'vae',
+        componentKind: 'vae',
+        logicalModelId: 'public/vae-current',
+        targetRef: currentTarget,
+        required: true,
+        weight: '0.75',
+        options: { precision: 'fp16' },
+      },
+      {
+        occurrenceId: 'encoder-primary',
+        order: 20,
+        role: 'text_encoder',
+        componentKind: 'text_encoder',
+        logicalModelId: 'public/encoder-current',
+        required: true,
+      },
+    ];
     const imageConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        logicalModelIds: { 'image.generate': 'public/image-main' },
         targetRefs: {
           'image.generate': {
             kind: 'local-runtime',
@@ -482,11 +588,9 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
             readinessRef: 'readiness:image-local',
           },
         },
+        selectedComponents: { 'image.generate': committedComponents },
         selectedParams: {
-          'image.generate': {
-            seed: 'seed-old',
-            companionSlots: { vae_path: 'asset-vae' },
-          },
+          'image.generate': { seed: 'seed-old', steps: '7' },
         },
       },
     };
@@ -494,9 +598,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => imageConfig,
-        update: (_scope, next) => {
-          updates.push(next);
-        },
+        update: (_scope, next) => { updates.push(next); },
         subscribe: () => () => undefined,
       },
       aiProfile: {
@@ -511,17 +613,79 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         }),
       },
     };
+    const privateAssetUlid = '01KPRIVATEASSET000000000000';
     const surface: AppModelConfigSurface = {
       ...makeSurface('image.generate'),
       aiConfigService: service,
       localAssetSource: {
-        list: () => [{
-          localAssetId: 'asset-vae',
-          assetId: 'VAE Asset',
-          kind: 'vae',
-          engine: 'test',
-          status: 'active',
-        }],
+        list: () => [
+          {
+            localAssetId: '01KCURRENTASSET00000000000',
+            assetId: '01KCURRENTRECORD0000000000',
+            logicalModelId: 'public/vae-current',
+            displayName: 'Current VAE',
+            kind: 'vae',
+            engine: 'media',
+            status: 'installed',
+            artifactRoles: ['vae'],
+            durableTargetRef: currentTarget,
+          },
+          {
+            localAssetId: privateAssetUlid,
+            assetId: '01KPRIVATERECORD0000000000',
+            logicalModelId: 'public/vae-v2',
+            displayName: 'VAE Two',
+            kind: 'vae',
+            engine: 'media',
+            status: 'installed',
+            artifactRoles: ['vae'],
+            durableTargetRef: replacementTarget,
+          },
+          {
+            localAssetId: '01KINCOMPATIBLE00000000000',
+            assetId: '01KINCOMPATIBLERECORD000000',
+            logicalModelId: 'public/clip-wrong-slot',
+            displayName: 'Wrong CLIP component',
+            kind: 'clip',
+            engine: 'media',
+            status: 'active',
+            artifactRoles: ['clip_l'],
+            durableTargetRef: {
+              kind: 'local-runtime',
+              version: 'v2',
+              readinessRef: 'readiness:clip-wrong-slot',
+            },
+          },
+          {
+            localAssetId: '01KQWENASSET0000000000000',
+            assetId: 'qwen3-companion',
+            logicalModelId: 'public/encoder-v2',
+            displayName: 'Qwen3-4B-Q4_K_M',
+            kind: 'chat',
+            engine: 'llama',
+            status: 'active',
+            durableTargetRef: {
+              kind: 'local-runtime',
+              version: 'v2',
+              profileBindingId: '01KQWENTARGET0000000000000',
+            },
+          },
+          {
+            localAssetId: '01KDORMANTASSET0000000000',
+            assetId: '01KDORMANTRECORD000000000',
+            logicalModelId: 'public/vae-dormant',
+            displayName: 'Dormant VAE',
+            kind: 'vae',
+            engine: 'media',
+            status: 'unhealthy',
+            artifactRoles: ['vae'],
+            durableTargetRef: {
+              kind: 'local-runtime',
+              version: 'v2',
+              readinessRef: 'readiness:vae-dormant',
+            },
+          },
+        ],
         loading: false,
       },
     };
@@ -531,29 +695,100 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
           capabilityId="image.generate"
           surface={surface}
           config={imageConfig}
+          profileCapability={{
+            capabilityId: 'image.generate',
+            modelLabel: 'Z Image Turbo',
+            components: [],
+            parameterSummary: [],
+          }}
         />,
       ),
     );
 
-    expect(container?.textContent).toContain('VAE Asset');
-    expect(container?.textContent).not.toContain('ModelConfig.editor.common.previewBadgeLabel');
-    const seedInput = Array.from(container?.querySelectorAll('input') || [])
-      .find((input) => input.value === 'seed-old');
-    expect(seedInput).toBeTruthy();
+    expect(container?.textContent).toContain('Z Image Turbo');
+    expect(container?.textContent).toContain('Current VAE');
+    expect(container?.textContent).toContain('public/encoder-current');
+    expect(container?.textContent).toContain('vae · vae');
+    expect(container?.textContent).toContain('text_encoder · text_encoder');
+    expect(container?.textContent).toContain('Currently unavailable');
+    expect(container?.querySelectorAll('[data-nimi-model-config-component-slot]')).toHaveLength(2);
+    expect(document.body.textContent).not.toContain(privateAssetUlid);
+    expect(document.body.textContent).not.toContain('01KPRIVATERECORD0000000000');
+
+    const currentTrigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('Current VAE'));
+    expect(currentTrigger).toBeTruthy();
     await act(async () => {
-      setInputValue(seedInput as HTMLInputElement, 'seed-new');
+      currentTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
     });
 
-    const nextParams = updates[0]?.capabilities.selectedParams['image.generate'] as Record<string, unknown> | undefined;
-    expect(nextParams?.seed).toBe('seed-new');
-    expect(nextParams?.companionSlots).toEqual({ vae_path: 'asset-vae' });
+    expect(document.body.textContent).not.toContain('Wrong CLIP component');
+    const dormantButton = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Dormant VAE')) as HTMLButtonElement | undefined;
+    expect(dormantButton?.disabled).toBe(true);
+    dormantButton?.click();
+    expect(updates).toHaveLength(0);
+
+    const currentButton = Array.from(document.body.querySelectorAll('[role="dialog"] button'))
+      .find((button) => button.textContent?.includes('Current VAE')) as HTMLButtonElement | undefined;
+    expect(currentButton?.disabled).toBe(false);
+
+    const replacementButton = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('VAE Two')) as HTMLButtonElement | undefined;
+    expect(replacementButton?.disabled).toBe(false);
+    await act(async () => {
+      replacementButton?.click();
+      await flush();
+      await flush();
+    });
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0]?.capabilities.selectedParams['image.generate']).toEqual({ seed: 'seed-old', steps: '7' });
+    const patchedComponents = updates[0]?.capabilities.selectedComponents['image.generate'];
+    expect(patchedComponents).toHaveLength(2);
+    expect(patchedComponents?.[0]).toEqual({
+      ...committedComponents[0],
+      logicalModelId: 'public/vae-v2',
+      targetRef: replacementTarget,
+    });
+    expect(patchedComponents?.[1]).toEqual(committedComponents[1]);
+    expect(patchedComponents?.map((component) => component.occurrenceId)).toEqual([
+      'vae-primary',
+      'encoder-primary',
+    ]);
+
+    const encoderTrigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('public/encoder-current'));
+    expect(encoderTrigger).toBeTruthy();
+    await act(async () => {
+      encoderTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+    const qwenButton = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Qwen3-4B-Q4_K_M')) as HTMLButtonElement | undefined;
+    expect(qwenButton?.disabled).toBe(false);
+    await act(async () => {
+      qwenButton?.click();
+      await flush();
+      await flush();
+    });
+    expect(updates).toHaveLength(2);
+    expect(updates[1]?.capabilities.selectedComponents['image.generate']?.[1]).toMatchObject({
+      logicalModelId: 'public/encoder-v2',
+      targetRef: {
+        kind: 'local-runtime',
+        profileBindingId: '01KQWENTARGET0000000000000',
+      },
+    });
   });
 
   it('surfaces async host persistence failures instead of projecting a successful save', async () => {
     const imageConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'image.generate': {
             kind: 'local-runtime',
@@ -617,6 +852,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     let currentConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'image.generate': {
             kind: 'local-runtime',
@@ -707,10 +944,12 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(finalParams.seed).toBe('seed-two');
   });
 
-  it('derives image companion slots from prefixed local-runtime profile bindings', async () => {
+  it('does not infer portable image composition from private local-runtime target strings', async () => {
     const imageConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'image.generate': {
             kind: 'local-runtime',
@@ -758,7 +997,9 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
       ),
     );
 
-    expect(container?.textContent).toContain('Uncond diffusion');
+    expect(container?.querySelector('[data-nimi-image-component-slots="0"]')).toBeTruthy();
+    expect(container?.textContent).not.toContain('Uncond diffusion');
+    expect(container?.textContent).not.toContain('local-import/ideogram4_uncond-Q4_0');
   });
 
   it('routes video.generate to VideoParamsEditor (editorKind=video)', async () => {
@@ -809,6 +1050,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
+        ...baseConfig.capabilities,
+        logicalModelIds: {},
         targetRefs: {
           'audio.synthesize': {
             kind: 'local-runtime',

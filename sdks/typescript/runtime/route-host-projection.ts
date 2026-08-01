@@ -33,6 +33,9 @@ export interface NimiRuntimeRouteLocalAssetProjectionInput {
   readonly displayName?: unknown;
   readonly sourceFileName?: unknown;
   readonly updatedAt?: unknown;
+  readonly durableTargetRef?: unknown;
+  readonly durableTargetStatus?: unknown;
+  readonly durableTargetReasonCode?: unknown;
 }
 
 export interface NimiRuntimeRouteNodeCatalogProjectionInput {
@@ -152,12 +155,36 @@ function statusRank(value: unknown): number {
   }
 }
 
-function localTargetRefForAsset(localAssetId: string): NimiRuntimeRouteTargetRef {
-  return {
-    kind: 'local-runtime',
-    version: 'v2',
-    profileBindingId: `local-runtime:${localAssetId}`,
+function localTargetRefForAsset(
+  asset: NimiRuntimeRouteLocalAssetProjectionInput,
+): NimiRuntimeRouteTargetRef | null {
+  if (!asset.durableTargetRef || typeof asset.durableTargetRef !== 'object' || Array.isArray(asset.durableTargetRef)) {
+    return null;
+  }
+  const target = asset.durableTargetRef as {
+    readonly version?: unknown;
+    readonly ref?: {
+      readonly oneofKind?: unknown;
+      readonly profileBindingId?: unknown;
+      readonly readinessRef?: unknown;
+    };
   };
+  if (normalizeText(target.version) !== 'v2' || !target.ref || typeof target.ref !== 'object') {
+    return null;
+  }
+  if (target.ref.oneofKind === 'profileBindingId') {
+    const profileBindingId = normalizeText(target.ref.profileBindingId);
+    return profileBindingId
+      ? { kind: 'local-runtime', version: 'v2', profileBindingId }
+      : null;
+  }
+  if (target.ref.oneofKind === 'readinessRef') {
+    const readinessRef = normalizeText(target.ref.readinessRef);
+    return readinessRef
+      ? { kind: 'local-runtime', version: 'v2', readinessRef }
+      : null;
+  }
+  return null;
 }
 
 function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput): readonly NimiRuntimeTargetInventoryItem[] {
@@ -171,18 +198,23 @@ function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput):
       .filter(([key]) => Boolean(key)),
   );
   return (input.runtimeLocalModels || [])
-    .filter((asset) => parseNimiRuntimeLocalAssetStatusId(asset.status) !== 'removed')
+    .filter((asset) => parseNimiRuntimeLocalAssetStatusId(asset.durableTargetStatus || asset.status) !== 'removed')
     .filter((asset) => !localAssetIsCompanionOnly(asset))
     .filter((asset) => localAssetSupportsCapability(asset, input.capability))
     .map((asset): NimiRuntimeTargetInventoryItem | null => {
       const localAssetId = normalizeText(asset.localAssetId);
       const assetId = normalizeText(asset.assetId);
       const logicalModelId = normalizeText(asset.logicalModelId);
-      const resolvedModelId = logicalModelId || assetId;
+      const targetRef = localTargetRefForAsset(asset);
+      const resolvedModelId = logicalModelId;
       const engine = normalizeLower(asset.engine);
-      if (!localAssetId || !assetId) return null;
+      if (!localAssetId || !assetId || !resolvedModelId || !targetRef) return null;
       const snapshot = snapshotByLocalId.get(localAssetId) || snapshotByLookup.get(localAssetLookupKey(assetId, engine));
-      const runtimeStatus = parseNimiRuntimeLocalAssetStatusId(asset.status) || normalizeText(asset.status) || 'unknown';
+      const runtimeStatus = parseNimiRuntimeLocalAssetStatusId(asset.durableTargetStatus)
+        || parseNimiRuntimeLocalAssetStatusId(asset.status)
+        || normalizeText(asset.durableTargetStatus)
+        || normalizeText(asset.status)
+        || 'unknown';
       const snapshotStatus = parseNimiRuntimeLocalAssetStatusId(snapshot?.status) || normalizeText(snapshot?.status);
       if (snapshot && normalizeLower(snapshotStatus) !== normalizeLower(runtimeStatus)) {
         input.onLocalStatusMismatch?.({
@@ -195,7 +227,7 @@ function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput):
         });
       }
       return {
-        targetRef: localTargetRefForAsset(localAssetId),
+        targetRef,
         display: {
           label: displayNameForAsset(asset, resolvedModelId),
           model: resolvedModelId,
@@ -204,6 +236,7 @@ function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput):
         },
         readiness: {
           status: runtimeStatus,
+          reasonCode: normalizeText(asset.durableTargetReasonCode) || undefined,
           endpoint: normalizeText(asset.endpoint || snapshot?.endpoint) || undefined,
         },
         compatibility: {

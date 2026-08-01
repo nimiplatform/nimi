@@ -1,3 +1,4 @@
+mod artifact;
 mod configure;
 mod conversation;
 mod permission;
@@ -21,9 +22,11 @@ use crate::windows_peer_trust::VerifiedRuntimePeer;
 #[cfg(target_os = "windows")]
 use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
+    LocalAppAgentAIProfileApplyRequest, LocalAppAgentAIProfilePreviewRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConfigurationRequest,
-    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
+    LocalAppArtifactPutRequest, LocalAppArtifactPutResult, LocalAppArtifactReadRequest,
+    LocalAppArtifactReadResult, LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
     LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
     LocalAppConversationSendRequest, LocalAppConversationSendResult,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
@@ -300,6 +303,38 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
+    fn artifact_put(
+        &self,
+        request: LocalAppArtifactPutRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppArtifactPutResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            artifact::put_artifact(self.checked_channel()?, request).await
+        })
+    }
+
+    fn artifact_read_bytes(
+        &self,
+        request: LocalAppArtifactReadRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppArtifactReadResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            artifact::read_artifact_bytes(self.checked_channel()?, request).await
+        })
+    }
+
     fn agent_configuration_snapshot(
         &self,
         request: LocalAppAgentHandleRequest,
@@ -330,6 +365,28 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             configure::readiness_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_ai_profile_preview(
+        &self,
+        request: LocalAppAgentAIProfilePreviewRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::ai_profile_preview(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_ai_profile_apply(
+        &self,
+        request: LocalAppAgentAIProfileApplyRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            configure::ai_profile_apply(self.checked_channel()?, request).await
         })
     }
 

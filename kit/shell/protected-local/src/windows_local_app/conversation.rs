@@ -21,10 +21,62 @@ use crate::{
     LocalAppOperationError, LocalAppReasonCode,
 };
 
-use super::{require_text, untrusted};
+use super::{invalid_payload, require_text, untrusted};
 
 const ACTION_EXECUTED: i32 = 1;
 const MAX_TEXT_BYTES: usize = 64 * 1024;
+const MAX_TURN_ATTACHMENTS: usize = 1;
+const MAX_ATTACHMENT_TEXT_BYTES: usize = 512;
+
+struct TurnAttachment {
+    artifact_id: String,
+    display_name: Option<String>,
+}
+
+fn parse_turn_attachments(
+    value: &JsonValue,
+) -> Result<Vec<TurnAttachment>, LocalAppOperationError> {
+    let values = value.as_array().ok_or_else(invalid_payload)?;
+    if values.len() > MAX_TURN_ATTACHMENTS {
+        return Err(invalid_payload());
+    }
+    values
+        .iter()
+        .map(|value| {
+            let object = value.as_object().ok_or_else(invalid_payload)?;
+            if object
+                .keys()
+                .any(|key| key != "artifactId" && key != "displayName")
+            {
+                return Err(invalid_payload());
+            }
+            let artifact_id = object
+                .get("artifactId")
+                .and_then(JsonValue::as_str)
+                .ok_or_else(invalid_payload)?;
+            if artifact_id.is_empty()
+                || artifact_id.trim() != artifact_id
+                || artifact_id.len() > MAX_ATTACHMENT_TEXT_BYTES
+            {
+                return Err(invalid_payload());
+            }
+            let display_name = match object.get("displayName") {
+                None => None,
+                Some(JsonValue::String(value)) => {
+                    if value.trim() != value || value.len() > MAX_ATTACHMENT_TEXT_BYTES {
+                        return Err(invalid_payload());
+                    }
+                    (!value.is_empty()).then_some(value.clone())
+                }
+                _ => return Err(invalid_payload()),
+            };
+            Ok(TurnAttachment {
+                artifact_id: artifact_id.to_string(),
+                display_name,
+            })
+        })
+        .collect()
+}
 
 pub(super) async fn open_conversation(
     channel: Channel,
@@ -61,12 +113,46 @@ pub(super) async fn send_turn(
     require_text(&request.agent_handle)?;
     require_text(&request.conversation_anchor_id)?;
     require_text(&request.request_id)?;
-    require_text(&request.text)?;
+    let attachments = parse_turn_attachments(&request.attachments)?;
+    if request.text.trim() != request.text || (request.text.is_empty() && attachments.is_empty()) {
+        return Err(invalid_payload());
+    }
     if request.text.len() > MAX_TEXT_BYTES {
         return Err(LocalAppOperationError::new(
             LocalAppReasonCode::ResourceExhausted,
             false,
         ));
+    }
+    let mut message_fields = BTreeMap::from([
+        ("role".to_string(), string_value("user".to_string())),
+        ("content".to_string(), string_value(request.text)),
+    ]);
+    if !attachments.is_empty() {
+        message_fields.insert(
+            "attachments".to_string(),
+            Value {
+                kind: Some(Kind::ListValue(ListValue {
+                    values: attachments
+                        .into_iter()
+                        .map(|attachment| {
+                            let mut fields = BTreeMap::from([(
+                                "artifact_id".to_string(),
+                                string_value(attachment.artifact_id),
+                            )]);
+                            if let Some(display_name) = attachment.display_name {
+                                fields.insert(
+                                    "display_name".to_string(),
+                                    string_value(display_name),
+                                );
+                            }
+                            Value {
+                                kind: Some(Kind::StructValue(Struct { fields })),
+                            }
+                        })
+                        .collect(),
+                })),
+            },
+        );
     }
     let payload = Struct {
         fields: BTreeMap::from([
@@ -85,10 +171,7 @@ pub(super) async fn send_turn(
                     kind: Some(Kind::ListValue(ListValue {
                         values: vec![Value {
                             kind: Some(Kind::StructValue(Struct {
-                                fields: BTreeMap::from([
-                                    ("role".to_string(), string_value("user".to_string())),
-                                    ("content".to_string(), string_value(request.text)),
-                                ]),
+                                fields: message_fields,
                             })),
                         }],
                     })),
@@ -297,5 +380,45 @@ mod tests {
             struct_to_json(value).unwrap(),
             serde_json::json!({"text": "hello"})
         );
+    }
+
+    #[test]
+    fn turn_attachments_admit_one_exact_artifact_reference() {
+        let parsed = parse_turn_attachments(&serde_json::json!([
+            {"artifactId": "artifact_01J", "displayName": "photo.png"},
+        ]))
+        .expect("one exact attachment");
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].artifact_id, "artifact_01J");
+        assert_eq!(parsed[0].display_name.as_deref(), Some("photo.png"));
+
+        let without_name = parse_turn_attachments(&serde_json::json!([
+            {"artifactId": "artifact_01J"},
+        ]))
+        .expect("display name is optional");
+        assert_eq!(without_name[0].display_name, None);
+
+        let empty = parse_turn_attachments(&serde_json::json!([])).expect("empty attachments");
+        assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn turn_attachments_fail_closed_on_shape_violations() {
+        for value in [
+            serde_json::json!(null),
+            serde_json::json!({}),
+            serde_json::json!([{"artifactId": "a"}, {"artifactId": "b"}]),
+            serde_json::json!([{"artifactId": "  "}]),
+            serde_json::json!([{"artifactId": ""}]),
+            serde_json::json!([{"displayName": "photo.png"}]),
+            serde_json::json!([{"artifactId": "a", "displayName": 7}]),
+            serde_json::json!([{"artifactId": "a", "mimeType": "image/png"}]),
+            serde_json::json!([{"artifactId": "a", "displayName": " photo.png"}]),
+        ] {
+            assert!(
+                parse_turn_attachments(&value).is_err(),
+                "attachments must fail closed: {value}",
+            );
+        }
     }
 }

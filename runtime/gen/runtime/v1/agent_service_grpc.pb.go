@@ -65,9 +65,13 @@ const (
 	RuntimeAgentService_UpsertRuntimeAgentAIConfig_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig"
 	RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness"
 	RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness"
+	RuntimeAgentService_PreviewRuntimeAgentAIProfile_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile"
+	RuntimeAgentService_ApplyRuntimeAgentAIProfile_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile"
 	RuntimeAgentService_GetLocalAppAgentConfigurationSnapshot_FullMethodName  = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot"
 	RuntimeAgentService_UpdateLocalAppAgentConfiguration_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration"
 	RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot"
+	RuntimeAgentService_PreviewLocalAppAgentAIProfile_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile"
+	RuntimeAgentService_ApplyLocalAppAgentAIProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile"
 	RuntimeAgentService_GetLocalAppAgentAutonomySnapshot_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	RuntimeAgentService_UpdateLocalAppAgentAutonomy_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	RuntimeAgentService_GetLocalAppAgentPresentationSnapshot_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
@@ -128,11 +132,15 @@ type RuntimeAgentServiceClient interface {
 	UpsertRuntimeAgentAIConfig(ctx context.Context, in *UpsertRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*UpsertRuntimeAgentAIConfigResponse, error)
 	GetRuntimeAgentAIConfigReadiness(ctx context.Context, in *GetRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigReadinessResponse, error)
 	SubscribeRuntimeAgentAIConfigReadiness(ctx context.Context, in *SubscribeRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RuntimeAgentAIConfigReadinessSnapshot], error)
+	PreviewRuntimeAgentAIProfile(ctx context.Context, in *PreviewRuntimeAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewRuntimeAgentAIProfileResponse, error)
+	ApplyRuntimeAgentAIProfile(ctx context.Context, in *ApplyRuntimeAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplyRuntimeAgentAIProfileResponse, error)
 	// Reserved agents.configure carrier. Protected-local admission remains
 	// fail-closed until the owner-complete publication flip.
 	GetLocalAppAgentConfigurationSnapshot(ctx context.Context, in *GetLocalAppAgentConfigurationSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentConfigurationSnapshotResponse, error)
 	UpdateLocalAppAgentConfiguration(ctx context.Context, in *UpdateLocalAppAgentConfigurationRequest, opts ...grpc.CallOption) (*LocalAppAgentUpdateConfigurationResponse, error)
 	GetLocalAppAgentReadinessSnapshot(ctx context.Context, in *GetLocalAppAgentReadinessSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentReadinessSnapshotResponse, error)
+	PreviewLocalAppAgentAIProfile(ctx context.Context, in *PreviewLocalAppAgentAIProfileRequest, opts ...grpc.CallOption) (*LocalAppAgentAIProfilePreviewResponse, error)
+	ApplyLocalAppAgentAIProfile(ctx context.Context, in *ApplyLocalAppAgentAIProfileRequest, opts ...grpc.CallOption) (*LocalAppAgentAIProfileApplyResponse, error)
 	GetLocalAppAgentAutonomySnapshot(ctx context.Context, in *GetLocalAppAgentAutonomySnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentAutonomySnapshotResponse, error)
 	UpdateLocalAppAgentAutonomy(ctx context.Context, in *UpdateLocalAppAgentAutonomyRequest, opts ...grpc.CallOption) (*LocalAppAgentUpdateAutonomyResponse, error)
 	GetLocalAppAgentPresentationSnapshot(ctx context.Context, in *GetLocalAppAgentPresentationSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentPresentationSnapshotResponse, error)
@@ -634,6 +642,26 @@ func (c *runtimeAgentServiceClient) SubscribeRuntimeAgentAIConfigReadiness(ctx c
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadinessClient = grpc.ServerStreamingClient[RuntimeAgentAIConfigReadinessSnapshot]
 
+func (c *runtimeAgentServiceClient) PreviewRuntimeAgentAIProfile(ctx context.Context, in *PreviewRuntimeAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewRuntimeAgentAIProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PreviewRuntimeAgentAIProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_PreviewRuntimeAgentAIProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ApplyRuntimeAgentAIProfile(ctx context.Context, in *ApplyRuntimeAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplyRuntimeAgentAIProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ApplyRuntimeAgentAIProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ApplyRuntimeAgentAIProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) GetLocalAppAgentConfigurationSnapshot(ctx context.Context, in *GetLocalAppAgentConfigurationSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentConfigurationSnapshotResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LocalAppAgentConfigurationSnapshotResponse)
@@ -658,6 +686,26 @@ func (c *runtimeAgentServiceClient) GetLocalAppAgentReadinessSnapshot(ctx contex
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LocalAppAgentReadinessSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) PreviewLocalAppAgentAIProfile(ctx context.Context, in *PreviewLocalAppAgentAIProfileRequest, opts ...grpc.CallOption) (*LocalAppAgentAIProfilePreviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LocalAppAgentAIProfilePreviewResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_PreviewLocalAppAgentAIProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ApplyLocalAppAgentAIProfile(ctx context.Context, in *ApplyLocalAppAgentAIProfileRequest, opts ...grpc.CallOption) (*LocalAppAgentAIProfileApplyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LocalAppAgentAIProfileApplyResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ApplyLocalAppAgentAIProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -758,11 +806,15 @@ type RuntimeAgentServiceServer interface {
 	UpsertRuntimeAgentAIConfig(context.Context, *UpsertRuntimeAgentAIConfigRequest) (*UpsertRuntimeAgentAIConfigResponse, error)
 	GetRuntimeAgentAIConfigReadiness(context.Context, *GetRuntimeAgentAIConfigReadinessRequest) (*GetRuntimeAgentAIConfigReadinessResponse, error)
 	SubscribeRuntimeAgentAIConfigReadiness(*SubscribeRuntimeAgentAIConfigReadinessRequest, grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]) error
+	PreviewRuntimeAgentAIProfile(context.Context, *PreviewRuntimeAgentAIProfileRequest) (*PreviewRuntimeAgentAIProfileResponse, error)
+	ApplyRuntimeAgentAIProfile(context.Context, *ApplyRuntimeAgentAIProfileRequest) (*ApplyRuntimeAgentAIProfileResponse, error)
 	// Reserved agents.configure carrier. Protected-local admission remains
 	// fail-closed until the owner-complete publication flip.
 	GetLocalAppAgentConfigurationSnapshot(context.Context, *GetLocalAppAgentConfigurationSnapshotRequest) (*LocalAppAgentConfigurationSnapshotResponse, error)
 	UpdateLocalAppAgentConfiguration(context.Context, *UpdateLocalAppAgentConfigurationRequest) (*LocalAppAgentUpdateConfigurationResponse, error)
 	GetLocalAppAgentReadinessSnapshot(context.Context, *GetLocalAppAgentReadinessSnapshotRequest) (*LocalAppAgentReadinessSnapshotResponse, error)
+	PreviewLocalAppAgentAIProfile(context.Context, *PreviewLocalAppAgentAIProfileRequest) (*LocalAppAgentAIProfilePreviewResponse, error)
+	ApplyLocalAppAgentAIProfile(context.Context, *ApplyLocalAppAgentAIProfileRequest) (*LocalAppAgentAIProfileApplyResponse, error)
 	GetLocalAppAgentAutonomySnapshot(context.Context, *GetLocalAppAgentAutonomySnapshotRequest) (*LocalAppAgentAutonomySnapshotResponse, error)
 	UpdateLocalAppAgentAutonomy(context.Context, *UpdateLocalAppAgentAutonomyRequest) (*LocalAppAgentUpdateAutonomyResponse, error)
 	GetLocalAppAgentPresentationSnapshot(context.Context, *GetLocalAppAgentPresentationSnapshotRequest) (*LocalAppAgentPresentationSnapshotResponse, error)
@@ -914,6 +966,12 @@ func (UnimplementedRuntimeAgentServiceServer) GetRuntimeAgentAIConfigReadiness(c
 func (UnimplementedRuntimeAgentServiceServer) SubscribeRuntimeAgentAIConfigReadiness(*SubscribeRuntimeAgentAIConfigReadinessRequest, grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeRuntimeAgentAIConfigReadiness not implemented")
 }
+func (UnimplementedRuntimeAgentServiceServer) PreviewRuntimeAgentAIProfile(context.Context, *PreviewRuntimeAgentAIProfileRequest) (*PreviewRuntimeAgentAIProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PreviewRuntimeAgentAIProfile not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ApplyRuntimeAgentAIProfile(context.Context, *ApplyRuntimeAgentAIProfileRequest) (*ApplyRuntimeAgentAIProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyRuntimeAgentAIProfile not implemented")
+}
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentConfigurationSnapshot(context.Context, *GetLocalAppAgentConfigurationSnapshotRequest) (*LocalAppAgentConfigurationSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentConfigurationSnapshot not implemented")
 }
@@ -922,6 +980,12 @@ func (UnimplementedRuntimeAgentServiceServer) UpdateLocalAppAgentConfiguration(c
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentReadinessSnapshot(context.Context, *GetLocalAppAgentReadinessSnapshotRequest) (*LocalAppAgentReadinessSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentReadinessSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) PreviewLocalAppAgentAIProfile(context.Context, *PreviewLocalAppAgentAIProfileRequest) (*LocalAppAgentAIProfilePreviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PreviewLocalAppAgentAIProfile not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ApplyLocalAppAgentAIProfile(context.Context, *ApplyLocalAppAgentAIProfileRequest) (*LocalAppAgentAIProfileApplyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyLocalAppAgentAIProfile not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentAutonomySnapshot(context.Context, *GetLocalAppAgentAutonomySnapshotRequest) (*LocalAppAgentAutonomySnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentAutonomySnapshot not implemented")
@@ -1762,6 +1826,42 @@ func _RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_Handler(srv int
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadinessServer = grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]
 
+func _RuntimeAgentService_PreviewRuntimeAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreviewRuntimeAgentAIProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).PreviewRuntimeAgentAIProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_PreviewRuntimeAgentAIProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).PreviewRuntimeAgentAIProfile(ctx, req.(*PreviewRuntimeAgentAIProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ApplyRuntimeAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyRuntimeAgentAIProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ApplyRuntimeAgentAIProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ApplyRuntimeAgentAIProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ApplyRuntimeAgentAIProfile(ctx, req.(*ApplyRuntimeAgentAIProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_GetLocalAppAgentConfigurationSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetLocalAppAgentConfigurationSnapshotRequest)
 	if err := dec(in); err != nil {
@@ -1812,6 +1912,42 @@ func _RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_Handler(srv interfac
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetLocalAppAgentReadinessSnapshot(ctx, req.(*GetLocalAppAgentReadinessSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_PreviewLocalAppAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreviewLocalAppAgentAIProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).PreviewLocalAppAgentAIProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_PreviewLocalAppAgentAIProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).PreviewLocalAppAgentAIProfile(ctx, req.(*PreviewLocalAppAgentAIProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ApplyLocalAppAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyLocalAppAgentAIProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ApplyLocalAppAgentAIProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ApplyLocalAppAgentAIProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ApplyLocalAppAgentAIProfile(ctx, req.(*ApplyLocalAppAgentAIProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2068,6 +2204,14 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_Handler,
 		},
 		{
+			MethodName: "PreviewRuntimeAgentAIProfile",
+			Handler:    _RuntimeAgentService_PreviewRuntimeAgentAIProfile_Handler,
+		},
+		{
+			MethodName: "ApplyRuntimeAgentAIProfile",
+			Handler:    _RuntimeAgentService_ApplyRuntimeAgentAIProfile_Handler,
+		},
+		{
 			MethodName: "GetLocalAppAgentConfigurationSnapshot",
 			Handler:    _RuntimeAgentService_GetLocalAppAgentConfigurationSnapshot_Handler,
 		},
@@ -2078,6 +2222,14 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetLocalAppAgentReadinessSnapshot",
 			Handler:    _RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_Handler,
+		},
+		{
+			MethodName: "PreviewLocalAppAgentAIProfile",
+			Handler:    _RuntimeAgentService_PreviewLocalAppAgentAIProfile_Handler,
+		},
+		{
+			MethodName: "ApplyLocalAppAgentAIProfile",
+			Handler:    _RuntimeAgentService_ApplyLocalAppAgentAIProfile_Handler,
 		},
 		{
 			MethodName: "GetLocalAppAgentAutonomySnapshot",

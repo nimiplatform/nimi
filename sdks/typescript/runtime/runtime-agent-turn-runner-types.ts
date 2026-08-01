@@ -50,9 +50,15 @@ export type NimiRuntimeAgentReasoningRequest = {
   readonly budgetTokens?: number;
 };
 
+export type NimiRuntimeAgentTurnAttachment = {
+  readonly artifactId: string;
+  readonly displayName?: string;
+};
+
 export type NimiRuntimeAgentCurrentUserMessage = {
   readonly role: 'user';
   readonly content: string;
+  readonly attachments?: readonly NimiRuntimeAgentTurnAttachment[];
 };
 
 export type NimiRuntimeAgentTurnRequest = RuntimeLocalAgentIdentityInput & {

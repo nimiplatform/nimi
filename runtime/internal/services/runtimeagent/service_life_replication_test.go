@@ -531,8 +531,9 @@ func TestRuntimeAgentLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-loop-reschedule")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-loop-reschedule"),
+		Context: identityContext,
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
@@ -540,6 +541,7 @@ func TestRuntimeAgentLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-reschedule")
 
 	now := time.Now().UTC()
@@ -607,8 +609,9 @@ func TestRuntimeAgentLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testi
 
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
+	identityContext := testRuntimeAgentIdentityContext("agent-loop-posture")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-loop-posture"),
+		Context: identityContext,
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
 			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
@@ -616,6 +619,7 @@ func TestRuntimeAgentLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testi
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 	mustEnableAutonomy(t, svc, ctx, "agent-loop-posture")
 
 	now := time.Now().UTC()

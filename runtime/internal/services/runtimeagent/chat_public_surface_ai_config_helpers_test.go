@@ -7,11 +7,29 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-// upsertPublicChatTestAgentAIConfig replaces the committed AI Config with the
-// required text.generate/text.embed intents plus any extra capability intents.
+// upsertPublicChatTestAgentAIConfig gives a test Agent an explicit executable
+// AIConfig. Product initialization intentionally carries no implicit models.
 func upsertPublicChatTestAgentAIConfig(t *testing.T, svc *Service, extra ...*runtimev1.RuntimeAgentAIConfigIntent) {
 	t.Helper()
 	upsertPublicChatTestAgentAIConfigForContext(t, svc, publicChatTestAIConfigContext(t, svc), extra...)
+}
+
+func ensurePublicChatTestAgentAIConfig(t *testing.T, svc *Service) {
+	t.Helper()
+	ctx := publicChatTestAIConfigContext(t, svc)
+	current, err := svc.GetRuntimeAgentAIConfig(context.Background(), &runtimev1.GetRuntimeAgentAIConfigRequest{
+		Context: ctx,
+	})
+	if err != nil {
+		t.Fatalf("GetRuntimeAgentAIConfig: %v", err)
+	}
+	for _, intent := range current.GetConfig().GetIntents() {
+		if intent.GetCapability() == runtimeAgentAIConfigCapabilityTextGenerate &&
+			intent.GetTargetRef().GetTarget() != nil {
+			return
+		}
+	}
+	upsertPublicChatTestAgentAIConfigForContext(t, svc, ctx)
 }
 
 func upsertPublicChatTestAgentAIConfigForContext(t *testing.T, svc *Service, ctx *runtimev1.AgentRequestContext, extra ...*runtimev1.RuntimeAgentAIConfigIntent) {
@@ -27,11 +45,13 @@ func upsertPublicChatTestAgentAIConfigForContext(t *testing.T, svc *Service, ctx
 			Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
 			ModelId:     "local/default",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-text"),
 		},
 		{
 			Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
-			ModelId:     runtimeAgentAIConfigDefaultEmbeddingModelID,
+			ModelId:     runtimeAgentAIConfigTestEmbedModel,
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-embed"),
 		},
 	}
 	intents = append(intents, extra...)

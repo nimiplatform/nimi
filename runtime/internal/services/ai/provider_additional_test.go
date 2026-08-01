@@ -19,6 +19,48 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func setExactPublicChatTextTargetForTest(
+	t *testing.T,
+	svc *Service,
+	localModel *fakeLocalModelLister,
+	asset *runtimev1.LocalAssetRecord,
+) *runtimev1.RuntimeDurableTargetRef {
+	t.Helper()
+	if svc == nil || localModel == nil || asset == nil {
+		t.Fatal("exact public chat target fixture is incomplete")
+	}
+	localAssetID := strings.TrimSpace(asset.GetLocalAssetId())
+	logicalModelID := strings.TrimSpace(asset.GetLogicalModelId())
+	if localAssetID == "" || logicalModelID == "" {
+		t.Fatalf("exact public chat target asset identity is incomplete: %+v", asset)
+	}
+	if localModel.managedNames == nil {
+		localModel.managedNames = map[string]string{}
+	}
+	localModel.managedNames[localAssetID] = strings.TrimSpace(asset.GetAssetId())
+	readinessRef := "local_asset_readiness:v2:test:" + localAssetID
+	resolver := &exactTargetLocalModelLister{
+		fakeLocalModelLister: localModel,
+		binding: &runtimev1.RuntimeResolvedLocalExecutionBinding{
+			ReadinessRef:    readinessRef,
+			LocalAssetId:    localAssetID,
+			ResolvedModelId: logicalModelID,
+		},
+		asset: asset,
+	}
+	svc.SetLocalModelLister(resolver)
+	return &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+				Version: "v2",
+				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{
+					ReadinessRef: readinessRef,
+				},
+			},
+		},
+	}
+}
+
 func TestProviderHelpersAndRouteSelectorWrapper(t *testing.T) {
 	selector := newRouteSelector(Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{
@@ -216,20 +258,22 @@ func TestResolvePublicChatTextBindingResolvesProtectedDefaultFromSupervisedAsset
 	}
 }
 
-func TestResolvePublicChatTextContextMetadataResolvesLocalDefaultAliasWithoutPinnedTarget(t *testing.T) {
+func TestResolvePublicChatTextContextMetadataResolvesLocalDefaultAliasThroughExactTarget(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		DefaultLocalTextModel: "gemma-4-e2b-it-local",
 	})
-	svc.localModel = &fakeLocalModelLister{
+	asset := &runtimev1.LocalAssetRecord{
+		LocalAssetId:        "local-asset-gemma-default",
+		AssetId:             "local/gemma-4-e2b-it-local",
+		LogicalModelId:      "gemma-4-e2b-it-local",
+		Engine:              "llama",
+		Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Capabilities:        []string{"text.generate"},
+	}
+	localModel := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
-			Assets: []*runtimev1.LocalAssetRecord{{
-				LocalAssetId:   "local-asset-gemma-default",
-				AssetId:        "local/gemma-4-e2b-it-local",
-				LogicalModelId: "gemma-4-e2b-it-local",
-				Engine:         "llama",
-				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				Capabilities:   []string{"text.generate"},
-			}},
+			Assets: []*runtimev1.LocalAssetRecord{asset},
 		}},
 		localContexts: map[string]struct {
 			window   uint64
@@ -238,6 +282,7 @@ func TestResolvePublicChatTextContextMetadataResolvesLocalDefaultAliasWithoutPin
 			"local-asset-gemma-default": {window: 65536, revision: "sha256:gemma-default"},
 		},
 	}
+	targetRef := setExactPublicChatTextTargetForTest(t, svc, localModel, asset)
 
 	route, modelResolved, err := svc.ResolvePublicChatTextBinding(
 		context.Background(),
@@ -251,7 +296,7 @@ func TestResolvePublicChatTextContextMetadataResolvesLocalDefaultAliasWithoutPin
 		context.Background(),
 		route,
 		modelResolved,
-		nil,
+		targetRef,
 	)
 	if err != nil {
 		t.Fatalf("ResolvePublicChatTextContextMetadata local/default alias: %v", err)
@@ -259,23 +304,32 @@ func TestResolvePublicChatTextContextMetadataResolvesLocalDefaultAliasWithoutPin
 	if window != 32768 || catalogRevision == "" || modelRevision == "" || provider != "local" {
 		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
 	}
-	if resolvedTargetRef.GetLocalRuntime().GetVersion() != "v2" || resolvedTargetRef.GetLocalRuntime().GetProfileBindingId() != "local-runtime:local-asset-gemma-default" {
+	if resolvedTargetRef.GetLocalRuntime().GetVersion() != "v2" ||
+		resolvedTargetRef.GetLocalRuntime().GetReadinessRef() != targetRef.GetLocalRuntime().GetReadinessRef() {
 		t.Fatalf("resolved target ref = %#v", resolvedTargetRef)
 	}
 }
 
 func TestResolvePublicChatTextContextMetadataUsesResolvedCatalogRow(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
-	targetRef := &runtimev1.RuntimeDurableTargetRef{
-		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-				Version: "v2",
-				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-					ProfileBindingId: "profile-binding-test",
-				},
-			},
+	asset := &runtimev1.LocalAssetRecord{
+		LocalAssetId:        "local-asset-gemma-catalog",
+		AssetId:             "local/gemma-4-e2b-it-local",
+		LogicalModelId:      "gemma-4-e2b-it-local",
+		Engine:              "llama",
+		Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Capabilities:        []string{"text.generate"},
+	}
+	localModel := &fakeLocalModelLister{
+		localContexts: map[string]struct {
+			window   uint64
+			revision string
+		}{
+			"local-asset-gemma-catalog": {window: 65536, revision: "sha256:gemma-catalog"},
 		},
 	}
+	targetRef := setExactPublicChatTextTargetForTest(t, svc, localModel, asset)
 
 	window, catalogRevision, modelRevision, provider, resolvedTargetRef, err := svc.ResolvePublicChatTextContextMetadata(
 		context.Background(),
@@ -289,24 +343,26 @@ func TestResolvePublicChatTextContextMetadataUsesResolvedCatalogRow(t *testing.T
 	if window != 32768 || catalogRevision == "" || modelRevision == "" || provider != "local" {
 		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
 	}
-	if resolvedTargetRef.GetLocalRuntime().GetProfileBindingId() != "profile-binding-test" {
+	if resolvedTargetRef.GetLocalRuntime().GetReadinessRef() != targetRef.GetLocalRuntime().GetReadinessRef() {
 		t.Fatalf("resolved target ref = %#v", resolvedTargetRef)
 	}
 }
 
 func TestResolvePublicChatTextContextMetadataResolvesLocalRuntimeBindingToLogicalCatalogModel(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
-	svc.localModel = &fakeLocalModelLister{
+	asset := &runtimev1.LocalAssetRecord{
+		LocalAssetId:         "local-asset-gemma",
+		AssetId:              "local.chat.gemma-4-e2b-it.q8-0",
+		LogicalModelId:       "gemma-4-e2b-it-local",
+		Engine:               "llama",
+		Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		DurableTargetStatus:  runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		LocalInvokeProfileId: "invoke-gemma",
+		Capabilities:         []string{"text.generate"},
+	}
+	localModel := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
-			Assets: []*runtimev1.LocalAssetRecord{{
-				LocalAssetId:         "local-asset-gemma",
-				AssetId:              "local.chat.gemma-4-e2b-it.q8-0",
-				LogicalModelId:       "gemma-4-e2b-it-local",
-				Engine:               "llama",
-				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				LocalInvokeProfileId: "invoke-gemma",
-				Capabilities:         []string{"text.generate"},
-			}},
+			Assets: []*runtimev1.LocalAssetRecord{asset},
 		}},
 		localContexts: map[string]struct {
 			window   uint64
@@ -315,19 +371,12 @@ func TestResolvePublicChatTextContextMetadataResolvesLocalRuntimeBindingToLogica
 			"local-asset-gemma": {window: 65536, revision: "sha256:gemma"},
 		},
 	}
-	targetRef := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-		LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-			Version: "v2",
-			Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-				ProfileBindingId: "local-runtime:local-asset-gemma",
-			},
-		},
-	}}
+	targetRef := setExactPublicChatTextTargetForTest(t, svc, localModel, asset)
 
 	window, _, _, provider, resolvedTargetRef, err := svc.ResolvePublicChatTextContextMetadata(
 		context.Background(),
 		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		"local-runtime:local-asset-gemma",
+		"gemma-4-e2b-it-local",
 		targetRef,
 	)
 	if err != nil {
@@ -336,23 +385,25 @@ func TestResolvePublicChatTextContextMetadataResolvesLocalRuntimeBindingToLogica
 	if window != 32768 || provider != "local" {
 		t.Fatalf("context metadata = window:%d provider:%q", window, provider)
 	}
-	if resolvedTargetRef.GetLocalRuntime().GetProfileBindingId() != "local-runtime:local-asset-gemma" {
+	if resolvedTargetRef.GetLocalRuntime().GetReadinessRef() != targetRef.GetLocalRuntime().GetReadinessRef() {
 		t.Fatalf("resolved target ref = %#v", resolvedTargetRef)
 	}
 }
 
 func TestResolvePublicChatTextContextMetadataRestoresCatalogIdentityForVerifiedFileImport(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
-	svc.localModel = &fakeLocalModelLister{
+	asset := &runtimev1.LocalAssetRecord{
+		LocalAssetId:        "imported-gemma-q8",
+		AssetId:             "local-import/gemma-4-26B-A4B-it-Q8_0/import-instance",
+		LogicalModelId:      "nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
+		Engine:              "llama",
+		Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Capabilities:        []string{"text.generate"},
+	}
+	localModel := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
-			Assets: []*runtimev1.LocalAssetRecord{{
-				LocalAssetId:   "imported-gemma-q8",
-				AssetId:        "local-import/gemma-4-26B-A4B-it-Q8_0/import-instance",
-				LogicalModelId: "nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
-				Engine:         "llama",
-				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				Capabilities:   []string{"text.generate"},
-			}},
+			Assets: []*runtimev1.LocalAssetRecord{asset},
 		}},
 		catalogModels: map[string]string{
 			"imported-gemma-q8": "gemma-4-26b-a4b-it-local",
@@ -364,12 +415,13 @@ func TestResolvePublicChatTextContextMetadataRestoresCatalogIdentityForVerifiedF
 			"imported-gemma-q8": {window: 144384, revision: "sha256:imported-gemma-q8"},
 		},
 	}
+	targetRef := setExactPublicChatTextTargetForTest(t, svc, localModel, asset)
 
 	window, catalogRevision, modelRevision, provider, resolvedTargetRef, err := svc.ResolvePublicChatTextContextMetadata(
 		context.Background(),
 		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		"nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
-		nil,
+		targetRef,
 	)
 	if err != nil {
 		t.Fatalf("ResolvePublicChatTextContextMetadata verified file import: %v", err)
@@ -377,23 +429,25 @@ func TestResolvePublicChatTextContextMetadataRestoresCatalogIdentityForVerifiedF
 	if window != 32768 || catalogRevision == "" || modelRevision == "" || provider != "local" {
 		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
 	}
-	if got := resolvedTargetRef.GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:imported-gemma-q8" {
+	if got := resolvedTargetRef.GetLocalRuntime().GetReadinessRef(); got != targetRef.GetLocalRuntime().GetReadinessRef() {
 		t.Fatalf("resolved target binding = %q", got)
 	}
 }
 
 func TestResolvePublicChatTextContextMetadataClampsCatalogCapacityToLocalEngineContext(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	asset := &runtimev1.LocalAssetRecord{
+		LocalAssetId:        "imported-gemma-q8",
+		AssetId:             "local-import/gemma-4-26B-A4B-it-Q8_0/import-instance",
+		LogicalModelId:      "nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
+		Engine:              "llama",
+		Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Capabilities:        []string{"text.generate"},
+	}
 	localModel := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
-			Assets: []*runtimev1.LocalAssetRecord{{
-				LocalAssetId:   "imported-gemma-q8",
-				AssetId:        "local-import/gemma-4-26B-A4B-it-Q8_0/import-instance",
-				LogicalModelId: "nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
-				Engine:         "llama",
-				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				Capabilities:   []string{"text.generate"},
-			}},
+			Assets: []*runtimev1.LocalAssetRecord{asset},
 		}},
 		catalogModels: map[string]string{
 			"imported-gemma-q8": "gemma-4-26b-a4b-it-local",
@@ -405,13 +459,13 @@ func TestResolvePublicChatTextContextMetadataClampsCatalogCapacityToLocalEngineC
 			"imported-gemma-q8": {window: 16384, revision: "sha256:imported-gemma-q8"},
 		},
 	}
-	svc.localModel = localModel
+	targetRef := setExactPublicChatTextTargetForTest(t, svc, localModel, asset)
 
 	window, catalogRevision, modelRevision, provider, resolvedTargetRef, err := svc.ResolvePublicChatTextContextMetadata(
 		context.Background(),
 		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		"nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
-		nil,
+		targetRef,
 	)
 	if err != nil {
 		t.Fatalf("ResolvePublicChatTextContextMetadata verified file import with engine clamp: %v", err)
@@ -419,7 +473,7 @@ func TestResolvePublicChatTextContextMetadataClampsCatalogCapacityToLocalEngineC
 	if window != 16384 || catalogRevision == "" || modelRevision == "" || provider != "local" {
 		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
 	}
-	if got := resolvedTargetRef.GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:imported-gemma-q8" {
+	if got := resolvedTargetRef.GetLocalRuntime().GetReadinessRef(); got != targetRef.GetLocalRuntime().GetReadinessRef() {
 		t.Fatalf("resolved target binding = %q", got)
 	}
 	if got := localModel.leaseCalls; len(got) != 2 ||
@@ -431,16 +485,18 @@ func TestResolvePublicChatTextContextMetadataClampsCatalogCapacityToLocalEngineC
 
 func TestResolvePublicChatTextContextMetadataUsesLiveLlamaCapacityForUncatalogedImport(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
-	svc.localModel = &fakeLocalModelLister{
+	asset := &runtimev1.LocalAssetRecord{
+		LocalAssetId:        "uncataloged-gemma",
+		AssetId:             "local-import/gemma-4-26B-A4B-it-Q8_0/import-instance",
+		LogicalModelId:      "nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
+		Engine:              "llama",
+		Status:              runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		DurableTargetStatus: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Capabilities:        []string{"text.generate"},
+	}
+	localModel := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
-			Assets: []*runtimev1.LocalAssetRecord{{
-				LocalAssetId:   "uncataloged-gemma",
-				AssetId:        "local-import/gemma-4-26B-A4B-it-Q8_0/import-instance",
-				LogicalModelId: "nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
-				Engine:         "llama",
-				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				Capabilities:   []string{"text.generate"},
-			}},
+			Assets: []*runtimev1.LocalAssetRecord{asset},
 		}},
 		localContexts: map[string]struct {
 			window   uint64
@@ -449,12 +505,13 @@ func TestResolvePublicChatTextContextMetadataUsesLiveLlamaCapacityForUncataloged
 			"uncataloged-gemma": {window: 144384, revision: "sha256:uncataloged-gemma"},
 		},
 	}
+	targetRef := setExactPublicChatTextTargetForTest(t, svc, localModel, asset)
 
 	window, catalogRevision, modelRevision, provider, resolvedTargetRef, err := svc.ResolvePublicChatTextContextMetadata(
 		context.Background(),
 		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		"nimi/local-import-gemma-4-26b-a4b-it-q8-0-import-instance",
-		nil,
+		targetRef,
 	)
 	if err != nil {
 		t.Fatalf("ResolvePublicChatTextContextMetadata uncataloged GGUF import: %v", err)
@@ -463,7 +520,7 @@ func TestResolvePublicChatTextContextMetadataUsesLiveLlamaCapacityForUncataloged
 		modelRevision != "sha256:uncataloged-gemma" || provider != "local" {
 		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
 	}
-	if got := resolvedTargetRef.GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:uncataloged-gemma" {
+	if got := resolvedTargetRef.GetLocalRuntime().GetReadinessRef(); got != targetRef.GetLocalRuntime().GetReadinessRef() {
 		t.Fatalf("resolved target binding = %q", got)
 	}
 }

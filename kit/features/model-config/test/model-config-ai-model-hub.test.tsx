@@ -67,7 +67,7 @@ const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: '
 
 const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { targetRefs: {}, selectedParams: {} },
+  capabilities: { logicalModelIds: {}, targetRefs: {}, selectedComponents: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
@@ -94,6 +94,7 @@ function stubService(): SharedAIConfigService {
 
 const emptyProfileController: ModelConfigProfileController = {
   currentOrigin: null,
+  currentProfile: null,
   profiles: [],
   selectedProfileId: null,
   isLoading: false,

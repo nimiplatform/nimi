@@ -1,11 +1,32 @@
 import { createNimiError, type JsonObject, type NimiError } from '../../types/index.js';
+import {
+  areNimiAIScopeRefsEqual,
+  diffNimiAIConfigs,
+  formNimiRuntimeProfileDescriptor,
+  projectNimiRuntimeLocalAgentAIScopeRef,
+  toNimiRuntimeProfileDescriptorWire,
+  validateNimiAIProfile,
+  versionNimiAIProfile,
+  type NimiAICapabilityRequirementDeclaration,
+  type NimiAIConfig,
+  type NimiAIConfigApplyOutcome,
+  type NimiAIConfigComponentSelection,
+  type NimiAIConfigSetupProjection,
+  type NimiAIProfile,
+  type NimiAIProfileApplyResult,
+  type NimiAIProfileOriginRef,
+  type NimiAIProfilePreviewResult,
+} from '../ai/index.js';
+import type { NimiJsonObject } from '../contracts/index.js';
 import type { NimiLocalAppAgentHandle } from './permission-types.js';
 import {
   asRecord,
   assertExactKeys,
   assertExactMethodNamespace,
   assertExactProjectionKeys,
+  assertNoAIConfigPrivateIdentity,
   assertNoAuthorityMaterial,
+  assertSafeProjection,
   canonicalString,
   decimalCursor,
   localAppError,
@@ -17,7 +38,12 @@ import {
 } from './local-app-runtime-platform-validation.js';
 
 export type NimiLocalAppAgentRoutePolicy = 'local' | 'cloud';
-export type NimiLocalAppAgentReadinessState = 'ready' | 'blocked' | 'unavailable' | 'failed';
+export type NimiLocalAppAgentReadinessState =
+  | 'ready'
+  | 'blocked'
+  | 'unavailable'
+  | 'failed'
+  | 'configured_unverified';
 export type NimiLocalAppAgentRouteOptionAvailability = 'ready' | 'installed';
 export type NimiLocalAppAgentAutonomyMode = 'off' | 'low' | 'medium' | 'high';
 export type NimiLocalAppAgentPresentationBackendKind = 'vrm' | 'live2d' | 'sprite2d' | 'canvas2d' | 'video';
@@ -33,11 +59,19 @@ export interface NimiLocalAppDuration {
   readonly nanos: number;
 }
 
-export interface NimiLocalAppAgentRouteIntent {
+export interface NimiLocalAppTimestampProfileOrigin {
+  readonly profileId: string;
+  readonly title: string;
+  readonly appliedAt: NimiLocalAppTimestamp;
+}
+
+export interface NimiLocalAppAgentAIConfigIntent {
   readonly capability: string;
   readonly provider: string;
-  readonly model: string;
+  readonly logicalModelId: string;
   readonly routePolicy: NimiLocalAppAgentRoutePolicy;
+  readonly selectedComponents?: readonly Omit<NimiAIConfigComponentSelection, 'targetRef'>[];
+  readonly selectedParams?: NimiJsonObject;
 }
 
 export interface NimiLocalAppAgentCapabilityReadiness {
@@ -50,15 +84,16 @@ export interface NimiLocalAppAgentCapabilityReadiness {
 export interface NimiLocalAppAgentRouteOption {
   readonly capability: string;
   readonly provider: string;
-  readonly model: string;
+  readonly logicalModelId: string;
   readonly routePolicy: NimiLocalAppAgentRoutePolicy;
   readonly label: string;
   readonly availability: NimiLocalAppAgentRouteOptionAvailability;
 }
 
-export interface NimiLocalAppAgentConfigurationProjection {
+export interface NimiLocalAppAgentAIConfigProjection {
+  readonly aiConfig: NimiAIConfig;
   readonly capabilities: readonly string[];
-  readonly routeIntents: readonly NimiLocalAppAgentRouteIntent[];
+  readonly intents: readonly NimiLocalAppAgentAIConfigIntent[];
   readonly readiness: readonly NimiLocalAppAgentCapabilityReadiness[];
   readonly configurationRevision: NimiLocalAppRevision;
   readonly routeOptions: readonly NimiLocalAppAgentRouteOption[];
@@ -195,7 +230,7 @@ export interface NimiLocalAppPresentationConflict {
 }
 
 export type NimiLocalAppConfigurationUpdateResult =
-  | { readonly outcome: 'updated'; readonly projection: NimiLocalAppAgentConfigurationProjection }
+  | { readonly outcome: 'updated'; readonly projection: NimiLocalAppAgentAIConfigProjection }
   | NimiLocalAppConfigurationConflict;
 export type NimiLocalAppAutonomyUpdateResult =
   | { readonly outcome: 'updated'; readonly projection: NimiLocalAppAgentAutonomyProjection }
@@ -221,7 +256,20 @@ export interface NimiLocalAppConfigurationSnapshotInput {
 }
 export interface NimiLocalAppUpdateConfigurationInput extends NimiLocalAppConfigurationSnapshotInput {
   readonly expectedConfigurationRevision: NimiLocalAppRevision;
-  readonly routeIntents: readonly NimiLocalAppAgentRouteIntent[];
+  readonly config: NimiAIConfig;
+  readonly routes: readonly {
+    readonly capability: string;
+    readonly provider: string;
+    readonly routePolicy: NimiLocalAppAgentRoutePolicy;
+  }[];
+}
+export interface NimiLocalAppAIProfilePreviewInput extends NimiLocalAppConfigurationSnapshotInput {
+  readonly scopeRef: NimiAIConfig['scopeRef'];
+  readonly profile: NimiAIProfile;
+  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
+}
+export interface NimiLocalAppAIProfileApplyInput extends NimiLocalAppAIProfilePreviewInput {
+  readonly expectedBaseVersion?: string;
 }
 export type NimiLocalAppReadinessSnapshotInput = NimiLocalAppConfigurationSnapshotInput;
 export type NimiLocalAppAutonomySnapshotInput = NimiLocalAppConfigurationSnapshotInput;
@@ -241,9 +289,21 @@ export interface NimiLocalAppAgentConfigureShell {
   updateConfiguration(input: {
     readonly agentHandle: string;
     readonly expectedConfigurationRevision: string;
-    readonly routeIntents: readonly NimiLocalAppAgentRouteIntent[];
+    readonly intents: readonly NimiLocalAppAgentAIConfigIntent[];
+    readonly profileOrigin: NimiLocalAppTimestampProfileOrigin | null;
   }): Promise<unknown>;
   readinessSnapshot(input: { readonly agentHandle: string }): Promise<unknown>;
+  aiProfilePreview(input: {
+    readonly agentHandle: string;
+    readonly profile: NimiAIProfile;
+    readonly runtimeDescriptor: unknown;
+  }): Promise<unknown>;
+  aiProfileApply(input: {
+    readonly agentHandle: string;
+    readonly expectedConfigurationRevision: string;
+    readonly profile: NimiAIProfile;
+    readonly runtimeDescriptor: unknown;
+  }): Promise<unknown>;
   autonomySnapshot(input: { readonly agentHandle: string }): Promise<unknown>;
   updateAutonomy(input: {
     readonly agentHandle: string;
@@ -260,9 +320,11 @@ export interface NimiLocalAppAgentConfigureShell {
 }
 
 export interface NimiLocalAppAgentConfigureClient {
-  configurationSnapshot(input: NimiLocalAppConfigurationSnapshotInput): Promise<NimiLocalAppAgentConfigurationProjection>;
+  configurationSnapshot(input: NimiLocalAppConfigurationSnapshotInput): Promise<NimiLocalAppAgentAIConfigProjection>;
   updateConfiguration(input: NimiLocalAppUpdateConfigurationInput): Promise<NimiLocalAppConfigurationUpdateResult>;
   readinessSnapshot(input: NimiLocalAppReadinessSnapshotInput): Promise<NimiLocalAppAgentReadinessProjection>;
+  previewAIProfile(input: NimiLocalAppAIProfilePreviewInput): Promise<NimiAIProfilePreviewResult>;
+  applyAIProfile(input: NimiLocalAppAIProfileApplyInput): Promise<NimiAIProfileApplyResult>;
   autonomySnapshot(input: NimiLocalAppAutonomySnapshotInput): Promise<NimiLocalAppAgentAutonomyProjection>;
   updateAutonomy(input: NimiLocalAppUpdateAutonomyInput): Promise<NimiLocalAppAutonomyUpdateResult>;
   presentationSnapshot(input: NimiLocalAppPresentationSnapshotInput): Promise<NimiLocalAppAgentPresentationProjection>;
@@ -273,6 +335,8 @@ const CONFIGURE_METHODS = [
   'configurationSnapshot',
   'updateConfiguration',
   'readinessSnapshot',
+  'aiProfilePreview',
+  'aiProfileApply',
   'autonomySnapshot',
   'updateAutonomy',
   'presentationSnapshot',
@@ -297,12 +361,16 @@ export function createNimiLocalAppAgentConfigureClient(
       return projectConfiguration(await invoke(() => carrier.configurationSnapshot({ agentHandle })));
     },
     updateConfiguration: async (input: NimiLocalAppUpdateConfigurationInput) => {
-      assertExactKeys(input, ['agentHandle', 'expectedConfigurationRevision', 'routeIntents'], 'configuration update');
+      assertExactKeys(input, ['agentHandle', 'expectedConfigurationRevision', 'config', 'routes'], 'configuration update');
       assertNoAuthorityMaterial(input);
+      const intents = inputIntentsFromAIConfig(input.config, input.routes);
       const request = {
         agentHandle: requireText(input.agentHandle, 'agentHandle'),
         expectedConfigurationRevision: positiveRevision(input.expectedConfigurationRevision, 'expectedConfigurationRevision'),
-        routeIntents: projectRouteIntents(input.routeIntents, true),
+        intents,
+        profileOrigin: input.config.profileOrigin
+          ? inputProfileOrigin(input.config.profileOrigin)
+          : null,
       };
       try {
         return Object.freeze({ outcome: 'updated', projection: projectConfiguration(await carrier.updateConfiguration(request)) });
@@ -317,6 +385,38 @@ export function createNimiLocalAppAgentConfigureClient(
     readinessSnapshot: async (input: NimiLocalAppReadinessSnapshotInput) => {
       const agentHandle = configureHandle(input, ['agentHandle'], 'readiness snapshot');
       return projectReadiness(await invoke(() => carrier.readinessSnapshot({ agentHandle })));
+    },
+    previewAIProfile: async (input: NimiLocalAppAIProfilePreviewInput) => {
+      assertExactKeys(input, ['agentHandle', 'scopeRef', 'profile', 'requirementDeclarations'], 'AIProfile preview');
+      assertNoAuthorityMaterial(input);
+      const agentHandle = requireText(input.agentHandle, 'agentHandle');
+      const current = projectConfiguration(await invoke(() => carrier.configurationSnapshot({ agentHandle })));
+      assertLocalAppAIProfileScope(input.scopeRef, current.aiConfig);
+      const payload = localAppAIProfilePayload(input.profile, input.requirementDeclarations);
+      const response = projectAIProfilePreviewResponse(await invoke(() => carrier.aiProfilePreview({
+        agentHandle,
+        ...payload,
+      })));
+      if (!areNimiAIScopeRefsEqual(response.before?.scopeRef ?? input.scopeRef, input.scopeRef)) {
+        return localAppProjectionError('AIProfile preview scope');
+      }
+      return response;
+    },
+    applyAIProfile: async (input: NimiLocalAppAIProfileApplyInput) => {
+      assertExactKeys(input, ['agentHandle', 'scopeRef', 'profile', 'requirementDeclarations', 'expectedBaseVersion'], 'AIProfile apply');
+      assertNoAuthorityMaterial(input);
+      const agentHandle = requireText(input.agentHandle, 'agentHandle');
+      const current = projectConfiguration(await invoke(() => carrier.configurationSnapshot({ agentHandle })));
+      assertLocalAppAIProfileScope(input.scopeRef, current.aiConfig);
+      const expectedConfigurationRevision = input.expectedBaseVersion
+        ? parseLocalAppAIProfileBaseVersion(input.expectedBaseVersion)
+        : current.configurationRevision;
+      const payload = localAppAIProfilePayload(input.profile, input.requirementDeclarations);
+      return projectAIProfileApplyResponse(await invoke(() => carrier.aiProfileApply({
+        agentHandle,
+        expectedConfigurationRevision,
+        ...payload,
+      })));
     },
     autonomySnapshot: async (input: NimiLocalAppAutonomySnapshotInput) => {
       const agentHandle = configureHandle(input, ['agentHandle'], 'autonomy snapshot');
@@ -412,41 +512,381 @@ function configureHandle(input: unknown, keys: readonly string[], label: string)
   return requireText((input as { readonly agentHandle?: unknown }).agentHandle, 'agentHandle');
 }
 
-function projectConfiguration(value: unknown): NimiLocalAppAgentConfigurationProjection {
-  const record = asRecord(value);
-  assertExactProjectionKeys(record, ['capabilities', 'routeIntents', 'readiness', 'configurationRevision', 'routeOptions'], 'configuration');
-  if (!Array.isArray(record.capabilities) || !Array.isArray(record.readiness)) localAppProjectionError('configuration');
-  const capabilities = record.capabilities.map((entry) => projectionText(entry, 'capability'));
-  if (new Set(capabilities).size !== capabilities.length) localAppProjectionError('configuration capabilities');
+const LOCAL_APP_AI_PROFILE_BASE_VERSION_PREFIX = 'runtime-agent-revision:';
+
+function assertLocalAppAIProfileScope(
+  scopeRef: NimiAIConfig['scopeRef'],
+  current: NimiAIConfig,
+): void {
+  if (!areNimiAIScopeRefsEqual(scopeRef, current.scopeRef)) {
+    return localAppError(
+      'Local-app AIProfile scopeRef does not match the Runtime-issued Agent handle.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'use_runtime_projected_ai_config_scope',
+    );
+  }
+}
+
+function localAppAIProfilePayload(
+  profile: NimiAIProfile,
+  requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[],
+): {
+  readonly profile: NimiAIProfile;
+  readonly runtimeDescriptor: unknown;
+} {
+  const validation = validateNimiAIProfile(profile);
+  if (!validation.valid) {
+    return localAppError(
+      `Local-app AIProfile is invalid: ${validation.issues.map((issue) => `${issue.code}:${issue.path}`).join('; ')}`,
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'fix_ai_profile_contract',
+    );
+  }
+  const digest = versionNimiAIProfile(profile);
+  const descriptor = formNimiRuntimeProfileDescriptor({
+    profile,
+    requirementDeclarations,
+    descriptorId: `runtime-agent-ai-profile:${profile.profileId}:${digest}`,
+    sourceProfileDigest: digest,
+  });
+  return {
+    profile,
+    runtimeDescriptor: toNimiRuntimeProfileDescriptorWire(descriptor),
+  };
+}
+
+function localAppAIProfileBaseVersion(revision: NimiLocalAppRevision): string {
+  return `${LOCAL_APP_AI_PROFILE_BASE_VERSION_PREFIX}${positiveRevision(revision, 'profile base revision')}`;
+}
+
+function parseLocalAppAIProfileBaseVersion(value: unknown): NimiLocalAppRevision {
+  const normalized = canonicalString(value, 'expectedBaseVersion');
+  if (!normalized.startsWith(LOCAL_APP_AI_PROFILE_BASE_VERSION_PREFIX)) {
+    return localAppError(
+      'Local-app AIProfile expectedBaseVersion is not a Runtime-issued preview version.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'preview_ai_profile_before_apply',
+    );
+  }
+  return positiveRevision(
+    normalized.slice(LOCAL_APP_AI_PROFILE_BASE_VERSION_PREFIX.length),
+    'expectedBaseVersion',
+  );
+}
+
+function projectAIProfileOutcome(value: unknown): NimiAIConfigApplyOutcome {
+  return enumText(value, [
+    'ready_to_apply',
+    'setup_required_no_live_config',
+    'unsupported_no_live_config',
+    'invalid_profile',
+    'stale_base',
+    'failed',
+  ], 'AIProfile outcome');
+}
+
+function projectAIProfileStrings(value: unknown, label: string): readonly string[] {
+  if (!Array.isArray(value)) return localAppProjectionError(label);
+  const projected = value.map((entry) => projectionText(entry, label));
+  return Object.freeze([...new Set(projected)].sort());
+}
+
+function projectAIProfileSetup(
+  outcome: NimiAIConfigApplyOutcome,
+  response: {
+    readonly blockingCapabilities: readonly string[];
+    readonly reasonCodes: readonly string[];
+    readonly actionRefs: readonly string[];
+  },
+): NimiAIConfigSetupProjection | null {
+  if (outcome !== 'setup_required_no_live_config' && outcome !== 'unsupported_no_live_config') {
+    return null;
+  }
   return Object.freeze({
-    capabilities: Object.freeze(capabilities),
-    routeIntents: projectRouteIntents(record.routeIntents, false),
-    readiness: Object.freeze(record.readiness.map(projectCapabilityReadiness)),
-    configurationRevision: positiveRevisionProjection(record.configurationRevision, 'configurationRevision'),
-    routeOptions: projectRouteOptions(record.routeOptions),
+    outcome,
+    blockingCapabilities: response.blockingCapabilities,
+    reasonCodes: response.reasonCodes,
+    actionRefs: response.actionRefs,
   });
 }
 
-function projectRouteOptions(value: unknown): readonly NimiLocalAppAgentRouteOption[] {
-  if (!Array.isArray(value) || value.length === 0) localAppProjectionError('route options');
+function projectAIProfilePreviewResponse(value: unknown): NimiAIProfilePreviewResult {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, [
+    'before', 'after', 'outcome', 'baseRevision', 'blockingCapabilities',
+    'reasonCodes', 'actionRefs', 'probeWarnings',
+  ], 'AIProfile preview');
+  const beforeProjection = record.before === null ? null : projectConfiguration(record.before, true);
+  const afterProjection = record.after === null ? null : projectConfiguration(record.after, true);
+  const outcome = projectAIProfileOutcome(record.outcome);
+  const baseVersion = localAppAIProfileBaseVersion(
+    positiveRevisionProjection(record.baseRevision, 'profile base revision'),
+  );
+  if (beforeProjection && baseVersion !== localAppAIProfileBaseVersion(beforeProjection.configurationRevision)) {
+    return localAppProjectionError('AIProfile preview base revision');
+  }
+  if ((outcome === 'ready_to_apply') !== Boolean(afterProjection)) {
+    return localAppProjectionError('AIProfile preview outcome');
+  }
+  const setupInput = {
+    blockingCapabilities: projectAIProfileStrings(record.blockingCapabilities, 'blocking capability'),
+    reasonCodes: projectAIProfileStrings(record.reasonCodes, 'AIProfile reason code'),
+    actionRefs: projectAIProfileStrings(record.actionRefs, 'AIProfile action ref'),
+  };
+  const setupProjection = projectAIProfileSetup(outcome, setupInput);
+  const before = beforeProjection?.aiConfig ?? null;
+  const after = afterProjection?.aiConfig ?? null;
+  return Object.freeze({
+    before,
+    after,
+    outcome,
+    ...(setupProjection ? { setupProjection } : {}),
+    diff: diffNimiAIConfigs(before, after),
+    baseVersion,
+    probeWarnings: projectAIProfileStrings(record.probeWarnings, 'AIProfile probe warning'),
+  });
+}
+
+function projectAIProfileApplyResponse(value: unknown): NimiAIProfileApplyResult {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, [
+    'projection', 'outcome', 'blockingCapabilities', 'reasonCodes', 'actionRefs', 'probeWarnings',
+  ], 'AIProfile apply');
+  const projection = record.projection === null ? null : projectConfiguration(record.projection, true);
+  const outcome = projectAIProfileOutcome(record.outcome);
+  if ((outcome === 'ready_to_apply') !== Boolean(projection)) {
+    return localAppProjectionError('AIProfile apply outcome');
+  }
+  const setupInput = {
+    blockingCapabilities: projectAIProfileStrings(record.blockingCapabilities, 'blocking capability'),
+    reasonCodes: projectAIProfileStrings(record.reasonCodes, 'AIProfile reason code'),
+    actionRefs: projectAIProfileStrings(record.actionRefs, 'AIProfile action ref'),
+  };
+  const setupProjection = projectAIProfileSetup(outcome, setupInput);
+  return Object.freeze({
+    success: outcome === 'ready_to_apply',
+    config: projection?.aiConfig ?? null,
+    failureReason: outcome === 'ready_to_apply'
+      ? null
+      : setupInput.reasonCodes.join(',') || outcome,
+    outcome,
+    ...(setupProjection ? { setupProjection } : {}),
+    probeWarnings: projectAIProfileStrings(record.probeWarnings, 'AIProfile probe warning'),
+  });
+}
+
+function inputIntentsFromAIConfig(
+  config: NimiAIConfig,
+  routes: NimiLocalAppUpdateConfigurationInput['routes'],
+): readonly NimiLocalAppAgentAIConfigIntent[] {
+  if (!config || config.scopeRef?.kind !== 'local-agent' || config.scopeRef.surfaceId !== undefined) {
+    return localAppError(
+      'Local-app AIConfig update requires a Runtime-issued local-agent scope.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'use_runtime_projected_ai_config',
+    );
+  }
+  if (Object.keys(config.capabilities.targetRefs || {}).length > 0) {
+    return localAppError(
+      'Local-app AIConfig cannot carry Runtime-private target refs.',
+      'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
+      'remove_runtime_private_target_refs',
+    );
+  }
+  if (!Array.isArray(routes) || routes.length === 0) {
+    return localAppError(
+      'Local-app AIConfig update requires route selections.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'provide_ai_config_routes',
+    );
+  }
+  const routeByCapability = new Map<string, NimiLocalAppUpdateConfigurationInput['routes'][number]>();
+  for (const route of routes) {
+    assertExactKeys(route, ['capability', 'provider', 'routePolicy'], 'AIConfig route');
+    const capability = requireText(route.capability, 'capability');
+    const provider = canonicalString(route.provider, 'provider');
+    const routePolicy = enumText(route.routePolicy, ['local', 'cloud'], 'route policy');
+    if (routeByCapability.has(capability)
+      || (routePolicy === 'local' && provider)
+      || (routePolicy === 'cloud' && !provider)) {
+      return localAppError(
+        'Local-app AIConfig route is not canonical.',
+        'SDK_LOCAL_APP_INPUT_INVALID',
+        'repair_ai_config_route',
+      );
+    }
+    routeByCapability.set(capability, { capability, provider, routePolicy });
+  }
+  const intents = Object.entries(config.capabilities.logicalModelIds || {}).map(([rawCapability, rawModel]) => {
+    const capability = requireText(rawCapability, 'capability');
+    const logicalModelId = requireText(rawModel, 'logicalModelId');
+    const route = routeByCapability.get(capability);
+    if (!route) {
+      return localAppError(
+        `Local-app AIConfig route is missing for ${capability}.`,
+        'SDK_LOCAL_APP_INPUT_INVALID',
+        'provide_ai_config_route',
+      );
+    }
+    const rawParams = config.capabilities.selectedParams?.[capability];
+    const rawComponents = config.capabilities.selectedComponents?.[capability] ?? [];
+    if (rawComponents.some((selection) => selection.targetRef !== undefined)) {
+      return localAppError(
+        `Local-app AIConfig components for ${capability} cannot carry Runtime-private target refs.`,
+        'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
+        'remove_runtime_private_component_target_refs',
+      );
+    }
+    const selectedComponents = projectLocalAppComponentSelections(
+      rawComponents,
+      true,
+      capability,
+    );
+    let selectedParams: NimiJsonObject | null = null;
+    if (rawParams !== undefined) {
+      assertSafeProjection(rawParams);
+      assertNoAIConfigPrivateIdentity(rawParams, `AIConfig selectedParams for ${capability}`, true);
+      const params = asRecord(rawParams);
+      if (!params) {
+        return localAppError(
+          `Local-app AIConfig selectedParams for ${capability} must be an object.`,
+          'SDK_LOCAL_APP_INPUT_INVALID',
+          'repair_selected_params',
+        );
+      }
+      selectedParams = { ...params } as NimiJsonObject;
+    }
+    return {
+      capability,
+      provider: route.provider,
+      logicalModelId,
+      routePolicy: route.routePolicy,
+      selectedComponents,
+      selectedParams,
+    };
+  });
+  if (intents.length === 0 || intents.length !== routeByCapability.size) {
+    return localAppError(
+      'Local-app AIConfig logical models and routes must cover the same capabilities.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'align_ai_config_routes',
+    );
+  }
+  return projectAIConfigIntents(intents, true);
+}
+
+function inputProfileOrigin(origin: NimiAIProfileOriginRef): NimiLocalAppTimestampProfileOrigin {
+  const profileId = requireText(origin.profileId, 'profileOrigin.profileId');
+  const title = requireText(origin.title, 'profileOrigin.title');
+  const milliseconds = Date.parse(origin.appliedAt);
+  if (!Number.isFinite(milliseconds)) {
+    return localAppError(
+      'Local-app AIConfig profileOrigin.appliedAt is invalid.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'repair_profile_origin',
+    );
+  }
+  const seconds = Math.floor(milliseconds / 1_000);
+  const nanos = (milliseconds - seconds * 1_000) * 1_000_000;
+  return {
+    profileId,
+    title,
+    appliedAt: { seconds: String(seconds), nanos },
+  };
+}
+
+function projectProfileOrigin(value: unknown): NimiAIProfileOriginRef | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['profileId', 'title', 'appliedAt'], 'AIConfig profile origin');
+  const appliedAt = projectTimestamp(record.appliedAt, 'profileOrigin.appliedAt');
+  if (!appliedAt) {
+    return localAppProjectionError('profileOrigin.appliedAt');
+  }
+  const milliseconds = Number(BigInt(appliedAt.seconds) * 1_000n)
+    + Math.floor(appliedAt.nanos / 1_000_000);
+  const date = new Date(milliseconds);
+  if (Number.isNaN(date.getTime())) {
+    return localAppProjectionError('profileOrigin.appliedAt');
+  }
+  return Object.freeze({
+    profileId: projectionText(record.profileId, 'profileOrigin.profileId'),
+    title: projectionText(record.title, 'profileOrigin.title'),
+    appliedAt: date.toISOString(),
+  });
+}
+
+function projectConfiguration(
+  value: unknown,
+  allowEmptyRouteOptions = false,
+): NimiLocalAppAgentAIConfigProjection {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, [
+    'capabilities', 'intents', 'readiness', 'configurationRevision', 'routeOptions',
+    'scopeOwnerId', 'profileOrigin',
+  ], 'configuration');
+  if (!Array.isArray(record.capabilities) || !Array.isArray(record.readiness)) localAppProjectionError('configuration');
+  const capabilities = record.capabilities.map((entry) => projectionText(entry, 'capability'));
+  if (new Set(capabilities).size !== capabilities.length) localAppProjectionError('configuration capabilities');
+  const scopeOwnerId = projectionText(record.scopeOwnerId, 'AIConfig scope owner');
+  const intents = projectAIConfigIntents(record.intents, false);
+  const logicalModelIds = Object.fromEntries(
+    intents.map((intent) => [intent.capability, intent.logicalModelId]),
+  );
+  const selectedParams = Object.fromEntries(
+    intents
+      .filter((intent) => intent.selectedParams !== undefined)
+      .map((intent) => [intent.capability, intent.selectedParams!]),
+  );
+  const selectedComponents = Object.fromEntries(
+    intents
+      .filter((intent) => (intent.selectedComponents?.length ?? 0) > 0)
+      .map((intent) => [intent.capability, intent.selectedComponents!]),
+  );
+  return Object.freeze({
+    aiConfig: Object.freeze({
+      scopeRef: projectNimiRuntimeLocalAgentAIScopeRef(scopeOwnerId),
+      capabilities: Object.freeze({
+        logicalModelIds: Object.freeze(logicalModelIds),
+        targetRefs: Object.freeze({}),
+        selectedComponents: Object.freeze(selectedComponents),
+        selectedParams: Object.freeze(selectedParams),
+      }),
+      profileOrigin: projectProfileOrigin(record.profileOrigin),
+    }),
+    capabilities: Object.freeze(capabilities),
+    intents,
+    readiness: Object.freeze(record.readiness.map(projectCapabilityReadiness)),
+    configurationRevision: positiveRevisionProjection(record.configurationRevision, 'configurationRevision'),
+    routeOptions: projectRouteOptions(record.routeOptions, allowEmptyRouteOptions),
+  });
+}
+
+function projectRouteOptions(
+  value: unknown,
+  allowEmpty = false,
+): readonly NimiLocalAppAgentRouteOption[] {
+  if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) localAppProjectionError('route options');
   const seen = new Set<string>();
   return Object.freeze(value.map((entry) => {
     const record = asRecord(entry);
     assertExactProjectionKeys(record, [
-      'capability', 'provider', 'model', 'routePolicy', 'label', 'availability',
+      'capability', 'provider', 'logicalModelId', 'routePolicy', 'label', 'availability',
     ], 'route option');
     const capability = projectionText(record.capability, 'route option capability');
     const provider = canonicalString(record.provider, 'route option provider');
-    const model = projectionText(record.model, 'route option model');
+    const logicalModelId = projectionText(record.logicalModelId, 'route option logical model');
     const routePolicy = enumText(record.routePolicy, ['local', 'cloud'], 'route option policy');
     const label = projectionText(record.label, 'route option label');
     const availability = enumText(record.availability, ['ready', 'installed'], 'route option availability');
-    const key = `${capability}\u0000${routePolicy}\u0000${provider}\u0000${model}`;
+    const key = `${capability}\u0000${routePolicy}\u0000${provider}\u0000${logicalModelId}`;
     if (seen.has(key) || (routePolicy === 'local' && provider) || (routePolicy === 'cloud' && !provider)) {
       localAppProjectionError('route option');
     }
     seen.add(key);
-    return Object.freeze({ capability, provider, model, routePolicy, label, availability });
+    return Object.freeze({ capability, provider, logicalModelId, routePolicy, label, availability });
   }));
 }
 
@@ -466,13 +906,17 @@ function projectCapabilityReadiness(value: unknown): NimiLocalAppAgentCapability
   const observedAt = projectTimestamp(record.observedAt, 'observedAt');
   return Object.freeze({
     capability: projectionText(record.capability, 'capability'),
-    state: enumText(record.state, ['ready', 'blocked', 'unavailable', 'failed'], 'readiness state'),
+    state: enumText(
+      record.state,
+      ['ready', 'blocked', 'unavailable', 'failed', 'configured_unverified'],
+      'readiness state',
+    ),
     reason: canonicalString(record.reason, 'readiness reason'),
     ...(observedAt ? { observedAt } : {}),
   });
 }
 
-function projectRouteIntents(value: unknown, input: boolean): readonly NimiLocalAppAgentRouteIntent[] {
+function projectAIConfigIntents(value: unknown, input: boolean): readonly NimiLocalAppAgentAIConfigIntent[] {
   if (!Array.isArray(value) || value.length === 0) {
     if (input) return localAppError('Configuration update requires route intents.', 'SDK_LOCAL_APP_INPUT_INVALID', 'provide_route_intents');
     return localAppProjectionError('route intents');
@@ -480,15 +924,19 @@ function projectRouteIntents(value: unknown, input: boolean): readonly NimiLocal
   const seen = new Set<string>();
   return Object.freeze(value.map((entry) => {
     const record = asRecord(entry);
-    if (input) {
-      assertExactKeys(record, ['capability', 'provider', 'model', 'routePolicy'], 'route intent');
-      assertNoAuthorityMaterial(record);
-    } else {
-      assertExactProjectionKeys(record, ['capability', 'provider', 'model', 'routePolicy'], 'route intent');
-    }
+    assertRequiredAndOptionalKeys(
+      record,
+      ['capability', 'provider', 'logicalModelId', 'routePolicy', 'selectedParams'],
+      ['selectedComponents'],
+      'AIConfig intent',
+      input,
+    );
+    if (input) assertNoAuthorityMaterial(record);
     const capability = input ? requireText(record?.capability, 'capability') : projectionText(record?.capability, 'capability');
     const provider = canonicalString(record?.provider, 'provider');
-    const model = input ? requireText(record?.model, 'model') : projectionText(record?.model, 'model');
+    const logicalModelId = input
+      ? requireText(record?.logicalModelId, 'logicalModelId')
+      : projectionText(record?.logicalModelId, 'logicalModelId');
     const routePolicy = enumText(record?.routePolicy, ['local', 'cloud'], 'route policy');
     if (seen.has(capability) || (routePolicy === 'local' && provider) || (routePolicy === 'cloud' && !provider)) {
       return input
@@ -496,8 +944,140 @@ function projectRouteIntents(value: unknown, input: boolean): readonly NimiLocal
         : localAppProjectionError('route intent');
     }
     seen.add(capability);
-    return Object.freeze({ capability, provider, model, routePolicy });
+    let selectedParams: NimiJsonObject | undefined;
+    const selectedComponents = projectLocalAppComponentSelections(
+      record.selectedComponents,
+      input,
+      capability,
+    );
+    if (record.selectedParams !== null && record.selectedParams !== undefined) {
+      assertSafeProjection(record.selectedParams);
+      assertNoAIConfigPrivateIdentity(record.selectedParams, `AIConfig selectedParams for ${capability}`, input);
+      const params = asRecord(record.selectedParams);
+      if (!params) {
+        return input
+          ? localAppError('AIConfig selectedParams must be an object.', 'SDK_LOCAL_APP_INPUT_INVALID', 'repair_selected_params')
+          : localAppProjectionError('AIConfig selectedParams');
+      }
+      selectedParams = Object.freeze({ ...params }) as NimiJsonObject;
+    }
+    return Object.freeze({
+      capability,
+      provider,
+      logicalModelId,
+      routePolicy,
+      ...(selectedComponents.length > 0 ? { selectedComponents } : {}),
+      ...(selectedParams ? { selectedParams } : {}),
+    });
   }));
+}
+
+function projectLocalAppComponentSelections(
+  value: unknown,
+  input: boolean,
+  capability: string,
+): readonly Omit<NimiAIConfigComponentSelection, 'targetRef'>[] {
+  if (value === null || value === undefined) {
+    return Object.freeze([]);
+  }
+  if (!Array.isArray(value)) {
+    return input
+      ? localAppError(
+        `AIConfig selectedComponents for ${capability} must be an array.`,
+        'SDK_LOCAL_APP_INPUT_INVALID',
+        'repair_selected_components',
+      )
+      : localAppProjectionError('AIConfig selectedComponents');
+  }
+  const occurrenceIds = new Set<string>();
+  const orders = new Set<number>();
+  let priorOrder = -1;
+  return Object.freeze(value.map((entry, index) => {
+    const record = asRecord(entry);
+    const keys = [
+      'occurrenceId', 'order', 'role', 'componentKind', 'logicalModelId',
+      'required', 'weight', 'options',
+    ];
+    assertRequiredAndOptionalKeys(
+      record,
+      keys.slice(0, 6),
+      keys.slice(6),
+      'AIConfig component selection',
+      input,
+    );
+    if (input) assertNoAuthorityMaterial(record);
+    const occurrenceId = input
+      ? requireText(record.occurrenceId, 'occurrenceId')
+      : projectionText(record.occurrenceId, 'occurrenceId');
+    const order = nonNegativeInteger(record.order, 'component order');
+    const role = input ? requireText(record.role, 'role') : projectionText(record.role, 'role');
+    const componentKind = input
+      ? requireText(record.componentKind, 'componentKind')
+      : projectionText(record.componentKind, 'componentKind');
+    const logicalModelId = input
+      ? requireText(record.logicalModelId, 'logicalModelId')
+      : projectionText(record.logicalModelId, 'logicalModelId');
+    if (occurrenceIds.has(occurrenceId) || orders.has(order) || order <= priorOrder ||
+        typeof record.required !== 'boolean') {
+      return input
+        ? localAppError(
+          `AIConfig component ${index} for ${capability} is not canonical.`,
+          'SDK_LOCAL_APP_INPUT_INVALID',
+          'repair_selected_components',
+        )
+        : localAppProjectionError('AIConfig component selection');
+    }
+    const weight = record.weight === null || record.weight === undefined
+      ? ''
+      : canonicalString(record.weight, 'component weight');
+    let options: NimiJsonObject | undefined;
+    if (record.options !== null && record.options !== undefined) {
+      assertSafeProjection(record.options);
+      assertNoAIConfigPrivateIdentity(record.options, `AIConfig component ${occurrenceId} options for ${capability}`, input);
+      const optionRecord = asRecord(record.options);
+      if (!optionRecord) {
+        return input
+          ? localAppError(
+            `AIConfig component ${occurrenceId} options for ${capability} must be an object.`,
+            'SDK_LOCAL_APP_INPUT_INVALID',
+            'repair_selected_components',
+          )
+          : localAppProjectionError('AIConfig component selection options');
+      }
+      options = Object.freeze({ ...optionRecord }) as NimiJsonObject;
+    }
+    occurrenceIds.add(occurrenceId);
+    orders.add(order);
+    priorOrder = order;
+    return Object.freeze({
+      occurrenceId,
+      order,
+      role,
+      componentKind,
+      logicalModelId,
+      required: record.required,
+      ...(weight ? { weight } : {}),
+      ...(options ? { options } : {}),
+    });
+  }));
+}
+
+function assertRequiredAndOptionalKeys(
+  record: Record<string, unknown> | null | undefined,
+  requiredKeys: readonly string[],
+  optionalKeys: readonly string[],
+  field: string,
+  input: boolean,
+): asserts record is Record<string, unknown> {
+  const expectedKeys = [
+    ...requiredKeys,
+    ...optionalKeys.filter((key) => Object.hasOwn(record ?? {}, key)),
+  ];
+  if (input) {
+    assertExactKeys(record, expectedKeys, field);
+  } else {
+    assertExactProjectionKeys(record, expectedKeys, field);
+  }
 }
 
 function projectAutonomy(value: unknown): NimiLocalAppAgentAutonomyProjection {

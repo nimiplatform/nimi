@@ -152,6 +152,22 @@ RUNTIME_METHODS = [
     "response_type": "SwitchAccountResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "ApplyLocalAppAgentAIProfile",
+    "kind": "unary",
+    "request_type": "ApplyLocalAppAgentAIProfileRequest",
+    "response_type": "LocalAppAgentAIProfileApplyResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "ApplyRuntimeAgentAIProfile",
+    "kind": "unary",
+    "request_type": "ApplyRuntimeAgentAIProfileRequest",
+    "response_type": "ApplyRuntimeAgentAIProfileResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "service": "RuntimeAgentService",
     "method": "CancelCompanionParticipation",
@@ -422,6 +438,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "OpenConversationAnchorRequest",
     "response_type": "OpenConversationAnchorResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "PreviewLocalAppAgentAIProfile",
+    "kind": "unary",
+    "request_type": "PreviewLocalAppAgentAIProfileRequest",
+    "response_type": "LocalAppAgentAIProfilePreviewResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile",
+    "service": "RuntimeAgentService",
+    "method": "PreviewRuntimeAgentAIProfile",
+    "kind": "unary",
+    "request_type": "PreviewRuntimeAgentAIProfileRequest",
+    "response_type": "PreviewRuntimeAgentAIProfileResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
@@ -790,6 +822,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "CleanupGeneratedVoiceArtifactsRequest",
     "response_type": "CleanupGeneratedVoiceArtifactsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeArtifactService/PutArtifact",
+    "service": "RuntimeArtifactService",
+    "method": "PutArtifact",
+    "kind": "unary",
+    "request_type": "PutArtifactRequest",
+    "response_type": "PutArtifactResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",

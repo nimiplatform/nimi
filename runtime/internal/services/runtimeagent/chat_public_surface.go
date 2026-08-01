@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/structpb"
 	"time"
 )
 
@@ -62,6 +63,7 @@ type publicChatExecutionBinding struct {
 	RoutePolicy         runtimev1.RoutePolicy
 	ConnectorID         string
 	TargetRef           *runtimev1.RuntimeDurableTargetRef
+	SelectedParams      *structpb.Struct
 	ContextWindowTokens uint64
 	CatalogRevision     string
 	ModelRevision       string
@@ -101,6 +103,17 @@ type publicChatCommittedTranscriptTurn struct {
 	Origin        string `json:"origin"`
 	InputText     string `json:"inputText"`
 	AssistantText string `json:"assistantText"`
+	// InputAttachment carries the Runtime-validated user attachment of this
+	// turn (artifact reference + store-trusted mime). Nil for text-only turns.
+	InputAttachment *publicChatCommittedTranscriptAttachment `json:"inputAttachment,omitempty"`
+}
+
+// publicChatCommittedTranscriptAttachment is the durable user-attachment
+// truth of a committed turn (rule.nimi.runtime.agent-participation.r173).
+// MimeType is the artifact store record mime, never a caller-declared value.
+type publicChatCommittedTranscriptAttachment struct {
+	ArtifactID string `json:"artifactId"`
+	MimeType   string `json:"mimeType"`
 }
 
 type avatarLiveInstanceBindingState struct {
@@ -201,6 +214,29 @@ type publicChatMessagePayload struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 	Name    string `json:"name,omitempty"`
+	// Attachments carries at most one Runtime artifact reference uploaded
+	// through RuntimeArtifactService.PutArtifact
+	// (rule.nimi.runtime.agent-participation.r172). Bytes and mime truth never
+	// travel on the request; only the artifact id plus an optional display
+	// hint are admitted.
+	Attachments []publicChatAttachmentPayload `json:"attachments,omitempty"`
+}
+
+// publicChatAttachmentPayload is the caller-carried attachment reference on a
+// turn request. ArtifactID is a selector only; ownership, existence, and the
+// trusted mime are revalidated by Runtime at turn admission.
+type publicChatAttachmentPayload struct {
+	ArtifactID  string `json:"artifact_id"`
+	DisplayName string `json:"display_name,omitempty"`
+}
+
+// publicChatResolvedAttachment is the Runtime-validated attachment truth
+// fixed at turn admission: the artifact store record mime is the only trusted
+// mime, and the caller display hint is carried separately.
+type publicChatResolvedAttachment struct {
+	ArtifactID  string
+	MimeType    string
+	DisplayName string
 }
 type publicChatExecutionBindingPayload struct {
 	Route       string          `json:"route"`
@@ -234,6 +270,9 @@ type publicChatTurnRequestPayload struct {
 	ExecutionBindings    map[string]publicChatExecutionBindingPayload `json:"execution_bindings,omitempty"`
 	ExecutionParams      map[string]map[string]any                    `json:"execution_params,omitempty"`
 	Reasoning            *publicChatReasoningPayload                  `json:"reasoning,omitempty"`
+	// resolvedAttachments is Runtime-internal admission truth, never caller
+	// JSON: store-validated attachment references fixed at turn admission.
+	resolvedAttachments []publicChatResolvedAttachment
 }
 type publicChatTurnInterruptPayload struct {
 	ConversationAnchorID string `json:"conversation_anchor_id"`

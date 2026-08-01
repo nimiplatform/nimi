@@ -23,6 +23,7 @@ export type {
   NimiRuntimeAgentSessionSnapshotRequest,
   NimiRuntimeAgentTimelineSummary,
   NimiRuntimeAgentTranscriptMessage,
+  NimiRuntimeAgentTurnAttachment,
   NimiRuntimeAgentTurnCancellationReason,
   NimiRuntimeAgentTurnInterruptRequest,
   NimiRuntimeAgentTurnRequest,

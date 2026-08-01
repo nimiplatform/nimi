@@ -4,9 +4,23 @@ import { buildAgentCenterState } from '../src/state.js';
 import type { AgentCenterAutonomyProjection, AgentCenterStateInput } from '../src/types.js';
 
 function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInput {
+  const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'local-agent:test' });
   return {
-    modelSettings: {
-      scopeRef: createNimiAIScopeRef({ kind: 'feature', ownerId: 'runtime.agent.model-settings', surfaceId: 'local-agent:test' }),
+    aiConfig: {
+      aiConfig: {
+        scopeRef,
+        profileOrigin: null,
+        capabilities: {
+          logicalModelIds: {
+            'text.generate': 'text',
+            'text.embed': 'embed',
+          },
+          targetRefs: {},
+          selectedComponents: {},
+          selectedParams: {},
+        },
+      },
+      scopeRef,
       capabilities: ['text.generate', 'text.embed'],
       routeIntents: [
         { capability: 'text.generate', provider: '', model: 'text', routePolicy: 'local' },
@@ -31,17 +45,18 @@ function autonomy(revision: string | null): AgentCenterAutonomyProjection {
 }
 
 describe('Agent Center state projection', () => {
-  it('keeps the dedicated model-settings projection and decimal revision intact', () => {
+  it('keeps the canonical AIConfig projection and decimal revision intact', () => {
     const state = buildAgentCenterState(input());
     expect(state.configRevision).toBe('7');
-    expect(state.modelSettings?.routeIntents[0]?.model).toBe('text');
+    expect(state.aiConfig?.routeIntents[0]?.model).toBe('text');
+    expect(state.aiConfig?.aiConfig.capabilities.logicalModelIds['text.generate']).toBe('text');
     expect(state.diagnostics.configRevision).toBe('7');
   });
 
   it('fails closed when the model snapshot or decimal revision is absent', () => {
-    expect(buildAgentCenterState(input({ modelSettings: null })).agentAIConfigMutationDisabledReason)
+    expect(buildAgentCenterState(input({ aiConfig: null })).agentAIConfigMutationDisabledReason)
       .toBe('agent-ai-config-snapshot-unavailable');
-    expect(buildAgentCenterState(input({ modelSettings: { ...input().modelSettings!, configurationRevision: '01' } }))
+    expect(buildAgentCenterState(input({ aiConfig: { ...input().aiConfig!, configurationRevision: '01' } }))
       .agentAIConfigMutationDisabledReason).toBe('agent-ai-config-revision-unavailable');
   });
 
@@ -55,9 +70,9 @@ describe('Agent Center state projection', () => {
   });
 
   it('projects canonical dynamic capability ids and count-only cognition', () => {
-    const current = input().modelSettings!;
+    const current = input().aiConfig!;
     const state = buildAgentCenterState(input({
-      modelSettings: {
+      aiConfig: {
         ...current,
         capabilities: [...current.capabilities, 'audio.transcribe'],
         routeIntents: [...current.routeIntents, { capability: 'audio.transcribe', provider: '', model: 'stt', routePolicy: 'local' }],
@@ -74,9 +89,9 @@ describe('Agent Center state projection', () => {
   });
 
   it('keeps text generation and embedding required while other capabilities remain optional', () => {
-    const current = input().modelSettings!;
+    const current = input().aiConfig!;
     const state = buildAgentCenterState(input({
-      modelSettings: {
+      aiConfig: {
         ...current,
         capabilities: [...current.capabilities, 'audio.transcribe'],
         routeIntents: [
@@ -106,6 +121,35 @@ describe('Agent Center state projection', () => {
       required: false,
       blocksTextTurns: false,
       summary: 'Optional route not configured',
+    });
+  });
+
+  it('projects an installed image binding as configured but not execution-verified', () => {
+    const current = input().aiConfig!;
+    const state = buildAgentCenterState(input({
+      aiConfig: {
+        ...current,
+        capabilities: [...current.capabilities, 'image.generate'],
+        routeIntents: [
+          ...current.routeIntents,
+          { capability: 'image.generate', provider: '', model: 'z-image-turbo', routePolicy: 'local' },
+        ],
+        readiness: [
+          ...current.readiness,
+          {
+            capability: 'image.generate',
+            state: 'configured_unverified',
+            reason: 'image_configured_unverified',
+            observedAt: null,
+          },
+        ],
+      },
+    }));
+
+    expect(state.capabilities.find((entry) => entry.capability === 'image.generate')).toMatchObject({
+      readinessState: 'configured_unverified',
+      blocksTextTurns: false,
+      summary: 'Configured, not yet execution-verified',
     });
   });
 });

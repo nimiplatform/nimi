@@ -12,6 +12,7 @@ import (
 
 func cloneManagedImageLoadRequest(input managedimagebackend.LoadModelRequest) managedimagebackend.LoadModelRequest {
 	input.Options = append([]string(nil), input.Options...)
+	input.Components = append([]managedimagebackend.ComponentBinding(nil), input.Components...)
 	return input
 }
 

@@ -167,7 +167,7 @@ func profileRuntimeNativeBackendPackageSupportsModelFamily(pkg profileRuntimeNat
 func profileRuntimeAssetBindingReadinessReasons(binding profileRuntimeDescriptorAssetBinding, facts profileRuntimePrepareFacts) []string {
 	if strings.TrimSpace(binding.PreparedAssetID) != "" {
 		if fact, ok := profileRuntimePreparedAssetFactForBinding(binding, facts); ok {
-			if strings.TrimSpace(binding.ExpectedIdentity) == "" || strings.TrimSpace(fact.AssetID) != strings.TrimSpace(binding.ExpectedIdentity) {
+			if !profileRuntimePreparedAssetIdentityMatches(binding, fact) {
 				return []string{"prepared_asset_identity_mismatch"}
 			}
 			if !profileRuntimePreparedAssetKindMatches(fact.Kind, binding.ComponentKind) {

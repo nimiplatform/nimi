@@ -38,6 +38,11 @@ var publicChatRelationalSemanticPredicates = map[string]struct{}{
 	"relationship_status":       {},
 }
 
+// publicChatTranscriptAttachmentMarker is the model-context representation of
+// a committed user attachment message whose text is empty. It is truthful
+// (the user did send an image) and carries no artifact bytes or identity.
+const publicChatTranscriptAttachmentMarker = "[The user sent an image attachment.]"
+
 type publicChatContextCompositionError struct {
 	cause   error
 	summary *runtimev1.AgentTurnContextSummary
@@ -107,7 +112,7 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			status.Error(codes.DataLoss, err.Error()))
 	}
-	currentTurn, err := publicChatAgentTurnCurrentInput(req.Messages)
+	currentTurn, err := publicChatAgentTurnCurrentInput(req.Messages, req.resolvedAttachments)
 	if err != nil {
 		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
@@ -327,6 +332,13 @@ func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentT
 		if turn.Origin == publicChatTurnOriginFollowUp {
 			inputText = "Runtime-admitted follow-up instruction: " + inputText
 		}
+		if inputText == "" && turn.InputAttachment != nil {
+			// The attachment bytes never re-enter later provider contexts (a
+			// route without vision would otherwise be poisoned by history);
+			// the model sees this truthful marker while the app-facing
+			// projection keeps the real media kind + artifact reference.
+			inputText = publicChatTranscriptAttachmentMarker
+		}
 		out = append(out, agentTurnTranscriptPairInput{
 			TurnID:        turn.TurnID,
 			Sequence:      turn.Sequence,
@@ -337,7 +349,7 @@ func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentT
 	return out, nil
 }
 
-func publicChatAgentTurnCurrentInput(messages []publicChatMessagePayload) (agentTurnCurrentUserInput, error) {
+func publicChatAgentTurnCurrentInput(messages []publicChatMessagePayload, attachments []publicChatResolvedAttachment) (agentTurnCurrentUserInput, error) {
 	if len(messages) != 1 {
 		return agentTurnCurrentUserInput{}, status.Error(codes.InvalidArgument, "Runtime LocalAgent turn requires exactly one current input")
 	}
@@ -346,13 +358,33 @@ func publicChatAgentTurnCurrentInput(messages []publicChatMessagePayload) (agent
 		return agentTurnCurrentUserInput{}, status.Error(codes.InvalidArgument, "Runtime LocalAgent current input role is not admitted")
 	}
 	text := strings.TrimSpace(messages[0].Content)
-	if text == "" {
+	if text == "" && len(attachments) == 0 {
 		return agentTurnCurrentUserInput{}, status.Error(codes.InvalidArgument, "Runtime LocalAgent current input is empty")
 	}
 	if role == publicChatInternalFollowUpInstructionRole {
+		if len(attachments) > 0 {
+			return agentTurnCurrentUserInput{}, status.Error(codes.InvalidArgument, "Runtime LocalAgent follow-up input must not carry attachments")
+		}
 		text = "Runtime-admitted follow-up instruction: " + text
 	}
-	return agentTurnCurrentUserInput{Text: text}, nil
+	media := make([]agentTurnContextMedia, 0, len(attachments))
+	for _, attachment := range attachments {
+		// The artifact store record mime fixed at admission is the only
+		// trusted mime; the caller display hint is admitted only when it is a
+		// well-formed opaque media identity, otherwise the artifact id is the
+		// media identity.
+		mediaID := attachment.ArtifactID
+		if isAgentTurnContextOpaqueRef(attachment.DisplayName) {
+			mediaID = attachment.DisplayName
+		}
+		media = append(media, agentTurnContextMedia{
+			MediaID:     mediaID,
+			Kind:        "image",
+			MIMEType:    attachment.MimeType,
+			ArtifactRef: attachment.ArtifactID,
+		})
+	}
+	return agentTurnCurrentUserInput{Text: text, Media: media}, nil
 }
 
 func publicChatAgentTurnCapabilities(actions publicChatAvailableActions) []agentTurnCapabilityInput {

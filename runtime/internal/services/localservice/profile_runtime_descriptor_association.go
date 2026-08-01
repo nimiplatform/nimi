@@ -24,6 +24,35 @@ func (s *Service) associateProfileRuntimeDescriptorPreparedAssets(descriptor *pr
 	requiredAssociations := map[string]bool{}
 	failedAssociations := map[string]bool{}
 	for _, slice := range descriptor.CapabilitySlices {
+		if profileRuntimeSliceSupportsLlamaModelAssociation(slice) {
+			mainBindingID, _, ok := profileRuntimeDescriptorMainBindingIdentity(
+				slice,
+				descriptor.AssetBindings,
+				bindingIndexes,
+			)
+			if !ok {
+				continue
+			}
+			if strings.TrimSpace(descriptor.AssetBindings[bindingIndexes[mainBindingID]].PreparedAssetID) != "" {
+				continue
+			}
+			requiredAssociations[mainBindingID] = true
+			_, mainLocalAssetID, found, associationErr := s.profileRuntimeSelectedSourcePreparedAssetForConsumers(
+				descriptor.AssetBindings[bindingIndexes[mainBindingID]],
+				profileRuntimeLlamaConsumerCandidates(slice),
+			)
+			if associationErr != nil {
+				return associationErr
+			}
+			if !found {
+				failedAssociations[mainBindingID] = true
+				continue
+			}
+			if err := profileRuntimeRememberPreparedAssetAssociation(associations, mainBindingID, mainLocalAssetID); err != nil {
+				return err
+			}
+			continue
+		}
 		if !profileRuntimeSliceSupportsImageMaterializationProjection(slice) {
 			continue
 		}
@@ -60,13 +89,16 @@ func (s *Service) associateProfileRuntimeDescriptorPreparedAssets(descriptor *pr
 		if !mainNeedsAssociation && len(companionBindingIDs) == 0 {
 			continue
 		}
-		mainRecord, mainLocalAssetID, ok := s.profileRuntimeSelectedSourcePreparedAsset(
+		mainRecord, mainLocalAssetID, ok, associationErr := s.profileRuntimeSelectedSourcePreparedAsset(
 			descriptor.AssetBindings[bindingIndexes[mainBindingID]],
 			localEnvironmentFamilyModelAsset,
 			"",
 			consumer,
 			"",
 		)
+		if associationErr != nil {
+			return associationErr
+		}
 		if !ok {
 			if mainNeedsAssociation {
 				failedAssociations[mainBindingID] = true
@@ -94,13 +126,16 @@ func (s *Service) associateProfileRuntimeDescriptorPreparedAssets(descriptor *pr
 			if strings.TrimSpace(binding.PreparedAssetID) != "" {
 				continue
 			}
-			_, companionLocalAssetID, found := s.profileRuntimeSelectedSourcePreparedAsset(
+			_, companionLocalAssetID, found, associationErr := s.profileRuntimeSelectedSourcePreparedAsset(
 				binding,
 				localEnvironmentFamilyModelCompanion,
 				mainExpectedIdentity,
 				consumer,
 				strings.TrimSpace(mainRecord.RecordID),
 			)
+			if associationErr != nil {
+				return associationErr
+			}
 			if !found {
 				failedAssociations[bindingID] = true
 				continue
@@ -121,6 +156,63 @@ func (s *Service) associateProfileRuntimeDescriptorPreparedAssets(descriptor *pr
 		descriptor.AssetBindings[index].PreparedAssetID = preparedAssetID
 	}
 	return nil
+}
+
+func profileRuntimeSliceSupportsLlamaModelAssociation(slice profileRuntimeDescriptorCapability) bool {
+	if strings.TrimSpace(slice.ExecutionMode) != "local" ||
+		strings.TrimSpace(slice.ContractState) != "declared" ||
+		strings.TrimSpace(slice.Execution.Backend) != "llama.cpp" {
+		return false
+	}
+	switch strings.TrimSpace(slice.Capability) {
+	case "text.generate", "text.embed":
+		return true
+	default:
+		return false
+	}
+}
+
+func profileRuntimeLlamaConsumerCandidates(slice profileRuntimeDescriptorCapability) []string {
+	if explicit := strings.TrimSpace(slice.RuntimeConsumerID); explicit != "" {
+		return []string{explicit}
+	}
+	return []string{"llama.cpp.cpu", "llama.cpp.vulkan", "llama.cpp.cuda"}
+}
+
+func (s *Service) profileRuntimeSelectedSourcePreparedAssetForConsumers(
+	binding profileRuntimeDescriptorAssetBinding,
+	consumers []string,
+) (localEnvironmentSelectedSourceRecordState, string, bool, error) {
+	var (
+		selectedRecord       localEnvironmentSelectedSourceRecordState
+		selectedLocalAssetID string
+		found                bool
+	)
+	for _, consumer := range normalizeStringSlice(consumers) {
+		record, localAssetID, ok, err := s.profileRuntimeSelectedSourcePreparedAsset(
+			binding,
+			localEnvironmentFamilyModelAsset,
+			"",
+			consumer,
+			"",
+		)
+		if err != nil {
+			return localEnvironmentSelectedSourceRecordState{}, "", false, err
+		}
+		if !ok {
+			continue
+		}
+		if found && strings.TrimSpace(localAssetID) != selectedLocalAssetID {
+			return localEnvironmentSelectedSourceRecordState{}, "", false,
+				profileRuntimeDescriptorError("materialization.prepared_asset_association_ambiguous", binding.BindingID)
+		}
+		if !found {
+			selectedRecord = record
+			selectedLocalAssetID = strings.TrimSpace(localAssetID)
+			found = true
+		}
+	}
+	return selectedRecord, selectedLocalAssetID, found, nil
 }
 
 func profileRuntimeDescriptorMainBindingIdentity(
@@ -155,12 +247,20 @@ func (s *Service) profileRuntimeSelectedSourcePreparedAsset(
 	parentAssetID string,
 	consumer string,
 	parentSelectedSourceRecordID string,
-) (localEnvironmentSelectedSourceRecordState, string, bool) {
+) (localEnvironmentSelectedSourceRecordState, string, bool, error) {
 	trimmedFamily := strings.TrimSpace(family)
 	trimmedAssetID := strings.TrimSpace(binding.ExpectedIdentity)
 	trimmedConsumer := strings.TrimSpace(consumer)
 	if trimmedAssetID == "" || trimmedConsumer == "" {
-		return localEnvironmentSelectedSourceRecordState{}, "", false
+		return localEnvironmentSelectedSourceRecordState{}, "", false, nil
+	}
+	if strings.TrimSpace(binding.Source) == "manual" {
+		return s.profileRuntimePortableManualSelectedSourcePreparedAsset(
+			binding,
+			trimmedFamily,
+			trimmedConsumer,
+			parentSelectedSourceRecordID,
+		)
 	}
 	dependencyID := trimmedAssetID
 	semanticHashKey := "asset_id"
@@ -171,7 +271,7 @@ func (s *Service) profileRuntimeSelectedSourcePreparedAsset(
 		localIDKey = "companion_local_asset_id"
 	}
 	if dependencyID == "" {
-		return localEnvironmentSelectedSourceRecordState{}, "", false
+		return localEnvironmentSelectedSourceRecordState{}, "", false, nil
 	}
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
 	environmentKey := localEnvironmentKey(
@@ -190,30 +290,81 @@ func (s *Service) profileRuntimeSelectedSourcePreparedAsset(
 	if !ok ||
 		validateLocalEnvironmentSelectedSourceRecord(record) != nil ||
 		validateLocalEnvironmentSelectedSourceLocalArtifacts(record) != nil {
-		return localEnvironmentSelectedSourceRecordState{}, "", false
+		return localEnvironmentSelectedSourceRecordState{}, "", false, nil
 	}
 	if strings.TrimSpace(record.Hashes[semanticHashKey]) != trimmedAssetID ||
 		profileRuntimeSelectedSourceEvidenceValue(record.CompatibilityEvidence, semanticHashKey) != trimmedAssetID {
-		return localEnvironmentSelectedSourceRecordState{}, "", false
+		return localEnvironmentSelectedSourceRecordState{}, "", false, nil
 	}
 	localAssetID := strings.TrimSpace(record.Hashes[localIDKey])
 	if localAssetID == "" ||
 		profileRuntimeSelectedSourceEvidenceValue(record.CompatibilityEvidence, localIDKey) != localAssetID {
-		return localEnvironmentSelectedSourceRecordState{}, "", false
+		return localEnvironmentSelectedSourceRecordState{}, "", false, nil
 	}
 	if trimmedFamily == localEnvironmentFamilyModelCompanion {
 		parentRecordID := strings.TrimSpace(parentSelectedSourceRecordID)
 		if parentRecordID == "" ||
 			strings.TrimSpace(record.Hashes["parent_model_asset_record"]) != parentRecordID ||
 			profileRuntimeSelectedSourceEvidenceValue(record.CompatibilityEvidence, "parent_model_asset_record") != parentRecordID {
-			return localEnvironmentSelectedSourceRecordState{}, "", false
+			return localEnvironmentSelectedSourceRecordState{}, "", false, nil
 		}
 	}
 	asset := s.assetByLocalID(localAssetID)
 	if !s.profileRuntimeSelectedSourceSatisfiesPortableBinding(binding, record, asset) {
-		return localEnvironmentSelectedSourceRecordState{}, "", false
+		return localEnvironmentSelectedSourceRecordState{}, "", false, nil
 	}
-	return record, localAssetID, true
+	return record, localAssetID, true, nil
+}
+
+func (s *Service) profileRuntimePortableManualSelectedSourcePreparedAsset(
+	binding profileRuntimeDescriptorAssetBinding,
+	family string,
+	consumer string,
+	parentSelectedSourceRecordID string,
+) (localEnvironmentSelectedSourceRecordState, string, bool, error) {
+	semanticHashKey := "asset_id"
+	localIDKey := "local_asset_id"
+	if family == localEnvironmentFamilyModelCompanion {
+		semanticHashKey = "companion_asset_id"
+		localIDKey = "companion_local_asset_id"
+	}
+	var matchedRecord localEnvironmentSelectedSourceRecordState
+	matchedLocalAssetID := ""
+	for _, record := range s.selectedSourceCandidatesForFamilyAndConsumer(family, consumer) {
+		if validateLocalEnvironmentSelectedSourceRecord(record) != nil ||
+			validateLocalEnvironmentSelectedSourceLocalArtifacts(record) != nil {
+			continue
+		}
+		if family == localEnvironmentFamilyModelCompanion {
+			parentRecordID := strings.TrimSpace(parentSelectedSourceRecordID)
+			if parentRecordID == "" ||
+				strings.TrimSpace(record.Hashes["parent_model_asset_record"]) != parentRecordID ||
+				profileRuntimeSelectedSourceEvidenceValue(record.CompatibilityEvidence, "parent_model_asset_record") != parentRecordID {
+				continue
+			}
+		}
+		concreteAssetID := strings.TrimSpace(record.Hashes[semanticHashKey])
+		localAssetID := strings.TrimSpace(record.Hashes[localIDKey])
+		if concreteAssetID == "" || localAssetID == "" ||
+			profileRuntimeSelectedSourceEvidenceValue(record.CompatibilityEvidence, semanticHashKey) != concreteAssetID ||
+			profileRuntimeSelectedSourceEvidenceValue(record.CompatibilityEvidence, localIDKey) != localAssetID {
+			continue
+		}
+		asset := s.assetByLocalID(localAssetID)
+		if asset == nil ||
+			strings.TrimSpace(asset.GetLocalAssetId()) != localAssetID ||
+			strings.TrimSpace(asset.GetAssetId()) != concreteAssetID ||
+			!s.profileRuntimeSelectedSourceSatisfiesPortableBinding(binding, record, asset) {
+			continue
+		}
+		if matchedLocalAssetID != "" {
+			return localEnvironmentSelectedSourceRecordState{}, "", false,
+				profileRuntimeDescriptorError("materialization.prepared_asset_association_ambiguous", binding.BindingID)
+		}
+		matchedRecord = record
+		matchedLocalAssetID = localAssetID
+	}
+	return matchedRecord, matchedLocalAssetID, matchedLocalAssetID != "", nil
 }
 
 // The caller has already validated the selected-source record and its current
@@ -224,15 +375,14 @@ func (s *Service) profileRuntimeSelectedSourceSatisfiesPortableBinding(
 	record localEnvironmentSelectedSourceRecordState,
 	asset *runtimev1.LocalAssetRecord,
 ) bool {
-	if asset == nil ||
-		strings.TrimSpace(asset.GetLocalAssetId()) == "" ||
-		strings.TrimSpace(asset.GetAssetId()) != strings.TrimSpace(binding.ExpectedIdentity) {
+	if asset == nil || strings.TrimSpace(asset.GetLocalAssetId()) == "" {
 		return false
 	}
 	switch strings.TrimSpace(binding.Source) {
 	case "huggingface":
 		source := binding.HuggingFace
-		if source == nil || strings.TrimSpace(record.SourceKind) != localEnvironmentSourceManaged {
+		if source == nil || strings.TrimSpace(record.SourceKind) != localEnvironmentSourceManaged ||
+			strings.TrimSpace(asset.GetAssetId()) != strings.TrimSpace(binding.ExpectedIdentity) {
 			return false
 		}
 		expectedRepo, err := normalizeHFRepo(source.RepoID)
@@ -299,17 +449,14 @@ func (s *Service) profileRuntimeSelectedSourceProvesHFEntry(
 	if portableEntry == "" || assetEntry == "" || portableEntry != assetEntry {
 		return false
 	}
-	expectedEntryPath, err := resolveManagedModelEntryAbsolutePath(s.resolvedLocalModelsPath(), asset)
-	if err != nil {
-		return false
-	}
-	expectedEntryPath = filepath.Clean(strings.TrimSpace(expectedEntryPath))
 	canonicalRoot := filepath.Clean(strings.TrimSpace(record.CanonicalRoot))
 	verifiedArtifacts := normalizeStringSlice(record.VerifiedArtifacts)
-	return expectedEntryPath != "." &&
-		canonicalRoot == expectedEntryPath &&
+	canonicalPortable := filepath.ToSlash(canonicalRoot)
+	return canonicalRoot != "." &&
+		(strings.HasSuffix(canonicalPortable, "/"+portableEntry) ||
+			filepath.Base(canonicalRoot) == filepath.Base(portableEntry)) &&
 		len(verifiedArtifacts) == 1 &&
-		filepath.Clean(strings.TrimSpace(verifiedArtifacts[0])) == expectedEntryPath
+		filepath.Clean(strings.TrimSpace(verifiedArtifacts[0])) == canonicalRoot
 }
 
 func profileRuntimePortableEntry(entry string) string {

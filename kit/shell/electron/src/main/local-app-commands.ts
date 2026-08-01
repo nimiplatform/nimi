@@ -8,6 +8,9 @@ import { NimiElectronShellHostError } from './types.js';
 
 const MAX_IDENTIFIER_LENGTH = 512;
 const MAX_PERMISSION_REASON_BYTES = 240;
+const MAX_ARTIFACT_DATA_BYTES = 4 * 1024 * 1024;
+const MAX_ARTIFACT_DISPLAY_NAME_BYTES = 512;
+const MAX_TURN_ATTACHMENTS = 1;
 const FORBIDDEN_RENDERER_FIELDS = new Set([
   'endpoint', 'authorization', 'token', 'localAppPrincipalId', 'localAppRecordId',
   'trustClass', 'provenanceRevision', 'launchLease', 'bootstrap', 'processId',
@@ -32,9 +35,13 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactPut'], 'artifactPut'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'], 'artifactReadBytes'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentConfigurationSnapshot'], 'agentConfigurationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConfiguration'], 'agentUpdateConfiguration'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReadinessSnapshot'], 'agentReadinessSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAIProfilePreview'], 'agentAIProfilePreview'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAIProfileApply'], 'agentAIProfileApply'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
@@ -145,13 +152,37 @@ function validatePayload(
       return payload as NimiElectronLocalAppRecord;
     case 'conversationOpen':
       return identifiers(payload, ['agentHandle'], command);
-    case 'conversationSendTurn':
-      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'text'], command);
+    case 'conversationSendTurn': {
+      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments'], command);
+      const attachments = turnAttachments(payload.attachments, command) as NimiElectronLocalAppRecord[string];
       return {
         ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command,
-          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'text']),
-        text: requiredUtf8Text(payload.text, 'text', command, 64 * 1024),
+          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments']),
+        text: turnText(payload.text, Array.isArray(attachments) && attachments.length > 0, command),
+        attachments,
       };
+    }
+    case 'artifactReadBytes':
+      return identifiers(payload, ['artifactId'], command);
+    case 'artifactPut': {
+      const displayName = payload.displayName;
+      assertExactKeys(payload, ['mimeType', 'displayName', 'data'], command);
+      if (typeof displayName !== 'string'
+        || displayName.trim() !== displayName
+        || Buffer.byteLength(displayName, 'utf8') > MAX_ARTIFACT_DISPLAY_NAME_BYTES) {
+        throw invalidPayload(command, 'displayName is invalid');
+      }
+      if (!(payload.data instanceof Uint8Array)
+        || payload.data.byteLength === 0
+        || payload.data.byteLength > MAX_ARTIFACT_DATA_BYTES) {
+        throw invalidPayload(command, 'data is invalid');
+      }
+      return {
+        mimeType: requiredText(payload.mimeType, 'mimeType', command, MAX_IDENTIFIER_LENGTH),
+        displayName,
+        data: payload.data as unknown as NimiElectronLocalAppRecord[string],
+      };
+    }
     case 'conversationInterruptTurn':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSubscribe':
@@ -170,16 +201,42 @@ function validatePayload(
     case 'agentPresentationSnapshot':
       return identifiers(payload, ['agentHandle'], command);
     case 'agentUpdateConfiguration':
-      assertExactKeys(payload, ['agentHandle', 'expectedConfigurationRevision', 'routeIntents'], command);
-      if (!Array.isArray(payload.routeIntents) || payload.routeIntents.length === 0) {
-        throw invalidPayload(command, 'routeIntents is invalid');
+      assertExactKeys(payload, ['agentHandle', 'expectedConfigurationRevision', 'intents', 'profileOrigin'], command);
+      if (!Array.isArray(payload.intents) || payload.intents.length === 0) {
+        throw invalidPayload(command, 'intents is invalid');
       }
-      assertNoForbiddenAuthorityValue(payload.routeIntents, command);
-      validateStorageJsonValue(payload.routeIntents, command);
+      assertNoForbiddenAuthorityValue(payload.intents, command);
+      assertNoForbiddenAuthorityValue(payload.profileOrigin, command);
+      validateStorageJsonValue(payload.intents, command);
+      validateStorageJsonValue(payload.profileOrigin, command);
       return {
         agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
         expectedConfigurationRevision: decimalRevision(payload.expectedConfigurationRevision, 'expectedConfigurationRevision', command, false),
-        routeIntents: payload.routeIntents as NimiElectronLocalAppRecord[string],
+        intents: payload.intents as NimiElectronLocalAppRecord[string],
+        profileOrigin: payload.profileOrigin as NimiElectronLocalAppRecord[string],
+      };
+    case 'agentAIProfilePreview':
+      assertExactKeys(payload, ['agentHandle', 'profile', 'runtimeDescriptor'], command);
+      assertNoForbiddenAuthorityValue(payload.profile, command);
+      assertNoForbiddenAuthorityValue(payload.runtimeDescriptor, command);
+      validateJsonValue(payload.profile, command, 4 * 1024 * 1024);
+      validateJsonValue(payload.runtimeDescriptor, command, 4 * 1024 * 1024);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        profile: payload.profile as NimiElectronLocalAppRecord[string],
+        runtimeDescriptor: payload.runtimeDescriptor as NimiElectronLocalAppRecord[string],
+      };
+    case 'agentAIProfileApply':
+      assertExactKeys(payload, ['agentHandle', 'expectedConfigurationRevision', 'profile', 'runtimeDescriptor'], command);
+      assertNoForbiddenAuthorityValue(payload.profile, command);
+      assertNoForbiddenAuthorityValue(payload.runtimeDescriptor, command);
+      validateJsonValue(payload.profile, command, 4 * 1024 * 1024);
+      validateJsonValue(payload.runtimeDescriptor, command, 4 * 1024 * 1024);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        expectedConfigurationRevision: decimalRevision(payload.expectedConfigurationRevision, 'expectedConfigurationRevision', command, false),
+        profile: payload.profile as NimiElectronLocalAppRecord[string],
+        runtimeDescriptor: payload.runtimeDescriptor as NimiElectronLocalAppRecord[string],
       };
     case 'agentUpdateAutonomy':
       assertExactKeys(payload, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
@@ -231,6 +288,24 @@ function identifiers(
     record[key] = requiredText(payload[key], key, command, MAX_IDENTIFIER_LENGTH);
   }
   return record;
+}
+
+function turnAttachments(value: unknown, command: string): NimiElectronLocalAppRecord[string] {
+  validateJsonValue(value, command, 8 * 1024);
+  if (!Array.isArray(value) || value.length > MAX_TURN_ATTACHMENTS) {
+    throw invalidPayload(command, 'attachments is invalid');
+  }
+  return value.map((entry) => {
+    if (!isPlainRecord(entry)) throw invalidPayload(command, 'attachments entry is invalid');
+    assertAllowedKeys(entry, ['artifactId', 'displayName'], ['artifactId'], command);
+    const attachment: Record<string, NimiElectronLocalAppRecord[string]> = {
+      artifactId: requiredText(entry.artifactId, 'attachments.artifactId', command, MAX_IDENTIFIER_LENGTH),
+    };
+    if (entry.displayName !== undefined) {
+      attachment.displayName = requiredText(entry.displayName, 'attachments.displayName', command, MAX_IDENTIFIER_LENGTH);
+    }
+    return attachment;
+  }) as NimiElectronLocalAppRecord[string];
 }
 
 function storagePathPayload(
@@ -367,6 +442,11 @@ function requiredUtf8Text(value: unknown, field: string, command: string, maxByt
     throw invalidPayload(command, `${field} is invalid`);
   }
   return normalized;
+}
+
+function turnText(value: unknown, allowEmpty: boolean, command: string): string {
+  if (allowEmpty && value === '') return '';
+  return requiredUtf8Text(value, 'text', command, 64 * 1024);
 }
 
 function activeConversationStreams(host: NimiElectronLocalAppHost): Set<string> {

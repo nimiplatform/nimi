@@ -242,6 +242,26 @@ func (s *Service) resolveTextGenerateArtifactPath(
 	if localArtifactID == "" {
 		return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	// User attachment plane (rule.nimi.runtime.agent-participation.r171):
+	// owner-carrying upload records resolve from the runtime artifact store,
+	// and only when the request head identity equals the upload-time owner.
+	// The artifact id alone never authorizes resolution; ownerless records
+	// keep the existing managed-asset behavior below.
+	if s != nil && s.runtimeArtifacts != nil {
+		if record, ok := s.runtimeArtifacts.Get(localArtifactID); ok && record.Owner != nil {
+			if record.Owner.SubjectUserID != strings.TrimSpace(head.GetSubjectUserId()) ||
+				record.Owner.AppID != strings.TrimSpace(head.GetAppId()) ||
+				len(record.Bytes) == 0 {
+				return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			}
+			mimeType := firstNonEmpty(strings.TrimSpace(record.MimeType), strings.TrimSpace(ref.GetMimeType()))
+			path, cleanup, err := writeTextGenerateArtifactTempFile(mimeType, record.Bytes)
+			if err != nil {
+				return "", "", nil, err
+			}
+			return path, mimeType, cleanup, nil
+		}
+	}
 	if !isLlamaTextGenerateRoute(modelResolved, remoteTarget, selected) {
 		return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}

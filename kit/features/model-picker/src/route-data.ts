@@ -99,31 +99,30 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function localRuntimeRefCandidates(value: unknown): string[] {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    return [];
-  }
-  const candidates = [
-    normalized,
-    ...normalized.split(':').map((part) => part.trim()).filter(Boolean),
-  ];
-  const prefix = 'local-runtime:';
-  if (normalized.toLowerCase().startsWith(prefix)) {
-    const localAssetId = normalized.slice(prefix.length).trim();
-    if (localAssetId) {
-      candidates.push(localAssetId);
-    }
-  }
-  return candidates;
+const COMPANION_ONLY_ARTIFACT_ROLES = new Set([
+  'vae',
+  'vae_model',
+  'text_encoder',
+  'qwen_encoder',
+  'clip',
+  'clip_l',
+  'clip_g',
+  'uncond_diffusion_model',
+]);
+
+function isCompanionOnlyLocalTarget(target: RouteInventoryTarget): boolean {
+  const roles = (target.evidence.artifactRoles || [])
+    .map((role) => normalizeText(role).toLowerCase())
+    .filter(Boolean);
+  return roles.length > 0 && roles.every((role) => COMPANION_ONLY_ARTIFACT_ROLES.has(role));
 }
 
 function localModelIdentityValues(model: RouteLocalModel): string[] {
   return [
     normalizeText(model.localModelId),
     normalizeText(model.goRuntimeLocalModelId),
-    ...localRuntimeRefCandidates(model.profileBindingId),
-    ...localRuntimeRefCandidates(model.readinessRef),
+    normalizeText(model.profileBindingId),
+    normalizeText(model.readinessRef),
   ].filter(Boolean);
 }
 
@@ -211,6 +210,7 @@ type RouteInventoryTarget = {
     remoteModelCatalogId?: string;
     providerModelId?: string;
     provider?: string;
+    artifactRoles?: readonly string[];
   };
 };
 
@@ -281,7 +281,11 @@ export function createSnapshotRouteDataProvider(
       const snapshot = await getSnapshot();
       return (snapshot.inventory.targets || [])
         .flatMap((target): RouteLocalModel[] => {
-          if (target.evidence.source !== 'local-runtime' || target.targetRef.kind !== 'local-runtime') {
+          if (
+            target.evidence.source !== 'local-runtime'
+            || target.targetRef.kind !== 'local-runtime'
+            || isCompanionOnlyLocalTarget(target)
+          ) {
             return [];
           }
           const profileBindingId = String(target.targetRef.profileBindingId || '').trim();

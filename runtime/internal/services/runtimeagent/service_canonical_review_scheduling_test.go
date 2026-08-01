@@ -287,10 +287,12 @@ func TestRuntimeAgentCanonicalReviewSchedulingSweepNoClustersNoOp(t *testing.T) 
 func initializeCanonicalReviewSchedulingAgent(t *testing.T, ctx context.Context, svc *Service, agentID string) *runtimev1.MemoryBankLocator {
 	t.Helper()
 
+	identityContext := testRuntimeAgentIdentityContext(agentID)
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext(agentID)}); err != nil {
+		Context: identityContext}); err != nil {
 		t.Fatalf("RealmSourceMaterialization(%s): %v", agentID, err)
 	}
+	configureRuntimeAgentTestAIConfig(t, svc, identityContext)
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{

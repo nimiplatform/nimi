@@ -25,6 +25,11 @@ func (r publicChatRuntime) handleTurnRequest(
 	}
 	callerAppID := strings.TrimSpace(event.GetFromAppId())
 	subjectUserID := strings.TrimSpace(event.GetSubjectUserId())
+	resolvedAttachments, err := r.svc.resolvePublicChatTurnAttachments(subjectUserID, callerAppID, req.Messages)
+	if err != nil {
+		return publicChatDiagnosticError(err, "runtime_agent_public_chat_turn_attachment")
+	}
+	req.resolvedAttachments = resolvedAttachments
 	session, turn, turnCtx, err := r.reserveTurn(ctx, callerAppID, subjectUserID, req)
 	if err != nil {
 		return publicChatDiagnosticError(err, "runtime_agent_public_chat_turn_reserve")

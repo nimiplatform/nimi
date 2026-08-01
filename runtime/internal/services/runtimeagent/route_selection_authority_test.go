@@ -209,7 +209,6 @@ func TestChatTrackSidecarServiceStampsCommittedConfigModel(t *testing.T) {
 		},
 	}
 	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(fakeAI))
-	upsertPublicChatTestAgentAIConfig(t, svc)
 	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
 		Context:          publicChatTestAIConfigContext(t, svc),
 		ExpectedRevision: 2,
@@ -218,11 +217,13 @@ func TestChatTrackSidecarServiceStampsCommittedConfigModel(t *testing.T) {
 				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
 				ModelId:     "local/qwen3-chat",
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				TargetRef:   runtimeAgentAIConfigTestLocalTarget("qwen3-chat"),
 			},
 			{
 				Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
-				ModelId:     runtimeAgentAIConfigDefaultEmbeddingModelID,
+				ModelId:     runtimeAgentAIConfigTestEmbedModel,
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-embed"),
 			},
 		},
 	}); err != nil {

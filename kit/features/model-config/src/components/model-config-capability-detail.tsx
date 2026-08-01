@@ -11,11 +11,13 @@ import {
 import type {
   AppModelConfigSurface,
   CapabilityItemOverride,
-  ModelConfigRouteIntent,
-  ModelConfigSettingsProjection,
-  SharedAIConfigService,
+  SharedAIConfigPersistenceService,
 } from '@nimiplatform/kit/core/model-config';
-import type { NimiAIConfig, NimiJsonValue } from '@nimiplatform/kit/core/sdk-contract';
+import type {
+  NimiAIConfig,
+  NimiAIConfigComponentSelection,
+  NimiJsonValue,
+} from '@nimiplatform/kit/core/sdk-contract';
 import {
   DEFAULT_AUDIO_SYNTHESIZE_PARAMS,
   DEFAULT_AUDIO_TRANSCRIBE_PARAMS,
@@ -29,14 +31,13 @@ import {
   parseTextGenerateParams,
   parseVideoParams,
   parseVoiceWorkflowParams,
-  resolveImageCompanionSlotsForModelFamily,
 } from '../constants.js';
 import type {
   AudioSynthesizeParamsState,
   AudioTranscribeParamsState,
   ImageParamsState,
-  LocalAssetEntry,
   ModelConfigCapabilityItem,
+  ModelConfigProfileCapabilitySummary,
   ModelConfigRouteSelection,
   ModelConfigTargetRef,
   TextGenerateParamsState,
@@ -68,7 +69,7 @@ export type ModelConfigCapabilityDetailProps = {
   capabilityId: string;
   surface: AppModelConfigSurface;
   config: NimiAIConfig | null;
-  modelSettings?: ModelConfigSettingsProjection | null;
+  profileCapability?: ModelConfigProfileCapabilitySummary | null;
   activeModelLabel?: string | null;
   activeModelHint?: string | null;
 };
@@ -82,50 +83,6 @@ function readParams(config: NimiAIConfig, capabilityId: string): Readonly<Record
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function localRuntimeRefCandidates(value: unknown): string[] {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    return [];
-  }
-  const candidates = [
-    normalized,
-    ...normalized.split(':').map((part) => part.trim()).filter(Boolean),
-  ];
-  const prefix = 'local-runtime:';
-  if (normalized.toLowerCase().startsWith(prefix)) {
-    const localAssetId = normalized.slice(prefix.length).trim();
-    if (localAssetId) {
-      candidates.push(localAssetId);
-    }
-  }
-  return candidates;
-}
-
-function targetRefCandidateTexts(targetRef: ModelConfigTargetRef | null): string[] {
-  if (!targetRef || targetRef.kind !== 'local-runtime') {
-    return [];
-  }
-  return [
-    ...localRuntimeRefCandidates(targetRef.profileBindingId),
-    ...localRuntimeRefCandidates(targetRef.readinessRef),
-  ].filter(Boolean);
-}
-
-function localAssetMatchesCandidate(asset: LocalAssetEntry, candidate: string): boolean {
-  return normalizeText(asset.localAssetId) === candidate || normalizeText(asset.assetId) === candidate;
-}
-
-function findAssetForLocalTarget(
-  assets: readonly LocalAssetEntry[],
-  targetRef: ModelConfigTargetRef | null,
-): LocalAssetEntry | null {
-  const candidates = targetRefCandidateTexts(targetRef);
-  if (candidates.length === 0) {
-    return null;
-  }
-  return assets.find((asset) => candidates.some((candidate) => localAssetMatchesCandidate(asset, candidate))) ?? null;
 }
 
 function routeTargetRefFromSelection(
@@ -157,56 +114,30 @@ function routeTargetRefFromSelection(
   };
 }
 
-function localAssetFamily(asset: LocalAssetEntry | null): string {
-  if (!asset) return '';
-  const extensible = asset as LocalAssetEntry & {
-    readonly family?: unknown;
-    readonly modelFamily?: unknown;
-    readonly model_family?: unknown;
-    readonly metadata?: Readonly<Record<string, unknown>>;
-  };
-  return normalizeText(
-    extensible.modelFamily
-    ?? extensible.model_family
-    ?? extensible.family
-    ?? extensible.metadata?.modelFamily
-    ?? extensible.metadata?.model_family
-    ?? extensible.metadata?.family,
-  );
-}
-
-function imageModelFamilyFromState(input: {
-  readonly storedParams: Readonly<Record<string, unknown>>;
-  readonly targetRef: ModelConfigTargetRef | null;
-  readonly assets: readonly LocalAssetEntry[];
-}): string {
-  const paramsFamily = normalizeText(
-    input.storedParams.modelFamily
-    ?? input.storedParams.model_family
-    ?? input.storedParams.runtimeModelFamily
-    ?? input.storedParams.runtime_model_family,
-  );
-  if (paramsFamily) {
-    return paramsFamily;
-  }
-  return localAssetFamily(findAssetForLocalTarget(input.assets, input.targetRef));
-}
-
 function writeCapabilityPatch(
-  service: SharedAIConfigService,
+  service: SharedAIConfigPersistenceService,
   scopeRef: AppModelConfigSurface['scopeRef'],
   capabilityId: string,
   patch: {
+    logicalModelId?: string | null;
     targetRef?: ModelConfigTargetRef | null;
+    selectedComponents?: readonly NimiAIConfigComponentSelection[];
     params?: NimiJsonValue;
   },
 ): Promise<void> {
   const current = service.aiConfig.get(scopeRef);
-  return Promise.resolve(service.aiConfig.update(scopeRef, applyModelConfigCapabilityPatch(current, capabilityId, patch)));
+  const next = applyModelConfigCapabilityPatch(current, capabilityId, patch);
+  const replacesProfileMaterialization = Object.prototype.hasOwnProperty.call(patch, 'logicalModelId')
+    || Object.prototype.hasOwnProperty.call(patch, 'targetRef');
+  return Promise.resolve(service.aiConfig.update(scopeRef, replacesProfileMaterialization
+    ? { ...next, profileOrigin: null }
+    : next));
 }
 
 type CapabilityPatchWriter = (patch: {
+  logicalModelId?: string | null;
   targetRef?: ModelConfigTargetRef | null;
+  selectedComponents?: readonly NimiAIConfigComponentSelection[];
   params?: NimiJsonValue;
 }) => void;
 
@@ -247,6 +178,7 @@ function renderEditor(
   surface: AppModelConfigSurface,
   config: NimiAIConfig | null,
   writePatch: CapabilityPatchWriter,
+  profileCapability: ModelConfigProfileCapabilitySummary | null,
 ): {
   editor: ReturnType<typeof Object> | null;
   showEditorWhen: 'always' | 'local';
@@ -328,30 +260,21 @@ function renderEditor(
     }
     case 'image': {
       const params: ImageParamsState = parseImageParams(storedParams);
-      const companionSlots = (storedParams.companionSlots || {}) as Record<string, string>;
-      const imageAssets = surface.localAssetSource?.list() ?? [];
-      const targetRef = readModelConfigTargetRef(config, descriptor.capabilityId);
-      const companionSlotDefs = resolveImageCompanionSlotsForModelFamily(imageModelFamilyFromState({
-        storedParams: { ...storedParams, modelFamily: params.modelFamily },
-        targetRef,
-        assets: imageAssets,
-      }));
+      const selectedComponents = config.capabilities.selectedComponents?.[descriptor.capabilityId] || [];
       return {
         showEditorWhen,
         editor: (
           <ImageParamsEditor
             copy={buildImageCopy(t)}
             params={params}
-            companionSlots={companionSlots}
-            companionSlotDefs={companionSlotDefs}
-            assets={[...imageAssets]}
-            assetsLoading={surface.localAssetSource?.loading}
-            onParamsChange={(next) => writePatch({
-              params: { ...DEFAULT_IMAGE_PARAMS, ...next, companionSlots },
-            })}
-            onCompanionSlotsChange={(next) => writePatch({
-              params: { ...DEFAULT_IMAGE_PARAMS, ...params, companionSlots: next },
-            })}
+            profileComposition={profileCapability}
+            selectedComponents={selectedComponents}
+            componentCandidates={surface.localAssetSource?.list() || []}
+            componentsLoading={surface.localAssetSource?.loading}
+            onComponentsChange={(next) => writePatch({ selectedComponents: next })}
+            onParamsChange={(next) => {
+              writePatch({ params: { ...DEFAULT_IMAGE_PARAMS, ...next } });
+            }}
           />
         ),
       };
@@ -377,7 +300,6 @@ function renderEditor(
 
 function buildImageCopy(t: AppModelConfigSurface['i18n']['t']) {
   return {
-    modelFamilyLabel: t('ModelConfig.editor.image.modelFamilyLabel'),
     companionModelsLabel: t('ModelConfig.editor.image.companionModelsLabel'),
     parametersLabel: t('ModelConfig.editor.image.parametersLabel'),
     sizeLabel: t('ModelConfig.editor.image.sizeLabel'),
@@ -389,15 +311,29 @@ function buildImageCopy(t: AppModelConfigSurface['i18n']['t']) {
     cfgScaleLabel: t('ModelConfig.editor.image.cfgScaleLabel'),
     samplerLabel: t('ModelConfig.editor.image.samplerLabel'),
     schedulerLabel: t('ModelConfig.editor.image.schedulerLabel'),
-    customOptionsLabel: t('ModelConfig.editor.image.customOptionsLabel'),
-    customOptionsHint: t('ModelConfig.editor.image.customOptionsHint'),
     defaultPlaceholder: t('ModelConfig.editor.common.defaultPlaceholder'),
     randomPlaceholder: t('ModelConfig.editor.common.randomPlaceholder'),
-    oneOptionPerLinePlaceholder: t('ModelConfig.editor.image.oneOptionPerLinePlaceholder'),
     noneLabel: t('ModelConfig.editor.common.noneLabel'),
     requiredLabel: translateWithDefault(t, 'ModelConfig.editor.common.requiredLabel', 'Required'),
     requiredSetupPlaceholder: translateWithDefault(t, 'ModelConfig.editor.common.requiredSetupPlaceholder', 'Required setup'),
     setupPendingLabel: translateWithDefault(t, 'ModelConfig.editor.common.setupPendingLabel', 'setup pending'),
+    mainModelLabel: translateWithDefault(t, 'ModelConfig.editor.image.mainModelLabel', 'Main model'),
+    compositionRuntimeOwnedHint: translateWithDefault(
+      t,
+      'ModelConfig.editor.image.compositionRuntimeOwnedHint',
+      'Component slots came from the applied AI Profile. Changes are saved only to this AI configuration.',
+    ),
+    compositionUnavailableHint: translateWithDefault(
+      t,
+      'ModelConfig.editor.image.compositionUnavailableHint',
+      'Apply an AI Profile with component slots before configuring this workflow.',
+    ),
+    componentPickerTitle: translateWithDefault(t, 'ModelConfig.editor.image.componentPickerTitle', 'Select component model'),
+    componentSearchPlaceholder: translateWithDefault(t, 'ModelConfig.editor.image.componentSearchPlaceholder', 'Search component models'),
+    componentLoadingLabel: translateWithDefault(t, 'ModelConfig.editor.image.componentLoadingLabel', 'Loading component models...'),
+    componentEmptyLabel: translateWithDefault(t, 'ModelConfig.editor.image.componentEmptyLabel', 'No compatible component models available.'),
+    componentSelectedLabel: translateWithDefault(t, 'ModelConfig.editor.image.componentSelectedLabel', 'Selected'),
+    currentUnavailableLabel: translateWithDefault(t, 'ModelConfig.editor.image.currentUnavailableLabel', 'Currently unavailable'),
   };
 }
 
@@ -434,14 +370,14 @@ export function ModelConfigCapabilityDetail({
   capabilityId,
   surface,
   config,
-  modelSettings = null,
+  profileCapability = null,
   activeModelLabel,
   activeModelHint,
 }: ModelConfigCapabilityDetailProps) {
   const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[capabilityId];
   const override = resolveOverride(surface, capabilityId);
   const targetRef = config ? readModelConfigTargetRef(config, capabilityId) : null;
-  const routeIntent = modelSettings?.routeIntents.find((intent) => intent.capability === capabilityId) ?? null;
+  const routeIntent = surface.routeIntentResolver?.(capabilityId) ?? null;
   const routeSelection: ModelConfigRouteSelection | null = routeIntent ? {
     source: routeIntent.routePolicy,
     connectorId: '',
@@ -465,12 +401,15 @@ export function ModelConfigCapabilityDetail({
         }),
   } : null;
   const [writeError, setWriteError] = useState<string | null>(null);
+  const [initialImageProfileRequired, setInitialImageProfileRequired] = useState(false);
   const writeQueueRef = useRef<Promise<void>>(Promise.resolve());
   const writeSequenceRef = useRef(0);
   const latestWriteSequenceRef = useRef(0);
 
   const writePatch = useCallback((patch: {
+    logicalModelId?: string | null;
     targetRef?: ModelConfigTargetRef | null;
+    selectedComponents?: readonly NimiAIConfigComponentSelection[];
     params?: NimiJsonValue;
   }) => {
     const sequence = writeSequenceRef.current + 1;
@@ -480,9 +419,6 @@ export function ModelConfigCapabilityDetail({
     const commit = writeQueueRef.current
       .catch(() => undefined)
       .then(() => {
-        if (!('aiConfigService' in surface) || !surface.aiConfigService) {
-          throw new Error('AI Config patching is unavailable on the dedicated model-settings projection.');
-        }
         return writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, patch);
       });
     writeQueueRef.current = commit;
@@ -505,42 +441,30 @@ export function ModelConfigCapabilityDetail({
   }, [writePatch]);
 
   const handleRouteSelectionChange = useCallback((selection: ModelConfigRouteSelection | null) => {
-    if (!('modelSettingsService' in surface) || !surface.modelSettingsService || !modelSettings) {
-      throw new Error('Dedicated model-settings mutation is unavailable.');
+    if (!selection) {
+      writePatch({ logicalModelId: null, targetRef: null });
+      return;
     }
-    let nextIntent: ModelConfigRouteIntent | null = null;
-    if (selection) {
-      const model = normalizeText(selection.source === 'cloud'
-        ? (selection.providerModelId || selection.model)
-        : (selection.modelId || selection.model));
-      const provider = selection.source === 'cloud' ? normalizeText(selection.provider) : '';
-      if (!model || (selection.source === 'cloud' && !provider)) {
-        throw new Error('The selected model route does not carry canonical provider/model identity.');
-      }
-      const targetRef = routeTargetRefFromSelection(selection);
-      nextIntent = {
-        capability: capabilityId,
-        provider,
-        model,
-        routePolicy: selection.source,
-        ...(targetRef ? { targetRef } : {}),
-      };
+    const hasCommittedImageOccurrenceStructure = Boolean(
+      config?.capabilities.selectedComponents?.['image.generate']?.length,
+    );
+    if (capabilityId === 'image.generate' && !hasCommittedImageOccurrenceStructure) {
+      setInitialImageProfileRequired(true);
+      return;
     }
-    const routeIntents = modelSettings.routeIntents
-      .filter((intent) => intent.capability !== capabilityId)
-      .concat(nextIntent ? [nextIntent] : []);
-    if (routeIntents.length === 0) {
-      throw new Error('At least one model route intent is required.');
+    setInitialImageProfileRequired(false);
+    const logicalModelId = normalizeText(selection.source === 'cloud'
+      ? (selection.providerModelId || selection.model)
+      : (selection.modelId || selection.model));
+    if (!logicalModelId) {
+      throw new Error('The selected model route does not carry a logical model identity.');
     }
-    setWriteError(null);
-    void surface.modelSettingsService.update({
-      scopeRef: surface.scopeRef,
-      expectedConfigurationRevision: modelSettings.configurationRevision,
-      routeIntents,
-    }).catch((error: unknown) => {
-      setWriteError(error instanceof Error ? error.message : String(error || 'Model settings save failed.'));
+    const targetRef = routeTargetRefFromSelection(selection);
+    writePatch({
+      logicalModelId,
+      targetRef,
     });
-  }, [capabilityId, modelSettings, surface]);
+  }, [capabilityId, config, writePatch]);
 
   const provider = useMemo(
     () => (descriptor ? resolveProvider(surface, descriptor.sourceRef.capability) : null),
@@ -551,7 +475,7 @@ export function ModelConfigCapabilityDetail({
     return null;
   }
 
-  const { editor, showEditorWhen } = renderEditor(descriptor, surface, config, writePatch);
+  const { editor, showEditorWhen } = renderEditor(descriptor, surface, config, writePatch, profileCapability);
   const baseProjection = surface.projectionResolver(capabilityId);
   const projection = writeError
     ? {
@@ -562,6 +486,18 @@ export function ModelConfigCapabilityDetail({
         title: translateWithDefault(surface.i18n.t, 'ModelConfig.saveFailedTitle', 'AI config save failed'),
         detail: writeError,
       }
+    : initialImageProfileRequired
+      ? {
+          supported: false,
+          tone: 'attention' as const,
+          badgeLabel: translateWithDefault(surface.i18n.t, 'ModelConfig.imageProfileRequiredBadgeLabel', 'Profile required'),
+          title: translateWithDefault(surface.i18n.t, 'ModelConfig.imageProfileRequiredTitle', 'Apply an AI Profile first'),
+          detail: translateWithDefault(
+            surface.i18n.t,
+            'ModelConfig.imageProfileRequiredDetail',
+            'Initial image configuration must come from a complete AI Profile so Runtime can commit its component occurrence structure.',
+          ),
+        }
     : baseProjection;
   const t = surface.i18n.t;
 
@@ -582,9 +518,7 @@ export function ModelConfigCapabilityDetail({
     routeSelection,
     provider,
     onTargetRefChange: handleTargetRefChange,
-    ...(('modelSettingsService' in surface && surface.modelSettingsService)
-      ? { onRouteSelectionChange: handleRouteSelectionChange }
-      : {}),
+    onRouteSelectionChange: handleRouteSelectionChange,
     status: projection,
     editor,
     showEditorWhen,

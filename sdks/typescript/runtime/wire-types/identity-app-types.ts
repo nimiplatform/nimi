@@ -142,6 +142,8 @@ export type {
 import type {
   CleanupGeneratedVoiceArtifactsRequest,
   CleanupGeneratedVoiceArtifactsResponse,
+  PutArtifactRequest,
+  PutArtifactResponse,
   ReadArtifactBytesRequest,
   ReadArtifactBytesResponse,
 } from "../../core-generated/runtime-protobuf/runtime/v1/artifact_service";
@@ -149,6 +151,8 @@ import type {
 export type {
   CleanupGeneratedVoiceArtifactsRequest,
   CleanupGeneratedVoiceArtifactsResponse,
+  PutArtifactRequest,
+  PutArtifactResponse,
   ReadArtifactBytesRequest,
   ReadArtifactBytesResponse,
 };

@@ -213,6 +213,7 @@ describe('useRuntimeModelPicker', () => {
 
 describe('ModelPickerModal', () => {
   it('exposes unique ready and unavailable selectors from authoritative local readiness', async () => {
+    const onSelect = vi.fn();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -243,7 +244,7 @@ describe('ModelPickerModal', () => {
             listConnectors: async () => [],
             listConnectorModels: async () => [],
           }}
-          onSelect={() => undefined}
+          onSelect={onSelect}
         />,
       );
       await flush();
@@ -258,6 +259,58 @@ describe('ModelPickerModal', () => {
     expect(unavailable?.getAttribute('data-nimi-route-source')).toBe('local');
     expect(unavailable?.getAttribute('data-nimi-route-readiness')).toBe('unhealthy');
     expect(unavailable?.getAttribute('data-nimi-local-model-id')).toBe('unavailable-local-chat');
+    expect((unavailable as HTMLButtonElement | null)?.disabled).toBe(true);
+    await act(async () => {
+      (unavailable as HTMLButtonElement | null)?.click();
+      await flush();
+    });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('selects an installed image target without requiring warm-on-select', async () => {
+    const onSelect = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ModelPickerModal
+          open
+          onClose={() => undefined}
+          capability="image.generate"
+          capabilityLabel="Image"
+          provider={{
+            listLocalModels: async () => [{
+              localModelId: 'installed-image',
+              modelId: 'local.image.z-image-turbo',
+              label: 'Z Image Turbo',
+              engine: 'stable-diffusion.cpp',
+              status: 'installed',
+              capabilities: ['image.generate'],
+            }],
+            listConnectors: async () => [],
+            listConnectorModels: async () => [],
+          }}
+          onSelect={onSelect}
+        />,
+      );
+      await flush();
+      await flush();
+    });
+
+    const installedImage = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Z Image Turbo')) as HTMLButtonElement | undefined;
+    expect(installedImage?.disabled).toBe(false);
+    await act(async () => {
+      installedImage?.click();
+      await flush();
+    });
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({
+      source: 'local',
+      model: 'installed-image',
+      localModelId: 'installed-image',
+    }));
   });
 
   it('preserves the v2 local target ref when selecting a local runtime model', async () => {

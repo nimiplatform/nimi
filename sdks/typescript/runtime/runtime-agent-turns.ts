@@ -61,7 +61,8 @@ const TURN_REQUEST_FIELDS = new Set([
   'messages',
   'reasoning',
 ]);
-const TURN_MESSAGE_FIELDS = new Set(['role', 'content']);
+const TURN_MESSAGE_FIELDS = new Set(['role', 'content', 'attachments']);
+const TURN_MESSAGE_ATTACHMENT_FIELDS = new Set(['artifactId', 'displayName']);
 const TURN_REASONING_FIELDS = new Set(['mode', 'traceMode', 'budgetTokens']);
 
 export interface NimiRuntimeAgentTurnsRuntime {
@@ -191,6 +192,48 @@ function optionalRuntimeCursor(cursor: unknown): string {
   return normalized;
 }
 
+function normalizeTurnMessageAttachments(
+  value: unknown,
+): NimiRuntimeAgentCurrentUserMessage['attachments'] {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    runtimeAgentInputError(
+      'runtime agent turn message attachments must be an array',
+      'provide_valid_runtime_agent_turn_attachment',
+    );
+  }
+  if (value.length > 1) {
+    runtimeAgentInputError(
+      'runtime agent turn message admits at most one attachment',
+      'provide_valid_runtime_agent_turn_attachment',
+    );
+  }
+  const attachments = value.map((item) => {
+    assertExactObjectFields(item, TURN_MESSAGE_ATTACHMENT_FIELDS, 'runtime agent turn message attachment');
+    const artifactId = optionalString(item.artifactId);
+    if (!artifactId) {
+      runtimeAgentInputError(
+        'runtime agent turn message attachment artifactId must be a non-empty string',
+        'provide_valid_runtime_agent_turn_attachment',
+      );
+    }
+    if (item.displayName !== undefined && typeof item.displayName !== 'string') {
+      runtimeAgentInputError(
+        'runtime agent turn message attachment displayName must be a string',
+        'provide_valid_runtime_agent_turn_attachment',
+      );
+    }
+    const displayName = optionalString(item.displayName);
+    return {
+      artifactId,
+      ...(displayName ? { displayName } : {}),
+    };
+  });
+  return attachments.length > 0 ? attachments : undefined;
+}
+
 function normalizeCurrentUserMessage(messages: unknown): NimiRuntimeAgentCurrentUserMessage {
   if (!Array.isArray(messages) || messages.length !== 1) {
     runtimeAgentInputError(
@@ -207,13 +250,18 @@ function normalizeCurrentUserMessage(messages: unknown): NimiRuntimeAgentCurrent
     );
   }
   const content = optionalString(message.content);
-  if (!content) {
+  const attachments = normalizeTurnMessageAttachments(message.attachments);
+  if (!content && !attachments) {
     runtimeAgentInputError(
-      'runtime agent turn message content must be non-empty',
+      'runtime agent turn message requires non-empty content or an attachment',
       'provide_one_runtime_agent_current_user_message',
     );
   }
-  return { role: 'user', content };
+  return {
+    role: 'user',
+    content: content || '',
+    ...(attachments ? { attachments } : {}),
+  };
 }
 
 export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRequest): JsonObject {
@@ -240,7 +288,18 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
     ...(optionalString(request.requestId) ? { request_id: optionalString(request.requestId) } : {}),
     ...(optionalString(request.threadId) ? { thread_id: optionalString(request.threadId) } : {}),
     ...(maxOutputTokens !== undefined ? { max_output_tokens: maxOutputTokens } : {}),
-    messages: [message],
+    messages: [{
+      role: message.role,
+      content: message.content,
+      ...(message.attachments && message.attachments.length > 0
+        ? {
+          attachments: message.attachments.map((attachment) => ({
+            artifact_id: attachment.artifactId,
+            ...(attachment.displayName ? { display_name: attachment.displayName } : {}),
+          })),
+        }
+        : {}),
+    }],
     ...(reasoning ? { reasoning } : {}),
   };
 }

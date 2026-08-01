@@ -92,6 +92,48 @@ export interface CleanupGeneratedVoiceArtifactsResponse {
      */
     deletedArtifactIds: string[];
 }
+/**
+ * @generated from protobuf message nimi.runtime.v1.PutArtifactRequest
+ */
+export interface PutArtifactRequest {
+    /**
+     * Declared media type of the uploaded material. Must be one of image/png,
+     * image/jpeg, image/webp, or image/gif, and must agree with the payload
+     * file signature; the server validates the signature instead of trusting
+     * the declared value.
+     *
+     * @generated from protobuf field: string mime_type = 1
+     */
+    mimeType: string;
+    /**
+     * Human-readable display name projected back to consumers (for example the
+     * original file name). May be empty; the server falls back to a generic
+     * attachment label for rendering.
+     *
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
+    /**
+     * Raw file bytes. Limited to 4 MiB (4 * 1024 * 1024); the server must
+     * reject oversize payloads before allocating the full body.
+     *
+     * @generated from protobuf field: bytes data = 3
+     */
+    data: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PutArtifactResponse
+ */
+export interface PutArtifactResponse {
+    /**
+     * Runtime-owned, opaque, globally-unique artifact identity
+     * ("artifact_<ulid>") used for later turn attachment references and
+     * ReadArtifactBytes retrieval. It is not an authorization credential.
+     *
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class ReadArtifactBytesRequest$Type extends MessageType<ReadArtifactBytesRequest> {
     constructor() {
@@ -320,3 +362,113 @@ class CleanupGeneratedVoiceArtifactsResponse$Type extends MessageType<CleanupGen
  * @generated MessageType for protobuf message nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse
  */
 export const CleanupGeneratedVoiceArtifactsResponse = new CleanupGeneratedVoiceArtifactsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PutArtifactRequest$Type extends MessageType<PutArtifactRequest> {
+    constructor() {
+        super("nimi.runtime.v1.PutArtifactRequest", [
+            { no: 1, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "data", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PutArtifactRequest>): PutArtifactRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mimeType = "";
+        message.displayName = "";
+        message.data = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<PutArtifactRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PutArtifactRequest): PutArtifactRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string mime_type */ 1:
+                    message.mimeType = reader.string();
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                case /* bytes data */ 3:
+                    message.data = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PutArtifactRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string mime_type = 1; */
+        if (message.mimeType !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.mimeType);
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        /* bytes data = 3; */
+        if (message.data.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.data);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PutArtifactRequest
+ */
+export const PutArtifactRequest = new PutArtifactRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PutArtifactResponse$Type extends MessageType<PutArtifactResponse> {
+    constructor() {
+        super("nimi.runtime.v1.PutArtifactResponse", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PutArtifactResponse>): PutArtifactResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<PutArtifactResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PutArtifactResponse): PutArtifactResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PutArtifactResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PutArtifactResponse
+ */
+export const PutArtifactResponse = new PutArtifactResponse$Type();

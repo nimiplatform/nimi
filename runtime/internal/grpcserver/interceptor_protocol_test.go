@@ -374,6 +374,7 @@ func isKnownReadOperation(operation string) bool {
 		"Inspect",
 		"List",
 		"Peek",
+		"Preview",
 		"Query",
 		"Read",
 		"Recall",

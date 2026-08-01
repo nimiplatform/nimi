@@ -24,11 +24,17 @@ export type NimiLocalAppConversationOpenResult = {
   readonly activeStreamId: string | null;
 };
 
+export type NimiLocalAppConversationAttachment = {
+  readonly artifactId: string;
+  readonly displayName?: string;
+};
+
 export type NimiLocalAppConversationSendInput = {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly requestId: string;
   readonly text: string;
+  readonly attachments: readonly NimiLocalAppConversationAttachment[];
 };
 
 export type NimiLocalAppConversationSendResult = {
@@ -75,6 +81,7 @@ export type NimiLocalAppConversationShell = {
     readonly conversationAnchorId: string;
     readonly requestId: string;
     readonly text: string;
+    readonly attachments: readonly NimiLocalAppConversationAttachment[];
   }) => Promise<unknown>;
   readonly interruptTurn: (input: {
     readonly agentHandle: string;
@@ -101,11 +108,19 @@ export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversa
     send: async (input: NimiLocalAppConversationSendInput): Promise<NimiLocalAppConversationSendResult> => {
       assertExactKeys(
         input,
-        ['agentHandle', 'conversationAnchorId', 'requestId', 'text'],
+        ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments'],
         'local-app conversation send input',
       );
       assertNoAuthorityMaterial(input);
-      const text = requireText(input.text, 'text');
+      const attachments = validateConversationAttachments(input.attachments);
+      if (typeof input.text !== 'string' || input.text.trim() !== input.text || (!input.text && attachments.length === 0)) {
+        return localAppError(
+          'Local-app conversation text is invalid.',
+          'SDK_LOCAL_APP_INPUT_INVALID',
+          'provide_text',
+        );
+      }
+      const text = input.text;
       if (new TextEncoder().encode(text).byteLength > 64 * 1024) {
         return localAppError(
           'Local-app conversation text exceeds 65536 UTF-8 bytes.',
@@ -118,6 +133,7 @@ export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversa
         conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
         requestId: requireText(input.requestId, 'requestId'),
         text,
+        attachments,
       });
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['messageId'], 'conversation send');
@@ -169,6 +185,43 @@ export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversa
       if (!record) return localAppProjectionError('conversation snapshot');
       return Object.freeze({ ...record }) as NimiLocalAppConversationSnapshot;
     },
+  });
+}
+
+function validateConversationAttachments(
+  value: unknown,
+): readonly NimiLocalAppConversationAttachment[] {
+  if (!Array.isArray(value) || value.length > 1) {
+    return localAppError(
+      'Local-app conversation attachments admit at most one item.',
+      'SDK_LOCAL_APP_INPUT_INVALID',
+      'provide_valid_conversation_attachment',
+    );
+  }
+  return value.map((item) => {
+    const record = asRecord(item);
+    if (!record || Object.keys(record).some((key) => key !== 'artifactId' && key !== 'displayName')) {
+      return localAppError(
+        'Local-app conversation attachment contains unsupported fields.',
+        'SDK_LOCAL_APP_INPUT_INVALID',
+        'provide_valid_conversation_attachment',
+      );
+    }
+    const artifactId = requireText(record.artifactId, 'attachments.artifactId');
+    if (record.displayName !== undefined && typeof record.displayName !== 'string') {
+      return localAppError(
+        'Local-app conversation attachment displayName must be a string.',
+        'SDK_LOCAL_APP_INPUT_INVALID',
+        'provide_valid_conversation_attachment',
+      );
+    }
+    const displayName = typeof record.displayName === 'string' && record.displayName.trim()
+      ? record.displayName.trim()
+      : '';
+    return Object.freeze({
+      artifactId,
+      ...(displayName ? { displayName } : {}),
+    });
   });
 }
 

@@ -45,6 +45,13 @@ type managedMediaProfileSlotResolution struct {
 type managedMediaProfileMaterializationBinding struct {
 	AssetID               string
 	LocalAssetID          string
+	OccurrenceID          string
+	Order                 int
+	Role                  string
+	LogicalModelID        string
+	Required              bool
+	Weight                string
+	Options               map[string]any
 	CompanionKind         string
 	EngineSlot            string
 	CompanionAssetID      string
@@ -57,7 +64,10 @@ func cloneManagedMediaProfileMaterializationBindings(bindings []managedMediaProf
 		return nil
 	}
 	out := make([]managedMediaProfileMaterializationBinding, len(bindings))
-	copy(out, bindings)
+	for index, binding := range bindings {
+		out[index] = binding
+		out[index].Options = cloneAnyMap(binding.Options)
+	}
 	return out
 }
 
@@ -250,6 +260,18 @@ func profileEntryInstalledAssetUsable(asset *runtimev1.LocalAssetRecord) bool {
 	}
 }
 
+func profileEntryStaticConfigAssetUsable(asset *runtimev1.LocalAssetRecord) bool {
+	if !profileEntryInstalledAssetUsable(asset) {
+		return false
+	}
+	status := asset.GetDurableTargetStatus()
+	if status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
+		status = asset.GetStatus()
+	}
+	return status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED ||
+		status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+}
+
 func profileEntryInstalledMainAssetUsable(asset *runtimev1.LocalAssetRecord, allowUnhealthyMainLocalAssetID string) bool {
 	if profileEntryInstalledAssetUsable(asset) {
 		return true
@@ -390,7 +412,77 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	if model == nil {
 		return "", nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
+	return s.resolveManagedMediaImageProfileForModel(model, "", scenarioExtensions)
+}
 
+// ResolveManagedMediaImageProfileForLocalAsset accepts only the exact
+// local_asset_id selected by the v2 durable target resolver. It never searches
+// asset, logical-model, or source identities.
+func (s *Service) ResolveManagedMediaImageProfileForLocalAsset(
+	_ context.Context,
+	localAssetID string,
+	scenarioExtensions map[string]any,
+) (string, map[string]any, map[string]any, error) {
+	id := strings.TrimSpace(localAssetID)
+	if id == "" {
+		return "", nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	s.mu.RLock()
+	model := cloneLocalAsset(s.assets[id])
+	s.mu.RUnlock()
+	if model == nil || strings.TrimSpace(model.GetLocalAssetId()) != id {
+		return "", nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	return s.resolveManagedMediaImageProfileForModel(model, "", scenarioExtensions)
+}
+
+// ResolveManagedMediaImageProfileForBinding resolves the exact prepared
+// workflow named by the committed v2 profile binding. It never selects a
+// workflow from the main asset identity.
+func (s *Service) ResolveManagedMediaImageProfileForBinding(
+	_ context.Context,
+	profileBindingID string,
+	localAssetID string,
+	scenarioExtensions map[string]any,
+) (string, map[string]any, map[string]any, error) {
+	bindingID := strings.TrimSpace(profileBindingID)
+	id := strings.TrimSpace(localAssetID)
+	if bindingID == "" || id == "" {
+		return "", nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	s.mu.RLock()
+	model := cloneLocalAsset(s.assets[id])
+	s.mu.RUnlock()
+	if model == nil || strings.TrimSpace(model.GetLocalAssetId()) != id {
+		return "", nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	return s.resolveManagedMediaImageProfileForModel(model, bindingID, scenarioExtensions)
+}
+
+func (s *Service) resolveManagedMediaImageProfileForModel(
+	model *runtimev1.LocalAssetRecord,
+	profileBindingID string,
+	scenarioExtensions map[string]any,
+) (string, map[string]any, map[string]any, error) {
+	// A committed binding is the only source of workflow identity during
+	// execution. Caller-provided workflow definitions are accepted only by the
+	// unbound preparation path; allowing them here would let a Scenario request
+	// replace the committed main/component targets after AIConfig validation.
+	if strings.TrimSpace(profileBindingID) != "" {
+		for _, key := range []string{
+			managedMediaWorkflowProfileEntriesKey,
+			managedMediaWorkflowEntryOverridesKey,
+			managedMediaWorkflowProfileOverridesKey,
+		} {
+			if _, provided := scenarioExtensions[key]; provided {
+				return "", nil, nil, grpcerr.WithReasonCodeOptions(
+					codes.InvalidArgument,
+					runtimev1.ReasonCode_AI_INPUT_INVALID,
+					grpcerr.ReasonOptions{Message: "committed image binding cannot be overridden by Scenario workflow definitions"},
+				)
+			}
+		}
+	}
 	profileOverrides, err := managedMediaProfileOverrides(scenarioExtensions)
 	if err != nil {
 		return "", nil, nil, err
@@ -406,11 +498,18 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 		return "", nil, nil, err
 	}
 	runtimeMaterializationKey := ""
+	var runtimeMaterializationState managedImageProfileState
+	runtimeMaterializationResolved := false
 	if !profileEntriesProvided && len(profileEntries) == 0 && len(entryOverrides) == 0 {
-		if runtimeEntries, runtimeOverrides, materializationKey, ok := s.managedImageProfileEntriesFromRuntimeMaterialization(model); ok {
-			profileEntries = runtimeEntries
-			entryOverrides = runtimeOverrides
-			runtimeMaterializationKey = materializationKey
+		if strings.TrimSpace(profileBindingID) != "" {
+			runtimeMaterializationState, runtimeMaterializationResolved =
+				s.managedImageMaterializationStateForBinding(model, profileBindingID)
+		} else {
+			runtimeMaterializationState, runtimeMaterializationResolved =
+				s.managedImageMaterializationStateForAsset(model)
+		}
+		if runtimeMaterializationResolved {
+			runtimeMaterializationKey = strings.TrimSpace(runtimeMaterializationState.Alias)
 		}
 	}
 
@@ -420,8 +519,24 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	slotPaths := map[string]string{}
 	materializationBindings := []managedMediaProfileMaterializationBinding{}
 	materializationResolved := false
+	runtimeComponentSpecs := []map[string]any(nil)
 
-	if len(profileEntries) > 0 {
+	if runtimeMaterializationResolved {
+		execution, resolveErr := s.resolveManagedImageMaterialization(model, runtimeMaterializationState)
+		if resolveErr != nil {
+			return "", nil, nil, resolveErr
+		}
+		modelPath = execution.ModelPath
+		materializationBindings = cloneManagedMediaProfileMaterializationBindings(runtimeMaterializationState.MaterializationBindings)
+		materializationResolved = true
+		runtimeComponentSpecs = execution.ComponentSpecs
+		for _, option := range execution.SlotOptions {
+			key, _, hasValue := strings.Cut(option, ":")
+			if hasValue {
+				slotPaths[strings.TrimSpace(key)] = strings.TrimSpace(strings.TrimPrefix(option, key+":"))
+			}
+		}
+	} else if len(profileEntries) > 0 {
 		resolved, resolveErr := s.resolveProfileSlots(profileEntries, "image", entryOverrides, model.GetLocalAssetId())
 		if resolveErr != nil {
 			return "", nil, nil, resolveErr
@@ -475,6 +590,9 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	parameters := valueAsObject(profile["parameters"])
 	parameters["model"] = modelPath
 	profile["parameters"] = parameters
+	if len(runtimeComponentSpecs) > 0 {
+		profile[managedMediaWorkflowMaterializationBindingsKey] = runtimeComponentSpecs
+	}
 
 	options := valueAsStringSlice(profile["options"])
 	filteredOptions := make([]string, 0, len(options)+len(slotPaths))

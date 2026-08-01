@@ -111,8 +111,16 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 		if strings.TrimSpace(message.Role) != "user" {
 			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat current turn accepts only user role")
 		}
-		if strings.TrimSpace(message.Content) == "" {
-			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat current user message content is required")
+		if len(message.Attachments) > 1 {
+			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat current turn accepts at most one attachment")
+		}
+		for _, attachment := range message.Attachments {
+			if trimmed := strings.TrimSpace(attachment.ArtifactID); trimmed == "" || trimmed != attachment.ArtifactID {
+				return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat attachment artifact_id is invalid")
+			}
+		}
+		if strings.TrimSpace(message.Content) == "" && len(message.Attachments) == 0 {
+			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat current user message requires content or one attachment")
 		}
 		if strings.TrimSpace(message.Name) != "" {
 			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat caller message name is not admitted")

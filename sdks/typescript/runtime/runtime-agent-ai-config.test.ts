@@ -17,6 +17,7 @@ import {
   type NimiRuntimeAgentAIConfigAgentSurface,
   type NimiRuntimeAgentAIConfigModule,
 } from './runtime-agent-ai-config';
+import type { NimiAIConfig } from '../core/ai';
 
 const AUTH_STUB = {
   async registerApp() {
@@ -28,6 +29,51 @@ const AI_CONFIG_IDENTITY = {
   runtimeSourceRef: 'agent-alpha',
   localAgentRef: 'local-agent:user-1:agent-alpha',
 };
+
+function canonicalAIConfig(): NimiAIConfig {
+  return {
+    scopeRef: {
+      kind: 'local-agent',
+      ownerId: AI_CONFIG_IDENTITY.localAgentRef,
+    },
+    capabilities: {
+      logicalModelIds: {
+        'text.generate': 'local/default',
+        'text.embed': 'local/default-embedding',
+        'image.generate': 'gpt-image-1.5',
+      },
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local-runtime:asset-1',
+        },
+        'text.embed': {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local-runtime:embedding-asset-1',
+        },
+        'image.generate': {
+          kind: 'cloud-connector',
+          version: 'v2',
+          connectorId: 'connector-1',
+          remoteModelCatalogId: 'catalog-1',
+          providerModelId: 'gpt-image-1.5',
+          provider: 'openai',
+        },
+      },
+      selectedComponents: {},
+      selectedParams: {
+        'image.generate': { steps: 28 },
+      },
+    },
+    profileOrigin: {
+      profileId: 'profile-z-image',
+      title: 'Z Image',
+      appliedAt: '2026-07-31T10:00:00.000Z',
+    },
+  };
+}
 
 function createModule(
   agent: NimiRuntimeAgentAIConfigAgentSurface,
@@ -195,6 +241,86 @@ test('AI Config get projects the committed config into the app-facing snapshot',
   });
 });
 
+test('AI Config get omits targetless historical capabilities while preserving intents and allowing upsert', async () => {
+  const historicalConfig = committedConfig();
+  historicalConfig.intents = [
+    {
+      capability: 'text.embed',
+      modelId: 'local/default-embedding',
+      routePolicy: RoutePolicy.LOCAL,
+      connectorId: '',
+    },
+    historicalConfig.intents[0]!,
+  ];
+  const requests: UpsertRuntimeAgentAIConfigRequest[] = [];
+  const module = createModule({
+    async getRuntimeAgentAIConfig() {
+      return { config: historicalConfig };
+    },
+    async upsertRuntimeAgentAIConfig(request) {
+      requests.push(request);
+      return { config: historicalConfig };
+    },
+  });
+
+  const snapshot = await module.get(AI_CONFIG_IDENTITY);
+
+  assert.deepEqual(snapshot.aiConfig.capabilities, {
+    logicalModelIds: { 'text.generate': 'local/default' },
+    targetRefs: {
+      'text.generate': {
+        kind: 'local-runtime',
+        version: 'v2',
+        profileBindingId: 'local-runtime:asset-1',
+      },
+    },
+    selectedComponents: {},
+    selectedParams: {},
+  });
+  assert.deepEqual(snapshot.intents['text.embed'], {
+    route: 'local',
+    modelId: 'local/default-embedding',
+  });
+  assert.deepEqual(snapshot.intents['text.generate'], {
+    route: 'local',
+    modelId: 'local/default',
+    targetRef: {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: 'local-runtime:asset-1',
+    },
+  });
+
+  await module.update({
+    ...AI_CONFIG_IDENTITY,
+    expectedRevision: snapshot.revision,
+    config: {
+      ...snapshot.aiConfig,
+      capabilities: {
+        ...snapshot.aiConfig.capabilities,
+        logicalModelIds: {
+          ...snapshot.aiConfig.capabilities.logicalModelIds,
+          'text.summarize': 'local/summary',
+        },
+        targetRefs: {
+          ...snapshot.aiConfig.capabilities.targetRefs,
+          'text.summarize': {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: 'local-runtime:summary-asset-1',
+          },
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(requests[0]?.intents.map((intent) => intent.capability), [
+    'text.generate',
+    'text.summarize',
+  ]);
+  assert.equal(requests[0]?.intents.some((intent) => intent.capability === 'text.embed'), false);
+});
+
 test('AI Config get fails closed on unknown route policy and missing config', async () => {
   const unknownRoute = createModule({
     async getRuntimeAgentAIConfig() {
@@ -219,10 +345,13 @@ test('AI Config get fails closed on unknown route policy and missing config', as
   });
 });
 
-test('AI Config upsert maps app intents to the typed mutation payload', async () => {
+test('AI Config update maps the canonical config to one exact typed mutation payload', async () => {
   const requests: UpsertRuntimeAgentAIConfigRequest[] = [];
   const scopeLog: string[][] = [];
   const module = createModule({
+    async getRuntimeAgentAIConfig() {
+      return { config: committedConfig() };
+    },
     async upsertRuntimeAgentAIConfig(request) {
       requests.push(request);
       const config = committedConfig();
@@ -231,30 +360,16 @@ test('AI Config upsert maps app intents to the typed mutation payload', async ()
     },
   }, scopeLog);
 
-  const snapshot = await module.upsert({
+  const snapshot = await module.update({
     ...AI_CONFIG_IDENTITY,
     expectedRevision: 3,
-    intents: {
-      'text.generate': { route: 'local', modelId: 'local/default' },
-      'text.embed': { route: 'local', modelId: 'local/default-embedding' },
-      'image.generate': {
-        route: 'cloud',
-        modelId: 'gpt-image-1.5',
-        connectorId: 'connector-1',
-        imagePolicyRef: 'image-policy:runtime-agent-default',
-        targetRef: {
-          kind: 'cloud-connector',
-          version: 'v2',
-          connectorId: 'connector-1',
-          remoteModelCatalogId: 'catalog-1',
-          providerModelId: 'gpt-image-1.5',
-          provider: 'openai',
-        },
-      },
-    },
+    config: canonicalAIConfig(),
   });
 
-  assert.deepEqual(scopeLog, [['runtime.agent.ai_config.write']]);
+  assert.deepEqual(scopeLog, [
+    ['runtime.agent.ai_config.read'],
+    ['runtime.agent.ai_config.write'],
+  ]);
   assert.equal(snapshot.revision, 4);
   const request = requests[0]!;
   assert.equal(request.expectedRevision, '3');
@@ -268,6 +383,16 @@ test('AI Config upsert maps app intents to the typed mutation payload', async ()
       provider: '',
       voiceReferenceRef: '',
       imagePolicyRef: '',
+      selectedComponents: [],
+      targetRef: {
+        target: {
+          oneofKind: 'localRuntime',
+          localRuntime: {
+            version: 'v2',
+            ref: { oneofKind: 'profileBindingId', profileBindingId: 'local-runtime:asset-1' },
+          },
+        },
+      },
     },
     {
       capability: 'text.embed',
@@ -277,6 +402,19 @@ test('AI Config upsert maps app intents to the typed mutation payload', async ()
       provider: '',
       voiceReferenceRef: '',
       imagePolicyRef: '',
+      selectedComponents: [],
+      targetRef: {
+        target: {
+          oneofKind: 'localRuntime',
+          localRuntime: {
+            version: 'v2',
+            ref: {
+              oneofKind: 'profileBindingId',
+              profileBindingId: 'local-runtime:embedding-asset-1',
+            },
+          },
+        },
+      },
     },
     {
       capability: 'image.generate',
@@ -286,6 +424,17 @@ test('AI Config upsert maps app intents to the typed mutation payload', async ()
       provider: 'openai',
       voiceReferenceRef: '',
       imagePolicyRef: 'image-policy:runtime-agent-default',
+      selectedComponents: [],
+      selectedParams: {
+        fields: {
+          steps: {
+            kind: {
+              oneofKind: 'numberValue',
+              numberValue: 28,
+            },
+          },
+        },
+      },
       targetRef: {
         target: {
           oneofKind: 'cloud',
@@ -300,84 +449,111 @@ test('AI Config upsert maps app intents to the typed mutation payload', async ()
       },
     },
   ]);
+  assert.equal(request.profileOrigin?.profileId, 'profile-z-image');
+  assert.equal(request.profileOrigin?.title, 'Z Image');
 });
 
-test('AI Config upsert fails closed on invalid app input', async () => {
+test('AI Config update accepts a dynamic capability set without required text intent pairing', async () => {
+  const requests: UpsertRuntimeAgentAIConfigRequest[] = [];
   const module = createModule({
+    async getRuntimeAgentAIConfig() {
+      return { config: committedConfig() };
+    },
+    async upsertRuntimeAgentAIConfig(request) {
+      requests.push(request);
+      return { config: committedConfig() };
+    },
+  });
+  const base = canonicalAIConfig();
+  await module.update({
+    ...AI_CONFIG_IDENTITY,
+    expectedRevision: 3,
+    config: {
+      ...base,
+      capabilities: {
+        logicalModelIds: { 'image.generate': base.capabilities.logicalModelIds['image.generate']! },
+        targetRefs: { 'image.generate': base.capabilities.targetRefs['image.generate']! },
+        selectedComponents: {},
+        selectedParams: { 'image.generate': base.capabilities.selectedParams['image.generate']! },
+      },
+    },
+  });
+  assert.deepEqual(requests[0]?.intents.map((intent) => intent.capability), ['image.generate']);
+});
+
+test('AI Config update fails closed on invalid canonical config input', async () => {
+  const module = createModule({
+    async getRuntimeAgentAIConfig() {
+      return { config: committedConfig() };
+    },
     async upsertRuntimeAgentAIConfig() {
       throw new Error('must not reach runtime');
     },
   });
 
-  const invalidInputs: Array<Parameters<NimiRuntimeAgentAIConfigModule['upsert']>[0]> = [
-    // Removing the required text.generate intent is invalid before dispatch.
+  const base = canonicalAIConfig();
+  const invalidInputs: Array<Parameters<NimiRuntimeAgentAIConfigModule['update']>[0]> = [
     {
       ...AI_CONFIG_IDENTITY,
       expectedRevision: 3,
-      intents: {
-        'text.embed': { route: 'local', modelId: 'local/default-embedding' },
-        'image.generate': { route: 'cloud', modelId: 'gpt-image-1.5' },
-      },
+      config: {
+        ...base,
+        capabilities: {
+          logicalModelIds: base.capabilities.logicalModelIds,
+          targetRefs: base.capabilities.targetRefs,
+          selectedParams: base.capabilities.selectedParams,
+        },
+      } as NimiAIConfig,
     },
-    // Removing the required text.embed intent is invalid before dispatch.
     {
       ...AI_CONFIG_IDENTITY,
       expectedRevision: 3,
-      intents: { 'text.generate': { route: 'local', modelId: 'local/default' } },
-    },
-    // Empty intent maps are invalid.
-    { ...AI_CONFIG_IDENTITY, expectedRevision: 3, intents: {} },
-    // Unknown route values fail closed instead of defaulting.
-    {
-      ...AI_CONFIG_IDENTITY,
-      expectedRevision: 3,
-      intents: {
-        'text.generate': { route: 'edge' as 'local', modelId: 'local/default' },
-        'text.embed': { route: 'local', modelId: 'local/default-embedding' },
-      },
-    },
-    // targetRef kind must match the declared route.
-    {
-      ...AI_CONFIG_IDENTITY,
-      expectedRevision: 3,
-      intents: {
-        'text.generate': {
-          route: 'local',
-          modelId: 'local/default',
-          targetRef: {
-            kind: 'cloud-connector',
-            version: 'v2',
-            connectorId: 'connector-1',
-            remoteModelCatalogId: 'catalog-1',
-            providerModelId: 'model-1',
+      config: {
+        ...base,
+        capabilities: {
+          ...base.capabilities,
+          targetRefs: {
+            ...base.capabilities.targetRefs,
+            'image.generate': {
+              kind: 'profile-slice',
+              profileId: 'profile-z-image',
+              profileSliceRef: 'image.main',
+            },
           },
         },
-        'text.embed': { route: 'local', modelId: 'local/default-embedding' },
+      },
+    },
+    {
+      ...AI_CONFIG_IDENTITY,
+      expectedRevision: 3,
+      config: {
+        ...base,
+        scopeRef: { kind: 'local-agent', ownerId: 'another-agent' },
       },
     },
   ];
   for (const input of invalidInputs) {
-    await assert.rejects(module.upsert(input), (error: { readonly reasonCode?: string }) => {
+    await assert.rejects(module.update(input), (error: { readonly reasonCode?: string }) => {
       assert.equal(error.reasonCode, 'SDK_RUNTIME_AGENT_AI_CONFIG_INPUT_INVALID');
       return true;
     });
   }
 
-  await assert.rejects(module.upsert({
+  await assert.rejects(module.update({
     ...AI_CONFIG_IDENTITY,
     expectedRevision: 0,
-    intents: {
-      'text.generate': { route: 'local', modelId: 'local/default' },
-      'text.embed': { route: 'local', modelId: 'local/default-embedding' },
-    },
+    config: base,
   }), (error: { readonly reasonCode?: string }) => {
     assert.equal(error.reasonCode, 'SDK_RUNTIME_AGENT_AI_CONFIG_INPUT_INVALID');
     return true;
   });
 });
 
-test('AI Config upsert projects revision conflicts as typed concurrent modification', async () => {
+test('AI Config update projects revision conflicts as typed concurrent modification', async () => {
   const module = createModule({
+    async getRuntimeAgentAIConfig() {
+      return { config: committedConfig() };
+    },
     async upsertRuntimeAgentAIConfig() {
       const error = new Error(
         'AI Config concurrent modification: expected_revision=2 committed_revision=3; re-read the committed config and retry',
@@ -387,23 +563,23 @@ test('AI Config upsert projects revision conflicts as typed concurrent modificat
     },
   });
 
-  await assert.rejects(module.upsert({
+  await assert.rejects(module.update({
     ...AI_CONFIG_IDENTITY,
-    expectedRevision: 2,
-    intents: {
-      'text.generate': { route: 'local', modelId: 'local/default' },
-      'text.embed': { route: 'local', modelId: 'local/default-embedding' },
-    },
+    expectedRevision: 3,
+    config: canonicalAIConfig(),
   }), (error: { readonly reasonCode?: string; readonly actionHint?: string; readonly details?: Record<string, unknown> }) => {
     assert.equal(error.reasonCode, 'RUNTIME_AGENT_AI_CONFIG_CONCURRENT_MODIFICATION');
     assert.equal(error.actionHint, 'reload_committed_agent_ai_config_and_retry');
-    assert.equal(error.details?.expectedRevision, '2');
+    assert.equal(error.details?.expectedRevision, '3');
     return true;
   });
 });
 
-test('AI Config upsert re-throws non-conflict runtime failures unchanged', async () => {
+test('AI Config update re-throws non-conflict runtime failures unchanged', async () => {
   const module = createModule({
+    async getRuntimeAgentAIConfig() {
+      return { config: committedConfig() };
+    },
     async upsertRuntimeAgentAIConfig() {
       const error = new Error('AI Config must retain the required text.generate intent') as Error & {
         reasonCode?: string;
@@ -415,13 +591,10 @@ test('AI Config upsert re-throws non-conflict runtime failures unchanged', async
     },
   });
 
-  await assert.rejects(module.upsert({
+  await assert.rejects(module.update({
     ...AI_CONFIG_IDENTITY,
     expectedRevision: 3,
-    intents: {
-      'text.generate': { route: 'local', modelId: 'local/default' },
-      'text.embed': { route: 'local', modelId: 'local/default-embedding' },
-    },
+    config: canonicalAIConfig(),
   }), (error: { readonly reasonCode?: string }) => {
     assert.equal(error.reasonCode, 'RUNTIME_GRPC_INVALID_ARGUMENT');
     return true;
@@ -446,9 +619,8 @@ test('AI Config readiness projects typed states and fails closed on unknown stat
             },
             {
               capability: 'image.generate',
-              state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED,
-              reasonCode: '',
-              probedAt: { seconds: '1700000000', nanos: 0 },
+              state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED,
+              reasonCode: 'image_configured_unverified',
             },
             {
               capability: 'audio.synthesize',
@@ -486,6 +658,12 @@ test('AI Config readiness projects typed states and fails closed on unknown stat
               reasonCode: 'image_route_unavailable',
               probedAt: { seconds: '1700000000', nanos: 0 },
             },
+            {
+              capability: 'image.edit',
+              state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE,
+              reasonCode: 'target_unavailable',
+              probedAt: { seconds: '1700000000', nanos: 0 },
+            },
           ],
         },
       };
@@ -497,13 +675,14 @@ test('AI Config readiness projects typed states and fails closed on unknown stat
   assert.equal(readiness.configRevision, 3);
   assert.deepEqual(readiness.capabilities.map((entry) => [entry.capability, entry.state]), [
     ['text.generate', 'ready'],
-    ['image.generate', 'not_configured'],
+    ['image.generate', 'configured_unverified'],
     ['audio.synthesize', 'not_configured'],
     ['audio.transcribe', 'not_configured'],
     ['text.embed', 'unavailable'],
     ['voice_workflow.voice_clone', 'unavailable'],
     ['voice_workflow.voice_design', 'unavailable'],
     ['image.generate', 'unavailable'],
+    ['image.edit', 'unavailable'],
   ]);
   assert.deepEqual(readiness.capabilities
     .filter((entry) => entry.state === 'unavailable')
@@ -512,8 +691,11 @@ test('AI Config readiness projects typed states and fails closed on unknown stat
     'voice_reference_missing',
     'voice_workflow_unavailable',
     'image_route_unavailable',
+    'target_unavailable',
   ]);
   assert.equal(readiness.capabilities[0]?.probedAt, new Date(1700000000000).toISOString());
+  assert.equal(readiness.capabilities[1]?.reasonCode, 'image_configured_unverified');
+  assert.equal(readiness.capabilities[1]?.probedAt, null);
 
   const unknownState = createModule({
     async getRuntimeAgentAIConfigReadiness() {

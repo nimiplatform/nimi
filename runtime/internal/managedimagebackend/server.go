@@ -66,8 +66,15 @@ type managedImageOptions struct {
 }
 
 type managedImageComponent struct {
-	EngineSlot string `json:"engine_slot"`
-	Path       string `json:"path"`
+	OccurrenceID  string `json:"occurrence_id,omitempty"`
+	Order         int32  `json:"order,omitempty"`
+	Role          string `json:"role,omitempty"`
+	ComponentKind string `json:"component_kind,omitempty"`
+	EngineSlot    string `json:"engine_slot"`
+	Path          string `json:"path"`
+	Required      bool   `json:"required,omitempty"`
+	Weight        string `json:"weight,omitempty"`
+	OptionsJSON   string `json:"options_json,omitempty"`
 }
 
 func (options managedImageOptions) ComponentsBySlot() map[string]string {

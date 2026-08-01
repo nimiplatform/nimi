@@ -37,6 +37,17 @@ type ArtifactRecord struct {
 	CreatedAt      time.Time
 	Audience       *ArtifactAudience
 	GeneratedVoice *GeneratedVoiceArtifactMetadata
+	Owner          *ArtifactOwner
+}
+
+// ArtifactOwner is the Runtime-owned uploader identity written at PutArtifact
+// admission (rule.nimi.runtime.agent-participation.r171). A nil owner denotes
+// a historical or producer record that predates the user attachment plane;
+// such records keep their existing audience/GeneratedVoice behavior and can
+// never authorize owner-based reference or read.
+type ArtifactOwner struct {
+	SubjectUserID string
+	AppID         string
 }
 
 type ArtifactUse string
@@ -235,6 +246,13 @@ func normalizeArtifactRecord(record ArtifactRecord) (ArtifactRecord, error) {
 		metadata := normalizeGeneratedVoiceArtifactMetadata(*record.GeneratedVoice, record.Bytes)
 		record.GeneratedVoice = &metadata
 	}
+	if record.Owner != nil {
+		owner, err := normalizeArtifactOwner(*record.Owner)
+		if err != nil {
+			return ArtifactRecord{}, err
+		}
+		record.Owner = &owner
+	}
 	return record, nil
 }
 
@@ -248,7 +266,30 @@ func cloneArtifactRecord(record ArtifactRecord) ArtifactRecord {
 		metadata := *record.GeneratedVoice
 		record.GeneratedVoice = &metadata
 	}
+	if record.Owner != nil {
+		owner := *record.Owner
+		record.Owner = &owner
+	}
 	return record
+}
+
+func normalizeArtifactOwner(input ArtifactOwner) (ArtifactOwner, error) {
+	input.SubjectUserID = strings.TrimSpace(input.SubjectUserID)
+	input.AppID = strings.TrimSpace(input.AppID)
+	if input.SubjectUserID == "" || input.AppID == "" {
+		return ArtifactOwner{}, ErrInvalidArtifactRecord
+	}
+	return input, nil
+}
+
+func artifactOwnersEqual(left, right *ArtifactOwner) bool {
+	if (left == nil) != (right == nil) {
+		return false
+	}
+	if left == nil {
+		return true
+	}
+	return left.SubjectUserID == right.SubjectUserID && left.AppID == right.AppID
 }
 
 func normalizeArtifactAudience(input ArtifactAudience, createdAt time.Time) (ArtifactAudience, error) {
@@ -284,7 +325,7 @@ func artifactRecordIntegrityValid(record ArtifactRecord) bool {
 }
 
 func mergeArtifactRecords(existing, incoming ArtifactRecord) (ArtifactRecord, bool, bool) {
-	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || !artifactAudiencesEqual(existing.Audience, incoming.Audience) {
+	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || !artifactAudiencesEqual(existing.Audience, incoming.Audience) || !artifactOwnersEqual(existing.Owner, incoming.Owner) {
 		return ArtifactRecord{}, false, false
 	}
 	merged := cloneArtifactRecord(existing)

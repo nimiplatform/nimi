@@ -9,8 +9,6 @@ import type {
 } from './types.js';
 import type { NimiRuntimeImageCompanionSlotContract } from '@nimiplatform/kit/core/sdk-contract';
 import {
-  NIMI_RUNTIME_IMAGE_MODEL_FAMILY_OPTIONS,
-  normalizeNimiRuntimeImageModelFamily,
   resolveNimiRuntimeImageCompanionSlots,
 } from '@nimiplatform/kit/core/sdk-contract';
 
@@ -31,6 +29,8 @@ export const COMPANION_SLOTS: CompanionSlotDef[] = [
 export const ASSET_KIND_MAP: Record<string, readonly string[]> = {
   vae: ['vae'],
   chat: ['chat'],
+  llm: ['chat'],
+  text_encoder: ['chat'],
   image: ['image'],
   clip: ['clip'],
   controlnet: ['controlnet'],
@@ -62,18 +62,8 @@ export function hasImageCompanionSlotContractForModelFamily(modelFamily: unknown
 
 export const IMAGE_SIZE_PRESETS = ['512x512', '768x768', '1024x1024', '1024x576', '576x1024'];
 export const IMAGE_RESPONSE_FORMAT_OPTIONS = ['auto', 'base64', 'url'];
-export const IMAGE_MODEL_FAMILY_OPTIONS = [
-  { value: '', label: 'Standard / auto' },
-  ...NIMI_RUNTIME_IMAGE_MODEL_FAMILY_OPTIONS,
-];
-
-function normalizeImageModelFamilyState(value: unknown): string {
-  const normalized = normalizeNimiRuntimeImageModelFamily(value);
-  return IMAGE_MODEL_FAMILY_OPTIONS.some((option) => option.value === normalized) ? normalized : '';
-}
 
 export const DEFAULT_IMAGE_PARAMS: ImageParamsState = {
-  modelFamily: '',
   size: '512x512',
   responseFormat: 'auto',
   seed: '',
@@ -82,7 +72,6 @@ export const DEFAULT_IMAGE_PARAMS: ImageParamsState = {
   cfgScale: '',
   sampler: '',
   scheduler: '',
-  optionsText: '',
 };
 
 // ---------------------------------------------------------------------------
@@ -165,12 +154,6 @@ function normalizeAssetRole(value: unknown): string {
 
 export function parseImageParams(stored: Readonly<Record<string, unknown>>): ImageParamsState {
   return {
-    modelFamily: normalizeImageModelFamilyState(
-      stored.modelFamily
-      ?? stored.model_family
-      ?? stored.runtimeModelFamily
-      ?? stored.runtime_model_family,
-    ),
     size: typeof stored.size === 'string' ? stored.size : DEFAULT_IMAGE_PARAMS.size,
     responseFormat: typeof stored.responseFormat === 'string' ? stored.responseFormat : DEFAULT_IMAGE_PARAMS.responseFormat,
     seed: typeof stored.seed === 'string' ? stored.seed : DEFAULT_IMAGE_PARAMS.seed,
@@ -179,7 +162,6 @@ export function parseImageParams(stored: Readonly<Record<string, unknown>>): Ima
     cfgScale: typeof stored.cfgScale === 'string' ? stored.cfgScale : DEFAULT_IMAGE_PARAMS.cfgScale,
     sampler: typeof stored.sampler === 'string' ? stored.sampler : DEFAULT_IMAGE_PARAMS.sampler,
     scheduler: typeof stored.scheduler === 'string' ? stored.scheduler : DEFAULT_IMAGE_PARAMS.scheduler,
-    optionsText: typeof stored.optionsText === 'string' ? stored.optionsText : DEFAULT_IMAGE_PARAMS.optionsText,
   };
 }
 

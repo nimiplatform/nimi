@@ -33,6 +33,8 @@ import {
   requireArray,
   requireNonEmptyText,
   requireString,
+  stableHash,
+  stableJson,
 } from './config-internal';
 import {
   assertNimiAIRequirementDeclarationsForScope,
@@ -49,6 +51,18 @@ interface NimiAIProfileRequirementApplyEvaluation {
   readonly outcome: NimiAIConfigApplyOutcome;
   readonly setupProjection: NimiAIConfigSetupProjection | null;
   readonly readySlices: readonly NimiAIReadyRequirementSlice[];
+}
+
+export function versionNimiAIProfile(profile: NimiAIProfile): string {
+  const validation = validateNimiAIProfile(profile);
+  if (!validation.valid) {
+    throw aiConfigError(
+      'SDK_AI_PROFILE_INVALID',
+      `AI profile is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
+      'fix_ai_profile_contract',
+    );
+  }
+  return `v1-${stableHash(stableJson(profile))}`;
 }
 
 export function validateNimiAIProfile(profile: unknown): NimiAIProfileValidationResult {
@@ -83,6 +97,9 @@ export function validateNimiAIProfile(profile: unknown): NimiAIProfileValidation
       if (!isRecord(intent)) {
         issues.push(aiValidationIssue('AI_TYPE_INVALID', `profile.capabilities.${capability}`));
         continue;
+      }
+      if (intent.logicalModelId !== undefined && !isNonEmptyString(intent.logicalModelId)) {
+        issues.push(aiValidationIssue('AI_VALUE_INVALID', `profile.capabilities.${capability}.logicalModelId`));
       }
       if (intent.targetRef !== undefined && intent.targetRef !== null) {
         issues.push(...validateNimiAIConfigTargetRef(
@@ -320,9 +337,31 @@ export function applyNimiAIProfileToConfig(input: {
       'resolve_required_ai_profile_slices',
     );
   }
+  const logicalModelIds: Record<string, string> = {};
   const targetRefs: Record<string, NimiAIConfigTargetRef> = {};
+  const selectedComponents: NimiAIConfig['capabilities']['selectedComponents'] = {};
   const selectedParams: Record<string, NimiJsonValue> = {};
   for (const { slice, intent } of evaluation.readySlices) {
+    const runtimeDescriptor = intent.runtimeDescriptor ?? slice.runtimeDescriptor;
+    if ((runtimeDescriptor?.orderedCompanionOccurrences?.length ?? 0) > 0) {
+      throw aiConfigError(
+        'SDK_AI_PROFILE_NOT_APPLYABLE',
+        `Generic AIProfile apply cannot materialize component occurrences for capability: ${slice.capability}`,
+        'prepare_ai_profile_with_runtime',
+      );
+    }
+    const logicalModelId = normalizeText(intent.logicalModelId)
+      || (intent.targetRef.kind === 'cloud-connector'
+        ? normalizeText(intent.targetRef.providerModelId)
+        : '');
+    if (!logicalModelId) {
+      throw aiConfigError(
+        'SDK_AI_PROFILE_NOT_APPLYABLE',
+        `AI profile cannot materialize a logical model identity for capability: ${slice.capability}`,
+        'provide_ai_profile_logical_model_id',
+      );
+    }
+    logicalModelIds[slice.capability] = logicalModelId;
     targetRefs[slice.capability] = intent.targetRef;
     if (intent.params !== undefined) {
       selectedParams[slice.capability] = intent.params;
@@ -331,7 +370,9 @@ export function applyNimiAIProfileToConfig(input: {
   return {
     scopeRef: assertNimiAIScopeRef(input.config.scopeRef),
     capabilities: {
+      logicalModelIds,
       targetRefs,
+      selectedComponents,
       selectedParams,
     },
     profileOrigin: {
@@ -409,6 +450,9 @@ function classifyRequirementSliceBlocker(
     return 'product_state_proposed';
   }
   if (!intent.targetRef) {
+    return 'required_slice_unresolved';
+  }
+  if (intent.targetRef.kind === 'profile-slice') {
     return 'required_slice_unresolved';
   }
   return null;
