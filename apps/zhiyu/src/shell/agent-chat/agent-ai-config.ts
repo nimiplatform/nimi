@@ -1,5 +1,5 @@
 import type {
-  AgentCenterRuntimeModelSettingsProjection,
+  AgentCenterRuntimeAIConfigProjection,
   AgentCenterSnapshot,
 } from '@nimiplatform/kit/features/agent-center';
 
@@ -27,9 +27,9 @@ export function projectZhiyuAgentAIConfigRouteEvidence(
     });
   }
 
-  const modelSettings = snapshot.state.modelSettings;
-  if (modelSettings) {
-    return projectZhiyuAgentCenterModelSettingsRoute(modelSettings);
+  const aiConfig = snapshot.state.aiConfig;
+  if (aiConfig) {
+    return projectZhiyuAgentCenterAIConfigRoute(aiConfig);
   }
 
   if (snapshot.phase === 'loading') {
@@ -41,7 +41,7 @@ export function projectZhiyuAgentAIConfigRouteEvidence(
     });
   }
 
-  const readAvailability = snapshot.availability.readModelSettings;
+  const readAvailability = snapshot.availability.readAIConfig;
   if (
     readAvailability.reason === 'needs-grant'
     || readAvailability.reason === 'denied'
@@ -67,17 +67,17 @@ export function projectZhiyuAgentAIConfigRouteEvidence(
   });
 }
 
-export function projectZhiyuAgentCenterModelSettingsRoute(
-  modelSettings: AgentCenterRuntimeModelSettingsProjection,
+export function projectZhiyuAgentCenterAIConfigRoute(
+  aiConfig: AgentCenterRuntimeAIConfigProjection,
 ): ZhiyuRuntimeRouteStatus {
   const intents = new Map(
-    modelSettings.routeIntents.map((intent) => [intent.capability, intent] as const),
+    aiConfig.routeIntents.map((intent) => [intent.capability, intent] as const),
   );
   const readiness = new Map(
-    modelSettings.readiness.map((entry) => [entry.capability, entry] as const),
+    aiConfig.readiness.map((entry) => [entry.capability, entry] as const),
   );
   const capabilityIds = new Set([
-    ...modelSettings.capabilities,
+    ...aiConfig.capabilities,
     ...intents.keys(),
     ...readiness.keys(),
   ]);
@@ -103,8 +103,8 @@ export function projectZhiyuAgentCenterModelSettingsRoute(
     transport: 'electron-ipc',
     ready,
     capability: 'text.generate',
-    configRevision: modelSettings.configurationRevision,
-    readinessRevision: modelSettings.configurationRevision,
+    configRevision: aiConfig.configurationRevision,
+    readinessRevision: aiConfig.configurationRevision,
     updatedAt: null,
     updatedByAppId: null,
     capabilities,
@@ -156,7 +156,7 @@ export function zhiyuAgentAIConfigRouteBlocked(input: {
 }
 
 function executionBinding(
-  intent: AgentCenterRuntimeModelSettingsProjection['routeIntents'][number],
+  intent: AgentCenterRuntimeAIConfigProjection['routeIntents'][number],
 ): NonNullable<ZhiyuExecutionCapabilityEvidence['binding']> {
   return {
     route: intent.routePolicy,
@@ -165,7 +165,7 @@ function executionBinding(
 }
 
 function readinessState(
-  state: AgentCenterRuntimeModelSettingsProjection['readiness'][number]['state'] | undefined,
+  state: AgentCenterRuntimeAIConfigProjection['readiness'][number]['state'] | undefined,
   hasBinding: boolean,
 ): ZhiyuAgentAIConfigReadinessState {
   if (!hasBinding) return 'not_configured';

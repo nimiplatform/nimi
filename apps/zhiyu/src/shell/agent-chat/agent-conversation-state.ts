@@ -618,12 +618,16 @@ function transcriptHasReplayEnvelope(
   return transcript.length > 0 && transcript.every((message) => (
     normalizeText(message.id)
     && normalizeText(message.role)
-    && normalizeText(message.content)
+    && (normalizeText(message.content) || isTranscriptImageMessage(message))
     && normalizeText(message.status)
     && normalizeText(message.kind)
     && normalizeText(message.createdAt)
     && normalizeText(message.updatedAt)
   ));
+}
+
+function isTranscriptImageMessage(message: NimiRuntimeAgentSessionTranscriptMessage): boolean {
+  return normalizeText(message.kind) === 'image' && Boolean(normalizeText(message.artifactId));
 }
 
 function runtimeTurnIdFromSnapshot(snapshot: NimiRuntimeAgentSessionSnapshot): string | null {
@@ -643,7 +647,7 @@ function transcriptMessageToCanonicalMessage(input: {
 }): ConversationCanonicalMessage | null {
   const id = normalizeText(input.message.id);
   const content = normalizeText(input.message.content);
-  if (!id || !content) {
+  if (!id || (!content && !isTranscriptImageMessage(input.message))) {
     return null;
   }
   const role = canonicalRole(input.message.role);
@@ -670,6 +674,9 @@ function transcriptMessageToCanonicalMessage(input: {
     metadata: {
       ...(normalizeText(input.message.traceId) ? { traceId: normalizeText(input.message.traceId) } : {}),
       ...(normalizeText(input.message.reasoningText) ? { reasoningText: normalizeText(input.message.reasoningText) } : {}),
+      ...(normalizeText(input.message.artifactId) ? { artifactId: normalizeText(input.message.artifactId) } : {}),
+      ...(normalizeText(input.message.mediaUrl) ? { mediaUrl: normalizeText(input.message.mediaUrl) } : {}),
+      ...(normalizeText(input.message.mediaMimeType) ? { mediaMimeType: normalizeText(input.message.mediaMimeType) } : {}),
       ...(input.message.metadata || {}),
     },
   };

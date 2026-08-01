@@ -1,5 +1,5 @@
 import { sealAgentCenterPermissionedSdkSurface } from '@nimiplatform/kit/features/agent-center';
-import { createNimiRuntimeAgentModelSettingsScopeRef } from '@nimiplatform/sdk/runtime';
+import { diffNimiAIConfigs, type NimiAIProfile } from '@nimiplatform/sdk/ai';
 import type {
   AgentCenterAppearanceProjection,
   AgentCenterAutonomyProjection,
@@ -19,7 +19,7 @@ import type {
   NimiLocalAppAgentAutonomyConfig,
   NimiLocalAppAgentAutonomyProjection,
   NimiLocalAppAgentConfigureClient,
-  NimiLocalAppAgentConfigurationProjection,
+  NimiLocalAppAgentAIConfigProjection,
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentPresentationIntent,
   NimiLocalAppAgentPresentationProjection,
@@ -29,13 +29,13 @@ import type {
 } from '@nimiplatform/sdk/app';
 
 const ACTIONS: readonly AgentCenterProductAction[] = [
-  'readModelSettings', 'updateModelSettings', 'readAutonomy', 'updateAutonomy',
+  'readAIConfig', 'updateAIConfig', 'readAutonomy', 'updateAutonomy',
   'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
   'requestPermission', 'openPermissionSettings',
 ];
 
 const ACTION_GROUP: Readonly<Record<AgentCenterProductAction, NimiAgentCapabilityGroup>> = {
-  readModelSettings: 'configure', updateModelSettings: 'configure',
+  readAIConfig: 'configure', updateAIConfig: 'configure',
   readAutonomy: 'configure', updateAutonomy: 'configure',
   readMemorySummary: 'memory', replaceAppearance: 'configure', restorePreviousAppearance: 'configure',
   requestPermission: 'configure', openPermissionSettings: 'configure',
@@ -54,6 +54,10 @@ export const ZHIYU_AGENTS_CONFIGURE_REASON = '管理您账户中 Agent 的模型
 
 export interface CreateZhiyuAgentCenterPermissionedSurfaceInput {
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
+  readonly aiProfiles: {
+    list(): Promise<readonly NimiAIProfile[]>;
+    get(profileId: string): Promise<NimiAIProfile | null>;
+  };
   readonly permissions: Pick<
     NimiLocalAppClient['permissions'],
     'request' | 'subscribeAgentCapabilityPosture'
@@ -114,8 +118,8 @@ export function createZhiyuAgentCenterPermissionedSdkSurface(
     replacements: Partial<ConfigureSnapshots> = {},
   ): Promise<AgentCenterStateInput> => {
     const posture = await actionPosture();
-    if (posture.readModelSettings.state !== 'available') return {};
-    return composeAgentCenterProjection(handle, await loadConfigureSnapshots(input.agentConfigure, handle, replacements));
+    if (posture.readAIConfig.state !== 'available') return {};
+    return composeAgentCenterProjection(await loadConfigureSnapshots(input.agentConfigure, handle, replacements));
   };
   return sealAgentCenterPermissionedSdkSurface({
     actionPosture: async () => actionPosture(),
@@ -128,13 +132,78 @@ export function createZhiyuAgentCenterPermissionedSdkSurface(
     read: (handle) => readAggregate(asSdkHandle(handle)),
     async updateConfiguration(handle, mutation) {
       const agentHandle = asSdkHandle(handle);
+      const current = await input.agentConfigure.configurationSnapshot({ agentHandle });
+      const routes = Object.entries(mutation.config.capabilities.logicalModelIds).map(([capability, logicalModelId]) => {
+        const currentIntent = current.intents.find((intent) => (
+          intent.capability === capability && intent.logicalModelId === logicalModelId
+        ));
+        const matches = current.routeOptions.filter((option) => (
+          option.capability === capability && option.logicalModelId === logicalModelId
+        ));
+        const selected = currentIntent ?? (matches.length === 1 ? matches[0] : null);
+        if (!selected) {
+          throw new Error(`Agent Center cannot resolve a unique public route for ${capability}.`);
+        }
+        return {
+          capability,
+          provider: selected.provider,
+          routePolicy: selected.routePolicy,
+        };
+      });
       const result = await input.agentConfigure.updateConfiguration({
         agentHandle,
         expectedConfigurationRevision: mutation.expectedConfigurationRevision,
-        routeIntents: mutation.routeIntents,
+        config: mutation.config,
+        routes,
       });
       if (result.outcome === 'conflict') throw result.conflict;
       return readAggregate(agentHandle, { configuration: result.projection });
+    },
+    async listAIProfiles() {
+      return [...await input.aiProfiles.list()];
+    },
+    async previewAIProfile(handle, scopeRef, profileId, options) {
+      const profile = await input.aiProfiles.get(profileId);
+      if (!profile) {
+        const current = await input.agentConfigure.configurationSnapshot({
+          agentHandle: asSdkHandle(handle),
+        });
+        return {
+          before: current.aiConfig,
+          after: null,
+          outcome: 'failed',
+          diff: diffNimiAIConfigs(current.aiConfig, null),
+          baseVersion: `runtime-agent-revision:${current.configurationRevision}`,
+          probeWarnings: [`AI profile not found: ${profileId}`],
+        };
+      }
+      return input.agentConfigure.previewAIProfile({
+        agentHandle: asSdkHandle(handle),
+        scopeRef,
+        profile,
+        requirementDeclarations: options.requirementDeclarations,
+      });
+    },
+    async applyAIProfile(handle, scopeRef, profileId, options) {
+      const profile = await input.aiProfiles.get(profileId);
+      if (!profile) {
+        return {
+          success: false,
+          config: null,
+          failureReason: `profile_not_found:${profileId}`,
+          outcome: 'failed',
+          probeWarnings: [`AI profile not found: ${profileId}`],
+        };
+      }
+      return input.agentConfigure.applyAIProfile({
+        agentHandle: asSdkHandle(handle),
+        scopeRef,
+        profile,
+        requirementDeclarations: options.requirementDeclarations,
+        ...(options.expectedBaseVersion
+          ? { expectedBaseVersion: options.expectedBaseVersion }
+          : {}),
+      });
     },
     async updateAutonomy(handle, mutation) {
       const agentHandle = asSdkHandle(handle);
@@ -194,7 +263,7 @@ export function createZhiyuAgentCenterPermissionedSdkSurface(
 }
 
 type ConfigureSnapshots = {
-  readonly configuration: NimiLocalAppAgentConfigurationProjection;
+  readonly configuration: NimiLocalAppAgentAIConfigProjection;
   readonly readiness: NimiLocalAppAgentReadinessProjection;
   readonly autonomy: NimiLocalAppAgentAutonomyProjection;
   readonly presentation: NimiLocalAppAgentPresentationProjection;
@@ -215,20 +284,32 @@ async function loadConfigureSnapshots(
 }
 
 function composeAgentCenterProjection(
-  handle: NimiLocalAppAgentHandle,
   snapshots: ConfigureSnapshots,
 ): AgentCenterStateInput {
   const revision = decimalRevision(snapshots.configuration.configurationRevision);
   const readinessRevision = decimalRevision(snapshots.readiness.configurationRevision);
   if (!revision || readinessRevision !== revision) {
-    throw new Error('Agent Center model-settings projection revisions do not match.');
+    throw new Error('Agent Center AIConfig and readiness projection revisions do not match.');
   }
   return {
-    modelSettings: {
-      scopeRef: createNimiRuntimeAgentModelSettingsScopeRef(String(handle)),
+    aiConfig: {
+      aiConfig: snapshots.configuration.aiConfig,
+      scopeRef: snapshots.configuration.aiConfig.scopeRef,
       capabilities: snapshots.configuration.capabilities,
-      routeIntents: snapshots.configuration.routeIntents,
-      routeOptions: snapshots.configuration.routeOptions,
+      routeIntents: snapshots.configuration.intents.map((intent) => ({
+        capability: intent.capability,
+        provider: intent.provider,
+        model: intent.logicalModelId,
+        routePolicy: intent.routePolicy,
+      })),
+      routeOptions: snapshots.configuration.routeOptions.map((option) => ({
+        capability: option.capability,
+        provider: option.provider,
+        model: option.logicalModelId,
+        routePolicy: option.routePolicy,
+        label: option.label,
+        availability: option.availability,
+      })),
       readiness: snapshots.readiness.capabilities.map((capability) => ({
         capability: capability.capability,
         state: readinessState(capability.state),

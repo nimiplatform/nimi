@@ -18,6 +18,7 @@ import {
   type ZhiyuRuntimeChatApplyIdentity,
 } from './chat-turn-apply-guard';
 import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
+import type { ZhiyuChatAttachmentRef } from '../agent-chat/turn-attachments';
 import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
@@ -258,8 +259,13 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       ? 'ready'
       : 'blocked';
 
-  async function handleSubmit(textInput: string) {
+  async function handleSubmit(textInput: string, attachments: readonly ZhiyuChatAttachmentRef[] = []) {
     const text = textInput.trim();
+    const submittedAttachment = attachments[0] ?? null;
+    const turnAttachments = attachments.map((attachment) => ({
+      artifactId: attachment.artifactId,
+      ...(attachment.displayName ? { displayName: attachment.displayName } : {}),
+    }));
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_superseded');
     const activeChatAbort = new AbortController();
     activeChatAbortRef.current = activeChatAbort;
@@ -338,6 +344,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
           requestId,
           text,
           new Date(bindings.clock.now()).toISOString(),
+          submittedAttachment,
         ),
         ready: false,
         state: 'streaming',
@@ -350,6 +357,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     const submitted = await bindings.app.commands.runTurn({
       conversation: evidence.conversation,
       text,
+      attachments: turnAttachments,
       requestId,
       expectedConversationAnchorId: submittedConversation.conversationAnchorId,
       signal: activeChatAbort.signal,
@@ -370,6 +378,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
             requestId,
             text,
             new Date(bindings.clock.now()).toISOString(),
+            submittedAttachment,
           );
           const chat = mergeChatTranscript(current.chat, projectionChat);
           const companion = projectZhiyuCompanionFromRuntimeProjectionEvents({
@@ -419,6 +428,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         submitted.requestId ?? requestId,
         text,
         new Date(bindings.clock.now()).toISOString(),
+        submittedAttachment,
       );
       const chat = mergeChatTranscript(current.chat, resultChat);
       const companion = projectZhiyuCompanionFromRuntimeProjectionEvents({

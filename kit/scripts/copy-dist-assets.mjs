@@ -13,6 +13,7 @@ const copiedAssetExtensions = new Set(['.css', '.html']);
 
 const publishedStyleSourceReplacements = [
   ['./components/**/*.{ts,tsx}', './components/**/*.js'],
+  ['./toast/**/*.{ts,tsx}', './toast/**/*.js'],
   ['./lib/**/*.{ts,tsx}', './lib/**/*.js'],
   ['../../auth/src/**/*.{ts,tsx}', '../auth/**/*.js'],
   ['../../features/agent-center/src/**/*.{ts,tsx}', '../features/agent-center/**/*.js'],

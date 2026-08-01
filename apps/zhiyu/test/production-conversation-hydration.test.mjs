@@ -89,6 +89,134 @@ test('production conversation hydration returns typed failure without fabricated
   assert.deepEqual(hydrated.chat.messages, currentChat.messages);
 });
 
+test('production hydration resolves image transcript media through the artifact read port', async () => {
+  const { hydrateZhiyuProductionConversation } = await importHydrationModule();
+  const reads = [];
+  const hydrated = await hydrateZhiyuProductionConversation({
+    agentHandle: 'opaque-agent-handle',
+    conversationAnchorId: 'conversation-anchor:shared',
+    currentChat: idleChat(),
+    currentSource: blockedSource(),
+  }, {
+    async snapshot() {
+      return {
+        session_status: 'active',
+        transcript: [
+          transcriptMessage({ id: 'message-user-1', role: 'user', content: 'look' }),
+          transcriptMessage({
+            id: 'message-user-image',
+            role: 'user',
+            content: '',
+            kind: 'image',
+            artifact_id: 'artifact_01J',
+            media_mime_type: 'image/png',
+          }),
+        ],
+      };
+    },
+  }, {
+    async readArtifactBytes(input) {
+      reads.push(input);
+      return { bytes: new Uint8Array([137, 80, 78, 71]), mimeType: 'image/png' };
+    },
+  });
+
+  assert.deepEqual(reads, [{ artifactId: 'artifact_01J' }]);
+  assert.equal(hydrated.chat.messageCount, 2);
+  const image = hydrated.chat.messages[1];
+  assert.equal(image.kind, 'image');
+  assert.equal(image.text, '');
+  assert.equal(image.metadata?.artifactId, 'artifact_01J');
+  assert.equal(image.metadata?.mediaMimeType, 'image/png');
+  assert.match(String(image.metadata?.mediaUrl), /^data:image\/png;base64,/u);
+});
+
+test('production hydration keeps one failed image read from sinking the transcript', async () => {
+  const { hydrateZhiyuProductionConversation } = await importHydrationModule();
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => { warnings.push(args); };
+  try {
+    const hydrated = await hydrateZhiyuProductionConversation({
+      agentHandle: 'opaque-agent-handle',
+      conversationAnchorId: 'conversation-anchor:shared',
+      currentChat: idleChat(),
+      currentSource: blockedSource(),
+    }, {
+      async snapshot() {
+        return {
+          session_status: 'active',
+          transcript: [
+            transcriptMessage({
+              id: 'message-image-lost',
+              role: 'user',
+              content: '',
+              kind: 'image',
+              artifact_id: 'artifact_missing',
+            }),
+            transcriptMessage({
+              id: 'message-image-ok',
+              role: 'user',
+              content: '',
+              kind: 'image',
+              artifact_id: 'artifact_ok',
+            }),
+          ],
+        };
+      },
+    }, {
+      async readArtifactBytes(input) {
+        if (input.artifactId === 'artifact_missing') {
+          throw Object.assign(new Error('not found'), { reasonCode: 'not-found' });
+        }
+        return { bytes: new Uint8Array([1, 2, 3]), mimeType: 'image/webp' };
+      },
+    });
+
+    assert.equal(hydrated.chat.messageCount, 2);
+    const [lost, ok] = hydrated.chat.messages;
+    assert.equal(lost.kind, 'image');
+    assert.equal(lost.metadata?.artifactId, 'artifact_missing');
+    assert.equal(lost.metadata?.mediaUrl, undefined);
+    assert.equal(ok.metadata?.mediaMimeType, 'image/webp');
+    assert.match(String(ok.metadata?.mediaUrl), /^data:image\/webp;base64,/u);
+    assert.equal(warnings.length, 1);
+    assert.match(String(warnings[0]?.[0]), /snapshot-image-media-resolve-failed/u);
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
+test('production hydration keeps image references without an artifact read port', async () => {
+  const { hydrateZhiyuProductionConversation } = await importHydrationModule();
+  const hydrated = await hydrateZhiyuProductionConversation({
+    agentHandle: 'opaque-agent-handle',
+    conversationAnchorId: 'conversation-anchor:shared',
+    currentChat: idleChat(),
+    currentSource: blockedSource(),
+  }, {
+    async snapshot() {
+      return {
+        session_status: 'active',
+        transcript: [
+          transcriptMessage({
+            id: 'message-image-1',
+            role: 'user',
+            content: '',
+            kind: 'image',
+            artifact_id: 'artifact_01J',
+          }),
+        ],
+      };
+    },
+  });
+
+  assert.equal(hydrated.chat.messageCount, 1);
+  assert.equal(hydrated.chat.messages[0]?.kind, 'image');
+  assert.equal(hydrated.chat.messages[0]?.metadata?.artifactId, 'artifact_01J');
+  assert.equal(hydrated.chat.messages[0]?.metadata?.mediaUrl, undefined);
+});
+
 async function importHydrationModule() {
   const outputPath = path.join(await buildHydrationModule(), 'conversation-hydration.mjs');
   return import(pathToFileURL(outputPath).href);

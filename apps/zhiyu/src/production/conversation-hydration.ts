@@ -7,6 +7,7 @@ import type {
 
 import type { ZhiyuCanonicalRendererBindings } from '../renderer/contract.js';
 import { hydrateZhiyuAgentChatFromRuntimeSessionSnapshot } from '../shell/agent-chat/agent-conversation-state.js';
+import { resolveZhiyuChatAttachmentMedia } from '../shell/agent-chat/turn-attachments.js';
 import type { ZhiyuEvidence } from '../shell/app/evidence.js';
 
 type HydrationInput = Parameters<
@@ -14,23 +15,29 @@ type HydrationInput = Parameters<
 >[0];
 
 type ConversationSnapshotPort = Pick<NimiLocalAppClient['conversation'], 'snapshot'>;
+type ArtifactReadPort = Pick<NimiLocalAppClient['artifacts'], 'readArtifactBytes'>;
 
 export async function hydrateZhiyuProductionConversation(
   input: HydrationInput,
   conversation: ConversationSnapshotPort,
+  artifacts?: ArtifactReadPort,
 ): Promise<Pick<ZhiyuEvidence, 'source' | 'chat'>> {
   try {
     const snapshot = await conversation.snapshot({
       agentHandle: input.agentHandle as Parameters<ConversationSnapshotPort['snapshot']>[0]['agentHandle'],
       conversationAnchorId: input.conversationAnchorId,
     });
+    const normalized = normalizeRuntimeSessionSnapshot(snapshot);
+    const resolved = artifacts
+      ? await resolveTranscriptImageMediaUrls(normalized, artifacts)
+      : normalized;
     return {
       source: input.currentSource,
       chat: hydrateZhiyuAgentChatFromRuntimeSessionSnapshot({
         current: input.currentChat,
         agentHandle: input.agentHandle,
         conversationAnchorId: input.conversationAnchorId,
-        snapshot: normalizeRuntimeSessionSnapshot(snapshot),
+        snapshot: resolved,
       }),
     };
   } catch (error) {
@@ -39,6 +46,35 @@ export async function hydrateZhiyuProductionConversation(
       chat: hydrationFailure(input, error),
     };
   }
+}
+
+async function resolveTranscriptImageMediaUrls(
+  snapshot: NimiRuntimeAgentSessionSnapshot,
+  artifacts: ArtifactReadPort,
+): Promise<NimiRuntimeAgentSessionSnapshot> {
+  const transcript = Array.isArray(snapshot.transcript) ? snapshot.transcript : null;
+  if (!transcript || !transcript.some((message) => (
+    message.kind === 'image' && text(message.artifactId) && !text(message.mediaUrl)
+  ))) {
+    return snapshot;
+  }
+  const resolvedTranscript = await Promise.all(transcript.map(async (message) => {
+    const artifactId = text(message.artifactId);
+    if (message.kind !== 'image' || !artifactId || text(message.mediaUrl)) {
+      return message;
+    }
+    const media = await resolveZhiyuChatAttachmentMedia(
+      artifactId,
+      text(message.mediaMimeType),
+      (readInput) => artifacts.readArtifactBytes(readInput),
+    );
+    if (!media) {
+      console.warn('zhiyu:snapshot-image-media-resolve-failed', { artifactId });
+      return message;
+    }
+    return { ...message, mediaUrl: media.mediaUrl, mediaMimeType: media.mediaMimeType };
+  }));
+  return { ...snapshot, transcript: resolvedTranscript };
 }
 
 function normalizeRuntimeSessionSnapshot(value: Readonly<Record<string, unknown>>): NimiRuntimeAgentSessionSnapshot {
@@ -70,6 +106,10 @@ function normalizeTranscriptMessage(value: unknown): NimiRuntimeAgentSessionTran
     parentMessageId: text(record.parentMessageId ?? record.parent_message_id) || undefined,
     traceId: text(record.traceId ?? record.trace_id) || undefined,
     reasoningText: text(record.reasoningText ?? record.reasoning_text) || undefined,
+    mediaUrl: text(record.mediaUrl ?? record.media_url) || undefined,
+    mediaMimeType: text(record.mediaMimeType ?? record.media_mime_type) || undefined,
+    artifactId: text(record.artifactId ?? record.artifact_id) || undefined,
+    metadata: isRecord(record.metadata) ? record.metadata as NimiRuntimeAgentSessionTranscriptMessage['metadata'] : undefined,
   };
 }
 

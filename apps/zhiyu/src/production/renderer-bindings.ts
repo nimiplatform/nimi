@@ -87,7 +87,8 @@ async function loadHome(selectedAgentHandle: string | null): Promise<ZhiyuHomePr
 }
 
 async function hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
-  return hydrateZhiyuProductionConversation(input, getZhiyuLocalAppClient().conversation);
+  const client = getZhiyuLocalAppClient();
+  return hydrateZhiyuProductionConversation(input, client.conversation, client.artifacts);
 }
 
 export function createZhiyuProductionBindings(

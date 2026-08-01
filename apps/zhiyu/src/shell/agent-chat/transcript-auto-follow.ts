@@ -1,4 +1,5 @@
 const CANONICAL_TRANSCRIPT_CONTENT_SELECTOR = '[data-canonical-transcript-width]';
+const NEAR_BOTTOM_THRESHOLD_PX = 80;
 
 export function followZhiyuTranscriptToLatest(
   root: HTMLElement,
@@ -7,6 +8,17 @@ export function followZhiyuTranscriptToLatest(
   const content = root.querySelector<HTMLElement>(CANONICAL_TRANSCRIPT_CONTENT_SELECTOR);
   let active = true;
   let scrollNotificationQueued = false;
+  // Follow only while the user stays near the bottom. Scrolling up unpins so
+  // observer callbacks (which also fire on virtualizer row swaps triggered by
+  // the scroll itself) stop yanking the transcript back down.
+  let pinned = true;
+  const isNearBottom = () => (
+    root.scrollTop + root.clientHeight >= root.scrollHeight - NEAR_BOTTOM_THRESHOLD_PX
+  );
+  const handleScroll = () => {
+    pinned = isNearBottom();
+  };
+  root.addEventListener('scroll', handleScroll, { passive: true });
   const notifyCanonicalVirtualizer = () => {
     if (scrollNotificationQueued) {
       return;
@@ -21,6 +33,9 @@ export function followZhiyuTranscriptToLatest(
     });
   };
   const scrollToLatest = () => {
+    if (!pinned) {
+      return;
+    }
     end.scrollIntoView({
       block: 'end',
       inline: 'nearest',
@@ -38,6 +53,7 @@ export function followZhiyuTranscriptToLatest(
   if (!content) {
     return () => {
       active = false;
+      root.removeEventListener('scroll', handleScroll);
     };
   }
 
@@ -56,6 +72,7 @@ export function followZhiyuTranscriptToLatest(
   });
   return () => {
     active = false;
+    root.removeEventListener('scroll', handleScroll);
     resizeObserver?.disconnect();
     mutationObserver?.disconnect();
   };

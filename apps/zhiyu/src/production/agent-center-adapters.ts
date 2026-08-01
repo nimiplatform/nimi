@@ -15,6 +15,10 @@ export function createZhiyuProductionAgentCenterSession(
     handle: agentHandle,
     surface: createZhiyuAgentCenterPermissionedSdkSurface({
       agentConfigure: client.agentConfigure,
+      aiProfiles: {
+        async list() { return []; },
+        async get() { return null; },
+      },
       permissions: client.permissions,
       loadPosture: () => client.permissions.agentCapabilityPosture(),
     }),

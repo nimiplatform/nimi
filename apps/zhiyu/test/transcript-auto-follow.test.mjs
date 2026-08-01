@@ -60,6 +60,8 @@ test('notifies the canonical virtualizer after programmatic bottom alignment and
       assert.equal(selector, '[data-canonical-transcript-width]');
       return content;
     },
+    addEventListener() {},
+    removeEventListener() {},
     dispatchEvent(event) {
       this.dispatchedEvents.push(event);
       if (event.type === 'scroll') {

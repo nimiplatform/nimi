@@ -143,7 +143,7 @@ const boundedSourceRef = {
   sourceHash: 'a'.repeat(64),
 };
 const boundedCoverage = [
-  'identity', 'presentation', 'placement', 'biography', 'psychology', 'knowledge',
+  'identity', 'presentation', 'biography', 'psychology', 'knowledge',
   'relationships', 'capabilities', 'interaction_profile', 'assets', 'authoring',
   'world_core', 'bound_entity', 'dependency_closure',
 ].map((section) => ({ section, state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 }));

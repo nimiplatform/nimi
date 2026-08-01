@@ -7,25 +7,37 @@ import {
   createAgentCenterI18n,
   createFirstPartyAgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
-import { createNimiRuntimeAgentModelSettingsScopeRef } from '@nimiplatform/sdk/runtime';
+import { projectNimiRuntimeLocalAgentAIScopeRef } from '@nimiplatform/sdk/ai';
 
 (globalThis).React = React;
 const zh = createAgentCenterI18n({ language: 'zh' });
 
 async function createSession() {
+  const scopeRef = projectNimiRuntimeLocalAgentAIScopeRef('agent');
+  let aiConfig = {
+    scopeRef,
+    profileOrigin: null,
+    capabilities: {
+      logicalModelIds: {},
+      targetRefs: {},
+      selectedComponents: {},
+      selectedParams: {},
+    },
+  };
   const session = createFirstPartyAgentCenterSession({
     identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
-    modelSettings: {
+    aiConfig: {
       async snapshot() {
         return {
-          scopeRef: createNimiRuntimeAgentModelSettingsScopeRef('agent'), capabilities: [],
+          aiConfig, scopeRef, capabilities: [],
           routeIntents: [], readiness: [], configurationRevision: '1',
         };
       },
       async update(input) {
+        aiConfig = input.config;
         return {
-          scopeRef: createNimiRuntimeAgentModelSettingsScopeRef('agent'), capabilities: [],
-          routeIntents: input.routeIntents, readiness: [], configurationRevision: '2',
+          aiConfig, scopeRef, capabilities: [],
+          routeIntents: [], readiness: [], configurationRevision: '2',
         };
       },
     },

@@ -83,18 +83,14 @@ export function ComposerModeTools({
   evidence,
   onVoiceCaptureToggle,
   onVoicePlayback,
-  onOpenModelConfig,
   onOpenAgentPanel,
   onOpenSettings,
-  modelRouteReasonCode,
 }: {
   readonly evidence: ZhiyuEvidence;
   readonly onVoiceCaptureToggle: () => Promise<void> | void;
   readonly onVoicePlayback: () => Promise<void> | void;
-  readonly onOpenModelConfig: () => void;
   readonly onOpenAgentPanel: () => void;
   readonly onOpenSettings: () => void;
-  readonly modelRouteReasonCode?: string;
 }) {
   const voicePlayback = projectZhiyuVoicePlayback({
     voiceOutputMode: evidence.companion.voiceOutputMode,
@@ -145,7 +141,7 @@ export function ComposerModeTools({
         onClick={onVoiceCaptureToggle}
         disabled={voiceCaptureDisabled}
       >
-        <Mic size={15} aria-hidden="true" />
+        <Mic size={16} aria-hidden="true" />
       </button>
       <button
         type="button"
@@ -155,7 +151,7 @@ export function ComposerModeTools({
         data-zhiyu-composer-tool="agent"
         onClick={onOpenAgentPanel}
       >
-        <UserRound size={15} aria-hidden="true" />
+        <UserRound size={16} aria-hidden="true" />
       </button>
       <button
         type="button"
@@ -176,15 +172,32 @@ export function ComposerModeTools({
         onClick={onVoicePlayback}
         disabled={voicePlaybackDisabled}
       >
-        <Headphones size={15} aria-hidden="true" />
+        <Headphones size={16} aria-hidden="true" />
       </button>
       <button type="button" aria-label="主动模式" title="主动模式" data-zhiyu-composer-tool="proactive" onClick={onOpenSettings}>
-        <Lightbulb size={15} aria-hidden="true" />
-      </button>
-      <button type="button" aria-label="模型路线" title={`模型路线：${modelRouteReasonCode || evidence.route.reasonCode}`} data-zhiyu-composer-tool="model" onClick={onOpenModelConfig}>
-        <SlidersHorizontal size={15} aria-hidden="true" />
+        <Lightbulb size={16} aria-hidden="true" />
       </button>
     </>
+  );
+}
+
+export function ComposerModelRouteButton({
+  onOpenModelConfig,
+  modelRouteReasonCode,
+}: {
+  readonly onOpenModelConfig: () => void;
+  readonly modelRouteReasonCode?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label="模型路线"
+      title={`模型路线：${modelRouteReasonCode || 'not_projected'}`}
+      data-zhiyu-composer-tool="model"
+      onClick={onOpenModelConfig}
+    >
+      <SlidersHorizontal size={16} aria-hidden="true" />
+    </button>
   );
 }
 

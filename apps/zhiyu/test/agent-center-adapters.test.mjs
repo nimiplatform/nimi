@@ -11,7 +11,7 @@ for (const reason of ['reserved_not_admitted', 'unknown', 'not_granted', 'reques
   test(`Agent Center binding preserves SDK action reason ${reason}`, async () => {
     const { mapZhiyuAgentCenterActionPosture } = await loadBindingModule();
     const mapped = mapZhiyuAgentCenterActionPosture(sdkPosture({ posture: 'unavailable', reason }));
-    assert.equal(mapped.updateModelSettings.reason, reason);
+    assert.equal(mapped.updateAIConfig.reason, reason);
     assert.equal(mapped.updateAutonomy.reason, reason);
     assert.equal(mapped.replaceAppearance.reason, reason);
   });
@@ -33,7 +33,7 @@ test('Agent Center binding routes all non-persistent rejection history back to r
 test('Agent Center binding maps carrier failure to runtime_offline without throwing', async () => {
   const { loadZhiyuAgentCenterActionPosture } = await loadBindingModule();
   const mapped = await loadZhiyuAgentCenterActionPosture(async () => { throw new Error('offline'); });
-  assert.equal(mapped.readModelSettings.reason, 'runtime_offline');
+  assert.equal(mapped.readAIConfig.reason, 'runtime_offline');
 });
 
 test('reserved configure posture performs no reserved reads', async () => {
@@ -41,6 +41,7 @@ test('reserved configure posture performs no reserved reads', async () => {
   const calls = [];
   const surface = createZhiyuAgentCenterPermissionedSdkSurface({
     agentConfigure: configureClient(calls),
+    aiProfiles: profileSource(calls),
     permissions: permissionClient(calls),
     loadPosture: async () => sdkPosture({ posture: 'unavailable', reason: 'reserved_not_admitted' }),
   });
@@ -53,14 +54,15 @@ test('binding composes revisions and preserves blocked, failed, and unavailable 
   for (const state of ['blocked', 'failed', 'unavailable']) {
     const surface = createZhiyuAgentCenterPermissionedSdkSurface({
       agentConfigure: configureClient([], state),
+      aiProfiles: profileSource([]),
       permissions: permissionClient([]),
       loadPosture: async () => sdkPosture({ posture: 'granted', reason: null }),
     });
     const projection = await surface.read('opaque-handle');
-    assert.equal(projection.modelSettings.configurationRevision, '7');
-    assert.equal(projection.modelSettings.readiness[0].state, state);
-    assert.equal(projection.modelSettings.routeOptions[0].model, 'local/model-b');
-    assert.equal(projection.modelSettings.routeOptions[0].label, 'Local model B');
+    assert.equal(projection.aiConfig.configurationRevision, '7');
+    assert.equal(projection.aiConfig.readiness[0].state, state);
+    assert.equal(projection.aiConfig.routeOptions[0].model, 'local/model-b');
+    assert.equal(projection.aiConfig.routeOptions[0].label, 'Local model B');
     assert.equal(projection.autonomy.revision, '11');
     assert.equal(projection.appearance.presentationRevision, '13');
   }
@@ -71,12 +73,21 @@ test('binding routes model, autonomy, and atomic appearance mutations', async ()
   const calls = [];
   const surface = createZhiyuAgentCenterPermissionedSdkSurface({
     agentConfigure: configureClient(calls),
+    aiProfiles: profileSource(calls),
     permissions: permissionClient(calls),
     loadPosture: async () => sdkPosture({ posture: 'granted', reason: null }),
   });
   await surface.updateConfiguration('opaque-handle', {
     expectedConfigurationRevision: '7',
-    routeIntents: [{ capability: 'text.generate', routePolicy: 'cloud', provider: 'connector-b', model: 'model-b' }],
+    config: {
+      scopeRef: { kind: 'local-agent', ownerId: 'runtime-local-agent-opaque' },
+      capabilities: {
+        logicalModelIds: { 'text.generate': 'model-b' },
+        targetRefs: {},
+        selectedParams: {},
+      },
+      profileOrigin: null,
+    },
   });
   await surface.updateAutonomy('opaque-handle', {
     expectedRevision: '11', enabled: false, mode: 'low', dailyTokenBudget: 600, maxTokensPerHook: 60,
@@ -90,11 +101,45 @@ test('binding routes model, autonomy, and atomic appearance mutations', async ()
   assert.ok(!calls.some((entry) => entry.startsWith('previewPresentation')));
 });
 
+test('binding routes standard AIProfile preview and atomic apply without private targets', async () => {
+  const { createZhiyuAgentCenterPermissionedSdkSurface } = await loadBindingModule();
+  const calls = [];
+  const surface = createZhiyuAgentCenterPermissionedSdkSurface({
+    agentConfigure: configureClient(calls),
+    aiProfiles: profileSource(calls),
+    permissions: permissionClient(calls),
+    loadPosture: async () => sdkPosture({ posture: 'granted', reason: null }),
+  });
+  assert.deepEqual((await surface.listAIProfiles('opaque-handle')).map((profile) => profile.profileId), [
+    'factory:test-profile',
+  ]);
+  const scopeRef = { kind: 'local-agent', ownerId: 'runtime-local-agent-opaque' };
+  const preview = await surface.previewAIProfile(
+    'opaque-handle',
+    scopeRef,
+    'factory:test-profile',
+    { requirementDeclarations: [] },
+  );
+  assert.equal(preview.baseVersion, 'runtime-agent-revision:7');
+  const applied = await surface.applyAIProfile(
+    'opaque-handle',
+    scopeRef,
+    'factory:test-profile',
+    { requirementDeclarations: [], expectedBaseVersion: preview.baseVersion },
+  );
+  assert.equal(applied.success, true);
+  assert.deepEqual(applied.config.capabilities.targetRefs, {});
+  assert.ok(calls.includes('previewAIProfile:factory:test-profile:opaque-handle'));
+  assert.ok(calls.includes('applyAIProfile:factory:test-profile:runtime-agent-revision:7'));
+  assert.equal(JSON.stringify(calls).includes('profileBindingId'), false);
+});
+
 test('configure request action uses the public SDK permission request shape', async () => {
   const { createZhiyuAgentCenterPermissionedSdkSurface, ZHIYU_AGENTS_CONFIGURE_REASON } = await loadBindingModule();
   const calls = [];
   const surface = createZhiyuAgentCenterPermissionedSdkSurface({
     agentConfigure: configureClient(calls),
+    aiProfiles: profileSource(calls),
     permissions: permissionClient(calls),
     loadPosture: async () => sdkPosture({ posture: 'prompt', reason: 'not_granted' }),
   });
@@ -115,6 +160,7 @@ test('scripted SDK posture events project granted to prompt requestability', asy
   let emit;
   const surface = createZhiyuAgentCenterPermissionedSdkSurface({
     agentConfigure: configureClient(calls),
+    aiProfiles: profileSource(calls),
     permissions: permissionClient(calls, (listener) => { emit = listener; }),
     loadPosture: async () => sdkPosture({ posture: 'granted', reason: null }),
   });
@@ -122,7 +168,7 @@ test('scripted SDK posture events project granted to prompt requestability', asy
   const unsubscribe = surface.subscribeActionPosture('opaque-handle', (posture) => events.push(posture));
   emit(sdkPosture({ posture: 'granted', reason: null }));
   emit(sdkPosture({ posture: 'prompt', reason: 'not_granted' }));
-  assert.deepEqual(events.map((event) => event.updateModelSettings), [
+  assert.deepEqual(events.map((event) => event.updateAIConfig), [
     { state: 'available', reason: null },
     { state: 'unavailable', reason: 'not_granted' },
   ]);
@@ -218,11 +264,23 @@ function permissionClient(calls, onSubscribe = null) {
 
 function configureClient(calls, readinessState = 'ready') {
   const configuration = {
+    aiConfig: {
+      scopeRef: { kind: 'local-agent', ownerId: 'runtime-local-agent-opaque' },
+      capabilities: {
+        logicalModelIds: { 'text.generate': 'model-a' },
+        targetRefs: {},
+        selectedParams: {},
+      },
+      profileOrigin: null,
+    },
     capabilities: ['text.generate'],
-    routeIntents: [{ capability: 'text.generate', provider: 'connector-a', model: 'model-a', routePolicy: 'cloud' }],
+    intents: [{ capability: 'text.generate', provider: 'connector-a', logicalModelId: 'model-a', routePolicy: 'cloud' }],
     routeOptions: [{
-      capability: 'text.generate', provider: '', model: 'local/model-b',
+      capability: 'text.generate', provider: '', logicalModelId: 'local/model-b',
       routePolicy: 'local', label: 'Local model B', availability: 'ready',
+    }, {
+      capability: 'text.generate', provider: 'connector-b', logicalModelId: 'model-b',
+      routePolicy: 'cloud', label: 'Cloud model B', availability: 'ready',
     }],
     readiness: [], configurationRevision: '7',
   };
@@ -244,12 +302,68 @@ function configureClient(calls, readinessState = 'ready') {
   };
   return {
     async configurationSnapshot({ agentHandle }) { calls.push(`configurationSnapshot:${agentHandle}`); return configuration; },
-    async updateConfiguration(input) { calls.push(`updateConfiguration:${input.expectedConfigurationRevision}:${input.routeIntents[0].provider}:${input.routeIntents[0].model}`); return { outcome: 'updated', projection: { ...configuration, routeIntents: input.routeIntents } }; },
+    async updateConfiguration(input) {
+      const logicalModelId = input.config.capabilities.logicalModelIds['text.generate'];
+      const route = input.routes[0];
+      calls.push(`updateConfiguration:${input.expectedConfigurationRevision}:${route.provider}:${logicalModelId}`);
+      return {
+        outcome: 'updated',
+        projection: {
+          ...configuration,
+          aiConfig: input.config,
+          intents: [{
+            capability: 'text.generate',
+            provider: route.provider,
+            logicalModelId,
+            routePolicy: route.routePolicy,
+          }],
+        },
+      };
+    },
     async readinessSnapshot({ agentHandle }) { calls.push(`readinessSnapshot:${agentHandle}`); return readiness; },
+    async previewAIProfile(input) {
+      calls.push(`previewAIProfile:${input.profile.profileId}:${input.agentHandle}`);
+      return {
+        before: configuration.aiConfig,
+        after: { ...configuration.aiConfig, profileOrigin: { profileId: input.profile.profileId, title: input.profile.title, appliedAt: '2026-07-31T00:00:00.000Z' } },
+        outcome: 'ready_to_apply',
+        diff: { identical: false, fields: [] },
+        baseVersion: 'runtime-agent-revision:7',
+        probeWarnings: [],
+      };
+    },
+    async applyAIProfile(input) {
+      calls.push(`applyAIProfile:${input.profile.profileId}:${input.expectedBaseVersion || ''}`);
+      return {
+        success: true,
+        config: { ...configuration.aiConfig, profileOrigin: { profileId: input.profile.profileId, title: input.profile.title, appliedAt: '2026-07-31T00:00:00.000Z' } },
+        failureReason: null,
+        outcome: 'ready_to_apply',
+        probeWarnings: [],
+      };
+    },
     async autonomySnapshot({ agentHandle }) { calls.push(`autonomySnapshot:${agentHandle}`); return autonomy; },
     async updateAutonomy(input) { calls.push(`updateAutonomy:${input.expectedAutonomyRevision}:${input.intent.config.mode}:${input.intent.config.dailyTokenBudget}:${input.intent.config.maxTokensPerHook}`); return { outcome: 'updated', projection: { ...autonomy, enabled: input.intent.enabled, config: input.intent.config } }; },
     async presentationSnapshot({ agentHandle }) { calls.push(`presentationSnapshot:${agentHandle}`); return presentation; },
     async commitPresentation(input) { calls.push(`commitPresentation:${input.expectedPresentationRevision}:${input.intent.backgroundAssetRef}`); return { outcome: 'committed', projection: { ...presentation, profile: { ...presentation.profile, ...input.intent } } }; },
+  };
+}
+
+function profileSource(calls) {
+  const profile = {
+    profileId: 'factory:test-profile',
+    title: 'Test Profile',
+    capabilities: {},
+  };
+  return {
+    async list() {
+      calls.push('listAIProfiles');
+      return [profile];
+    },
+    async get(profileId) {
+      calls.push(`getAIProfile:${profileId}`);
+      return profileId === profile.profileId ? profile : null;
+    },
   };
 }
 

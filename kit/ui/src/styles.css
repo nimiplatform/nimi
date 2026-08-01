@@ -2,6 +2,7 @@
 
 /* Tailwind source scanning: ensures all kit component classes are detected */
 @source "./components/**/*.{ts,tsx}";
+@source "./toast/**/*.{ts,tsx}";
 @source "./lib/**/*.{ts,tsx}";
 @source "../../auth/src/**/*.{ts,tsx}";
 @source "../../features/agent-center/src/**/*.{ts,tsx}";

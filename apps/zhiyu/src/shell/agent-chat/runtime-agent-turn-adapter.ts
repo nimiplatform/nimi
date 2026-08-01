@@ -52,12 +52,18 @@ export type ZhiyuRuntimeAgentChatStreamTurn = (
   readonly stream: AsyncIterable<RuntimeAgentTurnRunnerPartLike | unknown>;
 }>;
 
+export type ZhiyuLocalAppTurnAttachment = {
+  readonly artifactId: string;
+  readonly displayName?: string;
+};
+
 export type ZhiyuLocalAppTurnRequest = {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly threadId: string;
   readonly requestId: string;
   readonly text: string;
+  readonly attachments: readonly ZhiyuLocalAppTurnAttachment[];
 };
 
 export type ZhiyuRuntimeAgentChatTurnInput = {
@@ -107,7 +113,18 @@ export async function runZhiyuAgentChatTurn(
   }
 
   const text = stringOr(input.text, '');
-  if (!text) {
+  const attachments = normalizeTurnAttachments(input.attachments);
+  if (!attachments) {
+    return chatUnavailable({
+      reasonCode: 'zhiyu-turn-attachment-invalid',
+      actionHint: 'provide_valid_runtime_agent_turn_attachment',
+      source: 'renderer',
+      message: 'Runtime Agent chat attachments must reference exactly one uploaded artifact.',
+      ...identity,
+      requestId: stringOr(input.requestId, null),
+    });
+  }
+  if (!text && attachments.length === 0) {
     return chatUnavailable({
       reasonCode: 'zhiyu-turn-text-required',
       actionHint: 'enter_runtime_agent_turn_text',
@@ -118,22 +135,12 @@ export async function runZhiyuAgentChatTurn(
     });
   }
 
-  if (input.attachments && input.attachments.length > 0) {
-    return chatUnavailable({
-      reasonCode: 'zhiyu-runtime-agent-chat-attachments-not-admitted',
-      actionHint: 'remove_runtime_agent_chat_attachments',
-      source: 'renderer',
-      message: 'Runtime Agent chat attachments are not admitted for Zhiyu yet.',
-      ...identity,
-      requestId: stringOr(input.requestId, null),
-    });
-  }
-
   const requestId = stringOr(input.requestId, createTurnRequestId());
   const request = buildLocalAppTurnRequest({
     ...identity,
     requestId,
     text,
+    attachments,
   });
   const streamTurn = input.streamTurn
     ?? createLocalAppStreamTurn(input.conversationClient ?? getZhiyuLocalAppClient().conversation);
@@ -192,6 +199,7 @@ function buildLocalAppTurnRequest(input: {
   readonly threadId: string;
   readonly requestId: string;
   readonly text: string;
+  readonly attachments: readonly ZhiyuLocalAppTurnAttachment[];
 }): ZhiyuLocalAppTurnRequest {
   return {
     agentHandle: input.agentHandle,
@@ -199,7 +207,38 @@ function buildLocalAppTurnRequest(input: {
     requestId: input.requestId,
     threadId: input.threadId,
     text: input.text,
+    attachments: input.attachments,
   };
+}
+
+function normalizeTurnAttachments(
+  value: readonly unknown[] | undefined,
+): readonly ZhiyuLocalAppTurnAttachment[] | null {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.length > 1) {
+    return null;
+  }
+  const normalized: ZhiyuLocalAppTurnAttachment[] = [];
+  for (const item of value) {
+    const record = item && typeof item === 'object' && !Array.isArray(item)
+      ? item as Record<string, unknown>
+      : null;
+    if (!record || Object.keys(record).some((key) => key !== 'artifactId' && key !== 'displayName')) {
+      return null;
+    }
+    const artifactId = stringOr(record.artifactId, '');
+    if (!artifactId) {
+      return null;
+    }
+    if (record.displayName !== undefined && typeof record.displayName !== 'string') {
+      return null;
+    }
+    const displayName = stringOr(record.displayName, '');
+    normalized.push(displayName ? { artifactId, displayName } : { artifactId });
+  }
+  return normalized;
 }
 
 function createLocalAppStreamTurn(
@@ -235,6 +274,7 @@ async function* localAppConversationParts(
       ...scope,
       requestId: request.requestId,
       text: request.text,
+      attachments: request.attachments,
     });
     for await (const event of subscription) {
       if (signal?.aborted) {

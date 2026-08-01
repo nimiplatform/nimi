@@ -5,7 +5,6 @@ import {
   type AgentCenterSession,
   type AgentCenterTranslationKey,
 } from '@nimiplatform/kit/features/agent-center';
-import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { Globe2 } from 'lucide-react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import {
@@ -52,65 +51,54 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
   const activityLabel = agentCenterHeaderStateLabel(props.evidence.companion.executionState);
   return (
     <aside
-      className="zhiyu-agent-center mr-2 my-12 flex h-[calc(100cqh-96px)] min-h-0 w-[min(500px,calc(100cqw-96px))] max-w-full shrink-0 [grid-area:side] max-[980px]:my-0 max-[980px]:mr-0 max-[980px]:h-auto max-[980px]:min-h-[min(640px,calc(100cqh-20px))] max-[980px]:w-full"
+      className="zhiyu-agent-center mr-2 my-12 flex h-[calc(100cqh-96px)] min-h-0 w-[min(500px,calc(100cqw-96px))] max-w-full shrink-0 flex-col gap-2 [grid-area:side] max-[980px]:my-0 max-[980px]:mr-0 max-[980px]:h-auto max-[980px]:min-h-[min(640px,calc(100cqh-20px))] max-[980px]:w-full"
       data-zhiyu-region="agent-panel"
       data-zhiyu-agent-center-placement="kit"
       data-zhiyu-agent-panel-mode={props.mode}
       data-zhiyu-agent-center-side-sheet="desktop"
+      data-zhiyu-agent-panel-tab={props.activeTab}
       aria-label="智能体中心区域"
     >
-      <AppCardSurface
-        kind="promoted-glass"
-        as="section"
-        className="flex min-h-0 flex-1 flex-col overflow-hidden"
-      >
-        {moodLabel || activityLabel || agentCenterWorld ? (
-          <div
-            className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-white/70 px-5 py-2"
-            data-zhiyu-agent-center-host-context="true"
-          >
-            {moodLabel ? (
-              <span className="rounded-full bg-violet-500/10 px-2 py-px text-[10px] font-semibold text-violet-700" data-zhiyu-agent-center-state-chip="mood">
-                {moodLabel}
-              </span>
-            ) : null}
-            {activityLabel ? (
-              <span className="rounded-full bg-sky-500/10 px-2 py-px text-[10px] font-semibold text-sky-700" data-zhiyu-agent-center-state-chip="activity">
-                {activityLabel}
-              </span>
-            ) : null}
-            {agentCenterWorld ? (
-              <span className="inline-flex min-w-0 items-center gap-1 text-[10.5px] text-[var(--nimi-text-secondary)]" data-zhiyu-agent-center-world-name={agentCenterWorld}>
-                <Globe2 aria-hidden="true" size={12} />
-                <span className="truncate">{agentCenterWorld}</span>
-              </span>
-            ) : null}
-          </div>
-        ) : null}
+      {moodLabel || activityLabel || agentCenterWorld ? (
         <div
-          className="zhiyu-agent-center__body grid flex-1 content-start gap-3 overflow-auto px-5 py-3"
-          data-zhiyu-agent-panel-tab={props.activeTab}
-          data-zhiyu-agent-center-kit-surface="true"
+          className="flex min-w-0 shrink-0 flex-wrap items-center gap-1.5 px-1"
+          data-zhiyu-agent-center-host-context="true"
         >
-          {props.session ? <AgentCenter
-            activeSection={props.activeTab}
-            chrome="standalone"
-            i18n={ZHIYU_AGENT_CENTER_I18N}
-            identity={{
-              displayName: props.currentPartnerName,
-              avatarUrl: currentPartnerAvatarUrl(props.evidence),
-              avatarFallback: partnerInitial(props.currentPartnerName),
-            }}
-            onSectionChange={props.onActiveTabChange}
-            placementActions={{
-              close: props.onClose,
-              openRuntimeSettings: props.onOpenDesktopAgentConfig,
-              launchAvatar: props.onAvatarLaunch,
-            }}
-            session={props.session}
-          /> : null}
+          {moodLabel ? (
+            <span className="rounded-full bg-violet-500/10 px-2 py-px text-[10px] font-semibold text-violet-700" data-zhiyu-agent-center-state-chip="mood">
+              {moodLabel}
+            </span>
+          ) : null}
+          {activityLabel ? (
+            <span className="rounded-full bg-sky-500/10 px-2 py-px text-[10px] font-semibold text-sky-700" data-zhiyu-agent-center-state-chip="activity">
+              {activityLabel}
+            </span>
+          ) : null}
+          {agentCenterWorld ? (
+            <span className="inline-flex min-w-0 items-center gap-1 text-[10.5px] text-[var(--nimi-text-secondary)]" data-zhiyu-agent-center-world-name={agentCenterWorld}>
+              <Globe2 aria-hidden="true" size={12} />
+              <span className="truncate">{agentCenterWorld}</span>
+            </span>
+          ) : null}
         </div>
-      </AppCardSurface>
+      ) : null}
+      {props.session ? <AgentCenter
+        activeSection={props.activeTab}
+        chrome="standalone"
+        i18n={ZHIYU_AGENT_CENTER_I18N}
+        identity={{
+          displayName: props.currentPartnerName,
+          avatarUrl: currentPartnerAvatarUrl(props.evidence),
+          avatarFallback: partnerInitial(props.currentPartnerName),
+        }}
+        onSectionChange={props.onActiveTabChange}
+        placementActions={{
+          close: props.onClose,
+          openRuntimeSettings: props.onOpenDesktopAgentConfig,
+          launchAvatar: props.onAvatarLaunch,
+        }}
+        session={props.session}
+      /> : null}
     </aside>
   );
 }

@@ -58,6 +58,7 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
     threadId: 'runtime-thread:opaque',
     requestId: 'zhiyu-turn-test-1',
     text: 'hello from Zhiyu chat',
+    attachments: [],
   });
   assert.doesNotMatch(
     JSON.stringify(captured[0].request),
@@ -120,6 +121,7 @@ test('Zhiyu Runtime Agent chat consumes the admitted direct local-app conversati
           conversationAnchorId: 'conversation-anchor:opaque',
           requestId: 'zhiyu-turn-test-local-app',
           text: 'hello through local app',
+          attachments: [],
         },
       },
       { method: 'cancel' },
@@ -379,23 +381,118 @@ test('Zhiyu Runtime Agent chat fails closed when the direct local-app shell brid
   assert.equal(result.actionHint, 'inspect_runtime_agent_chat_stream');
 });
 
-test('Zhiyu Runtime Agent chat fails closed for attachments and conversation anchor mismatch', async () => {
+test('Zhiyu Runtime Agent chat forwards one uploaded artifact attachment through the turn request', async () => {
+  const module = await importRuntimeAgentChat();
+  const captured = [];
+
+  const result = await module.runZhiyuAgentChatTurn({
+    conversation: conversationReady(),
+    text: 'with attachment',
+    attachments: [{ artifactId: 'artifact_01J', displayName: 'photo.png' }],
+    requestId: 'zhiyu-turn-test-attachment',
+    streamTurn: async (request) => {
+      captured.push(request);
+      return {
+        stream: parts([
+          { type: 'text-delta', textDelta: 'seen' },
+          {
+            type: 'message-sealed',
+            envelope: {
+              message: {
+                messageId: 'runtime-message-attachment',
+                text: 'seen',
+              },
+            },
+          },
+          { type: 'turn-completed', outputText: 'seen', finishReason: 'stop' },
+        ]),
+      };
+    },
+  });
+
+  assert.equal(result.ready, true);
+  assert.equal(captured.length, 1);
+  assert.deepEqual(captured[0].attachments, [{ artifactId: 'artifact_01J', displayName: 'photo.png' }]);
+  assert.equal(captured[0].text, 'with attachment');
+});
+
+test('Zhiyu Runtime Agent chat sends attachment-only turns and fails closed on invalid attachments', async () => {
+  const module = await importRuntimeAgentChat();
+  const previousWindow = globalThis.window;
+  globalThis.window = {};
+  globalThis.__nimiZhiyuHasElectronRuntime = true;
+
+  try {
+    const captured = [];
+    const attachmentOnly = await module.runZhiyuAgentChatTurn({
+      conversation: conversationReady(),
+      text: '',
+      attachments: [{ artifactId: 'artifact_01J' }],
+      requestId: 'zhiyu-turn-test-local-app',
+      conversationClient: localAppConversationClient(captured),
+    });
+    assert.equal(attachmentOnly.ready, true);
+    const sendCall = captured.find((entry) => entry.method === 'send');
+    assert.deepEqual(sendCall.input, {
+      agentHandle: 'lah_v1_agent_opaque',
+      conversationAnchorId: 'conversation-anchor:opaque',
+      requestId: 'zhiyu-turn-test-local-app',
+      text: '',
+      attachments: [{ artifactId: 'artifact_01J' }],
+    });
+
+    let called = false;
+    const streamTurn = async () => {
+      called = true;
+      throw new Error('streamTurn must not be called');
+    };
+    const invalidShapes = [
+      [{ artifactId: '  ' }],
+      [{ artifactId: '' }],
+      [{ displayName: 'photo.png' }],
+      [{ artifactId: 'artifact_01J', mimeType: 'image/png' }],
+      [{ artifactId: 'artifact_01J', displayName: 7 }],
+      [{ artifactId: 'a' }, { artifactId: 'b' }],
+      ['artifact_01J'],
+    ];
+    for (const attachments of invalidShapes) {
+      const rejected = await module.runZhiyuAgentChatTurn({
+        conversation: conversationReady(),
+        text: 'with attachment',
+        attachments,
+        streamTurn,
+      });
+      assert.equal(rejected.ready, false);
+      assert.equal(rejected.reasonCode, 'zhiyu-turn-attachment-invalid');
+    }
+    assert.equal(called, false);
+
+    const emptyTurn = await module.runZhiyuAgentChatTurn({
+      conversation: conversationReady(),
+      text: '',
+      attachments: [],
+      streamTurn,
+    });
+    assert.equal(emptyTurn.ready, false);
+    assert.equal(emptyTurn.reasonCode, 'zhiyu-turn-text-required');
+    assert.equal(called, false);
+  } finally {
+    delete globalThis.__nimiZhiyuHasElectronRuntime;
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
+});
+
+test('Zhiyu Runtime Agent chat fails closed for conversation anchor mismatch', async () => {
   const module = await importRuntimeAgentChat();
   let called = false;
   const streamTurn = async () => {
     called = true;
     throw new Error('streamTurn must not be called');
   };
-
-  const attachmentResult = await module.runZhiyuAgentChatTurn({
-    conversation: conversationReady(),
-    text: 'with attachment',
-    attachments: [{ kind: 'image', url: 'blob:local' }],
-    streamTurn,
-  });
-  assert.equal(attachmentResult.ready, false);
-  assert.equal(attachmentResult.reasonCode, 'zhiyu-runtime-agent-chat-attachments-not-admitted');
-  assert.equal(called, false);
 
   const anchorMismatch = await module.runZhiyuAgentChatTurn({
     conversation: conversationReady({ conversationAnchorId: 'conversation-anchor:old' }),

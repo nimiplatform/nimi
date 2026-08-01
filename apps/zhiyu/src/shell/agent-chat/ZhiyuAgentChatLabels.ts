@@ -1,6 +1,6 @@
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
-import type { AgentCenterRuntimeModelSettingsProjection } from '@nimiplatform/kit/features/agent-center';
+import type { AgentCenterRuntimeAIConfigProjection } from '@nimiplatform/kit/features/agent-center';
 
 export type ZhiyuChatModelPresentation = {
   readonly label: string;
@@ -10,11 +10,11 @@ export type ZhiyuChatModelPresentation = {
 
 export function chatModelPresentation(
   evidence: ZhiyuEvidence,
-  modelSettings: AgentCenterRuntimeModelSettingsProjection | null = null,
+  aiConfig: AgentCenterRuntimeAIConfigProjection | null = null,
 ): ZhiyuChatModelPresentation {
-  if (modelSettings) {
-    const binding = modelSettings.routeIntents.find((intent) => intent.capability === 'text.generate') ?? null;
-    const readiness = modelSettings.readiness.find((entry) => entry.capability === 'text.generate') ?? null;
+  if (aiConfig) {
+    const binding = aiConfig.routeIntents.find((intent) => intent.capability === 'text.generate') ?? null;
+    const readiness = aiConfig.readiness.find((entry) => entry.capability === 'text.generate') ?? null;
     if (!binding) {
       return {
         label: '未绑定模型',
@@ -22,7 +22,7 @@ export function chatModelPresentation(
         reasonCode: 'zhiyu-agent-ai-config-not-configured',
       };
     }
-    const option = modelSettings.routeOptions?.find((candidate) => (
+    const option = aiConfig.routeOptions?.find((candidate) => (
       candidate.capability === binding.capability
       && candidate.routePolicy === binding.routePolicy
       && candidate.provider === binding.provider

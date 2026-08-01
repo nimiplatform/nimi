@@ -1,6 +1,3 @@
-import {
-  Settings,
-} from 'lucide-react';
 import nimiLogoImage from '../assets/logo.png';
 
 type DesktopPresenceRailProps = {
@@ -15,7 +12,6 @@ type DesktopPresenceRailProps = {
   readonly currentPartnerName: string;
   readonly hasCurrentPartner: boolean;
   readonly onOpenCurrentAgent: () => void;
-  readonly onOpenSettings: () => void;
   readonly onSelectAgent: (agentHandle: string) => void;
 };
 
@@ -25,7 +21,6 @@ export function DesktopPresenceRail({
   currentPartnerName,
   hasCurrentPartner,
   onOpenCurrentAgent,
-  onOpenSettings,
   onSelectAgent,
 }: DesktopPresenceRailProps) {
   return (
@@ -92,11 +87,6 @@ export function DesktopPresenceRail({
             </div>
           );
         })}
-      </div>
-      <div className="zhiyu-agent-rail__tools" aria-label="关系栏设置">
-        <button type="button" aria-label="设置" data-zhiyu-settings-entry="presence-rail" onClick={onOpenSettings}>
-          <Settings size={20} aria-hidden="true" />
-        </button>
       </div>
     </section>
   );

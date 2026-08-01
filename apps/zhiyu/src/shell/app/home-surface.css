@@ -243,7 +243,8 @@
   min-height: 0;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 26px;
-  padding: 78px 24px 34px 60px !important;
+  position: relative;
+  padding: 12px 12px 12px 60px !important;
   overflow: hidden;
 }
 
@@ -267,17 +268,17 @@
   min-width: 0;
   min-height: 0;
   /* both-edges keeps the message column centered with the composer column
-     instead of shifting 8px left when the gutter is reserved. */
+     instead of shifting left when the gutter is reserved. Inherit the global
+     thin scrollbar so the gutter matches desktop (auto would reserve ~15px). */
   scrollbar-gutter: stable both-edges;
-  scrollbar-width: auto;
 }
 
 .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
 .zhiyu-chat-canvas__composer [data-canonical-composer-width],
 .zhiyu-home__runtime-action-artifact-summary,
 .zhiyu-home__chat-failure-notice {
-  width: min(820px, 100%);
-  max-width: min(820px, 100%);
+  width: min(720px, 100%);
+  max-width: min(720px, 100%);
   margin-right: auto;
   margin-left: auto;
 }
@@ -286,8 +287,8 @@
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width],
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-home__runtime-action-artifact-summary,
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-home__chat-failure-notice {
-  width: min(1024px, 100%);
-  max-width: min(1024px, 100%);
+  width: min(720px, 100%);
+  max-width: min(720px, 100%);
   margin-right: auto;
   margin-left: auto;
 }
@@ -296,6 +297,27 @@
   display: grid;
   width: 100%;
   min-width: 0;
+}
+
+/* Floating composer + status strip, mirroring the desktop conversation pane's
+   overlay composer: the transcript scrolls full height underneath. Geometry so
+   the composer column edges equal the message column edges at any width:
+   transcript total insets are 92/28 (canvas 60/12 + kit outer 24/8 + gutter 8/8);
+   composer matches via overlay 60/8 + overlay padding 12/0 + kit composer px 20/20. */
+.zhiyu-chat-canvas__overlay {
+  position: absolute;
+  left: 60px;
+  right: 10px;
+  bottom: 12px;
+  z-index: 2;
+  padding-left: 14px;
+  pointer-events: none;
+}
+
+.zhiyu-chat-canvas__overlay-inner {
+  display: grid;
+  gap: 8px;
+  pointer-events: auto;
 }
 
 .zhiyu-chat-canvas__canonical-composer[data-canonical-composer-root="true"],
@@ -311,7 +333,8 @@
 }
 
 .zhiyu-home__composer-avatar,
-.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button {
+.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button,
+.zhiyu-agent-chat [data-chat-composer-toolbar-trailing-slot="true"] button {
   display: inline-grid;
   width: 32px;
   height: 32px;
@@ -326,15 +349,28 @@
   box-shadow: none;
 }
 
-.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:not(:disabled):hover {
+.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:not(:disabled):hover,
+.zhiyu-agent-chat [data-chat-composer-toolbar-trailing-slot="true"] button:not(:disabled):hover {
   background: rgba(15, 23, 42, 0.06);
   color: #334155;
 }
 
 .zhiyu-home__composer-avatar {
-  background: rgba(218, 246, 235, 0.82);
-  color: #23755f;
-  font-weight: 850;
+  overflow: hidden;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  transition: transform 120ms ease;
+}
+
+.zhiyu-home__composer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zhiyu-home__composer-avatar:not(:disabled):hover {
+  transform: scale(1.05);
 }
 
 .zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:disabled {
@@ -642,12 +678,12 @@
   line-height: 1.45;
 }
 
-.zhiyu-agent-center > [data-nimi-app-card-surface] {
-  display: flex;
+.zhiyu-agent-center > section[data-chat-agent-center] {
   min-height: 0;
   flex: 1 1 0%;
-  flex-direction: column;
-  overflow: hidden;
+  align-content: start;
+  grid-auto-rows: max-content;
+  overflow-y: auto;
 }
 
 .zhiyu-home__capability-list,
@@ -721,8 +757,12 @@
     padding-left: 34px !important;
   }
 
+  .zhiyu-chat-canvas__overlay {
+    left: 34px;
+  }
+
   .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas {
-    padding-right: 18px !important;
+    padding-right: 12px !important;
     padding-left: 34px !important;
   }
 
@@ -768,13 +808,14 @@
     padding: 12px !important;
   }
 
+  .zhiyu-chat-canvas__overlay {
+    left: 12px;
+    right: 10px;
+  }
+
   .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
   .zhiyu-chat-canvas__composer [data-canonical-composer-width] {
     width: 100%;
-  }
-
-  .zhiyu-chat-canvas__canonical-composer[data-canonical-composer-root="true"] {
-    padding: 0 !important;
   }
 }
 
@@ -812,11 +853,7 @@
     margin: 0;
   }
 
-  .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-agent-center > [data-nimi-app-card-surface] {
-    height: 100%;
-  }
-
-  .zhiyu-agent-chat__layout:not(.is-side-closed) [data-zhiyu-agent-center-kit-surface="true"] {
+  .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-agent-center > section[data-chat-agent-center] {
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;

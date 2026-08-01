@@ -42,7 +42,7 @@ test('Zhiyu AI Config route evidence derives send-readiness from text.generate r
   const module = await importAgentAIConfigModule();
 
   const notConfigured = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
-    modelSettings: modelSettings({
+    aiConfig: aiConfigProjection({
       routeIntents: [],
       readiness: [{
         capability: 'text.generate',
@@ -58,7 +58,7 @@ test('Zhiyu AI Config route evidence derives send-readiness from text.generate r
   assert.equal(notConfigured.executionBinding, null);
 
   const blockedWithBinding = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
-    modelSettings: modelSettings({
+    aiConfig: aiConfigProjection({
       readiness: [
         capabilityReadiness('text.generate', 'blocked', 'not_configured'),
       ],
@@ -69,7 +69,7 @@ test('Zhiyu AI Config route evidence derives send-readiness from text.generate r
   assert.deepEqual(blockedWithBinding.executionBinding, textBinding());
 
   const unavailable = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
-    modelSettings: modelSettings({
+    aiConfig: aiConfigProjection({
       readiness: [
         capabilityReadiness('text.generate', 'unavailable', 'route_unhealthy'),
         capabilityReadiness('image.generate', 'ready', ''),
@@ -90,9 +90,9 @@ test('Zhiyu AI Config route evidence fails closed without account or raw Agent i
   assert.equal(identityRequired.actionHint, 'select_runtime_local_agent');
 
   const permissionRequired = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
-    modelSettings: null,
+    aiConfig: null,
     availability: {
-      readModelSettings: {
+      readAIConfig: {
         state: 'unavailable',
         reason: 'needs-grant',
         nextStep: 'requestPermission',
@@ -104,10 +104,10 @@ test('Zhiyu AI Config route evidence fails closed without account or raw Agent i
 
   const unavailable = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
     phase: 'degraded',
-    modelSettings: null,
+    aiConfig: null,
     error: 'Runtime is offline.',
     availability: {
-      readModelSettings: {
+      readAIConfig: {
         state: 'unavailable',
         reason: 'runtime-offline',
         nextStep: 'retry',
@@ -483,16 +483,16 @@ function workspaceStubPlugin() {
 }
 
 function agentCenterSnapshot(overrides = {}) {
-  const settings = Object.hasOwn(overrides, 'modelSettings')
-    ? overrides.modelSettings
-    : modelSettings();
+  const aiConfig = Object.hasOwn(overrides, 'aiConfig')
+    ? overrides.aiConfig
+    : aiConfigProjection();
   return {
     phase: overrides.phase ?? 'ready',
     state: {
-      modelSettings: settings,
+      aiConfig,
     },
     availability: overrides.availability ?? {
-      readModelSettings: {
+      readAIConfig: {
         state: 'available',
         reason: null,
         nextStep: null,
@@ -502,12 +502,26 @@ function agentCenterSnapshot(overrides = {}) {
   };
 }
 
-function modelSettings(overrides = {}) {
+function aiConfigProjection(overrides = {}) {
+  const scopeRef = {
+    kind: 'local-agent',
+    ownerId: 'lah_v1_agent_opaque',
+  };
   return {
-    scopeRef: {
-      kind: 'runtime-agent',
-      ownerId: 'lah_v1_agent_opaque',
+    aiConfig: {
+      scopeRef,
+      profileOrigin: null,
+      capabilities: {
+        logicalModelIds: {
+          'text.generate': 'runtime-model:opaque',
+          'image.generate': 'runtime-image-model:opaque',
+        },
+        targetRefs: {},
+        selectedComponents: {},
+        selectedParams: {},
+      },
     },
+    scopeRef,
     capabilities: ['text.generate', 'image.generate'],
     routeIntents: [
       {

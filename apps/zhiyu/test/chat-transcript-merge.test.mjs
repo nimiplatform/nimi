@@ -150,6 +150,85 @@ test('keeps distinct media artifacts while merging the primary assistant slot', 
   ]);
 });
 
+test('appends an image user message with media projection and no text', async () => {
+  const { appendSubmittedUserMessage } = await importTransitionsModule();
+  const current = chatStatus({ requestId: null, ready: true, state: 'completed', messages: [] });
+  const appended = appendSubmittedUserMessage(current, {
+    ready: true,
+    agentHandle: 'opaque-owner-agent-handle',
+    conversationAnchorId: 'agent-anchor-1',
+    threadId: 'runtime-thread-1',
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
+  }, 'zhiyu-turn-image-1', '', '2026-07-31T04:40:33.000Z', {
+    artifactId: 'artifact_01J',
+    displayName: 'photo.png',
+    mediaUrl: 'data:image/png;base64,iVBORw0=',
+    mediaMimeType: 'image/png',
+  });
+
+  assert.equal(appended.messageCount, 1);
+  const message = appended.messages[0];
+  assert.equal(message.role, 'user');
+  assert.equal(message.kind, 'image');
+  assert.equal(message.text, '');
+  assert.equal(message.metadata?.artifactId, 'artifact_01J');
+  assert.equal(message.metadata?.mediaUrl, 'data:image/png;base64,iVBORw0=');
+  assert.equal(message.metadata?.mediaMimeType, 'image/png');
+
+  const withoutAttachment = appendSubmittedUserMessage(current, {
+    ready: true,
+    agentHandle: 'opaque-owner-agent-handle',
+    conversationAnchorId: 'agent-anchor-1',
+    threadId: 'runtime-thread-1',
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
+  }, 'zhiyu-turn-image-2', '', '2026-07-31T04:40:34.000Z');
+  assert.equal(withoutAttachment.messageCount, 0);
+});
+
+test('dedupes a hydrated image message against the local projection by artifactId', async () => {
+  const { mergeChatTranscript } = await importTransitionsModule();
+  const turnId = 'zhiyu-turn-image-merge';
+  const optimistic = message({
+    id: `${turnId}:user`, role: 'user', text: '', turnId, kind: 'image',
+  });
+  optimistic.metadata.artifactId = 'artifact_01J';
+  optimistic.metadata.mediaUrl = 'data:image/png;base64,optimistic';
+  const current = chatStatus({ requestId: turnId, messages: [optimistic] });
+  const hydrated = message({
+    id: 'runtime-message-image-1', role: 'user', text: '', turnId, kind: 'image',
+  });
+  hydrated.metadata.artifactId = 'artifact_01J';
+  hydrated.metadata.mediaUrl = 'data:image/png;base64,hydrated';
+  const incoming = chatStatus({ requestId: turnId, ready: true, state: 'completed', messages: [hydrated] });
+
+  const merged = mergeChatTranscript(current, incoming);
+
+  assert.equal(merged.messageCount, 1);
+  assert.equal(merged.messages[0]?.kind, 'image');
+  assert.equal(merged.messages[0]?.metadata?.artifactId, 'artifact_01J');
+  assert.equal(merged.messages[0]?.metadata?.mediaUrl, 'data:image/png;base64,hydrated');
+
+  const other = message({
+    id: 'runtime-message-image-2', role: 'user', text: '', turnId, kind: 'image',
+  });
+  other.metadata.artifactId = 'artifact_02K';
+  const mergedDistinct = mergeChatTranscript(current, chatStatus({
+    requestId: turnId,
+    ready: true,
+    state: 'completed',
+    messages: [hydrated, other],
+  }));
+  assert.equal(mergedDistinct.messageCount, 2);
+  assert.deepEqual(
+    mergedDistinct.messages.map(({ metadata }) => metadata?.artifactId),
+    ['artifact_01J', 'artifact_02K'],
+  );
+});
+
 async function importTransitionsModule() {
   const outputPath = path.join(await buildTransitionsModule(), 'app-evidence-transitions.mjs');
   return import(pathToFileURL(outputPath).href);
