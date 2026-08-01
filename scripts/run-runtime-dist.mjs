@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
-import fs from 'node:fs';
+import fs, {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { resolveWindowsPowerShell7 } from './lib/windows-powershell.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -113,80 +120,186 @@ function writeWindowsSigningDiagnostic() {
   }
 }
 
-function runtimeCommandArgs() {
-  const args = process.argv.slice(2);
-  if (process.platform !== 'win32' || args[0] !== 'stop') {
-    return args;
-  }
-  const hasForce = args.some((arg) => arg === '--force' || arg.startsWith('--force='));
-  if (hasForce) {
-    return args;
-  }
-  return ['stop', '--force', ...args.slice(1)];
+export function runtimeCommandArgs(args = process.argv.slice(2)) {
+  return [...args];
 }
 
-if (!fs.existsSync(binaryPath)) {
-  process.stderr.write(`[run-runtime-dist] missing ${path.relative(repoRoot, binaryPath)}; run 'pnpm build:runtime' first.\n`);
-  process.exit(1);
+export function shouldElevateWindowsRuntimeCommand(args, platform = process.platform) {
+  return platform === 'win32' && args[0] === 'stop';
 }
 
-const runtimeEnv = applyRootRuntimeEnv({ ...process.env });
+function powerShellLiteral(value) {
+  return String(value).replaceAll("'", "''");
+}
 
-const child = spawn(binaryPath, runtimeCommandArgs(), {
-  cwd: repoRoot,
-  stdio: 'inherit',
-  env: runtimeEnv,
-});
+export function buildWindowsRunAsCommands({
+  powershellPath,
+  executablePath,
+  args,
+  stdoutPath,
+  stderrPath,
+}) {
+  const runtimeArguments = args
+    .map((arg) => `'${powerShellLiteral(arg)}'`)
+    .join(' ');
+  const innerCommand = [
+    "$ErrorActionPreference = 'Stop'",
+    'try {',
+    `& '${powerShellLiteral(executablePath)}' ${runtimeArguments} 1> '${powerShellLiteral(stdoutPath)}' 2> '${powerShellLiteral(stderrPath)}'`,
+    'exit $LASTEXITCODE',
+    '} catch {',
+    `[IO.File]::AppendAllText('${powerShellLiteral(stderrPath)}', [Environment]::NewLine + $_.Exception.Message, [Text.UTF8Encoding]::new($false))`,
+    'exit 1',
+    '}',
+  ].join('; ');
+  const encodedInnerCommand = Buffer.from(innerCommand, 'utf16le').toString('base64');
+  const outerCommand = [
+    "$ErrorActionPreference = 'Stop'",
+    'try {',
+    `$process = Start-Process -FilePath '${powerShellLiteral(powershellPath)}' -Verb RunAs -WindowStyle Hidden -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-EncodedCommand','${encodedInnerCommand}') -Wait -PassThru`,
+    'exit $process.ExitCode',
+    '} catch {',
+    '[Console]::Error.WriteLine($_.Exception.Message)',
+    'exit 1',
+    '}',
+  ].join('; ');
+  return { innerCommand, outerCommand };
+}
 
-let childExited = false;
-
-const forwardSignal = (signal) => {
-  if (childExited || child.pid == null) {
-    return;
-  }
+function safeRead(filePath) {
   try {
-    child.kill(signal);
+    return readFileSync(filePath, 'utf8');
   } catch {
-    // Child exit races are expected during shutdown.
+    return '';
   }
-};
+}
 
-const cleanupSignals = () => {
-  process.off('SIGINT', onSigInt);
-  process.off('SIGTERM', onSigTerm);
-};
-
-const onSigInt = () => {
-  if (process.platform === 'win32') {
-    forwardSignal('SIGINT');
+function runElevatedWindowsRuntimeCommand(args) {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-command-'));
+  const stdoutPath = path.join(tempRoot, 'stdout.txt');
+  const stderrPath = path.join(tempRoot, 'stderr.txt');
+  try {
+    const powershellPath = resolveWindowsPowerShell7();
+    const { outerCommand } = buildWindowsRunAsCommands({
+      powershellPath,
+      executablePath: binaryPath,
+      args,
+      stdoutPath,
+      stderrPath,
+    });
+    const encodedCommand = Buffer.from(outerCommand, 'utf16le').toString('base64');
+    const result = spawnSync(
+      powershellPath,
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encodedCommand],
+      {
+        cwd: repoRoot,
+        env: process.env,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        windowsHide: true,
+      },
+    );
+    return {
+      ...result,
+      stdout: safeRead(stdoutPath),
+      stderr: [safeRead(stderrPath), String(result.stderr || '').trim()]
+        .filter(Boolean)
+        .join('\n'),
+    };
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
   }
-};
-const onSigTerm = () => {
-  forwardSignal('SIGTERM');
-};
+}
 
-process.on('SIGINT', onSigInt);
-process.on('SIGTERM', onSigTerm);
-
-child.once('error', (error) => {
-  cleanupSignals();
-  process.stderr.write(`[run-runtime-dist] failed to start ${path.relative(repoRoot, binaryPath)}: ${error.message}\n`);
-  if (shouldRunWindowsSigningDiagnostic(error, error.message)) {
-    writeWindowsSigningDiagnostic();
+export async function main() {
+  if (!fs.existsSync(binaryPath)) {
+    process.stderr.write(`[run-runtime-dist] missing ${path.relative(repoRoot, binaryPath)}; run 'pnpm build:runtime' first.\n`);
+    return 1;
   }
-  process.exit(1);
-});
 
-child.once('exit', (code, signal) => {
-  childExited = true;
-  cleanupSignals();
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
+  const args = runtimeCommandArgs();
+  if (shouldElevateWindowsRuntimeCommand(args)) {
+    let result;
+    try {
+      result = runElevatedWindowsRuntimeCommand(args);
+    } catch (error) {
+      process.stderr.write(`[run-runtime-dist] failed to request Windows elevation: ${error.message}\n`);
+      return 1;
+    }
+    if (result.stdout) {
+      process.stdout.write(result.stdout);
+    }
+    if (result.stderr) {
+      process.stderr.write(result.stderr.endsWith('\n') ? result.stderr : `${result.stderr}\n`);
+    }
+    if (result.error) {
+      process.stderr.write(`[run-runtime-dist] elevated Runtime command failed to start: ${result.error.message}\n`);
+      return 1;
+    }
+    return result.status ?? 1;
   }
-  process.exit(code ?? 1);
-});
 
-await new Promise(() => {
-  // Keep the wrapper process alive until the child exits.
-});
+  const runtimeEnv = applyRootRuntimeEnv({ ...process.env });
+
+  const child = spawn(binaryPath, args, {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    env: runtimeEnv,
+  });
+
+  let childExited = false;
+
+  const forwardSignal = (signal) => {
+    if (childExited || child.pid == null) {
+      return;
+    }
+    try {
+      child.kill(signal);
+    } catch {
+      // Child exit races are expected during shutdown.
+    }
+  };
+
+  const cleanupSignals = () => {
+    process.off('SIGINT', onSigInt);
+    process.off('SIGTERM', onSigTerm);
+  };
+
+  const onSigInt = () => {
+    if (process.platform === 'win32') {
+      forwardSignal('SIGINT');
+    }
+  };
+  const onSigTerm = () => {
+    forwardSignal('SIGTERM');
+  };
+
+  process.on('SIGINT', onSigInt);
+  process.on('SIGTERM', onSigTerm);
+
+  return new Promise((resolve) => {
+    child.once('error', (error) => {
+      childExited = true;
+      cleanupSignals();
+      process.stderr.write(`[run-runtime-dist] failed to start ${path.relative(repoRoot, binaryPath)}: ${error.message}\n`);
+      if (shouldRunWindowsSigningDiagnostic(error, error.message)) {
+        writeWindowsSigningDiagnostic();
+      }
+      resolve(1);
+    });
+
+    child.once('exit', (code, signal) => {
+      childExited = true;
+      cleanupSignals();
+      if (signal) {
+        process.kill(process.pid, signal);
+        return;
+      }
+      resolve(code ?? 1);
+    });
+  });
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.exitCode = await main();
+}

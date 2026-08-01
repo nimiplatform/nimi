@@ -145,14 +145,22 @@ test('Electron data cleanup rejects undeclared paths and non-exact IPC payloads'
   }
 });
 
-test('Electron data cleanup rejects symbolic links inside an allowed directory', async () => {
+test('Electron data cleanup rejects symbolic links inside an allowed directory', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-data-cleanup-link-'));
   const dataRoot = path.join(root, 'nimi_data');
   const outside = path.join(root, 'outside.txt');
   try {
     await mkdir(path.join(dataRoot, 'logs'), { recursive: true });
     await writeFile(outside, 'outside');
-    await symlink(outside, path.join(dataRoot, 'logs', 'outside.log'));
+    try {
+      await symlink(outside, path.join(dataRoot, 'logs', 'outside.log'));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EPERM') {
+        t.skip('symbolic link creation is not permitted on this host');
+        return;
+      }
+      throw error;
+    }
     const host = createDesktopElectronDataCleanupHost({
       resolveReadyDataRoot: async () => dataRoot,
     });
