@@ -33,6 +33,7 @@ function LocalAgentCard({
   onOpen: () => void;
   sdk: DesktopRendererSdkPort;
 }) {
+  const { t } = useTranslation();
   const detailQuery = useQuery({
     queryKey: sourceDisplayDetailQueryKey(item.sourceRef),
     queryFn: async () => fetchSourceDisplayDetail(item.sourceRef, sdk),
@@ -40,7 +41,11 @@ function LocalAgentCard({
   });
   const source = detailQuery.data?.source ?? null;
   const displayName = source?.displayName || item.displayName;
-  const handle = source?.handle || item.sourceRef.id;
+  const sourceTypeLabel = item.sourceRef.kind === 'worldCharacter'
+    ? t('Agents.sourceTypeWorldCharacter', { defaultValue: 'World character' })
+    : t('Agents.sourceTypePersonaCharacter', { defaultValue: 'Persona character' });
+  const role = source?.characterProfile.role?.trim() || null;
+  const readableIdentity = role ? `${sourceTypeLabel} · ${role}` : sourceTypeLabel;
   const bio = source?.bio ?? null;
 
   return (
@@ -72,7 +77,9 @@ function LocalAgentCard({
             </span>
           ) : null}
         </span>
-        <span className="truncate text-xs text-[var(--nimi-text-secondary)]">@{handle}</span>
+        <span className="truncate text-xs text-[var(--nimi-text-secondary)]">
+          {readableIdentity}
+        </span>
         {bio ? (
           <span className="line-clamp-2 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
             {bio}

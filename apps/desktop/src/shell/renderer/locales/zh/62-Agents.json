@@ -2,6 +2,8 @@
   "title": "我的角色",
   "subtitle": "你加入的角色，作为本地 agent 运行在这台设备上。",
   "searchPlaceholder": "按名称或世界搜索角色…",
+  "sourceTypeWorldCharacter": "世界角色",
+  "sourceTypePersonaCharacter": "人设角色",
   "signedOutTitle": "登录后查看我的角色",
   "signedOutDescription": "本地角色与你的账号绑定。",
   "loadErrorTitle": "加载角色列表失败",

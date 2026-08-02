@@ -100,6 +100,7 @@ test('Characters tab renders local agent cards with world badges and search fiel
       handle: 'zhao-mengfu',
       avatarUrl: null,
       bio: '元代书画大家，湖州路总管府事。',
+      characterProfile: { role: '书画家' },
     },
     stats: null,
   });
@@ -107,10 +108,12 @@ test('Characters tab renders local agent cards with world badges and search fiel
   assert.ok(markup.includes('data-testid="agents-list"'), 'expected agents list');
   assert.ok(markup.includes('data-testid="agents-card:local-agent:01A"'), 'expected first card testid');
   assert.ok(markup.includes('赵孟頫'), 'expected first agent name');
-  assert.ok(markup.includes('@zhao-mengfu'), 'expected enriched handle from seeded detail');
+  assert.ok(markup.includes('世界角色 · 书画家'), 'expected readable world-character identity');
   assert.ok(markup.includes('元代书画大家'), 'expected enriched bio from seeded detail');
   assert.ok(markup.includes('Kaelis'), 'expected second agent name');
-  assert.ok(markup.includes('@char-kaelis'), 'expected source-id handle fallback');
+  assert.ok(markup.includes('人设角色'), 'expected readable persona-character identity');
+  assert.equal(markup.includes('@zhao-mengfu'), false, 'does not expose the source handle');
+  assert.equal(markup.includes('@char-kaelis'), false, 'does not expose the source id');
   assert.ok(markup.includes('元代文人书院世界'), 'expected world badge');
   assert.ok(markup.includes('data-testid="agents-search-field"'), 'expected search field');
 
