@@ -124,6 +124,8 @@ methods:
     posture: mixed
   - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession
     posture: mixed
+  - method_id: /nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario
     posture: mixed
   - method_id: /nimi.runtime.v1.RuntimeAiService/StreamScenario
