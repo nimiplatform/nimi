@@ -13,9 +13,9 @@ import {
   resolveLocalAppPermissionApprovalViewState,
 } from '../src/shell/renderer/features/apps/local-app-permission-approval-center.js';
 import {
-  DESKTOP_AGENT_PERMISSION_IDS,
+  DESKTOP_LOCAL_APP_PERMISSION_IDS,
   DESKTOP_DEPENDENT_AGENT_PERMISSION_IDS,
-  type DesktopAgentPermissionId,
+  type DesktopLocalAppPermissionId,
   type DesktopLocalAppPermissionRequest,
 } from '../src/shell/renderer/features/apps/local-app-permission-owner.js';
 
@@ -25,9 +25,9 @@ test.before(async () => {
   await initI18n();
 });
 
-const permissionIds: readonly DesktopAgentPermissionId[] = DESKTOP_AGENT_PERMISSION_IDS;
+const permissionIds: readonly DesktopLocalAppPermissionId[] = DESKTOP_LOCAL_APP_PERMISSION_IDS;
 
-function request(permissionId: DesktopAgentPermissionId): DesktopLocalAppPermissionRequest {
+function request(permissionId: DesktopLocalAppPermissionId): DesktopLocalAppPermissionRequest {
   return {
     requestKey: 'principal-1',
     displayAppId: 'Zhiyu',
@@ -67,17 +67,18 @@ test('permission approval center keeps loading, pending, denied, and error state
   }), 'error');
 });
 
-test('five pending Agent items form one surface with a separate decision pair for every item', () => {
+test('six pending Local App items form one surface with a separate decision pair for every item', () => {
   const requests = permissionIds.map(request);
   const groups = groupDesktopLocalAppPermissionRequests(requests);
   assert.equal(groups.length, 1);
   assert.deepEqual(groups[0]?.items.map((item) => item.permissionId), permissionIds);
 
   const markup = renderRequests(requests, true);
-  assert.equal((markup.match(/data-testid="local-app-permission-item-/gu) ?? []).length, 5);
-  assert.equal((markup.match(/data-testid="local-app-permission-approve-/gu) ?? []).length, 5);
-  assert.equal((markup.match(/data-testid="local-app-permission-deny-/gu) ?? []).length, 5);
+  assert.equal((markup.match(/data-testid="local-app-permission-item-/gu) ?? []).length, 6);
+  assert.equal((markup.match(/data-testid="local-app-permission-approve-/gu) ?? []).length, 6);
+  assert.equal((markup.match(/data-testid="local-app-permission-deny-/gu) ?? []).length, 6);
   assert.match(markup, /Configure your Agents/u);
+  assert.match(markup, /Generate text candidates/u);
   assert.match(markup, /Read Agent memory/u);
   assert.match(markup, /Use Agent voice and transcription/u);
   assert.match(markup, /Delegate actions to your Agents/u);
@@ -133,6 +134,11 @@ test('only configure, voice, and delegate require interact; memory remains indep
   )?.[0];
   assert.ok(memoryButton);
   assert.doesNotMatch(memoryButton, /disabled=""/u);
+  const aiButton = markup.match(
+    /<button[^>]*data-testid="local-app-permission-approve-ai\.text\.generate"[^>]*>/u,
+  )?.[0];
+  assert.ok(aiButton);
+  assert.doesNotMatch(aiButton, /disabled=""/u);
 });
 
 test('permission dialog presents account-wide current-and-future scope without protected identities', async () => {

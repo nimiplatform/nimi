@@ -1,14 +1,15 @@
 {
   "approval": {
     "title": "{{app}} requests “{{permission}}”",
-    "combinedTitle": "{{app}} requests {{count}} Agent permissions",
-    "subtitle": "This grants access to every Agent in your account, including Agents you create later.",
+    "combinedTitle": "{{app}} requests {{count}} permissions",
+    "subtitle": "This grants the named capability to this app for your current Nimi account.",
     "combinedSubtitle": "Review and decide each permission separately. A decision for one item does not decide the others.",
     "queue": "{{count}} permission request groups are waiting."
   },
   "intent": {
     "agentsInteract": "Interact with all Agents in your account",
     "agentsConfigure": "Configure your Agents",
+    "aiTextGenerate": "Generate text candidates",
     "memoryRead": "Read Agent memory",
     "agentsVoice": "Use Agent voice and transcription",
     "agentsDelegate": "Delegate actions to your Agents"
@@ -16,6 +17,7 @@
   "intentDescription": {
     "agentsInteract": "Open conversations, send turns, and receive conversation updates for current and future Agents.",
     "agentsConfigure": "Read and change model, behavior, autonomy, voice reference, and appearance settings.",
+    "aiTextGenerate": "Generate reviewable text candidates through the Runtime-managed local model. The app cannot choose a provider, model, credential, tool, or media input.",
     "memoryRead": "Read memory content for current and future Agents.",
     "agentsVoice": "Use voice and transcription execution for current and future Agents.",
     "agentsDelegate": "Ask current and future Agents to perform delegated actions."
@@ -26,8 +28,8 @@
     "interactIneffective": "This grant is currently ineffective because Interact with Agents is not granted for this account."
   },
   "scope": {
-    "title": "All Agents in this account",
-    "description": "Current and future Agents are included automatically. Revoking a permission removes that access from all of them."
+    "title": "This app and your current account",
+    "description": "Each grant is bound to this app and account. Agent permissions include current and future Agents; AI text generation does not expose model or provider credentials."
   },
   "field": {
     "app": "App",
@@ -50,11 +52,11 @@
   },
   "settings": {
     "title": "App permissions",
-    "description": "Manage each granted Agent capability independently.",
+    "description": "Manage each granted app capability independently.",
     "currentAgents": "Agents currently covered",
     "noCurrentAgents": "No Agents exist in this account yet; future Agents are included automatically.",
-    "noPermissions": "This app has no Agent permission records.",
-    "revokeConfirm": "Revoke “{{permission}}” for all current and future Agents?",
+    "noPermissions": "This app has no permission records.",
+    "revokeConfirm": "Revoke “{{permission}}” for this app?",
     "interactCascadeWarning": "Revoking Interact with Agents immediately makes Configure Agents, Agent Voice, and Delegate Actions grants ineffective for this account. Read Agent Memory remains independent."
   },
   "action": {

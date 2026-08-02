@@ -3,16 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { Button, InlineAlert, NimiText, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
-  DESKTOP_AGENT_PERMISSION_IDS,
-  DESKTOP_AGENT_PERMISSION_I18N_SEGMENTS,
+  DESKTOP_LOCAL_APP_PERMISSION_IDS,
+  DESKTOP_LOCAL_APP_PERMISSION_I18N_SEGMENTS,
   isDesktopDependentAgentPermission,
-  type DesktopAgentPermissionId,
+  type DesktopLocalAppPermissionId,
   type DesktopLocalAppPermissionPosture,
   type DesktopLocalAppPermissionProjection,
 } from './local-app-permission-owner.js';
 
 export interface LocalAppPermissionSettingsItem {
-  readonly permissionId: DesktopAgentPermissionId;
+  readonly permissionId: DesktopLocalAppPermissionId;
   readonly posture: DesktopLocalAppPermissionPosture;
   readonly effective: boolean;
   readonly currentAgentNames: readonly string[];
@@ -22,12 +22,12 @@ export interface LocalAppPermissionSettingsViewProps {
   readonly items: readonly LocalAppPermissionSettingsItem[];
   readonly loading: boolean;
   readonly error: string;
-  readonly confirmingPermissionId: DesktopAgentPermissionId | null;
-  readonly busyPermissionId: DesktopAgentPermissionId | null;
+  readonly confirmingPermissionId: DesktopLocalAppPermissionId | null;
+  readonly busyPermissionId: DesktopLocalAppPermissionId | null;
   readonly onRefresh: () => void;
-  readonly onBeginRevoke: (permissionId: DesktopAgentPermissionId) => void;
+  readonly onBeginRevoke: (permissionId: DesktopLocalAppPermissionId) => void;
   readonly onCancelRevoke: () => void;
-  readonly onConfirmRevoke: (permissionId: DesktopAgentPermissionId) => void;
+  readonly onConfirmRevoke: (permissionId: DesktopLocalAppPermissionId) => void;
 }
 
 export function projectLocalAppPermissionSettingsItems(
@@ -36,7 +36,7 @@ export function projectLocalAppPermissionSettingsItems(
   const interactGranted = projections.some((projection) => (
     projection.permissionId === 'agents.interact' && projection.posture === 'granted'
   ));
-  const order = new Map(DESKTOP_AGENT_PERMISSION_IDS.map((permissionId, index) => [permissionId, index]));
+  const order = new Map(DESKTOP_LOCAL_APP_PERMISSION_IDS.map((permissionId, index) => [permissionId, index]));
   return projections
     .filter((projection) => projection.posture === 'granted')
     .sort((left, right) => (
@@ -61,8 +61,8 @@ export function LocalAppPermissionSettings({
   const [projections, setProjections] = useState<readonly DesktopLocalAppPermissionProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [confirmingPermissionId, setConfirmingPermissionId] = useState<DesktopAgentPermissionId | null>(null);
-  const [busyPermissionId, setBusyPermissionId] = useState<DesktopAgentPermissionId | null>(null);
+  const [confirmingPermissionId, setConfirmingPermissionId] = useState<DesktopLocalAppPermissionId | null>(null);
+  const [busyPermissionId, setBusyPermissionId] = useState<DesktopLocalAppPermissionId | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -88,7 +88,7 @@ export function LocalAppPermissionSettings({
     void refresh();
   }, [refresh]);
 
-  const revoke = useCallback(async (permissionId: DesktopAgentPermissionId) => {
+  const revoke = useCallback(async (permissionId: DesktopLocalAppPermissionId) => {
     const projection = projections.find((row) => row.permissionId === permissionId);
     if (!projection || projection.posture !== 'granted') {
       setError(t('AppPermissions.state.unsafeRevoke'));
@@ -153,7 +153,7 @@ export function LocalAppPermissionSettingsView({
       </div>
 
       {items.map((item) => {
-        const segment = DESKTOP_AGENT_PERMISSION_I18N_SEGMENTS[item.permissionId];
+        const segment = DESKTOP_LOCAL_APP_PERMISSION_I18N_SEGMENTS[item.permissionId];
         const canRevoke = item.posture === 'granted';
         const confirming = confirmingPermissionId === item.permissionId;
         const dependent = isDesktopDependentAgentPermission(item.permissionId);

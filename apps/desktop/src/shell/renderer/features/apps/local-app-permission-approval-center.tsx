@@ -12,10 +12,10 @@ import {
 
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
-  DESKTOP_AGENT_PERMISSION_IDS,
-  DESKTOP_AGENT_PERMISSION_I18N_SEGMENTS,
+  DESKTOP_LOCAL_APP_PERMISSION_IDS,
+  DESKTOP_LOCAL_APP_PERMISSION_I18N_SEGMENTS,
   isDesktopDependentAgentPermission,
-  type DesktopAgentPermissionId,
+  type DesktopLocalAppPermissionId,
   type DesktopLocalAppPermissionProjection,
   type DesktopLocalAppPermissionRequest,
 } from './local-app-permission-owner.js';
@@ -60,7 +60,7 @@ export function groupDesktopLocalAppPermissionRequests(
     if (group) group.items.push(request);
     else groups.set(request.requestKey, { displayAppId: request.displayAppId, items: [request] });
   }
-  const order = new Map(DESKTOP_AGENT_PERMISSION_IDS.map((permissionId, index) => [permissionId, index]));
+  const order = new Map(DESKTOP_LOCAL_APP_PERMISSION_IDS.map((permissionId, index) => [permissionId, index]));
   return [...groups.entries()].map(([requestKey, group]) => Object.freeze({
     requestKey,
     displayAppId: group.displayAppId,
@@ -86,7 +86,7 @@ export function LocalAppPermissionApprovalCenter() {
   const bindings = useDesktopRendererBindings();
   const [requests, setRequests] = useState<readonly DesktopLocalAppPermissionRequest[]>([]);
   const [projections, setProjections] = useState<readonly DesktopLocalAppPermissionProjection[]>([]);
-  const [busyPermissionId, setBusyPermissionId] = useState<DesktopAgentPermissionId | null>(null);
+  const [busyPermissionId, setBusyPermissionId] = useState<DesktopLocalAppPermissionId | null>(null);
   const [failed, setFailed] = useState(false);
   const [failureMessage, setFailureMessage] = useState('');
   const [decisionState, setDecisionState] = useState<DecisionState>('pending');
@@ -227,7 +227,7 @@ export interface LocalAppPermissionApprovalViewProps {
   readonly requestGroup: DesktopLocalAppPermissionRequestGroup;
   readonly waitingGroupCount: number;
   readonly interactGranted: boolean;
-  readonly busyPermissionId: DesktopAgentPermissionId | null;
+  readonly busyPermissionId: DesktopLocalAppPermissionId | null;
   readonly failed: boolean;
   readonly failureMessage: string;
   readonly decisionState: DecisionState;
@@ -245,7 +245,7 @@ export function LocalAppPermissionApprovalTitle({
   const singleItem = requestGroup.items.length === 1;
   const onlyRequest = requestGroup.items[0];
   const onlyRequestSegment = onlyRequest
-    ? DESKTOP_AGENT_PERMISSION_I18N_SEGMENTS[onlyRequest.permissionId]
+    ? DESKTOP_LOCAL_APP_PERMISSION_I18N_SEGMENTS[onlyRequest.permissionId]
     : null;
   return (
     <NimiText as="h2" role="section-title" className="min-w-0">
@@ -354,7 +354,7 @@ export interface LocalAppPermissionDecisionActionsProps {
   readonly request: DesktopLocalAppPermissionRequest;
   readonly compact: boolean;
   readonly interactGranted: boolean;
-  readonly busyPermissionId: DesktopAgentPermissionId | null;
+  readonly busyPermissionId: DesktopLocalAppPermissionId | null;
   readonly onDecision: (request: DesktopLocalAppPermissionRequest, approved: boolean) => void;
 }
 
@@ -403,7 +403,7 @@ export interface LocalAppPermissionApprovalItemsProps {
   readonly requests: readonly DesktopLocalAppPermissionRequest[];
   readonly singleItem: boolean;
   readonly interactGranted: boolean;
-  readonly busyPermissionId: DesktopAgentPermissionId | null;
+  readonly busyPermissionId: DesktopLocalAppPermissionId | null;
   readonly onDecision: (request: DesktopLocalAppPermissionRequest, approved: boolean) => void;
 }
 
@@ -418,7 +418,7 @@ export function LocalAppPermissionApprovalItems({
   return (
     <>
       {requests.map((request) => {
-        const segment = DESKTOP_AGENT_PERMISSION_I18N_SEGMENTS[request.permissionId];
+        const segment = DESKTOP_LOCAL_APP_PERMISSION_I18N_SEGMENTS[request.permissionId];
         const dependent = isDesktopDependentAgentPermission(request.permissionId);
         return (
           <Surface

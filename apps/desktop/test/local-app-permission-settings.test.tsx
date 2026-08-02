@@ -9,9 +9,9 @@ import {
   type LocalAppPermissionSettingsItem,
 } from '../src/shell/renderer/features/apps/local-app-permission-settings.js';
 import {
-  DESKTOP_AGENT_PERMISSION_IDS,
+  DESKTOP_LOCAL_APP_PERMISSION_IDS,
   DESKTOP_DEPENDENT_AGENT_PERMISSION_IDS,
-  type DesktopAgentPermissionId,
+  type DesktopLocalAppPermissionId,
   type DesktopLocalAppPermissionPosture,
   type DesktopLocalAppPermissionProjection,
 } from '../src/shell/renderer/features/apps/local-app-permission-owner.js';
@@ -23,10 +23,10 @@ test.before(async () => {
 });
 
 const noop = () => undefined;
-const permissionIds: readonly DesktopAgentPermissionId[] = DESKTOP_AGENT_PERMISSION_IDS;
+const permissionIds: readonly DesktopLocalAppPermissionId[] = DESKTOP_LOCAL_APP_PERMISSION_IDS;
 
 function item(
-  permissionId: DesktopAgentPermissionId,
+  permissionId: DesktopLocalAppPermissionId,
   posture: DesktopLocalAppPermissionPosture = 'granted',
   effective = true,
 ): LocalAppPermissionSettingsItem {
@@ -39,7 +39,7 @@ function item(
 }
 
 function projection(
-  permissionId: DesktopAgentPermissionId,
+  permissionId: DesktopLocalAppPermissionId,
   posture: DesktopLocalAppPermissionPosture = 'granted',
 ): DesktopLocalAppPermissionProjection {
   return {
@@ -79,10 +79,10 @@ test('Apps detail permission lifecycle shows account scope, posture, and current
   assert.doesNotMatch(markup, /localAgentId|principal|runtime/iu);
 });
 
-test('five granted Agent items render independent revoke controls', () => {
+test('six granted Local App items render independent revoke controls', () => {
   const markup = render({ items: permissionIds.map((permissionId) => item(permissionId)) });
-  assert.equal((markup.match(/data-testid="local-app-permission-setting-/gu) ?? []).length, 5);
-  assert.equal((markup.match(/data-testid="local-app-permission-revoke-/gu) ?? []).length, 5);
+  assert.equal((markup.match(/data-testid="local-app-permission-setting-/gu) ?? []).length, 6);
+  assert.equal((markup.match(/data-testid="local-app-permission-revoke-/gu) ?? []).length, 6);
 });
 
 test('revoke confirmation remains separate and keyboard-operable for one item', () => {

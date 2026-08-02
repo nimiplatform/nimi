@@ -1,14 +1,15 @@
 {
   "approval": {
     "title": "{{app}} 请求“{{permission}}”",
-    "combinedTitle": "{{app}} 请求 {{count}} 项 Agent 权限",
-    "subtitle": "授权后，此 App 可访问你账户内当前及未来创建的全部 Agent。",
+    "combinedTitle": "{{app}} 请求 {{count}} 项权限",
+    "subtitle": "授权后，此 App 可在你当前的 Nimi 账户下使用所列能力。",
     "combinedSubtitle": "请逐项审查并单独决定；一项的决定不会替其他项目作出决定。",
     "queue": "还有 {{count}} 组授权请求等待处理。"
   },
   "intent": {
     "agentsInteract": "与你账户内的全部 Agent 交互",
     "agentsConfigure": "配置你的 Agent",
+    "aiTextGenerate": "生成文本候选内容",
     "memoryRead": "读取 Agent 记忆",
     "agentsVoice": "使用 Agent 语音与转写",
     "agentsDelegate": "委托 Agent 执行操作"
@@ -16,6 +17,7 @@
   "intentDescription": {
     "agentsInteract": "为当前及未来创建的 Agent 打开会话、发送消息并接收会话更新。",
     "agentsConfigure": "读取和修改模型、行为、自主性、默认语音引用及外观设置。",
+    "aiTextGenerate": "通过 Runtime 管理的本地模型生成待你审核的文本候选；App 不能选择供应商、模型、凭据、工具或媒体输入。",
     "memoryRead": "读取当前及未来创建的 Agent 的记忆内容。",
     "agentsVoice": "为当前及未来创建的 Agent 使用语音与转写执行能力。",
     "agentsDelegate": "让当前及未来创建的 Agent 执行委托操作。"
@@ -26,8 +28,8 @@
     "interactIneffective": "由于此账户尚未授权“与 Agent 交互”，此授权当前不会生效。"
   },
   "scope": {
-    "title": "此账户内的全部 Agent",
-    "description": "当前及未来创建的 Agent 会自动纳入；撤销某项权限后，全部 Agent 都将失去对应访问。"
+    "title": "此 App 与你的当前账户",
+    "description": "每项授权仅绑定此 App 和账户。Agent 权限覆盖当前及未来创建的 Agent；AI 文本生成不会暴露模型或供应商凭据。"
   },
   "field": {
     "app": "App",
@@ -50,11 +52,11 @@
   },
   "settings": {
     "title": "App 权限",
-    "description": "独立管理每一项已授权的 Agent 能力。",
+    "description": "独立管理此 App 已获得的每一项能力。",
     "currentAgents": "当前覆盖的 Agent",
     "noCurrentAgents": "此账户目前还没有 Agent；未来创建的 Agent 会自动纳入。",
-    "noPermissions": "此 App 没有 Agent 权限记录。",
-    "revokeConfirm": "撤销“{{permission}}”对当前及未来全部 Agent 的访问？",
+    "noPermissions": "此 App 没有权限记录。",
+    "revokeConfirm": "撤销此 App 的“{{permission}}”授权？",
     "interactCascadeWarning": "撤销“与 Agent 交互”后，此账户中的“配置 Agent”“Agent 语音”及“委托操作”授权会立即失效；“读取 Agent 记忆”仍保持独立。"
   },
   "action": {

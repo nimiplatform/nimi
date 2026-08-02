@@ -5,32 +5,34 @@ import type {
 import { LocalAppPermissionOwnerPosture } from '@nimiplatform/sdk/runtime/generated';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 
-export const DESKTOP_AGENT_PERMISSION_IDS = [
+export const DESKTOP_LOCAL_APP_PERMISSION_IDS = [
   'agents.interact',
   'agents.configure',
+  'ai.text.generate',
   'memory.read',
   'agents.voice',
   'agents.delegate',
 ] as const;
 
-export type DesktopAgentPermissionId = typeof DESKTOP_AGENT_PERMISSION_IDS[number];
+export type DesktopLocalAppPermissionId = typeof DESKTOP_LOCAL_APP_PERMISSION_IDS[number];
 
 export const DESKTOP_DEPENDENT_AGENT_PERMISSION_IDS = [
   'agents.configure',
   'agents.voice',
   'agents.delegate',
-] as const satisfies readonly DesktopAgentPermissionId[];
+] as const satisfies readonly DesktopLocalAppPermissionId[];
 
-export const DESKTOP_AGENT_PERMISSION_I18N_SEGMENTS: Readonly<Record<DesktopAgentPermissionId, string>> = Object.freeze({
+export const DESKTOP_LOCAL_APP_PERMISSION_I18N_SEGMENTS: Readonly<Record<DesktopLocalAppPermissionId, string>> = Object.freeze({
   'agents.interact': 'agentsInteract',
   'agents.configure': 'agentsConfigure',
+  'ai.text.generate': 'aiTextGenerate',
   'memory.read': 'memoryRead',
   'agents.voice': 'agentsVoice',
   'agents.delegate': 'agentsDelegate',
 });
 
-const DESKTOP_AGENT_PERMISSION_ID_SET = new Set<string>(DESKTOP_AGENT_PERMISSION_IDS);
-const DESKTOP_DEPENDENT_AGENT_PERMISSION_ID_SET = new Set<DesktopAgentPermissionId>(
+const DESKTOP_LOCAL_APP_PERMISSION_ID_SET = new Set<string>(DESKTOP_LOCAL_APP_PERMISSION_IDS);
+const DESKTOP_DEPENDENT_AGENT_PERMISSION_ID_SET = new Set<DesktopLocalAppPermissionId>(
   DESKTOP_DEPENDENT_AGENT_PERMISSION_IDS,
 );
 
@@ -43,7 +45,7 @@ export type DesktopLocalAppPermissionPosture =
 export type DesktopLocalAppPermissionRequest = {
   readonly requestKey: string;
   readonly displayAppId: string;
-  readonly permissionId: DesktopAgentPermissionId;
+  readonly permissionId: DesktopLocalAppPermissionId;
   readonly reason: string;
   readonly ownerRevision: string;
 };
@@ -56,7 +58,7 @@ export type DesktopLocalAppPermissionCoveredAgent = {
 export type DesktopLocalAppPermissionProjection = {
   readonly requestKey: string;
   readonly displayAppId: string;
-  readonly permissionId: DesktopAgentPermissionId;
+  readonly permissionId: DesktopLocalAppPermissionId;
   readonly posture: DesktopLocalAppPermissionPosture;
   readonly coveredAgents: readonly DesktopLocalAppPermissionCoveredAgent[];
   readonly ownerRevision: string;
@@ -70,21 +72,21 @@ export type DesktopLocalAppPermissionOwnerPort = {
   }): Promise<() => void>;
   approve(input: {
     readonly requestKey: string;
-    readonly permissionId: DesktopAgentPermissionId;
+    readonly permissionId: DesktopLocalAppPermissionId;
     readonly expectedOwnerRevision: string;
   }): Promise<DesktopLocalAppPermissionProjection>;
   deny(input: {
     readonly requestKey: string;
-    readonly permissionId: DesktopAgentPermissionId;
+    readonly permissionId: DesktopLocalAppPermissionId;
     readonly expectedOwnerRevision: string;
   }): Promise<DesktopLocalAppPermissionProjection>;
   revoke(input: {
     readonly requestKey: string;
-    readonly permissionId: DesktopAgentPermissionId;
+    readonly permissionId: DesktopLocalAppPermissionId;
   }): Promise<DesktopLocalAppPermissionProjection>;
   getProjection(
     requestKey: string,
-    permissionId: DesktopAgentPermissionId,
+    permissionId: DesktopLocalAppPermissionId,
   ): Promise<DesktopLocalAppPermissionProjection>;
   listProjections(): Promise<readonly DesktopLocalAppPermissionProjection[]>;
 };
@@ -101,7 +103,7 @@ export function createDesktopLocalAppPermissionOwnerPort(
 
   async function getProjection(
     requestKey: string,
-    permissionId: DesktopAgentPermissionId,
+    permissionId: DesktopLocalAppPermissionId,
   ): Promise<DesktopLocalAppPermissionProjection> {
     const response = await dependencies.runtime().getLocalAppPermissionOwnerProjection({
       caller: caller(),
@@ -124,14 +126,14 @@ export function createDesktopLocalAppPermissionOwnerPort(
 
   async function decide(input: {
     readonly requestKey: string;
-    readonly permissionId: DesktopAgentPermissionId;
+    readonly permissionId: DesktopLocalAppPermissionId;
     readonly expectedOwnerRevision: string;
     readonly approved: boolean;
   }): Promise<DesktopLocalAppPermissionProjection> {
     const response = await dependencies.runtime().decideLocalAppPermission({
       caller: caller(),
       localAppPrincipalId: requireKey(input.requestKey, 'requestKey'),
-      permissionId: requireAgentPermissionId(input.permissionId),
+      permissionId: requireLocalAppPermissionId(input.permissionId),
       approved: input.approved,
       expectedOwnerRevision: requireRevision(input.expectedOwnerRevision),
     });
@@ -174,7 +176,7 @@ export function createDesktopLocalAppPermissionOwnerPort(
       const response = await dependencies.runtime().revokeLocalAppPermission({
         caller: caller(),
         localAppPrincipalId: requireKey(input.requestKey, 'requestKey'),
-        permissionId: requireAgentPermissionId(input.permissionId),
+        permissionId: requireLocalAppPermissionId(input.permissionId),
       });
       assertAccepted(response.accepted, response.reasonCode);
       return getProjection(input.requestKey, input.permissionId);
@@ -184,7 +186,7 @@ export function createDesktopLocalAppPermissionOwnerPort(
       const response = await dependencies.runtime().listLocalAppPermissionOwnerProjections({ caller: caller() });
       assertAccepted(response.accepted, response.reasonCode);
       return response.permissions
-        .filter((permission) => isDesktopAgentPermissionId(permission.permissionId))
+        .filter((permission) => isDesktopLocalAppPermissionId(permission.permissionId))
         .map(projectOwnerPermission);
     },
   });
@@ -199,7 +201,7 @@ function projectOwnerPermission(
   return Object.freeze({
     requestKey: requireKey(permission.localAppPrincipalId, 'requestKey'),
     displayAppId: permission.displayAppId,
-    permissionId: requireAgentPermissionId(permission.permissionId),
+    permissionId: requireLocalAppPermissionId(permission.permissionId),
     posture,
     coveredAgents,
     ownerRevision: permission.ownerRevision,
@@ -283,10 +285,10 @@ function projectPending(
 ): readonly DesktopLocalAppPermissionRequest[] {
   const seen = new Set<string>();
   return requests
-    .filter((request) => isDesktopAgentPermissionId(request.permissionId))
+    .filter((request) => isDesktopLocalAppPermissionId(request.permissionId))
     .map((request) => {
       const requestKey = requireKey(request.localAppPrincipalId, 'requestKey');
-      const permissionId = requireAgentPermissionId(request.permissionId);
+      const permissionId = requireLocalAppPermissionId(request.permissionId);
       const itemKey = `${requestKey}\u0000${permissionId}`;
       if (seen.has(itemKey)) {
         throw new Error('Desktop permission pending item is duplicated');
@@ -334,19 +336,19 @@ function requireKey(value: unknown, field: string): string {
   return text;
 }
 
-export function isDesktopAgentPermissionId(value: string): value is DesktopAgentPermissionId {
-  return DESKTOP_AGENT_PERMISSION_ID_SET.has(value);
+export function isDesktopLocalAppPermissionId(value: string): value is DesktopLocalAppPermissionId {
+  return DESKTOP_LOCAL_APP_PERMISSION_ID_SET.has(value);
 }
 
 export function isDesktopDependentAgentPermission(
-  permissionId: DesktopAgentPermissionId,
+  permissionId: DesktopLocalAppPermissionId,
 ): boolean {
   return DESKTOP_DEPENDENT_AGENT_PERMISSION_ID_SET.has(permissionId);
 }
 
-function requireAgentPermissionId(value: string): DesktopAgentPermissionId {
-  if (!isDesktopAgentPermissionId(value)) {
-    throw new Error('Desktop Agent permission id is invalid');
+function requireLocalAppPermissionId(value: string): DesktopLocalAppPermissionId {
+  if (!isDesktopLocalAppPermissionId(value)) {
+    throw new Error('Desktop Local App permission id is invalid');
   }
   return value;
 }
