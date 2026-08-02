@@ -73,7 +73,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
     inputTitle: 'Test text generation',
     inputPlaceholder: 'Describe what you want Nimi to write…',
     inputKind: 'prompt',
-    supportsAttachments: true,
+    supportsAttachments: false,
     controls: ['tone', 'length'],
     primaryLabel: 'Generate text',
     primaryRunningLabel: 'Generating…',
@@ -212,7 +212,7 @@ export function getCapabilityStudioProfile(id: TesterCapabilityId): CapabilitySt
 }
 
 const RUNTIME_METHODS: Record<TesterCapabilityId, string> = {
-  'text.generate': 'runtime.ai.executeScenario:text_generate',
+  'text.generate': 'sdk.localApp.ai.text.generateCandidate',
   'chat.stream': 'runtime.ai.streamScenario:text_generate',
   'text.embed': 'runtime.ai.executeScenario:text_embed',
   'image.generate': 'runtime.ai.submitScenarioJob:image_generate',

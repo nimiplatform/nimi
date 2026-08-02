@@ -74,10 +74,18 @@ export function useTesterRunTargetSummary(
   const scopeRef = rendererHost.sdk.aiConfig.scopeRef;
   const service = rendererHost.sdk.aiConfig.service;
   const [config, setConfig] = useState<NimiAIConfig | null>(null);
+  const usesProtectedTextCandidate = capability.id === 'text.generate' && runtime?.status !== 'simulated';
 
   useEffect(() => {
     let cancelled = false;
     let unsubscribe = () => {};
+    if (usesProtectedTextCandidate) {
+      setConfig(null);
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
+    }
     void rendererHost.sdk.aiConfig.requireAdmission()
       .then((next) => {
         if (!cancelled) {
@@ -96,7 +104,7 @@ export function useTesterRunTargetSummary(
       cancelled = true;
       unsubscribe();
     };
-  }, [rendererHost, scopeRef, service]);
+  }, [rendererHost, scopeRef, service, usesProtectedTextCandidate]);
 
   const [localModels, setLocalModels] = useState<TesterRunTargetLocalModel[]>([]);
   const standaloneTauriAvailable = hasTauriRuntime();

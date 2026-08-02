@@ -25,10 +25,9 @@ export const testerCapabilities: TesterCapability[] = [
     id: 'text.generate',
     label: 'Text Studio',
     group: 'text',
-    summary: 'Prompt → Kit generation Runtime consumer text_generate.',
-    surface: 'kit.generation.runRuntimeAIConsumeCapability:text.generate → runtime.ai.executeScenario',
+    summary: 'Prompt → protected Local App text candidate → Runtime-managed generation.',
+    surface: 'sdk.localApp.ai.text.generateCandidate → RuntimeAiService.GenerateLocalAppTextCandidate',
     execution: 'runtime-sdk',
-    runtimeBindingCapabilityId: 'text.generate',
   },
   {
     id: 'chat.stream',

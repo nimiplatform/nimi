@@ -25,6 +25,7 @@ function buildModule() {
     '--noEmit', 'false',
     'src/shell/auth/runtime-platform.ts',
     'src/shell/local-app-runtime-platform.ts',
+    'src/tester/tester-runtime.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -38,6 +39,10 @@ async function importRuntimePlatform() {
 
 async function importLocalAppRuntimePlatform() {
   return import(pathToFileURL(path.join(buildModule(), 'shell/local-app-runtime-platform.js')).href);
+}
+
+async function importTesterRuntime() {
+  return import(pathToFileURL(path.join(buildModule(), 'tester/tester-runtime.js')).href);
 }
 
 test.after(() => {
@@ -112,6 +117,134 @@ test('Tester app-private storage crosses the final SDK and Kit local-app carrier
       command: 'nimi.shell.storage.writeJson',
       payload: { payload: { relativePath: 'settings/profile.json', value: { theme: 'calm' } } },
     }]);
+  } finally {
+    if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
+    else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
+  }
+});
+
+test('Tester text generation crosses the protected SDK and Kit carrier after permission is granted', async () => {
+  const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
+  const calls = [];
+  globalThis.__NIMI_ELECTRON_TEST__ = {
+    async invoke(command, payload) {
+      calls.push({ command, payload });
+      switch (command) {
+        case 'nimi.shell.localApp.sessionStatus':
+          return { state: 'ready', reasonCode: ReasonCode.ACTION_EXECUTED, retryable: false };
+        case 'nimi.shell.localApp.permissionStatus':
+          return {
+            state: 'granted',
+            permissionId: 'ai.text.generate',
+            canRequest: false,
+            reasonCode: ReasonCode.ACTION_EXECUTED,
+            agents: [],
+          };
+        case 'nimi.shell.localApp.textGenerateCandidate':
+          return { text: 'Runtime candidate', finishReason: 'stop', traceId: 'trace-tester-text-1' };
+        default:
+          throw new Error(`Unexpected command: ${command}`);
+      }
+    },
+    listen() { return () => {}; },
+  };
+  try {
+    const runtimePlatform = await importRuntimePlatform();
+    const { runTesterCapability } = await importTesterRuntime();
+    runtimePlatform.clearRuntimePlatformProjection();
+
+    const result = await runTesterCapability({
+      capabilityId: 'text.generate',
+      prompt: 'Write an acceptance note.',
+    });
+
+    assert.deepEqual(result, {
+      ok: true,
+      capabilityId: 'text.generate',
+      capabilityLabel: 'Text Studio',
+      message: 'Runtime completed the protected foreground text candidate request.',
+      output: {
+        kind: 'text',
+        text: 'Runtime candidate',
+        finishReason: 'stop',
+        streamed: false,
+      },
+      trace: {
+        traceId: 'trace-tester-text-1',
+      },
+    });
+    assert.deepEqual(calls, [
+      { command: 'nimi.shell.localApp.sessionStatus', payload: {} },
+      {
+        command: 'nimi.shell.localApp.permissionStatus',
+        payload: { payload: { permissionId: 'ai.text.generate' } },
+      },
+      {
+        command: 'nimi.shell.localApp.textGenerateCandidate',
+        payload: { payload: {
+          messages: [{ role: 'user', text: 'Write an acceptance note.' }],
+          temperature: 0.7,
+          topP: 0.9,
+          maxTokens: 1024,
+        } },
+      },
+    ]);
+  } finally {
+    if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
+    else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
+  }
+});
+
+test('Tester requests ai.text.generate once and never fabricates output while owner approval is pending', async () => {
+  const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
+  const calls = [];
+  globalThis.__NIMI_ELECTRON_TEST__ = {
+    async invoke(command, payload) {
+      calls.push({ command, payload });
+      switch (command) {
+        case 'nimi.shell.localApp.sessionStatus':
+          return { state: 'ready', reasonCode: ReasonCode.ACTION_EXECUTED, retryable: false };
+        case 'nimi.shell.localApp.permissionStatus':
+          return {
+            state: 'prompt',
+            permissionId: 'ai.text.generate',
+            canRequest: true,
+            reasonCode: ReasonCode.ACTION_EXECUTED,
+            agents: [],
+          };
+        case 'nimi.shell.localApp.permissionRequest':
+          return {
+            state: 'pending',
+            permissionId: 'ai.text.generate',
+            canRequest: false,
+            reasonCode: ReasonCode.ACTION_EXECUTED,
+            agents: [],
+          };
+        default:
+          throw new Error(`Unexpected command: ${command}`);
+      }
+    },
+    listen() { return () => {}; },
+  };
+  try {
+    const runtimePlatform = await importRuntimePlatform();
+    const { runTesterCapability } = await importTesterRuntime();
+    runtimePlatform.clearRuntimePlatformProjection();
+
+    const result = await runTesterCapability({
+      capabilityId: 'text.generate',
+      prompt: 'Write an acceptance note.',
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'permission-required');
+    assert.match(result.message, /pending/u);
+    assert.equal(calls.some(({ command }) => command === 'nimi.shell.localApp.textGenerateCandidate'), false);
+    const requestCall = calls.find(({ command }) => command === 'nimi.shell.localApp.permissionRequest');
+    assert.equal(requestCall.payload.payload.permissionId, 'ai.text.generate');
+    assert.match(requestCall.payload.payload.reason, /foreground text generation/u);
+    assert.equal(typeof requestCall.payload.payload.requestId, 'string');
+    assert.ok(requestCall.payload.payload.requestId.length > 0);
   } finally {
     if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
     else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;

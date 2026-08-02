@@ -5,6 +5,8 @@ manifest_role: submitted-input
 permissions:
   - id: agents.interact
     reason: Nimi Lab needs access to all current and future Agents on this account to verify conversation journeys.
+  - id: ai.text.generate
+    reason: Nimi Lab needs foreground text generation to verify the protected Nimi Runtime AI execution journey.
 local_development:
   electron:
     renderer_origin: http://127.0.0.1:1468

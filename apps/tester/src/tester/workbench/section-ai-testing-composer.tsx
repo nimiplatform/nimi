@@ -5,7 +5,26 @@ import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/h
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 
-function ModelSummaryChip({ label, onOpen }: { label: string; onOpen: () => void }) {
+function ModelSummaryChip({
+  label,
+  onOpen,
+  configurable,
+}: {
+  label: string;
+  onOpen: () => void;
+  configurable: boolean;
+}) {
+  if (!configurable) {
+    return (
+      <span
+        className="studio-model-chip studio-model-chip--static"
+        aria-label="Runtime-selected model route"
+      >
+        <SlidersHorizontal size={15} aria-hidden="true" />
+        <span>{label}</span>
+      </span>
+    );
+  }
   return (
     <Button
       type="button"
@@ -32,6 +51,7 @@ export function TextStudioComposer({
   onRemoveAttachment,
   canDispatch,
   canConfigureTarget,
+  modelConfigurable = true,
   compact = false,
   onPromptChange,
   onContextChange,
@@ -48,6 +68,7 @@ export function TextStudioComposer({
   onRemoveAttachment: (index: number) => void;
   canDispatch: boolean;
   canConfigureTarget: boolean;
+  modelConfigurable?: boolean;
   compact?: boolean;
   onPromptChange: (value: string) => void;
   onContextChange: (value: string) => void;
@@ -89,6 +110,7 @@ export function TextStudioComposer({
         <ModelSummaryChip
           label={modelLabel}
           onOpen={onOpenModelConfig}
+          configurable={modelConfigurable}
         />
         {profile.supportsAttachments ? (
           <div className="tester-attach-strip tester-attach-strip--icon">

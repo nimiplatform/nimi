@@ -48,7 +48,27 @@ export function createTesterRunTargetSummary(input: {
 }): TesterRunTargetSummary {
   const { capability, runtime, config } = input;
   const section = CAPABILITY_TO_SECTION[capability.id];
-  const bindingCapabilityId = capability.runtimeBindingCapabilityId ?? getTesterRuntimeBindingCapabilityId(capability.id);
+  const bindingCapabilityId = capability.runtimeBindingCapabilityId
+    ?? (runtime?.status === 'simulated' && capability.id === 'text.generate'
+      ? 'text.generate'
+      : getTesterRuntimeBindingCapabilityId(capability.id));
+
+  if (capability.id === 'text.generate' && runtime?.status === 'connected') {
+    return {
+      capabilityId: capability.id,
+      bindingCapabilityId: null,
+      section,
+      status: 'ready',
+      source: 'local',
+      modelLabel: 'Runtime selected',
+      detail: 'The admitted ai.text.generate operation uses a Runtime-selected managed local route. This public App API does not expose model, provider, connector, or route selection.',
+      canDispatch: true,
+      params: {},
+      paramsSummary: [],
+      profileOrigin: null,
+    };
+  }
+
   const summary = summarizeModelConfigRuntimeTarget({
     capabilityId: capability.id,
     bindingCapabilityId,

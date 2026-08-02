@@ -245,6 +245,7 @@ function TextStudioShell({
       onRemoveAttachment={composerState.removeAttachment}
       canDispatch={runTarget.canDispatch}
       canConfigureTarget={canConfigureRunTarget(runTarget)}
+      modelConfigurable={capability.id !== 'text.generate' || runtime?.status === 'simulated'}
       compact={Boolean(activeRun)}
       onPromptChange={updatePrompt}
       onContextChange={setContext}

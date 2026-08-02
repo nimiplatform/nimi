@@ -1,11 +1,11 @@
 import type { TesterCapability } from './tester-capabilities.js';
 
 // Typed unavailable reasons retained by the workbench presentation model.
-// The admitted local-app path currently emits only runtime-not-ready and
-// sdk-method-unavailable; adding another live reason requires a separately
-// admitted SDK operation and a concrete call site.
+// Reasons are app-owned presentation categories for failures returned by real
+// SDK/Runtime calls. They never stand in for a successful execution.
 export type TesterUnavailableReason =
   | 'runtime-not-ready'
+  | 'permission-required'
   | 'ai-config-binding-missing'
   | 'input-invalid'
   | 'auth-context-missing'
@@ -33,6 +33,8 @@ export function unavailableReasonTitle(reason: TesterUnavailableReason): string 
   switch (reason) {
     case 'runtime-not-ready':
       return 'Runtime unavailable';
+    case 'permission-required':
+      return 'Permission required';
     case 'ai-config-binding-missing':
       return 'Model binding required';
     case 'input-invalid':
@@ -58,6 +60,8 @@ export function unavailableReasonUserMessage(reason: string): string {
   switch (reason) {
     case 'runtime-not-ready':
       return 'Runtime is not ready to generate a response yet.';
+    case 'permission-required':
+      return 'Text generation requires approval in Nimi Desktop.';
     case 'ai-config-binding-missing':
       return 'No model is selected for this generation.';
     case 'input-invalid':
@@ -85,6 +89,8 @@ export function unavailableReasonUserAction(reason: string): string {
   switch (reason) {
     case 'runtime-not-ready':
       return 'Start or reconnect Runtime, then try again.';
+    case 'permission-required':
+      return 'Approve or restore the text generation permission in Nimi Desktop, then retry.';
     case 'ai-config-binding-missing':
       return 'Choose a model in the model control, then try again.';
     case 'input-invalid':
@@ -109,6 +115,8 @@ export function unavailableReasonUserAction(reason: string): string {
 
 function actionHintForReason(reason: TesterUnavailableReason): string {
   switch (reason) {
+    case 'permission-required':
+      return 'Approve or restore ai.text.generate in Nimi Desktop, then retry the same request.';
     case 'sdk-method-unavailable':
       return 'Add an admitted SDK Nimi App execution method. Do not bypass Runtime with app-local REST.';
     case 'ai-config-binding-missing':

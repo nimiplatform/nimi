@@ -122,6 +122,13 @@ export function statusForCapability(
       detail: runtime.detail,
     };
   }
+  if (runtime.status === 'connected' && capability.id === 'text.generate') {
+    return {
+      label: 'ready',
+      tone: 'success',
+      detail: 'The protected ai.text.generate SDK operation is admitted. Runtime owns the managed local route and Desktop owns the permission decision.',
+    };
+  }
   if (runtime.status === 'connected') {
     return {
       label: 'not admitted',

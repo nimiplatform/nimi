@@ -6,12 +6,16 @@ function validatePermissionDeclarations(manifestText) {
   if (!Array.isArray(parsed?.permissions)) {
     throw new Error('permissions must be the top-level public permission declaration array');
   }
-  const permission = parsed.permissions[0];
-  if (parsed.permissions.length !== 1
-    || permission?.id !== 'agents.interact'
-    || typeof permission?.reason !== 'string'
-    || !permission.reason.toLowerCase().includes('all current and future agents')) {
-    throw new Error('Tester must declare exactly agents.interact with an account-scope reason covering all current and future Agents');
+  const permissions = new Map(parsed.permissions.map((permission) => [permission?.id, permission]));
+  const interact = permissions.get('agents.interact');
+  const textGenerate = permissions.get('ai.text.generate');
+  if (parsed.permissions.length !== 2
+    || permissions.size !== 2
+    || typeof interact?.reason !== 'string'
+    || !interact.reason.toLowerCase().includes('all current and future agents')
+    || typeof textGenerate?.reason !== 'string'
+    || !textGenerate.reason.toLowerCase().includes('foreground text generation')) {
+    throw new Error('Tester must declare exactly agents.interact and ai.text.generate with their bounded account and foreground execution reasons');
   }
   for (const retired of ['declared_nimi_api_scopes', 'scope', 'qualifier', 'operation_id', 'resource_ref']) {
     if (Object.hasOwn(parsed, retired) || parsed.permissions.some((permission) => Object.hasOwn(permission, retired))) {

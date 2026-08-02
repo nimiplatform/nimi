@@ -52,7 +52,7 @@ test('tester run target summary hydrates local runtime model labels without expo
   assert.equal(hydrated.modelLabel, 'z-image-turbo-Q4_K_M');
 });
 
-test('tester separates a connected protected session from an unadmitted capability', async () => {
+test('tester admits the protected text candidate without AIConfig or model selection', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const { statusForCapability } = await importBehaviorModule('tester/workbench/section-ai-testing-admission.js');
   const capability = {
@@ -66,18 +66,47 @@ test('tester separates a connected protected session from an unadmitted capabili
   const runtime = {
     status: 'connected',
     mode: 'electron-local-app',
-    detail: 'Runtime connected; AI is not admitted by this zero-permission manifest.',
+    detail: 'Runtime connected through the protected local-app carrier.',
+  };
+
+  const target = createTesterRunTargetSummary({ capability, runtime, config: null });
+  assert.equal(target.status, 'ready');
+  assert.equal(target.source, 'local');
+  assert.equal(target.modelLabel, 'Runtime selected');
+  assert.equal(target.bindingCapabilityId, null);
+  assert.equal(target.canDispatch, true);
+  assert.deepEqual(target.params, {});
+
+  const admission = statusForCapability(capability, runtime, null);
+  assert.equal(admission.label, 'ready');
+  assert.equal(admission.tone, 'success');
+  assert.match(admission.detail, /ai\.text\.generate/u);
+});
+
+test('tester keeps media execution unadmitted on the same connected carrier', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const { statusForCapability } = await importBehaviorModule('tester/workbench/section-ai-testing-admission.js');
+  const capability = {
+    id: 'image.generate',
+    label: 'Image Generate',
+    group: 'media',
+    summary: '',
+    surface: '',
+    execution: 'runtime-sdk',
+  };
+  const runtime = {
+    status: 'connected',
+    mode: 'electron-local-app',
+    detail: 'Runtime connected; media jobs are not admitted by this carrier.',
   };
 
   const target = createTesterRunTargetSummary({ capability, runtime, config: null });
   assert.equal(target.status, 'not-admitted');
-  assert.equal(target.modelLabel, 'Not admitted');
   assert.equal(target.canDispatch, false);
 
   const admission = statusForCapability(capability, runtime, null);
   assert.equal(admission.label, 'not admitted');
   assert.equal(admission.tone, 'info');
-  assert.doesNotMatch(admission.detail, /Runtime unavailable/i);
 });
 
 test('tester dispatches the standalone World Tour only from a Tauri shell', async () => {
@@ -428,7 +457,7 @@ test('tester model picker adapts the runtime host client to SDK route options', 
               updatedAt: '',
               healthDetail: '',
               capabilities: ['text.generate'],
-              logicalModelId: '',
+              logicalModelId: 'local/chat-model',
               family: '',
               artifactRoles: [],
               preferredEngine: '',
@@ -438,6 +467,15 @@ test('tester model picker adapts the runtime host client to SDK route options', 
               localInvokeProfileId: '',
               endpoint: 'http://127.0.0.1:11434',
               reasonCode: 0,
+              durableTargetRef: {
+                version: 'v2',
+                ref: {
+                  oneofKind: 'profileBindingId',
+                  profileBindingId: 'profile:local-chat-1',
+                },
+              },
+              durableTargetStatus: 'active',
+              durableTargetReasonCode: '',
             }],
             nextPageToken: '',
           };
