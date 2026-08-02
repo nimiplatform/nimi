@@ -672,6 +672,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ExecuteScenarioResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
+        service: "RuntimeAiService",
+        method: "GenerateLocalAppTextCandidate",
+        kind: "unary",
+        request_type: "GenerateLocalAppTextCandidateRequest",
+        response_type: "GenerateLocalAppTextCandidateResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
         service: "RuntimeAiService",
         method: "GetScenarioArtifacts",

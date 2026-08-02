@@ -3327,6 +3327,19 @@ type ExternalAgentTokenRecord struct {
 	Issuer string `json:"issuer,omitempty"`
 }
 
+type GenerateLocalAppTextCandidateRequest struct {
+	Messages []LocalAppTextCandidateMessage `json:"messages,omitempty"`
+	Temperature float32 `json:"temperature,omitempty"`
+	TopP float32 `json:"top_p,omitempty"`
+	MaxTokens int32 `json:"max_tokens,omitempty"`
+}
+
+type GenerateLocalAppTextCandidateResponse struct {
+	Text string `json:"text,omitempty"`
+	FinishReason FinishReason `json:"finish_reason,omitempty"`
+	TraceId string `json:"trace_id,omitempty"`
+}
+
 type GetAccountSessionStatusRequest struct {
 	Caller *AccountCaller `json:"caller,omitempty"`
 }
@@ -4689,6 +4702,11 @@ type LocalAppPermissionProjection struct {
 	CanRequest bool `json:"can_request,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	Agents []LocalAppPermissionAgentHandle `json:"agents,omitempty"`
+}
+
+type LocalAppTextCandidateMessage struct {
+	Role string `json:"role,omitempty"`
+	Text string `json:"text,omitempty"`
 }
 
 type LocalAssetHealth struct {
@@ -8418,6 +8436,14 @@ func (c RuntimeTypedClient) ExecuteScenario(ctx context.Context, request Execute
 		return ExecuteScenarioResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ExecuteScenarioResponse](raw, "ExecuteScenarioResponse")
+}
+
+func (c RuntimeTypedClient) GenerateLocalAppTextCandidate(ctx context.Context, request GenerateLocalAppTextCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GenerateLocalAppTextCandidateResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate", request, metadata, timeoutMS)
+	if err != nil {
+		return GenerateLocalAppTextCandidateResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GenerateLocalAppTextCandidateResponse](raw, "GenerateLocalAppTextCandidateResponse")
 }
 
 func (c RuntimeTypedClient) GetScenarioArtifacts(ctx context.Context, request GetScenarioArtifactsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetScenarioArtifactsResponse, error) {

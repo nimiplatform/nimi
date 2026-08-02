@@ -4957,6 +4957,36 @@ pub struct ExecuteScenarioResponse {
         RuntimeResolvedExecutionBinding,
     >,
 }
+/// Exact third-party Local App foreground text-candidate contract. Runtime
+/// derives account, App identity, permission and managed local route from the
+/// protected session; callers cannot supply generic Scenario or route fields.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppTextCandidateMessage {
+    #[prost(string, tag = "1")]
+    pub role: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GenerateLocalAppTextCandidateRequest {
+    #[prost(message, repeated, tag = "1")]
+    pub messages: ::prost::alloc::vec::Vec<LocalAppTextCandidateMessage>,
+    #[prost(float, tag = "2")]
+    pub temperature: f32,
+    #[prost(float, tag = "3")]
+    pub top_p: f32,
+    #[prost(int32, tag = "4")]
+    pub max_tokens: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GenerateLocalAppTextCandidateResponse {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(enumeration = "FinishReason", tag = "2")]
+    pub finish_reason: i32,
+    #[prost(string, tag = "3")]
+    pub trace_id: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamScenarioRequest {
     #[prost(message, optional, tag = "1")]
@@ -6325,6 +6355,35 @@ pub mod runtime_ai_service_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        pub async fn generate_local_app_text_candidate(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GenerateLocalAppTextCandidateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GenerateLocalAppTextCandidateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiService",
+                        "GenerateLocalAppTextCandidate",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn execute_scenario(
             &mut self,

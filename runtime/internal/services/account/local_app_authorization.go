@@ -43,6 +43,7 @@ const (
 	LocalAppOperationStorageJSONRemove     LocalAppOperation = "app_storage.json.remove"
 	LocalAppOperationRealmWorldCoreList    LocalAppOperation = "realm.world_core.list"
 	LocalAppOperationRealmWorldCoreCreate  LocalAppOperation = "realm.world_core.create"
+	LocalAppOperationTextCandidateGenerate LocalAppOperation = "runtime.ai.text_candidate.generate"
 	LocalAppOperationVoiceTranscribe       LocalAppOperation = "runtime_agent.voice.transcribe"
 	LocalAppOperationVoiceStreamSubscribe  LocalAppOperation = "runtime_agent.voice.stream_subscribe"
 )
@@ -308,6 +309,8 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 		return "realm.world-core.list", true
 	case LocalAppOperationRealmWorldCoreCreate:
 		return "realm.world-core.create", true
+	case LocalAppOperationTextCandidateGenerate:
+		return "ai.text.generate", true
 	case LocalAppOperationVoiceTranscribe:
 		return "runtime.agent.voice.transcribe", true
 	case LocalAppOperationVoiceStreamSubscribe:

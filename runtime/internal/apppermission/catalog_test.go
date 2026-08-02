@@ -8,8 +8,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestPublicPermissionCatalogIsClosedWithAgentPermissionsAdmitted(t *testing.T) {
-	for _, id := range []string{"agents.interact", "agents.configure"} {
+func TestPublicPermissionCatalogIsClosedWithCurrentPermissionsAdmitted(t *testing.T) {
+	for _, id := range []string{"agents.interact", "agents.configure", "ai.text.generate"} {
 		descriptor, ok := Lookup(id)
 		if !ok || descriptor.Admission != AdmissionAdmitted || !descriptor.ManifestAllowed || !IsAdmitted(id) {
 			t.Fatalf("%s publication = %+v, known=%v", id, descriptor, ok)
@@ -50,11 +50,12 @@ func TestProtectedOperationsMapToTheirPublishedProductPermission(t *testing.T) {
 		"runtime_agent.autonomy.update":             "agents.configure",
 		"runtime_agent.presentation.snapshot":       "agents.configure",
 		"runtime_agent.presentation.commit":         "agents.configure",
+		"runtime.ai.text_candidate.generate":        "ai.text.generate",
 	}
 	for operationID, permissionID := range operations {
 		descriptor, ok := ForOperation(operationID)
 		expectedAdmission := AdmissionReserved
-		if permissionID == "agents.interact" || permissionID == "agents.configure" {
+		if permissionID == "agents.interact" || permissionID == "agents.configure" || permissionID == "ai.text.generate" {
 			expectedAdmission = AdmissionAdmitted
 		}
 		if !ok || descriptor.ID != permissionID || descriptor.Admission != expectedAdmission {

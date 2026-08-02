@@ -194,7 +194,7 @@ func (s *Service) localAppPermissionProjection(ctx context.Context, permissionID
 			return projection
 		}
 	}
-	if evaluation.Posture == apppermission.PostureGranted {
+	if evaluation.Posture == apppermission.PostureGranted && descriptor.AgentHandles {
 		agents, materializeErr := s.materializeAccountAgentHandles(ctx, caller, permissionID, accountScopeDigest)
 		if materializeErr != nil {
 			return unavailablePermissionProjection(permissionID, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)

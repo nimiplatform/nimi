@@ -79,7 +79,7 @@ func TestListLocalAppPermissionOwnerProjectionsLoadsAgentInventoryOncePerRequest
 	}
 	fixture.service.SetLocalAgentOwnershipResolver(ownership)
 
-	for _, permissionID := range []string{"agents.interact", "agents.inspect"} {
+	for _, permissionID := range []string{"agents.interact", "agents.configure", "ai.text.generate"} {
 		request, err := fixture.kernel.PermissionGrants().CreatePendingRequest(context.Background(), localappkernel.CreatePermissionRequestInput{
 			LocalOSUserAnchor:   fixture.kernel.LocalOSUserAnchor(),
 			AccountID:           "acct-1",
@@ -109,11 +109,75 @@ func TestListLocalAppPermissionOwnerProjectionsLoadsAgentInventoryOncePerRequest
 		context.Background(),
 		&runtimev1.ListLocalAppPermissionOwnerProjectionsRequest{Caller: desktopAccountControlCaller()},
 	)
-	if err != nil || !response.GetAccepted() || len(response.GetPermissions()) != 2 {
+	if err != nil || !response.GetAccepted() || len(response.GetPermissions()) != 3 {
 		t.Fatalf("owner list = (%+v, %v)", response, err)
 	}
 	if ownership.listCalls != 1 {
 		t.Fatalf("Agent inventory reads = %d, want 1", ownership.listCalls)
+	}
+	for _, projection := range response.GetPermissions() {
+		wantCoveredAgents := 1
+		if projection.GetPermissionId() == "ai.text.generate" {
+			wantCoveredAgents = 0
+		}
+		if len(projection.GetCoveredAgents()) != wantCoveredAgents {
+			t.Fatalf("%s covered Agents = %+v", projection.GetPermissionId(), projection.GetCoveredAgents())
+		}
+	}
+}
+
+func TestLocalAppPermissionOwnerProjectionOmitsAgentsForTextGeneration(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	ownership := &ownerProjectionAgentSetFixture{
+		accountID: "acct-1",
+		agents: []LocalAgentOwnerProjection{
+			{LocalAgentID: "agent-owned", DisplayName: "Owned Agent"},
+		},
+	}
+	fixture.service.SetLocalAgentOwnershipResolver(ownership)
+
+	request, err := fixture.kernel.PermissionGrants().CreatePendingRequest(context.Background(), localappkernel.CreatePermissionRequestInput{
+		LocalOSUserAnchor:   fixture.kernel.LocalOSUserAnchor(),
+		AccountID:           "acct-1",
+		LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
+		PermissionID:        "ai.text.generate",
+		RequestID:           "test-local_app_permission_owner_projection_text_generation",
+		DisplayAppID:        fixture.resolver.binding.AppID,
+		Reason:              "Generate one bounded text candidate",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.kernel.PermissionGrants().DecidePendingRequest(context.Background(), localappkernel.DecidePermissionRequestInput{
+		LocalOSUserAnchor:   fixture.kernel.LocalOSUserAnchor(),
+		AccountID:           "acct-1",
+		LocalAppPrincipalID: fixture.resolver.binding.LocalAppPrincipalID,
+		PermissionID:        "ai.text.generate",
+		ExpectedRevision:    request.Revision,
+		State:               localappkernel.PermissionGrantStateGranted,
+		OwnerSelectorDigest: localappkernel.AgentAccountScopeDigest("acct-1"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	listResponse, err := fixture.service.ListLocalAppPermissionOwnerProjections(
+		context.Background(),
+		&runtimev1.ListLocalAppPermissionOwnerProjectionsRequest{Caller: desktopAccountControlCaller()},
+	)
+	if err != nil || !listResponse.GetAccepted() || len(listResponse.GetPermissions()) != 1 {
+		t.Fatalf("owner list = (%+v, %v)", listResponse, err)
+	}
+	projection := listResponse.GetPermissions()[0]
+	if projection.GetPermissionId() != "ai.text.generate" || len(projection.GetCoveredAgents()) != 0 || ownership.listCalls != 0 {
+		t.Fatalf("text-generation owner projection = %+v, Agent inventory reads = %d", projection, ownership.listCalls)
+	}
+
+	getResponse, err := fixture.service.GetLocalAppPermissionOwnerProjection(context.Background(), &runtimev1.GetLocalAppPermissionOwnerProjectionRequest{
+		Caller: desktopAccountControlCaller(), LocalAppPrincipalId: fixture.resolver.binding.LocalAppPrincipalID,
+	})
+	if err != nil || !getResponse.GetAccepted() || len(getResponse.GetPermissions()) != 1 ||
+		len(getResponse.GetPermissions()[0].GetCoveredAgents()) != 0 || ownership.listCalls != 0 {
+		t.Fatalf("owner projection = (%+v, %v), Agent inventory reads = %d", getResponse, err, ownership.listCalls)
 	}
 }
 

@@ -533,6 +533,27 @@ message ExecuteScenarioResponse {
   RuntimeResolvedExecutionBinding resolved_execution_binding = 8;
 }
 
+// Exact third-party Local App foreground text-candidate contract. Runtime
+// derives account, App identity, permission and managed local route from the
+// protected session; callers cannot supply generic Scenario or route fields.
+message LocalAppTextCandidateMessage {
+  string role = 1;
+  string text = 2;
+}
+
+message GenerateLocalAppTextCandidateRequest {
+  repeated LocalAppTextCandidateMessage messages = 1;
+  float temperature = 2;
+  float top_p = 3;
+  int32 max_tokens = 4;
+}
+
+message GenerateLocalAppTextCandidateResponse {
+  string text = 1;
+  FinishReason finish_reason = 2;
+  string trace_id = 3;
+}
+
 message StreamScenarioRequest {
   ScenarioRequestHead head = 1;
   ScenarioType scenario_type = 2;
@@ -853,6 +874,7 @@ message UploadArtifactResponse {
 // CheckTokenProviderHealthResponse (fields 1-2).
 
 service RuntimeAiService {
+  rpc GenerateLocalAppTextCandidate(GenerateLocalAppTextCandidateRequest) returns (GenerateLocalAppTextCandidateResponse);
   rpc ExecuteScenario(ExecuteScenarioRequest) returns (ExecuteScenarioResponse);
   rpc StreamScenario(StreamScenarioRequest) returns (stream StreamScenarioEvent);
   rpc SubmitScenarioJob(SubmitScenarioJobRequest) returns (SubmitScenarioJobResponse);

@@ -14,13 +14,15 @@ type Descriptor struct {
 	ID              string
 	Admission       Admission
 	ManifestAllowed bool
+	AgentHandles    bool
 }
 
 var catalog = map[string]Descriptor{
-	"agents.interact":       {ID: "agents.interact", Admission: AdmissionAdmitted, ManifestAllowed: true},
-	"agents.configure":      {ID: "agents.configure", Admission: AdmissionAdmitted, ManifestAllowed: true},
-	"agents.voice":          {ID: "agents.voice", Admission: AdmissionReserved, ManifestAllowed: true},
-	"agents.delegate":       {ID: "agents.delegate", Admission: AdmissionReserved, ManifestAllowed: true},
+	"agents.interact":       {ID: "agents.interact", Admission: AdmissionAdmitted, ManifestAllowed: true, AgentHandles: true},
+	"agents.configure":      {ID: "agents.configure", Admission: AdmissionAdmitted, ManifestAllowed: true, AgentHandles: true},
+	"ai.text.generate":      {ID: "ai.text.generate", Admission: AdmissionAdmitted, ManifestAllowed: true},
+	"agents.voice":          {ID: "agents.voice", Admission: AdmissionReserved, ManifestAllowed: true, AgentHandles: true},
+	"agents.delegate":       {ID: "agents.delegate", Admission: AdmissionReserved, ManifestAllowed: true, AgentHandles: true},
 	"artifacts.open":        {ID: "artifacts.open", Admission: AdmissionReserved},
 	"account.profile.read":  {ID: "account.profile.read", Admission: AdmissionReserved},
 	"memory.read":           {ID: "memory.read", Admission: AdmissionReserved},
@@ -57,6 +59,7 @@ var operationPermissions = map[string]string{
 	"runtime_agent.autonomy.update":             "agents.configure",
 	"runtime_agent.presentation.snapshot":       "agents.configure",
 	"runtime_agent.presentation.commit":         "agents.configure",
+	"runtime.ai.text_candidate.generate":        "ai.text.generate",
 }
 
 func Lookup(id string) (Descriptor, bool) {

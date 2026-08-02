@@ -108,25 +108,30 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		if err != nil {
 			return LocalAppCallerDecision{}, localAppOperationDenied(localAppAuthorityErrorReason(err))
 		}
-		resolvedAgent, resolveErr := s.ResolveLocalAppAgentHandle(ctx, selector.AgentID, permission.ID)
-		if resolveErr != nil {
-			switch {
-			case errors.Is(resolveErr, ErrLocalAppAgentScopeRequired):
-				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED)
-			case errors.Is(resolveErr, ErrLocalAppAgentScopeRevoked):
-				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED)
-			default:
-				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
+		ownerSelectorDigest := localappkernel.AgentAccountScopeDigest(caller.AccountID)
+		if permission.AgentHandles {
+			resolvedAgent, resolveErr := s.ResolveLocalAppAgentHandle(ctx, selector.AgentID, permission.ID)
+			if resolveErr != nil {
+				switch {
+				case errors.Is(resolveErr, ErrLocalAppAgentScopeRequired):
+					return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED)
+				case errors.Is(resolveErr, ErrLocalAppAgentScopeRevoked):
+					return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED)
+				default:
+					return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
+				}
 			}
-		}
-		selector.AgentID = resolvedAgent.LocalAgentID
-		resourceRef, err = localAppOperationResourceRef(operation, selector)
-		if err != nil {
-			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+			selector.AgentID = resolvedAgent.LocalAgentID
+			resourceRef, err = localAppOperationResourceRef(operation, selector)
+			if err != nil {
+				return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+			}
+			ownerSelectorDigest = resolvedAgent.OwnerSelectorDigest
+			caller.LocalAgentID = resolvedAgent.LocalAgentID
 		}
 		grantKey := localappkernel.PermissionGrantKey{
 			LocalOSUserAnchor: caller.LocalOSUserAnchor, AccountID: caller.AccountID, LocalAppPrincipalID: caller.LocalAppPrincipalID,
-			PermissionID: permission.ID, OwnerSelectorDigest: resolvedAgent.OwnerSelectorDigest,
+			PermissionID: permission.ID, OwnerSelectorDigest: ownerSelectorDigest,
 		}
 		grant, grantErr := s.localAppKernel.PermissionGrants().Get(ctx, grantKey)
 		if grantErr != nil {
@@ -148,8 +153,7 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 				return LocalAppCallerDecision{}, localAppOperationDenied(localAppPermissionPostureReason(interactPosture))
 			}
 		}
-		binding = localAppOperationBinding{operationID: string(operation), resourceRef: resourceRef, capability: permission.ID, fingerprint: resolvedAgent.OwnerSelectorDigest}
-		caller.LocalAgentID = resolvedAgent.LocalAgentID
+		binding = localAppOperationBinding{operationID: string(operation), resourceRef: resourceRef, capability: permission.ID, fingerprint: ownerSelectorDigest}
 	default:
 		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
@@ -367,6 +371,11 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "realm:world-core:create", nil
+	case LocalAppOperationTextCandidateGenerate:
+		if selector != (localappop.Selector{}) {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return "runtime:ai:text-candidate", nil
 	case LocalAppOperationVoiceTranscribe:
 		if !require(selector.AgentID) || selector.ArtifactID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
 			return "", ErrLocalAppOperationNotAdmitted

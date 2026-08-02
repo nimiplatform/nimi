@@ -40,6 +40,7 @@ const (
 	protectedUpdateAutonomyMethod              = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	protectedPresentationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
 	protectedCommitPresentationMethod          = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
+	protectedGenerateTextCandidateMethod       = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
 	protectedInvokeRealmUnaryMethod            = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 )
 
@@ -77,6 +78,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedUpdateAutonomyMethod:              localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:        localAppSessionMethodPolicy(),
 	protectedCommitPresentationMethod:          localAppSessionMethodPolicy(),
+	protectedGenerateTextCandidateMethod:       localAppSessionMethodPolicy(),
 	protectedInvokeRealmUnaryMethod:            localAppSessionMethodPolicy(),
 }
 
@@ -178,6 +180,7 @@ func newProtectedLocalAppRPCServer(
 	runtimeControlService runtimev1.RuntimeServiceControlServiceServer,
 	authService runtimev1.RuntimeAuthServiceServer,
 	accountService runtimev1.RuntimeAccountServiceServer,
+	aiService runtimev1.RuntimeAiServiceServer,
 	agentService runtimev1.RuntimeAgentServiceServer,
 	appService runtimev1.RuntimeAppServiceServer,
 ) *grpc.Server {
@@ -192,6 +195,7 @@ func newProtectedLocalAppRPCServer(
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
 	runtimev1.RegisterRuntimeAccountServiceServer(server, accountService)
+	runtimev1.RegisterRuntimeAiServiceServer(server, aiService)
 	runtimev1.RegisterRuntimeAgentServiceServer(server, agentService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
 	return server
@@ -295,6 +299,11 @@ func newStreamProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Str
 
 func selectedLocalAppUnaryOperation(method string, request any) (accountservice.LocalAppOperation, localappop.Selector, bool) {
 	switch method {
+	case protectedGenerateTextCandidateMethod:
+		if _, ok := request.(*runtimev1.GenerateLocalAppTextCandidateRequest); !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationTextCandidateGenerate, localappop.Selector{}, true
 	case protectedReadLocalAppStorageJSONMethod:
 		req, ok := request.(*runtimev1.ReadLocalAppStorageJsonRequest)
 		if !ok {

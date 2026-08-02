@@ -735,6 +735,15 @@
       "source_file": "proto/runtime/v1/ai.proto",
       "methods": [
         {
+          "name": "GenerateLocalAppTextCandidate",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
+          "kind": "unary",
+          "request_type": "GenerateLocalAppTextCandidateRequest",
+          "response_type": "GenerateLocalAppTextCandidateResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ExecuteScenario",
           "method_id": "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
           "kind": "unary",
@@ -2413,6 +2422,7 @@
     "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
     "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+    "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
@@ -3232,6 +3242,14 @@
       "kind": "unary",
       "request_type": "ExecuteScenarioRequest",
       "response_type": "ExecuteScenarioResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
+      "service": "RuntimeAiService",
+      "method": "GenerateLocalAppTextCandidate",
+      "kind": "unary",
+      "request_type": "GenerateLocalAppTextCandidateRequest",
+      "response_type": "GenerateLocalAppTextCandidateResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
@@ -5188,6 +5206,14 @@
       "response_type": "ExecuteScenarioResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
+      "service": "RuntimeAiService",
+      "method": "GenerateLocalAppTextCandidate",
+      "kind": "unary",
+      "request_type": "GenerateLocalAppTextCandidateRequest",
+      "response_type": "GenerateLocalAppTextCandidateResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
       "service": "RuntimeAiService",
       "method": "GetScenarioArtifacts",
@@ -6675,6 +6701,8 @@
       "ExternalAgentListTokensResponse",
       "ExternalAgentRevokeTokenRequest",
       "ExternalAgentTokenRecord",
+      "GenerateLocalAppTextCandidateRequest",
+      "GenerateLocalAppTextCandidateResponse",
       "GetAccountSessionStatusRequest",
       "GetAccountSessionStatusResponse",
       "GetAgentCanonicalMemoryBankStatusRequest",
@@ -6896,6 +6924,7 @@
       "LocalAppPermissionOwnerProjection",
       "LocalAppPermissionPendingRequest",
       "LocalAppPermissionProjection",
+      "LocalAppTextCandidateMessage",
       "LocalAssetHealth",
       "LocalAssetRecord",
       "LocalAssetSource",
@@ -15315,6 +15344,67 @@
         "source_file": "proto/runtime/v1/external_agent.proto"
       },
       {
+        "name": "GenerateLocalAppTextCandidateRequest",
+        "fields": [
+          {
+            "name": "messages",
+            "type": "LocalAppTextCandidateMessage",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "temperature",
+            "type": "float",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "top_p",
+            "type": "float",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "max_tokens",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "GenerateLocalAppTextCandidateResponse",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "finish_reason",
+            "type": "FinishReason",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "trace_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "GetAccountSessionStatusRequest",
         "fields": [
           {
@@ -21442,6 +21532,26 @@
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "LocalAppTextCandidateMessage",
+        "fields": [
+          {
+            "name": "role",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "LocalAssetHealth",

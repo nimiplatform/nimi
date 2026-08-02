@@ -1787,6 +1787,19 @@ class ExternalAgentTokenRecord:
     issuer: str | None = None
 
 @dataclass(frozen=True)
+class GenerateLocalAppTextCandidateRequest:
+    messages: tuple[LocalAppTextCandidateMessage, ...] = field(default_factory=tuple)
+    temperature: float | None = None
+    top_p: float | None = None
+    max_tokens: int | None = None
+
+@dataclass(frozen=True)
+class GenerateLocalAppTextCandidateResponse:
+    text: str | None = None
+    finish_reason: FinishReason | None = None
+    trace_id: str | None = None
+
+@dataclass(frozen=True)
 class GetAccountSessionStatusRequest:
     caller: AccountCaller | None = None
 
@@ -3149,6 +3162,11 @@ class LocalAppPermissionProjection:
     can_request: bool | None = None
     reason_code: ReasonCode | None = None
     agents: tuple[LocalAppPermissionAgentHandle, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppTextCandidateMessage:
+    role: str | None = None
+    text: str | None = None
 
 @dataclass(frozen=True)
 class LocalAssetHealth:
@@ -6445,6 +6463,10 @@ class RuntimeTypedClient:
     async def execute_scenario(self, request: ExecuteScenarioRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteScenarioResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ExecuteScenarioResponse, raw)
+
+    async def generate_local_app_text_candidate(self, request: GenerateLocalAppTextCandidateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GenerateLocalAppTextCandidateResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GenerateLocalAppTextCandidateResponse, raw)
 
     async def get_scenario_artifacts(self, request: GetScenarioArtifactsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetScenarioArtifactsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

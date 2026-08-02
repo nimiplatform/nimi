@@ -19,26 +19,28 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAiService_ExecuteScenario_FullMethodName            = "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario"
-	RuntimeAiService_StreamScenario_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/StreamScenario"
-	RuntimeAiService_SubmitScenarioJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob"
-	RuntimeAiService_GetScenarioJob_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob"
-	RuntimeAiService_CancelScenarioJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob"
-	RuntimeAiService_SubscribeScenarioJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents"
-	RuntimeAiService_GetScenarioArtifacts_FullMethodName       = "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts"
-	RuntimeAiService_ListScenarioProfiles_FullMethodName       = "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles"
-	RuntimeAiService_GetVoiceAsset_FullMethodName              = "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset"
-	RuntimeAiService_ListVoiceAssets_FullMethodName            = "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets"
-	RuntimeAiService_DeleteVoiceAsset_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset"
-	RuntimeAiService_ListPresetVoices_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices"
-	RuntimeAiService_UploadArtifact_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/UploadArtifact"
-	RuntimeAiService_PeekScheduling_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/PeekScheduling"
+	RuntimeAiService_GenerateLocalAppTextCandidate_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
+	RuntimeAiService_ExecuteScenario_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario"
+	RuntimeAiService_StreamScenario_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/StreamScenario"
+	RuntimeAiService_SubmitScenarioJob_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob"
+	RuntimeAiService_GetScenarioJob_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob"
+	RuntimeAiService_CancelScenarioJob_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob"
+	RuntimeAiService_SubscribeScenarioJobEvents_FullMethodName    = "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents"
+	RuntimeAiService_GetScenarioArtifacts_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts"
+	RuntimeAiService_ListScenarioProfiles_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles"
+	RuntimeAiService_GetVoiceAsset_FullMethodName                 = "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset"
+	RuntimeAiService_ListVoiceAssets_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets"
+	RuntimeAiService_DeleteVoiceAsset_FullMethodName              = "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset"
+	RuntimeAiService_ListPresetVoices_FullMethodName              = "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices"
+	RuntimeAiService_UploadArtifact_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/UploadArtifact"
+	RuntimeAiService_PeekScheduling_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/PeekScheduling"
 )
 
 // RuntimeAiServiceClient is the client API for RuntimeAiService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeAiServiceClient interface {
+	GenerateLocalAppTextCandidate(ctx context.Context, in *GenerateLocalAppTextCandidateRequest, opts ...grpc.CallOption) (*GenerateLocalAppTextCandidateResponse, error)
 	ExecuteScenario(ctx context.Context, in *ExecuteScenarioRequest, opts ...grpc.CallOption) (*ExecuteScenarioResponse, error)
 	StreamScenario(ctx context.Context, in *StreamScenarioRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamScenarioEvent], error)
 	SubmitScenarioJob(ctx context.Context, in *SubmitScenarioJobRequest, opts ...grpc.CallOption) (*SubmitScenarioJobResponse, error)
@@ -62,6 +64,16 @@ type runtimeAiServiceClient struct {
 
 func NewRuntimeAiServiceClient(cc grpc.ClientConnInterface) RuntimeAiServiceClient {
 	return &runtimeAiServiceClient{cc}
+}
+
+func (c *runtimeAiServiceClient) GenerateLocalAppTextCandidate(ctx context.Context, in *GenerateLocalAppTextCandidateRequest, opts ...grpc.CallOption) (*GenerateLocalAppTextCandidateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GenerateLocalAppTextCandidateResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_GenerateLocalAppTextCandidate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeAiServiceClient) ExecuteScenario(ctx context.Context, in *ExecuteScenarioRequest, opts ...grpc.CallOption) (*ExecuteScenarioResponse, error) {
@@ -229,6 +241,7 @@ func (c *runtimeAiServiceClient) PeekScheduling(ctx context.Context, in *PeekSch
 // All implementations should embed UnimplementedRuntimeAiServiceServer
 // for forward compatibility.
 type RuntimeAiServiceServer interface {
+	GenerateLocalAppTextCandidate(context.Context, *GenerateLocalAppTextCandidateRequest) (*GenerateLocalAppTextCandidateResponse, error)
 	ExecuteScenario(context.Context, *ExecuteScenarioRequest) (*ExecuteScenarioResponse, error)
 	StreamScenario(*StreamScenarioRequest, grpc.ServerStreamingServer[StreamScenarioEvent]) error
 	SubmitScenarioJob(context.Context, *SubmitScenarioJobRequest) (*SubmitScenarioJobResponse, error)
@@ -253,6 +266,9 @@ type RuntimeAiServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeAiServiceServer struct{}
 
+func (UnimplementedRuntimeAiServiceServer) GenerateLocalAppTextCandidate(context.Context, *GenerateLocalAppTextCandidateRequest) (*GenerateLocalAppTextCandidateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GenerateLocalAppTextCandidate not implemented")
+}
 func (UnimplementedRuntimeAiServiceServer) ExecuteScenario(context.Context, *ExecuteScenarioRequest) (*ExecuteScenarioResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExecuteScenario not implemented")
 }
@@ -313,6 +329,24 @@ func RegisterRuntimeAiServiceServer(s grpc.ServiceRegistrar, srv RuntimeAiServic
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeAiService_ServiceDesc, srv)
+}
+
+func _RuntimeAiService_GenerateLocalAppTextCandidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateLocalAppTextCandidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).GenerateLocalAppTextCandidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_GenerateLocalAppTextCandidate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).GenerateLocalAppTextCandidate(ctx, req.(*GenerateLocalAppTextCandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeAiService_ExecuteScenario_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -549,6 +583,10 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "nimi.runtime.v1.RuntimeAiService",
 	HandlerType: (*RuntimeAiServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GenerateLocalAppTextCandidate",
+			Handler:    _RuntimeAiService_GenerateLocalAppTextCandidate_Handler,
+		},
 		{
 			MethodName: "ExecuteScenario",
 			Handler:    _RuntimeAiService_ExecuteScenario_Handler,

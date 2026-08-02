@@ -1193,6 +1193,61 @@ export interface ExecuteScenarioResponse {
     resolvedExecutionBinding?: RuntimeResolvedExecutionBinding;
 }
 /**
+ * Exact third-party Local App foreground text-candidate contract. Runtime
+ * derives account, App identity, permission and managed local route from the
+ * protected session; callers cannot supply generic Scenario or route fields.
+ *
+ * @generated from protobuf message nimi.runtime.v1.LocalAppTextCandidateMessage
+ */
+export interface LocalAppTextCandidateMessage {
+    /**
+     * @generated from protobuf field: string role = 1
+     */
+    role: string;
+    /**
+     * @generated from protobuf field: string text = 2
+     */
+    text: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
+ */
+export interface GenerateLocalAppTextCandidateRequest {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppTextCandidateMessage messages = 1
+     */
+    messages: LocalAppTextCandidateMessage[];
+    /**
+     * @generated from protobuf field: float temperature = 2
+     */
+    temperature: number;
+    /**
+     * @generated from protobuf field: float top_p = 3
+     */
+    topP: number;
+    /**
+     * @generated from protobuf field: int32 max_tokens = 4
+     */
+    maxTokens: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
+ */
+export interface GenerateLocalAppTextCandidateResponse {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.FinishReason finish_reason = 2
+     */
+    finishReason: FinishReason;
+    /**
+     * @generated from protobuf field: string trace_id = 3
+     */
+    traceId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.StreamScenarioRequest
  */
 export interface StreamScenarioRequest {
@@ -6164,6 +6219,195 @@ class ExecuteScenarioResponse$Type extends MessageType<ExecuteScenarioResponse> 
  * @generated MessageType for protobuf message nimi.runtime.v1.ExecuteScenarioResponse
  */
 export const ExecuteScenarioResponse = new ExecuteScenarioResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppTextCandidateMessage$Type extends MessageType<LocalAppTextCandidateMessage> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppTextCandidateMessage", [
+            { no: 1, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppTextCandidateMessage>): LocalAppTextCandidateMessage {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.role = "";
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppTextCandidateMessage>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppTextCandidateMessage): LocalAppTextCandidateMessage {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string role */ 1:
+                    message.role = reader.string();
+                    break;
+                case /* string text */ 2:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppTextCandidateMessage, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string role = 1; */
+        if (message.role !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.role);
+        /* string text = 2; */
+        if (message.text !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppTextCandidateMessage
+ */
+export const LocalAppTextCandidateMessage = new LocalAppTextCandidateMessage$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GenerateLocalAppTextCandidateRequest$Type extends MessageType<GenerateLocalAppTextCandidateRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GenerateLocalAppTextCandidateRequest", [
+            { no: 1, name: "messages", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppTextCandidateMessage },
+            { no: 2, name: "temperature", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 3, name: "top_p", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 4, name: "max_tokens", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GenerateLocalAppTextCandidateRequest>): GenerateLocalAppTextCandidateRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.messages = [];
+        message.temperature = 0;
+        message.topP = 0;
+        message.maxTokens = 0;
+        if (value !== undefined)
+            reflectionMergePartial<GenerateLocalAppTextCandidateRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GenerateLocalAppTextCandidateRequest): GenerateLocalAppTextCandidateRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalAppTextCandidateMessage messages */ 1:
+                    message.messages.push(LocalAppTextCandidateMessage.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* float temperature */ 2:
+                    message.temperature = reader.float();
+                    break;
+                case /* float top_p */ 3:
+                    message.topP = reader.float();
+                    break;
+                case /* int32 max_tokens */ 4:
+                    message.maxTokens = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GenerateLocalAppTextCandidateRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalAppTextCandidateMessage messages = 1; */
+        for (let i = 0; i < message.messages.length; i++)
+            LocalAppTextCandidateMessage.internalBinaryWrite(message.messages[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* float temperature = 2; */
+        if (message.temperature !== 0)
+            writer.tag(2, WireType.Bit32).float(message.temperature);
+        /* float top_p = 3; */
+        if (message.topP !== 0)
+            writer.tag(3, WireType.Bit32).float(message.topP);
+        /* int32 max_tokens = 4; */
+        if (message.maxTokens !== 0)
+            writer.tag(4, WireType.Varint).int32(message.maxTokens);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
+ */
+export const GenerateLocalAppTextCandidateRequest = new GenerateLocalAppTextCandidateRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GenerateLocalAppTextCandidateResponse$Type extends MessageType<GenerateLocalAppTextCandidateResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GenerateLocalAppTextCandidateResponse", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] },
+            { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GenerateLocalAppTextCandidateResponse>): GenerateLocalAppTextCandidateResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        message.finishReason = 0;
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GenerateLocalAppTextCandidateResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GenerateLocalAppTextCandidateResponse): GenerateLocalAppTextCandidateResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                case /* nimi.runtime.v1.FinishReason finish_reason */ 2:
+                    message.finishReason = reader.int32();
+                    break;
+                case /* string trace_id */ 3:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GenerateLocalAppTextCandidateResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        /* nimi.runtime.v1.FinishReason finish_reason = 2; */
+        if (message.finishReason !== 0)
+            writer.tag(2, WireType.Varint).int32(message.finishReason);
+        /* string trace_id = 3; */
+        if (message.traceId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
+ */
+export const GenerateLocalAppTextCandidateResponse = new GenerateLocalAppTextCandidateResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class StreamScenarioRequest$Type extends MessageType<StreamScenarioRequest> {
     constructor() {

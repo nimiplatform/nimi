@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -50,6 +51,7 @@ func (s *Service) ListLocalAppPermissionOwnerProjections(ctx context.Context, re
 		grant     localappkernel.PermissionGrant
 	}
 	activeGrants := make([]activeGrantProjectionInput, 0, len(grants))
+	requiresAgentInventory := false
 	for _, grant := range grants {
 		principal, principalErr := s.localAppKernel.Principals().Get(ctx, grant.Key.LocalAppPrincipalID)
 		if principalErr != nil {
@@ -64,10 +66,15 @@ func (s *Service) ListLocalAppPermissionOwnerProjections(ctx context.Context, re
 		if err := validateActiveOwnerPermissionGrant(accountID, principal, grant); err != nil {
 			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 		}
+		usesAgentHandles, descriptorErr := activeOwnerPermissionUsesAgentHandles(grant)
+		if descriptorErr != nil {
+			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
+		}
+		requiresAgentInventory = requiresAgentInventory || usesAgentHandles
 		activeGrants = append(activeGrants, activeGrantProjectionInput{principal: principal, grant: grant})
 	}
 	var agents []LocalAgentOwnerProjection
-	if len(activeGrants) > 0 {
+	if requiresAgentInventory {
 		if s.localAgentOwnership == nil {
 			return listOwnerPermissionProjectionsResponse(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE), nil
 		}
@@ -109,17 +116,26 @@ func (s *Service) ownerPermissionProjectionsForPrincipal(ctx context.Context, ac
 		sortOwnerPermissionProjections(permissions)
 		return permissions, nil
 	}
-	if s.localAgentOwnership == nil {
-		return nil, ErrLocalAppSelectorUnavailable
-	}
+	requiresAgentInventory := false
 	for _, grant := range grants {
 		if err := validateActiveOwnerPermissionGrant(accountID, principal, grant); err != nil {
 			return nil, err
 		}
+		usesAgentHandles, descriptorErr := activeOwnerPermissionUsesAgentHandles(grant)
+		if descriptorErr != nil {
+			return nil, descriptorErr
+		}
+		requiresAgentInventory = requiresAgentInventory || usesAgentHandles
 	}
-	agents, err := s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
-	if err != nil {
-		return nil, ErrLocalAppSelectorUnavailable
+	var agents []LocalAgentOwnerProjection
+	if requiresAgentInventory {
+		if s.localAgentOwnership == nil {
+			return nil, ErrLocalAppSelectorUnavailable
+		}
+		agents, err = s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
+		if err != nil {
+			return nil, ErrLocalAppSelectorUnavailable
+		}
 	}
 	for _, grant := range grants {
 		projection, projectionErr := projectActiveOwnerPermissionWithAgents(accountID, principal, grant, agents)
@@ -143,18 +159,12 @@ func projectPendingOwnerPermission(request localappkernel.PermissionRequest) *ru
 	}
 }
 
-func (s *Service) projectActiveOwnerPermission(ctx context.Context, accountID string, principal localappkernel.Principal, grant localappkernel.PermissionGrant) (*runtimev1.LocalAppPermissionOwnerProjection, error) {
-	if err := validateActiveOwnerPermissionGrant(accountID, principal, grant); err != nil {
-		return nil, err
+func activeOwnerPermissionUsesAgentHandles(grant localappkernel.PermissionGrant) (bool, error) {
+	descriptor, known := apppermission.Lookup(grant.Key.PermissionID)
+	if !known || descriptor.Admission != apppermission.AdmissionAdmitted {
+		return false, ErrLocalAppSelectorUnavailable
 	}
-	if s.localAgentOwnership == nil {
-		return nil, ErrLocalAppSelectorUnavailable
-	}
-	agents, err := s.localAgentOwnership.ListOwnedActiveLocalAgents(ctx, accountID)
-	if err != nil {
-		return nil, ErrLocalAppSelectorUnavailable
-	}
-	return projectActiveOwnerPermissionWithAgents(accountID, principal, grant, agents)
+	return descriptor.AgentHandles, nil
 }
 
 func validateActiveOwnerPermissionGrant(accountID string, principal localappkernel.Principal, grant localappkernel.PermissionGrant) error {
@@ -176,6 +186,13 @@ func projectActiveOwnerPermissionWithAgents(
 ) (*runtimev1.LocalAppPermissionOwnerProjection, error) {
 	if err := validateActiveOwnerPermissionGrant(accountID, principal, grant); err != nil {
 		return nil, err
+	}
+	usesAgentHandles, err := activeOwnerPermissionUsesAgentHandles(grant)
+	if err != nil {
+		return nil, err
+	}
+	if !usesAgentHandles {
+		agents = nil
 	}
 	projection := &runtimev1.LocalAppPermissionOwnerProjection{
 		LocalAppPrincipalId: principal.LocalAppPrincipalID,

@@ -54,6 +54,32 @@ func TestAuthorizeLocalAppOperationRequiresExactLiveCapability(t *testing.T) {
 	}
 }
 
+func TestAuthorizeLocalAppTextCandidateRequiresExactManifestCapability(t *testing.T) {
+	service := newHarnessService(t, nil)
+	completeLogin(t, service)
+	_, generation, ok := service.AuthenticatedRuntimeSecurityContext(context.Background())
+	if !ok {
+		t.Fatal("runtime account context is unavailable")
+	}
+	resolver := &localAppAuthorizationResolver{binding: localAppCallerBindingFixture(t, generation)}
+	resolver.binding.Capabilities = []string{"ai.text.generate"}
+	service.SetLocalAppSessionResolver(resolver)
+
+	decision, err := service.AuthorizeLocalAppOperation(context.Background(), LocalAppOperationTextCandidateGenerate)
+	if err != nil {
+		t.Fatalf("authorize local-app text candidate operation: %v", err)
+	}
+	if decision.AuthorityClass != localappop.AuthorityClassUserPermission ||
+		decision.OperationCapability != "ai.text.generate" {
+		t.Fatalf("unexpected local-app text candidate decision: %+v", decision)
+	}
+
+	resolver.binding.Capabilities = []string{"runtime.ai.text.generate"}
+	if _, err := service.AuthorizeLocalAppOperation(context.Background(), LocalAppOperationTextCandidateGenerate); !errors.Is(err, ErrLocalAppOperationNotAdmitted) {
+		t.Fatalf("non-manifest Runtime capability must fail closed, got %v", err)
+	}
+}
+
 func TestAuthorizeLocalAppCallerFailsClosedOnResolverAndAccountInvalidation(t *testing.T) {
 	service := newHarnessService(t, nil)
 	completeLogin(t, service)

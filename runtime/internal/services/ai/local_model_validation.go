@@ -36,6 +36,13 @@ type managedLlamaModelResolver interface {
 	ResolveManagedLlamaModelByCapabilities(preferred string, capabilities ...string) (string, bool)
 }
 
+type managedLlamaDurableTargetResolver interface {
+	ResolveManagedLlamaDurableTargetByCapabilities(
+		preferred string,
+		capabilities ...string,
+	) (string, *runtimev1.RuntimeDurableLocalTargetRef, bool)
+}
+
 type localCatalogModelIdentityResolver interface {
 	ResolveCatalogModelIDForLocalAsset(localAssetID string) (string, bool)
 }
@@ -508,7 +515,9 @@ func shouldRetryUnhealthyManagedLlamaStart(model *runtimev1.LocalAssetRecord, mo
 		return false
 	}
 	detail := strings.ToLower(strings.TrimSpace(model.GetHealthDetail()))
-	if !strings.Contains(detail, "plane=local-supervised") || !strings.Contains(detail, "connect: connection refused") {
+	connectionRefused := strings.Contains(detail, "connection refused") ||
+		strings.Contains(detail, "actively refused it")
+	if !strings.Contains(detail, "plane=local-supervised") || !connectionRefused {
 		return false
 	}
 	for _, capability := range model.GetCapabilities() {

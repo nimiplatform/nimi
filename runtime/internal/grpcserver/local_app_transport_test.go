@@ -49,6 +49,7 @@ func TestProtectedLocalAppNativeCarrierConversationOperationsRemainTypedUnavaila
 		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
 		&runtimev1.UnimplementedRuntimeAuthServiceServer{},
 		accountService,
+		&runtimev1.UnimplementedRuntimeAiServiceServer{},
 		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
 		&runtimev1.UnimplementedRuntimeAppServiceServer{},
 	)

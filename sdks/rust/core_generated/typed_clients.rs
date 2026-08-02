@@ -9448,6 +9448,71 @@ impl ExternalAgentTokenRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GenerateLocalAppTextCandidateRequest {
+    pub messages: Vec<Box<LocalAppTextCandidateMessage>>,
+    pub temperature: Option<f32>,
+    pub top_p: Option<f32>,
+    pub max_tokens: Option<i32>,
+}
+
+impl GenerateLocalAppTextCandidateRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if !self.messages.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode messages"); }
+        if let Some(value) = &self.temperature { pairs.push(format!("temperature={}", value)); }
+        if let Some(value) = &self.top_p { pairs.push(format!("top_p={}", value)); }
+        if let Some(value) = &self.max_tokens { pairs.push(format!("max_tokens={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["messages"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.temperature = pairs.get("temperature").and_then(|value| value.parse().ok());
+        out.top_p = pairs.get("top_p").and_then(|value| value.parse().ok());
+        out.max_tokens = pairs.get("max_tokens").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GenerateLocalAppTextCandidateResponse {
+    pub text: Option<String>,
+    pub finish_reason: Option<FinishReason>,
+    pub trace_id: Option<String>,
+}
+
+impl GenerateLocalAppTextCandidateResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        if let Some(value) = &self.finish_reason { pairs.push(format!("finish_reason={:?}", value)); }
+        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["finish_reason"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.text = pairs.get("text").cloned();
+        out.trace_id = pairs.get("trace_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAccountSessionStatusRequest {
     pub caller: Option<Box<AccountCaller>>,
 }
@@ -16351,6 +16416,30 @@ impl LocalAppPermissionProjection {
 
         out.permission_id = pairs.get("permission_id").cloned();
         out.can_request = pairs.get("can_request").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextCandidateMessage {
+    pub role: Option<String>,
+    pub text: Option<String>,
+}
+
+impl LocalAppTextCandidateMessage {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.role { pairs.push(format!("role={}", value)); }
+        if let Some(value) = &self.text { pairs.push(format!("text={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.role = pairs.get("role").cloned();
+        out.text = pairs.get("text").cloned();
         out
     }
 }
@@ -30926,6 +31015,18 @@ impl From<Vec<u8>> for ExternalAgentTokenRecord {
     }
 }
 
+impl From<Vec<u8>> for GenerateLocalAppTextCandidateRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GenerateLocalAppTextCandidateResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for GetAccountSessionStatusRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32247,6 +32348,12 @@ impl From<Vec<u8>> for LocalAppPermissionPendingRequest {
 }
 
 impl From<Vec<u8>> for LocalAppPermissionProjection {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppTextCandidateMessage {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35415,6 +35522,16 @@ where
             timeout,
         })?;
         Ok(ExecuteScenarioResponse::from_transport(&raw))
+    }
+
+    pub fn generate_local_app_text_candidate(&self, request: GenerateLocalAppTextCandidateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GenerateLocalAppTextCandidateResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GenerateLocalAppTextCandidateResponse::from_transport(&raw))
     }
 
     pub fn get_scenario_artifacts(&self, request: GetScenarioArtifactsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetScenarioArtifactsResponse, T::Error> {

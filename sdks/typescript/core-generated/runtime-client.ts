@@ -671,6 +671,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ExecuteScenarioResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
+    "service": "RuntimeAiService",
+    "method": "GenerateLocalAppTextCandidate",
+    "kind": "unary",
+    "requestType": "GenerateLocalAppTextCandidateRequest",
+    "responseType": "GenerateLocalAppTextCandidateResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "service": "RuntimeAiService",
     "method": "GetScenarioArtifacts",

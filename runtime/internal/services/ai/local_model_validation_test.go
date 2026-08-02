@@ -902,3 +902,17 @@ func TestValidateLocalModelRequestUnhealthySupervisedLlamaRetriesStartAndRecover
 		t.Fatalf("expected unhealthy supervised llama local model to retry start once, got %d", lister.startCalls)
 	}
 }
+
+func TestShouldRetryUnhealthyManagedLlamaStartRecognizesWindowsConnectionRefused(t *testing.T) {
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "local-llama-idle",
+		Engine:       "llama",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		Capabilities: []string{"chat"},
+		HealthDetail: `probe request failed: Get "probe_endpoint": dial tcp 127.0.0.1:1234: connectex: No connection could be made because the target machine actively refused it.; plane=local-supervised; consecutive_failures=1; next_probe_in=30s`,
+	}
+
+	if !shouldRetryUnhealthyManagedLlamaStart(model, runtimev1.Modal_MODAL_TEXT) {
+		t.Fatal("expected Windows connection-refused detail to retry the supervised llama start")
+	}
+}
