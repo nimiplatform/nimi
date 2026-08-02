@@ -37,8 +37,6 @@ import {
 } from '../../infra/runtime-agent-inspect';
 import {
   createRuntimeAgentAIConfigAdapter,
-  describeRuntimeAgentTextReadiness,
-  isRuntimeAgentTextReadinessReady,
   type NimiRuntimeAgentAIConfigSnapshot,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
 } from '../../infra/runtime-agent-ai-config';
@@ -96,7 +94,6 @@ type AgentConversationRuntimeController = {
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   runtimePresentationProfile: NimiRuntimeAgentPresentationProfileProjection | null;
-  refreshRuntimeAgentAIConfigReadiness: () => Promise<NimiRuntimeAgentAIConfigReadinessSnapshotProjection>;
   handleCancelPendingHook: (hookId: string) => void;
   handleUpgradeStandardMemory: () => void;
   handleClearDyadicContext: () => void;
@@ -351,20 +348,6 @@ export function useAgentConversationRuntimeController(
     });
   }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, localAssetSource, providerResolver, runtimeAgentCenterAIConfig, runtimeAgentInspect, runtimeInspect, subjectUserId]);
 
-  const requireActiveRuntimeIdentity = useCallback(() => {
-    if (!activeTarget) {
-      throw new Error('desktop agent shell requires an active Runtime Local Agent before reading Runtime Agent AI Config');
-    }
-    return toRuntimeIdentityInput(activeTarget);
-  }, [activeTarget]);
-
-  const refreshRuntimeAgentAIConfigReadiness = useCallback(async () => {
-    const readiness = await runtimeAgentAIConfigAdapter.readiness(requireActiveRuntimeIdentity());
-    setRuntimeAgentAIConfigReadiness(readiness);
-    setRuntimeAgentAIConfigError(null);
-    return readiness;
-  }, [requireActiveRuntimeIdentity, runtimeAgentAIConfigAdapter]);
-
   useEffect(() => {
     let cancelled = false;
     if (authStatus !== 'authenticated' || !activeTarget) {
@@ -378,16 +361,15 @@ export function useAgentConversationRuntimeController(
     }
     const identity = toRuntimeIdentityInput(activeTarget);
     setRuntimeAgentAIConfigLoading(true);
-    void Promise.all([
-      runtimeAgentAIConfigAdapter.get(identity),
-      runtimeAgentAIConfigAdapter.readiness(identity),
-    ])
-      .then(([agentAIConfig, readiness]) => {
+    // Runtime owns route health at execution time. Loading the committed
+    // config here must not trigger a readiness probe while the shell opens.
+    void runtimeAgentAIConfigAdapter.get(identity)
+      .then((agentAIConfig) => {
         if (cancelled) {
           return;
         }
         setRuntimeAgentAIConfig(agentAIConfig);
-        setRuntimeAgentAIConfigReadiness(readiness);
+        setRuntimeAgentAIConfigReadiness(null);
         setRuntimeAgentAIConfigError(null);
       })
       .catch((error) => {
@@ -697,15 +679,13 @@ export function useAgentConversationRuntimeController(
     runtimeAgentAIConfigLoading,
     runtimeAgentAIConfigError,
     runtimeAgentCenterAdapter,
-    runtimeAgentTextReady: isRuntimeAgentTextReadinessReady(runtimeAgentAIConfigReadiness),
-    runtimeAgentTextDisabledReason: runtimeAgentAIConfigError
-      || (isRuntimeAgentTextReadinessReady(runtimeAgentAIConfigReadiness)
-        ? null
-        : describeRuntimeAgentTextReadiness(runtimeAgentAIConfigReadiness)),
+    // A readiness snapshot is deliberately not a pre-submit gate. Runtime
+    // returns the authoritative route result from the actual turn request.
+    runtimeAgentTextReady: runtimeAgentAIConfigError === null,
+    runtimeAgentTextDisabledReason: runtimeAgentAIConfigError,
     runtimeInspect,
     runtimeInspectLoading,
     runtimePresentationProfile,
-    refreshRuntimeAgentAIConfigReadiness,
     handleCancelPendingHook: runtimeMutations.handleCancelPendingHook,
     handleUpgradeStandardMemory: runtimeMutations.handleUpgradeStandardMemory,
     handleClearDyadicContext: runtimeMutations.handleClearDyadicContext,

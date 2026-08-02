@@ -15,9 +15,6 @@ import type {
 import type {
   NimiAIConfig,
 } from './conversation-capability';
-import type {
-  NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-} from '../../infra/runtime-agent-ai-config';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
@@ -53,11 +50,9 @@ export type UseAgentConversationHostActionsInput = {
   applyDriverEffects: (threadId: string, effects: ReturnType<typeof import('./chat-agent-shell-submit-driver').reduceAgentSubmitDriverEvent>) => AgentSubmitDriverState;
   bundle: AgentLocalThreadBundle | null;
   currentComposerTextRef: { current: string };
-  getRuntimeAgentAIConfigReadiness: () => Promise<NimiRuntimeAgentAIConfigReadinessSnapshotProjection>;
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAgentTurn: AgentRunTurn;
-  runtimeAgentTextDisabledReason: string | null;
   selectedLocalAgentRef: string | null;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   setBundleCache: (

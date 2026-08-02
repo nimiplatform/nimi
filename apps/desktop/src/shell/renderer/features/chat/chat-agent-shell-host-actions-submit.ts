@@ -22,10 +22,6 @@ import {
   normalizeText,
 } from './chat-agent-shell-core';
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
-import {
-  describeRuntimeAgentTextReadiness,
-  isRuntimeAgentTextReadinessReady,
-} from '../../infra/runtime-agent-ai-config';
 import { buildAgentUserProjection } from './chat-agent-user-projection';
 import {
   assertAgentSubmitSchedulingAllowed,
@@ -103,15 +99,6 @@ export async function submitAgentConversationTurn(input: {
       },
     });
 
-    const runtimeReadiness = await input.hostInput.getRuntimeAgentAIConfigReadiness();
-    if (!isRuntimeAgentTextReadinessReady(runtimeReadiness)) {
-      throw new Error(
-        input.hostInput.runtimeAgentTextDisabledReason
-          || describeRuntimeAgentTextReadiness(runtimeReadiness, input.hostInput.t('Chat.agentSubmitRuntimeTextUnavailable', {
-            defaultValue: 'Runtime Agent text execution is not ready.',
-          })),
-      );
-    }
     await assertAgentSubmitSchedulingAllowed({
       aiConfig: input.hostInput.aiConfig,
       sdk: input.hostInput.sdk,
