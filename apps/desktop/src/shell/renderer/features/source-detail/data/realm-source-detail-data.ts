@@ -155,20 +155,19 @@ async function loadRealmSourceDetailsBySourceRef(
 ): Promise<JsonObject> {
   const runtimeSourceRef = toNonEmptyString(context?.runtimeSourceRef) || null;
   if (sourceRef.kind === 'personaCharacter') {
-    const [persona, publicSource] = await Promise.all([
-      realm.worldCore.worldCoreControllerGetPersonaCharacter({
-        path: { personaCharacterId: sourceRef.id },
-      }),
-      loadPublicSourceCard(realm, sourceRef),
-    ]);
+    const persona = await realm.worldCore.worldCoreControllerGetPersonaCharacter({
+      path: { personaCharacterId: sourceRef.id },
+    });
     const worldId = toNonEmptyString(persona.worldId);
     const sourceHash = toNonEmptyString(persona.sourceHash);
     const ownerAccountId = toNonEmptyString(persona.ownerAccountId);
-    if (worldId !== sourceRef.worldId
+    if (toNonEmptyString(persona.id) !== sourceRef.id
+      || worldId !== sourceRef.worldId
       || sourceHash !== sourceRef.sourceHash
       || ownerAccountId !== sourceRef.ownerAccountId) {
       throw new Error('PersonaCharacter sourceRef is stale or mismatched');
     }
+    const publicSource = await loadPublicSourceCard(realm, sourceRef);
     return {
       id: persona.id,
       ...projectProfile(persona.profile, publicSource, runtimeSourceRef),

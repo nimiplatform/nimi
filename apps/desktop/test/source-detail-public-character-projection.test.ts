@@ -214,6 +214,51 @@ test('source detail loads one public Character projection without the full-world
   ]);
 });
 
+test('persona source detail fails closed on a stale Runtime source hash', async () => {
+  const stalePersonaRef: CharacterSourceRefV3 = {
+    kind: 'personaCharacter',
+    id: 'persona-1',
+    worldId: 'world-ming',
+    ownerAccountId: 'account-1',
+    sourceHash: 'd'.repeat(64),
+  };
+  const currentPersonaRef: CharacterSourceRefV3 = {
+    ...stalePersonaRef,
+    sourceHash: 'e'.repeat(64),
+  };
+  let publicProjectionCalls = 0;
+  const realm = {
+    worldCore: {
+      worldCoreControllerGetPersonaCharacter: async () => ({
+        id: currentPersonaRef.id,
+        worldId: currentPersonaRef.worldId,
+        ownerAccountId: currentPersonaRef.ownerAccountId,
+        sourceHash: currentPersonaRef.sourceHash,
+        contentHash: 'f'.repeat(64),
+        createdAt: '2026-07-28T00:00:00.000Z',
+        updatedAt: '2026-07-28T00:00:00.000Z',
+        visibility: 'public',
+        profile: characterProfile('吴全节', '元代道教领袖与文人交游枢纽。'),
+      }),
+    },
+    worldPublic: {
+      worldPublicControllerGetCharacterSource: async () => {
+        publicProjectionCalls += 1;
+        return publicSourceCard(currentPersonaRef, '吴全节');
+      },
+    },
+  };
+
+  await assert.rejects(
+    realmSourceDetailData.loadRealmSourceDetailsBySourceRef(
+      realm as never,
+      stalePersonaRef,
+    ),
+    /PersonaCharacter sourceRef is stale or mismatched/u,
+  );
+  assert.equal(publicProjectionCalls, 0);
+});
+
 test('source detail fails closed when the public projection returns another sourceRef', async () => {
   const realm = {
     worldCore: {
