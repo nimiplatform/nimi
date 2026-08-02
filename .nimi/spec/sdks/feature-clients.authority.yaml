@@ -475,7 +475,7 @@ units:
     kind: rule
     title: The permission catalog is closed
     modality: must
-    statement: PermissionID contains only stable product ids admitted by the Platform public permission authority, reserved or future ids remain typed unavailable, and the current LocalAgent interaction permission allows only owner-selected LocalAgent Conversation operations without account-wide LocalAgent inventory, caller-built selectors, principal substitution, direct Avatar control, embedded rendering, or authority over App launch, private storage, host commands, or App-owned UI.
+    statement: PermissionID contains only stable product ids admitted by the Platform public permission authority, reserved or future ids remain typed unavailable, the current LocalAgent interaction permission allows only owner-selected LocalAgent Conversation operations without account-wide LocalAgent inventory or caller-built selectors, and ai.text.generate allows only the exact foreground plain-text candidate operation without principal substitution, direct Avatar control, embedded rendering, generic AI forwarding, caller-selected routing, or authority over App launch, private storage, host commands, or App-owned UI.
     condition: Whenever permission ids are validated for status or request.
     failure: Fail closed before transport on reserved or unadmitted ids.
     relations:
@@ -841,3 +841,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
+  - id: rule.nimi.sdks.feature-clients.r101
+    kind: rule
+    title: Local App text candidate generation is one bounded typed operation
+    modality: must
+    statement: The host-injected Local App client exposes ai.text.generateCandidate only after the complete ai.text.generate permission slice is admitted, accepts only bounded plain-text system and user messages plus temperature, topP, and maxTokens, returns only text, finishReason, and traceId, and never exposes ExecuteScenario, a Runtime client, method names, protobuf bytes, model or provider selection, route or target refs, tools, media, streams, jobs, credentials, account identity, or generic forwarding.
+    condition: Whenever a Local App requests foreground AI-generated candidate text.
+    failure: Fail closed before transport on invalid input or absent host carrier and preserve permission and Runtime typed failures without fabricating candidate text.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.permission-plane

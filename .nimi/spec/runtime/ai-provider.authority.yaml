@@ -1097,3 +1097,13 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.provider-health-plane
+  - id: rule.nimi.runtime.ai-provider.r107
+    kind: rule
+    title: Local App foreground text candidates stay exact and Runtime routed
+    modality: must
+    statement: The ai.text.generate Local App slice accepts only a bounded synchronous foreground request containing plain-text system and user messages plus bounded temperature, top-p, and output-token controls, Runtime derives the current account, App identity, permission decision, and managed local text route at execution time without fallback, and the response exposes only candidate text, finish reason, and trace correlation; the request and response contain no account, principal, Agent, provider, model, route, target, connector, credential, tool, media, artifact, source, raw-chunk, reasoning-trace, stream, job, or background-execution field.
+    condition: Whenever a third-party Local App generates owner-reviewable text candidate material.
+    failure: Reject unbounded or non-plain-text input, absent or revoked ai.text.generate permission, unavailable managed local text execution, and every caller-selected route or generic AI payload without fallback or synthesized output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

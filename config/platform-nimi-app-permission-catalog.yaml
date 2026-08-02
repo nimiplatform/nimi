@@ -20,6 +20,7 @@ authority_refs:
   - P-PERM-016
   - P-PERM-017
   - P-PERM-019
+  - P-PERM-020
 
 authority_classes:
   - id: base_entitlement
@@ -161,6 +162,31 @@ public_permissions:
       - no_third_party_realm_character_materialization
       - revision_aware_settings
       - agents_interact_revoke_invalidates_effective_grant_but_preserves_owner_history
+  - permission_id: ai.text.generate
+    admission: admitted
+    authority_class: user_permission
+    decision_owner: runtime
+    manifest_allowed: true
+    decision_mode: durable_revocable
+    selector_owner: runtime
+    selector_shape: current_app_and_account
+    title_key: AppPermissions.aiTextGenerate.title
+    description_key: AppPermissions.aiTextGenerate.description
+    user_semantics: generate bounded plain-text candidate material in the foreground using the Runtime-selected managed local text route
+    selector_projection: none
+    internal_operation_families:
+      - ai_text_candidate_generate
+    forbidden_operation_families:
+      - generic_ai_execution
+      - route_or_provider_selection
+      - tool_or_media_execution
+      - streaming_jobs_or_background_execution
+    invariants:
+      - runtime_derives_app_account_and_permission
+      - runtime_selects_managed_local_text_route_without_fallback
+      - foreground_only
+      - usage_remains_metered
+      - response_exposes_only_text_finish_reason_and_trace_correlation
   - permission_id: agents.voice
     admission: reserved
     authority_class: user_permission
