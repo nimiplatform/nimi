@@ -9,7 +9,7 @@ use nimi_shell_protected_local::{
     LocalAppPermissionStatusRequest, LocalAppReasonCode, LocalAppSessionStatus,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiLocalAppCarrier,
-    NimiLocalAppSession,
+    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, NimiLocalAppSession,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -86,6 +86,20 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<LocalAppPermissionStatus, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.permission_request(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn generate_text_candidate(
+        &self,
+        request: LocalAppTextCandidateRequest,
+    ) -> Result<LocalAppTextCandidateResult, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.generate_text_candidate(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

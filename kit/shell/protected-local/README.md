@@ -23,8 +23,8 @@ Its complete admitted operation surface is session status, permission posture,
 Runtime artifact bytes and bounded image artifact upload, three protected
 principal-partitioned JSON storage
 operations, the selected RuntimeAgent conversation operations, bounded
-Runtime-selected agent voice transcription, and exact correlated agent voice
-stream subscription.
+Runtime-selected foreground text candidates, bounded Runtime-selected agent
+voice transcription, and exact correlated agent voice stream subscription.
 
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,

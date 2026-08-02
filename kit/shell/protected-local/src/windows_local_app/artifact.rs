@@ -100,7 +100,12 @@ mod tests {
         for mime in ["image/png", "image/jpeg", "image/webp", "image/gif"] {
             assert!(admitted_image_mime(mime));
         }
-        for mime in ["image/svg+xml", "application/octet-stream", "IMAGE/PNG", " image/png"] {
+        for mime in [
+            "image/svg+xml",
+            "application/octet-stream",
+            "IMAGE/PNG",
+            " image/png",
+        ] {
             assert!(!admitted_image_mime(mime));
         }
     }

@@ -9,6 +9,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.sessionStatus',
   'local-app.permissionStatus',
   'local-app.permissionRequest',
+  'local-app.textGenerateCandidate',
   'local-app.conversationOpen',
   'local-app.conversationSendTurn',
   'local-app.conversationInterruptTurn',
@@ -42,7 +43,7 @@ describe('local-app public capability behavior', () => {
     expect(set).toMatchObject({
       hostClass: 'protected-local-app-host',
       authBinding: 'runtime_owned_request_empty_local_app_session',
-      authorityStatus: 'permission_model_v1_with_exact_world_core_operations',
+      authorityStatus: 'permission_model_v1_with_exact_admitted_operation_families',
       allowedOperations: FINAL_LOCAL_APP_OPERATIONS,
     });
     expect(set?.allowedCommands).toEqual(FINAL_LOCAL_APP_OPERATIONS.map(

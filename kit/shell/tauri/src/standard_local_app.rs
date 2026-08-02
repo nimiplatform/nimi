@@ -1,6 +1,7 @@
 use nimi_shell_protected_local::{
     LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionStatusRequest,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
+    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -9,6 +10,10 @@ use crate::runtime_bridge::RuntimeBridgeLocalAppHost;
 
 const MAX_IDENTIFIER_LENGTH: usize = 512;
 const MAX_PERMISSION_REASON_BYTES: usize = 240;
+const MAX_TEXT_CANDIDATE_MESSAGES: usize = 8;
+const MAX_TEXT_CANDIDATE_MESSAGE_BYTES: usize = 32 * 1024;
+const MAX_TEXT_CANDIDATE_PROMPT_BYTES: usize = 64 * 1024;
+const MAX_TEXT_CANDIDATE_TOKENS: i32 = 4096;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -22,6 +27,22 @@ pub struct LocalAppPermissionRequestPayload {
     permission_id: String,
     reason: String,
     request_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppTextCandidateMessagePayload {
+    role: String,
+    text: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppTextCandidatePayload {
+    messages: Vec<LocalAppTextCandidateMessagePayload>,
+    temperature: f32,
+    top_p: f32,
+    max_tokens: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -115,6 +136,65 @@ pub async fn permission_request_for_host(
             "agentHandle": agent.agent_handle,
             "displayName": agent.display_name,
         })).collect::<Vec<_>>(),
+    }))
+}
+
+pub async fn text_generate_candidate_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppTextCandidatePayload =
+        parse_payload(payload, "local_app_text_generate_candidate")?;
+    if payload.messages.is_empty()
+        || payload.messages.len() > MAX_TEXT_CANDIDATE_MESSAGES
+        || !payload.temperature.is_finite()
+        || !(0.0..=2.0).contains(&payload.temperature)
+        || !payload.top_p.is_finite()
+        || !(0.0..=1.0).contains(&payload.top_p)
+        || !(1..=MAX_TEXT_CANDIDATE_TOKENS).contains(&payload.max_tokens)
+    {
+        return Err(invalid_payload("local_app_text_generate_candidate"));
+    }
+    let mut saw_system = false;
+    let mut saw_user = false;
+    let mut prompt_bytes = 0usize;
+    let mut messages = Vec::with_capacity(payload.messages.len());
+    for message in payload.messages {
+        let role = message.role;
+        match role.as_str() {
+            "system" if !saw_system && !saw_user => saw_system = true,
+            "user" => saw_user = true,
+            _ => return Err(invalid_payload("local_app_text_generate_candidate")),
+        }
+        let text = required_text(
+            message.text,
+            MAX_TEXT_CANDIDATE_MESSAGE_BYTES,
+            "local_app_text_generate_candidate",
+        )?;
+        prompt_bytes = prompt_bytes
+            .checked_add(role.len() + text.len())
+            .ok_or_else(|| invalid_payload("local_app_text_generate_candidate"))?;
+        if prompt_bytes > MAX_TEXT_CANDIDATE_PROMPT_BYTES {
+            return Err(invalid_payload("local_app_text_generate_candidate"));
+        }
+        messages.push(LocalAppTextCandidateMessage { role, text });
+    }
+    if !saw_user {
+        return Err(invalid_payload("local_app_text_generate_candidate"));
+    }
+    let result = host
+        .generate_text_candidate(LocalAppTextCandidateRequest {
+            messages,
+            temperature: payload.temperature,
+            top_p: payload.top_p,
+            max_tokens: payload.max_tokens,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({
+        "text": result.text,
+        "finishReason": result.finish_reason,
+        "traceId": result.trace_id,
     }))
 }
 
@@ -253,6 +333,21 @@ mod tests {
             " needs permission".to_string(),
             MAX_PERMISSION_REASON_BYTES,
             "permission"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn text_candidate_payload_rejects_authority_and_role_expansion() {
+        assert!(parse_payload::<LocalAppTextCandidatePayload>(
+            json!({
+                "messages": [{"role": "user", "text": "Create one persona."}],
+                "temperature": 0.7,
+                "topP": 0.9,
+                "maxTokens": 512,
+                "modelId": "forbidden"
+            }),
+            "text_candidate"
         )
         .is_err());
     }

@@ -106,6 +106,7 @@ export type {
 export {
   createNimiLocalAppStandardShellSurface,
   createNimiLocalAppWorldCore,
+  generateNimiLocalAppTextCandidate,
   getNimiLocalAppConversationSnapshot,
   getNimiLocalAppPermissionStatus,
   getNimiLocalAppSessionStatus,
@@ -188,6 +189,9 @@ export type {
   NimiLocalAppStorageDocument,
   NimiLocalAppStorageRemoveResult,
   NimiLocalAppStandardShellSurface,
+  NimiLocalAppTextCandidateInput,
+  NimiLocalAppTextCandidateMessage,
+  NimiLocalAppTextCandidateResult,
   NimiLocalAppWorldCoreListInput,
 } from './local-app.js';
 export type {

@@ -33,6 +33,7 @@ fn main() {
     let account_proto = proto_root.join("runtime/v1/account.proto");
     let development_proto = proto_root.join("runtime/v1/development.proto");
     let agent_proto = proto_root.join("runtime/v1/agent_service.proto");
+    let ai_proto = proto_root.join("runtime/v1/ai.proto");
     let local_runtime_proto = proto_root.join("runtime/v1/local_runtime.proto");
     let protoc = protoc_bin_vendored::protoc_bin_path().expect("vendored protoc");
     std::env::set_var("PROTOC", protoc);
@@ -48,6 +49,7 @@ fn main() {
                 account_proto,
                 development_proto,
                 agent_proto,
+                ai_proto,
                 local_runtime_proto,
             ],
             &[proto_root],
@@ -60,6 +62,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/account.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/development.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_service.proto");
+    println!("cargo:rerun-if-changed=../../../proto/runtime/v1/ai.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_configure.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/local_runtime.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/common.proto");

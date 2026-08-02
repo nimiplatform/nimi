@@ -95,6 +95,43 @@ pub async fn local_app_permission_request(
     }
 }
 
+#[napi(js_name = "localAppTextGenerateCandidate")]
+pub async fn local_app_text_generate_candidate(
+    input: NativeTextCandidateInput,
+) -> NativeJsonOutcome {
+    if input.max_tokens > i32::MAX as u32 {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidPayload,
+            false,
+        ));
+    }
+    invoke_agent(|session| async move {
+        session
+            .generate_text_candidate(LocalAppTextCandidateRequest {
+                messages: input
+                    .messages
+                    .into_iter()
+                    .map(|message| LocalAppTextCandidateMessage {
+                        role: message.role,
+                        text: message.text,
+                    })
+                    .collect(),
+                temperature: input.temperature as f32,
+                top_p: input.top_p as f32,
+                max_tokens: input.max_tokens as i32,
+            })
+            .await
+            .map(|result| {
+                json!({
+                    "text": result.text,
+                    "finishReason": result.finish_reason,
+                    "traceId": result.trace_id,
+                })
+            })
+    })
+    .await
+}
+
 #[napi(js_name = "localAppRealmWorldCoreList")]
 pub async fn local_app_realm_world_core_list(input: NativeWorldCoreListInput) -> NativeJsonOutcome {
     invoke_agent(|session| async move {

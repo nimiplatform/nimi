@@ -76,6 +76,23 @@ function readCatalogNegativeStatesForCommand(content: string, command: string): 
   return [...block.matchAll(/^\s+- ([a-zA-Z0-9.-]+)\s*$/gm)].map((match) => match[1]);
 }
 
+function readLocalAppOperationFamily(content: string, family: string): string {
+  const contractStart = content.indexOf('\nlocal_app_operation_contract:\n');
+  expect(contractStart).toBeGreaterThanOrEqual(0);
+  const header = `    ${family}:\n`;
+  const start = content.indexOf(header, contractStart);
+  expect(start).toBeGreaterThanOrEqual(0);
+  const afterStart = content.slice(start + header.length);
+  const end = afterStart.search(/\n    [a-zA-Z][a-zA-Z0-9]+:\n/u);
+  return end === -1 ? afterStart : afterStart.slice(0, end);
+}
+
+function readInlineYamlList(field: string, content: string): string[] {
+  const match = content.match(new RegExp(`^\\s+${field}: \\[([^\\]]*)\\]$`, 'mu'));
+  expect(match).not.toBeNull();
+  return (match?.[1] || '').split(',').map((value) => value.trim()).filter(Boolean);
+}
+
 function readAiProfileAliases(content: string): string[] {
   return [...content.matchAll(/^  - alias: ([a-zA-Z0-9-]+)$/gm)].map((match) => match[1]);
 }
@@ -153,6 +170,7 @@ describe('standard shell capabilities', () => {
       'local-app.sessionStatus',
       'local-app.permissionStatus',
       'local-app.permissionRequest',
+      'local-app.textGenerateCandidate',
       'local-app.conversationOpen',
       'local-app.conversationSendTurn',
       'local-app.conversationInterruptTurn',
@@ -176,7 +194,7 @@ describe('standard shell capabilities', () => {
       'storage.removeJson',
       'desktop-open.openIntent',
     ]);
-    expect(localAppSet?.authorityStatus).toBe('permission_model_v1_with_exact_world_core_operations');
+    expect(localAppSet?.authorityStatus).toBe('permission_model_v1_with_exact_admitted_operation_families');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');
     expect(readCapabilitySetList('planned_operations', catalog)).toEqual(expect.arrayContaining([
       'ai-config.get',
@@ -200,6 +218,29 @@ describe('standard shell capabilities', () => {
       'electron.raw-ipc',
       'node.raw-fs',
     ]));
+  });
+
+  it('publishes text generation as one closed governed operation family', () => {
+    const catalog = readFileSync(catalogPath, 'utf8');
+    const family = readLocalAppOperationFamily(catalog, 'textGenerateCandidate');
+    const operation = NIMI_STANDARD_SHELL_CAPABILITIES
+      .find((capability) => capability.id === 'local-app')
+      ?.operations.find((candidate) => candidate.id === 'textGenerateCandidate');
+
+    expect(family).toContain('command: local-app.textGenerateCandidate');
+    expect(family).toContain('operation_id: runtime.ai.text_candidate.generate');
+    expect(family).toContain('authority_class: user_permission');
+    expect(family).toContain('permission_id: ai.text.generate');
+    expect(family).toContain('transport_boundary: unary');
+    expect(family).toContain('effect_boundary: foreground_compute');
+    expect(family).toContain('owner: runtime_ai_service');
+    expect(readInlineYamlList('request_fields', family)).toEqual([
+      'messages', 'temperature', 'topP', 'maxTokens',
+    ]);
+    expect(readInlineYamlList('response_fields', family)).toEqual([
+      'text', 'finishReason', 'traceId',
+    ]);
+    expect(readInlineYamlList('typed_failures', family)).toEqual(operation?.negativeStates);
   });
 
   it('exports fail-closed error envelopes and catalog-sourced command lookup', () => {

@@ -76,6 +76,12 @@ describe('Electron protected local-app host', () => {
     });
     await expect(host.permissionRequest({ permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-electron-1' }))
       .resolves.toMatchObject({ state: 'unavailable', permissionId: 'agents.interact', canRequest: false });
+    await expect(host.textGenerateCandidate({
+      messages: [{ role: 'user', text: 'Create one persona.' }],
+      temperature: 0.7,
+      topP: 0.9,
+      maxTokens: 512,
+    })).resolves.toEqual({ text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1' });
     await expect(host.realmWorldCoreList({ take: 20, visibility: 'private' }))
       .resolves.toEqual([{ id: 'world-1', visibility: 'private' }]);
     await expect(host.realmWorldCoreCreate({ core: {}, origin: { kind: 'manual' }, visibility: 'private' }))
@@ -114,6 +120,7 @@ describe('Electron protected local-app host', () => {
       'localAppSessionStatus',
       'localAppPermissionStatus',
       'localAppPermissionRequest',
+      'localAppTextGenerateCandidate',
       'localAppRealmWorldCoreList',
       'localAppRealmWorldCoreCreate',
       'localAppStorageReadJson',
@@ -182,6 +189,7 @@ describe('Electron protected local-app host', () => {
       'permission-unavailable', 'local-app-operation-unavailable', 'request-pending',
       'process-replaced', 'account-changed', 'revoked', 'permission-reserved-not-admitted',
       'permission-unknown', 'ai-voice-target-model-mismatch',
+      'ai-local-model-unavailable', 'ai-provider-timeout', 'ai-output-invalid',
       'agent-ai-config-revision-conflict', 'agent-ai-config-invalid',
       'agent-ai-config-target-required', 'agent-ai-config-target-invalid',
       'agent-ai-config-target-unavailable', 'agent-ai-config-capability-mismatch',
@@ -334,6 +342,9 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppPermissionStatus: record('localAppPermissionStatus', unavailable),
     localAppPermissionRequest: record('localAppPermissionRequest', unavailable),
+    localAppTextGenerateCandidate: record('localAppTextGenerateCandidate', {
+      text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1',
+    }),
     localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
     localAppRealmWorldCoreCreate: record('localAppRealmWorldCoreCreate', { id: 'world-2', visibility: 'private' }),
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),

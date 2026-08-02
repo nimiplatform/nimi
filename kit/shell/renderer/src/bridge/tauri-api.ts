@@ -69,6 +69,7 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus']]: 'local_app_session_status',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus']]: 'local_app_permission_status',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest']]: 'local_app_permission_request',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate']]: 'local_app_text_generate_candidate',
   [NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']]: 'local_agent_identity',
   [NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']]: 'local_agent_runtime_trusted_caller',
   [NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']]: 'avatar_asset_resolve',

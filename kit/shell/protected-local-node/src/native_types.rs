@@ -155,6 +155,20 @@ pub struct NativePermissionRequestInput {
 }
 
 #[napi(object)]
+pub struct NativeTextCandidateMessage {
+    pub role: String,
+    pub text: String,
+}
+
+#[napi(object)]
+pub struct NativeTextCandidateInput {
+    pub messages: Vec<NativeTextCandidateMessage>,
+    pub temperature: f64,
+    pub top_p: f64,
+    pub max_tokens: u32,
+}
+
+#[napi(object)]
 pub struct NativeWorldCoreListInput {
     pub take: Option<u32>,
     pub visibility: Option<String>,

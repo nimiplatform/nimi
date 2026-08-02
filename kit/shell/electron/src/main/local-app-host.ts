@@ -8,6 +8,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionRenew',
   'localAppPermissionStatus',
   'localAppPermissionRequest',
+  'localAppTextGenerateCandidate',
   'localAppRealmWorldCoreList',
   'localAppRealmWorldCoreCreate',
   'localAppStorageReadJson',
@@ -50,6 +51,21 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'presence-expired',
   'request-pending',
   'runtime-permission-denied',
+  'ai-model-not-found',
+  'ai-model-not-ready',
+  'ai-provider-unavailable',
+  'ai-route-unsupported',
+  'ai-route-fallback-denied',
+  'ai-input-invalid',
+  'ai-output-invalid',
+  'ai-content-filter-blocked',
+  'ai-local-model-unavailable',
+  'ai-local-model-profile-missing',
+  'ai-local-service-unavailable',
+  'ai-provider-auth-failed',
+  'ai-provider-internal',
+  'ai-provider-rate-limited',
+  'ai-provider-timeout',
   'local-app-operation-unavailable',
   'permission-reserved-not-admitted',
   'permission-unknown',
@@ -145,6 +161,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppTextGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -175,6 +192,7 @@ export type NimiElectronLocalAppHost = {
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
   readonly permissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
   readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
+  readonly textGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly realmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -248,6 +266,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
       () => this.binding.localAppPermissionRequest(input),
       exactText(input.permissionId),
     );
+  }
+
+  textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeTextCandidate(() => this.binding.localAppTextGenerateCandidate(input));
   }
 
   realmWorldCoreList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -366,6 +388,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
     return this.resolve().permissionRequest(input);
+  }
+
+  textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().textGenerateCandidate(input);
   }
 
   realmWorldCoreList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -631,6 +657,24 @@ async function invokePermissionStatus(
     reasonCode: value.reasonCode,
     agents: Object.freeze(agents),
   });
+}
+
+async function invokeTextCandidate(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value)
+    || !hasExactKeys(value, ['text', 'finishReason', 'traceId'])
+    || typeof value.text !== 'string'
+    || !value.text.trim()
+    || Buffer.byteLength(value.text, 'utf8') > 256 * 1024
+    || (value.finishReason !== 'stop'
+      && value.finishReason !== 'length'
+      && value.finishReason !== 'content-filter')) {
+    throw untrustedRuntimeError();
+  }
+  const traceId = exactText(value.traceId);
+  return Object.freeze({ text: value.text, finishReason: value.finishReason, traceId });
 }
 
 async function invokeWorldCoreList(

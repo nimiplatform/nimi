@@ -44,6 +44,21 @@ pub enum LocalAppReasonCode {
     PermissionUnknown,
     PresenceExpired,
     RuntimePermissionDenied,
+    AiModelNotFound,
+    AiModelNotReady,
+    AiProviderUnavailable,
+    AiRouteUnsupported,
+    AiRouteFallbackDenied,
+    AiInputInvalid,
+    AiOutputInvalid,
+    AiContentFilterBlocked,
+    AiLocalModelUnavailable,
+    AiLocalModelProfileMissing,
+    AiLocalServiceUnavailable,
+    AiProviderAuthFailed,
+    AiProviderInternal,
+    AiProviderRateLimited,
+    AiProviderTimeout,
     AiVoiceTargetModelMismatch,
     AgentAiConfigRevisionConflict,
     AgentAiConfigInvalid,
@@ -83,6 +98,21 @@ impl LocalAppReasonCode {
             Self::PermissionUnknown => "permission-unknown",
             Self::PresenceExpired => "presence-expired",
             Self::RuntimePermissionDenied => "runtime-permission-denied",
+            Self::AiModelNotFound => "ai-model-not-found",
+            Self::AiModelNotReady => "ai-model-not-ready",
+            Self::AiProviderUnavailable => "ai-provider-unavailable",
+            Self::AiRouteUnsupported => "ai-route-unsupported",
+            Self::AiRouteFallbackDenied => "ai-route-fallback-denied",
+            Self::AiInputInvalid => "ai-input-invalid",
+            Self::AiOutputInvalid => "ai-output-invalid",
+            Self::AiContentFilterBlocked => "ai-content-filter-blocked",
+            Self::AiLocalModelUnavailable => "ai-local-model-unavailable",
+            Self::AiLocalModelProfileMissing => "ai-local-model-profile-missing",
+            Self::AiLocalServiceUnavailable => "ai-local-service-unavailable",
+            Self::AiProviderAuthFailed => "ai-provider-auth-failed",
+            Self::AiProviderInternal => "ai-provider-internal",
+            Self::AiProviderRateLimited => "ai-provider-rate-limited",
+            Self::AiProviderTimeout => "ai-provider-timeout",
             Self::AiVoiceTargetModelMismatch => "ai-voice-target-model-mismatch",
             Self::AgentAiConfigRevisionConflict => "agent-ai-config-revision-conflict",
             Self::AgentAiConfigInvalid => "agent-ai-config-invalid",
@@ -222,6 +252,27 @@ pub struct LocalAppPermissionStatus {
     pub can_request: bool,
     pub reason_code: LocalAppReasonCode,
     pub agents: Vec<LocalAppAgentHandle>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppTextCandidateMessage {
+    pub role: String,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppTextCandidateRequest {
+    pub messages: Vec<LocalAppTextCandidateMessage>,
+    pub temperature: f32,
+    pub top_p: f32,
+    pub max_tokens: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppTextCandidateResult {
+    pub text: String,
+    pub finish_reason: String,
+    pub trace_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -665,6 +716,17 @@ pub trait NimiLocalAppSession: Send + Sync {
     ) -> Pin<
         Box<
             dyn Future<Output = Result<LocalAppPermissionStatus, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn generate_text_candidate(
+        &self,
+        request: LocalAppTextCandidateRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppTextCandidateResult, LocalAppOperationError>>
                 + Send
                 + '_,
         >,

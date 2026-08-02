@@ -1,13 +1,21 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createNimiClient } from '@nimiplatform/kit/core/sdk-contract';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 import { createNimiLocalAppStandardShellSurface } from '../src/bridge/index.js';
+import { resolveTauriStandardCommand } from '../src/bridge/tauri-api.js';
 
 afterEach(() => {
   delete (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__;
 });
 
 describe('renderer local-app standard-shell surface', () => {
+  it('maps text-candidate generation to the registered Tauri command', () => {
+    expect(resolveTauriStandardCommand(
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
+    )).toBe('local_app_text_generate_candidate');
+  });
+
   it('is consumed directly by the SDK without an app-local adapter', async () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string) => {
@@ -85,6 +93,38 @@ describe('renderer local-app standard-shell surface', () => {
       requestId: 'permission-request-renderer-long-reason',
     })).toThrowError(/reason is invalid/u);
     expect(invocations).toEqual([]);
+  });
+
+  it('forwards one exact bounded text-candidate request', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1' };
+      },
+      listen: () => () => {},
+    };
+    await expect(createNimiLocalAppStandardShellSurface().ai.text.generateCandidate({
+      messages: [
+        { role: 'system', text: 'Return JSON.' },
+        { role: 'user', text: 'Create one persona.' },
+      ],
+      temperature: 0.7,
+      topP: 0.9,
+      maxTokens: 512,
+    })).resolves.toEqual({ text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1' });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.textGenerateCandidate',
+      payload: { payload: {
+        messages: [
+          { role: 'system', text: 'Return JSON.' },
+          { role: 'user', text: 'Create one persona.' },
+        ],
+        temperature: 0.7,
+        topP: 0.9,
+        maxTokens: 512,
+      } },
+    }]);
   });
 
   it('rejects protected authority material in a permission projection', async () => {

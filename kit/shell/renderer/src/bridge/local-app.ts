@@ -9,6 +9,11 @@ import type { JsonObject, JsonValue } from './types.js';
 
 const MAX_IDENTIFIER_LENGTH = 512;
 const MAX_PERMISSION_REASON_BYTES = 240;
+const MAX_TEXT_CANDIDATE_MESSAGES = 8;
+const MAX_TEXT_CANDIDATE_MESSAGE_BYTES = 32 * 1024;
+const MAX_TEXT_CANDIDATE_PROMPT_BYTES = 64 * 1024;
+const MAX_TEXT_CANDIDATE_RESULT_BYTES = 256 * 1024;
+const MAX_TEXT_CANDIDATE_TOKENS = 4096;
 const MAX_STORAGE_PATH_BYTES = 240;
 const MAX_STORAGE_DOCUMENT_BYTES = 256 * 1024;
 const MAX_WORLD_CORE_REQUEST_BYTES = 2 * 1024 * 1024;
@@ -57,6 +62,24 @@ export type NimiLocalAppPermissionStatus = {
   readonly canRequest: boolean;
   readonly reasonCode: string;
   readonly agents: readonly NimiLocalAppAgentHandle[];
+};
+
+export type NimiLocalAppTextCandidateMessage = {
+  readonly role: 'system' | 'user';
+  readonly text: string;
+};
+
+export type NimiLocalAppTextCandidateInput = {
+  readonly messages: readonly NimiLocalAppTextCandidateMessage[];
+  readonly temperature: number;
+  readonly topP: number;
+  readonly maxTokens: number;
+};
+
+export type NimiLocalAppTextCandidateResult = {
+  readonly text: string;
+  readonly finishReason: 'stop' | 'length' | 'content-filter';
+  readonly traceId: string;
 };
 
 export type NimiLocalAppStorageDocument = {
@@ -152,6 +175,13 @@ export type NimiLocalAppStandardShellSurface = {
     readonly status: (input: NimiLocalAppPermissionStatusInput) => Promise<NimiLocalAppPermissionStatus>;
     readonly request: (input: NimiLocalAppPermissionRequestInput) => Promise<NimiLocalAppPermissionStatus>;
   };
+  readonly ai: {
+    readonly text: {
+      readonly generateCandidate: (
+        input: NimiLocalAppTextCandidateInput,
+      ) => Promise<NimiLocalAppTextCandidateResult>;
+    };
+  };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiLocalAppStorageDocument>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<NimiLocalAppStorageDocument>;
@@ -189,6 +219,11 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     permission: {
       status: getNimiLocalAppPermissionStatus,
       request: requestNimiLocalAppPermission,
+    },
+    ai: {
+      text: {
+        generateCandidate: generateNimiLocalAppTextCandidate,
+      },
     },
     storage: {
       readJson: readNimiLocalAppStorageJson,
@@ -258,6 +293,57 @@ export function requestNimiLocalAppPermission(
       requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
     } },
     (value) => parsePermissionStatus(value, permissionId, command),
+  );
+}
+
+export function generateNimiLocalAppTextCandidate(
+  input: NimiLocalAppTextCandidateInput,
+): Promise<NimiLocalAppTextCandidateResult> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'];
+  assertExactInput(input, ['messages', 'temperature', 'topP', 'maxTokens'], command);
+  if (!Array.isArray(input.messages)
+    || input.messages.length === 0
+    || input.messages.length > MAX_TEXT_CANDIDATE_MESSAGES) {
+    throw invalidInput(command, 'messages is invalid');
+  }
+  let promptBytes = 0;
+  let sawSystem = false;
+  let sawUser = false;
+  const messages = input.messages.map((message, index) => {
+    assertExactInput(message, ['role', 'text'], command);
+    if (message.role === 'system') {
+      if (sawSystem || sawUser) throw invalidInput(command, 'system message order is invalid');
+      sawSystem = true;
+    } else if (message.role === 'user') {
+      sawUser = true;
+    } else {
+      throw invalidInput(command, `messages[${index}].role is invalid`);
+    }
+    const text = requiredUtf8Text(
+      message.text,
+      `messages[${index}].text`,
+      command,
+      MAX_TEXT_CANDIDATE_MESSAGE_BYTES,
+    );
+    promptBytes += new TextEncoder().encode(message.role).byteLength
+      + new TextEncoder().encode(text).byteLength;
+    if (promptBytes > MAX_TEXT_CANDIDATE_PROMPT_BYTES) {
+      throw invalidInput(command, 'messages exceed the prompt bound');
+    }
+    return { role: message.role, text };
+  });
+  if (!sawUser) throw invalidInput(command, 'at least one user message is required');
+  const temperature = boundedFiniteNumber(input.temperature, 'temperature', command, 0, 2);
+  const topP = boundedFiniteNumber(input.topP, 'topP', command, 0, 1);
+  if (!Number.isSafeInteger(input.maxTokens)
+    || input.maxTokens < 1
+    || input.maxTokens > MAX_TEXT_CANDIDATE_TOKENS) {
+    throw invalidInput(command, 'maxTokens is invalid');
+  }
+  return invokeChecked(
+    command,
+    { payload: { messages, temperature, topP, maxTokens: input.maxTokens } },
+    (value) => parseTextCandidate(value, command),
   );
 }
 
@@ -809,6 +895,21 @@ function parsePermissionStatus(
   });
 }
 
+function parseTextCandidate(value: unknown, command: string): NimiLocalAppTextCandidateResult {
+  const record = parseSafeProjection(value, command);
+  assertProjectionKeys(record, ['text', 'finishReason', 'traceId'], command, 'text candidate');
+  const text = requiredUtf8Content(record.text, 'text', command, MAX_TEXT_CANDIDATE_RESULT_BYTES);
+  const finishReason = requiredText(record.finishReason, 'finishReason', command, MAX_IDENTIFIER_LENGTH);
+  if (finishReason !== 'stop' && finishReason !== 'length' && finishReason !== 'content-filter') {
+    throw new Error(`${command}: finishReason is invalid`);
+  }
+  return Object.freeze({
+    text,
+    finishReason,
+    traceId: requiredText(record.traceId, 'traceId', command, MAX_IDENTIFIER_LENGTH),
+  });
+}
+
 function parseStorageDocument(value: unknown, command: string): NimiLocalAppStorageDocument {
   const record = assertRecord(value, `${command} returned invalid payload`);
   assertProjectionKeys(record, ['value', 'sizeBytes'], command, 'storage document');
@@ -924,6 +1025,19 @@ function nonNegativeInteger(value: unknown, command: string, field: string): num
   return value;
 }
 
+function boundedFiniteNumber(
+  value: unknown,
+  field: string,
+  command: string,
+  minimum: number,
+  maximum: number,
+): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+    throw invalidInput(command, `${field} is invalid`);
+  }
+  return value;
+}
+
 function normalizeFieldName(value: string): string {
   return value.replace(/[^a-z0-9]/giu, '').toLowerCase();
 }
@@ -990,6 +1104,15 @@ function requiredUtf8Text(value: unknown, field: string, command: string, maxByt
     throw invalidInput(command, `${field} is invalid`);
   }
   return normalized;
+}
+
+function requiredUtf8Content(value: unknown, field: string, command: string, maxBytes: number): string {
+  if (typeof value !== 'string'
+    || !value.trim()
+    || new TextEncoder().encode(value).byteLength > maxBytes) {
+    throw invalidInput(command, `${field} is invalid`);
+  }
+  return value;
 }
 
 function invalidInput(command: string, reason: string): BridgeError {

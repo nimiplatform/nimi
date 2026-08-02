@@ -4,6 +4,7 @@ mod conversation;
 mod permission;
 mod realm_world_core;
 mod storage;
+mod text_candidate;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -26,16 +27,17 @@ use crate::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConfigurationRequest,
     LocalAppArtifactPutRequest, LocalAppArtifactPutResult, LocalAppArtifactReadRequest,
-    LocalAppArtifactReadResult, LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
-    LocalAppConversationSendRequest, LocalAppConversationSendResult,
-    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
-    LocalAppSessionState, LocalAppSessionStatus, LocalAppStorageDocument,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
-    LocalAppStorageWriteRequest, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
-    NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppArtifactReadResult, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
+    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
+    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionStatus,
+    LocalAppPermissionStatusRequest, LocalAppReasonCode, LocalAppSessionState,
+    LocalAppSessionStatus, LocalAppStorageDocument, LocalAppStorageReadRequest,
+    LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
+    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreListRequest, NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
 #[cfg(target_os = "windows")]
@@ -151,6 +153,22 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             permission::request_local_app_permission(self.checked_channel()?, request).await
+        })
+    }
+
+    fn generate_text_candidate(
+        &self,
+        request: LocalAppTextCandidateRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppTextCandidateResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            text_candidate::generate(self.checked_channel()?, request).await
         })
     }
 

@@ -51,8 +51,8 @@ pub mod runtime {
         RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID,
         RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID,
         RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID,
-        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
-        RUNTIME_AUTH_REGISTER_APP_METHOD_ID, RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
+        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID, RUNTIME_AUTH_REGISTER_APP_METHOD_ID,
+        RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
         RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
         RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
         RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
@@ -662,6 +662,14 @@ pub mod local_app {
         payload: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         crate::standard_local_app::permission_request_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_text_generate_candidate(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::text_generate_candidate_for_host(host.inner(), payload).await
     }
 }
 

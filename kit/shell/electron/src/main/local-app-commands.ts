@@ -8,6 +8,10 @@ import { NimiElectronShellHostError } from './types.js';
 
 const MAX_IDENTIFIER_LENGTH = 512;
 const MAX_PERMISSION_REASON_BYTES = 240;
+const MAX_TEXT_CANDIDATE_MESSAGES = 8;
+const MAX_TEXT_CANDIDATE_MESSAGE_BYTES = 32 * 1024;
+const MAX_TEXT_CANDIDATE_PROMPT_BYTES = 64 * 1024;
+const MAX_TEXT_CANDIDATE_TOKENS = 4096;
 const MAX_ARTIFACT_DATA_BYTES = 4 * 1024 * 1024;
 const MAX_ARTIFACT_DISPLAY_NAME_BYTES = 512;
 const MAX_TURN_ATTACHMENTS = 1;
@@ -28,6 +32,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'], 'permissionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'], 'textGenerateCandidate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'], 'realmWorldCoreList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'], 'realmWorldCoreCreate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
@@ -120,6 +125,8 @@ function validatePayload(
         reason: requiredUtf8Text(payload.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
         requestId: requiredText(payload.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
       };
+    case 'textGenerateCandidate':
+      return textCandidatePayload(payload, command);
     case 'realmWorldCoreList': {
       assertAllowedKeys(payload, ['take', 'visibility'], [], command);
       const result: Record<string, NimiElectronLocalAppRecord[string]> = {};
@@ -268,6 +275,72 @@ function validatePayload(
       validateStorageJsonValue(payload.value, command);
       return { ...storagePathPayload({ relativePath: payload.relativePath }, command), value: payload.value as NimiElectronLocalAppRecord[string] };
   }
+}
+
+function textCandidatePayload(
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+): NimiElectronLocalAppRecord {
+  assertExactKeys(payload, ['messages', 'temperature', 'topP', 'maxTokens'], command);
+  if (!Array.isArray(payload.messages)
+    || payload.messages.length === 0
+    || payload.messages.length > MAX_TEXT_CANDIDATE_MESSAGES) {
+    throw invalidPayload(command, 'messages is invalid');
+  }
+  let promptBytes = 0;
+  let sawSystem = false;
+  let sawUser = false;
+  const messages = payload.messages.map((entry, index) => {
+    if (!isPlainRecord(entry)) throw invalidPayload(command, `messages[${index}] is invalid`);
+    assertExactKeys(entry, ['role', 'text'], command);
+    const role = entry.role;
+    if (role === 'system') {
+      if (sawSystem || sawUser) throw invalidPayload(command, 'system message order is invalid');
+      sawSystem = true;
+    } else if (role === 'user') {
+      sawUser = true;
+    } else {
+      throw invalidPayload(command, `messages[${index}].role is invalid`);
+    }
+    const text = requiredUtf8Text(
+      entry.text,
+      `messages[${index}].text`,
+      command,
+      MAX_TEXT_CANDIDATE_MESSAGE_BYTES,
+    );
+    promptBytes += Buffer.byteLength(role, 'utf8') + Buffer.byteLength(text, 'utf8');
+    if (promptBytes > MAX_TEXT_CANDIDATE_PROMPT_BYTES) {
+      throw invalidPayload(command, 'messages exceed the prompt bound');
+    }
+    return { role, text };
+  });
+  if (!sawUser) throw invalidPayload(command, 'at least one user message is required');
+  const temperature = boundedFiniteNumber(payload.temperature, 'temperature', command, 0, 2);
+  const topP = boundedFiniteNumber(payload.topP, 'topP', command, 0, 1);
+  if (!Number.isSafeInteger(payload.maxTokens)
+    || Number(payload.maxTokens) < 1
+    || Number(payload.maxTokens) > MAX_TEXT_CANDIDATE_TOKENS) {
+    throw invalidPayload(command, 'maxTokens is invalid');
+  }
+  return {
+    messages: messages as unknown as NimiElectronLocalAppRecord[string],
+    temperature,
+    topP,
+    maxTokens: Number(payload.maxTokens),
+  };
+}
+
+function boundedFiniteNumber(
+  value: unknown,
+  field: string,
+  command: string,
+  minimum: number,
+  maximum: number,
+): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+    throw invalidPayload(command, `${field} is invalid`);
+  }
+  return value;
 }
 
 function identifiers(

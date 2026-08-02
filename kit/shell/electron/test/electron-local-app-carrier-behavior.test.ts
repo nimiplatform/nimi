@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { NIMI_STANDARD_SHELL_CAPABILITIES } from '@nimiplatform/kit/shell/capabilities';
 
 import { registerNimiElectronAppBridge } from '../src/main/index.js';
+import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.js';
+import { NimiElectronLocalAppHostError } from '../src/main/local-app-host.js';
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.sessionStatus',
   'nimi.shell.localApp.permissionStatus',
   'nimi.shell.localApp.permissionRequest',
+  'nimi.shell.localApp.textGenerateCandidate',
   'nimi.shell.localApp.conversationOpen',
   'nimi.shell.localApp.conversationSendTurn',
   'nimi.shell.localApp.conversationInterruptTurn',
@@ -144,6 +148,34 @@ describe('Electron local-app carrier behavior', () => {
         /^(protected-carrier-required|runtime-service-unavailable|runtime-service-untrusted|runtime-service-error-unclassified|runtime-unauthenticated|permission-unavailable|invalid-payload)$/,
       );
     }
+  });
+
+  it('maps AI Runtime failures to a declared text-candidate negative state', async () => {
+    const command = 'nimi.shell.localApp.textGenerateCandidate';
+    const host = {
+      textGenerateCandidate: async () => {
+        throw new NimiElectronLocalAppHostError('ai-local-model-unavailable', false);
+      },
+    } as never;
+    const error = await dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: {
+        messages: [{ role: 'user', text: 'Create one persona.' }],
+        temperature: 0.7,
+        topP: 0.9,
+        maxTokens: 512,
+      },
+    }).catch((caught) => caught);
+
+    expect(error).toMatchObject({
+      code: 'runtime-permission-denied',
+      reasonCode: 'ai-local-model-unavailable',
+    });
+    const operation = NIMI_STANDARD_SHELL_CAPABILITIES
+      .find((capability) => capability.id === 'local-app')
+      ?.operations.find((candidate) => candidate.id === 'textGenerateCandidate');
+    expect(operation?.negativeStates).toContain((error as { code: string }).code);
   });
 
   it('denies protected Agent operations until a public permission is admitted', async () => {

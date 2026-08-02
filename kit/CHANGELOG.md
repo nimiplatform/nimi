@@ -9,6 +9,11 @@ Discipline.
 
 ## [Unreleased]
 
+### Added
+
+- The protected Local App standard shell exposes Runtime-selected foreground
+  text candidate generation through the public renderer bridge.
+
 ### Changed
 
 - **Breaking (0.x):** Agent Center now accepts exactly one nominal

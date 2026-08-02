@@ -140,10 +140,8 @@ pub(super) async fn send_turn(
                                 string_value(attachment.artifact_id),
                             )]);
                             if let Some(display_name) = attachment.display_name {
-                                fields.insert(
-                                    "display_name".to_string(),
-                                    string_value(display_name),
-                                );
+                                fields
+                                    .insert("display_name".to_string(), string_value(display_name));
                             }
                             Value {
                                 kind: Some(Kind::StructValue(Struct { fields })),
