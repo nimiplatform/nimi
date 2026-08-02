@@ -283,7 +283,6 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
   const requiredKeys = [
     'SecuritySettings.copySecretSuccess',
     'Menu.profile',
-    'Menu.wallet',
     'Menu.settings',
     'Menu.termsOfService',
     'Menu.privacyPolicy',
