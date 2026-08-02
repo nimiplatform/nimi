@@ -96,17 +96,17 @@ for (const retired of ['install', 'update', 'uninstall', 'launch', 'healthRepair
 const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
 const launchScopeRef = createAppScopeRef({ appId: 'tester.app' });
 const permission = createPermissionClient({
-  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false }; },
-  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
+  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
   subscribe(permissionId, callback) {
-    callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
+    callback({ status: { permissionId, posture: 'unavailable', canRequest: false, agents: [] } });
     return () => {};
   },
 });
 assert(permission instanceof PermissionClient);
 assert.equal((await permission.status('agents.interact')).posture, 'unavailable');
 await assert.rejects(
-  permission.request({ permissionId: 'agents.interact', reason: 'consumer smoke' }),
+  permission.request({ permissionId: 'agents.voice', reason: 'consumer smoke' }),
   (error) => error?.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED',
 );
 assert.equal(scopeRef.ownerId, launchScopeRef.ownerId);
@@ -116,6 +116,7 @@ const appProfile = {
   title: 'Tester App Profile',
   capabilities: {
     'text.generate': {
+      logicalModelId: 'local/tester-app-text',
       targetRef: {
         kind: 'local-runtime',
         version: 'v2',
@@ -229,10 +230,10 @@ const appClient: NimiAppClient = createNimiAppClient({
 const scopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
 const launchScopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app' });
 const permissionClient: PermissionClient = createPermissionClient({
-  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false }; },
-  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
+  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
   subscribe(permissionId, callback) {
-    callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
+    callback({ status: { permissionId, posture: 'unavailable', canRequest: false, agents: [] } });
     return () => {};
   },
 });
@@ -255,6 +256,7 @@ const appProfile: NimiAIProfile = {
   title: 'Tester App Profile',
   capabilities: {
     'text.generate': {
+      logicalModelId: 'local/tester-app-text',
       targetRef: {
         kind: 'local-runtime',
         version: 'v2',
