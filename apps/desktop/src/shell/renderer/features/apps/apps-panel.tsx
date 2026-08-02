@@ -54,6 +54,9 @@ export function AppsPanel(): ReactElement {
           <h1 className="text-2xl font-semibold text-[var(--nimi-text-primary)]">
             {t('Navigation.apps', { defaultValue: 'Apps' })}
           </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--nimi-text-secondary)]">
+            {t('Apps.description')}
+          </p>
         </header>
 
         <Surface tone="panel" material="glass-regular" padding="none" className="min-h-[220px] p-5 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">

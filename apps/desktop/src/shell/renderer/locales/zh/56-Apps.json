@@ -1,8 +1,41 @@
 {
   "title": "Apps",
-  "description": "管理账号中的 App 和这台设备上的本地 App。",
-  "inventoryTitle": "你的 Apps",
+  "description": "在一个地方查看已接入的本地应用，确认状态、目录和权限。",
+  "collectionEyebrow": "应用管理",
+  "inventoryTitle": "已接入的应用",
+  "inventoryDescription": "已连接到 Nimi 的应用会显示在这里。打开详情，可以快速确认它的项目目录和权限需求。",
   "inventoryCount": "{{count}} 个 App",
+  "overview": {
+    "connected": "已接入",
+    "connectedDetail": "当前已连接",
+    "active": "已启用",
+    "activeDetail": "当前可用",
+    "permissions": "需要额外权限",
+    "permissionsDetail": "打开前建议确认"
+  },
+  "listTitle": "应用列表",
+  "listDescription": "按状态筛选，优先找到需要处理的应用。",
+  "filter": {
+    "label": "筛选应用",
+    "all": "全部",
+    "active": "已启用",
+    "permissions": "有额外权限",
+    "empty": "没有符合当前筛选条件的应用。",
+    "reset": "显示全部应用"
+  },
+  "developerCard": {
+    "title": "接入或管理本地应用",
+    "description": "需要接入新的本地项目，或调整开发授权？前往开发者模式继续。",
+    "action": "打开开发者模式"
+  },
+  "emptyConnectedTitle": "还没有接入应用",
+  "emptyConnectedDescription": "接入本地开发项目后，它们会出现在这里，方便你查看状态、目录和权限。",
+  "card": {
+    "local": "本地开发",
+    "projectRoot": "项目目录",
+    "permissions": "额外权限",
+    "noExtraPermissions": "无需额外权限"
+  },
   "emptyTitle": "库存中暂无 App",
   "empty": "安装账号 App，或接入一个本地 App。",
   "error": "无法加载 Apps：{{detail}}",

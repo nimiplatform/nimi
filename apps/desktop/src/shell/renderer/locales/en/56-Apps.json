@@ -1,8 +1,41 @@
 {
   "title": "Apps",
-  "description": "Manage apps from your account and this device.",
-  "inventoryTitle": "Your apps",
+  "description": "See connected local apps in one place, including their status, folder, and permissions.",
+  "collectionEyebrow": "App management",
+  "inventoryTitle": "Connected apps",
+  "inventoryDescription": "Apps connected to Nimi appear here. Open details to quickly confirm the project folder and permission needs.",
   "inventoryCount": "{{count}} apps",
+  "overview": {
+    "connected": "Connected",
+    "connectedDetail": "connected now",
+    "active": "Enabled",
+    "activeDetail": "available now",
+    "permissions": "Extra permissions",
+    "permissionsDetail": "review before opening"
+  },
+  "listTitle": "App list",
+  "listDescription": "Filter by status to find the apps that need attention first.",
+  "filter": {
+    "label": "Filter apps",
+    "all": "All",
+    "active": "Enabled",
+    "permissions": "Extra permissions",
+    "empty": "No apps match this filter.",
+    "reset": "Show all apps"
+  },
+  "developerCard": {
+    "title": "Connect or manage a local app",
+    "description": "Need to connect a new local project or adjust development authorization? Continue in Developer Mode.",
+    "action": "Open Developer Mode"
+  },
+  "emptyConnectedTitle": "No apps connected yet",
+  "emptyConnectedDescription": "Once you connect a local development project, it will appear here with its status, folder, and permissions.",
+  "card": {
+    "local": "Local development",
+    "projectRoot": "Project folder",
+    "permissions": "Extra permissions",
+    "noExtraPermissions": "No extra permissions"
+  },
   "emptyTitle": "No apps in inventory",
   "empty": "Install an account app or connect a local app.",
   "error": "Unable to load Apps: {{detail}}",
