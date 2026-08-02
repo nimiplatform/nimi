@@ -33,6 +33,7 @@ const calls = [
     conversationAnchorId: 'contract-anchor',
     requestId: 'contract-request',
     text: 'contract',
+    attachments: [],
   }],
   ['localAppConversationInterruptTurn', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
@@ -41,7 +42,8 @@ const calls = [
   ['localAppAgentUpdateConfiguration', {
     agentHandle,
     expectedConfigurationRevision: '1',
-    routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }],
+    intents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }],
+    profileOrigin: null,
   }],
   ['localAppAgentReadinessSnapshot', { agentHandle }],
   ['localAppAgentAutonomySnapshot', { agentHandle }],

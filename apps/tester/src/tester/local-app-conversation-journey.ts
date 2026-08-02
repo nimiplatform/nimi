@@ -13,6 +13,7 @@ export type TesterConversationPort = {
     readonly conversationAnchorId: string;
     readonly requestId: string;
     readonly text: string;
+    readonly attachments: readonly [];
   }) => Promise<{ readonly messageId: string }>;
   readonly subscribe: (input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
@@ -53,6 +54,7 @@ export async function runTesterConversationJourney(input: {
       ...scope,
       requestId: input.requestId,
       text: input.text,
+      attachments: [],
     });
     const terminal = await waitForTerminalTurn({
       subscription,
