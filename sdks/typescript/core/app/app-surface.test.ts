@@ -133,9 +133,9 @@ describe('vNext app surface', () => {
       'ai.background',
       'shared_resources.open',
     ];
-    assert.deepEqual(ADMITTED_PERMISSION_IDS, ['agents.interact', 'agents.configure']);
+    assert.deepEqual(ADMITTED_PERMISSION_IDS, ['agents.interact', 'agents.configure', 'ai.text.generate']);
     assert.deepEqual(RESERVED_PERMISSION_IDS, expectedReserved);
-    assert.deepEqual(KNOWN_PERMISSION_IDS, ['agents.interact', 'agents.configure', ...expectedReserved]);
+    assert.deepEqual(KNOWN_PERMISSION_IDS, ['agents.interact', 'agents.configure', 'ai.text.generate', ...expectedReserved]);
     assert.equal(isReservedPermissionID('agents.configure'), false);
     assert.equal(isReservedPermissionID('agents.voice'), true);
     assert.equal(isReservedPermissionID('agents.delegate'), true);

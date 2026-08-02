@@ -121,6 +121,9 @@ export type {
   NimiLocalAppArtifactPutResult,
   NimiLocalAppArtifactReadInput,
   NimiLocalAppWorldCoreListInput,
+  NimiLocalAppTextCandidateInput,
+  NimiLocalAppTextCandidateMessage,
+  NimiLocalAppTextCandidateResult,
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform.js';

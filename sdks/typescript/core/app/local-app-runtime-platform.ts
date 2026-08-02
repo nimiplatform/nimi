@@ -125,6 +125,24 @@ export type NimiLocalAppWorldCoreListInput = {
   readonly visibility?: 'private' | 'unlisted' | 'public' | 'system';
 };
 
+export type NimiLocalAppTextCandidateMessage = {
+  readonly role: 'system' | 'user';
+  readonly text: string;
+};
+
+export type NimiLocalAppTextCandidateInput = {
+  readonly messages: readonly NimiLocalAppTextCandidateMessage[];
+  readonly temperature: number;
+  readonly topP: number;
+  readonly maxTokens: number;
+};
+
+export type NimiLocalAppTextCandidateResult = {
+  readonly text: string;
+  readonly finishReason: 'stop' | 'length' | 'content-filter';
+  readonly traceId: string;
+};
+
 /**
  * Host-neutral structural contract implemented directly by Kit's local-app
  * shell surface. It exposes session status, product permission status, and
@@ -137,6 +155,11 @@ export type NimiLocalAppStandardShell = {
   readonly permission: {
     readonly status: (input: { readonly permissionId: PermissionID }) => Promise<unknown>;
     readonly request: (input: AdmittedPermissionRequestInput) => Promise<unknown>;
+  };
+  readonly ai: {
+    readonly text: {
+      readonly generateCandidate: (input: NimiLocalAppTextCandidateInput) => Promise<unknown>;
+    };
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<unknown>;
@@ -176,6 +199,13 @@ export type NimiLocalAppClient = {
       onError?: (error: unknown) => void,
     ) => () => void;
   };
+  readonly ai: {
+    readonly text: {
+      readonly generateCandidate: (
+        input: NimiLocalAppTextCandidateInput,
+      ) => Promise<NimiLocalAppTextCandidateResult>;
+    };
+  };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiAppRuntimeStorageDocument>;
     readonly writeJson: (
@@ -210,8 +240,8 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  assertExactKeys(standardShell, ['session', 'permission', 'storage', 'realm', 'conversation', 'agentConfigure', 'artifacts'], 'local-app standardShell');
-  if (Object.keys(standardShell).length !== 7) {
+  assertExactKeys(standardShell, ['session', 'permission', 'ai', 'storage', 'realm', 'conversation', 'agentConfigure', 'artifacts'], 'local-app standardShell');
+  if (Object.keys(standardShell).length !== 8) {
     return localAppError(
       'Host-injected local-app standardShell namespaces are incomplete.',
       'SDK_LOCAL_APP_CARRIER_REQUIRED',
@@ -220,6 +250,15 @@ export function createNimiLocalAppClient(
   }
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   assertExactMethodNamespace(standardShell.permission, ['status', 'request'], 'permission');
+  const ai = asRecord(standardShell.ai);
+  if (!ai || Object.keys(ai).length !== 1 || !Object.hasOwn(ai, 'text')) {
+    return localAppError(
+      'Host-injected local-app standardShell ai namespace is invalid.',
+      'SDK_LOCAL_APP_CARRIER_REQUIRED',
+      'use_host_injected_standard_shell',
+    );
+  }
+  assertExactMethodNamespace(ai.text, ['generateCandidate'], 'ai.text');
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
   const realm = asRecord(standardShell.realm);
   if (!realm || Object.keys(realm).length !== 1 || !Object.hasOwn(realm, 'worldCore')) {
@@ -292,6 +331,9 @@ export function createNimiLocalAppClient(
         onError,
       ),
     }),
+    ai: Object.freeze({
+      text: createTextCandidateClient(standardShell.ai.text),
+    }),
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
     realm: Object.freeze({
       worldCore: createWorldCoreClient(standardShell.realm.worldCore),
@@ -300,6 +342,117 @@ export function createNimiLocalAppClient(
     artifacts: createNimiLocalAppArtifactsClient(standardShell.artifacts),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
   });
+}
+
+const MAX_TEXT_CANDIDATE_MESSAGES = 8;
+const MAX_TEXT_CANDIDATE_MESSAGE_BYTES = 32 * 1024;
+const MAX_TEXT_CANDIDATE_PROMPT_BYTES = 64 * 1024;
+const MAX_TEXT_CANDIDATE_RESULT_BYTES = 256 * 1024;
+const MAX_TEXT_CANDIDATE_TOKENS = 4096;
+
+function createTextCandidateClient(
+  shell: NimiLocalAppStandardShell['ai']['text'],
+): NimiLocalAppClient['ai']['text'] {
+  return Object.freeze({
+    generateCandidate: async (
+      input: NimiLocalAppTextCandidateInput,
+    ): Promise<NimiLocalAppTextCandidateResult> => {
+      assertExactKeys(input, ['messages', 'temperature', 'topP', 'maxTokens'], 'text candidate input');
+      if (!Array.isArray(input.messages)
+        || input.messages.length === 0
+        || input.messages.length > MAX_TEXT_CANDIDATE_MESSAGES) {
+        return localAppError(
+          'Text candidate messages are invalid.',
+          'SDK_LOCAL_APP_INPUT_INVALID',
+          'provide_bounded_text_candidate_messages',
+        );
+      }
+      let promptBytes = 0;
+      let sawSystem = false;
+      let sawUser = false;
+      const messages = input.messages.map((message, index): NimiLocalAppTextCandidateMessage => {
+        assertExactKeys(message, ['role', 'text'], `text candidate message ${index}`);
+        if (message.role === 'system') {
+          if (sawSystem || sawUser) return invalidTextCandidateInput('system message order is invalid');
+          sawSystem = true;
+        } else if (message.role === 'user') {
+          sawUser = true;
+        } else {
+          return invalidTextCandidateInput(`message ${index} role is invalid`);
+        }
+        const text = requireText(message.text, `text_candidate_message_${index}`);
+        const textBytes = new TextEncoder().encode(text).byteLength;
+        if (textBytes > MAX_TEXT_CANDIDATE_MESSAGE_BYTES) {
+          return invalidTextCandidateInput(`message ${index} exceeds the byte bound`);
+        }
+        promptBytes += new TextEncoder().encode(message.role).byteLength + textBytes;
+        if (promptBytes > MAX_TEXT_CANDIDATE_PROMPT_BYTES) {
+          return invalidTextCandidateInput('messages exceed the prompt byte bound');
+        }
+        return Object.freeze({ role: message.role, text });
+      });
+      if (!sawUser) invalidTextCandidateInput('at least one user message is required');
+      const temperature = boundedTextCandidateNumber(input.temperature, 0, 2, 'temperature');
+      const topP = boundedTextCandidateNumber(input.topP, 0, 1, 'topP');
+      if (!Number.isSafeInteger(input.maxTokens)
+        || input.maxTokens < 1
+        || input.maxTokens > MAX_TEXT_CANDIDATE_TOKENS) {
+        invalidTextCandidateInput('maxTokens is invalid');
+      }
+      const value = await shell.generateCandidate({
+        messages: Object.freeze(messages),
+        temperature,
+        topP,
+        maxTokens: input.maxTokens,
+      });
+      const record = asRecord(value);
+      assertExactProjectionKeys(record, ['text', 'finishReason', 'traceId'], 'text candidate');
+      assertSafeProjection(record);
+      const text = projectionUtf8Content(
+        record.text,
+        'text candidate text',
+        MAX_TEXT_CANDIDATE_RESULT_BYTES,
+      );
+      const finishReason = projectionText(record.finishReason, 'text candidate finishReason');
+      if (finishReason !== 'stop' && finishReason !== 'length' && finishReason !== 'content-filter') {
+        localAppProjectionError('text candidate finishReason');
+      }
+      return Object.freeze({
+        text,
+        finishReason,
+        traceId: projectionText(record.traceId, 'text candidate traceId'),
+      });
+    },
+  });
+}
+
+function invalidTextCandidateInput(reason: string): never {
+  return localAppError(
+    `Text candidate input is invalid: ${reason}.`,
+    'SDK_LOCAL_APP_INPUT_INVALID',
+    'provide_exact_text_candidate_input',
+  );
+}
+
+function boundedTextCandidateNumber(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+  field: string,
+): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+    return invalidTextCandidateInput(`${field} is invalid`);
+  }
+  return value;
+}
+
+function projectionUtf8Content(value: unknown, field: string, maxBytes: number): string {
+  if (typeof value !== 'string'
+    || !value.trim()
+    || new TextEncoder().encode(value).byteLength > maxBytes) {
+    localAppProjectionError(field);
+  }
+  return value;
 }
 
 function createWorldCoreClient(

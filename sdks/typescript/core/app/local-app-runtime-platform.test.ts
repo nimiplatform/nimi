@@ -32,6 +32,15 @@ function standardShell(overrides: Record<string, unknown> = {}) {
         agents: [],
       }),
     },
+    ai: {
+      text: {
+        generateCandidate: async () => ({
+          text: '{"name":"Lin"}',
+          finishReason: 'stop',
+          traceId: 'trace-1',
+        }),
+      },
+    },
     storage: {
       readJson: async () => ({ value: { version: 1 }, sizeBytes: 13 }),
       writeJson: async (_path: string, value: unknown) => ({ value, sizeBytes: 13 }),
@@ -74,7 +83,7 @@ function standardShell(overrides: Record<string, unknown> = {}) {
 
 test('local-app client exposes only admitted typed namespaces', async () => {
   const client = createLocalAppClient({ standardShell: standardShell() });
-  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'artifacts', 'auth', 'conversation', 'permissions', 'realm', 'storage']);
+  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'ai', 'artifacts', 'auth', 'conversation', 'permissions', 'realm', 'storage']);
   assert.deepEqual(await client.auth.status(), {
     mode: 'local-app',
     state: 'session-bound',
@@ -84,6 +93,44 @@ test('local-app client exposes only admitted typed namespaces', async () => {
     retryable: false,
   });
   assert.equal('agent' in client, false);
+});
+
+test('text candidate generation forwards only bounded prompt controls', async () => {
+  const calls: unknown[] = [];
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      ai: {
+        text: {
+          generateCandidate: async (input: unknown) => {
+            calls.push(input);
+            return { text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1' };
+          },
+        },
+      },
+    }),
+  });
+  assert.deepEqual(await client.ai.text.generateCandidate({
+    messages: [
+      { role: 'system', text: 'Return JSON.' },
+      { role: 'user', text: 'Create one persona.' },
+    ],
+    temperature: 0.7,
+    topP: 0.9,
+    maxTokens: 512,
+  }), {
+    text: '  {"name":"Lin"}\n',
+    finishReason: 'stop',
+    traceId: 'trace-1',
+  });
+  assert.deepEqual(calls, [{
+    messages: [
+      { role: 'system', text: 'Return JSON.' },
+      { role: 'user', text: 'Create one persona.' },
+    ],
+    temperature: 0.7,
+    topP: 0.9,
+    maxTokens: 512,
+  }]);
 });
 
 test('exact WorldCore list/create carrier exposes no Runtime selector or authority material', async () => {

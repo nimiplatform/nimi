@@ -13,6 +13,7 @@ export interface NimiAppScopeRef {
 export const ADMITTED_PERMISSION_IDS = [
   'agents.interact',
   'agents.configure',
+  'ai.text.generate',
 ] as const;
 
 export const RESERVED_PERMISSION_IDS = [
