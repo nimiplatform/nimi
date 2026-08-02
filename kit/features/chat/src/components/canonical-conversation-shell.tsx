@@ -331,6 +331,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
                 <CanonicalTranscriptView
                   messages={messages}
                   pendingFirstBeat={props.pendingFirstBeat}
+                  activeConversationId={props.selectedTarget.canonicalSessionId || props.selectedTarget.id}
                   /* Stage mode shelved — do not auto-switch back */
                   {...props.transcriptProps}
                 />

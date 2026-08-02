@@ -13,6 +13,7 @@ import type { CanonicalTranscriptDateLabelFormatter } from './canonical-transcri
 
 const TRANSCRIPT_SWITCH_DELTA_THRESHOLD = 300;
 const TRANSCRIPT_SWITCH_WINDOW_MS = 600;
+const INITIAL_TRANSCRIPT_PIN_SETTLE_MS = 120;
 
 function isNearBottom(element: HTMLElement): boolean {
   return element.scrollTop + element.clientHeight >= element.scrollHeight - 80;
@@ -107,8 +108,11 @@ export function CanonicalTranscriptView({
   onStopGenerating,
 }: CanonicalTranscriptViewProps) {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const contentRootRef = useRef<HTMLDivElement | null>(null);
   const downwardIntentRef = useRef({ distance: 0, lastAt: 0 });
   const nearBottomRef = useRef(true);
+  const initialPinRef = useRef(false);
+  const initialPinReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousRenderStateRef = useRef<{
     messageCount: number;
     lastMessageId: string | null;
@@ -127,13 +131,22 @@ export function CanonicalTranscriptView({
   const lastMessage = messages[messages.length - 1] || null;
   const footerVisible = Boolean(footerContent) && !pendingFirstBeat && !loading && !error;
 
+  const cancelInitialPin = useCallback(() => {
+    initialPinRef.current = false;
+    if (initialPinReleaseTimerRef.current) {
+      clearTimeout(initialPinReleaseTimerRef.current);
+      initialPinReleaseTimerRef.current = null;
+    }
+  }, []);
+
   const handleScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
-    const nextNearBottom = isNearBottom(event.currentTarget);
+    const nextNearBottom = initialPinRef.current || isNearBottom(event.currentTarget);
     nearBottomRef.current = nextNearBottom;
     onNearBottomChange?.(nextNearBottom);
   }, [onNearBottomChange]);
 
   const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    cancelInitialPin();
     if (!onIntentReturnToStage) {
       return;
     }
@@ -153,13 +166,23 @@ export function CanonicalTranscriptView({
       downwardIntentRef.current = { distance: 0, lastAt: now };
       onIntentReturnToStage();
     }
-  }, [onIntentReturnToStage]);
+  }, [cancelInitialPin, onIntentReturnToStage]);
 
   // Auto-scroll to bottom on initial mount (e.g. switching from stage to history)
   const didInitialScrollRef = useRef(false);
   useLayoutEffect(() => {
+    cancelInitialPin();
     didInitialScrollRef.current = false;
-  }, []); // Reset on remount
+    nearBottomRef.current = true;
+    previousRenderStateRef.current = {
+      messageCount: 0,
+      lastMessageId: null,
+      lastMessageUpdatedAt: null,
+      pendingFirstBeat: false,
+      footerVisible: false,
+    };
+    return cancelInitialPin;
+  }, [activeConversationId, cancelInitialPin]);
   useLayoutEffect(() => {
     const root = scrollRootRef.current;
     if (!root) {
@@ -175,6 +198,14 @@ export function CanonicalTranscriptView({
       || previousRenderState.footerVisible !== footerVisible;
     if (!didInitialScrollRef.current && messages.length > 0) {
       didInitialScrollRef.current = true;
+      initialPinRef.current = true;
+      if (initialPinReleaseTimerRef.current) {
+        clearTimeout(initialPinReleaseTimerRef.current);
+      }
+      initialPinReleaseTimerRef.current = setTimeout(() => {
+        initialPinRef.current = false;
+        initialPinReleaseTimerRef.current = null;
+      }, INITIAL_TRANSCRIPT_PIN_SETTLE_MS);
       root.scrollTop = root.scrollHeight;
     } else if (transcriptChanged && nearBottomRef.current) {
       root.scrollTop = root.scrollHeight;
@@ -189,7 +220,39 @@ export function CanonicalTranscriptView({
       footerVisible,
     };
     onNearBottomChange?.(nextNearBottom);
-  }, [footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat]);
+  }, [activeConversationId, footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat]);
+
+  useLayoutEffect(() => {
+    const root = scrollRootRef.current;
+    const contentRoot = contentRootRef.current;
+    if (!root || !contentRoot || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      const preservingInitialPin = initialPinRef.current;
+      if (!preservingInitialPin && !nearBottomRef.current) {
+        return;
+      }
+      root.scrollTop = root.scrollHeight;
+      const nextNearBottom = isNearBottom(root);
+      nearBottomRef.current = nextNearBottom;
+      onNearBottomChange?.(nextNearBottom);
+      if (preservingInitialPin) {
+        if (initialPinReleaseTimerRef.current) {
+          clearTimeout(initialPinReleaseTimerRef.current);
+        }
+        initialPinReleaseTimerRef.current = setTimeout(() => {
+          if (initialPinRef.current) {
+            root.scrollTop = root.scrollHeight;
+          }
+          initialPinRef.current = false;
+          initialPinReleaseTimerRef.current = null;
+        }, INITIAL_TRANSCRIPT_PIN_SETTLE_MS);
+      }
+    });
+    observer.observe(contentRoot);
+    return () => observer.disconnect();
+  }, [onNearBottomChange]);
 
   return (
     <div className="min-h-0 flex flex-1 overflow-hidden pl-6 pr-2 pt-0">
@@ -204,12 +267,14 @@ export function CanonicalTranscriptView({
         data-active-chat-id={String(activeConversationId || '')}
         data-canonical-transcript-root="true"
         onScroll={handleScroll}
+        onPointerDownCapture={cancelInitialPin}
         onWheelCapture={handleWheelCapture}
         style={{
           overflowAnchor: 'none',
         }}
       >
         <div
+          ref={contentRootRef}
           className={cn(widthPositionClassName, 'space-y-5 pt-1', widthClassName, contentPaddingBottomClassName)}
           data-canonical-transcript-width={widthClassName}
         >

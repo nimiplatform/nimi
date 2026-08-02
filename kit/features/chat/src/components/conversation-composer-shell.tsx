@@ -25,7 +25,7 @@ export function ConversationComposerShell({
     <div
       className={cn(
         'shrink-0 rounded-[28px]',
-        'border border-white/90 bg-white/84',
+        'border border-white/90 bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,transparent)]',
         'shadow-[0_24px_50px_rgba(15,23,42,0.08)]',
         'backdrop-blur-xl',
         'px-2.5 py-1.5',

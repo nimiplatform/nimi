@@ -48,6 +48,7 @@ afterEach(async () => {
   container?.remove();
   root = null;
   container = null;
+  vi.unstubAllGlobals();
 });
 
 describe('conversation shell ui', () => {
@@ -102,6 +103,7 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(transcriptRoot?.className).toContain('ml-0');
     expect(transcriptRoot?.className).toContain('overflow-y-auto');
     expect(transcriptRoot?.className).toContain('overscroll-contain');
+    expect(transcriptRoot?.getAttribute('data-active-chat-id')).toBe('session-agent');
     expect(transcriptWidth?.className).toContain('pb-[clamp(168px,20vh,240px)]');
     expect(container.querySelector('[data-test-composer="true"]')).not.toBeNull();
   });
@@ -402,6 +404,137 @@ it('keeps the transcript scroll root inside the content column and reserves bott
 
     await act(async () => {
       root?.render(<CanonicalTranscriptView messages={nextMessages} />);
+      await flush();
+    });
+
+    expect(transcriptRoot.scrollTop).toBe(960);
+  });
+
+  it('keeps the initial transcript pinned while rendered content finishes measuring', async () => {
+    let resizeCallback: ResizeObserverCallback | null = null;
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeCallback = callback;
+      }
+
+      observe() {}
+
+      unobserve() {}
+
+      disconnect() {}
+    });
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          messages={[{
+            id: 'assistant-1',
+            sessionId: 'session-agent',
+            targetId: 'agent:song-lian',
+            source: 'agent',
+            role: 'assistant',
+            text: 'Measured after the initial virtual layout.',
+            createdAt: '2026-04-05T00:00:00.000Z',
+            kind: 'text',
+          }]}
+        />,
+      );
+      await flush();
+    });
+
+    const transcriptRoot = container.querySelector('[data-canonical-transcript-root="true"]') as HTMLDivElement | null;
+    expect(transcriptRoot).not.toBeNull();
+    expect(resizeCallback).not.toBeNull();
+    if (!transcriptRoot || !resizeCallback) {
+      return;
+    }
+
+    let scrollHeightValue = 640;
+    Object.defineProperty(transcriptRoot, 'clientHeight', {
+      configurable: true,
+      get: () => 320,
+    });
+    Object.defineProperty(transcriptRoot, 'scrollHeight', {
+      configurable: true,
+      get: () => scrollHeightValue,
+    });
+    transcriptRoot.scrollTop = 320;
+
+    scrollHeightValue = 960;
+    await act(async () => {
+      transcriptRoot.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await flush();
+      resizeCallback?.([], {} as ResizeObserver);
+      await flush();
+    });
+
+    expect(transcriptRoot.scrollTop).toBe(960);
+  });
+
+  it('restarts the initial bottom pin when the active conversation changes', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    const message = {
+      id: 'assistant-1',
+      sessionId: 'session-agent-1',
+      targetId: 'agent:first',
+      source: 'agent' as const,
+      role: 'assistant' as const,
+      text: 'First conversation.',
+      createdAt: '2026-04-05T00:00:00.000Z',
+      kind: 'text' as const,
+    };
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          activeConversationId="session-agent-1"
+          messages={[message]}
+        />,
+      );
+      await flush();
+    });
+
+    const transcriptRoot = container.querySelector('[data-canonical-transcript-root="true"]') as HTMLDivElement | null;
+    expect(transcriptRoot).not.toBeNull();
+    if (!transcriptRoot) {
+      return;
+    }
+    Object.defineProperty(transcriptRoot, 'clientHeight', {
+      configurable: true,
+      get: () => 320,
+    });
+    Object.defineProperty(transcriptRoot, 'scrollHeight', {
+      configurable: true,
+      get: () => 960,
+    });
+
+    await act(async () => {
+      transcriptRoot.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      transcriptRoot.scrollTop = 0;
+      transcriptRoot.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await flush();
+    });
+    expect(transcriptRoot.scrollTop).toBe(0);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          activeConversationId="session-agent-2"
+          messages={[{
+            ...message,
+            id: 'assistant-2',
+            sessionId: 'session-agent-2',
+            targetId: 'agent:second',
+            text: 'Second conversation.',
+          }]}
+        />,
+      );
       await flush();
     });
 
