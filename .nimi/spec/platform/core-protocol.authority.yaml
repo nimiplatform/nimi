@@ -49,31 +49,122 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-route
     kind: definition
     title: AI route
-    meaning: An AI route has source local or cloud, and local privacy semantics apply only to a local route.
+    meaning: An AIConfig route intent is exactly Local or Cloud for one CapabilityContract; Local dynamically dereferences the machine-selected Local Capability Configuration, Cloud names one Cloud CapabilityImplementation and Driver-owned provider-model target intent, and local privacy semantics apply only to Local.
   - id: definition.nimi.platform.core-protocol.ai-scope-ref
     kind: definition
-    title: AIScopeRef canonical identity
-    meaning: AIScopeRef is the canonical cross-surface AI configuration scope identity with kind app, module, feature, or local-agent, an ownerId, and an optional surfaceId, whose tuple forms a stable unique key; local-agent identity is Runtime-issued for one Runtime LocalAgent and carries no surfaceId.
+    lifecycle: removed
+    title: Retired scoped AI configuration identity
+    reason: Removed because AIConfig ownership is now closed to App or product owners and one shared Runtime LocalAgent subsystem rather than app, module, feature, or per-LocalAgent scopes.
   - id: definition.nimi.platform.core-protocol.ai-scope-lifecycle
     kind: definition
-    title: AIScopeRef lifecycle
-    meaning: An AIScopeRef lifecycle follows its owner entity from creation through existence and destruction, and an owner normally has one canonical AI scope unless it declares a small explicit set of stable first-class AI feature surfaces.
+    lifecycle: removed
+    title: Retired AI scope lifecycle
+    reason: Removed with the scoped AI configuration identity and replaced by canonical AIConfig owner lifecycle.
   - id: definition.nimi.platform.core-protocol.materialized-ai-config
     kind: definition
-    title: Materialized scoped AI configuration
-    meaning: A scoped AIConfig is the concrete independently editable configuration for one canonical scope, contains each configured capability's public logical primary selection, ordered concrete component selections whose logicalModelId field carries either a runnable component logical model identity or a passive component effective public identity, Runtime-private exact targets, and selected parameters, is fully materialized without an implicit inheritance or runtime fallback chain, and may receive copied structure and defaults from AIProfile only at apply time without retaining the profile as its live configuration.
+    lifecycle: removed
+    title: Retired materialized scoped AI configuration
+    reason: Removed because AIConfig no longer owns Local implementation, model, component, LocalAsset binding, or Runtime exact-target materialization.
   - id: definition.nimi.platform.core-protocol.built-in-chat-scopes
     kind: definition
-    title: First-run built-in chat scopes
-    meaning: The required first-run Desktop-owned chat scope is feature owner desktop.chat with surfaceId nimi; LocalAgent chat uses the Runtime-issued local-agent AIScopeRef of the selected Runtime LocalAgent rather than a second Desktop-owned agent scope, route, conversation, tab, message, or generic active-chat key.
+    lifecycle: removed
+    title: Retired built-in chat scopes
+    reason: Removed because Desktop Nimi Chat uses the Desktop App AIConfig while Desktop Agent Chat projects the one shared Runtime LocalAgent subsystem AIConfig.
   - id: definition.nimi.platform.core-protocol.app-launch-ai-scope
     kind: definition
-    title: Nimi App launch AI scope
-    meaning: A Nimi App launch AI scope has kind app, ownerId equal to the admitted dot-separated app_id, and an optional stable manifest-declared user-comprehensible AI feature surfaceId.
+    lifecycle: removed
+    title: Retired Nimi App launch AI scope
+    reason: Removed because each admitted App or product owner owns one AIConfig and launch does not create feature, module, route, renderer, or transient AI scopes.
+  - id: definition.nimi.platform.core-protocol.capability-contract
+    kind: definition
+    title: CapabilityContract
+    meaning: A CapabilityContract is the canonical product capability request, input, output, stream, cancel, progress, artifact, error, and job semantic boundary that Apps and LocalAgents consume without naming an engine, provider, model, or implementation.
+  - id: definition.nimi.platform.core-protocol.standardized-capability-feature
+    kind: definition
+    title: Contract-scoped standardized feature
+    meaning: A standardized feature identity is the pair of one CapabilityContract and one contract-local short name; the same short name under another contract has no shared meaning, and text.generate defines input.image, input.audio, and input.video as its initial standardized input features.
+  - id: definition.nimi.platform.core-protocol.capability-implementation
+    kind: definition
+    title: CapabilityImplementation
+    meaning: A CapabilityImplementation is a concrete Local or Cloud semantic implementation of one or more CapabilityContracts with a declared standardized-feature support set and exactly one CapabilityImplementationDriver and dialect identity.
+  - id: definition.nimi.platform.core-protocol.capability-implementation-driver
+    kind: definition
+    title: CapabilityImplementationDriver
+    meaning: A CapabilityImplementationDriver owns one implementation dialect, interprets its opaque portable configuration, deterministically projects normalized requirements, validates known compatibility and feature support, maps exact bindings and requests to engine invocation, and translates stream, progress, cancel, artifact, and error semantics without owning AIConfig, machine selection, routing, or fallback.
+  - id: definition.nimi.platform.core-protocol.execution-host
+    kind: definition
+    title: ExecutionHost
+    meaning: An ExecutionHost is the Runtime-private local process, Python worker, managed server, or remote transport substrate that owns supervision, IPC, leases, concurrency, and private health while owning no capability, Driver dialect, configuration, binding, route, or selection semantics.
+  - id: definition.nimi.platform.core-protocol.ai-config-owner
+    kind: definition
+    title: AIConfig owner
+    meaning: The closed current AIConfig owner set contains each admitted App or product owner and exactly one Runtime LocalAgent subsystem owner shared by all Runtime LocalAgents; Agent, feature, module, route, chat mode, renderer, window, conversation, or other transient identities are not AIConfig owners.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.core-protocol.ai-scope-ref
+  - id: definition.nimi.platform.core-protocol.ai-config-owner-lifecycle
+    kind: definition
+    title: AIConfig owner lifecycle
+    meaning: An App or product AIConfig follows its canonical owner lifecycle, while the shared Runtime LocalAgent AIConfig follows the Runtime LocalAgent subsystem lifecycle and never follows an individual LocalAgent lifecycle.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.core-protocol.ai-scope-lifecycle
+  - id: definition.nimi.platform.core-protocol.ai-config
+    kind: definition
+    title: AIConfig
+    meaning: An AIConfig is the directly editable current capability intent for exactly one canonical AIConfig owner and stores per CapabilityContract a Local or Cloud route intent, required standardized features, defaults, and, only for Cloud, the CapabilityImplementation, Driver-owned provider-model target intent, and an optional explicitly selected ConnectorGrant binding.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: definition.nimi.platform.core-protocol.ai-profile
+    kind: definition
+    title: AIProfile
+    meaning: An AIProfile is an independently and directly editable portable template that may carry AIConfig intent, Local Capability Configuration intent, Cloud implementation or target recommendations, standardized features, defaults, provenance, and license without becoming live configuration or retaining a product revision, history, inheritance, or re-apply relationship.
+  - id: definition.nimi.platform.core-protocol.ai-profile-actions
+    kind: definition
+    title: AIProfile and configuration product actions
+    meaning: The formal product actions are Import Profile, Apply Profile to AIConfig, Add or Update Local Capability Configuration, and Select Local Capability Configuration, with each action writing only its named owner and no cross-owner transaction or success claim.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+  - id: definition.nimi.platform.core-protocol.machine-local-ai-configuration
+    kind: definition
+    title: Machine Local AI Configuration
+    meaning: Machine Local AI Configuration is the unique per-machine owner of zero or more flat saved Local Capability Configurations per CapabilityContract and at most one selected Local Capability Configuration relation per contract; it contains no App Cloud intent, App defaults, AIProfile, global AIConfig, revision, history, preset chain, or inheritance.
+  - id: definition.nimi.platform.core-protocol.local-capability-configuration
+    kind: definition
+    title: Local Capability Configuration
+    meaning: A Local Capability Configuration is a machine-local saved record with a Runtime-generated identity that remains stable for the record's lifetime and contains one CapabilityContract, one CapabilityImplementation, its CapabilityImplementationDriver and dialect identity, Driver-owned portable configuration, deterministically projected normalized local requirements, exact bindings or unresolved slots, declared standardized-feature support, and provenance and display metadata; the stable identity is neither revision nor history, and provenance is non-authorizing metadata rather than identity, binding, or selection truth.
+  - id: definition.nimi.platform.core-protocol.connector-grant
+    kind: definition
+    title: ConnectorGrant
+    meaning: A ConnectorGrant is the explicit account-authorization binding and Runtime secret-custody reference selected for one AIConfig Cloud route; it is not a CapabilityImplementation, provider-model target, route selector, capability router, or portable profile field.
+  - id: definition.nimi.platform.core-protocol.capability-job-effective-inputs
+    kind: definition
+    title: Capability job effective inputs
+    meaning: Capability job effective inputs are the immutable exact request-time composition captured at submission from authorization, the owner AIConfig, and either the selected Local Capability Configuration with implementation, Driver configuration, and exact bindings or the Cloud implementation, target, ConnectorGrant, defaults, and request.
+  - id: definition.nimi.platform.core-protocol.derived-capability-admission
+    kind: definition
+    title: Derived capability admission
+    meaning: Derived capability admission is a request-time allow or typed blocked reason computed from committed configuration, selection, requirement resolution, feature subset, authorization, quota, budget, and exact current facts without becoming configuration state, readiness, a probe result, or job execution outcome.
+  - id: definition.nimi.platform.core-protocol.built-in-chat-ai-config-owners
+    kind: definition
+    title: Built-in chat AIConfig owners
+    meaning: Desktop Nimi Chat consumes the Desktop App AIConfig, while Desktop Agent Chat is a Runtime LocalAgent projection that consumes the one shared Runtime LocalAgent subsystem AIConfig; the two chat surfaces remain distinct consumers and never create chat-specific or per-Agent AIConfig owners.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.core-protocol.built-in-chat-scopes
+  - id: definition.nimi.platform.core-protocol.app-ai-config-owner
+    kind: definition
+    title: App AIConfig owner
+    meaning: Each admitted Nimi App or product owner has exactly one AIConfig whose owner identity is the canonical app or product identity; app launch, features, modules, surfaces, and renderer instances do not create additional AIConfig owners.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
   - id: definition.nimi.platform.core-protocol.capability-catalog
     kind: definition
     title: Canonical capability catalog
-    meaning: The canonical capability catalog is the single enumeration of active and deferred CanonicalCapabilityId values and gives each active capability a section, editor kind, runtime source reference, internationalization keys, and runtime evidence class without owning provider, model, engine, routing, binding preference, or permission state.
+    meaning: The canonical capability catalog is the single enumeration of active and deferred CapabilityContract identities, also projected as CanonicalCapabilityId values, and gives each active contract its catalog metadata without owning standardized-feature identity, implementation, Driver, provider, model, engine, routing, binding, selection, or permission state.
   - id: definition.nimi.platform.core-protocol.capability-source-resolver
     kind: definition
     title: Capability runtime source resolver
@@ -416,9 +507,9 @@ units:
     kind: rule
     title: P-ALMI-020 explicit AI routing
     modality: must
-    statement: AI routing uses only local or cloud source, exposes every fallback, and claims local privacy semantics only for a local route.
-    condition: Whenever an AI route is selected or changed.
-    failure: Reject an unknown or hidden route and withhold local privacy claims from cloud routing.
+    statement: One AIConfig explicitly commits exactly one Local or Cloud route intent per configured CapabilityContract, and Runtime deterministically dereferences that committed intent without search, ranking, probing, provider arbitration, or fallback while claiming local privacy semantics only for Local.
+    condition: Whenever an AIConfig route is committed or a capability request is composed.
+    failure: Reject an unknown, omitted, inferred, searched, or fallback route and withhold local privacy claims from Cloud.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-route
@@ -444,114 +535,116 @@ units:
         target: definition.nimi.platform.core-protocol.action-descriptor
   - id: rule.nimi.platform.core-protocol.p-aisc-001
     kind: rule
-    title: P-AISC-001 AIScopeRef identity semantics
+    title: P-AISC-001 AIConfig owner identity semantics
     modality: must
-    statement: AIScopeRef uses the closed app, module, feature, and local-agent kind set, gives app to app identity, module only to a canonical module owner, feature only to an independently reusable feature owner without fragmenting app or module truth, and local-agent only to a Runtime-issued ownerId equal to one canonical Runtime LocalAgent reference with no surfaceId.
-    condition: Whenever an AI configuration scope identity is created or interpreted.
-    failure: Reject an unknown kind, unstable tuple, ineligible owner, caller-fabricated local-agent identity, local-agent surfaceId, or fragmented identity.
+    statement: AIConfig owner identity resolves only to one admitted App or product owner or the single Runtime LocalAgent subsystem owner shared by every Runtime LocalAgent.
+    condition: Whenever an AIConfig owner is created, resolved, or interpreted.
+    failure: Reject an Agent, feature, module, route, chat mode, renderer, window, conversation, transient object, or caller-fabricated owner.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-scope-ref
+        target: definition.nimi.platform.core-protocol.ai-config-owner
   - id: rule.nimi.platform.core-protocol.p-aisc-002a
     kind: rule
-    title: P-AISC-002 unique owner-driven scope lifecycle
+    title: P-AISC-002 canonical owner-driven AIConfig lifecycle
     modality: must
-    statement: Every AIScopeRef remains globally unique for its lifetime, is produced by a canonical factory or registry, follows owner lifecycle, and invalidates or removes bound AIConfig when destroyed.
-    condition: Whenever an AI scope is created, retained, or destroyed.
-    failure: Reject an ad hoc or duplicate key and remove orphaned configuration.
+    statement: Every AIConfig remains keyed by one canonical owner for its lifetime, App AIConfig follows the App or product lifecycle, and the shared Runtime LocalAgent AIConfig survives individual LocalAgent creation, selection, and deletion.
+    condition: Whenever an AIConfig owner or AIConfig is created, retained, or destroyed.
+    failure: Reject an ad hoc or duplicate owner, remove an orphaned App AIConfig, and reject per-Agent lifecycle coupling.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-scope-lifecycle
+        target: definition.nimi.platform.core-protocol.ai-config-owner-lifecycle
   - id: rule.nimi.platform.core-protocol.p-aisc-002b
     kind: rule
-    title: P-AISC-002 bounded multi-scope use
+    title: P-AISC-002 no fragmented AIConfig owners
     modality: must_not
-    statement: An owner creates extra AIScopeRef values for a tab, session, thread, document, selected record, modal, wizard step, route, window, conversation, or other transient UI or domain object.
-    condition: Whenever an owner has not declared a stable first-class AI feature surface.
-    failure: Keep one canonical owner scope and represent current-object selection as domain state within it.
+    statement: An App, product, or Runtime LocalAgent subsystem creates extra AIConfig owners for a feature, module, Agent, tab, session, thread, document, selected record, modal, wizard step, route, window, conversation, renderer, or other subordinate or transient object.
+    condition: Whenever an AIConfig owner boundary is declared or persisted.
+    failure: Keep exactly one AIConfig for the canonical owner and represent subordinate selection in its owning domain state.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-scope-lifecycle
+        target: definition.nimi.platform.core-protocol.ai-config-owner
   - id: rule.nimi.platform.core-protocol.p-aisc-003
     kind: rule
-    title: P-AISC-003 no implicit AIConfig inheritance
+    title: P-AISC-003 AIConfig has no inheritance or Local binding
     modality: must_not
-    statement: A scoped AIConfig inherits implicitly or references another scope at runtime as a fallback.
-    condition: Whenever a scoped AIConfig is materialized or resolved.
-    failure: Reject the fallback chain and use a full materialized config or explicit copy-on-write profile application.
+    statement: An AIConfig inherits another AIConfig, retains an AIProfile as live configuration, or stores a Local Capability Configuration identity, local model, workflow, node environment, LocalAsset binding, machine selection, process state, residency, health, or exact local execution target.
+    condition: Whenever an AIConfig is created, overwritten, edited, read, or composed for execution.
+    failure: Reject the inheritance or duplicated Local truth and keep Local implementation and binding solely in Machine Local AI Configuration.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
   - id: rule.nimi.platform.core-protocol.p-aisc-004
     kind: rule
-    title: P-AISC-004 cross-surface applicability
+    title: P-AISC-004 cross-surface AIConfig owner applicability
     modality: must
-    statement: AIScopeRef applies to Desktop and Web, while each surface defines any surface-specific behavior in its own kernel contract.
-    condition: Whenever AIScopeRef is consumed on Desktop or Web.
-    failure: Reject a consumer-local change to the cross-surface identity contract.
+    statement: Canonical AIConfig owner identity applies consistently across Desktop, Web, SDK, and Runtime while each surface defines only its placement and interaction behavior.
+    condition: Whenever AIConfig owner identity is consumed across surfaces.
+    failure: Reject a consumer-local owner kind, alias, or identity extension.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-scope-ref
+        target: definition.nimi.platform.core-protocol.ai-config-owner
   - id: rule.nimi.platform.core-protocol.p-aisc-005
     kind: rule
-    title: P-AISC-005 allowed consumers preserve schema
+    title: P-AISC-005 consumers preserve owner identity
     modality: must_not
-    statement: Desktop AIConfig storage or selection, SDK typed config, profile, or snapshot APIs, or Runtime execution-snapshot evidence extends AIScopeRef with consumer-local fields.
-    condition: Whenever an admitted kernel consumer needs extra scope annotation.
-    failure: Keep AIScopeRef unchanged and place the annotation in a separate consumer-owned structure.
+    statement: Desktop storage, SDK typed config, Profile, Job, or Runtime evidence extends canonical AIConfig owner identity with consumer-local scope, Agent, feature, module, route, renderer, or selection fields.
+    condition: Whenever an admitted consumer needs additional domain annotation.
+    failure: Keep the canonical owner identity unchanged and place the annotation in its separate owner structure.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-scope-ref
+        target: definition.nimi.platform.core-protocol.ai-config-owner
   - id: rule.nimi.platform.core-protocol.p-aisc-006a
     kind: rule
-    title: P-AISC-006 exact built-in chat scopes
+    title: P-AISC-006 exact built-in chat AIConfig owners
     modality: must
-    statement: Built-in Nimi chat configuration uses exactly feature owner desktop.chat with surfaceId nimi, while built-in LocalAgent chat configuration uses exactly the Runtime-issued local-agent AIScopeRef of the selected Runtime LocalAgent and never desktop.chat with surfaceId agent.
-    condition: Whenever built-in chat AIConfig is initialized, stored, or consumed.
-    failure: Reject an omitted or differently shaped Nimi scope, a Desktop-owned substitute for LocalAgent scope, a merged scope, or a scope that is not owned by the active chat subject.
+    statement: Desktop Nimi Chat always uses the Desktop App AIConfig and Desktop Agent Chat always uses the one shared Runtime LocalAgent subsystem AIConfig, regardless of which LocalAgent is selected for conversation.
+    condition: Whenever either built-in chat submits, initializes, stores, or edits AI capability intent.
+    failure: Reject a merged chat owner, chat-specific AIConfig, per-Agent AIConfig, or Desktop-owned substitute for the shared LocalAgent owner.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.built-in-chat-scopes
+        target: definition.nimi.platform.core-protocol.built-in-chat-ai-config-owners
   - id: rule.nimi.platform.core-protocol.p-aisc-006b
     kind: rule
-    title: P-AISC-006 no built-in chat substitutes
+    title: P-AISC-006 no built-in chat owner substitutes
     modality: must_not
-    statement: First-run substitutes an app-kind desktop or desktop-chat identity, a merged desktop.chat scope, a feature scope without surfaceId for Nimi chat, desktop.chat with surfaceId agent for LocalAgent chat, a caller-built local-agent tuple, a consumer-local string, or a generic fallback for either chat owner.
-    condition: Whenever a built-in chat scope is resolved.
-    failure: Reject the substitute and require the exact canonical owner-issued identity.
+    statement: First-run, Desktop, Agent Center, renderer state, selected Agent, chat mode, or conversation state creates or substitutes a distinct AIConfig owner for either built-in chat.
+    condition: Whenever a built-in chat AIConfig owner is resolved.
+    failure: Reject the substitute and require the exact canonical Desktop App or shared Runtime LocalAgent subsystem owner.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.built-in-chat-scopes
+        target: definition.nimi.platform.core-protocol.built-in-chat-ai-config-owners
   - id: rule.nimi.platform.core-protocol.p-aisc-007a
     kind: rule
-    title: P-AISC-007 explicit Nimi App launch scope
+    title: P-AISC-007 explicit Nimi App AIConfig owner
     modality: must
-    statement: Nimi App Open carries an explicit canonical-factory or registry-produced app-kind AIScopeRef whose ownerId is the admitted app_id and whose optional surfaceId is a stable manifest-declared AI feature surface.
-    condition: Whenever an admitted Nimi App is launched through Open flow.
-    failure: Reject launch when scope is absent, inferred, unadmitted, transient, or not manifest-declared.
+    statement: Nimi App Open resolves the admitted App identity to its one canonical App AIConfig owner and never creates a launch-, surface-, feature-, or renderer-specific configuration owner.
+    condition: Whenever an admitted Nimi App is launched through Open flow or consumes AIConfig.
+    failure: Reject an absent, inferred, unadmitted, transient, fragmented, or caller-fabricated App owner.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
+        target: definition.nimi.platform.core-protocol.app-ai-config-owner
   - id: rule.nimi.platform.core-protocol.p-aisc-007b
     kind: rule
-    title: P-AISC-007 app scope lifecycle
+    title: P-AISC-007 App AIConfig lifecycle
     modality: must
-    statement: App-launch AIConfig follows app identity lifecycle and is invalidated or removed when the app leaves the account library.
+    statement: App AIConfig follows canonical App or product owner lifecycle and is invalidated or removed when that owner leaves the account library.
     condition: Whenever an admitted app is removed from the account library.
     failure: Remove or invalidate the app-scoped configuration and reject orphaned use.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
+        target: definition.nimi.platform.core-protocol.app-ai-config-owner
   - id: rule.nimi.platform.core-protocol.p-aisc-007c
     kind: rule
-    title: P-AISC-007 no app-launch fallback or chat reuse
+    title: P-AISC-007 no App owner fallback or chat reuse
     modality: must_not
-    statement: App launch uses a generic, inferred, omitted, previous, active-selection, renderer-local, or consumer-default scope, reuses a built-in chat feature scope, converts that feature shape into app scope, or fragments app AIConfig across undeclared surfaces.
-    condition: Whenever an app-launch scope is selected or resolved.
-    failure: Fail closed and require the exact admitted app-owned scope.
+    statement: App launch uses a generic, inferred, omitted, previous, active-selection, renderer-local, or consumer-default AIConfig owner, reuses a built-in chat owner, or fragments App AIConfig across features or surfaces.
+    condition: Whenever an App AIConfig owner is resolved.
+    failure: Fail closed and require the exact admitted App or product owner.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
+        target: definition.nimi.platform.core-protocol.app-ai-config-owner
   - id: rule.nimi.platform.core-protocol.p-capcat-001a
     kind: rule
     title: P-CAPCAT-001 canonical capability admission
@@ -867,39 +960,48 @@ units:
   - id: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
     kind: definition
     title: Factory AIProfile catalog
-    meaning: The Platform-owned factory AIProfile catalog is a closed set of portable profile templates selected by a deterministic Platform policy from Runtime evidence and explicit user posture and applied to a scope through a typed profile reference.
+    meaning: The Platform-owned factory AIProfile catalog is a closed set of portable templates that may be browsed, imported, or recommended without becoming live AIConfig, Machine Local AI Configuration, machine selection, installation, binding, or execution authority.
   - id: definition.nimi.platform.core-protocol.factory-ai-profile-row
     kind: definition
     title: Factory AIProfile row
-    meaning: A factory AIProfile row is keyed by privacy posture, compute posture, canonical capability set, and routing policy, separates portable profile fields from selection-only host and posture inputs, and uses an alias only as a readable projection.
+    meaning: A factory AIProfile row carries portable AIConfig intent, portable Local Capability Configuration intent, non-binding Local or Cloud recommendations, contract-scoped standardized features, defaults, provenance, and license, and uses its alias only as readable catalog identity.
   - id: definition.nimi.platform.core-protocol.factory-profile-cloud-first
     kind: definition
     title: cloud-first factory AIProfile row
-    meaning: The cloud-first row is cloud-ok, cloud-only, and cloud-first for text.generate, text.generate.vision, text.embed, audio.synthesize, audio.transcribe, image.generate, and image.edit on windows-amd64-cpu, windows-amd64-nvidia-cuda, and darwin-arm64-metal, has no local pack or dependency reference, requires no materialization confirmation, and applies after initialization to first-party apps and scope-bound apply.
+    meaning: The cloud-first row portably recommends Cloud AIConfig intent for text.generate with required input.image plus text.embed, audio.synthesize, audio.transcribe, image.generate, and image.edit, may recommend Cloud implementations and Driver-owned provider-model targets, carries no ConnectorGrant or account identity, and performs no Local installation or selection.
   - id: definition.nimi.platform.core-protocol.factory-profile-local-standard
     kind: definition
     title: local-standard factory AIProfile row
-    meaning: The local-standard row is local-preferred, cpu-only, and local-first for text.generate and text.embed on windows-amd64-cpu, darwin-arm64-metal, and windows-amd64-nvidia-cuda, references local-text with native-engine-package.llama and model.asset, requires materialization confirmation, and applies after initialization to first-party apps and scope-bound apply.
+    meaning: The local-standard row portably recommends Local AIConfig intent for text.generate and text.embed and may carry corresponding local implementation configuration intent, but importing or applying it does not install, bind, add, update, or select a Local Capability Configuration.
   - id: definition.nimi.platform.core-protocol.factory-profile-local-speech-ready
     kind: definition
-    title: local-speech-ready factory AIProfile row
-    meaning: The local-speech-ready row is local-preferred, cpu-only, and local-first for text.generate, audio.transcribe, and audio.synthesize on windows-amd64-cpu, darwin-arm64-metal, and windows-amd64-nvidia-cuda, references local-text and local-speech with native-engine-package.llama, python.tool.uv, python.runtime, python.venv, python.package-set, and model.asset, requires confirmation, and applies to minimal or recommended first-run, first-party apps, and scope-bound apply.
+    lifecycle: removed
+    title: Retired local-speech-ready factory AIProfile row
+    reason: Removed because a portable Profile alias must not encode product readiness and local-speech is its hard-cut successor.
+  - id: definition.nimi.platform.core-protocol.factory-profile-local-speech
+    kind: definition
+    title: local-speech factory AIProfile row
+    meaning: The local-speech row portably recommends Local AIConfig intent for text.generate, audio.transcribe, and audio.synthesize and may carry corresponding local implementation configuration intent, but it performs no installation, binding, machine selection, admission, probe, or readiness action.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.core-protocol.factory-profile-local-speech-ready
   - id: definition.nimi.platform.core-protocol.factory-profile-local-gpu
     kind: definition
     title: local-gpu factory AIProfile row
-    meaning: The local-gpu row is local-preferred, cuda-capable, and local-first for text.generate, text.generate.vision, audio.transcribe, audio.synthesize, image.generate, and image.edit on windows-amd64-nvidia-cuda and darwin-arm64-metal, references local-text, local-speech, local-image-native, and local-gpu-support with accelerator.cuda.runtime, native-engine-package.llama, native-engine-package.stablediffusion-ggml, python.tool.uv, python.runtime, python.venv, python.package-set, python.torch-wheel, model.asset, and model.companion-asset, requires confirmation, and applies to recommended first-run, first-party apps, and scope-bound apply.
+    meaning: The local-gpu row portably recommends Local AIConfig intent for text.generate with required input.image plus audio.transcribe, audio.synthesize, image.generate, and image.edit and may carry local implementation configuration intent with independent main and companion requirements, but it performs no host probe, installation, binding, or machine selection.
   - id: definition.nimi.platform.core-protocol.factory-profile-hybrid-recommended
     kind: definition
     title: hybrid-recommended factory AIProfile row
-    meaning: The hybrid-recommended row is cloud-ok, cuda-capable, and hybrid-explicit for text.generate, text.generate.vision, text.embed, audio.transcribe, audio.synthesize, image.generate, image.edit, and video.generate on windows-amd64-nvidia-cuda, darwin-arm64-metal, and windows-amd64-cpu, references local-text, local-speech, and local-image-native with native-engine-package.llama, native-engine-package.stablediffusion-ggml, python.tool.uv, python.runtime, python.venv, python.package-set, model.asset, and model.companion-asset, requires confirmation, and applies after initialization to first-party apps and scope-bound apply.
+    meaning: The hybrid-recommended row contains explicit per-CapabilityContract Local or Cloud recommendations for text.generate with required input.image, text.embed, audio.transcribe, audio.synthesize, image.generate, image.edit, and video.generate, and it never authorizes runtime hybrid fallback or a cross-owner Apply transaction.
   - id: definition.nimi.platform.core-protocol.ai-profile-selection
     kind: definition
-    title: AIProfile selection result
-    meaning: An AIProfile selection result is a typed factory AIProfile reference and typed reason produced deterministically from admitted Runtime host evidence and explicit user posture without becoming live configuration or execution readiness.
+    title: AIProfile recommendation result
+    meaning: An AIProfile recommendation result is a typed factory AIProfile reference and reason produced from explicit user posture and bounded catalog or host facts without becoming AIConfig route choice, Local Capability Configuration, machine selection, binding, installation, admission, or execution truth.
   - id: definition.nimi.platform.core-protocol.ai-profile-apply-state
     kind: definition
-    title: AIProfile apply state
-    meaning: The closed AIProfile apply states are ai-profile-pending, ai-profile-accepted, ai-profile-setup-required, ai-profile-applied, ai-profile-materializing, ai-profile-active, and ai-profile-failed, with non-ready and failure reasons preserved.
+    lifecycle: removed
+    title: Retired AIProfile apply state
+    reason: Removed because Apply Profile to AIConfig is one atomic create-or-overwrite action and does not own materialization, installation, readiness, activation, recovery, revision, or re-apply lifecycle.
   - id: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
     kind: definition
     title: First-party AIProfile hint
@@ -907,62 +1009,74 @@ units:
   - id: definition.nimi.platform.core-protocol.account-default-profile
     kind: definition
     title: Account Default Profile
-    meaning: The Account Default Profile is the optional durable account-scoped local profile-library record at <dataRoot>/accounts/<account-id>/profiles/default.json, where dataRoot is resolved only from ~/.nimi/nimi.json; it is created or restored only by an explicit account profile operation, remains outside Product Control readiness, and is never sourced from Realm identity material, an ambient projection, or a caller-supplied root.
+    meaning: The Account Default Profile is an optional durable account-owned library association to portable AIProfile content stored under the selected data root; its portable content contains no account or machine private identity, it changes only through an explicit profile operation, remains outside Product Control readiness, and is never sourced from Realm identity material or ambient projection.
   - id: definition.nimi.platform.core-protocol.capability-governance
     kind: definition
     title: Canonical capability governance metadata
-    meaning: Canonical capability governance metadata maps text.generate and text.generate.vision to runtime-route, local-or-cloud-by-selected-route, zhiyu-retains-no-provider-payload, change-runtime-route-or-revoke-connector, and runtime-route-evidence; text.embed to runtime-memory-route, local-or-cloud-by-embedding-route, runtime-memory-policy, memory-policy-or-route-owner, and runtime-memory-evidence; audio.synthesize and audio.transcribe to runtime-audio-route, local-or-cloud-by-selected-route, runtime-audio-policy, route-or-connector-owner, and runtime-scenario-job-evidence; voice_workflow.voice_clone and voice_workflow.voice_design to runtime-voice-workflow, local-or-cloud-by-workflow-route, runtime-voice-asset-policy, runtime-voice-asset-owner, and runtime-scenario-job-evidence; image.generate, image.edit, and video.generate to runtime-media-route, local-or-cloud-by-selected-route, runtime-artifact-policy, route-or-artifact-owner, and runtime-scenario-job-evidence; and world.generate to runtime-world-route, local-or-cloud-by-selected-route, runtime-artifact-policy, route-or-artifact-owner, and runtime-scenario-job-evidence, in owner, dataMovement, retention, revocation, and auditSource order without moving route or permission authority into the catalog.
+    meaning: Canonical capability governance metadata maps each CapabilityContract, including the single text.generate contract whose input.image, input.audio, and input.video features are contract-scoped rather than subtype capabilities, to non-empty owner, dataMovement, retention, revocation, and auditSource facts without moving AIConfig route, machine selection, implementation, ConnectorGrant, permission, or job authority into the catalog.
   - id: rule.nimi.platform.core-protocol.p-aips-001a
     kind: rule
-    title: P-AIPS-001 Platform selection ownership
+    title: P-AIPS-001 canonical capability configuration owners
     modality: must
-    statement: Platform owns the factory catalog and deterministic selection semantics, Runtime supplies only admitted host evidence and owns execution preparation, materialization, readiness, route feasibility, and execution evidence, each scope or app owner owns live AIConfig intent, and SDK owns typed projection.
-    condition: Whenever a factory profile is selected, prepared, applied, or executed.
-    failure: Reject any selection or execution path that moves one of these responsibilities to another layer.
+    statement: Each canonical AIConfig owner owns only its per-contract route, required standardized features, defaults, and Cloud intent; Machine Local AI Configuration owns saved Local Capability Configurations and machine selection; each Job owns only its immutable execution inputs and outcome; ExecutionHost owns only private process and transport state; and SDK owns typed projection.
+    condition: Whenever AI capability configuration, selection, admission, execution, or projection is defined.
+    failure: Reject a duplicated fact or any move of canonical ownership across these boundaries.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-profile-selection
+        target: definition.nimi.platform.core-protocol.ai-config
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
+        target: definition.nimi.platform.core-protocol.capability-job-effective-inputs
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.execution-host
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
   - id: rule.nimi.platform.core-protocol.p-aips-001b
     kind: rule
-    title: P-AIPS-001 no fourth AI truth
+    title: P-AIPS-001 no parallel capability configuration truth
     modality: must_not
-    statement: The factory catalog, selection policy, or a renamed subordinate helper owns or persists live AIConfig, AISnapshot, installation state, materialization jobs, selected sources, host profiles, local packs, dependency schemas, activation reasons, or any fourth live AI configuration truth outside AIProfile, AIConfig, and AISnapshot.
-    condition: Whenever selection or factory-profile state is defined or persisted.
-    failure: Reject the duplicate truth surface and retain authority with its canonical owner.
+    statement: A catalog, inventory, selected-source record, process registry, Agent Center, App-local settings object, profile binding, readiness record, route resolver, or renamed helper persists AIConfig route intent, Local Capability Configuration, machine selection, Cloud grant binding, or job effective inputs outside its canonical owner.
+    condition: Whenever capability configuration or execution state is defined or persisted.
+    failure: Reject the parallel truth and retain the fact only with its canonical owner.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-job-effective-inputs
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
   - id: rule.nimi.platform.core-protocol.p-aips-001c
     kind: rule
     title: P-AIPS-001 portable catalog boundary
     modality: must
-    statement: Factory rows contain only portable AIProfile intent and product recommendation semantics, exclude local paths, installation, health, and other host state, and commit selected intent through typed apply to the owning scope.
-    condition: Whenever a factory row is admitted or selected intent is committed.
-    failure: Reject a non-portable row or a commit outside typed scope-owned apply.
+    statement: Factory rows contain only portable AIProfile intent and non-binding recommendation semantics and exclude Local Capability Configuration identity, machine selection, LocalAsset id or path, ConnectorGrant, connector or account identity, secret, process identity, installation, health, and other host state.
+    condition: Whenever a factory row is admitted, imported, recommended, or consumed.
+    failure: Reject the non-portable field or any direct mutation of AIConfig or Machine Local AI Configuration by catalog consumption.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-row
   - id: rule.nimi.platform.core-protocol.p-aips-002a
     kind: rule
-    title: P-AIPS-002 factory row schema
+    title: P-AIPS-002 factory row portable content boundary
     modality: must
-    statement: Every factory row provides alias, privacy_posture, compute_posture, capability_set, routing_policy, host_capability_profile_refs, local_compute_pack_refs, dependency_family_refs, materialization_confirmation_required, applicable_scopes, first_run_install_levels, and source_rule and uses only the declared closed enums.
+    statement: Every factory row declares typed portable AIConfig intent and any portable Local Capability Configuration intent using CapabilityContracts, contract-scoped required or supported features, defaults, implementation or target recommendations, provenance, and license, while any recommendation posture remains non-binding.
     condition: Whenever a factory row is admitted or interpreted.
-    failure: Reject a missing field, unknown enum member, or unresolved required value.
+    failure: Reject an unknown contract or feature, an untyped intent, or a recommendation represented as committed route, binding, selection, installation, or readiness.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.standardized-capability-feature
   - id: rule.nimi.platform.core-protocol.p-aips-002b
     kind: rule
     title: P-AIPS-002 matrix and field separation
     modality: must
-    statement: A readable alias neither owns schema nor binds a provider, connector, engine, or model, portable capability, generation, companion, policy, style, and UX intent remains separate from selection-only posture, host-profile, pack, dependency, and confirmation inputs, and selection-only fields are never written by profile apply.
-    condition: Whenever a factory row is represented, selected, or applied.
-    failure: Reject schema authority in an alias, a concrete vendor binding, field conflation, or selection input written into AIConfig.
+    statement: A readable alias neither owns schema nor binds a ConnectorGrant, LocalAsset, machine identity, machine selection, account, process, provider credential, or exact local target, and portable AIConfig intent remains distinct from portable local implementation configuration intent.
+    condition: Whenever a factory row is represented, imported, recommended, or applied.
+    failure: Reject schema authority in an alias, a machine or account binding, or conflation of the two intent families.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-row
@@ -970,7 +1084,7 @@ units:
     kind: rule
     title: P-AIPS-002 closed factory profile rows
     modality: must
-    statement: The closed factory catalog contains exactly cloud-first, local-standard, local-speech-ready, local-gpu, and hybrid-recommended with the dimensions, references, confirmation posture, scopes, and install levels defined by their canonical rows.
+    statement: The closed factory catalog contains exactly cloud-first, local-standard, local-speech, local-gpu, and hybrid-recommended with only the portable AIConfig intent, portable Local Capability Configuration intent, non-binding recommendations, standardized features, defaults, provenance, and license defined by their canonical rows.
     condition: Whenever the factory catalog is published, selected, or validated.
     failure: Reject a missing, additional, renamed, or semantically changed row without explicit Platform authority revision.
     relations:
@@ -983,62 +1097,66 @@ units:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-profile-local-gpu
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.factory-profile-local-speech-ready
+        target: definition.nimi.platform.core-protocol.factory-profile-local-speech
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-profile-local-standard
   - id: rule.nimi.platform.core-protocol.p-aips-003a
     kind: rule
-    title: P-AIPS-003 fixed apply chain
+    title: P-AIPS-003 four product actions remain disjoint
     modality: must
-    statement: Selection returns a typed factory reference, descriptor preparation and static Runtime apply eligibility precede aiProfile.apply while execution readiness does not, a portable Profile source declares stable expected identity, name, integrity, kind, and family facts without local asset, import instance, path, or profile binding identity, successful apply atomically associates each source against exactly one verified selected-source and manifest record and copies the profile's admitted capability structure, ordered component occurrences, defaults, public logical or effective component identities, and Runtime-private exact targets into and overwrites one scope-bound fully materialized AIConfig without warming, starting, loading, or probing an image composition, later edits change that AIConfig independently, each turn freezes AISnapshot, and Runtime execution consumes the exact materialization evidence for the committed primary and component selections.
-    condition: Whenever a factory profile enters the apply or execution chain.
-    failure: Reject a bypass, partial overlay, placeholder disabled capability, scope fallback, or out-of-order execution.
+    statement: Import Profile saves only portable AIProfile; Apply Profile to AIConfig atomically creates or overwrites only the target owner AIConfig without merge or live Profile linkage; Add or Update Local Capability Configuration writes only the machine aggregate; and Select Local Capability Configuration writes only the machine selection relation.
+    condition: Whenever any Profile or capability configuration product action is invoked.
+    failure: Reject a cross-owner transaction, merged write, implicit re-apply, installation, binding, selection, or fabricated aggregate success.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-profile-selection
+        target: definition.nimi.platform.core-protocol.ai-config
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
+        target: definition.nimi.platform.core-protocol.ai-profile
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-actions
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
   - id: rule.nimi.platform.core-protocol.p-aips-003b
     kind: rule
-    title: P-AIPS-003 static eligibility before live write
+    title: P-AIPS-003 Apply writes portable AIConfig intent without readiness
     modality: must
-    statement: Alias acceptance alone does not prove apply eligibility, every required slice proves static target existence, runnable logical identity or passive effective public component identity, asset kind, capability, backend and family compatibility, expected source integrity and name against verified selected-source and manifest evidence, file and manifest completeness, occurrence structure, and one non-ambiguous non-unhealthy association before a live write without requiring a portable expected identity to equal a machine-specific concrete asset id, an exact INSTALLED image main or passive component that passes those checks is eligible without warm, process start, resident load, or runtime probe, execution readiness is evaluated only when the committed configuration is invoked, and an unresolved, unsupported, credential-missing, association-missing, missing, ambiguous, unhealthy, or removed result returns typed setup-required with no new live config while preserving any valid existing AIConfig.
-    condition: Whenever profile apply eligibility is evaluated.
-    failure: Fail closed without writing or replacing live AIConfig and report the typed apply failure.
+    statement: Apply Profile to AIConfig validates portable schema and owner eligibility, then atomically creates or overwrites route intent, required features, defaults, and Cloud implementation or target recommendation even when a Local configuration, LocalAsset, ConnectorGrant, Driver, process, or provider connection is absent.
+    condition: Whenever Apply Profile to AIConfig validates or commits.
+    failure: Reject invalid portable intent or an ineligible owner, but never require inventory resolution, installation, binding, selection, probe, warm, process start, or execution readiness to commit valid intent.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+        target: definition.nimi.platform.core-protocol.ai-config
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
+        target: definition.nimi.platform.core-protocol.ai-profile-actions
   - id: rule.nimi.platform.core-protocol.p-aips-003c
     kind: rule
-    title: P-AIPS-003 independent local customization
-    modality: must_not
-    statement: Scope-local AIConfig customization mutates its source AIProfile or factory catalog row, leaves a component choice only in the source profile instead of the concrete AIConfig, uses localAssetId, importInstanceId, path, file source, or profileBindingId as public or portable identity, directly upserts an image main into a blank capability without a committed occurrence structure, infers companion slots or source association from current inventory or filenames, creates a main-only composition in place of the authored complete profile, or a first-run, app hint, or apply path directly creates a selected-source record or bypasses the Runtime activation request and response boundary.
-    condition: Whenever an applied configuration is customized or a profile path requests activation.
-    failure: Preserve the profile and catalog unchanged and route activation through its canonical Runtime boundary.
+    title: P-AIPS-003 independent Local configuration mutation
+    modality: must
+    statement: Add or Update Local Capability Configuration directly commits the current machine-local record, reprojects requirements whenever its CapabilityImplementation, Driver dialect, or Driver-owned portable configuration changes, and never mutates the source AIProfile, any AIConfig, or machine selection unless Select Local Capability Configuration is separately invoked; Runtime may reuse one existing record only for exact portable-content equivalence, while changed content associated with the same source or provenance requires the user to choose Update existing or Add new and never silently overwrites by provenance, label, path, or similarity.
+    condition: Whenever a Local Capability Configuration is added or updated.
+    failure: Reject a Profile back-write, AIConfig local binding, implicit selection, inherited old binding, provenance-derived identity, silent source-based overwrite, or cross-owner aggregate success.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+        target: definition.nimi.platform.core-protocol.ai-profile-actions
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
   - id: rule.nimi.platform.core-protocol.p-aips-004a
     kind: rule
-    title: P-AIPS-004 admitted deterministic inputs
+    title: P-AIPS-004 recommendations are bounded and non-binding
     modality: must
-    statement: Selection consumes only admitted Runtime host-capability, local-pack-readiness, and dependency-plan evidence plus explicit user-declared posture, resolves every referenced Runtime row, and never derives posture from chat selection, active app state, or ambient state.
-    condition: Whenever the selection policy evaluates a candidate.
-    failure: Reject an unresolved reference, invented Runtime axis, or implicit posture input.
+    statement: A factory Profile recommendation consumes only explicit user posture and bounded catalog or host facts, returns a typed recommendation and reason, and never reads chat selection, active App state, inventory order, current machine selection, process health, or other ambient state as authority.
+    condition: Whenever a Profile recommendation is evaluated.
+    failure: Reject an unresolved reference, implicit posture input, ambient selection, or recommendation presented as committed configuration.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-profile-selection
   - id: rule.nimi.platform.core-protocol.p-aips-004b
     kind: rule
-    title: P-AIPS-004 typed output and decision boundary
+    title: P-AIPS-004 recommendation has no write authority
     modality: must
-    statement: Selection executes on Home, Desktop, or SDK surfaces, returns only a typed catalog profile reference and typed reason, and leaves host detection, pack arbitration, and activation planning to Runtime rather than alias schema or Runtime-owned product-default logic.
-    condition: Whenever selection is implemented or returns a result.
-    failure: Reject a Runtime product selector, string error, generic enum, alias-based host decision, or consumer-invented host axis.
+    statement: A recommendation returns only a typed Profile reference and typed reason and changes no AIProfile, AIConfig, Local Capability Configuration, machine selection, ConnectorGrant, installation, or job.
+    condition: Whenever recommendation output is returned or displayed.
+    failure: Reject a recommendation that commits state, implies readiness, or bypasses one of the four formal product actions.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-profile-selection
@@ -1046,9 +1164,9 @@ units:
     kind: rule
     title: P-AIPS-005 canonical capability binding
     modality: must
-    statement: Every factory capability_set contains only admitted CanonicalCapabilityId values, and a deferred token is either excluded from unadmitted applicable scopes or accompanied by an explicit fail-closed Runtime fallback declaration.
+    statement: Every factory capability set contains only admitted CapabilityContract identities, every feature uses a contract-scoped standardized-feature identity, and an unadmitted or deferred contract or feature is excluded rather than accompanied by a fallback declaration.
     condition: Whenever a factory row declares a capability.
-    failure: Reject an unknown canonical identity or a silently referenced deferred capability.
+    failure: Reject an unknown contract, a cross-contract short-name interpretation, a subtype capability standing in for a feature, or a fallback declaration.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.capability-catalog
@@ -1056,58 +1174,66 @@ units:
         target: definition.nimi.platform.core-protocol.deferred-capability
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.standardized-capability-feature
   - id: rule.nimi.platform.core-protocol.p-aips-005b
     kind: rule
     title: P-AIPS-005 no hidden vendor default
     modality: must_not
-    statement: An alias, catalog row, UI, SDK, app, first-party binding, or policy text uses a provider, connector, engine, or model identifier as default-experience truth or reconstructs hidden vendor preference from multiple capability references.
+    statement: An alias, catalog row, UI, SDK, App, first-party hint, or policy text silently hardcodes a provider, ConnectorGrant, engine, model, or Local Capability Configuration as committed default-experience truth rather than expressing a visible portable recommendation.
     condition: Whenever a factory experience is declared, projected, or consumed.
-    failure: Reject the vendor default and retain connector or model preference with Runtime or the referenced connector authority without defining Realm ownership.
+    failure: Reject the hidden default and require an explicit portable recommendation followed by the applicable formal user action.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
   - id: rule.nimi.platform.core-protocol.p-aips-006a
     kind: rule
-    title: P-AIPS-006 posture and fallback semantics
+    title: P-AIPS-006 Profile route intent is explicit and non-fallback
     modality: must
-    statement: Cloud-ok permits admitted cloud routing without extra local readiness, local-preferred prioritizes a ready selected local source and otherwise preserves the exact non-ready state unless an explicit hybrid binding permits cloud, and local-required prohibits cloud for its declared slice and fails closed when local readiness is absent.
-    condition: Whenever privacy posture is evaluated for a capability slice.
-    failure: Reject an implicit fallback, an overstated ready result, or cloud execution for a local-required slice.
+    statement: Portable Profile intent may recommend Local or Cloud independently per CapabilityContract, but applying that intent commits one explicit AIConfig route and never establishes a local-preferred, cloud-first, hybrid, or readiness-dependent fallback policy.
+    condition: Whenever Profile route intent is interpreted or applied.
+    failure: Reject an implicit route, priority list, hybrid execution, or any Local-to-Cloud, Cloud-to-Local, or provider fallback.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+        target: definition.nimi.platform.core-protocol.ai-profile
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+        target: definition.nimi.platform.core-protocol.ai-route
   - id: rule.nimi.platform.core-protocol.p-aips-006b
     kind: rule
-    title: P-AIPS-006 authoritative routing declaration
+    title: P-AIPS-006 route selection and machine selection are disjoint
     modality: must
-    statement: The typed cloud-first, local-first, or hybrid-explicit routing policy governs runtime routing and spend evaluation, consumers keep no independent routing string or provider override, local failure cannot become cloud success without hybrid binding, and a cloud-only row requests no local dependency.
-    condition: Whenever routing policy is stored, projected, or evaluated.
-    failure: Reject a consumer override, hidden fallback, spend mismatch, or cloud-only local request.
+    statement: AIConfig route selection changes only one owner AIConfig, while Machine Local AI Configuration selection is the separate Select Local Capability Configuration action that changes only the selected Local Capability Configuration relation dereferenced by every future Local request and changes no AIConfig, Cloud route, or running Job; Runtime composes these committed facts and never performs another model or configuration selection.
+    condition: Whenever either selection is committed, described, or projected.
+    failure: Reject a mixed write, Runtime re-selection, implicit fallback, App veto over Machine Local AI Configuration selection, or application of that selection to a Cloud route.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+        target: definition.nimi.platform.core-protocol.ai-route
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
   - id: rule.nimi.platform.core-protocol.p-aips-007a
     kind: rule
-    title: P-AIPS-007 materialization state projection
+    title: P-AIPS-007 materialization stays outside Profile Apply
     modality: must
-    statement: Materialization requests use the admitted Runtime start, cancel, retry, and repair command surface, SDK projection preserves needs_confirmation, queued, downloading, verifying, installing, repair_required, failed, unsupported, and cancelled, product text may rename but not collapse states, and ready or ai-profile-active requires complete ready_system or ready_managed activation-gate evidence.
-    condition: Whenever confirmation, materialization, or activation state is projected.
-    failure: Fail closed, retain the exact non-ready state, and withhold ready or active projection.
+    statement: LocalAsset transfer, dependency materialization, repair, process supervision, and execution jobs retain their own typed operation state and never become AIProfile state, Apply state, AIConfig state, machine selection state, or a single capability readiness lifecycle.
+    condition: Whenever materialization, repair, activation, or execution state is projected near Profile or configuration UI.
+    failure: Keep the operation state with its owner and reject a derived Profile active, ready, materializing, or failed lifecycle.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+        target: definition.nimi.platform.core-protocol.ai-profile-actions
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.derived-capability-admission
   - id: rule.nimi.platform.core-protocol.p-aips-007b
     kind: rule
-    title: P-AIPS-007 readiness authority
+    title: P-AIPS-007 no product readiness or feasibility probe
     modality: must_not
-    statement: Readiness is inferred from file existence, endpoint reachability, transfer completion, package presence, PATH precedence, import success or contents, script exit, process liveness, warmup, previous health, or an AIConfig probe, and Runtime confirmation omits dependency family, known size, storage category, or no-system-mutation policy.
-    condition: Whenever profile materialization readiness or confirmation is determined.
-    failure: Reject inferred readiness or incomplete confirmation and require activation-gate evidence.
+    statement: AIProfile, AIConfig, Local Capability Configuration, machine selection, or CapabilityImplementation publishes or persists a ready, warm, resident, active, healthy, probe-success, feasibility, or preflight truth derived from file existence, endpoint reachability, inventory, transfer, package presence, process liveness, warmup, prior health, or provider connection testing.
+    condition: Whenever product capability configuration or selection state is determined or exposed.
+    failure: Reject the readiness or probe truth; retain only orthogonal interpretability, requirement resolution, selection, derived admission, job execution, and Runtime-private supervision facts.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+        target: definition.nimi.platform.core-protocol.derived-capability-admission
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
   - id: rule.nimi.platform.core-protocol.p-aips-008
     kind: rule
     title: P-AIPS-008 no provider or model constants
@@ -1122,101 +1248,105 @@ units:
     kind: rule
     title: P-AIPS-009 typed first-party hint
     modality: must
-    statement: An admitted first-party app declares its recommended default experience through a typed registry or manifest reference to an admitted factory profile and applies it explicitly and atomically to the app AIScopeRef when requested by the user.
+    statement: An admitted first-party App may declare a typed non-binding factory AIProfile recommendation and, only when explicitly requested by the user, apply its portable AIConfig intent atomically to that App's canonical AIConfig owner.
     condition: Whenever a first-party app declares or applies a default-experience hint.
-    failure: Reject an untyped, unresolved, implicit, or non-atomic hint application.
+    failure: Reject an untyped, unresolved, implicit, non-atomic, machine-selecting, installing, binding, or readiness-gated hint application.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
+        target: definition.nimi.platform.core-protocol.app-ai-config-owner
       - type: applies_to
         target: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
   - id: rule.nimi.platform.core-protocol.p-aips-009b
     kind: rule
     title: P-AIPS-009 hint has no authority or parallel truth
     modality: must_not
-    statement: A first-party hint creates account, data, agent identity, AI consumption, memory, cognition, or permission authority, bypasses registry admission, permission fabric, activation readiness, or provider-constant boundaries, or maintains a parallel default track or second AIConfig truth for the same scope.
+    statement: A first-party hint creates account, data, Agent, AI consumption, Memory, Cognition, permission, Local Capability Configuration, machine selection, ConnectorGrant, installation, or execution authority, or maintains a parallel default track or second AIConfig truth for the same owner.
     condition: Whenever a first-party hint is declared or consumed.
     failure: Deny the unauthorized effect or bypass and remove the parallel truth.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
+        target: definition.nimi.platform.core-protocol.ai-config
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
+        target: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
   - id: rule.nimi.platform.core-protocol.p-aips-010a
     kind: rule
-    title: P-AIPS-010 closed apply state machine
+    title: P-AIPS-010 formal action scope closure
     modality: must
-    statement: First-run and every scope-bound apply expose the closed typed AIProfile apply states with accepted distinct from applied, materializing distinct from hard failure, active supported only by complete readiness, failed retaining its Runtime reason source, and no generic ready or unavailable substitute.
-    condition: Whenever alias acceptance, apply, materialization, or activation is projected.
-    failure: Reject an unknown, collapsed, skipped, untyped, or unsupported state transition.
+    statement: Import Profile, Apply Profile to AIConfig, Add or Update Local Capability Configuration, and Select Local Capability Configuration each return only the typed success or failure of their own atomic write and establish no product revision, history, draft, re-apply, materialization, activation, readiness, or cross-action lifecycle.
+    condition: Whenever a formal Profile or configuration action is executed or projected.
+    failure: Reject an undeclared action, cross-owner success, lifecycle state machine, or success inferred from a later action.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+        target: definition.nimi.platform.core-protocol.ai-profile-actions
   - id: rule.nimi.platform.core-protocol.p-aips-010b
     kind: rule
-    title: P-AIPS-010 preservation and recovery
+    title: P-AIPS-010 action failure is owner-local
     modality: must
-    statement: Accepted but unready profiles project setup-required, materializing, or failed rather than active, setup-required and materializing preserve valid existing AIConfig without placeholders, failed offers cancel, retry, repair, or alias change as applicable, and pending never selects an implicit cloud or local fallback.
-    condition: Whenever an apply is not fully active.
-    failure: Withhold active, preserve existing valid config, and expose the exact recovery path without implicit fallback.
+    statement: A failed formal action leaves every other canonical owner unchanged, never reports aggregate success, and never selects another Local configuration, route, ConnectorGrant, provider, implementation, or fallback; valid AIConfig intent and unresolved Local configuration records remain persistable independently.
+    condition: Whenever one formal action fails.
+    failure: Preserve all unaffected owners and return the exact typed action failure without fallback or fabricated rollback success.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+        target: definition.nimi.platform.core-protocol.ai-config
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
+        target: definition.nimi.platform.core-protocol.ai-profile-actions
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
   - id: rule.nimi.platform.core-protocol.p-aips-011
     kind: rule
-    title: P-AIPS-011 cloud-only row constraints
+    title: P-AIPS-011 Cloud Profile intent carries no account binding
     modality: must
-    statement: A cloud-only row has empty local_compute_pack_refs and dependency_family_refs, materialization_confirmation_required false, routing_policy cloud-first or hybrid-explicit, and no local-environment activation request.
-    condition: Whenever a cloud-only factory row is admitted or applied.
-    failure: Reject the row or activation request as an admission failure.
+    statement: A Profile's Cloud intent may recommend a CapabilityImplementation and Driver-owned provider-model target but carries no connectorId, ConnectorGrant, account identity, secret, credential, connection-test result, or local-environment request.
+    condition: Whenever Cloud Profile intent is authored, imported, exported, recommended, or applied.
+    failure: Reject the account or machine binding while preserving portable Cloud intent.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.connector-grant
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-row
   - id: rule.nimi.platform.core-protocol.p-aips-012a
     kind: rule
-    title: P-AIPS-012 applicable scope closure
+    title: P-AIPS-012 Profile action target closure
     modality: must
-    statement: applicable_scopes is a non-empty subset of first-run, first-party-app, and scope-bound-apply, first-party-app uses a typed admitted hint, scope-bound-apply works with any admitted AIScopeRef, and no undeclared future scope is injected.
-    condition: Whenever factory-row applicability is declared or interpreted.
-    failure: Reject an empty, unknown, untyped, or implicitly extensible applicability declaration.
+    statement: Profile import targets the Profile library, Apply targets exactly one canonical AIConfig owner, local configuration intent may be consumed only by a separate Add or Update Local Capability Configuration action, and no Profile action directly targets machine selection, LocalAsset binding, ConnectorGrant selection, process state, or Job.
+    condition: Whenever Profile applicability or a Profile-derived action target is declared or interpreted.
+    failure: Reject an unknown target, AIConfig owner outside the closed set, or a cross-owner Profile action.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.ai-scope-ref
+        target: definition.nimi.platform.core-protocol.ai-config-owner
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-actions
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-row
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
   - id: rule.nimi.platform.core-protocol.p-aips-012b
     kind: rule
-    title: P-AIPS-012 first-run local baseline
-    modality: must
-    statement: A first-run row declares minimal, recommended, or both and is a local baseline that excludes cloud-only, cloud-first, hybrid-explicit, video, cloud connectors, and app-specific readiness, while a non-first-run row has no install level; minimal covers admitted local text, chat, basic STT, and basic TTS packs, and recommended may add admitted embedding, image, or GPU packs only with evidence and confirmation.
-    condition: Whenever first-run eligibility or install-level coverage is declared.
-    failure: Reject a non-local candidate, forbidden dependency, missing baseline pack, unsupported install level, or non-first-run install level.
+    title: P-AIPS-012 first-run Profile recommendation is non-blocking
+    modality: must_not
+    statement: A first-run Profile recommendation, Local capability pack, LocalAsset, Local Capability Configuration, machine selection, ConnectorGrant, or AI capability admission becomes a prerequisite for Product Control ready_for_use.
+    condition: Whenever first-run Profile recommendation or product readiness is evaluated.
+    failure: Keep AI capability setup orthogonal and allow Product Control completion without claiming the affected capability can execute.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.built-in-chat-scopes
+        target: definition.nimi.platform.core-protocol.ai-profile-selection
       - type: applies_to
         target: definition.nimi.platform.core-protocol.factory-ai-profile-row
   - id: rule.nimi.platform.core-protocol.p-aips-013a
     kind: rule
-    title: P-AIPS-013 durable account profile binding
+    title: P-AIPS-013 durable Account Default Profile association
     modality: must
-    statement: An Account Default Profile, when configured, is one durable local account profile record bound to the authenticated Runtime account_id and selected data root and contains profileId default, its portable AIProfile content, and createdAt or updatedAt.
-    condition: Whenever Account Default Profile is created, read, edited, or used to initialize a scope.
+    statement: An Account Default Profile, when configured, is one durable account-owned library record whose ownership metadata remains outside its portable AIProfile content and whose content contains no account, machine, Local Capability Configuration, machine selection, LocalAsset, ConnectorGrant, secret, or process identity.
+    condition: Whenever Account Default Profile is created, read, edited, or used as a recommendation source.
     failure: Reject the profile operation on a missing field, unresolved record, account mismatch, or data-root mismatch without changing Product Control readiness.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.account-default-profile
   - id: rule.nimi.platform.core-protocol.p-aips-013b
     kind: rule
-    title: P-AIPS-013 explicit create and restore boundary
+    title: P-AIPS-013 explicit import and direct-edit boundary
     modality: must
-    statement: Account Default Profile is created or restored only by an explicit profile operation from a resolvable Platform factory profile or supplied portable profile, and an official factory update never silently overwrites an existing record.
-    condition: Whenever Account Default Profile is created, restored, or a factory catalog is updated.
-    failure: Reject an unrequested or unresolved source and preserve the existing account record from silent overwrite.
+    statement: Account Default Profile content enters the Profile library only through explicit Import Profile from a resolvable Platform factory row or supplied portable AIProfile and may then be edited directly as current portable content; there is no restore, revision, history, inheritance, re-apply, or factory-linked update action, and an official factory update never silently overwrites an existing record.
+    condition: Whenever Account Default Profile content is imported, directly edited, or compared with a factory catalog update.
+    failure: Reject an unrequested or unresolved source, hidden restore or re-apply action, and silent overwrite of the existing account record.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.account-default-profile
@@ -1226,19 +1356,183 @@ units:
     kind: rule
     title: P-AIPS-013 forbidden profile inputs and independent scopes
     modality: must_not
-    statement: Realm OAuth tokens or profile projections, decoded claims, subject_user_id, renderer state, SDK cache, or app cache supplies Account Default Profile content, a caller-provided string is treated as a complete profile, or editing the default profile mutates an existing scope-bound AIConfig.
+    statement: Realm OAuth tokens or profile projections, decoded claims, subject_user_id, renderer state, SDK cache, or App cache supplies Account Default Profile content, a caller-provided string is treated as a complete Profile, or editing the default Profile mutates an existing AIConfig, Local Capability Configuration, machine selection, or ConnectorGrant.
     condition: Whenever Account Default Profile content or edits are evaluated.
-    failure: Fail closed, treat Realm account-session material only as an account_id reference, and require explicit atomic apply before any scope changes.
+    failure: Fail closed, keep ownership metadata outside portable content, and require the separate explicit formal action before any canonical owner changes.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.account-default-profile
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
+        target: definition.nimi.platform.core-protocol.ai-config
+  - id: rule.nimi.platform.core-protocol.p-caiex-001
+    kind: rule
+    title: P-CAIEX-001 Capability execution chain is closed
+    modality: must
+    statement: An App or LocalAgent request enters one CapabilityContract and its owner AIConfig; Local composition dereferences Machine Local AI Configuration to its selected Local Capability Configuration and then its CapabilityImplementation, CapabilityImplementationDriver, and local ExecutionHost, while Cloud composition uses the AIConfig-owned Cloud CapabilityImplementation and Driver target plus ConnectorGrant and Remote ExecutionHost.
+    condition: Whenever a capability request is admitted, composed, or executed.
+    failure: Reject a bypass, alternate owner, missing committed link, engine or provider inference, Core option union, or Core Workflow DAG intermediate representation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-implementation-driver
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.execution-host
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
+  - id: rule.nimi.platform.core-protocol.p-caiex-002
+    kind: rule
+    title: P-CAIEX-002 Driver and ExecutionHost responsibilities are disjoint
+    modality: must
+    statement: CapabilityImplementationDriver alone interprets its dialect, projects requirements, validates declared standardized-feature support and known compatibility, maps exact bindings, and translates engine semantics, while ExecutionHost alone supplies local process or remote transport mechanisms and private supervision, leases, concurrency, and health.
+    condition: Whenever a CapabilityImplementation is interpreted or invoked.
+    failure: Reject a Host acting as Driver, a Driver owning routing or selection, a repository-wide adapter alias treated as a Driver, or a shared Core engine configuration union.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-implementation
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-implementation-driver
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.execution-host
+  - id: rule.nimi.platform.core-protocol.p-caiex-003
+    kind: rule
+    title: P-CAIEX-003 Machine Local AI aggregate has one selection per contract
+    modality: must
+    statement: Each machine has exactly one Machine Local AI Configuration containing zero or more flat Local Capability Configurations per CapabilityContract and zero or one selected relation per contract; unselected records never participate in routing, ranking, fallback, or job composition.
+    condition: Whenever local capability configuration is saved, listed, selected, or dereferenced.
+    failure: Reject a second aggregate, nested preset or inheritance chain, multiple selections, implicit active record, or use of any unselected record.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
+  - id: rule.nimi.platform.core-protocol.p-caiex-004
+    kind: rule
+    title: P-CAIEX-004 Local configuration state is orthogonal
+    modality: must
+    statement: Local Capability Configuration records interpretability as interpretable or unavailable with reason, requirement resolution as unresolved or configured, and selection as unselected or selected; derived admission and each Job outcome remain separate facts, unresolved is a legal persistent state, and there is no draft, revision, history, readiness, warm, resident, active, or health lifecycle.
+    condition: Whenever a Local Capability Configuration is saved, displayed, selected, admitted, or executed.
+    failure: Reject a collapsed state, readiness alias, persistent draft, product revision, execution result written as configuration state, or unavailable Driver intent discarded instead of preserved.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.derived-capability-admission
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
+  - id: rule.nimi.platform.core-protocol.p-caiex-005
+    kind: rule
+    title: P-CAIEX-005 requirement projection and binding are exact
+    modality: must
+    statement: Creating or explicitly reprojecting a Local Capability Configuration deterministically projects normalized requirements from its exact Driver and dialect plus portable configuration and may atomically auto-bind only a unique exact verified-content match; implementation, dialect, or execution-relevant configuration change reprojects requirements, old bindings never inherit by path, filename, name, slot label, field similarity, or provenance, and inventory change never triggers ambient re-resolution.
+    condition: Whenever local requirements are projected, reprojected, resolved, or rebound.
+    failure: Preserve unresolved slots and reject a guessed, ambiguous, stale, inherited, ambient, path-derived, or name-derived binding.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-implementation-driver
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
+  - id: rule.nimi.platform.core-protocol.p-caiex-006
+    kind: rule
+    title: P-CAIEX-006 machine selection is explicit and persistent through later failure
+    modality: must
+    statement: Select Local Capability Configuration requires the target to be interpretable and configured at commit time and changes only the machine relation; when a bound LocalAsset later becomes missing or damaged, its committed exact binding identity, the record, and machine selection remain unchanged while derived admission and real execution fail closed with a typed reason and no automatic re-resolution or re-selection. Only an explicit bind, unbind, rebind, requirement reprojection, or Update action may change a binding, and when such an explicit action or a later unavailable Driver or persistent hard blocker leaves the selected record unresolved or blocked, the selection relation still remains until an explicit Select or Delete action changes it.
+    condition: Whenever machine selection is committed or a selected configuration later becomes unresolved or blocked.
+    failure: Reject selection of an uninterpretable or unresolved target, automatic clearing, replacement, re-resolution, binding deletion caused by asset loss or execution failure, or mutation of any AIConfig or running Job.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.derived-capability-admission
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
+  - id: rule.nimi.platform.core-protocol.p-caiex-007
+    kind: rule
+    title: P-CAIEX-007 machine-wide Local mutation requires explicit confirmation
+    modality: must
+    statement: Before Select Local Capability Configuration, an execution-relevant Update of the selected record, or deletion of the selected record commits, the machine owner surface derives and displays the impact on every future matching Local App and LocalAgent execution and obtains user-observed explicit confirmation; impact calculation or display alone is not confirmation, presentation-only updates and deletion of an unselected record require no machine-wide confirmation, the projection is not persisted and grants no App veto, no action changes an AIConfig or running Job, and deleting the selected record atomically clears selection without choosing another or deleting shared resources.
+    condition: Whenever a machine action can change future Local dereference.
+    failure: Reject commit without the required explicit confirmation, a persisted owner index or compatibility snapshot, a Cloud AIConfig in the impact set, an AIConfig rewrite, an automatic replacement, or cascading LocalAsset deletion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.machine-local-ai-configuration
+  - id: rule.nimi.platform.core-protocol.p-caiex-008
+    kind: rule
+    title: P-CAIEX-008 standardized features use deterministic subset admission
+    modality: must
+    statement: AIConfig declares a required feature set per CapabilityContract, the effective Local or Cloud implementation route declares a supported set validated by its Driver, and Core admits the feature check only when required is a subset of supported; declared support is semantic capability support rather than proof of exact bindings, authorization, current ExecutionHost feasibility, readiness, or Job success, mismatch fails closed without changing AIConfig route, Machine Local AI Configuration selection, provider, implementation, or ConnectorGrant, and streaming remains CapabilityContract and Job semantics rather than a feature.
+    condition: Whenever feature compatibility is authored, projected, or checked for a request.
+    failure: Return typed feature mismatch and reject subtype capability tokens, a global short-name ontology, inferred support, optional-feature lifecycle, automatic switching, or streaming-as-feature.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-implementation
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.standardized-capability-feature
+  - id: rule.nimi.platform.core-protocol.p-caiex-009
+    kind: rule
+    title: P-CAIEX-009 Cloud intent and account authorization remain separate
+    modality: must
+    statement: Cloud AIConfig intent owns one CapabilityImplementation and Driver-owned provider-model target and may be saved without a ConnectorGrant; only explicit user grant selection binds account authorization, missing grant derives selection-required admission failure, changing account normally changes only the grant, and a provider API or capability-semantic change replaces the implementation while target or region change within one implementation remains Driver configuration.
+    condition: Whenever Cloud intent, target, grant, or execution admission is committed or evaluated.
+    failure: Reject a connector as router, Profile account binding, implicit grant, connection-test prerequisite, route inference from grant, or Cloud configuration list.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-implementation-driver
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.connector-grant
+  - id: rule.nimi.platform.core-protocol.p-caiex-010
+    kind: rule
+    title: P-CAIEX-010 LocalAsset and resource occurrences remain exact
+    modality: must
+    statement: LocalAsset always denotes concrete verified content, strict or substitutable is requirement policy rather than an asset category, and each resource occurrence that can be independently selected, downloaded, bound, or replaced forms a distinct required slot; an upstream optional file creates no Nimi requirement unless the exact CapabilityImplementation and Driver declare it required, llama implementations project no mmproj for text-only support and project a required independent mmproj companion slot when declaring text.generate input.image support, and Core defines neither a generic optional-requirement state machine nor sharded-bundle or ordered-occurrence semantics before a real slice admits them.
+    condition: Whenever a Driver projects normalized local requirements or a local binding is committed.
+    failure: Reject an abstract asset, invented optional requirement, premature bundle or ordering contract, filename-derived companion, collapsed independently selectable occurrence, missing required mmproj, or mmproj projected for a text-only implementation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.standardized-capability-feature
+  - id: rule.nimi.platform.core-protocol.p-caiex-011
+    kind: rule
+    title: P-CAIEX-011 Jobs capture exact immutable composition
+    modality: must
+    statement: Local job submission atomically captures authorization, AIConfig Local route, required features, defaults, current selected Local Capability Configuration identity, exact CapabilityImplementation, Driver configuration, exact bindings, and request; Cloud job submission captures authorization, exact Cloud implementation, provider-model target, ConnectorGrant, defaults, and request; later configuration, selection, grant, or process changes never rewrite either running Job.
+    condition: Whenever a Local or Cloud capability Job is submitted or resumed.
+    failure: Reject a missing exact input, live reread as execution truth, Job write-back into configuration, or substitution from catalog, inventory, filename, path, prefix, resident process, or unselected record.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-job-effective-inputs
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.connector-grant
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.local-capability-configuration
+  - id: rule.nimi.platform.core-protocol.p-caiex-012
+    kind: rule
+    title: P-CAIEX-012 execution failure does not mutate configuration
+    modality: must
+    statement: Ordinary load, generate, stream, transport, or provider failure ends only the affected Job and clears no exact binding, selection, route, grant, or configuration; only a CapabilityImplementationDriver classification of a persistent hard blocker may change derived admission reason, and no Local, Cloud, provider, implementation, or configuration fallback is attempted.
+    condition: Whenever capability execution fails.
+    failure: Preserve canonical configuration and return the typed Job failure without fallback, readiness mutation, ambient re-resolution, or automatic re-selection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-implementation-driver
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-job-effective-inputs
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.derived-capability-admission
   - id: rule.nimi.platform.core-protocol.p-capcat-004
     kind: rule
     title: canonical-capability-catalog P-CAPCAT-004 governance metadata
     modality: must
-    statement: Every active canonical capability row carries non-empty governance owner, dataMovement, retention, revocation, and auditSource metadata whose route-specific meaning remains consistent with its runtime source and does not grant catalog-owned route or permission authority.
+    statement: Every active CapabilityContract row carries non-empty governance owner, dataMovement, retention, revocation, and auditSource metadata; contract-scoped standardized features inherit that contract boundary without becoming subtype capability rows, and governance metadata grants no catalog-owned route, implementation, machine selection, ConnectorGrant, or permission authority.
     condition: Whenever an active canonical capability row is admitted or consumed for governance projection.
     failure: Reject missing, unresolved, contradictory, or authority-expanding governance metadata.
     relations:
@@ -1340,9 +1634,9 @@ units:
     kind: rule
     title: P-ARCH-004 Runtime responsibility allocation
     modality: must
-    statement: Runtime remains an independent local service owning Local and Cloud AI consume, explicit route selection, process and model management, local Text, STT and TTS, Token, Quota and Budget, Credential custody, LocalAgent materialization and lifecycle, Conversation, operational Memory and Knowledge, LocalAgent state, voice and events, local audit, App authorization, and bounded bridges to independent Realm and Cognition authority.
+    statement: Runtime remains an independent local service owning deterministic consumption, admission, composition, and execution of each canonical AIConfig owner's committed Local or Cloud route intent, process and model management, local Text, STT and TTS, Token, Quota and Budget, Credential custody, LocalAgent materialization and lifecycle, Conversation, operational Memory and Knowledge, LocalAgent state, voice and events, local audit, App authorization, and bounded bridges to independent Realm and Cognition authority without owning another Local or Cloud route choice.
     condition: Whenever Platform architecture allocates Runtime responsibilities.
-    failure: Reject an allocation that removes these core responsibilities from Runtime, makes Runtime dependent on an App layer, or promotes Workflow, MCP, or World Evolution into a Runtime core prerequisite.
+    failure: Reject an allocation that removes these core responsibilities from Runtime, gives Runtime an additional route-choice authority beyond consuming canonical AIConfig owner intent, makes Runtime dependent on an App layer, or promotes Workflow, MCP, or World Evolution into a Runtime core prerequisite.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.architecture-layer-model
@@ -1360,9 +1654,9 @@ units:
     kind: rule
     title: P-ARCH-010 current AI execution owner boundary
     modality: must
-    statement: Runtime owns explicit Local or Cloud AI routing without silent fallback, Runtime-owned connector and Provider Credential custody without caller injection, and honest typed readiness and failure, while general product Workflow remains a deferred non-core capability with no current DAG or execution contract.
+    statement: Each canonical AIConfig owner commits explicit Local or Cloud intent, Runtime deterministically composes that intent with the current machine selection or exact Cloud implementation, target, and ConnectorGrant and owns execution truth and credential custody without reselecting, searching, probing, or falling back, while Core defines no cross-engine option union or general Workflow DAG intermediate representation.
     condition: Whenever the current AI execution stack is implemented or described.
-    failure: Reject hidden route fallback, caller credential injection, App-owned AI execution truth, or Workflow treated as a core prerequisite.
+    failure: Reject Runtime route choice, hidden fallback, caller credential injection, App-owned execution truth, a Core engine-option union, or Workflow treated as a core prerequisite.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-route
@@ -1402,7 +1696,7 @@ units:
     kind: rule
     title: P-ARCH-021 Desktop shell ownership exclusions
     modality: must_not
-    statement: A Desktop-hosted Home, Runtime Console, diagnostics, settings, Library, Discovery, or Apps projection owns Runtime materialization, app registry or admission, Realm or cognition truth, marketplace economy truth, factory profile selection, Home information architecture, release identity, self-update policy, daemon handoff, or selected-source records.
+    statement: A Desktop-hosted Home, Runtime Console, diagnostics, settings, Library, Discovery, or Apps projection owns Runtime materialization, app registry or admission, Realm or cognition truth, marketplace economy truth, factory profile recommendation, Home information architecture, release identity, self-update policy, daemon handoff, or selected-source records.
     condition: Whenever a Desktop-hosted projection allocates authority.
     failure: Reject the ownership claim and retain each domain with its referenced canonical owner surface without reinterpreting that owner's internals.
     relations:

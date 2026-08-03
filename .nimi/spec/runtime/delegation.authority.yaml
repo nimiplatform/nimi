@@ -48,11 +48,11 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r003
     kind: rule
-    title: Profiles reference custody without duplication
+    title: Delegated Cloud intent keeps grant and custody separate
     modality: must
-    statement: A delegated provider profile is not a Runtime connector record and may reference connector custody for endpoint or credential material while never duplicating connector credentials, connector lifecycle, provider health, or managed key-source routing, which remain owned by the Runtime connector and key-source authority.
-    condition: Whenever a provider profile touches connector or key-source material.
-    failure: Reject duplicated custody, lifecycle, health, or key-source facts inside provider profiles.
+    statement: A delegated portable provider profile is not ConnectorGrant or credential custody and carries at most CapabilityImplementation and Driver-owned target recommendation; an authorized delegated Cloud Job uses a separately and explicitly selected ConnectorGrant whose custody reference remains Runtime-owned, and no profile duplicates account identity, secret, endpoint authority, connector lifecycle, provider health, route, or grant selection.
+    condition: Whenever delegated provider intent composes Cloud authorization.
+    failure: Reject duplicated custody, account identity, lifecycle, health, route, or implicit grant facts inside provider profiles.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.delegation.capability-gateway-plane

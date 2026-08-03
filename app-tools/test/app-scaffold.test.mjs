@@ -362,7 +362,10 @@ test('tester-reference scaffold keeps the full reference app explicit', () => {
       new RegExp(`^    renderer_origin: http://127\\.0\\.0\\.1:${devPort}$`, 'm'),
     );
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
-    assert.match(generated.read('src/tester/tester-runtime.ts'), /session posture, public permission posture\/request, and app-private JSON storage/);
+    const testerRuntime = generated.read('src/tester/tester-runtime.ts');
+    assert.match(testerRuntime, /protected local-app identity session is bound/);
+    assert.match(testerRuntime, /foreground ai\.text\.generate/);
+    assert.match(testerRuntime, /app-private JSON storage is a base entitlement/);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     const localAppPlatform = generated.read('src/shell/local-app-runtime-platform.ts');
     const permissionLab = generated.read('src/tester/local-app-permission-lab.tsx');
@@ -541,7 +544,7 @@ test('cli standalone scaffold uses current public dependency version sources', (
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.6.0');
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.3.0');
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
-    assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], '0.2.5');
+    assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], '0.5.0');
     assert.equal(packageJson.devDependencies.yaml, '^2.9.0');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.6.0');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/app-tools'], expectedAppToolsVersion);

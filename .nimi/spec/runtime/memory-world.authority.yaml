@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.runtime.memory-world.scheduling-plane
     kind: definition
     title: Runtime resource scheduling plane
-    meaning: Runtime owns current execution admission, resource scheduling, Quota, Budget, Rate Limit, and readiness decisions for Memory, Knowledge, and LocalAgent execution.
+    meaning: Runtime owns request-time derived admission, private resource scheduling, Quota, Budget, and Rate Limit decisions for Memory, Knowledge, and LocalAgent Jobs without creating reusable capability readiness or transferring route, selection, or resolution authority to Cognition.
   - id: definition.nimi.runtime.memory-world.world-evolution-plane
     kind: definition
     title: Deferred World Evolution boundary
@@ -140,11 +140,11 @@ units:
         target: definition.nimi.runtime.memory-world.memory-substrate-plane
   - id: rule.nimi.runtime.memory-world.r012
     kind: rule
-    title: AI resource resolution remains Runtime owned
+    title: Memory and Knowledge consume canonical capability composition
     modality: must
-    statement: Runtime owns provider credential, embedding and retrieval route, model selection, readiness, Quota, Budget, Rate Limit, and execution binding for operational Memory and Knowledge.
+    statement: Operational Memory and Knowledge use their canonical AIConfig owner route, the machine owner's Local Capability Configuration selection or the committed Cloud CapabilityImplementation target and ConnectorGrant, and Runtime's deterministic exact Driver, binding, Quota, Budget and Rate Limit composition; their bank and retrieval state stays separately owned and neither subsystem selects a model, probes readiness, or invents fallback.
     condition: Whenever Memory or Knowledge requires AI resources.
-    failure: Fail closed when Runtime cannot resolve an admitted ready resource.
+    failure: Fail closed with the typed derived admission or Job failure when exact committed inputs are unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.memory-world.scheduling-plane
@@ -202,7 +202,7 @@ units:
     kind: rule
     title: Missing Memory or Knowledge fails closed
     modality: must
-    statement: Missing authorization, source access, Runtime readiness, substrate availability, AI resource, or owner result produces typed unavailable or failure with no empty-success, fixture, cached-truth, or App-local fallback.
+    statement: Missing authorization, source access, Runtime service availability, substrate availability, exact admitted AI Job context, typed derived admission, or owner result produces typed unavailable or failure with no capability-readiness lifecycle, empty-success, fixture, cached truth, or App-local fallback.
     condition: Whenever a Memory or Knowledge operation cannot complete.
     failure: Return the typed Runtime failure before mutation or execution.
     relations:

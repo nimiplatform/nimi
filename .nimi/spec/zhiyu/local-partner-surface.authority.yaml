@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.zhiyu.local-partner-surface.configuration-surface
     kind: definition
     title: Zhiyu LocalAgent settings projection
-    meaning: Zhiyu may present bounded product-specific settings and submit typed user intent, while Runtime owns LocalAgent AI configuration, route, model, provider, readiness, revision, and execution results.
+    meaning: Zhiyu may present bounded product-specific settings and submit typed user intent, while Runtime owns the singular shared LocalAgent subsystem AIConfig without product revision or readiness, per-Agent autonomy and presentation state with their own independent concurrency revisions, request-time derived admission, and exact Job results; Zhiyu owns no route, model, provider, or machine-local truth.
   - id: definition.nimi.zhiyu.local-partner-surface.avatar-surface
     kind: definition
     title: Zhiyu and Avatar projection relation
@@ -82,7 +82,7 @@ units:
     kind: rule
     title: Runtime state remains typed
     modality: must
-    statement: Zhiyu renders Runtime message, activity, emotion, voice, readiness, permission, cancellation, and failure projections without inventing fallback values or converting unknown state into success.
+    statement: Zhiyu renders Runtime message, activity, emotion, voice, permission, cancellation, request-time derived-admission, and exact Job-failure projections without inventing fallback values, aggregate AI readiness, or converting unknown state into success.
     condition: Whenever Zhiyu consumes Runtime state.
     failure: Preserve the typed unavailable or failure state.
     relations:
@@ -90,11 +90,11 @@ units:
         target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
   - id: rule.nimi.zhiyu.local-partner-surface.r008
     kind: rule
-    title: Configuration intent is revision aware
+    title: Shared AIConfig and per-Agent settings remain distinct
     modality: must
-    statement: Zhiyu may display and submit supported LocalAgent AI configuration intent through typed SDK or Kit controls, preserves Runtime revision and conflict results, and never overwrites newer Runtime state or persists a second configuration truth.
-    condition: Whenever Zhiyu edits LocalAgent configuration.
-    failure: Show the typed conflict or unavailable state and keep Runtime truth unchanged.
+    statement: Zhiyu may read, atomically overwrite, or explicitly Apply Profile to the one shared LocalAgent subsystem AIConfig only through typed SDK or Kit controls that resolve the singular subsystem owner without an Agent handle, merge, revision, history, or readiness; per-Agent autonomy and presentation actions remain separately addressed by opaque Agent handle and preserve only their own independent revision and typed conflict results, and Zhiyu persists no second configuration truth.
+    condition: Whenever Zhiyu edits shared LocalAgent AIConfig or per-Agent non-AI settings.
+    failure: Reject an Agent-handle-addressed AI action, per-Agent route or model, AIConfig revision or merge, cross-owner mutation, or lost autonomy or presentation conflict and keep Runtime truth unchanged.
     relations:
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
@@ -104,7 +104,7 @@ units:
     modality: must_not
     statement: Zhiyu stores Provider Credentials, chooses execution route or model as Runtime truth, infers readiness, Quota, Budget, Rate Limit, or fallback, or calls an unadmitted provider directly.
     condition: Whenever Zhiyu presents or applies LocalAgent AI settings.
-    failure: Use the typed Runtime configuration and readiness projection.
+    failure: Use the canonical shared AIConfig owner action, per-Agent non-AI owner action, request-time derived admission, or exact Job failure without creating a Zhiyu-owned projection.
     relations:
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
@@ -142,7 +142,7 @@ units:
     kind: rule
     title: Missing owner capability fails closed
     modality: must
-    statement: Missing Runtime, authorization, LocalAgent, Conversation, AI readiness, voice, or configuration capability produces a typed unavailable or failure state without fixture, local provider, cached truth, empty-success, or silent fallback.
+    statement: Missing Runtime service, authorization, LocalAgent, Conversation, shared AIConfig, request-time derived admission, voice, or exact Job result produces a typed unavailable or failure state without aggregate AI readiness, fixture, local provider, cached truth, empty-success, or silent fallback.
     condition: Whenever a Zhiyu owner dependency is missing.
     failure: Render the typed state and preserve a recovery action when available.
     relations:

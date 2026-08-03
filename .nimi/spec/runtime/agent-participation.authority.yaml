@@ -32,8 +32,8 @@ units:
     meaning: Multi-participant rooms, Realm group participation, scenario or World participation, external-agent entry, MCP-backed participation, and their orchestration or promotion models are outside the current Runtime core and remain isolated future capability boundaries.
   - id: definition.nimi.runtime.agent-participation.ai-config-plane
     kind: definition
-    title: Runtime LocalAgent AI configuration plane
-    meaning: Runtime owns the canonical local-agent-scoped AIConfig, its persistence, AIProfile prepare and apply boundary, readiness, Token, Quota, Budget, metering, and resource admission used by LocalAgent execution; the wider Runtime LocalAgent configuration aggregate may independently own non-AI behavior such as autonomy, presentation, voice playback, Memory, and Knowledge without redefining the AIConfig submodel.
+    title: Runtime shared LocalAgent AI configuration plane
+    meaning: Runtime owns exactly one canonical AIConfig for the LocalAgent subsystem and all Runtime LocalAgents share it; individual LocalAgents retain independent personality, appearance, behavior, Memory, Conversation, and presentation state but never own an AIConfig, local model, route override, binding, machine selection, or capability readiness lifecycle.
   - id: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
     kind: definition
     title: Runtime LocalAgent autonomy configuration plane
@@ -200,21 +200,21 @@ units:
         target: definition.nimi.runtime.agent-participation.participation-plane
   - id: rule.nimi.runtime.agent-participation.r082
     kind: rule
-    title: LocalAgent AI configuration is Runtime-owned
+    title: LocalAgent subsystem AIConfig is singular and shared
     modality: must
-    statement: Runtime issues one local-agent AIScopeRef per Runtime LocalAgent, persists exactly one full canonical AIConfig for that scope, owns admitted target materialization, readiness, Token, Quota, Budget, metering, and resource admission, and never accepts App-owned provider credentials, hidden provider calls, caller-fabricated scope identity, or caller-declared execution truth.
-    condition: Whenever LocalAgent AI configuration is selected or consumed.
-    failure: Reject a parallel model-settings truth, unavailable or unauthorized target, fabricated scope, or partial overlay and expose the canonical config plus bounded typed readiness.
+    statement: Runtime persists exactly one full canonical AIConfig owned by the LocalAgent subsystem and every LocalAgent consumes that same committed configuration; when it commits a Cloud route, the selected ConnectorGrant account, usage or cost, and data-egress consequences apply to every future interactive, deferred, or proactive LocalAgent Job for that CapabilityContract; a LocalAgent identity, Agent Center record, Conversation, feature, module, route, chat mode, or renderer never creates a second AIConfig or per-Agent model override, no Local request switches implicitly to Cloud, and no App supplies provider credentials, hidden provider calls, or execution truth.
+    condition: Whenever LocalAgent AI configuration is read, changed, or consumed.
+    failure: Reject per-Agent AIConfig, per-Agent model overrides, hidden shared Cloud impact, implicit Local-to-Cloud switching, parallel model-settings truth, partial overlays, and caller-declared execution truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.ai-config-plane
   - id: rule.nimi.runtime.agent-participation.r087
     kind: rule
-    title: AI readiness is a bounded projection
+    title: LocalAgent admission is derived and request scoped
     modality: must
-    statement: Consumers may observe typed ready, blocked, unavailable, or failed LocalAgent AI status without receiving Provider Credentials, route internals, proof material, or authority to select an unadmitted provider or model.
-    condition: Whenever LocalAgent AI readiness is displayed.
-    failure: Reject sensitive or authoritative route material and never report ready without Runtime evidence.
+    statement: Runtime may project a typed request admission reason derived from the shared LocalAgent AIConfig, current machine selection or Cloud ConnectorGrant, standardized feature subset, exact configuration, authorization, Quota, and Budget without persisting or exposing a LocalAgent AI readiness, probe, warm, resident, or health truth.
+    condition: Whenever a LocalAgent request is checked or its inability to execute is displayed.
+    failure: Return the typed derived reason without credentials, route internals, persistent readiness, fallback, or fabricated success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.ai-config-plane
@@ -222,7 +222,7 @@ units:
     kind: rule
     title: LocalAgent turn admission uses Runtime AI policy
     modality: must
-    statement: Runtime admits a LocalAgent turn only after resolving the current authorized LocalAgent, AI route, readiness, Quota, and Budget from Runtime truth.
+    statement: Runtime admits a LocalAgent turn only after reading the current authorized LocalAgent, the committed shared LocalAgent AIConfig, and the exact current machine selection for a Local route or the exact Cloud CapabilityImplementation target and selected ConnectorGrant for a Cloud route, then checking required standardized features, configuration, authorization, Quota, and Budget and capturing the effective inputs in the Job.
     condition: Whenever a LocalAgent turn is admitted.
     failure: Return a typed blocked or unavailable outcome without fallback provider execution.
     relations:
@@ -252,7 +252,7 @@ units:
     kind: rule
     title: LocalAgent transcription and voice truth is Runtime-owned
     modality: must
-    statement: Runtime owns admitted microphone processing, local STT, accepted text intent, LocalAgent response selection, local TTS route, voice artifact, playback state, and interruption truth, while optional wake behavior remains separately admitted and non-blocking.
+    statement: Runtime owns admitted microphone processing, accepted text intent, LocalAgent response selection, voice artifact, playback state, and interruption truth, while the one shared LocalAgent AIConfig owns each audio.transcribe and audio.synthesize Local-or-Cloud route and Runtime deterministically composes the exact selected Local Capability Configuration or Cloud implementation, Driver target, and ConnectorGrant into the Job; the companion voice plane neither chooses a route nor owns a model binding, and optional wake behavior remains separately admitted and non-blocking.
     condition: Whenever LocalAgent voice input or output is available or requested.
     failure: Fail closed as unavailable without App-local capture truth, direct provider calls, hidden listening, or simulated success.
     relations:
@@ -332,7 +332,7 @@ units:
     kind: rule
     title: Recorded voice transcription uses Runtime LocalAgent AI policy
     modality: must
-    statement: Explicit recorded voice input is transcribed through the Runtime-selected local STT route under current authorization, Quota, Budget, and readiness before text intent reaches a LocalAgent Conversation.
+    statement: Explicit recorded voice input is transcribed through the route committed in the shared LocalAgent AIConfig and the deterministic Local machine-selection or Cloud implementation-target-grant composition under current authorization, Quota, and Budget before text intent reaches a LocalAgent Conversation; Runtime never searches for or chooses a substitute route.
     condition: Whenever recorded voice input is submitted to a LocalAgent.
     failure: Return typed unavailable or failed state without App-local provider calls or fabricated transcript.
     relations:
@@ -372,9 +372,9 @@ units:
     kind: rule
     title: LocalAgent AI configuration uses canonical AIConfig
     modality: must
-    statement: Runtime and SDK project the Runtime-owned LocalAgent AI member as the standard full AIConfig containing its Runtime-issued local-agent scopeRef, dynamic canonical capabilities, per-capability public logical primary model identity and v2 durable targetRef, ordered concrete component selections with public logical identity and exact compact targetRef, selectedParams containing only capability parameters, and optional profileOrigin provenance, with readiness and resolved execution evidence remaining adjacent Runtime projections; AIProfile preview and apply use the standard typed flow, Runtime descriptor preparation copies and materializes the profile's component occurrences and defaults before commit, and successful apply or direct customization atomically replaces the full AIConfig under expected-revision compare-and-swap without leaving a live profile binding or a second route-only AI truth.
+    statement: Runtime and SDK project the Runtime-owned shared LocalAgent AIConfig as per-CapabilityContract Local or Cloud route intent, required standardized features, defaults, and for Cloud only the CapabilityImplementation plus provider-model target intent and an explicitly selected ConnectorGrant binding; it contains no Local Capability Configuration identity, local model, workflow, node environment, LocalAsset binding, machine selection, Runtime process state, per-Agent field, product revision or history, and Apply Profile to AIConfig atomically creates or overwrites this current state without merge, re-apply, installation, local configuration mutation, binding resolution, machine selection, ConnectorGrant selection, or readiness gating.
     condition: Whenever LocalAgent AIConfig is projected, customized, previewed, applied, or consumed for execution.
-    failure: Reject a dedicated route-only model-settings truth, fabricated NimiAIConfig, hand-enumerated capability set, caller-fabricated AIScopeRef, untyped parameter, profile-as-live-config binding, partial write, fallback, or stub success.
+    failure: Reject per-Agent or route-only shadow truth, local execution material in AIConfig, caller-fabricated owner identity, untyped parameters, live Profile binding, partial write, fallback, or stub success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.ai-config-plane
@@ -426,11 +426,11 @@ units:
         target: definition.nimi.runtime.agent-participation.user-attachment-plane
   - id: rule.nimi.runtime.agent-participation.r174
     kind: rule
-    title: Vision-unsupported routes fail without losing the attachment
+    title: Image-input feature mismatch fails without losing the attachment
     modality: must
-    statement: When the current route cannot consume image content, Runtime still commits and persists the user attachment message and emits a structured failure projection with an explicit reason, never dropping the attachment, rejecting the user message, or pretending the image was consumed.
-    condition: Whenever a route without image capability receives an attachment turn.
-    failure: Surface the typed vision-unsupported failure on the assistant side while the user attachment stays committed and visible.
+    statement: When the shared LocalAgent AIConfig requires input.image for text.generate and the effective CapabilityImplementation does not declare that contract-scoped standardized feature, Runtime still commits and persists the user attachment message and emits a structured feature-mismatch failure, never dropping the attachment, pretending it was consumed, or changing the route, machine selection, or Cloud provider.
+    condition: Whenever an effective text.generate implementation without input.image receives an attachment turn.
+    failure: Surface the typed feature-mismatch failure on the assistant side while the user attachment stays committed and visible.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.user-attachment-plane

@@ -7,7 +7,7 @@ export { runDevShell } from '../scripts/dev-shell.mjs';
 export { validateSimulatorAppSource } from './simulator-conformance.mjs';
 
 const SDK_VERSION = '^0.6.0';
-const NIMICODING_VERSION = '0.2.5';
+const NIMICODING_VERSION = '0.5.0';
 const KIT_VERSION = '^0.3.0';
 const REACT_VERSION = '^19.1.0';
 const REACT_DOM_VERSION = '^19.1.0';

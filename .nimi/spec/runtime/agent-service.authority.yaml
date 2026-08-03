@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.runtime.agent-service.context-composition-plane
     kind: definition
     title: Runtime LocalAgent context composition plane
-    meaning: Runtime owns the private composition of model-facing context for a LocalAgent turn from admitted Realm source material, committed Conversation, operational Memory and Knowledge, current policy, and Runtime-selected AI route; Apps receive only bounded status and output projections and never own or reconstruct that context.
+    meaning: Runtime owns the private composition of model-facing context for a LocalAgent turn from admitted Realm source material, committed Conversation, operational Memory and Knowledge, current policy, and the Local or Cloud route committed by the singular shared LocalAgent AIConfig; a Local route dereferences the current Machine Local AI Configuration selection, and Apps receive only bounded status and output projections and never own or reconstruct that context.
   - id: definition.nimi.runtime.agent-service.agent-service-plane
     kind: definition
     title: Runtime LocalAgent service plane
@@ -68,7 +68,7 @@ units:
     kind: rule
     title: Context status projections are bounded
     modality: must
-    statement: Runtime may expose typed readiness, blocked, failure, budget, truncation, provenance, and correlation status for LocalAgent context, but never raw prompts, source bodies, transcripts, private Memory, Knowledge, credentials, provider payloads, or reconstructable context.
+    statement: Runtime may expose typed admission, blocked, failure, budget, truncation, provenance, and correlation status for LocalAgent context, but never raw prompts, source bodies, transcripts, private Memory, Knowledge, credentials, provider payloads, reconstructable context, or a reusable readiness result.
     condition: Whenever context status crosses the Runtime boundary.
     failure: Reject an over-broad or reconstructable projection and report typed unavailable state.
     relations:
@@ -148,9 +148,9 @@ units:
     kind: rule
     title: AI resources remain Runtime-managed
     modality: must
-    statement: Runtime selects AI routes and owns Token, Quota, Budget, metering, and resource admission for LocalAgent execution; Apps may observe bounded readiness and usage projections but never own or bypass those decisions.
-    condition: Whenever Local or Cloud AI resources are selected or consumed for a LocalAgent.
-    failure: Reject caller-selected hidden routes, unmetered execution, or App-owned resource truth.
+    statement: The shared LocalAgent AIConfig owns each CapabilityContract's Local or Cloud route intent, the Machine Local AI Configuration owns Local configuration selection, and Runtime deterministically composes those committed facts with authorization, Token, Quota, Budget, and metering for LocalAgent Job admission; Apps may observe bounded typed admission and usage projections but never choose a hidden execution target or bypass those facts.
+    condition: Whenever Local or Cloud AI resources are composed or consumed for a LocalAgent.
+    failure: Reject Runtime route search, per-Agent overrides, caller-selected hidden targets, unmetered execution, fallback, or App-owned resource truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane
@@ -158,7 +158,7 @@ units:
     kind: rule
     title: Core capability unavailability is explicit
     modality: must
-    statement: Missing Local AI readiness, authorization, Character Source, Runtime route, Memory, Knowledge, Conversation, or required service health produces a typed blocked, unavailable, or failed outcome and never mock success or an App-local fallback execution.
+    statement: A missing or invalid selected Local Capability Configuration, unresolved required binding, uninterpretable Driver configuration, standardized-feature mismatch, missing Cloud ConnectorGrant, failed authorization, Character Source, Memory, Knowledge, Conversation, or required service dependency produces a typed admission, unavailable, or failed outcome and never public readiness, mock success, route mutation, automatic re-selection, or App-local fallback execution.
     condition: Whenever a LocalAgent core operation cannot run.
     failure: Fail closed with the owning Runtime reason and no fabricated result.
     relations:

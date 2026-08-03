@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.sdks.feature-clients.ai-adapter-plane
     kind: definition
     title: SDK AI adapter plane
-    meaning: The SDK AI adapter plane owns the adapter-facing feature client boundary of the SDK family, covering independent AI adapter packages and core AI helper boundaries, media job and stream finish projection, provider catalog and error projection alignment, world generation projection, external AI framework adapter boundaries, adapter capability manifests, and framework state lifetime and reconstructibility classification.
+    meaning: The SDK AI adapter plane owns typed CapabilityContract request and Job projection for independent framework adapters and core AI helpers; adapters consume the canonical AIConfig owner and Runtime-composed exact execution inputs without becoming a CapabilityImplementationDriver, selecting routes or machine configurations, owning provider catalogs, or replicating Runtime validation.
   - id: definition.nimi.sdks.feature-clients.ai-config-plane
     kind: definition
     title: SDK AI config plane
-    meaning: The SDK AI config plane owns the app-facing typed surface over AIProfile, AIConfig, and AISnapshot, covering the fixed logical operation categories, adjacent live config families including memory embedding, the no-fallback posture, AIScopeRef consumption, the runtime-facing descriptor bridge, owner-routed persistence and subscriptions, first-launch profile resolution, profile apply preview, per-app first-launch initialization, capability requirement declarations, and compact AIConfig ref validation.
+    meaning: The SDK AI configuration plane owns typed surfaces for portable AIProfile import and validation, Apply Profile to canonical App or shared LocalAgent AIConfig, direct AIConfig overwrite, separate Machine Local AI Configuration and Local Capability Configuration actions, derived admission, and exact Job projection; it owns no scoped or per-Agent configuration, AISnapshot product object, Profile materialization, readiness or probe lifecycle, route resolver, machine selection policy, or implementation binding truth.
   - id: definition.nimi.sdks.feature-clients.app-client-plane
     kind: definition
     title: SDK app client plane
@@ -25,15 +25,23 @@ units:
   - id: definition.nimi.sdks.feature-clients.connector-auth-plane
     kind: definition
     title: SDK connector auth acquisition plane
-    meaning: The SDK connector auth acquisition plane owns the host typed facade boundary for third-party managed OAuth acquisition, covering the acquisition facade, the acquisition profile table truth, and the refresh and rotation deferral, while Runtime ConnectorService retains sealed credential custody, connector create, update, probe, and consume, and provider-native execution header derivation.
+    meaning: The SDK connector auth acquisition plane owns the host typed facade boundary for third-party managed OAuth acquisition and user-explicit bounded connector diagnostics, while Runtime retains sealed credential custody and ConnectorGrant authorization; acquisition or diagnostics never chooses a route, target, grant, provider, model, or capability and never establishes readiness or an execution prerequisite.
   - id: definition.nimi.sdks.feature-clients.local-environment-plane
     kind: definition
     title: SDK local environment plane
-    meaning: The SDK local environment plane owns the typed downstream projection of Runtime local environment plans, covering allowed projection families, dependency-first job control, asset identity preservation, non-ownership of environment readiness and source selection, and fail-closed preservation of Runtime structured failure states.
+    meaning: The SDK local environment plane owns typed downstream installation, LocalAsset integrity, dependency-job, and Runtime-private ExecutionHost diagnostic projections, preserves concrete identities and structured failures, and never projects environment readiness, selected-source authority, route selection, machine selection, binding, or capability admission truth.
   - id: definition.nimi.sdks.feature-clients.route-plane
     kind: definition
-    title: SDK route plane
-    meaning: The SDK route plane owns the app-facing runtime route typed surface, covering the v2 durable target identity hard cut, the route logical operation set, the typed describe result projection and its fail-closed consumption, the selection, resolve, and health host projection boundary, and the runtime client projection boundary.
+    lifecycle: removed
+    title: Retired SDK route plane
+    reason: Removed because list, resolve, health, warm-candidate, inventory ranking, and route-description APIs formed a second router and public readiness path.
+  - id: definition.nimi.sdks.feature-clients.capability-composition-plane
+    kind: definition
+    title: SDK capability composition plane
+    meaning: The SDK capability composition plane projects the route committed by a canonical AIConfig owner and the exact deterministic Runtime composition through machine selection or Cloud implementation target and ConnectorGrant, plus typed derived admission and immutable Job inputs, without searching, ranking, probing, warming, choosing, or falling back.
+    relations:
+      - type: supersedes
+        target: definition.nimi.sdks.feature-clients.route-plane
   - id: definition.nimi.sdks.feature-clients.delegation-plane
     kind: definition
     title: SDK delegated capability boundary
@@ -50,9 +58,9 @@ units:
     kind: rule
     title: Adapters never own routing decisions
     modality: must
-    statement: AI adapters are independent adapter packages or core AI helper boundaries and not the removed ai-provider base SDK subpath, adapter factories bind to explicit NimiClient or Runtime-facing surfaces with app identity and Runtime construction constraints remaining governed by the client construction authority, routing and default model selection belongs to the runtime or the caller so adapters never introduce an independent provider routing table, an adapter never defaults to local or cloud when the caller provides no route policy and instead requires an explicit caller route policy or an explicit route policy from a public Runtime projection and fails closed when it is missing, and multimodal request validation including the video mode and role matrix, strong-typed TTS voice references, local image workflows, and artifact metadata checks remains a runtime-side responsibility so the adapter layer only projects public SDK and Runtime method surfaces and error results without replicating upstream request validation.
+    statement: AI adapters bind to an explicit NimiClient and canonical App AIConfig owner, or to the shared LocalAgent AIConfig through the protected Runtime surface; the AIConfig owner alone commits Local or Cloud route intent, the machine owner alone selects a Local Capability Configuration, and Runtime deterministically composes those facts, so adapters and callers never default, select, search, rank, probe, or fall back among routes, models, implementations, providers, grants, or machine configurations and never replicate Runtime request validation.
     condition: Whenever an AI adapter is constructed or routes a request.
-    failure: Fail closed on missing route policy and reject independent routing tables and replicated upstream validation.
+    failure: Fail closed on missing committed owner intent and reject independent routing tables, target selection, fallback, and replicated upstream validation.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-adapter-plane
@@ -70,7 +78,7 @@ units:
     kind: rule
     title: Catalog and error projection follow their fact sources
     modality: must
-    statement: Provider names and capability alignment take the runtime provider catalog table as their fact source, and adapter error projection reuses the SDK error projection authority without privately extending conflicting semantics.
+    statement: CapabilityImplementation identity, CapabilityImplementationDriver identity, Cloud provider-model target schemas, and standardized-feature support take their canonical Runtime projections as fact sources, and adapter error projection reuses the SDK error projection authority without inferring support from provider or model names or privately extending conflicting semantics.
     condition: Whenever adapters align provider capabilities or project errors.
     failure: Reject private catalogs and conflicting error semantics.
     relations:
@@ -118,11 +126,11 @@ units:
         target: definition.nimi.sdks.feature-clients.ai-adapter-plane
   - id: rule.nimi.sdks.feature-clients.r008
     kind: rule
-    title: Durable AIConfig refs use the v2 compact grammar
+    title: AIConfig and machine-local identities remain separate
     modality: must
-    statement: SDK AIConfig primary and component durable refs use the v2 target grammar of the runtime target identity authority, targetId or profileId, localModelId, goRuntime-prefixed fields, and cloud refs without remoteModelCatalogId are retired as durable target identity, the SDK owns the host-facing validator for compact AIConfig logical refs with the allowed families being profile_slice_ref carrying source profile id, version, and digest plus a profile-local slice_id, local_runtime_target_ref carrying kind local-runtime, version v2, and exactly one of profileBindingId or readinessRef while staying non-path, non-secret, non-evidence, and resolvable only by Runtime prepare and readiness APIs, and cloud_connector_target_ref carrying kind cloud-connector with a non-secret connectorId, required remoteModelCatalogId, required providerModelId, and provider when available, connectorId plus a provider model id without remoteModelCatalogId is not an admitted durable target ref, forbidden payloads include RuntimeRouteBinding, selectedBindings runtime evidence, endpoint URLs, localModelId and goRuntime fields, providerHints, local paths, local asset ids, selected source records, install or materialization records, raw workflow binding ids outside an admitted compact target ref, backend Python Torch or CUDA evidence, provider health, scheduler state, raw connector secrets, tokens, API keys, OAuth payloads, and credential JSON, validators fail closed on forbidden payloads for both AIProfile import and AIConfig persistence, and a legacy field name is accepted only when its payload passes the compact-ref validator and otherwise rejected rather than shimmed.
-    condition: Whenever durable AIConfig refs are authored, imported, or persisted.
-    failure: Fail closed on forbidden payloads and reject retired identity fields.
+    statement: The SDK validates separate canonical identities where AIConfig names its App or shared LocalAgent owner and stores per-CapabilityContract Local or Cloud route intent, required standardized features, defaults, and for Cloud the CapabilityImplementation, Driver-owned provider-model target intent, and explicitly selected ConnectorGrant reference; Machine Local AI Configuration separately names flat saved Local Capability Configurations, each with a Runtime-generated lifetime-stable identity that is neither revision nor history, exact Driver-owned portable configuration, normalized requirement slots, committed exact LocalAsset binding identities or unresolved slots, and at most one explicit selection. Exact portable-content equivalence may reuse a record, changed content with the same provenance requires an explicit Update existing or Add new choice, provenance is display metadata rather than identity, and a later missing or damaged bound asset does not clear its committed binding identity or selection. Neither surface accepts legacy target refs, local model or workflow identity inside AIConfig, paths, selected-source records, process evidence, secrets, health, readiness, fallback, or deprecated fields carrying old semantics.
+    condition: Whenever AIConfig or machine-local identities are authored, imported, projected, or persisted.
+    failure: Fail closed on cross-owner or forbidden payloads and reject retired identity fields without compatibility interpretation.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
@@ -130,9 +138,9 @@ units:
     kind: rule
     title: The AI config operation set is fixed
     modality: must
-    statement: The SDK AI config surface is fixed to typed logical operation categories, the profile catalog operations aiProfile.list, aiProfile.get, and the static schema probe aiProfile.validate, the profile apply operations aiProfile.previewApply computing a non-committing typed before-after full AIConfig diff including primary selections, ordered component selections, selected parameters, and profile provenance or a setup-required no-live-config outcome and aiProfile.apply atomically overwriting the scope AIConfig and returning a typed result with success, failure reason, probe warnings, or setup-required no-live-config outcome where unresolved required slices or components never produce a live AIConfig write, the config operations aiConfig.get, aiConfig.update as a full materialized write without partial overlay, and aiConfig.listScopes applying to app, module, feature, and local-agent scopes where consumers never substitute ad hoc settings objects, route override stores, or domain payload fields for the formal surface, the probe operations aiConfig.probe consuming the route health and describe surfaces, aiConfig.probeFeasibility consuming the runtime scheduler Peek aggregate SchedulingJudgement and carrying that typed aggregate state in the probe result, and aiConfig.probeSchedulingTarget consuming the atomic target judgement for submit guards and execution snapshot evidence without returning the scope aggregate judgement, and the snapshot operations aiSnapshot.record, aiSnapshot.get, and aiSnapshot.getLatest use the canonical scope owner where Desktop host owns admitted Desktop-resident scopes and Runtime owns LocalAgent execution snapshots; consumers never define consumer-local AISnapshot schemas or local persistence as a parallel owner, host-store snapshot helpers stay storage mechanics only, owner persistence fails closed when unavailable, and process-memory stores are admitted only as explicitly named test or development harnesses.
+    statement: The SDK AI surface exposes typed Profile import, list, get, and validate; Apply Profile to AIConfig and direct atomic create-or-overwrite of one canonical App or shared LocalAgent AIConfig; separate Machine Local AI Configuration list plus Local Capability Configuration add, update, explicit requirement reprojection, exact bind, unbind, rebind, delete, and select actions; explicit ConnectorGrant selection for a Cloud AIConfig; and Job submit, get, cancel, and event subscription. Select, execution-relevant Update of the selected record, and Delete of the selected record require a user-observed explicit machine-wide confirmation after impact display, while presentation-only Update and Delete of an unselected record do not; impact calculation alone is never accepted as confirmation. The surface exposes no module, feature, per-Agent, route, chat-mode, or renderer AIConfig owner, no AISnapshot product store, no partial overlay, no Profile-driven installation or local binding, and no public route list, resolve, readiness, probe, health, warm, or fallback operation.
     condition: Whenever the AI config surface operation set is defined or consumed.
-    failure: Reject parallel surfaces, partial overlays, and unavailable-storage success.
+    failure: Reject parallel surfaces, mixed-owner actions, partial overlays, undeclared probes or route resolution, and unavailable-storage success.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
@@ -140,7 +148,7 @@ units:
     kind: rule
     title: Adjacent live config families stay non-authoritative
     modality: must
-    statement: The SDK may expose typed mutation intent, status, readiness, and change projection for Runtime-owned LocalAgent Memory and Knowledge configuration, but never persists or infers Runtime embedding intent, binding, bank, rebuild, migration, or cutover truth from host storage, active UI selection, fixtures, or a default scope.
+    statement: The SDK may expose typed mutation intent, status, and change projection for separately Runtime-owned LocalAgent Memory and Knowledge configuration, but these families never create an AIConfig owner or persist or infer embedding route, machine selection, binding, bank, rebuild, migration, cutover, or readiness truth from host storage, active UI selection, fixtures, or an implicit owner.
     condition: Whenever adjacent live config or memory embedding families are exposed.
     failure: Reject persisted intent, guessed bank owners, and second product semantics.
     relations:
@@ -150,7 +158,7 @@ units:
     kind: rule
     title: The AI config surface exposes no fallback
     modality: must
-    statement: The SDK AI config surface exposes no fallback knob, apply accepts no fallback allow style parameter, a failed apply returns a typed error without silent downgrade to partial config, probe results are the typed enum available, unavailable, degraded, or unknown and never a generic string reason, the probeFeasibility scheduling judgement when present is a typed AISchedulingJudgement whose state comes from the closed scheduler enum and fixedly expresses the scope aggregate judgement where denied is a hard failure rather than degraded success and unknown is returned only when the runtime lacks evaluation information and never projected as runnable, probeSchedulingTarget scheduling evidence stays typed and strictly corresponds to the requested target without substituting the scope aggregate judgement as an approximation, aiSnapshot.record requires an explicit scopeRef and the recorded snapshot scopeRef matches that canonical scope without implicit fallback to a chat scope when the caller omits it, raw route, scheduler peek, and runtime local profile install and probe surfaces are opaque low-level dependencies that consumers never treat as the product-facing AIConfig or AISnapshot surface, and low-level host store helpers may expose an explicitly named ephemeral store for test and development harnesses only so that when host storage is unavailable and that harness mode is not enabled every AIConfig persistence operation including has, load, save, and listScopeKeys fails closed without fallback terminology or silent degradation into process memory.
+    statement: The SDK exposes no fallback knob or probe-derived runnable state; Apply and direct overwrite return only committed configuration or a typed error without partial configuration, and request admission is a typed Runtime-derived reason for one exact attempted composition rather than a persisted AIConfig, Local Capability Configuration, or machine readiness state. Local failure never switches to Cloud, Cloud failure never switches to Local or another provider or grant, a missing or later-invalid selection remains explicit, and SDK storage never silently degrades into process memory or a test path.
     condition: Whenever AI config operations report results or persistence runs.
     failure: Fail closed without fallback knobs, partial configs, or silent degradation.
     relations:
@@ -158,31 +166,31 @@ units:
         target: definition.nimi.sdks.feature-clients.ai-config-plane
   - id: rule.nimi.sdks.feature-clients.r012
     kind: rule
-    title: Scope parameters are canonical AIScopeRef only
+    title: AIConfig owner parameters are canonical and closed
     modality: must
-    statement: SDK AI config scope parameters uniformly use the canonical AIScopeRef, the SDK never defines its own scope identity schema, accepts app, module, and feature identities only from their canonical factory or registry and local-agent identity only from the authenticated Runtime LocalAgent projection, never arbitrarily concatenates scope keys or attaches consumer-local fields onto an AIScopeRef, and requires every AIConfig surface call to pass an explicit scopeRef without implicit fallback to a desktop chat scope or any other consumer-default scope when the caller omits it.
-    condition: Whenever a scope parameter enters the AI config surface.
-    failure: Reject non-canonical scope keys and implicit default scopes.
+    statement: SDK AIConfig calls use only a canonical App or product owner identity issued by its registry or the singular authenticated Runtime LocalAgent subsystem owner, never an individual LocalAgent, module, feature, route, chat mode, renderer, concatenated key, or consumer-local owner field, and require the explicit canonical owner without falling back to a chat or other consumer default.
+    condition: Whenever an AIConfig owner parameter enters the SDK surface.
+    failure: Reject non-canonical owners, per-Agent ownership, and implicit defaults.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
   - id: rule.nimi.sdks.feature-clients.r013
     kind: rule
-    title: Descriptor formation carries no runtime evidence
+    title: Profile actions do not materialize execution
     modality: must
-    statement: The SDK exposes a typed bridge from AIProfile to a runtime-facing descriptor through aiProfile.formRuntimeDescriptor projecting portable AIProfile capability slices and app, module, feature, or local-agent requirement declarations into a contract-bound descriptor, the legacy resolveLocalDependencies semantics are superseded as an authority boundary so a retained helper name may only form the same descriptor without pre-resolving runtime materialization facts, descriptor formation may include portable profile refs, source profile digest, slice ids, capability ids, execution mode, authored execution backend and model family constraints, a cloud connector non-secret selector, asset and source binding refs, ordered companion occurrence refs, params and editable fields, and requirement ids, descriptor formation never includes RuntimeRouteBinding, selectedBindings runtime evidence, local paths, local asset ids as portable truth, selected source records, install or materialization evidence, workflow binding ids, backend package Python Torch or CUDA evidence, provider health, scheduler state, endpoint values, raw connector secrets, tokens, API keys, or credential payloads, Runtime independently validates, prepares, materializes, copies each admitted ordered occurrence into the concrete AIConfig component-selection list with public logical identity and exact compact target, and projects readiness from the descriptor so SDK and host request formation is never runtime support truth, selected-source truth, or materialization truth, and the SDK exposes no bare runtime descriptor constructor to apps because apps produce descriptors only through the admitted AIProfile plus requirement declaration bridge path.
-    condition: Whenever a runtime-facing descriptor is formed.
-    failure: Reject runtime evidence in descriptors and bare descriptor constructors.
+    statement: SDK Profile import and validation preserve portable AIConfig intent, local implementation-configuration intent, Cloud implementation-target recommendation, standardized features, defaults, provenance, and license while excluding Local Capability Configuration identity, machine selection, LocalAsset identity or path, ConnectorGrant, connector or account identity, secret, Runtime process, and machine-private facts. Apply Profile to AIConfig atomically creates or overwrites only the target AIConfig without merge, resolution, installation, local configuration mutation, binding, machine selection, ConnectorGrant selection, probe, prewarm, readiness, or re-apply relation; Profile local intent is consumed only by a separate explicit Add or Update Local Capability Configuration action.
+    condition: Whenever a Profile is imported, validated, applied, or used to create local configuration.
+    failure: Reject runtime or private identity in Profile, cross-action side effects, and a materialization descriptor as product authority.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
   - id: rule.nimi.sdks.feature-clients.r014
     kind: rule
-    title: AI config transport follows canonical scope ownership
+    title: AI configuration transport follows canonical ownership
     modality: must
-    statement: App-, module-, and feature-owned AIConfig may use owning host persistence and typed subscriptions, while local-agent AIConfig uses the protected Runtime Agent persistence and subscription boundary under the same standard AIConfig surface; Runtime-resolved provider credentials, exact execution binding, readiness, usage, Quota, Budget, Rate Limit, LocalAgent non-AI configuration, Memory, and Knowledge remain Runtime projections, and the SDK neither persists Runtime execution evidence nor wraps a private loopback endpoint as a product API.
+    statement: Each App or product AIConfig uses its owning host persistence and typed subscription while the one shared LocalAgent AIConfig uses the protected Runtime LocalAgent subsystem boundary; the separate Machine Local AI Configuration uses its machine owner boundary, and exact Job inputs, Provider Credentials, Runtime process state, usage, Quota, Budget, Rate Limit, LocalAgent non-AI configuration, Memory, and Knowledge remain Runtime projections that the SDK neither persists as configuration nor exposes through private loopback wrappers.
     condition: Whenever AI config transport or change subscriptions are composed.
-    failure: Reject a parallel LocalAgent settings surface, a host-local LocalAgent config copy, forbidden persisted payloads, unprotected Runtime mutation, and loopback wrappers.
+    failure: Reject per-Agent or host-local shadow configuration, mixed owner persistence, forbidden payloads, unprotected Runtime mutation, and loopback wrappers.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
@@ -193,21 +201,21 @@ units:
     reason: Product Control no longer exchanges or persists first-run evidence refs; built-in scope configuration uses ordinary typed profile application and current Runtime binding resolution.
   - id: rule.nimi.sdks.feature-clients.r016
     kind: rule
-    title: Profile apply preview is typed and non-committing
+    title: Profile intent preview is typed and non-committing
     modality: must
-    statement: The SDK exposes aiProfile.previewApply computing for a canonical AIScopeRef and catalog profile a typed before-after AIConfig diff plus probe and feasibility warnings, the typed preview result carries at least before as the current scope AIConfig or explicit null on first apply, after as the full materialized target AIConfig under overwrite semantics when required slices are ready and apply-eligible and explicit null for setup-required or no-live-config outcomes, a closed outcome enum of ready_to_apply, setup_required_no_live_config, unsupported_no_live_config, invalid_profile, invalid_requirement, stale_base, and failed, an optional setupProjection returning typed unmet requirement, blocking capability, action ref, and reason-code projection for no-live-config outcomes, a typed before-after diff structure covering capabilities, profileOrigin, and other materialized fields, a baseVersion recording the config version or content hash the before state is based on so the caller can judge preview freshness before commit, and probe and feasibility warnings aligned to the typed probe enums and scheduling judgement shape, previewApply is non-committing so it never writes live AIConfig, never triggers subscribe notifications, never records an AISnapshot, never implicitly commits, and never caches the preview as the authoritative input of a later apply because commit stays an explicit aiProfile.apply call, previewApply exposes no fallback knob, fails closed with a typed error on invalid profile or config schema without partial diffs or truncated after values, keeps warnings typed enums, returns unresolved required slices, missing connector credentials, missing manual associations, and unsupported backend or model families as no-live-config outcomes rather than advisory warnings, requires an explicit canonical AIScopeRef without implicit chat-scope fallback, and live AIConfig changes between preview and commit expire the baseVersion so apply resolves through scope-level compare-and-swap protection and the SDK never uses an expired preview after value to bypass commit-side version validation.
+    statement: The SDK may expose a non-committing static before-and-after intent diff for one canonical AIConfig owner and a valid Profile, showing only the overwrite result for route intent, required standardized features, defaults, Cloud implementation-target intent, and portable provenance; preview performs no inventory resolution, requirement binding, installation, ConnectorGrant selection, machine selection, feasibility probe, readiness evaluation, mutation, snapshot recording, or reusable commit token, and any compare-and-swap value used at commit remains private concurrency evidence rather than a product revision or Profile history.
     condition: Whenever a profile apply preview is computed or consumed.
-    failure: Reject implicit commits, partial diffs, and expired-preview bypasses.
+    failure: Reject implicit commits, materialized execution data, cross-owner actions, partial diffs, and preview-as-commit authority.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
   - id: rule.nimi.sdks.feature-clients.r017
     kind: rule
-    title: First-launch app AIConfig initialization is fixed
+    title: App launch does not require AI configuration materialization
     modality: must
-    statement: A Nimi App app-scope AIConfig is initialized on first launch only, an SDK helper for this finalization requires an explicit canonical app-shaped AIScopeRef and never infers it, and on first launch with no existing AIConfig the helper resolves only the Account Default Profile through its owning typed account profile projection; retained future registry rows, release descriptors, manifest recommendation strings, or app-local metadata never select the current initialization profile. Initialization goes through the typed aiProfile.apply overwrite path producing a full materialized AIConfig and never a partial overlay; when no resolvable Account Default Profile is available the helper fails closed with a typed error and never launches with a synthesized, empty, or placeholder AIConfig. When the app scope already has an AIConfig the helper treats initialization as complete and returns the existing config unchanged; when the app finds materialized requirements unmet the helper returns a typed setup or repair plan without silently mutating the profile, the app scope AIConfig, or factory profile templates to force a pass. Unsatisfiable required requirements return a typed setup-required no-live-config projection preserving any existing valid AIConfig unchanged while dependent app AI surfaces open unavailable or setup-required rather than with a synthesized placeholder config. The helper never overwrites, merges into, resets, or mutates an existing per-app AIConfig on any later launch even when the Account Default Profile changes, exposes no fallback knob, never downgrades a fail-closed result to a partial config or projects initialization failure as launch success, never accepts renderer or localStorage values, app-local caches, caller-provided strings, route-health probes, or file paths as substitutes for resolved profile content, and no package, registry, or install path initializes AIConfig.
-    condition: Whenever per-app first-launch AIConfig initialization runs.
-    failure: Fail closed without placeholder configs and reject re-initialization and fallback knobs.
+    statement: App launch and Product Control readiness do not require an AIConfig, Profile Apply, Local Capability Configuration, LocalAsset, machine selection, ConnectorGrant, probe, health, or capability admission; a default Profile may be shown only as a recommendation and is applied only by an explicit user action to the canonical App AIConfig, while a missing or non-executable AI route keeps only the affected capability unavailable and never creates a synthesized, empty, placeholder, or automatically materialized configuration.
+    condition: Whenever an App first launches or lacks AI configuration.
+    failure: Preserve App launch, reject implicit Profile Apply or configuration creation, and fail the affected capability without fallback or placeholder success.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
@@ -215,9 +223,9 @@ units:
     kind: rule
     title: Requirement declarations follow the schema table
     modality: must
-    statement: The SDK owns the typed declaration contract for app, module, feature, and local-agent AI capability requirements distinct from Runtime local environment activation consumers, the field-level schema owner is the ai-config-capability-requirements table with the rule owning only semantics, authority split, and fail-closed behavior and any prose field overview staying non-normative and subordinate to that table, the SDK validates requirement declarations before previewApply, apply, and first-launch initialization, declarations conform to the table and schema evolution amends the table rather than duplicating fields, Kit may consume the declaration for trimming UI and editable controls without owning readiness, materialization, execution backend, model family, source selection, or setup state, the Runtime activation consumer id is only a downstream readiness and materialization consumer never conflated with the requirement owner or used as an AIScopeRef, required slices with unresolved readiness produce setup-required no-live-config while optional slices with unresolved readiness are omitted from live AIConfig and projected as optional unavailable, SDK, Kit, Desktop, and apps never replace the declaration with a flat enabled-capability list, a runtimeReady boolean, app-local manifest shadow truth, or the Runtime activation consumer table, and declarations never contain local paths, selected source records, materialization evidence, route bindings, provider health, scheduler state, or connector secrets.
+    statement: The SDK declaration contract names only a canonical App or product owner, or the singular shared LocalAgent subsystem owner, and for each CapabilityContract its required standardized-feature set and defaults; it never creates module, feature, per-Agent, route, chat-mode, renderer, or Runtime activation-consumer AIConfig owners and never contains a Local Capability Configuration identity, machine selection, implementation binding, LocalAsset, path, selected source, process evidence, readiness, health, scheduler state, ConnectorGrant secret, or optional-feature lifecycle. Kit may consume the declaration for UI trimming without becoming an owner or execution authority.
     condition: Whenever capability requirement declarations are authored or validated.
-    failure: Reject parallel schemas, shadow truth, and forbidden declaration payloads.
+    failure: Reject parallel owner schemas, optional-feature lifecycle, shadow truth, and forbidden declaration payloads.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
@@ -275,7 +283,7 @@ units:
     kind: rule
     title: The app client reuses the projection families
     modality: must
-    statement: The SDK Nimi App client surface reuses the AI config surface and runtime local environment typed projection paths, expresses factory AIProfile selection and runtime local environment bindings consistently through those projections, never introduces a second projection family, and never exposes raw runtime, realm, or cognition transport.
+    statement: The SDK Nimi App client surface reuses the AI config surface and Runtime local environment typed projection paths, expresses a factory AIProfile only as a non-binding recommendation requiring later explicit Apply Profile to AIConfig and expresses Runtime local environment facts consistently through their owner projections, never introduces a second projection family, and never exposes raw Runtime, Realm, or Cognition transport.
     condition: Whenever app client projections are composed.
     failure: Reject second projection families and raw transport exposure.
     relations:
@@ -435,7 +443,7 @@ units:
     kind: rule
     title: Local App voice consumption stays Runtime owned
     modality: must
-    statement: When separately admitted for a Local App, voice input or output is a typed Runtime LocalAgent projection preserving LocalAgent and Conversation continuity; SDK and Kit never select provider, model, route, fallback, prompt, identity, credential, or Avatar control, never create durable voice truth, and fail closed when authorization, readiness, correlation, or Runtime stream truth is unavailable.
+    statement: When separately admitted for a Local App, voice input or output is a typed Runtime LocalAgent projection preserving LocalAgent and Conversation continuity; SDK and Kit never select provider, model, route, machine configuration, fallback, prompt, identity, credential, or Avatar control, never create durable voice truth, and fail closed when authorization, exact composition admission, correlation, or Runtime stream truth is unavailable.
     condition: Whenever the local-app selected voice client is exposed or invoked.
     failure: Fail closed with the typed error envelope and reject forbidden fields and constructed calls.
     relations:
@@ -635,7 +643,7 @@ units:
     kind: rule
     title: Refresh and rotation stay unadmitted
     modality: must
-    statement: Admitted managed OAuth acquisition owns no refresh or rotation automation, a refresh token may appear inside a provider-defined sealed credential payload only as opaque material written through the existing Runtime connector create and update path, the SDK host facade never silently refreshes, rotates, rewrites, or repairs sealed credential payloads after acquisition completes, Runtime consume and probe continue failing closed on unusable managed payloads, and re-authentication is manual reacquisition unless a future spec redesign explicitly admits a refresh and rotation owner, storage semantics, audit events, and failure behavior.
+    statement: Admitted managed OAuth acquisition owns no refresh or rotation automation, a refresh token may appear inside a provider-defined sealed credential payload only as opaque material written through Runtime custody, the SDK host facade never silently refreshes, rotates, rewrites, repairs, selects, or binds sealed credential payloads after acquisition completes, and an unusable payload fails a user-explicit bounded Test Connector diagnostic or Cloud execution without creating readiness or changing the AIConfig route or ConnectorGrant; re-authentication is manual reacquisition unless a future authority admits a refresh owner.
     condition: Whenever managed credential refresh or rotation is approached.
     failure: Reject silent refresh and rotation and keep unusable payloads fail-closed.
     relations:
@@ -645,7 +653,7 @@ units:
     kind: rule
     title: Local environment projection mirrors Runtime
     modality: must
-    statement: The SDK may expose typed projection for Runtime local environment plans only as a downstream mirror of the Runtime local environment authority, the allowed projection families are host capability profile projection, local compute pack projection, local environment plan projection, dependency graph and dependency job projection, materializer family and status projection, source manifest and verification evidence summaries bounded to diagnostics, selected source record reference and diagnostics projection, confirmation, cancel, retry, and repair commands routed to Runtime, and activation gate status for native engine and Python pipeline consumers, dependency job control is dependency-first so startLocalEnvironmentDependencyJob requires a Runtime-resolved dependency environment and explicit confirmation, model asset and companion asset projections preserve Runtime asset-specific identity fields without replacing concrete asset_id, local_asset_id, companion_asset_id, or parent_asset_id truth with pack-level placeholders, SDK and app helpers never synthesize asset_id from local_asset_id and keep asset_id as the semantic installable asset identity and local_asset_id as the lifecycle handle with lookup or dedupe helpers keeping the two namespaces typed rather than normalizing both through one asset-id canonicalizer, cancelLocalEnvironmentDependencyJob targets only Runtime job ids, retryLocalEnvironmentDependencyJob targets terminal retryable Runtime job ids and preserves Runtime structured failure when retry is refused, repairLocalEnvironmentDependency targets Runtime dependency environments without becoming SDK-side installer, package-manager, PATH, or source-selection logic, and dependency job recovery helpers may filter Runtime-projected recovery_disposition values but never parse failure_detail or dependency-family names to infer auto-recovery policy.
+    statement: The SDK may expose typed downstream projection for host facts, LocalAsset inventory and content-integrity evidence, install and dependency plans and Jobs, Runtime-private ExecutionHost diagnostics, explicit confirmation, cancellation, retry, and repair, while preserving every concrete asset and resource-occurrence identity. Selected-source remains Runtime-private dependency evidence and none of these projections creates or changes AIConfig route, Local Capability Configuration, exact binding, Machine Local AI Configuration selection, standardized-feature support, derived admission, or Job execution inputs; recommendation and recovery helpers never infer selection, binding, routing, or automatic recovery from filenames, paths, labels, inventory, process state, or failure text.
     condition: Whenever local environment plans or dependency jobs are projected.
     failure: Reject synthesized identities, non-Runtime targets, and inferred recovery policy.
     relations:
@@ -653,9 +661,9 @@ units:
         target: definition.nimi.sdks.feature-clients.local-environment-plane
   - id: rule.nimi.sdks.feature-clients.r064
     kind: rule
-    title: Environment readiness is never SDK-owned
+    title: Environment diagnostics are never capability readiness
     modality: must
-    statement: The SDK never owns or infers GPU, CUDA, Python, uv, Torch, package set, model directory, PATH, or engine package readiness, dependency source selection, selected source record creation or invalidation, installer, script, package manager, PATH mutation, or repair execution, app-level REST bypasses around RuntimeLocalService, materializer source manifests or verification evidence outside Runtime, or readiness from endpoint reachability, transfer completion, package directory presence, import success, PATH precedence, or script exit, the SDK preserves Runtime structured failure, cancellation, unsupported, repair-required, auth, and stale-projection reasons and never synthesizes ready from missing, unconfirmed, cancelled, failed, unsupported, corrupt, incompatible, stale, or repair-required Runtime state, cloud-only SDK provider, connector, account, and route projection paths never depend on local environment readiness, missing uv, Python runtime, venv, package set, Torch wheel, native engine package, model asset, or companion asset is projected as Runtime local environment setup, confirmation, failed, unsupported, cancelled, or repair state, and SDK public errors and helper text never instruct ordinary users to install these dependencies through system package managers, global Python, user PATH, machine PATH, shell profiles, or engine-private directories.
+    statement: The SDK never owns or infers capability admission, routing, binding, machine selection, or standardized-feature support from GPU, CUDA, Python, package set, model directory, PATH, engine package, endpoint reachability, transfer completion, directory presence, import success, process health, or script exit; it preserves typed Runtime installation, integrity, dependency, cancellation, unsupported, repair, authorization, and stale-diagnostic reasons without synthesizing ready, never makes Cloud execution depend on Local environment facts, never clears a binding after execution failure, and never instructs ordinary users to mutate system package managers, global Python, PATH, shell profiles, or engine-private directories.
     condition: Whenever local environment readiness or failures are projected.
     failure: Reject synthesized readiness and system-level installation guidance.
     relations:
@@ -663,54 +671,54 @@ units:
         target: definition.nimi.sdks.feature-clients.local-environment-plane
   - id: rule.nimi.sdks.feature-clients.r065
     kind: rule
-    title: Route APIs consume v2 target identity
+    title: Composition consumes canonical owner identities
     modality: must
-    statement: Runtime route APIs consume v2 durable target refs, return inventory projection for options, and expose resolved execution binding for execution and describe truth, and legacy route bindings, localModelId, and raw provider or model ids are never used as durable target identity.
-    condition: Whenever route APIs consume or return target identity.
-    failure: Reject legacy bindings and raw ids as durable identity.
+    statement: SDK composition consumes one canonical AIConfig owner and CapabilityContract, then receives Runtime's exact dereference of Local through the committed machine selection and Local Capability Configuration or Cloud through the committed CapabilityImplementation target and ConnectorGrant; it never consumes inventory options, legacy route bindings, local model identity in AIConfig, raw provider or model ids as a route, or a mutable resolved-binding product object.
+    condition: Whenever the SDK consumes or projects capability composition identity.
+    failure: Reject legacy identities, ambient inventory, and cross-owner target material.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.route-plane
+        target: definition.nimi.sdks.feature-clients.capability-composition-plane
   - id: rule.nimi.sdks.feature-clients.r066
     kind: rule
-    title: The route surface is four logical operations
+    title: The composition surface has no second router
     modality: must
-    statement: The SDK app-facing route facade exposes exactly the logical operations runtime.route.listOptions, runtime.route.resolve, runtime.route.checkHealth, and runtime.route.describe, the Phase 1 stable authority home of describe is the host typed surface, describe is not defined as a direct daemon convenience method and the Runtime class is not required to carry a describe matching a daemon top-level RPC one to one, describe types and value domains inherit directly from the runtime route describe RPC authority without inventing a second route metadata schema in the SDK, and when the Phase 1 host typed surface carries describe through the ExecuteScenario route describe probe it only decodes the Runtime-written route-describe-result response metadata and performs typed result validation while SDK and Desktop never convert missing metadata into defaults or locally infer metadata from a route binding.
-    condition: Whenever the route facade surface is defined or describe is carried.
-    failure: Reject second schemas, daemon parity claims, and default backfill.
+    statement: The SDK exposes no runtime route list-options, resolve, check-health, search, rank, warm-candidate, or fallback facade; authorized configuration actions write the canonical owner state, Job submission asks Runtime to deterministically compose that committed state, and bounded description is limited to exact identities, configuration schema, required and supported standardized features, and a typed derived admission reason from that composition.
+    condition: Whenever the capability composition facade is defined or consumed.
+    failure: Reject a second router, public health or readiness facade, implicit selection, schema invention, and default backfill.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.route-plane
+        target: definition.nimi.sdks.feature-clients.capability-composition-plane
   - id: rule.nimi.sdks.feature-clients.r067
     kind: rule
-    title: Describe results are typed and fail closed
+    title: Composition descriptions are typed and fail closed
     modality: must
-    statement: The stable typed RuntimeRouteDescribeResult keeps the public fields capability, metadataVersion, resolvedBindingRef, metadataKind, and metadata, metadata is a discriminated union whose Phase 1 variants inherit the complete runtime route metadata family covering TextGenerateRouteMetadata, SpeechSynthesizeRouteMetadata, SpeechTranscribeRouteMetadata, VoiceWorkflowVoiceCloneRouteMetadata, and VoiceWorkflowVoiceDesignRouteMetadata, fields and value domains stay isomorphic to the runtime authority so traceModeSupport is only none, hide, or separate, supportedTimingModes contains only none, word, or char, and workflowType is only voice_clone or voice_design, results never degrade to Struct, unknown records, provider raw payloads, or free string maps, stable describe consumption fails closed on a missing metadataKind, any missing required typed field, enum values outside the specified domain, or inconsistency among capability, metadataKind, and resolvedBindingRef, and on failure the SDK errors directly without falling back to resolve plus checkHealth as metadata success, guessing thinking support, input support, or workflow metadata from provider or model names or local and cloud assumptions, or exposing a product-facing fallback knob for fail-open.
-    condition: Whenever describe results are typed or consumed.
-    failure: Fail closed on missing or inconsistent metadata and reject degradation and guessing.
+    statement: A composition description is a typed projection of one exact committed CapabilityContract route, required standardized-feature set, effective CapabilityImplementation and Driver, Local configuration identity or Cloud target and ConnectorGrant reference, and current derived admission reason; support metadata remains contract scoped, streaming stays CapabilityContract and Job semantics rather than a feature, raw provider payloads and secrets never cross the SDK boundary, and missing or inconsistent identity or feature data fails closed without guessing or fallback.
+    condition: Whenever composition descriptions are typed or consumed.
+    failure: Fail closed on missing or inconsistent composition data and reject degradation, provider-name inference, readiness, and guessing.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.route-plane
+        target: definition.nimi.sdks.feature-clients.capability-composition-plane
   - id: rule.nimi.sdks.feature-clients.r068
     kind: rule
-    title: Route projection derives from Runtime facts only
+    title: Composition is deterministic and non-selecting
     modality: must
-    statement: The Phase 1 app-facing stable home of listOptions, resolve, and checkHealth is the SDK host typed surface performing only deterministic projection of Runtime facts and never becoming a new catalog, readiness, provider or model capability, fallback policy, or default route policy authority, the allowed projection work is type narrowing, field normalization, and fail-closed validation over Runtime-projected local asset, provider catalog, connector catalog, and capability records, model-root normalization on existing typed binding intents or Runtime-projected local asset records, local route engine label derivation only when Runtime provides engine, provider, or capability evidence and never from raw Desktop provider, model, or endpoint guessing, warm candidate selection based on Runtime local catalog and readiness projection used only for warm-on-demand orchestration of the same resolved local asset and never replacing the resolve binding truth, and assembling app-facing resolved binding projection with all resolved identity, health, readiness, and capability truth traceable to Runtime projection input, and the forbidden paths are generating execution route truth from Desktop runtimeFields, endpoint strings, provider labels, model labels, local or cloud heuristics, or connector default model backfill, maintaining provider or model catalogs, local engine catalogs, readiness caches, fallback matrices, or first-available default bindings in the SDK as stable truth, upgrading listOptions option ordering or UI convenience selection into execution fallback policy, and interpreting checkHealth success as metadata success because metadata stays on the describe fail-closed boundary.
+    statement: For a Local route Runtime reads exactly the current machine-selected Local Capability Configuration and its committed implementation, Driver configuration, and bindings; for a Cloud route it reads exactly the AIConfig's Cloud implementation-target intent and selected ConnectorGrant. SDK projection may only type-narrow and validate those facts and never search inventory, rank candidates, select a source, infer from names or endpoints, probe, prewarm, use first available, change the committed route or machine selection, or upgrade UI ordering into execution policy.
     condition: Whenever route selection, resolve, or health projection runs.
-    failure: Reject non-Runtime-derived truth, SDK caches, and policy upgrades.
+    failure: Reject non-canonical inputs, SDK routing caches, ambient resolution, selection, and policy upgrades.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.route-plane
+        target: definition.nimi.sdks.feature-clients.capability-composition-plane
   - id: rule.nimi.sdks.feature-clients.r069
     kind: rule
-    title: Route types share without transport promises
+    title: Job projections preserve exact captured inputs
     modality: must
-    statement: The runtime subpath may share the typed describe result types and host facade interface in Phase 1 but never wraps them into a public promise that a new daemon top-level RPC already exists, the runtime client surface introduces no transport assumptions conflicting with the route transport authority, before the runtime transport authority is finalized the app-facing success path for route metadata is the host typed surface and the SDK never invents a private interim API, and the route facade may be reused by host and runtime memory binding resolution paths as a legality and health dependency while runtime.route itself is never a memory embedding editable config surface or a canonical bank bind and cutover command surface.
-    condition: Whenever route types are shared or reused.
-    failure: Reject RPC-existence promises, private interim APIs, and config-surface reuse.
+    statement: SDK Job projections preserve the exact Local snapshot of AIConfig Local route, features and defaults, selected Local Capability Configuration, implementation, Driver configuration, exact bindings and request, or the exact Cloud snapshot of implementation, provider-model target, ConnectorGrant, defaults and request; later Profile, AIConfig, local configuration, machine selection, grant, inventory, or process changes never rewrite a running Job, and transport mechanics do not become configuration authority.
+    condition: Whenever Job types or effective inputs are shared or projected.
+    failure: Reject mutable Job inputs, current-state reconstruction, private interim route APIs, and configuration-surface reuse.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.route-plane
+        target: definition.nimi.sdks.feature-clients.capability-composition-plane
   - id: rule.nimi.sdks.feature-clients.r070
     kind: rule
     title: Admitted delegated clients remain typed projections only
@@ -845,7 +853,7 @@ units:
     kind: rule
     title: Local App text candidate generation is one bounded typed operation
     modality: must
-    statement: The host-injected Local App client exposes ai.text.generateCandidate only after the complete ai.text.generate permission slice is admitted, accepts only bounded plain-text system and user messages plus temperature, topP, and maxTokens, returns only text, finishReason, and traceId, and never exposes ExecuteScenario, a Runtime client, method names, protobuf bytes, model or provider selection, route or target refs, tools, media, streams, jobs, credentials, account identity, or generic forwarding.
+    statement: The host-injected Local App client exposes ai.text.generateCandidate only after the complete ai.text.generate permission slice is admitted, accepts only bounded plain-text system and user messages plus temperature, topP, and maxTokens, returns only text, finishReason, and traceId, and never exposes ExecuteScenario, a Runtime client, method names, protobuf bytes, model or provider selection, route or target refs, tools, media, streams, jobs, credentials, account identity, or generic forwarding; the SDK supplies no route selector because Runtime consumes the calling App owner's committed AIConfig and may execute its Local or Cloud composition without permission or SDK override and without fallback.
     condition: Whenever a Local App requests foreground AI-generated candidate text.
     failure: Fail closed before transport on invalid input or absent host carrier and preserve permission and Runtime typed failures without fabricating candidate text.
     relations:

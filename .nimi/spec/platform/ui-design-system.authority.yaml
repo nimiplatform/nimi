@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.agent-center-surface
     kind: definition
     title: LocalAgent Center surface
-    meaning: Agent Center is the reusable public Kit surface for first-party Apps and permissioned Third-party Local Apps to present and edit admitted Runtime LocalAgent projections without owning execution, lifecycle, Conversation, Memory or Knowledge content, AI resources, configuration persistence, or semantic presentation truth.
+    meaning: Agent Center is the reusable public Kit surface for first-party Apps and permissioned Third-party Local Apps to present and edit admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and shared LocalAgent AIConfig projections without owning execution, lifecycle, Machine Local AI Configuration, Local Capability Configuration, machine selection, ConnectorGrant, configuration persistence, or semantic presentation truth.
   - id: definition.nimi.platform.ui-design-system.runtime-projection
     kind: definition
     title: Runtime-owned UI projection
@@ -472,7 +472,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 Runtime and resource ownership boundary
     modality: must_not
-    statement: AgentCenter owns LocalAgent execution, lifecycle, Conversation, Memory or Knowledge content, events, AI resources, configuration persistence, authorization, semantic presentation selection, Avatar lifecycle, render truth, backend readiness, calibration, or launch truth.
+    statement: AgentCenter owns LocalAgent execution, lifecycle, Conversation, Memory or Knowledge content, events, Machine Local AI Configuration, Local Capability Configuration, machine selection, ConnectorGrant, AI resources, configuration persistence, authorization, semantic presentation selection, Avatar lifecycle, render truth, backend readiness, calibration, or launch truth.
     condition: Whenever AgentCenter consumes or edits LocalAgent state.
     failure: Keep the truth with Runtime, SDK custody, Avatar, or Kit Shell as applicable and expose only a typed bounded projection.
     relations:
@@ -497,9 +497,9 @@ units:
     kind: rule
     title: P-AGENT-CENTER-002 complete semantic areas and identity chrome
     modality: must
-    statement: A complete AgentCenter provides Overview, Appearance, Behavior, Model, Cognition, and Diagnostics or Advanced as required semantic areas and supplies canonical Agent identity chrome, while concrete tabs, ordering, layout, and responsive collapse remain presentational and host-configurable without allowing an App to hand-copy the identity chrome.
+    statement: A complete AgentCenter provides Overview, Appearance, Behavior, shared LocalAgent AIConfig, Cognition, and Diagnostics or Advanced as required semantic areas and supplies canonical Agent identity chrome; before a user commits a shared LocalAgent AIConfig Cloud route or ConnectorGrant binding, the AI area explicitly communicates that the chosen account, usage or cost, and data-egress consequences apply to every affected LocalAgent including deferred or proactive Jobs; concrete tabs, ordering, layout, and responsive collapse remain presentational and host-configurable without allowing an App to hand-copy the identity chrome, present machine-owned Local Capability Configurations as per-Agent models, or offer a per-Agent route override.
     condition: Whenever the complete AgentCenter surface is presented.
-    failure: Reject a missing semantic area, app-owned identity-chrome copy, or hardcoded tab structure presented as semantic authority.
+    failure: Reject a missing semantic area, hidden shared Cloud consequence, per-Agent route implication, app-owned identity-chrome copy, or hardcoded tab structure presented as semantic authority.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
@@ -509,7 +509,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-002 bounded context summary
     modality: must
-    statement: AgentCenter may render only bounded read-only state, reason, readiness, budget, truncation, count, and safe correlation facts without rendering or reconstructing source, prompt, Conversation, private Memory or Knowledge, proof, provider, credential, or tool context.
+    statement: AgentCenter may render only bounded read-only state, reason, source availability, budget, truncation, count, and safe correlation facts without rendering or reconstructing source, prompt, Conversation, private Memory or Knowledge, proof, provider, credential, or tool context; this context summary is not AI capability readiness or execution admission.
     condition: Whenever AgentCenter presents LocalAgent context status.
     failure: Treat unknown or raw context as unavailable and do not reconstruct execution input.
     relations:
@@ -519,7 +519,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-003 no local persisted config
     modality: must_not
-    statement: AgentCenter persists App-local or Kit-local Runtime configuration, temporary import or renderer state as committed success, Conversation history, Memory, Knowledge, authorization, or private host bridges; Runtime owns LocalAgent and presentation selections while Kit Shell owns only bounded temporary import custody.
+    statement: AgentCenter persists App-local or Kit-local Runtime configuration, temporary import or renderer state as committed success, Conversation history, Memory, Knowledge, authorization, Machine Local AI Configuration, Local Capability Configuration, machine selection, or private host bridges; Runtime owns LocalAgent and presentation selections, the machine owner surface owns local capability configuration and selection actions, and Kit Shell owns only bounded temporary import custody.
     condition: Whenever AgentCenter reads, changes, imports, renders, or persists state.
     failure: Remove the local record or bridge and require committed Runtime presentation truth plus bounded temporary Kit Shell custody.
     relations:
@@ -529,7 +529,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-004 Runtime-owned voice split
     modality: must
-    statement: AgentCenter reads and commits the default voice reference through the Runtime presentation-profile path, configures the audio.transcribe route through the Runtime AI configuration path, and invokes neither voice generation nor transcription execution because those Runtime-owned operations require agents.voice.
+    statement: AgentCenter reads and commits the default voice reference through the Runtime presentation-profile path, configures the audio.transcribe route only in the one shared LocalAgent subsystem AIConfig, and invokes neither voice generation nor transcription execution because those Runtime-owned operations require agents.voice; it never chooses a machine Local Capability Configuration.
     condition: Whenever LocalAgent voice, transcription, or audio configuration is read, changed, generated, or executed.
     failure: Reject an AI-config-owned default voice, app-local audio truth, direct execution, or pseudo artifact and retain the applicable Runtime owner path.
     relations:
@@ -564,7 +564,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-006 single Manager Session and transport-only factories
     modality: must
-    statement: Each mounted AgentCenter has exactly one Manager Session that owns its snapshot, refresh, mutation, readiness subscription, commit, and one section model; sealed first-party and permissioned factories construct transport only and own no state logic; React props are limited to UI and UX inputs for chrome, layout, density, active section, locale, and placement callbacks; and the pre-1.0 hard cut admits no legacy seed-authority, per-adapter props, compatibility copy objects, caller-owned authority, or parallel state path.
+    statement: Each mounted AgentCenter has exactly one Manager Session that owns its snapshot, refresh, mutation, typed action-availability subscription, commit, and one section model; sealed first-party and permissioned factories construct transport only and own no state logic; React props are limited to UI and UX inputs for chrome, layout, density, active section, locale, and placement callbacks; and the pre-1.0 hard cut admits no legacy seed-authority, per-adapter props, compatibility copy objects, caller-owned authority, per-Agent AIConfig, or parallel state path.
     condition: Whenever AgentCenter state, sections, sessions, transports, factories, or React props are constructed.
     failure: Reject a missing or second Manager Session, divergent store, stateful factory, authority-bearing prop, caller-assembled authority, legacy compatibility input, or carrier distinction implemented inside presentation state.
     relations:
@@ -586,7 +586,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-007 closed product-action availability projection
     modality: must
-    statement: The single Manager Session materializes from Runtime or SDK truth the only authority projection AgentCenter consumes, consisting of a closed product-action availability projection for read model settings, update model settings, read autonomy, update autonomy, read Memory summary, replace appearance, restore previous appearance, and request permission or open permission-settings navigation; each action is available, or unavailable with exactly one typed reason from needs-grant, request-pending, denied, revoked, runtime-offline, reserved-not-admitted, and unknown, and carries an admitted next-step action. AgentCenter never receives permission ids, operation ids, grant scope, posture objects, carrier discriminators, or raw Agent identity through props or state; permission scope is explained to humans only in owner consent and settings surfaces; and callers cannot assemble or override availability.
+    statement: The single Manager Session materializes from Runtime or SDK truth the only authority projection AgentCenter consumes, consisting of a closed product-action availability projection for read shared LocalAgent AIConfig, overwrite shared LocalAgent AIConfig, apply Profile to shared LocalAgent AIConfig, read autonomy, update autonomy, read Memory summary, replace appearance, restore previous appearance, and request permission or open permission-settings navigation; each action is available, or unavailable with exactly one typed reason from needs-grant, request-pending, denied, revoked, runtime-offline, reserved-not-admitted, and unknown, and carries an admitted next-step action. AgentCenter never receives machine-selection actions, Local Capability Configuration mutation actions, permission ids, operation ids, grant scope, posture objects, carrier discriminators, or raw Agent identity through props or state; permission scope is explained to humans only in owner consent and settings surfaces; and callers cannot assemble or override availability.
     condition: Whenever AgentCenter action availability, degraded state, permission recovery, props, or state are materialized.
     failure: Fail closed and reject caller-supplied authority facts, an action outside the closed projection, an untyped or collapsed unavailable reason, a non-admitted next step, leaked authority material or identity, or a misleading enabled state.
     relations:
@@ -739,18 +739,22 @@ units:
   - id: definition.nimi.platform.ui-design-system.model-config-surface
     kind: definition
     title: Public Kit model-config surface
-    meaning: Model-config is the public Kit feature module and single shared model-configuration UI surface composed by AgentCenter and other admitted consumers through typed adapters without app-owned or feature-local model-configuration truth.
+    meaning: Model-config is the public Kit feature module for typed composition of canonical AIConfig editing and separately authorized Machine Local AI Configuration editing without app-owned, feature-local, or per-Agent model truth; every mount declares one owner context and never merges the two authority surfaces.
   - id: definition.nimi.platform.ui-design-system.model-picker-surface
     kind: definition
     title: Public Kit model-picker surface
-    meaning: Model-picker is the public Kit feature module for selecting admitted capability-compatible provider and model route intents from the Kit-core code-generated canonical capability catalog through typed adapters.
+    meaning: Model-picker is a non-committing public Kit discovery and choice module that may browse, filter, compare, and apply user-directed ordering to owner-supplied candidates and returns one typed choice for a later canonical owner action; it owns no catalog, automatic ranking, routing, AIConfig mutation, Machine Local AI Configuration selection, or resource binding truth.
+  - id: definition.nimi.platform.ui-design-system.machine-local-ai-surface
+    kind: definition
+    title: Machine Local AI owner surface
+    meaning: The Machine Local AI owner surface is the authorized machine-level product surface for listing, adding, updating, explicitly reprojecting, binding, deleting, and selecting Local Capability Configurations in the one Machine Local AI Configuration; Agent Center, an App AIConfig editor, and a LocalAgent do not own or absorb this surface.
   - id: rule.nimi.platform.ui-design-system.p-model-config-001
     kind: rule
     title: P-MODEL-CONFIG-001 public shared configuration surface
     modality: must
-    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, is the sole shared AIConfig editing UI composed by AgentCenter, consumes the Kit-core code-generated canonical capability catalog and scope-owner-provided standard AIConfig, AIProfile, readiness, and route-option adapters only, renders admitted typed per-capability parameters and AIProfile preview and apply for Runtime LocalAgent scopes, and renders no stub or parameter whose Runtime schema and real backend are not admitted.
+    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, consumes the Kit-core code-generated canonical CapabilityContract and standardized-feature catalog, and mounts in exactly one declared owner mode where an App or shared LocalAgent AIConfig mode may edit route intent, required features, defaults, Cloud implementation-target intent and an explicit ConnectorGrant binding, while a Machine Local AI Configuration mode may edit saved Local Capability Configurations and machine selection; Apply Profile to AIConfig is overwrite-only and neither mode renders a public readiness, probe, warm, install-as-apply, fallback, stub, or unsupported parameter.
     condition: Whenever model-config is published, integrated, or rendered.
-    failure: Reject a private or parallel model-config surface, dedicated LocalAgent model-settings truth, catalog shadow, fabricated NimiAIConfig value, direct app seam, unsupported control, or profile apply that bypasses Runtime preparation and owner commit.
+    failure: Reject a private or parallel model-config surface, per-Agent model truth, mixed owner mode, catalog shadow, fabricated config, direct app seam, unsupported control, or Profile apply that mutates machine-owned truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
@@ -760,11 +764,11 @@ units:
         target: definition.nimi.platform.ui-design-system.model-config-surface
   - id: rule.nimi.platform.ui-design-system.p-model-picker-001
     kind: rule
-    title: P-MODEL-PICKER-001 public catalog consumer
+    title: P-MODEL-PICKER-001 non-committing discovery and choice
     modality: must
-    statement: Model-picker follows the Kit public-module, dependency, and portable-feature rules, consumes but never redeclares or shadows the Kit-core code-generated canonical capability catalog, accepts app data and capability only through typed adapters, and uses only AIScopeRef values resolved by the canonical factory or registry.
-    condition: Whenever model-picker is published, integrated, or resolves a selection.
-    failure: Reject a private module, handwritten capability catalog, direct app seam, provider or model hardcoding, or caller-fabricated AIScopeRef.
+    statement: Model-picker follows the Kit public-module, dependency, and portable-feature rules, consumes but never redeclares or shadows the Kit-core code-generated canonical CapabilityContract and standardized-feature catalog, accepts only typed owner-supplied candidates, may browse, filter, compare, and apply user-directed ordering, and returns one typed choice without committing it; AIConfig route mutation, Machine Local AI Configuration selection, and exact resource binding remain distinct explicit actions on their canonical owner surfaces, and search or ordering never automatically decides any route, selection, or binding.
+    condition: Whenever model-picker is published, integrated, browses candidates, or returns a choice.
+    failure: Reject a private module, handwritten capability catalog, direct app seam, provider or model hardcoding, caller-fabricated owner, automatic ranking as routing authority, ambiguous choice, direct commit, or cross-owner mutation.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
@@ -772,6 +776,16 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-public-surface
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.model-picker-surface
+  - id: rule.nimi.platform.ui-design-system.p-machine-local-ai-001
+    kind: rule
+    title: P-MACHINE-LOCAL-AI-001 machine owner actions stay separate
+    modality: must
+    statement: The Machine Local AI owner surface presents zero or more flat saved Local Capability Configurations per CapabilityContract and at most one selected configuration, permits unresolved configurations to remain saved, requires selection to be explicit and currently interpretable and configured, preserves a later-invalid selection with its exact bindings and typed derived admission reason, and never modifies any AIConfig, starts a Job, probes or prewarms an ExecutionHost, or automatically reselects another configuration; before Select, an execution-relevant Update of the selected record, or Delete of the selected record commits, the surface displays the machine-wide effect on every future matching Local App and LocalAgent execution and obtains user-observed explicit confirmation, while presentation-only Update and Delete of an unselected record do not require that machine-wide confirmation.
+    condition: Whenever machine-local configurations or selection are presented or changed.
+    failure: Reject hidden configuration ownership, App or Agent scope, draft or history state, implicit binding, impact display treated as confirmation, a required mutation committed without explicit confirmation, probe-driven selection, automatic re-arbitration, or cross-owner mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.machine-local-ai-surface
   - id: definition.nimi.platform.ui-design-system.kit-module-family
     kind: definition
     title: Kit module family

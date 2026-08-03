@@ -8,16 +8,24 @@ units:
     meaning: The Runtime model catalog plane owns provider-scoped snapshot and source truth for models, voices, pricing, capabilities, and activation, together with catalog resolution order, overlay merge semantics, and lookup fail-close behavior for every catalog consumer.
   - id: definition.nimi.runtime.model-catalog.local-resolver-plane
     kind: definition
-    title: Runtime local resolver plane
-    meaning: The Runtime local resolver plane owns the local-plane catalog row schema, installable variant and companion identity, curated install-level presets, and the deterministic resolution of install level and host posture into per-slot installable assets with typed fail-close outcomes.
+    lifecycle: removed
+    title: Retired Runtime local resolver plane
+    reason: Removed because catalog and host fitness may recommend concrete LocalAssets but never resolve bindings, machine selection, admission, readiness, or execution routes.
+  - id: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+    kind: definition
+    title: Runtime local install recommendation plane
+    meaning: The Runtime local install recommendation plane owns catalog metadata for concrete installable LocalAssets, variants, companions, and deterministic non-binding recommendations; it never owns Machine Local AI Configuration, Local Capability Configuration, binding, selection, admission, routing, or execution truth.
+    relations:
+      - type: supersedes
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
   - id: definition.nimi.runtime.model-catalog.provider-metadata-plane
     kind: definition
     title: Runtime provider metadata plane
-    meaning: The Runtime provider metadata plane owns the merged source-provider schema, the source runtime metadata block and its one-way projections into registries and tables, reviewed selection and option metadata, and the boundary between source providers and runtime infrastructure providers.
+    meaning: The Runtime provider metadata plane owns the merged source-provider schema and its one-way catalog inventory, capability, pricing, voice, and request-option projections into registries and tables, together with the boundary between source providers and runtime infrastructure providers; it never owns a ConnectorGrant, Cloud provider-model target, committed default, execution route, execution selection, or ExecutionHost endpoint.
   - id: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
     kind: definition
     title: Runtime voice-workflow catalog plane
-    meaning: The Runtime voice-workflow catalog plane owns synthesis voice blocks, voice workflow model declarations, workflow-to-synthesis binding matrices, voice handle policies, language profiles, video capability blocks, and the family-scoped catalog admission truth for local speech.
+    meaning: The Runtime voice-workflow catalog plane owns synthesis voice blocks, voice workflow model declarations, workflow-to-synthesis compatibility metadata, voice handle policies, language profiles, video capability blocks, and family-scoped catalog declaration admission for local speech; it never owns provider endpoints, transport paths, multi-step invocation flow, CapabilityImplementationDriver request mapping, AIConfig targets, execution bindings, routes, or Job execution truth.
   - id: definition.nimi.runtime.model-catalog.voice-plane
     kind: definition
     title: Runtime voice plane
@@ -30,7 +38,7 @@ units:
     kind: rule
     title: Catalog snapshot and source layout is fixed
     modality: must
-    statement: Runtime loads built-in model catalog defaults only from the provider-scoped snapshot files under runtime/catalog/providers, source-provider authoring truth lives only under runtime/catalog/source/providers as one provider source file or one provider directory of merged fragments, and projected registry or spec tables derive from that source without ever serving as the runtime load source or reverse-owning endpoint, default-model, or capability truth.
+    statement: Runtime loads built-in model catalog snapshots only from the provider-scoped snapshot files under runtime/catalog/providers, source-provider authoring truth lives only under runtime/catalog/source/providers as one provider source file or one provider directory of merged fragments, and projected registry or spec tables derive from that source without ever serving as the runtime load source or owning an ExecutionHost endpoint, Cloud provider-model target, committed default, execution route, execution selection, or capability execution truth.
     condition: Whenever Runtime or tooling loads, projects, or edits model catalog truth.
     failure: Reject catalog loads or projections from any surface outside the declared snapshot and source layout.
     relations:
@@ -130,7 +138,7 @@ units:
     kind: rule
     title: Capability vocabulary is canonical and closed
     modality: must
-    statement: Source, snapshot, registry, resolver, scenario guard, and live-provider checks use only the canonical capability tokens text.generate, text.generate.vision, text.generate.audio, text.generate.video, text.embed, image.generate, image.edit, video.generate, world.generate, audio.synthesize, audio.transcribe, music.generate, music.generate.iteration, voice_workflow.voice_clone, and voice_workflow.voice_design, retired tokens including chat, embedding, image, tts, stt, video_generation, and the speech-prefixed, voice-dotted, and llm-prefixed families are invalid on those surfaces, and local legacy tokens convert through the capability vocabulary mapping before entering any semantic surface.
+    statement: Source, snapshot, registry, recommendation, scenario guard, and implementation-support metadata use only the canonical CapabilityContract tokens text.generate, text.embed, image.generate, image.edit, video.generate, world.generate, audio.synthesize, audio.transcribe, music.generate, music.generate.iteration, voice_workflow.voice_clone, and voice_workflow.voice_design; text.generate image, audio, and video input support is expressed only by the contract-scoped standardized feature short names input.image, input.audio, and input.video, and retired, legacy, prefixed, or capability-subtype aliases are rejected rather than converted on a semantic surface.
     condition: Whenever a capability token is declared or consumed on a catalog semantic surface.
     failure: Reject undeclared or retired capability tokens at validation.
     relations:
@@ -138,11 +146,11 @@ units:
         target: definition.nimi.runtime.model-catalog.catalog-plane
   - id: rule.nimi.runtime.model-catalog.r012
     kind: rule
-    title: Activation requires a wired adapter
-    modality: must_not
-    statement: A catalog source marks a capability or workflow binding active without a wired runtime adapter, declares an unimplemented provider, capability, or workflow, or lets runtime availability diverge from the declared source and snapshot activation surface.
-    condition: Whenever catalog activation state is declared or consumed for routing.
-    failure: Deny activation and routing for unwired declarations.
+    title: Catalog support requires an implementation and Driver
+    modality: must
+    statement: Catalog support metadata names only an admitted CapabilityImplementation with a wired CapabilityImplementationDriver, never treats a catalog row, provider row, LocalAsset, adapter label, health result, or active flag as a route, Machine Local AI Configuration selection, derived admission, or execution truth, and fails closed when its implementation or Driver identity is unknown.
+    condition: Whenever catalog support metadata is declared or consumed.
+    failure: Reject support metadata whose exact CapabilityImplementation or Driver is unknown and never infer a route from catalog availability.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.catalog-plane
@@ -150,9 +158,9 @@ units:
     kind: rule
     title: Source schema v3 structure is fixed
     modality: must
-    statement: A merged source-provider entry uses schema v3 whose core structure is runtime, models, language_profiles, and sources plus optional voice_sets, voice_workflow_models, and model_workflow_bindings, runtime.inventory_mode is required with values static_source or dynamic_endpoint, dynamic_endpoint requires runtime.dynamic_inventory, and dynamic_endpoint entries may omit models, selection_profiles, and the default text model.
+    statement: A merged source-provider entry uses schema v3 whose core structure is runtime, models, language_profiles, and sources plus optional voice_sets, voice_workflow_models, and model_workflow_bindings, runtime.inventory_mode is required with values static_source or dynamic_endpoint, dynamic_endpoint requires runtime.dynamic_inventory and may omit models because inventory is discovered dynamically, and no catalog schema field carries an ExecutionHost endpoint, committed provider-model default, or execution selection.
     condition: Whenever a source-provider entry is merged or validated.
-    failure: Reject source entries outside the v3 structure.
+    failure: Reject source entries outside the v3 structure or carrying Runtime-private endpoint or execution-selection truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
@@ -168,21 +176,21 @@ units:
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
   - id: rule.nimi.runtime.model-catalog.r015
     kind: rule
-    title: Runtime metadata projects one way from source
+    title: Catalog metadata projects one way from source
     modality: must
-    statement: Non-scenario provider metadata lives in the merged source runtime block with at least runtime_plane, managed_connector_supported, inline_supported, default_endpoint, requires_explicit_endpoint, and inventory_mode, dynamic_endpoint sources also declare dynamic_inventory with at least discovery_transport, cache_ttl_sec, selection_mode, and failure_policy, and the generated provider registry and projected provider tables derive one way from that source metadata without any table reverse-owning endpoint or default-model truth.
-    condition: Whenever provider runtime metadata is declared, generated, or consumed.
-    failure: Reject projections that bypass or reverse the source metadata ownership.
+    statement: Provider catalog inventory, capability, pricing, voice, and request-option metadata lives in the merged source-provider entry and projects one way into generated catalog registries and tables; dynamic inventory metadata describes catalog discovery only, and neither source metadata nor a projection carries or supplies an ExecutionHost endpoint, ConnectorGrant, Cloud provider-model target, committed default, execution route, or execution selection.
+    condition: Whenever provider catalog metadata is declared, generated, or consumed.
+    failure: Reject a projection that bypasses catalog source metadata or any source or projection that claims Runtime-private endpoint or execution-composition truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
   - id: rule.nimi.runtime.model-catalog.r016
     kind: rule
-    title: Reviewed text defaults are singular
-    modality: must
-    statement: For static_source providers declaring a general text selection profile the reviewed profile owns text default truth while snapshot and registry default_text_model remain equal-valued compatibility projections whose mismatch fails generation and freshness gating closed, and for dynamic_endpoint providers default_text_model and selection_profiles are not machine fallback truth so a missing configured default combined with a missing live selection fails closed with an actionable hint.
-    condition: Whenever a provider text default is declared, projected, or resolved.
-    failure: Fail closed on default mismatch or missing dynamic default instead of guessing a model.
+    title: Provider metadata never owns Cloud model selection
+    modality: must_not
+    statement: A source-provider schema, snapshot, catalog row, registry projection, selection metadata, or recommendation supplies, commits, resolves, gates, or changes a Cloud provider-model target, including by treating a visible non-binding recommendation as target truth before an explicit AIConfig owner action.
+    condition: Whenever provider metadata or a recommendation is declared, projected, or consumed.
+    failure: Reject the execution-relevant default or selection projection and preserve the unresolved or exact target state owned by AIConfig.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
@@ -198,11 +206,11 @@ units:
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
   - id: rule.nimi.runtime.model-catalog.r018
     kind: rule
-    title: Reviewed selection and option metadata are placed exactly
+    title: Model option metadata is placed exactly
     modality: must
-    statement: selection_profiles are source-authored and reviewed with reviewed_at and freshness_sla_days and reference only same-provider models with matching capability, voice request options appear only on audio.synthesize models, transcription metadata only on audio.transcribe models, embedding metadata only on text.embed models carrying only model-inherent dimension facts, and image_request_options only on image.generate models expressing response_formats, max_images_per_request, supports_negative_prompt, supports_reference_images, supports_mask, supports_seed, supports_size, supports_aspect_ratio, supports_quality, and supports_style as the sole image request metadata source for route description.
-    condition: Whenever reviewed selection or option metadata is authored or consumed.
-    failure: Reject unreviewed, misplaced, or reverse-derived selection and option metadata.
+    statement: Voice request options appear only on audio.synthesize models, transcription metadata only on audio.transcribe models, embedding metadata only on text.embed models carrying only model-inherent dimension facts, and image_request_options only on image.generate models expressing response_formats, max_images_per_request, supports_negative_prompt, supports_reference_images, supports_mask, supports_seed, supports_size, supports_aspect_ratio, supports_quality, and supports_style as the sole image request-option metadata source.
+    condition: Whenever model request-option metadata is authored or consumed.
+    failure: Reject misplaced or reverse-derived model request-option metadata.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
@@ -258,11 +266,11 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
   - id: rule.nimi.runtime.model-catalog.r024
     kind: rule
-    title: ElevenLabs source profile minimum is fixed
+    title: ElevenLabs catalog profile minimum is fixed
     modality: must
-    statement: The ElevenLabs source uses schema v3 and declares synthesize-capable models whose provider-global preset voices enumerate through the static catalog channel with voice_set_ref, a voice clone workflow model mapped to the provider voices-add endpoint, a voice design workflow model mapped to the provider preview-then-create flow, an explicit workflow binding matrix, and voice handle policies defaulting to provider_persistent persistence with user_scoped scope.
+    statement: The ElevenLabs source uses schema v3 and declares synthesize-capable models whose provider-global preset voices enumerate through the static catalog channel with voice_set_ref, voice clone and voice design workflow models with typed capability and compatible synthesis-target metadata, an explicit workflow compatibility matrix, and voice handle policies defaulting to provider_persistent persistence with user_scoped scope; provider endpoints, preview or create sequences, transport paths, and request construction remain CapabilityImplementationDriver-private and never become catalog fields.
     condition: Whenever the ElevenLabs source entry is authored or validated.
-    failure: Reject ElevenLabs source entries missing the minimum profile.
+    failure: Reject ElevenLabs source entries missing the catalog capability or compatibility metadata or carrying provider endpoint, transport-path, invocation-flow, or request-construction truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
@@ -300,7 +308,7 @@ units:
     kind: rule
     title: Transcription declarations are reviewed and honest
     modality: must
-    statement: audio.transcribe is declared only on source providers with a completed runtime review and a real execution path, unreviewed providers fail closed without infra-provider semantics implying support, the local provider declares workflow models, bindings, handle policies, and workflow capability truth only within the admitted family boundary rather than a generic green state, local speech rows expose ready only after the admitted plain-speech proof holds with capabilities matching admitted capability truth, and non-ready or placeholder rows are never promoted to capability success by route or model health.
+    statement: audio.transcribe is declared only on source providers with a completed Runtime review and a real admitted execution path, unreviewed providers fail closed without infra-provider semantics implying support, and local speech rows expose only concrete install offers, source, role, format, compatibility, handle policy, and admitted capability claims rather than ready, binding, machine selection, execution route, aggregate green state, or capability success; exact configured facts and request-time derived admission remain outside the catalog.
     condition: Whenever transcription or local workflow capability is declared or projected from catalog truth.
     failure: Fail closed on unreviewed, unadmitted, or placeholder-backed capability declarations.
     relations:
@@ -318,11 +326,11 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
   - id: rule.nimi.runtime.model-catalog.r030
     kind: rule
-    title: Baseline local speech freeze is lane exact
+    title: Local speech offers preserve concrete subroles
     modality: must
-    statement: The baseline local speech freeze fixes Qwen3-ASR-0.6B as the default STT lane with Qwen3-ASR-1.7B deferred until an independent premium admission, Qwen3-TTS-12Hz-0.6B-CustomVoice as the plain synthesis lane, Qwen3-TTS-12Hz-0.6B-Base as the clone workflow lane, and Qwen3-TTS-12Hz-1.7B-VoiceDesign as the design workflow lane, source and binding truth express these subroles explicitly rather than one ambiguous bucket, install truth keeps the Qwen3-TTS and Qwen3-ASR lines as split environment topologies, the freeze is a baseline admitted default mapping rather than a generic family coverage rule, and cloud plain TTS migration follows only from separate reviewed default truth.
-    condition: Whenever baseline local speech catalog, binding, or install truth is declared.
-    failure: Reject fuzzy buckets, implicit family generalization, and merged environment topology.
+    statement: Local speech catalog offers distinguish Qwen3-ASR-0.6B and the separately admitted Qwen3-ASR-1.7B candidate, Qwen3-TTS-12Hz-0.6B-CustomVoice for plain synthesis, Qwen3-TTS-12Hz-0.6B-Base for clone workflow, and Qwen3-TTS-12Hz-1.7B-VoiceDesign for design workflow, preserve each source, role, format, compatibility, and split Qwen3-TTS or Qwen3-ASR environment fact, and may feed a visible portable factory AIProfile recommendation; neither catalog nor speech policy owns a default model lane, binding, Local Capability Configuration, machine selection, AIConfig route, or Cloud target.
+    condition: Whenever local speech catalog or install-offer truth is declared.
+    failure: Reject fuzzy buckets, implicit family generalization, merged environment topology, a default lane, binding truth, or recommendation presented as live selection.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
@@ -330,82 +338,82 @@ units:
     kind: rule
     title: Local rows carry the local-plane block
     modality: must
-    statement: Every local runtime-plane models row carries a local-plane block whose install facts declare repo, revision, install_kind limited to binary, weights, or verified-hf-multi-file, entry, artifact_roles, and preferred_engine limited to llama, media, speech, or sidecar, whose variants list one or more installable quantization variants each declaring variant_id, quant, files, per-file sha256 hashes, total_size_bytes, and host_requirement with accelerator limited to cpu, metal, or cuda, min_ram_bytes, and min_vram_bytes for non-cpu accelerators, whose optional per-variant entry defaults to the single file for single-file variants and to the install entry for multi-file bundles, and whose fitness declares param_count and context_length, while row capabilities use only canonical tokens and the block covers every first-run capability tier without schema forks.
+    statement: Every local runtime-plane models row carries a local-plane block whose install facts declare repo, revision, install_kind limited to binary, weights, or verified-hf-multi-file, entry, and artifact_roles, whose variants list one or more concrete installable LocalAssets each declaring variant_id, quant, files, per-file sha256 hashes, total_size_bytes, and host_requirement with accelerator limited to cpu, metal, or cuda, min_ram_bytes, and min_vram_bytes for non-cpu accelerators, whose optional per-variant entry defaults to the single file for single-file variants and to the install entry for multi-file bundles, and whose fitness declares param_count and context_length; catalog rows use only canonical CapabilityContracts and standardized features and never own a preferred Driver, Local Capability Configuration, binding, selection, or readiness fact.
     condition: Whenever a local-plane catalog row is authored or validated.
     failure: Reject local rows missing block structure, integrity material, or canonical capabilities.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r032
     kind: rule
     title: Variants are the installable identity
     modality: must
-    statement: The variant_id is the installable identity consumed as the asset_id of model asset dependencies and verified installs, two quantization variants and accelerator-specific rows of one quant are distinct installable assets under the same schema, verified-row host fitness consumes each variant's host_requirement as exact input rather than filename or size inference, and any variant missing complete integrity hashes fails closed.
+    statement: The variant_id is the concrete installable identity consumed as the asset_id of verified LocalAssets, two quantization variants and accelerator-specific rows of one quant are distinct LocalAssets under the same schema, host-fit recommendations consume each variant's host_requirement as exact input rather than filename or size inference, and any variant missing complete content-integrity hashes fails closed without becoming a Local Capability Configuration or binding.
     condition: Whenever local variant identity or fitness is resolved.
     failure: Fail closed on missing integrity material and reject inferred fitness or collapsed variant identity.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r033
     kind: rule
-    title: Companions are parent-bound passive assets
+    title: Companion rows describe concrete LocalAssets
     modality: must
-    statement: A companions list appears only on rows whose engine needs it, each companion is a parent-bound passive asset inline under its row declaring companion_kind from the passive-kind enumeration, engine_slot as an engine injection role rather than occurrence identity, an optional occurrence_policy of single, repeatable_ordered, or forbidden, and install and variants isomorphic to the main model, companions carry no capabilities or fitness, a resolved companion variant becomes a companion-asset dependency keyed by its parent row's resolved asset identity even when files are physically shared, and ordered occurrence identity belongs to profile descriptors so catalog rows never collapse repeated companion use into an unordered slot-to-asset map.
+    statement: A companions list declares only concrete verified LocalAsset candidates and their content relationship to a parent catalog row; every resource occurrence that a CapabilityImplementationDriver requires is projected as an independent Local Capability Configuration slot, including an mmproj slot for a text.generate implementation that promises input.image and no mmproj slot for a text-only implementation, while catalog optionality, filename, path, label similarity, or shared physical files never determines slot requiredness, binding inheritance, or selection.
     condition: Whenever companion assets are declared or resolved from catalog rows.
-    failure: Reject shared-row companions, active companion semantics, and unordered occurrence collapse.
+    failure: Reject shared-row companions, active companion semantics, and collapse of distinct resource-occurrence identity or role; no generic occurrence ordering is defined.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r034
     kind: rule
-    title: Presets bind install levels to curated slots
+    title: Presets are non-binding install recommendations
     modality: must
-    statement: A local runtime-plane source carries a presets section whose only install level keys are minimal and recommended aligned with the first-run install levels, each level is one single fixed curated model set whose cross-machine scaling comes from variant selection rather than additional presets, each slot's model_ref resolves to an admitted same-provider row whose capabilities contain the slot capability, each preset capability set is a consistent subset of its bound factory profile capability set, required slots enter the readiness gate while host-conditional slots may be omitted on unfit hosts, text.embed is never a preset slot at any install level, the presets section exists only in runtime catalog source rather than the factory profile catalog, and slots for unwired capabilities or variants are never marked activatable required slots.
+    statement: A local runtime-plane source may carry curated install recommendations whose entries resolve to admitted same-provider rows and concrete LocalAsset variants, whose capability and feature claims remain consistent with the referenced CapabilityImplementation, and whose output is only a user-visible installation or Local Capability Configuration creation recommendation; presets never form a first-run gate, readiness set, AIConfig payload, binding, machine selection, fallback list, or execution route.
     condition: Whenever local presets are authored, validated, or consumed.
     failure: Reject unknown levels, unresolvable slots, embedding slots, and preset truth outside catalog source.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r035
     kind: rule
-    title: Local resolution is deterministic and single
+    title: Local recommendation is deterministic and non-authoritative
     modality: must
-    statement: Runtime resolves an install level and host posture into per-slot installable bindings through one deterministic resolver whose output for identical install level, host posture, and catalog version is identical, that consumes only the runtime-collected local device profile without reprobing hardware, that serves first-run, first-party-app, and scope-bound-apply callers alike, and whose readiness activation and materialization seams both consume the same resolved model set with each slot projecting slot, capability, asset_id, and variant_id where asset_id is the variant identity.
-    condition: Whenever an install level is resolved into concrete local assets.
-    failure: Reject parallel resolver logic, hardware reprobing, and divergent per-seam resolutions.
+    statement: An explicit recommendation request maps the same catalog version, requested CapabilityContract and standardized features, and already collected host facts to the same ordered LocalAsset candidates without probing hardware during the request; the result never creates or mutates AIConfig, Machine Local AI Configuration, Local Capability Configuration, bindings, selection, admission, or jobs and is not consulted during execution.
+    condition: Whenever Runtime produces an install or local-configuration recommendation.
+    failure: Reject nondeterministic recommendation output and any recommendation path that mutates or participates in execution authority.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r036
     kind: rule
-    title: Variant selection is tiered and rank ordered
+    title: Variant recommendation is rank ordered
     modality: must
-    statement: For each preset slot the resolver evaluates every variant's eligibility from host accelerator availability and estimated footprint against the fixed tier thresholds of recommended within seventy percent, runnable within eighty-five percent, and tight within one hundred percent of the host budget, selects the highest quant rank among variants reaching at least runnable using the fixed catalog order of F16 over Q8_0 over Q6_K over Q5_K_M over Q4_K_M over Q4_0 over Q3 over Q2 with a stable catalog-defined tie-break, never auto-selects tight or not_recommended variants, reuses the existing local fitness machinery as the variant selector without a second fitness mechanism, lowers confidence with typed reasons on incomplete metadata or device profile instead of silently selecting, and runs the identical algorithm for every companion of the slot extending the slot result with companion bindings.
-    condition: Whenever the resolver selects local variants for a preset slot.
-    failure: Reject silent tight selections, second fitness mechanisms, and companion-specific selection paths.
+    statement: A variant recommender evaluates catalog candidates from captured host facts and declared host requirements, orders eligible results with one stable catalog-defined ranking and tie-break, lowers confidence with typed reasons on incomplete metadata, and never automatically binds, selects, substitutes, or falls back to a candidate; companion candidates are recommended independently for the exact resource-occurrence slots projected by the chosen CapabilityImplementationDriver.
+    condition: Whenever Runtime recommends local variants.
+    failure: Reject silent selection, substitution, fallback, binding, or a second contradictory ranking mechanism.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r037
     kind: rule
-    title: Resolver outcomes are closed
+    title: Recommendation outcomes are closed
     modality: must
-    statement: When every required slot is satisfied the resolver returns the resolved model set with omitted host-conditional slots excluded and annotated local_model_resolve_slot_omitted, when any required slot or any of its companions is unsatisfiable at any install level the resolver returns fail-close with local_model_resolve_host_unsupported, an unknown install level fails closed with local_model_resolve_install_level_invalid, and the resolver never substitutes another preset for the user's selected install level.
-    condition: Whenever resolver outcomes are produced.
-    failure: Return the typed outcome without preset substitution or new outcome types.
+    statement: A recommendation returns either an ordered set of concrete LocalAsset candidates with its captured inputs or a typed no-recommendation reason; it never returns a resolved binding set, readiness result, selected configuration, or substitute route, and absence of a recommendation does not invalidate a saved unresolved Local Capability Configuration.
+    condition: Whenever local recommendation outcomes are produced.
+    failure: Return the typed recommendation outcome without fabricating bindings, readiness, selection, or substitution.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r038
     kind: rule
-    title: Resolver failures stay typed and honest
+    title: Recommendation failures stay typed and non-binding
     modality: must
-    statement: The three resolver reason codes are registered in the activation-gate reason-code registry as runtime-owned activation projections that consumers never invent, fail-close outcomes carry their typed reason and project to blocked, repair-required, or unsupported states, no slot is silently satisfied by a tight or not_recommended variant, no placeholder asset identity or pseudo-ready state exists outside a resolved model set, and the resolved variant identity fills the baseline consumer binding so downstream model asset dependency keys are non-empty.
-    condition: Whenever resolver results feed activation, first-run, or materialization consumers.
-    failure: Reject unregistered reasons, placeholder identities, and fabricated readiness.
+    statement: Recommendation failures carry typed Runtime-owned reasons that consumers do not invent, no slot is silently satisfied, no placeholder LocalAsset identity or pseudo-ready state is emitted, and recommendation results never feed first-run readiness, ambient resolution, machine selection, or Job admission without a separate explicit Add or Update Local Capability Configuration action.
+    condition: Whenever recommendation results are returned or displayed.
+    failure: Reject invented reasons, placeholder identities, fabricated readiness, and implicit configuration mutation.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
   - id: rule.nimi.runtime.model-catalog.r039
     kind: rule
     title: Voice creation runs on the scenario surface
@@ -522,7 +530,7 @@ units:
     kind: rule
     title: LocalAgent voice policy is Runtime owned
     modality: must
-    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, local or cloud speech route policy, voice identity, user-visible playback posture, and durable voice artifact retention, while Desktop, Zhiyu, and Avatar render controls and consume projections without deciding provider route, model binding, or whether a committed assistant message has voice semantics; voice identity follows the LocalAgent profile rather than Avatar assets, Avatar instances, or conversation surfaces.
+    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, voice identity, user-visible playback posture, and durable voice artifact retention, while the one shared LocalAgent AIConfig exclusively owns the audio.synthesize Local-or-Cloud route and Runtime composes its selected Local Capability Configuration or Cloud implementation, Driver target, and ConnectorGrant at Job submission; Desktop, Zhiyu, Avatar, the voice plane, and the catalog consume projections without deciding route, model binding, machine selection, or whether a committed assistant message has voice semantics, and voice identity follows the LocalAgent presentation profile rather than Avatar assets, Avatar instances, or conversation surfaces.
     condition: Whenever agent voice policy is stored, mutated, or consumed.
     failure: Reject consumer-owned policy state and route or identity decisions outside Runtime.
     relations:
@@ -532,7 +540,7 @@ units:
     kind: rule
     title: Playable projections are policy gated and truthful
     modality: must
-    statement: Runtime emits a playable voice projection for an ordinary assistant message only when the effective playback target is admitted by policy and the speech route resolves to playable audio, and a missing TTS model, missing or default voice reference, unhealthy route, provider failure, or unavailable voice workflow completes the agent turn as normal text-only output without fake playback success or synthetic audio bytes unless another hard turn error exists.
+    statement: Runtime emits a playable voice projection for an ordinary assistant message only when the exact admitted Job produces playable audio and playback policy admits it, and a typed derived-admission block, missing TTS asset, absent voice reference, provider or Driver Job failure, or unavailable voice workflow completes the agent turn as normal text-only output without fake playback success, synthetic audio bytes, route fallback, or reusable speech readiness unless another hard turn error exists.
     condition: Whenever an agent turn evaluates voice output.
     failure: Complete the turn text-only with the real reason instead of fabricated playback.
     relations:

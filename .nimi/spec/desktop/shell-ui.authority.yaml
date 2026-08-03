@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.desktop.shell-ui.menu-bar
     kind: definition
     title: Desktop menu-bar shell
-    meaning: The Desktop menu-bar shell is the macOS status-item entry, bounded health summary, navigation dispatch, window hide and restore behavior, and explicit Desktop quit surface over the fixed Runtime service and SDK health projections.
+    meaning: The Desktop menu-bar shell is the macOS status-item entry, bounded fixed-service operational summary, navigation dispatch, window hide and restore behavior, and explicit Desktop quit surface; it consumes no periodic provider-health, freshness, or reusable capability-readiness projection.
   - id: definition.nimi.desktop.shell-ui.kit-consumption
     kind: definition
     title: Desktop Kit UI consumption surface
@@ -542,9 +542,9 @@ units:
     kind: rule
     title: LocalAgent settings are bounded Kit and Runtime consumers
     modality: must
-    statement: Desktop places only the LocalAgent settings required by current Nimi Home journeys, supplies navigation, typed Runtime SDK and bounded host capabilities, and edits LocalAgent AI configuration only through revisioned Runtime controls; it owns no reusable settings framework, App-local configuration truth, readiness, route, transcript, presentation selection, credential, or voice artifact truth.
+    statement: Desktop places only the LocalAgent settings required by current Nimi Home journeys, supplies navigation, typed Runtime SDK and bounded host capabilities, and edits only the one shared LocalAgent subsystem AIConfig through canonical overwrite and Apply Profile actions; it owns no per-Agent AIConfig, product revision or history, Machine Local AI Configuration, Local Capability Configuration, machine selection, App-local configuration truth, route, transcript, presentation selection, credential, or voice artifact truth, and links machine-local management to its separate machine owner surface.
     condition: Whenever Desktop renders or configures LocalAgent settings.
-    failure: Reject Desktop-local owner truth, arbitrary injected panels, App-local persistence, pseudo voice, and readiness derived outside Runtime and Avatar owners.
+    failure: Reject Desktop-local owner truth, per-Agent model controls, machine configuration inside Agent Center, arbitrary injected panels, App-local persistence, pseudo voice, and fabricated admission or success.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.kit-consumption
@@ -560,11 +560,11 @@ units:
         target: definition.nimi.desktop.shell-ui.home-shell
   - id: rule.nimi.desktop.shell-ui.r050
     kind: rule
-    title: First run consumes typed AI profile and cold-start state
+    title: First run does not gate Product Control on AI setup
     modality: must_not
-    statement: Nimi Home first run projects ready, available, or done without active AI profile and cold-start evidence, skips alias acceptance, or starts local dependency download, installation, or repair before Runtime materializer confirmation.
+    statement: Nimi Home first run treats an AIProfile, AIConfig, Local Capability Configuration, LocalAsset installation, machine selection, ConnectorGrant, capability admission, probe, health, or successful AI execution as a prerequisite or substitute for Product Control ready_for_use, or automatically applies a Profile or starts local dependency work; AI setup is an explicit independent action whose unavailable state affects only the requested capability.
     condition: Whenever first-run state is presented or advanced.
-    failure: Remain in the exact typed pending, confirmation, in-progress, failed, or setup-required state.
+    failure: Preserve the canonical Product Control state and present independent explicit AI configuration or setup actions without fabricating capability success.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.home-shell
@@ -610,11 +610,11 @@ units:
         target: definition.nimi.desktop.shell-ui.home-shell
   - id: rule.nimi.desktop.shell-ui.r055
     kind: rule
-    title: Home AI execution carries explicit scope
+    title: Home AI execution carries an explicit owner and contract
     modality: must
-    statement: Every Nimi Home LocalAgent Conversation or shell-internal Runtime AI execution path carries an explicit AIScopeRef.
+    statement: Every Nimi Home AI execution request carries an explicit CapabilityContract and the canonical AIConfig owner identity, with Desktop-owned Nimi Chat using the Desktop App AIConfig while Desktop Agent Chat is a Runtime LocalAgent projection using the one shared LocalAgent subsystem AIConfig.
     condition: Whenever Nimi Home submits AI execution intent.
-    failure: Reject the request before execution when AIScopeRef is absent or invalid.
+    failure: Reject the request before execution when the CapabilityContract or canonical AIConfig owner is absent, invalid, or confused across the two chat surfaces.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.home-shell
@@ -687,11 +687,11 @@ units:
         target: definition.nimi.desktop.shell-ui.menu-bar
   - id: rule.nimi.desktop.shell-ui.r063
     kind: rule
-    title: Menu-bar health has bounded fresh sources
+    title: Menu-bar status uses bounded operational facts
     modality: must
-    statement: The menu bar combines fixed-service lifecycle status with SDK Runtime and provider health plus window visibility, in-flight action, last update, and last error, and after fifteen seconds without renderer refresh displays only daemon lifecycle state.
+    statement: The menu bar combines only fixed-service lifecycle status, window visibility, an in-flight user action, and the last actual operation update or typed error; it neither polls nor caches provider health, assigns healthy, unhealthy, or unknown provider state, applies a provider freshness window, or creates a parallel capability-readiness transport.
     condition: Whenever the menu bar renders or refreshes status.
-    failure: Drop stale Runtime and provider detail and never create a parallel health transport.
+    failure: Drop unsupported or stale operation detail and never create periodic provider or capability health truth.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.menu-bar
@@ -699,7 +699,7 @@ units:
     kind: rule
     title: Menu-bar structure and actions are closed
     modality: must
-    statement: The menu bar contains a state header, Open Nimi, Runtime Dashboard, Local Models, Cloud Connectors, Settings, Runtime and provider and verified-release summary, Start Runtime, Restart Runtime, Refresh Status, and Quit Nimi; it exposes no stop, external-daemon, binary selector, endpoint, process identifier, or path and enables service actions only after fixed-service and signing verification.
+    statement: The menu bar contains a state header, Open Nimi, Runtime Dashboard, Local Models, Cloud Connectors, Settings, Runtime and verified-release summary, Start Runtime, Restart Runtime, Refresh Status, and Quit Nimi; it exposes no provider-health summary, stop, external-daemon, binary selector, endpoint, process identifier, or path and enables service actions only after fixed-service and signing verification.
     condition: Whenever Desktop builds the menu-bar menu.
     failure: Disable unsafe actions and route unverified or hung service state to signed repair.
     relations:
@@ -821,11 +821,11 @@ units:
         target: definition.nimi.desktop.shell-ui.error-boundary
   - id: rule.nimi.desktop.shell-ui.r076
     kind: rule
-    title: Provider unavailable guidance uses authoritative health context
+    title: Provider guidance uses the exact current outcome
     modality: must
-    statement: Desktop maps AI_PROVIDER_UNAVAILABLE to credential guidance only when SDK provider health is healthy, to availability guidance when health is unhealthy or unknown, and to generic unavailable guidance when provider-level health is not projected.
+    statement: Desktop maps credential guidance only from an exact ConnectorGrant authorization failure, maps provider availability guidance only from the current real Job failure or the result of the same user-explicit bounded Test Connector diagnostic, and otherwise presents generic typed unavailable guidance; no diagnostic result becomes reusable provider health, readiness, binding, or an execution prerequisite.
     condition: Whenever AI_PROVIDER_UNAVAILABLE is presented.
-    failure: Do not infer credential or network truth without the corresponding SDK health projection.
+    failure: Do not infer credential, network, provider-health, or readiness truth from a periodic, stale, absent, or unrelated projection.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.error-boundary

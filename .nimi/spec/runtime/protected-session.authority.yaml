@@ -242,8 +242,8 @@ units:
     kind: rule
     title: Ordinary product support remains reachable
     modality: must
-    statement: A failure in Local AI readiness or a protected product capability does not hide the Nimi Home support, diagnostic, configuration, model acquisition, and repair surfaces required to recover it.
-    condition: Whenever product readiness is incomplete.
+    statement: A typed request-time capability admission block, Job failure, or protected product capability failure does not hide Nimi Home, support, diagnostic, configuration, model acquisition, and repair surfaces required to recover it; no aggregate Local AI readiness state gates ordinary entry.
+    condition: Whenever an owner-specific protected capability is unavailable or fails.
     failure: Keep recovery surfaces available with truthful typed state.
     relations:
       - type: applies_to

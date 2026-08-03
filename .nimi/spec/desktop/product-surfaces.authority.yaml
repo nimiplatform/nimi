@@ -222,7 +222,7 @@ units:
     kind: rule
     title: Home feed performs no AI execution
     modality: must_not
-    statement: Home feed carries AIScopeRef, prompt text, provider or model selection, Runtime turn payload, or Runtime AI execution on feed read or Create Post paths.
+    statement: Home feed carries AIConfig owner identity, CapabilityContract, prompt text, provider or model selection, Runtime turn payload, or Runtime AI execution on feed read or Create Post paths.
     condition: Whenever Home presents, reads, or publishes Realm social content.
     failure: Reject the AI payload or execution call and preserve Home as a Realm social projection and publication surface only.
     relations:

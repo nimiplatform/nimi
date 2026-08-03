@@ -5,52 +5,60 @@ units:
   - id: definition.nimi.desktop.ai-consumption.profile-config
     kind: definition
     title: Desktop AI profile configuration consumption surface
-    meaning: The Desktop AI profile configuration consumption surface is the typed SDK and host projection for scope-owned AIProfile templates, full materialized AIConfig intent, adjacent scope-owned live configuration, and owner-sliced AISnapshot execution evidence; Desktop owns placement and interaction for its resident scopes but not global configuration, Runtime facts, credentials, LocalAgent Conversation execution, or another scope's persistence.
+    meaning: The Desktop AI profile and configuration consumption surface is the typed SDK and host projection for portable AIProfile, canonical App or shared LocalAgent AIConfig, the separately machine-owned Machine Local AI Configuration and Local Capability Configurations, derived admission, and immutable Job inputs; Desktop owns placement and interaction for its authorized owner context but no per-Agent or feature configuration, execution binding, credential, machine selection, Runtime process, or Job truth.
   - id: definition.nimi.desktop.ai-consumption.llm-adapter
     kind: definition
-    title: Desktop LLM adaptation consumption surface
-    meaning: The Desktop LLM adaptation consumption surface is the Runtime-aligned provider, route, credential, local-health, media, audit, trace, and world-generation projection consumed through typed SDK surfaces without Desktop-owned provider execution, route inference, credential custody, or LocalAgent Conversation orchestration.
+    lifecycle: removed
+    title: Retired Desktop LLM adaptation consumption surface
+    reason: Removed because adapter, connector, route resolver, local health, and public readiness projections do not own capability execution.
+  - id: definition.nimi.desktop.ai-consumption.capability-execution-projection
+    kind: definition
+    title: Desktop capability execution projection
+    meaning: The Desktop capability execution projection submits CapabilityContract requests under a canonical AIConfig owner and consumes Runtime's deterministic Local or Cloud composition, typed derived admission, immutable Job events, artifacts, and failures without selecting a target, acting as a CapabilityImplementationDriver or ExecutionHost, holding secrets, probing readiness, or falling back.
+    relations:
+      - type: supersedes
+        target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: definition.nimi.desktop.ai-consumption.streaming
     kind: definition
     title: Desktop streaming consumption surface
     meaning: The Desktop streaming consumption surface owns renderer subscription lifecycle, incremental presentation, explicit cancellation, timeout, interruption, backpressure, job progress, and retry affordances while Runtime and SDK own stream protocols, LocalAgent outputs, actions, continuations, jobs, presentation timelines, and execution truth.
   - id: rule.nimi.desktop.ai-consumption.r001
     kind: rule
-    title: Durable AI target identity uses v2 references
+    title: AIConfig stores route intent without Local target identity
     modality: must
-    statement: Desktop AIProfile and AIConfig consumers use v2 durable target references; a local-runtime reference carries version=v2 and exactly one of profile_binding_id or readiness_ref, and a cloud reference carries remote_model_catalog_id plus provider_model_id and connector_id with provider when available.
+    statement: Desktop projects AIConfig per CapabilityContract as Local or Cloud route intent with required standardized features and defaults; Local carries no Local Capability Configuration, model, workflow, node, LocalAsset binding, or machine selection, while Cloud carries the intended CapabilityImplementation and Driver-owned provider-model target plus an explicitly selected ConnectorGrant reference and no secret.
     condition: Whenever Desktop stores, applies, exports, imports, or projects durable AI target identity.
-    failure: Reject targetId, profileId, localModelId, goRuntimeLocalModelId, bare asset identifiers, and connector_id plus provider model_id as durable target identity.
+    failure: Reject legacy target references, local target material in AIConfig, connector-as-route identity, and any secret-bearing target.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r002
     kind: rule
-    title: AI configuration has three non-fallback tiers
+    title: Profile, configuration, selection, and Job facts are orthogonal
     modality: must
-    statement: AIProfile remains a portable scope-agnostic template, AIConfig remains the full live intent bound to one AIScopeRef, and AISnapshot remains immutable per-execution configuration and Runtime evidence; none is consumed as a fallback for another or written back into another tier.
+    statement: AIProfile remains a portable template, AIConfig remains current route and feature intent for one canonical App or shared LocalAgent owner, Machine Local AI Configuration remains the one machine aggregate with saved Local Capability Configurations and selection, and each Job captures immutable effective execution inputs; none is a fallback for, shadow of, or write-back source for another.
     condition: Whenever Desktop consumes AI configuration or execution evidence.
-    failure: Reject profile-as-live-config, live rereads in place of a snapshot, snapshot-to-config writes, and snapshot-to-profile writes.
+    failure: Reject Profile-as-live-config, AIConfig-owned local bindings, selection-as-readiness, live rereads in place of Job inputs, and cross-owner write-back.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r003
     kind: rule
-    title: Desktop remains a scoped configuration consumer
+    title: Desktop remains a canonical-owner configuration consumer
     modality: must
-    statement: The AIScopeRef owner owns canonical AIConfig intent, persistence, subscription, and read-write behavior, Runtime owns facts, readiness, materialization, route feasibility, and execution evidence, SDK owns typed projection, and Desktop owns only placement and editing interaction for admitted desktop-resident scopes.
+    statement: Each App or product owner owns one canonical AIConfig and the Runtime LocalAgent subsystem owns one shared AIConfig for all LocalAgents; the machine owner separately owns Machine Local AI Configuration, Runtime owns deterministic composition, derived admission, process and Job facts, SDK owns typed projection, and Desktop owns only authorized placement and editing interaction.
     condition: Whenever renderer, Chat, Settings, Runtime Config, or another Desktop surface reads or mutates AI configuration.
-    failure: Reject renderer-local, Desktop-local, cross-app, cross-module, or cross-feature persistence as canonical AIConfig truth.
+    failure: Reject renderer-local, per-Agent, module, feature, route, chat-mode, cross-App, or mixed machine-and-AIConfig persistence as canonical truth.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r004
     kind: rule
-    title: AIProfile carries complete portable slice intent
+    title: AIProfile carries portable configuration intent
     modality: must
-    statement: Each AIProfile capability slice carries stable slice identity, canonical capability, execution mode, contract state, required or optional readiness policy, default parameters, editable-field bounds, patterned local or cloud binding intent, portable source and ordered companion occurrence intent, policy and style metadata, and title, description, and tags.
+    statement: AIProfile may carry AIConfig route intent, local CapabilityImplementation and Driver-owned portable configuration intent, Cloud CapabilityImplementation and target recommendation, required standardized features, defaults, provenance, license, and display metadata while preserving independent resource occurrences needed by a Driver.
     condition: Whenever Desktop imports, exports, previews, applies, or edits an AIProfile.
-    failure: Reject a profile that omits required portable slice intent or cannot preserve ordered occurrence and editable-field semantics.
+    failure: Reject a Profile that cannot preserve its portable contract, feature, configuration, occurrence, provenance, and license intent.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -58,7 +66,7 @@ units:
     kind: rule
     title: AIProfile excludes machine and execution truth
     modality: must_not
-    statement: An AIProfile contains a concrete AIScopeRef, machine residency, install or dependency result, device feasibility, host engine path, live health, RuntimeRouteBinding, selected Runtime binding or source evidence, materialization or workflow identity, scheduler state, provider health or quota, or credential material.
+    statement: An AIProfile contains a canonical AIConfig owner identity, Local Capability Configuration identity, machine selection, LocalAsset id or path, concrete binding, ConnectorGrant, connector or account identity, secret, Runtime process identity, install or dependency result, device feasibility, selected-source evidence, Job input, scheduler state, provider health, or quota truth.
     condition: Whenever a portable AIProfile payload is created or accepted.
     failure: Drop the non-portable field through an admitted portable-intent projection or reject the payload when safe filtering cannot be proven.
     relations:
@@ -66,21 +74,21 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r006
     kind: rule
-    title: AIProfile and Runtime local profiles remain non-isomorphic
+    title: Profile local intent uses a separate configuration action
     modality: must
-    statement: A portable AIProfile may reference, compose, or derive one or more Runtime local profiles without assuming one-to-one identity, and any local Runtime selection is represented only by the admitted v2 compact local-runtime target reference.
+    statement: Portable local implementation intent in a Profile is never a Machine Local AI Configuration selection or AIConfig target and is consumed only by the independent Add or Update Local Capability Configuration action, which may save unresolved requirement slots without selecting the result.
     condition: Whenever Desktop relates a portable profile to installable Runtime dependencies or execution packages.
-    failure: Reject machine-local installation identity and pre-v2 local logical references in the portable profile or materialized AIConfig.
+    failure: Reject Profile-driven local selection, installation, binding, or a local target reference inside AIConfig.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r007
     kind: rule
-    title: AIConfig is full and scope-bound
+    title: AIConfig is complete current intent for one canonical owner
     modality: must
-    statement: Every live AIConfig binds exactly one canonical AIScopeRef and is the full materialized configuration for that scope's declared app, module, feature, or local-agent capability requirements without partial overlays, cross-scope fallback chains, disabled placeholders, or unresolved required slices.
+    statement: Every AIConfig belongs to exactly one canonical App or product owner or the singular shared LocalAgent subsystem owner and stores the complete current per-CapabilityContract route intent, required standardized features, defaults, and Cloud-only implementation-target and ConnectorGrant binding without partial overlays, inheritance, product revision, history, per-Agent override, or fallback chain; Cloud intent without a grant and Local intent without a machine selection remain legal saved intent and fail only at execution admission.
     condition: Whenever a live AIConfig is committed, read, subscribed, or presented.
-    failure: Keep the prior valid config or report typed setup-required with no live config instead of accepting a partial or inherited config.
+    failure: Reject partial or inherited configuration and preserve the prior committed current state on an atomic-write failure.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -88,9 +96,9 @@ units:
     kind: rule
     title: AIConfig preserves its canonical envelope
     modality: must
-    statement: AIConfig contains scopeRef, per-capability materialized configuration with one primary selection, ordered concrete component selections, and selected parameters, plus an optional profileOrigin used only for user-facing provenance; applying an AIProfile copies its structure and defaults into these concrete fields, and sharing schema subsets with AIProfile does not change the bound live-config owner semantics.
+    statement: AIConfig contains its canonical owner, per-CapabilityContract Local or Cloud route intent, required standardized-feature set, defaults, and for Cloud only one CapabilityImplementation and Driver-owned provider-model target intent plus an optional explicit ConnectorGrant binding; optional Profile provenance is display-only and never a live binding or re-apply relation.
     condition: Whenever Desktop serializes or projects an AIConfig.
-    failure: Reject an envelope without exact scope identity or one that treats profileOrigin as a live shared binding.
+    failure: Reject an envelope without exact owner identity, with Local execution material, or treating Profile provenance as a live binding.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -98,9 +106,9 @@ units:
     kind: rule
     title: AIConfig capability payload stays compact
     modality: must
-    statement: AIConfig capability entries contain only consumer requirement and capability identity, a public logical primary model identity with its admitted mode-specific v2 compact target reference, ordered concrete component selections carrying stable occurrence id, order, admitted role and component kind, public logical model identity, required policy, bounded options, and an admitted v2 compact target reference, slice-bounded selected parameters, and optional source profile and slice provenance owned by the scope.
+    statement: AIConfig capability entries contain only CapabilityContract identity, Local or Cloud route intent, the contract-scoped required standardized-feature set, typed defaults, and for Cloud the exact intended CapabilityImplementation, Driver-owned provider-model target configuration, optional explicit ConnectorGrant reference, and portable display provenance; Local model, components, workflow, node environment, bindings, and machine selection are absent.
     condition: Whenever a capability entry is materialized or persisted in AIConfig.
-    failure: Reject a capability entry that lacks admitted target identity or exceeds the compact intent boundary.
+    failure: Reject a capability entry that exceeds its owner intent boundary or mixes Local configuration with AIConfig.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -108,7 +116,7 @@ units:
     kind: rule
     title: AIConfig excludes Runtime and credential evidence
     modality: must_not
-    statement: AIConfig persists RuntimeRouteBinding, Runtime selectedBindings evidence, route endpoints, local paths, local asset ids, selected source records, install or materialization records, raw workflow binding identity outside an admitted v2 compact target reference, backend package or Python, Torch, CUDA details, provider health, scheduler state, raw secrets, tokens, API keys, or credential payloads; selectedParams never carries primary or component asset identity.
+    statement: AIConfig persists Local Capability Configuration identity, local model or workflow identity, local components, requirement slots, LocalAsset ids or paths, exact Local bindings, machine selection, selected source records, install or process state, endpoint authority, provider health, scheduler state, raw secrets, tokens, API keys, OAuth payloads, credential payloads, or mutable Job inputs.
     condition: Whenever Desktop writes or exports live AIConfig.
     failure: Reject the write and retain the Runtime-owned facts or credentials solely in their typed owner projection.
     relations:
@@ -128,8 +136,8 @@ units:
     kind: rule
     title: Adjacent live config requires a distinct owner boundary
     modality: must
-    statement: A live setting remains adjacent to AIConfig.capabilities only when it is user-editable, scope-keyed, durably persisted and subscribed by its scope owner, affects a Runtime-owned bank, substrate, or retained-memory behavior rather than ordinary turn capability truth, and would otherwise confuse capability and Runtime bank ownership; memory embedding config is the admitted instance.
-    condition: Whenever Desktop places a scope-owned AI setting outside AIConfig.capabilities.
+    statement: A live setting remains adjacent to AIConfig only when it has an independently named canonical owner and typed persistence boundary and affects a Runtime-owned bank, substrate, or retained-memory behavior rather than CapabilityContract route intent; Memory embedding bank configuration is the admitted instance and creates no additional AIConfig owner.
+    condition: Whenever Desktop places an independently owned AI-adjacent setting outside AIConfig capability intent.
     failure: Reject an adjacent surface that lacks all boundary conditions or silently folds Runtime bank truth into capability selection.
     relations:
       - type: applies_to
@@ -138,7 +146,7 @@ units:
     kind: rule
     title: Adjacent config carries intent through typed projection only
     modality: must
-    statement: Memory embedding and any admitted adjacent config carry only user intent such as source kind and binding reference through typed SDK or host projection, while Runtime retains resolved profile, readiness, bind result, bank identity, migration, and cutover truth.
+    statement: Memory embedding and any admitted adjacent configuration carry only their separately owned user intent through typed SDK or host projection, while Runtime retains exact binding, bank identity, migration, cutover, and operation state; those facts never become AIConfig route, Machine Local AI Configuration selection, or capability readiness.
     condition: Whenever Desktop reads or writes adjacent live configuration.
     failure: Reject renderer-local state, Desktop-local storage, private loopback endpoints, and Runtime evidence as adjacent config authority.
     relations:
@@ -146,19 +154,19 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r014
     kind: rule
-    title: AISnapshot is an owner-sliced execution envelope
+    title: Job inputs are an immutable execution envelope
     modality: must
-    statement: Each AISnapshot records a ULID executionId, exact scopeRef, immutable AIConfig content or hash evidence, the conversation capability execution slice, nullable Runtime evidence, and ISO8601 createdAt; scope owners own config evidence identity, Runtime owns execution evidence slices, and SDK owns typed projection.
+    statement: Each Job records its Runtime-issued identity, canonical AIConfig owner, CapabilityContract, exact immutable Local snapshot of route, features, defaults, selected Local Capability Configuration, CapabilityImplementation, Driver configuration, bindings and request, or exact immutable Cloud snapshot of implementation, provider-model target, ConnectorGrant, defaults and request, plus creation time; Runtime owns the Job and SDK and Desktop consume typed projections only.
     condition: Whenever a Desktop-consumed turn or job starts.
-    failure: Reject an ownerless, consumer-local, mutable, or field-incomplete execution snapshot.
+    failure: Reject an ownerless, consumer-local, mutable, reconstructed, or field-incomplete Job input snapshot.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r015
     kind: rule
-    title: Executions read only their captured snapshot
+    title: Executions read only their captured Job inputs
     modality: must
-    statement: A running turn or job reads only its captured AISnapshot, never uses it as recovery or fallback, never rereads live AIConfig in its place, and never writes the snapshot back to config or profile.
+    statement: A running turn or Job reads only its captured effective inputs, never uses them as recovery or fallback, never rereads current Profile, AIConfig, machine selection, Local Capability Configuration, inventory, or ConnectorGrant in their place, and never writes Job inputs back to configuration or Profile.
     condition: From execution start through terminal completion.
     failure: Stop the execution path or preserve the original snapshot instead of changing configuration evidence in flight.
     relations:
@@ -166,11 +174,11 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r016
     kind: rule
-    title: Production snapshots are durably projected
+    title: Production Job evidence is durably projected
     modality: must
-    statement: Desktop snapshot record and read behavior uses typed SDK storage projection and does not represent a renderer-memory ring buffer as durable execution evidence; process memory is limited to explicit test or development harnesses.
-    condition: Whenever Desktop records or reads AISnapshot evidence in production.
-    failure: Reject renderer-memory-only production evidence and report snapshot persistence as unavailable.
+    statement: Desktop Job record and read behavior uses typed Runtime and SDK projection and does not represent a renderer-memory ring buffer, current configuration reread, or consumer-generated snapshot as durable execution evidence.
+    condition: Whenever Desktop reads or presents Job evidence in production.
+    failure: Reject renderer-owned execution evidence and report the Runtime Job projection as unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -178,7 +186,7 @@ units:
     kind: rule
     title: Profile apply is atomic full overwrite
     modality: must
-    statement: Applying AIProfile to a scope atomically materializes a full replacement AIConfig without merge, partial patch, or shared profile reference, and protects concurrent apply with a scope-level version or compare-and-swap check.
+    statement: Applying AIProfile to one canonical App or shared LocalAgent AIConfig owner atomically creates or overwrites the complete current AIConfig without merge, partial patch, shared Profile reference, product revision, or history; an internal compare-and-swap may prevent lost writes but is not product lifecycle or re-apply state.
     condition: Whenever a profile apply commit is requested.
     failure: Commit the entire new config or leave the prior config unchanged.
     relations:
@@ -186,31 +194,31 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r018
     kind: rule
-    title: Apply readiness failures preserve valid config
+    title: Apply validates intent without requiring executability
     modality: must
-    statement: Invalid schema or any unresolved required capability, Runtime, dependency, credential, manual association, backend, source, or readiness prerequisite returns a typed setup-required no-live-config outcome and preserves the prior valid AIConfig; unresolved optional slices are omitted and explicitly projected as optional-unavailable.
-    condition: Whenever Desktop previews or commits profile materialization.
-    failure: Reject placeholder required slices, null or disabled capability rows, and partial replacement.
+    statement: Apply validates Profile and AIConfig intent schema and canonical owner, then writes valid Local intent even when no local configuration or asset exists and valid Cloud intent even when no ConnectorGrant is selected; it never resolves inventory, installs, binds, selects, probes, prewarms, requires ready state, or omits unresolved intent, while an invalid schema or failed atomic write preserves the prior AIConfig.
+    condition: Whenever Desktop previews or commits Apply Profile to AIConfig.
+    failure: Reject execution gating, side effects, partial replacement, and pseudo-success after a failed write.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r019
     kind: rule
-    title: Apply cannot manufacture executability
+    title: Apply never manufactures execution state
     modality: must_not
-    statement: Desktop writes syntactically valid live AIConfig before import, preview, probe, or prepare proves required slice eligibility, or deletes failed capability fields to report successful apply.
-    condition: Whenever profile application eligibility has not been proven.
-    failure: Keep the live config unchanged and surface typed setup-required status.
+    statement: Desktop treats Profile import, preview, Apply, current inventory, connector diagnostic, installation, process start, or static schema validity as a binding, machine selection, ConnectorGrant selection, admission, readiness, or Job success fact, or deletes unresolved intent to report success.
+    condition: Whenever Profile or AIConfig actions are presented.
+    failure: Preserve the committed owner intent and let exact Job submission derive a typed admission result.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r020
     kind: rule
-    title: Global active profile is prohibited
+    title: Canonical configuration aggregates are closed
     modality: must_not
-    statement: Desktop defines a global active profile, a singleton live AIConfig shared by scopes, or fallback inheritance between scopes; global state is limited to the profile catalog and consumer-local active-editor convenience.
-    condition: Whenever profile selection or active-scope state is modeled.
-    failure: Preserve independent scope-keyed AIConfig and reject the global live binding.
+    statement: Desktop defines a global active Profile, singleton global AIConfig, per-Agent AIConfig, module or feature AIConfig, fallback inheritance, or shadow machine configuration; each App or product owns one AIConfig, all LocalAgents share one Runtime-owned AIConfig, and each machine has one Machine Local AI Configuration.
+    condition: Whenever Profile, owner, or machine configuration state is modeled.
+    failure: Preserve the canonical owner aggregates and reject parallel or inherited live truth.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -218,9 +226,9 @@ units:
     kind: rule
     title: Portable export preserves authored intent
     modality: must
-    statement: AIProfile export preserves capability and slice identity, execution mode, contract and readiness policy, local and cloud constraints, source and manual association intent, expected integrity, ordered companion occurrence data, parameters, editable fields, policy, style, and profile UX metadata.
+    statement: AIProfile export preserves CapabilityContract and contract-scoped standardized-feature intent, AIConfig route and defaults intent, local CapabilityImplementation, Driver identity, portable configuration and independent resource-occurrence intent, Cloud implementation-target recommendation, provenance, license, and display metadata without machine or account identity.
     condition: Whenever Desktop exports or shares an AIProfile.
-    failure: Reject an export that loses required authored intent or occurrence ordering.
+    failure: Reject an export that loses required authored intent or collapses distinct resource-occurrence identity or role; no generic occurrence ordering is implied.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -228,7 +236,7 @@ units:
     kind: rule
     title: Live-config export filters non-portable evidence
     modality: must
-    statement: Exporting live config to AIProfile uses a portable-intent projection that may copy profile refs, slice IDs, editable parameters, and admitted compact logical refs but drops or fails closed on routes, sources, installs, paths, materialization, provider health, scheduler, and credential evidence.
+    statement: Exporting current configuration to AIProfile uses only portable intent and drops or fails closed on canonical owner identity, Local Capability Configuration identity, machine selection, LocalAsset id or path, exact bindings, selected source, install or process state, ConnectorGrant, connector or account identity, secret, Job input, provider health, scheduler, and credential evidence.
     condition: Whenever Desktop derives a portable profile from live AIConfig.
     failure: Reject direct copying of AIConfig capabilities when the portable boundary cannot be proven.
     relations:
@@ -236,19 +244,19 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r023
     kind: rule
-    title: imageProfileRef is hard-cut into capability intent
+    title: Image local configuration intent stays machine owned
     modality: must
-    statement: Image profile selection exists only as image workflow or capability slice intent with source profile and admitted v2 compact target references inside AIConfig capabilities; defaultRefs.imageProfileRef and a replacement localProfileRef-only top-level concept do not exist.
-    condition: Whenever Desktop migrates, reads, writes, or displays image-related AI configuration.
-    failure: Reject the legacy field without a compatibility layer and require migration to the admitted capability slice shape.
+    statement: An AIProfile may carry portable image.generate implementation and Driver configuration intent, but AIConfig carries only Local route intent for local image execution and Machine Local AI Configuration separately owns the saved image Local Capability Configurations and their selection; defaultRefs.imageProfileRef, localProfileRef, compact local targets in AIConfig, and App-local shadow configuration do not exist.
+    condition: Whenever Desktop reads, writes, or displays image-related AI configuration.
+    failure: Reject each retired field without a compatibility layer and require only the canonical AIConfig route intent plus the machine-owned Local Capability Configuration and selection relation.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r024
     kind: rule
-    title: Snapshot capture occurs per turn or job
+    title: Exact capture occurs per Job
     modality: must
-    statement: Desktop consumes a new AISnapshot at each turn or job start, and later live-config edits affect only later executions rather than an already-started execution; session-level permanent snapshot binding is absent.
+    statement: Runtime captures exact effective inputs at each Job submission and Desktop consumes that immutable Job projection; later Profile, AIConfig, Local Capability Configuration, machine selection, ConnectorGrant, inventory, or process changes affect only future Jobs and no session-level permanent binding exists.
     condition: Whenever execution configuration is captured or changed.
     failure: Reject session-wide binding and in-flight configuration drift.
     relations:
@@ -256,9 +264,9 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r025
     kind: rule
-    title: AIConfig and AISnapshot remain the conversation capability umbrella
+    title: All LocalAgents share the LocalAgent subsystem AIConfig
     modality: must
-    statement: Conversation capability selection and derived projection remain an AIConfig capabilities submodel, LocalAgent AI settings consume the Runtime-owned canonical local-agent AIConfig through the SDK, execution capability evidence remains a typed owner projection, and non-AI LocalAgent autonomy, Memory, Knowledge, voice playback, and presentation settings remain adjacent Runtime configuration rather than AIConfig fields.
+    statement: Every LocalAgent capability request uses the one Runtime-owned shared LocalAgent subsystem AIConfig through the SDK and no individual LocalAgent stores a route, model, or AIConfig override; personality, appearance, behavior, Memory, Knowledge, Conversation presentation, voice playback, and presentation settings remain separately owned non-AI LocalAgent configuration.
     condition: Whenever Desktop composes conversation capability and AI configuration models.
     failure: Reject peer ownership between configuration models or absorption of LocalAgent presentation truth into configuration.
     relations:
@@ -266,51 +274,36 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r026
     kind: rule
-    title: Mutations remain local to their owned tier and scope
+    title: Four product actions mutate only their owner
     modality: must
-    statement: Editing AIProfile affects only future applies, while user customization changes only the selected scope's full materialized AIConfig and may preserve profileOrigin solely as provenance; the scope owner exposes one typed authority surface to Desktop consumers.
+    statement: Import Profile changes only the portable Profile catalog, Apply Profile to AIConfig atomically creates or overwrites only one canonical AIConfig, Add or Update Local Capability Configuration changes only one saved machine-local record, and Select Local Capability Configuration changes only the machine selection relation; no action merges, reapplies, installs, probes, prewarms, starts a Job, mutates another owner, or automatically invokes another action.
     condition: Whenever Desktop edits a profile or scope configuration.
-    failure: Reject reverse mutation from AIConfig into AIProfile, implicit reapply, or a consumer-specific persistence owner.
+    failure: Reject cross-owner mutation, reverse Profile mutation, implicit reapply, automatic action chaining, or consumer-specific persistence.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r027
     kind: rule
-    title: AI configuration probes preserve three classes
-    modality: must
-    statement: Desktop distinguishes static schema validation, Runtime availability for route, provider, and engine, and resource feasibility for device capacity, and consumes each through the formal scope-owned AIConfig projection.
-    condition: Whenever profile or config readiness is probed or presented.
-    failure: Reject raw low-level Runtime or scheduler calls as product-facing probe authority and preserve the typed probe class.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.profile-config
+    lifecycle: removed
+    title: Retired AI configuration probe classes
+    reason: Removed because static validation, availability probes, engine health, and feasibility do not form a product readiness surface or configuration authority.
   - id: rule.nimi.desktop.ai-consumption.r028
     kind: rule
-    title: Aggregate and submit scheduling judgements stay distinct
-    modality: must
-    statement: probeFeasibility for a scope carries the aggregate judgement over relevant local targets, while submit guard and snapshot capture use the exact submit target judgement; unavailable Peek produces null schedulingJudgement and degraded aggregate status, and aggregate or unknown state never becomes runnable execution evidence.
-    condition: Whenever Desktop probes feasibility, guards submission, or captures Runtime scheduling evidence.
-    failure: Reject reuse of a primary local profile or aggregate result as submit-target proof.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.profile-config
+    lifecycle: removed
+    title: Retired aggregate capability feasibility probe
+    reason: Removed because only exact Job submission derives admission from committed inputs and no scope aggregate, scheduler Peek, or probe result is execution authority.
   - id: rule.nimi.desktop.ai-consumption.r029
     kind: rule
-    title: Probe presentation preserves specific status
-    modality: must
-    statement: Desktop presents schema, availability, and feasibility failures distinctly and, when a scheduling judgement exists, displays queue, slowdown, or denial meaning rather than only a generic aggregate unavailable status.
-    condition: Whenever probe results are shown or used by submission UI.
-    failure: Reject a generic label that hides the probe class or turns unknown into runnable.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.profile-config
+    lifecycle: removed
+    title: Retired capability probe presentation
+    reason: Removed with the public probe lifecycle; Desktop presents typed request admission and Job failure reasons instead.
   - id: rule.nimi.desktop.ai-consumption.r030
     kind: rule
-    title: Built-in chat config materializes through atomic apply
+    title: Built-in chat AIConfig owners remain distinct
     modality: must
-    statement: Desktop initializes desktop.chat.nimi through its owning host boundary and applies or customizes each Runtime LocalAgent through that agent's Runtime-issued local-agent AIConfig boundary, using the selected AIProfile and current Runtime-resolved live bindings only after every required consumer slice is ready; desktop.chat.agent is not a live LocalAgent configuration scope.
+    statement: Desktop Nimi Chat is a Desktop-owned capability consumer using the Desktop App AIConfig, while Desktop Agent Chat is a projection of Runtime LocalAgent Conversation using the one shared LocalAgent subsystem AIConfig; neither creates a chat-specific or per-Agent owner, and Profile Apply writes owner intent without waiting for bindings, selection, ConnectorGrant, or readiness.
     condition: Whenever built-in Nimi chat or a Runtime LocalAgent AIConfig is initialized or reconfigured.
-    failure: Leave only the affected scope setup-required without changing Product Control readiness or synthesizing a partial live AIConfig.
+    failure: Reject owner conflation, per-Agent AIConfig, and implicit execution materialization without changing Product Control readiness.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -321,11 +314,11 @@ units:
     reason: Built-in AIConfig is ordinary scope configuration and no longer produces a second proof record for Product Control admission.
   - id: rule.nimi.desktop.ai-consumption.r032
     kind: rule
-    title: Built-in config has no inferred success or fallback scope
+    title: Built-in config has no inferred success or fallback owner
     modality: must_not
-    statement: Desktop synthesizes a built-in or LocalAgent AIConfig live target from renderer state, selected tab, conversation state, route health, caller-provided LocalAgent identity, or caller-provided execution references; shares a fallback between desktop.chat.nimi and a local-agent scope; retains desktop.chat.agent as a second LocalAgent truth; or hardcodes provider, connector, engine, or model identity.
-    condition: Whenever built-in chat configuration or readiness is evaluated.
-    failure: Preserve setup-required with no live config for the affected scope.
+    statement: Desktop synthesizes AIConfig, route, Cloud target, ConnectorGrant, Local Capability Configuration, machine selection, binding, admission, or Job truth from renderer state, selected tab, Conversation state, inventory, process health, caller-provided LocalAgent identity, or execution references; shares fallback across Desktop Nimi Chat and Desktop Agent Chat; creates a chat-specific or per-Agent owner; or hardcodes provider, engine, model, or configuration identity.
+    condition: Whenever built-in chat configuration or execution admission is evaluated.
+    failure: Preserve the canonical Desktop App or shared LocalAgent AIConfig owner and return the typed admission reason.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -333,7 +326,7 @@ units:
     kind: rule
     title: Apply preview is typed and non-committing
     modality: must
-    statement: Apply preview accepts exact scopeRef and AIProfile, returns a typed full before-to-after AIConfig diff with explicit null before for first creation and the base version or content hash, and remains a separate non-committing operation from explicit atomic apply.
+    statement: Apply preview accepts one canonical AIConfig owner and AIProfile, returns a typed full before-to-after intent diff with explicit null before for first creation, and remains a separate non-committing static operation from explicit atomic Apply; an internal content hash may be displayed as freshness evidence but is not product revision, history, or a reusable commit token.
     condition: Whenever Desktop previews profile application.
     failure: Reject a free-form, partial, mutating, implicitly queued, or implicitly committed preview.
     relations:
@@ -341,74 +334,74 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r034
     kind: rule
-    title: Preview isolation and readiness fail closed
+    title: Preview isolation excludes execution checks
     modality: must
-    statement: Preview does not persist config, notify live subscribers, recompute live capability projection, create AISnapshot, or mutate AIProfile; invalid schema and required-readiness blockers return typed error or setup-required without a committable after, while non-blocking probes may remain warnings.
+    statement: Preview does not persist AIConfig, notify live subscribers, mutate AIProfile, resolve inventory, bind requirements, install assets, select a Local Capability Configuration or ConnectorGrant, probe, prewarm, derive readiness or admission, create Job inputs, or gate a valid direct Apply; invalid Profile or AIConfig schema returns a typed error without a partial diff.
     condition: Whenever preview computes or returns a result.
-    failure: Reject side effects, partial diffs, failed-slice deletion, and blocker-as-warning pseudo-success.
+    failure: Reject side effects, execution gating, partial diffs, and pseudo-success after invalid intent.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r035
     kind: rule
-    title: Preview and commit preserve version freshness
+    title: Preview never creates product revision or history
     modality: must
-    statement: Preview and commit produce equivalent full materialization only for the same profile version and config base, and commit rejects a stale preview through the scope-level version or compare-and-swap guard without treating preview as a lock.
-    condition: Whenever live AIConfig changes between preview and commit.
-    failure: Recompute preview or reject commit instead of writing a stale after value.
+    statement: Preview represents current intent at the time it is computed but creates no Profile revision, AIConfig version, history, lock, draft, or re-apply relation; Apply validates current input and may use a private compare-and-swap solely to prevent lost writes without treating preview output as commit authority.
+    condition: Whenever AIConfig changes between preview and Apply.
+    failure: Recompute the informational diff or reject a conflicting atomic write without creating product lifecycle state.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r036
     kind: rule
-    title: Managed provider adaptation uses Runtime normalization
+    title: Cloud execution uses exact implementation target and grant
     modality: must
-    statement: Desktop Phase 1 routes managed provider requests with connector_id for Runtime credential resolution, sends Runtime-normalized provider identity for presentation and routing, and carries runtimeModelType for chat, image, video, text-to-speech, speech-to-text, or embedding capability; inline credential metadata remains unavailable.
+    statement: Desktop submits a CapabilityContract request under the committed owner AIConfig, and for Cloud Runtime consumes the exact CapabilityImplementation, Driver-owned provider-model target, explicitly selected ConnectorGrant and request to create the Job; ConnectorGrant authorizes an account and never chooses the capability, provider, model, or route, while inline credential material remains unavailable.
     condition: Whenever Desktop constructs an AI provider request.
-    failure: Reject inline credentials, unnormalized provider routing, and connector_id used as durable cloud target identity.
+    failure: Reject inline credentials, connector-as-router, caller-selected hidden targets, and execution without exact committed Cloud inputs.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r037
     kind: rule
-    title: Local adapter endpoint absence remains explicit
+    title: Local endpoints remain Runtime private
     modality: must
-    statement: localProviderEndpoint, localProviderModel, and localOpenAiEndpoint are only Runtime-projected local binding metadata, and an empty endpoint means the current route has no corresponding local binding.
-    condition: Whenever Desktop presents or consumes local adapter binding metadata.
-    failure: Report the route as unconfigured rather than inventing a loopback endpoint or model.
+    statement: Desktop does not persist or interpret a local provider endpoint, loopback URL, filename, model label, selected source, prefix, resident process, or engine name as Local Capability Configuration identity, binding, machine selection, admission, or routing truth; Runtime-private Driver and ExecutionHost mechanics stay outside the product projection.
+    condition: Whenever Desktop presents or consumes Local capability execution details.
+    failure: Return the typed configuration or admission reason instead of inventing an endpoint, model, or binding.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r038
     kind: rule
     title: Cloud provider execution remains Runtime-only
     modality: must_not
-    statement: Desktop restores a provider adapter factory, directly calls provider model-list or health APIs, or bypasses the Runtime ConnectorService and SDK route facade for cloud execution.
+    statement: Desktop restores a provider adapter factory, directly calls provider model-list, health, or execution APIs, or bypasses Runtime's CapabilityImplementationDriver, Remote ExecutionHost, ConnectorGrant authorization, and typed SDK Job projection for Cloud execution.
     condition: Whenever a cloud connector path is used.
-    failure: Keep execution unavailable until the typed Runtime-owned connector and route projection succeeds.
+    failure: Keep execution unavailable until exact Runtime composition and admission succeeds.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r039
     kind: rule
-    title: LocalAgent route resolution fails closed
+    title: LocalAgent identity does not own route resolution
     modality: must
-    statement: Desktop core does not own a LocalAgent Conversation route API, and route resolution without an explicit localAgentId, with control-plane failure, or with invalid input returns the typed Runtime failure without synthesizing a successful route.
-    condition: Whenever Desktop requests or receives LocalAgent Conversation route resolution.
-    failure: Reject the turn route and present the typed Runtime failure.
+    statement: localAgentId identifies the authorized LocalAgent and Conversation only; every LocalAgent request uses the same shared LocalAgent AIConfig and Runtime's deterministic machine-selection or Cloud target-grant composition, and missing identity, configuration, selection, binding, grant, authorization, or feature support returns a typed failure without synthesizing a route.
+    condition: Whenever Desktop submits a LocalAgent Conversation request.
+    failure: Reject the request and present the typed Runtime failure without per-Agent model or route state.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r040
     kind: rule
-    title: LLM execution consumes resolved route projection
+    title: Text execution consumes deterministic composition
     modality: must
-    statement: Desktop LLM execution consumes the SDK route facade's resolved projection and does not infer source, engine, model identity, warm candidate, or fallback policy from provider, model, endpoint, Runtime fields, connector defaults, setup state, or launcher state.
+    statement: Desktop text.generate execution submits under the committed canonical AIConfig and consumes Runtime's exact Job projection; Runtime dereferences the committed Local route through the current machine selection or the committed Cloud route through its implementation target and ConnectorGrant and never searches, ranks, probes, chooses, or falls back, while Desktop infers nothing from provider, model, endpoint, inventory, process, setup, or launcher state.
     condition: Whenever an LLM execution route is selected or presented.
-    failure: Keep execution blocked until the Runtime-owned resolved route is available.
+    failure: Fail closed with the typed admission reason for the exact attempted composition.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r041
     kind: rule
     title: LocalAgent Conversation execution stays on Runtime
@@ -418,97 +411,87 @@ units:
     failure: Route typed user intent through Runtime Agent Service and consume the SDK projection.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r042
     kind: rule
-    title: Connector credentials never enter the renderer
+    title: ConnectorGrant secrets never enter the renderer
     modality: must
-    statement: Desktop sends only connectorId as the managed credential handle, Runtime loads and decrypts credential material, and credentialRefId is absent from the request and configuration surface.
+    statement: Desktop AIConfig may carry only an explicitly selected ConnectorGrant identity, the grant references Runtime custody, Runtime obtains the minimum request-scoped secret material for the exact Cloud Job, and connector, credential-ref, token, endpoint, or secret material is absent from renderer state and ordinary request payloads.
     condition: Whenever a remote AI request requires credentials.
     failure: Reject raw secret, token, key, OAuth payload, or retired credentialRefId transport through Desktop.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r043
     kind: rule
-    title: Local text health consumes authoritative Runtime records
-    modality: must
-    statement: Local text generation and embedding health first resolves an authoritative RuntimeLocalService local-model record; active and installed may execute or warm on demand, while degraded, unavailable, unhealthy, removed, and missing remain unreachable.
-    condition: Whenever Desktop checks local text model health or sendability.
-    failure: Report unconfigured or unreachable when the authoritative record is absent or non-runnable.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+    lifecycle: removed
+    title: Retired public local text health projection
+    reason: Removed because inventory, installed state, process health, residency, and warm state do not establish capability routing or product readiness.
   - id: rule.nimi.desktop.ai-consumption.r044
     kind: rule
-    title: Health checks cannot infer success from endpoint metadata
-    modality: must_not
-    statement: Desktop treats host snapshots, recommendation feeds, route remnants, an OpenAI-compatible models response, or a fabricated loopback endpoint as sufficient local text health; media and speech instead consume their admitted engine-specific endpoint protocol.
-    condition: Whenever an on-demand local health result is calculated.
-    failure: Return an explicit unconfigured or unreachable snapshot while Runtime retains persistent route and health authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+    lifecycle: removed
+    title: Retired local capability health inference
+    reason: Removed because Desktop has no public local capability probe, health, readiness, or endpoint-derived sendability surface.
   - id: rule.nimi.desktop.ai-consumption.r045
     kind: rule
     title: Speech uses the typed Runtime media surface
     modality: must
-    statement: Desktop speech consumption uses runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, and runtime.media.stt.transcribe through SDK projection without an independent Desktop speech engine facade.
+    statement: Desktop speech consumption submits the audio.synthesize or audio.transcribe CapabilityContract under the canonical AIConfig owner and consumes the exact Runtime Job and media projection without an independent Desktop speech engine, Driver, provider, route, or readiness facade.
     condition: Whenever Desktop lists voices, synthesizes or streams speech, or transcribes audio.
     failure: Reject direct engine or provider execution outside the typed Runtime media surface.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r046
     kind: rule
-    title: Voice capabilities resolve routes independently
+    title: Voice capabilities compose committed routes independently
     modality: must
-    statement: audio.synthesize selects a binding before media calls, and voice clone and voice design each perform their own list-options, resolve, health-check, and describe sequence before submitting a Runtime media job; no voice workflow reuses audio.synthesize route truth.
+    statement: audio.synthesize, voice_workflow.voice_clone, and voice_workflow.voice_design each use their own committed AIConfig CapabilityContract route and Runtime deterministically composes its exact Local machine selection or Cloud implementation-target-grant inputs at Job submission; no workflow reuses another contract's route, feature, binding, or Job snapshot and none performs list-options, resolve, health-check, or fallback selection.
     condition: Whenever Desktop invokes audio synthesis, voice clone, or voice design.
-    failure: Fail closed on missing binding or resolved model instead of returning an empty voice list as success.
+    failure: Fail closed with the exact typed admission reason instead of returning an empty voice list or substitute execution as success.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r047
     kind: rule
     title: Voice adaptation does not own LocalAgent voice truth
     modality: must_not
-    statement: Desktop LLM adaptation decides LocalAgent voice admission, voice identity, return path, voice action execution, playback-ready outcome, voice session, transcript, or caption semantics.
+    statement: Desktop capability projection decides LocalAgent voice admission, voice identity, return path, voice action execution, playback outcome, voice session, transcript, or caption semantics.
     condition: Whenever LocalAgent Conversation consumes a voice projection.
     failure: Render only the admitted Runtime LocalAgent and Voice projection.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r048
     kind: rule
     title: Renderer inference audit remains supplemental
     modality: must
-    statement: A Desktop inference audit event records event type, local or cloud source, modality, adapter, policy gate, traceId, routeSource, and reasonCode and is appended through RuntimeLocalService, while Runtime remains the durable audit owner with request, trace, user, and usage context.
+    statement: A Desktop inference audit event may record event type, Local or Cloud route kind, CapabilityContract, exact CapabilityImplementation and Driver identity when projected, policy gate, traceId, and reasonCode and is appended through Runtime, while Runtime remains the durable audit owner with Job, request, target, grant reference, user, and usage context and no audit field becomes routing authority.
     condition: Whenever Desktop records a renderer-observed inference decision or failure.
     failure: Reject credential-bearing audit data and do not present the renderer record as complete Runtime audit truth.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r049
     kind: rule
     title: Cross-modality trace identity remains continuous
     modality: must
-    statement: Desktop returns one traceId across text, image, video, speech, transcription, and embedding, aligns promptTraceId to that identity when retained, generates a trace when Runtime omits one, and includes traceId, modality, route source, and reason code in inference audit projection.
+    statement: Desktop returns one traceId across text, image, video, speech, transcription, and embedding, aligns promptTraceId to that identity when retained, generates a trace when Runtime omits one, and includes traceId, CapabilityContract, route kind, implementation identity when admitted, and reason code in inference audit projection without using trace metadata as route or success truth.
     condition: Whenever Desktop consumes an AI execution response or records its audit projection.
     failure: Reject an untraceable Desktop execution result or repair the missing trace before presentation and audit handoff.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r050
     kind: rule
     title: World generation remains Runtime-only
     modality: must
-    statement: Desktop resolves routes, submits, polls, and fetches generated worlds only through Runtime surfaces, uses connector_id solely as a remote credential handle, and treats a provider viewer URL only as external handoff.
+    statement: Desktop submits, observes, cancels, and fetches world.generate Jobs only through Runtime surfaces under the committed owner AIConfig, with Cloud execution capturing the exact CapabilityImplementation, Driver-owned provider-model target, ConnectorGrant and request, and treats a provider viewer URL only as external handoff; Desktop never resolves routes or uses connector identity as a capability target.
     condition: Whenever Desktop consumes world.generate.
     failure: Reject direct provider upload, generate, operation, or get-world HTTP calls and any Desktop claim over provider execution truth.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
+        target: definition.nimi.desktop.ai-consumption.capability-execution-projection
   - id: rule.nimi.desktop.ai-consumption.r051
     kind: rule
     title: Streaming subscriptions always reach cleanup
@@ -631,11 +614,11 @@ units:
         target: definition.nimi.desktop.ai-consumption.streaming
   - id: rule.nimi.desktop.ai-consumption.r063
     kind: rule
-    title: Current health projection does not require Mode D
+    title: Operational status and explicit diagnostics stay non-authoritative
     modality: must
-    statement: Desktop Phase 1 obtains Runtime connection health from the Runtime bridge status projection, local LLM health from the admitted on-demand check, and provider health from typed connector testing, while SubscribeAppMessages remains unavailable.
-    condition: Whenever Desktop needs current health or app-message projection.
-    failure: Reject a private or broad Mode D stream as a substitute for the admitted typed paths.
+    statement: Desktop may consume Runtime bridge operational status and a user-explicit bounded Test Connector diagnostic while SubscribeAppMessages remains unavailable; no local LLM health, provider readiness, periodic probe, warm state, or diagnostic result establishes a binding, machine selection, route, admission, or execution prerequisite.
+    condition: Whenever Desktop presents operational status, connector diagnostics, or app-message projection.
+    failure: Reject a private or broad stream, public capability health lifecycle, and diagnostic-as-readiness or binding truth.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.streaming
@@ -683,8 +666,8 @@ units:
     kind: rule
     title: Job observability survives connector deletion
     modality: must
-    statement: Desktop continues to show GetScenarioJob and event history after the job's connector is deleted, and projects credential invalidation as FAILED with the typed provider-authentication reason.
-    condition: Whenever connector state changes while a ScenarioJob remains observable or executing.
+    statement: Desktop continues to show Job metadata and event history after the Job's captured ConnectorGrant or underlying custody record is deleted or invalidated, never rewrites the captured implementation, provider-model target, grant reference, request, or completed result from current configuration, and projects an actual authorization rejection during execution as FAILED with the typed provider-authentication reason.
+    condition: Whenever ConnectorGrant or custody state changes while a Job remains observable or executing.
     failure: Reject disappearance of job history and do not report credential failure as cancellation or completion.
     relations:
       - type: applies_to

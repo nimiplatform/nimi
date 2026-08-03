@@ -195,11 +195,11 @@ units:
   - id: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
     kind: definition
     title: agents.configure operation family
-    meaning: The agents.configure operation family is the closed Runtime-owned mapping of exactly seven operations—configuration-snapshot, update-configuration, readiness-snapshot, autonomy-snapshot, update-autonomy, presentation-snapshot, and commit-presentation—over the effective agents.interact account scope materialized as opaque Agent handles, with bounded capability route options returned only inside configuration-snapshot rather than as another operation.
+    meaning: The agents.configure operation family is the closed Runtime-owned mapping of exactly seven operations—shared-ai-config-snapshot, overwrite-shared-ai-config, apply-profile-to-shared-ai-config, autonomy-snapshot, update-autonomy, presentation-snapshot, and commit-presentation; the three shared AIConfig operations resolve the singular Runtime LocalAgent subsystem owner from the authorized account scope and never accept an Agent handle, while the four autonomy and presentation operations address opaque Agent handles and retain only their own non-AI concurrency revisions, with no per-Agent AIConfig, AIConfig revision, route-option enumeration, or readiness-snapshot operation.
   - id: definition.nimi.platform.app-ecosystem.ai-text-generate-operation-family
     kind: definition
     title: ai.text.generate operation family
-    meaning: The ai.text.generate operation family is the single Runtime-owned synchronous foreground plain-text candidate-generation operation over the current protected App-and-account binding, with Runtime-selected managed local execution and no caller route, model, provider, target, credential, tool, media, stream, job, or background authority.
+    meaning: The ai.text.generate operation family is the single Runtime-owned synchronous foreground plain-text candidate-generation operation over the current protected App-and-account binding; the caller supplies no route selector and Runtime consumes the calling App owner's committed AIConfig to compose either its Local route with the current machine-selected text Local Capability Configuration or its Cloud implementation, Driver target, and selected ConnectorGrant, with no permission-owned route, fallback, or caller model, provider, target, connector, credential, tool, media, stream, job, or background authority.
   - id: definition.nimi.platform.app-ecosystem.app-authority-class
     kind: definition
     title: App action authority class
@@ -239,7 +239,7 @@ units:
     kind: rule
     title: P-PERM-002 closed catalog and current admission
     modality: must
-    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for Runtime session-derived access through an owner-granted account scope dynamically materialized as opaque LocalAgent handle projections carrying only the opaque handle, display name, and a nullable stable public HTTPS avatar display URL plus the open-conversation, send-turn, turn-interrupt, subscribe-turn, and conversation-snapshot operation families, agents.configure for its closed seven-operation family over the effective same-account agents.interact scope, and ai.text.generate for its single foreground plain-text candidate-generation operation over the current protected App-and-account binding, while all other agents.interact scope extensions and the other seventeen catalog rows remain reserved pending their own atomic admission slices, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
+    statement: The public permission identifier set is exactly the catalog public_permissions section, and an identifier is requestable only when its row is admitted and manifest_allowed; the current admitted set is exactly agents.interact for Runtime session-derived access through an owner-granted account scope dynamically materialized as opaque LocalAgent handle projections carrying only the opaque handle, display name, and a nullable stable public HTTPS avatar display URL plus the open-conversation, send-turn, turn-interrupt, subscribe-turn, and conversation-snapshot operation families, agents.configure for its closed operation family containing singular shared-LocalAgent-AIConfig actions and per-Agent non-AI autonomy and presentation actions over the effective same-account agents.interact scope, and ai.text.generate for its single foreground plain-text candidate-generation operation over the current protected App-and-account binding, while all other agents.interact scope extensions and the other seventeen catalog rows remain reserved pending their own atomic admission slices, and zero-permission apps using base entitlements, app-owned authority, or OS rights remain runnable.
     condition: Whenever manifest permission eligibility or requestability is evaluated.
     failure: Deny unknown, reserved, legacy-scope, Runtime-operation, and endpoint-string identifiers without preventing a zero-permission app from running.
     relations:
@@ -531,9 +531,9 @@ units:
     kind: rule
     title: P-PERM-019 agents.configure dependency and semantic boundary
     modality: must
-    statement: agents.configure requires a current agents.interact grant for the same account scope and covers LocalAgent AI configuration read and revisioned write for model and provider route intents including audio.transcribe configuration, bounded capability-scoped route options filtered by the current account and effective grants, typed readiness, atomic revisioned autonomy configuration, and revisioned presentation or appearance commit including the default voice reference, while excluding Provider Credentials, raw route endpoints or inventory identifiers, turn execution, raw Avatar control, Memory content governed by memory.read, and voice or transcription execution governed by agents.voice.
+    statement: agents.configure requires a current agents.interact grant for the same account scope and covers read, atomic create-or-overwrite, and explicit Apply Profile actions for the one shared Runtime LocalAgent subsystem AIConfig without a product revision, plus atomic revisioned per-Agent autonomy configuration and revisioned per-Agent presentation or appearance commit including the default voice reference; it exposes no per-Agent model, provider route, AIConfig, AIConfig revision, route options, readiness, Machine Local AI Configuration, Local Capability Configuration, or machine selection, and excludes Provider Credentials, raw route endpoints or inventory identifiers, turn execution, raw Avatar control, Memory content governed by memory.read, and voice or transcription execution governed by agents.voice.
     condition: Whenever agents.configure eligibility, scope, or protected behavior is evaluated.
-    failure: Deny absent or mismatched effective agents.interact scope, excluded behavior, caller credentials, raw identity, raw endpoint or inventory identity, route options not visible to the current account, or authority beyond the closed configure intent.
+    failure: Deny absent or mismatched effective agents.interact scope, an Agent-handle-addressed AI action, excluded behavior, caller credentials, raw identity, raw endpoint or inventory identity, route-option or readiness projection, or authority beyond the closed configure intent.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
@@ -545,9 +545,9 @@ units:
     kind: rule
     title: P-PERM-019 closed configure operation mapping
     modality: must
-    statement: The closed agents.configure mapping is configuration-snapshot from opaque Agent handle to dedicated typed model-settings projection, configuration revision, and bounded capability-scoped route options filtered at call time by the current account, current agents.configure grant, effective agents.interact grant, current Runtime inventory, capability compatibility, and selectable availability; each route option contains only capability, local-or-cloud route policy, provider when cloud, model, display label, and bounded availability, and contains no raw Agent or account identity, endpoint, Provider Credential or custody material, local asset id, connector id, catalog, snapshot, profile, or other raw inventory identifier; update-configuration from opaque handle, expected configuration revision, and supported route intents to atomic revised projection or typed conflict; readiness-snapshot from opaque handle to typed current readiness without mutation; autonomy-snapshot from opaque handle to autonomy projection and its independent revision; update-autonomy from opaque handle, expected autonomy revision, and typed intent to one atomic revised projection or typed conflict; presentation-snapshot from opaque handle to the durable current presentation profile, default voice reference, and presentation revision; and commit-presentation from opaque handle, protected-Shell-imported asset material, and expected presentation revision to Runtime validation of type, size, structure, dependencies, integrity, backend compatibility, and current authorization followed by one atomic official-asset import, presentation-profile update, and revision advance that returns the committed projection or a typed conflict or validation failure. Route options remain part of configuration-snapshot rather than an eighth operation, and no non-persistent presentation preview operation exists.
+    statement: The closed agents.configure mapping is shared-ai-config-snapshot from the effective account scope to the singular Runtime LocalAgent subsystem owner and its typed canonical AIConfig projection without an Agent handle, product revision, route-option inventory, or readiness; overwrite-shared-ai-config from that same singular owner selector and one complete supported AIConfig intent to an atomic committed projection or typed validation failure without merge or revision history; apply-profile-to-shared-ai-config from that same singular owner selector and one admitted AIProfile reference to the canonical atomic Apply Profile action without install, binding, machine selection, ConnectorGrant selection, or readiness; autonomy-snapshot from opaque Agent handle to autonomy projection and its independent revision; update-autonomy from opaque Agent handle, expected autonomy revision, and typed intent to one atomic revised projection or typed conflict; presentation-snapshot from opaque Agent handle to the durable current presentation profile, default voice reference, and presentation revision; and commit-presentation from opaque Agent handle, protected-Shell-imported asset material, and expected presentation revision to Runtime validation of type, size, structure, dependencies, integrity, backend compatibility, and current authorization followed by one atomic official-asset import, presentation-profile update, and revision advance that returns the committed projection or a typed conflict or validation failure. No operation returns a per-Agent AI projection, raw account or Agent identity, endpoint, Provider Credential or custody material, LocalAsset id, ConnectorGrant custody material, catalog, source, Job, or other raw inventory identifier, and no non-persistent presentation preview operation exists.
     condition: Whenever a protected operation is mapped to agents.configure.
-    failure: Deny an operation outside the closed seven-operation family, route-option enumeration outside configuration-snapshot, stale or cross-account grant filtering, a route option carrying a forbidden identity, endpoint, credential, custody field, or raw inventory identifier, raw Agent identity, unrevisioned mutation, Kit-side multi-call mutation, a non-persistent presentation preview operation, non-atomic asset publication and profile update, or mutation lacking typed conflict or validation failure behavior.
+    failure: Deny an operation outside the closed seven-operation family, shared-AIConfig access addressed by Agent handle, stale or cross-account authorization, per-Agent AIConfig, route-option or readiness enumeration, forbidden identity, endpoint, credential, custody field, raw inventory identifier, raw Agent identity, an AIConfig revision or merge, unrevisioned autonomy or presentation mutation, Kit-side multi-call mutation, a non-persistent presentation preview operation, non-atomic asset publication and profile update, or mutation lacking typed conflict or validation failure behavior.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
@@ -569,9 +569,9 @@ units:
     kind: rule
     title: P-PERM-020 closed foreground text candidate mapping
     modality: must
-    statement: The closed ai.text.generate mapping is exactly one synchronous foreground generate-candidate operation taking bounded plain-text system and user messages plus bounded temperature, top-p, and output-token controls, with Runtime deriving current account, App identity, durable decision, and a managed local text route without fallback and returning only candidate text, finish reason, and trace correlation; it excludes generic Scenario forwarding, caller-selected provider, model, route, target, connector, credential, tool, media, artifact, source, raw chunk, reasoning trace, streaming, jobs, background execution, and Agent scope.
+    statement: The closed ai.text.generate mapping is exactly one synchronous foreground generate-candidate operation taking bounded plain-text system and user messages plus bounded temperature, top-p, and output-token controls, with Runtime deriving current account, App identity, durable permission decision, and the calling App owner's committed AIConfig route without fallback and returning only candidate text, finish reason, and trace correlation; when that route is Local, Runtime deterministically dereferences the current machine-selected text Local Capability Configuration, and when it is Cloud, Runtime uses the AIConfig-owned Cloud CapabilityImplementation and Driver target with its explicitly selected ConnectorGrant, returning selection-required when the grant is absent. The permission authorizes only the call and never chooses Local or Cloud, overrides AIConfig, or selects a provider, model, target, connector, credential, or machine configuration; the operation excludes generic Scenario forwarding, caller-selected provider, model, route, target, connector, credential, tool, media, artifact, source, raw chunk, reasoning trace, streaming, jobs, background execution, and Agent scope.
     condition: Whenever a protected operation is mapped to ai.text.generate.
-    failure: Deny every operation or field outside the single foreground plain-text family and fail closed when the current grant, managed local route, bounded request, metering, or endpoint enforcement is unavailable.
+    failure: Deny every operation or field outside the single foreground plain-text family and fail closed when the permission grant, owner AIConfig composition, bounded request, metering, or endpoint enforcement is unavailable, without forcing Local, changing the committed route, or falling back.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.ai-text-generate-operation-family
@@ -770,7 +770,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.registry-row
     kind: definition
     title: Verified app registry row
-    meaning: A verified app registry row is the closed Platform schema joining canonical app identity, publisher and trust references, release and update references, AI and capability requirements, permission requirements, Runtime registration mode, storage policy, health projection, visibility, and admission status.
+    meaning: A verified app registry row is the closed Platform schema joining canonical app identity, publisher and trust references, release and update references, an optional non-binding AIProfile recommendation, CapabilityContract identities and contract-scoped required standardized features, permission requirements, Runtime registration mode, storage policy, health projection, visibility, and admission status; it contains no local compute pack, Runtime-private source, implementation, binding, or machine-selection authority.
   - id: definition.nimi.platform.app-ecosystem.release-descriptor
     kind: definition
     title: Immutable third-party release descriptor
@@ -829,7 +829,7 @@ units:
     kind: rule
     title: P-NAPP-002 complete registry row schema
     modality: must
-    statement: Every verified registry row contains app_id, display_label, publisher, trust_tier_ref, package_kind, package_signature_policy_ref, update_channel_ref, ai_profile_selection_ref, capability_set_refs, ai_capability_requirement_refs, local_compute_pack_refs, runtime_registration_mode, permission_requirements, health_repair_projection, ordinary_visibility, release_descriptor_ref, install_storage_policy_ref, and admission_status with every reference resolving to its admitted owner row.
+    statement: Every verified registry row contains app_id, display_label, publisher, trust_tier_ref, package_kind, package_signature_policy_ref, update_channel_ref, optional ai_profile_recommendation_ref, capability_contract_refs, required_standardized_feature_refs, runtime_registration_mode, permission_requirements, health_repair_projection, ordinary_visibility, release_descriptor_ref, install_storage_policy_ref, and admission_status with every present reference resolving to its admitted owner row; Runtime-local compute-pack references and selection hints are outside the registry row.
     condition: Whenever a verified registry row is admitted or consumed.
     failure: Fail admission closed when a field or reference is missing or unresolved.
     relations:
@@ -849,11 +849,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
   - id: rule.nimi.platform.app-ecosystem.p-napp-003
     kind: rule
-    title: P-NAPP-003 alias-driven AI profile selection
+    title: P-NAPP-003 AIProfile recommendation is portable and non-binding
     modality: must
-    statement: ai_profile_selection_ref resolves to an admitted factory AIProfile alias or profileId, and a registry row contains no embedded provider, connector, engine, or model identifier constant because vendor preference is alias-driven.
-    condition: Whenever AI profile selection metadata is admitted.
-    failure: Reject an unresolved reference or embedded vendor identifier.
+    statement: An optional ai_profile_recommendation_ref resolves to an admitted factory AIProfile alias or profileId and remains a visible portable recommendation that writes configuration only if the user later invokes explicit Apply Profile to AIConfig; a registry row contains no embedded provider, connector, engine, or model identifier constant and the recommendation never selects an AIConfig route, Local Capability Configuration, machine relation, binding, or ConnectorGrant.
+    condition: Whenever AIProfile recommendation metadata is admitted or presented.
+    failure: Reject an unresolved reference, embedded vendor identifier, automatic Apply, or recommendation presented as live selection or binding.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registry-row
@@ -875,9 +875,9 @@ units:
     kind: rule
     title: P-NAPP-005 requirement reference closure
     modality: must
-    statement: capability_set_refs, ai_capability_requirement_refs, and local_compute_pack_refs resolve respectively to admitted Platform capability vocabulary, SDK app, module, and feature required or optional AI setup declarations, and Runtime local environment packs before admission and remain three distinct meanings rather than one consumer concept.
+    statement: App capability declarations resolve only to admitted CapabilityContract identities and contract-scoped required standardized features for the one App AIConfig owner; App admission and manifests declare no module or feature AIConfig owner, Local Capability Configuration, local model, LocalAsset binding, machine selection, Driver, engine, local compute pack, or Runtime-private pack or source as an admission input, execution truth, or non-binding hint.
     condition: Whenever app capability or compute requirements are admitted.
-    failure: Fail admission on an unresolved reference or collapsed meaning.
+    failure: Fail admission on an unknown contract or feature and reject every App-local or engine-specific configuration authority.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registry-row
@@ -1697,7 +1697,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game app remains a Nimi App registry candidate, and any cross-world or cross-game flow requires the existing permission lifecycle and an admitted projection while retaining source app, target app, and AIScopeRef references on the Realm audit surface; raw sharing and first-party trust inheritance are forbidden.
+    statement: A future world or game App remains a Nimi App registry candidate, and any cross-world or cross-game flow requires the existing permission lifecycle and an admitted projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; raw sharing and first-party trust inheritance are forbidden.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the registry, owner permission, projection, audit reference, and trust-tier boundary.
     relations:

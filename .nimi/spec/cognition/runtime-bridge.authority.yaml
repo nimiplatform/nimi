@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.cognition.runtime-bridge.embedding-resolution
     kind: definition
     title: Cognition execution adapter
-    meaning: Through the public Bridge, Cognition may consume Runtime-resolved execution intent and readiness while any future standalone non-Runtime Cognition configuration remains separate Cognition truth.
+    meaning: Through the public Bridge, Cognition may consume only an already admitted exact Job context and its typed request-time derived-admission or Job failure, while any future standalone non-Runtime Cognition configuration remains separate Cognition truth; Cognition owns no reusable readiness, route, selection, resolution, probe, override, or substitution.
   - id: rule.nimi.cognition.runtime-bridge.r001
     kind: rule
     title: Cognition and Runtime owners remain independent
@@ -84,11 +84,11 @@ units:
         target: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
   - id: rule.nimi.cognition.runtime-bridge.r007
     kind: rule
-    title: Runtime owns execution resource resolution
+    title: Cognition consumes canonical capability composition
     modality: must
-    statement: Runtime owns provider credential, route, model, readiness, Quota, Budget, Rate Limit, and execution binding for Runtime product work; Cognition consumes only the admitted resolved task and cannot substitute standalone defaults.
+    statement: The canonical App or shared LocalAgent AIConfig owner commits each CapabilityContract route, the machine owner commits Local Capability Configuration selection, ConnectorGrant supplies explicit Cloud account authorization, and Runtime deterministically composes exact Driver, binding, Quota, Budget and Rate Limit inputs into a Job; Cognition consumes only that admitted Job context and cannot select, resolve, probe, override, or substitute standalone defaults.
     condition: Whenever a Cognition adapter requires AI or embedding resources for Runtime work.
-    failure: Fail closed when Runtime execution intent or readiness is unavailable.
+    failure: Fail closed with the typed derived admission or Job failure when exact committed inputs are unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.embedding-resolution

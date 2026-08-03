@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
     kind: definition
     title: Nimi Home host bootstrap plane
-    meaning: The Nimi Home host bootstrap plane composes verified Runtime service posture, protected host capabilities, standard SDK and Kit surfaces, Runtime-owned account projection, and truthful readiness without becoming an owner of those facts.
+    meaning: The Nimi Home host bootstrap plane composes verified Runtime service posture, protected host capabilities, standard SDK and Kit surfaces, Runtime-owned account projection, and owner-specific typed availability without becoming an owner of those facts or creating aggregate Local AI readiness.
   - id: definition.nimi.desktop.shell-runtime.account-session-plane
     kind: definition
     title: Nimi Home account projection plane
@@ -25,7 +25,7 @@ units:
   - id: definition.nimi.desktop.shell-runtime.degradation-plane
     kind: definition
     title: Nimi Home degradation plane
-    meaning: The degradation plane presents explicit Runtime, Realm, Local AI, and feature availability, keeps support and repair reachable, and prevents cached or partial state from masquerading as owner truth.
+    meaning: The degradation plane presents explicit owner-specific Runtime, Realm, account, configuration, derived-admission, and Job failure facts, keeps support and repair reachable, and prevents cached or partial state from masquerading as owner truth or aggregate Local AI readiness.
   - id: definition.nimi.desktop.shell-runtime.self-update-plane
     kind: definition
     lifecycle: removed
@@ -49,7 +49,7 @@ units:
     kind: rule
     title: Bootstrap consumes owner facts
     modality: must
-    statement: Nimi Home bootstrap obtains verified Runtime service posture, protected host capability, SDK and Kit composition, current account projection, and feature readiness from their owners and reports each unavailable or pending state explicitly.
+    statement: Nimi Home bootstrap obtains verified Runtime service posture, protected host capability, SDK and Kit composition, current account projection, and owner-specific typed availability from their owners and reports each unavailable or pending state explicitly; it computes no aggregate capability readiness.
     condition: Whenever Nimi Home starts or rebuilds its composition.
     failure: Reject local inference, cached authority, and synthetic ready state.
     relations:
@@ -147,21 +147,21 @@ units:
         target: definition.nimi.desktop.shell-runtime.degradation-plane
   - id: rule.nimi.desktop.shell-runtime.r012
     kind: rule
-    title: Support remains available during readiness failure
+    title: Support remains available during owner-specific failure
     modality: must
-    statement: Support, diagnostics, configuration, model acquisition, and repair remain reachable when Runtime, Realm, account, Local AI, or feature readiness is incomplete.
-    condition: Whenever ordinary product readiness is not satisfied.
+    statement: Support, diagnostics, configuration, model acquisition, and repair remain reachable when Runtime, Realm, account, committed AI configuration, a request-time derived admission, or a Job has a typed unavailable or failed outcome.
+    condition: Whenever an owner-specific product dependency is unavailable or failed.
     failure: Reject a gate that hides the recovery path.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.degradation-plane
   - id: rule.nimi.desktop.shell-runtime.r013
     kind: rule
-    title: Local AI readiness is bounded
-    modality: must
-    statement: Ordinary-user Local AI readiness requires authenticated product state and real local Text, STT, and TTS availability, while Workflow, MCP, World Evolution, public distribution, and future platform capabilities remain non-blocking.
-    condition: Whenever Nimi Home computes ordinary readiness.
-    failure: Keep ordinary use not ready when a required local capability is missing and reject future-capability prerequisites.
+    title: Ordinary Home entry is independent of capability configuration
+    modality: must_not
+    statement: Missing Text, STT, TTS, model, LocalAsset, Local Capability Configuration, machine selection, ConnectorGrant, Driver, provider connection, or other AI capability fact blocks ordinary Product Control or Nimi Home entry or forms an aggregate Local AI readiness state; each capability execution instead consumes committed configuration, request-time derived admission, and the real Job outcome.
+    condition: Whenever ordinary Home entry or capability availability is evaluated.
+    failure: Keep ordinary Home and recovery surfaces available and project the exact typed owner, derived-admission, or Job failure only at the affected capability action.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.degradation-plane
@@ -214,7 +214,7 @@ units:
     kind: rule
     title: Failures remain owner-specific
     modality: must
-    statement: Desktop distinguishes Runtime unavailable, Realm offline, unauthenticated, permission denied, readiness incomplete, validation failure, cancellation, and unsupported capability without converting them into anonymous, cached, local, or mock success.
+    statement: Desktop distinguishes Runtime unavailable, Realm offline, unauthenticated, permission denied, request-time derived-admission blocked, validation failure, Job failure, cancellation, and unsupported capability without converting them into anonymous, cached, local, aggregate-readiness, or mock success.
     condition: Whenever an owner operation or stream fails.
     failure: Render the typed failure and preserve recovery action.
     relations:

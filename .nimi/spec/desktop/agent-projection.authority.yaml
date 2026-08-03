@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.desktop.agent-projection.conversation-capability
     kind: definition
     title: Desktop Runtime capability projection
-    meaning: Desktop may display bounded Runtime AI, LocalAgent, Memory, Knowledge, Text, STT, TTS, and route readiness without owning capability configuration, provider routing, credentials, resource policy, or execution truth.
+    meaning: Desktop may display bounded Runtime LocalAgent, Memory, Knowledge, CapabilityContract, derived admission, Job, and media projections without owning the shared LocalAgent AIConfig, Machine Local AI Configuration, Local Capability Configuration, ConnectorGrant, resource policy, or execution truth.
   - id: definition.nimi.desktop.agent-projection.avatar-surface
     kind: definition
     title: Desktop Avatar projection placement
@@ -110,7 +110,7 @@ units:
     kind: rule
     title: Explicit voice input uses Runtime STT
     modality: must
-    statement: Desktop sends explicit user-recorded voice input through the admitted Runtime local STT route and submits only the resulting typed text intent to the selected LocalAgent Conversation.
+    statement: Desktop sends explicit user-recorded voice input through the audio.transcribe route committed in the shared LocalAgent AIConfig and its exact Runtime-composed Local machine selection or Cloud implementation-target-grant inputs, and submits only the resulting typed text intent to the selected LocalAgent Conversation.
     condition: Whenever the user explicitly requests voice input.
     failure: Reject App-local provider transcription, hidden capture, and fabricated transcript.
     relations:
@@ -118,9 +118,9 @@ units:
         target: definition.nimi.desktop.agent-projection.agent-chat
   - id: rule.nimi.desktop.agent-projection.r012
     kind: rule
-    title: Readiness does not grant execution authority
+    title: Derived admission does not grant execution authority
     modality: must_not
-    statement: Desktop uses capability readiness, UI state, cached projection, local source display, or correlation metadata to invent LocalAgent actions, prompts, routing, output, or product success.
+    statement: Desktop uses a derived admission reason, UI state, cached projection, local source display, process state, or correlation metadata to invent LocalAgent actions, prompts, routing, machine selection, output, or product success.
     condition: Whenever Desktop decides which LocalAgent controls or outcomes to render.
     failure: Require the admitted Runtime operation and its typed result.
     relations:
@@ -130,7 +130,7 @@ units:
     kind: rule
     title: Voice playback consumes Runtime output
     modality: must
-    statement: Desktop requests and plays only authorized Runtime-generated LocalAgent voice output under the current Runtime route, policy, Quota, Budget, and readiness.
+    statement: Desktop requests and plays only authorized Runtime-generated LocalAgent voice output under the route committed in the shared LocalAgent AIConfig, its exact Job-time Local or Cloud composition, policy, Quota, and Budget.
     condition: Whenever the user requests LocalAgent voice playback.
     failure: Keep the output text-only or unavailable without direct provider calls.
     relations:

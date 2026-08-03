@@ -4,120 +4,136 @@ scope: runtime.ai-provider
 units:
   - id: definition.nimi.runtime.ai-provider.profile-execution-plane
     kind: definition
-    title: Runtime AI profile execution plane
-    meaning: The Runtime AI profile execution plane validates runtime-facing descriptors projected from portable AI profiles and owns prepare, per-slice readiness, apply eligibility, materialization and execution evidence, execution snapshots, and the profile workflow failure taxonomy for descriptor-backed AI execution.
+    lifecycle: removed
+    title: Retired Runtime AI Profile execution plane
+    reason: Removed because Profile prepare, materialization, readiness, apply eligibility, and execution binding are no longer one product workflow.
+  - id: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+    kind: definition
+    title: Runtime capability execution composition plane
+    meaning: The Runtime capability execution composition plane deterministically composes one committed AIConfig route with the current machine-selected Local Capability Configuration or committed Cloud CapabilityImplementation target and selected ConnectorGrant, validates exact Driver configuration, bindings and standardized-feature support, derives request admission, and captures immutable Job inputs without Profile materialization, search, ranking, probe, prewarm, or fallback.
+    relations:
+      - type: supersedes
+        target: definition.nimi.runtime.ai-provider.profile-execution-plane
   - id: definition.nimi.runtime.ai-provider.connector-plane
     kind: definition
     title: Runtime connector plane
-    meaning: The Runtime connector plane is the managed credential custody surface whose create, update, delete, test, and listing lifecycle stores provider-defined credential payloads, enforces admitted auth shapes and canonical provider identity, and serves catalog snapshots without distributing raw secrets.
+    meaning: The Runtime connector plane is credential custody and account-authorization support whose create, update, delete and listing lifecycle stores provider-defined sealed payloads and whose user-explicit bounded Test Connector diagnostic never establishes route, target, grant, binding, readiness, or execution truth; ConnectorGrant remains the separate explicit authorization binding.
   - id: definition.nimi.runtime.ai-provider.model-service-plane
     kind: definition
     title: Runtime model service plane
-    meaning: The Runtime model service plane provides the unified local and remote model registry view, model descriptors and status lifecycle, model health projection, and the runtime-owned local model recommendation, registry identity, dependency resolution, and artifact download truth.
+    meaning: The Runtime model service plane provides concrete LocalAsset inventory, verified-content descriptors, install and transfer truth, and non-binding implementation or asset recommendations without owning public model health, warm, readiness, preferred or fallback engine, Local Capability Configuration, binding, machine selection, or routing truth.
   - id: definition.nimi.runtime.ai-provider.multimodal-provider-plane
     kind: definition
     title: Runtime multimodal provider plane
-    meaning: The Runtime multimodal provider plane defines canonical multimodal request and artifact contracts, provider adapter obligations, local media and speech engine private protocols, realtime session boundaries, and the typed stable output surfaces for AI scenario execution.
+    meaning: The Runtime multimodal provider plane defines canonical CapabilityContract request and artifact semantics, CapabilityImplementationDriver obligations, Runtime-private Local ExecutionHost protocols, realtime session boundaries, standardized-feature support, and typed stable Job outputs without conflating Driver and ExecutionHost or selecting routes.
   - id: definition.nimi.runtime.ai-provider.nimillm-plane
     kind: definition
     title: Runtime nimillm plane
-    meaning: The Runtime nimillm plane is the remote execution adaptation layer that maps canonical requests to provider wire formats, normalizes responses and errors, and executes resolved v2 targets without owning connector persistence.
+    meaning: The Runtime nimillm plane is a Cloud CapabilityImplementationDriver family that maps exact committed implementation and provider-model target configuration plus request-scoped ConnectorGrant authorization into provider wire formats and normalizes responses and errors, while Remote ExecutionHost owns transport and remote Job lifecycle and connector custody stays separate.
   - id: definition.nimi.runtime.ai-provider.provider-health-plane
     kind: definition
-    title: Runtime provider health plane
-    meaning: The Runtime provider health plane maintains per-provider reachability state machines, owner-resolved probe targets, the probe strategy, and runtime status linkage, and remains reachability truth distinct from credential validity and capability readiness.
+    lifecycle: removed
+    title: Retired Runtime provider health plane
+    reason: Removed because periodic provider reachability, product health state machines, and probe-derived readiness are not execution authority.
+  - id: definition.nimi.runtime.ai-provider.remote-execution-host-plane
+    kind: definition
+    title: Runtime Remote ExecutionHost plane
+    meaning: The Runtime Remote ExecutionHost plane owns remote transport and remote Job lifecycle plus Runtime-private process and transport supervision; it consumes exact Driver output and request-scoped authorization and never exposes provider readiness, selects a route, or tests connection as an execution prerequisite.
+    relations:
+      - type: supersedes
+        target: definition.nimi.runtime.ai-provider.provider-health-plane
   - id: rule.nimi.runtime.ai-provider.r001
     kind: rule
-    title: AIProfile descriptor is the validated execution boundary
+    title: Exact committed composition is the execution boundary
     modality: must
-    statement: Runtime independently validates the runtime-facing descriptor schema, source profile digest, capability slices, authored execution backend, authored model family, asset and source bindings, ordered companion occurrences, connector refs, params, and requirement mapping before any prepare or apply eligibility can succeed.
-    condition: Whenever a descriptor formed from a portable AIProfile enters Runtime prepare, readiness, or apply evaluation.
-    failure: Reject prepare and apply eligibility until independent Runtime descriptor validation passes.
+    statement: Runtime independently validates the committed AIConfig owner and CapabilityContract route, then for Local the current selected Local Capability Configuration, exact CapabilityImplementation, Driver identity and portable configuration, normalized requirements, exact bindings and required standardized features, or for Cloud the exact CapabilityImplementation, Driver-owned provider-model target, selected ConnectorGrant and required features, before one request is admitted and captured as a Job.
+    condition: Whenever a CapabilityContract request enters execution composition.
+    failure: Reject Job submission with the typed admission reason until every exact required input is valid.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r002
     kind: rule
-    title: Descriptors exclude host-local and runtime evidence
+    title: AIProfile excludes machine account and execution evidence
     modality: must_not
-    statement: A runtime-facing descriptor contains local file paths, endpoint URLs, route binding or selected-binding evidence, retired local model identifiers, selected source records, install evidence, backend package or Python or Torch or CUDA evidence, materialization records, workflow binding ids, provider health, scheduler state, or connector secret material.
-    condition: Whenever Runtime validates a runtime-facing descriptor.
-    failure: Reject the descriptor with a typed forbidden-host-local-field failure.
+    statement: AIProfile contains canonical AIConfig owner identity, Local Capability Configuration identity, machine selection, LocalAsset id or path, exact binding, ConnectorGrant, connector or account identity, secret, Runtime process identity, selected-source evidence, install result, materialization record, Job input, provider health, or scheduler state; only portable AIConfig intent, local implementation-configuration intent, Cloud implementation-target recommendation, features, defaults, provenance, and license are admitted.
+    condition: Whenever Runtime imports or validates an AIProfile.
+    failure: Reject the Profile with a typed forbidden non-portable field failure.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r003
     kind: rule
-    title: Descriptor translation and outputs stay runtime private
+    title: Profile actions and execution composition stay separate
     modality: must
-    statement: Runtime may translate a validated descriptor into internal resolve, apply, and materializer inputs, while that translation and Runtime outputs such as validation results, readiness projections, selected-source evidence, prepare job state, apply eligibility, materialization and workflow binding records, and execution evidence never become AIProfile or AIConfig payload.
-    condition: Whenever descriptor-backed profile workflows produce internal inputs or Runtime outputs.
-    failure: Reject persistence of runtime-private translation or outputs into AIProfile or AIConfig.
+    statement: Import Profile changes only portable Profile storage, Apply Profile to AIConfig atomically creates or overwrites only owner intent, Add or Update Local Capability Configuration changes only one saved machine-local record, and Select Local Capability Configuration changes only the machine selection relation; Runtime-private selected-source, process, transport, admission, and Job evidence never enters Profile, AIConfig, Local Capability Configuration portable fields, or selection and no action automatically invokes another.
+    condition: Whenever a Profile, configuration, selection, or execution action produces output.
+    failure: Reject cross-action side effects and persistence of Runtime-private evidence in product configuration.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r004
     kind: rule
-    title: Probes never substitute for explicit prepare
+    title: Configuration and selection actions never probe or prewarm
     modality: must_not
-    statement: A static schema probe, route availability probe, resource feasibility probe, endpoint reachability, file existence, transfer completion, previous health, or prior execution success substitutes for explicit descriptor prepare or per-slice readiness.
-    condition: Whenever prepare or readiness state is required for a profile-owned workflow.
-    failure: Require explicit prepare and readiness and deny apply for required unresolved slices.
+    statement: Apply Profile to AIConfig, Add or Update Local Capability Configuration, and Select Local Capability Configuration invokes or requires route probes, resource feasibility probes, endpoint reachability, engine health, warm or resident state, file-name inference, prior execution success, installation, or process start; Apply may save unresolved Local intent or Cloud intent without a grant, and selection requires only currently interpretable and configured local state.
+    condition: Whenever a configuration or selection action is evaluated.
+    failure: Perform only the requested owner mutation and leave exact admission and Host preparation to Job submission and execution.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r005
     kind: rule
-    title: Authored backend and family mismatches fail closed
+    title: Implementation Driver and dialect mismatches fail closed
     modality: must
-    statement: Feasibility and prepare consume authored execution backend and model family as validation constraints rather than resolver outputs or hints, no fallback policy is admitted in v1, and any backend or family mismatch fails closed.
-    condition: Whenever a descriptor declares authored execution backend or model family.
-    failure: Fail the slice closed without inferring backend or family from resolver output.
+    statement: Runtime consumes the exact committed CapabilityImplementation, CapabilityImplementationDriver and dialect identity plus Driver-owned portable configuration as validation inputs rather than resolver hints, and any unknown implementation, Driver, dialect, configuration, requirement projection, binding, or feature mismatch fails closed without adapter inference, engine substitution, or fallback.
+    condition: Whenever Runtime interprets a committed Local or Cloud implementation configuration.
+    failure: Return the typed admission reason without inferring or substituting implementation, Driver, dialect, engine, or target.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r006
     kind: rule
-    title: Execution snapshots fix evidence at call time
+    title: Jobs fix exact effective inputs at submission
     modality: must
-    statement: Every ExecuteScenario, StreamScenario, or SubmitScenarioJob call fixes the caller's compact logical config refs, the Runtime-resolved materialization, connector, and local route evidence derived from them, the resolved effective capability, the descriptor, readiness, and materialization refs consumed, and a device resource snapshot into execution context, and the fixed evidence is immune to later config changes and written to the audit trail.
+    statement: Every execution or Job submission captures for Local the AIConfig Local route, required features and defaults, current selected Local Capability Configuration, exact CapabilityImplementation, Driver configuration, exact bindings and request, or for Cloud the exact CapabilityImplementation, provider-model target, ConnectorGrant, defaults and request; the captured inputs are immutable under later Profile, AIConfig, local configuration, machine selection, grant, inventory, or process changes and are written to the Job audit trail without raw secrets.
     condition: Whenever Runtime executes or submits an AI scenario.
     failure: Reject execution evidence that is missing, mutable after fixation, or absent from audit.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r007
     kind: rule
-    title: Snapshot scheduling judgement is submit specific
+    title: Scheduling evidence is Job specific and non-authoritative
     modality: must
-    statement: The scheduling judgement recorded in an execution snapshot corresponds only to the submit-specific execution target about to run, and it is recorded as null when the caller holds only a scope aggregate judgement.
+    statement: Any scheduling judgement recorded for a Job corresponds only to the exact captured execution inputs about to run, never a scope or owner aggregate, and remains execution evidence that cannot change AIConfig, Machine Local AI Configuration selection, Local Capability Configuration binding, derived admission, or another Job.
     condition: Whenever an execution snapshot records a scheduling judgement.
     failure: Reject a scope aggregate judgement recorded as execution evidence.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r008
     kind: rule
     title: Runtime holds no global active profile
     modality: must_not
-    statement: Runtime maintains a runtime-global active AI profile, treats profile resolution or application as establishing a persistent global binding, links profile resolution across scopes, or interprets scoped committed Runtime LocalAgent AI configuration as a runtime-global active profile.
+    statement: Runtime maintains a runtime-global active AIProfile or AIConfig, treats Profile import or Apply as a persistent binding or re-apply relation, creates per-Agent AIConfig, or interprets the one shared LocalAgent subsystem AIConfig or one Machine Local AI Configuration as a global Profile.
     condition: Always.
-    failure: Reject any global-profile interpretation and keep resolve and apply per call.
+    failure: Reject global-Profile, per-Agent, and live-Profile-binding interpretations and keep canonical owners separate.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r009
     kind: rule
-    title: Memory embedding intent resolves or fails closed
+    title: Memory embedding uses canonical deterministic composition
     modality: must
-    statement: Runtime resolves the committed text.embed intent into a runtime-owned resolved embedding profile whose cloud shape is the admitted v2 cloud target ref and whose local shape is a typed local embedding target resolvable from authoritative Runtime inventory, while Desktop and SDK submit intent only and never compute resolved profile, profile identity, or canonical bank binding truth.
+    statement: Runtime executes committed text.embed intent through the same AIConfig route and exact Local machine-selected configuration or Cloud implementation-target-grant composition as any CapabilityContract, never searches inventory or creates a resolved embedding Profile, while the separately owned Memory bank retains its binding and cutover truth.
     condition: Whenever Runtime resolves a committed memory embedding intent.
     failure: Return a fail-close result without silently falling back to another connector, provider, or local default embedding target.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.connector-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.connector-plane
   - id: rule.nimi.runtime.ai-provider.r010
     kind: rule
     lifecycle: removed
@@ -125,71 +141,61 @@ units:
     reason: First-run admission now consumes current Runtime materialization and activation-gate state and no longer executes capabilities to mint a durable readiness proof.
   - id: rule.nimi.runtime.ai-provider.r011
     kind: rule
-    title: Apply eligibility states are closed
-    modality: must
-    statement: Per-requirement apply eligibility is exactly ready, setup_required_no_live_config, unsupported_no_live_config, failed_no_live_config, or optional_omitted, required non-ready slices block AIConfig write, optional non-ready slices are omitted without placeholder config, and existing valid AIConfig is preserved until a successful apply replaces it.
-    condition: Whenever Runtime projects apply eligibility for descriptor-backed profile slices.
-    failure: Block live AIConfig writes for required unresolved slices and never synthesize placeholder config.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+    lifecycle: removed
+    title: Retired Profile Apply eligibility lifecycle
+    reason: Removed because Apply validates and atomically writes AIConfig intent without inventory, requirement, binding, grant, feasibility, or readiness gating.
   - id: rule.nimi.runtime.ai-provider.r012
     kind: rule
-    title: Prepare reuses runtime materializers
-    modality: must
-    statement: Whole-profile prepare validates the complete descriptor before materialization and reuses Runtime local environment materializers and activation gates without creating a second downloader, Python manager, connector custody path, or source selector.
-    condition: Whenever Runtime prepares a descriptor-backed profile workflow.
-    failure: Reject prepare paths that bypass complete descriptor validation or duplicate materializer authority.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+    lifecycle: removed
+    title: Retired Profile prepare and materialization path
+    reason: Removed because Apply Profile to AIConfig never installs, prepares, binds, selects, probes, warms, or activates local execution dependencies.
   - id: rule.nimi.runtime.ai-provider.r013
     kind: rule
-    title: Profile failure classes are closed and isolated
+    title: Configuration admission and execution states are orthogonal
     modality: must
-    statement: Profile workflow failures classify into exactly asset_health, source_readiness, profile_validation, workflow_readiness, environment_readiness, connector_readiness, apply_eligibility, scheduling_failure, or execution_failure, and workflow, environment, connector, scheduling, or execution failures never poison reusable asset health unless the reusable asset itself fails asset-health validation.
-    condition: Whenever Runtime records or projects a profile workflow failure.
-    failure: Reject unclassified failures and keep reusable asset health independent of downstream failures.
+    statement: CapabilityImplementation interpretability, normalized requirement resolution, Machine Local AI Configuration selection, derived request admission, Job execution, LocalAsset content integrity, ConnectorGrant authorization, and Runtime-private Host supervision remain separate facts; ordinary Driver, load, generation, provider, transport, scheduling, or execution failure ends the affected Job and never clears a binding, changes selection, route, or grant, or mutates configuration, and when the Driver classifies a persistent hard blocker Runtime may additionally update only the future derived-admission reason while preserving every AIConfig, Local Capability Configuration, exact binding, machine selection, ConnectorGrant reference, and immutable Job input.
+    condition: Whenever Runtime records or projects configuration, admission, or execution failure.
+    failure: Preserve orthogonal owner state and reject a combined readiness or Profile workflow lifecycle, execution-driven configuration, binding, selection, route, or grant mutation, or any persistent-blocker effect beyond the derived-admission reason.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r014
     kind: rule
-    title: Media pipeline identity stays internal
+    title: Configuration selection Job and private source identities stay distinct
     modality: must
-    statement: Reusable asset identity, Runtime-prepared asset identity, selected-source evidence, portable profile intent, consumer-scoped AIConfig intent, and Runtime-internal media pipeline execution identity remain distinct, and Runtime execution identity never enters portable AIProfile or AIConfig.
+    statement: AIProfile portable intent, canonical App or shared LocalAgent AIConfig intent, one Machine Local AI Configuration, each saved Local Capability Configuration, LocalAsset verified-content identity, Runtime-private selected-source dependency evidence, private ExecutionHost process identity, and immutable Job identity remain distinct, and neither execution nor private source identity enters Profile, AIConfig, local configuration identity, or machine selection.
     condition: Whenever media generation identities are created, stored, or projected.
     failure: Reject identity leakage across the split or into portable payloads.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r015
     kind: rule
-    title: Materialization cache keys cover semantic dimensions
+    title: Execution caches derive only from captured exact inputs
     modality: must
-    statement: A profile workflow materialization or cache key includes profile ref and source digest, requirement id and slice id, authored execution backend and model family, host tuple and relevant runtime support registry versions, main and required component prepared asset ids, ordered companion occurrences with occurrence id, order, role, prepared asset id, weight, and options, params digest, and environment digest, and a key derived from the main asset id alone is forbidden.
-    condition: Whenever Runtime derives materialization or cache identity for a descriptor-backed workflow.
-    failure: Reject cache reuse keyed on incomplete semantic dimensions.
+    statement: A Runtime-private execution cache key derives from the Job's captured exact CapabilityImplementation, Driver identity and portable configuration, standardized features, normalized requirement occurrences, exact bindings, defaults, request semantics, and relevant Host compatibility version; Profile identity, current inventory, current machine selection, mutable paths, or main asset identity alone never becomes execution authority or a product revision.
+    condition: Whenever Runtime derives cache identity for capability execution.
+    failure: Reject cache reuse keyed on incomplete or mutable semantic dimensions.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r016
     kind: rule
     title: Future media workflows keep first-class shapes
     modality: must
-    statement: Future diffusers image and local video workflows keep first-class contract shapes with explicit components and environment requirements, video is never modeled as image generation with an extra duration field, unsupported or proposed runtime support states project setup-required or unsupported no-live-config for required slices, and internal driver and backend taxonomy remains runtime-private rather than public engine targets.
+    statement: Each admitted CapabilityImplementation keeps first-class Driver-owned portable configuration and independently projected normalized resource-occurrence requirements, image and video contracts remain semantically distinct, no Core cross-engine option union or Nimi DAG IR is introduced, unresolved slots may persist in a Local Capability Configuration, and Driver and ExecutionHost identities remain distinct rather than public engine target inference.
     condition: Whenever Runtime admits or projects future local media workflow shapes.
     failure: Reject collapsed media shapes and public exposure of internal backend taxonomy.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r017
     kind: rule
     title: Create validates admitted auth shapes
     modality: must
-    statement: CreateConnector validates required fields, injects default endpoint and label, writes initial status, requires api_key and forbids provider_auth_profile and credential_json for auth_kind API_KEY, requires an authenticated caller plus provider_auth_profile and credential_json and forbids api_key for auth_kind OAUTH_MANAGED, and infers an omitted auth_kind as OAUTH_MANAGED when credential_json is present and as API_KEY otherwise.
+    statement: CreateConnector validates required custody fields, injects only the default display label and initial authorization status, requires api_key and forbids provider_auth_profile and credential_json for auth_kind API_KEY, requires an authenticated caller plus provider_auth_profile and credential_json and forbids api_key for auth_kind OAUTH_MANAGED, and infers an omitted auth_kind as OAUTH_MANAGED when credential_json is present and as API_KEY otherwise; a Connector stores no ExecutionHost endpoint or route target.
     condition: Whenever ConnectorService creates a connector.
     failure: Reject creation requests that violate the admitted auth shape for the selected or inferred auth kind.
     relations:
@@ -219,7 +225,7 @@ units:
     kind: rule
     title: Update keeps coherent auth state
     modality: must
-    statement: UpdateConnector validates the mutable field set, invalidates caches when credentials or endpoint change, keeps API_KEY patches free of provider_auth_profile, keeps OAUTH_MANAGED connectors holding a provider_auth_profile, never accepts api_key and credential_json in one patch, and requires an auth-kind switch to supply the target shape credential explicitly without implicit conversion.
+    statement: UpdateConnector validates the mutable custody field set, invalidates authorization caches when credentials or auth profile change, keeps API_KEY patches free of provider_auth_profile, keeps OAUTH_MANAGED connectors holding a provider_auth_profile, never accepts api_key and credential_json in one patch, requires an auth-kind switch to supply the target shape credential explicitly without implicit conversion, and never accepts or changes an ExecutionHost endpoint or route target.
     condition: Whenever ConnectorService updates a connector.
     failure: Reject patches that produce an incoherent auth state or rely on implicit credential conversion.
     relations:
@@ -229,7 +235,7 @@ units:
     kind: rule
     title: Update patch semantics are closed
     modality: must
-    statement: update_mask paths admit only label, endpoint, api_key, status, auth_kind, provider_auth_profile, and credential_json, an empty mask derives effective paths from explicitly present optional fields and a non-unspecified status, underivable, unknown, or declared-but-absent paths return INVALID_ARGUMENT with AI_CONNECTOR_INVALID, and fields outside the effective paths stay unchanged without implicit full overwrite.
+    statement: update_mask paths admit only label, api_key, status, auth_kind, provider_auth_profile, and credential_json, an empty mask derives effective paths from explicitly present optional fields and a non-unspecified status, underivable, unknown, endpoint-bearing, or declared-but-absent paths return INVALID_ARGUMENT with AI_CONNECTOR_INVALID, and fields outside the effective paths stay unchanged without implicit full overwrite.
     condition: Whenever UpdateConnectorRequest patch semantics are evaluated.
     failure: Return INVALID_ARGUMENT with AI_CONNECTOR_INVALID instead of implicit or partial-unknown patching.
     relations:
@@ -259,7 +265,7 @@ units:
     kind: rule
     title: Connector model listing is snapshot only
     modality: must_not
-    statement: ListConnectorModels loads connector credentials, resolves endpoints, calls a provider model list API, performs dynamic discovery, honors force_refresh as anything but a no-op, serves model rows from anywhere except the active catalog snapshot, or lets a non-scenario path promote live discovery results to catalog authority.
+    statement: ListConnectorModels loads custody secrets, resolves endpoints, calls a provider model list API, performs dynamic discovery, honors force_refresh as anything but a no-op, serves model rows from anywhere except the active catalog snapshot, promotes listing into CapabilityImplementation, Driver target, ConnectorGrant, route, binding, or selection authority, or lets a non-scenario path promote live discovery results to catalog truth.
     condition: Whenever connector model listings are served.
     failure: Serve only the active catalog snapshot and reject discovery or probe semantics on the listing surface.
     relations:
@@ -267,9 +273,9 @@ units:
         target: definition.nimi.runtime.ai-provider.connector-plane
   - id: rule.nimi.runtime.ai-provider.r025
     kind: rule
-    title: Connector probes are bounded and preconditioned
+    title: Test Connector is explicit bounded diagnosis only
     modality: must
-    statement: Remote connector probes pass owner, status, and credential preconditions before any outbound call, and TestConnector performs only connectivity and credential validity probing without model discovery, voice discovery, or catalog warmup responsibilities.
+    statement: Test Connector runs only after an explicit user action, passes owner, custody status, and credential preconditions before its bounded outbound call, and diagnoses connectivity and credential validity without model or voice discovery, catalog warmup, periodic polling, readiness state, ConnectorGrant creation or selection, AIConfig mutation, route choice, binding, derived admission, or execution prerequisite semantics.
     condition: Whenever TestConnector probes a remote connector.
     failure: Reject probes that skip preconditions or exceed the bounded probe purpose.
     relations:
@@ -307,9 +313,9 @@ units:
         target: definition.nimi.runtime.ai-provider.connector-plane
   - id: rule.nimi.runtime.ai-provider.r029
     kind: rule
-    title: World generation keeps connector custody
+    title: World generation captures exact grant-backed Cloud inputs
     modality: must
-    statement: When a remote provider admits world generation, callers still submit only connector_id, the upload, generate, poll, and fetch-world credential injection stays with Runtime ConnectorService, and provider-returned world asset or viewer URLs never become a new credential ownership path.
+    statement: When a Cloud CapabilityImplementation admits world.generate, Job submission captures the exact implementation, Driver-owned provider-model target, selected ConnectorGrant and request, request-scoped credential injection stays with Runtime custody, and provider-returned world asset or viewer URLs never become credential ownership, target selection, or route authority.
     condition: Whenever world generation executes through a managed connector.
     failure: Reject raw provider secrets and URL-derived credential ownership on the world generation path.
     relations:
@@ -327,35 +333,33 @@ units:
         target: definition.nimi.runtime.ai-provider.connector-plane
   - id: rule.nimi.runtime.ai-provider.r031
     kind: rule
-    title: Profiles and app surfaces carry no provider secrets
+    title: Profiles and configuration carry no provider secrets
     modality: must_not
-    statement: AIProfile, AIConfig, SDK state, Desktop storage, app manifests, or Kit UI state contains raw provider secrets, API keys, tokens, OAuth payloads, credential JSON, authorization headers, provider health evidence, quota, billing, or rate-limit state, or a cloud connector slice carries local asset refs, backend packages, Python or Torch or CUDA requirements, selected source records, or local materialization evidence.
+    statement: AIProfile, AIConfig, SDK state, Desktop storage, App manifests, or Kit UI state contains raw provider secrets, API keys, tokens, OAuth payloads, credential JSON, authorization headers, provider health evidence, quota, billing, or rate-limit state; AIProfile additionally carries no ConnectorGrant, connector, account, or custody identity, while AIConfig may store only an explicitly selected ConnectorGrant reference and Cloud intent may remain valid without one, and Cloud configuration carries no LocalAsset, local binding, selected source, or local process evidence.
     condition: Whenever cloud execution intent is declared or projected outside Runtime custody.
-    failure: Reject the secret-bearing or cross-plane payload and project setup-required or no-live-config instead of placeholder AIConfig.
+    failure: Reject the secret-bearing or cross-plane payload while preserving valid intent and return selection-required only when Cloud execution lacks a grant.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.connector-plane
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
+        target: definition.nimi.runtime.ai-provider.connector-plane
   - id: rule.nimi.runtime.ai-provider.r032
     kind: rule
     title: Provider identifiers are canonical only
     modality: must
-    statement: Connector provider values and provider health configuration names admit only canonical provider catalog values, and the ConnectorService entry points CreateConnector, TestConnector, and ListConnectorModels reject aliases and legacy names at validation.
-    condition: Whenever a provider identifier enters configuration or a connector RPC.
+    statement: Connector custody provider values and CapabilityImplementationDriver provider-target configuration admit only canonical implementation and Driver catalog identities, and Create Connector, Test Connector, List Connector Models, AIConfig, and Job validation reject aliases, provider-name inference, and legacy names; no provider health configuration owner exists.
+    condition: Whenever an implementation, Driver, target, or custody provider identifier enters configuration or an operation.
     failure: Reject non-canonical provider names at configuration validation and RPC entry.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.connector-plane
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
   - id: rule.nimi.runtime.ai-provider.r033
     kind: rule
-    title: Model descriptors expose runtime-native metadata
+    title: LocalAsset descriptors expose verified content metadata
     modality: must
-    statement: ModelDescriptor exposes model_id, version, status, capabilities, last_health_at, and capability_profile plus runtime-native local metadata logical_model_id, family, artifact_roles, preferred_engine limited to llama, media, speech, or sidecar, fallback_engines limited to public engines without internal drivers, bundle_state, warm_state, and host_requirements.
+    statement: A LocalAsset descriptor exposes concrete verified-content identity, version, content-integrity and install state, provenance, display information, artifact roles, host requirements and non-binding CapabilityImplementation recommendation metadata; it exposes no preferred or fallback engine, CapabilityImplementationDriver selection, public health timestamp, bundle readiness, warm or resident state, machine selection, binding, route, or capability readiness truth.
     condition: Whenever Runtime projects a model descriptor.
-    failure: Reject descriptors missing required metadata or exposing internal drivers in fallback_engines.
+    failure: Reject descriptors missing required verified-content metadata or carrying routing, selection, binding, readiness, warm, or fallback truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
@@ -363,7 +367,7 @@ units:
     kind: rule
     title: Capability profile is summary not execution truth
     modality: must
-    statement: ModelCapabilityProfile remains a capability summary, runnable local execution truth comes from logical_model_id, artifact_roles, preferred_engine, bundle_state, and warm_state combined, and passive asset path truth comes from the installed manifest source and entry with logical_model_id never resolving paths and allowed to be empty for passive assets.
+    statement: Capability and feature metadata on a LocalAsset remains a non-binding summary, while runnable Local execution is derived only from the committed AIConfig Local route, current machine-selected Local Capability Configuration, exact CapabilityImplementation and Driver configuration, resolved requirement occurrences, exact bindings, required and supported feature subset, request, and authorization; filenames, paths, logical model labels, artifact roles, engine labels, install state, bundle state, warm state, or health never form routing truth.
     condition: Whenever local model capability or path truth is derived.
     failure: Reject path or execution truth derived from the summary profile or from logical_model_id for passive assets.
     relations:
@@ -373,7 +377,7 @@ units:
     kind: rule
     title: Model service method set is fixed
     modality: must
-    statement: RuntimeModelService exposes exactly ListModels, PullModel, RemoveModel, and CheckModelHealth.
+    statement: RuntimeModelService exposes passive inventory listing, concrete verified-content installation or pull, removal, and bounded content-integrity diagnostics only; it exposes no public Check Model Health, readiness, warm, start, route resolution, binding, selection, or execution-feasibility operation.
     condition: Whenever the unified model service surface is defined or extended.
     failure: Reject undeclared methods on the unified model service surface.
     relations:
@@ -383,29 +387,24 @@ units:
     kind: rule
     title: PullModel contract is fixed
     modality: must
-    statement: PullModel requires app_id and model_ref with optional source and digest, returns task_id, accepted, and reason_code, completes minimal logical metadata derivation writing at least logical_model_id, preferred_engine, bundle_state, and warm_state before a runnable native model reaches INSTALLED, writes preferred_engine, bundle_state, and warm_state for passive assets, and never synthesizes logical_model_id from asset_id.
+    statement: PullModel requires an authorized owner and concrete asset reference with verifiable source and digest, returns a transfer Job identity and typed acceptance, commits only complete verified LocalAsset content and provenance, and writes no preferred Driver, fallback engine, bundle readiness, warm state, Local Capability Configuration, binding, machine selection, admission, or execution truth.
     condition: Whenever PullModel runs.
-    failure: Reject INSTALLED transitions lacking required derived metadata and reject synthesized logical identity.
+    failure: Reject unverifiable or partial content and any installation side effect outside concrete LocalAsset truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r037
     kind: rule
-    title: Model health requires probe truth
-    modality: must
-    statement: CheckModelHealth returns healthy, reason_code, and action_hint, local native health judgment considers bundle_state, warm_state, and a real target engine probe together, entry existence or process reachability alone is never healthy, COLD and WARMING project as not-ready rather than unavailable, and only warm state FAILED, a non-ready bundle state, or proven engine or target probe failure projects unavailable or unhealthy.
-    condition: Whenever model health is checked or projected.
-    failure: Reject health verdicts lacking real probe truth or conflating not-ready with unavailable.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.model-service-plane
+    lifecycle: removed
+    title: Retired public model health and readiness probe
+    reason: Removed because model probe, warm, health, and not-ready state do not establish product routing or capability admission.
   - id: rule.nimi.runtime.ai-provider.r038
     kind: rule
-    title: Model status machine is closed
+    title: LocalAsset transfer and install status is content scoped
     modality: must
-    statement: ModelStatus transitions admit only INSTALLED to PULLING, PULLING to INSTALLED, PULLING to FAILED, INSTALLED to REMOVED, FAILED to PULLING, and FAILED to REMOVED.
-    condition: Whenever a model status transition is applied.
-    failure: Reject every transition outside the closed table.
+    statement: LocalAsset transfer and install transitions admit only their declared queued, transferring, verifying, installed, failed, canceled, retrying, and removed content lifecycle, and installed proves verified content only rather than CapabilityImplementation interpretability, requirement resolution, machine selection, derived admission, Host residency, health, or Job success.
+    condition: Whenever a LocalAsset transfer or install status transition is applied.
+    failure: Reject every transition outside the content lifecycle and every promotion of installed into execution readiness.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
@@ -413,7 +412,7 @@ units:
     kind: rule
     title: Unified views sync and lists stay passive
     modality: must
-    statement: A successful verified local asset install reflects into the unified ListModels view, local model management consumes RuntimeLocalService authoritative detail views directly rather than a second host-owned local state, and ListLocalAssets remains an inventory snapshot that never synchronously triggers endpoint probes, engine bootstrap, warm execution, recovery accounting, state transitions, or persistent writes.
+    statement: A successful verified LocalAsset install reflects into the passive inventory view, local asset management consumes RuntimeLocalService authoritative detail directly rather than a second host-owned state, and listing never triggers endpoint probes, Driver or Host bootstrap, warm execution, binding, machine selection, recommendation acceptance, recovery, admission, routing, state transitions, or writes.
     condition: Whenever unified or local model views are read or synchronized.
     failure: Reject side-effecting list reads and second host-owned local state mirrors.
     relations:
@@ -421,19 +420,14 @@ units:
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r040
     kind: rule
-    title: Local health freshness has one owner
-    modality: must
-    statement: Local model health freshness is maintained only by explicit CheckLocalAssetHealth, WarmLocalAsset, and StartLocalAsset operations plus the runtime-owned background health maintainer, and Desktop or SDK never builds a second health truth through list polling or renderer caches.
-    condition: Whenever local model health freshness is maintained or consumed.
-    failure: Reject consumer-owned health truth outside the Runtime maintenance path.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.model-service-plane
+    lifecycle: removed
+    title: Retired public local health freshness owner
+    reason: Removed because Check, Warm, Start, background probing, and list-polling health do not create a public capability truth; ExecutionHost supervision stays Runtime private.
   - id: rule.nimi.runtime.ai-provider.r041
     kind: rule
-    title: Local embedding bindings are typed and inventory backed
+    title: Local embedding bindings are exact configuration slots
     modality: must
-    statement: A local memory embedding binding uses a typed local target reference resolvable through the authoritative RuntimeLocalService or RuntimeModelService inventory with proven embedding capability, binding legality stays separate from health, warm, or bundle readiness, and file or asset existence heuristics never establish legality.
+    statement: A Local text.embed CapabilityImplementationDriver projects normalized independent requirement-occurrence slots into its Local Capability Configuration and each binding names exact verified LocalAsset content or remains unresolved; Runtime never searches inventory, paths, filenames, labels, or capability hints to bind at execution, and binding remains separate from machine selection, admission, Host state, and Memory bank truth.
     condition: Whenever a local memory embedding binding is validated.
     failure: Reject raw paths, engine names, renderer heuristics, and non-embedding-capable targets.
     relations:
@@ -443,7 +437,7 @@ units:
     kind: rule
     title: Runtime owns local model algorithms
     modality: must
-    statement: Local model recommendation, install, registry identity, dependency resolution, and artifact download algorithms are Runtime-owned, and Desktop, Web, and Kit consume the decisions only through SDK or Runtime projection without parallel resolvers or identity heuristics.
+    statement: LocalAsset recommendation, installation, verified-content registry identity, dependency installation, and download algorithms are Runtime-owned, and Desktop, Web, and Kit consume only typed projections without parallel resolvers or identity heuristics; recommendations never bind, select, route, or participate in Job composition.
     condition: Whenever local model algorithm decisions are produced or consumed.
     failure: Reject consumer-side parallel algorithm or identity authority.
     relations:
@@ -453,7 +447,7 @@ units:
     kind: rule
     title: Recommendation is typed evidence not readiness
     modality: must
-    statement: Recommendation fit tiers derive from the local device profile plus runtime engine and catalog evidence, confidence, memory budget, context window, quantization, file metadata, and capability fit stay typed Runtime evidence, absent required metadata fails closed instead of silently accepting an unsupported install path, and a recommendation result never becomes install success or readiness truth or is substituted by Desktop defaults, renderer cache, or host state.
+    statement: Recommendation fit tiers derive deterministically from captured local device facts plus catalog evidence, confidence, memory budget, context window, quantization, file metadata, and declared implementation requirements, absent required metadata yields a typed no-recommendation result, and a recommendation never becomes install success, binding, machine selection, standardized-feature support, admission, readiness, or routing truth or mutates current configuration.
     condition: Whenever local model recommendation is computed or consumed.
     failure: Fail closed on missing metadata and reject recommendation results promoted to readiness.
     relations:
@@ -461,11 +455,11 @@ units:
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r044
     kind: rule
-    title: Dependency resolution semantics are fixed
+    title: Driver requirement occurrences are independent and exact
     modality: must
-    statement: Required dependencies are satisfied or the plan fails closed, optional dependencies may be skipped without pseudo-success, alternatives choose one admitted match and record why other choices were not selected, and resolver output stays stable for identical catalog, host evidence, and user posture inputs.
-    condition: Whenever Runtime resolves local model or profile dependencies.
-    failure: Fail the plan closed rather than fabricating a satisfied or unstable resolution.
+    statement: Every resource occurrence independently selected, downloaded, bound, or replaced is one normalized slot projected by the exact CapabilityImplementationDriver; unresolved slots are legal saved state, selection requires every required slot configured, execution checks exact bindings, and Runtime introduces neither a generic optional-requirement or alternative-auto-selection lifecycle nor implicit substitution from catalog, inventory, names, paths, labels, or field similarity.
+    condition: Whenever Runtime projects or validates Local Capability Configuration requirements.
+    failure: Preserve unresolved state or fail exact admission rather than fabricate satisfaction, inherit a binding, or choose an alternative.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
@@ -473,7 +467,7 @@ units:
     kind: rule
     title: Registry identity resolution is fixed
     modality: must
-    statement: Runtime resolves existing registry entries before inserting new records, prevents duplicate identities across normalized model id, engine, logical model id, and local asset identity where the relevant fields exist, rebuilds capability indexes from Runtime registry truth excluding removed records, and preserves file metadata and manifest evidence for recommendation and health confidence.
+    statement: Runtime resolves verified-content identity before inserting LocalAsset records, prevents duplicate content identities, rebuilds non-binding indexes from Runtime registry truth excluding removed records, and preserves file metadata, digest, manifest and provenance evidence; model name, engine, logical label, filename, path, prefix, slot label, and field similarity never inherit a Local Capability Configuration binding or become routing identity.
     condition: Whenever local model registry identity is created or repaired.
     failure: Reject duplicate or heuristic identity writes outside Runtime registry truth.
     relations:
@@ -483,9 +477,9 @@ units:
     kind: rule
     title: Artifact downloads commit atomically
     modality: must
-    statement: Artifact downloads stage outside committed resolved storage, verify required hashes and manifests before commit, commit atomically or roll back without partial committed artifacts, expose durable transfer and progress state that survives renderer reload, resume only when Runtime can prove staged bytes belong to the same transfer identity, and an install is ready only when Runtime registry, manifest, and health evidence agree rather than when Desktop or Tauri progress events end.
+    statement: LocalAsset downloads stage outside committed storage, verify required hashes and manifests before commit, commit atomically or roll back without partial content, expose durable transfer and progress state, and resume only when Runtime proves staged bytes belong to the same transfer identity; completion proves concrete verified content only and never capability readiness, binding, machine selection, Driver compatibility, Host health, or execution success.
     condition: Whenever Runtime downloads local model or materialized assets.
-    failure: Roll back partial commits and reject readiness claimed from download progress events alone.
+    failure: Roll back partial commits and reject execution truth claimed from download or install progress.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
@@ -533,11 +527,11 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r051
     kind: rule
-    title: Adapters normalize in layers
+    title: CapabilityImplementationDrivers normalize in layers
     modality: must
-    statement: Every provider adapter implements request mapping, response normalization, and reason code normalization as separated layers.
-    condition: Whenever a provider adapter is implemented or extended.
-    failure: Reject adapters that skip or merge the normalization layers.
+    statement: Every CapabilityImplementationDriver implements exact target and configuration validation, request mapping, stream and response normalization, and reason-code normalization as separated layers without owning route, grant, machine selection, Host lifecycle, or fallback.
+    condition: Whenever a CapabilityImplementationDriver is implemented or extended.
+    failure: Reject Drivers that skip the layers or absorb another authority owner.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -547,19 +541,19 @@ units:
     kind: rule
     title: Cloud modality routes stay truthful
     modality: must_not
-    statement: Cloud modality routing hides its route decision or fabricates a success response.
-    condition: Whenever a cloud modality route executes.
-    failure: Surface the route decision and return the real provider outcome.
+    statement: Cloud modality execution hides the committed AIConfig route and exact CapabilityImplementation, Driver target and ConnectorGrant composition, claims Runtime selected a substitute route, or fabricates a success response.
+    condition: Whenever a Cloud modality Job executes.
+    failure: Surface the committed route kind and exact typed outcome without exposing secrets or offering fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r053
     kind: rule
-    title: Local image topology has one resolver
+    title: Local image compatibility is exact and non-selecting
     modality: must
-    statement: Canonical local image supervised topology resolves only through the unified v2 local image supervised backend matrix resolver keyed by entry id over platform, asset family, backend family, and profile kind, only entries with product state supported and a passed admission gate for python pipeline paths enter install recommendation, activation, or ready health, and matrix fields stay runtime-private resolved detail, provider hint extras, or audit detail without new typed proto fields.
-    condition: Whenever Runtime classifies or activates a local image supervised path.
-    failure: Reject per-module topology inference and unsupported or unadmitted entries before install or execution.
+    statement: The exact selected local image CapabilityImplementation and Driver validate their declared configuration and required ExecutionHost compatibility against one canonical matrix keyed by stable implementation, Driver, platform and Host identities; the matrix may inform non-binding installation recommendation and typed admission but never resolves topology, selects implementation or Host, creates activation or ready health, or exposes private Host fields as product configuration.
+    condition: Whenever Runtime validates an exact local image configuration for recommendation or Job admission.
+    failure: Reject per-module inference, unknown compatibility, automatic selection, and unsupported exact composition.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -567,7 +561,7 @@ units:
     kind: rule
     title: Media engine private protocol is fixed
     modality: must
-    statement: The runtime-to-media private protocol is exactly GET /healthz, GET /v1/catalog, POST /v1/media/image/generate, and POST /v1/media/video/generate carrying the runtime canonical image and video specs, proxy execution and pipeline supervised modes share this canonical surface with identical request body and artifact envelope, and no image or video path falls back to OpenAI-compatible generation endpoints, legacy catalog-only health paths, or llama-carried stable image product paths.
+    statement: The Local ExecutionHost media protocol is Runtime private and carries canonical image and video requests and artifact envelopes for the exact CapabilityImplementationDriver; protocol endpoints, process handshake and catalog details never become Driver identity, public readiness, route, binding, or selection, and no image or video Job falls back to another Host, OpenAI-compatible generation endpoint, legacy health path, or llama-carried image path.
     condition: Whenever Runtime dispatches to the media engine.
     failure: Reject dispatch outside the fixed canonical media surface.
     relations:
@@ -577,37 +571,37 @@ units:
     kind: rule
     title: Host mismatch keeps the supervised contract
     modality: must_not
-    statement: Runtime projects an unsupported host on the canonical local image product path as ATTACHED_ENDPOINT with AI_LOCAL_ENDPOINT_REQUIRED instead of keeping the SUPERVISED contract and failing closed with AI_LOCAL_MODEL_UNAVAILABLE plus compatibility detail.
+    statement: Runtime changes the selected Local Capability Configuration, Driver, or ExecutionHost mode after an exact local image configuration proves incompatible with the current host instead of preserving the committed selection and returning a typed derived admission reason with bounded compatibility detail.
     condition: Whenever the canonical local image path meets an unsupported host.
-    failure: Fail closed as supervised-unavailable with compatibility detail.
+    failure: Fail closed for the exact committed selection without Host switching or automatic re-arbitration.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r056
     kind: rule
-    title: Local engines expose only ready truth
+    title: Local Host state stays private and never falls back
     modality: must
-    statement: The media and speech engines expose only genuinely ready model catalogs, fail closed when dependencies are missing, devices are unavailable, models are unresolved, or pipelines are uninitialized, never fabricate success artifacts or static model lists, and keep the internal diffusers driver as a runtime-internal fallback strategy never exposed as public config, adapter choice, or manual engine target.
+    statement: Media and speech ExecutionHosts keep process, dependency, device, model, pipeline, warm, resident and health state Runtime private, never expose it as product-ready catalogs or configuration, and fail the exact Job truthfully when preparation or execution cannot proceed; no internal Driver, diffusers path, engine, static row, or alternate Host is used as a fallback strategy.
     condition: Whenever local engine catalogs or capabilities are exposed.
-    failure: Fail closed instead of fabricating readiness, artifacts, or catalog rows.
+    failure: Fail the exact Job without fabricating artifacts, public readiness, or alternate execution.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r057
     kind: rule
-    title: Speech engine protocol and admission states are explicit
+    title: Speech ExecutionHost protocol is private and fail closed
     modality: must
-    statement: The runtime-to-speech private protocol is exactly GET /healthz, GET /v1/catalog, POST /v1/audio/transcriptions, POST /v1/audio/speech, POST /v1/voice/clone, and POST /v1/voice/design, placeholder state answers host reachability only while the catalog exposes only placeholder or non-ready rows, admitted plain-speech state returns ready only after the local plain-speech minimum admitted proof holds with catalog rows matching admitted capability truth, and the transcription and speech endpoints fail closed as execution-plane unavailable before the admitted plane materializes.
+    statement: The runtime-to-speech ExecutionHost protocol remains a private transport for exact transcription, synthesis, voice-clone, and voice-design Driver calls; placeholder responses, reachability, process state, private catalogs and handshakes never project capability readiness or select a route, and a missing or incompatible exact Host returns the typed admission or Job failure without masquerade or downgrade.
     condition: Whenever Runtime dispatches to or projects the speech engine.
-    failure: Reject OpenAI-compatible masquerade, fabricated readiness, and silent downgrade on the speech surface.
+    failure: Reject OpenAI-compatible masquerade, public readiness, fabricated success, and silent downgrade.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r058
     kind: rule
-    title: Voice workflow families are admission scoped
+    title: Voice implementation support is exact and contract scoped
     modality: must
-    statement: Voice clone and voice design succeed only for an admitted local workflow family with the current baseline fixed to qwen3_tts, unsupported families including voxcpm and omnivoice return family-scoped fail-close results, health and catalog never project one admitted family's success as generic workflow readiness, plain-speech admitted driver families are never implicitly promoted to workflow-family admission truth, and a workflow-capable TTS family success never substitutes for independent transcription capability truth.
+    statement: Voice clone, voice design, synthesis and transcription succeed only through the exact committed CapabilityImplementation and Driver that declare support for that CapabilityContract and required standardized features; family, provider, catalog, Host health, or another capability's success never implies support, readiness, binding, or fallback, and unsupported exact composition fails closed.
     condition: Whenever local voice workflow execution or readiness is projected.
     failure: Return family-scoped fail-close results instead of generic local speech success.
     relations:
@@ -647,7 +641,7 @@ units:
     kind: rule
     title: DashScope voice resolution is catalog driven
     modality: must
-    statement: DashScope TTS voice resolution follows the catalog-driven primary path with compatibility-mode voice endpoint probing never primary, no legacy or hardcoded voice fallback bypasses catalog validation, and voice resolution and validation logs expose catalog_source, model_resolved, and voice_count for cross-layer diagnostics.
+    statement: The exact DashScope audio.synthesize CapabilityImplementationDriver resolves voice identity only against its canonical captured target catalog and Driver configuration, performs no compatibility-mode endpoint probe, hardcoded voice fallback, provider re-selection, or route change, and emits bounded diagnostics that never become binding, readiness, or capability authority.
     condition: Whenever DashScope TTS voices are resolved or validated.
     failure: Reject bypass paths and unobservable voice resolution.
     relations:
@@ -657,7 +651,7 @@ units:
     kind: rule
     title: Local image workflow mapping is fixed
     modality: must
-    statement: Local canonical image workflows map text-to-image with empty reference images to a request without file, files, or ref_images, map image-to-image with the first reference image to file, all reference images to files, and the remainder to ref_images, always pass through an existing negative_prompt, and infer providerType for local routes from the resolved engine.
+    statement: The exact local image CapabilityImplementationDriver maps text-to-image with empty reference images to a request without file, files, or ref_images, maps image-to-image with the first reference image to file, all reference images to files, and the remainder to ref_images, and passes through admitted negative_prompt, while provider, Driver, implementation and Host identity come from the committed Local Capability Configuration rather than inference from a resolved engine.
     condition: Whenever Runtime maps a local image workflow request.
     failure: Reject silent drops or mismapped image workflow inputs.
     relations:
@@ -665,11 +659,11 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r064
     kind: rule
-    title: Profile overrides bounded and slots runtime owned
+    title: Local image configuration owns exact Driver slots and options
     modality: must
-    statement: Image workflow slot dependencies resolve from the current profile's installed passive asset entries by engine slot using the installed manifest source and entry, local-import names remain an asset id namespace only, a missing required engine slot binding or an uninstalled or unhealthy slot asset fails closed with AI_INPUT_INVALID, profile overrides may override only non-path profile fields with model parameters, download file lists, and raw path values runtime-injected or rejected, overrides without a bound slot asset never trigger dynamic import, and Runtime strips the overrides from forwarded extensions after rendering.
+    statement: The exact local image CapabilityImplementationDriver owns portable configuration and projects normalized independent requirement-occurrence slots into the Local Capability Configuration; slots carry exact verified LocalAsset bindings or unresolved state, configuration changes update current state directly, implementation or dialect changes explicitly reproject requirements without inheriting bindings by path, name, slot label or field similarity, and execution consumes only exact committed bindings without ambient inventory resolution or dynamic import.
     condition: Whenever a local image workflow consumes profile overrides or slot dependencies.
-    failure: Fail closed with AI_INPUT_INVALID rather than guessing companions or defaults.
+    failure: Preserve unresolved state or fail exact admission rather than guessing, inheriting, importing, or choosing companions and defaults.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -685,14 +679,9 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r066
     kind: rule
-    title: Legacy image options map observably
-    modality: must
-    statement: The step extension takes priority with steps mapped only when step is absent, the mode extension takes priority with method mapped only when mode is absent, legacy keys without stable canonical counterparts including guidance_scale, eta, strength, and clip_skip are observably ignored rather than failing closed, and image artifact metadata includes at least adapter, prompt, source_image, ref_images_count, local.applied_options, and local.ignored_options.
-    condition: Whenever legacy image option keys are received on the local image path.
-    failure: Reject silent drops by recording applied and ignored options in artifact metadata.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+    lifecycle: removed
+    title: Retired legacy image option compatibility mapping
+    reason: Removed because pre-launch hard cut rejects legacy aliases and ignored-option shims; only the exact CapabilityImplementationDriver dialect and portable configuration are admitted.
   - id: rule.nimi.runtime.ai-provider.r067
     kind: rule
     title: TTS primary entry is typed voice_ref
@@ -727,7 +716,7 @@ units:
     kind: rule
     title: Media provider transport keys stay Runtime private
     modality: must_not
-    statement: A provider extension cannot escape its admitted origin or canonical base path, and provider transport, credential-header, adapter route, voice clone, voice design, preview, and create path details remain Runtime private rather than catalog, snapshot, SDK, or App-facing truth.
+    statement: A Driver provider extension cannot escape its admitted origin or canonical base path, and transport, credential-header, Driver target, voice clone, voice design, preview, and create-path details remain Runtime private rather than catalog, AIConfig, Profile, SDK, or App-facing routing truth.
     condition: Whenever media provider extensions carry transport routing details.
     failure: Reject cross-origin or path-escaping overrides and keep transport keys runtime private.
     relations:
@@ -747,27 +736,27 @@ units:
     kind: rule
     title: TTS provider status mapping baseline is fixed
     modality: must
-    statement: TTS provider adapters map 401 and 403 to AI_PROVIDER_AUTH_FAILED, 429 to AI_PROVIDER_RATE_LIMITED, 400 and 422 to AI_VOICE_INPUT_INVALID for voice creation or AI_MEDIA_OPTION_UNSUPPORTED for synthesis parameters, target model or voice incompatibility to AI_VOICE_TARGET_MODEL_MISMATCH, invisible or unauthorized assets to AI_VOICE_ASSET_SCOPE_FORBIDDEN, 5xx to AI_PROVIDER_INTERNAL, and timeouts to AI_PROVIDER_TIMEOUT.
-    condition: Whenever a TTS provider returns an error status.
+    statement: TTS CapabilityImplementationDrivers map 401 and 403 to AI_PROVIDER_AUTH_FAILED, 429 to AI_PROVIDER_RATE_LIMITED, 400 and 422 to AI_VOICE_INPUT_INVALID for voice creation or AI_MEDIA_OPTION_UNSUPPORTED for synthesis parameters, target model or voice incompatibility to AI_VOICE_TARGET_MODEL_MISMATCH, invisible or unauthorized assets to AI_VOICE_ASSET_SCOPE_FORBIDDEN, 5xx to AI_PROVIDER_INTERNAL, and timeouts to AI_PROVIDER_TIMEOUT without changing the selected implementation, target, grant, or route.
+    condition: Whenever a TTS Driver receives a provider error status.
     failure: Return the mapped typed code instead of a generic or fabricated result.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r073
     kind: rule
-    title: Plain speech route describe is capability scoped
+    title: Plain speech implementation metadata is contract scoped
     modality: must
-    statement: Route describe metadata for audio.synthesize describes only the resolved synthesis route's audio formats, timing modes, language and emotion field availability, and source-authored option schema, audio.transcribe metadata describes only the resolved transcription route's transcript tier, response format, and source-authored option schema, missing minimum speech metadata truth fails closed, and consumers never infer one capability's metadata from a shared speech host.
-    condition: Whenever plain speech route describe metadata is served or consumed.
+    statement: CapabilityImplementation and Driver metadata for audio.synthesize describes only that exact implementation's audio formats, timing modes, language and emotion fields, supported standardized features and Driver-owned option schema, while audio.transcribe metadata describes only its exact implementation's transcript tier, response format, features and schema; missing minimum metadata fails closed, and consumers never infer one contract's support from provider name, shared Host, route kind, or another capability.
+    condition: Whenever plain speech implementation metadata is served or consumed.
     failure: Fail closed on missing metadata truth and reject cross-capability inference.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r074
     kind: rule
-    title: Native streaming TTS is a declared fact
+    title: Streaming TTS is declared contract and Job behavior
     modality: must
-    statement: Native streaming TTS support is a per-route declared fact from the TTS provider capability matrix surfaced through route describe metadata without adding a canonical capability token, it is never inferred from provider name, route kind, endpoint family, or local versus cloud assumptions, and undeclared routes are never promoted to native streaming and stream only as simulated streaming or fail closed by policy.
+    statement: Streaming behavior belongs to the audio.synthesize CapabilityContract and Job semantics rather than a standardized feature, and an exact CapabilityImplementationDriver declares native, simulated, or unsupported stream behavior without inference from provider name, route kind, endpoint family, Host, or Local versus Cloud assumptions; unsupported execution fails closed and never switches implementation or route.
     condition: Whenever streaming TTS support is projected or selected.
     failure: Reject inferred or promoted native streaming claims.
     relations:
@@ -795,14 +784,16 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r077
     kind: rule
-    title: Seedance task endpoints are fixed
+    title: Seedance task protocol and Host endpoint stay separate
     modality: must
-    statement: Volcengine Seedance task submission posts to /api/v3/contents/generations/tasks, task query gets /api/v3/contents/generations/tasks/{task_id}, and the adapter request body uses content list plus role semantics without legacy video field assembly.
-    condition: Whenever the Seedance video adapter executes.
-    failure: Reject legacy-shaped requests and undeclared task endpoints.
+    statement: The Volcengine Seedance CapabilityImplementationDriver translates declared submit and query operations plus content-list and role request semantics without legacy video field assembly, while the Remote ExecutionHost materializes the exact private provider endpoint and owns transport and remote Job lifecycle; Driver target configuration contains provider-model or region semantics but no endpoint or port authority.
+    condition: Whenever the Seedance video Driver executes.
+    failure: Reject legacy-shaped requests, undeclared task operations, a Driver-owned endpoint, or alternate Host routing.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
   - id: rule.nimi.runtime.ai-provider.r078
     kind: rule
     title: Async provider status is normalized
@@ -825,9 +816,9 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r080
     kind: rule
-    title: Text chat multimodal preflight is per part
+    title: Text generate standardized-feature preflight is a deterministic subset check
     modality: must
-    statement: TEXT_GENERATE requests with multimodal parts preflight each part before provider dispatch with IMAGE_URL checking the vision capability, AUDIO_URL checking the audio capability, VIDEO_URL checking the video capability, and ARTIFACT_REF first resolving to a consumable modality, an undeclared target model capability fails closed with AI_MODALITY_NOT_SUPPORTED, a missing catalog entry may pass preflight but an adapter without the modality mapping still fails closed before execution, and unknown or unimplemented part types return AI_MEDIA_OPTION_UNSUPPORTED.
+    statement: For text.generate, AIConfig declares the required contract-scoped standardized-feature set and the effective CapabilityImplementation declares its supported set; Runtime checks required is a subset of supported with IMAGE_URL or image artifact requiring input.image, AUDIO_URL or audio artifact requiring input.audio, and VIDEO_URL or video artifact requiring input.video, unknown or unsupported parts fail closed, and missing support metadata never passes, changes route or machine selection, switches provider, or triggers fallback.
     condition: Whenever TEXT_GENERATE accepts multimodal content parts.
     failure: Fail closed per part instead of silently degrading modality support.
     relations:
@@ -875,9 +866,9 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r085
     kind: rule
-    title: Remote OpenAI multimodal baseline is image plus audio
+    title: Remote OpenAI text implementation declares exact features
     modality: must
-    statement: The remote OpenAI text-chat multimodal mapper baseline is image plus audio with image URLs on the provider-native image input and audio URLs plus resolvable audio artifact refs mapped to provider-native audio input parts, video URLs and video artifact refs fail closed with AI_MEDIA_OPTION_UNSUPPORTED, and the generic OpenAI-compatible mapper never claims audio or video support reserved to the provider-native openai mapper.
+    statement: The remote OpenAI text.generate CapabilityImplementation and Driver declare support for input.image and input.audio and map those parts to provider-native inputs, do not declare input.video when video parts are unsupported, and the generic OpenAI-compatible implementation never inherits input.audio or input.video from provider family or protocol similarity; feature mismatch fails closed without target or provider switching.
     condition: Whenever remote OpenAI-family text multimodal requests are mapped.
     failure: Fail closed on unsupported modalities instead of pretending provider support.
     relations:
@@ -927,7 +918,7 @@ units:
     kind: rule
     title: Native binary managed backend is closed
     modality: must
-    statement: Native-binary image execution terminates at the managed image backend gRPC contract without calling llama model import routes, POST /v1/media/image/generate stays the only canonical app-facing execution surface with no second image control-plane API observable, proxy execution fails closed when it cannot reach the managed backend direct contract, package-source selection stays runtime-private without changing the public request path, response envelope, or app-visible provider and model contract, and unsupported managed-image package tuples fail closed with AI_LOCAL_MODEL_UNAVAILABLE before provider execution.
+    statement: A native-binary image CapabilityImplementationDriver invokes only its exact managed Local ExecutionHost protocol without calling llama import or execution routes, no second App-facing image control plane is observable, package-source and process details stay Runtime private, and an unsupported exact Driver and Host compatibility tuple fails closed before execution without selecting another backend, implementation, provider, or route.
     condition: Whenever a native-binary managed image backend path executes.
     failure: Fail closed instead of forwarding through llama or legacy management routes.
     relations:
@@ -935,19 +926,19 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r091
     kind: rule
-    title: nimillm executes resolved targets only
+    title: nimillm executes exact captured Cloud inputs only
     modality: must_not
-    statement: Outbound nimillm execution consumes a raw durable model id as an execution target or uses it for prefix or provider validation before target resolution instead of consuming the resolved v2 execution binding and post-resolve provider facts.
+    statement: Outbound nimillm execution consumes a raw durable model id, provider prefix, connector, catalog row, current AIConfig, or mutable resolved-binding object as execution authority instead of the Job-captured exact Cloud CapabilityImplementation, Driver-owned provider-model target configuration, ConnectorGrant authorization context and request.
     condition: Whenever nimillm receives an execution request.
-    failure: Reject unresolved durable identity before provider outbound.
+    failure: Reject incomplete or non-captured Cloud inputs before provider outbound.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.nimillm-plane
   - id: rule.nimi.runtime.ai-provider.r092
     kind: rule
-    title: nimillm boundary and prefix responsibility
+    title: Cloud Driver and Remote ExecutionHost responsibilities are separate
     modality: must
-    statement: nimillm owns remote execution adaptation without connector persistence responsibility, and model prefix and provider match validation completes before entering provider outbound.
+    statement: nimillm as a CapabilityImplementationDriver owns exact provider-target validation, protocol mapping, request, stream, response and error translation without ConnectorGrant or custody persistence, while Remote ExecutionHost owns transport and remote Job lifecycle; provider-model validation completes before Host dispatch and neither layer selects another route or target.
     condition: Whenever nimillm adapts a remote execution.
     failure: Reject outbound requests whose provider match validation has not completed.
     relations:
@@ -965,9 +956,9 @@ units:
         target: definition.nimi.runtime.ai-provider.nimillm-plane
   - id: rule.nimi.runtime.ai-provider.r094
     kind: rule
-    title: Execution routing is observable and audited
+    title: Committed Cloud composition is observable and audited
     modality: must
-    statement: Execution entry, routing decisions, and error exits write the unified audit fields, and route policy, backend name, and fallback decisions stay observable.
+    statement: Execution entry, the committed AIConfig route, exact Cloud CapabilityImplementation, Driver target, ConnectorGrant reference, Remote ExecutionHost dispatch and error exit write safe unified audit fields without secret material; no fallback decision exists to record because execution never switches implementation, provider, target, grant, Host, or route.
     condition: Whenever nimillm executes or routes a request.
     failure: Fail the auditable operation rather than executing unobservably.
     relations:
@@ -977,9 +968,9 @@ units:
     kind: rule
     title: Unsupported capability and availability are explicit
     modality: must
-    statement: Unsupported capabilities return AI_MODALITY_NOT_SUPPORTED explicitly, and availability gating and any internal fallback remain explicit and observable without silent degradation.
-    condition: Whenever nimillm evaluates capability support or availability.
-    failure: Return the explicit typed result instead of silent downgrade.
+    statement: Unsupported CapabilityContracts or standardized-feature mismatch return the exact typed failure, unavailable exact targets or provider failures end only the attempted Job, and nimillm and Remote ExecutionHost contain no internal fallback, provider switching, Local or Cloud switching, or silent degradation.
+    condition: Whenever nimillm validates support or executes an exact Cloud Job.
+    failure: Return the exact typed result for the committed composition without fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -987,123 +978,103 @@ units:
         target: definition.nimi.runtime.ai-provider.nimillm-plane
   - id: rule.nimi.runtime.ai-provider.r096
     kind: rule
-    title: Provider health state machine is fixed
-    modality: must
-    statement: Each AI provider keeps an independent health state of unknown, healthy, or unhealthy with transitions driven by probe outcomes, a consecutive failure counter that increments across failed probes and resets to zero on success, lastChangedAt updated on state change, lastCheckedAt updated on every probe, and snapshots exposing name, state, lastReason, consecutiveFailures, lastChangedAt, and lastCheckedAt.
-    condition: Whenever provider health state is probed or projected.
-    failure: Reject health projections outside the fixed state machine and snapshot shape.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+    lifecycle: removed
+    title: Retired provider health state machine
+    reason: Removed because periodic reachability and healthy or unhealthy snapshots are not product readiness, binding, selection, admission, or execution authority.
   - id: rule.nimi.runtime.ai-provider.r097
     kind: rule
-    title: Production probe targets are owner resolved
+    title: Production Host targets reject external injection
     modality: must_not
-    statement: Environment variables, argv, user configuration, Desktop, SDK, or renderer payloads, or raw keys create or override a production probe target, whose cloud form comes only from Runtime-owned connector and provider records with opaque custody refs, whose supervised local form comes from Runtime engine state, and whose admitted attached form comes from service-owned typed configuration, while the environment-name mapping survives only for separately signed synthetic non-product probe fixtures never loaded by a production Runtime or counted as product evidence.
-    condition: Whenever provider health probe targets are resolved.
-    failure: Reject externally injected production targets and fixture postures in production.
+    statement: Environment variables, argv, Desktop, SDK, renderer payloads, raw keys, catalog names, or process discovery create or override a production Remote ExecutionHost target; the target comes only from the exact Job-captured CapabilityImplementationDriver configuration and request-scoped ConnectorGrant custody context, while synthetic fixtures never load in production or count as product evidence.
+    condition: Whenever a production Remote ExecutionHost target is prepared.
+    failure: Reject externally injected targets and fixture posture in production.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
   - id: rule.nimi.runtime.ai-provider.r098
     kind: rule
-    title: Local probe target admission is bounded
+    title: ExecutionHost target admission is private and bounded
     modality: must
-    statement: The local image attribution target serves only daemon-managed image backend health attribution without an environment-assembled probe target and never replaces the local media execution probe, the local media target receives no automatic default loopback outside supported supervised hosts, and attached-only hosts probe only endpoints independently admitted in Runtime service-owned typed configuration without caller or environment injection.
-    condition: Whenever local provider probe targets are admitted.
-    failure: Reject caller-injected or environment-injected local probe targets.
+    statement: Before Host startup, Local and Remote ExecutionHost endpoints come only from exact Runtime-owned Host materialization or configuration associated with the committed Driver; a supervised Local Host may use private deterministic configuration or controlled allocation, an attached Local Host requires an exact admitted private endpoint, and a Remote Host consumes the exact Job-captured Driver target and ConnectorGrant custody context. Authority promises no product-level fixed port, caller or ambient inference, environment default, or endpoint identity in an App, AIConfig, AIProfile, Driver target choice, catalog, Local Capability Configuration, binding, machine selection, public probe, or readiness truth.
+    condition: Whenever an ExecutionHost target is admitted.
+    failure: Reject caller-injected, environment-injected, ambient, unmaterialized, or publicly projected Host endpoints and fail the exact Host composition without alternate endpoint routing.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
   - id: rule.nimi.runtime.ai-provider.r099
     kind: rule
-    title: Local image health attribution is matrix driven
+    title: Local image compatibility attribution is matrix driven
     modality: must
-    statement: Local image supervised health attribution consumes the v2 matrix resolver output entry id, backend family, backend class, and product state, unsupported or unadmitted-proposed entries report recognized-but-unsupported detail and fail closed with AI_LOCAL_MODEL_UNAVAILABLE, native-binary runtime control-plane assets attribute to the runtime-owned image control plane and its managed backend rather than to attached-only assets requiring external endpoints, attribution detail carries backend family, entry id, and internal reason key including python pipeline environment failures, and accelerator dependency states other than ready system or ready managed fail closed instead of reporting healthy.
-    condition: Whenever local image provider health is attributed.
-    failure: Fail closed with recognized-but-unsupported or dependency attribution instead of generic health.
+    statement: Exact local image CapabilityImplementationDriver and ExecutionHost compatibility consumes the canonical matrix implementation, Driver, backend family, Host class and product-support facts, unsupported entries return recognized-but-unsupported typed admission detail, and private attribution may include backend and environment reason keys without producing provider health, selecting topology, changing machine selection, or routing to an attached or llama path.
+    condition: Whenever exact local image compatibility is validated or attributed.
+    failure: Fail closed with recognized-but-unsupported or dependency detail for the exact composition.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
   - id: rule.nimi.runtime.ai-provider.r100
     kind: rule
-    title: Probe strategy is fixed
-    modality: must
-    statement: Provider probing uses the service-owned interval defaulting to 8 seconds and HTTP timeout defaulting to 30 seconds, tries /healthz then /v1/models where any 2xx is healthy, 401, 403, and 429 count as healthy reachability, 404 advances to the next path, and other 4xx and 5xx are unhealthy, the local media and local speech targets probe /healthz then /v1/catalog instead and never fall back to /v1/models, the first probe runs immediately at daemon start with periodic probes after, and probing pauses while the daemon is STOPPING or STOPPED.
-    condition: Whenever provider health probing runs.
-    failure: Reject probe behavior outside the fixed strategy.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+    lifecycle: removed
+    title: Retired periodic provider probe strategy
+    reason: Removed because provider reachability is not polled into product readiness; only explicit bounded Test Connector diagnostics and actual Jobs make outbound calls.
   - id: rule.nimi.runtime.ai-provider.r101
     kind: rule
-    title: Provider health answers reachability only
-    modality: must
-    statement: Provider health answers server reachability rather than credential validity or capability route readiness, consume failures keep their typed provider errors while the health panel may show healthy, local speech health never projects audio synthesis or transcription route readiness or admitted plain-speech success even after local workflow admission, an admitted workflow family success such as qwen3_tts is never generalized into generic local workflow health, and route, model, and asset health may consume provider health as reachability input without rewriting, overriding, or replacing the provider health truth owner.
-    condition: Whenever provider health is interpreted or consumed.
-    failure: Reject readiness or credential conclusions drawn from reachability truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+    lifecycle: removed
+    title: Retired provider health panel and reachability truth
+    reason: Removed because connection tests are explicit bounded diagnostics and never readiness, binding, selection, admission, or execution prerequisites.
   - id: rule.nimi.runtime.ai-provider.r102
     kind: rule
-    title: Media health endpoint stays truthful
+    title: Private Host health endpoints express process supervision only
     modality: must_not
-    statement: The local media health endpoint returns 2xx before dependencies, devices, the default model, and the default pipeline are all ready, or serves a static ok response masking readiness.
-    condition: Whenever the media engine health endpoint responds.
-    failure: Withhold healthy responses until real readiness holds.
+    statement: A private ExecutionHost health endpoint reports capability, model, workflow, pipeline or selected-configuration readiness, or serves a static response as execution feasibility; it may report only bounded process or transport supervision truth and cannot change binding, machine selection, derived admission, route, or Job outcome.
+    condition: Whenever a private Host health endpoint responds.
+    failure: Reject capability conclusions and keep process supervision private.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
   - id: rule.nimi.runtime.ai-provider.r103
     kind: rule
-    title: Provider health drives runtime status
-    modality: must
-    statement: When every probe target is unhealthy Runtime health degrades to DEGRADED with an ai-provider unavailable reason, recovery of any target restores READY when the degradation was provider caused, and state changes write audit events under the runtime.ai domain with the provider.health operation.
-    condition: Whenever provider health aggregates into Runtime status.
-    failure: Reject status transitions that skip the linkage or its audit evidence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+    lifecycle: removed
+    title: Retired provider-health Runtime status linkage
+    reason: Removed because provider probe targets do not drive daemon READY or DEGRADED state or capability readiness.
   - id: rule.nimi.runtime.ai-provider.r104
     kind: rule
-    title: Probe target mapping closed and detail private
+    title: ExecutionHost observability detail stays private
     modality: must
-    statement: Probe targets map to canonical provider types per the declared mapping with anthropic remaining a direct provider without a probe target, and v2 observation fields including backend family, backend class, product state, control plane, and execution plane plus speech-specific provider detail stay in runtime-private resolved detail, provider hint extras, or audit detail without new typed health snapshot proto fields.
-    condition: Whenever probe targets are mapped or health observability fields are projected.
-    failure: Reject undeclared target mappings and public typed exposure of runtime-private fields.
+    statement: Backend family, Host class, process state, transport target, control plane, execution plane and provider-specific details stay in Runtime-private supervision and safe audit records without public health snapshots, route or selection identity, and may explain an exact Job failure but never establish readiness or admission by themselves.
+    condition: Whenever ExecutionHost observability fields are recorded or projected.
+    failure: Reject public exposure or promotion of Runtime-private Host detail into product authority.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
   - id: rule.nimi.runtime.ai-provider.r105
     kind: rule
-    title: Gemini default endpoint is fixed
+    title: Gemini endpoint materialization is Host private
     modality: must
-    statement: A configured Gemini API key without a configured base URL auto-fills https://generativelanguage.googleapis.com/v1beta/openai, and no GEMINI_API_KEY environment fallback is supported.
-    condition: Whenever Gemini provider configuration is assembled.
-    failure: Reject undeclared Gemini environment fallbacks.
+    statement: The Gemini CapabilityImplementationDriver emits only its declared provider protocol and provider-model target semantics, while the Remote ExecutionHost materializes the exact base endpoint from Runtime-private Host configuration before dispatch; neither Driver target nor Connector, environment variable, caller, catalog, AIConfig, or Profile supplies a base endpoint, and Host configuration never becomes ConnectorGrant, route, provider-health, or machine-selection truth.
+    condition: Whenever Gemini Driver output and its Remote ExecutionHost are composed.
+    failure: Reject a Driver-, Connector-, environment-, caller-, catalog-, AIConfig-, or Profile-owned endpoint and every alternate endpoint fallback.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
+        target: definition.nimi.runtime.ai-provider.nimillm-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
   - id: rule.nimi.runtime.ai-provider.r106
     kind: rule
-    title: Managed image package table gates health
+    title: Managed image package table validates exact compatibility
     modality: must
-    statement: The managed image backend package table gates whether a recognized native-binary stablediffusion-ggml tuple may ever become healthy, health uses the tuple's canonical supported package source by default with runtime-private experimental sources affecting health only when explicitly selected inside runtime configuration, matrix-recognized but package-unsupported tuples report recognized-but-unsupported detail with the asset unavailable, and supported tuple attribution is based on the managed image backend gRPC target plus local media execution readiness rather than llama management routes.
-    condition: Whenever managed image backend health admission is evaluated.
-    failure: Keep the tuple unavailable with recognized-but-unsupported detail instead of llama-derived health.
+    statement: The managed image backend package table validates exact CapabilityImplementationDriver and Local ExecutionHost compatibility for recognized native-binary tuples, keeps package-source selection Runtime private, reports package-unsupported tuples as recognized-but-unsupported typed admission detail, and never produces public health, readiness, binding, machine selection, or a llama-derived alternate path.
+    condition: Whenever managed image Driver and Host compatibility is evaluated.
+    failure: Fail the exact composition with recognized-but-unsupported detail without fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
   - id: rule.nimi.runtime.ai-provider.r107
     kind: rule
-    title: Local App foreground text candidates stay exact and Runtime routed
+    title: Local App foreground text candidates consume App AIConfig
     modality: must
-    statement: The ai.text.generate Local App slice accepts only a bounded synchronous foreground request containing plain-text system and user messages plus bounded temperature, top-p, and output-token controls, Runtime derives the current account, App identity, permission decision, and managed local text route at execution time without fallback, and the response exposes only candidate text, finish reason, and trace correlation; the request and response contain no account, principal, Agent, provider, model, route, target, connector, credential, tool, media, artifact, source, raw-chunk, reasoning-trace, stream, job, or background-execution field.
+    statement: The ai.text.generate Local App slice accepts only a bounded synchronous foreground request containing plain-text system and user messages plus bounded temperature, top-p, and output-token controls; Runtime derives the current account, App identity, permission decision, and the calling App owner's committed AIConfig route, then deterministically composes Local with the current machine-selected text Local Capability Configuration or Cloud with the AIConfig-owned CapabilityImplementation, Driver target, and explicitly selected ConnectorGrant, returning selection-required when Cloud intent lacks a grant. The permission authorizes the call but never chooses Local or Cloud, overrides AIConfig, or creates fallback, and the response exposes only candidate text, finish reason, and trace correlation; request and response contain no account, principal, Agent, provider, model, route, target, connector, credential, tool, media, artifact, source, raw-chunk, reasoning-trace, stream, job, or background-execution field.
     condition: Whenever a third-party Local App generates owner-reviewable text candidate material.
-    failure: Reject unbounded or non-plain-text input, absent or revoked ai.text.generate permission, unavailable managed local text execution, and every caller-selected route or generic AI payload without fallback or synthesized output.
+    failure: Reject unbounded or non-plain-text input, absent or revoked ai.text.generate permission, absent or inadmissible owner AIConfig composition, and every caller-selected route or generic AI payload without forcing Local, changing the committed route, fallback, or synthesized output.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

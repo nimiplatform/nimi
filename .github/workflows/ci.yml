@@ -261,6 +261,8 @@ jobs:
         run: pnpm check:actionlint
       - name: authority.canonical.check
         run: pnpm spec:authority:check
+      - name: authority.configured-audit
+        run: pnpm spec:authority:audit
 
   workspace-regression:
     needs: changes

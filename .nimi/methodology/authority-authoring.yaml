@@ -1,4 +1,4 @@
-version: 2
+version: 4
 id: nimicoding.authority-authoring
 purpose: Author explicit .nimi/spec authority without inference.
 authority_boundary:
@@ -14,7 +14,7 @@ daily_workflow:
   - Modify only project-owned canonical authority. Choose every product value before writing; never infer an ID, owner, scope, condition, failure, or relation.
   - Run nimicoding authority fmt <changed-file> for each changed file.
   - Run nimicoding authority check <complete-path> [--scope-bindings <file>] --json; then compile. For repository anchors run nimicoding authority anchors <repository-path> --spec <corpus-path> [--scope-bindings <file>] --max-units <positive-safe-integer> --max-anchors <positive-safe-integer> --max-bytes <positive-safe-integer> --json.
-  - For semantic changes, run diff and impact with explicit budgets and complete inputs; address every obligation and rerun impact.
+  - For semantic changes, run diff and impact with explicit budgets and complete inputs. Treat returned obligations only as host-owned follow-up targets; run the project's real code, type, test, and gate workflow separately.
   - Never continue from compiler diagnostics, unknown IDs, budget failures, or partial/guessed results.
 
 source_profiles:
@@ -22,7 +22,7 @@ source_profiles:
     shape: "Closed mapping: format nimicoding.authority/v2; owner?; scope string?; units. Units/IDs/order unchanged."
     defaults: owner/rule scope inherit; unit overrides; definitions lack scope.
     omissions: lifecycle active and relations [] may be omitted; removed/reason stay explicit; missing owner/rule scope at both levels fails.
-    legacy: nimicoding.authority/v1 remains accepted unchanged; fmt --upgrade emits v2 and hoists uniform defaults.
+    format: nimicoding.authority/v2_only_without_legacy_migration_or_history_input
   markdown:
     shape: One unit per file. Front matter carries format, id, kind, owner, lifecycle, rule modality/scope, and relations.
     title: One plain H1.
@@ -67,38 +67,21 @@ relation_rules:
 
 formatter_and_diagnostics:
   - fmt canonicalizes; v2 strips redundant unit defaults but keeps container choices.
-  - fmt --upgrade emits v2, hoists uniform owner/single scope, and preserves compiled meaning.
+  - Any source format other than nimicoding.authority/v2 fails fmt, check, compile, diff, impact, and review admission.
   - check/compile use the complete path and fail closed; no public or partial AuthorityIR is emitted.
   - Diagnostics give locations, reasons, conflicts, and repair categories, never product values.
   - Fix values only from task or product authority. Do not invent container defaults, fallback data, historical inference, internal contracts, or wildcard corpus reading.
 
 change_workflow:
   diff: nimicoding authority diff <before-path> <after-path> --max-bytes <positive-integer> --json
-  impact: nimicoding authority impact <before-path> <after-path> --dispositions <file> --max-bytes <positive-integer> --json
+  candidates: nimicoding authority change-candidates <before-path> <after-path> --channels <comma-separated-closed-set> --max-candidates <positive-safe-integer> --max-reasons <positive-safe-integer> --max-bytes <positive-safe-integer> --json
+  impact: nimicoding authority impact <before-path> <after-path> --max-bytes <positive-integer> --json
   boundaries:
     - Diff compares complete canonical inputs; formatting, profile, file, and order-only changes are semantic zero.
-    - Impact follows declared reverse applies_to/supersedes only. Each impacted active rule needs evidence for every before/after scope consumer and one test obligation.
+    - Change candidates are the complete union only for caller-requested exact owner, scope, changed-term, direct-relation, Definition-identity, and Definition-title channels. They are recall inputs for AI or human judgment, never conflict, retirement, authority, absence, or conformance findings.
+    - Impact follows declared reverse applies_to/supersedes only and reports every before/after scope consumer plus one test follow-up target for each impacted active rule.
     - Diff/impact budgets cover complete compact payloads; budget failure returns no partial result.
-    - Dispositions are local evidence under .nimi/local, never authority or proof that implementation, consumers, or tests are synchronized.
-
-disposition_authoring:
-  workflow:
-    - Write the empty skeleton and run impact to obtain exact obligations from the failed result.
-    - Add exactly one entry per impacted active rule using real project evidence, then rerun impact with the same budget. Missing or extra dispositions fail.
-  empty_skeleton: |
-    format: nimicoding.authority-impact-dispositions/v1
-    rules: []
-  complete_example: |
-    format: nimicoding.authority-impact-dispositions/v1
-    rules:
-      - id: rule.checkout-session
-        consumers:
-          - scope: api.checkout
-            status: addressed
-            evidence: src/checkout/session-handler.ts
-        test:
-          status: addressed
-          evidence: tests/checkout-session.test.ts
+    - Impact accepts no disposition, receipt, external result, test outcome, or completion state. The host owns execution and workflow state.
 
 canonical_examples:
   complete_yaml_lifecycle: |

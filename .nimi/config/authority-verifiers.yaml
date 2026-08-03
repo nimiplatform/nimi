@@ -1,0 +1,86 @@
+format: nimicoding.authority-verifier-bindings/v2
+bindings:
+  - id: capability.lexical.absent-text-generate-vision
+    detector: exact-lexical-invariant/v1
+    term: text.generate.vision
+    match: token
+    expectation: absent
+    policy: blocking
+  - id: capability.lexical.absent-text-generate-audio
+    detector: exact-lexical-invariant/v1
+    term: text.generate.audio
+    match: token
+    expectation: absent
+    policy: blocking
+  - id: capability.lexical.absent-text-generate-video
+    detector: exact-lexical-invariant/v1
+    term: text.generate.video
+    match: token
+    expectation: absent
+    policy: blocking
+  - id: capability.lexical.absent-local-compute-pack-refs
+    detector: exact-lexical-invariant/v1
+    term: local_compute_pack_refs
+    match: token
+    expectation: absent
+    policy: blocking
+  - id: capability.lexical.absent-capability-slice-shape
+    detector: exact-lexical-invariant/v1
+    term: capability slice shape
+    match: phrase
+    expectation: absent
+    policy: blocking
+  - id: capability.lexical.absent-ai-profile-selection-ref
+    detector: exact-lexical-invariant/v1
+    term: ai_profile_selection_ref
+    match: token
+    expectation: absent
+    policy: blocking
+  - id: capability.lexical.absent-profile-binding-id
+    detector: exact-lexical-invariant/v1
+    term: profileBindingId
+    match: token
+    expectation: absent
+    policy: blocking
+  - id: capability.lexical.absent-readiness-ref
+    detector: exact-lexical-invariant/v1
+    term: readinessRef
+    match: token
+    expectation: absent
+    policy: blocking
+  - id: capability.lexical.present-text-generate
+    detector: exact-lexical-invariant/v1
+    term: text.generate
+    match: token
+    expectation: present
+    policy: blocking
+  - id: capability.lexical.present-input-image
+    detector: exact-lexical-invariant/v1
+    term: input.image
+    match: token
+    expectation: present
+    policy: blocking
+  - id: capability.lexical.present-input-audio
+    detector: exact-lexical-invariant/v1
+    term: input.audio
+    match: token
+    expectation: present
+    policy: blocking
+  - id: capability.lexical.present-input-video
+    detector: exact-lexical-invariant/v1
+    term: input.video
+    match: token
+    expectation: present
+    policy: blocking
+  - id: capability.lexical.present-ai-text-generate
+    detector: exact-lexical-invariant/v1
+    term: ai.text.generate
+    match: token
+    expectation: present
+    policy: blocking
+  - id: capability.lexical.present-ai-profile-recommendation-ref
+    detector: exact-lexical-invariant/v1
+    term: ai_profile_recommendation_ref
+    match: token
+    expectation: present
+    policy: blocking
