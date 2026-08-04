@@ -18,7 +18,6 @@ import {
   type NimiRuntimeAgentScopeRunner,
   type NimiRuntimeAgentTurnsRuntime,
   type NimiRuntimeRouteHostAccessClient,
-  type NimiRuntimeRouteOptionsHostRuntime,
   type RuntimeAccountModule,
 } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
@@ -302,17 +301,6 @@ export function getDesktopRouteHostAccessClient(): NimiRuntimeRouteHostAccessCli
     local: session.runtimeClients.machineProduct.local,
     connectors: {
       testConnector: (...args) => session.runtimeClients.accountProduct.connectors.testConnector(...args),
-    },
-  };
-}
-
-export function getDesktopRouteOptionsClient(): NimiRuntimeRouteOptionsHostRuntime {
-  const session = getDesktopRuntimeRealmSession();
-  return {
-    local: session.runtimeClients.machineProduct.local,
-    connectors: {
-      listConnectors: session.runtimeClients.machineProduct.connectors.listConnectors,
-      listConnectorModels: session.runtimeClients.accountProduct.connectors.listConnectorModels,
     },
   };
 }

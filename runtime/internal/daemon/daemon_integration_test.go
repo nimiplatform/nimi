@@ -407,7 +407,10 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	}()
 
 	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
-	waitForDaemonHookStatus(t, daemon, "agent-daemon-loop", runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED, 2*time.Second)
+	// With no shared AIConfig or machine execution binding configured, the
+	// life turn fails closed as an observable terminal hook failure
+	// (K-AGCORE-147); it is never silently completed or ambiently routed.
+	waitForDaemonHookStatus(t, daemon, "agent-daemon-loop", runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED, 2*time.Second)
 
 	cancel()
 	if err := <-done; err != nil {
