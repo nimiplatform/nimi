@@ -1151,7 +1151,47 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH = 684;
      */
-    AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH = 684
+    AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH = 684,
+    /**
+     * Machine Local AI Configuration mutations. These codes describe why one
+     * explicit exact-binding write did not commit; they are not persisted as
+     * Local Capability Configuration state or projected as readiness.
+     *
+     * @generated from protobuf enum value: AI_LOCAL_CONFIGURATION_NOT_FOUND = 685;
+     */
+    AI_LOCAL_CONFIGURATION_NOT_FOUND = 685,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_REQUIREMENT_NOT_FOUND = 686;
+     */
+    AI_LOCAL_REQUIREMENT_NOT_FOUND = 686,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_BINDING_CONFLICT = 687;
+     */
+    AI_LOCAL_BINDING_CONFLICT = 687,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_DRIVER_UNAVAILABLE = 688;
+     */
+    AI_LOCAL_DRIVER_UNAVAILABLE = 688,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_ASSET_NOT_FOUND = 689;
+     */
+    AI_LOCAL_ASSET_NOT_FOUND = 689,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_ASSET_CONTENT_UNVERIFIED = 690;
+     */
+    AI_LOCAL_ASSET_CONTENT_UNVERIFIED = 690,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_ASSET_CONTENT_MISMATCH = 691;
+     */
+    AI_LOCAL_ASSET_CONTENT_MISMATCH = 691,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_ASSET_INCOMPATIBLE = 692;
+     */
+    AI_LOCAL_ASSET_INCOMPATIBLE = 692,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE = 693;
+     */
+    AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE = 693
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

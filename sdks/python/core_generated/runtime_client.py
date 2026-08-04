@@ -1480,6 +1480,14 @@ RUNTIME_METHODS = [
     "response_type": "ApplyProfileResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
+    "service": "RuntimeLocalService",
+    "method": "BindLocalCapabilityRequirement",
+    "kind": "unary",
+    "request_type": "BindLocalCapabilityRequirementRequest",
+    "response_type": "BindLocalCapabilityRequirementResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
     "service": "RuntimeLocalService",
     "method": "CancelLocalEnvironmentDependencyJob",
@@ -1744,6 +1752,14 @@ RUNTIME_METHODS = [
     "response_type": "PrepareProfileRuntimeDescriptorResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement",
+    "service": "RuntimeLocalService",
+    "method": "RebindLocalCapabilityRequirement",
+    "kind": "unary",
+    "request_type": "RebindLocalCapabilityRequirementRequest",
+    "response_type": "RebindLocalCapabilityRequirementResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
     "service": "RuntimeLocalService",
     "method": "ReconcileProductControlFirstRunSetupState",
@@ -1942,6 +1958,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "StopLocalServiceRequest",
     "response_type": "StopLocalServiceResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
+    "service": "RuntimeLocalService",
+    "method": "UnbindLocalCapabilityRequirement",
+    "kind": "unary",
+    "request_type": "UnbindLocalCapabilityRequirementRequest",
+    "response_type": "UnbindLocalCapabilityRequirementResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",

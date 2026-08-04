@@ -353,6 +353,18 @@ pub enum ReasonCode {
     AgentAiConfigTargetUnavailable = 682,
     AgentAiConfigCapabilityMismatch = 683,
     AgentAiConfigModelTargetMismatch = 684,
+    /// Machine Local AI Configuration mutations. These codes describe why one
+    /// explicit exact-binding write did not commit; they are not persisted as
+    /// Local Capability Configuration state or projected as readiness.
+    AiLocalConfigurationNotFound = 685,
+    AiLocalRequirementNotFound = 686,
+    AiLocalBindingConflict = 687,
+    AiLocalDriverUnavailable = 688,
+    AiLocalAssetNotFound = 689,
+    AiLocalAssetContentUnverified = 690,
+    AiLocalAssetContentMismatch = 691,
+    AiLocalAssetIncompatible = 692,
+    AiLocalConfigurationPersistenceUnavailable = 693,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -656,6 +668,17 @@ impl ReasonCode {
             }
             Self::AgentAiConfigModelTargetMismatch => {
                 "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH"
+            }
+            Self::AiLocalConfigurationNotFound => "AI_LOCAL_CONFIGURATION_NOT_FOUND",
+            Self::AiLocalRequirementNotFound => "AI_LOCAL_REQUIREMENT_NOT_FOUND",
+            Self::AiLocalBindingConflict => "AI_LOCAL_BINDING_CONFLICT",
+            Self::AiLocalDriverUnavailable => "AI_LOCAL_DRIVER_UNAVAILABLE",
+            Self::AiLocalAssetNotFound => "AI_LOCAL_ASSET_NOT_FOUND",
+            Self::AiLocalAssetContentUnverified => "AI_LOCAL_ASSET_CONTENT_UNVERIFIED",
+            Self::AiLocalAssetContentMismatch => "AI_LOCAL_ASSET_CONTENT_MISMATCH",
+            Self::AiLocalAssetIncompatible => "AI_LOCAL_ASSET_INCOMPATIBLE",
+            Self::AiLocalConfigurationPersistenceUnavailable => {
+                "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE"
             }
         }
     }
@@ -1007,6 +1030,21 @@ impl ReasonCode {
             }
             "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH" => {
                 Some(Self::AgentAiConfigModelTargetMismatch)
+            }
+            "AI_LOCAL_CONFIGURATION_NOT_FOUND" => {
+                Some(Self::AiLocalConfigurationNotFound)
+            }
+            "AI_LOCAL_REQUIREMENT_NOT_FOUND" => Some(Self::AiLocalRequirementNotFound),
+            "AI_LOCAL_BINDING_CONFLICT" => Some(Self::AiLocalBindingConflict),
+            "AI_LOCAL_DRIVER_UNAVAILABLE" => Some(Self::AiLocalDriverUnavailable),
+            "AI_LOCAL_ASSET_NOT_FOUND" => Some(Self::AiLocalAssetNotFound),
+            "AI_LOCAL_ASSET_CONTENT_UNVERIFIED" => {
+                Some(Self::AiLocalAssetContentUnverified)
+            }
+            "AI_LOCAL_ASSET_CONTENT_MISMATCH" => Some(Self::AiLocalAssetContentMismatch),
+            "AI_LOCAL_ASSET_INCOMPATIBLE" => Some(Self::AiLocalAssetIncompatible),
+            "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE" => {
+                Some(Self::AiLocalConfigurationPersistenceUnavailable)
             }
             _ => None,
         }
@@ -8753,6 +8791,60 @@ pub struct ReprojectLocalCapabilityRequirementsResponse {
     #[prost(message, optional, tag = "1")]
     pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
 }
+/// LocalAssetExactBindingTarget is the exact asset identity observed by the
+/// caller. Runtime derives entry_sha256 from freshly verified bytes; callers
+/// never submit a path or an inferred digest.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAssetExactBindingTarget {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub expected_verified_content_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BindLocalCapabilityRequirementRequest {
+    #[prost(string, tag = "1")]
+    pub configuration_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub requirement_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub target: ::core::option::Option<LocalAssetExactBindingTarget>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BindLocalCapabilityRequirementResponse {
+    #[prost(message, optional, tag = "1")]
+    pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RebindLocalCapabilityRequirementRequest {
+    #[prost(string, tag = "1")]
+    pub configuration_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub requirement_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub expected_current_binding: ::core::option::Option<LocalAssetExactBinding>,
+    #[prost(message, optional, tag = "4")]
+    pub target: ::core::option::Option<LocalAssetExactBindingTarget>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RebindLocalCapabilityRequirementResponse {
+    #[prost(message, optional, tag = "1")]
+    pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UnbindLocalCapabilityRequirementRequest {
+    #[prost(string, tag = "1")]
+    pub configuration_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub requirement_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub expected_current_binding: ::core::option::Option<LocalAssetExactBinding>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnbindLocalCapabilityRequirementResponse {
+    #[prost(message, optional, tag = "1")]
+    pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum LocalCapabilityInterpretability {
@@ -10091,6 +10183,99 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "ReprojectLocalCapabilityRequirements",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn bind_local_capability_requirement(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::BindLocalCapabilityRequirementRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::BindLocalCapabilityRequirementResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "BindLocalCapabilityRequirement",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn rebind_local_capability_requirement(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RebindLocalCapabilityRequirementRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::RebindLocalCapabilityRequirementResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "RebindLocalCapabilityRequirement",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn unbind_local_capability_requirement(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UnbindLocalCapabilityRequirementRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UnbindLocalCapabilityRequirementResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "UnbindLocalCapabilityRequirement",
                     ),
                 );
             self.inner.unary(req, path, codec).await

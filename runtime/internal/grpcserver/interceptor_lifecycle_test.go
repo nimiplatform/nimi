@@ -71,6 +71,9 @@ func TestUnaryLifecycleInterceptorRejectsMachineLocalConfigurationWritesWhenStop
 	for _, fullMethod := range []string{
 		"/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
 		"/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
+		"/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
+		"/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement",
+		"/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
 	} {
 		handlerCalled := false
 		_, err := interceptor(context.Background(), struct{}{}, &grpc.UnaryServerInfo{FullMethod: fullMethod}, func(context.Context, any) (any, error) {

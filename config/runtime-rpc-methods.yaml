@@ -113,6 +113,15 @@ services:
       - name: ReprojectLocalCapabilityRequirements
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
+      - name: BindLocalCapabilityRequirement
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement
+      - name: RebindLocalCapabilityRequirement
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement
+      - name: UnbindLocalCapabilityRequirement
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement
       - name: ListLocalAssets
         type: unary
       - name: ListVerifiedAssets

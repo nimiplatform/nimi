@@ -10,6 +10,12 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeConnectorService/CreateConnector
     posture: mixed
   - method_id: /nimi.runtime.v1.RuntimeConnectorService/GetConnector

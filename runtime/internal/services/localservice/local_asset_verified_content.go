@@ -1,8 +1,12 @@
 package localservice
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -31,6 +35,58 @@ type localCapabilityAssetIdentityFingerprint struct {
 	ArtifactRoles string
 	Capabilities  string
 	Removed       bool
+}
+
+func (snapshot localCapabilityAssetInventorySnapshot) exactAsset(localAssetID string) *runtimev1.LocalAssetRecord {
+	localAssetID = strings.TrimSpace(localAssetID)
+	for _, asset := range snapshot.assets {
+		if asset != nil && strings.TrimSpace(asset.GetLocalAssetId()) == localAssetID {
+			return cloneLocalAsset(asset)
+		}
+	}
+	return nil
+}
+
+func (snapshot localCapabilityAssetInventorySnapshot) exactAssetStillMatchesLocked(s *Service, localAssetID string) bool {
+	if s == nil || strings.TrimSpace(s.localModelsPath) != snapshot.modelsRoot {
+		return false
+	}
+	before, beforeOK := exactLocalCapabilityAssetFingerprint(snapshot.assets, localAssetID)
+	current, currentOK := exactLocalCapabilityAssetFingerprintFromRecord(s.assets[strings.TrimSpace(localAssetID)])
+	return beforeOK && currentOK && reflect.DeepEqual(before, current)
+}
+
+func exactLocalCapabilityAssetFingerprint(assets []*runtimev1.LocalAssetRecord, localAssetID string) (localCapabilityAssetIdentityFingerprint, bool) {
+	localAssetID = strings.TrimSpace(localAssetID)
+	for _, asset := range assets {
+		if asset != nil && strings.TrimSpace(asset.GetLocalAssetId()) == localAssetID {
+			return exactLocalCapabilityAssetFingerprintFromRecord(asset)
+		}
+	}
+	return localCapabilityAssetIdentityFingerprint{}, false
+}
+
+func exactLocalCapabilityAssetFingerprintFromRecord(asset *runtimev1.LocalAssetRecord) (localCapabilityAssetIdentityFingerprint, bool) {
+	if asset == nil || strings.TrimSpace(asset.GetLocalAssetId()) == "" {
+		return localCapabilityAssetIdentityFingerprint{}, false
+	}
+	roles := normalizeStringSlice(asset.GetArtifactRoles())
+	capabilities := normalizeStringSlice(asset.GetCapabilities())
+	sort.Strings(roles)
+	sort.Strings(capabilities)
+	return localCapabilityAssetIdentityFingerprint{
+		LocalAssetID:  strings.TrimSpace(asset.GetLocalAssetId()),
+		AssetID:       strings.TrimSpace(asset.GetAssetId()),
+		Kind:          asset.GetKind(),
+		Engine:        strings.TrimSpace(asset.GetEngine()),
+		Entry:         strings.TrimSpace(asset.GetEntry()),
+		DeclaredHash:  exactDeclaredEntrySHA256(asset),
+		LogicalModel:  strings.TrimSpace(asset.GetLogicalModelId()),
+		SourceRepo:    strings.TrimSpace(asset.GetSource().GetRepo()),
+		ArtifactRoles: strings.Join(roles, "\x00"),
+		Capabilities:  strings.Join(capabilities, "\x00"),
+		Removed:       asset.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED,
+	}, true
 }
 
 func (s *Service) snapshotLocalCapabilityAssetInventory() localCapabilityAssetInventorySnapshot {
@@ -121,18 +177,30 @@ func (s *Service) verifyLocalCapabilityAssetContent(asset *runtimev1.LocalAssetR
 	if err != nil {
 		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
 	}
-	if err := validateManagedModelEntryFile(entryPath); err != nil {
-		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
-	}
-	before, err := os.Stat(entryPath)
+	verifiedEntryPath, err := resolveLocalCapabilityAssetPathWithinRoot(modelsRoot, entryPath)
 	if err != nil {
 		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
 	}
-	actualSHA256, err := computeFileSHA256(entryPath)
+	entryFile, err := os.Open(verifiedEntryPath)
 	if err != nil {
 		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
 	}
-	after, err := os.Stat(entryPath)
+	defer func() { _ = entryFile.Close() }()
+	before, err := entryFile.Stat()
+	if err != nil {
+		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
+	}
+	if err := validateManagedModelEntryOpenFile(verifiedEntryPath, entryFile, before); err != nil {
+		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
+	}
+	if err := validateOpenLocalCapabilityAssetEntry(modelsRoot, entryPath, before); err != nil {
+		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
+	}
+	actualSHA256, err := computeOpenFileSHA256(entryFile)
+	if err != nil {
+		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
+	}
+	after, err := entryFile.Stat()
 	if err != nil {
 		return capabilitydriver.AssetDescriptor{}, localCapabilityAssetVerificationReason(err), true
 	}
@@ -153,6 +221,61 @@ func (s *Service) verifyLocalCapabilityAssetContent(asset *runtimev1.LocalAssetR
 		Engine:            strings.TrimSpace(asset.GetEngine()),
 		ArtifactRoles:     normalizeStringSlice(asset.GetArtifactRoles()),
 	}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED, true
+}
+
+func resolveLocalCapabilityAssetPathWithinRoot(modelsRoot, entryPath string) (string, error) {
+	rootAbs, err := filepath.Abs(strings.TrimSpace(modelsRoot))
+	if err != nil {
+		return "", err
+	}
+	resolvedRoot, err := filepath.EvalSymlinks(rootAbs)
+	if err != nil {
+		return "", err
+	}
+	resolvedEntry, err := filepath.EvalSymlinks(strings.TrimSpace(entryPath))
+	if err != nil {
+		return "", err
+	}
+	relative, err := filepath.Rel(resolvedRoot, resolvedEntry)
+	if err != nil {
+		return "", err
+	}
+	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
+		return "", errors.New("local capability asset entry resolves outside the Runtime models root")
+	}
+	return resolvedEntry, nil
+}
+
+func validateOpenLocalCapabilityAssetEntry(modelsRoot, entryPath string, openedInfo os.FileInfo) error {
+	if openedInfo == nil || !openedInfo.Mode().IsRegular() {
+		return errors.New("local capability asset entry is not a regular file")
+	}
+	currentPath, err := resolveLocalCapabilityAssetPathWithinRoot(modelsRoot, entryPath)
+	if err != nil {
+		return err
+	}
+	currentInfo, err := os.Stat(currentPath)
+	if err != nil {
+		return err
+	}
+	if !os.SameFile(openedInfo, currentInfo) {
+		return errors.New("local capability asset entry changed during exact verification")
+	}
+	return nil
+}
+
+func computeOpenFileSHA256(file *os.File) (string, error) {
+	if file == nil {
+		return "", errors.New("local capability asset entry is unavailable")
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func localCapabilityAssetVerificationReason(err error) runtimev1.LocalCapabilityReason {

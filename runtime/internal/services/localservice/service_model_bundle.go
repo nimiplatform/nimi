@@ -104,28 +104,38 @@ func validateManagedModelEntryFile(path string) error {
 	if !info.Mode().IsRegular() {
 		return fmt.Errorf("managed local model entry is not a regular file")
 	}
-	switch strings.ToLower(filepath.Ext(entryPath)) {
-	case ".gguf":
-		if info.Size() < minManagedGGUFSizeBytes {
-			return fmt.Errorf("gguf payload too small")
-		}
-		file, err := os.Open(entryPath)
-		if err != nil {
-			return fmt.Errorf("open gguf entry: %w", err)
-		}
-		defer func() { _ = file.Close() }()
-		header := make([]byte, len(ggufMagicHeader))
-		if _, err := io.ReadFull(file, header); err != nil {
-			return fmt.Errorf("read gguf header: %w", err)
-		}
-		if string(header) != ggufMagicHeader {
-			return fmt.Errorf("gguf header invalid")
-		}
-		if placeholder, err := ggufLooksHeaderOnlyPlaceholder(file); err != nil {
-			return fmt.Errorf("inspect gguf payload: %w", err)
-		} else if placeholder {
-			return fmt.Errorf("gguf payload placeholder or truncated")
-		}
+	if strings.ToLower(filepath.Ext(entryPath)) != ".gguf" {
+		return nil
+	}
+	file, err := os.Open(entryPath)
+	if err != nil {
+		return fmt.Errorf("open gguf entry: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+	return validateManagedModelEntryOpenFile(entryPath, file, info)
+}
+
+func validateManagedModelEntryOpenFile(path string, file *os.File, info os.FileInfo) error {
+	if file == nil || info == nil || !info.Mode().IsRegular() {
+		return fmt.Errorf("managed local model entry is not a regular file")
+	}
+	if strings.ToLower(filepath.Ext(strings.TrimSpace(path))) != ".gguf" {
+		return nil
+	}
+	if info.Size() < minManagedGGUFSizeBytes {
+		return fmt.Errorf("gguf payload too small")
+	}
+	header := make([]byte, len(ggufMagicHeader))
+	if _, err := file.ReadAt(header, 0); err != nil {
+		return fmt.Errorf("read gguf header: %w", err)
+	}
+	if string(header) != ggufMagicHeader {
+		return fmt.Errorf("gguf header invalid")
+	}
+	if placeholder, err := ggufLooksHeaderOnlyPlaceholder(file); err != nil {
+		return fmt.Errorf("inspect gguf payload: %w", err)
+	} else if placeholder {
+		return fmt.Errorf("gguf payload placeholder or truncated")
 	}
 	return nil
 }

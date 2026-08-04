@@ -1497,6 +1497,15 @@ const (
 	AGENTAICONFIGTARGETUNAVAILABLE ReasonCode = "AGENT_AI_CONFIG_TARGET_UNAVAILABLE"
 	AGENTAICONFIGCAPABILITYMISMATCH ReasonCode = "AGENT_AI_CONFIG_CAPABILITY_MISMATCH"
 	AGENTAICONFIGMODELTARGETMISMATCH ReasonCode = "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH"
+	AILOCALCONFIGURATIONNOTFOUND ReasonCode = "AI_LOCAL_CONFIGURATION_NOT_FOUND"
+	AILOCALREQUIREMENTNOTFOUND ReasonCode = "AI_LOCAL_REQUIREMENT_NOT_FOUND"
+	AILOCALBINDINGCONFLICT ReasonCode = "AI_LOCAL_BINDING_CONFLICT"
+	AILOCALDRIVERUNAVAILABLE ReasonCode = "AI_LOCAL_DRIVER_UNAVAILABLE"
+	AILOCALASSETNOTFOUND ReasonCode = "AI_LOCAL_ASSET_NOT_FOUND"
+	AILOCALASSETCONTENTUNVERIFIED ReasonCode = "AI_LOCAL_ASSET_CONTENT_UNVERIFIED"
+	AILOCALASSETCONTENTMISMATCH ReasonCode = "AI_LOCAL_ASSET_CONTENT_MISMATCH"
+	AILOCALASSETINCOMPATIBLE ReasonCode = "AI_LOCAL_ASSET_INCOMPATIBLE"
+	AILOCALCONFIGURATIONPERSISTENCEUNAVAILABLE ReasonCode = "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE"
 )
 
 type ReasoningMode string
@@ -2559,6 +2568,16 @@ type BindLocalAppProcessResponse struct {
 	LaunchId []byte `json:"launch_id,omitempty"`
 	BindDeadline string `json:"bind_deadline,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type BindLocalCapabilityRequirementRequest struct {
+	ConfigurationId string `json:"configuration_id,omitempty"`
+	RequirementId string `json:"requirement_id,omitempty"`
+	Target *LocalAssetExactBindingTarget `json:"target,omitempty"`
+}
+
+type BindLocalCapabilityRequirementResponse struct {
+	Configuration *LocalCapabilityConfiguration `json:"configuration,omitempty"`
 }
 
 type CancelCompanionParticipationRequest struct {
@@ -4800,6 +4819,11 @@ type LocalAssetExactBinding struct {
 	EntrySha256 string `json:"entry_sha256,omitempty"`
 }
 
+type LocalAssetExactBindingTarget struct {
+	LocalAssetId string `json:"local_asset_id,omitempty"`
+	ExpectedVerifiedContentId string `json:"expected_verified_content_id,omitempty"`
+}
+
 type LocalAssetHealth struct {
 	LocalAssetId string `json:"local_asset_id,omitempty"`
 	Status LocalAssetStatus `json:"status,omitempty"`
@@ -6232,6 +6256,17 @@ type ReasoningStreamDelta struct {
 	Text string `json:"text,omitempty"`
 }
 
+type RebindLocalCapabilityRequirementRequest struct {
+	ConfigurationId string `json:"configuration_id,omitempty"`
+	RequirementId string `json:"requirement_id,omitempty"`
+	ExpectedCurrentBinding *LocalAssetExactBinding `json:"expected_current_binding,omitempty"`
+	Target *LocalAssetExactBindingTarget `json:"target,omitempty"`
+}
+
+type RebindLocalCapabilityRequirementResponse struct {
+	Configuration *LocalCapabilityConfiguration `json:"configuration,omitempty"`
+}
+
 type RecallRequest struct {
 	Context *MemoryRequestContext `json:"context,omitempty"`
 	Bank *MemoryBankLocator `json:"bank,omitempty"`
@@ -7416,6 +7451,16 @@ type TraverseGraphRequest struct {
 type TraverseGraphResponse struct {
 	Nodes []KnowledgeGraphNode `json:"nodes,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+type UnbindLocalCapabilityRequirementRequest struct {
+	ConfigurationId string `json:"configuration_id,omitempty"`
+	RequirementId string `json:"requirement_id,omitempty"`
+	ExpectedCurrentBinding *LocalAssetExactBinding `json:"expected_current_binding,omitempty"`
+}
+
+type UnbindLocalCapabilityRequirementResponse struct {
+	Configuration *LocalCapabilityConfiguration `json:"configuration,omitempty"`
 }
 
 type UpdateAgentStateRequest struct {
@@ -9383,6 +9428,14 @@ func (c RuntimeTypedClient) ApplyProfile(ctx context.Context, request ApplyProfi
 	return decodeRuntimeTypedResponse[ApplyProfileResponse](raw, "ApplyProfileResponse")
 }
 
+func (c RuntimeTypedClient) BindLocalCapabilityRequirement(ctx context.Context, request BindLocalCapabilityRequirementRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BindLocalCapabilityRequirementResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement", request, metadata, timeoutMS)
+	if err != nil {
+		return BindLocalCapabilityRequirementResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[BindLocalCapabilityRequirementResponse](raw, "BindLocalCapabilityRequirementResponse")
+}
+
 func (c RuntimeTypedClient) CancelLocalEnvironmentDependencyJob(ctx context.Context, request CancelLocalEnvironmentDependencyJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalEnvironmentDependencyJobResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", request, metadata, timeoutMS)
 	if err != nil {
@@ -9647,6 +9700,14 @@ func (c RuntimeTypedClient) PrepareProfileRuntimeDescriptor(ctx context.Context,
 	return decodeRuntimeTypedResponse[PrepareProfileRuntimeDescriptorResponse](raw, "PrepareProfileRuntimeDescriptorResponse")
 }
 
+func (c RuntimeTypedClient) RebindLocalCapabilityRequirement(ctx context.Context, request RebindLocalCapabilityRequirementRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RebindLocalCapabilityRequirementResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement", request, metadata, timeoutMS)
+	if err != nil {
+		return RebindLocalCapabilityRequirementResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RebindLocalCapabilityRequirementResponse](raw, "RebindLocalCapabilityRequirementResponse")
+}
+
 func (c RuntimeTypedClient) ReconcileProductControlFirstRunSetupState(ctx context.Context, request ReconcileProductControlFirstRunSetupStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", request, metadata, timeoutMS)
 	if err != nil {
@@ -9845,6 +9906,14 @@ func (c RuntimeTypedClient) StopLocalService(ctx context.Context, request StopLo
 		return StopLocalServiceResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[StopLocalServiceResponse](raw, "StopLocalServiceResponse")
+}
+
+func (c RuntimeTypedClient) UnbindLocalCapabilityRequirement(ctx context.Context, request UnbindLocalCapabilityRequirementRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UnbindLocalCapabilityRequirementResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement", request, metadata, timeoutMS)
+	if err != nil {
+		return UnbindLocalCapabilityRequirementResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UnbindLocalCapabilityRequirementResponse](raw, "UnbindLocalCapabilityRequirementResponse")
 }
 
 func (c RuntimeTypedClient) WarmLocalAsset(ctx context.Context, request WarmLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WarmLocalAssetResponse, error) {

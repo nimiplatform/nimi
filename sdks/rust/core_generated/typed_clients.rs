@@ -2186,6 +2186,15 @@ pub enum ReasonCode {
     AGENTAICONFIGTARGETUNAVAILABLE,
     AGENTAICONFIGCAPABILITYMISMATCH,
     AGENTAICONFIGMODELTARGETMISMATCH,
+    AILOCALCONFIGURATIONNOTFOUND,
+    AILOCALREQUIREMENTNOTFOUND,
+    AILOCALBINDINGCONFLICT,
+    AILOCALDRIVERUNAVAILABLE,
+    AILOCALASSETNOTFOUND,
+    AILOCALASSETCONTENTUNVERIFIED,
+    AILOCALASSETCONTENTMISMATCH,
+    AILOCALASSETINCOMPATIBLE,
+    AILOCALCONFIGURATIONPERSISTENCEUNAVAILABLE,
 }
 
 impl Default for ReasonCode {
@@ -5724,6 +5733,66 @@ impl BindLocalAppProcessResponse {
         }
 
         out.bind_deadline = pairs.get("bind_deadline").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BindLocalCapabilityRequirementRequest {
+    pub configuration_id: Option<String>,
+    pub requirement_id: Option<String>,
+    pub target: Option<Box<LocalAssetExactBindingTarget>>,
+}
+
+impl BindLocalCapabilityRequirementRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.configuration_id { pairs.push(format!("configuration_id={}", value)); }
+        if let Some(value) = &self.requirement_id { pairs.push(format!("requirement_id={}", value)); }
+        if self.target.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["target"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.configuration_id = pairs.get("configuration_id").cloned();
+        out.requirement_id = pairs.get("requirement_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BindLocalCapabilityRequirementResponse {
+    pub configuration: Option<Box<LocalCapabilityConfiguration>>,
+}
+
+impl BindLocalCapabilityRequirementResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.configuration.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode configuration"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["configuration"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
         out
     }
 }
@@ -16740,6 +16809,30 @@ impl LocalAssetExactBinding {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAssetExactBindingTarget {
+    pub local_asset_id: Option<String>,
+    pub expected_verified_content_id: Option<String>,
+}
+
+impl LocalAssetExactBindingTarget {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.local_asset_id { pairs.push(format!("local_asset_id={}", value)); }
+        if let Some(value) = &self.expected_verified_content_id { pairs.push(format!("expected_verified_content_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.local_asset_id = pairs.get("local_asset_id").cloned();
+        out.expected_verified_content_id = pairs.get("expected_verified_content_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAssetHealth {
     pub local_asset_id: Option<String>,
     pub status: Option<LocalAssetStatus>,
@@ -22757,6 +22850,68 @@ impl ReasoningStreamDelta {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RebindLocalCapabilityRequirementRequest {
+    pub configuration_id: Option<String>,
+    pub requirement_id: Option<String>,
+    pub expected_current_binding: Option<Box<LocalAssetExactBinding>>,
+    pub target: Option<Box<LocalAssetExactBindingTarget>>,
+}
+
+impl RebindLocalCapabilityRequirementRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.configuration_id { pairs.push(format!("configuration_id={}", value)); }
+        if let Some(value) = &self.requirement_id { pairs.push(format!("requirement_id={}", value)); }
+        if self.expected_current_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode expected_current_binding"); }
+        if self.target.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["expected_current_binding", "target"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.configuration_id = pairs.get("configuration_id").cloned();
+        out.requirement_id = pairs.get("requirement_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RebindLocalCapabilityRequirementResponse {
+    pub configuration: Option<Box<LocalCapabilityConfiguration>>,
+}
+
+impl RebindLocalCapabilityRequirementResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.configuration.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode configuration"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["configuration"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RecallRequest {
     pub context: Option<Box<MemoryRequestContext>>,
     pub bank: Option<Box<MemoryBankLocator>>,
@@ -28529,6 +28684,66 @@ impl TraverseGraphResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UnbindLocalCapabilityRequirementRequest {
+    pub configuration_id: Option<String>,
+    pub requirement_id: Option<String>,
+    pub expected_current_binding: Option<Box<LocalAssetExactBinding>>,
+}
+
+impl UnbindLocalCapabilityRequirementRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.configuration_id { pairs.push(format!("configuration_id={}", value)); }
+        if let Some(value) = &self.requirement_id { pairs.push(format!("requirement_id={}", value)); }
+        if self.expected_current_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode expected_current_binding"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["expected_current_binding"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.configuration_id = pairs.get("configuration_id").cloned();
+        out.requirement_id = pairs.get("requirement_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UnbindLocalCapabilityRequirementResponse {
+    pub configuration: Option<Box<LocalCapabilityConfiguration>>,
+}
+
+impl UnbindLocalCapabilityRequirementResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.configuration.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode configuration"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["configuration"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateAgentStateRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -30826,6 +31041,18 @@ impl From<Vec<u8>> for BindLocalAppProcessResponse {
     }
 }
 
+impl From<Vec<u8>> for BindLocalCapabilityRequirementRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for BindLocalCapabilityRequirementResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for CancelCompanionParticipationRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32896,6 +33123,12 @@ impl From<Vec<u8>> for LocalAssetExactBinding {
     }
 }
 
+impl From<Vec<u8>> for LocalAssetExactBindingTarget {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for LocalAssetHealth {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33827,6 +34060,18 @@ impl From<Vec<u8>> for ReasoningConfig {
 }
 
 impl From<Vec<u8>> for ReasoningStreamDelta {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RebindLocalCapabilityRequirementRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RebindLocalCapabilityRequirementResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34907,6 +35152,18 @@ impl From<Vec<u8>> for TraverseGraphRequest {
 }
 
 impl From<Vec<u8>> for TraverseGraphResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for UnbindLocalCapabilityRequirementRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for UnbindLocalCapabilityRequirementResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37132,6 +37389,16 @@ where
         Ok(ApplyProfileResponse::from_transport(&raw))
     }
 
+    pub fn bind_local_capability_requirement(&self, request: BindLocalCapabilityRequirementRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BindLocalCapabilityRequirementResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(BindLocalCapabilityRequirementResponse::from_transport(&raw))
+    }
+
     pub fn cancel_local_environment_dependency_job(&self, request: CancelLocalEnvironmentDependencyJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelLocalEnvironmentDependencyJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob".to_string(),
@@ -37462,6 +37729,16 @@ where
         Ok(PrepareProfileRuntimeDescriptorResponse::from_transport(&raw))
     }
 
+    pub fn rebind_local_capability_requirement(&self, request: RebindLocalCapabilityRequirementRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RebindLocalCapabilityRequirementResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RebindLocalCapabilityRequirementResponse::from_transport(&raw))
+    }
+
     pub fn reconcile_product_control_first_run_setup_state(&self, request: ReconcileProductControlFirstRunSetupStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState".to_string(),
@@ -37710,6 +37987,16 @@ where
             timeout,
         })?;
         Ok(StopLocalServiceResponse::from_transport(&raw))
+    }
+
+    pub fn unbind_local_capability_requirement(&self, request: UnbindLocalCapabilityRequirementRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UnbindLocalCapabilityRequirementResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(UnbindLocalCapabilityRequirementResponse::from_transport(&raw))
     }
 
     pub fn warm_local_asset(&self, request: WarmLocalAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WarmLocalAssetResponse, T::Error> {

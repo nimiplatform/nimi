@@ -23,6 +23,9 @@ const (
 	RuntimeLocalService_GetLocalCapabilityConfiguration_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration"
 	RuntimeLocalService_AddLocalCapabilityConfiguration_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration"
 	RuntimeLocalService_ReprojectLocalCapabilityRequirements_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements"
+	RuntimeLocalService_BindLocalCapabilityRequirement_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement"
+	RuntimeLocalService_RebindLocalCapabilityRequirement_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement"
+	RuntimeLocalService_UnbindLocalCapabilityRequirement_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement"
 	RuntimeLocalService_ListLocalAssets_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
 	RuntimeLocalService_ListVerifiedAssets_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
 	RuntimeLocalService_InstallVerifiedAsset_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
@@ -95,6 +98,9 @@ type RuntimeLocalServiceClient interface {
 	GetLocalCapabilityConfiguration(ctx context.Context, in *GetLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*GetLocalCapabilityConfigurationResponse, error)
 	AddLocalCapabilityConfiguration(ctx context.Context, in *AddLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*AddLocalCapabilityConfigurationResponse, error)
 	ReprojectLocalCapabilityRequirements(ctx context.Context, in *ReprojectLocalCapabilityRequirementsRequest, opts ...grpc.CallOption) (*ReprojectLocalCapabilityRequirementsResponse, error)
+	BindLocalCapabilityRequirement(ctx context.Context, in *BindLocalCapabilityRequirementRequest, opts ...grpc.CallOption) (*BindLocalCapabilityRequirementResponse, error)
+	RebindLocalCapabilityRequirement(ctx context.Context, in *RebindLocalCapabilityRequirementRequest, opts ...grpc.CallOption) (*RebindLocalCapabilityRequirementResponse, error)
+	UnbindLocalCapabilityRequirement(ctx context.Context, in *UnbindLocalCapabilityRequirementRequest, opts ...grpc.CallOption) (*UnbindLocalCapabilityRequirementResponse, error)
 	// Asset CRUD (unified)
 	ListLocalAssets(ctx context.Context, in *ListLocalAssetsRequest, opts ...grpc.CallOption) (*ListLocalAssetsResponse, error)
 	ListVerifiedAssets(ctx context.Context, in *ListVerifiedAssetsRequest, opts ...grpc.CallOption) (*ListVerifiedAssetsResponse, error)
@@ -213,6 +219,36 @@ func (c *runtimeLocalServiceClient) ReprojectLocalCapabilityRequirements(ctx con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ReprojectLocalCapabilityRequirementsResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_ReprojectLocalCapabilityRequirements_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) BindLocalCapabilityRequirement(ctx context.Context, in *BindLocalCapabilityRequirementRequest, opts ...grpc.CallOption) (*BindLocalCapabilityRequirementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BindLocalCapabilityRequirementResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_BindLocalCapabilityRequirement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) RebindLocalCapabilityRequirement(ctx context.Context, in *RebindLocalCapabilityRequirementRequest, opts ...grpc.CallOption) (*RebindLocalCapabilityRequirementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RebindLocalCapabilityRequirementResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_RebindLocalCapabilityRequirement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) UnbindLocalCapabilityRequirement(ctx context.Context, in *UnbindLocalCapabilityRequirementRequest, opts ...grpc.CallOption) (*UnbindLocalCapabilityRequirementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnbindLocalCapabilityRequirementResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_UnbindLocalCapabilityRequirement_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -847,6 +883,9 @@ type RuntimeLocalServiceServer interface {
 	GetLocalCapabilityConfiguration(context.Context, *GetLocalCapabilityConfigurationRequest) (*GetLocalCapabilityConfigurationResponse, error)
 	AddLocalCapabilityConfiguration(context.Context, *AddLocalCapabilityConfigurationRequest) (*AddLocalCapabilityConfigurationResponse, error)
 	ReprojectLocalCapabilityRequirements(context.Context, *ReprojectLocalCapabilityRequirementsRequest) (*ReprojectLocalCapabilityRequirementsResponse, error)
+	BindLocalCapabilityRequirement(context.Context, *BindLocalCapabilityRequirementRequest) (*BindLocalCapabilityRequirementResponse, error)
+	RebindLocalCapabilityRequirement(context.Context, *RebindLocalCapabilityRequirementRequest) (*RebindLocalCapabilityRequirementResponse, error)
+	UnbindLocalCapabilityRequirement(context.Context, *UnbindLocalCapabilityRequirementRequest) (*UnbindLocalCapabilityRequirementResponse, error)
 	// Asset CRUD (unified)
 	ListLocalAssets(context.Context, *ListLocalAssetsRequest) (*ListLocalAssetsResponse, error)
 	ListVerifiedAssets(context.Context, *ListVerifiedAssetsRequest) (*ListVerifiedAssetsResponse, error)
@@ -941,6 +980,15 @@ func (UnimplementedRuntimeLocalServiceServer) AddLocalCapabilityConfiguration(co
 }
 func (UnimplementedRuntimeLocalServiceServer) ReprojectLocalCapabilityRequirements(context.Context, *ReprojectLocalCapabilityRequirementsRequest) (*ReprojectLocalCapabilityRequirementsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReprojectLocalCapabilityRequirements not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) BindLocalCapabilityRequirement(context.Context, *BindLocalCapabilityRequirementRequest) (*BindLocalCapabilityRequirementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BindLocalCapabilityRequirement not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) RebindLocalCapabilityRequirement(context.Context, *RebindLocalCapabilityRequirementRequest) (*RebindLocalCapabilityRequirementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RebindLocalCapabilityRequirement not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) UnbindLocalCapabilityRequirement(context.Context, *UnbindLocalCapabilityRequirementRequest) (*UnbindLocalCapabilityRequirementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UnbindLocalCapabilityRequirement not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) ListLocalAssets(context.Context, *ListLocalAssetsRequest) (*ListLocalAssetsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalAssets not implemented")
@@ -1213,6 +1261,60 @@ func _RuntimeLocalService_ReprojectLocalCapabilityRequirements_Handler(srv inter
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).ReprojectLocalCapabilityRequirements(ctx, req.(*ReprojectLocalCapabilityRequirementsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_BindLocalCapabilityRequirement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BindLocalCapabilityRequirementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).BindLocalCapabilityRequirement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_BindLocalCapabilityRequirement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).BindLocalCapabilityRequirement(ctx, req.(*BindLocalCapabilityRequirementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_RebindLocalCapabilityRequirement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RebindLocalCapabilityRequirementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).RebindLocalCapabilityRequirement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_RebindLocalCapabilityRequirement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).RebindLocalCapabilityRequirement(ctx, req.(*RebindLocalCapabilityRequirementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_UnbindLocalCapabilityRequirement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnbindLocalCapabilityRequirementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).UnbindLocalCapabilityRequirement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_UnbindLocalCapabilityRequirement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).UnbindLocalCapabilityRequirement(ctx, req.(*UnbindLocalCapabilityRequirementRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2330,6 +2432,18 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReprojectLocalCapabilityRequirements",
 			Handler:    _RuntimeLocalService_ReprojectLocalCapabilityRequirements_Handler,
+		},
+		{
+			MethodName: "BindLocalCapabilityRequirement",
+			Handler:    _RuntimeLocalService_BindLocalCapabilityRequirement_Handler,
+		},
+		{
+			MethodName: "RebindLocalCapabilityRequirement",
+			Handler:    _RuntimeLocalService_RebindLocalCapabilityRequirement_Handler,
+		},
+		{
+			MethodName: "UnbindLocalCapabilityRequirement",
+			Handler:    _RuntimeLocalService_UnbindLocalCapabilityRequirement_Handler,
 		},
 		{
 			MethodName: "ListLocalAssets",

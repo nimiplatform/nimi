@@ -26,6 +26,9 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration
       - method_id: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth
       - method_id: /nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset

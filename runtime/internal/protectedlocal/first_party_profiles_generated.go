@@ -63,6 +63,12 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth":
@@ -354,6 +360,9 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset", Kind: FirstPartyMethodUnary},

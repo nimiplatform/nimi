@@ -128,3 +128,42 @@ message ReprojectLocalCapabilityRequirementsRequest {
 message ReprojectLocalCapabilityRequirementsResponse {
   LocalCapabilityConfiguration configuration = 1;
 }
+
+// LocalAssetExactBindingTarget is the exact asset identity observed by the
+// caller. Runtime derives entry_sha256 from freshly verified bytes; callers
+// never submit a path or an inferred digest.
+message LocalAssetExactBindingTarget {
+  string local_asset_id = 1;
+  string expected_verified_content_id = 2;
+}
+
+message BindLocalCapabilityRequirementRequest {
+  string configuration_id = 1;
+  string requirement_id = 2;
+  LocalAssetExactBindingTarget target = 3;
+}
+
+message BindLocalCapabilityRequirementResponse {
+  LocalCapabilityConfiguration configuration = 1;
+}
+
+message RebindLocalCapabilityRequirementRequest {
+  string configuration_id = 1;
+  string requirement_id = 2;
+  LocalAssetExactBinding expected_current_binding = 3;
+  LocalAssetExactBindingTarget target = 4;
+}
+
+message RebindLocalCapabilityRequirementResponse {
+  LocalCapabilityConfiguration configuration = 1;
+}
+
+message UnbindLocalCapabilityRequirementRequest {
+  string configuration_id = 1;
+  string requirement_id = 2;
+  LocalAssetExactBinding expected_current_binding = 3;
+}
+
+message UnbindLocalCapabilityRequirementResponse {
+  LocalCapabilityConfiguration configuration = 1;
+}

@@ -1488,6 +1488,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ApplyProfileResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
+        service: "RuntimeLocalService",
+        method: "BindLocalCapabilityRequirement",
+        kind: "unary",
+        request_type: "BindLocalCapabilityRequirementRequest",
+        response_type: "BindLocalCapabilityRequirementResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
         service: "RuntimeLocalService",
         method: "CancelLocalEnvironmentDependencyJob",
@@ -1752,6 +1760,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "PrepareProfileRuntimeDescriptorResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement",
+        service: "RuntimeLocalService",
+        method: "RebindLocalCapabilityRequirement",
+        kind: "unary",
+        request_type: "RebindLocalCapabilityRequirementRequest",
+        response_type: "RebindLocalCapabilityRequirementResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
         service: "RuntimeLocalService",
         method: "ReconcileProductControlFirstRunSetupState",
@@ -1950,6 +1966,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "StopLocalServiceRequest",
         response_type: "StopLocalServiceResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
+        service: "RuntimeLocalService",
+        method: "UnbindLocalCapabilityRequirement",
+        kind: "unary",
+        request_type: "UnbindLocalCapabilityRequirementRequest",
+        response_type: "UnbindLocalCapabilityRequirementResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",

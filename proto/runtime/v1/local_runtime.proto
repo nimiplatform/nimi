@@ -672,6 +672,9 @@ service RuntimeLocalService {
   rpc GetLocalCapabilityConfiguration(GetLocalCapabilityConfigurationRequest) returns (GetLocalCapabilityConfigurationResponse);
   rpc AddLocalCapabilityConfiguration(AddLocalCapabilityConfigurationRequest) returns (AddLocalCapabilityConfigurationResponse);
   rpc ReprojectLocalCapabilityRequirements(ReprojectLocalCapabilityRequirementsRequest) returns (ReprojectLocalCapabilityRequirementsResponse);
+  rpc BindLocalCapabilityRequirement(BindLocalCapabilityRequirementRequest) returns (BindLocalCapabilityRequirementResponse);
+  rpc RebindLocalCapabilityRequirement(RebindLocalCapabilityRequirementRequest) returns (RebindLocalCapabilityRequirementResponse);
+  rpc UnbindLocalCapabilityRequirement(UnbindLocalCapabilityRequirementRequest) returns (UnbindLocalCapabilityRequirementResponse);
 
   // Asset CRUD (unified)
   rpc ListLocalAssets(ListLocalAssetsRequest) returns (ListLocalAssetsResponse);
