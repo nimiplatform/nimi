@@ -95,6 +95,25 @@ pub async fn local_app_permission_request(
     }
 }
 
+#[napi(js_name = "localAppAIConfigGet")]
+pub async fn local_app_ai_config_get() -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.app_ai_config_get().await }).await
+}
+
+#[napi(js_name = "localAppAIConfigOverwrite")]
+pub async fn local_app_ai_config_overwrite(
+    input: NativeAIConfigOverwriteInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .app_ai_config_overwrite(LocalAppAIConfigOverwriteRequest {
+                capabilities: input.capabilities,
+            })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppTextGenerateCandidate")]
 pub async fn local_app_text_generate_candidate(
     input: NativeTextCandidateInput,

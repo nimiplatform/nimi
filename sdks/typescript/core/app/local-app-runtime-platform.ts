@@ -5,6 +5,11 @@ import {
   type NimiAgentCapabilityPosture,
 } from './agent-capability-posture.js';
 import {
+  createNimiLocalAppAIConfigClient,
+  type NimiLocalAppAIConfigClient,
+  type NimiLocalAppAIConfigShell,
+} from './local-app-runtime-platform-ai-config.js';
+import {
   createNimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentConfigureShell,
@@ -59,6 +64,10 @@ import {
   type PermissionStatus,
 } from './permission-types.js';
 
+export type {
+  NimiLocalAppAIConfigClient,
+  NimiLocalAppAIConfigShell,
+} from './local-app-runtime-platform-ai-config.js';
 export type {
   NimiLocalAppConversationAttachment,
   NimiLocalAppConversationEvent,
@@ -161,6 +170,7 @@ export type NimiLocalAppStandardShell = {
       readonly generateCandidate: (input: NimiLocalAppTextCandidateInput) => Promise<unknown>;
     };
   };
+  readonly aiConfig: NimiLocalAppAIConfigShell;
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<unknown>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<unknown>;
@@ -206,6 +216,7 @@ export type NimiLocalAppClient = {
       ) => Promise<NimiLocalAppTextCandidateResult>;
     };
   };
+  readonly aiConfig: NimiLocalAppAIConfigClient;
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiAppRuntimeStorageDocument>;
     readonly writeJson: (
@@ -240,8 +251,8 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  assertExactKeys(standardShell, ['session', 'permission', 'ai', 'storage', 'realm', 'conversation', 'agentConfigure', 'artifacts'], 'local-app standardShell');
-  if (Object.keys(standardShell).length !== 8) {
+  assertExactKeys(standardShell, ['session', 'permission', 'ai', 'aiConfig', 'storage', 'realm', 'conversation', 'agentConfigure', 'artifacts'], 'local-app standardShell');
+  if (Object.keys(standardShell).length !== 9) {
     return localAppError(
       'Host-injected local-app standardShell namespaces are incomplete.',
       'SDK_LOCAL_APP_CARRIER_REQUIRED',
@@ -259,6 +270,7 @@ export function createNimiLocalAppClient(
     );
   }
   assertExactMethodNamespace(ai.text, ['generateCandidate'], 'ai.text');
+  assertExactMethodNamespace(standardShell.aiConfig, ['get', 'overwrite'], 'aiConfig');
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
   const realm = asRecord(standardShell.realm);
   if (!realm || Object.keys(realm).length !== 1 || !Object.hasOwn(realm, 'worldCore')) {
@@ -334,6 +346,7 @@ export function createNimiLocalAppClient(
     ai: Object.freeze({
       text: createTextCandidateClient(standardShell.ai.text),
     }),
+    aiConfig: createNimiLocalAppAIConfigClient(standardShell.aiConfig),
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
     realm: Object.freeze({
       worldCore: createWorldCoreClient(standardShell.realm.worldCore),

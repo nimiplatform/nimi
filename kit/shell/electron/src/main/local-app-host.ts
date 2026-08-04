@@ -8,6 +8,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionRenew',
   'localAppPermissionStatus',
   'localAppPermissionRequest',
+  'localAppAIConfigGet',
+  'localAppAIConfigOverwrite',
   'localAppTextGenerateCandidate',
   'localAppRealmWorldCoreList',
   'localAppRealmWorldCoreCreate',
@@ -79,6 +81,9 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'agent-ai-config-model-target-mismatch',
   'agent-autonomy-revision-conflict',
   'agent-presentation-revision-conflict',
+  'ai-config-invalid',
+  'ai-config-not-found',
+  'ai-config-persistence-unavailable',
   'invalid-payload',
   'not-found',
   'resource-exhausted',
@@ -161,6 +166,8 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAIConfigGet: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -192,6 +199,8 @@ export type NimiElectronLocalAppHost = {
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
   readonly permissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
   readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
+  readonly aiConfigGet: () => Promise<NimiElectronLocalAppRecord>;
+  readonly aiConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly realmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -266,6 +275,14 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
       () => this.binding.localAppPermissionRequest(input),
       exactText(input.permissionId),
     );
+  }
+
+  aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAIConfigGet());
+  }
+
+  aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAIConfigOverwrite(input));
   }
 
   textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -388,6 +405,14 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
     return this.resolve().permissionRequest(input);
+  }
+
+  aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().aiConfigGet();
+  }
+
+  aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().aiConfigOverwrite(input);
   }
 
   textGenerateCandidate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {

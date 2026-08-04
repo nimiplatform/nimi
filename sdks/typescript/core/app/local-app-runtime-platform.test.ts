@@ -41,6 +41,16 @@ function standardShell(overrides: Record<string, unknown> = {}) {
         }),
       },
     },
+    aiConfig: {
+      get: async () => ({
+        owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+        capabilities: [],
+      }),
+      overwrite: async (capabilities: unknown) => ({
+        owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+        capabilities,
+      }),
+    },
     storage: {
       readJson: async () => ({ value: { version: 1 }, sizeBytes: 13 }),
       writeJson: async (_path: string, value: unknown) => ({ value, sizeBytes: 13 }),
@@ -83,7 +93,7 @@ function standardShell(overrides: Record<string, unknown> = {}) {
 
 test('local-app client exposes only admitted typed namespaces', async () => {
   const client = createLocalAppClient({ standardShell: standardShell() });
-  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'ai', 'artifacts', 'auth', 'conversation', 'permissions', 'realm', 'storage']);
+  assert.deepEqual(Object.keys(client).sort(), ['agentConfigure', 'ai', 'aiConfig', 'artifacts', 'auth', 'conversation', 'permissions', 'realm', 'storage']);
   assert.deepEqual(await client.auth.status(), {
     mode: 'local-app',
     state: 'session-bound',
@@ -93,6 +103,56 @@ test('local-app client exposes only admitted typed namespaces', async () => {
     retryable: false,
   });
   assert.equal('agent' in client, false);
+});
+
+test('App AIConfig carrier fixes owner outside renderer input', async () => {
+  const calls: unknown[] = [];
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      aiConfig: {
+        get: async () => ({
+          owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+          capabilities: [],
+        }),
+        overwrite: async (capabilities: unknown) => {
+          calls.push(capabilities);
+          return {
+            owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+            capabilities,
+          };
+        },
+      },
+    }),
+  });
+  const intent = {
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+    route: { oneofKind: 'local' as const, local: {} },
+  };
+  await assert.doesNotReject(() => client.aiConfig.get());
+  const committed = await client.aiConfig.overwrite([intent]);
+  assert.deepEqual(calls, [[intent]]);
+  assert.equal(committed.owner?.owner.oneofKind, 'app');
+  assert.equal('appId' in client.aiConfig, false);
+  assert.equal('owner' in client.aiConfig, false);
+});
+
+test('App AIConfig carrier rejects owner injection and mismatched projection shape', async () => {
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      aiConfig: {
+        get: async () => ({ owner: {}, capabilities: [] }),
+        overwrite: async () => ({ owner: {}, capabilities: [] }),
+      },
+    }),
+  });
+  await assert.rejects(() => client.aiConfig.get(), /invalid App AIConfig owner projection/u);
+  await assert.rejects(() => client.aiConfig.overwrite([{
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+    route: { oneofKind: 'local', local: {} },
+    owner: { appId: 'forbidden' },
+  } as never]), /unsupported fields/u);
 });
 
 test('text candidate generation forwards only bounded prompt controls', async () => {

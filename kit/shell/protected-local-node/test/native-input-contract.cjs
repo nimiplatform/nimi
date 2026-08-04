@@ -23,6 +23,7 @@ const addon = nativeModule.exports;
 const agentHandle = 'lah_contract_nonexistent';
 
 const calls = [
+  ['localAppAIConfigOverwrite', { capabilities: [] }],
   ['localAppRealmWorldCoreList', { take: 1, visibility: 'private' }],
   ['localAppRealmWorldCoreCreate', {
     body: { core: {}, origin: { kind: 'manual' }, visibility: 'private' },
@@ -71,7 +72,10 @@ const calls = [
 ];
 
 async function main() {
-  const outcomes = calls.map(([name, input]) => {
+  assert.equal(typeof addon.localAppAIConfigGet, 'function', 'localAppAIConfigGet export is missing');
+  const aiConfigGet = addon.localAppAIConfigGet();
+  assert.equal(typeof aiConfigGet?.then, 'function', 'localAppAIConfigGet must return a Promise');
+  const outcomes = [aiConfigGet, ...calls.map(([name, input]) => {
     assert.equal(typeof addon[name], 'function', `${name} export is missing`);
     let operation;
     assert.doesNotThrow(() => {
@@ -79,7 +83,7 @@ async function main() {
     }, `${name} must accept the canonical JS agentHandle field`);
     assert.equal(typeof operation?.then, 'function', `${name} must return a Promise`);
     return operation;
-  });
+  })];
 
   for (const outcome of await Promise.all(outcomes)) {
     assert.equal(outcome?.status, 'error', 'nonexistent Agent handles must fail closed');

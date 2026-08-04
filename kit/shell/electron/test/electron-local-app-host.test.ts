@@ -76,6 +76,8 @@ describe('Electron protected local-app host', () => {
     });
     await expect(host.permissionRequest({ permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-electron-1' }))
       .resolves.toMatchObject({ state: 'unavailable', permissionId: 'agents.interact', canRequest: false });
+    await expect(host.aiConfigGet()).resolves.toMatchObject({ capabilities: [] });
+    await expect(host.aiConfigOverwrite({ capabilities: [] })).resolves.toMatchObject({ capabilities: [] });
     await expect(host.textGenerateCandidate({
       messages: [{ role: 'user', text: 'Create one persona.' }],
       temperature: 0.7,
@@ -120,6 +122,8 @@ describe('Electron protected local-app host', () => {
       'localAppSessionStatus',
       'localAppPermissionStatus',
       'localAppPermissionRequest',
+      'localAppAIConfigGet',
+      'localAppAIConfigOverwrite',
       'localAppTextGenerateCandidate',
       'localAppRealmWorldCoreList',
       'localAppRealmWorldCoreCreate',
@@ -342,6 +346,12 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppPermissionStatus: record('localAppPermissionStatus', unavailable),
     localAppPermissionRequest: record('localAppPermissionRequest', unavailable),
+    localAppAIConfigGet: record('localAppAIConfigGet', {
+      owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [],
+    }),
+    localAppAIConfigOverwrite: record('localAppAIConfigOverwrite', {
+      owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [],
+    }),
     localAppTextGenerateCandidate: record('localAppTextGenerateCandidate', {
       text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1',
     }),

@@ -90,6 +90,10 @@ import {
 // --- Root facade ------------------------------------------------------------
 export { NimiClient, createNimiClient } from '@nimiplatform/sdk';
 export type { NimiClientConfig } from '@nimiplatform/sdk';
+export type {
+  NimiCapabilityAIConfig,
+  NimiCapabilityAIConfigIntent,
+} from '@nimiplatform/sdk/ai';
 
 // --- Runtime type family ----------------------------------------------------
 // `Runtime`, `ScenarioJobStatus`, catalog enums, and catalog client factories

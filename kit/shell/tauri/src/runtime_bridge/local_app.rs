@@ -5,11 +5,12 @@ use nimi_shell_protected_local::MacOsLocalAppCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
-    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionStatus,
-    LocalAppPermissionStatusRequest, LocalAppReasonCode, LocalAppSessionStatus,
-    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiLocalAppCarrier,
-    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, NimiLocalAppSession,
+    LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppPermissionRequest,
+    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppSessionStatus, LocalAppStorageDocument, LocalAppStorageReadRequest,
+    LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
+    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, NimiLocalAppCarrier,
+    NimiLocalAppSession,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -100,6 +101,31 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<LocalAppTextCandidateResult, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.generate_text_candidate(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn app_ai_config_get(&self) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.app_ai_config_get().await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn app_ai_config_overwrite(
+        &self,
+        request: LocalAppAIConfigOverwriteRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.app_ai_config_overwrite(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

@@ -150,6 +150,9 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         683 => LocalAppReasonCode::AgentAiConfigCapabilityMismatch,
         684 => LocalAppReasonCode::AgentAiConfigModelTargetMismatch,
         614 => LocalAppReasonCode::AgentPresentationRevisionConflict,
+        694 => LocalAppReasonCode::AiConfigInvalid,
+        695 => LocalAppReasonCode::AiConfigNotFound,
+        696 => LocalAppReasonCode::AiConfigPersistenceUnavailable,
         566 => LocalAppReasonCode::InvalidPath,
         567 => LocalAppReasonCode::NotFound,
         568 => LocalAppReasonCode::ResourceExhausted,
@@ -216,6 +219,9 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AGENT_PRESENTATION_REVISION_CONFLICT" => {
             LocalAppReasonCode::AgentPresentationRevisionConflict
         }
+        "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
+        "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
+        "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,
         "LOCAL_APP_PRESENCE_EXPIRED" => LocalAppReasonCode::PresenceExpired,
         "PROTOCOL_ENVELOPE_INVALID" => LocalAppReasonCode::InvalidPayload,
         "APP_STORAGE_PATH_INVALID" => LocalAppReasonCode::InvalidPath,

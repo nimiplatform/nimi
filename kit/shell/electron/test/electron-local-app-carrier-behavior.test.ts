@@ -10,6 +10,8 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.sessionStatus',
   'nimi.shell.localApp.permissionStatus',
   'nimi.shell.localApp.permissionRequest',
+  'nimi.shell.localApp.aiConfigGet',
+  'nimi.shell.localApp.aiConfigOverwrite',
   'nimi.shell.localApp.textGenerateCandidate',
   'nimi.shell.localApp.conversationOpen',
   'nimi.shell.localApp.conversationSendTurn',

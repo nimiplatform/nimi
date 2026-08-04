@@ -16,6 +16,36 @@ describe('renderer local-app standard-shell surface', () => {
     )).toBe('local_app_text_generate_candidate');
   });
 
+  it('maps owner-free App AIConfig operations to exact host commands', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    const config = {
+      owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+      capabilities: [{
+        capabilityContract: 'text.generate',
+        requiredFeatures: [],
+        route: { oneofKind: 'local', local: {} },
+      }],
+    };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return config;
+      },
+      listen: () => () => {},
+    };
+    const aiConfig = createNimiLocalAppStandardShellSurface().aiConfig;
+    await expect(aiConfig.get()).resolves.toEqual(config);
+    await expect(aiConfig.overwrite(config.capabilities as never)).resolves.toEqual(config);
+    expect(invocations).toEqual([
+      { command: 'nimi.shell.localApp.aiConfigGet', payload: {} },
+      {
+        command: 'nimi.shell.localApp.aiConfigOverwrite',
+        payload: { payload: { capabilities: config.capabilities } },
+      },
+    ]);
+    expect(JSON.stringify(invocations)).not.toContain('app.example');
+  });
+
   it('is consumed directly by the SDK without an app-local adapter', async () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string) => {

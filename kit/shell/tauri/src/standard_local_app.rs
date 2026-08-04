@@ -1,7 +1,7 @@
 use nimi_shell_protected_local::{
-    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionStatusRequest,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
+    LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppPermissionRequest,
+    LocalAppPermissionStatusRequest, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageWriteRequest, LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -43,6 +43,12 @@ pub struct LocalAppTextCandidatePayload {
     temperature: f32,
     top_p: f32,
     max_tokens: i32,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAIConfigOverwritePayload {
+    capabilities: Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -198,6 +204,26 @@ pub async fn text_generate_candidate_for_host(
     }))
 }
 
+pub async fn ai_config_get_for_host(host: &RuntimeBridgeLocalAppHost) -> Result<Value, String> {
+    host.app_ai_config_get().await.map_err(map_local_app_error)
+}
+
+pub async fn ai_config_overwrite_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAIConfigOverwritePayload =
+        parse_payload(payload, "local_app_ai_config_overwrite")?;
+    if !payload.capabilities.is_array() {
+        return Err(invalid_payload("local_app_ai_config_overwrite"));
+    }
+    host.app_ai_config_overwrite(LocalAppAIConfigOverwriteRequest {
+        capabilities: payload.capabilities,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
 pub async fn storage_read_json_for_host(
     host: &RuntimeBridgeLocalAppHost,
     payload: Value,
@@ -283,13 +309,15 @@ fn map_local_app_error(error: LocalAppOperationError) -> String {
 fn standard_code(reason: &str) -> &'static str {
     match reason {
         "protected-carrier-required" => "protected-carrier-required",
-        "runtime-service-unavailable" => "runtime-service-unavailable",
+        "runtime-service-unavailable" | "ai-config-persistence-unavailable" => {
+            "runtime-service-unavailable"
+        }
         "runtime-service-untrusted" => "runtime-service-untrusted",
         "runtime-service-error-unclassified" => "runtime-service-error-unclassified",
         "runtime-service-repair-required" => "runtime-service-repair-required",
         "runtime-unauthenticated" => "runtime-unauthenticated",
-        "invalid-payload" => "invalid-payload",
-        "not-found" => "not-found",
+        "invalid-payload" | "ai-config-invalid" => "invalid-payload",
+        "not-found" | "ai-config-not-found" => "not-found",
         "resource-exhausted" => "resource-exhausted",
         _ => "runtime-permission-denied",
     }

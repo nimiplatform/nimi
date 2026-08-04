@@ -37,6 +37,34 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([]);
   });
 
+  it('routes App AIConfig without accepting renderer owner identity', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'],
+      payload: { payload: {} },
+    })).resolves.toMatchObject({ capabilities: [] });
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'],
+      payload: { payload: { capabilities: [{
+        capabilityContract: 'text.generate', requiredFeatures: [],
+        route: { oneofKind: 'local', local: {} },
+      }] } },
+    })).resolves.toMatchObject({ capabilities: [] });
+    expect(calls).toEqual([
+      ['aiConfigGet'],
+      ['aiConfigOverwrite', { capabilities: [{
+        capabilityContract: 'text.generate', requiredFeatures: [],
+        route: { oneofKind: 'local', local: {} },
+      }] }],
+    ]);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'],
+      payload: { payload: { capabilities: [{ owner: { appId: 'forged' } }] } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+  });
+
   it('rejects a permission reason beyond 240 UTF-8 bytes before invoking the protected host', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
@@ -394,6 +422,14 @@ function localAppHost(calls: unknown[]) {
         state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
         reasonCode: 'local-app-operation-unavailable', agents: [],
       };
+    },
+    aiConfigGet: async () => {
+      calls.push(['aiConfigGet']);
+      return { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] };
+    },
+    aiConfigOverwrite: async (input: unknown) => {
+      calls.push(['aiConfigOverwrite', input]);
+      return { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] };
     },
     realmWorldCoreList: async (input: unknown) => {
       calls.push(['realmWorldCoreList', input]);

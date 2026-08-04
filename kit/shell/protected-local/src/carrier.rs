@@ -69,6 +69,9 @@ pub enum LocalAppReasonCode {
     AgentAiConfigModelTargetMismatch,
     AgentAutonomyRevisionConflict,
     AgentPresentationRevisionConflict,
+    AiConfigInvalid,
+    AiConfigNotFound,
+    AiConfigPersistenceUnavailable,
     OperationUnavailable,
     InvalidPayload,
     InvalidPath,
@@ -123,6 +126,9 @@ impl LocalAppReasonCode {
             Self::AgentAiConfigModelTargetMismatch => "agent-ai-config-model-target-mismatch",
             Self::AgentAutonomyRevisionConflict => "agent-autonomy-revision-conflict",
             Self::AgentPresentationRevisionConflict => "agent-presentation-revision-conflict",
+            Self::AiConfigInvalid => "ai-config-invalid",
+            Self::AiConfigNotFound => "ai-config-not-found",
+            Self::AiConfigPersistenceUnavailable => "ai-config-persistence-unavailable",
             Self::OperationUnavailable => "local-app-operation-unavailable",
             Self::InvalidPayload => "invalid-payload",
             Self::InvalidPath => "invalid-path",
@@ -273,6 +279,11 @@ pub struct LocalAppTextCandidateResult {
     pub text: String,
     pub finish_reason: String,
     pub trace_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAIConfigOverwriteRequest {
+    pub capabilities: JsonValue,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -731,6 +742,15 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn app_ai_config_get(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn app_ai_config_overwrite(
+        &self,
+        request: LocalAppAIConfigOverwriteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn realm_world_core_list(
         &self,

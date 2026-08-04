@@ -24,7 +24,9 @@ Runtime artifact bytes and bounded image artifact upload, three protected
 principal-partitioned JSON storage
 operations, the selected RuntimeAgent conversation operations, bounded
 Runtime-selected foreground text candidates, bounded Runtime-selected agent
-voice transcription, and exact correlated agent voice stream subscription.
+voice transcription, exact correlated agent voice stream subscription, and
+owner-free whole-object App AIConfig get/overwrite operations whose exact App
+owner is derived by Runtime from the protected Local App session.
 
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,

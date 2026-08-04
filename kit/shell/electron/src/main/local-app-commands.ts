@@ -32,6 +32,8 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'], 'permissionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'], 'aiConfigGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'], 'aiConfigOverwrite'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'], 'textGenerateCandidate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'], 'realmWorldCoreList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'], 'realmWorldCoreCreate'],
@@ -73,6 +75,7 @@ export async function dispatchElectronLocalAppCommand(input: {
   if (!input.host) throw carrierRequired(input.command);
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
+    if (method === 'aiConfigGet') return await input.host.aiConfigGet();
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
@@ -116,6 +119,17 @@ function validatePayload(
     case 'sessionStatus':
       assertExactKeys(payload, [], command);
       return {};
+    case 'aiConfigGet':
+      assertExactKeys(payload, [], command);
+      return {};
+    case 'aiConfigOverwrite':
+      assertExactKeys(payload, ['capabilities'], command);
+      if (!Array.isArray(payload.capabilities)) {
+        throw invalidPayload(command, 'capabilities is invalid');
+      }
+      assertNoAIConfigOwner(payload.capabilities, command);
+      validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
+      return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
     case 'permissionStatus':
       return identifiers(payload, ['permissionId'], command);
     case 'permissionRequest':
@@ -448,6 +462,21 @@ function assertNoForbiddenAuthorityValue(value: unknown, command: string): void 
   }
 }
 
+function assertNoAIConfigOwner(value: unknown, command: string): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) assertNoAIConfigOwner(entry, command);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    const normalized = key.replace(/[^a-z0-9]/giu, '').toLowerCase();
+    if (normalized === 'owner' || normalized === 'appid') {
+      throw invalidPayload(command, `renderer AIConfig owner field ${key} is forbidden`);
+    }
+    assertNoAIConfigOwner(entry, command);
+  }
+}
+
 function assertNoForbiddenAuthority(payload: Readonly<Record<string, unknown>>, command: string): void {
   for (const key of Object.keys(payload)) {
     if (FORBIDDEN_RENDERER_FIELDS.has(key)) {
@@ -604,9 +633,12 @@ function standardCode(reasonCode: string) {
     case 'runtime-service-error-unclassified': return 'runtime-service-error-unclassified' as const;
     case 'runtime-service-repair-required': return 'runtime-service-repair-required' as const;
     case 'runtime-unauthenticated': return 'runtime-unauthenticated' as const;
-    case 'invalid-payload': return 'invalid-payload' as const;
+    case 'invalid-payload':
+    case 'ai-config-invalid': return 'invalid-payload' as const;
     case 'invalid-path': return 'invalid-path' as const;
-    case 'not-found': return 'not-found' as const;
+    case 'not-found':
+    case 'ai-config-not-found': return 'not-found' as const;
+    case 'ai-config-persistence-unavailable': return 'runtime-service-unavailable' as const;
     case 'resource-exhausted': return 'resource-exhausted' as const;
     default: return 'runtime-permission-denied' as const;
   }

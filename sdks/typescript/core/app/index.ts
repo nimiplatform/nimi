@@ -102,6 +102,8 @@ export type {
   NimiAppPermissionStatusInput,
   NimiLocalAppClient,
   NimiLocalAppClientInput,
+  NimiLocalAppAIConfigClient,
+  NimiLocalAppAIConfigShell,
   NimiLocalAppStandardShell,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationAttachment,

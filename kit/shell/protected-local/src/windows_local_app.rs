@@ -1,3 +1,4 @@
+mod app_ai_config;
 mod artifact;
 mod configure;
 mod conversation;
@@ -23,11 +24,11 @@ use crate::windows_peer_trust::VerifiedRuntimePeer;
 #[cfg(target_os = "windows")]
 use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
-    LocalAppAgentAIProfileApplyRequest, LocalAppAgentAIProfilePreviewRequest,
-    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConfigurationRequest,
-    LocalAppArtifactPutRequest, LocalAppArtifactPutResult, LocalAppArtifactReadRequest,
-    LocalAppArtifactReadResult, LocalAppConversationInterruptRequest,
+    LocalAppAIConfigOverwriteRequest, LocalAppAgentAIProfileApplyRequest,
+    LocalAppAgentAIProfilePreviewRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAgentUpdateConfigurationRequest, LocalAppArtifactPutRequest, LocalAppArtifactPutResult,
+    LocalAppArtifactReadRequest, LocalAppArtifactReadResult, LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
@@ -169,6 +170,27 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             text_candidate::generate(self.checked_channel()?, request).await
+        })
+    }
+
+    fn app_ai_config_get(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_ai_config::get(self.checked_channel()?).await
+        })
+    }
+
+    fn app_ai_config_overwrite(
+        &self,
+        request: LocalAppAIConfigOverwriteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_ai_config::overwrite(self.checked_channel()?, request).await
         })
     }
 

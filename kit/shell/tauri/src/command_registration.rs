@@ -37,6 +37,16 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
+        command_name: "local_app_ai_config_get",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_ai_config_get",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_ai_config_overwrite",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_ai_config_overwrite",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
         command_name: "local_app_text_generate_candidate",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_text_generate_candidate",
         boundary: ShellCommandBoundary::LocalApp,
@@ -411,6 +421,8 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_session_status,
             $crate::capabilities::local_app::local_app_permission_status,
             $crate::capabilities::local_app::local_app_permission_request,
+            $crate::capabilities::local_app::local_app_ai_config_get,
+            $crate::capabilities::local_app::local_app_ai_config_overwrite,
             $crate::capabilities::local_app::local_app_text_generate_candidate,
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,

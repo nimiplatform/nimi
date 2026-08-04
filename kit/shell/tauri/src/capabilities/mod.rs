@@ -663,6 +663,21 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_ai_config_get(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::ai_config_get_for_host(host.inner()).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_ai_config_overwrite(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::ai_config_overwrite_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
     pub async fn local_app_text_generate_candidate(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,

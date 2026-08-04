@@ -155,6 +155,11 @@ pub struct NativePermissionRequestInput {
 }
 
 #[napi(object)]
+pub struct NativeAIConfigOverwriteInput {
+    pub capabilities: JsonValue,
+}
+
+#[napi(object)]
 pub struct NativeTextCandidateMessage {
     pub role: String,
     pub text: String,
