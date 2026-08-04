@@ -5,7 +5,6 @@ import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
   createNimiElectronStandardApplicationMenuTemplate,
-  createNimiElectronFileAIConfigStore,
   getElectronStandardShellCapabilityIds,
   registerNimiElectronRuntimeBridge,
   type ElectronRuntimeBridgeTrustedMetadataProvider,
@@ -148,7 +147,6 @@ describe('Electron standard shell capability catalog', () => {
       'nimi.shell.desktopOpen.openIntent',
     ]);
     expect(localAppSet?.plannedOperations).toEqual(expect.arrayContaining([
-      'ai-config.get',
       'data.pathResolve',
       'config.get',
     ]));

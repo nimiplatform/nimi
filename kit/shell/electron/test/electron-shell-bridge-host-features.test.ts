@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import path from 'node:path';
-import { readFile } from 'node:fs/promises';
 import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
   createNimiElectronStandardApplicationMenuTemplate,
-  createNimiElectronFileAIConfigStore,
   getElectronStandardShellCapabilityIds,
   registerNimiElectronRuntimeBridge,
   type ElectronRuntimeBridgeTrustedMetadataProvider,
@@ -31,7 +28,6 @@ import {
   invokeBridge,
   toBase64,
   withEnvVars,
-  withTempDir,
 } from './electron-shell-test-utils.js';
 
 describe('registerNimiElectronRuntimeBridge', () => {
@@ -581,89 +577,4 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
   });
 
-  it('implements AI Config get/set through a host-owned standard store', async () => {
-    const configs = new Map<string, unknown>();
-    const ipcMain = new FakeIpcMain();
-    registerNimiElectronRuntimeBridge({
-      appId: 'nimi.tester',
-      runtimeEndpoint: '127.0.0.1:46371',
-      allowedOrigins: ['http://localhost:1430'],
-      ipcMain,
-      createGrpcClient: async () => {
-        throw new Error('not used');
-      },
-      standardShellHost: {
-        allowAllStandardShellCommands: true,
-        aiConfigStore: {
-          get: ({ scopeRef }) => configs.get(scopeRef),
-          set: ({ scopeRef, config }) => {
-            configs.set(scopeRef, config);
-            return config;
-          },
-        },
-      },
-    });
-    const { event } = createInvokeEvent();
-
-    await expect(invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
-      payload: { scopeRef: 'scope:test' },
-    })).rejects.toMatchObject({
-      code: 'not-found',
-      reasonCode: 'electron-ai-config-scope-not-found',
-    });
-
-    const config = {
-      schemaVersion: 1,
-      scopeRef: 'scope:test',
-      capabilities: {
-        targetRefs: {
-          'text.generate': { kind: 'local-runtime', readinessRef: 'execution:e2e' },
-        },
-      },
-    };
-    await expect(invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['ai-config.set'],
-      payload: { scopeRef: 'scope:test', config },
-    })).resolves.toEqual({ scopeRef: 'scope:test', config });
-    await expect(invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
-      payload: { scopeRef: 'scope:test' },
-    })).resolves.toEqual({ scopeRef: 'scope:test', config });
-
-    await expect(invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['ai-config.set'],
-      payload: { scopeRef: 'scope:test' },
-    })).rejects.toMatchObject({
-      code: 'invalid-payload',
-      reasonCode: 'electron-ai-config-value-required',
-    });
-  });
-
-  it('provides a file-backed AI Config store for standard shell hosts', async () => {
-    await withTempDir('ai-config-store', async (root) => {
-      const store = createNimiElectronFileAIConfigStore({ dataRoot: root });
-      const scopeRef = 'app:nimi.zhiyu:zhiyu-agent-home';
-      const config = {
-        scopeRef: {
-          kind: 'app',
-          ownerId: 'nimi.zhiyu',
-          surfaceId: 'zhiyu-agent-home',
-        },
-        capabilities: {
-          targetRefs: {
-            'text.generate': { kind: 'local-runtime', profileBindingId: 'local-runtime:text' },
-          },
-          selectedParams: {},
-        },
-        profileOrigin: null,
-      };
-      const encoded = Buffer.from(scopeRef, 'utf8').toString('base64url');
-
-      await expect(store.get({ scopeRef })).resolves.toBeUndefined();
-      await expect(store.set({ scopeRef, config })).resolves.toEqual(config);
-      await expect(store.get({ scopeRef })).resolves.toEqual(config);
-      await expect(readFile(path.join(root, 'ai-config', `${encoded}.json`), 'utf8')).resolves.toContain(scopeRef);
-    });
-  });
 });

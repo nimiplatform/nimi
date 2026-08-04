@@ -13,7 +13,6 @@ export * from './config.js';
 export * from './local-assets.js';
 export * from './local-agent.js';
 export * from './ai-profile.js';
-export * from './ai-config.js';
 export * from './avatar.js';
 export * from './agent-center.js';
 export * from './platform-projection.js';

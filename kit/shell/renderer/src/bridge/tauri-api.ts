@@ -55,8 +55,6 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']]: 'storage_read_json',
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']]: 'storage_write_json',
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']]: 'storage_remove_json',
-  [NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']]: 'ai_config_get',
-  [NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']]: 'ai_config_set',
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']]: 'open_external_url',
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']]: 'oauth_token_exchange',
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']]: 'oauth_listen_for_code',

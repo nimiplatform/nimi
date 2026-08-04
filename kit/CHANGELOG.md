@@ -16,6 +16,10 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** The generic standard-shell `ai-config.get` /
+  `ai-config.set` capability and its Electron/Tauri host-local file stores are
+  removed. AIConfig persistence and mutation belong to Runtime-owned canonical
+  owner services; no shell-store compatibility path is shipped.
 - **Breaking (0.x):** Agent Center now accepts exactly one nominal
   `AgentCenterSession` plus UI-only chrome/layout/density/section/i18n/placement/
   display-identity props. The session owns snapshot refresh, independent

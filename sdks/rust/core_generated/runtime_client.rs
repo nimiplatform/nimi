@@ -680,6 +680,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GenerateLocalAppTextCandidateResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+        service: "RuntimeAiService",
+        method: "GetAppAIConfig",
+        kind: "unary",
+        request_type: "GetAppAIConfigRequest",
+        response_type: "GetAppAIConfigResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
         service: "RuntimeAiService",
         method: "GetScenarioArtifacts",
@@ -726,6 +734,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ListVoiceAssetsRequest",
         response_type: "ListVoiceAssetsResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
+        service: "RuntimeAiService",
+        method: "OverwriteAppAIConfig",
+        kind: "unary",
+        request_type: "OverwriteAppAIConfigRequest",
+        response_type: "OverwriteAppAIConfigResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",

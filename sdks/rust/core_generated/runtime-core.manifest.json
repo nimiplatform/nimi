@@ -736,6 +736,24 @@
       "source_file": "proto/runtime/v1/ai.proto",
       "methods": [
         {
+          "name": "GetAppAIConfig",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+          "kind": "unary",
+          "request_type": "GetAppAIConfigRequest",
+          "response_type": "GetAppAIConfigResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "OverwriteAppAIConfig",
+          "method_id": "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
+          "kind": "unary",
+          "request_type": "OverwriteAppAIConfigRequest",
+          "response_type": "OverwriteAppAIConfigResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GenerateLocalAppTextCandidate",
           "method_id": "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
           "kind": "unary",
@@ -2487,12 +2505,14 @@
     "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
     "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
     "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
+    "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
     "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
     "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
     "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets",
+    "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
     "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
@@ -3323,6 +3343,14 @@
       "response_type": "GenerateLocalAppTextCandidateResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+      "service": "RuntimeAiService",
+      "method": "GetAppAIConfig",
+      "kind": "unary",
+      "request_type": "GetAppAIConfigRequest",
+      "response_type": "GetAppAIConfigResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
       "service": "RuntimeAiService",
       "method": "GetScenarioArtifacts",
@@ -3369,6 +3397,14 @@
       "kind": "unary",
       "request_type": "ListVoiceAssetsRequest",
       "response_type": "ListVoiceAssetsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
+      "service": "RuntimeAiService",
+      "method": "OverwriteAppAIConfig",
+      "kind": "unary",
+      "request_type": "OverwriteAppAIConfigRequest",
+      "response_type": "OverwriteAppAIConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
@@ -5341,6 +5377,14 @@
       "response_type": "GenerateLocalAppTextCandidateResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+      "service": "RuntimeAiService",
+      "method": "GetAppAIConfig",
+      "kind": "unary",
+      "request_type": "GetAppAIConfigRequest",
+      "response_type": "GetAppAIConfigResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
       "service": "RuntimeAiService",
       "method": "GetScenarioArtifacts",
@@ -5387,6 +5431,14 @@
       "kind": "unary",
       "request_type": "ListVoiceAssetsRequest",
       "response_type": "ListVoiceAssetsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
+      "service": "RuntimeAiService",
+      "method": "OverwriteAppAIConfig",
+      "kind": "unary",
+      "request_type": "OverwriteAppAIConfigRequest",
+      "response_type": "OverwriteAppAIConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
@@ -6910,6 +6962,8 @@
       "GetAgentResponse",
       "GetAgentStateRequest",
       "GetAgentStateResponse",
+      "GetAppAIConfigRequest",
+      "GetAppAIConfigResponse",
       "GetAppStorageRequest",
       "GetAppStorageResponse",
       "GetAvatarDebugReplayRequest",
@@ -7239,6 +7293,8 @@
       "OpenRealtimeSessionResponse",
       "OpenSessionRequest",
       "OpenSessionResponse",
+      "OverwriteAppAIConfigRequest",
+      "OverwriteAppAIConfigResponse",
       "PauseLocalTransferRequest",
       "PauseLocalTransferResponse",
       "PeekSchedulingRequest",
@@ -16146,6 +16202,32 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetAppAIConfigRequest",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "AIConfigOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "GetAppAIConfigResponse",
+        "fields": [
+          {
+            "name": "config",
+            "type": "AIConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "GetAppStorageRequest",
@@ -28600,6 +28682,32 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
+        "name": "OverwriteAppAIConfigRequest",
+        "fields": [
+          {
+            "name": "config",
+            "type": "AIConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "OverwriteAppAIConfigResponse",
+        "fields": [
+          {
+            "name": "config",
+            "type": "AIConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "PauseLocalTransferRequest",
         "fields": [
           {
@@ -38965,7 +39073,10 @@
           "AI_LOCAL_ASSET_CONTENT_UNVERIFIED",
           "AI_LOCAL_ASSET_CONTENT_MISMATCH",
           "AI_LOCAL_ASSET_INCOMPATIBLE",
-          "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE"
+          "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE",
+          "AI_CONFIG_INVALID",
+          "AI_CONFIG_NOT_FOUND",
+          "AI_CONFIG_PERSISTENCE_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

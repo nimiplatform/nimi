@@ -13,7 +13,6 @@ surfaces:
   - window
   - notification
   - storage
-  - ai-config
   - agent-center
   - desktop-open
   - local-app
@@ -267,8 +266,6 @@ capability_sets:
       - data.pathResolve
       - config.get
       - config.set
-      - ai-config.get
-      - ai-config.set
       - local-assets.resolveUrl
       - shell-ui.confirmDialog
       - shell-ui.startWindowDrag
@@ -835,19 +832,6 @@ capabilities:
         negative_states:
           - capability-unavailable
           - not-found
-  - id: ai-config
-    host_contract: NimiStandardShellCapabilityHost
-    operations:
-      - id: get
-        command: nimi.shell.aiConfig.get
-        negative_states:
-          - capability-unavailable
-          - not-found
-      - id: set
-        command: nimi.shell.aiConfig.set
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
   - id: avatar
     host_contract: NimiStandardShellCapabilityHost
     operations:

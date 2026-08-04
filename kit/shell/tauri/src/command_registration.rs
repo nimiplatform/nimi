@@ -9,7 +9,6 @@ pub enum ShellCommandBoundary {
     Diagnostics,
     Files,
     FloatingWindow,
-    AiConfig,
     LocalAgent,
     LocalAssets,
     OAuth,
@@ -202,19 +201,6 @@ pub const STANDARD_STORAGE_COMMANDS: &[ShellCommandDescriptor] = &[
     },
 ];
 
-pub const STANDARD_AI_CONFIG_COMMANDS: &[ShellCommandDescriptor] = &[
-    ShellCommandDescriptor {
-        command_name: "ai_config_get",
-        rust_path: "nimi_shell_tauri::capabilities::ai_config::ai_config_get",
-        boundary: ShellCommandBoundary::AiConfig,
-    },
-    ShellCommandDescriptor {
-        command_name: "ai_config_set",
-        rust_path: "nimi_shell_tauri::capabilities::ai_config::ai_config_set",
-        boundary: ShellCommandBoundary::AiConfig,
-    },
-];
-
 pub const STANDARD_SHELL_UI_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "confirm_dialog",
@@ -403,7 +389,6 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands.extend_from_slice(SESSION_LOGGING_COMMANDS);
     commands.extend_from_slice(STANDARD_DIAGNOSTICS_COMMANDS);
     commands.extend_from_slice(STANDARD_STORAGE_COMMANDS);
-    commands.extend_from_slice(STANDARD_AI_CONFIG_COMMANDS);
     commands.extend_from_slice(STANDARD_SHELL_UI_COMMANDS);
     commands.extend_from_slice(STANDARD_FILE_COMMANDS);
     commands.extend_from_slice(STANDARD_LOCAL_ASSET_COMMANDS);
@@ -450,8 +435,6 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
             $crate::capabilities::storage::storage_remove_json,
-            $crate::capabilities::ai_config::ai_config_get,
-            $crate::capabilities::ai_config::ai_config_set,
             $crate::capabilities::diagnostics::diagnostics_renderer_entry_probe,
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
@@ -513,8 +496,6 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
             $crate::capabilities::storage::storage_remove_json,
-            $crate::capabilities::ai_config::ai_config_get,
-            $crate::capabilities::ai_config::ai_config_set,
             $crate::capabilities::diagnostics::diagnostics_renderer_entry_probe,
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,

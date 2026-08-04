@@ -3,7 +3,6 @@ export * from './data-root-binding.js';
 export * from './local-asset-protocol.js';
 export * from './bundled-avatar-asset-host.js';
 export * from './app-menu.js';
-export * from './ai-config-store.js';
 export * from './agent-center.js';
 export * from './desktop-open.js';
 export {

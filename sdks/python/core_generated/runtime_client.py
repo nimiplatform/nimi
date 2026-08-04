@@ -672,6 +672,14 @@ RUNTIME_METHODS = [
     "response_type": "GenerateLocalAppTextCandidateResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+    "service": "RuntimeAiService",
+    "method": "GetAppAIConfig",
+    "kind": "unary",
+    "request_type": "GetAppAIConfigRequest",
+    "response_type": "GetAppAIConfigResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "service": "RuntimeAiService",
     "method": "GetScenarioArtifacts",
@@ -718,6 +726,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListVoiceAssetsRequest",
     "response_type": "ListVoiceAssetsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
+    "service": "RuntimeAiService",
+    "method": "OverwriteAppAIConfig",
+    "kind": "unary",
+    "request_type": "OverwriteAppAIConfigRequest",
+    "response_type": "OverwriteAppAIConfigResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",

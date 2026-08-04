@@ -36,6 +36,8 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson":                  runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":             runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig":                              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":                        runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/StreamScenario":                              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":                           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob":                              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,

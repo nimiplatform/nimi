@@ -1506,6 +1506,9 @@ const (
 	AILOCALASSETCONTENTMISMATCH ReasonCode = "AI_LOCAL_ASSET_CONTENT_MISMATCH"
 	AILOCALASSETINCOMPATIBLE ReasonCode = "AI_LOCAL_ASSET_INCOMPATIBLE"
 	AILOCALCONFIGURATIONPERSISTENCEUNAVAILABLE ReasonCode = "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE"
+	AICONFIGINVALID ReasonCode = "AI_CONFIG_INVALID"
+	AICONFIGNOTFOUND ReasonCode = "AI_CONFIG_NOT_FOUND"
+	AICONFIGPERSISTENCEUNAVAILABLE ReasonCode = "AI_CONFIG_PERSISTENCE_UNAVAILABLE"
 )
 
 type ReasoningMode string
@@ -3525,6 +3528,14 @@ type GetAgentStateRequest struct {
 
 type GetAgentStateResponse struct {
 	State *AgentStateProjection `json:"state,omitempty"`
+}
+
+type GetAppAIConfigRequest struct {
+	Owner *AIConfigOwner `json:"owner,omitempty"`
+}
+
+type GetAppAIConfigResponse struct {
+	Config *AIConfig `json:"config,omitempty"`
 }
 
 type GetAppStorageRequest struct {
@@ -6026,6 +6037,14 @@ type OpenSessionResponse struct {
 	ExpiresAt string `json:"expires_at,omitempty"`
 	SessionToken string `json:"session_token,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type OverwriteAppAIConfigRequest struct {
+	Config *AIConfig `json:"config,omitempty"`
+}
+
+type OverwriteAppAIConfigResponse struct {
+	Config *AIConfig `json:"config,omitempty"`
 }
 
 type PauseLocalTransferRequest struct {
@@ -8660,6 +8679,14 @@ func (c RuntimeTypedClient) GenerateLocalAppTextCandidate(ctx context.Context, r
 	return decodeRuntimeTypedResponse[GenerateLocalAppTextCandidateResponse](raw, "GenerateLocalAppTextCandidateResponse")
 }
 
+func (c RuntimeTypedClient) GetAppAIConfig(ctx context.Context, request GetAppAIConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppAIConfigResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAppAIConfigResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAppAIConfigResponse](raw, "GetAppAIConfigResponse")
+}
+
 func (c RuntimeTypedClient) GetScenarioArtifacts(ctx context.Context, request GetScenarioArtifactsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetScenarioArtifactsResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", request, metadata, timeoutMS)
 	if err != nil {
@@ -8706,6 +8733,14 @@ func (c RuntimeTypedClient) ListVoiceAssets(ctx context.Context, request ListVoi
 		return ListVoiceAssetsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListVoiceAssetsResponse](raw, "ListVoiceAssetsResponse")
+}
+
+func (c RuntimeTypedClient) OverwriteAppAIConfig(ctx context.Context, request OverwriteAppAIConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OverwriteAppAIConfigResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig", request, metadata, timeoutMS)
+	if err != nil {
+		return OverwriteAppAIConfigResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OverwriteAppAIConfigResponse](raw, "OverwriteAppAIConfigResponse")
 }
 
 func (c RuntimeTypedClient) PeekScheduling(ctx context.Context, request PeekSchedulingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PeekSchedulingResponse, error) {

@@ -139,7 +139,8 @@ func hashRequest(req any) (string, error) {
 
 func isWriteMethod(fullMethod string) bool {
 	switch fullMethod {
-	case "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
+	case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
+		"/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
 		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
 		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",

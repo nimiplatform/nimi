@@ -259,6 +259,7 @@ func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
 
 func TestIsWriteMethodScenarioSurface(t *testing.T) {
 	writeMethods := []string{
+		"/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
 		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
 		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
@@ -306,6 +307,7 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 	}
 
 	readMethods := []string{
+		"/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
 		"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
 		"/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",

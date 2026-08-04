@@ -5,7 +5,6 @@ import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
   createNimiElectronStandardApplicationMenuTemplate,
-  createNimiElectronFileAIConfigStore,
   getElectronStandardShellCapabilityIds,
   registerNimiElectronRuntimeBridge,
   type ElectronRuntimeBridgeTrustedMetadataProvider,
@@ -122,7 +121,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
       NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
       NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
       NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'],
-      NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
     ]) {
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command,

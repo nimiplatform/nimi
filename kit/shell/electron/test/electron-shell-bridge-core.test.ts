@@ -6,7 +6,6 @@ import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
   createNimiElectronStandardApplicationMenuTemplate,
-  createNimiElectronFileAIConfigStore,
   getElectronStandardShellCapabilityIds,
   registerNimiElectronRuntimeBridge,
   type ElectronRuntimeBridgeTrustedMetadataProvider,

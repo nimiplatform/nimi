@@ -532,8 +532,6 @@ pub mod ai_profile {
     };
 }
 
-pub mod ai_config;
-
 pub mod avatar {
     pub use crate::agent_center_avatar_asset::{
         agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,

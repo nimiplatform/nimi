@@ -15,6 +15,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -60,6 +61,7 @@ type Service struct {
 	realtimeSessions                       *realtimeSessionStore
 	voiceAssets                            *voiceAssetStore
 	runtimeArtifacts                       runtimeartifact.Store
+	aiConfigStore                          aiconfig.Store
 	spendDisclosureReporter                SpendDisclosureReporter
 	connStore                              *connector.ConnectorStore
 	localModel                             localModelLister
@@ -185,6 +187,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		scenarioJobs:                           newScenarioJobStore(),
 		realtimeSessions:                       realtimeSessions,
 		voiceAssets:                            newVoiceAssetStore(),
+		aiConfigStore:                          aiconfig.NewMemoryStore(),
 		connStore:                              connStore,
 		allowLoopback:                          cfg.AllowLoopbackEndpoint,
 		streamFirstPacketTimeout:               defaultStreamFirstTimeout,
@@ -216,6 +219,16 @@ func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 // RuntimeArtifactService. Producers write before emitting ids to consumers.
 func (s *Service) SetRuntimeArtifactStore(store runtimeartifact.Store) {
 	s.runtimeArtifacts = store
+}
+
+// SetAIConfigStore replaces the constructor's process-local store with the
+// Runtime persistence owner during startup. The service is not serving calls
+// when this wiring occurs.
+func (s *Service) SetAIConfigStore(store aiconfig.Store) {
+	if s == nil || store == nil {
+		return
+	}
+	s.aiConfigStore = store
 }
 
 // SetRuntimeAccountProjectionProvider binds protected bundled consumers to

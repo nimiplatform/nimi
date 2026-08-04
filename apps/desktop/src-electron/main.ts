@@ -17,12 +17,10 @@ import {
   NimiElectronShellHostError,
   createElectronRuntimeBridgeCommandNames,
   createElectronShellFileProtocolHost,
-  createNimiElectronFileAIConfigStore,
   createNimiElectronFixedRuntimeLifecycleHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   resolveElectronRuntimeDefaults,
-  type NimiElectronAIConfigStore,
   type NimiElectronFileDialogOpenPayload,
   type NimiElectronFileDialogOpenResult,
   type NimiElectronShellFileProtocolHost,
@@ -292,7 +290,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         runtimeTrustedCaller: {
           mode: 'desktop-shell',
         },
-        aiConfigStore: createDesktopAiConfigStore(resolveProductControlDataRoot),
       },
       bundledAvatarHost: bundledAvatarHost.runtimeBridgeHost,
     });
@@ -536,19 +533,6 @@ function resolveStandardLocalAssetRoots(): string[] {
     .map((filePath) => normalizeText(filePath))
     .filter(Boolean)
     .map((filePath) => path.resolve(filePath));
-}
-
-function createDesktopAiConfigStore(
-  resolveDataRoot: () => Promise<string>,
-): NimiElectronAIConfigStore {
-  const currentStore = async () => createNimiElectronFileAIConfigStore({
-    dataRoot: await resolveDataRoot(),
-    storeLabel: 'desktop AI Config',
-  });
-  return {
-    get: async (input) => (await currentStore()).get(input),
-    set: async (input) => (await currentStore()).set(input),
-  };
 }
 
 function createDesktopProductControlDataRootResolver(

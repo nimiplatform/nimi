@@ -286,6 +286,46 @@ export interface AIConfig {
     capabilities: AIConfigCapabilityIntent[];
 }
 /**
+ * App AIConfig mutation is whole-object only. The owner carried here is a
+ * consistency assertion checked against Runtime-authenticated caller truth;
+ * it is never accepted as caller identity.
+ *
+ * @generated from protobuf message nimi.runtime.v1.GetAppAIConfigRequest
+ */
+export interface GetAppAIConfigRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigOwner owner = 1
+     */
+    owner?: AIConfigOwner;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAppAIConfigResponse
+ */
+export interface GetAppAIConfigResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfig config = 1
+     */
+    config?: AIConfig;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OverwriteAppAIConfigRequest
+ */
+export interface OverwriteAppAIConfigRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfig config = 1
+     */
+    config?: AIConfig;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OverwriteAppAIConfigResponse
+ */
+export interface OverwriteAppAIConfigResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfig config = 1
+     */
+    config?: AIConfig;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GetMachineLocalAIConfigurationRequest
  */
 export interface GetMachineLocalAIConfigurationRequest {
@@ -1444,6 +1484,190 @@ class AIConfig$Type extends MessageType<AIConfig> {
  * @generated MessageType for protobuf message nimi.runtime.v1.AIConfig
  */
 export const AIConfig = new AIConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAppAIConfigRequest$Type extends MessageType<GetAppAIConfigRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAppAIConfigRequest", [
+            { no: 1, name: "owner", kind: "message", T: () => AIConfigOwner }
+        ]);
+    }
+    create(value?: PartialMessage<GetAppAIConfigRequest>): GetAppAIConfigRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAppAIConfigRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAppAIConfigRequest): GetAppAIConfigRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfigOwner owner */ 1:
+                    message.owner = AIConfigOwner.internalBinaryRead(reader, reader.uint32(), options, message.owner);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAppAIConfigRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfigOwner owner = 1; */
+        if (message.owner)
+            AIConfigOwner.internalBinaryWrite(message.owner, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAppAIConfigRequest
+ */
+export const GetAppAIConfigRequest = new GetAppAIConfigRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAppAIConfigResponse$Type extends MessageType<GetAppAIConfigResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAppAIConfigResponse", [
+            { no: 1, name: "config", kind: "message", T: () => AIConfig }
+        ]);
+    }
+    create(value?: PartialMessage<GetAppAIConfigResponse>): GetAppAIConfigResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAppAIConfigResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAppAIConfigResponse): GetAppAIConfigResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfig config */ 1:
+                    message.config = AIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAppAIConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfig config = 1; */
+        if (message.config)
+            AIConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAppAIConfigResponse
+ */
+export const GetAppAIConfigResponse = new GetAppAIConfigResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OverwriteAppAIConfigRequest$Type extends MessageType<OverwriteAppAIConfigRequest> {
+    constructor() {
+        super("nimi.runtime.v1.OverwriteAppAIConfigRequest", [
+            { no: 1, name: "config", kind: "message", T: () => AIConfig }
+        ]);
+    }
+    create(value?: PartialMessage<OverwriteAppAIConfigRequest>): OverwriteAppAIConfigRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<OverwriteAppAIConfigRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OverwriteAppAIConfigRequest): OverwriteAppAIConfigRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfig config */ 1:
+                    message.config = AIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OverwriteAppAIConfigRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfig config = 1; */
+        if (message.config)
+            AIConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OverwriteAppAIConfigRequest
+ */
+export const OverwriteAppAIConfigRequest = new OverwriteAppAIConfigRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OverwriteAppAIConfigResponse$Type extends MessageType<OverwriteAppAIConfigResponse> {
+    constructor() {
+        super("nimi.runtime.v1.OverwriteAppAIConfigResponse", [
+            { no: 1, name: "config", kind: "message", T: () => AIConfig }
+        ]);
+    }
+    create(value?: PartialMessage<OverwriteAppAIConfigResponse>): OverwriteAppAIConfigResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<OverwriteAppAIConfigResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OverwriteAppAIConfigResponse): OverwriteAppAIConfigResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfig config */ 1:
+                    message.config = AIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OverwriteAppAIConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfig config = 1; */
+        if (message.config)
+            AIConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OverwriteAppAIConfigResponse
+ */
+export const OverwriteAppAIConfigResponse = new OverwriteAppAIConfigResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetMachineLocalAIConfigurationRequest$Type extends MessageType<GetMachineLocalAIConfigurationRequest> {
     constructor() {

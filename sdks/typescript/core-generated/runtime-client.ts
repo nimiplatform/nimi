@@ -679,6 +679,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GenerateLocalAppTextCandidateResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig",
+    "service": "RuntimeAiService",
+    "method": "GetAppAIConfig",
+    "kind": "unary",
+    "requestType": "GetAppAIConfigRequest",
+    "responseType": "GetAppAIConfigResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "service": "RuntimeAiService",
     "method": "GetScenarioArtifacts",
@@ -725,6 +733,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ListVoiceAssetsRequest",
     "responseType": "ListVoiceAssetsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
+    "service": "RuntimeAiService",
+    "method": "OverwriteAppAIConfig",
+    "kind": "unary",
+    "requestType": "OverwriteAppAIConfigRequest",
+    "responseType": "OverwriteAppAIConfigResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",

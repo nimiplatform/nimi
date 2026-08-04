@@ -44,8 +44,6 @@ mod tests {
                 "storage_read_json",
                 "storage_write_json",
                 "storage_remove_json",
-                "ai_config_get",
-                "ai_config_set",
                 "confirm_dialog",
                 "start_window_drag",
                 "focus_main_window",
@@ -108,9 +106,6 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::Storage));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::AiConfig));
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::ShellUi));
@@ -262,18 +257,6 @@ mod tests {
     }
 
     #[test]
-    fn standard_ai_config_commands_cover_declared_operations() {
-        let names = STANDARD_AI_CONFIG_COMMANDS
-            .iter()
-            .map(|command| command.command_name)
-            .collect::<Vec<_>>();
-        assert_eq!(names, vec!["ai_config_get", "ai_config_set"]);
-        assert!(STANDARD_AI_CONFIG_COMMANDS
-            .iter()
-            .all(|command| command.boundary == ShellCommandBoundary::AiConfig));
-    }
-
-    #[test]
     fn standard_file_commands_cover_new_standard_capabilities() {
         let names = STANDARD_FILE_COMMANDS
             .iter()
@@ -343,8 +326,6 @@ mod tests {
             "runtime_bridge_stream_close",
             "desktop_open_intent_open_intent",
             "data_path_resolve",
-            "ai_config_get",
-            "ai_config_set",
             "confirm_dialog",
             "start_window_drag",
             "focus_main_window",

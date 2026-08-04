@@ -15,7 +15,6 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_IDS = [
   'local-app',
   'local-agent',
   'ai-profile',
-  'ai-config',
   'avatar',
   'agent-center',
   'platform-projection',
@@ -189,13 +188,6 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     ],
   },
   {
-    id: 'ai-config',
-    operations: [
-      { id: 'get', command: 'nimi.shell.aiConfig.get', negativeStates: ['capability-unavailable', 'not-found'] },
-      { id: 'set', command: 'nimi.shell.aiConfig.set', negativeStates: ['capability-unavailable', 'invalid-payload'] },
-    ],
-  },
-  {
     id: 'avatar',
     operations: [
       { id: 'assetResolve', command: 'nimi.shell.avatar.assetResolve', negativeStates: ['capability-unavailable', 'invalid-path', 'not-found'] },
@@ -266,8 +258,6 @@ const LOCAL_APP_PLANNED_OPERATIONS = [
   'data.pathResolve',
   'config.get',
   'config.set',
-  'ai-config.get',
-  'ai-config.set',
   'local-assets.resolveUrl',
   'shell-ui.confirmDialog',
   'shell-ui.startWindowDrag',

@@ -197,8 +197,6 @@ describe('standard shell capabilities', () => {
     expect(localAppSet?.authorityStatus).toBe('permission_model_v1_with_exact_admitted_operation_families');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');
     expect(readCapabilitySetList('planned_operations', catalog)).toEqual(expect.arrayContaining([
-      'ai-config.get',
-      'ai-config.set',
       'data.pathResolve',
       'config.get',
     ]));

@@ -318,6 +318,11 @@ const (
 	ReasonCode_AI_LOCAL_ASSET_CONTENT_MISMATCH                ReasonCode = 691
 	ReasonCode_AI_LOCAL_ASSET_INCOMPATIBLE                    ReasonCode = 692
 	ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE ReasonCode = 693
+	// Consumer AIConfig whole-object storage. These generic reasons do not
+	// imply readiness, execution feasibility, or an engine-specific failure.
+	ReasonCode_AI_CONFIG_INVALID                 ReasonCode = 694
+	ReasonCode_AI_CONFIG_NOT_FOUND               ReasonCode = 695
+	ReasonCode_AI_CONFIG_PERSISTENCE_UNAVAILABLE ReasonCode = 696
 )
 
 // Enum value maps for ReasonCode.
@@ -562,6 +567,9 @@ var (
 		691: "AI_LOCAL_ASSET_CONTENT_MISMATCH",
 		692: "AI_LOCAL_ASSET_INCOMPATIBLE",
 		693: "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE",
+		694: "AI_CONFIG_INVALID",
+		695: "AI_CONFIG_NOT_FOUND",
+		696: "AI_CONFIG_PERSISTENCE_UNAVAILABLE",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                              0,
@@ -803,6 +811,9 @@ var (
 		"AI_LOCAL_ASSET_CONTENT_MISMATCH":                      691,
 		"AI_LOCAL_ASSET_INCOMPATIBLE":                          692,
 		"AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE":       693,
+		"AI_CONFIG_INVALID":                                    694,
+		"AI_CONFIG_NOT_FOUND":                                  695,
+		"AI_CONFIG_PERSISTENCE_UNAVAILABLE":                    696,
 	}
 )
 
@@ -1393,7 +1404,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xf5F\n" +
+	"actionHint*\xcfG\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1634,7 +1645,10 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"!AI_LOCAL_ASSET_CONTENT_UNVERIFIED\x10\xb2\x05\x12$\n" +
 	"\x1fAI_LOCAL_ASSET_CONTENT_MISMATCH\x10\xb3\x05\x12 \n" +
 	"\x1bAI_LOCAL_ASSET_INCOMPATIBLE\x10\xb4\x05\x123\n" +
-	".AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE\x10\xb5\x05\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
+	".AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE\x10\xb5\x05\x12\x16\n" +
+	"\x11AI_CONFIG_INVALID\x10\xb6\x05\x12\x18\n" +
+	"\x13AI_CONFIG_NOT_FOUND\x10\xb7\x05\x12&\n" +
+	"!AI_CONFIG_PERSISTENCE_UNAVAILABLE\x10\xb8\x05\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
 	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND* APP_INSTALL_DESCRIPTOR_NOT_FOUND*\x1bAPP_INSTALL_DIGEST_MISMATCH*\x1cAPP_INSTALL_MANIFEST_INVALID*\x1dAPP_INSTALL_STORAGE_VIOLATION*\x1bAPP_INSTALL_DOWNLOAD_FAILED*\x19APP_INSTALL_UNPACK_FAILED*\x14APP_INSTALL_INTERNAL*\x18APP_UPDATE_NOT_AVAILABLE*\x18APP_UPDATE_NOT_INSTALLED* APP_UPDATE_CONFIRMATION_REQUIRED*\x16APP_UPDATE_SWAP_FAILED*\x19APP_REPAIR_ACTION_INVALID*\x1dAPP_REPAIR_NO_RECOVERABLE_JOB*\x19APP_REPAIR_NOT_REPAIRABLE*\x1bAPP_LIFECYCLE_JOB_CANCELLED*\x19LIFECYCLE_INTENT_REQUIRED*\x19LIFECYCLE_INTENT_MISMATCH*\x17LIFECYCLE_INTENT_REPLAY*\x18LIFECYCLE_INTENT_EXPIRED*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +

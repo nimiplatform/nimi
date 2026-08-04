@@ -183,24 +183,6 @@ export type NimiElectronRuntimeTrustedCallerInput = {
   readonly scopes?: readonly string[];
 };
 
-export type NimiElectronAIConfigStoreGetInput = {
-  readonly scopeRef: string;
-};
-
-export type NimiElectronAIConfigStoreSetInput = {
-  readonly scopeRef: string;
-  readonly config: Readonly<Record<string, unknown>>;
-};
-
-export type NimiElectronAIConfigStore = {
-  readonly get: (
-    input: NimiElectronAIConfigStoreGetInput,
-  ) => Promise<Readonly<Record<string, unknown>> | undefined | null> | Readonly<Record<string, unknown>> | undefined | null;
-  readonly set: (
-    input: NimiElectronAIConfigStoreSetInput,
-  ) => Promise<Readonly<Record<string, unknown>>> | Readonly<Record<string, unknown>>;
-};
-
 export type NimiElectronOAuthTokenExchangeResponse = {
   readonly ok: boolean;
   readonly status: number;
@@ -370,7 +352,6 @@ export type NimiElectronStandardShellHost = {
   readonly focusMainWindow?: (input: NimiElectronShellUiCommandInput) => Promise<void> | void;
   readonly localAgentIdentity?: NimiElectronLocalAgentIdentityInput;
   readonly runtimeTrustedCaller?: NimiElectronRuntimeTrustedCallerInput;
-  readonly aiConfigStore?: NimiElectronAIConfigStore;
   readonly oauthTokenExchangeFetch?: NimiElectronOAuthTokenExchangeFetch;
   readonly desktopOpen?: NimiElectronDesktopOpenHost;
 };

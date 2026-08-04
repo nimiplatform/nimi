@@ -2195,6 +2195,9 @@ pub enum ReasonCode {
     AILOCALASSETCONTENTMISMATCH,
     AILOCALASSETINCOMPATIBLE,
     AILOCALCONFIGURATIONPERSISTENCEUNAVAILABLE,
+    AICONFIGINVALID,
+    AICONFIGNOTFOUND,
+    AICONFIGPERSISTENCEUNAVAILABLE,
 }
 
 impl Default for ReasonCode {
@@ -10283,6 +10286,64 @@ impl GetAgentStateResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAppAIConfigRequest {
+    pub owner: Option<Box<AIConfigOwner>>,
+}
+
+impl GetAppAIConfigRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.owner.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode owner"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["owner"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAppAIConfigResponse {
+    pub config: Option<Box<AIConfig>>,
+}
+
+impl GetAppAIConfigResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["config"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -21708,6 +21769,64 @@ impl OpenSessionResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct OverwriteAppAIConfigRequest {
+    pub config: Option<Box<AIConfig>>,
+}
+
+impl OverwriteAppAIConfigRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["config"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OverwriteAppAIConfigResponse {
+    pub config: Option<Box<AIConfig>>,
+}
+
+impl OverwriteAppAIConfigResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["config"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PauseLocalTransferRequest {
     pub install_session_id: Option<String>,
 }
@@ -32059,6 +32178,18 @@ impl From<Vec<u8>> for GetAgentStateResponse {
     }
 }
 
+impl From<Vec<u8>> for GetAppAIConfigRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAppAIConfigResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for GetAppStorageRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34028,6 +34159,18 @@ impl From<Vec<u8>> for OpenSessionRequest {
 }
 
 impl From<Vec<u8>> for OpenSessionResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for OverwriteAppAIConfigRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for OverwriteAppAIConfigResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36590,6 +36733,16 @@ where
         Ok(GenerateLocalAppTextCandidateResponse::from_transport(&raw))
     }
 
+    pub fn get_app_aiconfig(&self, request: GetAppAIConfigRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppAIConfigResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAppAIConfigResponse::from_transport(&raw))
+    }
+
     pub fn get_scenario_artifacts(&self, request: GetScenarioArtifactsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetScenarioArtifactsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts".to_string(),
@@ -36648,6 +36801,16 @@ where
             timeout,
         })?;
         Ok(ListVoiceAssetsResponse::from_transport(&raw))
+    }
+
+    pub fn overwrite_app_aiconfig(&self, request: OverwriteAppAIConfigRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OverwriteAppAIConfigResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(OverwriteAppAIConfigResponse::from_transport(&raw))
     }
 
     pub fn peek_scheduling(&self, request: PeekSchedulingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PeekSchedulingResponse, T::Error> {

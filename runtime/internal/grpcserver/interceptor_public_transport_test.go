@@ -35,6 +35,8 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 		{method: "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+		{method: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+		{method: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},

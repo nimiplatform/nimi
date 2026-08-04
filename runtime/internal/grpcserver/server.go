@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
@@ -610,6 +611,12 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if err != nil {
 		return nil, fmt.Errorf("init memory service: %w", err)
 	}
+	aiConfigStore, err := aiconfig.NewSQLiteStore(memorySvc.PersistenceBackend())
+	if err != nil {
+		_ = memorySvc.Close()
+		return nil, fmt.Errorf("init AIConfig store: %w", err)
+	}
+	aiSvc.SetAIConfigStore(aiConfigStore)
 	memorySvc.SetRuntimeEmbeddingProfileResolver(func(ctx context.Context, snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot) memoryservice.MemoryEmbeddingResolvedProfile {
 		return resolveRuntimeMemoryEmbeddingProfile(ctx, snapshot, localSvc, connStore, aiSvc.SpeechCatalogResolver())
 	})

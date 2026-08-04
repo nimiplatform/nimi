@@ -15,7 +15,6 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
     "local-assets",
     "local-agent",
     "ai-profile",
-    "ai-config",
     "avatar",
     "agent-center",
     "platform-projection",
@@ -289,21 +288,6 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
             command: "nimi.shell.aiProfile.get",
             negative_states: &["capability-unavailable", "not-found"],
         }],
-    },
-    StandardShellCapability {
-        id: "ai-config",
-        operations: &[
-            StandardShellOperation {
-                id: "get",
-                command: "nimi.shell.aiConfig.get",
-                negative_states: &["capability-unavailable", "not-found"],
-            },
-            StandardShellOperation {
-                id: "set",
-                command: "nimi.shell.aiConfig.set",
-                negative_states: &["capability-unavailable", "invalid-payload"],
-            },
-        ],
     },
     StandardShellCapability {
         id: "avatar",

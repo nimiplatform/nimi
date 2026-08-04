@@ -13,7 +13,6 @@ import {
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
 } from '@nimiplatform/kit/shell/capabilities';
 import { resolveElectronAvatarAssetUrl } from './avatar.js';
-import { getElectronAiConfig, setElectronAiConfig } from './ai-config.js';
 import { dispatchElectronAgentCenterCommand, isElectronAgentCenterCommand } from './agent-center.js';
 import { resolveElectronAiProfile } from './ai-profile.js';
 import { assertElectronHostCommandPolicyAllowed } from './command-policy.js';
@@ -399,8 +398,6 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']) return resolveElectronRuntimeTrustedCaller(effectiveStandardShellHost, standardPayload, effectiveAppId, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-profile.get']) return resolveElectronAiProfile(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']) return resolveElectronPlatformProjection(standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']) return getElectronAiConfig(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']) return setElectronAiConfig(effectiveStandardShellHost, standardPayload, command);
     if (!rendererProfile.bundledAvatarProfile && desktopAccountHost && isElectronDesktopAccountCommand(command)) {
       return desktopAccountHost.invoke(command, payload, {
         eventChannelPrefix,

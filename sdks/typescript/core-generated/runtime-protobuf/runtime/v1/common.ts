@@ -1191,7 +1191,22 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE = 693;
      */
-    AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE = 693
+    AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE = 693,
+    /**
+     * Consumer AIConfig whole-object storage. These generic reasons do not
+     * imply readiness, execution feasibility, or an engine-specific failure.
+     *
+     * @generated from protobuf enum value: AI_CONFIG_INVALID = 694;
+     */
+    AI_CONFIG_INVALID = 694,
+    /**
+     * @generated from protobuf enum value: AI_CONFIG_NOT_FOUND = 695;
+     */
+    AI_CONFIG_NOT_FOUND = 695,
+    /**
+     * @generated from protobuf enum value: AI_CONFIG_PERSISTENCE_UNAVAILABLE = 696;
+     */
+    AI_CONFIG_PERSISTENCE_UNAVAILABLE = 696
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

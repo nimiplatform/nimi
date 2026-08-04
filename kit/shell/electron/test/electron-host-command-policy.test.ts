@@ -344,14 +344,14 @@ describe('Electron host command policy', () => {
     });
 
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
-      payload: { payload: { scopeRef: 'app:fixture' } },
+      command: NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
+      payload: { projectionId: 'factory-profile-index' },
     })).rejects.toMatchObject({
       code: 'capability-unavailable',
       reasonCode: 'electron-standard-shell-capability-policy-required',
       actionHint: 'declare_standard_shell_capability_policy',
       details: {
-        command: NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
+        command: NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
         appId: 'nimi.parentos',
       },
     });

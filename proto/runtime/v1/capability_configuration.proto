@@ -144,6 +144,25 @@ message AIConfig {
   repeated AIConfigCapabilityIntent capabilities = 2;
 }
 
+// App AIConfig mutation is whole-object only. The owner carried here is a
+// consistency assertion checked against Runtime-authenticated caller truth;
+// it is never accepted as caller identity.
+message GetAppAIConfigRequest {
+  AIConfigOwner owner = 1;
+}
+
+message GetAppAIConfigResponse {
+  AIConfig config = 1;
+}
+
+message OverwriteAppAIConfigRequest {
+  AIConfig config = 1;
+}
+
+message OverwriteAppAIConfigResponse {
+  AIConfig config = 1;
+}
+
 message GetMachineLocalAIConfigurationRequest {}
 
 message GetMachineLocalAIConfigurationResponse {

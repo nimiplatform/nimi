@@ -26,6 +26,12 @@ services:
   - name: AIService
     source_rule: K-RPC-002
     methods:
+      - name: GetAppAIConfig
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
+      - name: OverwriteAppAIConfig
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
       - name: ExecuteScenario
         type: unary
       - name: StreamScenario
