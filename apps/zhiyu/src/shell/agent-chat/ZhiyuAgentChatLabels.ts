@@ -1,67 +1,5 @@
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
-import type { AgentCenterRuntimeAIConfigProjection } from '@nimiplatform/kit/features/agent-center';
-
-export type ZhiyuChatModelPresentation = {
-  readonly label: string;
-  readonly ready: boolean;
-  readonly reasonCode: string;
-};
-
-export function chatModelPresentation(
-  evidence: ZhiyuEvidence,
-  aiConfig: AgentCenterRuntimeAIConfigProjection | null = null,
-): ZhiyuChatModelPresentation {
-  if (aiConfig) {
-    const binding = aiConfig.routeIntents.find((intent) => intent.capability === 'text.generate') ?? null;
-    const readiness = aiConfig.readiness.find((entry) => entry.capability === 'text.generate') ?? null;
-    if (!binding) {
-      return {
-        label: '未绑定模型',
-        ready: false,
-        reasonCode: 'zhiyu-agent-ai-config-not-configured',
-      };
-    }
-    const option = aiConfig.routeOptions?.find((candidate) => (
-      candidate.capability === binding.capability
-      && candidate.routePolicy === binding.routePolicy
-      && candidate.provider === binding.provider
-      && candidate.model === binding.model
-    ));
-    const ready = readiness?.state === 'ready';
-    return {
-      label: option?.label.trim() || binding.model.trim() || (binding.routePolicy === 'local' ? '本地对话已就绪' : '对话已就绪'),
-      ready,
-      reasonCode: ready
-        ? 'runtime-agent-ai-config-ready'
-        : readiness?.state === 'blocked'
-          ? 'zhiyu-agent-ai-config-not-configured'
-          : 'zhiyu-agent-ai-config-readiness-unavailable',
-    };
-  }
-  const binding = evidence.route.executionBinding;
-  if (!binding) {
-    const unavailableLabel = evidence.route.reasonCode === 'zhiyu-agent-ai-config-permission-required'
-      ? '模型配置需授权'
-      : evidence.route.reasonCode === 'zhiyu-agent-ai-config-loading'
-        ? '正在加载模型配置'
-        : '未绑定模型';
-    return {
-      label: unavailableLabel,
-      ready: evidence.route.ready,
-      reasonCode: evidence.route.reasonCode,
-    };
-  }
-  return {
-    label: binding.route === 'local' ? '本地对话已就绪' : '对话已就绪',
-    ready: evidence.route.ready,
-    reasonCode: evidence.route.reasonCode,
-  };
-}
-
-export function chatPrimaryBindingLabel(evidence: ZhiyuEvidence): string {
-  return chatModelPresentation(evidence).label;
-}
 
 export function chatReplyChipLabel(evidence: ZhiyuEvidence): string {
   if (evidence.chat.ready) {
@@ -115,63 +53,9 @@ function conversationReadinessHint(conversation: ZhiyuEvidence['conversation']):
     || reasonCode.includes('unavailable')
     || reasonCode.includes('missing')
   ) {
-    return withDevelopmentReasonCode(
-      '会话没有打开成功，请重新选择伙伴或重启织羽后再试。',
-      reasonCode,
-    );
+    return '会话没有打开成功，请重新选择伙伴或重启织羽后再试。';
   }
-  return withDevelopmentReasonCode('会话暂时不可用，请稍后重试。', reasonCode);
-}
-
-function withDevelopmentReasonCode(message: string, reasonCode: string): string {
-  return import.meta.env?.DEV
-    ? `${message} (reasonCode: ${reasonCode})`
-    : message;
-}
-
-// Readiness tri-state product copy for model diagnostics. The unavailable
-// reason codes come from the Runtime Agent model-settings readiness projection
-// (.nimi/spec/runtime/agent-participation.authority.yaml).
-export function agentAIConfigReadinessHint(route: ZhiyuEvidence['route']): string {
-  if (route.reasonCode === 'zhiyu-agent-ai-config-identity-required') {
-    return '请先选择本地伙伴。';
-  }
-  if (route.reasonCode === 'zhiyu-agent-ai-config-permission-required') {
-    return '请先授权织羽读取伙伴模型配置。';
-  }
-  if (route.reasonCode === 'zhiyu-agent-ai-config-loading') {
-    return '正在加载伙伴模型配置。';
-  }
-  if (route.reasonCode === 'zhiyu-agent-ai-config-unavailable') {
-    return '本地运行服务暂时不可用，请稍后重试。';
-  }
-  const text = route.capabilities['text.generate'] ?? null;
-  if (!text || text.state === 'not_configured' || route.reasonCode === 'zhiyu-agent-ai-config-not-configured') {
-    return '请先在伙伴中心完成模型配置。';
-  }
-  if (text.state === 'unavailable') {
-    return executionUnavailableReasonCopy(text.reasonCode);
-  }
-  return '模型配置暂时不可用，请稍后重试。';
-}
-
-function executionUnavailableReasonCopy(reasonCode: string): string {
-  if (reasonCode === 'route_unhealthy') {
-    return '模型通路暂不可用，请检查本地模型服务或云端连接。';
-  }
-  if (reasonCode === 'connector_missing') {
-    return '云端连接器缺失，请重新完成模型配置。';
-  }
-  if (reasonCode === 'model_missing') {
-    return '所选模型不可用，请重新选择模型。';
-  }
-  if (reasonCode === 'target_missing') {
-    return '模型目标缺失，请重新完成模型配置。';
-  }
-  if (reasonCode === 'probe_failed') {
-    return '模型可用性检查失败，请稍后重试。';
-  }
-  return '模型暂时不可用，请稍后重试。';
+  return '会话暂时不可用，请稍后重试。';
 }
 
 export function currentPartnerDisplayName(evidence: ZhiyuEvidence): string {

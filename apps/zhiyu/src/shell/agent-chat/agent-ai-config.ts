@@ -1,47 +1,43 @@
 import type {
-  AgentCenterRuntimeAIConfigProjection,
+  AgentCenterSharedAIConfigProjection,
   AgentCenterSnapshot,
 } from '@nimiplatform/kit/features/agent-center';
 
-import type {
-  ZhiyuAgentAIConfigReadinessState,
-  ZhiyuEvidence,
-  ZhiyuExecutionCapabilityEvidence,
-} from '../app/evidence';
+import type { ZhiyuEvidence } from '../app/evidence';
 
 export type ZhiyuRuntimeRouteStatus = ZhiyuEvidence['route'];
 
-// Local Apps never receive or reconstruct Runtime account or LocalAgent
-// identity here. The permissioned Agent Center session is the single
-// model-settings owner seam; this adapter only projects its bounded snapshot
-// into Zhiyu's existing diagnostics and voice-readiness view.
+// Shared LocalAgent AIConfig is account-scoped. The selected Agent handle is
+// used only by the surrounding Agent Center session for per-Agent settings;
+// this projection never turns that handle into AIConfig identity or execution
+// readiness.
 export function projectZhiyuAgentAIConfigRouteEvidence(
   snapshot: AgentCenterSnapshot | null,
 ): ZhiyuRuntimeRouteStatus {
   if (!snapshot) {
     return zhiyuAgentAIConfigRouteBlocked({
-      reasonCode: 'zhiyu-agent-ai-config-identity-required',
-      actionHint: 'select_runtime_local_agent',
+      reasonCode: 'zhiyu-shared-ai-config-session-unavailable',
+      actionHint: 'open_authorized_agent_center_session',
       source: 'renderer',
-      message: 'Select an authorized Agent before reading its model settings.',
+      message: 'The shared LocalAgent AI configuration session is unavailable.',
     });
   }
 
-  const aiConfig = snapshot.state.aiConfig;
-  if (aiConfig) {
-    return projectZhiyuAgentCenterAIConfigRoute(aiConfig);
+  const sharedAIConfig = snapshot.state.sharedAIConfig;
+  if (sharedAIConfig) {
+    return projectZhiyuSharedAIConfigIntentEvidence(sharedAIConfig);
   }
 
   if (snapshot.phase === 'loading') {
     return zhiyuAgentAIConfigRouteBlocked({
-      reasonCode: 'zhiyu-agent-ai-config-loading',
-      actionHint: 'wait_for_agent_center_model_settings',
+      reasonCode: 'zhiyu-shared-ai-config-loading',
+      actionHint: 'wait_for_shared_local_agent_ai_config',
       source: 'renderer',
-      message: 'Runtime Agent model settings are loading.',
+      message: 'The shared LocalAgent AI configuration is loading.',
     });
   }
 
-  const readAvailability = snapshot.availability.readAIConfig;
+  const readAvailability = snapshot.availability.getSharedAIConfig;
   if (
     readAvailability.reason === 'needs-grant'
     || readAvailability.reason === 'denied'
@@ -49,86 +45,50 @@ export function projectZhiyuAgentAIConfigRouteEvidence(
     || readAvailability.reason === 'request-pending'
   ) {
     return zhiyuAgentAIConfigRouteBlocked({
-      reasonCode: 'zhiyu-agent-ai-config-permission-required',
+      reasonCode: 'zhiyu-shared-ai-config-permission-required',
       actionHint: readAvailability.nextStep === 'requestPermission'
         ? 'request_agents_configure_permission'
         : 'wait_for_agents_configure_permission',
       source: 'runtime',
-      message: 'Runtime Agent model settings require the agents.configure permission.',
+      message: 'Reading the shared LocalAgent AI configuration requires permission.',
     });
   }
 
   return zhiyuAgentAIConfigRouteBlocked({
-    reasonCode: 'zhiyu-agent-ai-config-unavailable',
-    actionHint: 'refresh_agent_center_model_settings',
+    reasonCode: 'zhiyu-shared-ai-config-unavailable',
+    actionHint: 'refresh_shared_local_agent_ai_config',
     source: 'runtime',
     message: snapshot.error?.trim()
-      || 'Runtime Agent model settings are unavailable.',
+      || 'The shared LocalAgent AI configuration is unavailable.',
   });
 }
 
-export function projectZhiyuAgentCenterAIConfigRoute(
-  aiConfig: AgentCenterRuntimeAIConfigProjection,
+export function projectZhiyuSharedAIConfigIntentEvidence(
+  sharedAIConfig: AgentCenterSharedAIConfigProjection,
 ): ZhiyuRuntimeRouteStatus {
-  const intents = new Map(
-    aiConfig.routeIntents.map((intent) => [intent.capability, intent] as const),
+  const textConfigured = sharedAIConfig.intents.some(
+    (intent) => intent.capability === 'text.generate',
   );
-  const readiness = new Map(
-    aiConfig.readiness.map((entry) => [entry.capability, entry] as const),
-  );
-  const capabilityIds = new Set([
-    ...aiConfig.capabilities,
-    ...intents.keys(),
-    ...readiness.keys(),
-  ]);
-  const capabilities: Record<string, ZhiyuExecutionCapabilityEvidence> = {};
-
-  for (const capability of capabilityIds) {
-    const intent = intents.get(capability) ?? null;
-    const readinessEntry = readiness.get(capability) ?? null;
-    const binding = intent ? executionBinding(intent) : null;
-    const state = readinessState(readinessEntry?.state, Boolean(binding));
-    capabilities[capability] = {
-      state,
-      reasonCode: readinessEntry?.reason.trim()
-        || (state === 'ready' ? 'ready' : state),
-      probedAt: readinessEntry?.observedAt ?? null,
-      binding,
-    };
-  }
-
-  const text = capabilities['text.generate'] ?? null;
-  const ready = text?.state === 'ready';
   return {
     transport: 'electron-ipc',
-    ready,
+    ready: false,
     capability: 'text.generate',
-    configRevision: aiConfig.configurationRevision,
-    readinessRevision: aiConfig.configurationRevision,
+    configRevision: null,
+    readinessRevision: null,
     updatedAt: null,
     updatedByAppId: null,
-    capabilities,
-    executionBinding: text?.binding ?? null,
-    ...(ready
-      ? {
-        reasonCode: 'runtime-agent-ai-config-ready',
-        actionHint: 'send_runtime_agent_turn',
-        source: 'runtime',
-        message: 'Runtime Agent model settings project text.generate as ready.',
-      }
-      : text?.state === 'not_configured'
-        ? {
-          reasonCode: 'zhiyu-agent-ai-config-not-configured',
-          actionHint: 'configure_runtime_agent_ai_config',
-          source: 'runtime',
-          message: 'Runtime Agent model settings have no text.generate intent.',
-        }
-        : {
-          reasonCode: 'zhiyu-agent-ai-config-readiness-unavailable',
-          actionHint: 'inspect_runtime_agent_ai_config_readiness',
-          source: 'runtime',
-          message: `Runtime Agent model settings report text.generate as unavailable (${text?.reasonCode || 'unknown'}).`,
-        }),
+    capabilities: {},
+    executionBinding: null,
+    reasonCode: textConfigured
+      ? 'runtime-shared-ai-config-text-intent-configured'
+      : 'zhiyu-shared-ai-config-text-intent-not-configured',
+    actionHint: textConfigured
+      ? 'submit_runtime_agent_turn_for_derived_admission'
+      : 'configure_shared_local_agent_ai_config',
+    source: 'runtime',
+    message: textConfigured
+      ? 'The shared text capability intent is configured; Runtime determines availability for each request.'
+      : 'The shared LocalAgent AI configuration has no text capability intent.',
   };
 }
 
@@ -153,22 +113,4 @@ export function zhiyuAgentAIConfigRouteBlocked(input: {
     source: input.source,
     message: input.message,
   };
-}
-
-function executionBinding(
-  intent: AgentCenterRuntimeAIConfigProjection['routeIntents'][number],
-): NonNullable<ZhiyuExecutionCapabilityEvidence['binding']> {
-  return {
-    route: intent.routePolicy,
-    modelId: intent.model,
-  };
-}
-
-function readinessState(
-  state: AgentCenterRuntimeAIConfigProjection['readiness'][number]['state'] | undefined,
-  hasBinding: boolean,
-): ZhiyuAgentAIConfigReadinessState {
-  if (!hasBinding) return 'not_configured';
-  if (state === 'ready') return 'ready';
-  return state === 'blocked' ? 'not_configured' : 'unavailable';
 }

@@ -4,9 +4,8 @@ import {
   nimiToast,
   StatusBadge,
 } from '@nimiplatform/kit/ui';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ClipboardEvent as ReactClipboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent as ReactClipboardEvent } from 'react';
 import type { ChatComposerAdapter } from '@nimiplatform/kit/features/chat/headless';
-import type { AgentCenterSnapshot } from '@nimiplatform/kit/features/agent-center';
 import {
   CanonicalComposer,
   CanonicalTranscriptView,
@@ -31,7 +30,6 @@ import {
 } from './ZhiyuAgentPanel';
 import {
   chatBlockedHint,
-  chatModelPresentation,
   chatReplyChipLabel,
   conversationMessagesForDisplay,
   currentPartnerAvatarUrl,
@@ -41,7 +39,6 @@ import {
 import {
   ComposerAvatarButton,
   ComposerModeTools,
-  ComposerModelRouteButton,
   RuntimeActionArtifactSummary,
   RuntimeChatFailureNotice,
   runtimeActionArtifactSummary,
@@ -68,9 +65,6 @@ import {
   type ZhiyuChatAttachmentRef,
   type ZhiyuPendingAttachment,
 } from './turn-attachments';
-
-const subscribeToNoAgentCenter = (): (() => void) => () => undefined;
-const getNoAgentCenterSnapshot = (): AgentCenterSnapshot | null => null;
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -114,15 +108,6 @@ export function ZhiyuAgentChatSurface({
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
-  const agentCenterSnapshot = useSyncExternalStore<AgentCenterSnapshot | null>(
-    agentCenterSession?.subscribe ?? subscribeToNoAgentCenter,
-    agentCenterSession?.getSnapshot ?? getNoAgentCenterSnapshot,
-    agentCenterSession?.getSnapshot ?? getNoAgentCenterSnapshot,
-  );
-  const modelPresentation = chatModelPresentation(
-    evidence,
-    agentCenterSnapshot?.state.aiConfig ?? null,
-  );
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const currentPartnerAvatar = currentPartnerAvatarUrl(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
@@ -161,19 +146,6 @@ export function ZhiyuAgentChatSurface({
       description={(
         <div className="zhiyu-source-not-ready-empty__description">
           <p>这个伙伴的来源资料还没有准备完成，暂时不能开始对话。请到 Nimi 桌面端继续选择伙伴来源，完成后回到这里重新检查。</p>
-          <details className="zhiyu-source-not-ready-empty__diagnostics">
-            <summary>查看诊断信息</summary>
-            <dl>
-              <div>
-                <dt>原因</dt>
-                <dd><code data-zhiyu-source-not-ready-diagnostic="reason-code">{evidence.localAgent.reasonCode}</code></dd>
-              </div>
-              <div>
-                <dt>下一步</dt>
-                <dd><code data-zhiyu-source-not-ready-diagnostic="action-hint">{evidence.localAgent.actionHint}</code></dd>
-              </div>
-            </dl>
-          </details>
         </div>
       )}
       action={(
@@ -417,10 +389,6 @@ export function ZhiyuAgentChatSurface({
   const getChatTranscriptRoot = useCallback(() => (
     chatTranscriptViewportRef.current?.querySelector<HTMLElement>('[data-canonical-transcript-root="true"]') ?? null
   ), []);
-  const openModelConfig = () => {
-    setRightPanelMode('agent');
-    setActiveAgentTab('model');
-  };
   const openAppearanceConfig = () => {
     setRightPanelMode('agent');
     setActiveAgentTab('appearance');
@@ -601,12 +569,6 @@ export function ZhiyuAgentChatSurface({
                     onOpenSettings={openBehaviorConfig}
                   />
                 )}
-                trailingSlot={(
-                  <ComposerModelRouteButton
-                    onOpenModelConfig={openModelConfig}
-                    modelRouteReasonCode={modelPresentation.reasonCode}
-                  />
-                )}
                 layout="stacked"
                 className="zhiyu-chat-canvas__canonical-composer"
               />
@@ -624,12 +586,6 @@ export function ZhiyuAgentChatSurface({
               <span className="zhiyu-chat-canvas__chip-label">会话</span>
               <StatusBadge tone={evidence.conversation.ready ? 'success' : 'warning'} shape="dot">
                 {formatReasonLabel(evidence.conversation.ready, evidence.conversation.reasonCode)}
-              </StatusBadge>
-            </span>
-            <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="route">
-              <span className="zhiyu-chat-canvas__chip-label">模型</span>
-              <StatusBadge tone={modelPresentation.ready ? 'success' : 'warning'} shape="dot">
-                {formatReasonLabel(modelPresentation.ready, modelPresentation.reasonCode)}
               </StatusBadge>
             </span>
             <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="chat">

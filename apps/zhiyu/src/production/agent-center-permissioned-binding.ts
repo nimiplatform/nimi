@@ -1,11 +1,13 @@
 import { sealAgentCenterPermissionedSdkSurface } from '@nimiplatform/kit/features/agent-center';
-import { diffNimiAIConfigs, type NimiAIProfile } from '@nimiplatform/sdk/ai';
+import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
+import { createNimiError } from '@nimiplatform/sdk/types';
 import type {
   AgentCenterAppearanceProjection,
   AgentCenterAutonomyProjection,
   AgentCenterPermissionedPresentationIntent,
   AgentCenterPermissionedSdkSurface,
   AgentCenterProductAction,
+  AgentCenterSharedAIConfigProjection,
   AgentCenterStateInput,
   AgentCenterTransportActionPosture,
   AgentCenterTransportActionProjection,
@@ -19,26 +21,31 @@ import type {
   NimiLocalAppAgentAutonomyConfig,
   NimiLocalAppAgentAutonomyProjection,
   NimiLocalAppAgentConfigureClient,
-  NimiLocalAppAgentAIConfigProjection,
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentPresentationIntent,
   NimiLocalAppAgentPresentationProjection,
-  NimiLocalAppAgentReadinessProjection,
   NimiLocalAppClient,
   NimiLocalAppTimestamp,
 } from '@nimiplatform/sdk/app';
 
 const ACTIONS: readonly AgentCenterProductAction[] = [
-  'readAIConfig', 'updateAIConfig', 'readAutonomy', 'updateAutonomy',
-  'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
+  'getSharedAIConfig', 'overwriteSharedAIConfig', 'applySharedAIProfile',
+  'readAutonomy', 'updateAutonomy', 'readMemorySummary',
+  'replaceAppearance', 'restorePreviousAppearance',
   'requestPermission', 'openPermissionSettings',
 ];
 
 const ACTION_GROUP: Readonly<Record<AgentCenterProductAction, NimiAgentCapabilityGroup>> = {
-  readAIConfig: 'configure', updateAIConfig: 'configure',
-  readAutonomy: 'configure', updateAutonomy: 'configure',
-  readMemorySummary: 'memory', replaceAppearance: 'configure', restorePreviousAppearance: 'configure',
-  requestPermission: 'configure', openPermissionSettings: 'configure',
+  getSharedAIConfig: 'configure',
+  overwriteSharedAIConfig: 'configure',
+  applySharedAIProfile: 'configure',
+  readAutonomy: 'configure',
+  updateAutonomy: 'configure',
+  readMemorySummary: 'memory',
+  replaceAppearance: 'configure',
+  restorePreviousAppearance: 'configure',
+  requestPermission: 'configure',
+  openPermissionSettings: 'configure',
 };
 
 const REASONS: Readonly<Record<Exclude<NimiAgentCapabilityPostureReason, null>, AgentCenterTransportActionReason>> = {
@@ -50,14 +57,10 @@ const REASONS: Readonly<Record<Exclude<NimiAgentCapabilityPostureReason, null>, 
   grant_revoked: 'grant_revoked',
 };
 
-export const ZHIYU_AGENTS_CONFIGURE_REASON = '管理您账户中 Agent 的模型、行为、自主性、语音引用和外观设置。';
+export const ZHIYU_AGENTS_CONFIGURE_REASON = '管理账户内伙伴共享的 AI 能力意图，以及伙伴的行为、自主性、语音引用和外观设置。';
 
 export interface CreateZhiyuAgentCenterPermissionedSurfaceInput {
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
-  readonly aiProfiles: {
-    list(): Promise<readonly NimiAIProfile[]>;
-    get(profileId: string): Promise<NimiAIProfile | null>;
-  };
   readonly permissions: Pick<
     NimiLocalAppClient['permissions'],
     'request' | 'subscribeAgentCapabilityPosture'
@@ -118,7 +121,7 @@ export function createZhiyuAgentCenterPermissionedSdkSurface(
     replacements: Partial<ConfigureSnapshots> = {},
   ): Promise<AgentCenterStateInput> => {
     const posture = await actionPosture();
-    if (posture.readAIConfig.state !== 'available') return {};
+    if (posture.getSharedAIConfig.state !== 'available') return {};
     return composeAgentCenterProjection(await loadConfigureSnapshots(input.agentConfigure, handle, replacements));
   };
   return sealAgentCenterPermissionedSdkSurface({
@@ -130,80 +133,9 @@ export function createZhiyuAgentCenterPermissionedSdkSurface(
       );
     },
     read: (handle) => readAggregate(asSdkHandle(handle)),
-    async updateConfiguration(handle, mutation) {
-      const agentHandle = asSdkHandle(handle);
-      const current = await input.agentConfigure.configurationSnapshot({ agentHandle });
-      const routes = Object.entries(mutation.config.capabilities.logicalModelIds).map(([capability, logicalModelId]) => {
-        const currentIntent = current.intents.find((intent) => (
-          intent.capability === capability && intent.logicalModelId === logicalModelId
-        ));
-        const matches = current.routeOptions.filter((option) => (
-          option.capability === capability && option.logicalModelId === logicalModelId
-        ));
-        const selected = currentIntent ?? (matches.length === 1 ? matches[0] : null);
-        if (!selected) {
-          throw new Error(`Agent Center cannot resolve a unique public route for ${capability}.`);
-        }
-        return {
-          capability,
-          provider: selected.provider,
-          routePolicy: selected.routePolicy,
-        };
-      });
-      const result = await input.agentConfigure.updateConfiguration({
-        agentHandle,
-        expectedConfigurationRevision: mutation.expectedConfigurationRevision,
-        config: mutation.config,
-        routes,
-      });
-      if (result.outcome === 'conflict') throw result.conflict;
-      return readAggregate(agentHandle, { configuration: result.projection });
-    },
-    async listAIProfiles() {
-      return [...await input.aiProfiles.list()];
-    },
-    async previewAIProfile(handle, scopeRef, profileId, options) {
-      const profile = await input.aiProfiles.get(profileId);
-      if (!profile) {
-        const current = await input.agentConfigure.configurationSnapshot({
-          agentHandle: asSdkHandle(handle),
-        });
-        return {
-          before: current.aiConfig,
-          after: null,
-          outcome: 'failed',
-          diff: diffNimiAIConfigs(current.aiConfig, null),
-          baseVersion: `runtime-agent-revision:${current.configurationRevision}`,
-          probeWarnings: [`AI profile not found: ${profileId}`],
-        };
-      }
-      return input.agentConfigure.previewAIProfile({
-        agentHandle: asSdkHandle(handle),
-        scopeRef,
-        profile,
-        requirementDeclarations: options.requirementDeclarations,
-      });
-    },
-    async applyAIProfile(handle, scopeRef, profileId, options) {
-      const profile = await input.aiProfiles.get(profileId);
-      if (!profile) {
-        return {
-          success: false,
-          config: null,
-          failureReason: `profile_not_found:${profileId}`,
-          outcome: 'failed',
-          probeWarnings: [`AI profile not found: ${profileId}`],
-        };
-      }
-      return input.agentConfigure.applyAIProfile({
-        agentHandle: asSdkHandle(handle),
-        scopeRef,
-        profile,
-        requirementDeclarations: options.requirementDeclarations,
-        ...(options.expectedBaseVersion
-          ? { expectedBaseVersion: options.expectedBaseVersion }
-          : {}),
-      });
+    async overwriteSharedAIConfig(mutation) {
+      const aiConfig = await input.agentConfigure.sharedAIConfig.overwrite(mutation.capabilities);
+      return projectSharedAIConfig(aiConfig);
     },
     async updateAutonomy(handle, mutation) {
       const agentHandle = asSdkHandle(handle);
@@ -236,7 +168,14 @@ export function createZhiyuAgentCenterPermissionedSdkSurface(
     async restorePreviousAppearance(handle) {
       const agentHandle = asSdkHandle(handle);
       const current = await input.agentConfigure.presentationSnapshot({ agentHandle });
-      if (!current.previousProfile) throw new Error('No previous committed appearance is available to restore.');
+      if (!current.previousProfile) {
+        throw createNimiError({
+          message: 'No previous committed appearance is available to restore.',
+          reasonCode: 'AGENT_PRESENTATION_PREVIOUS_PROFILE_UNAVAILABLE',
+          actionHint: 'commit_agent_presentation_before_restore',
+          source: 'runtime',
+        });
+      }
       const result = await input.agentConfigure.commitPresentation({
         agentHandle,
         expectedPresentationRevision: current.presentationRevision,
@@ -263,8 +202,7 @@ export function createZhiyuAgentCenterPermissionedSdkSurface(
 }
 
 type ConfigureSnapshots = {
-  readonly configuration: NimiLocalAppAgentAIConfigProjection;
-  readonly readiness: NimiLocalAppAgentReadinessProjection;
+  readonly sharedAIConfig: NimiCapabilityAIConfig;
   readonly autonomy: NimiLocalAppAgentAutonomyProjection;
   readonly presentation: NimiLocalAppAgentPresentationProjection;
 };
@@ -274,58 +212,48 @@ async function loadConfigureSnapshots(
   agentHandle: NimiLocalAppAgentHandle,
   replacements: Partial<ConfigureSnapshots>,
 ): Promise<ConfigureSnapshots> {
-  const [configuration, readiness, autonomy, presentation] = await Promise.all([
-    replacements.configuration || client.configurationSnapshot({ agentHandle }),
-    replacements.readiness || client.readinessSnapshot({ agentHandle }),
-    replacements.autonomy || client.autonomySnapshot({ agentHandle }),
-    replacements.presentation || client.presentationSnapshot({ agentHandle }),
+  const [sharedAIConfig, autonomy, presentation] = await Promise.all([
+    replacements.sharedAIConfig ?? client.sharedAIConfig.get(),
+    replacements.autonomy ?? client.autonomySnapshot({ agentHandle }),
+    replacements.presentation ?? client.presentationSnapshot({ agentHandle }),
   ]);
-  return { configuration, readiness, autonomy, presentation };
+  return { sharedAIConfig, autonomy, presentation };
 }
 
 function composeAgentCenterProjection(
   snapshots: ConfigureSnapshots,
 ): AgentCenterStateInput {
-  const revision = decimalRevision(snapshots.configuration.configurationRevision);
-  const readinessRevision = decimalRevision(snapshots.readiness.configurationRevision);
-  if (!revision || readinessRevision !== revision) {
-    throw new Error('Agent Center AIConfig and readiness projection revisions do not match.');
-  }
   return {
-    aiConfig: {
-      aiConfig: snapshots.configuration.aiConfig,
-      scopeRef: snapshots.configuration.aiConfig.scopeRef,
-      capabilities: snapshots.configuration.capabilities,
-      routeIntents: snapshots.configuration.intents.map((intent) => ({
-        capability: intent.capability,
-        provider: intent.provider,
-        model: intent.logicalModelId,
-        routePolicy: intent.routePolicy,
-      })),
-      routeOptions: snapshots.configuration.routeOptions.map((option) => ({
-        capability: option.capability,
-        provider: option.provider,
-        model: option.logicalModelId,
-        routePolicy: option.routePolicy,
-        label: option.label,
-        availability: option.availability,
-      })),
-      readiness: snapshots.readiness.capabilities.map((capability) => ({
-        capability: capability.capability,
-        state: readinessState(capability.state),
-        reason: capability.reason,
-        observedAt: timestampIso(capability.observedAt),
-      })),
-      configurationRevision: revision,
-    },
+    sharedAIConfig: projectSharedAIConfig(snapshots.sharedAIConfig),
     autonomy: autonomyProjection(snapshots.autonomy),
     appearance: appearanceProjection(snapshots.presentation),
   };
 }
 
-function readinessState(value: string): 'ready' | 'blocked' | 'unavailable' | 'failed' {
-  if (value === 'ready' || value === 'blocked' || value === 'failed') return value;
-  return 'unavailable';
+function projectSharedAIConfig(
+  aiConfig: NimiCapabilityAIConfig,
+): AgentCenterSharedAIConfigProjection {
+  const intents = aiConfig.capabilities.map((intent) => {
+    const route = intent.route.oneofKind;
+    if (route !== 'local' && route !== 'cloud') {
+      throw createNimiError({
+        message: 'Runtime returned an invalid shared AI configuration.',
+        reasonCode: 'RUNTIME_SHARED_LOCAL_AGENT_AI_CONFIG_RESPONSE_INVALID',
+        actionHint: 'inspect_shared_local_agent_ai_config_contract',
+        source: 'runtime',
+      });
+    }
+    return {
+      capability: intent.capabilityContract,
+      route,
+      requiredFeatures: [...intent.requiredFeatures],
+    };
+  });
+  return {
+    aiConfig,
+    capabilities: intents.map((intent) => intent.capability),
+    intents,
+  };
 }
 
 function autonomyProjection(input: NimiLocalAppAgentAutonomyProjection): AgentCenterAutonomyProjection {
@@ -394,10 +322,6 @@ function presentationIntent(
     avatarAutoplay: mutation.avatarAutoplay ?? profile?.avatarAutoplay ?? false,
     backgroundAssetRef: mutation.backgroundAssetReference ?? profile?.backgroundAssetRef ?? '',
   };
-}
-
-function decimalRevision(value: string): string | null {
-  return /^(?:0|[1-9]\d*)$/u.test(value) ? value : null;
 }
 
 function timestampIso(value: NimiLocalAppTimestamp | undefined): string | null {

@@ -7,38 +7,35 @@ import {
   createAgentCenterI18n,
   createFirstPartyAgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
-import { projectNimiRuntimeLocalAgentAIScopeRef } from '@nimiplatform/sdk/ai';
 
 (globalThis).React = React;
 const zh = createAgentCenterI18n({ language: 'zh' });
 
 async function createSession() {
-  const scopeRef = projectNimiRuntimeLocalAgentAIScopeRef('agent');
   let aiConfig = {
-    scopeRef,
-    profileOrigin: null,
-    capabilities: {
-      logicalModelIds: {},
-      targetRefs: {},
-      selectedComponents: {},
-      selectedParams: {},
+    owner: {
+      owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
     },
+    capabilities: [],
   };
+  const projectSharedAIConfig = () => ({
+    aiConfig,
+    capabilities: aiConfig.capabilities.map((intent) => intent.capabilityContract),
+    intents: aiConfig.capabilities.map((intent) => ({
+      capability: intent.capabilityContract,
+      route: intent.route.oneofKind,
+      requiredFeatures: [...intent.requiredFeatures],
+    })),
+  });
   const session = createFirstPartyAgentCenterSession({
     identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
-    aiConfig: {
-      async snapshot() {
-        return {
-          aiConfig, scopeRef, capabilities: [],
-          routeIntents: [], readiness: [], configurationRevision: '1',
-        };
+    sharedAIConfig: {
+      async get() {
+        return projectSharedAIConfig();
       },
-      async update(input) {
-        aiConfig = input.config;
-        return {
-          aiConfig, scopeRef, capabilities: [],
-          routeIntents: [], readiness: [], configurationRevision: '2',
-        };
+      async overwrite(input) {
+        aiConfig = { ...aiConfig, capabilities: [...input.capabilities] };
+        return projectSharedAIConfig();
       },
     },
   });
