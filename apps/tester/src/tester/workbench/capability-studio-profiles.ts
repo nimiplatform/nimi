@@ -187,7 +187,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
     emptyTitle: 'Waiting for catalog',
     emptyHint: 'Available runtime voices will appear here.',
     resultKind: 'voice-catalog',
-    footnote: 'Probes the Kit Runtime voice catalog consumer for catalog readiness.',
+    footnote: 'Exercises the typed audio.synthesize voice catalog surface.',
   },
   'world.generate': {
     studioTag: 'World',

@@ -1,123 +1,102 @@
-import {
-  createNimiAppAIScopeRef,
-  type NimiAIConfig,
-  type NimiAIProfile,
-  type NimiAIScopeRef,
-  type NimiAISnapshot,
+import type {
+  NimiCapabilityAIConfig,
+  NimiCapabilityAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
-import { createNimiError, type NimiError } from '@nimiplatform/sdk/types';
-import type { SharedAIConfigService } from '@nimiplatform/kit/features/model-config/headless';
+
 import { appId } from '../shell/auth/app-identity.js';
 
-export const TESTER_APP_LAB_AI_SURFACE_ID = 'app-lab';
-export const TESTER_AI_CONFIG_UNAVAILABLE_REASON_CODE = 'TESTER_LOCAL_APP_AI_CONFIG_UNAVAILABLE';
-export const TESTER_AI_CONFIG_UNAVAILABLE_ACTION_HINT = 'await_local_app_ai_config_operation_admission';
+type TesterAIConfigClient = {
+  get(): Promise<NimiCapabilityAIConfig>;
+  overwrite(
+    capabilities: readonly NimiCapabilityAIConfigIntent[],
+  ): Promise<NimiCapabilityAIConfig>;
+};
 
-export type TesterAIProfileImportResult =
-  | {
-      ok: true;
-      profile: NimiAIProfile;
-      profileCount: number;
-      message: string;
-    }
-  | {
-      ok: false;
-      errors: string[];
-      message: string;
-      reasonCode: typeof TESTER_AI_CONFIG_UNAVAILABLE_REASON_CODE;
-      actionHint: typeof TESTER_AI_CONFIG_UNAVAILABLE_ACTION_HINT;
-    };
+export type TesterAIConfigProjection = NimiCapabilityAIConfig | null;
 
-export function createTesterAppLabAIScopeRef(): NimiAIScopeRef {
-  return createNimiAppAIScopeRef(appId, TESTER_APP_LAB_AI_SURFACE_ID);
+export async function loadTesterAIConfig(
+  client: Pick<TesterAIConfigClient, 'get'>,
+): Promise<TesterAIConfigProjection> {
+  try {
+    return requireTesterAIConfigOwner(await client.get());
+  } catch (error) {
+    if (isAIConfigNotFound(error)) return null;
+    throw error;
+  }
 }
 
-function aiConfigUnavailable(operation: string): NimiError {
-  return createNimiError({
-    message: 'AIConfig is not admitted by the 0K local-app carrier.',
-    code: 'capability-unavailable',
-    reasonCode: TESTER_AI_CONFIG_UNAVAILABLE_REASON_CODE,
-    actionHint: TESTER_AI_CONFIG_UNAVAILABLE_ACTION_HINT,
-    retryable: false,
-    source: 'sdk',
-    details: {
-      operation,
-      carrier: 'local-app-standard-shell-v1',
-    },
-  });
+export async function overwriteTesterCapabilityIntent(
+  client: Pick<TesterAIConfigClient, 'overwrite'>,
+  current: TesterAIConfigProjection,
+  intent: NimiCapabilityAIConfigIntent,
+): Promise<NimiCapabilityAIConfig> {
+  const capabilities = replaceCapabilityIntent(current?.capabilities ?? [], intent);
+  return requireTesterAIConfigOwner(await client.overwrite(capabilities));
 }
 
-export function listTesterAIProfiles(): NimiAIProfile[] {
-  throw aiConfigUnavailable('ai-profile.list');
+export async function removeTesterCapabilityIntent(
+  client: Pick<TesterAIConfigClient, 'overwrite'>,
+  current: TesterAIConfigProjection,
+  capabilityContract: string,
+): Promise<NimiCapabilityAIConfig> {
+  const capabilities = (current?.capabilities ?? []).filter(
+    (intent) => intent.capabilityContract !== capabilityContract,
+  );
+  return requireTesterAIConfigOwner(await client.overwrite(capabilities));
 }
 
-export function importTesterAIProfileJson(_rawJson: string): TesterAIProfileImportResult {
+export function createTesterLocalCapabilityIntent(
+  capabilityContract: string,
+  current?: NimiCapabilityAIConfigIntent | null,
+): NimiCapabilityAIConfigIntent {
+  const normalized = capabilityContract.trim();
+  if (!normalized || normalized !== capabilityContract) {
+    throw new Error('Tester capability contract must be exact.');
+  }
   return {
-    ok: false,
-    errors: ['AIProfile import requires a future admitted AIConfig operation.'],
-    message: 'AIProfile import is unavailable in this local-app build.',
-    reasonCode: TESTER_AI_CONFIG_UNAVAILABLE_REASON_CODE,
-    actionHint: TESTER_AI_CONFIG_UNAVAILABLE_ACTION_HINT,
+    capabilityContract: normalized,
+    requiredFeatures: [...(current?.requiredFeatures ?? [])],
+    ...(current?.defaults ? { defaults: current.defaults } : {}),
+    route: { oneofKind: 'local', local: {} },
   };
 }
 
-export async function requireTesterAIConfigAdmission(
-  _scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef(),
-): Promise<never> {
-  throw aiConfigUnavailable('ai-config.hydrate');
+export function findTesterCapabilityIntent(
+  config: TesterAIConfigProjection,
+  capabilityContract: string,
+): NimiCapabilityAIConfigIntent | null {
+  return config?.capabilities.find(
+    (intent) => intent.capabilityContract === capabilityContract,
+  ) ?? null;
 }
 
-export function loadTesterAIConfig(
-  _scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef(),
-): NimiAIConfig {
-  throw aiConfigUnavailable('ai-config.get');
+export function requireTesterAIConfigOwner(
+  config: NimiCapabilityAIConfig,
+): NimiCapabilityAIConfig {
+  const owner = config.owner?.owner;
+  if (!owner || owner.oneofKind !== 'app' || !('app' in owner) || owner.app.appId !== appId) {
+    throw new Error('Tester AIConfig owner must be the exact nimi.tester App.');
+  }
+  return config;
 }
 
-export async function saveTesterAIConfig(
-  _next: NimiAIConfig,
-  _scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef(),
-  _options?: { readonly expectedBaseVersion?: string },
-): Promise<NimiAIConfig> {
-  throw aiConfigUnavailable('ai-config.update');
+function replaceCapabilityIntent(
+  current: readonly NimiCapabilityAIConfigIntent[],
+  next: NimiCapabilityAIConfigIntent,
+): NimiCapabilityAIConfigIntent[] {
+  const retained = current.filter(
+    (intent) => intent.capabilityContract !== next.capabilityContract,
+  );
+  return [...retained, next];
 }
 
-export function recordTesterAISnapshot(_snapshot: NimiAISnapshot): NimiAISnapshot {
-  throw aiConfigUnavailable('ai-snapshot.record');
-}
-
-export function getTesterAISnapshot(_executionId: string): NimiAISnapshot | null {
-  throw aiConfigUnavailable('ai-snapshot.get');
-}
-
-export function getLatestTesterAISnapshot(
-  _scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef(),
-): NimiAISnapshot | null {
-  throw aiConfigUnavailable('ai-snapshot.latest');
-}
-
-export function createTesterAIConfigService(): SharedAIConfigService {
-  return {
-    aiConfig: {
-      get() {
-        throw aiConfigUnavailable('ai-config.get');
-      },
-      async update() {
-        throw aiConfigUnavailable('ai-config.update');
-      },
-      subscribe() {
-        throw aiConfigUnavailable('ai-config.subscribe');
-      },
-    },
-    aiProfile: {
-      async list() {
-        throw aiConfigUnavailable('ai-profile.list');
-      },
-      async previewApply() {
-        throw aiConfigUnavailable('ai-profile.preview-apply');
-      },
-      async apply() {
-        throw aiConfigUnavailable('ai-profile.apply');
-      },
-    },
-  };
+function isAIConfigNotFound(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as Record<string, unknown>;
+  const reason = typeof record.reasonCode === 'string'
+    ? record.reasonCode
+    : typeof record.code === 'string'
+      ? record.code
+      : '';
+  return reason.trim().toUpperCase().replaceAll('-', '_') === 'AI_CONFIG_NOT_FOUND';
 }

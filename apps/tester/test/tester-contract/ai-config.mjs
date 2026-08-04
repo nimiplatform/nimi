@@ -7,485 +7,221 @@ import {
 
 test.after(cleanupBehaviorModules);
 
-test('tester run target summary hydrates local runtime model labels without exposing opaque ids', async () => {
-  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
-  const capability = {
-    id: 'image.generate',
-    label: 'Image Generate',
-    group: 'media',
-    summary: '',
-    surface: '',
-    execution: 'runtime-sdk',
-  };
-  const runtime = { status: 'ready', mode: 'test', detail: 'ready' };
-  const config = {
-    scopeRef: { kind: 'app', appId: 'tester', surfaceId: 'app-lab' },
-    capabilities: {
-      targetRefs: {
-        'image.generate': {
-          kind: 'local-runtime',
-          version: 'v2',
-          readinessRef: 'runtime-route:local:media:01KTEX0CSNAR9Q0B8KXNCF4WPW',
-        },
-      },
-      selectedParams: {},
+const owner = { owner: { oneofKind: 'app', app: { appId: 'nimi.tester' } } };
+const localIntent = (capabilityContract) => ({
+  capabilityContract,
+  requiredFeatures: [],
+  route: { oneofKind: 'local', local: {} },
+});
+const config = (...capabilities) => ({ owner, capabilities });
+
+test('tester treats AI_CONFIG_NOT_FOUND as one unconfigured App AIConfig projection', async () => {
+  const { loadTesterAIConfig } = await importBehaviorModule('tester/tester-ai-config-store.js');
+  assert.equal(await loadTesterAIConfig({
+    async get() {
+      throw { reasonCode: 'AI_CONFIG_NOT_FOUND' };
     },
-    profileOrigin: null,
+  }), null);
+  await assert.rejects(() => loadTesterAIConfig({
+    async get() {
+      throw { reasonCode: 'AI_CONFIG_PERSISTENCE_UNAVAILABLE' };
+    },
+  }));
+});
+
+test('tester Local selection preserves unrelated intents and carries no model or binding truth', async () => {
+  const {
+    createTesterLocalCapabilityIntent,
+    overwriteTesterCapabilityIntent,
+  } = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const cloud = {
+    capabilityContract: 'image.generate',
+    requiredFeatures: [],
+    route: {
+      oneofKind: 'cloud',
+      cloud: {
+        implementation: {
+          implementationId: 'image.cloud',
+          driverId: 'cloud.driver',
+          driverDialect: 'v1',
+        },
+        connectorGrantId: 'grant-image',
+      },
+    },
   };
+  const current = config(cloud);
+  const calls = [];
+  const next = await overwriteTesterCapabilityIntent({
+    async get() {
+      return current;
+    },
+    async overwrite(capabilities) {
+      calls.push(capabilities);
+      return config(...capabilities);
+    },
+  }, current, createTesterLocalCapabilityIntent('text.generate'));
 
-  const unresolved = createTesterRunTargetSummary({ capability, runtime, config });
-  assert.equal(unresolved.modelLabel, 'Local runtime model');
-  assert.notEqual(unresolved.modelLabel, '01KTEX0CSNAR9Q0B8KXNCF4WPW');
+  assert.equal(next.capabilities.length, 2);
+  assert.equal(next.capabilities[0].capabilityContract, 'image.generate');
+  assert.deepEqual(next.capabilities[1], localIntent('text.generate'));
+  assert.doesNotMatch(JSON.stringify(next.capabilities[1]), /model|asset|binding|target|path/iu);
+  assert.equal(calls.length, 1);
+});
 
-  const hydrated = createTesterRunTargetSummary({
-    capability,
-    runtime,
-    config,
-    localModels: [{
-      localModelId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
-      modelId: 'local-import/z-image-turbo-Q4_K_M',
-      model: 'local-import/z-image-turbo-Q4_K_M',
-      label: 'local-import/z-image-turbo-Q4_K_M',
-      engine: 'media',
-    }],
+test('tester rejects any AIConfig projection not owned by the exact nimi.tester App', async () => {
+  const { requireTesterAIConfigOwner } = await importBehaviorModule('tester/tester-ai-config-store.js');
+  assert.throws(() => requireTesterAIConfigOwner({
+    owner: { owner: { oneofKind: 'app', app: { appId: 'other.app' } } },
+    capabilities: [],
+  }), /exact nimi\.tester App/u);
+});
+
+test('tester keeps an unconfigured capability blocked even when Runtime is connected', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const target = createTesterRunTargetSummary({
+    capability: {
+      id: 'text.generate', label: 'Text Studio', group: 'text', summary: '', surface: '', execution: 'runtime-sdk',
+    },
+    runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
+    config: null,
   });
-  assert.equal(hydrated.modelLabel, 'z-image-turbo-Q4_K_M');
-});
-
-test('tester admits the protected text candidate without AIConfig or model selection', async () => {
-  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
-  const { statusForCapability } = await importBehaviorModule('tester/workbench/section-ai-testing-admission.js');
-  const capability = {
-    id: 'text.generate',
-    label: 'Text Studio',
-    group: 'text',
-    summary: '',
-    surface: '',
-    execution: 'runtime-sdk',
-  };
-  const runtime = {
-    status: 'connected',
-    mode: 'electron-local-app',
-    detail: 'Runtime connected through the protected local-app carrier.',
-  };
-
-  const target = createTesterRunTargetSummary({ capability, runtime, config: null });
-  assert.equal(target.status, 'ready');
-  assert.equal(target.source, 'local');
-  assert.equal(target.modelLabel, 'Runtime selected');
-  assert.equal(target.bindingCapabilityId, null);
-  assert.equal(target.canDispatch, true);
-  assert.deepEqual(target.params, {});
-
-  const admission = statusForCapability(capability, runtime, null);
-  assert.equal(admission.label, 'ready');
-  assert.equal(admission.tone, 'success');
-  assert.match(admission.detail, /ai\.text\.generate/u);
-});
-
-test('tester keeps media execution unadmitted on the same connected carrier', async () => {
-  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
-  const { statusForCapability } = await importBehaviorModule('tester/workbench/section-ai-testing-admission.js');
-  const capability = {
-    id: 'image.generate',
-    label: 'Image Generate',
-    group: 'media',
-    summary: '',
-    surface: '',
-    execution: 'runtime-sdk',
-  };
-  const runtime = {
-    status: 'connected',
-    mode: 'electron-local-app',
-    detail: 'Runtime connected; media jobs are not admitted by this carrier.',
-  };
-
-  const target = createTesterRunTargetSummary({ capability, runtime, config: null });
-  assert.equal(target.status, 'not-admitted');
+  assert.equal(target.status, 'blocked');
+  assert.equal(target.modelLabel, 'Not configured');
   assert.equal(target.canDispatch, false);
+});
 
-  const admission = statusForCapability(capability, runtime, null);
-  assert.equal(admission.label, 'not admitted');
-  assert.equal(admission.tone, 'info');
+test('tester never presents an App AIConfig transport failure as unconfigured', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const target = createTesterRunTargetSummary({
+    capability: {
+      id: 'text.generate', label: 'Text Studio', group: 'text', summary: '', surface: '', execution: 'runtime-sdk',
+    },
+    runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
+    config: null,
+    configState: 'failed',
+    configError: 'AIConfig store unavailable',
+  });
+  assert.equal(target.status, 'blocked');
+  assert.equal(target.modelLabel, 'AIConfig unavailable');
+  assert.match(target.detail, /store unavailable/u);
+  assert.notEqual(target.modelLabel, 'Not configured');
+});
+
+test('tester presents Local intent as configured and execution-unverified without a model selection', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const target = createTesterRunTargetSummary({
+    capability: {
+      id: 'text.generate', label: 'Text Studio', group: 'text', summary: '', surface: '', execution: 'runtime-sdk',
+    },
+    runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
+    config: config(localIntent('text.generate')),
+  });
+  assert.equal(target.status, 'configured');
+  assert.equal(target.source, 'local');
+  assert.equal(target.modelLabel, 'Local');
+  assert.equal(target.capabilityContract, 'text.generate');
+  assert.equal(target.canDispatch, true);
+  assert.match(target.detail, /does not prove execution readiness/u);
+});
+
+test('tester keeps grantless Cloud intent unresolved and exact Grant intent execution-unverified', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const capability = {
+    id: 'image.generate', label: 'Image Generate', group: 'media', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
+  };
+  const runtime = { status: 'connected', mode: 'electron-local-app', detail: 'connected' };
+  const cloudIntent = (connectorGrantId) => ({
+    capabilityContract: 'image.generate',
+    requiredFeatures: [],
+    route: {
+      oneofKind: 'cloud',
+      cloud: {
+        implementation: {
+          implementationId: 'image.cloud',
+          driverId: 'cloud.driver',
+          driverDialect: 'v1',
+        },
+        connectorGrantId,
+      },
+    },
+  });
+
+  const unresolved = createTesterRunTargetSummary({ capability, runtime, config: config(cloudIntent('')) });
+  assert.equal(unresolved.status, 'blocked');
+  assert.equal(unresolved.canDispatch, false);
+  assert.match(unresolved.detail, /no ConnectorGrant/u);
+
+  const configured = createTesterRunTargetSummary({ capability, runtime, config: config(cloudIntent('grant-image')) });
+  assert.equal(configured.status, 'configured');
+  assert.equal(configured.source, 'cloud');
+  assert.equal(configured.canDispatch, true);
+  assert.match(configured.detail, /does not prove provider availability/u);
 });
 
 test('tester dispatches the standalone World Tour only from a Tauri shell', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const capability = {
-    id: 'world.generate',
-    label: 'World Tour',
-    group: 'world',
-    summary: '',
-    surface: '',
-    execution: 'standalone-tauri',
+    id: 'world.generate', label: 'World Tour', group: 'world', summary: '', surface: '', execution: 'standalone-tauri',
   };
-
-  const electronTarget = createTesterRunTargetSummary({
+  const electron = createTesterRunTargetSummary({
     capability,
     runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
     config: null,
     standaloneTauriAvailable: false,
   });
-  assert.equal(electronTarget.canDispatch, false);
-  assert.match(electronTarget.detail, /requires the standalone Tauri shell/u);
+  assert.equal(electron.canDispatch, false);
 
-  const tauriTarget = createTesterRunTargetSummary({
+  const tauri = createTesterRunTargetSummary({
     capability,
     runtime: { status: 'connected', mode: 'tauri-local-app', detail: 'connected' },
     config: null,
     standaloneTauriAvailable: true,
   });
-  assert.equal(tauriTarget.canDispatch, true);
-  assert.match(tauriTarget.detail, /opens the standalone Tauri viewer/u);
+  assert.equal(tauri.canDispatch, true);
 });
 
-test('tester treats modeled simulation as dispatchable without claiming Runtime readiness', async () => {
+test('tester Simulator uses the same exact App owner shape without claiming Runtime readiness', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
-  const { statusForCapability } = await importBehaviorModule('tester/workbench/section-ai-testing-admission.js');
-  const capability = {
-    id: 'text.generate',
-    label: 'Text Studio',
-    group: 'text',
-    summary: '',
-    surface: '',
-    execution: 'runtime-sdk',
-  };
-  const runtime = {
-    status: 'simulated',
-    mode: 'simulated',
-    detail: 'SDK testing facade backed by deterministic State Engine data; no Runtime connection exists.',
-  };
-  const config = {
-    scopeRef: { kind: 'app', appId: 'tester', surfaceId: 'app-lab' },
-    capabilities: {
-      targetRefs: {
-        'text.generate': {
-          kind: 'cloud-connector',
-          connectorId: 'simulated-connector',
-          remoteModelCatalogId: 'simulated-catalog',
-          providerModelId: 'simulated-text-model',
-        },
-      },
-      selectedParams: {},
+  const target = createTesterRunTargetSummary({
+    capability: {
+      id: 'text.generate', label: 'Text Studio', group: 'text', summary: '', surface: '', execution: 'runtime-sdk',
     },
-    profileOrigin: null,
-  };
-
-  const target = createTesterRunTargetSummary({ capability, runtime, config });
+    runtime: {
+      status: 'simulated', mode: 'simulated', detail: 'No Runtime connection exists.',
+    },
+    config: config(localIntent('text.generate')),
+  });
+  assert.equal(target.status, 'configured');
+  assert.equal(target.source, 'local');
   assert.equal(target.canDispatch, true);
-  assert.equal(target.modelLabel, 'simulated-text-model');
-
-  const admission = statusForCapability(capability, runtime, null);
-  assert.equal(admission.label, 'simulated');
-  assert.equal(admission.tone, 'info');
-  assert.match(admission.detail, /no Runtime connection exists/u);
 });
 
-test('tester run history never exposes opaque runtime model ids as model titles', async () => {
+test('tester run history never exposes opaque Runtime model ids as model titles', async () => {
   const { getTesterRunModelLabel, getTesterRunModelSource } = await importBehaviorModule('tester/tester-history.js');
   const opaqueRuntimeModelId = '01KV2PAC69SRGAB30PCZ9ZH8MN';
-  const baseRecord = {
+  const record = {
     id: 'run-opaque-model',
     capabilityId: 'text.generate',
     prompt: 'Write a note',
     status: 'failed',
     message: 'Runtime call failed.',
     createdAt: '2026-06-15T09:00:00.000Z',
-  };
-
-  const localRecord = {
-    ...baseRecord,
     runConfig: {
       target: {
         capabilityId: 'text.generate',
-        bindingCapabilityId: 'text.generate',
+        capabilityContract: 'text.generate',
         section: 'text',
-        status: 'blocked',
+        status: 'configured',
         source: 'local',
         modelLabel: opaqueRuntimeModelId,
-        detail: 'runtime local profile',
+        detail: 'Runtime local configuration',
         params: {},
         paramsSummary: [],
         profileOrigin: null,
       },
-      promptControls: {
-        contextAttached: false,
-        attachmentCount: 0,
-      },
+      promptControls: { contextAttached: false, attachmentCount: 0 },
     },
   };
-
-  assert.equal(getTesterRunModelSource(localRecord), 'local');
-  assert.equal(getTesterRunModelLabel(localRecord), 'Local runtime model');
-  assert.notEqual(getTesterRunModelLabel(localRecord), opaqueRuntimeModelId);
-
-  const resolvedRecord = {
-    ...baseRecord,
-    status: 'ready',
-    result: {
-      ok: true,
-      kind: 'text',
-      summary: 'done',
-      body: 'done',
-      charCount: 4,
-      finishReason: 'stop',
-      streamed: false,
-      modelResolved: opaqueRuntimeModelId,
-      routeDecision: 'route_policy_local',
-    },
-  };
-
-  assert.equal(getTesterRunModelSource(resolvedRecord), 'local');
-  assert.equal(getTesterRunModelLabel(resolvedRecord), 'Local runtime model');
-});
-
-test('tester text run target omits unconfigured model drawer placeholders from history', async () => {
-  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
-  const capability = {
-    id: 'text.generate',
-    label: 'Text Studio',
-    group: 'text',
-    summary: '',
-    surface: '',
-    execution: 'runtime-sdk',
-  };
-  const runtime = { status: 'ready', mode: 'test', detail: 'ready' };
-  const config = {
-    scopeRef: { kind: 'app', appId: 'tester', surfaceId: 'app-lab' },
-    capabilities: {
-      targetRefs: {
-        'text.generate': {
-          kind: 'cloud-connector',
-          connectorId: 'runtime-connector',
-          remoteModelCatalogId: 'remote-catalog:runtime-connector:gemini-2.5-pro',
-          providerModelId: 'gemini-2.5-pro',
-        },
-      },
-      selectedParams: {},
-    },
-    profileOrigin: null,
-  };
-
-  const summary = createTesterRunTargetSummary({ capability, runtime, config });
-  assert.deepEqual(summary.params, {});
-  assert.deepEqual(summary.paramsSummary, []);
-});
-
-test('tester capability model config drawer section follows the active left rail capability while open', async () => {
-  const { resolveSectionAITestingConfigSection } = await importBehaviorModule('tester/workbench/section-ai-testing-config-section.js');
-
-  assert.equal(resolveSectionAITestingConfigSection({ open: false, capabilityId: 'image.generate' }), null);
-  assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'image.generate' }), 'image');
-  assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'video.generate' }), 'video');
-  assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'audio.transcribe' }), 'stt');
-});
-
-test('tester model picker consumes SDK route projection for runtime local assets and remote connectors', async () => {
-  const providerModule = await importBehaviorModule('tester/tester-runtime-model-provider.js');
-  const calls = [];
-  const remoteConnectorId = 'runtime-cloud-managed';
-  const runtimeLocalModelId = 'local.chat.gemma-4-e2b-it.q8-0';
-  const provider = providerModule.createTesterRuntimeModelPickerProviderFromClient({
-    async listRuntimeRouteOptions(input) {
-      calls.push({ surface: 'listRuntimeRouteOptions', input });
-      return {
-        capability: input.capability,
-        selectedTargetRef: null,
-        inventory: {
-          capability: input.capability,
-          targets: [
-            {
-              targetRef: {
-                kind: 'local-runtime',
-                version: 'v2',
-                profileBindingId: `profile:${runtimeLocalModelId}`,
-              },
-              display: {
-                label: runtimeLocalModelId,
-                model: runtimeLocalModelId,
-                engine: 'llama',
-              },
-              readiness: {
-                status: 'active',
-              },
-              compatibility: {
-                capabilities: ['text.generate'],
-              },
-              evidence: {
-                source: 'local-runtime',
-                localAssetId: runtimeLocalModelId,
-                resolvedModelId: runtimeLocalModelId,
-                engine: 'llama',
-              },
-            },
-            {
-              targetRef: {
-                kind: 'cloud-connector',
-                version: 'v2',
-                connectorId: remoteConnectorId,
-                remoteModelCatalogId: `remote-catalog:${remoteConnectorId}:remote.chat.model`,
-                providerModelId: 'remote.chat.model',
-                provider: 'cloud-provider',
-              },
-              display: {
-                label: 'remote.chat.model',
-                modelLabel: 'remote.chat.model',
-                provider: 'cloud-provider',
-              },
-              readiness: {
-                status: 'active',
-              },
-              compatibility: {
-                capabilities: ['text.generate'],
-              },
-              evidence: {
-                source: 'cloud-connector',
-                connectorId: remoteConnectorId,
-                remoteModelCatalogId: `remote-catalog:${remoteConnectorId}:remote.chat.model`,
-                providerModelId: 'remote.chat.model',
-                provider: 'cloud-provider',
-              },
-            },
-          ],
-        },
-      };
-    },
-  }, 'text.generate');
-
-  const connectors = await provider.listConnectors();
-  assert.deepEqual(connectors.map((connector) => connector.connectorId), [remoteConnectorId]);
-
-  const localModels = await provider.listLocalModels();
-  assert.deepEqual(localModels, [
-    {
-      localModelId: runtimeLocalModelId,
-      goRuntimeLocalModelId: runtimeLocalModelId,
-      profileBindingId: `profile:${runtimeLocalModelId}`,
-      readinessRef: undefined,
-      modelId: runtimeLocalModelId,
-      label: runtimeLocalModelId,
-      engine: 'llama',
-      status: 'active',
-      capabilities: ['text.generate'],
-    },
-  ]);
-  const connectorModels = await provider.listConnectorModels(remoteConnectorId);
-  assert.deepEqual(connectorModels, [
-    {
-      modelId: 'remote.chat.model',
-      remoteModelCatalogId: `remote-catalog:${remoteConnectorId}:remote.chat.model`,
-      providerModelId: 'remote.chat.model',
-      provider: 'cloud-provider',
-      modelLabel: 'remote.chat.model',
-      available: true,
-      capabilities: ['text.generate'],
-    },
-  ]);
-  assert.deepEqual(calls, [
-    {
-      surface: 'listRuntimeRouteOptions',
-      input: {
-        capability: 'text.generate',
-        targetId: undefined,
-        selectedTargetRef: undefined,
-      },
-    },
-  ]);
-});
-
-test('tester model picker adapts the runtime host client to SDK route options', async () => {
-  const providerModule = await importBehaviorModule('tester/tester-runtime-model-provider.js');
-  const calls = [];
-  const provider = providerModule.createTesterRuntimeModelPickerProviderFromHostClient({
-    runtime: {
-      connectors: {
-        async listConnectors(request) {
-          calls.push(`connectors:${request.kindFilter}:${request.statusFilter}`);
-          return {
-            connectors: [{
-              connectorId: 'cloud-managed',
-              kind: 2,
-              ownerType: 0,
-              ownerId: '',
-              provider: 'cloud-provider',
-              endpoint: '',
-              label: 'Cloud Provider',
-              status: 1,
-              authKind: 0,
-              metadata: {},
-              supportedCapabilities: [],
-              createdAt: '',
-              updatedAt: '',
-            }],
-            nextPageToken: '',
-          };
-        },
-        async listConnectorModels(request) {
-          calls.push(`models:${request.connectorId}`);
-          return {
-            models: [{
-              modelId: 'remote.chat.model',
-              remoteModelCatalogId: 'remote-catalog:cloud-managed:remote.chat.model',
-              providerModelId: 'remote.chat.model',
-              provider: 'cloud-provider',
-              displayName: 'Remote Chat Model',
-              capabilities: ['text.generate'],
-              available: true,
-              metadata: {},
-              pricing: {},
-              sourceRef: {},
-            }],
-            nextPageToken: '',
-          };
-        },
-      },
-      local: {
-        async listLocalAssets(request) {
-          calls.push(`local:${request.kindFilter}:${request.statusFilter}`);
-          return {
-            assets: [{
-              localAssetId: 'local-chat-1',
-              assetId: 'local/chat-model',
-              kind: 'chat',
-              engine: 'llama',
-              entry: '',
-              files: [],
-              license: '',
-              hashes: {},
-              status: 'active',
-              installedAt: '',
-              updatedAt: '',
-              healthDetail: '',
-              capabilities: ['text.generate'],
-              logicalModelId: 'local/chat-model',
-              family: '',
-              artifactRoles: [],
-              preferredEngine: '',
-              fallbackEngines: [],
-              bundleState: 0,
-              warmState: 0,
-              localInvokeProfileId: '',
-              endpoint: 'http://127.0.0.1:11434',
-              reasonCode: 0,
-              durableTargetRef: {
-                version: 'v2',
-                ref: {
-                  oneofKind: 'profileBindingId',
-                  profileBindingId: 'profile:local-chat-1',
-                },
-              },
-              durableTargetStatus: 'active',
-              durableTargetReasonCode: '',
-            }],
-            nextPageToken: '',
-          };
-        },
-      },
-    },
-  }, 'text.generate');
-
-  assert.deepEqual((await provider.listLocalModels()).map((model) => model.localModelId), ['local-chat-1']);
-  assert.deepEqual((await provider.listConnectors()).map((connector) => connector.connectorId), ['cloud-managed']);
-  assert.deepEqual((await provider.listConnectorModels('cloud-managed')).map((model) => model.modelId), ['remote.chat.model']);
-  assert.deepEqual(calls, ['connectors:2:1', 'local:0:0', 'models:cloud-managed']);
+  assert.equal(getTesterRunModelSource(record), 'local');
+  assert.equal(getTesterRunModelLabel(record), 'Local runtime model');
 });

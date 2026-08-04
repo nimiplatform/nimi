@@ -32,11 +32,10 @@ function buildBehaviorModules() {
     'false',
     'src/tester/local-app-conversation-journey.ts',
     'src/tester/local-app-permission-evidence.ts',
-    'src/tester/tester-runtime-model-provider.ts',
+    'src/tester/tester-ai-config-store.ts',
     'src/tester/tester-run-target.ts',
     'src/tester/tester-history.ts',
     'src/tester/workbench/section-ai-testing-admission.ts',
-    'src/tester/workbench/section-ai-testing-config-section.ts',
   ], {
     cwd: root,
     stdio: 'pipe',

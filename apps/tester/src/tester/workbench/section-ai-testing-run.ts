@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
 import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
-import { createTesterRunTargetSummary, type TesterRunTargetLocalModel, type TesterRunTargetSummary } from '../tester-run-target.js';
+import { createTesterRunTargetSummary, type TesterRunTargetSummary } from '../tester-run-target.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { composeStudioDirective, DEFAULT_LENGTH_VALUE, DEFAULT_TONE_VALUE, getCapabilityStudioProfile, LENGTH_OPTIONS, TONE_OPTIONS } from './capability-studio-profiles.js';
 
@@ -54,99 +54,55 @@ export function canConfigureRunTarget(runTarget: TesterRunTargetSummary): boolea
   return (
     !runTarget.canDispatch
     && runTarget.status === 'blocked'
-    && Boolean(runTarget.bindingCapabilityId)
-    && (runTarget.modelLabel === 'Target required' || runTarget.source === 'profile-slice')
+    && Boolean(runTarget.capabilityContract)
   );
-}
-
-function targetRefHydrationKey(bindingCapabilityId: string | null, config: NimiAIConfig | null): string {
-  if (!bindingCapabilityId || !config) return '';
-  const targetRef = config.capabilities.targetRefs[bindingCapabilityId] || null;
-  if (!targetRef) return '';
-  return JSON.stringify(targetRef);
 }
 
 export function useTesterRunTargetSummary(
   capability: TesterCapability,
   runtime: TesterRuntimeInspection | null,
+  refreshKey = 0,
 ): TesterRunTargetSummary {
   const rendererHost = useTesterRendererHost();
-  const scopeRef = rendererHost.sdk.aiConfig.scopeRef;
-  const service = rendererHost.sdk.aiConfig.service;
-  const [config, setConfig] = useState<NimiAIConfig | null>(null);
-  const usesProtectedTextCandidate = capability.id === 'text.generate' && runtime?.status !== 'simulated';
+  const [configProjection, setConfigProjection] = useState<{
+    state: 'loading' | 'loaded' | 'failed';
+    config: NimiCapabilityAIConfig | null;
+    error: string | null;
+  }>({ state: 'loading', config: null, error: null });
 
   useEffect(() => {
     let cancelled = false;
-    let unsubscribe = () => {};
-    if (usesProtectedTextCandidate) {
-      setConfig(null);
-      return () => {
-        cancelled = true;
-        unsubscribe();
-      };
-    }
-    void rendererHost.sdk.aiConfig.requireAdmission()
+    setConfigProjection({ state: 'loading', config: null, error: null });
+    void rendererHost.sdk.aiConfig.get()
       .then((next) => {
-        if (!cancelled) {
-          setConfig(next);
-          unsubscribe = service.aiConfig.subscribe(scopeRef, (updated) => {
-            if (!cancelled) setConfig(updated);
-          });
-        }
+        if (!cancelled) setConfigProjection({ state: 'loaded', config: next, error: null });
       })
-      .catch(() => {
+      .catch((cause) => {
         if (!cancelled) {
-          setConfig(null);
+          setConfigProjection({
+            state: 'failed',
+            config: null,
+            error: cause instanceof Error ? cause.message : String(cause || 'App AIConfig load failed.'),
+          });
         }
       });
     return () => {
       cancelled = true;
-      unsubscribe();
     };
-  }, [rendererHost, scopeRef, service, usesProtectedTextCandidate]);
+  }, [rendererHost, refreshKey]);
 
-  const [localModels, setLocalModels] = useState<TesterRunTargetLocalModel[]>([]);
   const standaloneTauriAvailable = hasTauriRuntime();
   const target = useMemo(
     () => createTesterRunTargetSummary({
       capability,
       runtime,
-      config,
-      localModels,
+      config: configProjection.config,
+      configState: configProjection.state,
+      configError: configProjection.error,
       standaloneTauriAvailable,
     }),
-    [capability, config, localModels, runtime, standaloneTauriAvailable],
+    [capability, configProjection, runtime, standaloneTauriAvailable],
   );
-  const hydrationKey = useMemo(
-    () => targetRefHydrationKey(target.bindingCapabilityId, config),
-    [config, target.bindingCapabilityId],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    setLocalModels([]);
-    if (runtime?.status !== 'ready' || target.source !== 'local' || !target.bindingCapabilityId) {
-      return () => {
-        cancelled = true;
-      };
-    }
-    const bindingCapabilityId = target.bindingCapabilityId;
-    void rendererHost.sdk.aiConfig.modelPickerProvider(bindingCapabilityId).listLocalModels()
-      .then((models) => {
-        if (!cancelled) {
-          setLocalModels([...models]);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLocalModels([]);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [hydrationKey, rendererHost, runtime?.status, target.bindingCapabilityId, target.source]);
 
   return target;
 }
@@ -200,7 +156,7 @@ export function createRunConfigSnapshot(input: {
   return {
     target: {
       capabilityId: target.capabilityId,
-      bindingCapabilityId: target.bindingCapabilityId,
+      capabilityContract: target.capabilityContract,
       section: target.section,
       status: target.status,
       source: target.source,

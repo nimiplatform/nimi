@@ -134,9 +134,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           mode: 'unknown',
           detail: error instanceof Error ? error.message : String(error || 'Runtime inspection failed.'),
         },
-        schedulingOwner: 'runtime',
-        providerCatalogSurface: 'sdk.runtime.listNimiRuntimeRouteOptions',
-        appLocalProviderDefaults: false,
       });
     }
   }, [rendererHost]);

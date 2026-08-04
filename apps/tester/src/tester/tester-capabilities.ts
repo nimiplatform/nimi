@@ -16,7 +16,7 @@ export type TesterCapability = {
   summary: string;
   surface: string;
   execution: 'runtime-sdk' | 'standalone-tauri' | 'typed-unavailable';
-  runtimeBindingCapabilityId?: string;
+  capabilityContract?: string;
   missingSurface?: string;
 };
 
@@ -25,72 +25,73 @@ export const testerCapabilities: TesterCapability[] = [
     id: 'text.generate',
     label: 'Text Studio',
     group: 'text',
-    summary: 'Prompt → protected Local App text candidate → Runtime-managed generation.',
+    summary: 'Prompt → text.generate CapabilityContract → typed Runtime result.',
     surface: 'sdk.localApp.ai.text.generateCandidate → RuntimeAiService.GenerateLocalAppTextCandidate',
     execution: 'runtime-sdk',
+    capabilityContract: 'text.generate',
   },
   {
     id: 'chat.stream',
     label: 'Chat Stream',
     group: 'text',
-    summary: 'Conversation turn → Kit provider over Runtime Scenario stream.',
-    surface: 'kit.chat.createSdkConversationRuntimeAdapter → runtime.ai.streamScenario',
+    summary: 'Conversation turn → text.generate stream semantics (currently unavailable in this carrier).',
+    surface: 'CapabilityContract:text.generate → typed unavailable',
     execution: 'runtime-sdk',
-    runtimeBindingCapabilityId: 'text.generate',
+    capabilityContract: 'text.generate',
   },
   {
     id: 'text.embed',
     label: 'Embeddings',
     group: 'text',
-    summary: 'Input string → Kit generation Runtime consumer text_embed.',
-    surface: 'kit.generation.runRuntimeAIConsumeCapability:text.embed → runtime.ai.executeScenario',
+    summary: 'Input string → text.embed CapabilityContract (currently unavailable in this carrier).',
+    surface: 'CapabilityContract:text.embed → typed unavailable',
     execution: 'runtime-sdk',
-    runtimeBindingCapabilityId: 'text.embed',
+    capabilityContract: 'text.embed',
   },
   {
     id: 'image.generate',
     label: 'Image Generate',
     group: 'media',
-    summary: 'Prompt → Kit image generation Runtime consumer (artifacts).',
-    surface: 'kit.generation.runRuntimeImageGenerate → runtime.ai.submitScenarioJob:image_generate',
+    summary: 'Prompt → image.generate CapabilityContract (currently unavailable in this carrier).',
+    surface: 'CapabilityContract:image.generate → typed unavailable',
     execution: 'runtime-sdk',
-    runtimeBindingCapabilityId: 'image.generate',
+    capabilityContract: 'image.generate',
   },
   {
     id: 'video.generate',
     label: 'Video Generate',
     group: 'media',
-    summary: 'Prompt → Kit video generation Runtime consumer (artifacts).',
-    surface: 'kit.generation.runRuntimeVideoGenerate → runtime.ai.submitScenarioJob:video_generate',
+    summary: 'Prompt → video.generate CapabilityContract (currently unavailable in this carrier).',
+    surface: 'CapabilityContract:video.generate → typed unavailable',
     execution: 'runtime-sdk',
-    runtimeBindingCapabilityId: 'video.generate',
+    capabilityContract: 'video.generate',
   },
   {
     id: 'audio.synthesize',
     label: 'Speech Synthesis',
     group: 'audio',
-    summary: 'Text → Kit speech synthesis Runtime consumer (audio artifacts).',
-    surface: 'kit.generation.runRuntimeSpeechSynthesize → runtime.ai.submitScenarioJob:speech_synthesize',
+    summary: 'Text → audio.synthesize CapabilityContract (currently unavailable in this carrier).',
+    surface: 'CapabilityContract:audio.synthesize → typed unavailable',
     execution: 'runtime-sdk',
-    runtimeBindingCapabilityId: 'audio.synthesize',
+    capabilityContract: 'audio.synthesize',
   },
   {
     id: 'audio.transcribe',
     label: 'Speech Transcribe',
     group: 'audio',
-    summary: 'Audio URL → Kit speech transcription Runtime consumer (transcript text + artifacts).',
-    surface: 'kit.generation.runRuntimeSpeechTranscribe → runtime.ai.submitScenarioJob:speech_transcribe',
+    summary: 'Audio URL → audio.transcribe CapabilityContract (currently unavailable in this carrier).',
+    surface: 'CapabilityContract:audio.transcribe → typed unavailable',
     execution: 'runtime-sdk',
-    runtimeBindingCapabilityId: 'audio.transcribe',
+    capabilityContract: 'audio.transcribe',
   },
   {
     id: 'speech.bundle',
     label: 'Speech Bundle',
     group: 'audio',
-    summary: 'Probe → Kit Runtime voice catalog consumer (catalog readiness + voice sample).',
-    surface: 'kit.generation.runRuntimeVoiceCatalog → runtime.ai.listPresetVoices',
+    summary: 'Inspect the audio.synthesize voice catalog surface (currently unavailable in this carrier).',
+    surface: 'CapabilityContract:audio.synthesize voice catalog → typed unavailable',
     execution: 'runtime-sdk',
-    runtimeBindingCapabilityId: 'audio.synthesize',
+    capabilityContract: 'audio.synthesize',
   },
   {
     id: 'world.generate',
@@ -110,6 +111,6 @@ export function getTesterCapability(id: TesterCapabilityId): TesterCapability {
   return capability;
 }
 
-export function getTesterRuntimeBindingCapabilityId(id: TesterCapabilityId): string | null {
-  return getTesterCapability(id).runtimeBindingCapabilityId ?? null;
+export function getTesterCapabilityContract(id: TesterCapabilityId): string | null {
+  return getTesterCapability(id).capabilityContract ?? null;
 }

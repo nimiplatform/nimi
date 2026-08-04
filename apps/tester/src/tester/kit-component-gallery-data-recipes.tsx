@@ -309,7 +309,7 @@ export const DATA_RECIPES: Recipe[] = [
           <div className="kit-tl-item"><strong>Runtime session ready</strong><span>SDK admission surface available</span></div>
         </TimelineGroup>
         <TimelineGroup date="Earlier" secondaryLabel="21:40" isLast>
-          <div className="kit-tl-item"><strong>Capability blocked</strong><span>NimiAIConfig binding required</span></div>
+          <div className="kit-tl-item"><strong>Capability blocked</strong><span>App AIConfig intent required</span></div>
         </TimelineGroup>
       </Timeline>
     ),
@@ -323,7 +323,7 @@ export const DATA_RECIPES: Recipe[] = [
   <TimelineGroup date="Earlier" secondaryLabel="21:40" isLast>
     <div className="kit-tl-item">
       <strong>Capability blocked</strong>
-      <span>NimiAIConfig binding required</span>
+      <span>App AIConfig intent required</span>
     </div>
   </TimelineGroup>
 </Timeline>`,

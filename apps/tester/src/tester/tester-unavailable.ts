@@ -1,20 +1,13 @@
 import type { TesterCapability } from './tester-capabilities.js';
 
-// Typed unavailable reasons retained by the workbench presentation model.
-// Reasons are app-owned presentation categories for failures returned by real
-// SDK/Runtime calls. They never stand in for a successful execution.
+// App-owned presentation categories for typed SDK/Runtime failures. They never
+// stand in for a successful execution or a configuration/readiness authority.
 export type TesterUnavailableReason =
-  | 'runtime-not-ready'
+  | 'runtime-unavailable'
   | 'permission-required'
-  | 'ai-config-binding-missing'
   | 'input-invalid'
-  | 'auth-context-missing'
-  | 'principal-unauthorized'
   | 'sdk-method-unavailable'
-  | 'local-environment-preparing'
-  | 'local-environment-blocked'
-  | 'runtime-call-failed'
-  | 'tauri-command-failed';
+  | 'runtime-call-failed';
 
 export type TesterUnavailable = {
   ok: false;
@@ -23,63 +16,35 @@ export type TesterUnavailable = {
   message: string;
   actionHint: string;
   missingSurface?: string;
-  runtimeRequest?: {
-    request?: unknown;
-    options?: unknown;
-  };
 };
 
 export function unavailableReasonTitle(reason: TesterUnavailableReason): string {
   switch (reason) {
-    case 'runtime-not-ready':
+    case 'runtime-unavailable':
       return 'Runtime unavailable';
     case 'permission-required':
       return 'Permission required';
-    case 'ai-config-binding-missing':
-      return 'Model binding required';
     case 'input-invalid':
       return 'Invalid request input';
-    case 'auth-context-missing':
-      return 'Sign-in required';
-    case 'principal-unauthorized':
-      return 'Session unauthorized';
     case 'sdk-method-unavailable':
       return 'SDK method unavailable';
-    case 'local-environment-preparing':
-      return 'Local environment preparing';
-    case 'local-environment-blocked':
-      return 'Local environment blocked';
     case 'runtime-call-failed':
       return 'Runtime call failed';
-    case 'tauri-command-failed':
-      return 'Tauri command failed';
   }
 }
 
 export function unavailableReasonUserMessage(reason: string): string {
   switch (reason) {
-    case 'runtime-not-ready':
-      return 'Runtime is not ready to generate a response yet.';
+    case 'runtime-unavailable':
+      return 'Runtime is unavailable for this request.';
     case 'permission-required':
       return 'Text generation requires approval in Nimi Desktop.';
-    case 'ai-config-binding-missing':
-      return 'No model is selected for this generation.';
     case 'input-invalid':
       return 'The request needs a valid prompt or required input before it can run.';
-    case 'auth-context-missing':
-      return 'This route needs a signed-in Nimi account.';
-    case 'principal-unauthorized':
-      return 'The current session is expired or not authorized for this route.';
     case 'sdk-method-unavailable':
       return 'This capability is not available in the current app build.';
-    case 'local-environment-preparing':
-      return 'Runtime is preparing the selected local image environment.';
-    case 'local-environment-blocked':
-      return 'The selected local image environment is missing required setup.';
     case 'runtime-call-failed':
-      return 'The selected Runtime or model could not complete this generation.';
-    case 'tauri-command-failed':
-      return 'The desktop shell could not complete the requested action.';
+      return 'Runtime could not complete this generation.';
     default:
       return 'The generation did not complete.';
   }
@@ -87,27 +52,16 @@ export function unavailableReasonUserMessage(reason: string): string {
 
 export function unavailableReasonUserAction(reason: string): string {
   switch (reason) {
-    case 'runtime-not-ready':
+    case 'runtime-unavailable':
       return 'Start or reconnect Runtime, then try again.';
     case 'permission-required':
       return 'Approve or restore the text generation permission in Nimi Desktop, then retry.';
-    case 'ai-config-binding-missing':
-      return 'Choose a model in the model control, then try again.';
     case 'input-invalid':
       return 'Review the prompt and required fields, then run it again.';
-    case 'auth-context-missing':
-    case 'principal-unauthorized':
-      return 'Sign in again or switch to a local model route.';
     case 'sdk-method-unavailable':
       return 'Update the app or switch to a supported capability.';
-    case 'local-environment-preparing':
-      return 'Wait for local setup to finish, then run the image request again.';
-    case 'local-environment-blocked':
-      return 'Set the required companion models, then run the image request again.';
     case 'runtime-call-failed':
-      return 'Check Runtime status and the selected model, then retry.';
-    case 'tauri-command-failed':
-      return 'Reopen the desktop shell or retry after the shell is ready.';
+      return 'Inspect the typed Runtime error, then retry after resolving its cause.';
     default:
       return 'Check Runtime details for diagnostics, then try again.';
   }
@@ -119,23 +73,12 @@ function actionHintForReason(reason: TesterUnavailableReason): string {
       return 'Approve or restore ai.text.generate in Nimi Desktop, then retry the same request.';
     case 'sdk-method-unavailable':
       return 'Add an admitted SDK Nimi App execution method. Do not bypass Runtime with app-local REST.';
-    case 'ai-config-binding-missing':
-      return 'Import/apply an AIProfile or choose a runtime model binding in App Lab NimiAIConfig, then retry.';
-    case 'auth-context-missing':
-      return 'Cloud routes require an authenticated Nimi account subject. Sign in to your Nimi account, or switch this capability to a local model binding, then retry.';
-    case 'principal-unauthorized':
-      return 'The Runtime account session is unauthorized or expired. Sign in again to refresh the session, then retry.';
     case 'input-invalid':
       return 'Supply a valid request body for this capability, then retry.';
-    case 'local-environment-preparing':
-      return 'Tester started the Runtime-owned local image dependency jobs. Keep Runtime running and retry after setup reaches ready.';
-    case 'local-environment-blocked':
-      return 'Select the required image companion models (VAE and LLM/text encoder) in the model setup before retrying.';
     case 'runtime-call-failed':
-      return 'Runtime returned a typed contract failure. Inspect the verbatim Runtime error above — this is a real Runtime/contract failure, not a missing SDK method.';
-    case 'runtime-not-ready':
-    case 'tauri-command-failed':
-      return 'Restore Runtime or standalone Tauri readiness, then retry the lane.';
+      return 'Runtime returned a typed contract failure. Inspect the verbatim Runtime error; do not infer a fallback route.';
+    case 'runtime-unavailable':
+      return 'Restore the protected Runtime connection, then retry the same request.';
   }
 }
 

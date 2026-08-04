@@ -1,4 +1,3 @@
-import { testerCapabilities } from '../tester/tester-capabilities.js';
 import type {
   TesterSimulatorBehaviorContext,
   TesterSimulatorCommandEnvelope,
@@ -21,14 +20,6 @@ interface TesterSimulatorScenarioData extends JsonRecord {
     readonly providerId: string;
     readonly modelId: string;
   };
-  readonly connector: {
-    readonly connectorId: string;
-    readonly provider: string;
-    readonly label: string;
-    readonly remoteModelCatalogId: string;
-    readonly providerModelId: string;
-    readonly modelLabel: string;
-  };
   readonly runtimePlatform: {
     readonly status: 'unavailable';
     readonly mode: 'local-app';
@@ -42,9 +33,6 @@ interface TesterSimulatorScenarioData extends JsonRecord {
       readonly mode: 'simulated';
       readonly detail: string;
     };
-    readonly schedulingOwner: 'runtime';
-    readonly providerCatalogSurface: 'sdk.runtime.listNimiRuntimeRouteOptions';
-    readonly appLocalProviderDefaults: false;
   };
 }
 
@@ -79,15 +67,11 @@ function text(value: TesterSimulatorJsonValue | undefined, label: string): strin
 function scenarioData(value: TesterSimulatorJsonValue): TesterSimulatorScenarioData {
   const input = record(value, 'SCENARIO_DATA');
   const model = record(input.textModel, 'TEXT_MODEL');
-  const connector = record(input.connector, 'CONNECTOR');
   const runtimePlatform = record(input.runtimePlatform, 'RUNTIME_PLATFORM');
   const aiConfigSummary = record(input.aiConfigSummary, 'AI_CONFIG_SUMMARY');
   const runtimeSummary = record(aiConfigSummary.runtime, 'AI_CONFIG_RUNTIME');
   if (runtimePlatform.status !== 'unavailable'
     || runtimePlatform.mode !== 'local-app'
-    || aiConfigSummary.schedulingOwner !== 'runtime'
-    || aiConfigSummary.providerCatalogSurface !== 'sdk.runtime.listNimiRuntimeRouteOptions'
-    || aiConfigSummary.appLocalProviderDefaults !== false
     || runtimeSummary.status !== 'simulated'
     || runtimeSummary.mode !== 'simulated') {
     throw new Error('TESTER_SIMULATOR_SCENARIO_PROJECTION_INVALID');
@@ -97,14 +81,6 @@ function scenarioData(value: TesterSimulatorJsonValue): TesterSimulatorScenarioD
     textModel: {
       providerId: text(model.providerId, 'MODEL_PROVIDER'),
       modelId: text(model.modelId, 'MODEL_ID'),
-    },
-    connector: {
-      connectorId: text(connector.connectorId, 'CONNECTOR_ID'),
-      provider: text(connector.provider, 'CONNECTOR_PROVIDER'),
-      label: text(connector.label, 'CONNECTOR_LABEL'),
-      remoteModelCatalogId: text(connector.remoteModelCatalogId, 'REMOTE_MODEL_CATALOG_ID'),
-      providerModelId: text(connector.providerModelId, 'PROVIDER_MODEL_ID'),
-      modelLabel: text(connector.modelLabel, 'MODEL_LABEL'),
     },
     runtimePlatform: {
       status: 'unavailable',
@@ -119,30 +95,60 @@ function scenarioData(value: TesterSimulatorJsonValue): TesterSimulatorScenarioD
         mode: 'simulated',
         detail: text(runtimeSummary.detail, 'RUNTIME_DETAIL'),
       },
-      schedulingOwner: 'runtime',
-      providerCatalogSurface: 'sdk.runtime.listNimiRuntimeRouteOptions',
-      appLocalProviderDefaults: false,
     },
   };
 }
 
-function initialConfig(scenario: TesterSimulatorScenarioData): JsonRecord {
-  const targetRefs: Record<string, TesterSimulatorJsonValue> = {};
-  for (const capability of testerCapabilities) {
-    if (!capability.runtimeBindingCapabilityId) continue;
-    targetRefs[capability.runtimeBindingCapabilityId] = {
-      kind: 'cloud-connector',
-      connectorId: scenario.connector.connectorId,
-      remoteModelCatalogId: scenario.connector.remoteModelCatalogId,
-      providerModelId: scenario.connector.providerModelId,
-      provider: scenario.connector.provider,
-    };
-  }
+function initialConfig(): JsonRecord {
   return {
-    scopeRef: { kind: 'app', ownerId: 'nimi.tester', surfaceId: 'app-lab' },
-    capabilities: { targetRefs, selectedParams: {} },
-    profileOrigin: null,
+    owner: { owner: { oneofKind: 'app', app: { appId: 'nimi.tester' } } },
+    capabilities: [{
+      capabilityContract: 'text.generate',
+      requiredFeatures: [],
+      route: { oneofKind: 'local', local: {} },
+    }],
   };
+}
+
+function canonicalAIConfig(value: TesterSimulatorJsonValue): JsonRecord {
+  const candidate = record(value, 'AI_CONFIG');
+  if (JSON.stringify(Object.keys(candidate).sort()) !== JSON.stringify(['capabilities', 'owner'])) {
+    throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
+  }
+  const owner = record(candidate.owner, 'AI_CONFIG_OWNER');
+  const ownerVariant = record(owner.owner, 'AI_CONFIG_OWNER_VARIANT');
+  const app = record(ownerVariant.app, 'AI_CONFIG_APP_OWNER');
+  if (ownerVariant.oneofKind !== 'app'
+    || app.appId !== 'nimi.tester'
+    || !Array.isArray(candidate.capabilities)) {
+    throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
+  }
+  for (const value of candidate.capabilities) {
+    const intent = record(value, 'AI_CONFIG_INTENT');
+    text(intent.capabilityContract, 'AI_CONFIG_CAPABILITY');
+    if (!Array.isArray(intent.requiredFeatures)) {
+      throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
+    }
+    for (const feature of intent.requiredFeatures) text(feature, 'AI_CONFIG_FEATURE');
+    const route = record(intent.route, 'AI_CONFIG_ROUTE');
+    if (route.oneofKind === 'local') {
+      const local = record(route.local, 'AI_CONFIG_LOCAL_ROUTE');
+      if (Object.keys(local).length !== 0) throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
+    } else if (route.oneofKind === 'cloud') {
+      const cloud = record(route.cloud, 'AI_CONFIG_CLOUD_ROUTE');
+      if (typeof cloud.connectorGrantId !== 'string'
+        || cloud.connectorGrantId.trim() !== cloud.connectorGrantId) {
+        throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
+      }
+      const implementation = record(cloud.implementation, 'AI_CONFIG_IMPLEMENTATION');
+      text(implementation.implementationId, 'AI_CONFIG_IMPLEMENTATION_ID');
+      text(implementation.driverId, 'AI_CONFIG_DRIVER_ID');
+      text(implementation.driverDialect, 'AI_CONFIG_DRIVER_DIALECT');
+    } else {
+      throw new Error('TESTER_SIMULATOR_AI_CONFIG_INVALID');
+    }
+  }
+  return candidate;
 }
 
 function state(value: TesterSimulatorJsonValue): TesterSimulatorState {
@@ -195,7 +201,7 @@ export const testerSimulatorBehavior = Object.freeze({
       runHistory: {},
       imageHistory: [],
       promptDrafts: {},
-      aiConfig: initialConfig(scenario),
+      aiConfig: initialConfig(),
       actionLog: [],
       capabilityExecutions: [],
       ecosystemReference: null,
@@ -314,7 +320,7 @@ export const testerSimulatorBehavior = Object.freeze({
       };
     }
     if (envelope.type === 'tester.ai-config.update') {
-      return { state: { ...current, aiConfig: record(payload.config, 'AI_CONFIG') }, events: [] };
+      return { state: { ...current, aiConfig: canonicalAIConfig(payload.config) }, events: [] };
     }
     throw new Error(`TESTER_SIMULATOR_COMMAND_UNDECLARED:${envelope.type}`);
   },

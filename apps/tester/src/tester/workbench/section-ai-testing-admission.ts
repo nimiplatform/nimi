@@ -1,8 +1,8 @@
 import type { TesterCapability, TesterCapabilityId } from '../tester-capabilities.js';
 import type {
   TesterCapabilityRunResult,
-  TesterRuntimeInspection,
 } from '../tester-runtime.js';
+import type { TesterRunTargetSummary } from '../tester-run-target.js';
 
 export type ScenarioPreset = {
   id: string;
@@ -11,7 +11,7 @@ export type ScenarioPreset = {
 };
 
 export type CapabilityStatus = {
-  label: 'ready' | 'simulated' | 'blocked' | 'not admitted' | 'SDK gap' | 'tauri-only' | 'checking';
+  label: 'configured' | 'blocked' | 'not admitted' | 'SDK gap' | 'tauri-only' | 'checking';
   tone: 'success' | 'warning' | 'info' | 'neutral';
   detail: string;
 };
@@ -28,16 +28,16 @@ const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
   ],
   'chat.stream': [
     {
-      id: 'stream-probe',
-      label: 'Stream probe',
-      prompt: 'Continue this conversation as a Runtime app stream readiness check.',
+      id: 'stream-sample',
+      label: 'Stream sample',
+      prompt: 'Continue this conversation through the text.generate stream contract.',
     },
   ],
   'text.embed': [
     {
       id: 'embedding-sample',
       label: 'Embedding sample',
-      prompt: 'Nimi App tester embedding readiness sample.',
+      prompt: 'Nimi App tester embedding sample.',
     },
   ],
   'image.generate': [
@@ -49,8 +49,8 @@ const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
   ],
   'video.generate': [
     {
-      id: 'clip-probe',
-      label: 'Clip probe',
+      id: 'clip-sample',
+      label: 'Clip sample',
       prompt: 'Create a short inspection clip for a Nimi App glass UI workflow.',
     },
   ],
@@ -91,7 +91,7 @@ export function presetFor(capability: TesterCapability): ScenarioPreset {
 
 export function statusForCapability(
   capability: TesterCapability,
-  runtime: TesterRuntimeInspection | null,
+  target: TesterRunTargetSummary,
   lastResult: TesterCapabilityRunResult | null,
 ): CapabilityStatus {
   if (capability.execution === 'standalone-tauri') {
@@ -108,34 +108,6 @@ export function statusForCapability(
       detail: capability.missingSurface || 'No admitted typed SDK method is available for this capability.',
     };
   }
-  if (!runtime) {
-    return {
-      label: 'checking',
-      tone: 'neutral',
-      detail: 'Runtime inspection has not completed yet.',
-    };
-  }
-  if (runtime.status === 'simulated') {
-    return {
-      label: 'simulated',
-      tone: 'info',
-      detail: runtime.detail,
-    };
-  }
-  if (runtime.status === 'connected' && capability.id === 'text.generate') {
-    return {
-      label: 'ready',
-      tone: 'success',
-      detail: 'The protected ai.text.generate SDK operation is admitted. Runtime owns the managed local route and Desktop owns the permission decision.',
-    };
-  }
-  if (runtime.status === 'connected') {
-    return {
-      label: 'not admitted',
-      tone: 'info',
-      detail: runtime.detail,
-    };
-  }
   if (
     lastResult?.capabilityId === capability.id
     && !lastResult.ok
@@ -148,23 +120,50 @@ export function statusForCapability(
       detail: lastResult.message,
     };
   }
-  if (runtime.status !== 'ready') {
+  if (target.status === 'configured') {
+    return {
+      label: 'configured',
+      tone: 'info',
+      detail: target.detail,
+    };
+  }
+  if (target.status === 'checking') {
+    return {
+      label: 'checking',
+      tone: 'neutral',
+      detail: target.detail,
+    };
+  }
+  if (target.status === 'not-admitted') {
+    return {
+      label: 'not admitted',
+      tone: 'info',
+      detail: target.detail,
+    };
+  }
+  if (target.status === 'sdk-gap') {
+    return {
+      label: 'SDK gap',
+      tone: 'warning',
+      detail: target.detail,
+    };
+  }
+  if (target.status === 'blocked') {
     return {
       label: 'blocked',
       tone: 'warning',
-      detail: runtime.detail,
+      detail: target.detail,
     };
   }
   return {
-    label: 'ready',
-    tone: 'success',
-    detail: 'Runtime session active and SDK admission surface is available.',
+    label: 'blocked',
+    tone: 'warning',
+    detail: target.detail,
   };
 }
 
 export const STATUS_PILL_LABEL: Record<CapabilityStatus['label'], string> = {
-  ready: 'Ready',
-  simulated: 'Simulated',
+  configured: 'Configured',
   blocked: 'Blocked',
   'not admitted': 'Not admitted',
   'SDK gap': 'SDK gap',

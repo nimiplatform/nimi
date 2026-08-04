@@ -1,11 +1,12 @@
-import type { SharedAIConfigService } from '@nimiplatform/kit/features/model-config/headless';
-import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker/runtime';
 import {
   createNimiCanonicalRendererHostBindings,
   type NimiRendererHostResult,
 } from '@nimiplatform/kit/shell/renderer/host';
-import type { NimiAIConfig, NimiAIScopeRef } from '@nimiplatform/sdk/ai';
-import type { NimiGenerateTextRequest } from '@nimiplatform/sdk/ai';
+import type {
+  NimiCapabilityAIConfig,
+  NimiCapabilityAIConfigIntent,
+  NimiGenerateTextRequest,
+} from '@nimiplatform/sdk/ai';
 import {
   NIMI_TESTING_AI_GENERATE_TEXT_METHOD,
   createNimiTestingAiModel,
@@ -21,7 +22,6 @@ import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.j
 import { appId } from '../shell/auth/app-identity.js';
 import type { TesterAIConfigSummary } from '../tester/tester-ai-config.js';
 import { getTesterCapability } from '../tester/tester-capabilities.js';
-import type { TesterAIProfileImportResult } from '../tester/tester-ai-config-store.js';
 import type { TesterArtifactSaveResult } from '../tester/tester-artifact-storage.js';
 import type { TesterImageHistoryRecord } from '../tester/tester-image-history.js';
 import type { TesterRunHistory, TesterRunHistoryRecord } from '../tester/tester-history.js';
@@ -55,14 +55,6 @@ interface TesterProjection extends JsonRecord {
   readonly scenario: {
     readonly generatedText: string;
     readonly textModel: { readonly providerId: string; readonly modelId: string };
-    readonly connector: {
-      readonly connectorId: string;
-      readonly provider: string;
-      readonly label: string;
-      readonly remoteModelCatalogId: string;
-      readonly providerModelId: string;
-      readonly modelLabel: string;
-    };
     readonly runtimePlatform: JsonRecord;
     readonly aiConfigSummary: JsonRecord;
   };
@@ -177,87 +169,39 @@ function promptDraftId(key: TesterPromptDraftKey): string {
   return `${key.surfaceId}:${key.capabilityId}:${key.scenarioId}`;
 }
 
-function aiConfig(value: JsonRecord): NimiAIConfig {
-  if (!isRecord(value.scopeRef) || !isRecord(value.capabilities)) {
+function aiConfig(value: JsonRecord): NimiCapabilityAIConfig {
+  if (!isRecord(value.owner) || !Array.isArray(value.capabilities)) {
     throw new Error('Tester simulated AIConfig is invalid.');
   }
-  return value as unknown as NimiAIConfig;
+  const owner = value.owner as JsonRecord;
+  const variant = owner.owner;
+  if (!isRecord(variant)
+    || variant.oneofKind !== 'app'
+    || !isRecord(variant.app)
+    || variant.app.appId !== appId) {
+    throw new Error('Tester simulated AIConfig owner is invalid.');
+  }
+  return value as unknown as NimiCapabilityAIConfig;
 }
 
-function simulatedModelProvider(context: TesterSimulatorPrepareContext): RouteModelPickerDataProvider {
+function createAIConfigPort(context: TesterSimulatorPrepareContext) {
   return Object.freeze({
-    async listLocalModels() {
-      return [];
+    async get() {
+      return aiConfig(projection(context).aiConfig);
     },
-    async listConnectors() {
-      const connector = projection(context).scenario.connector;
-      return [{
-        connectorId: connector.connectorId,
-        provider: connector.provider,
-        providerLabel: connector.label,
-        label: connector.label,
-        status: 'ready',
-      }];
+    async overwrite(capabilities: readonly NimiCapabilityAIConfigIntent[]) {
+      await invoke(context, 'tester.ai-config.update', {
+        config: {
+          owner: { owner: { oneofKind: 'app', app: { appId } } },
+          capabilities,
+        },
+      });
+      return aiConfig(projection(context).aiConfig);
     },
-    async listConnectorModels(connectorId: string) {
-      const connector = projection(context).scenario.connector;
-      if (connectorId !== connector.connectorId) return [];
-      return [{
-        modelId: connector.providerModelId,
-        remoteModelCatalogId: connector.remoteModelCatalogId,
-        providerModelId: connector.providerModelId,
-        provider: connector.provider,
-        modelLabel: connector.modelLabel,
-        available: true,
-        capabilities: ['text.generate'],
-      }];
-    },
-  });
-}
-
-function createAIConfigService(
-  context: TesterSimulatorPrepareContext,
-  scopeRef: NimiAIScopeRef,
-): SharedAIConfigService {
-  const requireScope = (candidate: NimiAIScopeRef): void => {
-    if (candidate.kind !== scopeRef.kind
-      || candidate.ownerId !== scopeRef.ownerId
-      || candidate.surfaceId !== scopeRef.surfaceId) {
-      throw hostError('The requested AIConfig scope is outside this Tester surface.', 'TESTER_SIMULATED_AI_SCOPE_MISMATCH');
-    }
-  };
-  return Object.freeze({
-    aiConfig: Object.freeze({
-      get(candidate: NimiAIScopeRef) {
-        requireScope(candidate);
-        return aiConfig(projection(context).aiConfig);
-      },
-      async update(candidate: NimiAIScopeRef, next: NimiAIConfig) {
-        requireScope(candidate);
-        await invoke(context, 'tester.ai-config.update', { config: next });
-      },
-      subscribe(candidate: NimiAIScopeRef, listener: (next: NimiAIConfig) => void) {
-        requireScope(candidate);
-        return context.projection.subscribe(() => listener(aiConfig(projection(context).aiConfig)));
-      },
-    }),
-    aiProfile: Object.freeze({
-      async list() {
-        return [];
-      },
-      async previewApply() {
-        throw hostError('No simulated AI profile is selected by this scenario.', 'TESTER_SIMULATED_AI_PROFILE_UNAVAILABLE');
-      },
-      async apply() {
-        throw hostError('No simulated AI profile is selected by this scenario.', 'TESTER_SIMULATED_AI_PROFILE_UNAVAILABLE');
-      },
-    }),
   });
 }
 
 function createSdkFacade(context: TesterSimulatorPrepareContext) {
-  const scopeRef: NimiAIScopeRef = Object.freeze({ kind: 'app', ownerId: appId, surfaceId: 'app-lab' });
-  const modelProvider = simulatedModelProvider(context);
   const port = {
       async invoke(methodId: string, request: NimiGenerateTextRequest) {
         if (methodId !== NIMI_TESTING_AI_GENERATE_TEXT_METHOD) {
@@ -290,7 +234,7 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
   });
   const modelProjection = projection(context).scenario.textModel;
   const model = createNimiTestingAiModel({ model: modelProjection, harness });
-  const configService = createAIConfigService(context, scopeRef);
+  const configPort = createAIConfigPort(context);
 
   async function execute(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult> {
     const capability = getTesterCapability(input.capabilityId);
@@ -328,24 +272,7 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
 
   return Object.freeze({
     runCapability: execute,
-    aiConfig: Object.freeze({
-      service: configService,
-      scopeRef,
-      async requireAdmission() {
-        return aiConfig(projection(context).aiConfig);
-      },
-      importProfileJson(_rawJson: string): TesterAIProfileImportResult {
-        return {
-          ok: false,
-          errors: ['This scenario does not admit AIProfile import.'],
-          message: 'Profile import is unavailable in the selected simulation scenario.',
-          reasonCode: 'TESTER_LOCAL_APP_AI_CONFIG_UNAVAILABLE',
-          actionHint: 'await_local_app_ai_config_operation_admission',
-        };
-      },
-      modelPickerProvider: () => modelProvider,
-      modelPickerProviderCache: () => modelProvider,
-    }),
+    aiConfig: configPort,
     settings: Object.freeze({
       async notificationUnread() {
         return unmodeledSdkMethod('Notification unread projection');

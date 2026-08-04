@@ -7,7 +7,7 @@ export type TesterRunConfigSnapshot = {
   target: Pick<
     TesterRunTargetSummary,
     | 'capabilityId'
-    | 'bindingCapabilityId'
+    | 'capabilityContract'
     | 'section'
     | 'status'
     | 'source'
@@ -105,10 +105,6 @@ export type TesterRunHistoryResultSnapshot =
       message: string;
       actionHint: string;
       missingSurface?: string;
-      runtimeRequest?: {
-        request?: unknown;
-        options?: unknown;
-      };
     };
 
 export type TesterRunHistoryRecord = {
@@ -269,7 +265,6 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
       message: result.message,
       actionHint: result.actionHint,
       missingSurface: result.missingSurface,
-      runtimeRequest: result.runtimeRequest,
     };
   }
 

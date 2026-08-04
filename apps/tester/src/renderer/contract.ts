@@ -1,5 +1,3 @@
-import type { SharedAIConfigService } from '@nimiplatform/kit/features/model-config/headless';
-import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker/runtime';
 import type {
   NimiRealmCreatorEligibility,
   NimiRealmGroupChatListResult,
@@ -7,8 +5,10 @@ import type {
   NimiRealmNotificationUnreadView,
   NimiRealmRequestDataExportOutput,
 } from '@nimiplatform/sdk/realm';
-import type { NimiAIScopeRef } from '@nimiplatform/sdk/ai';
-import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
+import type {
+  NimiCapabilityAIConfig,
+  NimiCapabilityAIConfigIntent,
+} from '@nimiplatform/sdk/ai';
 import type {
   NimiLocalAppAgent,
   NimiLocalAppAgentHandle,
@@ -24,7 +24,6 @@ import type {
 
 import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import type { TesterAIConfigSummary } from '../tester/tester-ai-config.js';
-import type { TesterAIProfileImportResult } from '../tester/tester-ai-config-store.js';
 import type { TesterArtifactSaveResult } from '../tester/tester-artifact-storage.js';
 import type { TesterImageHistoryRecord } from '../tester/tester-image-history.js';
 import type {
@@ -94,12 +93,10 @@ export interface TesterRendererEventPort {
 export interface TesterRendererSdkPort {
   runCapability(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult>;
   aiConfig: {
-    readonly service: SharedAIConfigService;
-    readonly scopeRef: NimiAIScopeRef;
-    requireAdmission(): Promise<NimiAIConfig>;
-    importProfileJson(rawJson: string): TesterAIProfileImportResult;
-    modelPickerProvider(capability: string): RouteModelPickerDataProvider;
-    modelPickerProviderCache(capability: string): RouteModelPickerDataProvider | null;
+    get(): Promise<NimiCapabilityAIConfig | null>;
+    overwrite(
+      capabilities: readonly NimiCapabilityAIConfigIntent[],
+    ): Promise<NimiCapabilityAIConfig>;
   };
   settings: {
     notificationUnread(): Promise<NimiRealmNotificationUnreadView>;

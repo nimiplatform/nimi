@@ -233,13 +233,13 @@ export function StudioResult({
   const displayModelLabel = studioResultModelLabel(result, capability, modelLabel);
   const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
   const hasModelSettings = Boolean(modelSettings);
-  const simulated = admission.label === 'simulated';
+  const simulated = ready?.trace?.routeDecision === 'simulated-scenario';
   const runTimeLabel = createdAt
     ? formatTesterRunTimestamp(createdAt, new Date(rendererHost.clock.now()))
     : running ? 'Running' : 'Not recorded';
   const statusTitle = simulated
     ? running ? 'Simulator running' : blocked ? 'Simulator blocked' : ready ? 'Simulator result' : 'Simulator waiting'
-    : running ? 'Runtime running' : blocked ? 'Runtime blocked' : ready ? 'Runtime ready' : 'Runtime waiting';
+    : running ? 'Runtime running' : blocked ? 'Runtime blocked' : ready ? 'Runtime result' : 'Runtime waiting';
   const statusTone = blocked ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
     if (!hasModelSettings) setModelSettingsOpen(false);

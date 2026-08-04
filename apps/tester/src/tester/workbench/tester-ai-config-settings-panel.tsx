@@ -1,116 +1,155 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
-import type { AppModelConfigSurface } from '@nimiplatform/kit/features/model-config';
-import type { TesterRuntimeInspection } from '../tester-runtime.js';
-import { TesterAiConfigSettings } from '../../shell/ai/tester-ai-config-settings.js';
-import { testerModelConfigCopy } from '../../shell/ai/model-config-copy.js';
-import { useTesterRendererHost } from '../../renderer/context.js';
+import { useCallback, useEffect, useState } from 'react';
+import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
+import { Button, StatusBadge } from '@nimiplatform/kit/ui';
 
-// App-owned wrapper: injects the tester's app-scoped NimiAIConfig service, scope
-// ref, runtime model-picker provider, and copy into the scaffold-managed
-// sectioned TesterAiConfigSettings. The AI config itself is the admitted kit
-// model-config surface — this file only carries tester-specific wiring + copy.
-// AI config now lives in Settings (and the AI Capabilities gear opens it to a
-// specific section via `initialSection`).
+import { useTesterRendererHost } from '../../renderer/context.js';
+import type { TesterRuntimeInspection } from '../tester-runtime.js';
+import {
+  createTesterLocalCapabilityIntent,
+  findTesterCapabilityIntent,
+  overwriteTesterCapabilityIntent,
+  removeTesterCapabilityIntent,
+} from '../tester-ai-config-store.js';
 
 type TesterAiConfigSettingsPanelProps = {
   runtime: TesterRuntimeInspection | null;
-  initialSection?: CanonicalCapabilitySectionId | null;
+  capabilityId: string;
+  onConfigChanged: () => void;
   onClose?: () => void;
 };
 
-// Full canonical capability set the desktop tester configured. Capability ids
-// not present in the kit catalog are filtered out by selectEnabledDescriptors.
-const enabledCapabilities = [
-  'text.generate',
-  'text.embed',
-  'audio.synthesize',
-  'audio.transcribe',
-  'voice_workflow.voice_clone',
-  'voice_workflow.voice_design',
-  'image.generate',
-  'video.generate',
-  'world.generate',
-] as const;
-
-// Authoritative kit model-config copy (derived from the platform en locale),
-// with a few tester-specific phrasing overrides for the panel chrome.
-const copy: Record<string, string> = {
-  ...testerModelConfigCopy,
-  'ModelConfig.profile.importLabel': 'Apply AI Profile',
-  'ModelConfig.profile.modalHint': 'Choose an imported profile, preview the App Lab AIConfig diff, then confirm.',
-  'Tester.settings.title': 'AI model config',
-  'Tester.settings.subtitle': 'Bind a Runtime model per capability for this app.',
-  'Tester.settings.detailSubtitle': 'Configure models and defaults for this capability.',
-};
-
-function useTesterRuntimeLocalAssetSource(runtimeReady: boolean): AppModelConfigSurface['localAssetSource'] {
-  return useMemo(() => ({
-    list: () => [],
-    loading: false,
-  }), [runtimeReady]);
-}
-
-export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, onClose }: TesterAiConfigSettingsPanelProps) {
+export function TesterAiConfigSettingsPanel({
+  runtime,
+  capabilityId,
+  onConfigChanged,
+  onClose,
+}: TesterAiConfigSettingsPanelProps) {
   const rendererHost = useTesterRendererHost();
-  const scopeRef = rendererHost.sdk.aiConfig.scopeRef;
-  const service = rendererHost.sdk.aiConfig.service;
-  const resolveRuntimeModelPickerProvider = rendererHost.sdk.aiConfig.modelPickerProviderCache;
-  const localAssetSource = useTesterRuntimeLocalAssetSource(runtime?.status === 'ready');
-  const [hydration, setHydration] = useState<{ status: 'loading' | 'ready' | 'failed'; message: string | null }>({
-    status: 'loading',
-    message: null,
-  });
+  const [config, setConfig] = useState<NimiCapabilityAIConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setHydration({ status: 'loading', message: null });
-    void rendererHost.sdk.aiConfig.requireAdmission()
-      .then(() => {
-        if (!cancelled) {
-          setHydration({ status: 'ready', message: null });
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setHydration({
-            status: 'failed',
-            message: error instanceof Error ? error.message : String(error || 'AI config load failed.'),
-          });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setConfig(await rendererHost.sdk.aiConfig.get());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig load failed.'));
+    } finally {
+      setLoading(false);
+    }
   }, [rendererHost]);
 
-  if (hydration.status !== 'ready') {
-    return (
-      <div className="grid h-full min-h-0 place-items-center p-6 text-sm text-[var(--nimi-text-muted)]">
-        {hydration.status === 'loading' ? 'Loading AI model config...' : hydration.message}
-      </div>
-    );
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const intent = findTesterCapabilityIntent(config, capabilityId);
+  const route = intent?.route.oneofKind ?? null;
+  const configStatus = loading ? 'Loading' : error ? 'Unavailable' : route === 'local'
+    ? 'Local selected'
+    : route === 'cloud' ? 'Cloud selected' : 'Not configured';
+
+  async function selectLocal() {
+    setSaving(true);
+    setError(null);
+    try {
+      const next = await overwriteTesterCapabilityIntent(
+        rendererHost.sdk.aiConfig,
+        config,
+        createTesterLocalCapabilityIntent(capabilityId, intent),
+      );
+      setConfig(next);
+      onConfigChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig update failed.'));
+    } finally {
+      setSaving(false);
+    }
   }
 
+  async function removeIntent() {
+    setSaving(true);
+    setError(null);
+    try {
+      const next = await removeTesterCapabilityIntent(
+        rendererHost.sdk.aiConfig,
+        config,
+        capabilityId,
+      );
+      setConfig(next);
+      onConfigChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig update failed.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const runtimeLabel = runtime?.status === 'connected'
+    ? 'Runtime connected'
+    : runtime?.status === 'simulated'
+      ? 'Simulator only'
+      : 'Runtime unavailable';
+
   return (
-    <TesterAiConfigSettings
-      scopeRef={scopeRef}
-      service={service}
-      enabledCapabilities={enabledCapabilities}
-      providerResolver={resolveRuntimeModelPickerProvider}
-      localAssetSource={localAssetSource}
-      runtimeStatus={runtime?.status ?? 'checking'}
-      runtimeDetail={runtime?.detail ?? null}
-      copy={copy}
-      initialSection={initialSection}
-      variant="capability-drawer"
-      onClose={onClose}
-      onImportProfileJson={(json) => {
-        const result = rendererHost.sdk.aiConfig.importProfileJson(json);
-        return result.ok
-          ? { ok: true, message: result.message, profileId: result.profile.profileId }
-          : { ok: false, message: result.message, errors: result.errors };
-      }}
-    />
+    <section className="flex h-full min-h-0 flex-col bg-white/95" aria-label="App AI configuration">
+      <header className="flex items-start justify-between gap-4 border-b border-[var(--nimi-border-subtle)] px-5 py-4">
+        <div className="grid gap-1">
+          <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">App AIConfig</h2>
+          <p className="text-sm text-[var(--nimi-text-muted)]">{capabilityId}</p>
+        </div>
+        {onClose ? <Button type="button" tone="secondary" size="sm" onClick={onClose}>Close</Button> : null}
+      </header>
+
+      <div className="grid gap-5 overflow-y-auto p-5">
+        <div className="flex flex-wrap gap-2">
+          <StatusBadge tone={runtime?.status === 'connected' ? 'neutral' : 'warning'} shape="dot">
+            {runtimeLabel}
+          </StatusBadge>
+          <StatusBadge tone={!loading && !error && route ? 'success' : 'warning'} shape="dot">
+            {configStatus}
+          </StatusBadge>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-[var(--nimi-text-muted)]">Reading the current Runtime-owned App AIConfig…</p>
+        ) : error ? (
+          <div className="grid gap-3 rounded-lg border border-[var(--nimi-border-subtle)] p-4">
+            <strong className="text-sm text-[var(--nimi-text-primary)]">App AIConfig unavailable</strong>
+            <p role="alert" className="text-sm text-[var(--nimi-status-danger-text)]">{error}</p>
+            <Button type="button" tone="secondary" onClick={() => void refresh()}>Retry</Button>
+          </div>
+        ) : (
+          <div className="grid gap-3 rounded-lg border border-[var(--nimi-border-subtle)] p-4">
+            <strong className="text-sm text-[var(--nimi-text-primary)]">Capability route</strong>
+            <p className="text-sm text-[var(--nimi-text-muted)]">
+              Selecting Local stores only consumer intent. The machine model, exact asset bindings, and execution availability remain Runtime-owned and are resolved when the request executes.
+            </p>
+            {route === 'cloud' ? (
+              <p className="text-sm text-[var(--nimi-text-muted)]">
+                This capability currently has an exact Cloud intent. Tester preserves it until you explicitly replace or remove it.
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" disabled={saving || route === 'local'} onClick={() => void selectLocal()}>
+                {route === 'local' ? 'Local selected' : 'Select Local'}
+              </Button>
+              {intent ? (
+                <Button type="button" tone="secondary" disabled={saving} onClick={() => void removeIntent()}>
+                  Remove capability intent
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
+          Configured does not mean execution-ready. Tester performs no probe, readiness poll, model ranking, or fallback selection; execution returns the typed Runtime result.
+        </p>
+      </div>
+    </section>
   );
 }

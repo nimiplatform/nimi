@@ -1,4 +1,5 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
+import type { NimiCapabilityAIConfigIntent } from '@nimiplatform/sdk/ai';
 import type { PermissionID } from '@nimiplatform/sdk/app';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import type { Realm } from '@nimiplatform/sdk/realm';
@@ -23,12 +24,7 @@ import {
 
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { testerLocalAppClient } from '../shell/local-app-runtime-platform.js';
-import {
-  createTesterAIConfigService,
-  createTesterAppLabAIScopeRef,
-  importTesterAIProfileJson,
-  requireTesterAIConfigAdmission,
-} from '../tester/tester-ai-config-store.js';
+import { loadTesterAIConfig, requireTesterAIConfigOwner } from '../tester/tester-ai-config-store.js';
 import { loadTesterAIConfigSummary } from '../tester/tester-ai-config.js';
 import { saveTesterArtifact } from '../tester/tester-artifact-storage.js';
 import { runTesterConversationJourney } from '../tester/local-app-conversation-journey.js';
@@ -40,10 +36,6 @@ import {
   loadTesterPromptDraft,
   saveTesterPromptDraft,
 } from '../tester/tester-preferences.js';
-import {
-  createTesterRuntimeModelPickerProvider,
-  createTesterRuntimeModelPickerProviderCache,
-} from '../tester/tester-runtime-model-provider.js';
 import { runTesterCapability } from '../tester/tester-runtime.js';
 import {
   claimWorldTourViewerLaunch,
@@ -119,9 +111,6 @@ async function requireTesterRealm(): Promise<Realm> {
 export function createTesterProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
 ): TesterCanonicalRendererBindings {
-  const aiConfigService = createTesterAIConfigService();
-  const aiScopeRef = createTesterAppLabAIScopeRef();
-  const providerCache = createTesterRuntimeModelPickerProviderCache();
   const bindings = createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
     capabilities: kit.capabilities,
@@ -130,15 +119,12 @@ export function createTesterProductionBindings(
     sdk: Object.freeze({
       runCapability: runTesterCapability,
       aiConfig: Object.freeze({
-        service: aiConfigService,
-        scopeRef: aiScopeRef,
-        requireAdmission: async () => {
-          await requireTesterAIConfigAdmission(aiScopeRef);
-          return aiConfigService.aiConfig.get(aiScopeRef);
+        get: () => loadTesterAIConfig(testerLocalAppClient.aiConfig),
+        async overwrite(capabilities: readonly NimiCapabilityAIConfigIntent[]) {
+          return requireTesterAIConfigOwner(
+            await testerLocalAppClient.aiConfig.overwrite(capabilities),
+          );
         },
-        importProfileJson: importTesterAIProfileJson,
-        modelPickerProvider: createTesterRuntimeModelPickerProvider,
-        modelPickerProviderCache: providerCache,
       }),
       settings: Object.freeze({
         notificationUnread: async () => loadNimiRealmNotificationUnreadCount(await requireTesterRealm()),

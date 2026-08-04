@@ -16,7 +16,6 @@ import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../test
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, STATUS_PILL_LABEL, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
-import { resolveSectionAITestingConfigSection } from './section-ai-testing-config-section.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetModelSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 
@@ -32,6 +31,7 @@ function TextStudioShell({
   historySelectionRequest,
   onSelectHistoryRun,
   headerActions,
+  aiConfigRefreshKey,
 }: {
   capability: TesterCapability;
   runtime: TesterRuntimeInspection | null;
@@ -44,6 +44,7 @@ function TextStudioShell({
   historySelectionRequest: { requestId: number; record: TesterRunHistoryRecord } | null;
   onSelectHistoryRun: (record: TesterRunHistoryRecord) => void;
   headerActions?: ReactNode;
+  aiConfigRefreshKey: number;
 }) {
   const rendererHost = useTesterRendererHost();
   const profile = getCapabilityStudioProfile(capability.id);
@@ -76,8 +77,8 @@ function TextStudioShell({
   const hasActiveRun = Boolean(activeRun);
   const currentResult = activeRun?.result ?? (lastResult?.capabilityId === capability.id ? lastResult : null);
   const headerResult = hasActiveRun ? currentResult : null;
-  const admission = statusForCapability(capability, runtime, headerResult);
-  const runTarget = useTesterRunTargetSummary(capability, runtime);
+  const runTarget = useTesterRunTargetSummary(capability, runtime, aiConfigRefreshKey);
+  const admission = statusForCapability(capability, runTarget, headerResult);
   const isWorldTour = capability.execution === 'standalone-tauri';
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
@@ -245,7 +246,7 @@ function TextStudioShell({
       onRemoveAttachment={composerState.removeAttachment}
       canDispatch={runTarget.canDispatch}
       canConfigureTarget={canConfigureRunTarget(runTarget)}
-      modelConfigurable={capability.id !== 'text.generate' || runtime?.status === 'simulated'}
+      modelConfigurable={capability.execution === 'runtime-sdk'}
       compact={Boolean(activeRun)}
       onPromptChange={updatePrompt}
       onContextChange={setContext}
@@ -253,7 +254,7 @@ function TextStudioShell({
       onSubmit={() => void run()}
     />
   );
-  const showAdmissionBadge = admission.label !== 'ready';
+  const showAdmissionBadge = true;
 
   function handleHistoryCollapseToggle() {
     if (!historyCollapsed) {
@@ -338,10 +339,7 @@ export function SectionAITesting({
 }: SectionAITestingProps) {
   const runtime = summary?.runtime ?? null;
   const [configOpen, setConfigOpen] = useState(false);
-  const configSection = resolveSectionAITestingConfigSection({
-    open: configOpen,
-    capabilityId: capability.id,
-  });
+  const [aiConfigRefreshKey, setAIConfigRefreshKey] = useState(0);
   const reducedMotion = useNimiReducedMotion();
   const drawerMotion = nimiOverlayPanelMotion({ kind: 'drawer', reducedMotion });
   const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
@@ -350,7 +348,7 @@ export function SectionAITesting({
     <div
       className="section-ai-testing"
       data-testid="nimi-tester-section-ai-testing"
-      data-config-open={configSection ? '' : undefined}
+      data-config-open={configOpen ? '' : undefined}
     >
       <div className="section-ai-testing__main">
         <TextStudioShell
@@ -365,11 +363,12 @@ export function SectionAITesting({
           historySelectionRequest={historySelectionRequest}
           onSelectHistoryRun={onSelectHistoryRun}
           headerActions={headerActions}
+          aiConfigRefreshKey={aiConfigRefreshKey}
         />
       </div>
 
       <AnimatePresence>
-        {configSection ? (
+        {configOpen ? (
           <motion.button
             key="model-config-backdrop"
             type="button"
@@ -379,7 +378,7 @@ export function SectionAITesting({
             {...backdropMotion}
           />
         ) : null}
-        {configSection ? (
+        {configOpen ? (
           <motion.aside
             key="model-config-drawer"
             className="section-ai-testing__drawer"
@@ -387,10 +386,11 @@ export function SectionAITesting({
             {...drawerMotion}
           >
             <DrawerErrorBoundary onClose={() => setConfigOpen(false)}>
-              <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading model config...</div>}>
+              <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading App AIConfig...</div>}>
                 <TesterAiConfigSettingsPanel
                   runtime={runtime}
-                  initialSection={configSection}
+                  capabilityId={capability.capabilityContract ?? capability.id}
+                  onConfigChanged={() => setAIConfigRefreshKey((value) => value + 1)}
                   onClose={() => setConfigOpen(false)}
                 />
               </Suspense>

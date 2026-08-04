@@ -6,22 +6,6 @@ import type { TesterRendererCommandPort } from '../../renderer/contract.js';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
 import { unavailableReasonTitle } from '../tester-unavailable.js';
 
-export function formatRuntimeRequestDiagnostics(value: unknown): string {
-  const seen = new WeakSet<object>();
-  const json = JSON.stringify(value, (_key, entry) => {
-    if (typeof entry === 'bigint') return entry.toString();
-    if (typeof entry === 'function') return '[Function]';
-    if (entry instanceof Uint8Array) return `[Uint8Array:${entry.byteLength}]`;
-    if (entry instanceof ArrayBuffer) return `[ArrayBuffer:${entry.byteLength}]`;
-    if (entry && typeof entry === 'object') {
-      if (seen.has(entry)) return '[Circular]';
-      seen.add(entry);
-    }
-    return entry;
-  }, 2) || String(value ?? '');
-  return json.length > 12000 ? `${json.slice(0, 12000)}\n...truncated` : json;
-}
-
 export function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true }): string {
   const output = result.output;
   if (result.capabilityId === 'world.generate') {
@@ -75,8 +59,6 @@ export function formatUnavailableOutput(result: TesterCapabilityRunResult & { ok
     '',
     'Action:',
     result.actionHint,
-    result.runtimeRequest ? 'Runtime request:' : '',
-    result.runtimeRequest ? formatRuntimeRequestDiagnostics(result.runtimeRequest) : '',
   ].filter(Boolean).join('\n');
 }
 

@@ -37,7 +37,7 @@ export type TesterRuntimeInspection =
       healthJson?: string;
     }
   | {
-      status: 'ready' | 'connected' | 'unavailable';
+      status: 'connected' | 'unavailable';
       mode: string;
       detail: string;
       healthJson?: string;
@@ -65,7 +65,7 @@ function compactJson(value: unknown): string {
   }
 }
 
-export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection> {
+export async function inspectRuntimeConnection(): Promise<TesterRuntimeInspection> {
   const projection = await getRuntimePlatformProjection();
   if (projection.status !== 'ready') {
     return {
@@ -77,7 +77,7 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
   return {
     status: 'connected',
     mode: projection.mode,
-    detail: 'The protected local-app identity session is bound and Runtime is connected. The project declares agents.interact and foreground ai.text.generate, Desktop owns their grant decisions, and app-private JSON storage is a base entitlement. Text generation uses the Runtime-selected managed local route; Account, Realm, generic AI routing, streaming, lifecycle, realtime, media, and all other reserved capabilities remain unadmitted.',
+    detail: 'The protected local-app identity session is bound and Runtime is connected. The App AIConfig selects Local or an exact Cloud implementation; machine selection and execution availability remain Runtime-owned. Current text execution remains typed fail-closed until the canonical Job path is admitted.',
     healthJson: compactJson({
       sessionState: projection.localAppSession.state,
       sessionBound: projection.localAppSession.sessionBound,
@@ -90,7 +90,7 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
   const capability = getTesterCapability(input.capabilityId);
   const projection = await getRuntimePlatformProjection();
   if (projection.status !== 'ready') {
-    return capabilityUnavailable(capability, 'runtime-not-ready', projection.message);
+    return capabilityUnavailable(capability, 'runtime-unavailable', projection.message);
   }
 
   if (capability.id === 'text.generate') {

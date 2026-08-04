@@ -1,26 +1,27 @@
-import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
-import {
-  summarizeModelConfigRuntimeTarget,
-  type ModelConfigRuntimeTargetLocalModel,
-  type ModelConfigRuntimeTargetParamRecord,
-  type ModelConfigRuntimeTargetSource,
-  type ModelConfigRuntimeTargetStatus,
-} from '@nimiplatform/kit/features/model-config/headless';
+import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
+
 import type {
   TesterCapability,
   TesterCapabilityId,
 } from './tester-capabilities.js';
-import { getTesterRuntimeBindingCapabilityId } from './tester-capabilities.js';
+import { getTesterCapabilityContract } from './tester-capabilities.js';
 import { CAPABILITY_TO_SECTION } from './tester-capability-sections.js';
+import { findTesterCapabilityIntent } from './tester-ai-config-store.js';
 import type { TesterRuntimeInspection } from './tester-runtime.js';
 
-export type TesterRunTargetStatus = ModelConfigRuntimeTargetStatus | 'tauri-only' | 'sdk-gap' | 'not-admitted';
-export type TesterRunTargetSource = ModelConfigRuntimeTargetSource | 'local-fixture';
-export type TesterRunTargetParamRecord = ModelConfigRuntimeTargetParamRecord;
+export type TesterRunTargetStatus =
+  | 'checking'
+  | 'configured'
+  | 'blocked'
+  | 'tauri-only'
+  | 'sdk-gap'
+  | 'not-admitted';
+export type TesterRunTargetSource = 'local' | 'cloud' | 'unknown' | 'local-fixture';
+export type TesterRunTargetParamRecord = Readonly<Record<string, unknown>>;
 
 export type TesterRunTargetSummary = {
   capabilityId: TesterCapabilityId;
-  bindingCapabilityId: string | null;
+  capabilityContract: string | null;
   section: string;
   status: TesterRunTargetStatus;
   source: TesterRunTargetSource;
@@ -28,64 +29,31 @@ export type TesterRunTargetSummary = {
   detail: string;
   canDispatch: boolean;
   params: TesterRunTargetParamRecord;
-  paramsSummary: string[];
-  profileOrigin: string | null;
+  paramsSummary: readonly string[];
+  profileOrigin: null;
 };
-
-export type TesterRunTargetLocalModel = ModelConfigRuntimeTargetLocalModel;
-
-function runtimeStatus(runtime: TesterRuntimeInspection | null): 'checking' | 'ready' | 'blocked' {
-  if (!runtime) return 'checking';
-  return runtime.status === 'ready' || runtime.status === 'simulated' ? 'ready' : 'blocked';
-}
 
 export function createTesterRunTargetSummary(input: {
   capability: TesterCapability;
   runtime: TesterRuntimeInspection | null;
-  config: NimiAIConfig | null;
-  localModels?: readonly TesterRunTargetLocalModel[];
+  config: NimiCapabilityAIConfig | null;
+  configState?: 'loading' | 'loaded' | 'failed';
+  configError?: string | null;
   standaloneTauriAvailable?: boolean;
 }): TesterRunTargetSummary {
   const { capability, runtime, config } = input;
   const section = CAPABILITY_TO_SECTION[capability.id];
-  const bindingCapabilityId = capability.runtimeBindingCapabilityId
-    ?? (runtime?.status === 'simulated' && capability.id === 'text.generate'
-      ? 'text.generate'
-      : getTesterRuntimeBindingCapabilityId(capability.id));
-
-  if (capability.id === 'text.generate' && runtime?.status === 'connected') {
-    return {
-      capabilityId: capability.id,
-      bindingCapabilityId: null,
-      section,
-      status: 'ready',
-      source: 'local',
-      modelLabel: 'Runtime selected',
-      detail: 'The admitted ai.text.generate operation uses a Runtime-selected managed local route. This public App API does not expose model, provider, connector, or route selection.',
-      canDispatch: true,
-      params: {},
-      paramsSummary: [],
-      profileOrigin: null,
-    };
-  }
-
-  const summary = summarizeModelConfigRuntimeTarget({
-    capabilityId: capability.id,
-    bindingCapabilityId,
-    config,
-    runtimeStatus: runtimeStatus(runtime),
-    runtimeDetail: runtime?.detail,
-    localModels: input.localModels,
-  });
-
+  const capabilityContract = capability.capabilityContract
+    ?? getTesterCapabilityContract(capability.id)
+    ?? (capability.id === 'text.generate' ? 'text.generate' : null);
   const base = {
     capabilityId: capability.id,
-    bindingCapabilityId,
+    capabilityContract,
     section,
-    params: summary.params,
-    paramsSummary: summary.paramsSummary,
-    profileOrigin: summary.profileOrigin,
-  };
+    params: {},
+    paramsSummary: [],
+    profileOrigin: null,
+  } as const;
 
   if (capability.execution === 'standalone-tauri') {
     const canDispatch = input.standaloneTauriAvailable === true;
@@ -95,35 +63,104 @@ export function createTesterRunTargetSummary(input: {
       source: 'local-fixture',
       modelLabel: 'Local fixture',
       detail: canDispatch
-        ? 'This lane opens the standalone Tauri viewer and does not use Runtime model routing.'
+        ? 'This lane opens the standalone Tauri viewer and does not use Runtime AI configuration.'
         : 'This lane requires the standalone Tauri shell; the current shell cannot open its viewer.',
       canDispatch,
     };
   }
-  if (capability.execution === 'typed-unavailable') {
+  if (capability.execution === 'typed-unavailable' || !capabilityContract) {
     return {
       ...base,
       status: 'sdk-gap',
       source: 'unknown',
-      modelLabel: 'SDK surface missing',
+      modelLabel: 'Capability unavailable',
       detail: capability.missingSurface || 'No admitted typed SDK method is available for this capability.',
       canDispatch: false,
     };
   }
-  if (runtime?.status === 'connected') {
+  if (!runtime) {
+    return {
+      ...base,
+      status: 'checking',
+      source: 'unknown',
+      modelLabel: 'Checking configuration',
+      detail: 'Reading the current App AIConfig and Runtime connection.',
+      canDispatch: false,
+    };
+  }
+  if (runtime.status !== 'connected' && runtime.status !== 'simulated') {
     return {
       ...base,
       status: 'not-admitted',
       source: 'unknown',
-      modelLabel: 'Not admitted',
+      modelLabel: 'Runtime unavailable',
       detail: runtime.detail,
       canDispatch: false,
     };
   }
+  if (input.configState === 'loading') {
+    return {
+      ...base,
+      status: 'checking',
+      source: 'unknown',
+      modelLabel: 'Reading App AIConfig',
+      detail: 'Reading the current Runtime-owned App AIConfig.',
+      canDispatch: false,
+    };
+  }
+  if (input.configState === 'failed') {
+    return {
+      ...base,
+      status: 'blocked',
+      source: 'unknown',
+      modelLabel: 'AIConfig unavailable',
+      detail: input.configError || 'The current App AIConfig could not be read.',
+      canDispatch: false,
+    };
+  }
+
+  const intent = findTesterCapabilityIntent(config, capabilityContract);
+  if (!intent) {
+    return {
+      ...base,
+      status: 'blocked',
+      source: 'unknown',
+      modelLabel: 'Not configured',
+      detail: 'This App AIConfig has no intent for the capability. Choose Local to save one.',
+      canDispatch: false,
+    };
+  }
+  const route = intent.route;
+  if (route.oneofKind === 'local') {
+    return {
+      ...base,
+      status: 'configured',
+      source: 'local',
+      modelLabel: 'Local',
+      detail: 'The App selected Local. Runtime resolves the current machine selection when execution begins; configuration does not prove execution readiness.',
+      canDispatch: true,
+    };
+  }
+  if (route.oneofKind === 'cloud' && 'cloud' in route) {
+    const grantSelected = Boolean(route.cloud.connectorGrantId.trim());
+    return {
+      ...base,
+      status: grantSelected ? 'configured' : 'blocked',
+      source: 'cloud',
+      modelLabel: grantSelected ? 'Cloud' : 'Cloud selection required',
+      detail: grantSelected
+        ? 'The App selected an exact Cloud implementation and ConnectorGrant. Configuration does not prove provider availability.'
+        : 'The Cloud intent has no ConnectorGrant selection and remains unresolved.',
+      canDispatch: grantSelected,
+    };
+  }
 
   return {
-    ...summary,
-    capabilityId: capability.id,
-    section,
+    ...base,
+    status: 'blocked',
+    source: 'unknown',
+    modelLabel: 'Invalid configuration',
+    detail: 'The capability intent has no supported route.',
+    canDispatch: false,
   };
 }
