@@ -36,7 +36,7 @@ function Harness({
     <GenerationPanel
       state={state}
       title="Test Generation"
-      runtimeValue="connector -> model"
+      runtimeValue="Owner-driven execution unavailable"
       controls={<div>Controls</div>}
       submitLabel="Run"
       statusItems={statusItems}
@@ -76,7 +76,7 @@ describe('GenerationPanel', () => {
     });
 
     expect(container.textContent).toContain('Test Generation');
-    expect(container.textContent).toContain('connector -> model');
+    expect(container.textContent).toContain('Owner-driven execution unavailable');
     expect(container.textContent).toContain('Queued');
     expect(container.textContent).toContain('running');
   });

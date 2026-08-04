@@ -108,11 +108,6 @@
       "import": "./dist/core/runtime-capabilities/index.js",
       "default": "./dist/core/runtime-capabilities/index.js"
     },
-    "./core/model-config": {
-      "types": "./dist/core/model-config/index.d.ts",
-      "import": "./dist/core/model-config/index.js",
-      "default": "./dist/core/model-config/index.js"
-    },
     "./core/sdk-contract": {
       "types": "./dist/core/sdk-contract.d.ts",
       "import": "./dist/core/sdk-contract.js",
@@ -279,26 +274,6 @@
       "import": "./dist/features/agent-center/ui.js",
       "default": "./dist/features/agent-center/ui.js"
     },
-    "./features/model-picker": {
-      "types": "./dist/features/model-picker/index.d.ts",
-      "import": "./dist/features/model-picker/index.js",
-      "default": "./dist/features/model-picker/index.js"
-    },
-    "./features/model-picker/headless": {
-      "types": "./dist/features/model-picker/headless.d.ts",
-      "import": "./dist/features/model-picker/headless.js",
-      "default": "./dist/features/model-picker/headless.js"
-    },
-    "./features/model-picker/ui": {
-      "types": "./dist/features/model-picker/ui.d.ts",
-      "import": "./dist/features/model-picker/ui.js",
-      "default": "./dist/features/model-picker/ui.js"
-    },
-    "./features/model-picker/runtime": {
-      "types": "./dist/features/model-picker/runtime.d.ts",
-      "import": "./dist/features/model-picker/runtime.js",
-      "default": "./dist/features/model-picker/runtime.js"
-    },
     "./features/generation": {
       "types": "./dist/features/generation/index.d.ts",
       "import": "./dist/features/generation/index.js",
@@ -338,21 +313,6 @@
       "types": "./dist/features/commerce/realm.d.ts",
       "import": "./dist/features/commerce/realm.js",
       "default": "./dist/features/commerce/realm.js"
-    },
-    "./features/model-config": {
-      "types": "./dist/features/model-config/index.d.ts",
-      "import": "./dist/features/model-config/index.js",
-      "default": "./dist/features/model-config/index.js"
-    },
-    "./features/model-config/headless": {
-      "types": "./dist/features/model-config/headless.d.ts",
-      "import": "./dist/features/model-config/headless.js",
-      "default": "./dist/features/model-config/headless.js"
-    },
-    "./features/model-config/ui": {
-      "types": "./dist/features/model-config/ui.d.ts",
-      "import": "./dist/features/model-config/ui.js",
-      "default": "./dist/features/model-config/ui.js"
     },
     "./ui/themes/nimi-density-compact.css": "./dist/ui/themes/nimi-density-compact.css"
   },

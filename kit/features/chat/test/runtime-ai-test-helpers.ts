@@ -1,8 +1,8 @@
 import { vi } from 'vitest';
 import type {
-  NimiAIConfigTargetRef,
   NimiGenerateTextResult,
   NimiRunEvent,
+  NimiRuntimeAIModelOptions,
   Runtime,
 } from '@nimiplatform/kit/core/sdk-contract';
 
@@ -37,7 +37,7 @@ const STREAM_EVENT = {
   FAILED: 7,
 } as const;
 
-export const runtimeTestTargetRef: NimiAIConfigTargetRef = {
+export const runtimeTestTargetRef: NonNullable<NimiRuntimeAIModelOptions['targetRef']> = {
   kind: 'cloud-connector',
   connectorId: 'connector-runtime-test',
   remoteModelCatalogId: 'remote-catalog:runtime-selected-chat',

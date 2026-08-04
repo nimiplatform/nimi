@@ -2,18 +2,16 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  ExecutionMode,
+  ReasonCode,
   ScenarioJobStatus,
-  ScenarioType,
-  type NimiRuntimeScenarioArtifact,
-  type NimiRuntimeScenarioJob,
-  type Runtime,
+  isNimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   copyArtifactBytesToArrayBuffer,
   scenarioJobStatusLabel,
   scenarioJobStatusToGenerationStatus,
   useRuntimeGenerationPanel,
+  type RuntimeGenerationPanelErrorContext,
 } from '../src/runtime.js';
 import { RuntimeGenerationPanel } from '../src/ui.js';
 
@@ -44,52 +42,16 @@ afterEach(async () => {
   container = null;
 });
 
-function makeJob(status: ScenarioJobStatus, jobId = 'job-1'): NimiRuntimeScenarioJob {
-  return { jobId, status } as NimiRuntimeScenarioJob;
-}
+type RuntimeGenerationPanelOnError = (
+  error: unknown,
+  context: RuntimeGenerationPanelErrorContext<{ prompt: string }>,
+) => void;
 
-function makeMockRuntime(options: {
-  submitJob?: NimiRuntimeScenarioJob;
-  subscribeEvents?: Array<{ job?: NimiRuntimeScenarioJob }>;
-  getJob?: NimiRuntimeScenarioJob;
-  artifacts?: NimiRuntimeScenarioArtifact[];
-}) {
-  return {
-    ai: {
-      submitScenarioJob: vi.fn().mockResolvedValue({
-        job: options.submitJob ?? makeJob(ScenarioJobStatus.SUBMITTED),
-      }),
-      subscribeScenarioJobEvents: vi.fn(() => (
-        async function* () {
-          for (const event of options.subscribeEvents ?? []) {
-            yield event;
-          }
-        }
-      )()),
-      getScenarioJob: vi.fn().mockResolvedValue({
-        job: options.getJob ?? makeJob(ScenarioJobStatus.COMPLETED),
-      }),
-      cancelScenarioJob: vi.fn().mockResolvedValue({}),
-      getScenarioArtifacts: vi.fn().mockResolvedValue({
-        jobId: 'job-1',
-        artifacts: options.artifacts ?? [],
-      }),
-    },
-  } as unknown as Runtime;
-}
-
-function RuntimeHarness({ runtime }: { runtime: Runtime }) {
+function RuntimeHarness({ onError }: { onError: RuntimeGenerationPanelOnError }) {
   const runtimeState = useRuntimeGenerationPanel({
-    runtime,
+    capabilityContract: 'image.generate',
     input: { prompt: 'test prompt' },
-    resolveRequest: () => ({
-      scenarioType: ScenarioType.TEXT_GENERATE,
-      executionMode: ExecutionMode.ASYNC_JOB,
-      requestId: 'request-1',
-      idempotencyKey: 'idem-1',
-      labels: {},
-      extensions: [],
-    }),
+    onError,
   });
 
   return (
@@ -102,7 +64,7 @@ function RuntimeHarness({ runtime }: { runtime: Runtime }) {
 }
 
 describe('generation runtime helpers', () => {
-  it('maps runtime statuses to generation statuses', () => {
+  it('maps Runtime statuses without owning submission', () => {
     expect(scenarioJobStatusToGenerationStatus(ScenarioJobStatus.SUBMITTED)).toBe('pending');
     expect(scenarioJobStatusToGenerationStatus(ScenarioJobStatus.RUNNING)).toBe('running');
     expect(scenarioJobStatusToGenerationStatus(ScenarioJobStatus.COMPLETED)).toBe('completed');
@@ -111,8 +73,8 @@ describe('generation runtime helpers', () => {
     expect(scenarioJobStatusToGenerationStatus(999 as ScenarioJobStatus)).toBe('failed');
   });
 
-  it('returns readable runtime labels', () => {
-    expect(scenarioJobStatusLabel(ScenarioJobStatus.SUBMITTED)).toBe('Submitted to runtime');
+  it('returns readable Runtime labels', () => {
+    expect(scenarioJobStatusLabel(ScenarioJobStatus.SUBMITTED)).toBe('Submitted to Runtime');
     expect(scenarioJobStatusLabel(ScenarioJobStatus.RUNNING)).toBe('Generating output');
     expect(scenarioJobStatusLabel(999 as ScenarioJobStatus)).toBe('Failed');
   });
@@ -123,30 +85,28 @@ describe('generation runtime helpers', () => {
     expect(Array.from(new Uint8Array(buffer!))).toEqual([1, 2, 3]);
   });
 
-  it('binds runtime job updates into the default runtime generation panel', async () => {
-    const runtime = makeMockRuntime({
-      subscribeEvents: [
-        { job: makeJob(ScenarioJobStatus.RUNNING) },
-        { job: makeJob(ScenarioJobStatus.COMPLETED) },
-      ],
-    });
+  it('keeps the shared panel but fails submission closed with a typed error', async () => {
+    const onError = vi.fn<RuntimeGenerationPanelOnError>();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
 
     await act(async () => {
-      root?.render(<RuntimeHarness runtime={runtime} />);
+      root?.render(<RuntimeHarness onError={onError} />);
       await flush();
     });
 
     await act(async () => {
       container?.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
-      await flush();
     });
 
     expect(container.textContent).toContain('Runtime Generation');
-    expect(container.textContent).toContain('Completed');
-    expect(runtime.ai.submitScenarioJob).toHaveBeenCalledOnce();
+    expect(container.textContent).toContain('current Scenario API');
+    expect(onError).toHaveBeenCalledOnce();
+    const error = onError.mock.calls[0]?.[0];
+    expect(isNimiError(error)).toBe(true);
+    if (!isNimiError(error)) throw new Error('expected NimiError');
+    expect(error.reasonCode).toBe(ReasonCode.AI_ROUTE_UNSUPPORTED);
   });
 });

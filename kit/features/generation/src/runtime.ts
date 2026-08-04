@@ -1,14 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import {
-  runKitRuntimeScenarioJob,
   ScenarioJobStatus,
-  type Runtime,
-  type NimiRuntimeScenarioJob,
   type NimiRuntimeScenarioJobResult,
-  type NimiRuntimeScenarioJobSubmitRequest,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-generation-panel.js';
 import type { GenerationRunItem } from './types.js';
+import { createRuntimeExecutionUnavailableError } from './runtime-diagnostics.js';
+
 export * from './runtime-ai-consume.js';
 export * from './runtime-image-generate.js';
 export * from './runtime-identity.js';
@@ -16,58 +14,60 @@ export * from './runtime-speech-synthesize.js';
 export * from './runtime-speech-transcribe.js';
 export * from './runtime-video-generate.js';
 export * from './runtime-voice-catalog.js';
-export type RuntimeGenerationMappedStatus = 'pending' | 'running' | 'completed' | 'failed' | 'timeout' | 'canceled';
+export {
+  createRuntimeExecutionUnavailableError,
+  describeRuntimeGenerationError,
+  runtimeUnavailableReasonFromError,
+} from './runtime-diagnostics.js';
+export type {
+  RuntimeExecutionUnavailable,
+  RuntimeGenerationUnavailableReason,
+} from './runtime-diagnostics.js';
+
+export type RuntimeGenerationMappedStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'timeout'
+  | 'canceled';
 
 export type RuntimeGenerationRequestContext<TInput> = {
-  input: TInput;
+  readonly input: TInput;
+  readonly capabilityContract: string;
 };
 
-export type RuntimeGenerationPanelStatusContext<TInput> = {
-  input: TInput;
-  job: NimiRuntimeScenarioJob;
-};
-
-export type RuntimeGenerationPanelErrorContext<TInput> = {
-  input: TInput;
-  job: NimiRuntimeScenarioJob | null;
-  result: NimiRuntimeScenarioJobResult | null;
-};
+export type RuntimeGenerationPanelErrorContext<TInput> =
+  RuntimeGenerationRequestContext<TInput> & {
+    readonly job: null;
+    readonly result: null;
+  };
 
 export type UseRuntimeGenerationPanelOptions<TInput> = {
-  runtime?: Runtime;
-  input: TInput;
-  resolveRequest: (
-    context: RuntimeGenerationRequestContext<TInput>,
-  ) => NimiRuntimeScenarioJobSubmitRequest;
-  disabled?: boolean;
-  submitting?: boolean;
-  triggerEventName?: string;
-  canTriggerShortcut?: boolean;
-  maxStatusItems?: number;
-  getStatusLabel?: (
-    context: RuntimeGenerationPanelStatusContext<TInput>,
-  ) => string;
-  onJobUpdate?: (
-    context: RuntimeGenerationPanelStatusContext<TInput>,
-  ) => void;
-  onCompleted?: (
-    result: NimiRuntimeScenarioJobResult,
-    context: RuntimeGenerationRequestContext<TInput>,
-  ) => Promise<void> | void;
-  onError?: (
+  readonly capabilityContract: string;
+  readonly input: TInput;
+  readonly disabled?: boolean;
+  readonly submitting?: boolean;
+  readonly triggerEventName?: string;
+  readonly canTriggerShortcut?: boolean;
+  readonly onError?: (
     error: unknown,
     context: RuntimeGenerationPanelErrorContext<TInput>,
   ) => void;
 };
 
 export type UseRuntimeGenerationPanelResult = {
-  state: UseGenerationPanelResult;
-  statusItems: readonly GenerationRunItem[];
-  latestResult: NimiRuntimeScenarioJobResult | null;
-  clearStatusItems: () => void;
+  readonly state: UseGenerationPanelResult;
+  readonly statusItems: readonly GenerationRunItem[];
+  readonly latestResult: NimiRuntimeScenarioJobResult | null;
+  readonly clearStatusItems: () => void;
 };
 
-export function scenarioJobStatusToGenerationStatus(status: ScenarioJobStatus): RuntimeGenerationMappedStatus {
+const NO_RUNTIME_STATUS_ITEMS: readonly GenerationRunItem[] = Object.freeze([]);
+
+export function scenarioJobStatusToGenerationStatus(
+  status: ScenarioJobStatus,
+): RuntimeGenerationMappedStatus {
   switch (status) {
     case ScenarioJobStatus.SUBMITTED:
     case ScenarioJobStatus.QUEUED:
@@ -89,9 +89,9 @@ export function scenarioJobStatusToGenerationStatus(status: ScenarioJobStatus): 
 export function scenarioJobStatusLabel(status: ScenarioJobStatus): string {
   switch (status) {
     case ScenarioJobStatus.SUBMITTED:
-      return 'Submitted to runtime';
+      return 'Submitted to Runtime';
     case ScenarioJobStatus.QUEUED:
-      return 'Queued by runtime';
+      return 'Queued by Runtime';
     case ScenarioJobStatus.RUNNING:
       return 'Generating output';
     case ScenarioJobStatus.COMPLETED:
@@ -106,76 +106,25 @@ export function scenarioJobStatusLabel(status: ScenarioJobStatus): string {
   }
 }
 
+/**
+ * Keeps the shared panel contract available without exposing the legacy raw
+ * Scenario request seam. Submission fails closed until Runtime admits an
+ * owner-driven request that carries no caller execution truth.
+ */
 export function useRuntimeGenerationPanel<TInput>({
-  runtime,
+  capabilityContract,
   input,
-  resolveRequest,
   disabled = false,
   submitting = false,
   triggerEventName,
   canTriggerShortcut = true,
-  maxStatusItems = 6,
-  getStatusLabel = ({ job }) => scenarioJobStatusLabel(job.status),
-  onJobUpdate,
-  onCompleted,
   onError,
 }: UseRuntimeGenerationPanelOptions<TInput>): UseRuntimeGenerationPanelResult {
-  const [statusItems, setStatusItems] = useState<readonly GenerationRunItem[]>([]);
-  const [latestResult, setLatestResult] = useState<NimiRuntimeScenarioJobResult | null>(null);
-
-  const clearStatusItems = useCallback(() => {
-    setStatusItems([]);
-  }, []);
-
-  const upsertStatusItem = useCallback((job: NimiRuntimeScenarioJob) => {
-    const nextItem: GenerationRunItem = {
-      runId: job.jobId,
-      status: scenarioJobStatusToGenerationStatus(job.status),
-      label: getStatusLabel({ input, job }),
-      error: job.reasonDetail || undefined,
-      progressValue: job.status === ScenarioJobStatus.RUNNING && typeof job.progressPercent === 'number'
-        ? job.progressPercent
-        : undefined,
-      progressLabel: job.status === ScenarioJobStatus.RUNNING && typeof job.progressPercent === 'number'
-        ? `${Math.round(job.progressPercent)}%`
-        : scenarioJobStatusLabel(job.status),
-    };
-
-    setStatusItems((current) => {
-      const withoutCurrent = current.filter((item) => item.runId !== job.jobId);
-      return [nextItem, ...withoutCurrent].slice(0, maxStatusItems);
-    });
-  }, [getStatusLabel, input, maxStatusItems]);
-
+  const clearStatusItems = useCallback(() => {}, []);
   const state = useGenerationPanel({
     adapter: {
-      submit: async (nextInput: TInput) => {
-        const requestContext = { input: nextInput };
-        const resolvedRuntime = requireRuntime(runtime);
-        const request = resolveRequest(requestContext);
-        let latestJob: NimiRuntimeScenarioJob | null = null;
-        let result: NimiRuntimeScenarioJobResult | null = null;
-
-        try {
-          result = await runKitRuntimeScenarioJob({
-            ai: resolvedRuntime.ai,
-            request,
-            onJobUpdate: (job) => {
-              latestJob = job;
-              upsertStatusItem(job);
-              onJobUpdate?.({ input: nextInput, job });
-            },
-          });
-          setLatestResult(result);
-          await onCompleted?.(result, requestContext);
-        } catch (error) {
-          onError?.(error, {
-            input: nextInput,
-            job: latestJob,
-            result,
-          });
-          throw error;
-        }
+      submit: async () => {
+        throw createRuntimeExecutionUnavailableError(capabilityContract);
       },
     },
     input,
@@ -183,25 +132,26 @@ export function useRuntimeGenerationPanel<TInput>({
     submitting,
     triggerEventName,
     canTriggerShortcut,
+    onError: (error) => onError?.(error, {
+      input,
+      capabilityContract,
+      job: null,
+      result: null,
+    }),
   });
 
   return {
     state,
-    statusItems,
-    latestResult,
+    statusItems: NO_RUNTIME_STATUS_ITEMS,
+    latestResult: null,
     clearStatusItems,
   };
 }
 
-function requireRuntime(runtime: Runtime | undefined): Runtime {
-  if (!runtime) {
-    throw new Error('Runtime generation panel requires an explicit Runtime instance.');
-  }
-  return runtime;
-}
-
-export function copyArtifactBytesToArrayBuffer(bytes: Uint8Array | undefined): ArrayBuffer | null {
-  if (!bytes || bytes.byteLength === 0) {
+export function copyArtifactBytesToArrayBuffer(
+  bytes: Uint8Array | undefined,
+): ArrayBuffer | null {
+  if (!bytes?.byteLength) {
     return null;
   }
   const buffer = new ArrayBuffer(bytes.byteLength);

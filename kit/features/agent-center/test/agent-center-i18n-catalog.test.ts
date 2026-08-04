@@ -58,7 +58,7 @@ describe('Agent Center canonical i18n catalogs', () => {
     const zhKeys = Object.keys(agentCenterZhCatalog).sort();
     const canonicalCapabilityKeys = canonicalCapabilityCatalogKeys();
 
-    expect(enKeys).toHaveLength(397);
+    expect(enKeys).toHaveLength(382);
     expect(zhKeys).toEqual(enKeys);
     expect(literalCatalogKeys().filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);
     expect(canonicalCapabilityKeys.filter((key) => !(key in agentCenterEnCatalog))).toEqual([]);

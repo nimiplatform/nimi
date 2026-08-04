@@ -1,42 +1,41 @@
 # Kit Feature: Generation
 
-## What It Is
-Reusable generation workflow shell for submit, status, and result-oriented runtime jobs.
+Reusable UI, headless state, and typed modality contracts for Nimi generation.
 
 ## Public Surfaces
+
 - `@nimiplatform/kit/features/generation`
 - `@nimiplatform/kit/features/generation/headless`
 - `@nimiplatform/kit/features/generation/ui`
 - `@nimiplatform/kit/features/generation/runtime`
-- Current surfaces:
-  - `headless`: active
-  - `ui`: active
-  - `runtime`: active for local/runtime job orchestration
-  - `realm`: none
 
-## When To Use It
-- Reuse generation job panels, status toasts, and submit orchestration.
-- Bind runtime media jobs without rebuilding baseline workflow chrome.
-- Reuse `useRuntimeGenerationPanel(...)` when the app still owns artifact persistence, buffer decoding, or store updates.
-- Reuse `RuntimeGenerationPanel` when the app should provide domain-specific controls but not reimplement submit/status chrome.
-- Reuse `GenerationStatusToast` and `GenerationStatusList` for lightweight job-state surfaces outside the main panel.
+## Execution Posture
 
-## Before Building Locally
-- Check `generation/ui` before creating a new generation panel, generation status toast, or shared result-state shell.
-- Check `generation/headless` before writing local submit orchestration, status mapping, or shared run-state handling.
-- Check `generation/runtime` before wrapping runtime workflow and job APIs directly in app code.
+Kit request types do not accept scoped configuration, binding, model, route,
+connector, target, readiness, ranking, or fallback authority.
 
-## What Stays Outside
-- App-specific artifact persistence and downstream domain actions.
-- Audio/image/video artifact decoding and app-owned file persistence.
-- Store writes such as take creation, media library insertion, or domain-specific job indexing.
-- Realm business-service integrations.
+The current Runtime Scenario API still requires a target-bearing request head.
+Consequently, text, embedding, image, video, speech synthesis, and speech
+transcription helpers return a typed `AI_ROUTE_UNSUPPORTED` unavailable result
+before dispatch. Kit does not infer a target, restore the retired binding layer,
+or fabricate success data.
 
-## Current Consumers
-- `desktop`
-  Uses `generation/ui` status surfaces for scenario job progress and shared runtime status display.
+`runRuntimeVoiceCatalog(...)` remains active for owner-scoped `voice_asset_id`
+references. It does not expose preset discovery because the current preset API
+still requires model and connector execution truth.
+
+## What Remains Reusable
+
+- Generation request/result and artifact-summary types.
+- `GenerationPanel`, `RuntimeGenerationPanel`, status lists, and toasts.
+- Generic headless submit-state handling.
+- Runtime job-status labels and mapping for already-owned job projections.
+- Owner-scoped voice-asset reference listing.
+
+App-specific artifact persistence, media decoding, and downstream domain writes
+remain app-owned.
 
 ## Verification
+
+- `pnpm --filter @nimiplatform/kit build`
 - `pnpm --filter @nimiplatform/kit test`
-- `pnpm --filter @nimiplatform/desktop build`
-- `pnpm check:nimi-kit`

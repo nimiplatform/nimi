@@ -85,7 +85,7 @@ platform spec tables first and regenerate the projection.
 
 ## Current Public Surface
 
-The current package publishes 70 public subpath exports through
+The current package publishes 62 public subpath exports through
 `kit/package.json`:
 
 - 9 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
@@ -93,19 +93,17 @@ The current package publishes 70 public subpath exports through
   `./ui/themes/nimi-accent.css`, and
   `./ui/themes/nimi-density-compact.css`)
 - 4 auth entries (`./auth`, `./auth/shell`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
-- 10 core entries (`./core/shell-mode`, `./core/oauth`,
+- 9 core entries (`./core/shell-mode`, `./core/oauth`,
   `./core/storage-json`, `./core/json-value`, `./core/offline-coordinator`,
   `./core/notifications`, `./core/desktop-open`,
-  `./core/runtime-capabilities`, `./core/model-config`,
-  `./core/sdk-contract`)
+  `./core/runtime-capabilities`, and `./core/sdk-contract`)
 - 7 shell entries (`./shell/capabilities`, `./shell/renderer/bridge`,
   `./shell/renderer/bootstrap`, `./shell/renderer/host`, `./shell/electron/main`,
   `./shell/electron/preload`, and `./shell/electron/preload-cjs`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
-- 38 feature entries across `./features/chat`, `./features/avatar`,
-  `./features/agent-center`,
-  `./features/model-picker`, `./features/model-config`,
-  `./features/generation`, and `./features/commerce`
+- 31 feature entries across `./features/chat`, `./features/avatar`,
+  `./features/agent-center`, `./features/generation`, and
+  `./features/commerce`
 
 The complete npm subpath inventory is the `exports` object in
 `kit/package.json`.
@@ -210,11 +208,13 @@ import { useRealmChatComposer } from '@nimiplatform/kit/features/chat/realm';
 import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
 import { AvatarStage } from '@nimiplatform/kit/features/avatar';
 import { AgentCenter } from '@nimiplatform/kit/features/agent-center';
-import { RuntimeModelPickerPanel } from '@nimiplatform/kit/features/model-picker/ui';
 import { useRuntimeGenerationPanel } from '@nimiplatform/kit/features/generation/runtime';
 import { useRealmSendGiftDialog } from '@nimiplatform/kit/features/commerce/realm';
-import { ModelConfigPanel } from '@nimiplatform/kit/features/model-config/ui';
 ```
+
+Generation keeps modality request/result contracts, but execution fails closed
+until Runtime exposes owner-driven Scenario submission without caller-supplied
+model, route, binding, or configuration truth.
 
 Each feature exposes the four-surface taxonomy where applicable:
 

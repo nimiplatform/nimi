@@ -1,18 +1,52 @@
-import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
-
-export type RuntimeRequestDiagnostics = {
-  readonly request: unknown;
-  readonly options?: unknown;
-};
-
-export type RuntimeRequestDiagnosticsRecorder = (diagnostics: RuntimeRequestDiagnostics) => void;
+import {
+  ReasonCode,
+  createNimiError,
+  type NimiError,
+} from '@nimiplatform/kit/core/sdk-contract';
 
 export type RuntimeGenerationUnavailableReason =
   | 'runtime-call-failed'
   | 'principal-unauthorized'
   | 'sdk-method-unavailable';
 
-export function runtimeUnavailableReasonFromError(error: unknown): RuntimeGenerationUnavailableReason {
+export type RuntimeExecutionUnavailable = {
+  readonly reason: 'sdk-method-unavailable';
+  readonly message: string;
+  readonly error: NimiError;
+};
+
+export function createRuntimeExecutionUnavailableError(
+  capabilityContract: string,
+): NimiError {
+  const capability = normalizeText(capabilityContract) || 'unknown';
+  return createNimiError({
+    message: `Runtime ${capability} is unavailable because the current Scenario API still requires caller-supplied execution target fields that Kit no longer accepts.`,
+    code: ReasonCode.AI_ROUTE_UNSUPPORTED,
+    reasonCode: ReasonCode.AI_ROUTE_UNSUPPORTED,
+    actionHint: 'upgrade_runtime_owner_driven_scenario_api',
+    source: 'sdk',
+    retryable: false,
+    details: {
+      capabilityContract: capability,
+      blockedBy: 'runtime-scenario-api-requires-execution-target',
+    },
+  });
+}
+
+export function runtimeExecutionUnavailable(
+  capabilityContract: string,
+): RuntimeExecutionUnavailable {
+  const error = createRuntimeExecutionUnavailableError(capabilityContract);
+  return {
+    reason: 'sdk-method-unavailable',
+    message: error.message,
+    error,
+  };
+}
+
+export function runtimeUnavailableReasonFromError(
+  error: unknown,
+): RuntimeGenerationUnavailableReason {
   const reasonCode = errorReasonCode(error);
   return reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE
     ? 'sdk-method-unavailable'
@@ -25,7 +59,10 @@ export function runtimeUnavailableReasonFromError(error: unknown): RuntimeGenera
         : 'runtime-call-failed';
 }
 
-export function describeRuntimeGenerationError(error: unknown, fallbackMessage = 'Runtime SDK call failed.'): string {
+export function describeRuntimeGenerationError(
+  error: unknown,
+  fallbackMessage = 'Runtime SDK call failed.',
+): string {
   const providerDetail = providerDetailFromError(error);
   const withProviderDetail = (message: string): string => {
     if (!providerDetail || message.includes(providerDetail)) return message;
@@ -43,49 +80,6 @@ export function describeRuntimeGenerationError(error: unknown, fallbackMessage =
     return withProviderDetail(code ? `${code}: ${message}` : message);
   }
   return withProviderDetail(String(error || fallbackMessage));
-}
-
-export function withRuntimeRequestDiagnostics<T extends object>(
-  ai: T,
-  recorder: RuntimeRequestDiagnosticsRecorder | undefined,
-): T {
-  if (!recorder) return ai;
-  const record = ai as Record<string, unknown>;
-  return {
-    ...ai,
-    ...(typeof record.executeScenario === 'function'
-      ? {
-        executeScenario(request: unknown, options?: unknown) {
-          recorder({ request, options });
-          return (record.executeScenario as (request: unknown, options?: unknown) => unknown).call(ai, request, options);
-        },
-      }
-      : {}),
-    ...(typeof record.streamScenario === 'function'
-      ? {
-        streamScenario(request: unknown, options?: unknown) {
-          recorder({ request, options });
-          return (record.streamScenario as (request: unknown, options?: unknown) => unknown).call(ai, request, options);
-        },
-      }
-      : {}),
-    ...(typeof record.submitScenarioJob === 'function'
-      ? {
-        submitScenarioJob(request: unknown, options?: unknown) {
-          recorder({ request, options });
-          return (record.submitScenarioJob as (request: unknown, options?: unknown) => unknown).call(ai, request, options);
-        },
-      }
-      : {}),
-    ...(typeof record.listPresetVoices === 'function'
-      ? {
-        listPresetVoices(request: unknown, options?: unknown) {
-          recorder({ request, options });
-          return (record.listPresetVoices as (request: unknown, options?: unknown) => unknown).call(ai, request, options);
-        },
-      }
-      : {}),
-  } as T;
 }
 
 function errorReasonCode(error: unknown): string {

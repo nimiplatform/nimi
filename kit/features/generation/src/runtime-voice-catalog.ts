@@ -1,30 +1,37 @@
 import {
-  createNimiRuntimeAISchedulingClient,
-  resolveNimiAIConfigRuntimeBinding,
-  type NimiAIConfig,
-  type NimiAIConfigRuntimeBinding,
-  type NimiRuntimeAISchedulingClient,
+  ReasonCode,
+  VoiceAssetStatus,
+  VoiceWorkflowType,
+  asNimiError,
+  createNimiError,
+  type ListVoiceAssetsRequest,
+  type ListVoiceAssetsResponse,
+  type NimiError,
   type RuntimeTypedCallOptions,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   describeRuntimeGenerationError,
   runtimeUnavailableReasonFromError,
-  withRuntimeRequestDiagnostics,
-  type RuntimeRequestDiagnosticsRecorder,
 } from './runtime-diagnostics.js';
 
 export type RuntimeVoiceCatalogUnavailableReason =
   | 'input-invalid'
-  | 'ai-config-binding-missing'
   | 'runtime-call-failed'
   | 'principal-unauthorized'
   | 'sdk-method-unavailable';
 
+export type RuntimeVoiceCatalogReference = {
+  readonly kind: 'voice_asset_id';
+  readonly voiceAssetId: string;
+  readonly workflowType: VoiceWorkflowType;
+  readonly status: VoiceAssetStatus;
+};
+
 export type RuntimeVoiceCatalogOutput = {
-  readonly kind: 'voice-catalog';
-  readonly modelResolved: string;
+  readonly kind: 'voice-reference-catalog';
   readonly voiceCount: number;
-  readonly sample: readonly { readonly voiceId: string; readonly name: string; readonly lang: string }[];
+  readonly voiceReferences: readonly RuntimeVoiceCatalogReference[];
+  readonly nextPageToken?: string;
 };
 
 export type RuntimeVoiceCatalogSuccess = {
@@ -32,11 +39,6 @@ export type RuntimeVoiceCatalogSuccess = {
   readonly capabilityId: 'speech.bundle';
   readonly message: string;
   readonly output: RuntimeVoiceCatalogOutput;
-  readonly trace?: {
-    readonly traceId?: string;
-    readonly modelResolved?: string;
-    readonly routeDecision?: string;
-  };
 };
 
 export type RuntimeVoiceCatalogUnavailable = {
@@ -44,238 +46,145 @@ export type RuntimeVoiceCatalogUnavailable = {
   readonly capabilityId: 'speech.bundle';
   readonly reason: RuntimeVoiceCatalogUnavailableReason;
   readonly message: string;
+  readonly error: NimiError;
 };
 
 export type RuntimeVoiceCatalogResult = RuntimeVoiceCatalogSuccess | RuntimeVoiceCatalogUnavailable;
 
-type RuntimeVoiceCatalogListRequest = {
-  readonly appId: string;
-  readonly subjectUserId: string;
-  readonly modelId: string;
-  readonly targetModelId: string;
-  readonly connectorId: string;
-};
-
-type RuntimeVoiceCatalogVoice = {
-  readonly voiceId?: string;
-  readonly name?: string;
-  readonly lang?: string;
-};
-
-type RuntimeVoiceCatalogListResponse = {
-  readonly voices?: readonly RuntimeVoiceCatalogVoice[];
-  readonly modelResolved?: string;
-  readonly traceId?: string;
-};
-
 export type RuntimeVoiceCatalogRuntime = {
   readonly ai: {
-    readonly listPresetVoices?: (
-      request: RuntimeVoiceCatalogListRequest,
+    readonly listVoiceAssets?: (
+      request: ListVoiceAssetsRequest,
       options?: RuntimeTypedCallOptions,
-    ) => Promise<RuntimeVoiceCatalogListResponse>;
+    ) => Promise<ListVoiceAssetsResponse>;
   };
-  readonly scheduling?: NimiRuntimeAISchedulingClient;
-  readonly generated?: NimiRuntimeAISchedulingClient;
 };
-
-export type RuntimeVoiceCatalogScopeRunner = <T>(
-  scopes: readonly string[],
-  operation: (options: { readonly metadata?: Record<string, string> }) => Promise<T>,
-) => Promise<T>;
 
 export type RuntimeVoiceCatalogInput = {
   readonly runtime: RuntimeVoiceCatalogRuntime;
   readonly appId: string;
-  readonly config: NimiAIConfig;
-  readonly binding?: NimiAIConfigRuntimeBinding;
-  readonly bindingCapabilityId?: string;
-  readonly scenarioId: string;
-  readonly subjectUserId?: string;
-  readonly surfaceId: string;
-  readonly metadata?: Record<string, string | undefined>;
-  readonly onRuntimeRequest?: RuntimeRequestDiagnosticsRecorder;
+  readonly subjectUserId: string;
+  readonly workflowType?: VoiceWorkflowType;
+  readonly status?: VoiceAssetStatus;
+  readonly pageSize?: number;
+  readonly pageToken?: string;
+  readonly callOptions?: RuntimeTypedCallOptions;
   readonly signal?: AbortSignal;
-  readonly abortReason?: string;
-  readonly withScopes?: RuntimeVoiceCatalogScopeRunner;
 };
 
-type SchedulingPreflight = {
-  readonly unavailable: RuntimeVoiceCatalogUnavailable | null;
-  readonly metadata: Record<string, string>;
-};
-
+/**
+ * Lists owner-scoped voice asset references only. Preset discovery remains
+ * unavailable because the current Runtime preset endpoint requires model and
+ * connector execution truth. The legacy protobuf filter fields below stay at
+ * their empty default and therefore are not serialized onto the wire.
+ */
 export async function runRuntimeVoiceCatalog(
   input: RuntimeVoiceCatalogInput,
 ): Promise<RuntimeVoiceCatalogResult> {
-  const resolved = input.binding
-    ? { ok: true as const, binding: input.binding }
-    : resolveNimiAIConfigRuntimeBinding({
-      config: input.config,
-      capabilityId: 'audio.synthesize',
-      bindingCapabilityId: input.bindingCapabilityId ?? 'audio.synthesize',
-    });
-  if (resolved.ok === false) {
-    return unavailable('ai-config-binding-missing', resolved.message);
+  const appId = exactText(input.appId);
+  const subjectUserId = exactText(input.subjectUserId);
+  if (!appId || !subjectUserId) {
+    return unavailable('principal-unauthorized', createNimiError({
+      message: 'Voice reference catalog requires exact App and subject owner identity.',
+      code: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+      actionHint: 'provide_voice_catalog_owner_identity',
+      source: 'sdk',
+    }));
   }
 
-  const subjectUserId = normalizeText(input.subjectUserId);
-  if (!subjectUserId) {
-    return unavailable('principal-unauthorized', 'Runtime account subjectUserId is required before voice catalog lookup.');
+  const pageSize = input.pageSize ?? 100;
+  if (!Number.isSafeInteger(pageSize) || pageSize <= 0 || pageSize > 200) {
+    return unavailable('input-invalid', createNimiError({
+      message: 'Voice reference catalog pageSize must be an integer from 1 through 200.',
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+      actionHint: 'provide_voice_catalog_page_size',
+      source: 'sdk',
+    }));
   }
 
-  const listPresetVoices = withRuntimeRequestDiagnostics(input.runtime.ai, input.onRuntimeRequest).listPresetVoices;
-  if (!listPresetVoices) {
-    return unavailable('sdk-method-unavailable', 'Runtime AI listPresetVoices SDK surface is unavailable.');
+  const listVoiceAssets = input.runtime.ai.listVoiceAssets;
+  if (typeof listVoiceAssets !== 'function') {
+    return unavailable('sdk-method-unavailable', createNimiError({
+      message: 'Runtime listVoiceAssets SDK surface is unavailable.',
+      code: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+      reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+      actionHint: 'upgrade_runtime_sdk',
+      source: 'sdk',
+    }));
   }
-
-  const scheduling = await ensureSchedulingPreflight(input, resolved.binding);
-  if (scheduling.unavailable) return scheduling.unavailable;
 
   try {
-    return await withSpendMeterScope(input, async (protectedOptions) => {
-      const callOptions: RuntimeTypedCallOptions = {
-        metadata: {
-          ...protectedOptions.metadata,
-          ...buildMetadata(input, resolved.binding, scheduling.metadata),
-        },
-        signal: input.signal,
-      };
-      const output = await listPresetVoices({
-        appId: input.appId,
-        subjectUserId,
-        modelId: resolved.binding.model,
-        targetModelId: resolved.binding.model,
-        connectorId: resolved.binding.connectorId ?? '',
-      }, callOptions);
-      const voices = output.voices ?? [];
+    const response = await listVoiceAssets.call(input.runtime.ai, {
+      appId,
+      subjectUserId,
+      modelId: '',
+      targetModelId: '',
+      connectorId: '',
+      workflowType: input.workflowType ?? VoiceWorkflowType.UNSPECIFIED,
+      status: input.status ?? VoiceAssetStatus.UNSPECIFIED,
+      pageSize,
+      pageToken: input.pageToken ?? '',
+    }, {
+      ...(input.callOptions ?? {}),
+      signal: input.signal ?? input.callOptions?.signal,
+    });
+
+    const voiceReferences = response.assets.map((asset): RuntimeVoiceCatalogReference => {
+      const voiceAssetId = exactText(asset.voiceAssetId);
+      if (!voiceAssetId || asset.appId !== appId || asset.subjectUserId !== subjectUserId) {
+        throw createNimiError({
+          message: 'Runtime voice catalog returned a malformed or cross-owner voice asset.',
+          code: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+          reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+          actionHint: 'check_runtime_voice_asset_projection',
+          source: 'sdk',
+        });
+      }
       return {
-        ok: true,
-        capabilityId: 'speech.bundle',
-        message: `Runtime returned ${voices.length} preset voice(s).`,
-        output: {
-          kind: 'voice-catalog',
-          modelResolved: output.modelResolved || resolved.binding.model || 'unresolved',
-          voiceCount: voices.length,
-          sample: voices.slice(0, 4).map((voice) => ({
-            voiceId: voice.voiceId ?? '',
-            name: voice.name ?? '',
-            lang: voice.lang ?? '',
-          })),
-        },
-        trace: {
-          traceId: output.traceId || undefined,
-          modelResolved: output.modelResolved || resolved.binding.model || undefined,
-          routeDecision: resolved.binding.routePolicy,
-        },
+        kind: 'voice_asset_id',
+        voiceAssetId,
+        workflowType: asset.workflowType,
+        status: asset.status,
       };
     });
+
+    return {
+      ok: true,
+      capabilityId: 'speech.bundle',
+      message: `Runtime returned ${voiceReferences.length} owner-scoped voice reference(s).`,
+      output: {
+        kind: 'voice-reference-catalog',
+        voiceCount: voiceReferences.length,
+        voiceReferences,
+        ...(response.nextPageToken ? { nextPageToken: response.nextPageToken } : {}),
+      },
+    };
   } catch (error) {
-    return unavailableFromError(error);
-  }
-}
-
-function withSpendMeterScope<T>(
-  input: RuntimeVoiceCatalogInput,
-  operation: (options: { readonly metadata?: Record<string, string> }) => Promise<T>,
-): Promise<T> {
-  if (!input.withScopes) return operation({});
-  return input.withScopes(['ai.spend.meter'], operation);
-}
-
-async function ensureSchedulingPreflight(
-  input: RuntimeVoiceCatalogInput,
-  binding: NimiAIConfigRuntimeBinding,
-): Promise<SchedulingPreflight> {
-  if (!binding.schedulingTarget) {
-    return { unavailable: null, metadata: {} };
-  }
-  try {
-    const scheduling = createNimiRuntimeAISchedulingClient({
-      runtime: input.runtime,
-      appId: input.appId,
-      targets: [binding.schedulingTarget],
+    const nimiError = asNimiError(error, {
+      message: 'Runtime voice reference catalog lookup failed.',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_voice_catalog_lookup',
+      source: 'runtime',
     });
-    const batch = await scheduling.peek();
-    if (batch.aggregateJudgement?.state === 'denied') {
-      return {
-        unavailable: unavailable(
-          'runtime-call-failed',
-          `Runtime scheduling denied speech.bundle: ${batch.aggregateJudgement.detail || 'denied'}`,
-        ),
-        metadata: schedulingMetadata(batch),
-      };
-    }
-    return { unavailable: null, metadata: schedulingMetadata(batch) };
-  } catch (error) {
-    return { unavailable: unavailableFromError(error), metadata: {} };
+    return unavailable(runtimeUnavailableReasonFromError(nimiError), nimiError);
   }
-}
-
-function schedulingMetadata(batch: {
-  readonly aggregateJudgement?: {
-    readonly state: string;
-    readonly detail?: string | null;
-    readonly resourceWarnings?: readonly string[];
-  } | null;
-}): Record<string, string> {
-  const judgement = batch.aggregateJudgement;
-  if (!judgement) return {};
-  return {
-    runtimeSchedulingState: judgement.state,
-    ...(judgement.detail ? { runtimeSchedulingDetail: judgement.detail } : {}),
-    ...(judgement.resourceWarnings && judgement.resourceWarnings.length > 0
-      ? { runtimeSchedulingWarnings: judgement.resourceWarnings.join(',') }
-      : {}),
-  };
-}
-
-function buildMetadata(
-  input: RuntimeVoiceCatalogInput,
-  binding: NimiAIConfigRuntimeBinding,
-  scheduling: Record<string, string>,
-): Record<string, string> {
-  return {
-    surfaceId: input.surfaceId,
-    scenarioId: input.scenarioId,
-    ...binding.metadata,
-    ...scheduling,
-    ...stringMetadata(input.metadata),
-  };
-}
-
-function stringMetadata(metadata: Record<string, string | undefined> | undefined): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(metadata ?? {})) {
-    const normalizedKey = normalizeText(key);
-    const normalizedValue = normalizeText(value);
-    if (normalizedKey && normalizedValue) {
-      out[normalizedKey] = normalizedValue;
-    }
-  }
-  return out;
-}
-
-function unavailableFromError(error: unknown): RuntimeVoiceCatalogUnavailable {
-  return unavailable(runtimeUnavailableReasonFromError(error), describeError(error));
 }
 
 function unavailable(
   reason: RuntimeVoiceCatalogUnavailableReason,
-  message: string,
+  error: NimiError,
 ): RuntimeVoiceCatalogUnavailable {
   return {
     ok: false,
     capabilityId: 'speech.bundle',
     reason,
-    message,
+    message: describeRuntimeGenerationError(error, 'Runtime voice reference catalog lookup failed.'),
+    error,
   };
 }
 
-function describeError(error: unknown): string {
-  return describeRuntimeGenerationError(error, 'Runtime voice catalog lookup failed.');
-}
-
-function normalizeText(value: unknown): string {
-  return String(value ?? '').trim();
+function exactText(value: unknown): string {
+  return typeof value === 'string' && value.trim() === value ? value : '';
 }

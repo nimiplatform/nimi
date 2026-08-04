@@ -15,7 +15,6 @@ import {
   type NimiMessage,
   type NimiMessagePart,
   type NimiModelRef,
-  type NimiAIConfigTargetRef,
   type NimiRunEvent,
   type NimiRuntimeAIModelOptions,
   type NimiRuntimeAIReasoningOptions,
@@ -47,6 +46,7 @@ export type AppAiChatMessage = Omit<NimiMessage, 'content'> & {
 };
 export type AppAiChatPrompt = string | readonly AppAiChatMessage[];
 export type AppAiChatRoutePolicy = Exclude<NimiRuntimeAIRoutePolicy, 'unspecified'>;
+export type AppAiChatTargetRef = NonNullable<NimiRuntimeAIModelOptions['targetRef']>;
 export type AppAiChatGenerateResult = NimiGenerateTextResult;
 export type AppAiChatStreamChunk = NimiRunEvent;
 export type AppAiChatRequest = {
@@ -60,7 +60,7 @@ export type AppAiChatRequest = {
   readonly route?: AppAiChatRoutePolicy;
   readonly timeoutMs?: number;
   readonly connectorId?: string;
-  readonly targetRef?: NimiAIConfigTargetRef;
+  readonly targetRef?: AppAiChatTargetRef;
   readonly metadata?: Record<string, string>;
   readonly reasoning?: NimiRuntimeAIReasoningOptions;
   readonly signal?: AbortSignal;
