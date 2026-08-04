@@ -17,26 +17,41 @@ import (
 
 func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	accountA := localAppAIConfigContext("account-a", "app.example")
+	accountAWrite := localAppAIConfigContext(
+		"account-a",
+		"app.example",
+		accountservice.LocalAppOperationAppAIConfigOverwrite,
+	)
+	accountARead := localAppAIConfigContext(
+		"account-a",
+		"app.example",
+		accountservice.LocalAppOperationAppAIConfigRead,
+	)
 
-	first := appAIConfig("app.example",
+	first := ownerlessAppAIConfig(
 		localAppAIConfigIntent("text.generate"),
 		localAppAIConfigIntent("image.generate"),
 	)
-	if _, err := svc.OverwriteAppAIConfig(accountA, &runtimev1.OverwriteAppAIConfigRequest{Config: first}); err != nil {
+	if _, err := svc.OverwriteAppAIConfig(accountAWrite, &runtimev1.OverwriteAppAIConfigRequest{Config: first}); err != nil {
 		t.Fatalf("OverwriteAppAIConfig(first): %v", err)
 	}
 
-	second := appAIConfig("app.example", grantlessCloudAIConfigIntent(t, "text.generate"))
-	overwritten, err := svc.OverwriteAppAIConfig(accountA, &runtimev1.OverwriteAppAIConfigRequest{Config: second})
+	second := ownerlessAppAIConfig(grantlessCloudAIConfigIntent(t, "text.generate"))
+	overwritten, err := svc.OverwriteAppAIConfig(accountAWrite, &runtimev1.OverwriteAppAIConfigRequest{Config: second})
 	if err != nil {
 		t.Fatalf("OverwriteAppAIConfig(second): %v", err)
+	}
+	if got := overwritten.GetConfig().GetOwner().GetApp().GetAppId(); got != "app.example" {
+		t.Fatalf("Runtime-derived owner = %q, want app.example", got)
+	}
+	if second.GetOwner() != nil {
+		t.Fatalf("owner-free caller payload was mutated: %+v", second.GetOwner())
 	}
 	if got := overwritten.GetConfig().GetCapabilities(); len(got) != 1 || got[0].GetCapabilityContract() != "text.generate" || got[0].GetCloud().GetConnectorGrantId() != "" {
 		t.Fatalf("whole overwrite response = %+v", overwritten.GetConfig())
 	}
 
-	read, err := svc.GetAppAIConfig(accountA, &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("app.example")})
+	read, err := svc.GetAppAIConfig(accountARead, &runtimev1.GetAppAIConfigRequest{})
 	if err != nil {
 		t.Fatalf("GetAppAIConfig(account-a): %v", err)
 	}
@@ -45,27 +60,62 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	}
 
 	_, err = svc.GetAppAIConfig(
-		localAppAIConfigContext("account-b", "app.example"),
-		&runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("app.example")},
+		localAppAIConfigContext(
+			"account-b",
+			"app.example",
+			accountservice.LocalAppOperationAppAIConfigRead,
+		),
+		&runtimev1.GetAppAIConfigRequest{},
 	)
 	assertAppAIConfigError(t, err, codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
 }
 
-func TestAppAIConfigRejectsWrongOwnerOwnerlessAndUnauthenticatedCalls(t *testing.T) {
+func TestProtectedLocalAppAIConfigRejectsCallerOwnerAndWrongOperation(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	ctx := localAppAIConfigContext("account-a", "app.a")
+	writeContext := localAppAIConfigContext(
+		"account-a",
+		"app.a",
+		accountservice.LocalAppOperationAppAIConfigOverwrite,
+	)
+	readContext := localAppAIConfigContext(
+		"account-a",
+		"app.a",
+		accountservice.LocalAppOperationAppAIConfigRead,
+	)
 
-	_, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.b")})
-	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
-
-	_, err = svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: &runtimev1.AIConfig{}})
+	_, err := svc.OverwriteAppAIConfig(writeContext, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.a")})
 	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 
-	_, err = svc.GetAppAIConfig(ctx, &runtimev1.GetAppAIConfigRequest{Owner: &runtimev1.AIConfigOwner{
+	_, err = svc.OverwriteAppAIConfig(writeContext, &runtimev1.OverwriteAppAIConfigRequest{Config: appAIConfig("app.b")})
+	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+
+	_, err = svc.GetAppAIConfig(readContext, &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("app.a")})
+	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+
+	_, err = svc.GetAppAIConfig(readContext, &runtimev1.GetAppAIConfigRequest{Owner: &runtimev1.AIConfigOwner{
 		Owner: &runtimev1.AIConfigOwner_RuntimeLocalAgentSubsystem{
 			RuntimeLocalAgentSubsystem: &runtimev1.AIConfigRuntimeLocalAgentSubsystemOwner{},
 		},
 	}})
+	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+
+	_, err = svc.GetAppAIConfig(writeContext, &runtimev1.GetAppAIConfigRequest{})
+	assertAppAIConfigError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+}
+
+func TestAppAIConfigRejectsOwnerlessFirstPartyAndUnauthenticatedCalls(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	principal := protectedprincipal.New(
+		"nimi.desktop", "desktop-account-product.v1", "desktop-account-product.v1",
+		&runtimev1.AccountProjection{AccountId: "account-desktop", RealmEnvironmentId: "realm-test"},
+		1, [32]byte{1}, make(chan struct{}),
+	)
+	ctx := protectedprincipal.With(context.Background(), principal)
+
+	_, err := svc.OverwriteAppAIConfig(ctx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig()})
+	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+
+	_, err = svc.GetAppAIConfig(ctx, &runtimev1.GetAppAIConfigRequest{})
 	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 
 	_, err = svc.GetAppAIConfig(context.Background(), &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("app.a")})
@@ -90,10 +140,15 @@ func TestAppAIConfigAcceptsExactProtectedPrincipalOwner(t *testing.T) {
 	}
 }
 
-func localAppAIConfigContext(accountID string, appID string) context.Context {
+func localAppAIConfigContext(
+	accountID string,
+	appID string,
+	operation accountservice.LocalAppOperation,
+) context.Context {
 	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
 		AccountID:           accountID,
 		AppID:               appID,
+		Operation:           operation,
 		LocalAppPrincipalID: "principal-record",
 		LocalAppRecordID:    "app-record",
 	})
@@ -105,6 +160,10 @@ func appAIConfigOwner(appID string) *runtimev1.AIConfigOwner {
 
 func appAIConfig(appID string, capabilities ...*runtimev1.AIConfigCapabilityIntent) *runtimev1.AIConfig {
 	return &runtimev1.AIConfig{Owner: appAIConfigOwner(appID), Capabilities: capabilities}
+}
+
+func ownerlessAppAIConfig(capabilities ...*runtimev1.AIConfigCapabilityIntent) *runtimev1.AIConfig {
+	return &runtimev1.AIConfig{Capabilities: capabilities}
 }
 
 func localAppAIConfigIntent(contract string) *runtimev1.AIConfigCapabilityIntent {

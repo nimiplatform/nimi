@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 type appAIConfigCaller struct {
@@ -19,21 +20,23 @@ type appAIConfigCaller struct {
 	appID            string
 }
 
-// GetAppAIConfig reads the complete current App-owned AIConfig. Request owner
-// is only a consistency assertion: account and App identity always come from
-// Runtime-attached caller truth.
+// GetAppAIConfig reads the complete current App-owned AIConfig. Protected Local
+// App calls carry no owner and derive it from the admitted operation decision.
+// First-party protected callers retain an exact consistency assertion. Account
+// and App identity always come from Runtime-attached caller truth.
 func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAIConfigRequest) (*runtimev1.GetAppAIConfigResponse, error) {
 	caller, err := authenticatedAppAIConfigCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
-	owner := req.GetOwner()
-	requestedAppID, err := exactAppAIConfigOwner(owner)
+	owner, err := appAIConfigOwnerForCaller(
+		ctx,
+		caller,
+		req.GetOwner(),
+		accountservice.LocalAppOperationAppAIConfigRead,
+	)
 	if err != nil {
-		return nil, invalidAppAIConfigError()
-	}
-	if requestedAppID != caller.appID {
-		return nil, unauthorizedAppAIConfigCallerError()
+		return nil, err
 	}
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
@@ -49,7 +52,9 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 }
 
 // OverwriteAppAIConfig atomically replaces the complete App-owned AIConfig.
-// It deliberately exposes no revision, partial mutation, readiness, or
+// Protected Local App payloads carry only capability intent; Runtime injects
+// the exact owner from the admitted operation decision before validation. It
+// deliberately exposes no revision, partial mutation, readiness, or
 // machine-local binding surface.
 func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.OverwriteAppAIConfigRequest) (*runtimev1.OverwriteAppAIConfigResponse, error) {
 	caller, err := authenticatedAppAIConfigCaller(ctx)
@@ -59,14 +64,21 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	if req == nil || req.GetConfig() == nil {
 		return nil, invalidAppAIConfigError()
 	}
-	requestedAppID, err := exactAppAIConfigOwner(req.GetConfig().GetOwner())
+	owner, err := appAIConfigOwnerForCaller(
+		ctx,
+		caller,
+		req.GetConfig().GetOwner(),
+		accountservice.LocalAppOperationAppAIConfigOverwrite,
+	)
 	if err != nil {
+		return nil, err
+	}
+	input, ok := proto.Clone(req.GetConfig()).(*runtimev1.AIConfig)
+	if !ok || input == nil {
 		return nil, invalidAppAIConfigError()
 	}
-	if requestedAppID != caller.appID {
-		return nil, unauthorizedAppAIConfigCallerError()
-	}
-	canonical, err := aiconfig.Canonicalize(req.GetConfig())
+	input.Owner = owner
+	canonical, err := aiconfig.Canonicalize(input)
 	if err != nil {
 		return nil, invalidAppAIConfigError()
 	}
@@ -77,6 +89,43 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 		return nil, appAIConfigPersistenceError(err)
 	}
 	return &runtimev1.OverwriteAppAIConfigResponse{Config: canonical}, nil
+}
+
+func appAIConfigOwnerForCaller(
+	ctx context.Context,
+	caller appAIConfigCaller,
+	asserted *runtimev1.AIConfigOwner,
+	expectedLocalOperation accountservice.LocalAppOperation,
+) (*runtimev1.AIConfigOwner, error) {
+	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
+		if decision.Operation != expectedLocalOperation ||
+			decision.AccountID != caller.accountNamespace || decision.AppID != caller.appID {
+			return nil, unauthorizedAppAIConfigCallerError()
+		}
+		// The protected Local App carrier is intentionally owner-free. Accepting
+		// even a matching caller assertion would expose a second identity input.
+		if asserted != nil {
+			return nil, invalidAppAIConfigError()
+		}
+		return derivedAppAIConfigOwner(caller.appID), nil
+	}
+
+	requestedAppID, err := exactAppAIConfigOwner(asserted)
+	if err != nil {
+		return nil, invalidAppAIConfigError()
+	}
+	if requestedAppID != caller.appID {
+		return nil, unauthorizedAppAIConfigCallerError()
+	}
+	return asserted, nil
+}
+
+func derivedAppAIConfigOwner(appID string) *runtimev1.AIConfigOwner {
+	return &runtimev1.AIConfigOwner{
+		Owner: &runtimev1.AIConfigOwner_App{
+			App: &runtimev1.AIConfigAppOwner{AppId: appID},
+		},
+	}
 }
 
 func authenticatedAppAIConfigCaller(ctx context.Context) (appAIConfigCaller, error) {
