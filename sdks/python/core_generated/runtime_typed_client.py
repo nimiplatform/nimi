@@ -179,6 +179,11 @@ LocalAppTrustClass = Literal["LOCAL_APP_TRUST_CLASS_UNSPECIFIED", "LOCAL_APP_TRU
 LocalAssetKind = Literal["LOCAL_ASSET_KIND_UNSPECIFIED", "LOCAL_ASSET_KIND_CHAT", "LOCAL_ASSET_KIND_IMAGE", "LOCAL_ASSET_KIND_VIDEO", "LOCAL_ASSET_KIND_TTS", "LOCAL_ASSET_KIND_STT", "LOCAL_ASSET_KIND_EMBEDDING", "LOCAL_ASSET_KIND_VAE", "LOCAL_ASSET_KIND_CLIP", "LOCAL_ASSET_KIND_LORA", "LOCAL_ASSET_KIND_CONTROLNET", "LOCAL_ASSET_KIND_AUXILIARY"]
 LocalAssetStatus = Literal["LOCAL_ASSET_STATUS_UNSPECIFIED", "LOCAL_ASSET_STATUS_INSTALLED", "LOCAL_ASSET_STATUS_ACTIVE", "LOCAL_ASSET_STATUS_UNHEALTHY", "LOCAL_ASSET_STATUS_REMOVED"]
 LocalBundleState = Literal["LOCAL_BUNDLE_STATE_UNSPECIFIED", "LOCAL_BUNDLE_STATE_RESOLVING", "LOCAL_BUNDLE_STATE_READY", "LOCAL_BUNDLE_STATE_DEGRADED", "LOCAL_BUNDLE_STATE_INVALID", "LOCAL_BUNDLE_STATE_REMOVED"]
+LocalCapabilityInterpretability = Literal["LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED", "LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE", "LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE"]
+LocalCapabilityReason = Literal["LOCAL_CAPABILITY_REASON_UNSPECIFIED", "LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND", "LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED", "LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED", "LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID", "LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED", "LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING", "LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS", "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND", "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED", "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH", "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE"]
+LocalCapabilityRequirementPolicy = Literal["LOCAL_CAPABILITY_REQUIREMENT_POLICY_UNSPECIFIED", "LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT", "LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE"]
+LocalCapabilityRequirementResolution = Literal["LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED", "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED", "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED"]
+LocalCapabilityRequirementRole = Literal["LOCAL_CAPABILITY_REQUIREMENT_ROLE_UNSPECIFIED", "LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN", "LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION"]
 LocalDevelopmentAuthorizationState = Literal["LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_UNSPECIFIED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED"]
 LocalDevelopmentDecision = Literal["LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED", "LOCAL_DEVELOPMENT_DECISION_DENY", "LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE", "LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT"]
 LocalDevelopmentShellKind = Literal["LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED", "LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON", "LOCAL_DEVELOPMENT_SHELL_KIND_TAURI"]
@@ -334,6 +339,19 @@ class AddLinkRequest:
 @dataclass(frozen=True)
 class AddLinkResponse:
     link: KnowledgeLink | None = None
+
+@dataclass(frozen=True)
+class AddLocalCapabilityConfigurationRequest:
+    capability_contract: str | None = None
+    implementation: CapabilityImplementationIdentity | None = None
+    portable_config: Mapping[str, object] | None = None
+    supported_features: tuple[str, ...] = field(default_factory=tuple)
+    display_name: str | None = None
+    provenance: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class AddLocalCapabilityConfigurationResponse:
+    configuration: LocalCapabilityConfiguration | None = None
 
 @dataclass(frozen=True)
 class AdmitProductControlReadyForUseRequest:
@@ -1033,6 +1051,12 @@ class CanonicalMemoryView:
     record: MemoryRecord | None = None
     recall_score: float | None = None
     policy_reason: str | None = None
+
+@dataclass(frozen=True)
+class CapabilityImplementationIdentity:
+    implementation_id: str | None = None
+    driver_id: str | None = None
+    driver_dialect: str | None = None
 
 @dataclass(frozen=True)
 class CatalogModelDetail:
@@ -2045,6 +2069,14 @@ class GetLocalAppPermissionStatusResponse:
     projection: LocalAppPermissionProjection | None = None
 
 @dataclass(frozen=True)
+class GetLocalCapabilityConfigurationRequest:
+    configuration_id: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalCapabilityConfigurationResponse:
+    configuration: LocalCapabilityConfiguration | None = None
+
+@dataclass(frozen=True)
 class GetLocalDevelopmentAuthoritySummaryRequest:
     pass
 
@@ -2053,6 +2085,14 @@ class GetLocalDevelopmentAuthoritySummaryResponse:
     developer_mode: LocalDevelopmentDeveloperModeSummary | None = None
     project_authorization: LocalDevelopmentProjectAuthorizationSummary | None = None
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class GetMachineLocalAIConfigurationRequest:
+    pass
+
+@dataclass(frozen=True)
+class GetMachineLocalAIConfigurationResponse:
+    aggregate: MachineLocalAIConfiguration | None = None
 
 @dataclass(frozen=True)
 class GetPageRequest:
@@ -3169,6 +3209,13 @@ class LocalAppTextCandidateMessage:
     text: str | None = None
 
 @dataclass(frozen=True)
+class LocalAssetExactBinding:
+    requirement_id: str | None = None
+    local_asset_id: str | None = None
+    verified_content_id: str | None = None
+    entry_sha256: str | None = None
+
+@dataclass(frozen=True)
 class LocalAssetHealth:
     local_asset_id: str | None = None
     status: LocalAssetStatus | None = None
@@ -3239,6 +3286,35 @@ class LocalAuditEvent:
 class LocalAuditTimeRange:
     from_: str | None = None
     to: str | None = None
+
+@dataclass(frozen=True)
+class LocalCapabilityConfiguration:
+    configuration_id: str | None = None
+    capability_contract: str | None = None
+    implementation: CapabilityImplementationIdentity | None = None
+    portable_config: Mapping[str, object] | None = None
+    projected_requirements: tuple[LocalCapabilityRequirement, ...] = field(default_factory=tuple)
+    exact_bindings: tuple[LocalAssetExactBinding, ...] = field(default_factory=tuple)
+    supported_features: tuple[str, ...] = field(default_factory=tuple)
+    interpretability: LocalCapabilityInterpretability | None = None
+    requirement_resolution: LocalCapabilityRequirementResolution | None = None
+    reasons: tuple[LocalCapabilityReason, ...] = field(default_factory=tuple)
+    display_name: str | None = None
+    provenance: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class LocalCapabilityRequirement:
+    requirement_id: str | None = None
+    role: LocalCapabilityRequirementRole | None = None
+    resource_kind: str | None = None
+    policy: LocalCapabilityRequirementPolicy | None = None
+    preferred_verified_content_id: str | None = None
+    compatibility_constraints: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class LocalCapabilitySelection:
+    capability_contract: str | None = None
+    configuration_id: str | None = None
 
 @dataclass(frozen=True)
 class LocalCatalogModelDescriptor:
@@ -3916,6 +3992,11 @@ class LogoutResponse:
     reason_code: ReasonCode | None = None
     account_reason_code: AccountReasonCode | None = None
     production_inert: bool | None = None
+
+@dataclass(frozen=True)
+class MachineLocalAIConfiguration:
+    configurations: tuple[LocalCapabilityConfiguration, ...] = field(default_factory=tuple)
+    selections: tuple[LocalCapabilitySelection, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class MaterializeRealmSourceRequest:
@@ -4690,6 +4771,14 @@ class RepairLocalEnvironmentDependencyRequest:
 @dataclass(frozen=True)
 class RepairLocalEnvironmentDependencyResponse:
     job: LocalEnvironmentDependencyJob | None = None
+
+@dataclass(frozen=True)
+class ReprojectLocalCapabilityRequirementsRequest:
+    configuration_id: str | None = None
+
+@dataclass(frozen=True)
+class ReprojectLocalCapabilityRequirementsResponse:
+    configuration: LocalCapabilityConfiguration | None = None
 
 @dataclass(frozen=True)
 class RequestAgentCanonicalMemoryBankBindRequest:
@@ -6844,6 +6933,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
+    async def add_local_capability_configuration(self, request: AddLocalCapabilityConfigurationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AddLocalCapabilityConfigurationResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AddLocalCapabilityConfigurationResponse, raw)
+
     async def admit_product_control_ready_for_use(self, request: AdmitProductControlReadyForUseRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
@@ -6899,6 +6992,14 @@ class RuntimeTypedClient:
     async def get_engine_status(self, request: GetEngineStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetEngineStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetEngineStatusResponse, raw)
+
+    async def get_local_capability_configuration(self, request: GetLocalCapabilityConfigurationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalCapabilityConfigurationResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalCapabilityConfigurationResponse, raw)
+
+    async def get_machine_local_aiconfiguration(self, request: GetMachineLocalAIConfigurationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetMachineLocalAIConfigurationResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetMachineLocalAIConfigurationResponse, raw)
 
     async def get_product_control_record(self, request: GetProductControlRecordRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6999,6 +7100,10 @@ class RuntimeTypedClient:
     async def repair_local_environment_dependency(self, request: RepairLocalEnvironmentDependencyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RepairLocalEnvironmentDependencyResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RepairLocalEnvironmentDependencyResponse, raw)
+
+    async def reproject_local_capability_requirements(self, request: ReprojectLocalCapabilityRequirementsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReprojectLocalCapabilityRequirementsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ReprojectLocalCapabilityRequirementsResponse, raw)
 
     async def rescan_local_asset_bundle(self, request: RescanLocalAssetBundleRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RescanLocalAssetBundleResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

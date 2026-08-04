@@ -22,6 +22,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAssets
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth
       - method_id: /nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset

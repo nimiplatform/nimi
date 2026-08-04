@@ -2,6 +2,14 @@
 # Normative authority: .nimi/spec/runtime/security-core.authority.yaml
 version: 1
 methods:
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeConnectorService/CreateConnector
     posture: mixed
   - method_id: /nimi.runtime.v1.RuntimeConnectorService/GetConnector

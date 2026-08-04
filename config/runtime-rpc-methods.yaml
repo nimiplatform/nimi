@@ -101,6 +101,18 @@ services:
   - name: RuntimeLocalService
     source_rule: K-RPC-004
     methods:
+      - name: GetMachineLocalAIConfiguration
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration
+      - name: GetLocalCapabilityConfiguration
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration
+      - name: AddLocalCapabilityConfiguration
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
+      - name: ReprojectLocalCapabilityRequirements
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
       - name: ListLocalAssets
         type: unary
       - name: ListVerifiedAssets

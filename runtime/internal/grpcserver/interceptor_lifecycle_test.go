@@ -40,6 +40,8 @@ func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testin
 
 	for _, fullMethod := range []string{
 		"/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
+		"/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+		"/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
 		"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
 		"/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
 	} {
@@ -58,6 +60,25 @@ func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testin
 		}
 		if !handlerCalled {
 			t.Fatalf("handler must be called for %s", fullMethod)
+		}
+	}
+}
+
+func TestUnaryLifecycleInterceptorRejectsMachineLocalConfigurationWritesWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newUnaryLifecycleInterceptor(state)
+	for _, fullMethod := range []string{
+		"/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+		"/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
+	} {
+		handlerCalled := false
+		_, err := interceptor(context.Background(), struct{}{}, &grpc.UnaryServerInfo{FullMethod: fullMethod}, func(context.Context, any) (any, error) {
+			handlerCalled = true
+			return struct{}{}, nil
+		})
+		if status.Code(err) != codes.Unavailable || handlerCalled {
+			t.Fatalf("%s was not rejected while stopping: called=%v err=%v", fullMethod, handlerCalled, err)
 		}
 	}
 }

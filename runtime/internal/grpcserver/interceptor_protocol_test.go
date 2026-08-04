@@ -270,6 +270,8 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
 		"/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
 		"/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+		"/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+		"/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
 		"/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
@@ -305,6 +307,8 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
 		"/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
 		"/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog",
+		"/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+		"/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
 		"/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
 	}
 	for _, method := range readMethods {

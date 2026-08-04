@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+
+// CapabilityImplementationIdentity identifies the implementation vocabulary
+// against which a configuration's requirements are interpreted.
+message CapabilityImplementationIdentity {
+  string implementation_id = 1;
+  string driver_id = 2;
+  string driver_dialect = 3;
+}
+
+enum LocalCapabilityInterpretability {
+  LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE = 1;
+  LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE = 2;
+}
+
+enum LocalCapabilityRequirementResolution {
+  LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED = 1;
+  LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED = 2;
+}
+
+enum LocalCapabilityRequirementPolicy {
+  LOCAL_CAPABILITY_REQUIREMENT_POLICY_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT = 1;
+  LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE = 2;
+}
+
+enum LocalCapabilityRequirementRole {
+  LOCAL_CAPABILITY_REQUIREMENT_ROLE_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN = 1;
+  LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION = 2;
+}
+
+enum LocalCapabilityReason {
+  LOCAL_CAPABILITY_REASON_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND = 1;
+  LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED = 2;
+  LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED = 3;
+  LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID = 4;
+  LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED = 5;
+  LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING = 6;
+  LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS = 7;
+  LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND = 8;
+  LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED = 9;
+  LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH = 10;
+  LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE = 11;
+}
+
+message LocalCapabilityRequirement {
+  string requirement_id = 1;
+  LocalCapabilityRequirementRole role = 2;
+  string resource_kind = 3;
+  LocalCapabilityRequirementPolicy policy = 4;
+  string preferred_verified_content_id = 5;
+  google.protobuf.Struct compatibility_constraints = 6;
+}
+
+message LocalAssetExactBinding {
+  string requirement_id = 1;
+  string local_asset_id = 2;
+  string verified_content_id = 3;
+  string entry_sha256 = 4;
+}
+
+message LocalCapabilityConfiguration {
+  string configuration_id = 1;
+  string capability_contract = 2;
+  CapabilityImplementationIdentity implementation = 3;
+  google.protobuf.Struct portable_config = 4;
+  repeated LocalCapabilityRequirement projected_requirements = 5;
+  repeated LocalAssetExactBinding exact_bindings = 6;
+  repeated string supported_features = 7;
+  LocalCapabilityInterpretability interpretability = 8;
+  LocalCapabilityRequirementResolution requirement_resolution = 9;
+  repeated LocalCapabilityReason reasons = 10;
+  string display_name = 11;
+  google.protobuf.Struct provenance = 12;
+}
+
+message LocalCapabilitySelection {
+  string capability_contract = 1;
+  string configuration_id = 2;
+}
+
+message MachineLocalAIConfiguration {
+  repeated LocalCapabilityConfiguration configurations = 1;
+  repeated LocalCapabilitySelection selections = 2;
+}
+
+message GetMachineLocalAIConfigurationRequest {}
+
+message GetMachineLocalAIConfigurationResponse {
+  MachineLocalAIConfiguration aggregate = 1;
+}
+
+message GetLocalCapabilityConfigurationRequest {
+  string configuration_id = 1;
+}
+
+message GetLocalCapabilityConfigurationResponse {
+  LocalCapabilityConfiguration configuration = 1;
+}
+
+message AddLocalCapabilityConfigurationRequest {
+  string capability_contract = 1;
+  CapabilityImplementationIdentity implementation = 2;
+  google.protobuf.Struct portable_config = 3;
+  repeated string supported_features = 4;
+  string display_name = 5;
+  google.protobuf.Struct provenance = 6;
+}
+
+message AddLocalCapabilityConfigurationResponse {
+  LocalCapabilityConfiguration configuration = 1;
+}
+
+message ReprojectLocalCapabilityRequirementsRequest {
+  string configuration_id = 1;
+}
+
+message ReprojectLocalCapabilityRequirementsResponse {
+  LocalCapabilityConfiguration configuration = 1;
+}

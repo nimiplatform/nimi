@@ -19,6 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	RuntimeLocalService_GetMachineLocalAIConfiguration_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration"
+	RuntimeLocalService_GetLocalCapabilityConfiguration_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration"
+	RuntimeLocalService_AddLocalCapabilityConfiguration_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration"
+	RuntimeLocalService_ReprojectLocalCapabilityRequirements_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements"
 	RuntimeLocalService_ListLocalAssets_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
 	RuntimeLocalService_ListVerifiedAssets_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
 	RuntimeLocalService_InstallVerifiedAsset_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
@@ -86,6 +90,11 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeLocalServiceClient interface {
+	// Machine-local capability configurations
+	GetMachineLocalAIConfiguration(ctx context.Context, in *GetMachineLocalAIConfigurationRequest, opts ...grpc.CallOption) (*GetMachineLocalAIConfigurationResponse, error)
+	GetLocalCapabilityConfiguration(ctx context.Context, in *GetLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*GetLocalCapabilityConfigurationResponse, error)
+	AddLocalCapabilityConfiguration(ctx context.Context, in *AddLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*AddLocalCapabilityConfigurationResponse, error)
+	ReprojectLocalCapabilityRequirements(ctx context.Context, in *ReprojectLocalCapabilityRequirementsRequest, opts ...grpc.CallOption) (*ReprojectLocalCapabilityRequirementsResponse, error)
 	// Asset CRUD (unified)
 	ListLocalAssets(ctx context.Context, in *ListLocalAssetsRequest, opts ...grpc.CallOption) (*ListLocalAssetsResponse, error)
 	ListVerifiedAssets(ctx context.Context, in *ListVerifiedAssetsRequest, opts ...grpc.CallOption) (*ListVerifiedAssetsResponse, error)
@@ -168,6 +177,46 @@ type runtimeLocalServiceClient struct {
 
 func NewRuntimeLocalServiceClient(cc grpc.ClientConnInterface) RuntimeLocalServiceClient {
 	return &runtimeLocalServiceClient{cc}
+}
+
+func (c *runtimeLocalServiceClient) GetMachineLocalAIConfiguration(ctx context.Context, in *GetMachineLocalAIConfigurationRequest, opts ...grpc.CallOption) (*GetMachineLocalAIConfigurationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMachineLocalAIConfigurationResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_GetMachineLocalAIConfiguration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) GetLocalCapabilityConfiguration(ctx context.Context, in *GetLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*GetLocalCapabilityConfigurationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLocalCapabilityConfigurationResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_GetLocalCapabilityConfiguration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) AddLocalCapabilityConfiguration(ctx context.Context, in *AddLocalCapabilityConfigurationRequest, opts ...grpc.CallOption) (*AddLocalCapabilityConfigurationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddLocalCapabilityConfigurationResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_AddLocalCapabilityConfiguration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ReprojectLocalCapabilityRequirements(ctx context.Context, in *ReprojectLocalCapabilityRequirementsRequest, opts ...grpc.CallOption) (*ReprojectLocalCapabilityRequirementsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReprojectLocalCapabilityRequirementsResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ReprojectLocalCapabilityRequirements_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeLocalServiceClient) ListLocalAssets(ctx context.Context, in *ListLocalAssetsRequest, opts ...grpc.CallOption) (*ListLocalAssetsResponse, error) {
@@ -793,6 +842,11 @@ func (c *runtimeLocalServiceClient) GetEngineStatus(ctx context.Context, in *Get
 // All implementations should embed UnimplementedRuntimeLocalServiceServer
 // for forward compatibility.
 type RuntimeLocalServiceServer interface {
+	// Machine-local capability configurations
+	GetMachineLocalAIConfiguration(context.Context, *GetMachineLocalAIConfigurationRequest) (*GetMachineLocalAIConfigurationResponse, error)
+	GetLocalCapabilityConfiguration(context.Context, *GetLocalCapabilityConfigurationRequest) (*GetLocalCapabilityConfigurationResponse, error)
+	AddLocalCapabilityConfiguration(context.Context, *AddLocalCapabilityConfigurationRequest) (*AddLocalCapabilityConfigurationResponse, error)
+	ReprojectLocalCapabilityRequirements(context.Context, *ReprojectLocalCapabilityRequirementsRequest) (*ReprojectLocalCapabilityRequirementsResponse, error)
 	// Asset CRUD (unified)
 	ListLocalAssets(context.Context, *ListLocalAssetsRequest) (*ListLocalAssetsResponse, error)
 	ListVerifiedAssets(context.Context, *ListVerifiedAssetsRequest) (*ListVerifiedAssetsResponse, error)
@@ -876,6 +930,18 @@ type RuntimeLocalServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeLocalServiceServer struct{}
 
+func (UnimplementedRuntimeLocalServiceServer) GetMachineLocalAIConfiguration(context.Context, *GetMachineLocalAIConfigurationRequest) (*GetMachineLocalAIConfigurationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMachineLocalAIConfiguration not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) GetLocalCapabilityConfiguration(context.Context, *GetLocalCapabilityConfigurationRequest) (*GetLocalCapabilityConfigurationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLocalCapabilityConfiguration not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) AddLocalCapabilityConfiguration(context.Context, *AddLocalCapabilityConfigurationRequest) (*AddLocalCapabilityConfigurationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddLocalCapabilityConfiguration not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ReprojectLocalCapabilityRequirements(context.Context, *ReprojectLocalCapabilityRequirementsRequest) (*ReprojectLocalCapabilityRequirementsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReprojectLocalCapabilityRequirements not implemented")
+}
 func (UnimplementedRuntimeLocalServiceServer) ListLocalAssets(context.Context, *ListLocalAssetsRequest) (*ListLocalAssetsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalAssets not implemented")
 }
@@ -1077,6 +1143,78 @@ func RegisterRuntimeLocalServiceServer(s grpc.ServiceRegistrar, srv RuntimeLocal
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeLocalService_ServiceDesc, srv)
+}
+
+func _RuntimeLocalService_GetMachineLocalAIConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMachineLocalAIConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).GetMachineLocalAIConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_GetMachineLocalAIConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).GetMachineLocalAIConfiguration(ctx, req.(*GetMachineLocalAIConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_GetLocalCapabilityConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLocalCapabilityConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).GetLocalCapabilityConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_GetLocalCapabilityConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).GetLocalCapabilityConfiguration(ctx, req.(*GetLocalCapabilityConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_AddLocalCapabilityConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddLocalCapabilityConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).AddLocalCapabilityConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_AddLocalCapabilityConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).AddLocalCapabilityConfiguration(ctx, req.(*AddLocalCapabilityConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ReprojectLocalCapabilityRequirements_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReprojectLocalCapabilityRequirementsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ReprojectLocalCapabilityRequirements(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ReprojectLocalCapabilityRequirements_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ReprojectLocalCapabilityRequirements(ctx, req.(*ReprojectLocalCapabilityRequirementsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeLocalService_ListLocalAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -2177,6 +2315,22 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "nimi.runtime.v1.RuntimeLocalService",
 	HandlerType: (*RuntimeLocalServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetMachineLocalAIConfiguration",
+			Handler:    _RuntimeLocalService_GetMachineLocalAIConfiguration_Handler,
+		},
+		{
+			MethodName: "GetLocalCapabilityConfiguration",
+			Handler:    _RuntimeLocalService_GetLocalCapabilityConfiguration_Handler,
+		},
+		{
+			MethodName: "AddLocalCapabilityConfiguration",
+			Handler:    _RuntimeLocalService_AddLocalCapabilityConfiguration_Handler,
+		},
+		{
+			MethodName: "ReprojectLocalCapabilityRequirements",
+			Handler:    _RuntimeLocalService_ReprojectLocalCapabilityRequirements_Handler,
+		},
 		{
 			MethodName: "ListLocalAssets",
 			Handler:    _RuntimeLocalService_ListLocalAssets_Handler,

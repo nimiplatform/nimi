@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 )
@@ -113,6 +114,10 @@ type Service struct {
 	localEnvironmentJobCancels              map[string]context.CancelFunc
 	localEnvironmentJobWG                   sync.WaitGroup
 	localEnvironmentPrerequisiteWaitTimeout time.Duration
+	machineLocalConfigurationMutationMu     sync.Mutex
+	machineLocalConfigurations              map[string]*storedLocalCapabilityConfiguration
+	machineLocalConfigurationStore          machineLocalConfigurationStore
+	capabilityDrivers                       *capabilitydriver.Registry
 	jobLifetimeCtx                          context.Context
 	jobLifetimeCancel                       context.CancelFunc
 	localProviderEndpointSink               LocalProviderEndpointSink
@@ -220,6 +225,9 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		localEnvironmentDependencyJobs:          make(map[string]localEnvironmentDependencyJobState),
 		localEnvironmentPlanDependencyContracts: make(map[string]localEnvironmentPlanDependencyContractState),
 		localEnvironmentJobCancels:              make(map[string]context.CancelFunc),
+		machineLocalConfigurations:              make(map[string]*storedLocalCapabilityConfiguration),
+		machineLocalConfigurationStore:          newDiskMachineLocalConfigurationStore(resolvedStateStorePath),
+		capabilityDrivers:                       capabilitydriver.NewProductionRegistry(),
 		profileRegistry:                         NewProfileRegistry(),
 		endpointProbe:                           defaultEndpointProbe,
 		hfCatalogSearch:                         defaultHFCatalogSearch,
@@ -246,6 +254,10 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 	jobCtx, jobCancel := context.WithCancel(context.Background())
 	svc.jobLifetimeCtx = jobCtx
 	svc.jobLifetimeCancel = jobCancel
+	if err := svc.restoreMachineLocalConfigurations(); err != nil {
+		jobCancel()
+		return nil, fmt.Errorf("local service: restore Machine Local AI Configuration: %w", err)
+	}
 	if err := svc.restoreState(); err != nil {
 		jobCancel()
 		return nil, err

@@ -884,6 +884,55 @@ const (
 	LOCALBUNDLESTATEREMOVED LocalBundleState = "LOCAL_BUNDLE_STATE_REMOVED"
 )
 
+type LocalCapabilityInterpretability string
+
+const (
+	LOCALCAPABILITYINTERPRETABILITYUNSPECIFIED LocalCapabilityInterpretability = "LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED"
+	LOCALCAPABILITYINTERPRETABILITYINTERPRETABLE LocalCapabilityInterpretability = "LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE"
+	LOCALCAPABILITYINTERPRETABILITYUNAVAILABLE LocalCapabilityInterpretability = "LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE"
+)
+
+type LocalCapabilityReason string
+
+const (
+	LOCALCAPABILITYREASONUNSPECIFIED LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_UNSPECIFIED"
+	LOCALCAPABILITYREASONDRIVERNOTFOUND LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND"
+	LOCALCAPABILITYREASONDRIVERDIALECTUNSUPPORTED LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED"
+	LOCALCAPABILITYREASONIMPLEMENTATIONUNSUPPORTED LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED"
+	LOCALCAPABILITYREASONPORTABLECONFIGINVALID LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID"
+	LOCALCAPABILITYREASONFEATUREUNSUPPORTED LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED"
+	LOCALCAPABILITYREASONREQUIREDBINDINGMISSING LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING"
+	LOCALCAPABILITYREASONBINDINGAMBIGUOUS LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS"
+	LOCALCAPABILITYREASONLOCALASSETNOTFOUND LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND"
+	LOCALCAPABILITYREASONLOCALASSETCONTENTUNVERIFIED LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED"
+	LOCALCAPABILITYREASONLOCALASSETCONTENTMISMATCH LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH"
+	LOCALCAPABILITYREASONLOCALASSETINCOMPATIBLE LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE"
+)
+
+type LocalCapabilityRequirementPolicy string
+
+const (
+	LOCALCAPABILITYREQUIREMENTPOLICYUNSPECIFIED LocalCapabilityRequirementPolicy = "LOCAL_CAPABILITY_REQUIREMENT_POLICY_UNSPECIFIED"
+	LOCALCAPABILITYREQUIREMENTPOLICYSTRICT LocalCapabilityRequirementPolicy = "LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT"
+	LOCALCAPABILITYREQUIREMENTPOLICYSUBSTITUTABLE LocalCapabilityRequirementPolicy = "LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE"
+)
+
+type LocalCapabilityRequirementResolution string
+
+const (
+	LOCALCAPABILITYREQUIREMENTRESOLUTIONUNSPECIFIED LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED"
+	LOCALCAPABILITYREQUIREMENTRESOLUTIONUNRESOLVED LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED"
+	LOCALCAPABILITYREQUIREMENTRESOLUTIONCONFIGURED LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED"
+)
+
+type LocalCapabilityRequirementRole string
+
+const (
+	LOCALCAPABILITYREQUIREMENTROLEUNSPECIFIED LocalCapabilityRequirementRole = "LOCAL_CAPABILITY_REQUIREMENT_ROLE_UNSPECIFIED"
+	LOCALCAPABILITYREQUIREMENTROLEMAIN LocalCapabilityRequirementRole = "LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN"
+	LOCALCAPABILITYREQUIREMENTROLECOMPANION LocalCapabilityRequirementRole = "LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION"
+)
+
 type LocalDevelopmentAuthorizationState string
 
 const (
@@ -1876,6 +1925,19 @@ type AddLinkResponse struct {
 	Link *KnowledgeLink `json:"link,omitempty"`
 }
 
+type AddLocalCapabilityConfigurationRequest struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	Implementation *CapabilityImplementationIdentity `json:"implementation,omitempty"`
+	PortableConfig map[string]any `json:"portable_config,omitempty"`
+	SupportedFeatures []string `json:"supported_features,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	Provenance map[string]any `json:"provenance,omitempty"`
+}
+
+type AddLocalCapabilityConfigurationResponse struct {
+	Configuration *LocalCapabilityConfiguration `json:"configuration,omitempty"`
+}
+
 type AdmitProductControlReadyForUseRequest struct {
 
 }
@@ -2573,6 +2635,12 @@ type CanonicalMemoryView struct {
 	Record *MemoryRecord `json:"record,omitempty"`
 	RecallScore float64 `json:"recall_score,omitempty"`
 	PolicyReason string `json:"policy_reason,omitempty"`
+}
+
+type CapabilityImplementationIdentity struct {
+	ImplementationId string `json:"implementation_id,omitempty"`
+	DriverId string `json:"driver_id,omitempty"`
+	DriverDialect string `json:"driver_dialect,omitempty"`
 }
 
 type CatalogModelDetail struct {
@@ -3585,6 +3653,14 @@ type GetLocalAppPermissionStatusResponse struct {
 	Projection *LocalAppPermissionProjection `json:"projection,omitempty"`
 }
 
+type GetLocalCapabilityConfigurationRequest struct {
+	ConfigurationId string `json:"configuration_id,omitempty"`
+}
+
+type GetLocalCapabilityConfigurationResponse struct {
+	Configuration *LocalCapabilityConfiguration `json:"configuration,omitempty"`
+}
+
 type GetLocalDevelopmentAuthoritySummaryRequest struct {
 
 }
@@ -3593,6 +3669,14 @@ type GetLocalDevelopmentAuthoritySummaryResponse struct {
 	DeveloperMode *LocalDevelopmentDeveloperModeSummary `json:"developer_mode,omitempty"`
 	ProjectAuthorization *LocalDevelopmentProjectAuthorizationSummary `json:"project_authorization,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type GetMachineLocalAIConfigurationRequest struct {
+
+}
+
+type GetMachineLocalAIConfigurationResponse struct {
+	Aggregate *MachineLocalAIConfiguration `json:"aggregate,omitempty"`
 }
 
 type GetPageRequest struct {
@@ -4709,6 +4793,13 @@ type LocalAppTextCandidateMessage struct {
 	Text string `json:"text,omitempty"`
 }
 
+type LocalAssetExactBinding struct {
+	RequirementId string `json:"requirement_id,omitempty"`
+	LocalAssetId string `json:"local_asset_id,omitempty"`
+	VerifiedContentId string `json:"verified_content_id,omitempty"`
+	EntrySha256 string `json:"entry_sha256,omitempty"`
+}
+
 type LocalAssetHealth struct {
 	LocalAssetId string `json:"local_asset_id,omitempty"`
 	Status LocalAssetStatus `json:"status,omitempty"`
@@ -4779,6 +4870,35 @@ type LocalAuditEvent struct {
 type LocalAuditTimeRange struct {
 	From string `json:"from,omitempty"`
 	To string `json:"to,omitempty"`
+}
+
+type LocalCapabilityConfiguration struct {
+	ConfigurationId string `json:"configuration_id,omitempty"`
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	Implementation *CapabilityImplementationIdentity `json:"implementation,omitempty"`
+	PortableConfig map[string]any `json:"portable_config,omitempty"`
+	ProjectedRequirements []LocalCapabilityRequirement `json:"projected_requirements,omitempty"`
+	ExactBindings []LocalAssetExactBinding `json:"exact_bindings,omitempty"`
+	SupportedFeatures []string `json:"supported_features,omitempty"`
+	Interpretability LocalCapabilityInterpretability `json:"interpretability,omitempty"`
+	RequirementResolution LocalCapabilityRequirementResolution `json:"requirement_resolution,omitempty"`
+	Reasons []LocalCapabilityReason `json:"reasons,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	Provenance map[string]any `json:"provenance,omitempty"`
+}
+
+type LocalCapabilityRequirement struct {
+	RequirementId string `json:"requirement_id,omitempty"`
+	Role LocalCapabilityRequirementRole `json:"role,omitempty"`
+	ResourceKind string `json:"resource_kind,omitempty"`
+	Policy LocalCapabilityRequirementPolicy `json:"policy,omitempty"`
+	PreferredVerifiedContentId string `json:"preferred_verified_content_id,omitempty"`
+	CompatibilityConstraints map[string]any `json:"compatibility_constraints,omitempty"`
+}
+
+type LocalCapabilitySelection struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	ConfigurationId string `json:"configuration_id,omitempty"`
 }
 
 type LocalCatalogModelDescriptor struct {
@@ -5456,6 +5576,11 @@ type LogoutResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
 	ProductionInert bool `json:"production_inert,omitempty"`
+}
+
+type MachineLocalAIConfiguration struct {
+	Configurations []LocalCapabilityConfiguration `json:"configurations,omitempty"`
+	Selections []LocalCapabilitySelection `json:"selections,omitempty"`
 }
 
 type MaterializeRealmSourceRequest struct {
@@ -6230,6 +6355,14 @@ type RepairLocalEnvironmentDependencyRequest struct {
 
 type RepairLocalEnvironmentDependencyResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
+}
+
+type ReprojectLocalCapabilityRequirementsRequest struct {
+	ConfigurationId string `json:"configuration_id,omitempty"`
+}
+
+type ReprojectLocalCapabilityRequirementsResponse struct {
+	Configuration *LocalCapabilityConfiguration `json:"configuration,omitempty"`
 }
 
 type RequestAgentCanonicalMemoryBankBindRequest struct {
@@ -9210,6 +9343,14 @@ func (c RuntimeTypedClient) RevokeExternalAgentToken(ctx context.Context, reques
 	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
+func (c RuntimeTypedClient) AddLocalCapabilityConfiguration(ctx context.Context, request AddLocalCapabilityConfigurationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AddLocalCapabilityConfigurationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration", request, metadata, timeoutMS)
+	if err != nil {
+		return AddLocalCapabilityConfigurationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[AddLocalCapabilityConfigurationResponse](raw, "AddLocalCapabilityConfigurationResponse")
+}
+
 func (c RuntimeTypedClient) AdmitProductControlReadyForUse(ctx context.Context, request AdmitProductControlReadyForUseRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", request, metadata, timeoutMS)
 	if err != nil {
@@ -9320,6 +9461,22 @@ func (c RuntimeTypedClient) GetEngineStatus(ctx context.Context, request GetEngi
 		return GetEngineStatusResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetEngineStatusResponse](raw, "GetEngineStatusResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalCapabilityConfiguration(ctx context.Context, request GetLocalCapabilityConfigurationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalCapabilityConfigurationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalCapabilityConfigurationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalCapabilityConfigurationResponse](raw, "GetLocalCapabilityConfigurationResponse")
+}
+
+func (c RuntimeTypedClient) GetMachineLocalAIConfiguration(ctx context.Context, request GetMachineLocalAIConfigurationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetMachineLocalAIConfigurationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration", request, metadata, timeoutMS)
+	if err != nil {
+		return GetMachineLocalAIConfigurationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetMachineLocalAIConfigurationResponse](raw, "GetMachineLocalAIConfigurationResponse")
 }
 
 func (c RuntimeTypedClient) GetProductControlRecord(ctx context.Context, request GetProductControlRecordRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9520,6 +9677,14 @@ func (c RuntimeTypedClient) RepairLocalEnvironmentDependency(ctx context.Context
 		return RepairLocalEnvironmentDependencyResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RepairLocalEnvironmentDependencyResponse](raw, "RepairLocalEnvironmentDependencyResponse")
+}
+
+func (c RuntimeTypedClient) ReprojectLocalCapabilityRequirements(ctx context.Context, request ReprojectLocalCapabilityRequirementsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReprojectLocalCapabilityRequirementsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements", request, metadata, timeoutMS)
+	if err != nil {
+		return ReprojectLocalCapabilityRequirementsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReprojectLocalCapabilityRequirementsResponse](raw, "ReprojectLocalCapabilityRequirementsResponse")
 }
 
 func (c RuntimeTypedClient) RescanLocalAssetBundle(ctx context.Context, request RescanLocalAssetBundleRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RescanLocalAssetBundleResponse, error) {

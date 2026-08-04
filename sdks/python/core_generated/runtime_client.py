@@ -1440,6 +1440,14 @@ RUNTIME_METHODS = [
     "response_type": "Ack"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "AddLocalCapabilityConfiguration",
+    "kind": "unary",
+    "request_type": "AddLocalCapabilityConfigurationRequest",
+    "response_type": "AddLocalCapabilityConfigurationResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "service": "RuntimeLocalService",
     "method": "AdmitProductControlReadyForUse",
@@ -1550,6 +1558,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "GetEngineStatusRequest",
     "response_type": "GetEngineStatusResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "GetLocalCapabilityConfiguration",
+    "kind": "unary",
+    "request_type": "GetLocalCapabilityConfigurationRequest",
+    "response_type": "GetLocalCapabilityConfigurationResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "GetMachineLocalAIConfiguration",
+    "kind": "unary",
+    "request_type": "GetMachineLocalAIConfigurationRequest",
+    "response_type": "GetMachineLocalAIConfigurationResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
@@ -1750,6 +1774,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "RepairLocalEnvironmentDependencyRequest",
     "response_type": "RepairLocalEnvironmentDependencyResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
+    "service": "RuntimeLocalService",
+    "method": "ReprojectLocalCapabilityRequirements",
+    "kind": "unary",
+    "request_type": "ReprojectLocalCapabilityRequirementsRequest",
+    "response_type": "ReprojectLocalCapabilityRequirementsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",

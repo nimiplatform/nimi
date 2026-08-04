@@ -55,6 +55,14 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth":
@@ -342,6 +350,10 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset", Kind: FirstPartyMethodUnary},

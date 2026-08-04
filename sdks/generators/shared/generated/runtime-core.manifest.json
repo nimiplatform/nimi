@@ -17,6 +17,7 @@
     "proto/runtime/v1/artifact_service.proto",
     "proto/runtime/v1/audit.proto",
     "proto/runtime/v1/auth.proto",
+    "proto/runtime/v1/capability_configuration.proto",
     "proto/runtime/v1/cognition.proto",
     "proto/runtime/v1/common.proto",
     "proto/runtime/v1/connector.proto",
@@ -1731,6 +1732,42 @@
       "source_file": "proto/runtime/v1/local_runtime.proto",
       "methods": [
         {
+          "name": "GetMachineLocalAIConfiguration",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+          "kind": "unary",
+          "request_type": "GetMachineLocalAIConfigurationRequest",
+          "response_type": "GetMachineLocalAIConfigurationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalCapabilityConfiguration",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+          "kind": "unary",
+          "request_type": "GetLocalCapabilityConfigurationRequest",
+          "response_type": "GetLocalCapabilityConfigurationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "AddLocalCapabilityConfiguration",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+          "kind": "unary",
+          "request_type": "AddLocalCapabilityConfigurationRequest",
+          "response_type": "AddLocalCapabilityConfigurationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ReprojectLocalCapabilityRequirements",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
+          "kind": "unary",
+          "request_type": "ReprojectLocalCapabilityRequirementsRequest",
+          "response_type": "ReprojectLocalCapabilityRequirementsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ListLocalAssets",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
           "kind": "unary",
@@ -2519,6 +2556,7 @@
     "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
     "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens",
     "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
+    "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
     "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
@@ -2533,6 +2571,8 @@
     "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
     "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
     "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
+    "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+    "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
     "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
@@ -2558,6 +2598,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService",
     "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
+    "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
     "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
@@ -4020,6 +4061,14 @@
       "response_type": "Ack"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "AddLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "AddLocalCapabilityConfigurationRequest",
+      "response_type": "AddLocalCapabilityConfigurationResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
       "service": "RuntimeLocalService",
       "method": "AdmitProductControlReadyForUse",
@@ -4130,6 +4179,22 @@
       "kind": "unary",
       "request_type": "GetEngineStatusRequest",
       "response_type": "GetEngineStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "GetLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "GetLocalCapabilityConfigurationRequest",
+      "response_type": "GetLocalCapabilityConfigurationResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "GetMachineLocalAIConfiguration",
+      "kind": "unary",
+      "request_type": "GetMachineLocalAIConfigurationRequest",
+      "response_type": "GetMachineLocalAIConfigurationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
@@ -4330,6 +4395,14 @@
       "kind": "unary",
       "request_type": "RepairLocalEnvironmentDependencyRequest",
       "response_type": "RepairLocalEnvironmentDependencyResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
+      "service": "RuntimeLocalService",
+      "method": "ReprojectLocalCapabilityRequirements",
+      "kind": "unary",
+      "request_type": "ReprojectLocalCapabilityRequirementsRequest",
+      "response_type": "ReprojectLocalCapabilityRequirementsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
@@ -5982,6 +6055,14 @@
       "response_type": "Ack"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "AddLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "AddLocalCapabilityConfigurationRequest",
+      "response_type": "AddLocalCapabilityConfigurationResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
       "service": "RuntimeLocalService",
       "method": "AdmitProductControlReadyForUse",
@@ -6092,6 +6173,22 @@
       "kind": "unary",
       "request_type": "GetEngineStatusRequest",
       "response_type": "GetEngineStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "GetLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "GetLocalCapabilityConfigurationRequest",
+      "response_type": "GetLocalCapabilityConfigurationResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "GetMachineLocalAIConfiguration",
+      "kind": "unary",
+      "request_type": "GetMachineLocalAIConfigurationRequest",
+      "response_type": "GetMachineLocalAIConfigurationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
@@ -6292,6 +6389,14 @@
       "kind": "unary",
       "request_type": "RepairLocalEnvironmentDependencyRequest",
       "response_type": "RepairLocalEnvironmentDependencyResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
+      "service": "RuntimeLocalService",
+      "method": "ReprojectLocalCapabilityRequirements",
+      "kind": "unary",
+      "request_type": "ReprojectLocalCapabilityRequirementsRequest",
+      "response_type": "ReprojectLocalCapabilityRequirementsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
@@ -6522,6 +6627,8 @@
       "Ack",
       "AddLinkRequest",
       "AddLinkResponse",
+      "AddLocalCapabilityConfigurationRequest",
+      "AddLocalCapabilityConfigurationResponse",
       "AdmitProductControlReadyForUseRequest",
       "AgentAutonomyConfig",
       "AgentAutonomyState",
@@ -6599,6 +6706,7 @@
       "CanonicalMemoryCandidate",
       "CanonicalMemoryRejection",
       "CanonicalMemoryView",
+      "CapabilityImplementationIdentity",
       "CatalogModelDetail",
       "CatalogModelInput",
       "CatalogModelSummary",
@@ -6751,8 +6859,12 @@
       "GetLocalAppPermissionOwnerProjectionResponse",
       "GetLocalAppPermissionStatusRequest",
       "GetLocalAppPermissionStatusResponse",
+      "GetLocalCapabilityConfigurationRequest",
+      "GetLocalCapabilityConfigurationResponse",
       "GetLocalDevelopmentAuthoritySummaryRequest",
       "GetLocalDevelopmentAuthoritySummaryResponse",
+      "GetMachineLocalAIConfigurationRequest",
+      "GetMachineLocalAIConfigurationResponse",
       "GetPageRequest",
       "GetPageResponse",
       "GetProductControlRecordRequest",
@@ -6925,11 +7037,15 @@
       "LocalAppPermissionPendingRequest",
       "LocalAppPermissionProjection",
       "LocalAppTextCandidateMessage",
+      "LocalAssetExactBinding",
       "LocalAssetHealth",
       "LocalAssetRecord",
       "LocalAssetSource",
       "LocalAuditEvent",
       "LocalAuditTimeRange",
+      "LocalCapabilityConfiguration",
+      "LocalCapabilityRequirement",
+      "LocalCapabilitySelection",
       "LocalCatalogModelDescriptor",
       "LocalCatalogRecommendation",
       "LocalCatalogVariantDescriptor",
@@ -6987,6 +7103,7 @@
       "LocalVerifiedAssetDescriptor",
       "LogoutRequest",
       "LogoutResponse",
+      "MachineLocalAIConfiguration",
       "MaterializeRealmSourceRequest",
       "MaterializeRealmSourceResponse",
       "MemoryBank",
@@ -7100,6 +7217,8 @@
       "RenewLocalAppSessionRequest",
       "RepairLocalEnvironmentDependencyRequest",
       "RepairLocalEnvironmentDependencyResponse",
+      "ReprojectLocalCapabilityRequirementsRequest",
+      "ReprojectLocalCapabilityRequirementsResponse",
       "RequestAgentCanonicalMemoryBankBindRequest",
       "RequestAgentCanonicalMemoryBankBindResponse",
       "RequestAvatarDebugProbeRequest",
@@ -7403,6 +7522,11 @@
       "LocalAssetKind",
       "LocalAssetStatus",
       "LocalBundleState",
+      "LocalCapabilityInterpretability",
+      "LocalCapabilityReason",
+      "LocalCapabilityRequirementPolicy",
+      "LocalCapabilityRequirementResolution",
+      "LocalCapabilityRequirementRole",
       "LocalDevelopmentAuthorizationState",
       "LocalDevelopmentDecision",
       "LocalDevelopmentShellKind",
@@ -7760,6 +7884,67 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "AddLocalCapabilityConfigurationRequest",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "implementation",
+            "type": "CapabilityImplementationIdentity",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "portable_config",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "supported_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "provenance",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AddLocalCapabilityConfigurationResponse",
+        "fields": [
+          {
+            "name": "configuration",
+            "type": "LocalCapabilityConfiguration",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "AdmitProductControlReadyForUseRequest",
@@ -11640,6 +11825,33 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "CapabilityImplementationIdentity",
+        "fields": [
+          {
+            "name": "implementation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "driver_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "driver_dialect",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "CatalogModelDetail",
@@ -16392,6 +16604,32 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
+        "name": "GetLocalCapabilityConfigurationRequest",
+        "fields": [
+          {
+            "name": "configuration_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "GetLocalCapabilityConfigurationResponse",
+        "fields": [
+          {
+            "name": "configuration",
+            "type": "LocalCapabilityConfiguration",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "GetLocalDevelopmentAuthoritySummaryRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/development.proto"
@@ -16422,6 +16660,24 @@
           }
         ],
         "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "GetMachineLocalAIConfigurationRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "GetMachineLocalAIConfigurationResponse",
+        "fields": [
+          {
+            "name": "aggregate",
+            "type": "MachineLocalAIConfiguration",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "GetPageRequest",
@@ -21554,6 +21810,40 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "LocalAssetExactBinding",
+        "fields": [
+          {
+            "name": "requirement_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "local_asset_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "verified_content_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "entry_sha256",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "LocalAssetHealth",
         "fields": [
           {
@@ -21982,6 +22272,164 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
+      },
+      {
+        "name": "LocalCapabilityConfiguration",
+        "fields": [
+          {
+            "name": "configuration_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "implementation",
+            "type": "CapabilityImplementationIdentity",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "portable_config",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "projected_requirements",
+            "type": "LocalCapabilityRequirement",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "exact_bindings",
+            "type": "LocalAssetExactBinding",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "supported_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "interpretability",
+            "type": "LocalCapabilityInterpretability",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "requirement_resolution",
+            "type": "LocalCapabilityRequirementResolution",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "reasons",
+            "type": "LocalCapabilityReason",
+            "repeated": true,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "provenance",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "LocalCapabilityRequirement",
+        "fields": [
+          {
+            "name": "requirement_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "role",
+            "type": "LocalCapabilityRequirementRole",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "resource_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "policy",
+            "type": "LocalCapabilityRequirementPolicy",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "preferred_verified_content_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "compatibility_constraints",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "LocalCapabilitySelection",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "configuration_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "LocalCatalogModelDescriptor",
@@ -25875,6 +26323,26 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
+        "name": "MachineLocalAIConfiguration",
+        "fields": [
+          {
+            "name": "configurations",
+            "type": "LocalCapabilityConfiguration",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "selections",
+            "type": "LocalCapabilitySelection",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "MaterializeRealmSourceRequest",
         "fields": [
           {
@@ -29564,6 +30032,32 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "ReprojectLocalCapabilityRequirementsRequest",
+        "fields": [
+          {
+            "name": "configuration_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "ReprojectLocalCapabilityRequirementsResponse",
+        "fields": [
+          {
+            "name": "configuration",
+            "type": "LocalCapabilityConfiguration",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "RequestAgentCanonicalMemoryBankBindRequest",
@@ -37440,6 +37934,60 @@
           "LOCAL_BUNDLE_STATE_REMOVED"
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
+      },
+      {
+        "name": "LocalCapabilityInterpretability",
+        "values": [
+          "LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED",
+          "LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE",
+          "LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "LocalCapabilityReason",
+        "values": [
+          "LOCAL_CAPABILITY_REASON_UNSPECIFIED",
+          "LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND",
+          "LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED",
+          "LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED",
+          "LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID",
+          "LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED",
+          "LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING",
+          "LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS",
+          "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND",
+          "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED",
+          "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH",
+          "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE"
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "LocalCapabilityRequirementPolicy",
+        "values": [
+          "LOCAL_CAPABILITY_REQUIREMENT_POLICY_UNSPECIFIED",
+          "LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT",
+          "LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE"
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "LocalCapabilityRequirementResolution",
+        "values": [
+          "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED",
+          "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED",
+          "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED"
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "LocalCapabilityRequirementRole",
+        "values": [
+          "LOCAL_CAPABILITY_REQUIREMENT_ROLE_UNSPECIFIED",
+          "LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN",
+          "LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION"
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "LocalDevelopmentAuthorizationState",

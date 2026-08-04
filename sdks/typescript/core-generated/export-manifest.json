@@ -17,6 +17,7 @@
     "proto/runtime/v1/artifact_service.proto",
     "proto/runtime/v1/audit.proto",
     "proto/runtime/v1/auth.proto",
+    "proto/runtime/v1/capability_configuration.proto",
     "proto/runtime/v1/cognition.proto",
     "proto/runtime/v1/common.proto",
     "proto/runtime/v1/connector.proto",

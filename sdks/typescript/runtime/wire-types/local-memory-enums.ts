@@ -106,6 +106,45 @@ export enum LocalBundleState {
   REMOVED = 5,
 }
 
+export enum LocalCapabilityInterpretability {
+  UNSPECIFIED = 0,
+  INTERPRETABLE = 1,
+  UNAVAILABLE = 2,
+}
+
+export enum LocalCapabilityReason {
+  UNSPECIFIED = 0,
+  DRIVER_NOT_FOUND = 1,
+  DRIVER_DIALECT_UNSUPPORTED = 2,
+  IMPLEMENTATION_UNSUPPORTED = 3,
+  PORTABLE_CONFIG_INVALID = 4,
+  FEATURE_UNSUPPORTED = 5,
+  REQUIRED_BINDING_MISSING = 6,
+  BINDING_AMBIGUOUS = 7,
+  LOCAL_ASSET_NOT_FOUND = 8,
+  LOCAL_ASSET_CONTENT_UNVERIFIED = 9,
+  LOCAL_ASSET_CONTENT_MISMATCH = 10,
+  LOCAL_ASSET_INCOMPATIBLE = 11,
+}
+
+export enum LocalCapabilityRequirementPolicy {
+  UNSPECIFIED = 0,
+  STRICT = 1,
+  SUBSTITUTABLE = 2,
+}
+
+export enum LocalCapabilityRequirementResolution {
+  UNSPECIFIED = 0,
+  UNRESOLVED = 1,
+  CONFIGURED = 2,
+}
+
+export enum LocalCapabilityRequirementRole {
+  UNSPECIFIED = 0,
+  MAIN = 1,
+  COMPANION = 2,
+}
+
 export enum LocalDevelopmentAuthorizationState {
   UNSPECIFIED = 0,
   CONFIRMATION_REQUIRED = 1,

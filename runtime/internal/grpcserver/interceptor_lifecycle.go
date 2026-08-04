@@ -60,6 +60,8 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels":         true,
 	"/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail":             true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets":                       true,
+	"/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration":        true,
+	"/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration":       true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets":                    true,
 	"/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels":                   true,
 	"/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed":                 true,

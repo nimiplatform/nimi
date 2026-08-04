@@ -224,6 +224,8 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
+		"/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+		"/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
 		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
 		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile",

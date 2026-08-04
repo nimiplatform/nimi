@@ -1447,6 +1447,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "AddLocalCapabilityConfiguration",
+    "kind": "unary",
+    "requestType": "AddLocalCapabilityConfigurationRequest",
+    "responseType": "AddLocalCapabilityConfigurationResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "service": "RuntimeLocalService",
     "method": "AdmitProductControlReadyForUse",
@@ -1557,6 +1565,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "GetEngineStatusRequest",
     "responseType": "GetEngineStatusResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "GetLocalCapabilityConfiguration",
+    "kind": "unary",
+    "requestType": "GetLocalCapabilityConfigurationRequest",
+    "responseType": "GetLocalCapabilityConfigurationResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "GetMachineLocalAIConfiguration",
+    "kind": "unary",
+    "requestType": "GetMachineLocalAIConfigurationRequest",
+    "responseType": "GetMachineLocalAIConfigurationResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
@@ -1757,6 +1781,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RepairLocalEnvironmentDependencyRequest",
     "responseType": "RepairLocalEnvironmentDependencyResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
+    "service": "RuntimeLocalService",
+    "method": "ReprojectLocalCapabilityRequirements",
+    "kind": "unary",
+    "requestType": "ReprojectLocalCapabilityRequirementsRequest",
+    "responseType": "ReprojectLocalCapabilityRequirementsResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",

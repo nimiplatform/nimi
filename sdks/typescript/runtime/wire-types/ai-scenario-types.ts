@@ -238,6 +238,40 @@ export type {
 };
 
 import type {
+  AddLocalCapabilityConfigurationRequest,
+  AddLocalCapabilityConfigurationResponse,
+  CapabilityImplementationIdentity,
+  GetLocalCapabilityConfigurationRequest,
+  GetLocalCapabilityConfigurationResponse,
+  GetMachineLocalAIConfigurationRequest,
+  GetMachineLocalAIConfigurationResponse,
+  LocalAssetExactBinding,
+  LocalCapabilityConfiguration,
+  LocalCapabilityRequirement,
+  LocalCapabilitySelection,
+  MachineLocalAIConfiguration,
+  ReprojectLocalCapabilityRequirementsRequest,
+  ReprojectLocalCapabilityRequirementsResponse,
+} from "../../core-generated/runtime-protobuf/runtime/v1/capability_configuration";
+
+export type {
+  AddLocalCapabilityConfigurationRequest,
+  AddLocalCapabilityConfigurationResponse,
+  CapabilityImplementationIdentity,
+  GetLocalCapabilityConfigurationRequest,
+  GetLocalCapabilityConfigurationResponse,
+  GetMachineLocalAIConfigurationRequest,
+  GetMachineLocalAIConfigurationResponse,
+  LocalAssetExactBinding,
+  LocalCapabilityConfiguration,
+  LocalCapabilityRequirement,
+  LocalCapabilitySelection,
+  MachineLocalAIConfiguration,
+  ReprojectLocalCapabilityRequirementsRequest,
+  ReprojectLocalCapabilityRequirementsResponse,
+};
+
+import type {
   DelegatedApprovalRequest,
   DelegatedControlSurfaceSnapshot,
   DelegatedDiagnostic,

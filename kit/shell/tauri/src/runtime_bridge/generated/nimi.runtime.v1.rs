@@ -8628,6 +8628,345 @@ impl LocalEngineStatus {
         }
     }
 }
+/// CapabilityImplementationIdentity identifies the implementation vocabulary
+/// against which a configuration's requirements are interpreted.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CapabilityImplementationIdentity {
+    #[prost(string, tag = "1")]
+    pub implementation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub driver_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub driver_dialect: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalCapabilityRequirement {
+    #[prost(string, tag = "1")]
+    pub requirement_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalCapabilityRequirementRole", tag = "2")]
+    pub role: i32,
+    #[prost(string, tag = "3")]
+    pub resource_kind: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalCapabilityRequirementPolicy", tag = "4")]
+    pub policy: i32,
+    #[prost(string, tag = "5")]
+    pub preferred_verified_content_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub compatibility_constraints: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAssetExactBinding {
+    #[prost(string, tag = "1")]
+    pub requirement_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub verified_content_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub entry_sha256: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalCapabilityConfiguration {
+    #[prost(string, tag = "1")]
+    pub configuration_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub implementation: ::core::option::Option<CapabilityImplementationIdentity>,
+    #[prost(message, optional, tag = "4")]
+    pub portable_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, repeated, tag = "5")]
+    pub projected_requirements: ::prost::alloc::vec::Vec<LocalCapabilityRequirement>,
+    #[prost(message, repeated, tag = "6")]
+    pub exact_bindings: ::prost::alloc::vec::Vec<LocalAssetExactBinding>,
+    #[prost(string, repeated, tag = "7")]
+    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "LocalCapabilityInterpretability", tag = "8")]
+    pub interpretability: i32,
+    #[prost(enumeration = "LocalCapabilityRequirementResolution", tag = "9")]
+    pub requirement_resolution: i32,
+    #[prost(enumeration = "LocalCapabilityReason", repeated, tag = "10")]
+    pub reasons: ::prost::alloc::vec::Vec<i32>,
+    #[prost(string, tag = "11")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "12")]
+    pub provenance: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalCapabilitySelection {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub configuration_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MachineLocalAiConfiguration {
+    #[prost(message, repeated, tag = "1")]
+    pub configurations: ::prost::alloc::vec::Vec<LocalCapabilityConfiguration>,
+    #[prost(message, repeated, tag = "2")]
+    pub selections: ::prost::alloc::vec::Vec<LocalCapabilitySelection>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetMachineLocalAiConfigurationRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetMachineLocalAiConfigurationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub aggregate: ::core::option::Option<MachineLocalAiConfiguration>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalCapabilityConfigurationRequest {
+    #[prost(string, tag = "1")]
+    pub configuration_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalCapabilityConfigurationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddLocalCapabilityConfigurationRequest {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub implementation: ::core::option::Option<CapabilityImplementationIdentity>,
+    #[prost(message, optional, tag = "3")]
+    pub portable_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, repeated, tag = "4")]
+    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "5")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub provenance: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddLocalCapabilityConfigurationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReprojectLocalCapabilityRequirementsRequest {
+    #[prost(string, tag = "1")]
+    pub configuration_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReprojectLocalCapabilityRequirementsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalCapabilityInterpretability {
+    Unspecified = 0,
+    Interpretable = 1,
+    Unavailable = 2,
+}
+impl LocalCapabilityInterpretability {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED",
+            Self::Interpretable => "LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE",
+            Self::Unavailable => "LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE" => {
+                Some(Self::Interpretable)
+            }
+            "LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE" => Some(Self::Unavailable),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalCapabilityRequirementResolution {
+    Unspecified = 0,
+    Unresolved = 1,
+    Configured = 2,
+}
+impl LocalCapabilityRequirementResolution {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED",
+            Self::Unresolved => "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED",
+            Self::Configured => "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED" => {
+                Some(Self::Unresolved)
+            }
+            "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED" => {
+                Some(Self::Configured)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalCapabilityRequirementPolicy {
+    Unspecified = 0,
+    Strict = 1,
+    Substitutable = 2,
+}
+impl LocalCapabilityRequirementPolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_CAPABILITY_REQUIREMENT_POLICY_UNSPECIFIED",
+            Self::Strict => "LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT",
+            Self::Substitutable => "LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_CAPABILITY_REQUIREMENT_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT" => Some(Self::Strict),
+            "LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE" => {
+                Some(Self::Substitutable)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalCapabilityRequirementRole {
+    Unspecified = 0,
+    Main = 1,
+    Companion = 2,
+}
+impl LocalCapabilityRequirementRole {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_CAPABILITY_REQUIREMENT_ROLE_UNSPECIFIED",
+            Self::Main => "LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN",
+            Self::Companion => "LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_CAPABILITY_REQUIREMENT_ROLE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN" => Some(Self::Main),
+            "LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION" => Some(Self::Companion),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalCapabilityReason {
+    Unspecified = 0,
+    DriverNotFound = 1,
+    DriverDialectUnsupported = 2,
+    ImplementationUnsupported = 3,
+    PortableConfigInvalid = 4,
+    FeatureUnsupported = 5,
+    RequiredBindingMissing = 6,
+    BindingAmbiguous = 7,
+    LocalAssetNotFound = 8,
+    LocalAssetContentUnverified = 9,
+    LocalAssetContentMismatch = 10,
+    LocalAssetIncompatible = 11,
+}
+impl LocalCapabilityReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_CAPABILITY_REASON_UNSPECIFIED",
+            Self::DriverNotFound => "LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND",
+            Self::DriverDialectUnsupported => {
+                "LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED"
+            }
+            Self::ImplementationUnsupported => {
+                "LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED"
+            }
+            Self::PortableConfigInvalid => {
+                "LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID"
+            }
+            Self::FeatureUnsupported => "LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED",
+            Self::RequiredBindingMissing => {
+                "LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING"
+            }
+            Self::BindingAmbiguous => "LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS",
+            Self::LocalAssetNotFound => "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND",
+            Self::LocalAssetContentUnverified => {
+                "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED"
+            }
+            Self::LocalAssetContentMismatch => {
+                "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH"
+            }
+            Self::LocalAssetIncompatible => {
+                "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_CAPABILITY_REASON_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND" => Some(Self::DriverNotFound),
+            "LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED" => {
+                Some(Self::DriverDialectUnsupported)
+            }
+            "LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED" => {
+                Some(Self::ImplementationUnsupported)
+            }
+            "LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID" => {
+                Some(Self::PortableConfigInvalid)
+            }
+            "LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED" => {
+                Some(Self::FeatureUnsupported)
+            }
+            "LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING" => {
+                Some(Self::RequiredBindingMissing)
+            }
+            "LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS" => Some(Self::BindingAmbiguous),
+            "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND" => {
+                Some(Self::LocalAssetNotFound)
+            }
+            "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED" => {
+                Some(Self::LocalAssetContentUnverified)
+            }
+            "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH" => {
+                Some(Self::LocalAssetContentMismatch)
+            }
+            "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE" => {
+                Some(Self::LocalAssetIncompatible)
+            }
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalAssetsRequest {
     #[prost(enumeration = "LocalAssetStatus", tag = "1")]
@@ -9630,6 +9969,131 @@ pub mod runtime_local_service_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        /// Machine-local capability configurations
+        pub async fn get_machine_local_ai_configuration(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetMachineLocalAiConfigurationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetMachineLocalAiConfigurationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "GetMachineLocalAIConfiguration",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_capability_configuration(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalCapabilityConfigurationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalCapabilityConfigurationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "GetLocalCapabilityConfiguration",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn add_local_capability_configuration(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::AddLocalCapabilityConfigurationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::AddLocalCapabilityConfigurationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "AddLocalCapabilityConfiguration",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn reproject_local_capability_requirements(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ReprojectLocalCapabilityRequirementsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ReprojectLocalCapabilityRequirementsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ReprojectLocalCapabilityRequirements",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         /// Asset CRUD (unified)
         pub async fn list_local_assets(
