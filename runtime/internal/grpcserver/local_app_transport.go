@@ -41,6 +41,8 @@ const (
 	protectedPresentationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
 	protectedCommitPresentationMethod          = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
 	protectedGenerateTextCandidateMethod       = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
+	protectedGetAppAIConfigMethod              = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
+	protectedOverwriteAppAIConfigMethod        = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
 	protectedInvokeRealmUnaryMethod            = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 )
 
@@ -79,6 +81,8 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedPresentationSnapshotMethod:        localAppSessionMethodPolicy(),
 	protectedCommitPresentationMethod:          localAppSessionMethodPolicy(),
 	protectedGenerateTextCandidateMethod:       localAppSessionMethodPolicy(),
+	protectedGetAppAIConfigMethod:              localAppSessionMethodPolicy(),
+	protectedOverwriteAppAIConfigMethod:        localAppSessionMethodPolicy(),
 	protectedInvokeRealmUnaryMethod:            localAppSessionMethodPolicy(),
 }
 
@@ -299,6 +303,16 @@ func newStreamProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Str
 
 func selectedLocalAppUnaryOperation(method string, request any) (accountservice.LocalAppOperation, localappop.Selector, bool) {
 	switch method {
+	case protectedGetAppAIConfigMethod:
+		if _, ok := request.(*runtimev1.GetAppAIConfigRequest); !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationAppAIConfigRead, localappop.Selector{}, true
+	case protectedOverwriteAppAIConfigMethod:
+		if _, ok := request.(*runtimev1.OverwriteAppAIConfigRequest); !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationAppAIConfigOverwrite, localappop.Selector{}, true
 	case protectedGenerateTextCandidateMethod:
 		if _, ok := request.(*runtimev1.GenerateLocalAppTextCandidateRequest); !ok {
 			return "", localappop.Selector{}, true

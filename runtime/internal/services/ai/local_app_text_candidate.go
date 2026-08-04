@@ -9,7 +9,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
-	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/grpc/codes"
 )
 
@@ -20,10 +19,11 @@ const (
 	maxLocalAppTextCandidateTokens      = 4096
 )
 
-// GenerateLocalAppTextCandidate is the sole third-party Local App AI method.
-// The protected interceptor supplies the current App/account permission
-// decision; this handler supplies the managed local model and generic Scenario
-// fields that are deliberately absent from the public Local App request.
+// GenerateLocalAppTextCandidate preserves the third-party Local App text
+// capability contract while canonical App AIConfig execution composition is
+// unavailable. The protected interceptor still supplies the current
+// App/account permission decision and valid requests fail closed without
+// resolving an ambient model, route, target, or fallback.
 func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtimev1.GenerateLocalAppTextCandidateRequest) (*runtimev1.GenerateLocalAppTextCandidateResponse, error) {
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || decision.Operation != accountservice.LocalAppOperationTextCandidateGenerate ||
@@ -31,92 +31,10 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 		decision.OperationCapability != "ai.text.generate" {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	systemPrompt, messages, err := validateLocalAppTextCandidateRequest(req)
-	if err != nil {
+	if _, _, err := validateLocalAppTextCandidateRequest(req); err != nil {
 		return nil, err
 	}
-	route, modelID, err := s.ResolvePublicChatTextBinding(
-		ctx,
-		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		texttarget.InternalDefaultLocalTextModelAlias,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || strings.TrimSpace(modelID) == "" {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	targetResolver, ok := s.localModel.(managedLlamaDurableTargetResolver)
-	if !ok || targetResolver == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	logicalModelID, localTarget, found := targetResolver.ResolveManagedLlamaDurableTargetByCapabilities(
-		modelID,
-		"text.generate",
-	)
-	if !found || strings.TrimSpace(logicalModelID) == "" || localTarget == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	response, err := s.ExecuteScenario(ctx, buildLocalAppTextCandidateScenarioRequest(
-		decision,
-		logicalModelID,
-		localTarget,
-		systemPrompt,
-		messages,
-		req,
-	))
-	if err != nil {
-		return nil, err
-	}
-	text := ""
-	if response.GetOutput() != nil && response.GetOutput().GetTextGenerate() != nil {
-		text = response.GetOutput().GetTextGenerate().GetText()
-	}
-	if strings.TrimSpace(text) == "" {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-	return &runtimev1.GenerateLocalAppTextCandidateResponse{
-		Text:         text,
-		FinishReason: response.GetFinishReason(),
-		TraceId:      response.GetTraceId(),
-	}, nil
-}
-
-func buildLocalAppTextCandidateScenarioRequest(
-	decision accountservice.LocalAppCallerDecision,
-	modelID string,
-	localTarget *runtimev1.RuntimeDurableLocalTargetRef,
-	systemPrompt string,
-	messages []*runtimev1.ChatMessage,
-	req *runtimev1.GenerateLocalAppTextCandidateRequest,
-) *runtimev1.ExecuteScenarioRequest {
-	return &runtimev1.ExecuteScenarioRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         decision.AppID,
-			SubjectUserId: decision.AccountID,
-			ModelId:       strings.TrimSpace(modelID),
-			TargetRef: &runtimev1.RuntimeDurableTargetRef{
-				Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: localTarget},
-			},
-			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-		},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{
-			TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-				Input:        messages,
-				SystemPrompt: systemPrompt,
-				Temperature:  req.GetTemperature(),
-				TopP:         req.GetTopP(),
-				MaxTokens:    req.GetMaxTokens(),
-				ToolChoice:   runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE,
-				ResponseFormat: &runtimev1.ResponseFormat{
-					Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_TEXT,
-				},
-			},
-		}},
-	}
+	return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 }
 
 func validateLocalAppTextCandidateRequest(req *runtimev1.GenerateLocalAppTextCandidateRequest) (string, []*runtimev1.ChatMessage, error) {

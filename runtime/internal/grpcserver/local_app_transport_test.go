@@ -265,6 +265,8 @@ func TestProtectedLocalAppPoliciesExposeOnlyNamedLocalAppOperations(t *testing.T
 		protectedUpdateAutonomyMethod,
 		protectedPresentationSnapshotMethod,
 		protectedCommitPresentationMethod,
+		protectedGetAppAIConfigMethod,
+		protectedOverwriteAppAIConfigMethod,
 		protectedInvokeRealmUnaryMethod,
 	} {
 		if !protectedLocalAppUnaryMethodAllowed(method) {
@@ -287,6 +289,22 @@ func TestProtectedLocalAppPoliciesExposeOnlyNamedLocalAppOperations(t *testing.T
 	}
 	if !protectedLocalAppStreamMethodAllowed(protectedSubscribeConversationMethod) {
 		t.Fatalf("admitted local-app stream operation is missing: %s", protectedSubscribeConversationMethod)
+	}
+}
+
+func TestSelectedProtectedLocalAppAIConfigOperationsAreSelectorFree(t *testing.T) {
+	for _, test := range []struct {
+		method    string
+		request   any
+		operation accountservice.LocalAppOperation
+	}{
+		{protectedGetAppAIConfigMethod, &runtimev1.GetAppAIConfigRequest{}, accountservice.LocalAppOperationAppAIConfigRead},
+		{protectedOverwriteAppAIConfigMethod, &runtimev1.OverwriteAppAIConfigRequest{}, accountservice.LocalAppOperationAppAIConfigOverwrite},
+	} {
+		operation, selector, selected := selectedLocalAppUnaryOperation(test.method, test.request)
+		if !selected || operation != test.operation || selector != (localappop.Selector{}) {
+			t.Fatalf("selected App AIConfig operation = (%q, %+v, %v), want (%q, empty, true)", operation, selector, selected, test.operation)
+		}
 	}
 }
 

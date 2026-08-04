@@ -109,11 +109,10 @@ test('multi-scope: storage repair leaves valid v2 AIConfig active', async () => 
     '../src/shell/renderer/app-shell/providers/desktop-ai-config-storage.js'
   );
   const scopeRef: NimiAIScopeRef = {
-    kind: 'feature',
-    ownerId: 'desktop.chat',
-    surfaceId: 'nimi',
+    kind: 'local-agent',
+    ownerId: 'runtime.local-agent-subsystem',
   };
-  const scopeKey = 'feature:desktop.chat:nimi';
+  const scopeKey = 'local-agent:runtime.local-agent-subsystem:';
   const configKey = desktopAIConfigStorageKey(scopeKey);
   const validConfig = {
     scopeRef,
@@ -153,11 +152,10 @@ test('multi-scope: storage repair quarantines retired persisted target refs and 
     '../src/shell/renderer/app-shell/providers/desktop-ai-config-storage.js'
   );
   const scopeRef: NimiAIScopeRef = {
-    kind: 'feature',
-    ownerId: 'desktop.chat',
-    surfaceId: 'nimi',
+    kind: 'local-agent',
+    ownerId: 'runtime.local-agent-subsystem',
   };
-  const scopeKey = 'feature:desktop.chat:nimi';
+  const scopeKey = 'local-agent:runtime.local-agent-subsystem:';
   const configKey = desktopAIConfigStorageKey(scopeKey);
   const retiredConfig = {
     scopeRef,
@@ -213,11 +211,10 @@ test('multi-scope: storage repair quarantines retired persisted target refs and 
 
 test('multi-scope: loadAIConfigForScope repairs retired stored config before SDK validation', async () => {
   const scopeRef: NimiAIScopeRef = {
-    kind: 'feature',
-    ownerId: 'desktop.chat',
-    surfaceId: 'agent',
+    kind: 'local-agent',
+    ownerId: 'runtime.local-agent-subsystem',
   };
-  const scopeKey = 'feature:desktop.chat:agent';
+  const scopeKey = 'local-agent:runtime.local-agent-subsystem:';
   const configKey = desktopAIConfigStorageKey(scopeKey);
   const storage = new MemoryHostStorage([
     [AI_CONFIG_SCOPE_INDEX_KEY, JSON.stringify([scopeKey])],
@@ -264,77 +261,5 @@ test('multi-scope: loadAIConfigForScope repairs retired stored config before SDK
     } else {
       Reflect.deleteProperty(globalThis, 'localStorage');
     }
-  }
-});
-
-// ---------------------------------------------------------------------------
-// T3-1: Mode-aware built-in chat scope orchestration behavior
-// ---------------------------------------------------------------------------
-
-test('T3-1: resolveChatModeAIScopeRef binds each mode to its canonical built-in scope', async () => {
-  const {
-    resolveChatModeAIScopeRef,
-  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
-
-  assert.deepEqual(resolveChatModeAIScopeRef('ai'), {
-    kind: 'feature',
-    ownerId: 'desktop.chat',
-    surfaceId: 'nimi',
-  });
-  // Agent Chat binds no Desktop-owned built-in scope (P-AISC-006): the Runtime
-  // projects the selected LocalAgent's Runtime-issued `local-agent` scope.
-  assert.equal(resolveChatModeAIScopeRef('agent'), null);
-  // Human and Group bind no built-in chat AIConfig scope (T3-2 owns Group reuse)
-  assert.equal(resolveChatModeAIScopeRef('human'), null);
-  assert.equal(resolveChatModeAIScopeRef('group'), null);
-});
-
-test('T3-1: setActiveScopeForMode switches the active scope per mode and notifies once per change', async () => {
-  const {
-    getActiveScope,
-    getActiveScopeMode,
-    setActiveScopeForMode,
-    onActiveScopeChange,
-  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
-
-  const originalMode = getActiveScopeMode();
-  const notifications: (NimiAIScopeRef | null)[] = [];
-  const unsubscribe = onActiveScopeChange((scopeRef: NimiAIScopeRef | null) => {
-    notifications.push(scopeRef);
-  });
-
-  try {
-    // Default chat mode is `ai` -> Nimi built-in chat scope
-    assert.deepEqual(getActiveScope(), {
-      kind: 'feature',
-      ownerId: 'desktop.chat',
-      surfaceId: 'nimi',
-    });
-
-    // Switch to Agent clears the Desktop-owned scope — Agent chat consumes the
-    // Runtime-issued local-agent scope of the selected LocalAgent instead.
-    setActiveScopeForMode('agent');
-    assert.equal(getActiveScope(), null);
-    // Idempotent within the same mode — no duplicate notification
-    setActiveScopeForMode('agent');
-    assert.equal(notifications.length, 1);
-    assert.equal(notifications[0], null);
-
-    // Switch back to Nimi rebinds the built-in Nimi chat scope
-    setActiveScopeForMode('ai');
-    assert.deepEqual(getActiveScope(), {
-      kind: 'feature',
-      ownerId: 'desktop.chat',
-      surfaceId: 'nimi',
-    });
-    assert.equal(notifications.length, 2);
-    assert.deepEqual(notifications[1], {
-      kind: 'feature',
-      ownerId: 'desktop.chat',
-      surfaceId: 'nimi',
-    });
-  } finally {
-    unsubscribe();
-    setActiveScopeForMode(originalMode);
   }
 });

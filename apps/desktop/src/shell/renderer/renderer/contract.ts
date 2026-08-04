@@ -97,7 +97,6 @@ export interface DesktopRendererCommandPort {
   };
   commitAIConfig(config: NimiAIConfig): void;
   persistChatThinkingPreference(preference: ChatThinkingPreference): void;
-  setActiveScopeForMode(mode: 'human' | 'ai' | 'agent' | 'group'): void;
   reportAuthEntryAction(): Promise<DesktopAuthEntryActionResult>;
   applyLocale(input: {
     readonly locale: 'en' | 'zh';

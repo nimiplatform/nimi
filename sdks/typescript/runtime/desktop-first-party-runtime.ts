@@ -16,6 +16,10 @@ import type {
 } from './first-party-protected-runtime-profiles.generated';
 import type { NimiRuntimeAgentAuthClient } from './runtime-agent-protected';
 import type { NimiRuntimeScenarioJobClient } from './scenario-jobs';
+import {
+  createNimiAppAIConfigClient,
+  type NimiAppAIConfigClient,
+} from '../core/ai/capability-configuration';
 
 export type NimiDesktopMachineProductRuntimeClient = {
   readonly local: Pick<DesktopMachineProductRuntimeMethods,
@@ -76,6 +80,7 @@ export type NimiDesktopMachineProductRuntimeClient = {
 };
 
 export type NimiDesktopAccountProductRuntimeClient = {
+  readonly aiConfig: NimiAppAIConfigClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
     | 'listAgents'
     | 'getAgent'
@@ -237,6 +242,15 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     submitDelegatedApprovalDecision: protectedAgent(runtime.agents.submitDelegatedApprovalDecision),
   });
   const agentPurpose: NimiDesktopRuntimeAgentPurposeClient = accountAgents;
+  const appAIConfig = createNimiAppAIConfigClient({
+    appId: input.appId,
+    runtime: {
+      ai: {
+        getAppAIConfig: runtime.ai.getAppAIConfig,
+        overwriteAppAIConfig: runtime.ai.overwriteAppAIConfig,
+      },
+    },
+  });
   return Object.freeze({
     machineProduct: Object.freeze({
       local: Object.freeze({
@@ -303,6 +317,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }),
     }),
     accountProduct: Object.freeze({
+      aiConfig: appAIConfig,
       agents: accountAgents,
       connectors: Object.freeze({
         listModelCatalogProviders: runtime.connectors.listModelCatalogProviders,

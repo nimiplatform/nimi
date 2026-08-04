@@ -3,11 +3,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import type { AIScopeRef } from '@nimiplatform/sdk/ai';
-import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
-
-const NIMI_SCOPE: AIScopeRef = { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'nimi' };
-
 function readDesktopFile(relativePath: string): string {
   return readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
@@ -57,93 +52,6 @@ test('the desktop-owned chat layout preserves a full-height chain for every mode
     canonicalFrameSource,
     /<CanonicalConversationShell[\s\S]*className="h-full min-h-0 flex-1"/u,
   );
-});
-
-test('the chat mode switcher exercises exactly the four product modes', async () => {
-  const {
-    setActiveScopeForMode,
-    getActiveScopeMode,
-  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
-
-  const FOUR_MODES: readonly ConversationMode[] = ['human', 'ai', 'agent', 'group'];
-  const originalMode = getActiveScopeMode();
-  try {
-    // Each of the four product modes is an accepted switcher input; switching
-    // never throws and the active-scope module tracks the selected mode.
-    for (const mode of FOUR_MODES) {
-      setActiveScopeForMode(mode);
-      assert.equal(getActiveScopeMode(), mode);
-    }
-  } finally {
-    setActiveScopeForMode(originalMode);
-  }
-});
-
-test('Nimi binds feature:desktop.chat:nimi; Agent binds no Desktop-owned chat scope', async () => {
-  const {
-    resolveChatModeAIScopeRef,
-    setActiveScopeForMode,
-    getActiveScope,
-    getActiveScopeMode,
-  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
-
-  const originalMode = getActiveScopeMode();
-  try {
-    // Static resolution — the Nimi built-in chat scope uses the canonical
-    // `feature` shape; Agent chat binds no Desktop-owned scope (P-AISC-006):
-    // the Runtime projects the selected LocalAgent's local-agent scope instead.
-    assert.deepEqual(resolveChatModeAIScopeRef('ai'), NIMI_SCOPE);
-    assert.equal(resolveChatModeAIScopeRef('agent'), null);
-    assert.equal(NIMI_SCOPE.kind, 'feature');
-
-    // Live switch — entering Nimi mode rebinds the active scope to the
-    // canonical built-in feature scope, never the generic app:desktop:chat;
-    // entering Agent mode clears the Desktop-owned active scope.
-    setActiveScopeForMode('ai');
-    assert.deepEqual(getActiveScope(), NIMI_SCOPE);
-    setActiveScopeForMode('agent');
-    assert.equal(getActiveScope(), null);
-  } finally {
-    setActiveScopeForMode(originalMode);
-  }
-});
-
-test('Human binds no built-in chat scope', async () => {
-  const {
-    resolveChatModeAIScopeRef,
-    setActiveScopeForMode,
-    getActiveScope,
-    getActiveScopeMode,
-  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
-
-  const originalMode = getActiveScopeMode();
-  try {
-    assert.equal(resolveChatModeAIScopeRef('human'), null);
-    setActiveScopeForMode('human');
-    // Human is a Realm-owned thread surface — it binds no built-in chat
-    // AIConfig scope, and specifically not the generic app:desktop:chat scope.
-    assert.equal(getActiveScope(), null);
-  } finally {
-    setActiveScopeForMode(originalMode);
-  }
-});
-
-test('Group binds no built-in chat scope', async () => {
-  const {
-    setActiveScopeForMode,
-    resolveChatModeAIScopeRef,
-    getActiveScope,
-    getActiveScopeMode,
-  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
-
-  const originalMode = getActiveScopeMode();
-  try {
-    assert.equal(resolveChatModeAIScopeRef('group'), null);
-    setActiveScopeForMode('group');
-    assert.equal(getActiveScope(), null);
-  } finally {
-    setActiveScopeForMode(originalMode);
-  }
 });
 
 test('agent-conversation-launcher requires localAgentRef and throws without it', async () => {

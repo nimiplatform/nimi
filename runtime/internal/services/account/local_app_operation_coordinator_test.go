@@ -257,6 +257,31 @@ func TestAuthorizeLocalAppWorldCoreUsesExactBaseEntitlementsWithoutPermission(t 
 	}
 }
 
+func TestAuthorizeLocalAppAIConfigUsesExactBaseEntitlementsWithoutPermission(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	fixture.resolver.binding.Capabilities = nil
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	for _, test := range []struct {
+		operation  LocalAppOperation
+		capability string
+	}{
+		{LocalAppOperationAppAIConfigRead, "runtime.ai.app-config.read"},
+		{LocalAppOperationAppAIConfigOverwrite, "runtime.ai.app-config.overwrite"},
+	} {
+		decision, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, test.operation, localappop.Selector{})
+		if err != nil {
+			t.Fatalf("%s base-entitlement authorization failed: %v", test.operation, err)
+		}
+		if decision.AuthorityClass != localappop.AuthorityClassBaseEntitlement ||
+			decision.Operation != test.operation ||
+			decision.OperationCapability != test.capability ||
+			decision.AppID != fixture.resolver.binding.AppID ||
+			decision.AccountID != "acct-1" {
+			t.Fatalf("%s base-entitlement decision = %+v", test.operation, decision)
+		}
+	}
+}
+
 func TestAuthorizeLocalAppStorageRejectsInvalidPathBeforeAuthorityEvaluation(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)

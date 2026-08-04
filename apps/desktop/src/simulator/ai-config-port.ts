@@ -1,4 +1,4 @@
-import { createEmptyNimiAIConfig, createNimiBuiltInChatAIScopeRef } from '@nimiplatform/sdk/ai';
+import { createEmptyNimiAIConfig, projectNimiRuntimeLocalAgentAIScopeRef } from '@nimiplatform/sdk/ai';
 
 import type { DesktopRendererAIConfigPort } from '../shell/renderer/renderer/ai-config-port.js';
 import type { DesktopSimulatorJsonValue } from './protocol.js';
@@ -8,7 +8,7 @@ type JsonRecord = { readonly [key: string]: DesktopSimulatorJsonValue };
 export function createDesktopSimulatorAIConfigPort(
   getProjection: () => DesktopSimulatorJsonValue,
 ): DesktopRendererAIConfigPort {
-  const scopeRef = createNimiBuiltInChatAIScopeRef('nimi');
+  const scopeRef = projectNimiRuntimeLocalAgentAIScopeRef('runtime.local-agent-subsystem');
   const config = createEmptyNimiAIConfig(scopeRef);
   const assertUnavailable = (): void => {
     const projection = getProjection() as JsonRecord;

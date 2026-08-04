@@ -75,6 +75,16 @@ func localAppBaseEntitlementOperation(operationID, resourceRef string) (localApp
 			return localAppOperationBinding{}, localappkernel.ErrInvalidArgument
 		}
 		capability = "realm.world-core.create"
+	case string(LocalAppOperationAppAIConfigRead):
+		if resourceRef != "runtime:ai:app-config:read" {
+			return localAppOperationBinding{}, localappkernel.ErrInvalidArgument
+		}
+		capability = "runtime.ai.app-config.read"
+	case string(LocalAppOperationAppAIConfigOverwrite):
+		if resourceRef != "runtime:ai:app-config:overwrite" {
+			return localAppOperationBinding{}, localappkernel.ErrInvalidArgument
+		}
+		capability = "runtime.ai.app-config.overwrite"
 	default:
 		return localAppOperationBinding{}, ErrLocalAppOperationNotAdmitted
 	}

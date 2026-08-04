@@ -284,7 +284,6 @@ export function createDesktopProductionBindings(
         }),
         commitAIConfig: dependencies.commitAIConfig,
         persistChatThinkingPreference: dependencies.persistChatThinkingPreference,
-        setActiveScopeForMode: dependencies.setActiveScopeForMode,
         async reportAuthEntryAction() {
           return Object.freeze({ ok: false as const, disposition: 'unsupported' as const });
         },

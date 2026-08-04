@@ -43,6 +43,8 @@ const (
 	LocalAppOperationStorageJSONRemove     LocalAppOperation = "app_storage.json.remove"
 	LocalAppOperationRealmWorldCoreList    LocalAppOperation = "realm.world_core.list"
 	LocalAppOperationRealmWorldCoreCreate  LocalAppOperation = "realm.world_core.create"
+	LocalAppOperationAppAIConfigRead       LocalAppOperation = "runtime.ai.app_config.read"
+	LocalAppOperationAppAIConfigOverwrite  LocalAppOperation = "runtime.ai.app_config.overwrite"
 	LocalAppOperationTextCandidateGenerate LocalAppOperation = "runtime.ai.text_candidate.generate"
 	LocalAppOperationVoiceTranscribe       LocalAppOperation = "runtime_agent.voice.transcribe"
 	LocalAppOperationVoiceStreamSubscribe  LocalAppOperation = "runtime_agent.voice.stream_subscribe"

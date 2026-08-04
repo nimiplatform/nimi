@@ -15,6 +15,8 @@ func TestCoordinatorAllowsBaseEntitlementOperationFamily(t *testing.T) {
 		OperationStorageJSONRead,
 		OperationStorageJSONWrite,
 		OperationStorageJSONRemove,
+		OperationAppAIConfigRead,
+		OperationAppAIConfigOverwrite,
 	}
 	for _, operation := range operations {
 		operation := operation
@@ -144,7 +146,13 @@ func TestCoordinatorIsProvenanceAgnosticAfterStructuralValidation(t *testing.T) 
 func TestCoordinatorBaseEntitlementNeedsNoUserPermissionState(t *testing.T) {
 	t.Parallel()
 
-	for _, operation := range []Operation{OperationStorageJSONRead, OperationStorageJSONWrite, OperationStorageJSONRemove} {
+	for _, operation := range []Operation{
+		OperationStorageJSONRead,
+		OperationStorageJSONWrite,
+		OperationStorageJSONRemove,
+		OperationAppAIConfigRead,
+		OperationAppAIConfigOverwrite,
+	} {
 		operation := operation
 		t.Run(string(operation), func(t *testing.T) {
 			t.Parallel()

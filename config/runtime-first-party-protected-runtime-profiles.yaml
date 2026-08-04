@@ -75,6 +75,8 @@ profiles:
     identity_class: account
     native_profile_marker: desktop-account-product-v1
     methods:
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests
       - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests
       - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection

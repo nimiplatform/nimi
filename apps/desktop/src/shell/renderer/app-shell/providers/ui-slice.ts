@@ -23,7 +23,6 @@ import type {
 export type UiSliceDependencies = {
   readonly initialChatThinkingPreference: ChatThinkingPreference;
   readonly persistChatThinkingPreference: (preference: ChatThinkingPreference) => void;
-  readonly setActiveScopeForMode: (mode: AppStoreState['chatMode']) => void;
 };
 
 type NavigationState = Pick<AppStoreState,
@@ -178,12 +177,6 @@ export function createUiSlice(
       });
     },
     setChatMode: (mode) => {
-      // Rebind the active built-in chat AIConfig scope to the mode's canonical
-      // scope (T3-1): `ai` -> feature:desktop.chat:nimi, `agent` ->
-      // feature:desktop.chat:agent, `human`/`group` -> no built-in chat scope.
-      // This rewires the AIConfig projection only; per-mode thread/session
-      // selection state is independent and untouched.
-      dependencies.setActiveScopeForMode(mode);
       startTransition(() => {
         set({ chatMode: mode });
       });

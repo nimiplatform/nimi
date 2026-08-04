@@ -1,7 +1,7 @@
 import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell/renderer/host';
 import {
   createEmptyNimiAIConfig,
-  createNimiBuiltInChatAIScopeRef,
+  projectNimiRuntimeLocalAgentAIScopeRef,
 } from '@nimiplatform/sdk/ai';
 
 import { createIdleAppAttentionState } from '../shell/renderer/app-shell/providers/app-attention-state.js';
@@ -237,7 +237,9 @@ export function createDesktopSimulatorBindings(
     app: {
       projection: Object.freeze({
         initialState: () => ({
-          aiConfig: createEmptyNimiAIConfig(createNimiBuiltInChatAIScopeRef('nimi')),
+          aiConfig: createEmptyNimiAIConfig(
+            projectNimiRuntimeLocalAgentAIScopeRef('runtime.local-agent-subsystem'),
+          ),
           bootstrapError: null,
           bootstrapReady: true,
           chatThinkingPreference: 'off' as const,
@@ -314,9 +316,6 @@ export function createDesktopSimulatorBindings(
           DesktopCanonicalRendererBindings['app']['commands']['reconcileLoginState']
         >[0]) {
           return authSession.reconcileLoginState({ authStatus });
-        },
-        setActiveScopeForMode() {
-          throw new Error('DESKTOP_SIMULATOR_CHAT_MODE_UNADMITTED');
         },
         async reportAuthEntryAction() {
           interactionSequence += 1;

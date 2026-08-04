@@ -16,9 +16,6 @@ import {
   schedulingDetailKeyForJudgement,
 } from '../src/shell/renderer/features/chat/chat-shared-execution-scheduling-guard.js';
 import {
-  assertAiSubmitSchedulingAllowed,
-} from '../src/shell/renderer/features/chat/chat-nimi-shell-host-actions.js';
-import {
   assertAgentSubmitSchedulingAllowed,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-host-actions.js';
 
@@ -172,19 +169,6 @@ test('execution scheduling guard: busy slowdown risk uses busy-specific detail k
   assert.match(decision.feedback?.message || '', /Device busy/);
 });
 
-test('AI submit: denied scheduling judgement blocks execution before submit proceeds', async () => {
-  await withProbeJudgement(createJudgement('denied', 'GPU missing'), async () => {
-    await assert.rejects(
-      assertAiSubmitSchedulingAllowed({
-        aiConfig: createLocalTextSubmitConfig(),
-        sdk: TEST_SDK,
-        t: translate,
-      }),
-      /GPU missing/,
-    );
-  });
-});
-
 test('Agent submit: denied scheduling judgement blocks execution before submit proceeds', async () => {
   await withProbeJudgement(createJudgement('denied', 'disk below safe threshold'), async () => {
     await assert.rejects(
@@ -196,26 +180,6 @@ test('Agent submit: denied scheduling judgement blocks execution before submit p
       /disk below safe threshold/,
     );
   });
-});
-
-test('AI submit: advisory scheduling states still allow submit preflight', async () => {
-  const advisoryStates: Array<NimiAISchedulingJudgement['state']> = [
-    'queue_required',
-    'preemption_risk',
-    'slowdown_risk',
-  ];
-
-  for (const state of advisoryStates) {
-    await withProbeJudgement(createJudgement(state, `${state}-detail`), async () => {
-      await assert.doesNotReject(async () => {
-          await assertAiSubmitSchedulingAllowed({
-            aiConfig: createLocalTextSubmitConfig(),
-            sdk: TEST_SDK,
-            t: translate,
-          });
-      });
-    });
-  }
 });
 
 test('unknown scheduling judgement: submit stays allowed but does not masquerade as runnable', async () => {
@@ -236,39 +200,4 @@ test('unknown scheduling judgement: submit stays allowed but does not masquerade
       });
     });
   });
-});
-
-test('submit guard uses target-scoped probe instead of scope aggregate probe', async () => {
-  const surface = getDesktopAIConfigService();
-  const originalProbe = surface.aiConfig.probeFeasibility;
-  const originalTargetProbe = surface.aiConfig.probeSchedulingTarget;
-  let scopeProbeCalls = 0;
-  let targetProbeCalls = 0;
-  surface.aiConfig.probeFeasibility = async () => {
-    scopeProbeCalls++;
-    return {
-      status: 'available',
-      capabilityStatuses: {},
-      schedulingJudgement: createJudgement('denied', 'scope aggregate should be ignored'),
-    };
-  };
-  surface.aiConfig.probeSchedulingTarget = async () => {
-    targetProbeCalls++;
-    return createJudgement('unknown', 'target scoped');
-  };
-
-  try {
-    await assert.doesNotReject(async () => {
-      await assertAiSubmitSchedulingAllowed({
-        aiConfig: createLocalTextSubmitConfig(),
-        sdk: TEST_SDK,
-        t: translate,
-      });
-    });
-    assert.equal(scopeProbeCalls, 0);
-    assert.equal(targetProbeCalls, 1);
-  } finally {
-    surface.aiConfig.probeFeasibility = originalProbe;
-    surface.aiConfig.probeSchedulingTarget = originalTargetProbe;
-  }
 });

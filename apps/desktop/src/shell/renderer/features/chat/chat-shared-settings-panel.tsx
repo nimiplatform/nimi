@@ -1,33 +1,24 @@
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type {
-  NimiAICapabilityRequirementDeclaration,
-  NimiAISchedulingJudgement,
-  NimiAIScopeRef,
-} from '@nimiplatform/sdk/ai';
-import {
-  getNimiRuntimeRouteCapabilityProjectionIssueKind,
-  isNimiRuntimeRouteCapabilityProjectionReady,
-} from '@nimiplatform/sdk/runtime';
+import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { useAccountProfileLibrary } from '../runtime-config/runtime-config-profile-library-context.js';
-import { useDesktopRouteModelPickerProviderResolver } from '../runtime-config/desktop-route-model-picker-provider';
-import { useSchedulingFeasibility, schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-shared-execution-scheduling-guard';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+import { schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-shared-execution-scheduling-guard';
 import type {
-  AppModelConfigSurface,
-  ModelConfigProjectionStatus,
   ModelConfigSection,
 } from '@nimiplatform/kit/features/model-config';
 import {
   DisabledConfigNote,
-  ModelConfigAiModelHub,
   ModelConfigPanel,
-  defaultModelConfigProfileCopy,
-  useModelConfigProfileController,
 } from '@nimiplatform/kit/features/model-config';
-import { useLocalAssets } from './capability-settings-shared';
-import type { ConversationCapabilityProjection } from './conversation-capability';
+import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import {
+  createDesktopNimiLocalTextIntent,
+  findDesktopNimiTextIntent,
+  replaceDesktopNimiTextIntent,
+  useDesktopNimiAppAIConfig,
+  useOverwriteDesktopNimiAppAIConfig,
+} from './chat-nimi-app-ai-config.js';
 
 type ChatSettingsPanelProps = {
   mode?: 'ai' | 'human';
@@ -100,151 +91,8 @@ export function SchedulingWarningBanner(props: { judgement: NimiAISchedulingJudg
   );
 }
 
-export function SchedulingWarningSection() {
-  const judgement = useSchedulingFeasibility();
-
-  if (!judgement || judgement.state === 'runnable') {
-    return null;
-  }
-
-  return <SchedulingWarningBanner judgement={judgement} />;
-}
-
-// ---------------------------------------------------------------------------
-// AiModeSettings — delegates to canonical kit ModelConfigAiModelHub. Profile
-// import, capability summaries, and capability detail routing are all owned
-// by the hub; chat-shared scope contributes scheduling as a hub footer and
-// a renderer-local diagnostics entry.
-// ---------------------------------------------------------------------------
-
-// Canonical chat enabled capabilities (9 ids). Order mirrors the Wave 4
-// preflight acceptance invariant.
-const CHAT_ENABLED_CAPABILITIES = [
-  'text.generate',
-  'audio.synthesize',
-  'audio.transcribe',
-  'voice_workflow.voice_clone',
-  'voice_workflow.voice_design',
-  'image.generate',
-  'image.edit',
-  'video.generate',
-  'text.embed',
-] as const;
-
-function chatRequirementDeclaration(scopeRef: NimiAIScopeRef): NimiAICapabilityRequirementDeclaration {
-  return {
-    requirementId: `desktop.chat.settings:${scopeRef.surfaceId ?? 'default'}`,
-    scopeRef,
-    requiredSlices: CHAT_ENABLED_CAPABILITIES.map((capability) => ({
-      requirementSliceId: `chat:${capability}`,
-      capability,
-      profileSliceRef: `chat:${capability}`,
-      readinessPolicy: 'required',
-    })),
-    setupProjectionPolicy: 'sdk-ai-config-setup-projection',
-  };
-}
-
-function toProjectionStatus(
-  t: ReturnType<typeof useTranslation>['t'],
-  projection: ConversationCapabilityProjection | null | undefined,
-): ModelConfigProjectionStatus | null {
-  if (!projection) {
-    return null;
-  }
-  const hasBinding = Boolean(projection.selectedTargetRef);
-  if (isNimiRuntimeRouteCapabilityProjectionReady(projection)) {
-    return {
-      supported: true,
-      tone: 'ready',
-      badgeLabel: t('Chat.settingsCapabilityReady', { defaultValue: 'Ready' }),
-      title: t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' }),
-      detail: null,
-    };
-  }
-  switch (getNimiRuntimeRouteCapabilityProjectionIssueKind(projection)) {
-    case 'needs_selection':
-      return {
-        supported: false,
-        tone: 'attention',
-        badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-        title: t('Chat.settingsModelSelectionRequired', { defaultValue: 'Model selection required' }),
-        detail: t('Chat.settingsModelSelectionRequiredHint', {
-          defaultValue: 'Choose one local or cloud model route before using this conversation.',
-        }),
-      };
-    case 'binding_unresolved':
-      return {
-        supported: false,
-        tone: 'attention',
-        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-        title: t('Chat.settingsSelectedRouteUnavailable', { defaultValue: 'Selected route unavailable' }),
-        detail: t('Chat.settingsSelectedRouteUnavailableHint', {
-          defaultValue: 'The selected route can no longer be resolved.',
-        }),
-      };
-    case 'route_not_ready':
-      return {
-        supported: false,
-        tone: 'attention',
-        badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-        title: t('Chat.settingsRouteNeedsSetup', { defaultValue: 'Route needs setup' }),
-        detail: t('Chat.settingsRouteNeedsSetupHint', {
-          defaultValue: 'Complete setup or warm the selected local model before using this route.',
-        }),
-      };
-    case 'route_unhealthy':
-      return {
-        supported: false,
-        tone: 'attention',
-        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-        title: t('Chat.settingsRouteUnhealthy', { defaultValue: 'Route unhealthy' }),
-        detail: t('Chat.settingsRouteUnhealthyHint', {
-          defaultValue: 'The selected route failed the latest health check.',
-        }),
-      };
-    case 'metadata_missing':
-      return {
-        supported: Boolean(projection.selectedTargetRef && projection.resolvedBinding),
-        tone: projection.selectedTargetRef && projection.resolvedBinding ? 'neutral' : 'attention',
-        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-        title: t('Chat.settingsRouteMetadataUnavailable', { defaultValue: 'Route metadata unavailable' }),
-        detail: t('Chat.settingsRouteMetadataUnavailableHint', {
-          defaultValue: 'A route is selected, but runtime describe metadata is not available yet.',
-        }),
-      };
-    case 'capability_unsupported':
-      return {
-        supported: false,
-        tone: 'attention',
-        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-        title: t('Chat.settingsCapabilityUnsupported', { defaultValue: 'Capability unsupported' }),
-        detail: t('Chat.settingsCapabilityUnsupportedHint', {
-          defaultValue: 'The current runtime does not expose this capability.',
-        }),
-      };
-    case 'host_denied':
-      return {
-        supported: false,
-        tone: 'attention',
-        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-        title: t('Chat.settingsCapabilityDenied', { defaultValue: 'Capability denied' }),
-        detail: t('Chat.settingsCapabilityDeniedHint', {
-          defaultValue: 'The host denied this capability for the current conversation surface.',
-        }),
-      };
-    default:
-      return {
-        supported: false,
-        tone: 'neutral',
-        badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-        title: hasBinding
-          ? t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
-          : t('Chat.settingsRouteUnavailable', { defaultValue: 'Route unavailable' }),
-        detail: null,
-      };
-  }
-}
+// Nimi Chat consumes the exact `nimi.desktop` App AIConfig. The Runtime owns
+// persistence; this panel only renders and mutates its current projection.
 
 function HumanModeSettings(props: {
   modelPickerContent?: ReactNode;
@@ -286,71 +134,22 @@ function AiModeSettings(props: {
   showDiagnosticsFooter?: boolean;
 }) {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
-  const sdk = useDesktopRendererSdk();
-  const profileLibrary = useAccountProfileLibrary();
-  const providerResolver = useDesktopRouteModelPickerProviderResolver();
   const { t } = useTranslation();
-  const aiConfig = useAppStore((state) => state.aiConfig);
-  const projectionByCapability = useAppStore((state) => state.conversationCapabilityProjectionByCapability);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const aiConfigService = useMemo(() => sdk.aiConfig(), [sdk]);
-  const assetsQuery = useLocalAssets();
-
-  const surface: AppModelConfigSurface = useMemo(() => ({
-    scopeRef: aiConfig.scopeRef,
-    aiConfigService,
-    requirementDeclaration: chatRequirementDeclaration(aiConfig.scopeRef),
-    providerResolver,
-    projectionResolver: (capabilityId: string) => toProjectionStatus(
-      t,
-      projectionByCapability[capabilityId as keyof typeof projectionByCapability] || null,
-    ),
-    localAssetSource: {
-      list: () => assetsQuery.data || [],
-      loading: assetsQuery.isLoading,
-    },
-    i18n: { t },
-  }), [
-    aiConfig.scopeRef,
-    aiConfigService,
-    assetsQuery.data,
-    assetsQuery.isLoading,
-    projectionByCapability,
-    providerResolver,
-    t,
-  ]);
-  const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
-  // Prime the read-through projection of the Rust-owned account profile
-  // library so the synchronous kit `userProfilesSource.list()` reflects host
-  // truth. The library file family is the source of truth (P-AIPS-013); this
-  // is only its renderer projection.
-  useEffect(() => {
-    void profileLibrary.ensureLoaded();
-  }, [profileLibrary]);
-  const userProfilesSource = useMemo(
-    () => ({ list: profileLibrary.cachedProfiles }),
-    [profileLibrary],
-  );
-  const currentOrigin = useMemo(
-    () => (aiConfig.profileOrigin
-      ? { profileId: aiConfig.profileOrigin.profileId, title: aiConfig.profileOrigin.title }
-      : null),
-    [aiConfig.profileOrigin?.profileId, aiConfig.profileOrigin?.title],
-  );
+  const appAIConfig = useDesktopNimiAppAIConfig();
+  const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig();
+  const textIntent = findDesktopNimiTextIntent(appAIConfig.data);
+  const routeKind = textIntent?.route.oneofKind;
   const handleManageProfiles = useCallback(() => {
     setActiveTab('runtime');
     runtimeConfigNavigation.openPage('profiles');
   }, [runtimeConfigNavigation, setActiveTab]);
-
-  const profile = useModelConfigProfileController({
-    scopeRef: aiConfig.scopeRef,
-    aiConfigService,
-    requirementDeclaration: chatRequirementDeclaration(aiConfig.scopeRef),
-    copy: profileCopy,
-    userProfilesSource,
-    currentOrigin,
-    onManage: handleManageProfiles,
-  });
+  const handleUseLocal = useCallback(() => {
+    overwriteAppAIConfig.mutate(replaceDesktopNimiTextIntent(
+      appAIConfig.data?.capabilities ?? [],
+      createDesktopNimiLocalTextIntent(),
+    ));
+  }, [appAIConfig.data, overwriteAppAIConfig]);
 
   // Diagnostics is always considered visible in the AI panel now that it is a
   // persistent footer entry rather than an on-demand path view.
@@ -363,7 +162,6 @@ function AiModeSettings(props: {
 
   const footer = (
     <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">
-      <SchedulingWarningSection />
       {props.showDiagnosticsFooter !== false && props.diagnosticsContent ? (
         <div data-chat-settings-module="diagnostics" className="space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
@@ -383,7 +181,68 @@ function AiModeSettings(props: {
       {props.showPresenceContent !== false && props.presenceContent ? (
         <div data-chat-settings-module="avatar">{props.presenceContent}</div>
       ) : null}
-      <ModelConfigAiModelHub surface={surface} profile={profile} footer={footer} />
+      <Surface tone="card" className="space-y-3 p-4" data-testid="nimi-app-ai-config">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+              {t('Chat.settingsChatSection', { defaultValue: 'Nimi Chat AI' })}
+            </div>
+            <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+              {t('Chat.settingsAppAIConfigOwnerHint', {
+                defaultValue: 'This choice belongs to the Nimi Desktop app. Local execution uses the machine’s current Local AI configuration.',
+              })}
+            </div>
+          </div>
+          <StatusBadge
+            tone={routeKind ? 'success' : 'warning'}
+          >
+            {routeKind === 'local'
+              ? t('Chat.settingsRouteLocal', { defaultValue: 'Local' })
+              : routeKind === 'cloud'
+                ? t('Chat.settingsRouteCloud', { defaultValue: 'Cloud' })
+                : t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' })}
+          </StatusBadge>
+        </div>
+
+        {appAIConfig.isError ? (
+          <InlineAlert tone="warning">
+            {t('Chat.settingsAppAIConfigUnavailable', {
+              defaultValue: 'The Nimi Desktop AI configuration is not available yet. Apply an AIProfile or finish Runtime setup first.',
+            })}
+          </InlineAlert>
+        ) : null}
+
+        {routeKind === 'cloud' ? (
+          <InlineAlert tone="info">
+            {textIntent?.route.oneofKind === 'cloud' && textIntent.route.cloud.connectorGrantId
+              ? t('Chat.settingsCloudGrantSelected', { defaultValue: 'A Cloud connector grant is selected for this app.' })
+              : t('Chat.settingsCloudGrantRequired', { defaultValue: 'Cloud intent is saved. Select a connector grant before execution.' })}
+          </InlineAlert>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            tone={routeKind === 'local' ? 'primary' : 'secondary'}
+            size="sm"
+            disabled={appAIConfig.isPending || overwriteAppAIConfig.isPending}
+            onClick={handleUseLocal}
+          >
+            {t('Chat.settingsUseLocalAI', { defaultValue: 'Use Local AI' })}
+          </Button>
+          <Button tone="ghost" size="sm" onClick={handleManageProfiles}>
+            {t('Chat.settingsManageProfiles', { defaultValue: 'Manage AIProfiles' })}
+          </Button>
+        </div>
+
+        {overwriteAppAIConfig.error ? (
+          <InlineAlert tone="danger">
+            {overwriteAppAIConfig.error instanceof Error
+              ? overwriteAppAIConfig.error.message
+              : t('Chat.settingsAppAIConfigSaveFailed', { defaultValue: 'Failed to save Nimi Desktop AI configuration.' })}
+          </InlineAlert>
+        ) : null}
+      </Surface>
+      {footer}
     </div>
   );
 }

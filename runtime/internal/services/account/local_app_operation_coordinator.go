@@ -371,6 +371,16 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "realm:world-core:create", nil
+	case LocalAppOperationAppAIConfigRead:
+		if selector != (localappop.Selector{}) {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return "runtime:ai:app-config:read", nil
+	case LocalAppOperationAppAIConfigOverwrite:
+		if selector != (localappop.Selector{}) {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return "runtime:ai:app-config:overwrite", nil
 	case LocalAppOperationTextCandidateGenerate:
 		if selector != (localappop.Selector{}) {
 			return "", ErrLocalAppOperationNotAdmitted

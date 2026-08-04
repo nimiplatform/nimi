@@ -28,7 +28,6 @@ export function createDesktopRendererResources(
     commitAIConfig: bindings.app.commands.commitAIConfig,
     initialChatThinkingPreference: initial.chatThinkingPreference,
     persistChatThinkingPreference: bindings.app.commands.persistChatThinkingPreference,
-    setActiveScopeForMode: bindings.app.commands.setActiveScopeForMode,
   });
   store.setState({
     bootstrapError: initial.bootstrapError,

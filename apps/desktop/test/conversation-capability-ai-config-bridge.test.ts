@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  createNimiBuiltInChatAIScopeRef,
-  projectNimiRuntimeLocalAgentAIScopeRef,
-} from '@nimiplatform/sdk/ai';
+import { projectNimiRuntimeLocalAgentAIScopeRef } from '@nimiplatform/sdk/ai';
 import {
   aiConfigFromSelectionStore,
   createDefaultConversationCapabilitySelectionStore,
@@ -23,7 +20,10 @@ test('conversation capability bridge preserves local runtime targetRefs in AICon
     },
   );
 
-  const config = aiConfigFromSelectionStore(store, createNimiBuiltInChatAIScopeRef('nimi'));
+  const config = aiConfigFromSelectionStore(
+    store,
+    projectNimiRuntimeLocalAgentAIScopeRef('runtime.local-agent-subsystem'),
+  );
 
   assert.deepEqual(config.capabilities.targetRefs['text.generate'], {
     kind: 'local-runtime',

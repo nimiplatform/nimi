@@ -39,6 +39,8 @@ var operationSpecs = map[Operation]operationSpec{
 	OperationStorageJSONRemove:     {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
 	OperationRealmWorldCoreList:    {selector: selectorNone, authorityClass: AuthorityClassBaseEntitlement},
 	OperationRealmWorldCoreCreate:  {selector: selectorNone, authorityClass: AuthorityClassBaseEntitlement},
+	OperationAppAIConfigRead:       {selector: selectorNone, authorityClass: AuthorityClassBaseEntitlement},
+	OperationAppAIConfigOverwrite:  {selector: selectorNone, authorityClass: AuthorityClassBaseEntitlement},
 	OperationTextCandidateGenerate: {selector: selectorNone, authorityClass: AuthorityClassUserPermission},
 }
 

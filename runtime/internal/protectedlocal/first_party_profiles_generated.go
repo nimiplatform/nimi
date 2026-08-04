@@ -156,6 +156,10 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		}
 	case "desktop_account_product_v1":
 		switch methodID {
+		case "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests":
@@ -408,6 +412,8 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 		}
 	case "desktop_account_product_v1":
 		return []FirstPartyProfileMethodEntry{
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection", Kind: FirstPartyMethodUnary},

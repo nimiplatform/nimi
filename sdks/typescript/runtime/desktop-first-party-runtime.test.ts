@@ -1,0 +1,58 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import type { CoreTransport } from '../core-client';
+import type { AIConfigCapabilityIntent } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
+import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
+import { createNimiDesktopFirstPartyRuntimeClients } from './desktop-first-party-runtime';
+
+test('Desktop account product binds App AIConfig to its exact product owner', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
+      calls.push(request);
+      if (request.methodId === '/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig') {
+        const body = request.body as { owner?: unknown };
+        return { config: { owner: body.owner, capabilities: [] } } as Response;
+      }
+      if (request.methodId === '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig') {
+        const body = request.body as { config?: unknown };
+        return { config: body.config } as Response;
+      }
+      throw new Error(`unexpected Runtime method: ${request.methodId}`);
+    },
+    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
+      throw new Error('unexpected Runtime stream');
+    },
+  };
+  const clients = createNimiDesktopFirstPartyRuntimeClients({
+    appId: 'nimi.desktop',
+    transport,
+  });
+
+  const existing = await clients.accountProduct.aiConfig.get();
+  assert.equal(existing.owner?.owner.oneofKind, 'app');
+  if (existing.owner?.owner.oneofKind === 'app') {
+    assert.equal(existing.owner.owner.app.appId, 'nimi.desktop');
+  }
+
+  const localIntent: AIConfigCapabilityIntent = {
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+    route: { oneofKind: 'local', local: {} },
+  };
+  const overwritten = await clients.accountProduct.aiConfig.overwrite([localIntent]);
+  assert.equal(overwritten.capabilities[0]?.capabilityContract, 'text.generate');
+  assert.equal(overwritten.owner?.owner.oneofKind, 'app');
+  if (overwritten.owner?.owner.oneofKind === 'app') {
+    assert.equal(overwritten.owner.owner.app.appId, 'nimi.desktop');
+  }
+
+  assert.deepEqual(calls.map((call) => call.methodId), [
+    '/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig',
+    '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig',
+  ]);
+  for (const call of calls) {
+    assert.equal(call.metadata?.appId, undefined, 'protected host owns caller identity');
+  }
+});

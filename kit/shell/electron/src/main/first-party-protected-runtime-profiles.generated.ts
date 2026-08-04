@@ -77,6 +77,8 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
     identityClass: "account",
     nativeProfileMarker: "desktop-account-product-v1",
     methods: {
+      "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests": { kind: "server_stream" },
       "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection": { kind: "unary" },

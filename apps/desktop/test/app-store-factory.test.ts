@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 
 import {
   createEmptyNimiAIConfig,
-  createNimiBuiltInChatAIScopeRef,
   projectNimiRuntimeLocalAgentAIScopeRef,
   type NimiAIConfig,
 } from '@nimiplatform/sdk/ai';
@@ -67,9 +66,9 @@ import { createRuntimeConfigConnectorSdkService } from '../src/shell/renderer/fe
 import { createAccountProfileLibraryResource } from '../src/shell/renderer/features/runtime-config/runtime-config-profile-library.js';
 
 function testChatScope(surface: 'nimi' | 'agent') {
-  return surface === 'nimi'
-    ? createNimiBuiltInChatAIScopeRef('nimi')
-    : projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test');
+  return projectNimiRuntimeLocalAgentAIScopeRef(
+    surface === 'nimi' ? 'runtime.local-agent-subsystem:test-a' : 'local-agent:test',
+  );
 }
 
 function createDependencies(input: {
@@ -86,9 +85,6 @@ function createDependencies(input: {
     initialChatThinkingPreference: 'off',
     persistChatThinkingPreference(preference) {
       input.preferences.push(preference);
-    },
-    setActiveScopeForMode(mode) {
-      input.modes.push(mode);
     },
   };
 }
@@ -115,7 +111,7 @@ test('createAppStore owns independent state and injected effects per renderer in
   assert.equal(second.getState().chatThinkingPreference, 'off');
   assert.deepEqual(firstEffects.preferences, ['on']);
   assert.deepEqual(secondEffects.preferences, []);
-  assert.deepEqual(firstEffects.modes, ['agent']);
+  assert.deepEqual(firstEffects.modes, []);
   assert.deepEqual(secondEffects.modes, []);
 });
 
@@ -152,7 +148,7 @@ test('AppStoreProvider resolves the store belonging to the current renderer tree
     createElement(AppStoreProvider, { store }, createElement(ActiveScope)),
   );
 
-  assert.equal(render(first), '<span>nimi</span>');
+  assert.equal(render(first), '<span>agent</span>');
   assert.equal(render(second), '<span>agent</span>');
 });
 
@@ -267,7 +263,7 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
     createElement(InstanceSnapshot),
   ));
 
-  assert.match(render('/first', firstStore, firstQueryClient, firstI18n), /\/first\|nimi\|en/);
+  assert.match(render('/first', firstStore, firstQueryClient, firstI18n), /\/first\|agent\|en/);
   assert.match(render('/second', secondStore, secondQueryClient, secondI18n), /\/second\|agent\|zh/);
   firstQueryClient.clear();
   secondQueryClient.clear();
@@ -423,7 +419,6 @@ function createCanonicalBindings(input: {
         }),
         commitAIConfig() {},
         persistChatThinkingPreference() {},
-        setActiveScopeForMode() {},
         async reportAuthEntryAction() { return { ok: false as const, disposition: 'unsupported' as const }; },
         applyLocale() {},
         async openWalletCheckout() { return { opened: false }; },

@@ -1,48 +1,70 @@
 package ai
 
 import (
+	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func TestBuildLocalAppTextCandidateScenarioRequestCarriesRuntimeDerivedTarget(t *testing.T) {
-	localTarget := &runtimev1.RuntimeDurableLocalTargetRef{
-		Version: "v2",
-		Ref: &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{
-			ReadinessRef: "local_asset_readiness:v2:fixture",
-		},
+func TestGenerateLocalAppTextCandidateFailsClosedWithoutAmbientExecution(t *testing.T) {
+	svc := &Service{}
+	response, err := svc.GenerateLocalAppTextCandidate(
+		localAppTextCandidateContext(),
+		validLocalAppTextCandidateRequest(),
+	)
+	if response != nil {
+		t.Fatalf("response = %+v, want nil", response)
 	}
-	input := &runtimev1.GenerateLocalAppTextCandidateRequest{
+	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+}
+
+func TestGenerateLocalAppTextCandidatePreservesPermissionAndInputValidation(t *testing.T) {
+	svc := &Service{}
+
+	_, err := svc.GenerateLocalAppTextCandidate(context.Background(), validLocalAppTextCandidateRequest())
+	assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+
+	_, err = svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), &runtimev1.GenerateLocalAppTextCandidateRequest{})
+	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+}
+
+func localAppTextCandidateContext() context.Context {
+	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
+		AccountID:           "account-1",
+		AppID:               "nimi.realm-persona-studio",
+		LocalAppPrincipalID: "principal-1",
+		LocalAppRecordID:    "record-1",
+		Operation:           accountservice.LocalAppOperationTextCandidateGenerate,
+		AuthorityClass:      localappop.AuthorityClassUserPermission,
+		OperationCapability: "ai.text.generate",
+	})
+}
+
+func validLocalAppTextCandidateRequest() *runtimev1.GenerateLocalAppTextCandidateRequest {
+	return &runtimev1.GenerateLocalAppTextCandidateRequest{
+		Messages: []*runtimev1.LocalAppTextCandidateMessage{{
+			Role: "user",
+			Text: "Create a persona.",
+		}},
 		Temperature: 0.7,
 		TopP:        0.95,
 		MaxTokens:   512,
 	}
-	messages := []*runtimev1.ChatMessage{{Role: "user", Content: "Create a persona."}}
+}
 
-	request := buildLocalAppTextCandidateScenarioRequest(
-		accountservice.LocalAppCallerDecision{AppID: "nimi.realm-persona-studio", AccountID: "account-1"},
-		" nimi/alpha-model ",
-		localTarget,
-		"Return JSON.",
-		messages,
-		input,
-	)
-
-	head := request.GetHead()
-	if head.GetAppId() != "nimi.realm-persona-studio" || head.GetSubjectUserId() != "account-1" {
-		t.Fatalf("caller projection mismatch: %#v", head)
+func assertLocalAppTextCandidateError(t *testing.T, err error, code codes.Code, reason runtimev1.ReasonCode) {
+	t.Helper()
+	if status.Code(err) != code {
+		t.Fatalf("error code = %s, want %s: %v", status.Code(err), code, err)
 	}
-	if head.GetModelId() != "nimi/alpha-model" || head.GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL ||
-		head.GetFallback() != runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY {
-		t.Fatalf("managed route projection mismatch: %#v", head)
-	}
-	if got := head.GetTargetRef().GetLocalRuntime(); got == nil || got.GetReadinessRef() != localTarget.GetReadinessRef() {
-		t.Fatalf("Runtime-derived target missing from Scenario head: %#v", head.GetTargetRef())
-	}
-	if request.GetSpec().GetTextGenerate().GetInput()[0].GetContent() != "Create a persona." ||
-		request.GetSpec().GetTextGenerate().GetSystemPrompt() != "Return JSON." {
-		t.Fatalf("text candidate spec mismatch: %#v", request.GetSpec().GetTextGenerate())
+	got, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || got != reason {
+		t.Fatalf("error reason = %s, %v; want %s: %v", got, ok, reason, err)
 	}
 }

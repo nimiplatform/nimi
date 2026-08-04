@@ -7,12 +7,7 @@ import {
   useState,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ConversationOrchestrationRegistry,
-  createReadyConversationSetupState,
-} from '@nimiplatform/kit/features/chat/headless';
-import { createSimpleAiConversationProvider } from '@nimiplatform/kit/features/chat/runtime';
-import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import type { ChatAiMessageRecord, ChatAiThreadRecord } from '../../bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '../../bridge/runtime-bridge/chat-ai-store';
 import { useTranslation } from 'react-i18next';
@@ -29,11 +24,7 @@ import {
   useConversationStreamState,
 } from './chat-shared-runtime-stream-ui';
 import {
-  buildAiConversationRouteSummary,
-} from './chat-nimi-route-view';
-import {
   getChatThinkingUnsupportedCopy,
-  resolveAiThinkingSupportFromProjection,
 } from './chat-shared-thinking';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import {
@@ -45,15 +36,13 @@ import {
 } from './chat-nimi-shell-core';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import { useAiConversationPresentation } from './chat-nimi-shell-presentation';
-import {
-  createChatAiConversationRuntimeAdapter,
-  resolveChatAiConversationRuntimeRequest,
-} from './chat-nimi-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-nimi-shell-effects';
-import { useAiConversationCapabilityEffects } from './chat-nimi-shell-capability-effects';
-import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAiConversationHostActions } from './chat-nimi-shell-host-actions';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import {
+  findDesktopNimiTextIntent,
+  useDesktopNimiAppAIConfig,
+} from './chat-nimi-app-ai-config.js';
 
 type UseAiConversationModeHostInput = {
   selection: NimiConversationSelection;
@@ -66,21 +55,16 @@ export function useAiConversationModeHost(
 ): { host: DesktopConversationModeHost } {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
-  const sdk = bindings.sdk;
-  const store = useAppStoreApi();
   const queryClient = useQueryClient();
-  const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
-  const aiConfig = useAppStore((state) => state.aiConfig);
-  const textCapabilityProjection = useAppStore(
-    (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
-  );
-  const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
+  const appAIConfig = useDesktopNimiAppAIConfig();
+  const textIntent = findDesktopNimiTextIntent(appAIConfig.data);
+  const submittingThreadId = null;
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const [ephemeralThread, setEphemeralThread] = useState<ChatAiThreadRecord | null>(null);
   const currentDraftTextRef = useRef('');
-  const schedulingJudgement = useSchedulingFeasibility();
+  const schedulingJudgement = null;
 
   const reportHostError = useCallback((error: unknown) => {
     setHostFeedback({
@@ -131,15 +115,39 @@ export function useAiConversationModeHost(
     return {};
   }, []);
 
-  const setupState = useMemo(
-    () => createReadyConversationSetupState('ai'),
-    [],
-  );
+  const setupState = useMemo(() => {
+    if (!textIntent) {
+      return {
+        mode: 'ai' as const,
+        status: 'setup-required' as const,
+        issues: [{
+          code: 'ai-no-chat-route' as const,
+          detail: appAIConfig.isPending
+            ? 'Loading Nimi Desktop AI configuration.'
+            : 'Choose Local AI or a Cloud implementation for Nimi Chat.',
+        }],
+        primaryAction: {
+          kind: 'open-settings' as const,
+          targetId: 'runtime-overview' as const,
+          returnToMode: 'ai' as const,
+        },
+      };
+    }
+    return {
+      mode: 'ai' as const,
+      status: 'unavailable' as const,
+      issues: [{
+        code: 'ai-route-readiness-unavailable' as const,
+        detail: 'Runtime App AIConfig execution composition is not active yet.',
+      }],
+      primaryAction: null,
+    };
+  }, [appAIConfig.isPending, textIntent]);
 
-  const thinkingSupport = useMemo(
-    () => resolveAiThinkingSupportFromProjection(textCapabilityProjection),
-    [textCapabilityProjection],
-  );
+  const thinkingSupport = useMemo(() => ({
+    supported: false,
+    reason: 'thinking_unsupported' as const,
+  }), []);
   const thinkingUnsupportedReason = useMemo(() => {
     if (thinkingSupport.supported || !thinkingSupport.reason) {
       return null;
@@ -162,48 +170,17 @@ export function useAiConversationModeHost(
     [bundle?.messages],
   );
   const streamState = useConversationStreamState(activeThreadId);
-  const projectionSupported = textCapabilityProjection?.supported === true;
-  const aiProvider = useMemo(() => {
-    const registry = new ConversationOrchestrationRegistry();
-    registry.register(createSimpleAiConversationProvider({
-      runtimeAdapter: createChatAiConversationRuntimeAdapter({
-        reasoningPreference: chatThinkingPreference,
-        getTextProjection: () => textCapabilityProjection,
-        aiConfig,
-        sdk,
-        now: bindings.clock.now,
-      }),
-      resolveRuntimeRequest: () => resolveChatAiConversationRuntimeRequest(textCapabilityProjection),
-      resolveSystemPrompt: (turnInput) => turnInput.systemPrompt || null,
-    }));
-    const provider = registry.resolve('simple-ai');
-    if (!provider) throw new Error('SIMPLE_AI_CONVERSATION_PROVIDER_MISSING');
-    return provider;
-  }, [
-    chatThinkingPreference,
-    aiConfig,
-    sdk,
-    textCapabilityProjection,
-  ]);
+  const projectionSupported = false;
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
-  const composerReady = !isBundleLoading
-    && !bundleQuery.error;
+  const composerReady = false;
 
   const {
     setBundleCache,
-    setThreadsCache,
     syncSelectionToThread,
   } = useAiConversationEffects({
     queryClient,
     setSelection,
-  });
-
-  useAiConversationCapabilityEffects({
-    bootstrapReady,
-    currentDraftTextRef,
-    draftText: bundle?.draft?.text,
-    draftUpdatedAtMs: bundle?.draft?.updatedAtMs,
   });
 
   useEffect(() => {
@@ -233,38 +210,27 @@ export function useAiConversationModeHost(
     handleSubmit,
   } = useAiConversationHostActions({
     activeThreadId,
-    aiConfig,
-    sdk,
-    bundleMessages: bundle?.messages,
     currentDraftTextRef,
     ephemeralThread,
     now: bindings.clock.now,
     queryClient,
     reportHostError,
-    runAiTurn: (turnInput) => aiProvider.runTurn({
-      modeId: 'simple-ai',
-      ...turnInput,
-    }),
     selectedThreadRecord,
     setBundleCache,
     setEphemeralThread,
-    setSubmittingThreadId,
-    setThreadsCache,
-    store,
     submittingThreadId,
     syncSelectionToThread,
-    t,
     threads,
   });
 
-  const routeSummary = useMemo(
-    () => buildAiConversationRouteSummary({
-      projection: textCapabilityProjection,
-      selectedTargetRef: textCapabilityProjection?.selectedTargetRef || null,
-      routeOptions: [],
-    }),
-    [textCapabilityProjection],
-  );
+  const routeSummary = useMemo(() => ({
+    label: textIntent?.route.oneofKind === 'local'
+      ? t('Chat.settingsRouteLocal', { defaultValue: 'Local AI' })
+      : textIntent?.route.oneofKind === 'cloud'
+        ? t('Chat.settingsRouteCloud', { defaultValue: 'Cloud AI' })
+        : t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
+    detail: null,
+  }), [t, textIntent?.route.oneofKind]);
 
   const aiCharacterData = useMemo(() => ({
     name: t('Chat.nimiAssistantName', { defaultValue: 'Nimi' }),
