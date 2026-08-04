@@ -1,16 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  RuntimeModelPickerPanel,
-} from '@nimiplatform/kit/features/model-picker/ui';
-import {
-  useRuntimeModelPickerPanel,
-} from '@nimiplatform/kit/features/model-picker/runtime';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import {
   createRuntimeConfigCatalogClient,
-  type RuntimeConfigCatalogClient,
   type NimiRuntimeCatalogModelDetail,
   type NimiRuntimeCatalogModelOverlayInput,
   type NimiRuntimeCatalogProviderModelsResponse,
@@ -145,7 +138,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
   const [loadingModels, setLoadingModels] = useState(false);
   const [savingOverlayYaml, setSavingOverlayYaml] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
-  const [deletingModelId, setDeletingModelId] = useState('');
   const [showAddModel, setShowAddModel] = useState(false);
   const [formState, setFormState] = useState<CatalogFormState>(() => (
     createEmptyFormState(null, bindings.clock.now)
@@ -214,21 +206,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
       model.setPageFeedback({ kind: 'error', message: `Overlay remove failed: ${error instanceof Error ? error.message : String(error || '')}` });
     } finally {
       setSavingOverlayYaml(false);
-    }
-  }, [loadProviderModels, loadProviders, model, selectedProvider]);
-
-  const onDeleteModel = useCallback(async (modelId: string) => {
-    if (!selectedProvider) return;
-    setDeletingModelId(modelId);
-    try {
-      await runtimeConfigCatalogClient.deleteModelOverlay(selectedProvider.provider, modelId);
-      await loadProviders();
-      await loadProviderModels(selectedProvider.provider);
-      model.setPageFeedback({ kind: 'success', message: `Custom model removed: ${modelId}.` });
-    } catch (error) {
-      model.setPageFeedback({ kind: 'error', message: `Delete model failed: ${error instanceof Error ? error.message : String(error || '')}` });
-    } finally {
-      setDeletingModelId('');
     }
   }, [loadProviderModels, loadProviders, model, selectedProvider]);
 
@@ -309,27 +286,16 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
         ) : null}
       </div>
 
-      {/* Model picker (full width) */}
       {selectedProvider?.inventoryMode === 'dynamic_endpoint' ? (
         <Card className="rounded-2xl p-5">
           <div className="space-y-2">
             <p className="text-sm font-medium text-[var(--nimi-text-primary)]">Live inventory provider</p>
             <p className="text-sm text-[var(--nimi-text-secondary)]">
-              This provider does not maintain static catalog model rows. Runtime loads models from connector discovery and applies source-authored dynamic inventory policy.
-            </p>
-            <p className="text-xs text-[var(--nimi-text-muted)]">
-              Browse and verify live models from the Cloud connector panel or route/chat model pickers after attaching a working connector.
+              Runtime loads this provider’s inventory from connector discovery. This catalog page does not select a route or model for any App.
             </p>
           </div>
         </Card>
-      ) : (
-        <ModelSection
-          providerId={selectedProviderId}
-          catalogService={runtimeConfigCatalogClient}
-          onDeleteModel={onDeleteModel}
-          deletingModelId={deletingModelId}
-        />
-      )}
+      ) : null}
 
       {/* YAML panel */}
       {selectedProvider && providerModels ? (
@@ -341,52 +307,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
         <AddModelDialog provider={selectedProvider} formState={formState} saving={savingModel} onChange={setFormState} onClose={() => setShowAddModel(false)} onSubmit={onSubmitModel} />
       ) : null}
     </RuntimePageShell>
-  );
-}
-
-function ModelSection(props: {
-  providerId: string;
-  catalogService: RuntimeConfigCatalogClient;
-  onDeleteModel: (modelId: string) => void;
-  deletingModelId: string;
-}) {
-  const state = useRuntimeModelPickerPanel({
-    provider: props.providerId,
-    service: props.catalogService,
-    detailService: props.catalogService,
-  });
-
-  return (
-    <RuntimeModelPickerPanel
-      state={state}
-      className="rounded-2xl [&>div]:xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
-      pickerClassName="h-[600px] overflow-y-scroll space-y-3 p-4 [&_.lg\:grid-cols-2]:!grid-cols-1 [&_label.min-h-11]:hidden [&>div>div.grid.gap-2]:!block [&_.mt-3.gap-1]:hidden [&_button>div>div>p.mt-1]:hidden [&_button>div.gap-3>span]:hidden [&_button>div.mt-2]:!mt-0 [&_button>div.items-start]:items-center [&_button]:flex [&_button]:items-center [&_button]:justify-between [&_button>div.mt-2]:!ml-auto [&_button>div.mt-2]:!flex-nowrap [&_div.rounded-2xl]:!p-0 [&_button.w-full]:!px-3 [&_button.w-full]:!py-2.5"
-      detailClassName="h-[600px] overflow-y-scroll space-y-4 p-4"
-      renderItemActions={(model) => (
-        model.source === 'custom' || model.source === 'overridden' ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => props.onDeleteModel(model.modelId)}
-            disabled={props.deletingModelId === model.modelId}
-          >
-            {props.deletingModelId === model.modelId ? 'Deleting...' : 'Delete'}
-          </Button>
-        ) : null
-      )}
-      renderDetailActions={(model) => (
-        model.source === 'custom' || model.source === 'overridden' ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => props.onDeleteModel(model.modelId)}
-            disabled={props.deletingModelId === model.modelId}
-          >
-            {props.deletingModelId === model.modelId ? 'Deleting...' : 'Delete Selected'}
-          </Button>
-        ) : null
-      )}
-    />
   );
 }
 

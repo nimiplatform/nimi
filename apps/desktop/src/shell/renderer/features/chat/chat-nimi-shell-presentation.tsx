@@ -19,9 +19,6 @@ import {
 import { toConversationThreadSummary } from './chat-nimi-thread-model';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
-import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
-import { useDismissibleSchedulingFeedback } from './chat-shared-dismissible-scheduling-feedback';
 
 const ChatSettingsPanel = lazy(async () => {
   const mod = await import('./chat-shared-settings-panel');
@@ -41,19 +38,15 @@ type UseAiConversationPresentationInput = {
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
-  initialModelSelection?: Partial<RouteModelPickerSelection>;
   isBundleLoading: boolean;
   messages: readonly ConversationMessageViewModel[];
   onDismissHostFeedback: () => void;
-  onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   pendingFirstBeat: boolean;
   renderMessageContent: CanonicalMessageContentSlot;
-  routeReady: boolean;
   routeSummary: {
     label: string;
     detail: string | null;
   };
-  schedulingJudgement: NimiAISchedulingJudgement | null;
   setChatThinkingPreference: (value: ChatThinkingPreference) => void;
   setupState: ConversationSetupState;
   submittingThreadId: string | null;
@@ -68,26 +61,15 @@ type UseAiConversationPresentationInput = {
 export function useAiConversationPresentation(
   input: UseAiConversationPresentationInput,
 ): DesktopConversationModeHost {
-  const {
-    guard: schedulingGuard,
-    feedbackNode: schedulingFeedbackNode,
-  } = useDismissibleSchedulingFeedback({
-    judgement: input.schedulingJudgement,
-    t: input.t,
-  });
   const diagnosticsContent = useMemo(() => (
     <RuntimeInspectCard
       label={input.t('Chat.diagnosticsRuntimeLabel', { defaultValue: 'Runtime' })}
-      value={input.routeReady
-        ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
-        : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
+      value={input.t('Chat.settingsRuntimeExecutionOwned', {
+        defaultValue: 'Execution checked by Runtime on submit',
+      })}
       detail={input.routeSummary.detail}
     />
-  ), [
-    input.routeReady,
-    input.routeSummary.detail,
-    input.t,
-  ]);
+  ), [input.routeSummary.detail, input.t]);
 
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
@@ -110,16 +92,16 @@ export function useAiConversationPresentation(
           void input.handleSubmit(composerInput.text).catch(() => undefined);
           return Promise.resolve();
         },
-        disabled: Boolean(input.submittingThreadId) || schedulingGuard.disabled,
+        disabled: Boolean(input.submittingThreadId),
         disabledReason: input.submittingThreadId
           ? input.t('Chat.nimiSending', { defaultValue: 'Generating response…' })
-          : schedulingGuard.disabledReason,
+          : null,
         placeholder: input.setupState.status === 'ready'
           ? input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })
           : input.t('Chat.nimiComposerSetupPlaceholder', { defaultValue: 'Set up a model to start chatting with Nimi…' }),
       }
       : null,
-  }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.setupState, input.submittingThreadId, input.t, input.threads, schedulingGuard.disabled, schedulingGuard.disabledReason]);
+  }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.setupState, input.submittingThreadId, input.t, input.threads]);
 
   return useMemo(() => ({
     mode: 'ai' as const,
@@ -139,16 +121,11 @@ export function useAiConversationPresentation(
     characterData: input.aiCharacterData,
     settingsContent: (
       <Suspense fallback={null}>
-        <ChatSettingsPanel
-          onModelSelectionChange={input.onModelSelectionChange}
-          initialModelSelection={input.initialModelSelection}
-          diagnosticsContent={diagnosticsContent}
-        />
+        <ChatSettingsPanel diagnosticsContent={diagnosticsContent} />
       </Suspense>
     ),
     settingsDrawerTitle: input.t('Chat.settingsTitle', { defaultValue: 'Settings' }),
     settingsDrawerSubtitle: input.t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' }),
-    topContent: schedulingFeedbackNode,
     transcriptProps: {
       loading: input.isBundleLoading,
       error: input.bundleError instanceof Error ? input.bundleError.message : input.bundleError ? String(input.bundleError) : null,
@@ -180,7 +157,7 @@ export function useAiConversationPresentation(
             key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
             adapter={adapter.composerAdapter}
             initialText={input.bundle?.draft?.text || ''}
-            disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
+            disabled={Boolean(input.submittingThreadId)}
             placeholder={input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })}
             layout="stacked"
             widthClassName={CHAT_CONTENT_WIDTH_CLASS}
@@ -192,8 +169,8 @@ export function useAiConversationPresentation(
         </div>
       ) : null
     ),
-    setupDescription: input.t('Chat.nimiRouteRequired', {
-      defaultValue: 'Configure a local chat route or a healthy cloud connector before Nimi Chat can open a conversation.',
+    setupDescription: input.t('Chat.nimiIntentRequired', {
+      defaultValue: 'Choose Local or Cloud capability intent for Nimi Chat. Runtime resolves execution when you submit.',
     }),
     thinkingState: input.thinkingSupported
       ? (input.thinkingPreference === 'on' ? 'on' : 'off')
@@ -205,7 +182,6 @@ export function useAiConversationPresentation(
     adapter,
     diagnosticsContent,
     hostFeedbackNode,
-    schedulingFeedbackNode,
     input.activeThreadId,
     input.aiCharacterData,
     input.bundle?.draft?.text,
@@ -230,8 +206,5 @@ export function useAiConversationPresentation(
     input.thinkingSupported,
     input.thinkingUnsupportedReason,
     input.threads.length,
-    input.initialModelSelection,
-    input.onModelSelectionChange,
-    schedulingGuard.disabled,
   ]);
 }

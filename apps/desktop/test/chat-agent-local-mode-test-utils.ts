@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 import {
   fromNimiRuntimeProtoStruct,
@@ -26,36 +24,13 @@ import {
   type DesktopNimiClientSession,
 } from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.js';
 import {
-  CORE_CHAT_AGENT_TARGET_ID,
   streamChatAgentRuntimeAgentTurn as streamChatAgentRuntimeAgentTurnImpl,
-  } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
-import {
-  resolveAgentChatRequestedMaxOutputTokens,
-  } from '../src/shell/renderer/features/chat/chat-nimi-route-view.js';
-import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
+} from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import {
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
   shouldRefreshAgentRuntimeSessionSnapshotForEvent,
 } from '../src/shell/renderer/features/chat/chat-agent-session-hydration.js';
-import {
-  resolveAgentChatThinkingSupport,
-  resolveChatThinkingConfig,
-  } from '../src/shell/renderer/features/chat/chat-shared-thinking.js';
-import type { AgentLocalThreadSummary } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-types.js';
-import {
-  buildAgentEffectiveCapabilityResolution,
-  createNimiConversationAISnapshot,
-  resolveAgentImageProjectionForExecution,
-  } from '../src/shell/renderer/features/chat/conversation-capability.js';
-import {
-  projectNimiRuntimeLocalAgentAIScopeRef,
-  createEmptyNimiAIConfig as createSdkEmptyAIConfig,
-} from '@nimiplatform/sdk/ai';
-import { findNimiRuntimeRouteModelProfile } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
-import { createDesktopRuntimeRouteAccess } from '../src/shell/renderer/infra/runtime-route-host-access.js';
-
-const TEST_CHAT_SCOPE_REF = projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test');
 type DesktopTestRuntime =
   & NimiDesktopMachineProductRuntimeClient
   & NimiDesktopAccountProductRuntimeClient
@@ -66,14 +41,6 @@ type DesktopTestNimiClientSession = DesktopNimiClientSession & {
 };
 
 let currentDesktopTestSession: DesktopTestNimiClientSession | null = null;
-
-function createEmptyNimiAIConfig() {
-  return createSdkEmptyAIConfig(TEST_CHAT_SCOPE_REF);
-}
-
-function readWorkspaceFile(relativePath: string): string {
-  return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
-}
 
 function resetRuntimeLocalModelWarmCacheForTests(): void {
   // Runtime route access is renderer-instance owned; each test gets a fresh instance.
@@ -403,7 +370,6 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
   }
   const runtime = session.runtime;
   const accountRuntime = session.accountRuntime;
-  const runtimeRouteAccess = createDesktopRuntimeRouteAccess(() => runtime);
   return {
     appId: () => session.appId,
     machineProduct: () => runtime,
@@ -413,8 +379,6 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
     localAudit: () => runtime.local,
     auditAdmin: () => runtime.audit,
     aiExecution: () => ({ ai: runtime.ai }),
-    routeHostAccessClient: () => runtime,
-    routeOptionsClient: () => runtime,
     externalAgent: () => runtime.externalAgents,
     runtimeAgentOwner: () => runtime.agents,
     runtimeAgentDiscovery: createDesktopRuntimeAgentDiscoverySurface,
@@ -424,7 +388,6 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
       agents: runtime.agents,
       appMessages: runtime.appMessages,
     }),
-    runtimeRouteAccess: () => runtimeRouteAccess,
     withRuntimeProtectedScopes: (async (_scopes, operation) => operation({})) as NimiRuntimeAgentScopeRunner,
   } as unknown as DesktopRendererSdkPort;
 }
@@ -458,92 +421,8 @@ function createRuntimeTurnTimeline(input: {
   };
 }
 
-function createLocalTextProjection() {
-  return {
-    capability: 'text.generate' as const,
-    selectedTargetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:llama3' },
-    resolvedBinding: {
-      capability: 'text.generate' as const,
-      resolvedBindingRef: 'test:resolved',
-      source: 'local-runtime' as const,
-      targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' },
-      provider: 'llama',
-      model: 'llama3',
-      modelId: 'llama3',
-      localModelId: 'local-model-1',
-      connectorId: '',
-      endpoint: 'http://127.0.0.1:11434/v1',
-      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
-    },
-    health: {
-      healthy: true,
-      status: 'healthy' as const,
-      provider: 'llama',
-      detail: 'ready',
-      actionHint: 'use_local_runtime_route',
-    },
-    metadata: {
-      capability: 'text.generate' as const,
-      metadataVersion: 'v1' as const,
-      resolvedBindingRef: 'local:llama3',
-      metadataKind: 'text.generate' as const,
-      metadata: {
-        supportsThinking: false,
-        traceModeSupport: 'none' as const,
-        supportsImageInput: false,
-        supportsAudioInput: false,
-        supportsVideoInput: false,
-        supportsArtifactRefInput: false,
-      },
-    },
-    supported: true,
-    reasonCode: null,
-  };
-}
-
-function createCloudTextProjection() {
-  return {
-    capability: 'text.generate' as const,
-    selectedTargetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-openai', remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-5.4-mini', providerModelId: 'gpt-5.4-mini' },
-    resolvedBinding: {
-      capability: 'text.generate' as const,
-      resolvedBindingRef: 'test:resolved',
-      source: 'cloud-connector' as const,
-      targetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-test', remoteModelCatalogId: 'remote-catalog:connector-test:test-model', providerModelId: 'test-model' },
-      provider: 'openai',
-      model: 'gpt-5.4-mini',
-      modelId: 'gpt-5.4-mini',
-      connectorId: 'connector-openai',
-    },
-    health: {
-      healthy: true,
-      status: 'healthy' as const,
-      provider: 'openai',
-      detail: 'ready',
-      actionHint: 'use_cloud_runtime_route',
-    },
-    metadata: {
-      capability: 'text.generate' as const,
-      metadataVersion: 'v1' as const,
-      resolvedBindingRef: 'cloud:connector-openai:gpt-5.4-mini',
-      metadataKind: 'text.generate' as const,
-      metadata: {
-        supportsThinking: true,
-        traceModeSupport: 'separate' as const,
-        supportsImageInput: true,
-        supportsAudioInput: false,
-        supportsVideoInput: false,
-        supportsArtifactRefInput: false,
-      },
-    },
-    supported: true,
-    reasonCode: null,
-  };
-}
-
 export {
   assert,
-  path,
   test,
   clearDesktopTestNimiClientSession,
   createDesktopTestNimiClientSession,
@@ -551,26 +430,9 @@ export {
   toNimiRuntimeProtoStruct,
   ReasonCode,
   resetRuntimeLocalModelWarmCacheForTests,
-  CORE_CHAT_AGENT_TARGET_ID,
   streamChatAgentRuntimeAgentTurn,
   getDesktopTestRendererSdk,
-  findNimiRuntimeRouteModelProfile,
-  resolveAgentChatRequestedMaxOutputTokens,
-  resolveAgentTurnTotalTimeoutMs,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
   shouldRefreshAgentRuntimeSessionSnapshotForEvent,
-  resolveAgentChatThinkingSupport,
-  resolveChatThinkingConfig,
-  buildAgentEffectiveCapabilityResolution,
-  createNimiConversationAISnapshot,
-  resolveAgentImageProjectionForExecution,
-  createEmptyNimiAIConfig,
-  readWorkspaceFile,
   createRuntimeTurnTimeline,
-  createLocalTextProjection,
-  createCloudTextProjection,
-};
-
-export type {
-  AgentLocalThreadSummary,
 };

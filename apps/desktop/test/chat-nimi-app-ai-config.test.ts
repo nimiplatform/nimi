@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  createDesktopNimiCloudTextIntent,
   createDesktopNimiLocalTextIntent,
+  desktopNimiTextIntentDefaults,
   findDesktopNimiTextIntent,
   replaceDesktopNimiTextIntent,
 } from '../src/shell/renderer/features/chat/chat-nimi-app-ai-config.js';
@@ -17,6 +19,25 @@ test('Nimi Chat local selection carries no machine binding or model identity', (
       local: {},
     },
   });
+});
+
+test('Nimi Chat Cloud selection writes route intent without implementation authority', () => {
+  const intent = createDesktopNimiCloudTextIntent({
+    requiredFeatures: ['tool.use'],
+    defaults: { temperature: 0.4 },
+  });
+
+  assert.equal(intent.capabilityContract, 'text.generate');
+  assert.deepEqual(intent.requiredFeatures, ['tool.use']);
+  assert.deepEqual(desktopNimiTextIntentDefaults(intent), { temperature: 0.4 });
+  assert.deepEqual(intent.route, {
+    oneofKind: 'cloud',
+    cloud: { connectorGrantId: '' },
+  });
+  assert.doesNotMatch(
+    JSON.stringify(intent),
+    /model|binding|target|implementation|readiness/i,
+  );
 });
 
 test('Nimi Chat text replacement preserves unrelated capability intent', () => {
@@ -38,8 +59,6 @@ test('Nimi Chat text replacement preserves unrelated capability intent', () => {
         route: {
           oneofKind: 'cloud' as const,
           cloud: {
-            implementation: undefined,
-            providerModelTarget: undefined,
             connectorGrantId: '',
           },
         },

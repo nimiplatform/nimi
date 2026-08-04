@@ -144,8 +144,8 @@ export function useHumanConversationModeHost(
       title={t('Chat.settingsTitle', { defaultValue: 'Settings' })}
       subtitle={t('Chat.humanTitle', { defaultValue: 'Human Chat' })}
       statusTitle={t('Chat.mode.human', { defaultValue: 'Human' })}
-      statusHint={t('Chat.nimiProfileSubtitle', {
-        defaultValue: 'Route, target, and conversation details.',
+      statusHint={t('Chat.settingsDiagnosticsHint', {
+        defaultValue: 'Inspect delivery and conversation details for the current chat.',
       })}
       statusSummary={(
         <RuntimeInspectCard
@@ -178,7 +178,7 @@ export function useHumanConversationModeHost(
           key: 'voice',
           title: t('Chat.settingsVoice', { defaultValue: 'Voice' }),
           hint: t('Chat.settingsVoiceHint', {
-            defaultValue: 'Review voice playback, transcript visibility, and route readiness for this conversation.',
+            defaultValue: 'Review voice playback and transcript visibility for this conversation.',
           }),
           content: canonicalSurface.rightSidebarContent || (
             <RuntimeInspectUnsupportedNote label={t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })} />
@@ -188,7 +188,7 @@ export function useHumanConversationModeHost(
           key: 'diagnostics',
           title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
           hint: t('Chat.settingsDiagnosticsHint', {
-            defaultValue: 'Inspect route, runtime, and conversation health details for the current chat.',
+            defaultValue: 'Inspect delivery and conversation details for the current chat.',
           }),
           content: (
             <RuntimeInspectCard

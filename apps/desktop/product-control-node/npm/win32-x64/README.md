@@ -1,13 +1,3 @@
-# Desktop account profile native library
+# Retired Desktop product-control native package
 
-Private Windows x64 Node-API projection used only by the Nimi Desktop Electron
-main process. It provides ordinary account profile library CRUD with strict
-schema validation and atomic file writes. It is not a renderer API and does not
-expose Runtime transport, credentials, readiness evidence, or mutable
-product-control authority.
-
-`nimi_desktop_product_control.node` is a generated, signed build output and is
-intentionally excluded from Git. On Windows x64, provision the local development
-signing identity once with `pnpm provision:windows-dev-trust`, then build it with
-`pnpm --filter @nimiplatform/desktop build:windows:product-control-native`.
-Desktop Electron development and the native smoke test rebuild it automatically.
+The Desktop account AIProfile library and its local persistence path are retired. This package exposes no runtime API and is not shipped by the Desktop App.

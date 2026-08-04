@@ -11,7 +11,6 @@ import { createScenarioJobController } from '../features/turns/scenario-job-cont
 import { createRealmSocialData } from '../features/social/data/realm-social-data.js';
 import { createAgentConversationAnchorBindingStore } from '../app-shell/providers/agent-conversation-anchor-binding-storage.js';
 import { createRuntimeConfigConnectorSdkService } from '../features/runtime-config/runtime-config-connector-sdk-service.js';
-import { createAccountProfileLibraryResource } from '../features/runtime-config/runtime-config-profile-library.js';
 import { createRealmGroupChatData } from '../features/chat/data/realm-group-chat-data.js';
 import { createRealmHumanChatData } from '../features/chat/data/realm-human-chat-data.js';
 import { createWorldFollowStore } from '../features/world/world-follow-store.js';
@@ -24,8 +23,6 @@ export function createDesktopRendererResources(
 ) {
   const initial = bindings.app.projection.initialState();
   const store = createAppStore({
-    initialAIConfig: initial.aiConfig,
-    commitAIConfig: bindings.app.commands.commitAIConfig,
     initialChatThinkingPreference: initial.chatThinkingPreference,
     persistChatThinkingPreference: bindings.app.commands.persistChatThinkingPreference,
   });
@@ -60,9 +57,6 @@ export function createDesktopRendererResources(
     bindings.app.commands.localModelProgress,
   );
   const runtimeConnectorSdk = createRuntimeConfigConnectorSdkService(bindings.sdk.connectorAdmin);
-  const accountProfileLibrary = createAccountProfileLibraryResource(
-    bindings.app.commands.profileLibrary,
-  );
   const realmHumanChatData = createRealmHumanChatData(bindings.sdk);
   const worldFollowStore = createWorldFollowStore(bindings.app.commands.worldFollow);
   const realmGroupChatData = createRealmGroupChatData({ sdk: bindings.sdk });
@@ -82,7 +76,6 @@ export function createDesktopRendererResources(
   let disposed = false;
 
   return Object.freeze({
-    accountProfileLibrary,
     agentVisibleProjections,
     anchorBindings,
     attention,
@@ -107,7 +100,6 @@ export function createDesktopRendererResources(
       agentVisibleProjections.dispose();
       chatUploadPlaceholders.dispose();
       localModelCenterProgress.clear();
-      accountProfileLibrary.clear();
       runtimeConnectorSdk.clearCaches();
       scenarioJobController.dispose();
       streamController.dispose();

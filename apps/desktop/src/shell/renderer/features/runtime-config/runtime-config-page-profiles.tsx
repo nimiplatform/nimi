@@ -1,281 +1,183 @@
-/**
- * Profiles section — canonical six-section Runtime IA.
- *
- * Runtime > Profiles is account AIProfile library management only. It does
- * not read the current scope AIConfig, does not derive profile bodies from
- * AIConfig, and does not apply profiles to an implicit scope. Concrete app /
- * module / feature scope apply remains owned by those scope surfaces.
- */
-
-import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
-import { formatNimiAIValidationIssues, validateNimiAIProfile } from '@nimiplatform/sdk/ai';
-import { RuntimePageShell } from './runtime-config-page-shell.js';
-import { AccountProfileLibraryPanel } from './runtime-config-profile-library-panel.js';
+import { useMemo, useState } from 'react';
 import {
-  ProfileEditorModal,
-  ProfileLibraryActions,
-  type ProfileEditorDraft,
-  type ProfileFeedback,
-} from './runtime-config-profile-management-sections.js';
-import type {
-  NimiAccountProfileLibraryProjection,
-  LibraryProfile,
-} from './runtime-config-profile-library.js';
-import { useAccountProfileLibrary } from './runtime-config-profile-library-context.js';
+  createNimiAppAIProfileClient,
+  type NimiAppAIProfilePreview,
+} from '@nimiplatform/sdk/ai';
+import { Button, InlineAlert, Surface } from '@nimiplatform/kit/ui';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { RuntimePageShell } from './runtime-config-page-shell.js';
+import {
+  summarizeDesktopPortableAIProfile,
+  type DesktopPortableAIProfileSummary,
+} from './runtime-config-portable-profile.js';
 
-const PROFILE_BODY_RESERVED_FIELDS = [
-  'profileId',
-  'title',
-  'description',
-  'tags',
-  'scopeRef',
-  'profileOrigin',
-] as const;
-
-function normalizeTags(text: string): string[] {
-  return text
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
-
-function isPlainObject(value: unknown): value is { readonly [key: string]: unknown } {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function profileBodyJson(profile: NimiAIProfile): string {
-  const body: { [key: string]: unknown } = {};
-  if (profile.version !== undefined) body.version = profile.version;
-  if (profile.revision !== undefined) body.revision = profile.revision;
-  body.capabilities = profile.capabilities;
-  if (profile.assetBindings !== undefined) body.assetBindings = profile.assetBindings;
-  if (profile.defaultParams !== undefined) body.defaultParams = profile.defaultParams;
-  if (profile.editableFields !== undefined) body.editableFields = profile.editableFields;
-  if (profile.prepareRequirements !== undefined) body.prepareRequirements = profile.prepareRequirements;
-  if (profile.contractStates !== undefined) body.contractStates = profile.contractStates;
-  if (profile.projectionWarnings !== undefined) body.projectionWarnings = profile.projectionWarnings;
-  return JSON.stringify(body, null, 2);
-}
-
-function buildProfileFromEditorDraft(draft: ProfileEditorDraft): NimiAIProfile {
-  const parsed = JSON.parse(draft.profileJsonText) as unknown;
-  if (!isPlainObject(parsed)) {
-    throw new Error('Portable profile body must be a JSON object.');
-  }
-  const reserved = PROFILE_BODY_RESERVED_FIELDS.filter((field) => (
-    Object.prototype.hasOwnProperty.call(parsed, field)
-  ));
-  if (reserved.length > 0) {
-    throw new Error(`Portable profile body must not include: ${reserved.join(', ')}`);
-  }
-  const nextProfile = {
-    ...parsed,
-    profileId: draft.profile.profileId,
-    title: draft.title.trim(),
-    description: draft.description,
-    tags: normalizeTags(draft.tagsText),
-  } as unknown as NimiAIProfile;
-  const validation = validateNimiAIProfile(nextProfile);
-  if (!validation.valid) {
-    throw new Error(formatNimiAIValidationIssues(validation.issues));
-  }
-  return nextProfile;
-}
+type ProfileFeedback = {
+  readonly tone: 'info' | 'success' | 'danger';
+  readonly message: string;
+  readonly technicalDetail?: string;
+};
 
 export function ProfileCatalogPage() {
-  const { t } = useTranslation();
-  const profileLibrary = useAccountProfileLibrary();
-  const [libraryProjection, setLibraryProjection] = useState<NimiAccountProfileLibraryProjection | null>(null);
-  const [libraryLoading, setLibraryLoading] = useState(false);
-  const [libraryFeedback, setLibraryFeedback] = useState<ProfileFeedback>(null);
-  const [editorDraft, setEditorDraft] = useState<ProfileEditorDraft | null>(null);
-  const [editorSaving, setEditorSaving] = useState(false);
+  const sdk = useDesktopRendererSdk();
+  const profileClient = useMemo(
+    () => createNimiAppAIProfileClient(sdk.accountProduct().aiConfig),
+    [sdk],
+  );
+  const [sourceText, setSourceText] = useState('');
+  const [summary, setSummary] = useState<DesktopPortableAIProfileSummary | null>(null);
+  const [preview, setPreview] = useState<NimiAppAIProfilePreview | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<ProfileFeedback>({
+    tone: 'info',
+    message: 'Load a portable AIProfile, preview its App-owned intent, then confirm Apply explicitly.',
+  });
 
-  const refreshProfileLibrary = useCallback(async () => {
-    setLibraryLoading(true);
+  const clearPreview = (nextSource: string) => {
+    setSourceText(nextSource);
+    setSummary(null);
+    setPreview(null);
+  };
+
+  const previewSource = async () => {
+    setBusy(true);
     try {
-      const projection = await profileLibrary.load();
-      setLibraryProjection(projection);
-      return projection;
-    } finally {
-      setLibraryLoading(false);
-    }
-  }, [profileLibrary]);
-
-  // Prime the file-backed account profile library projection.
-  useEffect(() => {
-    let cancelled = false;
-    void refreshProfileLibrary()
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setLibraryFeedback({
-            type: 'error',
-            message: error instanceof Error ? error.message : 'Failed to load profiles.',
-          });
-        }
+      const nextSummary = summarizeDesktopPortableAIProfile(sourceText);
+      const nextPreview = await profileClient.preview(sourceText);
+      setSummary(nextSummary);
+      setPreview(nextPreview);
+      setFeedback({
+        tone: 'info',
+        message: nextPreview.identical
+          ? 'Preview completed. This profile would not change the current App AIConfig.'
+          : `Preview completed. Confirm Apply to replace App AIConfig with ${nextPreview.after.capabilities.length} capability intent(s).`,
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshProfileLibrary]);
+    } catch (error) {
+      setSummary(null);
+      setPreview(null);
+      setFeedback({
+        tone: 'danger',
+        message: 'This portable AIProfile could not be previewed.',
+        technicalDetail: errorMessage(error),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  const reloadProfileLibrary = useCallback(async () => {
-    await refreshProfileLibrary();
-  }, [refreshProfileLibrary]);
-
-  const openCreateProfile = useCallback(() => {
-    const base = profileLibrary.createEmpty();
-    setEditorDraft({
-      mode: 'create',
-      profile: base,
-      title: '',
-      description: '',
-      tagsText: '',
-      profileJsonText: profileBodyJson(base),
-    });
-  }, [profileLibrary]);
-
-  const openCreateProfileFromBase = useCallback((sourceProfile: NimiAIProfile) => {
-    const base: NimiAIProfile = {
-      ...sourceProfile,
-      profileId: profileLibrary.createEmpty().profileId,
-      title: sourceProfile.title
-        ? t('runtimeConfig.profiles.defaultCopyTitle', {
-          defaultValue: '{{title}} custom',
-          title: sourceProfile.title,
-        })
-        : t('runtimeConfig.profiles.accountDefaultTitle', { defaultValue: 'Default Profile' }),
-      description: sourceProfile.description ?? '',
-      tags: sourceProfile.tags ?? [],
-    };
-    setEditorDraft({
-      mode: 'create',
-      profile: base,
-      title: base.title,
-      description: base.description ?? '',
-      tagsText: (base.tags ?? []).join(', '),
-      profileJsonText: profileBodyJson(base),
-    });
-  }, [profileLibrary, t]);
-
-  const openEditProfile = useCallback((entry: LibraryProfile) => {
-    setEditorDraft({
-      mode: 'edit',
-      profile: entry.profile,
-      title: entry.profile.title,
-      description: entry.profile.description ?? '',
-      tagsText: (entry.profile.tags ?? []).join(', '),
-      profileJsonText: profileBodyJson(entry.profile),
-    });
-  }, []);
-
-  const saveEditorDraft = useCallback(() => {
-    if (!editorDraft) return;
-    setEditorSaving(true);
-    setLibraryFeedback(null);
-    void (async () => {
-      try {
-        const nextProfile = buildProfileFromEditorDraft(editorDraft);
-        if (editorDraft.mode === 'create') {
-          await profileLibrary.create(nextProfile);
-        } else {
-          await profileLibrary.edit(nextProfile);
-        }
-        await reloadProfileLibrary();
-        setEditorDraft(null);
-        setLibraryFeedback({
-          type: 'success',
-          message: t('runtimeConfig.profiles.saved', { defaultValue: 'Profile saved.' }),
-        });
-      } catch (error: unknown) {
-        setLibraryFeedback({
-          type: 'error',
-          message: error instanceof Error ? error.message : 'Failed to save profile.',
-        });
-      } finally {
-        setEditorSaving(false);
-      }
-    })();
-  }, [editorDraft, profileLibrary, reloadProfileLibrary, t]);
-
-  const deleteProfile = useCallback((entry: LibraryProfile) => {
-    setLibraryFeedback(null);
-    void (async () => {
-      try {
-        await profileLibrary.delete(entry.profileId);
-        await reloadProfileLibrary();
-        setLibraryFeedback({
-          type: 'success',
-          message: t('runtimeConfig.profiles.deleted', { defaultValue: 'Profile deleted.' }),
-        });
-      } catch (error: unknown) {
-        setLibraryFeedback({
-          type: 'error',
-          message: error instanceof Error ? error.message : 'Failed to delete profile.',
-        });
-      }
-    })();
-  }, [profileLibrary, reloadProfileLibrary, t]);
-
-  const exportableProfileCount = libraryProjection?.profiles.filter((entry) => entry.removable).length ?? 0;
+  const applyPreviewedSource = async () => {
+    if (!preview) return;
+    setBusy(true);
+    try {
+      const config = await profileClient.apply(preview.source);
+      setPreview(null);
+      setFeedback({
+        tone: 'success',
+        message: `Applied ${summary?.title || 'the portable AIProfile'} to the Nimi Desktop App AIConfig (${config.capabilities.length} intent(s)).`,
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'danger',
+        message: 'The portable AIProfile could not be applied.',
+        technicalDetail: errorMessage(error),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <RuntimePageShell maxWidth="full" className="max-w-[78rem] px-6 py-6">
-      <header
-        className="flex flex-wrap items-start justify-between gap-4"
-        data-testid="runtime-profiles-header"
-      >
-        <div
-          className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2"
-          data-testid="runtime-profiles-header-actions"
-        >
-          <button
-            type="button"
-            data-testid="runtime-profiles-create"
-            onClick={openCreateProfile}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
-          >
-            {t('runtimeConfig.profiles.create', { defaultValue: 'New Profile' })}
-          </button>
-          <ProfileLibraryActions
-            exportCount={exportableProfileCount}
-            onLibraryChanged={reloadProfileLibrary}
-          />
+    <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
+      <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-source">
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Portable AIProfile</h3>
+          <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
+            Profile source remains separate from mutable App AIConfig. Desktop keeps no profile library or second AIConfig store; Preview is non-committing and Apply writes through Runtime.
+          </p>
         </div>
-      </header>
-
-      <AccountProfileLibraryPanel
-        projection={libraryProjection}
-        loading={libraryLoading}
-        onRefresh={() => { void reloadProfileLibrary(); }}
-        onUseAsBase={openCreateProfileFromBase}
-        onEdit={openEditProfile}
-        onDelete={deleteProfile}
-      />
-      {libraryFeedback ? (
-        <p
-          className={
-            libraryFeedback.type === 'success'
-              ? 'rounded-xl bg-green-50 px-3 py-2 text-xs text-green-700 ring-1 ring-green-200'
-              : 'rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-200'
-          }
-          role="status"
-          data-testid="runtime-profiles-library-feedback"
-        >
-          {libraryFeedback.message}
-        </p>
-      ) : null}
-      {editorDraft ? (
-        <ProfileEditorModal
-          draft={editorDraft}
-          saving={editorSaving}
-          onDraftChange={setEditorDraft}
-          onCancel={() => setEditorDraft(null)}
-          onSave={saveEditorDraft}
+        <textarea
+          aria-label="Portable AIProfile JSON"
+          value={sourceText}
+          onChange={(event) => clearPreview(event.currentTarget.value)}
+          rows={12}
+          spellCheck={false}
+          placeholder="Paste a canonical portable AIProfile JSON document"
+          className="w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
         />
+        <div className="flex flex-wrap gap-2">
+          <label className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-[var(--nimi-border-subtle)] px-3 text-xs font-semibold text-[var(--nimi-text-secondary)]">
+            Load JSON file…
+            <input
+              className="sr-only"
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = '';
+                if (!file) return;
+                void file.text().then(clearPreview, (error) => {
+                  setFeedback({
+                    tone: 'danger',
+                    message: 'The selected AIProfile file could not be read.',
+                    technicalDetail: errorMessage(error),
+                  });
+                });
+              }}
+            />
+          </label>
+          <Button
+            size="sm"
+            disabled={busy || !sourceText.trim()}
+            onClick={() => { void previewSource(); }}
+          >
+            {busy ? 'Working…' : 'Preview for Nimi Desktop'}
+          </Button>
+          <Button
+            size="sm"
+            tone="primary"
+            disabled={busy || !preview}
+            onClick={() => { void applyPreviewedSource(); }}
+          >
+            Confirm Apply
+          </Button>
+        </div>
+      </Surface>
+
+      {summary ? (
+        <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-summary">
+          <div>
+            <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{summary.title}</div>
+            <div className="mt-1 font-mono text-[11px] text-[var(--nimi-text-muted)]">{summary.profileId}</div>
+          </div>
+          <div className="grid gap-2">
+            {summary.capabilities.map((capability) => (
+              <div key={capability.capabilityContract} className="rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-xs">
+                <div className="font-semibold text-[var(--nimi-text-primary)]">{capability.capabilityContract}</div>
+                <div className="mt-1 text-[var(--nimi-text-secondary)]">
+                  {capability.route === 'local' ? 'Local intent' : 'Cloud intent'}
+                  {capability.requiredFeatures.length > 0
+                    ? ` · required features: ${capability.requiredFeatures.join(', ')}`
+                    : ' · no required features'}
+                  {capability.hasDefaults ? ' · portable defaults included' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Surface>
+      ) : null}
+
+      <InlineAlert tone={feedback.tone}>{feedback.message}</InlineAlert>
+      {feedback.technicalDetail ? (
+        <details className="rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-xs text-[var(--nimi-text-secondary)]">
+          <summary className="cursor-pointer font-semibold">Technical details</summary>
+          <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[11px]">{feedback.technicalDetail}</pre>
+        </details>
       ) : null}
     </RuntimePageShell>
   );
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : String(error || 'Unknown profile error');
 }

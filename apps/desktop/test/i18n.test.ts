@@ -2,7 +2,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
-import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-capabilities';
 
 import {
   changeLocale,
@@ -302,45 +301,12 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
     'NotificationPanel.typeNotifications.giftStatusUpdated',
     'NotificationPanel.typeNotifications.reviewReceived',
     'NotificationPanel.typeNotifications.system',
-    'Chat.schedulingDeniedTitle',
-    'Chat.schedulingQueueRequiredTitle',
-    'Chat.schedulingPreemptionRiskTitle',
-    'Chat.schedulingSlowdownRiskTitle',
-    'Chat.schedulingUnknownTitle',
-    'Chat.schedulingDeniedDetail',
-    'Chat.schedulingQueueRequiredDetail',
-    'Chat.schedulingPreemptionRiskDetail',
-    'Chat.schedulingSlowdownRiskDetail',
-    'Chat.schedulingSlowdownRiskBusyDetail',
-    'Chat.schedulingUnknownDetail',
     'Chat.agentDebugCopyLabel',
     'Chat.agentDebugCopiedLabel',
     'Chat.agentDebugFollowUpLabel',
-    'Chat.settingsModelSelectionRequired',
-    'Chat.settingsModelSelectionRequiredHint',
     'BridgeErrors.codes.RUNTIME_CALL_FAILED',
     'runtimeConfig.local.assetRemoved',
   ];
-
-  for (const [locale, localeData] of localeEntries) {
-    for (const key of requiredKeys) {
-      const value = getValueAtKey(localeData, key);
-      assert.equal(typeof value, 'string', `${locale} locale is missing ${key}`);
-      assert.match(String(value || ''), /\S/, `${locale} locale has empty ${key}`);
-    }
-  }
-});
-
-test('canonical model config capability locale keys exist in both locales', async () => {
-  const localeEntries = [
-    ['en', readDesktopLocale('en')],
-    ['zh', readDesktopLocale('zh')],
-  ] as const;
-  const requiredKeys = CANONICAL_CAPABILITY_CATALOG.flatMap((descriptor) => [
-    descriptor.i18nKeys.title,
-    descriptor.i18nKeys.subtitle,
-    descriptor.i18nKeys.detail,
-  ]);
 
   for (const [locale, localeData] of localeEntries) {
     for (const key of requiredKeys) {

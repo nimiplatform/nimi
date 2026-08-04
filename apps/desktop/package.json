@@ -29,8 +29,6 @@
     "test:unit:rest": "node scripts/run-unit-tests.mjs --rest",
     "test:unit:prepared": "pnpm run test:unit:i18n && pnpm run test:unit:rest",
     "test:unit": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:unit:prepared",
-    "build:windows:product-control-native": "node product-control-node/scripts/build-windows-x64-package.mjs",
-    "test:windows:product-control-native": "pnpm run build:windows:product-control-native && node --test test/electron-product-control-native-smoke.mjs",
     "test": "pnpm run test:unit",
     "i18n:check": "node scripts/i18n-check.mjs",
     "i18n:audit": "node scripts/i18n-audit.mjs",

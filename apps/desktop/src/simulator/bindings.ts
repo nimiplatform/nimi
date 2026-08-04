@@ -1,8 +1,4 @@
 import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell/renderer/host';
-import {
-  createEmptyNimiAIConfig,
-  projectNimiRuntimeLocalAgentAIScopeRef,
-} from '@nimiplatform/sdk/ai';
 
 import { createIdleAppAttentionState } from '../shell/renderer/app-shell/providers/app-attention-state.js';
 import type {
@@ -17,9 +13,7 @@ import type {
 import { createDesktopSimulatorProductControlPort } from './product-control-port.js';
 import { createMemoryDesktopRendererSettingsPort } from '../shell/renderer/renderer/settings-port.js';
 import { createDesktopSimulatorAuthSessionPort } from './auth-port.js';
-import { createDesktopSimulatorAIConfigPort } from './ai-config-port.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../shell/renderer/renderer/runtime-config-navigation-port.js';
-import { createUnavailableDesktopRendererProfileLibraryPort } from '../shell/renderer/renderer/profile-library-port.js';
 import { createUnavailableDesktopRendererOfflinePort } from '../shell/renderer/renderer/offline-port.js';
 import { createUnavailableDesktopRendererWorldFollowPort } from '../shell/renderer/renderer/world-follow-port.js';
 import { createUnavailableDesktopRendererSupportRepairPort } from '../shell/renderer/renderer/support-repair-port.js';
@@ -99,7 +93,6 @@ export function createDesktopSimulatorBindings(
   if (!timerCleanup.ok) throw new Error('DESKTOP_SIMULATOR_TIMER_CLEANUP_REJECTED');
 
   const authSession = createDesktopSimulatorAuthSessionPort(context);
-  const aiConfigPort = createDesktopSimulatorAIConfigPort(context.projection.get);
 
   const handoffSubscription = context.events.subscribe('desktop.handoff.requested', (value) => {
     const payload = record(value, 'HANDOFF_REQUEST_EVENT');
@@ -195,19 +188,13 @@ export function createDesktopSimulatorBindings(
       localAudit: simulatorSdkUnadmitted,
       auditAdmin: simulatorSdkUnadmitted,
       aiExecution: simulatorSdkUnadmitted,
-      routeHostAccessClient: simulatorSdkUnadmitted,
-      routeOptionsClient: simulatorSdkUnadmitted,
       externalAgent: simulatorSdkUnadmitted,
       runtimeAgentOwner: simulatorSdkUnadmitted,
       runtimeAgentDiscovery: simulatorSdkUnadmitted,
       runtimeAgentTurns: simulatorSdkUnadmitted,
       hostRuntimeAgent: simulatorSdkUnadmitted,
       accountRuntime: () => authSession.accountRuntime,
-      runtimeRouteAccess: simulatorSdkUnadmitted,
-      loadRouteOptions: simulatorSdkUnadmitted,
-      conversationCapabilityRuntime: () => null,
       runtimeHealthCoordinator: simulatorSdkUnadmitted,
-      aiConfig: () => aiConfigPort,
       realm: simulatorSdkUnadmitted,
       offline: createUnavailableDesktopRendererOfflinePort('DESKTOP_SIMULATOR_OFFLINE_UNADMITTED'),
       socialData: Object.freeze({
@@ -237,9 +224,6 @@ export function createDesktopSimulatorBindings(
     app: {
       projection: Object.freeze({
         initialState: () => ({
-          aiConfig: createEmptyNimiAIConfig(
-            projectNimiRuntimeLocalAgentAIScopeRef('runtime.local-agent-subsystem'),
-          ),
           bootstrapError: null,
           bootstrapReady: true,
           chatThinkingPreference: 'off' as const,
@@ -263,7 +247,6 @@ export function createDesktopSimulatorBindings(
         firstRun: createDesktopSimulatorProductControlPort(context.projection.get),
         runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(),
         settings: createMemoryDesktopRendererSettingsPort(),
-        profileLibrary: createUnavailableDesktopRendererProfileLibraryPort(),
         worldFollow: createUnavailableDesktopRendererWorldFollowPort(
           'DESKTOP_SIMULATOR_WORLD_FOLLOW_UNADMITTED',
         ),
@@ -306,9 +289,6 @@ export function createDesktopSimulatorBindings(
           async start() { throw new Error('DESKTOP_SIMULATOR_RUNTIME_DAEMON_UNADMITTED'); },
           async restart() { throw new Error('DESKTOP_SIMULATOR_RUNTIME_DAEMON_UNADMITTED'); },
         }),
-        commitAIConfig() {
-          throw new Error('DESKTOP_SIMULATOR_AI_CONFIG_UNADMITTED');
-        },
         persistChatThinkingPreference() {
           throw new Error('DESKTOP_SIMULATOR_CHAT_PREFERENCE_UNADMITTED');
         },
@@ -358,9 +338,6 @@ export function createDesktopSimulatorBindings(
         },
         async writeClipboardText() {
           throw new Error('DESKTOP_SIMULATOR_CLIPBOARD_WRITE_UNADMITTED');
-        },
-        exportProfileLibraryJson() {
-          throw new Error('DESKTOP_SIMULATOR_PROFILE_EXPORT_UNADMITTED');
         },
         exportRuntimeAuditJson() {
           throw new Error('DESKTOP_SIMULATOR_RUNTIME_AUDIT_EXPORT_UNADMITTED');

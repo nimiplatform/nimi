@@ -18,7 +18,6 @@ const initialInput = {
     locale: 'en',
     auth: { initialStatus: 'authenticated', persona },
     productControl: { initialStatus: 'ready_for_use' },
-    aiConfig: { runtimeStatus: 'unavailable' },
   },
   sharedProjection: {},
 } as const;

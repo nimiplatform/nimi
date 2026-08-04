@@ -1,11 +1,6 @@
 import type { ChatComposerVoiceState } from '@nimiplatform/kit/features/chat/types';
-import type { ChatAgentVoiceWorkflowReferenceAudio } from './chat-agent-runtime';
 
 export type AgentVoiceSessionMode = 'push-to-talk' | 'hands-free';
-
-export type AgentVoiceSessionAnchorBoundReferenceAudio = ChatAgentVoiceWorkflowReferenceAudio & {
-  conversationAnchorId: string;
-};
 
 export type AgentVoiceSessionShellState =
   | { status: 'idle'; mode: AgentVoiceSessionMode; conversationAnchorId: null; message: null }

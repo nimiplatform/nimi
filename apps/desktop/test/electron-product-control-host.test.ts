@@ -7,7 +7,6 @@ import {
   SelectProductControlDataRootRequest,
   SetProductControlFirstRunInstallLevelRequest,
 } from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/local_runtime';
-import type { DesktopAccountProfileHost } from '../src-electron/account-profile-host';
 import {
   createDesktopElectronProductControlHost,
   type DesktopProductControlTransport,
@@ -53,15 +52,6 @@ function projectionJson(state = 'data_root_selected'): string {
   });
 }
 
-const unusedProfiles: DesktopAccountProfileHost = Object.freeze({
-  listAccountProfileLibrary: () => { throw new Error('not-called'); },
-  createAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
-  editAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
-  importAccountProfileLibraryProfiles: () => { throw new Error('not-called'); },
-  exportAccountProfileLibraryProfiles: () => { throw new Error('not-called'); },
-  deleteAccountProfileLibraryProfile: () => { throw new Error('not-called'); },
-});
-
 test('Electron Product Control maps direct commands and sends empty ready admission', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
   const control: DesktopProductControlTransport = {
@@ -86,14 +76,11 @@ test('Electron Product Control maps direct commands and sends empty ready admiss
       return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json }));
     },
   };
-  const host = createDesktopElectronProductControlHost({
-    control,
-    account: {
-      invoke: async () => { throw new Error('not-called'); },
-      close: () => {},
-    },
-    profiles: unusedProfiles,
-  });
+  const host = createDesktopElectronProductControlHost({ control });
+  assert.equal(
+    Object.hasOwn(host.commandHandlers, 'account_profile_library_list'),
+    false,
+  );
 
   await host.commandHandlers.product_control_record_get({ command: 'product_control_record_get', payload: {} });
   await host.commandHandlers.product_control_selected_data_root_get({
@@ -172,7 +159,6 @@ test('selected data-root resolver accepts only canonical selected/ready projecti
         }),
       ),
     },
-    profiles: unusedProfiles,
   });
 
   assert.equal(await host.resolveSelectedDataRoot(), '/Users/tester/NimiData');

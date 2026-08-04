@@ -1,31 +1,27 @@
-import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
-import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
+import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
-import { schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-shared-execution-scheduling-guard';
-import type {
-  ModelConfigSection,
-} from '@nimiplatform/kit/features/model-config';
 import {
-  DisabledConfigNote,
-  ModelConfigPanel,
-} from '@nimiplatform/kit/features/model-config';
-import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import {
+  createDesktopNimiCloudTextIntent,
   createDesktopNimiLocalTextIntent,
+  desktopNimiTextIntentDefaults,
   findDesktopNimiTextIntent,
   replaceDesktopNimiTextIntent,
   useDesktopNimiAppAIConfig,
   useOverwriteDesktopNimiAppAIConfig,
 } from './chat-nimi-app-ai-config.js';
 
-type ChatSettingsPanelProps = {
+export type ChatSettingsPanelProps = {
   mode?: 'ai' | 'human';
   headerSlot?: ReactNode;
-  modelPickerContent?: ReactNode;
-  onModelSelectionChange?: unknown;
-  initialModelSelection?: unknown;
   diagnosticsContent?: ReactNode;
   presenceContent?: ReactNode;
   unavailableReason?: string;
@@ -34,68 +30,11 @@ type ChatSettingsPanelProps = {
   showDiagnosticsFooter?: boolean;
 };
 
-const SCHEDULING_STYLE: Record<string, { border: string; bg: string; text: string; icon: string }> = {
-  denied: { border: 'border-red-200', bg: 'bg-red-50/70', text: 'text-red-700', icon: 'text-red-400' },
-  queue_required: { border: 'border-blue-200', bg: 'bg-blue-50/70', text: 'text-blue-700', icon: 'text-blue-400' },
-  preemption_risk: { border: 'border-amber-200', bg: 'bg-amber-50/70', text: 'text-amber-700', icon: 'text-amber-400' },
-  slowdown_risk: { border: 'border-amber-200', bg: 'bg-amber-50/70', text: 'text-amber-700', icon: 'text-amber-400' },
-  unknown: { border: 'border-slate-200', bg: 'bg-slate-50/70', text: 'text-slate-600', icon: 'text-slate-400' },
-};
-
 export function DisabledSettingsNote(props: { label: string }) {
-  return <DisabledConfigNote label={props.label} />;
+  return <InlineAlert tone="info">{props.label}</InlineAlert>;
 }
-
-export function SchedulingWarningBanner(props: { judgement: NimiAISchedulingJudgement }) {
-  const { t } = useTranslation();
-  const { detail, occupancy, resourceWarnings, state } = props.judgement;
-
-  if (state === 'runnable') {
-    return null;
-  }
-
-  const style = SCHEDULING_STYLE[state] ?? SCHEDULING_STYLE.unknown!;
-
-  return (
-    <div
-      className={`space-y-1 overflow-hidden rounded-xl border ${style.border} ${style.bg} px-2.5 py-2 [overflow-wrap:anywhere]`}
-      data-testid="scheduling-warning-banner"
-      data-scheduling-state={state}
-    >
-      <div className={`text-[11px] font-semibold ${style.text}`}>
-        {t(schedulingTitleKey(state))}
-      </div>
-      <div className={`text-[11px] leading-relaxed ${style.text} opacity-80`}>
-        {t(schedulingDetailKeyForJudgement(props.judgement), { detail: detail || '' })}
-      </div>
-      {occupancy ? (
-        <div className={`text-[10px] leading-snug ${style.icon}`}>
-          {t('Chat.schedulingOccupancy', {
-            used: occupancy.globalUsed,
-            cap: occupancy.globalCap,
-            appUsed: occupancy.appUsed,
-            appCap: occupancy.appCap,
-          })}
-        </div>
-      ) : null}
-      {resourceWarnings.length > 0 ? (
-        <div className="space-y-0.5">
-          {resourceWarnings.map((warning, index) => (
-            <div key={index} className={`text-[10px] leading-snug ${style.icon}`}>
-              {t('Chat.schedulingResourceWarning', { warning })}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-// Nimi Chat consumes the exact `nimi.desktop` App AIConfig. The Runtime owns
-// persistence; this panel only renders and mutates its current projection.
 
 function HumanModeSettings(props: {
-  modelPickerContent?: ReactNode;
   diagnosticsContent?: ReactNode;
   unavailableReason: string;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
@@ -103,25 +42,26 @@ function HumanModeSettings(props: {
   const { t } = useTranslation();
   useEffect(() => {
     props.onDiagnosticsVisibilityChange?.(true);
-    return () => {
-      props.onDiagnosticsVisibilityChange?.(false);
-    };
+    return () => { props.onDiagnosticsVisibilityChange?.(false); };
   }, [props.onDiagnosticsVisibilityChange]);
-  const sections: ModelConfigSection[] = [
-    {
-      id: 'chat',
-      title: t('Chat.settingsChatSection', { defaultValue: 'Chat' }),
-      content: props.modelPickerContent || (
-        <DisabledSettingsNote label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })} />
-      ),
-    },
-    {
-      id: 'diagnostics',
-      title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
-      content: props.diagnosticsContent || <DisabledSettingsNote label={props.unavailableReason} />,
-    },
-  ];
-  return <ModelConfigPanel sections={sections} />;
+
+  return (
+    <Surface tone="card" className="space-y-3 p-4">
+      <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+        {t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+      </div>
+      {props.diagnosticsContent || <DisabledSettingsNote label={props.unavailableReason} />}
+    </Surface>
+  );
+}
+
+function parseDefaultsJson(value: string): NimiJsonObject | undefined {
+  if (!value.trim()) return undefined;
+  const parsed: unknown = JSON.parse(value);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Defaults must be a JSON object.');
+  }
+  return parsed as NimiJsonObject;
 }
 
 function AiModeSettings(props: {
@@ -140,25 +80,57 @@ function AiModeSettings(props: {
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig();
   const textIntent = findDesktopNimiTextIntent(appAIConfig.data);
   const routeKind = textIntent?.route.oneofKind;
+  const [routeDraft, setRouteDraft] = useState<'local' | 'cloud'>('local');
+  const [requiredFeaturesDraft, setRequiredFeaturesDraft] = useState('');
+  const [defaultsDraft, setDefaultsDraft] = useState('');
+  const [draftError, setDraftError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRouteDraft(routeKind === 'cloud' ? 'cloud' : 'local');
+    setRequiredFeaturesDraft(textIntent?.requiredFeatures.join(', ') ?? '');
+    const defaults = desktopNimiTextIntentDefaults(textIntent);
+    setDefaultsDraft(Object.keys(defaults).length > 0 ? JSON.stringify(defaults, null, 2) : '');
+    setDraftError(null);
+  }, [routeKind, textIntent]);
+
+  useEffect(() => {
+    props.onDiagnosticsVisibilityChange?.(true);
+    return () => { props.onDiagnosticsVisibilityChange?.(false); };
+  }, [props.onDiagnosticsVisibilityChange]);
+
   const handleManageProfiles = useCallback(() => {
     setActiveTab('runtime');
     runtimeConfigNavigation.openPage('profiles');
   }, [runtimeConfigNavigation, setActiveTab]);
-  const handleUseLocal = useCallback(() => {
-    overwriteAppAIConfig.mutate(replaceDesktopNimiTextIntent(
-      appAIConfig.data?.capabilities ?? [],
-      createDesktopNimiLocalTextIntent(),
-    ));
-  }, [appAIConfig.data, overwriteAppAIConfig]);
 
-  // Diagnostics is always considered visible in the AI panel now that it is a
-  // persistent footer entry rather than an on-demand path view.
-  useEffect(() => {
-    props.onDiagnosticsVisibilityChange?.(true);
-    return () => {
-      props.onDiagnosticsVisibilityChange?.(false);
-    };
-  }, [props.onDiagnosticsVisibilityChange]);
+  const handleSaveIntent = useCallback(() => {
+    try {
+      const requiredFeatures = requiredFeaturesDraft
+        .split(',')
+        .map((feature) => feature.trim())
+        .filter(Boolean);
+      const defaults = parseDefaultsJson(defaultsDraft);
+      const nextIntent = routeDraft === 'local'
+        ? createDesktopNimiLocalTextIntent({ requiredFeatures, defaults })
+        : createDesktopNimiCloudTextIntent({
+          requiredFeatures,
+          defaults,
+        });
+      setDraftError(null);
+      overwriteAppAIConfig.mutate(replaceDesktopNimiTextIntent(
+        appAIConfig.data?.capabilities ?? [],
+        nextIntent,
+      ));
+    } catch (error) {
+      setDraftError(error instanceof Error ? error.message : String(error || 'Invalid AI intent'));
+    }
+  }, [
+    appAIConfig.data,
+    defaultsDraft,
+    overwriteAppAIConfig,
+    requiredFeaturesDraft,
+    routeDraft,
+  ]);
 
   const footer = (
     <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">
@@ -181,21 +153,19 @@ function AiModeSettings(props: {
       {props.showPresenceContent !== false && props.presenceContent ? (
         <div data-chat-settings-module="avatar">{props.presenceContent}</div>
       ) : null}
-      <Surface tone="card" className="space-y-3 p-4" data-testid="nimi-app-ai-config">
-        <div className="flex items-center justify-between gap-3">
+      <Surface tone="card" className="space-y-4 p-4" data-testid="nimi-app-ai-config">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
               {t('Chat.settingsChatSection', { defaultValue: 'Nimi Chat AI' })}
             </div>
             <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">
               {t('Chat.settingsAppAIConfigOwnerHint', {
-                defaultValue: 'This choice belongs to the Nimi Desktop app. Local execution uses the machine’s current Local AI configuration.',
+                defaultValue: 'Nimi Desktop stores only capability intent. Runtime chooses and validates the implementation when execution starts.',
               })}
             </div>
           </div>
-          <StatusBadge
-            tone={routeKind ? 'success' : 'warning'}
-          >
+          <StatusBadge tone={routeKind ? 'success' : 'warning'}>
             {routeKind === 'local'
               ? t('Chat.settingsRouteLocal', { defaultValue: 'Local' })
               : routeKind === 'cloud'
@@ -207,39 +177,89 @@ function AiModeSettings(props: {
         {appAIConfig.isError ? (
           <InlineAlert tone="warning">
             {t('Chat.settingsAppAIConfigUnavailable', {
-              defaultValue: 'The Nimi Desktop AI configuration is not available yet. Apply an AIProfile or finish Runtime setup first.',
+              defaultValue: 'Nimi Desktop AI intent could not be loaded from Runtime.',
             })}
           </InlineAlert>
         ) : null}
 
-        {routeKind === 'cloud' ? (
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-[var(--nimi-text-secondary)]">Execution intent</div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              tone={routeDraft === 'local' ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setRouteDraft('local')}
+            >
+              {t('Chat.settingsUseLocalAI', { defaultValue: 'Local' })}
+            </Button>
+            <Button
+              tone={routeDraft === 'cloud' ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setRouteDraft('cloud')}
+            >
+              {t('Chat.settingsRouteCloud', { defaultValue: 'Cloud' })}
+            </Button>
+          </div>
+        </div>
+
+        <label className="block space-y-1.5 text-xs text-[var(--nimi-text-secondary)]">
+          <span className="font-semibold">Required features</span>
+          <input
+            value={requiredFeaturesDraft}
+            onChange={(event) => setRequiredFeaturesDraft(event.currentTarget.value)}
+            placeholder="Comma-separated CapabilityContract features"
+            className="min-h-9 w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-3 text-sm text-[var(--nimi-text-primary)]"
+          />
+        </label>
+
+        <label className="block space-y-1.5 text-xs text-[var(--nimi-text-secondary)]">
+          <span className="font-semibold">Portable defaults (JSON)</span>
+          <textarea
+            value={defaultsDraft}
+            onChange={(event) => setDefaultsDraft(event.currentTarget.value)}
+            rows={4}
+            spellCheck={false}
+            placeholder="Optional capability defaults"
+            className="w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)]"
+          />
+        </label>
+
+        {routeDraft === 'cloud' ? (
           <InlineAlert tone="info">
-            {textIntent?.route.oneofKind === 'cloud' && textIntent.route.cloud.connectorGrantId
-              ? t('Chat.settingsCloudGrantSelected', { defaultValue: 'A Cloud connector grant is selected for this app.' })
-              : t('Chat.settingsCloudGrantRequired', { defaultValue: 'Cloud intent is saved. Select a connector grant before execution.' })}
+            Cloud expresses App intent only. Runtime owns authorization, implementation selection, and typed execution failures.
           </InlineAlert>
         ) : null}
 
         <div className="flex flex-wrap gap-2">
           <Button
-            tone={routeKind === 'local' ? 'primary' : 'secondary'}
             size="sm"
             disabled={appAIConfig.isPending || overwriteAppAIConfig.isPending}
-            onClick={handleUseLocal}
+            onClick={handleSaveIntent}
           >
-            {t('Chat.settingsUseLocalAI', { defaultValue: 'Use Local AI' })}
+            {overwriteAppAIConfig.isPending ? 'Saving…' : 'Save intent'}
           </Button>
           <Button tone="ghost" size="sm" onClick={handleManageProfiles}>
-            {t('Chat.settingsManageProfiles', { defaultValue: 'Manage AIProfiles' })}
+            {t('Chat.settingsManageProfiles', { defaultValue: 'Apply portable AIProfile' })}
           </Button>
         </div>
 
+        {draftError ? <InlineAlert tone="danger">{draftError}</InlineAlert> : null}
         {overwriteAppAIConfig.error ? (
-          <InlineAlert tone="danger">
-            {overwriteAppAIConfig.error instanceof Error
-              ? overwriteAppAIConfig.error.message
-              : t('Chat.settingsAppAIConfigSaveFailed', { defaultValue: 'Failed to save Nimi Desktop AI configuration.' })}
-          </InlineAlert>
+          <>
+            <InlineAlert tone="danger">
+              {t('Chat.settingsAppAIConfigSaveFailed', {
+                defaultValue: 'Runtime could not save the Nimi Desktop AI intent.',
+              })}
+            </InlineAlert>
+            <details className="rounded-lg border border-[var(--nimi-border-subtle)] p-2 text-xs text-[var(--nimi-text-secondary)]">
+              <summary className="cursor-pointer font-semibold">Technical details</summary>
+              <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[11px]">
+                {overwriteAppAIConfig.error instanceof Error
+                  ? overwriteAppAIConfig.error.message
+                  : String(overwriteAppAIConfig.error)}
+              </pre>
+            </details>
+          </>
         ) : null}
       </Surface>
       {footer}
@@ -247,14 +267,9 @@ function AiModeSettings(props: {
   );
 }
 
-// ---------------------------------------------------------------------------
-// ChatSettingsPanel — public API (unchanged props contract)
-// ---------------------------------------------------------------------------
-
 export function ChatSettingsPanel({
   mode = 'ai',
   headerSlot,
-  modelPickerContent,
   diagnosticsContent,
   presenceContent,
   unavailableReason,
@@ -285,7 +300,6 @@ export function ChatSettingsPanel({
     <div className="space-y-5">
       {headerSlot}
       <HumanModeSettings
-        modelPickerContent={modelPickerContent}
         diagnosticsContent={diagnosticsContent}
         unavailableReason={resolvedUnavailableReason}
         onDiagnosticsVisibilityChange={onDiagnosticsVisibilityChange}

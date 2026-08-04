@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type {
-  NimiCapabilityAIConfig,
-  NimiCapabilityAIConfigIntent,
+import {
+  createNimiLocalAIConfigCapabilityIntent,
+  runtimeAIConfigStructToJson,
+  type NimiCapabilityAIConfig,
+  type NimiCapabilityAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
+import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export const DESKTOP_NIMI_APP_ID = 'nimi.desktop';
@@ -21,16 +24,48 @@ export function findDesktopNimiTextIntent(
   ) ?? null;
 }
 
-export function createDesktopNimiLocalTextIntent(): NimiCapabilityAIConfigIntent {
-  return {
+type DesktopNimiTextIntentFields = {
+  readonly requiredFeatures?: readonly string[];
+  readonly defaults?: NimiJsonObject;
+};
+
+export function createDesktopNimiLocalTextIntent(
+  fields: DesktopNimiTextIntentFields = {},
+): NimiCapabilityAIConfigIntent {
+  const intent = createNimiLocalAIConfigCapabilityIntent({
     capabilityContract: TEXT_GENERATE_CAPABILITY,
-    requiredFeatures: [],
-    defaults: undefined,
+    requiredFeatures: fields.requiredFeatures ?? [],
+    ...(fields.defaults ? { defaults: fields.defaults } : {}),
+  });
+  return {
+    ...intent,
+    // Keep the complete canonical shape visible to consumers and tests.
+    defaults: intent.defaults,
+  };
+}
+
+/**
+ * Switches only consumer route intent. Desktop never creates, reads, carries,
+ * or interprets implementation, provider-model target, Connector, binding, or
+ * readiness authority.
+ */
+export function createDesktopNimiCloudTextIntent(
+  fields: DesktopNimiTextIntentFields = {},
+): NimiCapabilityAIConfigIntent {
+  const base = createDesktopNimiLocalTextIntent(fields);
+  return {
+    ...base,
     route: {
-      oneofKind: 'local',
-      local: {},
+      oneofKind: 'cloud',
+      cloud: { connectorGrantId: '' },
     },
   };
+}
+
+export function desktopNimiTextIntentDefaults(
+  intent: NimiCapabilityAIConfigIntent | null | undefined,
+): NimiJsonObject {
+  return runtimeAIConfigStructToJson(intent?.defaults);
 }
 
 export function replaceDesktopNimiTextIntent(
@@ -46,10 +81,7 @@ export function replaceDesktopNimiTextIntent(
   return [textIntent, ...retained];
 }
 
-/**
- * Read-through projection of Runtime-owned App AIConfig. React Query is only
- * an in-memory renderer projection; Runtime remains the durable owner.
- */
+/** Runtime-owned App AIConfig read-through; React Query is not persistence. */
 export function useDesktopNimiAppAIConfig() {
   const sdk = useDesktopRendererSdk();
   return useQuery({
@@ -60,11 +92,7 @@ export function useDesktopNimiAppAIConfig() {
   });
 }
 
-/**
- * Whole-object App AIConfig mutation. The semantic client fixes the owner to
- * `nimi.desktop`; callers submit only capability intent and never a route,
- * model, binding, readiness, or machine identity.
- */
+/** Whole-object mutation through the desktop-first-party semantic client. */
 export function useOverwriteDesktopNimiAppAIConfig() {
   const sdk = useDesktopRendererSdk();
   const queryClient = useQueryClient();

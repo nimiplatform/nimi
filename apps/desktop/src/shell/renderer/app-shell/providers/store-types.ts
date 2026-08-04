@@ -16,13 +16,7 @@ import type {
   ViewModeBySourceTarget,
 } from '../../features/chat/chat-shell-types';
 import type { ChatThinkingPreference } from '../../features/chat/chat-shared-thinking';
-import type {
-  AgentEffectiveCapabilityResolution,
-  ConversationCapability,
-  ConversationCapabilityProjection,
-} from '../../features/chat/conversation-capability';
 import type { ExploreSectionId } from '../../features/explore/explore-section-nav';
-import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 import type { CharacterSourceRefV3 } from '../../features/realm-source/realm-source-identity.js';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
@@ -101,9 +95,6 @@ export type AppStoreState = {
     accountReasonCode: number;
   };
   runtimeFields: RuntimeFieldMap;
-  aiConfig: NimiAIConfig;
-  conversationCapabilityProjectionByCapability: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>;
-  agentEffectiveCapabilityResolution: AgentEffectiveCapabilityResolution | null;
   activeTab: AppTab;
   navigationBackStack: NavigationRouteSnapshot[];
   chatMode: ConversationMode;
@@ -140,11 +131,6 @@ export type AppStoreState = {
   clearAuthSession: () => void;
   setRuntimeField: (key: keyof RuntimeFieldMap, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
-  setAIConfig: (config: NimiAIConfig) => void;
-  setConversationCapabilityProjections: (
-    projections: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>,
-  ) => void;
-  setAgentEffectiveCapabilityResolution: (resolution: AgentEffectiveCapabilityResolution | null) => void;
   setActiveTab: (tab: AppTab) => void;
   setChatMode: (mode: ConversationMode) => void;
   setChatThinkingPreference: (preference: ChatThinkingPreference) => void;

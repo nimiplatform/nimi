@@ -8,13 +8,6 @@ import type {
   AppStoreState,
 } from '../src/shell/renderer/app-shell/providers/store-types';
 import { INITIAL_RUNTIME_FIELDS } from '../src/shell/renderer/app-shell/providers/store-types';
-import {
-  buildAiConversationRouteOptions,
-  buildAiConversationRouteSummary,
-  resolveAiConversationSetupStateFromProjection,
-} from '../src/shell/renderer/features/chat/chat-nimi-route-view';
-import type { ConversationCapabilityProjection } from '../src/shell/renderer/features/chat/conversation-capability';
-import type { NimiRuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/runtime';
 
 function createUiSliceHarness(): { getState: () => AppStoreState } {
   let state = {
@@ -39,19 +32,6 @@ function createUiSliceHarness(): { getState: () => AppStoreState } {
 
   return {
     getState: () => state,
-  };
-}
-
-function createProjection(overrides: Partial<ConversationCapabilityProjection>): ConversationCapabilityProjection {
-  return {
-    capability: 'text.generate',
-    selectedTargetRef: null,
-    resolvedBinding: null,
-    health: null,
-    metadata: null,
-    supported: false,
-    reasonCode: null,
-    ...overrides,
   };
 }
 
@@ -296,132 +276,4 @@ test('A0 Character detail navigation rejects incomplete source refs', () => {
   assert.equal(harness.getState().activeTab, 'explore');
   assert.equal(harness.getState().selectedSourceRef, null);
   assert.deepEqual(harness.getState().navigationBackStack, []);
-});
-
-test('A0 AI setup is ready only when text.generate projection is supported', () => {
-  const result = resolveAiConversationSetupStateFromProjection(createProjection({
-    supported: true,
-  }));
-
-  assert.deepEqual(result, createReadyConversationSetupState('ai'));
-});
-
-test('A0 AI setup maps selection missing to setup-required without inventing fallback route', () => {
-  const result = resolveAiConversationSetupStateFromProjection(createProjection({
-    reasonCode: 'selection_missing',
-  }));
-
-  assert.equal(result.status, 'setup-required');
-  assert.equal(result.issues[0]?.code, 'ai-thread-route-unavailable');
-  assert.equal(result.issues[0]?.detail, 'Select an AI route before sending a message.');
-});
-
-test('A0 AI setup maps explicit cleared selection to setup-required without inventing fallback route', () => {
-  const result = resolveAiConversationSetupStateFromProjection(createProjection({
-    reasonCode: 'selection_cleared',
-  }));
-
-  assert.equal(result.status, 'setup-required');
-  assert.equal(result.issues[0]?.code, 'ai-thread-route-unavailable');
-  assert.equal(result.issues[0]?.detail, 'Select an AI route before sending a message.');
-});
-
-test('A0 AI route options derive from runtime.route.listOptions inventory', () => {
-  const snapshot: NimiRuntimeRouteOptionsSnapshot = {
-    capability: 'text.generate',
-    selectedTargetRef: null,
-    inventory: {
-      capability: 'text.generate',
-      targets: [{
-        targetRef: { kind: 'local-runtime', version: 'v2', profileBindingId: 'local-runtime:local-qwen' },
-        display: { label: 'Local runtime', provider: 'llama', model: 'qwen3', engine: 'llama' },
-        readiness: { status: 'ready' },
-        compatibility: { capabilities: ['chat'] },
-        evidence: { source: 'local-runtime', localAssetId: 'local-qwen', resolvedModelId: 'qwen3', engine: 'llama' },
-      }, {
-        targetRef: {
-          kind: 'cloud-connector',
-          version: 'v2',
-          connectorId: 'connector-openai',
-          remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1',
-          providerModelId: 'gpt-4.1',
-          provider: 'openai',
-        },
-        display: { label: 'openai', provider: 'openai', model: 'gpt-4.1' },
-        readiness: { status: 'ready' },
-        compatibility: { capabilities: ['chat'] },
-        evidence: {
-          source: 'cloud-connector',
-          connectorId: 'connector-openai',
-          remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1',
-          providerModelId: 'gpt-4.1',
-          provider: 'openai',
-        },
-      }],
-    },
-  };
-
-  const result = buildAiConversationRouteOptions(snapshot);
-
-  assert.deepEqual(result.map((item) => ({
-    label: item.label,
-    detail: item.detail,
-    source: item.targetRef.kind,
-    key: item.key,
-  })), [
-    {
-      label: 'Local runtime',
-      detail: 'llama / qwen3 / llama',
-      source: 'local-runtime',
-      key: 'local-runtime|v2|local-runtime:local-qwen|',
-    },
-    {
-      label: 'openai',
-      detail: 'openai / gpt-4.1',
-      source: 'cloud-connector',
-      key: 'cloud-connector|v2|connector-openai|remote-catalog:connector-openai:gpt-4.1|gpt-4.1',
-    },
-  ]);
-});
-
-test('A0 AI route summary prefers projection resolvedBinding over selectedTargetRef', () => {
-  const summary = buildAiConversationRouteSummary({
-    projection: createProjection({
-      supported: true,
-      selectedTargetRef: {
-        kind: 'cloud-connector',
-        version: 'v2',
-        connectorId: 'connector-openai',
-        remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1',
-        providerModelId: 'gpt-4.1',
-        provider: 'openai',
-      },
-      resolvedBinding: {
-        capability: 'text.generate',
-        source: 'local-runtime',
-        targetRef: { kind: 'local-runtime', version: 'v2', profileBindingId: 'local-runtime:local-qwen' },
-        connectorId: '',
-        provider: 'llama',
-        model: 'qwen3',
-        modelId: 'qwen3',
-        localAssetId: 'local-qwen',
-        engine: 'llama',
-        resolvedBindingRef: 'resolved-local-qwen',
-      },
-    }),
-    selectedTargetRef: {
-      kind: 'cloud-connector',
-      version: 'v2',
-      connectorId: 'connector-openai',
-      remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1',
-      providerModelId: 'gpt-4.1',
-      provider: 'openai',
-    },
-    routeOptions: [],
-  });
-
-  assert.deepEqual(summary, {
-    label: 'Local runtime',
-    detail: 'llama / qwen3',
-  });
 });

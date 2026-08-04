@@ -38,7 +38,6 @@ function DesktopMainSurface(props: {
           <DesktopRendererBindingProvider bindings={props.bindings}>
             <AppearanceEffects />
             <AppProviders
-            accountProfileLibrary={props.resources.accountProfileLibrary}
             agentVisibleProjections={props.resources.agentVisibleProjections}
             anchorBindings={props.resources.anchorBindings}
             attention={props.resources.attention}

@@ -1,4 +1,3 @@
-import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 import type {
   AnyNimiCanonicalRendererHostBindingsV1,
   NimiRendererHostFacadeV1,
@@ -26,7 +25,6 @@ import type { DesktopRendererFirstRunPort } from './first-run-port.js';
 import type { DesktopRendererSettingsPort } from './settings-port.js';
 import type { DesktopRendererAuthPort } from './auth-port.js';
 import type { DesktopRendererRuntimeConfigNavigationPort } from './runtime-config-navigation-port.js';
-import type { DesktopRendererProfileLibraryPort } from './profile-library-port.js';
 import type { RuntimeBridgeDaemonStatus } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { DesktopRendererWorldFollowPort } from './world-follow-port.js';
 import type { DesktopRendererSupportRepairPort } from './support-repair-port.js';
@@ -43,7 +41,6 @@ import type {
 import type { DesktopOpenIntentStore } from '../infra/desktop-open/desktop-open-intent-navigation.js';
 
 export type DesktopRendererInitialState = {
-  readonly aiConfig: NimiAIConfig;
   readonly bootstrapError: string | null;
   readonly bootstrapReady: boolean;
   readonly chatThinkingPreference: ChatThinkingPreference;
@@ -75,7 +72,6 @@ export interface DesktopRendererCommandPort {
   readonly firstRun: DesktopRendererFirstRunPort;
   readonly runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;
   readonly settings: DesktopRendererSettingsPort;
-  readonly profileLibrary: DesktopRendererProfileLibraryPort;
   readonly worldFollow: DesktopRendererWorldFollowPort;
   readonly supportRepair: DesktopRendererSupportRepairPort;
   readonly supportLogs: DesktopRendererSupportLogsPort;
@@ -95,7 +91,6 @@ export interface DesktopRendererCommandPort {
     start(): Promise<RuntimeBridgeDaemonStatus>;
     restart(): Promise<RuntimeBridgeDaemonStatus>;
   };
-  commitAIConfig(config: NimiAIConfig): void;
   persistChatThinkingPreference(preference: ChatThinkingPreference): void;
   reportAuthEntryAction(): Promise<DesktopAuthEntryActionResult>;
   applyLocale(input: {
@@ -105,10 +100,6 @@ export interface DesktopRendererCommandPort {
   }): Promise<void> | void;
   writeClipboardText(value: string): Promise<void>;
   openWalletCheckout(url: string): Promise<{ readonly opened: boolean; readonly reason?: string }>;
-  exportProfileLibraryJson(input: {
-    readonly filename: string;
-    readonly content: string;
-  }): void;
   exportRuntimeAuditJson(input: {
     readonly filename: string;
     readonly content: string;

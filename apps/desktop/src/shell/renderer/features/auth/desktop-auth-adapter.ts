@@ -6,11 +6,7 @@ import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { productionAppStore } from '../../app-shell/providers/production-app-store';
-import { getProductionConversationCapabilityRouteRuntime } from '../chat/production-conversation-route-runtime-state.js';
 import { desktopBridge } from '../../bridge';
-import {
-  refreshConversationCapabilityProjections,
-} from '../chat/conversation-capability-projection';
 import { bootstrapRuntime } from '../../infra/bootstrap/runtime-bootstrap';
 import { applyRuntimeAccountStatusProjection } from '../../infra/bootstrap/auth-state-watcher';
 import { getDesktopAccountRuntime } from '../../infra/sdk/desktop-nimi-client-session';
@@ -74,24 +70,6 @@ export function createDesktopRuntimeAccountBrowserBroker() {
   };
 }
 
-async function refreshDesktopChatCapabilitiesAfterLogin(): Promise<void> {
-  const projection = await desktopBridge.getProductControlRecord();
-  if (projection.state !== 'ready_for_use') {
-    logRendererEvent({
-      level: 'info',
-      area: 'desktop-auth',
-      message: 'phase:post-login-chat-capabilities:skipped-product-not-ready',
-      details: { productState: projection.state },
-    });
-    return;
-  }
-  await refreshConversationCapabilityProjections(
-    productionAppStore,
-    ['text.generate'],
-    getProductionConversationCapabilityRouteRuntime(),
-  );
-}
-
 function logDesktopPostLoginSyncFailures(results: readonly PromiseSettledResult<unknown>[]): void {
   for (const result of results) {
     if (result.status !== 'rejected') continue;
@@ -99,7 +77,11 @@ function logDesktopPostLoginSyncFailures(results: readonly PromiseSettledResult<
       level: 'warn',
       area: 'desktop-auth',
       message: 'phase:post-login-sync:deferred',
-      details: { error: result.reason instanceof Error ? result.reason.message : String(result.reason || 'unknown') },
+      details: {
+        error: result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason || 'unknown'),
+      },
     });
   }
 }
@@ -139,7 +121,6 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       const results = await Promise.allSettled([
         productionQueryClient.invalidateQueries({ queryKey: ['chats'] }),
         productionQueryClient.invalidateQueries({ queryKey: ['contacts'] }),
-        refreshDesktopChatCapabilitiesAfterLogin(),
       ]);
       logDesktopPostLoginSyncFailures(results);
     },

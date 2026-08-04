@@ -180,10 +180,6 @@ function state(value: DesktopSimulatorJsonValue): JsonRecord {
   if (productControl.status !== 'ready_for_use') {
     throw new Error('DESKTOP_SIMULATOR_PRODUCT_CONTROL_INVALID');
   }
-  const aiConfig = record(candidate.aiConfig ?? null, 'AI_CONFIG');
-  if (aiConfig.runtimeStatus !== 'unavailable') {
-    throw new Error('DESKTOP_SIMULATOR_AI_CONFIG_INVALID');
-  }
   productRequests(candidate.productRequests ?? null);
   return candidate;
 }
@@ -490,10 +486,6 @@ export const desktopSimulatorBehavior = Object.freeze({
     if (productControl.initialStatus !== 'ready_for_use') {
       throw new Error('DESKTOP_SIMULATOR_PRODUCT_CONTROL_INVALID');
     }
-    const aiConfig = record(moduleData.aiConfig ?? null, 'AI_CONFIG_MODULE_DATA');
-    if (aiConfig.runtimeStatus !== 'unavailable') {
-      throw new Error('DESKTOP_SIMULATOR_AI_CONFIG_INVALID');
-    }
     return {
       protocolRevision: 1,
       locale,
@@ -507,7 +499,6 @@ export const desktopSimulatorBehavior = Object.freeze({
         sessionRevision: 0,
       }),
       productControl: { status: 'ready_for_use' },
-      aiConfig: { runtimeStatus: 'unavailable' },
       productRequests: { sequence: 0, log: [] },
     };
   },

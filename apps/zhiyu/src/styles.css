@@ -14,8 +14,6 @@
 @source "../../../kit/features/chat/src/**/*.{ts,tsx}";
 @source "../../../kit/features/agent-center/src/**/*.{ts,tsx}";
 @source "../../../kit/features/avatar/src/**/*.{ts,tsx}";
-@source "../../../kit/features/model-config/src/**/*.{ts,tsx}";
-@source "../../../kit/features/model-picker/src/**/*.{ts,tsx}";
 
 :root {
   color-scheme: light;

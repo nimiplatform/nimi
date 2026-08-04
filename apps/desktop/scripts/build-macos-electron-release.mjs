@@ -154,9 +154,6 @@ async function buildReleaseInputs({
 
   const nativeBuildEnvironment = releaseCompileEnvironment({ release: releaseInput });
   runReleaseCommand(process.execPath, [
-    path.join(desktopRoot, 'product-control-node', 'scripts', 'build-darwin-arm64-package.mjs'),
-  ], { cwd: repoRoot, env: nativeBuildEnvironment, inherit: true });
-  runReleaseCommand(process.execPath, [
     path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'scripts', 'build-darwin-arm64-package.mjs'),
     ...(localDevelopmentBuild ? ['--local-development'] : releaseInput ? [] : ['--layout-only']),
   ], { cwd: repoRoot, env: nativeBuildEnvironment, inherit: true });
@@ -208,7 +205,6 @@ async function packageDesktop(input) {
     cp(path.join(desktopRoot, 'dist-electron', 'preload.cjs'), path.join(source, 'dist-electron', 'preload.cjs')),
   ]);
   await stageSharpRuntime(source);
-  await stageDesktopProductControlRuntime(source);
   await writeManifest(path.join(source, 'package.json'), {
     main: 'dist-electron/main.js',
     name: 'nimi-desktop',
@@ -313,26 +309,6 @@ async function stageSharpRuntime(sourceRoot) {
     const destination = path.join(sourceRoot, 'node_modules', ...packageName.split('/'));
     await mkdir(path.dirname(destination), { recursive: true });
     await cp(source, destination, { recursive: true, force: false, dereference: true });
-  }
-}
-
-async function stageDesktopProductControlRuntime(sourceRoot) {
-  const packageRoot = path.join(desktopRoot, 'product-control-node', 'npm', 'darwin-arm64');
-  const destination = path.join(
-    sourceRoot,
-    'node_modules',
-    '@nimiplatform',
-    'desktop-product-control-darwin-arm64',
-  );
-  await mkdir(destination, { recursive: true });
-  for (const [name, mode] of [
-    ['index.cjs', 0o644],
-    ['nimi_desktop_product_control.node', 0o755],
-    ['package.json', 0o644],
-  ]) {
-    const target = path.join(destination, name);
-    await cp(path.join(packageRoot, name), target, { force: false });
-    await chmod(target, mode);
   }
 }
 

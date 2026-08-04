@@ -304,14 +304,6 @@ export default defineConfig(({ mode }) => {
           find: '@nimiplatform/kit/features/generation',
           replacement: path.resolve(__dirname, '../../kit/features/generation/src'),
         },
-        {
-          find: '@nimiplatform/kit/features/model-config',
-          replacement: path.resolve(__dirname, '../../kit/features/model-config/src'),
-        },
-        {
-          find: '@nimiplatform/kit/features/model-picker',
-          replacement: path.resolve(__dirname, '../../kit/features/model-picker/src'),
-        },
       ],
     },
     server: {
@@ -379,15 +371,6 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/kit/features/commerce/src/')) {
               return 'vendor-kit-commerce';
             }
-            if (normalizedId.includes('/kit/features/model-config/src/')) {
-              return 'vendor-kit-model-config';
-            }
-            if (normalizedId.includes('/kit/features/model-picker/src/')) {
-              return 'vendor-kit-model-picker';
-            }
-            if (normalizedId.includes('/kit/core/src/model-config/')) {
-              return 'vendor-kit-model-config-core';
-            }
             if (normalizedId.includes('/kit/auth/src/')) {
               return 'vendor-kit-auth';
             }
@@ -453,15 +436,11 @@ export default defineConfig(({ mode }) => {
                 return 'chat-human-core';
               }
               if (
-                normalizedId.includes('/conversation-capability')
-                || normalizedId.includes('/conversation-submit-readiness')
-                || normalizedId.includes('/capability-settings-shared')
-                || normalizedId.includes('/chat-shared-settings-panel')
+                normalizedId.includes('/chat-shared-settings-panel')
                 || normalizedId.includes('/chat-settings-storage')
                 || normalizedId.includes('/chat-shared-thinking')
-                || normalizedId.includes('/chat-shared-execution-scheduling-guard')
               ) {
-                return 'chat-capabilities';
+                return 'chat-settings';
               }
               if (matchesAny(normalizedId, [
                 '/chat-settings-',

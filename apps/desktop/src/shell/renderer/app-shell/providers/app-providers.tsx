@@ -19,8 +19,6 @@ import type { AgentConversationAnchorBindingStore } from './agent-conversation-a
 import { AgentConversationAnchorBindingProvider } from './agent-conversation-anchor-binding-context.js';
 import type { RuntimeConfigConnectorSdkService } from '../../features/runtime-config/runtime-config-connector-sdk-service.js';
 import { RuntimeConfigConnectorSdkProvider } from '../../features/runtime-config/runtime-config-connector-sdk-context.js';
-import type { AccountProfileLibraryResource } from '../../features/runtime-config/runtime-config-profile-library.js';
-import { AccountProfileLibraryProvider } from '../../features/runtime-config/runtime-config-profile-library-context.js';
 import type { RealmGroupChatData } from '../../features/chat/data/realm-group-chat-data.js';
 import { RealmGroupChatDataProvider } from '../../features/chat/data/realm-group-chat-data-context.js';
 import type { RealmHumanChatData } from '../../features/chat/data/realm-human-chat-data.js';
@@ -34,8 +32,7 @@ import { ChatUploadPlaceholderProvider } from '../../features/turns/chat-upload-
 import type { LocalModelCenterProgressCache } from '../../features/runtime-config/runtime-config-local-model-center-progress-cache.js';
 import { LocalModelCenterProgressProvider } from '../../features/runtime-config/runtime-config-local-model-center-progress-context.js';
 
-export function AppProviders({ accountProfileLibrary, agentVisibleProjections, anchorBindings, attention, chatUploadPlaceholders, children, i18n, localModelCenterProgress, queryClient, realmGroupChatData, realmHumanChatData, realmSocialData, runtimeConnectorSdk, Router, scenarioJobController, store, streamController, worldFollowStore }: PropsWithChildren<{
-  readonly accountProfileLibrary: AccountProfileLibraryResource;
+export function AppProviders({ agentVisibleProjections, anchorBindings, attention, chatUploadPlaceholders, children, i18n, localModelCenterProgress, queryClient, realmGroupChatData, realmHumanChatData, realmSocialData, runtimeConnectorSdk, Router, scenarioJobController, store, streamController, worldFollowStore }: PropsWithChildren<{
   readonly agentVisibleProjections: AgentVisibleProjectionStore;
   readonly anchorBindings: AgentConversationAnchorBindingStore;
   readonly attention: AppAttentionSource;
@@ -62,7 +59,6 @@ export function AppProviders({ accountProfileLibrary, agentVisibleProjections, a
               <RealmGroupChatDataProvider resource={realmGroupChatData}>
               <RealmHumanChatDataProvider resource={realmHumanChatData}>
               <RuntimeConfigConnectorSdkProvider service={runtimeConnectorSdk}>
-              <AccountProfileLibraryProvider resource={accountProfileLibrary}>
               <AgentConversationAnchorBindingProvider store={anchorBindings}>
               <AgentVisibleProjectionProvider store={agentVisibleProjections}>
               <ChatUploadPlaceholderProvider store={chatUploadPlaceholders}>
@@ -82,7 +78,6 @@ export function AppProviders({ accountProfileLibrary, agentVisibleProjections, a
               </ChatUploadPlaceholderProvider>
               </AgentVisibleProjectionProvider>
               </AgentConversationAnchorBindingProvider>
-              </AccountProfileLibraryProvider>
               </RuntimeConfigConnectorSdkProvider>
               </RealmHumanChatDataProvider>
               </RealmGroupChatDataProvider>

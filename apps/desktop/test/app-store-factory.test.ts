@@ -6,12 +6,6 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import {
-  createEmptyNimiAIConfig,
-  projectNimiRuntimeLocalAgentAIScopeRef,
-  type NimiAIConfig,
-} from '@nimiplatform/sdk/ai';
-
-import {
   createAppStore,
   type AppStoreDependencies,
 } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
@@ -20,7 +14,6 @@ import {
   useAppStore,
 } from '../src/shell/renderer/app-shell/providers/app-store.js';
 import { createDesktopQueryClient } from '../src/shell/renderer/infra/query-client/query-client.js';
-import { refreshAgentEffectiveCapabilityResolution } from '../src/shell/renderer/features/chat/conversation-capability-projection.js';
 import { createDesktopI18n } from '../src/shell/renderer/i18n/desktop-i18n.js';
 import { AppProviders } from '../src/shell/renderer/app-shell/providers/app-providers.js';
 import { createAgentConversationAnchorBindingStore } from '../src/shell/renderer/app-shell/providers/agent-conversation-anchor-binding-storage.js';
@@ -45,7 +38,6 @@ import { createTestStreamController } from './helpers/test-stream-controller.js'
 import { createScenarioJobController } from '../src/shell/renderer/features/turns/scenario-job-controller.js';
 import { createUnavailableDesktopRendererAuthPort } from '../src/shell/renderer/renderer/auth-port.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
-import { createUnavailableDesktopRendererProfileLibraryPort } from '../src/shell/renderer/renderer/profile-library-port.js';
 import { createUnavailableDesktopRendererOfflinePort } from '../src/shell/renderer/renderer/offline-port.js';
 import { createUnavailableDesktopRendererWorldFollowPort } from '../src/shell/renderer/renderer/world-follow-port.js';
 import { createUnavailableDesktopRendererSupportRepairPort } from '../src/shell/renderer/renderer/support-repair-port.js';
@@ -63,26 +55,13 @@ import { createRealmSocialData } from '../src/shell/renderer/features/social/dat
 import type { RealmGroupChatData } from '../src/shell/renderer/features/chat/data/realm-group-chat-data.js';
 import type { RealmHumanChatData } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
 import { createRuntimeConfigConnectorSdkService } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.js';
-import { createAccountProfileLibraryResource } from '../src/shell/renderer/features/runtime-config/runtime-config-profile-library.js';
-
-function testChatScope(surface: 'nimi' | 'agent') {
-  return projectNimiRuntimeLocalAgentAIScopeRef(
-    surface === 'nimi' ? 'runtime.local-agent-subsystem:test-a' : 'local-agent:test',
-  );
-}
 
 function createDependencies(input: {
-  readonly commits: NimiAIConfig[];
   readonly preferences: string[];
-  readonly modes: string[];
-  readonly initialSurface?: 'nimi' | 'agent';
+  readonly initialChatThinkingPreference?: 'off' | 'on';
 }): AppStoreDependencies {
   return {
-    initialAIConfig: createEmptyNimiAIConfig(testChatScope(input.initialSurface ?? 'nimi')),
-    commitAIConfig(config) {
-      input.commits.push(config);
-    },
-    initialChatThinkingPreference: 'off',
+    initialChatThinkingPreference: input.initialChatThinkingPreference ?? 'off',
     persistChatThinkingPreference(preference) {
       input.preferences.push(preference);
     },
@@ -90,13 +69,8 @@ function createDependencies(input: {
 }
 
 test('createAppStore owns independent state and injected effects per renderer instance', () => {
-  const firstEffects = { commits: [] as NimiAIConfig[], preferences: [] as string[], modes: [] as string[] };
-  const secondEffects = {
-    commits: [] as NimiAIConfig[],
-    preferences: [] as string[],
-    modes: [] as string[],
-    initialSurface: 'agent' as const,
-  };
+  const firstEffects = { preferences: [] as string[] };
+  const secondEffects = { preferences: [] as string[] };
   const first = createAppStore(createDependencies(firstEffects));
   const second = createAppStore(createDependencies(secondEffects));
 
@@ -111,45 +85,23 @@ test('createAppStore owns independent state and injected effects per renderer in
   assert.equal(second.getState().chatThinkingPreference, 'off');
   assert.deepEqual(firstEffects.preferences, ['on']);
   assert.deepEqual(secondEffects.preferences, []);
-  assert.deepEqual(firstEffects.modes, []);
-  assert.deepEqual(secondEffects.modes, []);
-});
-
-test('createAppStore commits AIConfig through only the owning instance dependency', () => {
-  const firstEffects = { commits: [] as NimiAIConfig[], preferences: [] as string[], modes: [] as string[] };
-  const secondEffects = { commits: [] as NimiAIConfig[], preferences: [] as string[], modes: [] as string[] };
-  const first = createAppStore(createDependencies(firstEffects));
-  const second = createAppStore(createDependencies(secondEffects));
-  const nextConfig = createEmptyNimiAIConfig(testChatScope('agent'));
-
-  first.getState().setAIConfig(nextConfig);
-
-  assert.equal(first.getState().aiConfig, nextConfig);
-  assert.notEqual(second.getState().aiConfig, nextConfig);
-  assert.deepEqual(firstEffects.commits, [nextConfig]);
-  assert.deepEqual(secondEffects.commits, []);
 });
 
 test('AppStoreProvider resolves the store belonging to the current renderer tree', () => {
-  const firstEffects = { commits: [] as NimiAIConfig[], preferences: [] as string[], modes: [] as string[] };
-  const secondEffects = {
-    commits: [] as NimiAIConfig[],
-    preferences: [] as string[],
-    modes: [] as string[],
-    initialSurface: 'agent' as const,
-  };
-  const first = createAppStore(createDependencies(firstEffects));
-  const second = createAppStore(createDependencies(secondEffects));
-  function ActiveScope() {
-    return createElement('span', null, useAppStore((state) =>
-      state.aiConfig.scopeRef.kind === 'local-agent' ? 'agent' : state.aiConfig.scopeRef.surfaceId));
+  const first = createAppStore(createDependencies({
+    preferences: [],
+    initialChatThinkingPreference: 'on',
+  }));
+  const second = createAppStore(createDependencies({ preferences: [] }));
+  function ThinkingPreference() {
+    return createElement('span', null, useAppStore((state) => state.chatThinkingPreference));
   }
   const render = (store: typeof first) => renderToStaticMarkup(
-    createElement(AppStoreProvider, { store }, createElement(ActiveScope)),
+    createElement(AppStoreProvider, { store }, createElement(ThinkingPreference)),
   );
 
-  assert.equal(render(first), '<span>agent</span>');
-  assert.equal(render(second), '<span>agent</span>');
+  assert.equal(render(first), '<span>on</span>');
+  assert.equal(render(second), '<span>off</span>');
 });
 
 test('createDesktopQueryClient owns an independent cache per renderer instance', () => {
@@ -164,28 +116,9 @@ test('createDesktopQueryClient owns an independent cache per renderer instance',
   second.clear();
 });
 
-test('capability projection refresh mutates only the owning renderer store', () => {
-  const firstEffects = { commits: [] as NimiAIConfig[], preferences: [] as string[], modes: [] as string[] };
-  const secondEffects = { commits: [] as NimiAIConfig[], preferences: [] as string[], modes: [] as string[] };
-  const first = createAppStore(createDependencies(firstEffects));
-  const second = createAppStore(createDependencies(secondEffects));
-
-  refreshAgentEffectiveCapabilityResolution(first);
-
-  assert.equal(first.getState().agentEffectiveCapabilityResolution?.reason, 'projection_unavailable');
-  assert.equal(second.getState().agentEffectiveCapabilityResolution, null);
-});
-
 test('AppProviders owns independent route, store, query, and i18n resources', async () => {
-  const firstEffects = { commits: [] as NimiAIConfig[], preferences: [] as string[], modes: [] as string[] };
-  const secondEffects = {
-    commits: [] as NimiAIConfig[],
-    preferences: [] as string[],
-    modes: [] as string[],
-    initialSurface: 'agent' as const,
-  };
-  const firstStore = createAppStore(createDependencies(firstEffects));
-  const secondStore = createAppStore(createDependencies(secondEffects));
+  const firstStore = createAppStore(createDependencies({ preferences: [] }));
+  const secondStore = createAppStore(createDependencies({ preferences: [] }));
   const firstQueryClient = createDesktopQueryClient();
   const secondQueryClient = createDesktopQueryClient();
   const firstI18n = createDesktopI18n({ initialLocale: 'en', development: false, now: () => 1 });
@@ -195,13 +128,8 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
   function InstanceSnapshot() {
     const location = useLocation();
     const { i18n } = useTranslation();
-    const surfaceId = useAppStore((state) =>
-      state.aiConfig.scopeRef.kind === 'local-agent' ? 'agent' : state.aiConfig.scopeRef.surfaceId);
-    return createElement(
-      'span',
-      null,
-      `${location.pathname}|${surfaceId}|${i18n.language}`,
-    );
+    const activeTab = useAppStore((state) => state.activeTab);
+    return createElement('span', null, `${location.pathname}|${activeTab}|${i18n.language}`);
   }
   const createRouter = (entry: string) => function InstanceRouter(props: PropsWithChildren) {
     return createElement(MemoryRouter, { initialEntries: [entry] }, props.children);
@@ -215,9 +143,6 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
     AppProviders,
     {
       agentVisibleProjections: createAgentVisibleProjectionStore(),
-      accountProfileLibrary: createAccountProfileLibraryResource(
-        createUnavailableDesktopRendererProfileLibraryPort(),
-      ),
       anchorBindings: createAgentConversationAnchorBindingStore(() => 1),
       chatUploadPlaceholders: createChatUploadPlaceholderStore(() => 1),
       attention: {
@@ -263,8 +188,8 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
     createElement(InstanceSnapshot),
   ));
 
-  assert.match(render('/first', firstStore, firstQueryClient, firstI18n), /\/first\|agent\|en/);
-  assert.match(render('/second', secondStore, secondQueryClient, secondI18n), /\/second\|agent\|zh/);
+  assert.match(render('/first', firstStore, firstQueryClient, firstI18n), /\/first\|chat\|en/);
+  assert.match(render('/second', secondStore, secondQueryClient, secondI18n), /\/second\|chat\|zh/);
   firstQueryClient.clear();
   secondQueryClient.clear();
 });
@@ -272,7 +197,6 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
 function createCanonicalBindings(input: {
   readonly prefix: string;
   readonly locale: 'en' | 'zh';
-  readonly surface: 'nimi' | 'agent';
 }): DesktopCanonicalRendererBindings {
   const sdkUnavailable = (): never => {
     throw new Error('TEST_DESKTOP_SDK_UNAVAILABLE');
@@ -332,19 +256,13 @@ function createCanonicalBindings(input: {
       localAudit: sdkUnavailable,
       auditAdmin: sdkUnavailable,
       aiExecution: sdkUnavailable,
-      routeHostAccessClient: sdkUnavailable,
-      routeOptionsClient: sdkUnavailable,
       externalAgent: sdkUnavailable,
       runtimeAgentOwner: sdkUnavailable,
       runtimeAgentDiscovery: sdkUnavailable,
       runtimeAgentTurns: sdkUnavailable,
       hostRuntimeAgent: sdkUnavailable,
       accountRuntime: sdkUnavailable,
-      runtimeRouteAccess: sdkUnavailable,
-      loadRouteOptions: sdkUnavailable,
-      conversationCapabilityRuntime: () => null,
       runtimeHealthCoordinator: sdkUnavailable,
-      aiConfig: sdkUnavailable,
       realm: sdkUnavailable,
       offline: createUnavailableDesktopRendererOfflinePort('TEST_OFFLINE_UNAVAILABLE'),
       socialData: Object.freeze({
@@ -366,7 +284,6 @@ function createCanonicalBindings(input: {
     app: {
       projection: Object.freeze({
         initialState: () => ({
-          aiConfig: createEmptyNimiAIConfig(testChatScope(input.surface)),
           bootstrapError: null,
           bootstrapReady: true,
           chatThinkingPreference: 'off' as const,
@@ -390,7 +307,6 @@ function createCanonicalBindings(input: {
         firstRun: createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED'),
         runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(),
         settings: createMemoryDesktopRendererSettingsPort(),
-        profileLibrary: createUnavailableDesktopRendererProfileLibraryPort(),
         worldFollow: createUnavailableDesktopRendererWorldFollowPort('TEST_WORLD_FOLLOW_UNAVAILABLE'),
         supportRepair: createUnavailableDesktopRendererSupportRepairPort('TEST_SUPPORT_REPAIR_UNAVAILABLE'),
         supportLogs: createUnavailableDesktopRendererSupportLogsPort('TEST_SUPPORT_LOGS_UNAVAILABLE'),
@@ -417,13 +333,11 @@ function createCanonicalBindings(input: {
           async start() { throw new Error('TEST_RUNTIME_DAEMON_UNADMITTED'); },
           async restart() { throw new Error('TEST_RUNTIME_DAEMON_UNADMITTED'); },
         }),
-        commitAIConfig() {},
         persistChatThinkingPreference() {},
         async reportAuthEntryAction() { return { ok: false as const, disposition: 'unsupported' as const }; },
         applyLocale() {},
         async openWalletCheckout() { return { opened: false }; },
         async writeClipboardText() {},
-        exportProfileLibraryJson() {},
         exportRuntimeAuditJson() {},
         confirmRuntimeProfileInstall() { return false; },
         async pickLocalRuntimeAssetManifestPath() { return null; },
@@ -488,8 +402,8 @@ function createCanonicalBindings(input: {
 }
 
 test('canonical Desktop resources are fresh for every factory invocation', async () => {
-  const firstBindings = createCanonicalBindings({ prefix: 'desktop-first', locale: 'en', surface: 'nimi' });
-  const secondBindings = createCanonicalBindings({ prefix: 'desktop-second', locale: 'zh', surface: 'agent' });
+  const firstBindings = createCanonicalBindings({ prefix: 'desktop-first', locale: 'en' });
+  const secondBindings = createCanonicalBindings({ prefix: 'desktop-second', locale: 'zh' });
   const first = createDesktopRendererResources(firstBindings);
   const second = createDesktopRendererResources(secondBindings);
   await Promise.all([first.i18n.init(), second.i18n.init()]);

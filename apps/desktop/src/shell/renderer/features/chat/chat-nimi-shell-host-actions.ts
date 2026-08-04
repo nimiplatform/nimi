@@ -7,11 +7,17 @@ import type {
 } from '../../bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '../../bridge/runtime-bridge/chat-ai-store';
 import { createNimiClientId } from '@nimiplatform/sdk';
-import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
-import { AI_NEW_CONVERSATION_TITLE } from './chat-nimi-thread-model';
+import {
+  AI_NEW_CONVERSATION_TITLE,
+  createAssistantMessageContent,
+  createPlainTextMessageContent,
+  resolveThreadTitleAfterFirstSend,
+} from './chat-nimi-thread-model';
+import type { DesktopNimiTextCapabilityResult } from './chat-nimi-shell-runtime-adapter';
 import {
   bundleQueryKey,
   createEmptyBundle,
+  THREADS_QUERY_KEY,
   upsertBundleDraft,
 } from './chat-nimi-shell-core';
 
@@ -19,6 +25,7 @@ type UseAiConversationHostActionsInput = {
   activeThreadId: string | null;
   currentDraftTextRef: { current: string };
   ephemeralThread: ChatAiThreadRecord | null;
+  executeTextCapability: (text: string) => Promise<DesktopNimiTextCapabilityResult>;
   now: () => number;
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
@@ -28,6 +35,7 @@ type UseAiConversationHostActionsInput = {
     updater: (current: ChatAiThreadBundle | null | undefined) => ChatAiThreadBundle | null | undefined,
   ) => void;
   setEphemeralThread: (thread: ChatAiThreadRecord | null) => void;
+  setSubmittingThreadId: (threadId: string | null) => void;
   submittingThreadId: string | null;
   syncSelectionToThread: (threadId: string | null) => void;
   threads: readonly ChatAiThreadSummary[];
@@ -61,15 +69,6 @@ export async function ensureChatAiThreadRecordPersisted(input: {
     thread: persisted,
     recoveredMissingThread: input.verifyExisting,
   };
-}
-
-function appAIConfigExecutionPending(): never {
-  throw createNimiError({
-    message: 'Nimi Chat execution is unavailable until Runtime App AIConfig composition is active.',
-    reasonCode: ReasonCode.AI_ROUTE_UNSUPPORTED,
-    actionHint: 'wait_for_app_ai_config_execution_support',
-    source: 'runtime',
-  });
 }
 
 export function useAiConversationHostActions(
@@ -139,10 +138,82 @@ export function useAiConversationHostActions(
     })().catch(input.reportHostError);
   }, [input, persistDraftForThread, syncAiThreadSelectionState]);
 
-  const handleSubmit = useCallback(async (text: string) => {
-    if (!text.trim()) return;
-    return appAIConfigExecutionPending();
-  }, []);
+  const handleSubmit = useCallback(async (value: string) => {
+    const text = value.trim();
+    if (!text || input.submittingThreadId) return;
+    const createdAtMs = input.now();
+    const baseThread: ChatAiThreadRecord = input.ephemeralThread
+      ?? (input.selectedThreadRecord && input.activeThreadId
+        ? {
+          ...input.selectedThreadRecord,
+          id: input.activeThreadId,
+          createdAtMs,
+        }
+        : {
+          id: createNimiClientId('ai-thread'),
+          title: AI_NEW_CONVERSATION_TITLE,
+          createdAtMs,
+          updatedAtMs: createdAtMs,
+          lastMessageAtMs: null,
+        });
+    input.setSubmittingThreadId(baseThread.id);
+    try {
+      // Runtime/Kit owns admission. Desktop performs no readiness, model,
+      // route-target, binding, or fallback check before this call.
+      const result = await input.executeTextCapability(text);
+      const persisted = await ensureChatAiThreadRecordPersisted({
+        thread: baseThread,
+        verifyExisting: Boolean(input.selectedThreadRecord && !input.ephemeralThread),
+      });
+      const userMessage = await chatAiStoreClient.createMessage({
+        id: createNimiClientId('ai-message-user'),
+        threadId: persisted.thread.id,
+        role: 'user',
+        status: 'complete',
+        contentText: text,
+        content: createPlainTextMessageContent(text),
+        error: null,
+        traceId: null,
+        parentMessageId: null,
+        createdAtMs,
+        updatedAtMs: createdAtMs,
+      });
+      const assistantMessage = await chatAiStoreClient.createMessage({
+        id: createNimiClientId('ai-message-assistant'),
+        threadId: persisted.thread.id,
+        role: 'assistant',
+        status: 'complete',
+        contentText: result.text,
+        content: createAssistantMessageContent(result.text),
+        error: null,
+        traceId: result.traceId,
+        parentMessageId: userMessage.id,
+        createdAtMs: createdAtMs + 1,
+        updatedAtMs: createdAtMs + 1,
+      });
+      const updatedThread = await chatAiStoreClient.updateThreadMetadata({
+        id: persisted.thread.id,
+        title: resolveThreadTitleAfterFirstSend(persisted.thread.title, text),
+        updatedAtMs: assistantMessage.updatedAtMs,
+        lastMessageAtMs: assistantMessage.updatedAtMs,
+      });
+      await chatAiStoreClient.deleteDraft(updatedThread.id);
+      input.queryClient.setQueryData<ChatAiThreadBundle>(bundleQueryKey(updatedThread.id), (current) => ({
+        thread: updatedThread,
+        messages: [...(current?.messages ?? []), userMessage, assistantMessage],
+        draft: null,
+      }));
+      input.setEphemeralThread(null);
+      input.currentDraftTextRef.current = '';
+      syncAiThreadSelectionState(updatedThread.id);
+      await input.queryClient.invalidateQueries({ queryKey: THREADS_QUERY_KEY });
+    } catch (error) {
+      input.reportHostError(error);
+      throw error;
+    } finally {
+      input.setSubmittingThreadId(null);
+    }
+  }, [input, syncAiThreadSelectionState]);
 
   return {
     handleCreateThread,

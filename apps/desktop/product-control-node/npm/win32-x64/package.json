@@ -1,7 +1,7 @@
 {
   "name": "@nimiplatform/desktop-product-control-win32-x64",
   "version": "0.1.0",
-  "description": "Private Desktop account profile library binding for Windows x64 Electron",
+  "description": "Retired Desktop product-control native package placeholder",
   "license": "MIT",
   "private": true,
   "os": ["win32"],

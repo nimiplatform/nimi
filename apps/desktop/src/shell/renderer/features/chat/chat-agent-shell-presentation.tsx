@@ -330,8 +330,8 @@ export function useAgentConversationPresentation(
       ...input.behaviorSettings,
       thinkingPreference: input.thinkingPreference === 'on' ? 'off' : 'on',
     }),
-    setupDescription: input.t('Chat.agentRouteRequired', {
-      defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
+    setupDescription: input.t('Chat.agentRuntimeOwnedExecution', {
+      defaultValue: 'The external AI host owns Agent workflow state and Runtime reports typed execution errors directly.',
     }),
   }), [
     adapter,

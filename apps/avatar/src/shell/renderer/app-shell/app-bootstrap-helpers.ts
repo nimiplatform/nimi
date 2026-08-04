@@ -6,7 +6,6 @@ import {
   type NimiShellRuntimeBridgeResult,
 } from '../bridge/index.js';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
-import { useAvatarStore } from './app-store.js';
 
 export function readNormalizedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -56,12 +55,6 @@ export async function waitForAvatarLaunchContext(timeoutMs: number): Promise<Ava
 export function resolveRuntimeAppId(_launchContext: AvatarLaunchContext): string {
   return 'nimi.avatar';
 }
-
-export type RuntimeExecutionBinding = {
-  route: 'local' | 'cloud';
-  modelId: string;
-  connectorId?: string;
-};
 
 export type MockScenarioId =
   | 'default'
@@ -245,26 +238,4 @@ export async function loadSelectedMockScenarioFixture(): Promise<LoadedMockScena
 export async function loadMockScenarioFixture(scenarioId: MockScenarioId): Promise<LoadedMockScenarioFixture> {
   const module = await MOCK_SCENARIO_LOADERS[scenarioId]();
   return parseMockScenarioFixture(module.default, scenarioId);
-}
-
-export function resolveExecutionBinding(input: {
-  runtimeDefaults: ReturnType<typeof useAvatarStore.getState>['runtime']['defaults'];
-  bundle: ReturnType<typeof useAvatarStore.getState>['bundle'];
-}): RuntimeExecutionBinding | null {
-  const executionBinding = input.bundle?.custom?.['execution_binding'];
-  if (executionBinding && typeof executionBinding === 'object') {
-    const record = executionBinding as Record<string, unknown>;
-    const route = readNormalizedString(record.route);
-    const modelId = readNormalizedString(record.modelId);
-    const connectorId = readNormalizedString(record.connectorId);
-    if ((route === 'local' || route === 'cloud') && modelId) {
-      return {
-        route,
-        modelId,
-        ...(connectorId ? { connectorId } : {}),
-      };
-    }
-  }
-
-  return null;
 }

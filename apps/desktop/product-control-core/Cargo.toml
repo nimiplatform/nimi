@@ -2,7 +2,7 @@
 name = "nimi-desktop-product-control-core"
 version = "0.1.0"
 edition = "2021"
-description = "Desktop-owned account profile library core for the Electron host."
+description = "Retired Desktop product-control native crate placeholder."
 license = "MIT"
 
 [dependencies]

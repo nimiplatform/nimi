@@ -7,7 +7,6 @@ import {
   resolveThreadTitleAfterFirstSend,
 } from '../src/shell/renderer/features/chat/chat-nimi-thread-model.js';
 import { resolveChatThinkingConfig } from '../src/shell/renderer/features/chat/chat-shared-thinking.js';
-import { resolveChatAiConversationRuntimeRequest } from '../src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.js';
 
 test('chat ai a4: active thread restore prefers explicit selection before last selected', () => {
   const threads = [{
@@ -32,15 +31,6 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
     selectionThreadId: 'missing-thread',
     lastSelectedThreadId: 'thread-b',
   }), 'thread-b');
-});
-
-test('chat ai a4: legacy route request fails closed during App AIConfig cutover', () => {
-  assert.throws(
-    () => resolveChatAiConversationRuntimeRequest(),
-    (error: unknown) => (
-      (error as { reasonCode?: string }).reasonCode === 'AI_ROUTE_UNSUPPORTED'
-    ),
-  );
 });
 
 test('chat ai a4: first successful send replaces placeholder thread title', () => {

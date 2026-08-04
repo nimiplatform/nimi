@@ -6,6 +6,7 @@ import type { StatusKind } from '../../app-shell/providers/app-store';
 export type InlineFeedbackState = {
   kind: StatusKind;
   message: string;
+  technicalDetail?: string;
   actionLabel?: string;
   onAction?: () => void;
 };
@@ -63,6 +64,16 @@ export function InlineFeedback(props: {
         <div className="min-w-0 flex-1">
           {title ? <p className={cn('text-xs font-semibold uppercase tracking-[0.06em]', tone.title)}>{title}</p> : null}
           <p className={cn(title ? 'mt-1 text-sm' : 'text-sm', 'break-words [overflow-wrap:anywhere]', tone.body)}>{feedback.message}</p>
+          {feedback.technicalDetail ? (
+            <details className="mt-2 text-xs text-[var(--nimi-text-secondary)]">
+              <summary className="cursor-pointer font-semibold">
+                {t('Feedback.technicalDetails', { defaultValue: 'Technical details' })}
+              </summary>
+              <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px]">
+                {feedback.technicalDetail}
+              </pre>
+            </details>
+          ) : null}
           {feedback.actionLabel && feedback.onAction ? (
             <button
               type="button"

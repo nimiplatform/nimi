@@ -1,6 +1,4 @@
-import { RoutePolicy } from '@nimiplatform/sdk/runtime/wire-types';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
-import type { NimiAISnapshot } from './conversation-capability';
 
 export function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -61,28 +59,6 @@ export function requireValue(value: unknown, reasonCode: string, actionHint: str
   return normalized;
 }
 
-export function resolveExecutionSlice(
-  snapshot: NimiAISnapshot | null | undefined,
-  capability:
-    | 'text.generate'
-    | 'image.generate'
-    | 'audio.synthesize'
-    | 'audio.transcribe'
-    | 'voice_workflow.voice_clone'
-    | 'voice_workflow.voice_design',
-): NonNullable<NimiAISnapshot['conversationCapabilitySlice']> {
-  const slice = snapshot?.conversationCapabilitySlice;
-  if (!slice || slice.capability !== capability || !slice.resolvedTarget) {
-    throw createNimiError({
-      message: `${capability} execution snapshot is not available`,
-      reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint: 'resolve_runtime_execution_target',
-      source: 'runtime',
-    });
-  }
-  return slice;
-}
-
 export function encodeBytesAsDataUrl(mimeType: string, bytes: Uint8Array): string {
   if (typeof Buffer !== 'undefined') {
     return `data:${mimeType};base64,${Buffer.from(bytes).toString('base64')}`;
@@ -92,8 +68,4 @@ export function encodeBytesAsDataUrl(mimeType: string, bytes: Uint8Array): strin
     binary += String.fromCharCode(value);
   });
   return `data:${mimeType};base64,${btoa(binary)}`;
-}
-
-export function toRuntimeRoutePolicy(source: string): RoutePolicy {
-  return source === 'local' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD;
 }

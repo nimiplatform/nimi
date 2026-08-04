@@ -15,10 +15,6 @@ import {
   type AccountSessionSnapshot,
   type AvatarDebugProbeResultEnvelope,
 } from '@nimiplatform/sdk/runtime/wire-types';
-import {
-  buildNimiRuntimeGenerationSubmitRequest,
-  createNimiSpeechTranscriptionScenario,
-} from '@nimiplatform/sdk/features/generation';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
@@ -28,6 +24,10 @@ import { ulid } from '../infra/ids.js';
 import { readAvatarShellSettings } from '../settings-state.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
 import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
+import {
+  AVATAR_FIRST_PARTY_APP_ID,
+  buildAvatarSpeechTranscriptionSubmitRequest,
+} from './avatar-generation-intent.js';
 import type { BootstrapHandle } from './app-bootstrap-types.js';
 import { useAvatarStore } from './app-store.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
@@ -48,7 +48,6 @@ import {
   setRuntimeBindingUnavailable,
 } from './app-bootstrap-first-party-diagnostics.js';
 
-const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
 
 function optionalRecord(value: unknown): Record<string, unknown> | undefined {
@@ -450,17 +449,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         submitVoiceCaptureTurn = async (input) => {
           const transcription = await runNimiRuntimeScenarioJob({
             ai: runtime!.ai,
-            request: buildNimiRuntimeGenerationSubmitRequest({
-              appId: AVATAR_FIRST_PARTY_APP_ID,
+            request: buildAvatarSpeechTranscriptionSubmitRequest({
               subjectUserId: accountId,
-              timeoutMs: 90_000,
-            }, {
-              scenario: createNimiSpeechTranscriptionScenario({
-                kind: 'speech-transcribe',
-                mimeType: input.mimeType,
-                audio: { type: 'bytes', bytes: input.audioBytes },
-                ...(input.language ? { language: input.language } : {}),
-              }),
+              mimeType: input.mimeType,
+              audioBytes: input.audioBytes,
+              ...(input.language ? { language: input.language } : {}),
               requestId: `avatar-stt-${ulid()}`,
               idempotencyKey: `avatar-stt-${ulid()}`,
             }),

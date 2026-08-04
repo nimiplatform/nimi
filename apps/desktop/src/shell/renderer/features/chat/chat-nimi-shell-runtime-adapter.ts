@@ -1,29 +1,61 @@
-import type { ConversationRuntimeAdapter } from '@nimiplatform/kit/features/chat/headless';
-import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
+import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
+import {
+  runRuntimeAIConsumeCapability,
+  type RuntimeAIConsumeOutput,
+} from '@nimiplatform/kit/features/generation/runtime';
+
+export type DesktopNimiTextCapabilityResult = {
+  readonly text: string;
+  readonly traceId: string | null;
+};
+
+export type DesktopNimiTextCapabilityInput = {
+  readonly runtime: { readonly ai: NimiDesktopMachineProductRuntimeClient['ai'] };
+  readonly appId: string;
+  readonly prompt: string;
+  readonly subjectUserId?: string;
+  readonly signal?: AbortSignal;
+};
+
+/** Pure App projection into the Kit CapabilityContract boundary. */
+export function buildDesktopNimiTextCapabilityRequest(
+  input: DesktopNimiTextCapabilityInput,
+): Parameters<typeof runRuntimeAIConsumeCapability>[0] {
+  return {
+    runtime: input.runtime,
+    appId: input.appId,
+    capabilityId: 'text.generate',
+    prompt: input.prompt,
+    scenarioId: 'desktop-nimi-chat',
+    subjectUserId: input.subjectUserId,
+    surfaceId: 'desktop.chat.nimi',
+    signal: input.signal,
+  };
+}
 
 /**
- * C3 App-owner hard cut: Nimi Chat no longer derives execution identity from
- * renderer-local AIConfig, route projections, models, or target refs. C5 will
- * connect this surface to Runtime's owner-driven immutable Job composition.
+ * Executes only a CapabilityContract request. No App-owned model, route target,
+ * binding, readiness, llama parameter, or fallback input is admitted.
  */
-function appAIConfigExecutionPending(): never {
-  throw createNimiError({
-    message: 'Nimi Chat execution is unavailable until Runtime App AIConfig composition is active.',
-    reasonCode: ReasonCode.AI_ROUTE_UNSUPPORTED,
-    actionHint: 'wait_for_app_ai_config_execution_support',
-    source: 'runtime',
-  });
+export async function runDesktopNimiTextCapability(
+  input: DesktopNimiTextCapabilityInput,
+): Promise<DesktopNimiTextCapabilityResult> {
+  const result = await runRuntimeAIConsumeCapability(
+    buildDesktopNimiTextCapabilityRequest(input),
+  );
+  if (!result.ok) throw result.error;
+  return projectTextOutput(result.output, result.trace?.traceId);
 }
 
-/** Retained only as a stable fail-closed export for direct callers/tests. */
-export function resolveChatAiConversationRuntimeRequest(): never {
-  return appAIConfigExecutionPending();
-}
-
-export function createChatAiConversationRuntimeAdapter(): ConversationRuntimeAdapter {
+function projectTextOutput(
+  output: RuntimeAIConsumeOutput,
+  traceId: string | undefined,
+): DesktopNimiTextCapabilityResult {
+  if (output.kind !== 'text') {
+    throw new Error('Runtime text.generate returned a non-text output.');
+  }
   return {
-    async streamText() {
-      return appAIConfigExecutionPending();
-    },
+    text: output.text,
+    traceId: traceId?.trim() || null,
   };
 }

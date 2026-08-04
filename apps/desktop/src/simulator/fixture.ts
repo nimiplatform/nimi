@@ -221,9 +221,6 @@ export const simulatorConformanceFixture = {
       productControl: {
         initialStatus: 'ready_for_use',
       },
-      aiConfig: {
-        runtimeStatus: 'unavailable',
-      },
     },
   },
   lifecycle: ['prepare', 'activate', 'deactivate', 'dispose'],

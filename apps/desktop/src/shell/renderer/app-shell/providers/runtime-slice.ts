@@ -1,6 +1,5 @@
 import type { AppStoreSet, AppStoreState } from './store-types';
 import { INITIAL_RUNTIME_FIELDS } from './store-types';
-import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 
 const RETIRED_ROUTE_RUNTIME_FIELD_KEYS: readonly string[] = [
   'provider',
@@ -14,32 +13,15 @@ const RETIRED_ROUTE_RUNTIME_FIELD_KEYS: readonly string[] = [
 type RuntimeSlice = Pick<AppStoreState,
   'runtimeDefaults'
   | 'runtimeFields'
-  | 'aiConfig'
-  | 'conversationCapabilityProjectionByCapability'
-  | 'agentEffectiveCapabilityResolution'
   | 'setRuntimeDefaults'
   | 'setRuntimeField'
   | 'setRuntimeFields'
-  | 'setAIConfig'
-  | 'setConversationCapabilityProjections'
-  | 'setAgentEffectiveCapabilityResolution'
 >;
 
-export type RuntimeSliceDependencies = {
-  readonly initialAIConfig: NimiAIConfig;
-  readonly commitAIConfig: (config: NimiAIConfig) => void;
-};
-
-export function createRuntimeSlice(
-  set: AppStoreSet,
-  dependencies: RuntimeSliceDependencies,
-): RuntimeSlice {
+export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
   return {
     runtimeDefaults: null,
     runtimeFields: INITIAL_RUNTIME_FIELDS,
-    aiConfig: dependencies.initialAIConfig,
-    conversationCapabilityProjectionByCapability: {},
-    agentEffectiveCapabilityResolution: null,
     setRuntimeDefaults: (defaults) =>
       set({
         runtimeDefaults: defaults,
@@ -82,24 +64,6 @@ export function createRuntimeSlice(
             }).filter(([, value]) => value !== undefined),
           ) as AppStoreState['runtimeFields'],
         };
-      }),
-    setAIConfig: (config) => {
-      dependencies.commitAIConfig(config);
-      set({ aiConfig: config });
-    },
-    setConversationCapabilityProjections: (projections) =>
-      set((state) => {
-        const nextProjectionByCapability = {
-          ...state.conversationCapabilityProjectionByCapability,
-          ...projections,
-        };
-        return {
-          conversationCapabilityProjectionByCapability: nextProjectionByCapability,
-        };
-      }),
-    setAgentEffectiveCapabilityResolution: (resolution) =>
-      set({
-        agentEffectiveCapabilityResolution: resolution,
       }),
   };
 }

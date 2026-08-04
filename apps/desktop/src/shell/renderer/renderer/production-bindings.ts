@@ -48,8 +48,6 @@ import {
   getDesktopMachineProductClient,
   getDesktopPermissionOwnerClient,
   getDesktopRealm,
-  getDesktopRouteHostAccessClient,
-  getDesktopRouteOptionsClient,
   getDesktopRuntimeAccountCaller,
   getDesktopRuntimeAgentOwnerClient,
   getDesktopRuntimeAgentTurnsRuntime,
@@ -72,9 +70,6 @@ import { createDesktopRendererRuntimeConfigNavigationPort } from './runtime-conf
 import { callRealmApi, emitRealmDataError } from '../infra/realm/realm-api.js';
 import { getOfflineCoordinator } from '../infra/offline/coordinator.js';
 import { createDesktopProductionOfflinePort } from '../infra/offline/production-offline-port.js';
-import { createDesktopRuntimeRouteAccess } from '../infra/runtime-route-host-access.js';
-import { loadRuntimeRouteOptions } from '../infra/bootstrap/runtime-bootstrap-route-options.js';
-import { createNimiClientId } from '@nimiplatform/sdk';
 import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   pickLocalRuntimeAssetDirectory,
@@ -92,17 +87,7 @@ import {
 } from '../bridge/runtime-bridge/chat-agent-avatar-launcher.js';
 import { listDesktopAvatarLiveInstances } from '../bridge/runtime-bridge/chat-agent-avatar-instance-registry.js';
 import { requestDesktopAvatarPreviewProjection } from '../bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
-import { getDesktopAIConfigService } from '../app-shell/providers/desktop-ai-config-service.js';
-import { getProductionConversationCapabilityRouteRuntime } from '../features/chat/production-conversation-route-runtime-state.js';
 import { createDesktopLocalAppPermissionOwnerPort } from '../features/apps/local-app-permission-owner.js';
-import {
-  createAccountProfileLibraryProfile,
-  deleteAccountProfileLibraryProfile,
-  editAccountProfileLibraryProfile,
-  exportAccountProfileLibraryProfiles,
-  importAccountProfileLibraryProfiles,
-  listAccountProfileLibrary,
-} from '../bridge/runtime-bridge/account-profile-library.js';
 import { createDesktopBrowserRoutePort } from './browser-route-port.js';
 
 export function createDesktopProductionBindings(
@@ -111,7 +96,6 @@ export function createDesktopProductionBindings(
   const dependencies = createProductionAppStoreDependencies();
   const attention = createBrowserAppAttentionSource();
   const runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort();
-  const runtimeRouteAccess = createDesktopRuntimeRouteAccess(getDesktopRouteHostAccessClient);
   const offline = createDesktopProductionOfflinePort(getOfflineCoordinator());
   const localAppPermissions = createDesktopLocalAppPermissionOwnerPort({
     runtime: getDesktopPermissionOwnerClient,
@@ -141,25 +125,13 @@ export function createDesktopProductionBindings(
       localAudit: getDesktopLocalAuditClient,
       auditAdmin: getDesktopAuditAdminClient,
       aiExecution: getDesktopAiExecutionClient,
-      routeHostAccessClient: getDesktopRouteHostAccessClient,
-      routeOptionsClient: getDesktopRouteOptionsClient,
       externalAgent: getDesktopExternalAgentClient,
       runtimeAgentOwner: getDesktopRuntimeAgentOwnerClient,
       runtimeAgentDiscovery: createDesktopRuntimeAgentDiscoverySurface,
       runtimeAgentTurns: getDesktopRuntimeAgentTurnsRuntime,
       hostRuntimeAgent: getDesktopHostRuntimeAgentClient,
       accountRuntime: getDesktopAccountRuntime,
-      runtimeRouteAccess: () => runtimeRouteAccess,
-      loadRouteOptions: (
-        capability: Parameters<DesktopCanonicalRendererBindings['sdk']['loadRouteOptions']>[0],
-        targetId?: string,
-      ) => loadRuntimeRouteOptions(
-        { capability, targetId },
-        { runtime: getDesktopRouteOptionsClient() },
-      ),
-      conversationCapabilityRuntime: getProductionConversationCapabilityRouteRuntime,
       runtimeHealthCoordinator: () => runtimeHealthCoordinator,
-      aiConfig: getDesktopAIConfigService,
       realm: getDesktopRealm,
       offline,
       socialData: Object.freeze({
@@ -179,7 +151,6 @@ export function createDesktopProductionBindings(
     app: {
       projection: Object.freeze({
         initialState: () => ({
-          aiConfig: dependencies.initialAIConfig,
           bootstrapError: null,
           bootstrapReady: false,
           chatThinkingPreference: dependencies.initialChatThinkingPreference,
@@ -242,16 +213,6 @@ export function createDesktopProductionBindings(
             desktopBridge.executeNimiDataCleanup(directory, confirmation)
           ),
         }),
-        profileLibrary: Object.freeze({
-          available: hasElectronInvoke,
-          createId: () => createNimiClientId('user'),
-          load: listAccountProfileLibrary,
-          create: createAccountProfileLibraryProfile,
-          edit: editAccountProfileLibraryProfile,
-          import: importAccountProfileLibraryProfiles,
-          export: exportAccountProfileLibraryProfiles,
-          delete: deleteAccountProfileLibraryProfile,
-        }),
         connectorAuth: Object.freeze({
           proxyHttp: async (request: Parameters<
             DesktopCanonicalRendererBindings['app']['commands']['connectorAuth']['proxyHttp']
@@ -282,7 +243,6 @@ export function createDesktopProductionBindings(
           start: () => desktopBridge.startRuntimeBridge(),
           restart: () => desktopBridge.restartRuntimeBridge(),
         }),
-        commitAIConfig: dependencies.commitAIConfig,
         persistChatThinkingPreference: dependencies.persistChatThinkingPreference,
         async reportAuthEntryAction() {
           return Object.freeze({ ok: false as const, disposition: 'unsupported' as const });
@@ -300,16 +260,6 @@ export function createDesktopProductionBindings(
             throw new Error('DESKTOP_CLIPBOARD_WRITE_UNAVAILABLE');
           }
           await navigator.clipboard.writeText(value);
-        },
-        exportProfileLibraryJson({ filename, content }: Parameters<
-          DesktopCanonicalRendererBindings['app']['commands']['exportProfileLibraryJson']
-        >[0]) {
-          const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
-          const anchor = document.createElement('a');
-          anchor.href = url;
-          anchor.download = filename;
-          anchor.click();
-          URL.revokeObjectURL(url);
         },
         exportRuntimeAuditJson({ filename, content }: Parameters<
           DesktopCanonicalRendererBindings['app']['commands']['exportRuntimeAuditJson']

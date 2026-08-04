@@ -1,7 +1,5 @@
 import {
-  createNimiElectronDesktopAccountHost,
   createNimiElectronDesktopControlHost,
-  type NimiElectronDesktopAccountHost,
   type NimiElectronDesktopControlHost,
 } from '@nimiplatform/kit/shell/electron/main';
 import { getRuntimeWireCodec } from '@nimiplatform/sdk/runtime/generated';
@@ -10,11 +8,6 @@ import {
   parseNimiProductControlSelectedDataRootProjection,
   type NimiProductControlRecordProjection,
 } from '@nimiplatform/sdk/runtime';
-import {
-  createDesktopAccountProfileHost,
-  type DesktopAccountProfileHost,
-} from './account-profile-host.js';
-
 const DIRECT_COMMANDS = [
   'product_control_record_get',
   'product_control_selected_data_root_get',
@@ -26,19 +19,7 @@ const DIRECT_COMMANDS = [
   'product_control_record_admit_ready_for_use',
 ] as const;
 
-const ACCOUNT_PROFILE_LIBRARY_COMMANDS = [
-  'account_profile_library_list',
-  'account_profile_library_create',
-  'account_profile_library_edit',
-  'account_profile_library_import',
-  'account_profile_library_export',
-  'account_profile_library_delete',
-] as const;
-
-const COMMANDS = [
-  ...DIRECT_COMMANDS,
-  ...ACCOUNT_PROFILE_LIBRARY_COMMANDS,
-] as const;
+const COMMANDS = DIRECT_COMMANDS;
 
 const METHOD = {
   getRecord: '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord',
@@ -71,13 +52,9 @@ export type DesktopElectronProductControlHost = {
 
 export function createDesktopElectronProductControlHost(input: {
   readonly control?: DesktopProductControlTransport;
-  readonly account?: NimiElectronDesktopAccountHost;
-  readonly profiles?: DesktopAccountProfileHost;
 } = {}): DesktopElectronProductControlHost {
   const host = new ElectronProductControlHost(
     input.control ?? createNimiElectronDesktopControlHost(),
-    input.account ?? createNimiElectronDesktopAccountHost(),
-    input.profiles ?? createDesktopAccountProfileHost(),
   );
   return {
     commandHandlers: Object.fromEntries(COMMANDS.map((command) => [
@@ -93,8 +70,6 @@ export function createDesktopElectronProductControlHost(input: {
 class ElectronProductControlHost {
   constructor(
     private readonly control: DesktopProductControlTransport,
-    private readonly account: NimiElectronDesktopAccountHost,
-    private readonly profiles: DesktopAccountProfileHost,
   ) {}
 
   async invoke(command: ProductCommand, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
@@ -141,49 +116,7 @@ class ElectronProductControlHost {
       requireEmptyPayload(payload);
       return this.projection(METHOD.admitReady, {}, 30_000);
     }
-    if (command === 'account_profile_library_list') {
-      requireEmptyPayload(payload);
-      const context = await this.accountProfileLibraryContext();
-      return this.profiles.listAccountProfileLibrary(context);
-    }
-    if (command === 'account_profile_library_create') {
-      const nested = exactPayload(payload, ['profile']);
-      const profile = profilePayload(nested.profile);
-      return this.profiles.createAccountProfileLibraryProfile({
-        ...await this.accountProfileLibraryContext(),
-        profile,
-      });
-    }
-    if (command === 'account_profile_library_edit') {
-      const nested = exactPayload(payload, ['profile']);
-      const profile = profilePayload(nested.profile);
-      return this.profiles.editAccountProfileLibraryProfile({
-        ...await this.accountProfileLibraryContext(),
-        profile,
-      });
-    }
-    if (command === 'account_profile_library_import') {
-      const nested = exactPayload(payload, ['profiles']);
-      const profiles = profilePayloads(nested.profiles);
-      return this.profiles.importAccountProfileLibraryProfiles({
-        ...await this.accountProfileLibraryContext(),
-        profiles,
-      });
-    }
-    if (command === 'account_profile_library_export') {
-      const nested = exactPayload(payload, ['profileIds']);
-      const requestedProfileIds = profileIds(nested.profileIds);
-      return this.profiles.exportAccountProfileLibraryProfiles({
-        ...await this.accountProfileLibraryContext(),
-        profileIds: requestedProfileIds,
-      });
-    }
-    const nested = exactPayload(payload, ['profileId']);
-    const profileId = payloadText(nested.profileId, 256);
-    return this.profiles.deleteAccountProfileLibraryProfile({
-      ...await this.accountProfileLibraryContext(),
-      profileId,
-    });
+    throw new Error('desktop-product-control-command-unadmitted');
   }
 
   async resolveSelectedDataRoot(): Promise<string> {
@@ -214,23 +147,6 @@ class ElectronProductControlHost {
       throw new Error('desktop-product-control-data-root-not-ready');
     }
     return selectedPath;
-  }
-
-  private async authenticatedAccountId(): Promise<string> {
-    const response = asRecord(await this.account.invoke('runtime_account_session_status', {}));
-    if (response.state !== 'authenticated') throw new Error('authenticated-runtime-account-required');
-    return boundedText(asRecord(response.accountProjection).accountId);
-  }
-
-  private async accountProfileLibraryContext(): Promise<{
-    readonly dataRoot: string;
-    readonly accountId: string;
-  }> {
-    const [dataRoot, accountId] = await Promise.all([
-      this.resolveReadyDataRoot(),
-      this.authenticatedAccountId(),
-    ]);
-    return { dataRoot, accountId };
   }
 
   private async record(): Promise<NimiProductControlRecordProjection> {
@@ -303,26 +219,4 @@ function payloadText(value: unknown, max: number): string {
     throw new Error('desktop-product-control-payload-invalid');
   }
   return value;
-}
-
-function profilePayload(value: unknown): Readonly<Record<string, unknown>> {
-  return asRecord(value);
-}
-
-function profilePayloads(value: unknown): readonly Readonly<Record<string, unknown>>[] {
-  if (!Array.isArray(value) || value.length === 0 || value.length > 256) {
-    throw new Error('desktop-product-control-payload-invalid');
-  }
-  return value.map(profilePayload);
-}
-
-function profileIds(value: unknown): readonly string[] {
-  if (!Array.isArray(value) || value.length > 256) {
-    throw new Error('desktop-product-control-payload-invalid');
-  }
-  const ids = value.map((profileId) => payloadText(profileId, 256));
-  if (new Set(ids).size !== ids.length) {
-    throw new Error('desktop-product-control-payload-invalid');
-  }
-  return ids;
 }

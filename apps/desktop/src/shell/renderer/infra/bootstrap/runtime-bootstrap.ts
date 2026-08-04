@@ -22,11 +22,6 @@ import {
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
 import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 import {
-  bindDesktopConversationCapabilityRouteRuntime,
-  clearDesktopConversationCapabilityRouteRuntime,
-} from './runtime-bootstrap-conversation-route-runtime';
-
-import {
   runtimeDaemonUnavailable,
   syncDesktopRuntimeBootstrapConfig,
 } from './runtime-bootstrap-config-sync';
@@ -141,7 +136,6 @@ async function teardownBootstrapState(): Promise<void> {
   stopAuthStateWatcher();
   unsubscribeRealmConnectivityEvents?.();
   unsubscribeRealmConnectivityEvents = null;
-  clearDesktopConversationCapabilityRouteRuntime();
   clearDesktopNimiClientSession();
 }
 
@@ -319,14 +313,11 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       applyRuntimeAccountUnavailableProjection(lifecycle);
     }
 
-    if (runtimeUnavailable) {
-      clearDesktopConversationCapabilityRouteRuntime();
-    } else {
+    if (!runtimeUnavailable) {
       await configureDesktopRuntimeRealmSession({
         appId: 'nimi.desktop',
         runtimeTransport: resolveDesktopRuntimeTransport(),
       });
-      bindDesktopConversationCapabilityRouteRuntime();
       await withBootstrapStepTimeout(
         'local runtime reconcile',
         reconcileLocalRuntimeBootstrapState({ flowId }),

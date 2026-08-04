@@ -7,11 +7,11 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
   },
   profiles: {
     name: 'Profiles',
-    description: 'Account profile templates: review default, edit custom library, and move portable files.',
+    description: 'Preview canonical portable AIProfiles and explicitly apply intent to the Nimi Desktop App AIConfig.',
   },
   models: {
     name: 'Models',
-    description: 'Recommended, installed, and catalog AI models for local capabilities.',
+    description: 'Manage Runtime-owned local assets and inspect the provider catalog without selecting an App route.',
   },
   cloud: {
     name: 'Cloud Connectors',

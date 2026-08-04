@@ -32,17 +32,18 @@ import {
   isEmptyPendingAssistantMessage,
   sortThreadSummaries,
   THREADS_QUERY_KEY,
-  toErrorMessage,
 } from './chat-nimi-shell-core';
-import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import { useAiConversationPresentation } from './chat-nimi-shell-presentation';
 import { useAiConversationEffects } from './chat-nimi-shell-effects';
 import { useAiConversationHostActions } from './chat-nimi-shell-host-actions';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
+  DESKTOP_NIMI_APP_ID,
   findDesktopNimiTextIntent,
   useDesktopNimiAppAIConfig,
 } from './chat-nimi-app-ai-config.js';
+import { runDesktopNimiTextCapability } from './chat-nimi-shell-runtime-adapter.js';
+import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
 
 type UseAiConversationModeHostInput = {
   selection: NimiConversationSelection;
@@ -58,20 +59,26 @@ export function useAiConversationModeHost(
   const queryClient = useQueryClient();
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
+  const authUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const appAIConfig = useDesktopNimiAppAIConfig();
   const textIntent = findDesktopNimiTextIntent(appAIConfig.data);
-  const submittingThreadId = null;
+  const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const [ephemeralThread, setEphemeralThread] = useState<ChatAiThreadRecord | null>(null);
   const currentDraftTextRef = useRef('');
-  const schedulingJudgement = null;
 
   const reportHostError = useCallback((error: unknown) => {
+    const userFacing = toChatUserFacingRuntimeError(
+      error,
+      t('Chat.nimiExecutionFailed', { defaultValue: 'Nimi Chat could not complete this request.' }),
+      t,
+    );
     setHostFeedback({
       kind: 'error',
-      message: toErrorMessage(error),
+      message: userFacing.message,
+      technicalDetail: error instanceof Error ? error.message : String(error || ''),
     });
-  }, []);
+  }, [t]);
 
   const setSelection = useCallback((selection: NimiConversationSelection) => {
     if (input.selection.threadId === selection.threadId) {
@@ -107,14 +114,6 @@ export function useAiConversationModeHost(
     [activeThreadId, threads],
   );
 
-  const handleModelSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
-    void selection;
-  }, []);
-
-  const initialModelSelection = useMemo<Partial<RouteModelPickerSelection>>(() => {
-    return {};
-  }, []);
-
   const setupState = useMemo(() => {
     if (!textIntent) {
       return {
@@ -124,22 +123,15 @@ export function useAiConversationModeHost(
           code: 'ai-no-chat-route' as const,
           detail: appAIConfig.isPending
             ? 'Loading Nimi Desktop AI configuration.'
-            : 'Choose Local AI or a Cloud implementation for Nimi Chat.',
+            : 'Choose Local or Cloud capability intent for Nimi Chat.',
         }],
-        primaryAction: {
-          kind: 'open-settings' as const,
-          targetId: 'runtime-overview' as const,
-          returnToMode: 'ai' as const,
-        },
+        primaryAction: null,
       };
     }
     return {
       mode: 'ai' as const,
-      status: 'unavailable' as const,
-      issues: [{
-        code: 'ai-route-readiness-unavailable' as const,
-        detail: 'Runtime App AIConfig execution composition is not active yet.',
-      }],
+      status: 'ready' as const,
+      issues: [],
       primaryAction: null,
     };
   }, [appAIConfig.isPending, textIntent]);
@@ -170,10 +162,15 @@ export function useAiConversationModeHost(
     [bundle?.messages],
   );
   const streamState = useConversationStreamState(activeThreadId);
-  const projectionSupported = false;
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
-  const composerReady = false;
+  const composerReady = setupState.status === 'ready' && !isBundleLoading;
+  const executeTextCapability = useCallback((text: string) => runDesktopNimiTextCapability({
+    runtime: { ai: bindings.sdk.machineProduct().ai },
+    appId: DESKTOP_NIMI_APP_ID,
+    prompt: text,
+    subjectUserId: authUserId || undefined,
+  }), [authUserId, bindings.sdk]);
 
   const {
     setBundleCache,
@@ -212,12 +209,14 @@ export function useAiConversationModeHost(
     activeThreadId,
     currentDraftTextRef,
     ephemeralThread,
+    executeTextCapability,
     now: bindings.clock.now,
     queryClient,
     reportHostError,
     selectedThreadRecord,
     setBundleCache,
     setEphemeralThread,
+    setSubmittingThreadId,
     submittingThreadId,
     syncSelectionToThread,
     threads,
@@ -229,8 +228,12 @@ export function useAiConversationModeHost(
       : textIntent?.route.oneofKind === 'cloud'
         ? t('Chat.settingsRouteCloud', { defaultValue: 'Cloud AI' })
         : t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-    detail: null,
-  }), [t, textIntent?.route.oneofKind]);
+    detail: textIntent
+      ? t('Chat.settingsRuntimeResolvesOnSubmit', {
+        defaultValue: 'Runtime resolves implementation and reports typed execution errors on submit.',
+      })
+      : null,
+  }), [t, textIntent]);
 
   const aiCharacterData = useMemo(() => ({
     name: t('Chat.nimiAssistantName', { defaultValue: 'Nimi' }),
@@ -265,7 +268,7 @@ export function useAiConversationModeHost(
     updatedAt: selectedThreadRecord ? new Date(selectedThreadRecord.updatedAtMs).toISOString() : null,
     unreadCount: 0,
     status: 'active' as const,
-    isOnline: projectionSupported,
+    isOnline: Boolean(textIntent),
     metadata: {
       routeLabel: routeSummary.label,
     },
@@ -276,7 +279,6 @@ export function useAiConversationModeHost(
     aiCharacterData.bio,
     aiCharacterData.name,
     messages,
-    projectionSupported,
     routeSummary.label,
     selectedThreadRecord,
   ]);
@@ -360,16 +362,12 @@ export function useAiConversationModeHost(
     handleSelectThread,
     handleSubmit,
     hostFeedback,
-    initialModelSelection,
     isBundleLoading,
     messages,
     onDismissHostFeedback: () => setHostFeedback(null),
-    onModelSelectionChange: handleModelSelectionChange,
     pendingFirstBeat,
     renderMessageContent,
     routeSummary,
-    routeReady: projectionSupported,
-    schedulingJudgement,
     setChatThinkingPreference,
     setupState,
     submittingThreadId,
