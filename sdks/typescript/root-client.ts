@@ -22,10 +22,8 @@ import {
 } from './core/app/local-app-runtime-platform';
 import {
   createNimiRuntimeAIModel,
-  createNimiRuntimeAISchedulingClient,
   createNimiRuntimeEmbeddingClient,
   type NimiRuntimeAIModelOptions,
-  type NimiRuntimeAISchedulingClientOptions,
   type NimiRuntimeEmbeddingClientOptions,
 } from './core/ai';
 import {
@@ -78,12 +76,6 @@ export type NimiClientEmbeddingOptions =
     readonly appId?: string;
   };
 
-export type NimiClientSchedulingOptions =
-  Omit<NimiRuntimeAISchedulingClientOptions, 'runtime' | 'appId'> & {
-    readonly runtime?: NimiRuntimeAISchedulingClientOptions['runtime'];
-    readonly appId?: string;
-  };
-
 export type NimiClientGenerationOptions =
   Omit<NimiRuntimeGenerationClientOptions, 'runtime' | 'head'> & {
     readonly runtime?: NimiRuntimeGenerationClientOptions['runtime'];
@@ -125,7 +117,6 @@ export type NimiClientLocalAgentKnowledgeContextProviderOptions =
 export interface NimiClientAiSurface {
   createRuntimeModel(options: NimiClientRuntimeModelOptions): ReturnType<typeof createNimiRuntimeAIModel>;
   createRuntimeEmbeddingClient(options: NimiClientEmbeddingOptions): ReturnType<typeof createNimiRuntimeEmbeddingClient>;
-  createRuntimeSchedulingClient(options: NimiClientSchedulingOptions): ReturnType<typeof createNimiRuntimeAISchedulingClient>;
   readonly runner: {
     createRunner: typeof createNimiAiRunner;
     run(request: NimiAiRunnerRunRequest): Promise<NimiAiRunnerRunResult>;
@@ -239,13 +230,6 @@ function createAiSurface(client: NimiClient): NimiClientAiSurface {
       return createNimiRuntimeEmbeddingClient({
         ...options,
         appId: resolveAppId(client, options.appId, 'provide_embedding_app_id'),
-        runtime: options.runtime ?? client.runtime,
-      });
-    },
-    createRuntimeSchedulingClient(options) {
-      return createNimiRuntimeAISchedulingClient({
-        ...options,
-        appId: resolveAppId(client, options.appId, 'provide_runtime_ai_scheduling_app_id'),
         runtime: options.runtime ?? client.runtime,
       });
     },

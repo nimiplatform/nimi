@@ -1,19 +1,6 @@
-export * from './config-types';
-export * from './config-scope';
-export * from './config-profile';
-export * from './config-app-first-launch';
-export * from './config-runtime-descriptor';
-export * from './config-image-family-contracts';
-export {
-  formatNimiAIValidationIssue,
-  formatNimiAIValidationIssues,
-} from './config-internal';
-export {
-  createNimiAIConfigEvidence,
-  createNimiAISnapshotExecutionId,
-  createNimiAISnapshotRecord,
-  diffNimiAIConfigs,
-  versionNimiAIConfig,
-} from './config-state';
-export * from './config-store';
-export * from './config-runtime-binding';
+// Canonical AI configuration is the Runtime-owned AIConfig/LCC contract.
+// Scope-local stores, target refs, snapshots, readiness refs, selected
+// components, and runtime descriptors were retired at the pre-launch hard cut.
+export * from './capability-configuration.js';
+export * from './config-profile.js';
+export * from './text-generation-params.js';

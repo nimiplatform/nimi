@@ -1,541 +1,513 @@
-import type { NimiJsonValue } from '../contracts';
-import type {
-  NimiAccountProfileLibraryOrigin,
-  NimiAccountProfileLibraryIndexEntry,
-  NimiAccountProfileLibraryProfile,
-  NimiAccountProfileLibraryProjection,
-  NimiAICapabilityRequirementDeclaration,
-  NimiAICapabilityRequirementSlice,
-  NimiAIConfig,
-  NimiAIConfigApplyOutcome,
-  NimiAIConfigSetupProjection,
-  NimiAIConfigTargetRef,
-  NimiAIProfile,
-  NimiAIProfileParseOptions,
-  NimiAIProfileValidationResult,
-  NimiAIValidationIssue,
-  NimiAIProfileCapabilityIntent,
-  NimiAIProfilePreviewResult,
-  NimiAIScopeRef,
-} from './config-types';
-import { assertNimiAIScopeRef, createEmptyNimiAIConfig, validateNimiAIConfigTargetRef } from './config-scope';
-import { diffNimiAIConfigs, versionNimiAIConfig } from './config-state';
+import type { JsonValue as ProtoJsonValue } from '@protobuf-ts/runtime';
+import { Struct as RuntimeStruct, type Struct } from '../../core-generated/runtime-protobuf/google/protobuf/struct';
 import {
-  aiValidationIssue,
-  aiConfigError,
-  asAIRecord,
-  collectForbiddenPayloadIssues,
-  formatNimiAIValidationIssue,
-  formatNimiAIValidationIssues,
-  isNonEmptyString,
-  isRecord,
-  normalizeText,
-  requireArray,
-  requireNonEmptyText,
-  requireString,
-  stableHash,
-  stableJson,
-} from './config-internal';
-import {
-  assertNimiAIRequirementDeclarationsForScope,
-  listNimiAIRequirementSlices,
-} from './config-requirements';
+  type AIConfig,
+  type AIConfigCapabilityIntent,
+  type CapabilityImplementationIdentity,
+} from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
+import type { NimiJsonObject, NimiJsonValue } from '../contracts/index.js';
+import { createNimiError, extractNimiErrorFields } from '../../types/index.js';
+import type { NimiAppAIConfigClient } from './capability-configuration.js';
 
-interface NimiAIReadyRequirementSlice {
-  readonly requirementId: string;
-  readonly slice: NimiAICapabilityRequirementSlice;
-  readonly intent: NimiAIProfileCapabilityIntent & { readonly targetRef: NimiAIConfigTargetRef };
+export interface NimiPortableAIProfileImplementation {
+  readonly implementationId: string;
+  readonly driverId: string;
+  readonly driverDialect: string;
+  /** CapabilityImplementation support truth is distinct from AIConfig requirements. */
+  readonly supportedFeatures: readonly string[];
 }
 
-interface NimiAIProfileRequirementApplyEvaluation {
-  readonly outcome: NimiAIConfigApplyOutcome;
-  readonly setupProjection: NimiAIConfigSetupProjection | null;
-  readonly readySlices: readonly NimiAIReadyRequirementSlice[];
+export interface NimiPortableAIProfileResourceOccurrence {
+  readonly occurrenceId: string;
+  readonly [key: string]: NimiJsonValue;
 }
 
-export function versionNimiAIProfile(profile: NimiAIProfile): string {
-  const validation = validateNimiAIProfile(profile);
-  if (!validation.valid) {
-    throw aiConfigError(
-      'SDK_AI_PROFILE_INVALID',
-      `AI profile is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
-      'fix_ai_profile_contract',
-    );
+export type NimiPortableAIProfileCapability =
+  | {
+    readonly route: 'local';
+    readonly requiredFeatures: readonly string[];
+    readonly defaults?: NimiJsonObject;
+    readonly implementation?: NimiPortableAIProfileImplementation;
+    readonly driverPortableConfig?: NimiJsonObject;
+    readonly resourceOccurrences?: readonly NimiPortableAIProfileResourceOccurrence[];
   }
-  return `v1-${stableHash(stableJson(profile))}`;
+  | {
+    readonly route: 'cloud';
+    readonly requiredFeatures: readonly string[];
+    readonly defaults?: NimiJsonObject;
+    readonly implementation: NimiPortableAIProfileImplementation;
+    readonly providerModelTarget: NimiJsonObject;
+  };
+
+export interface NimiPortableAIProfile {
+  readonly profileId: string;
+  readonly title: string;
+  readonly description?: string;
+  readonly capabilities: Readonly<Record<string, NimiPortableAIProfileCapability>>;
+  readonly provenance?: NimiJsonObject;
+  readonly license?: NimiJsonValue;
+  readonly displayMetadata?: NimiJsonObject;
 }
 
-export function validateNimiAIProfile(profile: unknown): NimiAIProfileValidationResult {
-  const issues: NimiAIValidationIssue[] = [];
-  if (!isRecord(profile)) {
-    return {
-      valid: false,
-      issues: [aiValidationIssue('AI_TYPE_INVALID', 'profile')],
-    };
-  }
-  if (!isNonEmptyString(profile.profileId)) {
-    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', 'profile.profileId'));
-  }
-  if (!isNonEmptyString(profile.title)) {
-    issues.push(aiValidationIssue('AI_FIELD_REQUIRED', 'profile.title'));
-  }
-  if (profile.description !== undefined && typeof profile.description !== 'string') {
-    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'profile.description'));
-  }
-  if (profile.tags !== undefined && !Array.isArray(profile.tags)) {
-    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'profile.tags'));
-  }
-  if (!isRecord(profile.capabilities)) {
-    issues.push(aiValidationIssue('AI_TYPE_INVALID', 'profile.capabilities'));
-  }
-  issues.push(...collectForbiddenPayloadIssues(profile, 'profile'));
-  if (isRecord(profile.capabilities)) {
-    for (const [capability, intent] of Object.entries(profile.capabilities)) {
-      if (intent === undefined || intent === null) {
-        continue;
+export interface NimiPortableLocalCapabilityConfigurationIntent {
+  readonly capabilityContract: string;
+  readonly implementation: NimiPortableAIProfileImplementation;
+  readonly driverPortableConfig: NimiJsonObject;
+  readonly resourceOccurrences: readonly NimiPortableAIProfileResourceOccurrence[];
+  readonly supportedFeatures: readonly string[];
+}
+
+export interface NimiCloudAIConfigCapabilityInput {
+  readonly capabilityContract: string;
+  readonly requiredFeatures?: readonly string[];
+  readonly defaults?: NimiJsonObject;
+  readonly implementation: CapabilityImplementationIdentity;
+  readonly providerModelTarget: NimiJsonObject;
+  readonly connectorGrantId?: string;
+}
+
+export interface NimiAppAIProfilePreview {
+  /** Portable source remains separate from the resulting mutable AIConfig. */
+  readonly source: NimiPortableAIProfile;
+  readonly before: AIConfig | null;
+  readonly after: AIConfig;
+  readonly identical: boolean;
+}
+
+export type NimiPortableAIProfileInput = NimiPortableAIProfile | string | Uint8Array | NimiJsonObject;
+
+export interface NimiAppAIProfileClient {
+  preview(profile: NimiPortableAIProfileInput): Promise<NimiAppAIProfilePreview>;
+  /** Direct atomic overwrite; it accepts source intent, never Preview output. */
+  apply(profile: NimiPortableAIProfileInput): Promise<AIConfig>;
+}
+
+/** Parse one closed portable AIProfile document. ConnectorGrant is intentionally
+ * absent: account authorization is selected independently on the owner AIConfig.
+ */
+export function parseNimiPortableAIProfile(
+  input: NimiPortableAIProfileInput,
+): NimiPortableAIProfile {
+  const parsed = parseProfileInput(input);
+  assertExactKeys(parsed, ['profileId', 'title', 'description', 'capabilities', 'provenance', 'license', 'displayMetadata'], 'AIProfile');
+  assertPortableValue(parsed, 'AIProfile');
+  const profileId = requireText(parsed.profileId, 'AIProfile profileId is required');
+  const title = requireText(parsed.title, 'AIProfile title is required');
+  const description = parsed.description === undefined
+    ? undefined
+    : requireExactText(parsed.description, 'AIProfile description must be text');
+  const provenance = parsed.provenance === undefined
+    ? undefined
+    : normalizeJsonObject(parsed.provenance, 'AIProfile provenance');
+  const license = parsed.license === undefined
+    ? undefined
+    : normalizeJsonValue(parsed.license, 'AIProfile license');
+  const displayMetadata = parsed.displayMetadata === undefined
+    ? undefined
+    : normalizeJsonObject(parsed.displayMetadata, 'AIProfile displayMetadata');
+  const capabilityRecord = requireObject(parsed.capabilities, 'AIProfile capabilities must be an object');
+  const capabilityContracts = Object.keys(capabilityRecord).sort();
+  if (capabilityContracts.length === 0) profileError('AIProfile must declare at least one CapabilityContract');
+  const capabilities: Record<string, NimiPortableAIProfileCapability> = {};
+  for (const capabilityContract of capabilityContracts) {
+    const contract = requireText(capabilityContract, 'AIProfile CapabilityContract is required');
+    const value = requireObject(capabilityRecord[capabilityContract], `AIProfile ${contract} must be an object`);
+    assertExactKeys(value, [
+      'route',
+      'requiredFeatures',
+      'defaults',
+      'implementation',
+      'driverPortableConfig',
+      'resourceOccurrences',
+      'providerModelTarget',
+    ], `AIProfile ${contract}`);
+    const route = requireText(value.route, `AIProfile ${contract} route is required`);
+    const requiredFeatures = parseRequiredFeatures(value.requiredFeatures, contract);
+    const defaults = value.defaults === undefined
+      ? undefined
+      : normalizeJsonObject(value.defaults, `AIProfile ${contract} defaults`);
+    if (route === 'local') {
+      if (value.providerModelTarget !== undefined) {
+        profileError(`AIProfile ${contract} Local intent cannot contain a Cloud recommendation`);
       }
-      if (!isRecord(intent)) {
-        issues.push(aiValidationIssue('AI_TYPE_INVALID', `profile.capabilities.${capability}`));
-        continue;
+      const implementation = value.implementation === undefined
+        ? undefined
+        : parsePortableImplementation(
+          value.implementation,
+          `AIProfile ${contract} implementation`,
+          requiredFeatures,
+        );
+      const driverPortableConfig = value.driverPortableConfig === undefined
+        ? undefined
+        : normalizeJsonObject(value.driverPortableConfig, `AIProfile ${contract} driverPortableConfig`);
+      const resourceOccurrences = value.resourceOccurrences === undefined
+        ? undefined
+        : parseResourceOccurrences(value.resourceOccurrences, contract);
+      if (!implementation && (driverPortableConfig || resourceOccurrences?.length)) {
+        profileError(`AIProfile ${contract} Local portable configuration requires CapabilityImplementation`);
       }
-      if (intent.logicalModelId !== undefined && !isNonEmptyString(intent.logicalModelId)) {
-        issues.push(aiValidationIssue('AI_VALUE_INVALID', `profile.capabilities.${capability}.logicalModelId`));
-      }
-      if (intent.targetRef !== undefined && intent.targetRef !== null) {
-        issues.push(...validateNimiAIConfigTargetRef(
-          intent.targetRef,
-          `profile.capabilities.${capability}.targetRef`,
-        ));
-      }
-      if (intent.readinessPolicy !== undefined
-        && intent.readinessPolicy !== 'required'
-        && intent.readinessPolicy !== 'optional') {
-        issues.push(aiValidationIssue('AI_VALUE_INVALID', `profile.capabilities.${capability}.readinessPolicy`));
-      }
-      if (intent.contractState !== undefined
-        && intent.contractState !== 'declared'
-        && intent.contractState !== 'proposed'
-        && intent.contractState !== 'unsupported') {
-        issues.push(aiValidationIssue('AI_VALUE_INVALID', `profile.capabilities.${capability}.contractState`));
-      }
-      issues.push(...validateRuntimeDescriptorSliceInput(
-        intent.runtimeDescriptor,
-        `profile.capabilities.${capability}.runtimeDescriptor`,
-      ));
+      capabilities[contract] = Object.freeze({
+        route: 'local',
+        requiredFeatures,
+        ...(defaults ? { defaults } : {}),
+        ...(implementation ? { implementation } : {}),
+        ...(driverPortableConfig ? { driverPortableConfig } : {}),
+        ...(resourceOccurrences ? { resourceOccurrences } : {}),
+      });
+      continue;
     }
+    if (route !== 'cloud') profileError(`AIProfile ${contract} route must be local or cloud`);
+    if (value.driverPortableConfig !== undefined || value.resourceOccurrences !== undefined) {
+      profileError(`AIProfile ${contract} Cloud recommendation cannot contain Local configuration intent`);
+    }
+    const target = normalizeJsonObject(value.providerModelTarget, `AIProfile ${contract} providerModelTarget`);
+    if (Object.keys(target).length === 0) profileError(`AIProfile ${contract} providerModelTarget cannot be empty`);
+    capabilities[contract] = Object.freeze({
+      route: 'cloud',
+      requiredFeatures,
+      ...(defaults ? { defaults } : {}),
+      implementation: parsePortableImplementation(
+        value.implementation,
+        `AIProfile ${contract} implementation`,
+        requiredFeatures,
+      ),
+      providerModelTarget: target,
+    });
   }
-  return { valid: issues.length === 0, issues };
+  return Object.freeze({
+    profileId,
+    title,
+    ...(description !== undefined ? { description } : {}),
+    capabilities: Object.freeze(capabilities),
+    ...(provenance ? { provenance } : {}),
+    ...(license !== undefined ? { license } : {}),
+    ...(displayMetadata ? { displayMetadata } : {}),
+  });
 }
 
-export function parseNimiAIProfile(value: unknown, options: NimiAIProfileParseOptions = {}): NimiAIProfile {
-  const label = options.label ?? 'NimiAIProfile payload';
-  const record = asAIRecord(value, label);
-  const profile: NimiAIProfile = {
-    profileId: requireNonEmptyText(record.profileId, `${label} profileId is required`, 'provide_ai_profile_id'),
-    title: requireNonEmptyText(record.title, `${label} title is required`, 'provide_ai_profile_title'),
-    description: typeof record.description === 'string'
-      ? record.description
-      : options.allowMissingOptionalFields ? undefined : requireString(record.description, `${label} description`),
-    tags: Array.isArray(record.tags)
-      ? record.tags.map((tag) => String(tag || '')).filter(Boolean)
-      : options.allowMissingOptionalFields ? [] : requireArray(record.tags, `${label} tags`).map(String),
-    capabilities: asAIRecord(record.capabilities, `${label} capabilities`) as NimiAIProfile['capabilities'],
-    ...(typeof record.version === 'string' ? { version: record.version } : {}),
-    ...(typeof record.revision === 'string' ? { revision: record.revision } : {}),
-    ...(Array.isArray(record.assetBindings) ? { assetBindings: record.assetBindings as NimiAIProfile['assetBindings'] } : {}),
-    ...(isRecord(record.defaultParams) ? { defaultParams: record.defaultParams as NimiAIProfile['defaultParams'] } : {}),
-    ...(Array.isArray(record.editableFields) ? { editableFields: record.editableFields.map(String).filter(Boolean) } : {}),
-    ...(Array.isArray(record.prepareRequirements) ? { prepareRequirements: record.prepareRequirements.map(String).filter(Boolean) } : {}),
-    ...(Array.isArray(record.contractStates) ? { contractStates: record.contractStates.map(String).filter(Boolean) } : {}),
-    ...(Array.isArray(record.projectionWarnings) ? { projectionWarnings: record.projectionWarnings.map(String).filter(Boolean) } : {}),
-  };
-  const validation = validateNimiAIProfile(profile);
-  if (!validation.valid) {
-    throw aiConfigError(
-      'SDK_AI_PROFILE_INVALID',
-      `${label} is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
-      'fix_ai_profile_contract',
-    );
-  }
-  return profile;
+export function serializeNimiPortableAIProfile(input: NimiPortableAIProfileInput): string {
+  return JSON.stringify(parseNimiPortableAIProfile(input));
 }
 
-export function parseNimiAccountProfileLibraryOrigin(value: unknown): NimiAccountProfileLibraryOrigin {
-  const origin = normalizeText(value);
-  if (origin === 'account-default' || origin === 'user' || origin === 'imported') {
-    return origin;
-  }
-  throw aiConfigError(
-    'SDK_AI_PROFILE_LIBRARY_INVALID',
-    `account profile library origin is invalid: ${origin}`,
-    'fix_account_profile_library_origin',
-  );
+/** Projects only the Profile's Local implementation intent. Calling this does
+ * not add, update, bind, or select machine configuration; a consumer must pass
+ * the result to an explicit Local Capability Configuration action.
+ */
+export function projectNimiPortableLocalCapabilityConfigurationIntent(
+  input: NimiPortableAIProfileInput,
+  capabilityContract: string,
+): NimiPortableLocalCapabilityConfigurationIntent | null {
+  const profile = parseNimiPortableAIProfile(input);
+  const contract = requireText(capabilityContract, 'CapabilityContract is required');
+  const capability = profile.capabilities[contract];
+  if (!capability || capability.route !== 'local' || !capability.implementation) return null;
+  return Object.freeze({
+    capabilityContract: contract,
+    implementation: capability.implementation,
+    driverPortableConfig: capability.driverPortableConfig ?? Object.freeze({}),
+    resourceOccurrences: capability.resourceOccurrences ?? Object.freeze([]),
+    supportedFeatures: capability.implementation.supportedFeatures,
+  });
 }
 
-export function parseNimiAccountProfileLibraryProfile(value: unknown): NimiAccountProfileLibraryProfile {
-  const record = asAIRecord(value, 'account profile library profile');
-  const origin = parseNimiAccountProfileLibraryOrigin(record.origin);
-  if (origin === 'account-default') {
-    throw aiConfigError(
-      'SDK_AI_PROFILE_LIBRARY_INVALID',
-      'account profile library must not project Account Default Profile as editable profile',
-      'keep_account_default_profile_as_host_authority',
-    );
-  }
+export function createNimiCloudAIConfigCapabilityIntent(
+  input: NimiCloudAIConfigCapabilityInput,
+): AIConfigCapabilityIntent {
+  const capabilityContract = requireText(input.capabilityContract, 'Cloud CapabilityContract is required');
+  const target = normalizeJsonObject(input.providerModelTarget, 'Cloud providerModelTarget');
+  if (Object.keys(target).length === 0) profileError('Cloud providerModelTarget cannot be empty');
   return {
-    profileId: normalizeText(record.profileId),
-    origin,
-    editable: record.editable === true,
-    removable: record.removable === true,
-    createdAt: normalizeText(record.createdAt),
-    updatedAt: normalizeText(record.updatedAt),
-    profile: parseNimiAIProfile(record.profile, {
-      label: 'account profile library AIProfile',
-      allowMissingOptionalFields: true,
-    }),
-  };
-}
-
-export function parseNimiAccountProfileLibraryIndexEntry(value: unknown): NimiAccountProfileLibraryIndexEntry {
-  const record = asAIRecord(value, 'account profile library index entry');
-  return {
-    profileId: normalizeText(record.profileId),
-    title: normalizeText(record.title),
-    origin: parseNimiAccountProfileLibraryOrigin(record.origin),
-    relativePath: normalizeText(record.relativePath),
-    editable: record.editable === true,
-    removable: record.removable === true,
-    updatedAt: normalizeText(record.updatedAt),
-  };
-}
-
-export function parseNimiAccountProfileLibraryProjection(value: unknown): NimiAccountProfileLibraryProjection {
-  const record = asAIRecord(value, 'account profile library');
-  const index = asAIRecord(record.index, 'account profile library index');
-  return {
-    accountId: normalizeText(record.accountId),
-    libraryRef: normalizeText(record.libraryRef),
-    index: {
-      schemaVersion: Number(index.schemaVersion || 0),
-      accountId: normalizeText(index.accountId),
-      updatedAt: normalizeText(index.updatedAt),
-      entries: Array.isArray(index.entries)
-        ? index.entries.map(parseNimiAccountProfileLibraryIndexEntry)
-        : [],
+    capabilityContract,
+    requiredFeatures: [...parseRequiredFeatures(input.requiredFeatures, capabilityContract)],
+    ...(input.defaults ? { defaults: toRuntimeStruct(normalizeJsonObject(input.defaults, 'Cloud defaults')) } : {}),
+    route: {
+      oneofKind: 'cloud',
+      cloud: {
+        implementation: parseAIConfigImplementation(input.implementation, 'Cloud implementation'),
+        providerModelTarget: toRuntimeStruct(target),
+        connectorGrantId: normalizeOptionalText(input.connectorGrantId),
+      },
     },
-    profiles: Array.isArray(record.profiles)
-      ? record.profiles.map(parseNimiAccountProfileLibraryProfile)
-      : [],
   };
 }
 
-export function parseExportedNimiAccountProfileLibraryProfiles(value: unknown): readonly NimiAIProfile[] {
-  if (!Array.isArray(value)) {
-    throw aiConfigError(
-      'SDK_AI_PROFILE_LIBRARY_INVALID',
-      'account profile library export must be an array of AIProfile payloads',
-      'provide_profile_export_array',
-    );
+export function createNimiLocalAIConfigCapabilityIntent(input: {
+  readonly capabilityContract: string;
+  readonly requiredFeatures?: readonly string[];
+  readonly defaults?: NimiJsonObject;
+}): AIConfigCapabilityIntent {
+  const capabilityContract = requireText(input.capabilityContract, 'Local CapabilityContract is required');
+  return {
+    capabilityContract,
+    requiredFeatures: [...parseRequiredFeatures(input.requiredFeatures, capabilityContract)],
+    ...(input.defaults ? { defaults: toRuntimeStruct(normalizeJsonObject(input.defaults, 'Local defaults')) } : {}),
+    route: { oneofKind: 'local', local: {} },
+  };
+}
+
+export function runtimeAIConfigStructToJson(value: Struct | undefined): NimiJsonObject {
+  if (!value) return Object.freeze({});
+  return normalizeJsonObject(RuntimeStruct.toJson(value), 'Runtime Struct');
+}
+
+function projectPortableProfileToAIConfig(
+  source: NimiPortableAIProfile,
+  client: NimiAppAIConfigClient,
+): AIConfig {
+  const capabilities = Object.entries(source.capabilities).map(([capabilityContract, capability]) => (
+    capability.route === 'local'
+      ? createNimiLocalAIConfigCapabilityIntent({
+        capabilityContract,
+        requiredFeatures: capability.requiredFeatures,
+        defaults: capability.defaults,
+      })
+      : createNimiCloudAIConfigCapabilityIntent({
+        capabilityContract,
+        requiredFeatures: capability.requiredFeatures,
+        defaults: capability.defaults,
+        implementation: {
+          implementationId: capability.implementation.implementationId,
+          driverId: capability.implementation.driverId,
+          driverDialect: capability.implementation.driverDialect,
+        },
+        providerModelTarget: capability.providerModelTarget,
+        // ConnectorGrant is non-portable and remains explicitly unset.
+        connectorGrantId: '',
+      })
+  ));
+  return Object.freeze({
+    owner: client.owner,
+    capabilities,
+  });
+}
+
+export function createNimiAppAIProfileClient(client: NimiAppAIConfigClient): NimiAppAIProfileClient {
+  const readCurrent = async (): Promise<AIConfig | null> => {
+    try {
+      return await client.get();
+    } catch (error) {
+      if (extractNimiErrorFields(error).reasonCode === 'AI_CONFIG_NOT_FOUND') return null;
+      throw error;
+    }
+  };
+  return {
+    async preview(input) {
+      const source = parseNimiPortableAIProfile(input);
+      const before = await readCurrent();
+      const after = projectPortableProfileToAIConfig(source, client);
+      return Object.freeze({
+        source,
+        before,
+        after,
+        identical: before !== null && canonicalConfig(before) === canonicalConfig(after),
+      });
+    },
+    async apply(input) {
+      const source = parseNimiPortableAIProfile(input);
+      const after = projectPortableProfileToAIConfig(source, client);
+      return client.overwrite(after.capabilities);
+    },
+  };
+}
+
+function parseProfileInput(input: NimiPortableAIProfile | string | Uint8Array | NimiJsonObject): Record<string, unknown> {
+  if (input instanceof Uint8Array) return parseJsonText(new TextDecoder().decode(input));
+  if (typeof input === 'string') return parseJsonText(input);
+  return requireObject(input, 'AIProfile must be an object');
+}
+
+function parseJsonText(input: string): Record<string, unknown> {
+  if (!input.trim()) profileError('AIProfile JSON is required');
+  try {
+    return requireObject(JSON.parse(input), 'AIProfile JSON must contain an object');
+  } catch (error) {
+    if (error instanceof SyntaxError) profileError('AIProfile JSON is invalid');
+    throw error;
   }
-  return value.map((profile) => parseNimiAIProfile(profile, {
-    label: 'exported account profile library AIProfile',
-    allowMissingOptionalFields: true,
+}
+
+function parsePortableImplementation(
+  value: unknown,
+  label: string,
+  requiredFeatures: readonly string[],
+): NimiPortableAIProfileImplementation {
+  const record = requireObject(value, `${label} is required`);
+  assertExactKeys(record, ['implementationId', 'driverId', 'driverDialect', 'supportedFeatures'], label);
+  const supportedFeatures = parseFeatureSet(record.supportedFeatures, `${label}.supportedFeatures`);
+  const supported = new Set(supportedFeatures);
+  const unsupportedRequirement = requiredFeatures.find((feature) => !supported.has(feature));
+  if (unsupportedRequirement) {
+    profileError(`${label} does not support required feature ${unsupportedRequirement}`);
+  }
+  return Object.freeze({
+    implementationId: requireText(record.implementationId, `${label}.implementationId is required`),
+    driverId: requireText(record.driverId, `${label}.driverId is required`),
+    driverDialect: requireText(record.driverDialect, `${label}.driverDialect is required`),
+    supportedFeatures,
+  });
+}
+
+function parseAIConfigImplementation(value: unknown, label: string): CapabilityImplementationIdentity {
+  const record = requireObject(value, `${label} is required`);
+  assertExactKeys(record, ['implementationId', 'driverId', 'driverDialect'], label);
+  return Object.freeze({
+    implementationId: requireText(record.implementationId, `${label}.implementationId is required`),
+    driverId: requireText(record.driverId, `${label}.driverId is required`),
+    driverDialect: requireText(record.driverDialect, `${label}.driverDialect is required`),
+  });
+}
+
+function parseResourceOccurrences(
+  value: unknown,
+  capabilityContract: string,
+): readonly NimiPortableAIProfileResourceOccurrence[] {
+  if (!Array.isArray(value)) profileError(`AIProfile ${capabilityContract} resourceOccurrences must be an array`);
+  const seen = new Set<string>();
+  return Object.freeze(value.map((entry, index) => {
+    const occurrence = normalizeJsonObject(entry, `AIProfile ${capabilityContract} resourceOccurrences[${index}]`);
+    const occurrenceId = requireText(occurrence.occurrenceId, `AIProfile ${capabilityContract} resource occurrenceId is required`);
+    if (seen.has(occurrenceId)) profileError(`AIProfile ${capabilityContract} resource occurrence ${occurrenceId} is duplicated`);
+    seen.add(occurrenceId);
+    return Object.freeze({ ...occurrence, occurrenceId });
   }));
 }
 
-export function projectNimiAIProfileApply(input: {
-  readonly scopeRef: NimiAIScopeRef;
-  readonly profile: NimiAIProfile;
-  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
-}): {
-  readonly outcome: NimiAIConfigApplyOutcome;
-  readonly setupProjection: NimiAIConfigSetupProjection | null;
-} {
-  const evaluation = evaluateNimiAIProfileRequirementApply(input);
-  return {
-    outcome: evaluation.outcome,
-    setupProjection: evaluation.setupProjection,
-  };
+function parseRequiredFeatures(value: unknown, capabilityContract: string): readonly string[] {
+  if (value === undefined) return Object.freeze([]);
+  return parseFeatureSet(value, `AIProfile ${capabilityContract} requiredFeatures`);
 }
 
-function evaluateNimiAIProfileRequirementApply(input: {
-  readonly scopeRef: NimiAIScopeRef;
-  readonly profile: NimiAIProfile;
-  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
-}): NimiAIProfileRequirementApplyEvaluation {
-  const declarations = assertNimiAIRequirementDeclarationsForScope({
-    scopeRef: input.scopeRef,
-    requirementDeclarations: input.requirementDeclarations,
-  });
-  const selections = listNimiAIRequirementSlices(declarations);
-  const blockingCapabilities: string[] = [];
-  const actionRefs: string[] = [];
-  const reasonCodes: string[] = [];
-  const readySlices: NimiAIReadyRequirementSlice[] = [];
-  const readyCapabilities = new Set<string>();
-
-  for (const selection of selections.required) {
-    const intent = input.profile.capabilities[selection.slice.capability] ?? null;
-    const blockedReason = classifyRequirementSliceBlocker(selection.slice, intent);
-    if (blockedReason) {
-      blockingCapabilities.push(selection.slice.capability);
-      actionRefs.push(`setup:${selection.slice.requirementSliceId}`);
-      reasonCodes.push(blockedReason);
-      continue;
-    }
-    addReadyRequirementSlice(readySlices, readyCapabilities, selection.requirementId, selection.slice, intent);
-  }
-
-  for (const selection of selections.optional) {
-    const intent = input.profile.capabilities[selection.slice.capability] ?? null;
-    if (classifyRequirementSliceBlocker(selection.slice, intent)) {
-      continue;
-    }
-    addReadyRequirementSlice(readySlices, readyCapabilities, selection.requirementId, selection.slice, intent);
-  }
-
-  if (blockingCapabilities.length === 0) {
-    return { outcome: 'ready_to_apply', setupProjection: null, readySlices };
-  }
-  const unsupported = reasonCodes.includes('product_state_unsupported');
-  const outcome = unsupported ? 'unsupported_no_live_config' : 'setup_required_no_live_config';
-  return {
-    outcome,
-    setupProjection: {
-      outcome,
-      blockingCapabilities,
-      reasonCodes: [...new Set(reasonCodes)],
-      actionRefs,
-    },
-    readySlices,
-  };
+function parseFeatureSet(value: unknown, label: string): readonly string[] {
+  if (!Array.isArray(value)) profileError(`${label} must be an array`);
+  const features = value.map((feature) => requireText(feature, `${label} contains an invalid feature`)).sort();
+  if (new Set(features).size !== features.length) profileError(`${label} must be unique`);
+  return Object.freeze(features);
 }
 
-export function applyNimiAIProfileToConfig(input: {
-  readonly config: NimiAIConfig;
-  readonly profile: NimiAIProfile;
-  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
-  readonly now?: () => string;
-}): NimiAIConfig {
-  const validation = validateNimiAIProfile(input.profile);
-  if (!validation.valid) {
-    throw aiConfigError(
-      'SDK_AI_PROFILE_INVALID',
-      `AI profile is invalid: ${formatNimiAIValidationIssues(validation.issues)}`,
-      'fix_ai_profile_contract',
-    );
+function normalizeJsonObject(value: unknown, label: string): NimiJsonObject {
+  const record = requireObject(value, `${label} must be an object`);
+  const normalized: Record<string, NimiJsonValue> = {};
+  for (const key of Object.keys(record).sort()) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') profileError(`${label} contains an unsafe key`);
+    normalized[key] = normalizeJsonValue(record[key], `${label}.${key}`);
   }
-  const evaluation = evaluateNimiAIProfileRequirementApply({
-    scopeRef: input.config.scopeRef,
-    profile: input.profile,
-    requirementDeclarations: input.requirementDeclarations,
-  });
-  if (evaluation.outcome !== 'ready_to_apply') {
-    throw aiConfigError(
-      'SDK_AI_PROFILE_NOT_APPLYABLE',
-      `AI profile cannot produce live config: ${evaluation.setupProjection?.reasonCodes.join(', ')}`,
-      'resolve_required_ai_profile_slices',
-    );
-  }
-  const logicalModelIds: Record<string, string> = {};
-  const targetRefs: Record<string, NimiAIConfigTargetRef> = {};
-  const selectedComponents: NimiAIConfig['capabilities']['selectedComponents'] = {};
-  const selectedParams: Record<string, NimiJsonValue> = {};
-  for (const { slice, intent } of evaluation.readySlices) {
-    const runtimeDescriptor = intent.runtimeDescriptor ?? slice.runtimeDescriptor;
-    if ((runtimeDescriptor?.orderedCompanionOccurrences?.length ?? 0) > 0) {
-      throw aiConfigError(
-        'SDK_AI_PROFILE_NOT_APPLYABLE',
-        `Generic AIProfile apply cannot materialize component occurrences for capability: ${slice.capability}`,
-        'prepare_ai_profile_with_runtime',
-      );
-    }
-    const logicalModelId = normalizeText(intent.logicalModelId)
-      || (intent.targetRef.kind === 'cloud-connector'
-        ? normalizeText(intent.targetRef.providerModelId)
-        : '');
-    if (!logicalModelId) {
-      throw aiConfigError(
-        'SDK_AI_PROFILE_NOT_APPLYABLE',
-        `AI profile cannot materialize a logical model identity for capability: ${slice.capability}`,
-        'provide_ai_profile_logical_model_id',
-      );
-    }
-    logicalModelIds[slice.capability] = logicalModelId;
-    targetRefs[slice.capability] = intent.targetRef;
-    if (intent.params !== undefined) {
-      selectedParams[slice.capability] = intent.params;
-    }
-  }
-  return {
-    scopeRef: assertNimiAIScopeRef(input.config.scopeRef),
-    capabilities: {
-      logicalModelIds,
-      targetRefs,
-      selectedComponents,
-      selectedParams,
-    },
-    profileOrigin: {
-      profileId: input.profile.profileId,
-      title: input.profile.title,
-      appliedAt: (input.now ?? (() => new Date().toISOString()))(),
-    },
-  };
+  return Object.freeze(normalized);
 }
 
-export function previewNimiAIProfileApply(input: {
-  readonly before: NimiAIConfig | null;
-  readonly scopeRef: NimiAIScopeRef;
-  readonly profile: NimiAIProfile;
-  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
-  readonly now?: () => string;
-}): NimiAIProfilePreviewResult {
-  const validation = validateNimiAIProfile(input.profile);
-  if (!validation.valid) {
-    return {
-      before: input.before,
-      after: null,
-      outcome: 'invalid_profile',
-      diff: diffNimiAIConfigs(input.before, null),
-      baseVersion: versionNimiAIConfig(input.before ?? createEmptyNimiAIConfig(input.scopeRef)),
-      probeWarnings: validation.issues.map(formatNimiAIValidationIssue),
-    };
-  }
-  const projection = projectNimiAIProfileApply({
-    scopeRef: input.scopeRef,
-    profile: input.profile,
-    requirementDeclarations: input.requirementDeclarations,
-  });
-  const base = input.before ?? createEmptyNimiAIConfig(input.scopeRef);
-  if (projection.outcome !== 'ready_to_apply') {
-    return {
-      before: input.before,
-      after: null,
-      outcome: projection.outcome,
-      setupProjection: projection.setupProjection,
-      diff: diffNimiAIConfigs(input.before, null),
-      baseVersion: versionNimiAIConfig(base),
-      probeWarnings: [],
-    };
-  }
-  const after = applyNimiAIProfileToConfig({
-    config: base,
-    profile: input.profile,
-    requirementDeclarations: input.requirementDeclarations,
-    now: input.now,
-  });
-  return {
-    before: input.before,
-    after,
-    outcome: 'ready_to_apply',
-    setupProjection: null,
-    diff: diffNimiAIConfigs(input.before, after),
-    baseVersion: versionNimiAIConfig(base),
-    probeWarnings: [],
-  };
+function normalizeJsonValue(value: unknown, label: string): NimiJsonValue {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (Array.isArray(value)) return Object.freeze(value.map((entry, index) => normalizeJsonValue(entry, `${label}[${index}]`)));
+  if (value && typeof value === 'object') return normalizeJsonObject(value, label);
+  return profileError(`${label} is not portable JSON`);
 }
 
-function classifyRequirementSliceBlocker(
-  slice: NimiAICapabilityRequirementSlice,
-  intent: NimiAIProfileCapabilityIntent | null | undefined,
-): 'required_slice_unresolved' | 'product_state_unsupported' | 'product_state_proposed' | null {
-  if (!intent) {
-    return 'required_slice_unresolved';
-  }
-  const contractState = intent.contractState ?? 'declared';
-  if (contractState === 'unsupported') {
-    return 'product_state_unsupported';
-  }
-  if (contractState === 'proposed') {
-    return 'product_state_proposed';
-  }
-  if (!intent.targetRef) {
-    return 'required_slice_unresolved';
-  }
-  if (intent.targetRef.kind === 'profile-slice') {
-    return 'required_slice_unresolved';
-  }
-  return null;
-}
+const FORBIDDEN_PORTABLE_KEYS = new Set([
+  'connectorgrantid', 'connectorgrant', 'grantid', 'connectorid', 'connector', 'accountid', 'account', 'subjectuserid', 'owneruserid',
+  'localassetid', 'localassetpath', 'binding', 'bindings', 'exactbinding', 'exactbindings',
+  'path', 'filepath', 'secret', 'secrets', 'credential', 'credentials', 'credentialpayload', 'apikey',
+  'accesstoken', 'refreshtoken', 'oauthtoken', 'endpoint', 'endpointurl', 'baseurl',
+  'runtimeprocessid', 'jobid',
+]);
 
-function addReadyRequirementSlice(
-  readySlices: NimiAIReadyRequirementSlice[],
-  readyCapabilities: Set<string>,
-  requirementId: string,
-  slice: NimiAICapabilityRequirementSlice,
-  intent: NimiAIProfileCapabilityIntent | null | undefined,
-): void {
-  const targetRef = intent?.targetRef;
-  if (!intent || !targetRef) {
+function assertPortableValue(value: unknown, label: string): void {
+  if (value === null || typeof value === 'boolean') return;
+  if (typeof value === 'string') {
+    if (isPortablePath(value)) profileError(`${label} contains a non-portable path`);
     return;
   }
-  if (readyCapabilities.has(slice.capability)) {
-    throw aiConfigError(
-      'SDK_AI_REQUIREMENT_INVALID',
-      `AIConfig cannot materialize duplicate ready slices for capability: ${slice.capability}`,
-      'deduplicate_ai_requirement_capability_slices',
-    );
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) profileError(`${label} contains a non-finite number`);
+    return;
   }
-  readyCapabilities.add(slice.capability);
-  readySlices.push({ requirementId, slice, intent: { ...intent, targetRef } });
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => assertPortableValue(entry, `${label}[${index}]`));
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const [key, entry] of Object.entries(value)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') profileError(`${label} contains an unsafe key`);
+      const normalized = key.toLowerCase().replaceAll('_', '').replaceAll('-', '');
+      if (FORBIDDEN_PORTABLE_KEYS.has(normalized)
+        || normalized.endsWith('path')
+        || normalized.endsWith('bindingid')
+        || normalized.includes('connectorgrant')
+        || normalized.endsWith('connectorid')
+        || normalized.endsWith('accountid')
+        || normalized.includes('localasset')) {
+        profileError(`${label}.${key} is forbidden in portable AIProfile`);
+      }
+      assertPortableValue(entry, `${label}.${key}`);
+    }
+    return;
+  }
+  profileError(`${label} contains unsupported portable JSON`);
 }
 
-function validateRuntimeDescriptorSliceInput(slice: unknown, path: string): readonly NimiAIValidationIssue[] {
-  const issues = collectForbiddenPayloadIssues(slice, path);
-  if (!slice) {
-    return issues;
-  }
-  if (!isRecord(slice)) {
-    issues.push(aiValidationIssue('AI_TYPE_INVALID', path));
-    return issues;
-  }
-  if (slice.executionMode !== undefined && slice.executionMode !== 'local' && slice.executionMode !== 'cloud_connector') {
-    issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.executionMode`));
-  }
-  if (slice.contractState !== undefined
-    && slice.contractState !== 'declared'
-    && slice.contractState !== 'proposed'
-    && slice.contractState !== 'unsupported') {
-    issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.contractState`));
-  }
-  if (slice.assetRefs !== undefined && !Array.isArray(slice.assetRefs)) {
-    issues.push(aiValidationIssue('AI_TYPE_INVALID', `${path}.assetRefs`));
-  }
-  if (Array.isArray(slice.assetRefs)) {
-    slice.assetRefs.forEach((assetRef, index) => {
-      if (!isNonEmptyString(assetRef)) {
-        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.assetRefs[${index}]`));
-      }
-    });
-  }
-  if (slice.orderedCompanionOccurrences !== undefined && !Array.isArray(slice.orderedCompanionOccurrences)) {
-    issues.push(aiValidationIssue('AI_TYPE_INVALID', `${path}.orderedCompanionOccurrences`));
-  }
-  if (Array.isArray(slice.orderedCompanionOccurrences)) {
-    slice.orderedCompanionOccurrences.forEach((occurrence, index) => {
-      if (!isRecord(occurrence)) {
-        issues.push(aiValidationIssue('AI_TYPE_INVALID', `${path}.orderedCompanionOccurrences[${index}]`));
-        return;
-      }
-      if (!isNonEmptyString(occurrence.occurrenceId)) {
-        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].occurrenceId`));
-      }
-      if (typeof occurrence.order !== 'number' || !Number.isInteger(occurrence.order) || occurrence.order < 0) {
-        issues.push(aiValidationIssue('AI_VALUE_INVALID', `${path}.orderedCompanionOccurrences[${index}].order`));
-      }
-      if (!isNonEmptyString(occurrence.role)) {
-        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].role`));
-      }
-      if (!isNonEmptyString(occurrence.engineSlot)) {
-        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].engineSlot`));
-      }
-      if (!isNonEmptyString(occurrence.assetBindingRef)) {
-        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].assetBindingRef`));
-      }
-      if (typeof occurrence.required !== 'boolean') {
-        issues.push(aiValidationIssue('AI_FIELD_REQUIRED', `${path}.orderedCompanionOccurrences[${index}].required`));
-      }
-    });
-  }
-  return issues;
+function isPortablePath(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.startsWith('/') || trimmed.startsWith('~/') || trimmed.toLowerCase().startsWith('file://') || /^[A-Za-z]:[\\/]/u.test(trimmed);
+}
+
+function requireObject(value: unknown, message: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) profileError(message);
+  return value as Record<string, unknown>;
+}
+
+function assertExactKeys(value: Record<string, unknown>, allowed: readonly string[], label: string): void {
+  const admitted = new Set(allowed);
+  const unknown = Object.keys(value).filter((key) => !admitted.has(key));
+  if (unknown.length > 0) profileError(`${label} contains unsupported field ${unknown.sort()[0]}`);
+}
+
+function requireText(value: unknown, message: string): string {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized || normalized !== value) profileError(message);
+  return normalized;
+}
+
+function requireExactText(value: unknown, message: string): string {
+  if (typeof value !== 'string' || value.trim() !== value) profileError(message);
+  return value;
+}
+
+function normalizeOptionalText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function toRuntimeStruct(value: NimiJsonObject): Struct {
+  return RuntimeStruct.fromJson(value as ProtoJsonValue);
+}
+
+function canonicalConfig(config: AIConfig): string {
+  const capabilities = [...config.capabilities]
+    .map((intent) => ({
+      capabilityContract: intent.capabilityContract,
+      requiredFeatures: [...intent.requiredFeatures].sort(),
+      ...(intent.defaults ? { defaults: runtimeAIConfigStructToJson(intent.defaults) } : {}),
+      route: intent.route.oneofKind === 'local'
+        ? { oneofKind: 'local' as const }
+        : intent.route.oneofKind === 'cloud'
+          ? {
+            oneofKind: 'cloud' as const,
+            implementation: intent.route.cloud.implementation,
+            providerModelTarget: runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget),
+            connectorGrantId: intent.route.cloud.connectorGrantId,
+          }
+          : { oneofKind: undefined },
+    }))
+    .sort((left, right) => left.capabilityContract.localeCompare(right.capabilityContract));
+  return JSON.stringify({
+    owner: config.owner,
+    capabilities,
+  });
+}
+
+function profileError(message: string): never {
+  throw createNimiError({
+    message,
+    reasonCode: 'AI_PROFILE_INVALID',
+    actionHint: 'provide_portable_ai_profile',
+    source: 'sdk',
+  });
 }
