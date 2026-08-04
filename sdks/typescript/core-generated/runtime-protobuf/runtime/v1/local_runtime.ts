@@ -21,6 +21,12 @@ import { BindLocalCapabilityRequirementResponse } from "./capability_configurati
 import { BindLocalCapabilityRequirementRequest } from "./capability_configuration";
 import { ReprojectLocalCapabilityRequirementsResponse } from "./capability_configuration";
 import { ReprojectLocalCapabilityRequirementsRequest } from "./capability_configuration";
+import { DeleteLocalCapabilityConfigurationResponse } from "./capability_configuration";
+import { DeleteLocalCapabilityConfigurationRequest } from "./capability_configuration";
+import { ClearLocalCapabilitySelectionResponse } from "./capability_configuration";
+import { ClearLocalCapabilitySelectionRequest } from "./capability_configuration";
+import { SelectLocalCapabilityConfigurationResponse } from "./capability_configuration";
+import { SelectLocalCapabilityConfigurationRequest } from "./capability_configuration";
 import { AddLocalCapabilityConfigurationResponse } from "./capability_configuration";
 import { AddLocalCapabilityConfigurationRequest } from "./capability_configuration";
 import { GetLocalCapabilityConfigurationResponse } from "./capability_configuration";

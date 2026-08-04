@@ -1520,6 +1520,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CheckLocalServiceHealthResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
+        service: "RuntimeLocalService",
+        method: "ClearLocalCapabilitySelection",
+        kind: "unary",
+        request_type: "ClearLocalCapabilitySelectionRequest",
+        response_type: "ClearLocalCapabilitySelectionResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
         service: "RuntimeLocalService",
         method: "CollectDeviceProfile",
@@ -1534,6 +1542,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
         response_type: "ProductControlProjectionJson",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
+        service: "RuntimeLocalService",
+        method: "DeleteLocalCapabilityConfiguration",
+        kind: "unary",
+        request_type: "DeleteLocalCapabilityConfigurationRequest",
+        response_type: "DeleteLocalCapabilityConfigurationResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
@@ -1886,6 +1902,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "SearchCatalogModelsRequest",
         response_type: "SearchCatalogModelsResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
+        service: "RuntimeLocalService",
+        method: "SelectLocalCapabilityConfiguration",
+        kind: "unary",
+        request_type: "SelectLocalCapabilityConfigurationRequest",
+        response_type: "SelectLocalCapabilityConfigurationResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",

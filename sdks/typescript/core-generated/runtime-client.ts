@@ -1519,6 +1519,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CheckLocalServiceHealthResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
+    "service": "RuntimeLocalService",
+    "method": "ClearLocalCapabilitySelection",
+    "kind": "unary",
+    "requestType": "ClearLocalCapabilitySelectionRequest",
+    "responseType": "ClearLocalCapabilitySelectionResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
     "service": "RuntimeLocalService",
     "method": "CollectDeviceProfile",
@@ -1533,6 +1541,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
     "responseType": "ProductControlProjectionJson"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "DeleteLocalCapabilityConfiguration",
+    "kind": "unary",
+    "requestType": "DeleteLocalCapabilityConfigurationRequest",
+    "responseType": "DeleteLocalCapabilityConfigurationResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
@@ -1885,6 +1901,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "SearchCatalogModelsRequest",
     "responseType": "SearchCatalogModelsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
+    "service": "RuntimeLocalService",
+    "method": "SelectLocalCapabilityConfiguration",
+    "kind": "unary",
+    "requestType": "SelectLocalCapabilityConfigurationRequest",
+    "responseType": "SelectLocalCapabilityConfigurationResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",

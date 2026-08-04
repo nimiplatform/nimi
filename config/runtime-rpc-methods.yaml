@@ -116,6 +116,15 @@ services:
       - name: AddLocalCapabilityConfiguration
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
+      - name: SelectLocalCapabilityConfiguration
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration
+      - name: ClearLocalCapabilitySelection
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection
+      - name: DeleteLocalCapabilityConfiguration
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration
       - name: ReprojectLocalCapabilityRequirements
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements

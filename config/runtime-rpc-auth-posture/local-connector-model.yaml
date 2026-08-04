@@ -8,6 +8,12 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement

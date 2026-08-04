@@ -230,6 +230,9 @@ func newDaemon(cfg config.Config, logger *slog.Logger, version string, newGRPCSe
 	if err != nil {
 		return nil, err
 	}
+	if localSvc, agentSvc := grpcServer.LocalService(), grpcServer.AgentService(); localSvc != nil && agentSvc != nil {
+		agentSvc.SetMachineLocalExecutionResolver(localSvc)
+	}
 	listEmbeddingAssets := func(ctx context.Context) ([]*runtimev1.LocalAssetRecord, error) {
 		localSvc := grpcServer.LocalService()
 		if localSvc == nil {

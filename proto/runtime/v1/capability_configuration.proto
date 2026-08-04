@@ -190,6 +190,27 @@ message AddLocalCapabilityConfigurationResponse {
   LocalCapabilityConfiguration configuration = 1;
 }
 
+message SelectLocalCapabilityConfigurationRequest {
+  string capability_contract = 1;
+  string configuration_id = 2;
+}
+
+message SelectLocalCapabilityConfigurationResponse {
+  LocalCapabilitySelection selection = 1;
+}
+
+message ClearLocalCapabilitySelectionRequest {
+  string capability_contract = 1;
+}
+
+message ClearLocalCapabilitySelectionResponse {}
+
+message DeleteLocalCapabilityConfigurationRequest {
+  string configuration_id = 1;
+}
+
+message DeleteLocalCapabilityConfigurationResponse {}
+
 message ReprojectLocalCapabilityRequirementsRequest {
   string configuration_id = 1;
 }

@@ -70,6 +70,9 @@ func TestUnaryLifecycleInterceptorRejectsMachineLocalConfigurationWritesWhenStop
 	interceptor := newUnaryLifecycleInterceptor(state)
 	for _, fullMethod := range []string{
 		"/nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration",
+		"/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
+		"/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
+		"/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
 		"/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
 		"/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
 		"/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement",

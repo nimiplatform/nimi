@@ -1478,6 +1478,10 @@ const (
 	AICONFIGINVALID ReasonCode = "AI_CONFIG_INVALID"
 	AICONFIGNOTFOUND ReasonCode = "AI_CONFIG_NOT_FOUND"
 	AICONFIGPERSISTENCEUNAVAILABLE ReasonCode = "AI_CONFIG_PERSISTENCE_UNAVAILABLE"
+	AILOCALSELECTIONNOTFOUND ReasonCode = "AI_LOCAL_SELECTION_NOT_FOUND"
+	AILOCALCAPABILITYMISMATCH ReasonCode = "AI_LOCAL_CAPABILITY_MISMATCH"
+	AILOCALCONFIGURATIONNOTCONFIGURED ReasonCode = "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED"
+	AILOCALSELECTIONINVALID ReasonCode = "AI_LOCAL_SELECTION_INVALID"
 )
 
 type ReasoningMode string
@@ -2840,6 +2844,14 @@ type ClearAgentPresentationProfile struct {
 
 }
 
+type ClearLocalCapabilitySelectionRequest struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+}
+
+type ClearLocalCapabilitySelectionResponse struct {
+
+}
+
 type CloseRealtimeSessionRequest struct {
 	SessionId string `json:"session_id,omitempty"`
 }
@@ -3159,6 +3171,14 @@ type DeleteKnowledgeBankRequest struct {
 
 type DeleteKnowledgeBankResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
+}
+
+type DeleteLocalCapabilityConfigurationRequest struct {
+	ConfigurationId string `json:"configuration_id,omitempty"`
+}
+
+type DeleteLocalCapabilityConfigurationResponse struct {
+
 }
 
 type DeleteMemoryRequest struct {
@@ -6875,6 +6895,15 @@ type SearchKeywordResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type SelectLocalCapabilityConfigurationRequest struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	ConfigurationId string `json:"configuration_id,omitempty"`
+}
+
+type SelectLocalCapabilityConfigurationResponse struct {
+	Selection *LocalCapabilitySelection `json:"selection,omitempty"`
+}
+
 type SelectProductControlDataRootRequest struct {
 	DataRoot string `json:"data_root,omitempty"`
 }
@@ -9301,6 +9330,14 @@ func (c RuntimeTypedClient) CheckLocalServiceHealth(ctx context.Context, request
 	return decodeRuntimeTypedResponse[CheckLocalServiceHealthResponse](raw, "CheckLocalServiceHealthResponse")
 }
 
+func (c RuntimeTypedClient) ClearLocalCapabilitySelection(ctx context.Context, request ClearLocalCapabilitySelectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ClearLocalCapabilitySelectionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection", request, metadata, timeoutMS)
+	if err != nil {
+		return ClearLocalCapabilitySelectionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ClearLocalCapabilitySelectionResponse](raw, "ClearLocalCapabilitySelectionResponse")
+}
+
 func (c RuntimeTypedClient) CollectDeviceProfile(ctx context.Context, request CollectDeviceProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CollectDeviceProfileResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile", request, metadata, timeoutMS)
 	if err != nil {
@@ -9315,6 +9352,14 @@ func (c RuntimeTypedClient) CompleteProductControlFirstRunDeviceEnvironmentScan(
 		return ProductControlProjectionJson{}, err
 	}
 	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
+}
+
+func (c RuntimeTypedClient) DeleteLocalCapabilityConfiguration(ctx context.Context, request DeleteLocalCapabilityConfigurationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteLocalCapabilityConfigurationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration", request, metadata, timeoutMS)
+	if err != nil {
+		return DeleteLocalCapabilityConfigurationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DeleteLocalCapabilityConfigurationResponse](raw, "DeleteLocalCapabilityConfigurationResponse")
 }
 
 func (c RuntimeTypedClient) EnsureEngine(ctx context.Context, request EnsureEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EnsureEngineResponse, error) {
@@ -9667,6 +9712,14 @@ func (c RuntimeTypedClient) SearchCatalogModels(ctx context.Context, request Sea
 		return SearchCatalogModelsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SearchCatalogModelsResponse](raw, "SearchCatalogModelsResponse")
+}
+
+func (c RuntimeTypedClient) SelectLocalCapabilityConfiguration(ctx context.Context, request SelectLocalCapabilityConfigurationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SelectLocalCapabilityConfigurationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration", request, metadata, timeoutMS)
+	if err != nil {
+		return SelectLocalCapabilityConfigurationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SelectLocalCapabilityConfigurationResponse](raw, "SelectLocalCapabilityConfigurationResponse")
 }
 
 func (c RuntimeTypedClient) SelectProductControlDataRoot(ctx context.Context, request SelectProductControlDataRootRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {

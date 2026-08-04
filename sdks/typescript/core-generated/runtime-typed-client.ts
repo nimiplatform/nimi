@@ -15,7 +15,7 @@ import type { AppMessageEvent, BindLocalAppProcessRequest, BindLocalAppProcessRe
 import type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 import type { AIProviderHealthEvent, AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest } from "./runtime-protobuf/runtime/v1/audit";
 import type { OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
-import type { AddLocalCapabilityConfigurationRequest, AddLocalCapabilityConfigurationResponse, BindLocalCapabilityRequirementRequest, BindLocalCapabilityRequirementResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLocalCapabilityConfigurationRequest, GetLocalCapabilityConfigurationResponse, GetMachineLocalAIConfigurationRequest, GetMachineLocalAIConfigurationResponse, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, RebindLocalCapabilityRequirementRequest, RebindLocalCapabilityRequirementResponse, ReprojectLocalCapabilityRequirementsRequest, ReprojectLocalCapabilityRequirementsResponse, UnbindLocalCapabilityRequirementRequest, UnbindLocalCapabilityRequirementResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
+import type { AddLocalCapabilityConfigurationRequest, AddLocalCapabilityConfigurationResponse, BindLocalCapabilityRequirementRequest, BindLocalCapabilityRequirementResponse, ClearLocalCapabilitySelectionRequest, ClearLocalCapabilitySelectionResponse, DeleteLocalCapabilityConfigurationRequest, DeleteLocalCapabilityConfigurationResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLocalCapabilityConfigurationRequest, GetLocalCapabilityConfigurationResponse, GetMachineLocalAIConfigurationRequest, GetMachineLocalAIConfigurationResponse, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, RebindLocalCapabilityRequirementRequest, RebindLocalCapabilityRequirementResponse, ReprojectLocalCapabilityRequirementsRequest, ReprojectLocalCapabilityRequirementsResponse, SelectLocalCapabilityConfigurationRequest, SelectLocalCapabilityConfigurationResponse, UnbindLocalCapabilityRequirementRequest, UnbindLocalCapabilityRequirementResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
 import type { Ack } from "./runtime-protobuf/runtime/v1/common";
 import type { CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
 import type { GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
@@ -50,7 +50,7 @@ export type { AppMessageEvent, AppStorageProjection, BindLocalAppProcessRequest,
 export type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 export type { AIProviderHealthEvent, AIProviderHealthSnapshot, AIProviderSubHealth, AuditEventRecord, AuditExportChunk, DesktopAuditEventProjection, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest, UsageStatRecord } from "./runtime-protobuf/runtime/v1/audit";
 export type { AppModeManifest, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
-export type { AIConfig, AIConfigAppOwner, AIConfigCapabilityIntent, AIConfigCloudIntent, AIConfigLocalIntent, AIConfigOwner, AIConfigRuntimeLocalAgentSubsystemOwner, AddLocalCapabilityConfigurationRequest, AddLocalCapabilityConfigurationResponse, BindLocalCapabilityRequirementRequest, BindLocalCapabilityRequirementResponse, CapabilityImplementationIdentity, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLocalCapabilityConfigurationRequest, GetLocalCapabilityConfigurationResponse, GetMachineLocalAIConfigurationRequest, GetMachineLocalAIConfigurationResponse, LocalAssetExactBinding, LocalAssetExactBindingTarget, LocalCapabilityConfiguration, LocalCapabilityRequirement, LocalCapabilitySelection, MachineLocalAIConfiguration, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, RebindLocalCapabilityRequirementRequest, RebindLocalCapabilityRequirementResponse, ReprojectLocalCapabilityRequirementsRequest, ReprojectLocalCapabilityRequirementsResponse, UnbindLocalCapabilityRequirementRequest, UnbindLocalCapabilityRequirementResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
+export type { AIConfig, AIConfigAppOwner, AIConfigCapabilityIntent, AIConfigCloudIntent, AIConfigLocalIntent, AIConfigOwner, AIConfigRuntimeLocalAgentSubsystemOwner, AddLocalCapabilityConfigurationRequest, AddLocalCapabilityConfigurationResponse, BindLocalCapabilityRequirementRequest, BindLocalCapabilityRequirementResponse, CapabilityImplementationIdentity, ClearLocalCapabilitySelectionRequest, ClearLocalCapabilitySelectionResponse, DeleteLocalCapabilityConfigurationRequest, DeleteLocalCapabilityConfigurationResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLocalCapabilityConfigurationRequest, GetLocalCapabilityConfigurationResponse, GetMachineLocalAIConfigurationRequest, GetMachineLocalAIConfigurationResponse, LocalAssetExactBinding, LocalAssetExactBindingTarget, LocalCapabilityConfiguration, LocalCapabilityRequirement, LocalCapabilitySelection, MachineLocalAIConfiguration, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, RebindLocalCapabilityRequirementRequest, RebindLocalCapabilityRequirementResponse, ReprojectLocalCapabilityRequirementsRequest, ReprojectLocalCapabilityRequirementsResponse, SelectLocalCapabilityConfigurationRequest, SelectLocalCapabilityConfigurationResponse, UnbindLocalCapabilityRequirementRequest, UnbindLocalCapabilityRequirementResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
 export type { Ack, ConsentRef, ErrorInfo, ResourceSelectors, UsageStats, WorkspaceBindingAttachment } from "./runtime-protobuf/runtime/v1/common";
 export type { CatalogModelDetail, CatalogModelInput, CatalogModelSummary, CatalogModelWorkflowBinding, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogStringListEntry, CatalogVideoGenerationCapability, CatalogVideoGenerationOutputs, CatalogVoiceEntry, CatalogWorkflowModel, Connector, ConnectorModelDescriptor, CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, ModelCatalogProviderEntry, ProviderCatalogEntry, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
 export type { DelegatedApprovalRequest, DelegatedControlSurfaceSnapshot, DelegatedDiagnostic, DelegatedProviderProfile, DelegatedReplayTrace, DelegatedReplayTraceStage, DelegatedToolAllowlistEntry, GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
@@ -2161,6 +2161,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async clearLocalCapabilitySelection(request: ClearLocalCapabilitySelectionRequest, options: RuntimeTypedCallOptions = {}): Promise<ClearLocalCapabilitySelectionResponse> {
+    return this.core.unary<ClearLocalCapabilitySelectionResponse, ClearLocalCapabilitySelectionRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async collectDeviceProfile(request: CollectDeviceProfileRequest, options: RuntimeTypedCallOptions = {}): Promise<CollectDeviceProfileResponse> {
     return this.core.unary<CollectDeviceProfileResponse, CollectDeviceProfileRequest>({
       methodId: "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
@@ -2175,6 +2186,17 @@ export class RuntimeTypedClient {
   async completeProductControlFirstRunDeviceEnvironmentScan(request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
     return this.core.unary<ProductControlProjectionJson, CompleteProductControlFirstRunDeviceEnvironmentScanRequest>({
       methodId: "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async deleteLocalCapabilityConfiguration(request: DeleteLocalCapabilityConfigurationRequest, options: RuntimeTypedCallOptions = {}): Promise<DeleteLocalCapabilityConfigurationResponse> {
+    return this.core.unary<DeleteLocalCapabilityConfigurationResponse, DeleteLocalCapabilityConfigurationRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -2659,6 +2681,17 @@ export class RuntimeTypedClient {
   async searchCatalogModels(request: SearchCatalogModelsRequest, options: RuntimeTypedCallOptions = {}): Promise<SearchCatalogModelsResponse> {
     return this.core.unary<SearchCatalogModelsResponse, SearchCatalogModelsRequest>({
       methodId: "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async selectLocalCapabilityConfiguration(request: SelectLocalCapabilityConfigurationRequest, options: RuntimeTypedCallOptions = {}): Promise<SelectLocalCapabilityConfigurationResponse> {
+    return this.core.unary<SelectLocalCapabilityConfigurationResponse, SelectLocalCapabilityConfigurationRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

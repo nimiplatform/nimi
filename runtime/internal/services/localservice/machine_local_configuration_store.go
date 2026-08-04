@@ -29,8 +29,8 @@ type storedLocalCapabilityConfiguration struct {
 }
 
 type machineLocalConfigurationStore interface {
-	Load() ([]*storedLocalCapabilityConfiguration, error)
-	Save([]*storedLocalCapabilityConfiguration) error
+	Load() ([]*storedLocalCapabilityConfiguration, []*runtimev1.LocalCapabilitySelection, error)
+	Save([]*storedLocalCapabilityConfiguration, []*runtimev1.LocalCapabilitySelection) error
 }
 
 type diskMachineLocalConfigurationStore struct {
@@ -40,6 +40,7 @@ type diskMachineLocalConfigurationStore struct {
 type machineLocalConfigurationSnapshot struct {
 	SchemaVersion  int                                     `json:"schemaVersion"`
 	Configurations []machineLocalConfigurationPersistedRow `json:"configurations"`
+	Selections     []json.RawMessage                       `json:"selections"`
 }
 
 type machineLocalConfigurationPersistedRow struct {
@@ -56,43 +57,43 @@ func newDiskMachineLocalConfigurationStore(localStatePath string) machineLocalCo
 	return &diskMachineLocalConfigurationStore{path: path}
 }
 
-func (store *diskMachineLocalConfigurationStore) Load() ([]*storedLocalCapabilityConfiguration, error) {
+func (store *diskMachineLocalConfigurationStore) Load() ([]*storedLocalCapabilityConfiguration, []*runtimev1.LocalCapabilitySelection, error) {
 	if store == nil || strings.TrimSpace(store.path) == "" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	payload, err := os.ReadFile(store.path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
+			return nil, nil, nil
 		}
-		return nil, fmt.Errorf("read Machine Local AI Configuration: %w", err)
+		return nil, nil, fmt.Errorf("read Machine Local AI Configuration: %w", err)
 	}
 	if len(payload) == 0 {
-		return nil, fmt.Errorf("read Machine Local AI Configuration: empty store")
+		return nil, nil, fmt.Errorf("read Machine Local AI Configuration: empty store")
 	}
 	var snapshot machineLocalConfigurationSnapshot
 	if err := json.Unmarshal(payload, &snapshot); err != nil {
-		return nil, fmt.Errorf("decode Machine Local AI Configuration: %w", err)
+		return nil, nil, fmt.Errorf("decode Machine Local AI Configuration: %w", err)
 	}
 	if snapshot.SchemaVersion != machineLocalConfigurationSchemaVersion {
-		return nil, fmt.Errorf("unsupported Machine Local AI Configuration schemaVersion=%d", snapshot.SchemaVersion)
+		return nil, nil, fmt.Errorf("unsupported Machine Local AI Configuration schemaVersion=%d", snapshot.SchemaVersion)
 	}
 	rows := make([]*storedLocalCapabilityConfiguration, 0, len(snapshot.Configurations))
-	seen := make(map[string]struct{}, len(snapshot.Configurations))
+	seenConfigurations := make(map[string]struct{}, len(snapshot.Configurations))
 	for index, persisted := range snapshot.Configurations {
 		configuration := &runtimev1.LocalCapabilityConfiguration{}
 		if err := protojson.Unmarshal(persisted.Configuration, configuration); err != nil {
-			return nil, fmt.Errorf("decode Machine Local AI Configuration row %d: %w", index, err)
+			return nil, nil, fmt.Errorf("decode Machine Local AI Configuration row %d: %w", index, err)
 		}
 		canonicalizeStoredConfiguration(configuration)
 		configurationID := strings.TrimSpace(configuration.GetConfigurationId())
 		if configurationID == "" {
-			return nil, fmt.Errorf("decode Machine Local AI Configuration row %d: configuration id is required", index)
+			return nil, nil, fmt.Errorf("decode Machine Local AI Configuration row %d: configuration id is required", index)
 		}
-		if _, exists := seen[configurationID]; exists {
-			return nil, fmt.Errorf("decode Machine Local AI Configuration: duplicate configuration id %q", configurationID)
+		if _, exists := seenConfigurations[configurationID]; exists {
+			return nil, nil, fmt.Errorf("decode Machine Local AI Configuration: duplicate configuration id %q", configurationID)
 		}
-		seen[configurationID] = struct{}{}
+		seenConfigurations[configurationID] = struct{}{}
 		row := &storedLocalCapabilityConfiguration{
 			Configuration:     configuration,
 			ProjectionReason:  runtimev1.LocalCapabilityReason(persisted.ProjectionReason),
@@ -103,10 +104,28 @@ func (store *diskMachineLocalConfigurationStore) Load() ([]*storedLocalCapabilit
 		}
 		rows = append(rows, row)
 	}
-	return rows, nil
+	selections := make([]*runtimev1.LocalCapabilitySelection, 0, len(snapshot.Selections))
+	seenCapabilities := make(map[string]struct{}, len(snapshot.Selections))
+	for index, payload := range snapshot.Selections {
+		selection := &runtimev1.LocalCapabilitySelection{}
+		if err := protojson.Unmarshal(payload, selection); err != nil {
+			return nil, nil, fmt.Errorf("decode Machine Local AI Configuration selection %d: %w", index, err)
+		}
+		canonicalizeStoredLocalCapabilitySelection(selection)
+		capabilityContract := selection.GetCapabilityContract()
+		if capabilityContract == "" || selection.GetConfigurationId() == "" {
+			return nil, nil, fmt.Errorf("decode Machine Local AI Configuration selection %d: complete selection identity is required", index)
+		}
+		if _, exists := seenCapabilities[capabilityContract]; exists {
+			return nil, nil, fmt.Errorf("decode Machine Local AI Configuration: duplicate selection for capability %q", capabilityContract)
+		}
+		seenCapabilities[capabilityContract] = struct{}{}
+		selections = append(selections, selection)
+	}
+	return rows, selections, nil
 }
 
-func (store *diskMachineLocalConfigurationStore) Save(rows []*storedLocalCapabilityConfiguration) error {
+func (store *diskMachineLocalConfigurationStore) Save(rows []*storedLocalCapabilityConfiguration, selections []*runtimev1.LocalCapabilitySelection) error {
 	if store == nil || strings.TrimSpace(store.path) == "" {
 		return nil
 	}
@@ -114,9 +133,14 @@ func (store *diskMachineLocalConfigurationStore) Save(rows []*storedLocalCapabil
 	sort.Slice(ordered, func(i, j int) bool {
 		return ordered[i].Configuration.GetConfigurationId() < ordered[j].Configuration.GetConfigurationId()
 	})
+	orderedSelections := cloneLocalCapabilitySelections(selections)
+	sort.Slice(orderedSelections, func(i, j int) bool {
+		return orderedSelections[i].GetCapabilityContract() < orderedSelections[j].GetCapabilityContract()
+	})
 	snapshot := machineLocalConfigurationSnapshot{
 		SchemaVersion:  machineLocalConfigurationSchemaVersion,
 		Configurations: make([]machineLocalConfigurationPersistedRow, 0, len(ordered)),
+		Selections:     make([]json.RawMessage, 0, len(orderedSelections)),
 	}
 	for _, row := range ordered {
 		if row == nil || row.Configuration == nil {
@@ -136,6 +160,17 @@ func (store *diskMachineLocalConfigurationStore) Save(rows []*storedLocalCapabil
 			persisted.ResolutionReasons = append(persisted.ResolutionReasons, int32(reason))
 		}
 		snapshot.Configurations = append(snapshot.Configurations, persisted)
+	}
+	for _, selection := range orderedSelections {
+		canonicalizeStoredLocalCapabilitySelection(selection)
+		if selection.GetCapabilityContract() == "" || selection.GetConfigurationId() == "" {
+			return fmt.Errorf("encode Machine Local AI Configuration: complete selection identity is required")
+		}
+		payload, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(selection)
+		if err != nil {
+			return fmt.Errorf("encode Machine Local AI Configuration selection %q: %w", selection.GetCapabilityContract(), err)
+		}
+		snapshot.Selections = append(snapshot.Selections, payload)
 	}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
@@ -214,6 +249,27 @@ func cloneStoredLocalCapabilityConfigurations(inputs []*storedLocalCapabilityCon
 		}
 	}
 	return result
+}
+
+func cloneLocalCapabilitySelections(inputs []*runtimev1.LocalCapabilitySelection) []*runtimev1.LocalCapabilitySelection {
+	result := make([]*runtimev1.LocalCapabilitySelection, 0, len(inputs))
+	for _, input := range inputs {
+		if input == nil {
+			continue
+		}
+		cloned, _ := proto.Clone(input).(*runtimev1.LocalCapabilitySelection)
+		canonicalizeStoredLocalCapabilitySelection(cloned)
+		result = append(result, cloned)
+	}
+	return result
+}
+
+func canonicalizeStoredLocalCapabilitySelection(selection *runtimev1.LocalCapabilitySelection) {
+	if selection == nil {
+		return
+	}
+	selection.CapabilityContract = strings.TrimSpace(selection.GetCapabilityContract())
+	selection.ConfigurationId = strings.TrimSpace(selection.GetConfigurationId())
 }
 
 func cloneCanonicalStoredConfiguration(input *runtimev1.LocalCapabilityConfiguration) *runtimev1.LocalCapabilityConfiguration {

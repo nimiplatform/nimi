@@ -346,11 +346,11 @@ type failingMachineLocalConfigurationStore struct {
 	err error
 }
 
-func (failingMachineLocalConfigurationStore) Load() ([]*storedLocalCapabilityConfiguration, error) {
-	return nil, nil
+func (failingMachineLocalConfigurationStore) Load() ([]*storedLocalCapabilityConfiguration, []*runtimev1.LocalCapabilitySelection, error) {
+	return nil, nil, nil
 }
 
-func (store failingMachineLocalConfigurationStore) Save([]*storedLocalCapabilityConfiguration) error {
+func (store failingMachineLocalConfigurationStore) Save([]*storedLocalCapabilityConfiguration, []*runtimev1.LocalCapabilitySelection) error {
 	return store.err
 }
 

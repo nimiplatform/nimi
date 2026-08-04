@@ -153,7 +153,7 @@ func (s *Service) mutateLocalCapabilityBinding(
 		return nil, localCapabilityBindingError(codes.Aborted, runtimev1.ReasonCode_AI_LOCAL_BINDING_CONFLICT, "local asset changed during exact binding", map[string]string{"configuration_id": configurationID, "requirement_id": requirementID, "local_asset_id": strings.TrimSpace(target.GetLocalAssetId())})
 	}
 	rows := s.machineLocalConfigurationRowsLocked(next)
-	if err := s.machineLocalConfigurationStore.Save(rows); err != nil {
+	if err := s.machineLocalConfigurationStore.Save(rows, s.machineLocalSelectionsLocked()); err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE, err, grpcerr.ReasonOptions{
 			Message:  "Machine Local AI Configuration could not be persisted",
 			Metadata: map[string]string{"configuration_id": configurationID},

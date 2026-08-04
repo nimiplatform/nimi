@@ -1206,7 +1206,27 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_CONFIG_PERSISTENCE_UNAVAILABLE = 696;
      */
-    AI_CONFIG_PERSISTENCE_UNAVAILABLE = 696
+    AI_CONFIG_PERSISTENCE_UNAVAILABLE = 696,
+    /**
+     * Machine-local selection and job-time composition failures. Selection is
+     * independent from configured/executable state, so these reasons remain
+     * distinct from exact-binding mutation failures.
+     *
+     * @generated from protobuf enum value: AI_LOCAL_SELECTION_NOT_FOUND = 697;
+     */
+    AI_LOCAL_SELECTION_NOT_FOUND = 697,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_CAPABILITY_MISMATCH = 698;
+     */
+    AI_LOCAL_CAPABILITY_MISMATCH = 698,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_CONFIGURATION_NOT_CONFIGURED = 699;
+     */
+    AI_LOCAL_CONFIGURATION_NOT_CONFIGURED = 699,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_SELECTION_INVALID = 700;
+     */
+    AI_LOCAL_SELECTION_INVALID = 700
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

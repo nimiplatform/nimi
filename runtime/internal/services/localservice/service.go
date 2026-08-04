@@ -116,6 +116,7 @@ type Service struct {
 	localEnvironmentPrerequisiteWaitTimeout time.Duration
 	machineLocalConfigurationMutationMu     sync.Mutex
 	machineLocalConfigurations              map[string]*storedLocalCapabilityConfiguration
+	machineLocalSelections                  map[string]*runtimev1.LocalCapabilitySelection
 	machineLocalConfigurationStore          machineLocalConfigurationStore
 	capabilityDrivers                       *capabilitydriver.Registry
 	jobLifetimeCtx                          context.Context
@@ -226,6 +227,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		localEnvironmentPlanDependencyContracts: make(map[string]localEnvironmentPlanDependencyContractState),
 		localEnvironmentJobCancels:              make(map[string]context.CancelFunc),
 		machineLocalConfigurations:              make(map[string]*storedLocalCapabilityConfiguration),
+		machineLocalSelections:                  make(map[string]*runtimev1.LocalCapabilitySelection),
 		machineLocalConfigurationStore:          newDiskMachineLocalConfigurationStore(resolvedStateStorePath),
 		capabilityDrivers:                       capabilitydriver.NewProductionRegistry(),
 		profileRegistry:                         NewProfileRegistry(),

@@ -2152,6 +2152,10 @@ pub enum ReasonCode {
     AICONFIGINVALID,
     AICONFIGNOTFOUND,
     AICONFIGPERSISTENCEUNAVAILABLE,
+    AILOCALSELECTIONNOTFOUND,
+    AILOCALCAPABILITYMISMATCH,
+    AILOCALCONFIGURATIONNOTCONFIGURED,
+    AILOCALSELECTIONINVALID,
 }
 
 impl Default for ReasonCode {
@@ -7203,6 +7207,45 @@ impl ClearAgentPresentationProfile {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ClearLocalCapabilitySelectionRequest {
+    pub capability_contract: Option<String>,
+}
+
+impl ClearLocalCapabilitySelectionRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ClearLocalCapabilitySelectionResponse {
+
+}
+
+impl ClearLocalCapabilitySelectionResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CloseRealtimeSessionRequest {
     pub session_id: Option<String>,
 }
@@ -8652,6 +8695,45 @@ impl DeleteKnowledgeBankResponse {
 
 
         out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DeleteLocalCapabilityConfigurationRequest {
+    pub configuration_id: Option<String>,
+}
+
+impl DeleteLocalCapabilityConfigurationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.configuration_id { pairs.push(format!("configuration_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.configuration_id = pairs.get("configuration_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DeleteLocalCapabilityConfigurationResponse {
+
+}
+
+impl DeleteLocalCapabilityConfigurationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
     }
 }
 
@@ -26219,6 +26301,59 @@ impl SearchKeywordResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SelectLocalCapabilityConfigurationRequest {
+    pub capability_contract: Option<String>,
+    pub configuration_id: Option<String>,
+}
+
+impl SelectLocalCapabilityConfigurationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        if let Some(value) = &self.configuration_id { pairs.push(format!("configuration_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out.configuration_id = pairs.get("configuration_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SelectLocalCapabilityConfigurationResponse {
+    pub selection: Option<Box<LocalCapabilitySelection>>,
+}
+
+impl SelectLocalCapabilityConfigurationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.selection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode selection"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["selection"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SelectProductControlDataRootRequest {
     pub data_root: Option<String>,
 }
@@ -30916,6 +31051,18 @@ impl From<Vec<u8>> for ClearAgentPresentationProfile {
     }
 }
 
+impl From<Vec<u8>> for ClearLocalCapabilitySelectionRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ClearLocalCapabilitySelectionResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for CloseRealtimeSessionRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -31145,6 +31292,18 @@ impl From<Vec<u8>> for DeleteKnowledgeBankRequest {
 }
 
 impl From<Vec<u8>> for DeleteKnowledgeBankResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DeleteLocalCapabilityConfigurationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DeleteLocalCapabilityConfigurationResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34306,6 +34465,18 @@ impl From<Vec<u8>> for SearchKeywordResponse {
     }
 }
 
+impl From<Vec<u8>> for SelectLocalCapabilityConfigurationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SelectLocalCapabilityConfigurationResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for SelectProductControlDataRootRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36965,6 +37136,16 @@ where
         Ok(CheckLocalServiceHealthResponse::from_transport(&raw))
     }
 
+    pub fn clear_local_capability_selection(&self, request: ClearLocalCapabilitySelectionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ClearLocalCapabilitySelectionResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ClearLocalCapabilitySelectionResponse::from_transport(&raw))
+    }
+
     pub fn collect_device_profile(&self, request: CollectDeviceProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CollectDeviceProfileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile".to_string(),
@@ -36983,6 +37164,16 @@ where
             timeout,
         })?;
         Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
+    pub fn delete_local_capability_configuration(&self, request: DeleteLocalCapabilityConfigurationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteLocalCapabilityConfigurationResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(DeleteLocalCapabilityConfigurationResponse::from_transport(&raw))
     }
 
     pub fn ensure_engine(&self, request: EnsureEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<EnsureEngineResponse, T::Error> {
@@ -37423,6 +37614,16 @@ where
             timeout,
         })?;
         Ok(SearchCatalogModelsResponse::from_transport(&raw))
+    }
+
+    pub fn select_local_capability_configuration(&self, request: SelectLocalCapabilityConfigurationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SelectLocalCapabilityConfigurationResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(SelectLocalCapabilityConfigurationResponse::from_transport(&raw))
     }
 
     pub fn select_product_control_data_root(&self, request: SelectProductControlDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {

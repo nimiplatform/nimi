@@ -1750,6 +1750,33 @@
           "response_stream": false
         },
         {
+          "name": "SelectLocalCapabilityConfiguration",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
+          "kind": "unary",
+          "request_type": "SelectLocalCapabilityConfigurationRequest",
+          "response_type": "SelectLocalCapabilityConfigurationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ClearLocalCapabilitySelection",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
+          "kind": "unary",
+          "request_type": "ClearLocalCapabilitySelectionRequest",
+          "response_type": "ClearLocalCapabilitySelectionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "DeleteLocalCapabilityConfiguration",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
+          "kind": "unary",
+          "request_type": "DeleteLocalCapabilityConfigurationRequest",
+          "response_type": "DeleteLocalCapabilityConfigurationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ReprojectLocalCapabilityRequirements",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements",
           "kind": "unary",
@@ -2583,8 +2610,10 @@
     "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer",
     "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
     "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
+    "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
     "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
     "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+    "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
     "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
     "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
     "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
@@ -2629,6 +2658,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
     "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
     "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
+    "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
     "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
     "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
     "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
@@ -4153,6 +4183,14 @@
       "response_type": "CheckLocalServiceHealthResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
+      "service": "RuntimeLocalService",
+      "method": "ClearLocalCapabilitySelection",
+      "kind": "unary",
+      "request_type": "ClearLocalCapabilitySelectionRequest",
+      "response_type": "ClearLocalCapabilitySelectionResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
       "service": "RuntimeLocalService",
       "method": "CollectDeviceProfile",
@@ -4167,6 +4205,14 @@
       "kind": "unary",
       "request_type": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
       "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "DeleteLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "DeleteLocalCapabilityConfigurationRequest",
+      "response_type": "DeleteLocalCapabilityConfigurationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
@@ -4519,6 +4565,14 @@
       "kind": "unary",
       "request_type": "SearchCatalogModelsRequest",
       "response_type": "SearchCatalogModelsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "SelectLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "SelectLocalCapabilityConfigurationRequest",
+      "response_type": "SelectLocalCapabilityConfigurationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
@@ -6163,6 +6217,14 @@
       "response_type": "CheckLocalServiceHealthResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
+      "service": "RuntimeLocalService",
+      "method": "ClearLocalCapabilitySelection",
+      "kind": "unary",
+      "request_type": "ClearLocalCapabilitySelectionRequest",
+      "response_type": "ClearLocalCapabilitySelectionResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
       "service": "RuntimeLocalService",
       "method": "CollectDeviceProfile",
@@ -6177,6 +6239,14 @@
       "kind": "unary",
       "request_type": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
       "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "DeleteLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "DeleteLocalCapabilityConfigurationRequest",
+      "response_type": "DeleteLocalCapabilityConfigurationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
@@ -6531,6 +6601,14 @@
       "response_type": "SearchCatalogModelsResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
+      "service": "RuntimeLocalService",
+      "method": "SelectLocalCapabilityConfiguration",
+      "kind": "unary",
+      "request_type": "SelectLocalCapabilityConfigurationRequest",
+      "response_type": "SelectLocalCapabilityConfigurationResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
       "service": "RuntimeLocalService",
       "method": "SelectProductControlDataRoot",
@@ -6795,6 +6873,8 @@
       "CleanupGeneratedVoiceArtifactsRequest",
       "CleanupGeneratedVoiceArtifactsResponse",
       "ClearAgentPresentationProfile",
+      "ClearLocalCapabilitySelectionRequest",
+      "ClearLocalCapabilitySelectionResponse",
       "CloseRealtimeSessionRequest",
       "CloseRealtimeSessionResponse",
       "CollectDeviceProfileRequest",
@@ -6834,6 +6914,8 @@
       "DeleteConnectorResponse",
       "DeleteKnowledgeBankRequest",
       "DeleteKnowledgeBankResponse",
+      "DeleteLocalCapabilityConfigurationRequest",
+      "DeleteLocalCapabilityConfigurationResponse",
       "DeleteMemoryRequest",
       "DeleteMemoryResponse",
       "DeleteModelCatalogProviderRequest",
@@ -7360,6 +7442,8 @@
       "SearchHybridResponse",
       "SearchKeywordRequest",
       "SearchKeywordResponse",
+      "SelectLocalCapabilityConfigurationRequest",
+      "SelectLocalCapabilityConfigurationResponse",
       "SelectProductControlDataRootRequest",
       "SemanticMemoryRecord",
       "SendAppMessageRequest",
@@ -13004,6 +13088,24 @@
         "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
+        "name": "ClearLocalCapabilitySelectionRequest",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "ClearLocalCapabilitySelectionResponse",
+        "fields": [],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "CloseRealtimeSessionRequest",
         "fields": [
           {
@@ -14656,6 +14758,24 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "DeleteLocalCapabilityConfigurationRequest",
+        "fields": [
+          {
+            "name": "configuration_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "DeleteLocalCapabilityConfigurationResponse",
+        "fields": [],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "DeleteMemoryRequest",
@@ -32592,6 +32712,39 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "SelectLocalCapabilityConfigurationRequest",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "configuration_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "SelectLocalCapabilityConfigurationResponse",
+        "fields": [
+          {
+            "name": "selection",
+            "type": "LocalCapabilitySelection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "SelectProductControlDataRootRequest",
         "fields": [
           {
@@ -38062,7 +38215,11 @@
           "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE",
           "AI_CONFIG_INVALID",
           "AI_CONFIG_NOT_FOUND",
-          "AI_CONFIG_PERSISTENCE_UNAVAILABLE"
+          "AI_CONFIG_PERSISTENCE_UNAVAILABLE",
+          "AI_LOCAL_SELECTION_NOT_FOUND",
+          "AI_LOCAL_CAPABILITY_MISMATCH",
+          "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED",
+          "AI_LOCAL_SELECTION_INVALID"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

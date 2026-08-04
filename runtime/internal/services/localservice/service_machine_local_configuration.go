@@ -16,7 +16,7 @@ import (
 )
 
 func (s *Service) restoreMachineLocalConfigurations() error {
-	rows, err := s.machineLocalConfigurationStore.Load()
+	rows, selections, err := s.machineLocalConfigurationStore.Load()
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,19 @@ func (s *Service) restoreMachineLocalConfigurations() error {
 		}
 		restored[configurationID] = cloneStoredLocalCapabilityConfiguration(row)
 	}
+	restoredSelections := make(map[string]*runtimev1.LocalCapabilitySelection, len(selections))
+	for index, selection := range selections {
+		if err := validateStoredLocalCapabilitySelection(selection, restored); err != nil {
+			return fmt.Errorf("selection row %d: %w", index, err)
+		}
+		capabilityContract := selection.GetCapabilityContract()
+		if _, exists := restoredSelections[capabilityContract]; exists {
+			return fmt.Errorf("duplicate selection for capability %q", capabilityContract)
+		}
+		restoredSelections[capabilityContract] = cloneLocalCapabilitySelection(selection)
+	}
 	s.machineLocalConfigurations = restored
+	s.machineLocalSelections = restoredSelections
 	return nil
 }
 
@@ -41,12 +53,13 @@ func (s *Service) GetMachineLocalAIConfiguration(_ context.Context, _ *runtimev1
 	for _, stored := range s.machineLocalConfigurations {
 		rows = append(rows, s.deriveLocalCapabilityConfiguration(stored))
 	}
+	selections := s.machineLocalSelectionsLocked()
 	s.mu.RUnlock()
 	sort.Slice(rows, func(i, j int) bool {
 		return rows[i].GetConfigurationId() < rows[j].GetConfigurationId()
 	})
 	return &runtimev1.GetMachineLocalAIConfigurationResponse{
-		Aggregate: &runtimev1.MachineLocalAIConfiguration{Configurations: rows},
+		Aggregate: &runtimev1.MachineLocalAIConfiguration{Configurations: rows, Selections: selections},
 	}, nil
 }
 
@@ -91,7 +104,7 @@ func (s *Service) AddLocalCapabilityConfiguration(_ context.Context, request *ru
 		return nil, status.Error(codes.Aborted, "LocalAsset inventory changed during exact binding; retry")
 	}
 	next := s.machineLocalConfigurationRowsLocked(projected)
-	if err := s.machineLocalConfigurationStore.Save(next); err != nil {
+	if err := s.machineLocalConfigurationStore.Save(next, s.machineLocalSelectionsLocked()); err != nil {
 		return nil, status.Error(codes.Internal, "persist Machine Local AI Configuration failed")
 	}
 	s.machineLocalConfigurations[configuration.GetConfigurationId()] = cloneStoredLocalCapabilityConfiguration(projected)
@@ -135,7 +148,7 @@ func (s *Service) ReprojectLocalCapabilityRequirements(_ context.Context, reques
 		return nil, status.Error(codes.Aborted, "LocalAsset inventory changed during exact binding; retry")
 	}
 	next := s.machineLocalConfigurationRowsLocked(projected)
-	if err := s.machineLocalConfigurationStore.Save(next); err != nil {
+	if err := s.machineLocalConfigurationStore.Save(next, s.machineLocalSelectionsLocked()); err != nil {
 		return nil, status.Error(codes.Internal, "persist Machine Local AI Configuration failed")
 	}
 	s.machineLocalConfigurations[configurationID] = cloneStoredLocalCapabilityConfiguration(projected)
@@ -431,6 +444,41 @@ func (s *Service) machineLocalConfigurationRowsLocked(replacement *storedLocalCa
 	}
 	rows = append(rows, cloneStoredLocalCapabilityConfiguration(replacement))
 	return rows
+}
+
+func (s *Service) machineLocalSelectionsLocked() []*runtimev1.LocalCapabilitySelection {
+	selections := make([]*runtimev1.LocalCapabilitySelection, 0, len(s.machineLocalSelections))
+	for _, selection := range s.machineLocalSelections {
+		if cloned := cloneLocalCapabilitySelection(selection); cloned != nil {
+			selections = append(selections, cloned)
+		}
+	}
+	sort.Slice(selections, func(i, j int) bool {
+		return selections[i].GetCapabilityContract() < selections[j].GetCapabilityContract()
+	})
+	return selections
+}
+
+func validateStoredLocalCapabilitySelection(selection *runtimev1.LocalCapabilitySelection, configurations map[string]*storedLocalCapabilityConfiguration) error {
+	if selection == nil || strings.TrimSpace(selection.GetCapabilityContract()) == "" || strings.TrimSpace(selection.GetConfigurationId()) == "" {
+		return fmt.Errorf("complete local capability selection identity is required")
+	}
+	if selection.GetCapabilityContract() != strings.TrimSpace(selection.GetCapabilityContract()) || selection.GetConfigurationId() != strings.TrimSpace(selection.GetConfigurationId()) {
+		return fmt.Errorf("local capability selection identity must be canonical")
+	}
+	if configurations[selection.GetConfigurationId()] == nil {
+		return fmt.Errorf("selection references unknown configuration %q", selection.GetConfigurationId())
+	}
+	return nil
+}
+
+func cloneLocalCapabilitySelection(input *runtimev1.LocalCapabilitySelection) *runtimev1.LocalCapabilitySelection {
+	if input == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalCapabilitySelection)
+	canonicalizeStoredLocalCapabilitySelection(cloned)
+	return cloned
 }
 
 func appendUniqueLocalCapabilityReason(reasons []runtimev1.LocalCapabilityReason, reason runtimev1.LocalCapabilityReason) []runtimev1.LocalCapabilityReason {

@@ -25,6 +25,9 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetLocalCapabilityConfiguration
       - method_id: /nimi.runtime.v1.RuntimeLocalService/AddLocalCapabilityConfiguration
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ReprojectLocalCapabilityRequirements
       - method_id: /nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement
       - method_id: /nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement
