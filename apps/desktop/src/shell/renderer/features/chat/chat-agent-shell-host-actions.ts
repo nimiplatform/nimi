@@ -11,8 +11,6 @@ import type {
   UseAgentConversationHostActionsInput,
 } from './chat-agent-shell-host-actions-types';
 
-export { assertAgentSubmitSchedulingAllowed } from './chat-agent-shell-host-actions-helpers';
-
 export function useAgentConversationHostActions(
   input: UseAgentConversationHostActionsInput,
 ): {

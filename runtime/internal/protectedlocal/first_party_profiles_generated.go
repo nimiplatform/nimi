@@ -192,17 +192,13 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig":
+		case "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig":
+		case "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness":
+		case "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness":
-			return FirstPartyMethodServerStream, true
-		case "/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile":
+		case "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus":
 			return FirstPartyMethodUnary, true
@@ -430,12 +426,10 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness", Kind: FirstPartyMethodServerStream},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage", Kind: FirstPartyMethodUnary},

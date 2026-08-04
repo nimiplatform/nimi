@@ -402,26 +402,13 @@ pub struct LocalAppAgentHandleRequest {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppAgentUpdateConfigurationRequest {
-    pub agent_handle: String,
-    pub expected_configuration_revision: u64,
-    pub intents: JsonValue,
-    pub profile_origin: JsonValue,
+pub struct LocalAppSharedAgentAIConfigOverwriteRequest {
+    pub capabilities: JsonValue,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppAgentAIProfilePreviewRequest {
-    pub agent_handle: String,
-    pub profile: JsonValue,
-    pub runtime_descriptor: JsonValue,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppAgentAIProfileApplyRequest {
-    pub agent_handle: String,
-    pub expected_configuration_revision: u64,
-    pub profile: JsonValue,
-    pub runtime_descriptor: JsonValue,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppSharedAgentAIProfileRequest {
+    pub profile_json: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -870,29 +857,23 @@ pub trait NimiLocalAppSession: Send + Sync {
         >,
     >;
 
-    fn agent_configuration_snapshot(
+    fn shared_agent_ai_config_get(
         &self,
-        request: LocalAppAgentHandleRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn agent_update_configuration(
+    fn shared_agent_ai_config_overwrite(
         &self,
-        request: LocalAppAgentUpdateConfigurationRequest,
+        request: LocalAppSharedAgentAIConfigOverwriteRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn agent_readiness_snapshot(
+    fn shared_agent_ai_profile_preview(
         &self,
-        request: LocalAppAgentHandleRequest,
+        request: LocalAppSharedAgentAIProfileRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn agent_ai_profile_preview(
+    fn shared_agent_ai_profile_apply(
         &self,
-        request: LocalAppAgentAIProfilePreviewRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn agent_ai_profile_apply(
-        &self,
-        request: LocalAppAgentAIProfileApplyRequest,
+        request: LocalAppSharedAgentAIProfileRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_autonomy_snapshot(

@@ -314,12 +314,12 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind":
 		return "runtime.agent.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig":
+	case "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig":
 		return "runtime.agent.ai_config.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig":
+	case "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
+		"/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
+		"/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile":
 		return "runtime.agent.ai_config.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness":
-		return "runtime.agent.ai_config.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
 		message, ok := req.(*runtimev1.SendAppMessageRequest)
 		if !ok {
@@ -416,8 +416,6 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness":
-		return "runtime.agent.ai_config.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream":
 		return "runtime.agent.turn.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":

@@ -6,8 +6,6 @@ import {
   createNimiHostRuntimeAgentInspectSurface,
   decodeNimiRuntimeAgentSourceContextStatus,
   decodeNimiRuntimeAgentTurnContextSummary,
-  type NimiRuntimeAgentAIConfigModule,
-  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
   type NimiRuntimeAgentInspectSnapshot,
   type NimiRuntimeAgentInspectSurface,
   type NimiRuntimeAgentMemoryObservatorySnapshot,
@@ -26,8 +24,6 @@ describe('kit sdk-contract', () => {
       runtimeSourceRef: 'agent',
       localAgentRef: 'local-agent:owner:agent',
     };
-    const agentAIConfig = null as unknown as NimiRuntimeAgentAIConfigModule;
-    const readiness = null as unknown as NimiRuntimeAgentAIConfigReadinessSnapshotProjection;
     const inspect = null as unknown as NimiRuntimeAgentInspectSnapshot;
     const inspectSurface = null as unknown as NimiRuntimeAgentInspectSurface;
     const memory = null as unknown as NimiRuntimeAgentMemoryObservatorySnapshot;
@@ -36,8 +32,6 @@ describe('kit sdk-contract', () => {
     const turnContext = null as unknown as NimiRuntimeAgentTurnContextSummary;
 
     expect(identity.localAgentRef).toBe('local-agent:owner:agent');
-    expect(agentAIConfig).toBeNull();
-    expect(readiness).toBeNull();
     expect(inspect).toBeNull();
     expect(inspectSurface).toBeNull();
     expect(memory).toBeNull();

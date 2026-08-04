@@ -5,132 +5,91 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-// K-AGCORE-144..150 Runtime Agent AI Config RPC surface. The config is
-// Runtime Local Agent instance-scoped committed state: authz
-// (runtime.agent.ai_config.read/write) is enforced by the gRPC interceptor
-// scope map, and the handlers enforce payload admission fail-closed.
-
-func (s *Service) GetRuntimeAgentAIConfig(ctx context.Context, req *runtimev1.GetRuntimeAgentAIConfigRequest) (*runtimev1.GetRuntimeAgentAIConfigResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "get runtime agent ai config request is required")
-	}
-	if s.isClosed() {
-		return nil, status.Error(codes.Unavailable, "runtime agent service is closed")
-	}
-	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.read"); err != nil {
-		return nil, err
-	}
-	config, err := s.committedRuntimeAgentAIConfigForContext(req.GetContext())
-	if err != nil {
-		return nil, err
-	}
-	return &runtimev1.GetRuntimeAgentAIConfigResponse{Config: cloneRuntimeAgentAIConfig(config)}, nil
-}
-
-func (s *Service) UpsertRuntimeAgentAIConfig(ctx context.Context, req *runtimev1.UpsertRuntimeAgentAIConfigRequest) (*runtimev1.UpsertRuntimeAgentAIConfigResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "upsert runtime agent ai config request is required")
-	}
-	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.write"); err != nil {
-		return nil, err
-	}
-	config, err := s.upsertRuntimeAgentAIConfig(
-		req.GetContext(),
-		req.GetExpectedRevision(),
-		req.GetIntents(),
-		req.GetProfileOrigin(),
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &runtimev1.UpsertRuntimeAgentAIConfigResponse{Config: config}, nil
-}
-
-func (s *Service) GetRuntimeAgentAIConfigReadiness(ctx context.Context, req *runtimev1.GetRuntimeAgentAIConfigReadinessRequest) (*runtimev1.GetRuntimeAgentAIConfigReadinessResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "get runtime agent ai config readiness request is required")
-	}
-	if s.isClosed() {
-		return nil, status.Error(codes.Unavailable, "runtime agent service is closed")
-	}
-	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.read"); err != nil {
-		return nil, err
-	}
-	config, err := s.committedRuntimeAgentAIConfigForContext(req.GetContext())
-	if err != nil {
-		return nil, err
-	}
-	snapshot, err := s.currentRuntimeAgentAIConfigReadinessSnapshot(config.GetAgentInstanceId())
-	if err != nil {
-		return nil, err
-	}
-	if snapshot == nil {
-		return nil, status.Error(codes.Internal, "runtime agent ai config readiness projection unavailable")
-	}
-	return &runtimev1.GetRuntimeAgentAIConfigReadinessResponse{Snapshot: snapshot}, nil
-}
-
-func (s *Service) authorizeProtectedAIConfigIdentity(
+func (s *Service) GetSharedLocalAgentAIConfig(
 	ctx context.Context,
-	requestContext *runtimev1.AgentRequestContext,
-	capability string,
-) error {
-	identity, err := localAgentIdentityFromContext(requestContext)
-	if err != nil {
-		return err
+	req *runtimev1.GetSharedLocalAgentAIConfigRequest,
+) (*runtimev1.GetSharedLocalAgentAIConfigResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "get shared LocalAgent AIConfig request is required")
 	}
-	return s.authorizeBundledAvatarIdentity(ctx, requestContext, identity, capability)
+	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.read")
+	if err != nil {
+		return nil, err
+	}
+	config, err := s.requireSharedLocalAgentAIConfig(ctx, caller.accountNamespace)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.GetSharedLocalAgentAIConfigResponse{Config: config}, nil
 }
 
-// SubscribeRuntimeAgentAIConfigReadiness delivers the initial snapshot immediately,
-// then a new snapshot on every config mutation and readiness recompute
-// (K-AGCORE-149). The seam is domain-scoped: it never rides the agent-scoped
-// AgentEvent envelope.
-func (s *Service) SubscribeRuntimeAgentAIConfigReadiness(req *runtimev1.SubscribeRuntimeAgentAIConfigReadinessRequest, stream runtimev1.RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadinessServer) error {
+func (s *Service) OverwriteSharedLocalAgentAIConfig(
+	ctx context.Context,
+	req *runtimev1.OverwriteSharedLocalAgentAIConfigRequest,
+) (*runtimev1.OverwriteSharedLocalAgentAIConfigResponse, error) {
 	if req == nil {
-		return status.Error(codes.InvalidArgument, "subscribe runtime agent ai config readiness request is required")
+		return nil, status.Error(codes.InvalidArgument, "overwrite shared LocalAgent AIConfig request is required")
 	}
-	if s.isClosed() {
-		return status.Error(codes.Unavailable, "runtime agent service is closed")
-	}
-	if err := s.authorizeProtectedAIConfigIdentity(stream.Context(), req.GetContext(), "runtime.agent.read"); err != nil {
-		return err
-	}
-	config, err := s.committedRuntimeAgentAIConfigForContext(req.GetContext())
+	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.write")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	initial, err := s.currentRuntimeAgentAIConfigReadinessSnapshot(config.GetAgentInstanceId())
+	config, err := s.overwriteSharedLocalAgentAIConfig(ctx, caller.accountNamespace, req.GetCapabilities())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if initial == nil {
-		return status.Error(codes.Internal, "runtime agent ai config readiness projection unavailable")
-	}
-	id, ch := s.addRuntimeAgentAIConfigReadinessSubscriber(config.GetAgentInstanceId())
-	defer s.removeRuntimeAgentAIConfigReadinessSubscriber(id)
+	return &runtimev1.OverwriteSharedLocalAgentAIConfigResponse{Config: config}, nil
+}
 
-	if err := stream.SendHeader(metadata.MD{}); err != nil {
-		return err
+func (s *Service) PreviewSharedLocalAgentAIProfile(
+	ctx context.Context,
+	req *runtimev1.PreviewSharedLocalAgentAIProfileRequest,
+) (*runtimev1.PreviewSharedLocalAgentAIProfileResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "preview shared LocalAgent AIProfile request is required")
 	}
-	if err := stream.Send(initial); err != nil {
-		return err
+	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.write")
+	if err != nil {
+		return nil, err
 	}
-	for {
-		select {
-		case <-stream.Context().Done():
-			return stream.Context().Err()
-		case snapshot, ok := <-ch:
-			if !ok {
-				return nil
-			}
-			if err := stream.Send(snapshot); err != nil {
-				return err
-			}
-		}
+	after, err := sharedLocalAgentAIConfigFromProfile(req.GetProfileJson())
+	if err != nil {
+		return nil, invalidSharedLocalAgentAIConfigError()
 	}
+	before, found, err := s.readSharedLocalAgentAIConfig(ctx, caller.accountNamespace)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		before = nil
+	}
+	return &runtimev1.PreviewSharedLocalAgentAIProfileResponse{
+		Before: cloneAIConfig(before),
+		After:  cloneAIConfig(after),
+	}, nil
+}
+
+func (s *Service) ApplySharedLocalAgentAIProfile(
+	ctx context.Context,
+	req *runtimev1.ApplySharedLocalAgentAIProfileRequest,
+) (*runtimev1.ApplySharedLocalAgentAIProfileResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "apply shared LocalAgent AIProfile request is required")
+	}
+	caller, err := s.authorizeSharedLocalAgentAIConfig(ctx, req.GetContext(), "runtime.agent.ai_config.write")
+	if err != nil {
+		return nil, err
+	}
+	candidate, err := sharedLocalAgentAIConfigFromProfile(req.GetProfileJson())
+	if err != nil {
+		return nil, invalidSharedLocalAgentAIConfigError()
+	}
+	config, err := s.overwriteSharedLocalAgentAIConfig(ctx, caller.accountNamespace, candidate.GetCapabilities())
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ApplySharedLocalAgentAIProfileResponse{Config: config}, nil
 }

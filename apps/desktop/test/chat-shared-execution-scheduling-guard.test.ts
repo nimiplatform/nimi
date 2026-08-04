@@ -1,23 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
 import type { TFunction } from 'i18next';
 
-import {
-  createEmptyNimiAIConfig,
-  projectNimiRuntimeLocalAgentAIScopeRef,
-  type NimiAIConfig,
-  type NimiAISchedulingJudgement,
-} from '@nimiplatform/sdk/ai';
-import { getDesktopAIConfigService } from '../src/shell/renderer/app-shell/providers/desktop-ai-config-service.js';
-import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 import {
   isBusySlowdownRisk,
   resolveExecutionSchedulingGuardDecision,
   schedulingDetailKeyForJudgement,
 } from '../src/shell/renderer/features/chat/chat-shared-execution-scheduling-guard.js';
-import {
-  assertAgentSubmitSchedulingAllowed,
-} from '../src/shell/renderer/features/chat/chat-agent-shell-host-actions.js';
 
 function t(key: string, options?: Record<string, unknown>): string {
   const detail = String(options?.detail || '');
@@ -40,34 +31,14 @@ function t(key: string, options?: Record<string, unknown>): string {
 }
 
 const translate = t as unknown as TFunction;
-const TEST_SDK = {
-  aiConfig: getDesktopAIConfigService,
-  machineProduct: () => undefined,
-} as unknown as DesktopRendererSdkPort;
-
-function createLocalTextSubmitConfig(): NimiAIConfig {
-  const scopeRef = projectNimiRuntimeLocalAgentAIScopeRef('local-agent:test');
-  const config = createEmptyNimiAIConfig(scopeRef);
-  return {
-    ...config,
-    capabilities: {
-      ...config.capabilities,
-      targetRefs: {
-        ...config.capabilities.targetRefs,
-        'text.generate': {
-          kind: 'local-runtime',
-          version: 'v2',
-          profileBindingId: 'text-local',
-        },
-      },
-    },
-  };
-}
+type SchedulingJudgement = NonNullable<
+  Parameters<typeof resolveExecutionSchedulingGuardDecision>[0]['judgement']
+>;
 
 function createJudgement(
-  state: NimiAISchedulingJudgement['state'],
+  state: SchedulingJudgement['state'],
   detail: string,
-): NimiAISchedulingJudgement {
+): SchedulingJudgement {
   return {
     state,
     detail,
@@ -79,27 +50,6 @@ function createJudgement(
     },
     resourceWarnings: state === 'slowdown_risk' ? ['VRAM near threshold'] : [],
   };
-}
-
-async function withProbeJudgement(
-  judgement: NimiAISchedulingJudgement | null,
-  run: () => Promise<void>,
-): Promise<void> {
-  const surface = getDesktopAIConfigService();
-  const originalProbe = surface.aiConfig.probeFeasibility;
-  const originalTargetProbe = surface.aiConfig.probeSchedulingTarget;
-  surface.aiConfig.probeFeasibility = async () => ({
-    status: 'available',
-    capabilityStatuses: {},
-    schedulingJudgement: createJudgement('queue_required', 'scope aggregate should not be used'),
-  });
-  surface.aiConfig.probeSchedulingTarget = async () => judgement;
-  try {
-    await run();
-  } finally {
-    surface.aiConfig.probeFeasibility = originalProbe;
-    surface.aiConfig.probeSchedulingTarget = originalTargetProbe;
-  }
 }
 
 test('execution scheduling guard: denied disables submit and maps to error feedback', () => {
@@ -169,20 +119,17 @@ test('execution scheduling guard: busy slowdown risk uses busy-specific detail k
   assert.match(decision.feedback?.message || '', /Device busy/);
 });
 
-test('Agent submit: denied scheduling judgement blocks execution before submit proceeds', async () => {
-  await withProbeJudgement(createJudgement('denied', 'disk below safe threshold'), async () => {
-    await assert.rejects(
-      assertAgentSubmitSchedulingAllowed({
-        aiConfig: createLocalTextSubmitConfig(),
-        sdk: TEST_SDK,
-        t: translate,
-      }),
-      /disk below safe threshold/,
-    );
-  });
+test('Agent submit delegates scheduling admission to Runtime turn execution', async () => {
+  const submitSource = await readFile(path.resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts',
+  ), 'utf8');
+
+  assert.doesNotMatch(submitSource, /assertAgentSubmitSchedulingAllowed|probeExecutionSchedulingGuard/u);
+  assert.match(submitSource, /runActiveAgentSubmit\(\{/u);
 });
 
-test('unknown scheduling judgement: submit stays allowed but does not masquerade as runnable', async () => {
+test('unknown scheduling judgement stays advisory without masquerading as runnable', () => {
   const decision = resolveExecutionSchedulingGuardDecision({
     judgement: createJudgement('unknown', 'telemetry unavailable'),
     t: translate,
@@ -190,14 +137,4 @@ test('unknown scheduling judgement: submit stays allowed but does not masquerade
 
   assert.equal(decision.disabled, false);
   assert.equal(decision.feedback?.kind, 'warning');
-
-  await withProbeJudgement(createJudgement('unknown', 'telemetry unavailable'), async () => {
-    await assert.doesNotReject(async () => {
-      await assertAgentSubmitSchedulingAllowed({
-        aiConfig: createLocalTextSubmitConfig(),
-        sdk: TEST_SDK,
-        t: translate,
-      });
-    });
-  });
 });

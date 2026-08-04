@@ -12,9 +12,6 @@ import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
 import type {
   AgentSubmitDriverState,
 } from './chat-agent-shell-submit-driver';
-import type {
-  NimiAIConfig,
-} from './conversation-capability';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
@@ -46,7 +43,6 @@ export type UseAgentConversationHostActionsInput = {
   streamController: StreamController;
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
-  aiConfig: NimiAIConfig;
   applyDriverEffects: (threadId: string, effects: ReturnType<typeof import('./chat-agent-shell-submit-driver').reduceAgentSubmitDriverEvent>) => AgentSubmitDriverState;
   bundle: AgentLocalThreadBundle | null;
   currentComposerTextRef: { current: string };

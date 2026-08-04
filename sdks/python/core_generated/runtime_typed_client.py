@@ -168,10 +168,7 @@ HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED"]
 HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
-LocalAppAgentAIProfileApplyOutcome = Literal["LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE", "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
-LocalAppAgentReadinessState = Literal["LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED", "LOCAL_APP_AGENT_READINESS_STATE_READY", "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED", "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE", "LOCAL_APP_AGENT_READINESS_STATE_FAILED", "LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED"]
-LocalAppAgentRouteOptionAvailability = Literal["LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED", "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY", "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED"]
 LocalAppPermissionOwnerPosture = Literal["LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING", "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED", "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED"]
 LocalAppPermissionPosture = Literal["LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED", "LOCAL_APP_PERMISSION_POSTURE_PROMPT", "LOCAL_APP_PERMISSION_POSTURE_PENDING", "LOCAL_APP_PERMISSION_POSTURE_GRANTED", "LOCAL_APP_PERMISSION_POSTURE_DENIED", "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"]
 LocalAppSessionState = Literal["LOCAL_APP_SESSION_STATE_UNSPECIFIED", "LOCAL_APP_SESSION_STATE_READY", "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE", "LOCAL_APP_SESSION_STATE_REVOKED", "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED", "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED"]
@@ -223,8 +220,6 @@ ReasoningMode = Literal["REASONING_MODE_UNSPECIFIED", "REASONING_MODE_OFF", "REA
 ReasoningTraceMode = Literal["REASONING_TRACE_MODE_UNSPECIFIED", "REASONING_TRACE_MODE_HIDE", "REASONING_TRACE_MODE_SEPARATE"]
 ResponseFormatKind = Literal["RESPONSE_FORMAT_KIND_UNSPECIFIED", "RESPONSE_FORMAT_KIND_TEXT", "RESPONSE_FORMAT_KIND_JSON_OBJECT", "RESPONSE_FORMAT_KIND_JSON_SCHEMA"]
 RoutePolicy = Literal["ROUTE_POLICY_UNSPECIFIED", "ROUTE_POLICY_LOCAL", "ROUTE_POLICY_CLOUD"]
-RuntimeAgentAIConfigReadinessState = Literal["RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE", "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED"]
-RuntimeAgentAIProfileApplyOutcome = Literal["RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE", "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED"]
 RuntimeHealthStatus = Literal["RUNTIME_HEALTH_STATUS_UNSPECIFIED", "RUNTIME_HEALTH_STATUS_STOPPED", "RUNTIME_HEALTH_STATUS_STARTING", "RUNTIME_HEALTH_STATUS_READY", "RUNTIME_HEALTH_STATUS_DEGRADED", "RUNTIME_HEALTH_STATUS_STOPPING"]
 ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_JOB_EVENT_SUBMITTED", "SCENARIO_JOB_EVENT_QUEUED", "SCENARIO_JOB_EVENT_RUNNING", "SCENARIO_JOB_EVENT_COMPLETED", "SCENARIO_JOB_EVENT_FAILED", "SCENARIO_JOB_EVENT_CANCELED", "SCENARIO_JOB_EVENT_TIMEOUT"]
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
@@ -846,11 +841,12 @@ class AppendRuntimeAuditRequest:
     payload: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
-class ApplyLocalAppAgentAIProfileRequest:
-    agent_handle: str | None = None
-    expected_configuration_revision: int | None = None
+class ApplyLocalAppSharedLocalAgentAIProfileRequest:
     profile_json: bytes | None = None
-    runtime_descriptor_json: bytes | None = None
+
+@dataclass(frozen=True)
+class ApplyLocalAppSharedLocalAgentAIProfileResponse:
+    projection: LocalAppSharedLocalAgentAIConfigProjection | None = None
 
 @dataclass(frozen=True)
 class ApplyProfileRequest:
@@ -861,20 +857,13 @@ class ApplyProfileResponse:
     result: LocalProfileApplyResult | None = None
 
 @dataclass(frozen=True)
-class ApplyRuntimeAgentAIProfileRequest:
+class ApplySharedLocalAgentAIProfileRequest:
     context: AgentRequestContext | None = None
-    expected_revision: int | None = None
     profile_json: bytes | None = None
-    runtime_descriptor_json: bytes | None = None
 
 @dataclass(frozen=True)
-class ApplyRuntimeAgentAIProfileResponse:
-    config: RuntimeAgentAIConfig | None = None
-    outcome: RuntimeAgentAIProfileApplyOutcome | None = None
-    blocking_capabilities: tuple[str, ...] = field(default_factory=tuple)
-    reason_codes: tuple[str, ...] = field(default_factory=tuple)
-    action_refs: tuple[str, ...] = field(default_factory=tuple)
-    probe_warnings: tuple[str, ...] = field(default_factory=tuple)
+class ApplySharedLocalAgentAIProfileResponse:
+    config: AIConfig | None = None
 
 @dataclass(frozen=True)
 class ArtifactChunk:
@@ -2092,15 +2081,7 @@ class GetLocalAppAgentAutonomySnapshotRequest:
     agent_handle: str | None = None
 
 @dataclass(frozen=True)
-class GetLocalAppAgentConfigurationSnapshotRequest:
-    agent_handle: str | None = None
-
-@dataclass(frozen=True)
 class GetLocalAppAgentPresentationSnapshotRequest:
-    agent_handle: str | None = None
-
-@dataclass(frozen=True)
-class GetLocalAppAgentReadinessSnapshotRequest:
     agent_handle: str | None = None
 
 @dataclass(frozen=True)
@@ -2121,6 +2102,14 @@ class GetLocalAppPermissionStatusRequest:
 @dataclass(frozen=True)
 class GetLocalAppPermissionStatusResponse:
     projection: LocalAppPermissionProjection | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppSharedLocalAgentAIConfigRequest:
+    pass
+
+@dataclass(frozen=True)
+class GetLocalAppSharedLocalAgentAIConfigResponse:
+    projection: LocalAppSharedLocalAgentAIConfigProjection | None = None
 
 @dataclass(frozen=True)
 class GetLocalCapabilityConfigurationRequest:
@@ -2189,22 +2178,6 @@ class GetRecommendationFeedResponse:
     feed: LocalRecommendationFeedDescriptor | None = None
 
 @dataclass(frozen=True)
-class GetRuntimeAgentAIConfigReadinessRequest:
-    context: AgentRequestContext | None = None
-
-@dataclass(frozen=True)
-class GetRuntimeAgentAIConfigReadinessResponse:
-    snapshot: RuntimeAgentAIConfigReadinessSnapshot | None = None
-
-@dataclass(frozen=True)
-class GetRuntimeAgentAIConfigRequest:
-    context: AgentRequestContext | None = None
-
-@dataclass(frozen=True)
-class GetRuntimeAgentAIConfigResponse:
-    config: RuntimeAgentAIConfig | None = None
-
-@dataclass(frozen=True)
 class GetRuntimeHealthRequest:
     pass
 
@@ -2237,6 +2210,14 @@ class GetScenarioJobRequest:
 @dataclass(frozen=True)
 class GetScenarioJobResponse:
     job: ScenarioJob | None = None
+
+@dataclass(frozen=True)
+class GetSharedLocalAgentAIConfigRequest:
+    context: AgentRequestContext | None = None
+
+@dataclass(frozen=True)
+class GetSharedLocalAgentAIConfigResponse:
+    config: AIConfig | None = None
 
 @dataclass(frozen=True)
 class GetVoiceAssetRequest:
@@ -3065,62 +3046,6 @@ class LocalAgentSourceCoverageSectionStatus:
     omitted_count: int | None = None
 
 @dataclass(frozen=True)
-class LocalAppAgentAIConfigComponentSelection:
-    occurrence_id: str | None = None
-    order: int | None = None
-    role: str | None = None
-    component_kind: str | None = None
-    logical_model_id: str | None = None
-    required: bool | None = None
-    weight: str | None = None
-    options: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentAIConfigIntent:
-    capability: str | None = None
-    provider: str | None = None
-    logical_model_id: str | None = None
-    route_policy: RoutePolicy | None = None
-    selected_params: Mapping[str, object] | None = None
-    selected_components: tuple[LocalAppAgentAIConfigComponentSelection, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class LocalAppAgentAIConfigProjection:
-    capabilities: tuple[str, ...] = field(default_factory=tuple)
-    intents: tuple[LocalAppAgentAIConfigIntent, ...] = field(default_factory=tuple)
-    readiness: tuple[LocalAppAgentCapabilityReadiness, ...] = field(default_factory=tuple)
-    configuration_revision: int | None = None
-    route_options: tuple[LocalAppAgentRouteOption, ...] = field(default_factory=tuple)
-    scope_owner_id: str | None = None
-    profile_origin: LocalAppAgentAIProfileOrigin | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentAIProfileApplyResponse:
-    projection: LocalAppAgentAIConfigProjection | None = None
-    outcome: LocalAppAgentAIProfileApplyOutcome | None = None
-    blocking_capabilities: tuple[str, ...] = field(default_factory=tuple)
-    reason_codes: tuple[str, ...] = field(default_factory=tuple)
-    action_refs: tuple[str, ...] = field(default_factory=tuple)
-    probe_warnings: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class LocalAppAgentAIProfileOrigin:
-    profile_id: str | None = None
-    title: str | None = None
-    applied_at: str | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentAIProfilePreviewResponse:
-    before: LocalAppAgentAIConfigProjection | None = None
-    after: LocalAppAgentAIConfigProjection | None = None
-    outcome: LocalAppAgentAIProfileApplyOutcome | None = None
-    base_revision: int | None = None
-    blocking_capabilities: tuple[str, ...] = field(default_factory=tuple)
-    reason_codes: tuple[str, ...] = field(default_factory=tuple)
-    action_refs: tuple[str, ...] = field(default_factory=tuple)
-    probe_warnings: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class LocalAppAgentAutonomyConfig:
     daily_token_budget: int | None = None
     max_tokens_per_hook: int | None = None
@@ -3148,19 +3073,8 @@ class LocalAppAgentAutonomySnapshotResponse:
     projection: LocalAppAgentAutonomyProjection | None = None
 
 @dataclass(frozen=True)
-class LocalAppAgentCapabilityReadiness:
-    capability: str | None = None
-    state: LocalAppAgentReadinessState | None = None
-    reason: str | None = None
-    observed_at: str | None = None
-
-@dataclass(frozen=True)
 class LocalAppAgentCommitPresentationResponse:
     projection: LocalAppAgentPresentationProjection | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentConfigurationSnapshotResponse:
-    projection: LocalAppAgentAIConfigProjection | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationIntent:
@@ -3185,30 +3099,8 @@ class LocalAppAgentPresentationSnapshotResponse:
     projection: LocalAppAgentPresentationProjection | None = None
 
 @dataclass(frozen=True)
-class LocalAppAgentReadinessProjection:
-    capabilities: tuple[LocalAppAgentCapabilityReadiness, ...] = field(default_factory=tuple)
-    configuration_revision: int | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentReadinessSnapshotResponse:
-    projection: LocalAppAgentReadinessProjection | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentRouteOption:
-    capability: str | None = None
-    provider: str | None = None
-    logical_model_id: str | None = None
-    route_policy: RoutePolicy | None = None
-    label: str | None = None
-    availability: LocalAppAgentRouteOptionAvailability | None = None
-
-@dataclass(frozen=True)
 class LocalAppAgentUpdateAutonomyResponse:
     projection: LocalAppAgentAutonomyProjection | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentUpdateConfigurationResponse:
-    projection: LocalAppAgentAIConfigProjection | None = None
 
 @dataclass(frozen=True)
 class LocalAppPermissionAgentHandle:
@@ -3256,6 +3148,10 @@ class LocalAppPermissionProjection:
     can_request: bool | None = None
     reason_code: ReasonCode | None = None
     agents: tuple[LocalAppPermissionAgentHandle, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppSharedLocalAgentAIConfigProjection:
+    config: AIConfig | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextCandidateMessage:
@@ -4451,6 +4347,23 @@ class OverwriteAppAIConfigResponse:
     config: AIConfig | None = None
 
 @dataclass(frozen=True)
+class OverwriteLocalAppSharedLocalAgentAIConfigRequest:
+    capabilities: tuple[AIConfigCapabilityIntent, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class OverwriteLocalAppSharedLocalAgentAIConfigResponse:
+    projection: LocalAppSharedLocalAgentAIConfigProjection | None = None
+
+@dataclass(frozen=True)
+class OverwriteSharedLocalAgentAIConfigRequest:
+    context: AgentRequestContext | None = None
+    capabilities: tuple[AIConfigCapabilityIntent, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class OverwriteSharedLocalAgentAIConfigResponse:
+    config: AIConfig | None = None
+
+@dataclass(frozen=True)
 class PauseLocalTransferRequest:
     install_session_id: str | None = None
 
@@ -4506,27 +4419,23 @@ class PrepareProfileRuntimeDescriptorResponse:
     slice_results: tuple[ProfileRuntimeDescriptorSlicePrepareResult, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class PreviewLocalAppAgentAIProfileRequest:
-    agent_handle: str | None = None
+class PreviewLocalAppSharedLocalAgentAIProfileRequest:
     profile_json: bytes | None = None
-    runtime_descriptor_json: bytes | None = None
 
 @dataclass(frozen=True)
-class PreviewRuntimeAgentAIProfileRequest:
+class PreviewLocalAppSharedLocalAgentAIProfileResponse:
+    before: LocalAppSharedLocalAgentAIConfigProjection | None = None
+    after: LocalAppSharedLocalAgentAIConfigProjection | None = None
+
+@dataclass(frozen=True)
+class PreviewSharedLocalAgentAIProfileRequest:
     context: AgentRequestContext | None = None
     profile_json: bytes | None = None
-    runtime_descriptor_json: bytes | None = None
 
 @dataclass(frozen=True)
-class PreviewRuntimeAgentAIProfileResponse:
-    before: RuntimeAgentAIConfig | None = None
-    after: RuntimeAgentAIConfig | None = None
-    outcome: RuntimeAgentAIProfileApplyOutcome | None = None
-    base_revision: int | None = None
-    blocking_capabilities: tuple[str, ...] = field(default_factory=tuple)
-    reason_codes: tuple[str, ...] = field(default_factory=tuple)
-    action_refs: tuple[str, ...] = field(default_factory=tuple)
-    probe_warnings: tuple[str, ...] = field(default_factory=tuple)
+class PreviewSharedLocalAgentAIProfileResponse:
+    before: AIConfig | None = None
+    after: AIConfig | None = None
 
 @dataclass(frozen=True)
 class ProductControlProjectionJson:
@@ -5142,59 +5051,6 @@ class RevokeWorkspaceBindingResponse:
     production_inert: bool | None = None
 
 @dataclass(frozen=True)
-class RuntimeAgentAIConfig:
-    agent_instance_id: str | None = None
-    revision: int | None = None
-    intents: tuple[RuntimeAgentAIConfigIntent, ...] = field(default_factory=tuple)
-    updated_at: str | None = None
-    updated_by_app_id: str | None = None
-    profile_origin: RuntimeAgentAIProfileOrigin | None = None
-
-@dataclass(frozen=True)
-class RuntimeAgentAIConfigCapabilityReadiness:
-    capability: str | None = None
-    state: RuntimeAgentAIConfigReadinessState | None = None
-    reason_code: str | None = None
-    probed_at: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeAgentAIConfigComponentSelection:
-    occurrence_id: str | None = None
-    order: int | None = None
-    role: str | None = None
-    component_kind: str | None = None
-    logical_model_id: str | None = None
-    target_ref: RuntimeDurableTargetRef | None = None
-    required: bool | None = None
-    weight: str | None = None
-    options: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class RuntimeAgentAIConfigIntent:
-    capability: str | None = None
-    model_id: str | None = None
-    route_policy: RoutePolicy | None = None
-    connector_id: str | None = None
-    target_ref: RuntimeDurableTargetRef | None = None
-    voice_reference_ref: str | None = None
-    image_policy_ref: str | None = None
-    provider: str | None = None
-    selected_params: Mapping[str, object] | None = None
-    selected_components: tuple[RuntimeAgentAIConfigComponentSelection, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RuntimeAgentAIConfigReadinessSnapshot:
-    agent_instance_id: str | None = None
-    config_revision: int | None = None
-    capabilities: tuple[RuntimeAgentAIConfigCapabilityReadiness, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RuntimeAgentAIProfileOrigin:
-    profile_id: str | None = None
-    title: str | None = None
-    applied_at: str | None = None
-
-@dataclass(frozen=True)
 class RuntimeDurableCloudTargetRef:
     version: str | None = None
     connector_id: str | None = None
@@ -5761,10 +5617,6 @@ class SubscribeMemoryEventsRequest:
     cursor: str | None = None
 
 @dataclass(frozen=True)
-class SubscribeRuntimeAgentAIConfigReadinessRequest:
-    context: AgentRequestContext | None = None
-
-@dataclass(frozen=True)
 class SubscribeRuntimeHealthEventsRequest:
     pass
 
@@ -5954,13 +5806,6 @@ class UpdateLocalAppAgentAutonomyRequest:
     intent: LocalAppAgentAutonomyIntent | None = None
 
 @dataclass(frozen=True)
-class UpdateLocalAppAgentConfigurationRequest:
-    agent_handle: str | None = None
-    expected_configuration_revision: int | None = None
-    intents: tuple[LocalAppAgentAIConfigIntent, ...] = field(default_factory=tuple)
-    profile_origin: LocalAppAgentAIProfileOrigin | None = None
-
-@dataclass(frozen=True)
 class UploadArtifactChunk:
     sequence: int | None = None
     bytes: bytes | None = None
@@ -6004,17 +5849,6 @@ class UpsertModelCatalogProviderRequest:
 @dataclass(frozen=True)
 class UpsertModelCatalogProviderResponse:
     provider: ModelCatalogProviderEntry | None = None
-
-@dataclass(frozen=True)
-class UpsertRuntimeAgentAIConfigRequest:
-    context: AgentRequestContext | None = None
-    expected_revision: int | None = None
-    intents: tuple[RuntimeAgentAIConfigIntent, ...] = field(default_factory=tuple)
-    profile_origin: RuntimeAgentAIProfileOrigin | None = None
-
-@dataclass(frozen=True)
-class UpsertRuntimeAgentAIConfigResponse:
-    config: RuntimeAgentAIConfig | None = None
 
 @dataclass(frozen=True)
 class UsageStatRecord:
@@ -6389,13 +6223,13 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/SwitchAccount", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SwitchAccountResponse, raw)
 
-    async def apply_local_app_agent_aiprofile(self, request: ApplyLocalAppAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentAIProfileApplyResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAppAgentAIProfileApplyResponse, raw)
+    async def apply_local_app_shared_local_agent_aiprofile(self, request: ApplyLocalAppSharedLocalAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ApplyLocalAppSharedLocalAgentAIProfileResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppSharedLocalAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ApplyLocalAppSharedLocalAgentAIProfileResponse, raw)
 
-    async def apply_runtime_agent_aiprofile(self, request: ApplyRuntimeAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ApplyRuntimeAgentAIProfileResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ApplyRuntimeAgentAIProfileResponse, raw)
+    async def apply_shared_local_agent_aiprofile(self, request: ApplySharedLocalAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ApplySharedLocalAgentAIProfileResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ApplySharedLocalAgentAIProfileResponse, raw)
 
     async def cancel_companion_participation(self, request: CancelCompanionParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelCompanionParticipationResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6465,29 +6299,21 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentAutonomySnapshotResponse, raw)
 
-    async def get_local_app_agent_configuration_snapshot(self, request: GetLocalAppAgentConfigurationSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentConfigurationSnapshotResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAppAgentConfigurationSnapshotResponse, raw)
-
     async def get_local_app_agent_presentation_snapshot(self, request: GetLocalAppAgentPresentationSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentPresentationSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentPresentationSnapshotResponse, raw)
 
-    async def get_local_app_agent_readiness_snapshot(self, request: GetLocalAppAgentReadinessSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentReadinessSnapshotResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAppAgentReadinessSnapshotResponse, raw)
+    async def get_local_app_shared_local_agent_aiconfig(self, request: GetLocalAppSharedLocalAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppSharedLocalAgentAIConfigResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppSharedLocalAgentAIConfigResponse, raw)
 
     async def get_public_chat_session_snapshot(self, request: GetPublicChatSessionSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetPublicChatSessionSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetPublicChatSessionSnapshotResponse, raw)
 
-    async def get_runtime_agent_aiconfig(self, request: GetRuntimeAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRuntimeAgentAIConfigResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetRuntimeAgentAIConfigResponse, raw)
-
-    async def get_runtime_agent_aiconfig_readiness(self, request: GetRuntimeAgentAIConfigReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRuntimeAgentAIConfigReadinessResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetRuntimeAgentAIConfigReadinessResponse, raw)
+    async def get_shared_local_agent_aiconfig(self, request: GetSharedLocalAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetSharedLocalAgentAIConfigResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetSharedLocalAgentAIConfigResponse, raw)
 
     async def interrupt_agent_voice_playback(self, request: InterruptAgentVoicePlaybackRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptAgentVoicePlaybackResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6533,13 +6359,21 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenConversationAnchorResponse, raw)
 
-    async def preview_local_app_agent_aiprofile(self, request: PreviewLocalAppAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentAIProfilePreviewResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAppAgentAIProfilePreviewResponse, raw)
+    async def overwrite_local_app_shared_local_agent_aiconfig(self, request: OverwriteLocalAppSharedLocalAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OverwriteLocalAppSharedLocalAgentAIConfigResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OverwriteLocalAppSharedLocalAgentAIConfigResponse, raw)
 
-    async def preview_runtime_agent_aiprofile(self, request: PreviewRuntimeAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PreviewRuntimeAgentAIProfileResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PreviewRuntimeAgentAIProfileResponse, raw)
+    async def overwrite_shared_local_agent_aiconfig(self, request: OverwriteSharedLocalAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OverwriteSharedLocalAgentAIConfigResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OverwriteSharedLocalAgentAIConfigResponse, raw)
+
+    async def preview_local_app_shared_local_agent_aiprofile(self, request: PreviewLocalAppSharedLocalAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PreviewLocalAppSharedLocalAgentAIProfileResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppSharedLocalAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PreviewLocalAppSharedLocalAgentAIProfileResponse, raw)
+
+    async def preview_shared_local_agent_aiprofile(self, request: PreviewSharedLocalAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PreviewSharedLocalAgentAIProfileResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PreviewSharedLocalAgentAIProfileResponse, raw)
 
     async def query_agent_memory(self, request: QueryAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> QueryAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6587,9 +6421,6 @@ class RuntimeTypedClient:
     def subscribe_agent_voice_stream(self, request: SubscribeAgentVoiceStreamRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentVoiceStreamEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", _model_body(request), AgentVoiceStreamEvent, metadata=metadata, timeout_ms=timeout_ms)
 
-    def subscribe_runtime_agent_aiconfig_readiness(self, request: SubscribeRuntimeAgentAIConfigReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[RuntimeAgentAIConfigReadinessSnapshot]:
-        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness", _model_body(request), RuntimeAgentAIConfigReadinessSnapshot, metadata=metadata, timeout_ms=timeout_ms)
-
     async def terminate_agent(self, request: TerminateAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TerminateAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TerminateAgentResponse, raw)
@@ -6601,14 +6432,6 @@ class RuntimeTypedClient:
     async def update_local_app_agent_autonomy(self, request: UpdateLocalAppAgentAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentUpdateAutonomyResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentUpdateAutonomyResponse, raw)
-
-    async def update_local_app_agent_configuration(self, request: UpdateLocalAppAgentConfigurationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentUpdateConfigurationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAppAgentUpdateConfigurationResponse, raw)
-
-    async def upsert_runtime_agent_aiconfig(self, request: UpsertRuntimeAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpsertRuntimeAgentAIConfigResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UpsertRuntimeAgentAIConfigResponse, raw)
 
     async def write_agent_memory(self, request: WriteAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> WriteAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

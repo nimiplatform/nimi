@@ -1,15 +1,12 @@
 import type {
   AgentEvent,
-  RuntimeAgentAIConfigReadinessSnapshot,
   AppMessageEvent,
-  ApplyRuntimeAgentAIProfileRequest,
-  ApplyRuntimeAgentAIProfileResponse,
+  ApplySharedLocalAgentAIProfileRequest,
+  ApplySharedLocalAgentAIProfileResponse,
   GetAgentCanonicalMemoryBankStatusRequest,
   GetAgentCanonicalMemoryBankStatusResponse,
-  GetRuntimeAgentAIConfigRequest,
-  GetRuntimeAgentAIConfigResponse,
-  GetRuntimeAgentAIConfigReadinessRequest,
-  GetRuntimeAgentAIConfigReadinessResponse,
+  GetSharedLocalAgentAIConfigRequest,
+  GetSharedLocalAgentAIConfigResponse,
   GetAgentRequest,
   GetAgentResponse,
   GetPublicChatSessionSnapshotRequest,
@@ -18,8 +15,10 @@ import type {
   ListAgentsResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
-  PreviewRuntimeAgentAIProfileRequest,
-  PreviewRuntimeAgentAIProfileResponse,
+  OverwriteSharedLocalAgentAIConfigRequest,
+  OverwriteSharedLocalAgentAIConfigResponse,
+  PreviewSharedLocalAgentAIProfileRequest,
+  PreviewSharedLocalAgentAIProfileResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   RequestAgentCanonicalMemoryBankBindRequest,
@@ -28,12 +27,9 @@ import type {
   SendAppMessageRequest,
   SendAppMessageResponse,
   SubscribeAgentEventsRequest,
-  SubscribeRuntimeAgentAIConfigReadinessRequest,
   SubscribeAppMessagesRequest,
   TerminateAgentRequest,
   TerminateAgentResponse,
-  UpsertRuntimeAgentAIConfigRequest,
-  UpsertRuntimeAgentAIConfigResponse,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from '../core-generated/runtime-typed-client';
@@ -56,9 +52,10 @@ import {
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
 import {
-  createNimiRuntimeAgentAIConfigModule,
-  type NimiRuntimeAgentAIConfigModule,
-} from './runtime-agent-ai-config';
+  createNimiSharedLocalAgentAISurface,
+  type NimiSharedLocalAgentAIConfigClient,
+  type NimiSharedLocalAgentAIProfileClient,
+} from './shared-local-agent-ai-config';
 import {
   createNimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turns';
@@ -120,33 +117,24 @@ export interface NimiRuntimeAgentClientAgentModule {
     request: RequestAgentCanonicalMemoryBankBindRequest,
     options?: RuntimeTypedCallOptions,
   ): Promise<RequestAgentCanonicalMemoryBankBindResponse>;
-  // Runtime Agent AI Config projection (K-AGCORE-144~150). Host projections
-  // may omit this optional transport surface, but agentAIConfig fails closed
-  // with a typed error when the surface is missing.
-  getRuntimeAgentAIConfig?(
-    request: GetRuntimeAgentAIConfigRequest,
+  // Singular shared LocalAgent subsystem AIConfig. Host projections may omit
+  // this optional transport surface; SDK operations then fail closed.
+  getSharedLocalAgentAIConfig?(
+    request: GetSharedLocalAgentAIConfigRequest,
     options?: RuntimeTypedCallOptions,
-  ): Promise<GetRuntimeAgentAIConfigResponse>;
-  upsertRuntimeAgentAIConfig?(
-    request: UpsertRuntimeAgentAIConfigRequest,
+  ): Promise<GetSharedLocalAgentAIConfigResponse>;
+  overwriteSharedLocalAgentAIConfig?(
+    request: OverwriteSharedLocalAgentAIConfigRequest,
     options?: RuntimeTypedCallOptions,
-  ): Promise<UpsertRuntimeAgentAIConfigResponse>;
-  getRuntimeAgentAIConfigReadiness?(
-    request: GetRuntimeAgentAIConfigReadinessRequest,
+  ): Promise<OverwriteSharedLocalAgentAIConfigResponse>;
+  previewSharedLocalAgentAIProfile?(
+    request: PreviewSharedLocalAgentAIProfileRequest,
     options?: RuntimeTypedCallOptions,
-  ): Promise<GetRuntimeAgentAIConfigReadinessResponse>;
-  subscribeRuntimeAgentAIConfigReadiness?(
-    request: SubscribeRuntimeAgentAIConfigReadinessRequest,
+  ): Promise<PreviewSharedLocalAgentAIProfileResponse>;
+  applySharedLocalAgentAIProfile?(
+    request: ApplySharedLocalAgentAIProfileRequest,
     options?: RuntimeTypedCallOptions,
-  ): AsyncIterable<RuntimeAgentAIConfigReadinessSnapshot>;
-  previewRuntimeAgentAIProfile?(
-    request: PreviewRuntimeAgentAIProfileRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<PreviewRuntimeAgentAIProfileResponse>;
-  applyRuntimeAgentAIProfile?(
-    request: ApplyRuntimeAgentAIProfileRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<ApplyRuntimeAgentAIProfileResponse>;
+  ): Promise<ApplySharedLocalAgentAIProfileResponse>;
 }
 
 export interface NimiRuntimeAgentClientAppMessagesModule {
@@ -185,7 +173,8 @@ export interface NimiRuntimeAgentClient {
   writeMemory(input: NimiRuntimeAgentWriteMemoryInput): Promise<WriteAgentMemoryResponse>;
   getCanonicalMemoryStatus(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
   bindCanonicalMemoryStandard(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
-  readonly agentAIConfig: NimiRuntimeAgentAIConfigModule;
+  readonly sharedAIConfig: NimiSharedLocalAgentAIConfigClient;
+  readonly sharedAIProfile: NimiSharedLocalAgentAIProfileClient;
 }
 
 export interface NimiRuntimeAgentClientStreamTurnOptions
@@ -227,7 +216,7 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     getSubjectUserId: options.getSubjectUserId,
     withScopes: options.withScopes,
   });
-  const agentAIConfig = createNimiRuntimeAgentAIConfigModule({
+  const sharedAI = createNimiSharedLocalAgentAISurface({
     runtime: {
       appId: runtime.appId,
       auth: runtime.auth,
@@ -365,7 +354,8 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     },
     getCanonicalMemoryStatus: memory.getCanonicalBankStatus,
     bindCanonicalMemoryStandard: memory.bindCanonicalBankStandard,
-    agentAIConfig,
+    sharedAIConfig: sharedAI.sharedAIConfig,
+    sharedAIProfile: sharedAI.sharedAIProfile,
   };
 }
 

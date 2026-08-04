@@ -1,6 +1,8 @@
 package aiconfig
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"sort"
@@ -11,6 +13,31 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+// LocalAgentSubsystemOwner returns the singular machine-scoped owner marker.
+// Individual LocalAgent identity is deliberately not representable here.
+func LocalAgentSubsystemOwner() *runtimev1.AIConfigOwner {
+	return &runtimev1.AIConfigOwner{
+		Owner: &runtimev1.AIConfigOwner_RuntimeLocalAgentSubsystem{
+			RuntimeLocalAgentSubsystem: &runtimev1.AIConfigRuntimeLocalAgentSubsystemOwner{},
+		},
+	}
+}
+
+// Hash is a deterministic content identity for one canonical AIConfig value.
+// It is a projection/capture fact, not a revision or a compare-and-swap token.
+func Hash(input *runtimev1.AIConfig) string {
+	canonical, err := Canonicalize(input)
+	if err != nil {
+		return ""
+	}
+	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(canonical)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
+}
 
 // Canonicalize validates the portable storage shape of an AIConfig, clones it,
 // and gives repeated capability and feature values a deterministic order. Live

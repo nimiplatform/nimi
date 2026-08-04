@@ -5,141 +5,39 @@ package nimi.runtime.v1;
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
 import "google/protobuf/duration.proto";
-import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_presentation.proto";
-import "runtime/v1/ai.proto";
+import "runtime/v1/capability_configuration.proto";
 
-// The local-app agents.configure carrier accepts only Runtime-issued opaque
-// Agent handles. Raw Runtime/Realm identity and authorization fields are
-// intentionally absent from every request and response.
-message LocalAppAgentAIConfigComponentSelection {
-  string occurrence_id = 1;
-  uint32 order = 2;
-  string role = 3;
-  string component_kind = 4;
-  string logical_model_id = 5;
-  bool required = 6;
-  string weight = 7;
-  google.protobuf.Struct options = 8;
+// Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
+// the authorized account scope and carry no Agent handle. Autonomy and
+// presentation remain per-Agent and continue to require Runtime-issued handles.
+message LocalAppSharedLocalAgentAIConfigProjection {
+  AIConfig config = 1;
 }
 
-message LocalAppAgentAIConfigIntent {
-  string capability = 1;
-  string provider = 2;
-  string logical_model_id = 3;
-  RoutePolicy route_policy = 4;
-  google.protobuf.Struct selected_params = 5;
-  repeated LocalAppAgentAIConfigComponentSelection selected_components = 6;
+message GetLocalAppSharedLocalAgentAIConfigRequest {}
+message GetLocalAppSharedLocalAgentAIConfigResponse { LocalAppSharedLocalAgentAIConfigProjection projection = 1; }
+message OverwriteLocalAppSharedLocalAgentAIConfigRequest {
+  repeated AIConfigCapabilityIntent capabilities = 1;
+}
+message OverwriteLocalAppSharedLocalAgentAIConfigResponse { LocalAppSharedLocalAgentAIConfigProjection projection = 1; }
+
+message PreviewLocalAppSharedLocalAgentAIProfileRequest {
+  bytes profile_json = 1;
 }
 
-enum LocalAppAgentReadinessState {
-  LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED = 0;
-  LOCAL_APP_AGENT_READINESS_STATE_READY = 1;
-  LOCAL_APP_AGENT_READINESS_STATE_BLOCKED = 2;
-  LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE = 3;
-  LOCAL_APP_AGENT_READINESS_STATE_FAILED = 4;
-  LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED = 5;
-}
-message LocalAppAgentCapabilityReadiness {
-  string capability = 1;
-  LocalAppAgentReadinessState state = 2;
-  string reason = 3;
-  google.protobuf.Timestamp observed_at = 4;
+message PreviewLocalAppSharedLocalAgentAIProfileResponse {
+  LocalAppSharedLocalAgentAIConfigProjection before = 1;
+  LocalAppSharedLocalAgentAIConfigProjection after = 2;
 }
 
-enum LocalAppAgentRouteOptionAvailability {
-  LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED = 0;
-  LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY = 1;
-  LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED = 2;
+message ApplyLocalAppSharedLocalAgentAIProfileRequest {
+  bytes profile_json = 1;
 }
 
-// A bounded, selectable route candidate for the current caller. Runtime keeps
-// inventory identities, endpoints, credentials, and account/Agent identities
-// behind the agents.configure boundary.
-message LocalAppAgentRouteOption {
-  string capability = 1;
-  string provider = 2;
-  string logical_model_id = 3;
-  RoutePolicy route_policy = 4;
-  string label = 5;
-  LocalAppAgentRouteOptionAvailability availability = 6;
-}
-
-message LocalAppAgentAIProfileOrigin {
-  string profile_id = 1;
-  string title = 2;
-  google.protobuf.Timestamp applied_at = 3;
-}
-
-message LocalAppAgentAIConfigProjection {
-  repeated string capabilities = 1;
-  repeated LocalAppAgentAIConfigIntent intents = 2;
-  repeated LocalAppAgentCapabilityReadiness readiness = 3;
-  uint64 configuration_revision = 4;
-  repeated LocalAppAgentRouteOption route_options = 5;
-  string scope_owner_id = 6;
-  LocalAppAgentAIProfileOrigin profile_origin = 7;
-}
-
-message LocalAppAgentReadinessProjection {
-  repeated LocalAppAgentCapabilityReadiness capabilities = 1;
-  uint64 configuration_revision = 2;
-}
-
-message GetLocalAppAgentConfigurationSnapshotRequest { string agent_handle = 1; }
-message LocalAppAgentConfigurationSnapshotResponse { LocalAppAgentAIConfigProjection projection = 1; }
-message UpdateLocalAppAgentConfigurationRequest {
-  string agent_handle = 1;
-  uint64 expected_configuration_revision = 2;
-  repeated LocalAppAgentAIConfigIntent intents = 3;
-  LocalAppAgentAIProfileOrigin profile_origin = 4;
-}
-message LocalAppAgentUpdateConfigurationResponse { LocalAppAgentAIConfigProjection projection = 1; }
-message GetLocalAppAgentReadinessSnapshotRequest { string agent_handle = 1; }
-message LocalAppAgentReadinessSnapshotResponse { LocalAppAgentReadinessProjection projection = 1; }
-
-enum LocalAppAgentAIProfileApplyOutcome {
-  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED = 0;
-  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY = 1;
-  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG = 2;
-  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG = 3;
-  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE = 4;
-  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE = 5;
-  LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED = 6;
-}
-
-message PreviewLocalAppAgentAIProfileRequest {
-  string agent_handle = 1;
-  bytes profile_json = 2;
-  bytes runtime_descriptor_json = 3;
-}
-
-message LocalAppAgentAIProfilePreviewResponse {
-  LocalAppAgentAIConfigProjection before = 1;
-  LocalAppAgentAIConfigProjection after = 2;
-  LocalAppAgentAIProfileApplyOutcome outcome = 3;
-  uint64 base_revision = 4;
-  repeated string blocking_capabilities = 5;
-  repeated string reason_codes = 6;
-  repeated string action_refs = 7;
-  repeated string probe_warnings = 8;
-}
-
-message ApplyLocalAppAgentAIProfileRequest {
-  string agent_handle = 1;
-  uint64 expected_configuration_revision = 2;
-  bytes profile_json = 3;
-  bytes runtime_descriptor_json = 4;
-}
-
-message LocalAppAgentAIProfileApplyResponse {
-  LocalAppAgentAIConfigProjection projection = 1;
-  LocalAppAgentAIProfileApplyOutcome outcome = 2;
-  repeated string blocking_capabilities = 3;
-  repeated string reason_codes = 4;
-  repeated string action_refs = 5;
-  repeated string probe_warnings = 6;
+message ApplyLocalAppSharedLocalAgentAIProfileResponse {
+  LocalAppSharedLocalAgentAIConfigProjection projection = 1;
 }
 
 enum LocalAppAgentAutonomyMode {

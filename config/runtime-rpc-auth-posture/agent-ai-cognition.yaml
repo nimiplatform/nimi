@@ -80,27 +80,21 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus
     posture: authenticated_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppSharedLocalAgentAIProfile
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppSharedLocalAgentAIProfile
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
     posture: protected_origin_required

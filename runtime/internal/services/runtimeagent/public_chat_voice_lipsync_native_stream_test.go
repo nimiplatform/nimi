@@ -238,7 +238,7 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(
 	if voiceAI.streamReq == nil || voiceAI.streamReq.GetExecutionMode() != runtimev1.ExecutionMode_EXECUTION_MODE_STREAM {
 		t.Fatalf("expected native voice StreamScenario request, got %#v", voiceAI.streamReq)
 	}
-	if got := voiceAI.streamReq.GetHead().GetTargetRef().GetLocalRuntime().GetReadinessRef(); got != "test_runtime_readiness:v2:speech-qwen3tts" {
+	if got := voiceAI.streamReq.GetHead().GetTargetRef().GetLocalRuntime().GetProfileBindingId(); got != "test_runtime_readiness:v2:speech-qwen3tts" {
 		t.Fatalf("native voice StreamScenario target_ref = %q", got)
 	}
 	types := capture.messageTypes()

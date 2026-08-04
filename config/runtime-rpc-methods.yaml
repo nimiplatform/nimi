@@ -628,15 +628,11 @@ services:
         authority_status: existing_scoped_consumer_only
       - name: InterruptAgentVoicePlayback
         type: unary
-      - name: GetRuntimeAgentAIConfig
+      - name: GetSharedLocalAgentAIConfig
         type: unary
-      - name: UpsertRuntimeAgentAIConfig
+      - name: OverwriteSharedLocalAgentAIConfig
         type: unary
-      - name: GetRuntimeAgentAIConfigReadiness
+      - name: PreviewSharedLocalAgentAIProfile
         type: unary
-      - name: SubscribeRuntimeAgentAIConfigReadiness
-        type: server_stream
-      - name: PreviewRuntimeAgentAIProfile
-        type: unary
-      - name: ApplyRuntimeAgentAIProfile
+      - name: ApplySharedLocalAgentAIProfile
         type: unary

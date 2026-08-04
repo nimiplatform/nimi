@@ -109,7 +109,7 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 			return LocalAppCallerDecision{}, localAppOperationDenied(localAppAuthorityErrorReason(err))
 		}
 		ownerSelectorDigest := localappkernel.AgentAccountScopeDigest(caller.AccountID)
-		if permission.AgentHandles {
+		if permission.AgentHandles && !sharedLocalAgentAIOperation(operation) {
 			resolvedAgent, resolveErr := s.ResolveLocalAppAgentHandle(ctx, selector.AgentID, permission.ID)
 			if resolveErr != nil {
 				switch {
@@ -335,10 +335,7 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "artifact:" + selector.ArtifactID, nil
-	case LocalAppOperationOpenConversation,
-		LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
-		LocalAppOperationReadinessSnapshot, LocalAppOperationAIProfilePreview,
-		LocalAppOperationAIProfileApply, LocalAppOperationAutonomySnapshot,
+	case LocalAppOperationOpenConversation, LocalAppOperationAutonomySnapshot,
 		LocalAppOperationUpdateAutonomy, LocalAppOperationPresentationSnapshot,
 		LocalAppOperationCommitPresentation:
 		if !require(selector.AgentID) || selector.ArtifactID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
@@ -356,6 +353,12 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "agent:" + selector.AgentID + "/conversation:" + selector.ConversationAnchorID, nil
+	case LocalAppOperationSharedAIConfigGet, LocalAppOperationSharedAIConfigOverwrite,
+		LocalAppOperationSharedAIProfilePreview, LocalAppOperationSharedAIProfileApply:
+		if selector != (localappop.Selector{}) {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return "runtime-agent:shared-local-agent-ai-config", nil
 	case LocalAppOperationStorageJSONRead, LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
 		if selector.ArtifactID != "" || selector.AgentID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" {
 			return "", ErrLocalAppOperationNotAdmitted
@@ -398,6 +401,16 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 		return "agent:" + selector.AgentID + "/conversation:" + selector.ConversationAnchorID + "/turn:" + selector.TurnID + "/voice-stream:" + selector.VoiceStreamID, nil
 	default:
 		return "", ErrLocalAppOperationNotAdmitted
+	}
+}
+
+func sharedLocalAgentAIOperation(operation LocalAppOperation) bool {
+	switch operation {
+	case LocalAppOperationSharedAIConfigGet, LocalAppOperationSharedAIConfigOverwrite,
+		LocalAppOperationSharedAIProfilePreview, LocalAppOperationSharedAIProfileApply:
+		return true
+	default:
+		return false
 	}
 }
 

@@ -16746,196 +16746,52 @@ impl CompanionParticipationStatus {
         }
     }
 }
-/// The local-app agents.configure carrier accepts only Runtime-issued opaque
-/// Agent handles. Raw Runtime/Realm identity and authorization fields are
-/// intentionally absent from every request and response.
+/// Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
+/// the authorized account scope and carry no Agent handle. Autonomy and
+/// presentation remain per-Agent and continue to require Runtime-issued handles.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentAiConfigComponentSelection {
-    #[prost(string, tag = "1")]
-    pub occurrence_id: ::prost::alloc::string::String,
-    #[prost(uint32, tag = "2")]
-    pub order: u32,
-    #[prost(string, tag = "3")]
-    pub role: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub component_kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub logical_model_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "6")]
-    pub required: bool,
-    #[prost(string, tag = "7")]
-    pub weight: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "8")]
-    pub options: ::core::option::Option<::prost_types::Struct>,
+pub struct LocalAppSharedLocalAgentAiConfigProjection {
+    #[prost(message, optional, tag = "1")]
+    pub config: ::core::option::Option<AiConfig>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppSharedLocalAgentAiConfigRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalAppSharedLocalAgentAiConfigResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentAiConfigIntent {
-    #[prost(string, tag = "1")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub provider: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub logical_model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "4")]
-    pub route_policy: i32,
-    #[prost(message, optional, tag = "5")]
-    pub selected_params: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, repeated, tag = "6")]
-    pub selected_components: ::prost::alloc::vec::Vec<
-        LocalAppAgentAiConfigComponentSelection,
-    >,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentCapabilityReadiness {
-    #[prost(string, tag = "1")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAppAgentReadinessState", tag = "2")]
-    pub state: i32,
-    #[prost(string, tag = "3")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-/// A bounded, selectable route candidate for the current caller. Runtime keeps
-/// inventory identities, endpoints, credentials, and account/Agent identities
-/// behind the agents.configure boundary.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentRouteOption {
-    #[prost(string, tag = "1")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub provider: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub logical_model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "4")]
-    pub route_policy: i32,
-    #[prost(string, tag = "5")]
-    pub label: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAppAgentRouteOptionAvailability", tag = "6")]
-    pub availability: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentAiProfileOrigin {
-    #[prost(string, tag = "1")]
-    pub profile_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub applied_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentAiConfigProjection {
-    #[prost(string, repeated, tag = "1")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, repeated, tag = "2")]
-    pub intents: ::prost::alloc::vec::Vec<LocalAppAgentAiConfigIntent>,
-    #[prost(message, repeated, tag = "3")]
-    pub readiness: ::prost::alloc::vec::Vec<LocalAppAgentCapabilityReadiness>,
-    #[prost(uint64, tag = "4")]
-    pub configuration_revision: u64,
-    #[prost(message, repeated, tag = "5")]
-    pub route_options: ::prost::alloc::vec::Vec<LocalAppAgentRouteOption>,
-    #[prost(string, tag = "6")]
-    pub scope_owner_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "7")]
-    pub profile_origin: ::core::option::Option<LocalAppAgentAiProfileOrigin>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentReadinessProjection {
+pub struct OverwriteLocalAppSharedLocalAgentAiConfigRequest {
     #[prost(message, repeated, tag = "1")]
-    pub capabilities: ::prost::alloc::vec::Vec<LocalAppAgentCapabilityReadiness>,
-    #[prost(uint64, tag = "2")]
-    pub configuration_revision: u64,
+    pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OverwriteLocalAppSharedLocalAgentAiConfigResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetLocalAppAgentConfigurationSnapshotRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentConfigurationSnapshotResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppAgentAiConfigProjection>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpdateLocalAppAgentConfigurationRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "2")]
-    pub expected_configuration_revision: u64,
-    #[prost(message, repeated, tag = "3")]
-    pub intents: ::prost::alloc::vec::Vec<LocalAppAgentAiConfigIntent>,
-    #[prost(message, optional, tag = "4")]
-    pub profile_origin: ::core::option::Option<LocalAppAgentAiProfileOrigin>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentUpdateConfigurationResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppAgentAiConfigProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetLocalAppAgentReadinessSnapshotRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentReadinessSnapshotResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppAgentReadinessProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PreviewLocalAppAgentAiProfileRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "2")]
+pub struct PreviewLocalAppSharedLocalAgentAiProfileRequest {
+    #[prost(bytes = "vec", tag = "1")]
     pub profile_json: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "3")]
-    pub runtime_descriptor_json: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentAiProfilePreviewResponse {
+pub struct PreviewLocalAppSharedLocalAgentAiProfileResponse {
     #[prost(message, optional, tag = "1")]
-    pub before: ::core::option::Option<LocalAppAgentAiConfigProjection>,
+    pub before: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
     #[prost(message, optional, tag = "2")]
-    pub after: ::core::option::Option<LocalAppAgentAiConfigProjection>,
-    #[prost(enumeration = "LocalAppAgentAiProfileApplyOutcome", tag = "3")]
-    pub outcome: i32,
-    #[prost(uint64, tag = "4")]
-    pub base_revision: u64,
-    #[prost(string, repeated, tag = "5")]
-    pub blocking_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "6")]
-    pub reason_codes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "7")]
-    pub action_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "8")]
-    pub probe_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    pub after: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ApplyLocalAppAgentAiProfileRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "2")]
-    pub expected_configuration_revision: u64,
-    #[prost(bytes = "vec", tag = "3")]
+pub struct ApplyLocalAppSharedLocalAgentAiProfileRequest {
+    #[prost(bytes = "vec", tag = "1")]
     pub profile_json: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "4")]
-    pub runtime_descriptor_json: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppAgentAiProfileApplyResponse {
+pub struct ApplyLocalAppSharedLocalAgentAiProfileResponse {
     #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppAgentAiConfigProjection>,
-    #[prost(enumeration = "LocalAppAgentAiProfileApplyOutcome", tag = "2")]
-    pub outcome: i32,
-    #[prost(string, repeated, tag = "3")]
-    pub blocking_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "4")]
-    pub reason_codes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "5")]
-    pub action_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "6")]
-    pub probe_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    pub projection: ::core::option::Option<LocalAppSharedLocalAgentAiConfigProjection>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentAutonomyConfig {
@@ -17053,142 +16909,6 @@ pub struct CommitLocalAppAgentPresentationRequest {
 pub struct LocalAppAgentCommitPresentationResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppAgentReadinessState {
-    Unspecified = 0,
-    Ready = 1,
-    Blocked = 2,
-    Unavailable = 3,
-    Failed = 4,
-    ConfiguredUnverified = 5,
-}
-impl LocalAppAgentReadinessState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED",
-            Self::Ready => "LOCAL_APP_AGENT_READINESS_STATE_READY",
-            Self::Blocked => "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED",
-            Self::Unavailable => "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE",
-            Self::Failed => "LOCAL_APP_AGENT_READINESS_STATE_FAILED",
-            Self::ConfiguredUnverified => {
-                "LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_APP_AGENT_READINESS_STATE_READY" => Some(Self::Ready),
-            "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED" => Some(Self::Blocked),
-            "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE" => Some(Self::Unavailable),
-            "LOCAL_APP_AGENT_READINESS_STATE_FAILED" => Some(Self::Failed),
-            "LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED" => {
-                Some(Self::ConfiguredUnverified)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppAgentRouteOptionAvailability {
-    Unspecified = 0,
-    Ready = 1,
-    Installed = 2,
-}
-impl LocalAppAgentRouteOptionAvailability {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED",
-            Self::Ready => "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY",
-            Self::Installed => "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY" => Some(Self::Ready),
-            "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED" => {
-                Some(Self::Installed)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppAgentAiProfileApplyOutcome {
-    Unspecified = 0,
-    ReadyToApply = 1,
-    SetupRequiredNoLiveConfig = 2,
-    UnsupportedNoLiveConfig = 3,
-    InvalidProfile = 4,
-    StaleBase = 5,
-    Failed = 6,
-}
-impl LocalAppAgentAiProfileApplyOutcome {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED",
-            Self::ReadyToApply => {
-                "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY"
-            }
-            Self::SetupRequiredNoLiveConfig => {
-                "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG"
-            }
-            Self::UnsupportedNoLiveConfig => {
-                "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG"
-            }
-            Self::InvalidProfile => {
-                "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE"
-            }
-            Self::StaleBase => "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE",
-            Self::Failed => "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY" => {
-                Some(Self::ReadyToApply)
-            }
-            "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG" => {
-                Some(Self::SetupRequiredNoLiveConfig)
-            }
-            "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG" => {
-                Some(Self::UnsupportedNoLiveConfig)
-            }
-            "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE" => {
-                Some(Self::InvalidProfile)
-            }
-            "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE" => {
-                Some(Self::StaleBase)
-            }
-            "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED" => Some(Self::Failed),
-            _ => None,
-        }
-    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -19476,195 +19196,58 @@ pub struct GetAvatarDebugReplayResponse {
     #[prost(message, optional, tag = "3")]
     pub replay_ref: ::core::option::Option<AvatarDebugReplayRef>,
 }
-/// K-AGCORE-144..150 Runtime-owned canonical AIConfig for one LocalAgent scope.
-/// model_id is the public logical model identity; target_ref remains the exact
-/// Runtime-private execution identity. selected_components carries the ordered
-/// concrete AIConfig component choices while selected_params carries only the
-/// admitted per-capability parameter object.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RuntimeAgentAiConfigComponentSelection {
-    #[prost(string, tag = "1")]
-    pub occurrence_id: ::prost::alloc::string::String,
-    #[prost(uint32, tag = "2")]
-    pub order: u32,
-    #[prost(string, tag = "3")]
-    pub role: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub component_kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub logical_model_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
-    #[prost(bool, tag = "7")]
-    pub required: bool,
-    #[prost(string, tag = "8")]
-    pub weight: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "9")]
-    pub options: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RuntimeAgentAiConfigIntent {
-    #[prost(string, tag = "1")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "3")]
-    pub route_policy: i32,
-    #[prost(string, tag = "4")]
-    pub connector_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "5")]
-    pub target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
-    #[prost(string, tag = "6")]
-    pub voice_reference_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub image_policy_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub provider: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "9")]
-    pub selected_params: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, repeated, tag = "10")]
-    pub selected_components: ::prost::alloc::vec::Vec<
-        RuntimeAgentAiConfigComponentSelection,
-    >,
-}
+/// Runtime projects exactly one shared LocalAgent subsystem AIConfig. These
+/// requests carry only authenticated App/account scope; runtime_source_ref and
+/// local_agent_ref remain empty and never select a configuration owner.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeAgentAiProfileOrigin {
-    #[prost(string, tag = "1")]
-    pub profile_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub applied_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RuntimeAgentAiConfig {
-    #[prost(string, tag = "1")]
-    pub agent_instance_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "2")]
-    pub revision: u64,
-    #[prost(message, repeated, tag = "3")]
-    pub intents: ::prost::alloc::vec::Vec<RuntimeAgentAiConfigIntent>,
-    #[prost(message, optional, tag = "4")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "5")]
-    pub updated_by_app_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub profile_origin: ::core::option::Option<RuntimeAgentAiProfileOrigin>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeAgentAiConfigCapabilityReadiness {
-    #[prost(string, tag = "1")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(enumeration = "RuntimeAgentAiConfigReadinessState", tag = "2")]
-    pub state: i32,
-    #[prost(string, tag = "3")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub probed_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RuntimeAgentAiConfigReadinessSnapshot {
-    #[prost(string, tag = "1")]
-    pub agent_instance_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "2")]
-    pub config_revision: u64,
-    #[prost(message, repeated, tag = "3")]
-    pub capabilities: ::prost::alloc::vec::Vec<RuntimeAgentAiConfigCapabilityReadiness>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetRuntimeAgentAiConfigRequest {
+pub struct GetSharedLocalAgentAiConfigRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetRuntimeAgentAiConfigResponse {
+pub struct GetSharedLocalAgentAiConfigResponse {
     #[prost(message, optional, tag = "1")]
-    pub config: ::core::option::Option<RuntimeAgentAiConfig>,
+    pub config: ::core::option::Option<AiConfig>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpsertRuntimeAgentAiConfigRequest {
+pub struct OverwriteSharedLocalAgentAiConfigRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(uint64, tag = "2")]
-    pub expected_revision: u64,
-    #[prost(message, repeated, tag = "3")]
-    pub intents: ::prost::alloc::vec::Vec<RuntimeAgentAiConfigIntent>,
-    #[prost(message, optional, tag = "4")]
-    pub profile_origin: ::core::option::Option<RuntimeAgentAiProfileOrigin>,
+    #[prost(message, repeated, tag = "2")]
+    pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpsertRuntimeAgentAiConfigResponse {
+pub struct OverwriteSharedLocalAgentAiConfigResponse {
     #[prost(message, optional, tag = "1")]
-    pub config: ::core::option::Option<RuntimeAgentAiConfig>,
+    pub config: ::core::option::Option<AiConfig>,
 }
+/// AIProfile remains a portable template. Apply writes complete current owner
+/// intent only; it never materializes Local bindings or waits for readiness.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetRuntimeAgentAiConfigReadinessRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetRuntimeAgentAiConfigReadinessResponse {
-    #[prost(message, optional, tag = "1")]
-    pub snapshot: ::core::option::Option<RuntimeAgentAiConfigReadinessSnapshot>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubscribeRuntimeAgentAiConfigReadinessRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PreviewRuntimeAgentAiProfileRequest {
+pub struct PreviewSharedLocalAgentAiProfileRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
     #[prost(bytes = "vec", tag = "2")]
     pub profile_json: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "3")]
-    pub runtime_descriptor_json: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PreviewRuntimeAgentAiProfileResponse {
+pub struct PreviewSharedLocalAgentAiProfileResponse {
     #[prost(message, optional, tag = "1")]
-    pub before: ::core::option::Option<RuntimeAgentAiConfig>,
+    pub before: ::core::option::Option<AiConfig>,
     #[prost(message, optional, tag = "2")]
-    pub after: ::core::option::Option<RuntimeAgentAiConfig>,
-    #[prost(enumeration = "RuntimeAgentAiProfileApplyOutcome", tag = "3")]
-    pub outcome: i32,
-    #[prost(uint64, tag = "4")]
-    pub base_revision: u64,
-    #[prost(string, repeated, tag = "5")]
-    pub blocking_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "6")]
-    pub reason_codes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "7")]
-    pub action_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "8")]
-    pub probe_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    pub after: ::core::option::Option<AiConfig>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ApplyRuntimeAgentAiProfileRequest {
+pub struct ApplySharedLocalAgentAiProfileRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(uint64, tag = "2")]
-    pub expected_revision: u64,
-    #[prost(bytes = "vec", tag = "3")]
+    #[prost(bytes = "vec", tag = "2")]
     pub profile_json: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "4")]
-    pub runtime_descriptor_json: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ApplyRuntimeAgentAiProfileResponse {
+pub struct ApplySharedLocalAgentAiProfileResponse {
     #[prost(message, optional, tag = "1")]
-    pub config: ::core::option::Option<RuntimeAgentAiConfig>,
-    #[prost(enumeration = "RuntimeAgentAiProfileApplyOutcome", tag = "2")]
-    pub outcome: i32,
-    #[prost(string, repeated, tag = "3")]
-    pub blocking_capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "4")]
-    pub reason_codes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "5")]
-    pub action_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "6")]
-    pub probe_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    pub config: ::core::option::Option<AiConfig>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -20701,113 +20284,6 @@ impl AgentCanonicalMemoryBankMode {
             "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE" => Some(Self::Baseline),
             "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD" => Some(Self::Standard),
             "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE" => Some(Self::Unavailable),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum RuntimeAgentAiConfigReadinessState {
-    Unspecified = 0,
-    Ready = 1,
-    NotConfigured = 2,
-    Unavailable = 3,
-    ConfiguredUnverified = 4,
-}
-impl RuntimeAgentAiConfigReadinessState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED",
-            Self::Ready => "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY",
-            Self::NotConfigured => {
-                "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED"
-            }
-            Self::Unavailable => "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE",
-            Self::ConfiguredUnverified => {
-                "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY" => Some(Self::Ready),
-            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED" => {
-                Some(Self::NotConfigured)
-            }
-            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE" => {
-                Some(Self::Unavailable)
-            }
-            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_CONFIGURED_UNVERIFIED" => {
-                Some(Self::ConfiguredUnverified)
-            }
-            _ => None,
-        }
-    }
-}
-/// AIProfile remains a portable template. These operations accept the standard
-/// AIProfile JSON plus its SDK-formed portable Runtime descriptor, prepare exact
-/// Runtime-private execution targets, and only then form/commit live AIConfig.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum RuntimeAgentAiProfileApplyOutcome {
-    Unspecified = 0,
-    ReadyToApply = 1,
-    SetupRequiredNoLiveConfig = 2,
-    UnsupportedNoLiveConfig = 3,
-    InvalidProfile = 4,
-    StaleBase = 5,
-    Failed = 6,
-}
-impl RuntimeAgentAiProfileApplyOutcome {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED",
-            Self::ReadyToApply => "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY",
-            Self::SetupRequiredNoLiveConfig => {
-                "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG"
-            }
-            Self::UnsupportedNoLiveConfig => {
-                "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG"
-            }
-            Self::InvalidProfile => {
-                "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE"
-            }
-            Self::StaleBase => "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE",
-            Self::Failed => "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY" => {
-                Some(Self::ReadyToApply)
-            }
-            "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG" => {
-                Some(Self::SetupRequiredNoLiveConfig)
-            }
-            "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG" => {
-                Some(Self::UnsupportedNoLiveConfig)
-            }
-            "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE" => {
-                Some(Self::InvalidProfile)
-            }
-            "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE" => Some(Self::StaleBase),
-            "RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED" => Some(Self::Failed),
             _ => None,
         }
     }
@@ -22135,12 +21611,12 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// K-AGCORE-144..150 Runtime Agent AI Config surface.
-        pub async fn get_runtime_agent_ai_config(
+        /// Shared Runtime LocalAgent subsystem AIConfig surface.
+        pub async fn get_shared_local_agent_ai_config(
             &mut self,
-            request: impl tonic::IntoRequest<super::GetRuntimeAgentAiConfigRequest>,
+            request: impl tonic::IntoRequest<super::GetSharedLocalAgentAiConfigRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::GetRuntimeAgentAiConfigResponse>,
+            tonic::Response<super::GetSharedLocalAgentAiConfigResponse>,
             tonic::Status,
         > {
             self.inner
@@ -22153,54 +21629,25 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
+                "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "GetRuntimeAgentAIConfig",
+                        "GetSharedLocalAgentAIConfig",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn upsert_runtime_agent_ai_config(
-            &mut self,
-            request: impl tonic::IntoRequest<super::UpsertRuntimeAgentAiConfigRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::UpsertRuntimeAgentAiConfigResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "UpsertRuntimeAgentAIConfig",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_runtime_agent_ai_config_readiness(
+        pub async fn overwrite_shared_local_agent_ai_config(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::GetRuntimeAgentAiConfigReadinessRequest,
+                super::OverwriteSharedLocalAgentAiConfigRequest,
             >,
         ) -> std::result::Result<
-            tonic::Response<super::GetRuntimeAgentAiConfigReadinessResponse>,
+            tonic::Response<super::OverwriteSharedLocalAgentAiConfigResponse>,
             tonic::Status,
         > {
             self.inner
@@ -22213,27 +21660,25 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
+                "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "GetRuntimeAgentAIConfigReadiness",
+                        "OverwriteSharedLocalAgentAIConfig",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn subscribe_runtime_agent_ai_config_readiness(
+        pub async fn preview_shared_local_agent_ai_profile(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::SubscribeRuntimeAgentAiConfigReadinessRequest,
+                super::PreviewSharedLocalAgentAiProfileRequest,
             >,
         ) -> std::result::Result<
-            tonic::Response<
-                tonic::codec::Streaming<super::RuntimeAgentAiConfigReadinessSnapshot>,
-            >,
+            tonic::Response<super::PreviewSharedLocalAgentAiProfileResponse>,
             tonic::Status,
         > {
             self.inner
@@ -22246,52 +21691,25 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
+                "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "SubscribeRuntimeAgentAIConfigReadiness",
-                    ),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
-        pub async fn preview_runtime_agent_ai_profile(
-            &mut self,
-            request: impl tonic::IntoRequest<super::PreviewRuntimeAgentAiProfileRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::PreviewRuntimeAgentAiProfileResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "PreviewRuntimeAgentAIProfile",
+                        "PreviewSharedLocalAgentAIProfile",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn apply_runtime_agent_ai_profile(
+        pub async fn apply_shared_local_agent_ai_profile(
             &mut self,
-            request: impl tonic::IntoRequest<super::ApplyRuntimeAgentAiProfileRequest>,
+            request: impl tonic::IntoRequest<
+                super::ApplySharedLocalAgentAiProfileRequest,
+            >,
         ) -> std::result::Result<
-            tonic::Response<super::ApplyRuntimeAgentAiProfileResponse>,
+            tonic::Response<super::ApplySharedLocalAgentAiProfileResponse>,
             tonic::Status,
         > {
             self.inner
@@ -22304,27 +21722,27 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile",
+                "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "ApplyRuntimeAgentAIProfile",
+                        "ApplySharedLocalAgentAIProfile",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
         /// Reserved agents.configure carrier. Protected-local admission remains
         /// fail-closed until the owner-complete publication flip.
-        pub async fn get_local_app_agent_configuration_snapshot(
+        pub async fn get_local_app_shared_local_agent_ai_config(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::GetLocalAppAgentConfigurationSnapshotRequest,
+                super::GetLocalAppSharedLocalAgentAiConfigRequest,
             >,
         ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentConfigurationSnapshotResponse>,
+            tonic::Response<super::GetLocalAppSharedLocalAgentAiConfigResponse>,
             tonic::Status,
         > {
             self.inner
@@ -22337,25 +21755,25 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot",
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "GetLocalAppAgentConfigurationSnapshot",
+                        "GetLocalAppSharedLocalAgentAIConfig",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn update_local_app_agent_configuration(
+        pub async fn overwrite_local_app_shared_local_agent_ai_config(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::UpdateLocalAppAgentConfigurationRequest,
+                super::OverwriteLocalAppSharedLocalAgentAiConfigRequest,
             >,
         ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentUpdateConfigurationResponse>,
+            tonic::Response<super::OverwriteLocalAppSharedLocalAgentAiConfigResponse>,
             tonic::Status,
         > {
             self.inner
@@ -22368,25 +21786,25 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration",
+                "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "UpdateLocalAppAgentConfiguration",
+                        "OverwriteLocalAppSharedLocalAgentAIConfig",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn get_local_app_agent_readiness_snapshot(
+        pub async fn preview_local_app_shared_local_agent_ai_profile(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::GetLocalAppAgentReadinessSnapshotRequest,
+                super::PreviewLocalAppSharedLocalAgentAiProfileRequest,
             >,
         ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentReadinessSnapshotResponse>,
+            tonic::Response<super::PreviewLocalAppSharedLocalAgentAiProfileResponse>,
             tonic::Status,
         > {
             self.inner
@@ -22399,23 +21817,25 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot",
+                "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppSharedLocalAgentAIProfile",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "GetLocalAppAgentReadinessSnapshot",
+                        "PreviewLocalAppSharedLocalAgentAIProfile",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn preview_local_app_agent_ai_profile(
+        pub async fn apply_local_app_shared_local_agent_ai_profile(
             &mut self,
-            request: impl tonic::IntoRequest<super::PreviewLocalAppAgentAiProfileRequest>,
+            request: impl tonic::IntoRequest<
+                super::ApplyLocalAppSharedLocalAgentAiProfileRequest,
+            >,
         ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentAiProfilePreviewResponse>,
+            tonic::Response<super::ApplyLocalAppSharedLocalAgentAiProfileResponse>,
             tonic::Status,
         > {
             self.inner
@@ -22428,43 +21848,14 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile",
+                "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppSharedLocalAgentAIProfile",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "PreviewLocalAppAgentAIProfile",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn apply_local_app_agent_ai_profile(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ApplyLocalAppAgentAiProfileRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::LocalAppAgentAiProfileApplyResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "ApplyLocalAppAgentAIProfile",
+                        "ApplyLocalAppSharedLocalAgentAIProfile",
                     ),
                 );
             self.inner.unary(req, path, codec).await

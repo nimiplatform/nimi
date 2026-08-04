@@ -24,7 +24,6 @@ import {
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import { buildAgentUserProjection } from './chat-agent-user-projection';
 import {
-  assertAgentSubmitSchedulingAllowed,
   ensureThreadAnchorBindingForTarget,
   isAbortLikeSubmitError,
   resolveUploadedAttachmentProjection,
@@ -97,12 +96,6 @@ export async function submitAgentConversationTurn(input: {
         submittedTextLength: submittedText.length,
         attachmentCount: input.payload.attachments.length,
       },
-    });
-
-    await assertAgentSubmitSchedulingAllowed({
-      aiConfig: input.hostInput.aiConfig,
-      sdk: input.hostInput.sdk,
-      t: input.hostInput.t,
     });
 
     let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.hostInput.selectedThreadRecord;
@@ -258,7 +251,7 @@ export async function submitAgentConversationTurn(input: {
 
     const abortController = input.hostInput.streamController.startStream(
       effectiveThreadId,
-      resolveAgentTurnTotalTimeoutMs(input.hostInput.aiConfig),
+      resolveAgentTurnTotalTimeoutMs(),
     );
     const activeSubmit: ActiveAgentSubmit = {
       threadId: effectiveThreadId,

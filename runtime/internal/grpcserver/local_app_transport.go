@@ -31,11 +31,10 @@ const (
 	protectedSendConversationTurnMethod        = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
 	protectedSubscribeConversationMethod       = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
 	protectedConversationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
-	protectedConfigurationSnapshotMethod       = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot"
-	protectedUpdateConfigurationMethod         = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration"
-	protectedReadinessSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot"
-	protectedAIProfilePreviewMethod            = "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile"
-	protectedAIProfileApplyMethod              = "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile"
+	protectedGetSharedAIConfigMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
+	protectedOverwriteSharedAIConfigMethod     = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
+	protectedSharedAIProfilePreviewMethod      = "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppSharedLocalAgentAIProfile"
+	protectedSharedAIProfileApplyMethod        = "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppSharedLocalAgentAIProfile"
 	protectedAutonomySnapshotMethod            = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	protectedUpdateAutonomyMethod              = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	protectedPresentationSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
@@ -71,11 +70,10 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedOpenConversationMethod:            localAppSessionMethodPolicy(),
 	protectedSendConversationTurnMethod:        localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:        localAppSessionMethodPolicy(),
-	protectedConfigurationSnapshotMethod:       localAppSessionMethodPolicy(),
-	protectedUpdateConfigurationMethod:         localAppSessionMethodPolicy(),
-	protectedReadinessSnapshotMethod:           localAppSessionMethodPolicy(),
-	protectedAIProfilePreviewMethod:            localAppSessionMethodPolicy(),
-	protectedAIProfileApplyMethod:              localAppSessionMethodPolicy(),
+	protectedGetSharedAIConfigMethod:           localAppSessionMethodPolicy(),
+	protectedOverwriteSharedAIConfigMethod:     localAppSessionMethodPolicy(),
+	protectedSharedAIProfilePreviewMethod:      localAppSessionMethodPolicy(),
+	protectedSharedAIProfileApplyMethod:        localAppSessionMethodPolicy(),
 	protectedAutonomySnapshotMethod:            localAppSessionMethodPolicy(),
 	protectedUpdateAutonomyMethod:              localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:        localAppSessionMethodPolicy(),
@@ -366,36 +364,26 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 			return "", localappop.Selector{}, true
 		}
 		return accountservice.LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: req.GetAgentId(), ConversationAnchorID: req.GetConversationAnchorId()}, true
-	case protectedConfigurationSnapshotMethod:
-		req, ok := request.(*runtimev1.GetLocalAppAgentConfigurationSnapshotRequest)
-		if !ok {
+	case protectedGetSharedAIConfigMethod:
+		if _, ok := request.(*runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest); !ok {
 			return "", localappop.Selector{}, true
 		}
-		return accountservice.LocalAppOperationConfigurationSnapshot, localappop.Selector{AgentID: req.GetAgentHandle()}, true
-	case protectedUpdateConfigurationMethod:
-		req, ok := request.(*runtimev1.UpdateLocalAppAgentConfigurationRequest)
-		if !ok {
+		return accountservice.LocalAppOperationSharedAIConfigGet, localappop.Selector{}, true
+	case protectedOverwriteSharedAIConfigMethod:
+		if _, ok := request.(*runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest); !ok {
 			return "", localappop.Selector{}, true
 		}
-		return accountservice.LocalAppOperationUpdateConfiguration, localappop.Selector{AgentID: req.GetAgentHandle()}, true
-	case protectedReadinessSnapshotMethod:
-		req, ok := request.(*runtimev1.GetLocalAppAgentReadinessSnapshotRequest)
-		if !ok {
+		return accountservice.LocalAppOperationSharedAIConfigOverwrite, localappop.Selector{}, true
+	case protectedSharedAIProfilePreviewMethod:
+		if _, ok := request.(*runtimev1.PreviewLocalAppSharedLocalAgentAIProfileRequest); !ok {
 			return "", localappop.Selector{}, true
 		}
-		return accountservice.LocalAppOperationReadinessSnapshot, localappop.Selector{AgentID: req.GetAgentHandle()}, true
-	case protectedAIProfilePreviewMethod:
-		req, ok := request.(*runtimev1.PreviewLocalAppAgentAIProfileRequest)
-		if !ok {
+		return accountservice.LocalAppOperationSharedAIProfilePreview, localappop.Selector{}, true
+	case protectedSharedAIProfileApplyMethod:
+		if _, ok := request.(*runtimev1.ApplyLocalAppSharedLocalAgentAIProfileRequest); !ok {
 			return "", localappop.Selector{}, true
 		}
-		return accountservice.LocalAppOperationAIProfilePreview, localappop.Selector{AgentID: req.GetAgentHandle()}, true
-	case protectedAIProfileApplyMethod:
-		req, ok := request.(*runtimev1.ApplyLocalAppAgentAIProfileRequest)
-		if !ok {
-			return "", localappop.Selector{}, true
-		}
-		return accountservice.LocalAppOperationAIProfileApply, localappop.Selector{AgentID: req.GetAgentHandle()}, true
+		return accountservice.LocalAppOperationSharedAIProfileApply, localappop.Selector{}, true
 	case protectedAutonomySnapshotMethod:
 		req, ok := request.(*runtimev1.GetLocalAppAgentAutonomySnapshotRequest)
 		if !ok {

@@ -25,8 +25,10 @@ principal-partitioned JSON storage
 operations, the selected RuntimeAgent conversation operations, bounded
 Runtime-selected foreground text candidates, bounded Runtime-selected agent
 voice transcription, exact correlated agent voice stream subscription, and
-owner-free whole-object App AIConfig get/overwrite operations whose exact App
-owner is derived by Runtime from the protected Local App session.
+owner-free whole-object App AIConfig get/overwrite operations, plus shared
+LocalAgent-subsystem AIConfig get/overwrite and portable-profile preview/apply.
+Runtime derives both exact owners from the protected Local App session; the
+shared surface carries no individual Agent handle, revision, or readiness.
 
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,

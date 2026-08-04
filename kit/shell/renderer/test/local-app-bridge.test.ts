@@ -10,10 +10,22 @@ afterEach(() => {
 });
 
 describe('renderer local-app standard-shell surface', () => {
-  it('maps text-candidate generation to the registered Tauri command', () => {
+  it('maps text and shared LocalAgent configuration to registered Tauri commands', () => {
     expect(resolveTauriStandardCommand(
       NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
     )).toBe('local_app_text_generate_candidate');
+    expect(resolveTauriStandardCommand(
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'],
+    )).toBe('local_app_shared_agent_ai_config_get');
+    expect(resolveTauriStandardCommand(
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'],
+    )).toBe('local_app_shared_agent_ai_config_overwrite');
+    expect(resolveTauriStandardCommand(
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIProfilePreview'],
+    )).toBe('local_app_shared_agent_ai_profile_preview');
+    expect(resolveTauriStandardCommand(
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIProfileApply'],
+    )).toBe('local_app_shared_agent_ai_profile_apply');
   });
 
   it('maps owner-free App AIConfig operations to exact host commands', async () => {
@@ -232,47 +244,85 @@ describe('renderer local-app standard-shell surface', () => {
     expect(JSON.stringify(invocations)).not.toMatch(/methodId|realmBaseUrl|caller|authorization/u);
   });
 
-  it('exposes exactly nine configure operations and preserves decimal revision strings', async () => {
+  it('exposes shared LocalAgent AIConfig/profile beside per-Agent autonomy and presentation', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
+    const config = {
+      owner: {
+        owner: {
+          oneofKind: 'runtimeLocalAgentSubsystem',
+          runtimeLocalAgentSubsystem: {},
+        },
+      },
+      capabilities: [{
+        capabilityContract: 'text.generate',
+        requiredFeatures: [],
+        route: { oneofKind: 'local', local: {} },
+      }],
+    };
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
+        if (command.endsWith('sharedAgentAIProfilePreview')) return { before: null, after: config };
+        if (command.includes('sharedAgentAI')) return config;
         return { revision: '0' };
       },
       listen: () => () => {},
     };
     const configure = createNimiLocalAppStandardShellSurface().agentConfigure;
-    const intent = { backendKind: 'vrm', avatarAssetRef: 'asset-1', expressionProfileRef: '', idlePreset: '', interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false, backgroundAssetRef: '' };
-    const profile = { alias: 'local-gpu' };
-    const runtimeDescriptor = { runtimeId: 'local-runtime' };
-    await configure.configurationSnapshot({ agentHandle: 'lash_owner_issued' });
-    await configure.updateConfiguration({ agentHandle: 'lash_owner_issued', expectedConfigurationRevision: '1', intents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }], profileOrigin: null });
-    await configure.readinessSnapshot({ agentHandle: 'lash_owner_issued' });
-    await configure.aiProfilePreview({ agentHandle: 'lash_owner_issued', profile, runtimeDescriptor });
-    await configure.aiProfileApply({ agentHandle: 'lash_owner_issued', expectedConfigurationRevision: '2', profile, runtimeDescriptor });
+    const presentationIntent = { backendKind: 'vrm', avatarAssetRef: 'asset-1', expressionProfileRef: '', idlePreset: '', interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false, backgroundAssetRef: '' };
+    const profileJson = '{"profileId":"local-gpu"}';
+    await expect(configure.sharedAgentAIConfigGet()).resolves.toEqual(config);
+    await expect(configure.sharedAgentAIConfigOverwrite(config.capabilities as never)).resolves.toEqual(config);
+    await expect(configure.sharedAgentAIProfilePreview(profileJson)).resolves.toEqual({ before: null, after: config });
+    await expect(configure.sharedAgentAIProfileApply(profileJson)).resolves.toEqual(config);
     await configure.autonomySnapshot({ agentHandle: 'lash_owner_issued' });
     await configure.updateAutonomy({ agentHandle: 'lash_owner_issued', expectedAutonomyRevision: '1', intent: { enabled: false } });
     await configure.presentationSnapshot({ agentHandle: 'lash_owner_issued' });
-    await configure.commitPresentation({ agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent, importedAssets: [] });
+    await configure.commitPresentation({ agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent: presentationIntent, importedAssets: [] });
     expect(Object.keys(configure)).toEqual([
-      'configurationSnapshot', 'updateConfiguration', 'readinessSnapshot', 'aiProfilePreview',
-      'aiProfileApply', 'autonomySnapshot', 'updateAutonomy', 'presentationSnapshot', 'commitPresentation',
+      'sharedAgentAIConfigGet', 'sharedAgentAIConfigOverwrite',
+      'sharedAgentAIProfilePreview', 'sharedAgentAIProfileApply',
+      'autonomySnapshot', 'updateAutonomy', 'presentationSnapshot', 'commitPresentation',
     ]);
-    expect(invocations).toHaveLength(9);
-    expect(invocations.slice(3, 5)).toEqual([
+    expect(invocations.slice(0, 4)).toEqual([
+      { command: 'nimi.shell.localApp.sharedAgentAIConfigGet', payload: {} },
       {
-        command: 'nimi.shell.localApp.agentAIProfilePreview',
-        payload: { payload: { agentHandle: 'lash_owner_issued', profile, runtimeDescriptor } },
+        command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite',
+        payload: { payload: { capabilities: config.capabilities } },
       },
       {
-        command: 'nimi.shell.localApp.agentAIProfileApply',
-        payload: { payload: { agentHandle: 'lash_owner_issued', expectedConfigurationRevision: '2', profile, runtimeDescriptor } },
+        command: 'nimi.shell.localApp.sharedAgentAIProfilePreview',
+        payload: { payload: { profileJson } },
+      },
+      {
+        command: 'nimi.shell.localApp.sharedAgentAIProfileApply',
+        payload: { payload: { profileJson } },
       },
     ]);
+    expect(JSON.stringify(invocations.slice(0, 4))).not.toMatch(/agentHandle|revision|readiness/u);
     expect(invocations.at(-1)).toEqual({
       command: 'nimi.shell.localApp.agentCommitPresentation',
-      payload: { payload: { agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent, importedAssets: [] } },
+      payload: { payload: { agentHandle: 'lash_owner_issued', expectedPresentationRevision: '0', intent: presentationIntent, importedAssets: [] } },
     });
+  });
+
+  it('rejects shared LocalAgent owner mismatches, owner injection, and malformed profile JSON', async () => {
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => ({
+        owner: { owner: { oneofKind: 'app', app: { appId: 'forbidden' } } },
+        capabilities: [],
+      }),
+      listen: () => () => {},
+    };
+    const configure = createNimiLocalAppStandardShellSurface().agentConfigure;
+    await expect(configure.sharedAgentAIConfigGet()).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'renderer-standard-shell-result-invalid',
+    });
+    expect(() => configure.sharedAgentAIConfigOverwrite([{ owner: {} }] as never))
+      .toThrowError(/authority field owner is forbidden/u);
+    expect(() => configure.sharedAgentAIProfilePreview('{'))
+      .toThrowError(/profileJson is invalid/u);
   });
 
   it('sends turn interrupt with only the opaque handle and conversation anchor', async () => {

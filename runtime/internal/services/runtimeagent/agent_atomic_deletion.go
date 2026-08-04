@@ -39,9 +39,6 @@ func agentAtomicProjectionDeletionHook(
 		if err := deleteLocalAgentSourceSnapshotV2Tx(tx, ref); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`DELETE FROM runtime_agent_ai_config WHERE agent_instance_id = ?`, ref); err != nil {
-			return fmt.Errorf("delete runtime agent AI config: %w", err)
-		}
 		if _, err := tx.Exec(`DELETE FROM runtime_agent_presentation_asset WHERE local_agent_ref = ?`, ref); err != nil {
 			return fmt.Errorf("delete runtime agent presentation assets: %w", err)
 		}

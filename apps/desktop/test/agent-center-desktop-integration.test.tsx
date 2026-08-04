@@ -6,9 +6,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type {
   AgentCenterI18n,
-  AgentCenterRuntimeAIConfigProjection,
+  AgentCenterSharedAIConfigProjection,
 } from '@nimiplatform/kit/features/agent-center';
-import { createNimiAIScopeRef } from '@nimiplatform/sdk/ai';
 import type { NimiRuntimeAgentAutonomySnapshot } from '@nimiplatform/sdk/runtime';
 import { createDesktopAgentCenterAvatarPreviewAdapter } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-preview-adapter.js';
 import {
@@ -47,39 +46,47 @@ function desktopAgentCenterI18n(): AgentCenterI18n {
   };
 }
 
+function projectSharedAIConfigIntents(
+  capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'],
+): AgentCenterSharedAIConfigProjection['intents'] {
+  return capabilities.map((intent) => {
+    const route = intent.route.oneofKind;
+    if (route !== 'local' && route !== 'cloud') {
+      throw new Error(`Test AIConfig capability ${intent.capabilityContract} has no route.`);
+    }
+    return {
+      capability: intent.capabilityContract,
+      route,
+      requiredFeatures: [...intent.requiredFeatures],
+    };
+  });
+}
+
 async function desktopAgentCenterSession() {
-  // Runtime Agent model settings converged into the Runtime Agent AIConfig
-  // module: the session now reads a typed AIConfig projection bound to the
-  // Runtime-issued local-agent scope of the selected LocalAgent.
-  const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: identity.localAgentRef });
-  let projection: AgentCenterRuntimeAIConfigProjection = {
+  // Agent Center reads the singular Runtime-owned AIConfig shared by every
+  // LocalAgent; selected Agent identity remains outside configuration calls.
+  let projection: AgentCenterSharedAIConfigProjection = {
     aiConfig: {
-      scopeRef,
-      profileOrigin: null,
-      capabilities: {
-        logicalModelIds: {},
-        targetRefs: {},
-        selectedComponents: {},
-        selectedParams: {},
+      owner: {
+        owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
       },
+      capabilities: [],
     },
-    scopeRef,
     capabilities: [],
-    routeIntents: [],
-    readiness: [],
-    configurationRevision: '1',
+    intents: [],
   };
   const session = createFirstPartyAgentCenterSession({
     identity,
-    aiConfig: {
-      async snapshot() {
+    sharedAIConfig: {
+      async get() {
         return projection;
       },
-      async update(input) {
+      async overwrite(input) {
+        const capabilities = [...input.capabilities];
         projection = {
-          ...projection,
-          aiConfig: input.config,
-          configurationRevision: '2',
+          aiConfig: { ...projection.aiConfig, capabilities },
+          capabilities: capabilities.map((intent) => intent.capabilityContract),
+          intents: projectSharedAIConfigIntents(capabilities),
         };
         return projection;
       },
@@ -114,7 +121,8 @@ test('Desktop Agent Center drawer delegates snapshot refresh to the Kit store', 
   assert.doesNotMatch(settingsSource, /runtimeLoadInput|AgentCenterStateInput|runtimeAdapter=/u);
   assert.match(runtimeSource, /createFirstPartyAgentCenterSession\(\{/u);
   assert.match(runtimeSource, /autonomy:\s*createDesktopAgentCenterAutonomyAdapter\(runtimeAgentInspect\)/u);
-  assert.match(runtimeSource, /modelConfig:\s*\{\s*localAssetSource,\s*providerResolver,/u);
+  assert.match(runtimeSource, /sharedAIConfig:\s*runtimeAgentCenterSharedAIConfig/u);
+  assert.doesNotMatch(runtimeSource, /runtimeAgentAIConfigAdapter\.(?:readiness|aiProfile)/u);
   assert.doesNotMatch(settingsSource, /\.\.\.input\.runtimeAgentCenterAdapter|appearanceAdapter=/u);
 });
 

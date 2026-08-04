@@ -1,57 +1,59 @@
-import { createNimiAIScopeRef } from '@nimiplatform/sdk/ai';
 import { createFirstPartyAgentCenterSession } from '../src/session.js';
 import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAutonomyProjection,
-  AgentCenterRuntimeAIConfigProjection,
-  AgentCenterRuntimeModelConfigAdapter,
+  AgentCenterSharedAIConfigProjection,
   AgentCenterSession,
   AgentCenterStateInput,
 } from '../src/types.js';
 
-function defaultAIConfig(): AgentCenterRuntimeAIConfigProjection {
-  const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'local-agent:test' });
+function projectIntents(
+  capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'],
+): AgentCenterSharedAIConfigProjection['intents'] {
+  return capabilities.map((intent) => ({
+    capability: intent.capabilityContract,
+    route: intent.route.oneofKind === 'local' ? 'local' : 'cloud',
+    requiredFeatures: [...intent.requiredFeatures],
+  }));
+}
+
+function defaultAIConfig(): AgentCenterSharedAIConfigProjection {
   return {
     aiConfig: {
-      scopeRef,
-      profileOrigin: null,
-      capabilities: {
-        logicalModelIds: {},
-        targetRefs: {},
-        selectedComponents: {},
-        selectedParams: {},
+      owner: {
+        owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
       },
+      capabilities: [],
     },
-    scopeRef,
     capabilities: [],
-    routeIntents: [],
-    readiness: [],
-    configurationRevision: '0',
+    intents: [],
   };
 }
 
 export async function sessionFor(
   projection: AgentCenterStateInput = {},
   appearance?: AgentCenterAppearanceAdapter | null,
-  modelConfig?: AgentCenterRuntimeModelConfigAdapter | null,
 ): Promise<AgentCenterSession> {
-  let aiConfig = projection.aiConfig || defaultAIConfig();
+  let sharedAIConfig = projection.sharedAIConfig || defaultAIConfig();
   const session = createFirstPartyAgentCenterSession({
     identity: {
       ownerUserId: 'owner',
       runtimeSourceRef: 'source',
       localAgentRef: 'local-agent:test',
     },
-    modelConfig,
-    aiConfig: {
-      async snapshot() { return aiConfig; },
-      async update(input) {
-        aiConfig = {
-          ...aiConfig,
-          aiConfig: input.config,
-          configurationRevision: String(BigInt(input.expectedConfigurationRevision) + 1n),
+    sharedAIConfig: {
+      async get() { return sharedAIConfig; },
+      async overwrite(input) {
+        const capabilities = [...input.capabilities];
+        sharedAIConfig = {
+          aiConfig: {
+            ...sharedAIConfig.aiConfig,
+            capabilities,
+          },
+          capabilities: capabilities.map((intent) => intent.capabilityContract),
+          intents: projectIntents(capabilities),
         };
-        return aiConfig;
+        return sharedAIConfig;
       },
     },
     autonomy: projection.autonomy ? {

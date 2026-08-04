@@ -51,7 +51,7 @@ func TestPublicChatTurnRequestRejectsRequestCarriedExecutionBindings(t *testing.
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for request-carried execution_bindings, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "public chat execution_bindings are not admitted; Runtime Agent AI Config is authoritative (K-AGCORE-147)") {
+	if !strings.Contains(err.Error(), "public chat execution_bindings are not admitted; Runtime resolves execution bindings independently") {
 		t.Fatalf("expected K-AGCORE-147 rejection message, got %v", err)
 	}
 }

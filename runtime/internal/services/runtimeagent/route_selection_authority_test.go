@@ -61,7 +61,7 @@ func TestAIBackedLifeTrackExecutorFailsClosedWithoutConfigBinding(t *testing.T) 
 		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
 		Hook:  &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-route"}},
 	})
-	if err == nil || !strings.Contains(err.Error(), "committed Runtime Agent AI Config text.generate intent") {
+	if err == nil || !strings.Contains(err.Error(), "exact machine execution binding") {
 		t.Fatalf("expected fail-closed missing Runtime Agent AI Config text.generate intent rejection, got %v", err)
 	}
 	if len(fakeAI.requests) != 0 {
@@ -126,7 +126,7 @@ func TestAIBackedCanonicalReviewExecutorFailsClosedWithoutConfigBinding(t *testi
 			},
 		},
 	})
-	if err == nil || !strings.Contains(err.Error(), "committed Runtime Agent AI Config text.generate intent") {
+	if err == nil || !strings.Contains(err.Error(), "exact machine execution binding") {
 		t.Fatalf("expected fail-closed missing Runtime Agent AI Config text.generate intent rejection, got %v", err)
 	}
 	if len(fakeAI.requests) != 0 {
@@ -185,7 +185,7 @@ func TestAIBackedChatTrackSidecarExecutorFailsClosedWithoutConfigBinding(t *test
 			{Role: "user", Content: "hello"},
 		},
 	})
-	if err == nil || !strings.Contains(err.Error(), "committed Runtime Agent AI Config text.generate intent") {
+	if err == nil || !strings.Contains(err.Error(), "exact machine execution binding") {
 		t.Fatalf("expected fail-closed missing Runtime Agent AI Config text.generate intent rejection, got %v", err)
 	}
 	if len(fakeAI.requests) != 0 {
@@ -209,26 +209,11 @@ func TestChatTrackSidecarServiceStampsCommittedConfigModel(t *testing.T) {
 		},
 	}
 	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(fakeAI))
-	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
-		Context:          publicChatTestAIConfigContext(t, svc),
-		ExpectedRevision: 2,
-		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{
-			{
-				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
-				ModelId:     "local/qwen3-chat",
-				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				TargetRef:   runtimeAgentAIConfigTestLocalTarget("qwen3-chat"),
-			},
-			{
-				Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
-				ModelId:     runtimeAgentAIConfigTestEmbedModel,
-				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-embed"),
-			},
-		},
-	}); err != nil {
-		t.Fatalf("UpsertRuntimeAgentAIConfig: %v", err)
-	}
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatExecutionBinding{
+		BindingAlias: "local/qwen3-chat", ModelID: "local/qwen3-chat",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:qwen3-chat"),
+	})
 	if err := svc.ExecuteChatTrackSidecar(context.Background(), ChatTrackSidecarExecutionRequest{
 		CallerAppID:   "desktop.app",
 		AgentID:       testRuntimeAgentLocalRef("agent-alpha"),

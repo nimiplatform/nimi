@@ -819,7 +819,7 @@ func assertRealmSourceMaterializationGlobalProductRows(t *testing.T, svc *Servic
 	t.Helper()
 	for _, table := range []string{
 		"runtime_local_agent", "runtime_local_agent_state_projection", "runtime_local_agent_event_log",
-		"runtime_agent_ai_config", "runtime_local_agent_source_snapshot_v2", "runtime_local_agent_source_provenance_v3",
+		"runtime_local_agent_source_snapshot_v2", "runtime_local_agent_source_provenance_v3",
 	} {
 		var got int
 		if err := svc.backend.DB().QueryRow("SELECT COUNT(*) FROM " + table).Scan(&got); err != nil {

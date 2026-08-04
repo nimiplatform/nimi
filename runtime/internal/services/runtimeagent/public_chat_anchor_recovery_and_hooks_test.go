@@ -497,7 +497,6 @@ func TestPublicChatTrackHookProposalUsesCanonicalHookLifecycle(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("RealmSourceMaterialization: %v", err)
 	}
-	svc.SetLocalAppRouteOptionInventory(runtimeAgentAIConfigTestRouteInventory())
 	upsertPublicChatTestAgentAIConfigForContext(t, svc, testRuntimeAgentIdentityContext("agent-pack4-chat-track"))
 
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{

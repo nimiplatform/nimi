@@ -265,7 +265,7 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesExactTargetWithoutAlias
 		t.Fatalf("GetPublicChatSessionSnapshot(local app): %v", err)
 	}
 	detail := snapshot.GetSnapshot().AsMap()
-	if detail["config_revision"] != float64(2) {
+	if detail["config_revision"] != float64(0) {
 		t.Fatalf("snapshot config revision = %v", detail["config_revision"])
 	}
 	bindings, ok := detail["execution_bindings"].(map[string]any)

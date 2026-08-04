@@ -39,14 +39,9 @@ const calls = [
   ['localAppConversationInterruptTurn', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSubscribe', { agentHandle, conversationAnchorId: 'contract-anchor' }],
-  ['localAppAgentConfigurationSnapshot', { agentHandle }],
-  ['localAppAgentUpdateConfiguration', {
-    agentHandle,
-    expectedConfigurationRevision: '1',
-    intents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }],
-    profileOrigin: null,
-  }],
-  ['localAppAgentReadinessSnapshot', { agentHandle }],
+  ['localAppSharedAgentAIConfigOverwrite', { capabilities: [] }],
+  ['localAppSharedAgentAIProfilePreview', { profileJson: '{"profileId":"contract"}' }],
+  ['localAppSharedAgentAIProfileApply', { profileJson: '{"profileId":"contract"}' }],
   ['localAppAgentAutonomySnapshot', { agentHandle }],
   ['localAppAgentUpdateAutonomy', {
     agentHandle,
@@ -72,10 +67,30 @@ const calls = [
 ];
 
 async function main() {
+  for (const retired of [
+    'localAppAgentConfigurationSnapshot',
+    'localAppAgentUpdateConfiguration',
+    'localAppAgentReadinessSnapshot',
+    'localAppAgentAIProfilePreview',
+    'localAppAgentAIProfileApply',
+  ]) {
+    assert.equal(addon[retired], undefined, `${retired} must remain hard-cut`);
+  }
   assert.equal(typeof addon.localAppAIConfigGet, 'function', 'localAppAIConfigGet export is missing');
   const aiConfigGet = addon.localAppAIConfigGet();
   assert.equal(typeof aiConfigGet?.then, 'function', 'localAppAIConfigGet must return a Promise');
-  const outcomes = [aiConfigGet, ...calls.map(([name, input]) => {
+  assert.equal(
+    typeof addon.localAppSharedAgentAIConfigGet,
+    'function',
+    'localAppSharedAgentAIConfigGet export is missing',
+  );
+  const sharedAgentAIConfigGet = addon.localAppSharedAgentAIConfigGet();
+  assert.equal(
+    typeof sharedAgentAIConfigGet?.then,
+    'function',
+    'localAppSharedAgentAIConfigGet must return a Promise',
+  );
+  const outcomes = [aiConfigGet, sharedAgentAIConfigGet, ...calls.map(([name, input]) => {
     assert.equal(typeof addon[name], 'function', `${name} export is missing`);
     let operation;
     assert.doesNotThrow(() => {
@@ -86,7 +101,7 @@ async function main() {
   })];
 
   for (const outcome of await Promise.all(outcomes)) {
-    assert.equal(outcome?.status, 'error', 'nonexistent Agent handles must fail closed');
+    assert.equal(outcome?.status, 'error', 'unavailable protected operations must fail closed');
     assert.equal(typeof outcome.reasonCode, 'string');
     assert.ok(outcome.reasonCode.length > 0);
   }

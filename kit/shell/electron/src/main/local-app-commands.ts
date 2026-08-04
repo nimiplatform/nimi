@@ -15,6 +15,7 @@ const MAX_TEXT_CANDIDATE_TOKENS = 4096;
 const MAX_ARTIFACT_DATA_BYTES = 4 * 1024 * 1024;
 const MAX_ARTIFACT_DISPLAY_NAME_BYTES = 512;
 const MAX_TURN_ATTACHMENTS = 1;
+const MAX_AI_PROFILE_JSON_BYTES = 4 * 1024 * 1024;
 const FORBIDDEN_RENDERER_FIELDS = new Set([
   'endpoint', 'authorization', 'token', 'localAppPrincipalId', 'localAppRecordId',
   'trustClass', 'provenanceRevision', 'launchLease', 'bootstrap', 'processId',
@@ -44,11 +45,10 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactPut'], 'artifactPut'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactReadBytes'], 'artifactReadBytes'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentConfigurationSnapshot'], 'agentConfigurationSnapshot'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateConfiguration'], 'agentUpdateConfiguration'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReadinessSnapshot'], 'agentReadinessSnapshot'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAIProfilePreview'], 'agentAIProfilePreview'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAIProfileApply'], 'agentAIProfileApply'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'], 'sharedAgentAIConfigGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'], 'sharedAgentAIConfigOverwrite'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIProfilePreview'], 'sharedAgentAIProfilePreview'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIProfileApply'], 'sharedAgentAIProfileApply'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
@@ -76,6 +76,7 @@ export async function dispatchElectronLocalAppCommand(input: {
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
     if (method === 'aiConfigGet') return await input.host.aiConfigGet();
+    if (method === 'sharedAgentAIConfigGet') return await input.host.sharedAgentAIConfigGet();
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
@@ -123,6 +124,7 @@ function validatePayload(
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigOverwrite':
+    case 'sharedAgentAIConfigOverwrite':
       assertExactKeys(payload, ['capabilities'], command);
       if (!Array.isArray(payload.capabilities)) {
         throw invalidPayload(command, 'capabilities is invalid');
@@ -130,6 +132,13 @@ function validatePayload(
       assertNoAIConfigOwner(payload.capabilities, command);
       validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
       return { capabilities: payload.capabilities as NimiElectronLocalAppRecord[string] };
+    case 'sharedAgentAIConfigGet':
+      assertExactKeys(payload, [], command);
+      return {};
+    case 'sharedAgentAIProfilePreview':
+    case 'sharedAgentAIProfileApply':
+      assertExactKeys(payload, ['profileJson'], command);
+      return { profileJson: validateAIProfileJson(payload.profileJson, command) };
     case 'permissionStatus':
       return identifiers(payload, ['permissionId'], command);
     case 'permissionRequest':
@@ -216,49 +225,9 @@ function validatePayload(
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
-    case 'agentConfigurationSnapshot':
-    case 'agentReadinessSnapshot':
     case 'agentAutonomySnapshot':
     case 'agentPresentationSnapshot':
       return identifiers(payload, ['agentHandle'], command);
-    case 'agentUpdateConfiguration':
-      assertExactKeys(payload, ['agentHandle', 'expectedConfigurationRevision', 'intents', 'profileOrigin'], command);
-      if (!Array.isArray(payload.intents) || payload.intents.length === 0) {
-        throw invalidPayload(command, 'intents is invalid');
-      }
-      assertNoForbiddenAuthorityValue(payload.intents, command);
-      assertNoForbiddenAuthorityValue(payload.profileOrigin, command);
-      validateStorageJsonValue(payload.intents, command);
-      validateStorageJsonValue(payload.profileOrigin, command);
-      return {
-        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
-        expectedConfigurationRevision: decimalRevision(payload.expectedConfigurationRevision, 'expectedConfigurationRevision', command, false),
-        intents: payload.intents as NimiElectronLocalAppRecord[string],
-        profileOrigin: payload.profileOrigin as NimiElectronLocalAppRecord[string],
-      };
-    case 'agentAIProfilePreview':
-      assertExactKeys(payload, ['agentHandle', 'profile', 'runtimeDescriptor'], command);
-      assertNoForbiddenAuthorityValue(payload.profile, command);
-      assertNoForbiddenAuthorityValue(payload.runtimeDescriptor, command);
-      validateJsonValue(payload.profile, command, 4 * 1024 * 1024);
-      validateJsonValue(payload.runtimeDescriptor, command, 4 * 1024 * 1024);
-      return {
-        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
-        profile: payload.profile as NimiElectronLocalAppRecord[string],
-        runtimeDescriptor: payload.runtimeDescriptor as NimiElectronLocalAppRecord[string],
-      };
-    case 'agentAIProfileApply':
-      assertExactKeys(payload, ['agentHandle', 'expectedConfigurationRevision', 'profile', 'runtimeDescriptor'], command);
-      assertNoForbiddenAuthorityValue(payload.profile, command);
-      assertNoForbiddenAuthorityValue(payload.runtimeDescriptor, command);
-      validateJsonValue(payload.profile, command, 4 * 1024 * 1024);
-      validateJsonValue(payload.runtimeDescriptor, command, 4 * 1024 * 1024);
-      return {
-        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
-        expectedConfigurationRevision: decimalRevision(payload.expectedConfigurationRevision, 'expectedConfigurationRevision', command, false),
-        profile: payload.profile as NimiElectronLocalAppRecord[string],
-        runtimeDescriptor: payload.runtimeDescriptor as NimiElectronLocalAppRecord[string],
-      };
     case 'agentUpdateAutonomy':
       assertExactKeys(payload, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
       assertNoForbiddenAuthorityValue(payload.intent, command);
@@ -446,6 +415,22 @@ function validateJsonValue(value: unknown, command: string, maxBytes: number): v
   if (typeof encoded !== 'string' || Buffer.byteLength(encoded, 'utf8') > maxBytes) {
     throw invalidPayload(command, 'value exceeds the JSON document bound');
   }
+}
+
+function validateAIProfileJson(value: unknown, command: string): string {
+  if (typeof value !== 'string'
+    || !value.trim()
+    || Buffer.byteLength(value, 'utf8') > MAX_AI_PROFILE_JSON_BYTES) {
+    throw invalidPayload(command, 'profileJson is invalid');
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw invalidPayload(command, 'profileJson is invalid');
+  }
+  validateJsonValue(parsed, command, MAX_AI_PROFILE_JSON_BYTES);
+  return value;
 }
 
 function assertNoForbiddenAuthorityValue(value: unknown, command: string): void {

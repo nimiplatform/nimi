@@ -10,8 +10,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
@@ -80,6 +80,9 @@ type Service struct {
 	voiceAssetResolver                       VoiceAssetResolver
 	aiBridgeMu                               sync.RWMutex
 	aiBridge                                 *RuntimePrivateAIBridge
+	machineExecutionBindingMu                sync.RWMutex
+	machineExecutionBindingResolver          machineExecutionBindingResolver
+	aiConfigStore                            aiconfig.Store
 	auditStore                               *auditlog.Store
 	delegatedMu                              sync.RWMutex
 	delegatedGateway                         delegatedCapabilityGateway
@@ -125,37 +128,6 @@ type Service struct {
 
 	memoryPromotionEvidence map[string]runtimeMemoryPromotionEvidence
 
-	// K-AGCORE-144..150 Runtime Agent AI Config domain. agentAIConfigMu
-	// serializes mutations (the repository CAS re-checks inside the write tx);
-	// agentAIConfigReadiness holds the last computed K-AGCORE-146 projection per
-	// Runtime Local Agent instance.
-	agentAIConfigMu   sync.Mutex
-	agentAIConfigRepo *agentAgentAIConfigRepository
-
-	agentAIConfigReadinessMu sync.RWMutex
-	agentAIConfigReadiness   map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot
-
-	localAppRouteOptionsMu    sync.RWMutex
-	localAppRouteOptions      localAppRouteOptionInventory
-	localAppCloudOptions      localAppCloudRouteOptionInventory
-	localTargetResolver       runtimeAgentDurableLocalTargetResolver
-	profileDescriptorPreparer runtimeAgentAIProfileDescriptorPreparer
-
-	execSubMu     sync.Mutex
-	execNextSubID uint64
-	execSubs      map[uint64]runtimeAgentAIConfigReadinessSubscriber
-
-	execHealthMu      sync.Mutex
-	execHealthTracker *providerhealth.Tracker
-	execHealthCancel  func()
-	execHealthDone    chan struct{}
-
-	// execPendingAIConfigAudits parks Runtime Agent AI Config audit records
-	// when a seed or mutation commits before the audit store attaches;
-	// SetAuditStore flushes them in commit order.
-	execAuditMu               sync.Mutex
-	execPendingAIConfigAudits []*runtimev1.AuditEventRecord
-
 	lifeLoopMu     sync.Mutex
 	lifeLoopCancel context.CancelFunc
 	lifeLoopDone   chan struct{}
@@ -198,9 +170,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		backend:                                  backend,
 		stateRepo:                                stateRepo,
 		chatStateRepo:                            newPublicChatSurfaceStateRepository(backend, stateRepo),
-		agentAIConfigRepo:                        newAgentAgentAIConfigRepository(backend),
-		agentAIConfigReadiness:                   make(map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot),
-		execSubs:                                 make(map[uint64]runtimeAgentAIConfigReadinessSubscriber),
 		reviews:                                  newReviewPersistence(backend),
 		postures:                                 newBehavioralPosturePersistence(backend),
 		realmSourceMaterializationRepoV3:         realmSourceMaterializationRepoV3,
@@ -257,7 +226,6 @@ func (s *Service) Close() {
 	s.closeOnce.Do(func() {
 		s.closed.Store(true)
 		s.StopLifeTrackLoop()
-		s.stopAgentAIConfigReadinessHealthSubscription()
 		s.shutdownPublicChatSurface()
 	})
 }
@@ -274,10 +242,7 @@ func (s *Service) SetAuditStore(store *auditlog.Store) {
 	if s == nil {
 		return
 	}
-	s.execAuditMu.Lock()
 	s.auditStore = store
-	s.execAuditMu.Unlock()
-	s.flushPendingAgentAIConfigAudit()
 }
 
 func (s *Service) SetLifeTrackExecutor(executor LifeTrackExecutor) {

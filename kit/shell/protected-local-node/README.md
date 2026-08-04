@@ -8,13 +8,18 @@ main processes. The addon exposes exact Local App operations, including:
 - `localAppPermissionRequest`
 - `localAppAIConfigGet`
 - `localAppAIConfigOverwrite`
+- `localAppSharedAgentAIConfigGet`
+- `localAppSharedAgentAIConfigOverwrite`
+- `localAppSharedAgentAIProfilePreview`
+- `localAppSharedAgentAIProfileApply`
 - `localAppStorageReadJson`
 - `localAppStorageWriteJson`
 - `localAppStorageRemoveJson`
 
-The App AIConfig methods are owner-free at this boundary. Runtime derives the
-exact App owner from the authenticated Local App process binding; the addon
-does not accept an App id or owner assertion.
+The App and shared LocalAgent AIConfig methods are owner-free at this boundary.
+Runtime derives the exact owner from the authenticated Local App process
+binding; the addon accepts neither an App id, an Agent handle, nor an owner
+assertion for the shared surface.
 
 For Nimi Desktop it additionally exposes the generated first-party product
 families:

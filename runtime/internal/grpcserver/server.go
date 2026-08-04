@@ -626,6 +626,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		_ = memorySvc.Close()
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
+	agentSvc.SetAIConfigStore(aiConfigStore)
 	if cfg.RuntimeID == "" {
 		logger.Warn("source materialization disabled; Runtime identity is not configured")
 	} else if err := agentSvc.SetSourceMaterializationRuntimeIdentity(cfg.RuntimeID); err != nil {
@@ -648,11 +649,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetRealmCharacterPublicAvatarResolver(accountSvc)
 	accountSvc.SetLocalAgentOwnershipResolver(agentSvc)
 	agentSvc.SetAuditStore(auditStore)
-	// K-AGCORE-146: Runtime Agent AI Config readiness recomputes on provider health
-	// change evidence.
-	agentSvc.SetProviderHealthTracker(aiHealth)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
-	agentSvc.SetLocalAppRouteOptionInventory(localSvc)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	agentSvc.SetVoiceAssetResolver(runtimeagentservice.NewAIBackedVoiceAssetResolver(aiSvc))
 	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
@@ -756,7 +753,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	connSvc.SetCloudProvider(aiSvc.CloudProvider())
 	connSvc.SetLocalModelLister(localSvc)
 	connSvc.SetModelCatalogResolver(aiSvc.SpeechCatalogResolver())
-	agentSvc.SetLocalAppCloudRouteOptionInventory(connSvc)
 	runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 	logger.Info("runtime in-process mode enabled")
 

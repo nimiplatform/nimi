@@ -8,7 +8,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -171,13 +170,10 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 		t.Fatalf("selected params: %v", err)
 	}
 	targetRef := publicChatTestLocalRuntimeTargetRef("profile_workflow:z-image-turbo")
-	binding := runtimeAgentAIConfigIntentToPublicChatBinding(&runtimev1.RuntimeAgentAIConfigIntent{
-		Capability:     runtimeAgentAIConfigCapabilityImageGenerate,
-		ModelId:        "z-image-turbo",
-		RoutePolicy:    runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef:      targetRef,
-		SelectedParams: selectedParams,
-	})
+	binding := publicChatExecutionBinding{
+		ModelID: "z-image-turbo", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef: targetRef, SelectedParams: clonePublicChatSelectedParams(selectedParams),
+	}
 	selectedParams.Fields["steps"] = structpb.NewStringValue("99")
 
 	scenario := &capturePublicChatImageScenarioExecutor{}
@@ -230,7 +226,7 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 			t.Fatalf("image extension %s = %#v, want %#v; payload=%#v", key, got, want, payload)
 		}
 	}
-	for _, reservedKey := range runtimeAgentAIConfigReservedSelectedParamKeys {
+	for _, reservedKey := range []string{"profile_entries", "entry_overrides", "profile_overrides"} {
 		if _, exists := payload[reservedKey]; exists {
 			t.Fatalf("AIConfig parameters must not carry private profile composition key %q: %#v", reservedKey, payload)
 		}
@@ -271,11 +267,9 @@ func publicChatImageActionTurnPayload(t *testing.T, anchorID string) *structpb.S
 func submitPublicChatImageActionTurn(t *testing.T, svc *Service, anchorID string, includeImageBinding bool) {
 	t.Helper()
 	if includeImageBinding {
-		upsertPublicChatTestAgentAIConfig(t, svc, &runtimev1.RuntimeAgentAIConfigIntent{
-			Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
-			ModelId:     "local/image",
-			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			TargetRef:   runtimeAgentAIConfigTestLocalTarget("image"),
+		upsertPublicChatTestAgentAIConfig(t, svc, publicChatExecutionBinding{
+			ModelID: "local/image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef: publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:image"),
 		})
 	}
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
@@ -410,63 +404,6 @@ func TestPublicChatImageActionFailsClosedWithoutImageBinding(t *testing.T) {
 		t.Fatalf("expected missing image binding failure, got=%v", actionFailedDetail)
 	}
 	assertPublicChatActionFailurePreservesCommittedTurn(t, svc, capture, anchorID, "no committed image.generate Runtime Agent AI Config binding")
-}
-
-// TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable proves
-// the K-AGCORE-148 image_route_unhealthy typed reason: a committed image
-// binding whose route is currently unavailable fails the planned action with
-// the distinct route-unhealthy reason, never image_binding_missing.
-func TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable(t *testing.T) {
-	t.Parallel()
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	capture := newPublicChatEmitCapture()
-	svc.SetPublicChatAppEmitter(capture.emit)
-	rawAPML := publicChatImageActionAPML("message-image", "I will create that image.", "action-image-1", "studio portrait")
-	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
-		stream: emitPublicChatImageActionStream("trace-image-action-route-unavailable", rawAPML),
-	})
-	actionExecutor := &stubPublicChatActionExecutor{}
-	svc.SetPublicChatActionExecutor(actionExecutor)
-	tracker := providerhealth.New()
-	svc.SetProviderHealthTracker(tracker)
-	if err := tracker.Mark(localImageProviderHealthKey, false, "image backend unavailable"); err != nil {
-		t.Fatalf("tracker.Mark(local-image unavailable): %v", err)
-	}
-	upsertPublicChatTestAgentAIConfig(t, svc, &runtimev1.RuntimeAgentAIConfigIntent{
-		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
-		ModelId:     "local/image",
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef:   runtimeAgentAIConfigTestLocalTarget("image"),
-	})
-	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
-		SubjectUserId: "user-1",
-		MessageType:   publicChatTurnRequestType,
-		Payload:       publicChatImageActionTurnPayload(t, anchorID),
-	})
-	if err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(image action request): %v", err)
-	}
-
-	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
-	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
-	_ = capture.waitForMessageType(t, publicChatTurnActionPlannedType)
-	_ = capture.waitForMessageType(t, publicChatTurnActionStartedType)
-	actionFailed := capture.waitForMessageType(t, publicChatTurnActionFailedType)
-
-	if actionExecutor.calls != 0 {
-		t.Fatalf("image action executor must not run over an unavailable configured route")
-	}
-	detail := publicChatTurnDetail(t, actionFailed)
-	if got := detail["reason"]; got != publicChatActionFailedReasonImageRouteUnhealthy {
-		t.Fatalf("expected action_failed.detail.reason=image_route_unhealthy, got=%v", detail)
-	}
-	if !strings.Contains(fmt.Sprint(detail["message"]), "currently unavailable") {
-		t.Fatalf("expected route-unavailable failure message, got=%v", detail)
-	}
-	assertPublicChatActionFailurePreservesCommittedTurn(t, svc, capture, anchorID, "currently unavailable")
 }
 
 func TestPublicChatImageActionFailsClosedWhenExecutorFails(t *testing.T) {

@@ -91,12 +91,10 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'registerAvatarLiveInstanceBinding'
     | 'resolveAvatarLiveInstanceBinding'
     | 'setAgentPresentationProfile'
-    | 'getRuntimeAgentAIConfig'
-    | 'upsertRuntimeAgentAIConfig'
-    | 'getRuntimeAgentAIConfigReadiness'
-    | 'subscribeRuntimeAgentAIConfigReadiness'
-    | 'previewRuntimeAgentAIProfile'
-    | 'applyRuntimeAgentAIProfile'
+    | 'getSharedLocalAgentAIConfig'
+    | 'overwriteSharedLocalAgentAIConfig'
+    | 'previewSharedLocalAgentAIProfile'
+    | 'applySharedLocalAgentAIProfile'
     | 'getAgentCanonicalMemoryBankStatus'
     | 'requestAgentCanonicalMemoryBankBind'
     | 'subscribeAgentEvents'
@@ -220,12 +218,10 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     registerAvatarLiveInstanceBinding: runtime.agents.registerAvatarLiveInstanceBinding,
     resolveAvatarLiveInstanceBinding: runtime.agents.resolveAvatarLiveInstanceBinding,
     setAgentPresentationProfile: runtime.agents.setAgentPresentationProfile,
-    getRuntimeAgentAIConfig: runtime.agents.getRuntimeAgentAIConfig,
-    upsertRuntimeAgentAIConfig: runtime.agents.upsertRuntimeAgentAIConfig,
-    getRuntimeAgentAIConfigReadiness: runtime.agents.getRuntimeAgentAIConfigReadiness,
-    subscribeRuntimeAgentAIConfigReadiness: runtime.agents.subscribeRuntimeAgentAIConfigReadiness,
-    previewRuntimeAgentAIProfile: runtime.agents.previewRuntimeAgentAIProfile,
-    applyRuntimeAgentAIProfile: runtime.agents.applyRuntimeAgentAIProfile,
+    getSharedLocalAgentAIConfig: runtime.agents.getSharedLocalAgentAIConfig,
+    overwriteSharedLocalAgentAIConfig: runtime.agents.overwriteSharedLocalAgentAIConfig,
+    previewSharedLocalAgentAIProfile: runtime.agents.previewSharedLocalAgentAIProfile,
+    applySharedLocalAgentAIProfile: runtime.agents.applySharedLocalAgentAIProfile,
     getAgentCanonicalMemoryBankStatus: runtime.agents.getAgentCanonicalMemoryBankStatus,
     requestAgentCanonicalMemoryBankBind: runtime.agents.requestAgentCanonicalMemoryBankBind,
     subscribeAgentEvents: runtime.agents.subscribeAgentEvents,

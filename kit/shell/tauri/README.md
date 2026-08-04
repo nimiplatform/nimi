@@ -52,8 +52,9 @@ Available macros:
 - `nimi_shell_tauri_runtime_bridge_handler!`
 - `nimi_shell_tauri_oauth_runtime_bridge_handler!`
 - `nimi_shell_tauri_local_app_standard_shell_handler!` (the isolated catalogued
-  Local App carrier only, including owner-free App AIConfig get/overwrite and
-  Runtime-selected foreground text candidates)
+  Local App carrier only, including owner-free App AIConfig get/overwrite,
+  shared LocalAgent AIConfig/profile operations, and Runtime-selected
+  foreground text candidates)
 
 The command catalog is also exposed through
 `nimi_shell_tauri::command_registration` for tests, audits, and apps that need

@@ -116,15 +116,6 @@ export {
 export { ExecutionMode, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, CatalogModelSource, ModelCatalogProviderSource } from '@nimiplatform/sdk/runtime/generated';
 export type {
   NimiListRuntimeRouteOptionsInput,
-  NimiRuntimeAgentAIConfigBinding,
-  NimiRuntimeAgentAIConfigCapabilityReadinessProjection,
-  NimiRuntimeAgentAIConfigIntents,
-  NimiRuntimeAgentAIConfigModule,
-  NimiRuntimeAgentAIConfigReadinessCapabilityState,
-  NimiRuntimeAgentAIConfigReadinessReasonCode,
-  NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-  NimiRuntimeAgentAIConfigSnapshot,
-  NimiRuntimeAgentAIConfigUpdateInput,
   NimiRuntimeAgentAutonomyConfigInput,
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentAutonomySnapshot,

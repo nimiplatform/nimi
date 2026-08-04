@@ -258,26 +258,8 @@ pub struct NativeAgentHandleInput {
 }
 
 #[napi(object)]
-pub struct NativeAgentUpdateConfigurationInput {
-    pub agent_handle: String,
-    pub expected_configuration_revision: String,
-    pub intents: JsonValue,
-    pub profile_origin: JsonValue,
-}
-
-#[napi(object)]
-pub struct NativeAgentAIProfilePreviewInput {
-    pub agent_handle: String,
-    pub profile: JsonValue,
-    pub runtime_descriptor: JsonValue,
-}
-
-#[napi(object)]
-pub struct NativeAgentAIProfileApplyInput {
-    pub agent_handle: String,
-    pub expected_configuration_revision: String,
-    pub profile: JsonValue,
-    pub runtime_descriptor: JsonValue,
+pub struct NativeSharedAgentAIProfileInput {
+    pub profile_json: String,
 }
 
 #[napi(object)]

@@ -1,14 +1,9 @@
 import {
-  useCallback,
   useMemo,
   useSyncExternalStore,
 } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import {
-  findNimiRuntimeRouteModelProfile,
-} from '@nimiplatform/sdk/runtime';
-import { useAppStore, type AppStoreState, type AuthStatus } from '../../app-shell/providers/app-store';
+import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
@@ -33,10 +28,6 @@ import {
   RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY,
   type AgentRuntimeConversationSummary,
 } from './chat-agent-runtime-conversation-summaries';
-import {
-  type NimiAIConfig,
-} from './conversation-capability';
-import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 function synthesizeAgentThreadSummaryFromRuntimeSummary(
@@ -70,9 +61,7 @@ function synthesizeAgentThreadSummaryFromTarget(
 }
 
 type UseAgentConversationShellStateInput = {
-  aiConfig: NimiAIConfig;
   authStatus: AuthStatus;
-  bootstrapReady: boolean;
   selection: AgentConversationSelection;
 };
 
@@ -80,12 +69,8 @@ type AgentConversationShellState = {
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
   activeConversationAnchorId: string | null;
-  agentResolution: AppStoreState['agentEffectiveCapabilityResolution'];
-  agentRouteReady: boolean;
   bundle: AgentLocalThreadBundle | null;
   bundleError: Error | null;
-  handleModelSelectionChange: (selection: RouteModelPickerSelection) => void;
-  initialModelSelection: Partial<RouteModelPickerSelection>;
   isBundleLoading: boolean;
   messages: ReturnType<typeof toConversationMessageViewModel>[];
   runtimeConversationSummaries: AgentRuntimeConversationSummary[];
@@ -96,7 +81,6 @@ type AgentConversationShellState = {
   targets: AgentLocalTargetSnapshot[];
   targetsPending: boolean;
   targetsReady: boolean;
-  textRouteModelProfile: ReturnType<typeof findNimiRuntimeRouteModelProfile>;
   threads: AgentLocalThreadSummary[];
   threadsReady: boolean;
 };
@@ -106,26 +90,6 @@ export function useAgentConversationShellState(
 ): AgentConversationShellState {
   const anchorBindings = useAgentConversationAnchorBindings();
   const sdk = useDesktopRendererSdk();
-  const agentResolution = useAppStore((state) => state.agentEffectiveCapabilityResolution);
-  const textRouteOptionsQuery = useQuery({
-    queryKey: ['chat-agent-route-options', 'text.generate'],
-    queryFn: () => loadDesktopRouteOptions('text.generate', sdk),
-    enabled: input.bootstrapReady,
-    staleTime: 60_000,
-  });
-  const textRouteModelProfile = useMemo(
-    () => findNimiRuntimeRouteModelProfile(textRouteOptionsQuery.data, null),
-    [textRouteOptionsQuery.data],
-  );
-
-  const handleModelSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
-    void selection;
-  }, []);
-
-  const initialModelSelection = useMemo<Partial<RouteModelPickerSelection>>(() => {
-    return {};
-  }, []);
-
   const storedTargetsByLocalRef = useAppStore((state) => state.agentConversationTargetByLocalRef);
   const targets = useMemo(
     (): AgentLocalTargetSnapshot[] => Object.values(storedTargetsByLocalRef),
@@ -210,8 +174,6 @@ export function useAgentConversationShellState(
     }
     return threadTarget;
   }, [selectedTarget, selectedThreadRecord?.targetSnapshot]);
-  const agentRouteReady = agentResolution?.ready === true;
-
   const projectedBundle = useAgentVisibleProjection(activeThreadId);
   const bundle = projectedBundle || null;
   const visibleMessages = projectedBundle?.messages || [];
@@ -228,12 +190,8 @@ export function useAgentConversationShellState(
     activeTarget,
     activeThreadId,
     activeConversationAnchorId,
-    agentResolution,
-    agentRouteReady,
     bundle,
     bundleError: null,
-    handleModelSelectionChange,
-    initialModelSelection,
     isBundleLoading,
     messages,
     runtimeConversationSummaries,
@@ -244,7 +202,6 @@ export function useAgentConversationShellState(
     targets,
     targetsPending: false,
     targetsReady: true,
-    textRouteModelProfile,
     threads,
     threadsReady: runtimeConversationSummariesReady,
   };

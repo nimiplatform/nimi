@@ -5,12 +5,6 @@ import type {
   NimiRuntimeAgentTurnContextSummary,
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
-import type {
-  RouteConnector,
-  RouteConnectorModel,
-  RouteLocalModel,
-  RouteModelPickerDataProvider,
-} from '@nimiplatform/kit/features/model-picker/headless';
 import { buildAgentCenterState } from './state.js';
 import type {
   AgentCenterActionAvailability,
@@ -22,7 +16,7 @@ import type {
   AgentCenterAutonomyProjection,
   AgentCenterNextStepAction,
   AgentCenterOpaqueHandle,
-  AgentCenterAIConfigModule,
+  AgentCenterSharedAIConfigModule,
   AgentCenterPermissionedAutonomyMutation,
   AgentCenterPermissionedAIConfigMutation,
   AgentCenterPermissionedPresentationCommitInput,
@@ -30,8 +24,6 @@ import type {
   AgentCenterPermissionedSdkSurfaceInput,
   AgentCenterProductAction,
   AgentCenterRuntimeLoadInput,
-  AgentCenterRuntimeModelConfigAdapter,
-  AgentCenterRuntimeAIConfigProjection,
   AgentCenterSession,
   AgentCenterSnapshot,
   AgentCenterState,
@@ -40,8 +32,9 @@ import type {
 } from './types.js';
 
 const ACTIONS: readonly AgentCenterProductAction[] = [
-  'readAIConfig',
-  'updateAIConfig',
+  'getSharedAIConfig',
+  'overwriteSharedAIConfig',
+  'applySharedAIProfile',
   'readAutonomy',
   'updateAutonomy',
   'readMemorySummary',
@@ -101,17 +94,15 @@ export function projectAgentCenterActionAvailability(
 }
 
 interface SessionTransport {
-  readonly modelConfig: AgentCenterRuntimeModelConfigAdapter | null;
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
   actionAvailability(): Promise<AgentCenterActionAvailabilityProjection>;
   read(): Promise<AgentCenterStateInput>;
-  updateAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<AgentCenterStateInput | AgentCenterState>;
+  overwriteSharedAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<AgentCenterStateInput | AgentCenterState>;
   updateAutonomy(input: AgentCenterPermissionedAutonomyMutation): Promise<AgentCenterStateInput | AgentCenterState>;
   replaceAppearance(input: AgentCenterPermissionedPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   restorePreviousAppearance(): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   requestPermission(): Promise<void>;
   openPermissionSettings(): Promise<void>;
-  subscribeReadiness?(): AsyncIterable<AgentCenterStateInput>;
   subscribeActionPosture?(
     listener: (availability: AgentCenterActionAvailabilityProjection) => void,
   ): () => void;
@@ -127,7 +118,7 @@ function stateWithAvailability(
   availability: AgentCenterActionAvailabilityProjection,
 ): AgentCenterState {
   const state = isBuiltState(value) ? value : buildAgentCenterState(value);
-  const modelAvailable = availability.updateAIConfig.state === 'available';
+  const modelAvailable = availability.overwriteSharedAIConfig.state === 'available';
   const autonomyAvailable = availability.updateAutonomy.state === 'available';
   return {
     ...state,
@@ -151,15 +142,12 @@ function errorMessage(error: unknown): string {
 }
 
 class ManagerSession {
-  readonly modelConfig: AgentCenterRuntimeModelConfigAdapter | null;
   readonly appearance: AgentCenterSession['appearance'];
   #snapshot: AgentCenterSnapshot;
   #listeners = new Set<() => void>();
-  #iterator: AsyncIterator<AgentCenterStateInput> | null = null;
   #actionPostureUnsubscribe: (() => void) | null = null;
 
   constructor(private readonly transport: SessionTransport) {
-    this.modelConfig = transport.modelConfig;
     this.#snapshot = {
       phase: 'loading',
       state: stateWithAvailability({}, allUnavailable('unknown')),
@@ -189,15 +177,11 @@ class ManagerSession {
     this.#listeners.add(listener);
     if (this.#listeners.size === 1) {
       void this.refresh();
-      this.#startReadiness();
       this.#startActionPosture();
     }
     return () => {
       this.#listeners.delete(listener);
       if (this.#listeners.size === 0) {
-        const iterator = this.#iterator;
-        this.#iterator = null;
-        void iterator?.return?.();
         this.#actionPostureUnsubscribe?.();
         this.#actionPostureUnsubscribe = null;
       }
@@ -221,9 +205,9 @@ class ManagerSession {
     }
   }
 
-  async updateAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<void> {
-    this.#requireAvailable('updateAIConfig');
-    const result = await this.transport.updateAIConfig(input);
+  async overwriteSharedAIConfig(input: AgentCenterPermissionedAIConfigMutation): Promise<void> {
+    this.#requireAvailable('overwriteSharedAIConfig');
+    const result = await this.transport.overwriteSharedAIConfig(input);
     this.#replaceState(result);
   }
 
@@ -301,8 +285,8 @@ class ManagerSession {
   #startActionPosture(): void {
     if (!this.transport.subscribeActionPosture || this.#actionPostureUnsubscribe) return;
     this.#actionPostureUnsubscribe = this.transport.subscribeActionPosture((availability) => {
-      const becameReadable = this.#snapshot.availability.readAIConfig.state === 'unavailable'
-        && availability.readAIConfig.state === 'available';
+      const becameReadable = this.#snapshot.availability.getSharedAIConfig.state === 'unavailable'
+        && availability.getSharedAIConfig.state === 'available';
       this.#set({
         ...this.#snapshot,
         phase: this.#snapshot.phase === 'loading' ? 'loading' : 'ready',
@@ -314,33 +298,12 @@ class ManagerSession {
     });
   }
 
-  #startReadiness(): void {
-    if (!this.transport.subscribeReadiness || this.#iterator) return;
-    const iterator = this.transport.subscribeReadiness()[Symbol.asyncIterator]();
-    this.#iterator = iterator;
-    void (async () => {
-      try {
-        while (this.#iterator === iterator) {
-          const next = await iterator.next();
-          if (next.done || this.#iterator !== iterator) break;
-          this.#replaceState(next.value);
-        }
-      } catch (error) {
-        if (this.#iterator === iterator) {
-          this.#set({ ...this.#snapshot, phase: 'degraded', error: errorMessage(error) });
-        }
-      } finally {
-        if (this.#iterator === iterator) this.#iterator = null;
-      }
-    })();
-  }
 }
 
 export interface CreateFirstPartyAgentCenterSessionInput {
-  readonly aiConfig: AgentCenterAIConfigModule;
+  readonly sharedAIConfig: AgentCenterSharedAIConfigModule;
   readonly inspect?: NimiRuntimeAgentInspectSurface | null;
   readonly identity: RuntimeLocalAgentIdentityInput;
-  readonly modelConfig?: AgentCenterRuntimeModelConfigAdapter | null;
   readonly autonomy?: {
     readonly load: (input: RuntimeLocalAgentIdentityInput) => Promise<AgentCenterAutonomyProjection | null>;
     readonly update: (
@@ -361,10 +324,10 @@ export function createFirstPartyAgentCenterSession(
   input: CreateFirstPartyAgentCenterSessionInput,
 ): AgentCenterSession {
   const identity = input.loadInput?.identity || input.identity;
-  const callInput = { ...identity, subjectUserId: input.loadInput?.subjectUserId };
+  const aiConfigAccountInput = { subjectUserId: input.loadInput?.subjectUserId };
   const read = async (): Promise<AgentCenterStateInput> => {
-    const [aiConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
-      input.aiConfig.snapshot(callInput),
+    const [sharedAIConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
+      input.sharedAIConfig.get(aiConfigAccountInput),
       input.autonomy?.load(identity) ?? Promise.resolve(null),
       input.inspect?.getPublicInspect(identity) ?? Promise.resolve(null),
       input.loadMemory?.(identity) ?? Promise.resolve(null),
@@ -375,21 +338,19 @@ export function createFirstPartyAgentCenterSession(
       }) ?? Promise.resolve(null),
       input.appearance?.load() ?? Promise.resolve(null),
     ]);
-    return { aiConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance };
+    return { sharedAIConfig, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance };
   };
   const transport: SessionTransport = {
-    modelConfig: input.modelConfig || null,
     appearanceAdapter: input.appearance || null,
     actionAvailability: async () => allAvailable(),
     read,
-    async updateAIConfig(mutation) {
-      const aiConfig = await input.aiConfig.update({
-        ...identity,
+    async overwriteSharedAIConfig(mutation) {
+      const sharedAIConfig = await input.sharedAIConfig.overwrite({
         subjectUserId: input.loadInput?.subjectUserId,
-        expectedConfigurationRevision: mutation.expectedConfigurationRevision,
-        config: mutation.config,
+        capabilities: mutation.capabilities,
+        ...(mutation.displayProvenance ? { displayProvenance: mutation.displayProvenance } : {}),
       });
-      return { ...(await read()), aiConfig };
+      return { ...(await read()), sharedAIConfig };
     },
     async updateAutonomy(mutation) {
       if (!input.autonomy) throw new Error('Agent Center autonomy transport is unavailable.');
@@ -424,71 +385,6 @@ export interface CreatePermissionedAgentCenterSessionInput {
   readonly loadOptions?: { readonly conversationAnchor?: string };
 }
 
-function createPermissionedModelConfigAdapter(
-  loadProjection: () => Promise<AgentCenterRuntimeAIConfigProjection | null>,
-  profile: AgentCenterRuntimeModelConfigAdapter['aiProfile'],
-): AgentCenterRuntimeModelConfigAdapter {
-  const providers = new Map<string, RouteModelPickerDataProvider>();
-  const optionsFor = async (capability: string) => {
-    const projection = await loadProjection();
-    if (!projection) {
-      throw new Error('Agent Center model route options are unavailable.');
-    }
-    return (projection.routeOptions || []).filter((option) => option.capability === capability);
-  };
-  return Object.freeze({
-    aiProfile: profile,
-    providerResolver(routeCapability: string): RouteModelPickerDataProvider | null {
-      const capability = String(routeCapability || '').trim();
-      if (!capability) return null;
-      const existing = providers.get(capability);
-      if (existing) return existing;
-      const provider: RouteModelPickerDataProvider = {
-        async listLocalModels(): Promise<RouteLocalModel[]> {
-          return (await optionsFor(capability))
-            .filter((option) => option.routePolicy === 'local')
-            .map((option) => ({
-              localModelId: option.model,
-              modelId: option.model,
-              label: option.label,
-              engine: 'local',
-              status: option.availability === 'ready' ? 'active' : 'installed',
-              capabilities: [option.capability],
-            }));
-        },
-        async listConnectors(): Promise<RouteConnector[]> {
-          const byProvider = new Map<string, RouteConnector>();
-          for (const option of await optionsFor(capability)) {
-            if (option.routePolicy !== 'cloud' || !option.provider || byProvider.has(option.provider)) continue;
-            byProvider.set(option.provider, {
-              connectorId: option.provider,
-              provider: option.provider,
-              label: option.provider,
-              status: option.availability,
-            });
-          }
-          return [...byProvider.values()];
-        },
-        async listConnectorModels(connectorId: string): Promise<RouteConnectorModel[]> {
-          return (await optionsFor(capability))
-            .filter((option) => option.routePolicy === 'cloud' && option.provider === connectorId)
-            .map((option) => ({
-              modelId: option.model,
-              remoteModelCatalogId: option.model,
-              providerModelId: option.model,
-              provider: option.provider,
-              modelLabel: option.label,
-              available: true,
-              capabilities: [option.capability],
-            }));
-        },
-      };
-      providers.set(capability, provider);
-      return provider;
-    },
-  });
-}
-
 export function createPermissionedAgentCenterSession(
   input: CreatePermissionedAgentCenterSessionInput,
 ): AgentCenterSession {
@@ -519,34 +415,20 @@ export function createPermissionedAgentCenterSession(
     },
   };
   const transport: SessionTransport = {
-    modelConfig: createPermissionedModelConfigAdapter(async () => {
-      const current = manager?.getSnapshot().state.aiConfig;
-      if (current) return current;
-      const state = await input.surface.read(input.handle, input.loadOptions);
-      return state.aiConfig || null;
-    }, {
-      list: async () => [...await input.surface.listAIProfiles(input.handle)],
-      previewApply: (scopeRef, profileId, options) => (
-        input.surface.previewAIProfile(input.handle, scopeRef, profileId, options)
-      ),
-      apply: (scopeRef, profileId, options) => (
-        input.surface.applyAIProfile(input.handle, scopeRef, profileId, options)
-      ),
-    }),
     appearanceAdapter,
     async actionAvailability() {
       return projectAgentCenterActionAvailability(await input.surface.actionPosture(input.handle));
     },
     read: () => input.surface.read(input.handle, input.loadOptions),
-    updateAIConfig: (mutation) => input.surface.updateConfiguration(input.handle, mutation),
+    async overwriteSharedAIConfig(mutation) {
+      const sharedAIConfig = await input.surface.overwriteSharedAIConfig(mutation);
+      return { ...(await input.surface.read(input.handle, input.loadOptions)), sharedAIConfig };
+    },
     updateAutonomy: (mutation) => input.surface.updateAutonomy(input.handle, mutation),
     replaceAppearance: (mutation) => input.surface.replaceAppearance(input.handle, mutation),
     restorePreviousAppearance: () => input.surface.restorePreviousAppearance(input.handle),
     requestPermission: async () => { await input.surface.requestPermission?.(input.handle); },
     openPermissionSettings: async () => { await input.surface.openPermissionSettings?.(input.handle); },
-    ...(input.surface.subscribeReadiness ? {
-      subscribeReadiness: () => input.surface.subscribeReadiness!(input.handle),
-    } : {}),
     ...(input.surface.subscribeActionPosture ? {
       subscribeActionPosture: (listener: (availability: AgentCenterActionAvailabilityProjection) => void) => (
         input.surface.subscribeActionPosture!(input.handle, (projection) => {

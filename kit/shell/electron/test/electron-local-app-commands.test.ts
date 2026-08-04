@@ -121,13 +121,16 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
-  it('routes all nine configure operations to the protected carrier with decimal revisions', async () => {
+  it('routes shared LocalAgent AIConfig/profile and per-Agent autonomy/presentation exactly', async () => {
+    const profileJson = '{"profileId":"local-gpu"}';
     const requests = [
-      ['local-app.agentConfigurationSnapshot', { agentHandle: 'lash_one' }],
-      ['local-app.agentUpdateConfiguration', { agentHandle: 'lash_one', expectedConfigurationRevision: '1', intents: [{ capability: 'text.generate', provider: '', model: 'local/model', routePolicy: 'local' }], profileOrigin: null }],
-      ['local-app.agentReadinessSnapshot', { agentHandle: 'lash_one' }],
-      ['local-app.agentAIProfilePreview', { agentHandle: 'lash_one', profile: { alias: 'local-gpu' }, runtimeDescriptor: { runtimeId: 'local-runtime' } }],
-      ['local-app.agentAIProfileApply', { agentHandle: 'lash_one', expectedConfigurationRevision: '2', profile: { alias: 'local-gpu' }, runtimeDescriptor: { runtimeId: 'local-runtime' } }],
+      ['local-app.sharedAgentAIConfigGet', {}],
+      ['local-app.sharedAgentAIConfigOverwrite', { capabilities: [{
+        capabilityContract: 'text.generate', requiredFeatures: [],
+        route: { oneofKind: 'local', local: {} },
+      }] }],
+      ['local-app.sharedAgentAIProfilePreview', { profileJson }],
+      ['local-app.sharedAgentAIProfileApply', { profileJson }],
       ['local-app.agentAutonomySnapshot', { agentHandle: 'lash_one' }],
       ['local-app.agentUpdateAutonomy', { agentHandle: 'lash_one', expectedAutonomyRevision: '1', intent: { enabled: false } }],
       ['local-app.agentPresentationSnapshot', { agentHandle: 'lash_one' }],
@@ -147,6 +150,21 @@ describe('Electron local-app standard-shell operations', () => {
       expect(calls).toHaveLength(1);
       expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef|accountId/u);
     }
+  });
+
+  it('rejects malformed shared profile JSON and shared config owner injection before host invocation', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIProfilePreview'],
+      payload: { payload: { profileJson: '{' } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'],
+      payload: { payload: { capabilities: [{ appId: 'forged' }] } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    expect(calls).toEqual([]);
   });
 
   it('surfaces unclassified Runtime failures without matching the trust-failure branch', async () => {
@@ -449,11 +467,10 @@ function localAppHost(calls: unknown[]) {
     conversationSnapshot: unavailable('conversationSnapshot', calls),
     artifactPut: unavailable('artifactPut', calls),
     artifactReadBytes: unavailable('artifactReadBytes', calls),
-    agentConfigurationSnapshot: unavailable('agentConfigurationSnapshot', calls),
-    agentUpdateConfiguration: unavailable('agentUpdateConfiguration', calls),
-    agentReadinessSnapshot: unavailable('agentReadinessSnapshot', calls),
-    agentAIProfilePreview: unavailable('agentAIProfilePreview', calls),
-    agentAIProfileApply: unavailable('agentAIProfileApply', calls),
+    sharedAgentAIConfigGet: unavailable('sharedAgentAIConfigGet', calls),
+    sharedAgentAIConfigOverwrite: unavailable('sharedAgentAIConfigOverwrite', calls),
+    sharedAgentAIProfilePreview: unavailable('sharedAgentAIProfilePreview', calls),
+    sharedAgentAIProfileApply: unavailable('sharedAgentAIProfileApply', calls),
     agentAutonomySnapshot: unavailable('agentAutonomySnapshot', calls),
     agentUpdateAutonomy: unavailable('agentUpdateAutonomy', calls),
     agentPresentationSnapshot: unavailable('agentPresentationSnapshot', calls),

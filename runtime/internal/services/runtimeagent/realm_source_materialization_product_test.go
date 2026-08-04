@@ -273,7 +273,6 @@ func assertRealmSourceMaterializationProductRowsV3(t *testing.T, svc *Service, l
 		{"runtime_local_agent", "local_agent_ref"},
 		{"runtime_local_agent_state_projection", "local_agent_ref"},
 		{"runtime_local_agent_event_log", "local_agent_ref"},
-		{"runtime_agent_ai_config", "agent_instance_id"},
 		{"runtime_local_agent_source_snapshot_v2", "local_agent_ref"},
 		{"runtime_local_agent_source_provenance_v3", "local_agent_ref"},
 	} {

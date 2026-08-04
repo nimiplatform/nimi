@@ -10,7 +10,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
-	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -23,174 +22,6 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
-
-type LocalAppAgentReadinessState int32
-
-const (
-	LocalAppAgentReadinessState_LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED           LocalAppAgentReadinessState = 0
-	LocalAppAgentReadinessState_LOCAL_APP_AGENT_READINESS_STATE_READY                 LocalAppAgentReadinessState = 1
-	LocalAppAgentReadinessState_LOCAL_APP_AGENT_READINESS_STATE_BLOCKED               LocalAppAgentReadinessState = 2
-	LocalAppAgentReadinessState_LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE           LocalAppAgentReadinessState = 3
-	LocalAppAgentReadinessState_LOCAL_APP_AGENT_READINESS_STATE_FAILED                LocalAppAgentReadinessState = 4
-	LocalAppAgentReadinessState_LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED LocalAppAgentReadinessState = 5
-)
-
-// Enum value maps for LocalAppAgentReadinessState.
-var (
-	LocalAppAgentReadinessState_name = map[int32]string{
-		0: "LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED",
-		1: "LOCAL_APP_AGENT_READINESS_STATE_READY",
-		2: "LOCAL_APP_AGENT_READINESS_STATE_BLOCKED",
-		3: "LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE",
-		4: "LOCAL_APP_AGENT_READINESS_STATE_FAILED",
-		5: "LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED",
-	}
-	LocalAppAgentReadinessState_value = map[string]int32{
-		"LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED":           0,
-		"LOCAL_APP_AGENT_READINESS_STATE_READY":                 1,
-		"LOCAL_APP_AGENT_READINESS_STATE_BLOCKED":               2,
-		"LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE":           3,
-		"LOCAL_APP_AGENT_READINESS_STATE_FAILED":                4,
-		"LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED": 5,
-	}
-)
-
-func (x LocalAppAgentReadinessState) Enum() *LocalAppAgentReadinessState {
-	p := new(LocalAppAgentReadinessState)
-	*p = x
-	return p
-}
-
-func (x LocalAppAgentReadinessState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalAppAgentReadinessState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_configure_proto_enumTypes[0].Descriptor()
-}
-
-func (LocalAppAgentReadinessState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_configure_proto_enumTypes[0]
-}
-
-func (x LocalAppAgentReadinessState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalAppAgentReadinessState.Descriptor instead.
-func (LocalAppAgentReadinessState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{0}
-}
-
-type LocalAppAgentRouteOptionAvailability int32
-
-const (
-	LocalAppAgentRouteOptionAvailability_LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED LocalAppAgentRouteOptionAvailability = 0
-	LocalAppAgentRouteOptionAvailability_LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY       LocalAppAgentRouteOptionAvailability = 1
-	LocalAppAgentRouteOptionAvailability_LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED   LocalAppAgentRouteOptionAvailability = 2
-)
-
-// Enum value maps for LocalAppAgentRouteOptionAvailability.
-var (
-	LocalAppAgentRouteOptionAvailability_name = map[int32]string{
-		0: "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED",
-		1: "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY",
-		2: "LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED",
-	}
-	LocalAppAgentRouteOptionAvailability_value = map[string]int32{
-		"LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED": 0,
-		"LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY":       1,
-		"LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED":   2,
-	}
-)
-
-func (x LocalAppAgentRouteOptionAvailability) Enum() *LocalAppAgentRouteOptionAvailability {
-	p := new(LocalAppAgentRouteOptionAvailability)
-	*p = x
-	return p
-}
-
-func (x LocalAppAgentRouteOptionAvailability) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalAppAgentRouteOptionAvailability) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_configure_proto_enumTypes[1].Descriptor()
-}
-
-func (LocalAppAgentRouteOptionAvailability) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_configure_proto_enumTypes[1]
-}
-
-func (x LocalAppAgentRouteOptionAvailability) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalAppAgentRouteOptionAvailability.Descriptor instead.
-func (LocalAppAgentRouteOptionAvailability) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{1}
-}
-
-type LocalAppAgentAIProfileApplyOutcome int32
-
-const (
-	LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED                   LocalAppAgentAIProfileApplyOutcome = 0
-	LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY                LocalAppAgentAIProfileApplyOutcome = 1
-	LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG LocalAppAgentAIProfileApplyOutcome = 2
-	LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG    LocalAppAgentAIProfileApplyOutcome = 3
-	LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE               LocalAppAgentAIProfileApplyOutcome = 4
-	LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE                    LocalAppAgentAIProfileApplyOutcome = 5
-	LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED                        LocalAppAgentAIProfileApplyOutcome = 6
-)
-
-// Enum value maps for LocalAppAgentAIProfileApplyOutcome.
-var (
-	LocalAppAgentAIProfileApplyOutcome_name = map[int32]string{
-		0: "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED",
-		1: "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY",
-		2: "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG",
-		3: "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG",
-		4: "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE",
-		5: "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE",
-		6: "LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED",
-	}
-	LocalAppAgentAIProfileApplyOutcome_value = map[string]int32{
-		"LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED":                   0,
-		"LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY":                1,
-		"LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG": 2,
-		"LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG":    3,
-		"LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE":               4,
-		"LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE":                    5,
-		"LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED":                        6,
-	}
-)
-
-func (x LocalAppAgentAIProfileApplyOutcome) Enum() *LocalAppAgentAIProfileApplyOutcome {
-	p := new(LocalAppAgentAIProfileApplyOutcome)
-	*p = x
-	return p
-}
-
-func (x LocalAppAgentAIProfileApplyOutcome) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalAppAgentAIProfileApplyOutcome) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_configure_proto_enumTypes[2].Descriptor()
-}
-
-func (LocalAppAgentAIProfileApplyOutcome) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_configure_proto_enumTypes[2]
-}
-
-func (x LocalAppAgentAIProfileApplyOutcome) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalAppAgentAIProfileApplyOutcome.Descriptor instead.
-func (LocalAppAgentAIProfileApplyOutcome) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{2}
-}
 
 type LocalAppAgentAutonomyMode int32
 
@@ -231,11 +62,11 @@ func (x LocalAppAgentAutonomyMode) String() string {
 }
 
 func (LocalAppAgentAutonomyMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_configure_proto_enumTypes[3].Descriptor()
+	return file_runtime_v1_agent_configure_proto_enumTypes[0].Descriptor()
 }
 
 func (LocalAppAgentAutonomyMode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_configure_proto_enumTypes[3]
+	return &file_runtime_v1_agent_configure_proto_enumTypes[0]
 }
 
 func (x LocalAppAgentAutonomyMode) Number() protoreflect.EnumNumber {
@@ -244,138 +75,76 @@ func (x LocalAppAgentAutonomyMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LocalAppAgentAutonomyMode.Descriptor instead.
 func (LocalAppAgentAutonomyMode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{3}
-}
-
-// The local-app agents.configure carrier accepts only Runtime-issued opaque
-// Agent handles. Raw Runtime/Realm identity and authorization fields are
-// intentionally absent from every request and response.
-type LocalAppAgentAIConfigComponentSelection struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	OccurrenceId   string                 `protobuf:"bytes,1,opt,name=occurrence_id,json=occurrenceId,proto3" json:"occurrence_id,omitempty"`
-	Order          uint32                 `protobuf:"varint,2,opt,name=order,proto3" json:"order,omitempty"`
-	Role           string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
-	ComponentKind  string                 `protobuf:"bytes,4,opt,name=component_kind,json=componentKind,proto3" json:"component_kind,omitempty"`
-	LogicalModelId string                 `protobuf:"bytes,5,opt,name=logical_model_id,json=logicalModelId,proto3" json:"logical_model_id,omitempty"`
-	Required       bool                   `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`
-	Weight         string                 `protobuf:"bytes,7,opt,name=weight,proto3" json:"weight,omitempty"`
-	Options        *structpb.Struct       `protobuf:"bytes,8,opt,name=options,proto3" json:"options,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *LocalAppAgentAIConfigComponentSelection) Reset() {
-	*x = LocalAppAgentAIConfigComponentSelection{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAppAgentAIConfigComponentSelection) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAppAgentAIConfigComponentSelection) ProtoMessage() {}
-
-func (x *LocalAppAgentAIConfigComponentSelection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAppAgentAIConfigComponentSelection.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentAIConfigComponentSelection) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *LocalAppAgentAIConfigComponentSelection) GetOccurrenceId() string {
-	if x != nil {
-		return x.OccurrenceId
-	}
-	return ""
+// Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
+// the authorized account scope and carry no Agent handle. Autonomy and
+// presentation remain per-Agent and continue to require Runtime-issued handles.
+type LocalAppSharedLocalAgentAIConfigProjection struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Config        *AIConfig              `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentAIConfigComponentSelection) GetOrder() uint32 {
-	if x != nil {
-		return x.Order
-	}
-	return 0
+func (x *LocalAppSharedLocalAgentAIConfigProjection) Reset() {
+	*x = LocalAppSharedLocalAgentAIConfigProjection{}
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentAIConfigComponentSelection) GetRole() string {
-	if x != nil {
-		return x.Role
-	}
-	return ""
+func (x *LocalAppSharedLocalAgentAIConfigProjection) String() string {
+	return protoimpl.X.MessageStringOf(x)
 }
 
-func (x *LocalAppAgentAIConfigComponentSelection) GetComponentKind() string {
+func (*LocalAppSharedLocalAgentAIConfigProjection) ProtoMessage() {}
+
+func (x *LocalAppSharedLocalAgentAIConfigProjection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[0]
 	if x != nil {
-		return x.ComponentKind
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
 	}
-	return ""
+	return mi.MessageOf(x)
 }
 
-func (x *LocalAppAgentAIConfigComponentSelection) GetLogicalModelId() string {
-	if x != nil {
-		return x.LogicalModelId
-	}
-	return ""
+// Deprecated: Use LocalAppSharedLocalAgentAIConfigProjection.ProtoReflect.Descriptor instead.
+func (*LocalAppSharedLocalAgentAIConfigProjection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *LocalAppAgentAIConfigComponentSelection) GetRequired() bool {
+func (x *LocalAppSharedLocalAgentAIConfigProjection) GetConfig() *AIConfig {
 	if x != nil {
-		return x.Required
-	}
-	return false
-}
-
-func (x *LocalAppAgentAIConfigComponentSelection) GetWeight() string {
-	if x != nil {
-		return x.Weight
-	}
-	return ""
-}
-
-func (x *LocalAppAgentAIConfigComponentSelection) GetOptions() *structpb.Struct {
-	if x != nil {
-		return x.Options
+		return x.Config
 	}
 	return nil
 }
 
-type LocalAppAgentAIConfigIntent struct {
-	state              protoimpl.MessageState                     `protogen:"open.v1"`
-	Capability         string                                     `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`
-	Provider           string                                     `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	LogicalModelId     string                                     `protobuf:"bytes,3,opt,name=logical_model_id,json=logicalModelId,proto3" json:"logical_model_id,omitempty"`
-	RoutePolicy        RoutePolicy                                `protobuf:"varint,4,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
-	SelectedParams     *structpb.Struct                           `protobuf:"bytes,5,opt,name=selected_params,json=selectedParams,proto3" json:"selected_params,omitempty"`
-	SelectedComponents []*LocalAppAgentAIConfigComponentSelection `protobuf:"bytes,6,rep,name=selected_components,json=selectedComponents,proto3" json:"selected_components,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+type GetLocalAppSharedLocalAgentAIConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentAIConfigIntent) Reset() {
-	*x = LocalAppAgentAIConfigIntent{}
+func (x *GetLocalAppSharedLocalAgentAIConfigRequest) Reset() {
+	*x = GetLocalAppSharedLocalAgentAIConfigRequest{}
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentAIConfigIntent) String() string {
+func (x *GetLocalAppSharedLocalAgentAIConfigRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentAIConfigIntent) ProtoMessage() {}
+func (*GetLocalAppSharedLocalAgentAIConfigRequest) ProtoMessage() {}
 
-func (x *LocalAppAgentAIConfigIntent) ProtoReflect() protoreflect.Message {
+func (x *GetLocalAppSharedLocalAgentAIConfigRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -387,77 +156,32 @@ func (x *LocalAppAgentAIConfigIntent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentAIConfigIntent.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentAIConfigIntent) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetLocalAppSharedLocalAgentAIConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetLocalAppSharedLocalAgentAIConfigRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *LocalAppAgentAIConfigIntent) GetCapability() string {
-	if x != nil {
-		return x.Capability
-	}
-	return ""
-}
-
-func (x *LocalAppAgentAIConfigIntent) GetProvider() string {
-	if x != nil {
-		return x.Provider
-	}
-	return ""
-}
-
-func (x *LocalAppAgentAIConfigIntent) GetLogicalModelId() string {
-	if x != nil {
-		return x.LogicalModelId
-	}
-	return ""
-}
-
-func (x *LocalAppAgentAIConfigIntent) GetRoutePolicy() RoutePolicy {
-	if x != nil {
-		return x.RoutePolicy
-	}
-	return RoutePolicy_ROUTE_POLICY_UNSPECIFIED
-}
-
-func (x *LocalAppAgentAIConfigIntent) GetSelectedParams() *structpb.Struct {
-	if x != nil {
-		return x.SelectedParams
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIConfigIntent) GetSelectedComponents() []*LocalAppAgentAIConfigComponentSelection {
-	if x != nil {
-		return x.SelectedComponents
-	}
-	return nil
-}
-
-type LocalAppAgentCapabilityReadiness struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Capability    string                      `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`
-	State         LocalAppAgentReadinessState `protobuf:"varint,2,opt,name=state,proto3,enum=nimi.runtime.v1.LocalAppAgentReadinessState" json:"state,omitempty"`
-	Reason        string                      `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-	ObservedAt    *timestamppb.Timestamp      `protobuf:"bytes,4,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+type GetLocalAppSharedLocalAgentAIConfigResponse struct {
+	state         protoimpl.MessageState                      `protogen:"open.v1"`
+	Projection    *LocalAppSharedLocalAgentAIConfigProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentCapabilityReadiness) Reset() {
-	*x = LocalAppAgentCapabilityReadiness{}
+func (x *GetLocalAppSharedLocalAgentAIConfigResponse) Reset() {
+	*x = GetLocalAppSharedLocalAgentAIConfigResponse{}
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentCapabilityReadiness) String() string {
+func (x *GetLocalAppSharedLocalAgentAIConfigResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentCapabilityReadiness) ProtoMessage() {}
+func (*GetLocalAppSharedLocalAgentAIConfigResponse) ProtoMessage() {}
 
-func (x *LocalAppAgentCapabilityReadiness) ProtoReflect() protoreflect.Message {
+func (x *GetLocalAppSharedLocalAgentAIConfigResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -469,68 +193,39 @@ func (x *LocalAppAgentCapabilityReadiness) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentCapabilityReadiness.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentCapabilityReadiness) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetLocalAppSharedLocalAgentAIConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetLocalAppSharedLocalAgentAIConfigResponse) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *LocalAppAgentCapabilityReadiness) GetCapability() string {
+func (x *GetLocalAppSharedLocalAgentAIConfigResponse) GetProjection() *LocalAppSharedLocalAgentAIConfigProjection {
 	if x != nil {
-		return x.Capability
-	}
-	return ""
-}
-
-func (x *LocalAppAgentCapabilityReadiness) GetState() LocalAppAgentReadinessState {
-	if x != nil {
-		return x.State
-	}
-	return LocalAppAgentReadinessState_LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED
-}
-
-func (x *LocalAppAgentCapabilityReadiness) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-func (x *LocalAppAgentCapabilityReadiness) GetObservedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ObservedAt
+		return x.Projection
 	}
 	return nil
 }
 
-// A bounded, selectable route candidate for the current caller. Runtime keeps
-// inventory identities, endpoints, credentials, and account/Agent identities
-// behind the agents.configure boundary.
-type LocalAppAgentRouteOption struct {
-	state          protoimpl.MessageState               `protogen:"open.v1"`
-	Capability     string                               `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`
-	Provider       string                               `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	LogicalModelId string                               `protobuf:"bytes,3,opt,name=logical_model_id,json=logicalModelId,proto3" json:"logical_model_id,omitempty"`
-	RoutePolicy    RoutePolicy                          `protobuf:"varint,4,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
-	Label          string                               `protobuf:"bytes,5,opt,name=label,proto3" json:"label,omitempty"`
-	Availability   LocalAppAgentRouteOptionAvailability `protobuf:"varint,6,opt,name=availability,proto3,enum=nimi.runtime.v1.LocalAppAgentRouteOptionAvailability" json:"availability,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+type OverwriteLocalAppSharedLocalAgentAIConfigRequest struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Capabilities  []*AIConfigCapabilityIntent `protobuf:"bytes,1,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentRouteOption) Reset() {
-	*x = LocalAppAgentRouteOption{}
+func (x *OverwriteLocalAppSharedLocalAgentAIConfigRequest) Reset() {
+	*x = OverwriteLocalAppSharedLocalAgentAIConfigRequest{}
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentRouteOption) String() string {
+func (x *OverwriteLocalAppSharedLocalAgentAIConfigRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentRouteOption) ProtoMessage() {}
+func (*OverwriteLocalAppSharedLocalAgentAIConfigRequest) ProtoMessage() {}
 
-func (x *LocalAppAgentRouteOption) ProtoReflect() protoreflect.Message {
+func (x *OverwriteLocalAppSharedLocalAgentAIConfigRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -542,76 +237,39 @@ func (x *LocalAppAgentRouteOption) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentRouteOption.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentRouteOption) Descriptor() ([]byte, []int) {
+// Deprecated: Use OverwriteLocalAppSharedLocalAgentAIConfigRequest.ProtoReflect.Descriptor instead.
+func (*OverwriteLocalAppSharedLocalAgentAIConfigRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *LocalAppAgentRouteOption) GetCapability() string {
+func (x *OverwriteLocalAppSharedLocalAgentAIConfigRequest) GetCapabilities() []*AIConfigCapabilityIntent {
 	if x != nil {
-		return x.Capability
+		return x.Capabilities
 	}
-	return ""
+	return nil
 }
 
-func (x *LocalAppAgentRouteOption) GetProvider() string {
-	if x != nil {
-		return x.Provider
-	}
-	return ""
-}
-
-func (x *LocalAppAgentRouteOption) GetLogicalModelId() string {
-	if x != nil {
-		return x.LogicalModelId
-	}
-	return ""
-}
-
-func (x *LocalAppAgentRouteOption) GetRoutePolicy() RoutePolicy {
-	if x != nil {
-		return x.RoutePolicy
-	}
-	return RoutePolicy_ROUTE_POLICY_UNSPECIFIED
-}
-
-func (x *LocalAppAgentRouteOption) GetLabel() string {
-	if x != nil {
-		return x.Label
-	}
-	return ""
-}
-
-func (x *LocalAppAgentRouteOption) GetAvailability() LocalAppAgentRouteOptionAvailability {
-	if x != nil {
-		return x.Availability
-	}
-	return LocalAppAgentRouteOptionAvailability_LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED
-}
-
-type LocalAppAgentAIProfileOrigin struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProfileId     string                 `protobuf:"bytes,1,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	AppliedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=applied_at,json=appliedAt,proto3" json:"applied_at,omitempty"`
+type OverwriteLocalAppSharedLocalAgentAIConfigResponse struct {
+	state         protoimpl.MessageState                      `protogen:"open.v1"`
+	Projection    *LocalAppSharedLocalAgentAIConfigProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentAIProfileOrigin) Reset() {
-	*x = LocalAppAgentAIProfileOrigin{}
+func (x *OverwriteLocalAppSharedLocalAgentAIConfigResponse) Reset() {
+	*x = OverwriteLocalAppSharedLocalAgentAIConfigResponse{}
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentAIProfileOrigin) String() string {
+func (x *OverwriteLocalAppSharedLocalAgentAIConfigResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentAIProfileOrigin) ProtoMessage() {}
+func (*OverwriteLocalAppSharedLocalAgentAIConfigResponse) ProtoMessage() {}
 
-func (x *LocalAppAgentAIProfileOrigin) ProtoReflect() protoreflect.Message {
+func (x *OverwriteLocalAppSharedLocalAgentAIConfigResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -623,59 +281,39 @@ func (x *LocalAppAgentAIProfileOrigin) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentAIProfileOrigin.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentAIProfileOrigin) Descriptor() ([]byte, []int) {
+// Deprecated: Use OverwriteLocalAppSharedLocalAgentAIConfigResponse.ProtoReflect.Descriptor instead.
+func (*OverwriteLocalAppSharedLocalAgentAIConfigResponse) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *LocalAppAgentAIProfileOrigin) GetProfileId() string {
+func (x *OverwriteLocalAppSharedLocalAgentAIConfigResponse) GetProjection() *LocalAppSharedLocalAgentAIConfigProjection {
 	if x != nil {
-		return x.ProfileId
-	}
-	return ""
-}
-
-func (x *LocalAppAgentAIProfileOrigin) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *LocalAppAgentAIProfileOrigin) GetAppliedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.AppliedAt
+		return x.Projection
 	}
 	return nil
 }
 
-type LocalAppAgentAIConfigProjection struct {
-	state                 protoimpl.MessageState              `protogen:"open.v1"`
-	Capabilities          []string                            `protobuf:"bytes,1,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	Intents               []*LocalAppAgentAIConfigIntent      `protobuf:"bytes,2,rep,name=intents,proto3" json:"intents,omitempty"`
-	Readiness             []*LocalAppAgentCapabilityReadiness `protobuf:"bytes,3,rep,name=readiness,proto3" json:"readiness,omitempty"`
-	ConfigurationRevision uint64                              `protobuf:"varint,4,opt,name=configuration_revision,json=configurationRevision,proto3" json:"configuration_revision,omitempty"`
-	RouteOptions          []*LocalAppAgentRouteOption         `protobuf:"bytes,5,rep,name=route_options,json=routeOptions,proto3" json:"route_options,omitempty"`
-	ScopeOwnerId          string                              `protobuf:"bytes,6,opt,name=scope_owner_id,json=scopeOwnerId,proto3" json:"scope_owner_id,omitempty"`
-	ProfileOrigin         *LocalAppAgentAIProfileOrigin       `protobuf:"bytes,7,opt,name=profile_origin,json=profileOrigin,proto3" json:"profile_origin,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+type PreviewLocalAppSharedLocalAgentAIProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProfileJson   []byte                 `protobuf:"bytes,1,opt,name=profile_json,json=profileJson,proto3" json:"profile_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentAIConfigProjection) Reset() {
-	*x = LocalAppAgentAIConfigProjection{}
+func (x *PreviewLocalAppSharedLocalAgentAIProfileRequest) Reset() {
+	*x = PreviewLocalAppSharedLocalAgentAIProfileRequest{}
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentAIConfigProjection) String() string {
+func (x *PreviewLocalAppSharedLocalAgentAIProfileRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentAIConfigProjection) ProtoMessage() {}
+func (*PreviewLocalAppSharedLocalAgentAIProfileRequest) ProtoMessage() {}
 
-func (x *LocalAppAgentAIConfigProjection) ProtoReflect() protoreflect.Message {
+func (x *PreviewLocalAppSharedLocalAgentAIProfileRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_agent_configure_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -687,489 +325,41 @@ func (x *LocalAppAgentAIConfigProjection) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentAIConfigProjection.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentAIConfigProjection) Descriptor() ([]byte, []int) {
+// Deprecated: Use PreviewLocalAppSharedLocalAgentAIProfileRequest.ProtoReflect.Descriptor instead.
+func (*PreviewLocalAppSharedLocalAgentAIProfileRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *LocalAppAgentAIConfigProjection) GetCapabilities() []string {
-	if x != nil {
-		return x.Capabilities
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIConfigProjection) GetIntents() []*LocalAppAgentAIConfigIntent {
-	if x != nil {
-		return x.Intents
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIConfigProjection) GetReadiness() []*LocalAppAgentCapabilityReadiness {
-	if x != nil {
-		return x.Readiness
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIConfigProjection) GetConfigurationRevision() uint64 {
-	if x != nil {
-		return x.ConfigurationRevision
-	}
-	return 0
-}
-
-func (x *LocalAppAgentAIConfigProjection) GetRouteOptions() []*LocalAppAgentRouteOption {
-	if x != nil {
-		return x.RouteOptions
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIConfigProjection) GetScopeOwnerId() string {
-	if x != nil {
-		return x.ScopeOwnerId
-	}
-	return ""
-}
-
-func (x *LocalAppAgentAIConfigProjection) GetProfileOrigin() *LocalAppAgentAIProfileOrigin {
-	if x != nil {
-		return x.ProfileOrigin
-	}
-	return nil
-}
-
-type LocalAppAgentReadinessProjection struct {
-	state                 protoimpl.MessageState              `protogen:"open.v1"`
-	Capabilities          []*LocalAppAgentCapabilityReadiness `protobuf:"bytes,1,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	ConfigurationRevision uint64                              `protobuf:"varint,2,opt,name=configuration_revision,json=configurationRevision,proto3" json:"configuration_revision,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *LocalAppAgentReadinessProjection) Reset() {
-	*x = LocalAppAgentReadinessProjection{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAppAgentReadinessProjection) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAppAgentReadinessProjection) ProtoMessage() {}
-
-func (x *LocalAppAgentReadinessProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAppAgentReadinessProjection.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentReadinessProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *LocalAppAgentReadinessProjection) GetCapabilities() []*LocalAppAgentCapabilityReadiness {
-	if x != nil {
-		return x.Capabilities
-	}
-	return nil
-}
-
-func (x *LocalAppAgentReadinessProjection) GetConfigurationRevision() uint64 {
-	if x != nil {
-		return x.ConfigurationRevision
-	}
-	return 0
-}
-
-type GetLocalAppAgentConfigurationSnapshotRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgentHandle   string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetLocalAppAgentConfigurationSnapshotRequest) Reset() {
-	*x = GetLocalAppAgentConfigurationSnapshotRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetLocalAppAgentConfigurationSnapshotRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetLocalAppAgentConfigurationSnapshotRequest) ProtoMessage() {}
-
-func (x *GetLocalAppAgentConfigurationSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetLocalAppAgentConfigurationSnapshotRequest.ProtoReflect.Descriptor instead.
-func (*GetLocalAppAgentConfigurationSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *GetLocalAppAgentConfigurationSnapshotRequest) GetAgentHandle() string {
-	if x != nil {
-		return x.AgentHandle
-	}
-	return ""
-}
-
-type LocalAppAgentConfigurationSnapshotResponse struct {
-	state         protoimpl.MessageState           `protogen:"open.v1"`
-	Projection    *LocalAppAgentAIConfigProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LocalAppAgentConfigurationSnapshotResponse) Reset() {
-	*x = LocalAppAgentConfigurationSnapshotResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAppAgentConfigurationSnapshotResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAppAgentConfigurationSnapshotResponse) ProtoMessage() {}
-
-func (x *LocalAppAgentConfigurationSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAppAgentConfigurationSnapshotResponse.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentConfigurationSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *LocalAppAgentConfigurationSnapshotResponse) GetProjection() *LocalAppAgentAIConfigProjection {
-	if x != nil {
-		return x.Projection
-	}
-	return nil
-}
-
-type UpdateLocalAppAgentConfigurationRequest struct {
-	state                         protoimpl.MessageState         `protogen:"open.v1"`
-	AgentHandle                   string                         `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
-	ExpectedConfigurationRevision uint64                         `protobuf:"varint,2,opt,name=expected_configuration_revision,json=expectedConfigurationRevision,proto3" json:"expected_configuration_revision,omitempty"`
-	Intents                       []*LocalAppAgentAIConfigIntent `protobuf:"bytes,3,rep,name=intents,proto3" json:"intents,omitempty"`
-	ProfileOrigin                 *LocalAppAgentAIProfileOrigin  `protobuf:"bytes,4,opt,name=profile_origin,json=profileOrigin,proto3" json:"profile_origin,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
-}
-
-func (x *UpdateLocalAppAgentConfigurationRequest) Reset() {
-	*x = UpdateLocalAppAgentConfigurationRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateLocalAppAgentConfigurationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateLocalAppAgentConfigurationRequest) ProtoMessage() {}
-
-func (x *UpdateLocalAppAgentConfigurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateLocalAppAgentConfigurationRequest.ProtoReflect.Descriptor instead.
-func (*UpdateLocalAppAgentConfigurationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *UpdateLocalAppAgentConfigurationRequest) GetAgentHandle() string {
-	if x != nil {
-		return x.AgentHandle
-	}
-	return ""
-}
-
-func (x *UpdateLocalAppAgentConfigurationRequest) GetExpectedConfigurationRevision() uint64 {
-	if x != nil {
-		return x.ExpectedConfigurationRevision
-	}
-	return 0
-}
-
-func (x *UpdateLocalAppAgentConfigurationRequest) GetIntents() []*LocalAppAgentAIConfigIntent {
-	if x != nil {
-		return x.Intents
-	}
-	return nil
-}
-
-func (x *UpdateLocalAppAgentConfigurationRequest) GetProfileOrigin() *LocalAppAgentAIProfileOrigin {
-	if x != nil {
-		return x.ProfileOrigin
-	}
-	return nil
-}
-
-type LocalAppAgentUpdateConfigurationResponse struct {
-	state         protoimpl.MessageState           `protogen:"open.v1"`
-	Projection    *LocalAppAgentAIConfigProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LocalAppAgentUpdateConfigurationResponse) Reset() {
-	*x = LocalAppAgentUpdateConfigurationResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAppAgentUpdateConfigurationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAppAgentUpdateConfigurationResponse) ProtoMessage() {}
-
-func (x *LocalAppAgentUpdateConfigurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAppAgentUpdateConfigurationResponse.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentUpdateConfigurationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *LocalAppAgentUpdateConfigurationResponse) GetProjection() *LocalAppAgentAIConfigProjection {
-	if x != nil {
-		return x.Projection
-	}
-	return nil
-}
-
-type GetLocalAppAgentReadinessSnapshotRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgentHandle   string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetLocalAppAgentReadinessSnapshotRequest) Reset() {
-	*x = GetLocalAppAgentReadinessSnapshotRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetLocalAppAgentReadinessSnapshotRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetLocalAppAgentReadinessSnapshotRequest) ProtoMessage() {}
-
-func (x *GetLocalAppAgentReadinessSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetLocalAppAgentReadinessSnapshotRequest.ProtoReflect.Descriptor instead.
-func (*GetLocalAppAgentReadinessSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *GetLocalAppAgentReadinessSnapshotRequest) GetAgentHandle() string {
-	if x != nil {
-		return x.AgentHandle
-	}
-	return ""
-}
-
-type LocalAppAgentReadinessSnapshotResponse struct {
-	state         protoimpl.MessageState            `protogen:"open.v1"`
-	Projection    *LocalAppAgentReadinessProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LocalAppAgentReadinessSnapshotResponse) Reset() {
-	*x = LocalAppAgentReadinessSnapshotResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAppAgentReadinessSnapshotResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAppAgentReadinessSnapshotResponse) ProtoMessage() {}
-
-func (x *LocalAppAgentReadinessSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAppAgentReadinessSnapshotResponse.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentReadinessSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *LocalAppAgentReadinessSnapshotResponse) GetProjection() *LocalAppAgentReadinessProjection {
-	if x != nil {
-		return x.Projection
-	}
-	return nil
-}
-
-type PreviewLocalAppAgentAIProfileRequest struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	AgentHandle           string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
-	ProfileJson           []byte                 `protobuf:"bytes,2,opt,name=profile_json,json=profileJson,proto3" json:"profile_json,omitempty"`
-	RuntimeDescriptorJson []byte                 `protobuf:"bytes,3,opt,name=runtime_descriptor_json,json=runtimeDescriptorJson,proto3" json:"runtime_descriptor_json,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *PreviewLocalAppAgentAIProfileRequest) Reset() {
-	*x = PreviewLocalAppAgentAIProfileRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PreviewLocalAppAgentAIProfileRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PreviewLocalAppAgentAIProfileRequest) ProtoMessage() {}
-
-func (x *PreviewLocalAppAgentAIProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PreviewLocalAppAgentAIProfileRequest.ProtoReflect.Descriptor instead.
-func (*PreviewLocalAppAgentAIProfileRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *PreviewLocalAppAgentAIProfileRequest) GetAgentHandle() string {
-	if x != nil {
-		return x.AgentHandle
-	}
-	return ""
-}
-
-func (x *PreviewLocalAppAgentAIProfileRequest) GetProfileJson() []byte {
+func (x *PreviewLocalAppSharedLocalAgentAIProfileRequest) GetProfileJson() []byte {
 	if x != nil {
 		return x.ProfileJson
 	}
 	return nil
 }
 
-func (x *PreviewLocalAppAgentAIProfileRequest) GetRuntimeDescriptorJson() []byte {
-	if x != nil {
-		return x.RuntimeDescriptorJson
-	}
-	return nil
+type PreviewLocalAppSharedLocalAgentAIProfileResponse struct {
+	state         protoimpl.MessageState                      `protogen:"open.v1"`
+	Before        *LocalAppSharedLocalAgentAIConfigProjection `protobuf:"bytes,1,opt,name=before,proto3" json:"before,omitempty"`
+	After         *LocalAppSharedLocalAgentAIConfigProjection `protobuf:"bytes,2,opt,name=after,proto3" json:"after,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-type LocalAppAgentAIProfilePreviewResponse struct {
-	state                protoimpl.MessageState             `protogen:"open.v1"`
-	Before               *LocalAppAgentAIConfigProjection   `protobuf:"bytes,1,opt,name=before,proto3" json:"before,omitempty"`
-	After                *LocalAppAgentAIConfigProjection   `protobuf:"bytes,2,opt,name=after,proto3" json:"after,omitempty"`
-	Outcome              LocalAppAgentAIProfileApplyOutcome `protobuf:"varint,3,opt,name=outcome,proto3,enum=nimi.runtime.v1.LocalAppAgentAIProfileApplyOutcome" json:"outcome,omitempty"`
-	BaseRevision         uint64                             `protobuf:"varint,4,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
-	BlockingCapabilities []string                           `protobuf:"bytes,5,rep,name=blocking_capabilities,json=blockingCapabilities,proto3" json:"blocking_capabilities,omitempty"`
-	ReasonCodes          []string                           `protobuf:"bytes,6,rep,name=reason_codes,json=reasonCodes,proto3" json:"reason_codes,omitempty"`
-	ActionRefs           []string                           `protobuf:"bytes,7,rep,name=action_refs,json=actionRefs,proto3" json:"action_refs,omitempty"`
-	ProbeWarnings        []string                           `protobuf:"bytes,8,rep,name=probe_warnings,json=probeWarnings,proto3" json:"probe_warnings,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *LocalAppAgentAIProfilePreviewResponse) Reset() {
-	*x = LocalAppAgentAIProfilePreviewResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[14]
+func (x *PreviewLocalAppSharedLocalAgentAIProfileResponse) Reset() {
+	*x = PreviewLocalAppSharedLocalAgentAIProfileResponse{}
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentAIProfilePreviewResponse) String() string {
+func (x *PreviewLocalAppSharedLocalAgentAIProfileResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentAIProfilePreviewResponse) ProtoMessage() {}
+func (*PreviewLocalAppSharedLocalAgentAIProfileResponse) ProtoMessage() {}
 
-func (x *LocalAppAgentAIProfilePreviewResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[14]
+func (x *PreviewLocalAppSharedLocalAgentAIProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1180,92 +370,47 @@ func (x *LocalAppAgentAIProfilePreviewResponse) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentAIProfilePreviewResponse.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentAIProfilePreviewResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{14}
+// Deprecated: Use PreviewLocalAppSharedLocalAgentAIProfileResponse.ProtoReflect.Descriptor instead.
+func (*PreviewLocalAppSharedLocalAgentAIProfileResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *LocalAppAgentAIProfilePreviewResponse) GetBefore() *LocalAppAgentAIConfigProjection {
+func (x *PreviewLocalAppSharedLocalAgentAIProfileResponse) GetBefore() *LocalAppSharedLocalAgentAIConfigProjection {
 	if x != nil {
 		return x.Before
 	}
 	return nil
 }
 
-func (x *LocalAppAgentAIProfilePreviewResponse) GetAfter() *LocalAppAgentAIConfigProjection {
+func (x *PreviewLocalAppSharedLocalAgentAIProfileResponse) GetAfter() *LocalAppSharedLocalAgentAIConfigProjection {
 	if x != nil {
 		return x.After
 	}
 	return nil
 }
 
-func (x *LocalAppAgentAIProfilePreviewResponse) GetOutcome() LocalAppAgentAIProfileApplyOutcome {
-	if x != nil {
-		return x.Outcome
-	}
-	return LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED
+type ApplyLocalAppSharedLocalAgentAIProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProfileJson   []byte                 `protobuf:"bytes,1,opt,name=profile_json,json=profileJson,proto3" json:"profile_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentAIProfilePreviewResponse) GetBaseRevision() uint64 {
-	if x != nil {
-		return x.BaseRevision
-	}
-	return 0
-}
-
-func (x *LocalAppAgentAIProfilePreviewResponse) GetBlockingCapabilities() []string {
-	if x != nil {
-		return x.BlockingCapabilities
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIProfilePreviewResponse) GetReasonCodes() []string {
-	if x != nil {
-		return x.ReasonCodes
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIProfilePreviewResponse) GetActionRefs() []string {
-	if x != nil {
-		return x.ActionRefs
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIProfilePreviewResponse) GetProbeWarnings() []string {
-	if x != nil {
-		return x.ProbeWarnings
-	}
-	return nil
-}
-
-type ApplyLocalAppAgentAIProfileRequest struct {
-	state                         protoimpl.MessageState `protogen:"open.v1"`
-	AgentHandle                   string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
-	ExpectedConfigurationRevision uint64                 `protobuf:"varint,2,opt,name=expected_configuration_revision,json=expectedConfigurationRevision,proto3" json:"expected_configuration_revision,omitempty"`
-	ProfileJson                   []byte                 `protobuf:"bytes,3,opt,name=profile_json,json=profileJson,proto3" json:"profile_json,omitempty"`
-	RuntimeDescriptorJson         []byte                 `protobuf:"bytes,4,opt,name=runtime_descriptor_json,json=runtimeDescriptorJson,proto3" json:"runtime_descriptor_json,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
-}
-
-func (x *ApplyLocalAppAgentAIProfileRequest) Reset() {
-	*x = ApplyLocalAppAgentAIProfileRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[15]
+func (x *ApplyLocalAppSharedLocalAgentAIProfileRequest) Reset() {
+	*x = ApplyLocalAppSharedLocalAgentAIProfileRequest{}
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApplyLocalAppAgentAIProfileRequest) String() string {
+func (x *ApplyLocalAppSharedLocalAgentAIProfileRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApplyLocalAppAgentAIProfileRequest) ProtoMessage() {}
+func (*ApplyLocalAppSharedLocalAgentAIProfileRequest) ProtoMessage() {}
 
-func (x *ApplyLocalAppAgentAIProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[15]
+func (x *ApplyLocalAppSharedLocalAgentAIProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1276,66 +421,40 @@ func (x *ApplyLocalAppAgentAIProfileRequest) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplyLocalAppAgentAIProfileRequest.ProtoReflect.Descriptor instead.
-func (*ApplyLocalAppAgentAIProfileRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{15}
+// Deprecated: Use ApplyLocalAppSharedLocalAgentAIProfileRequest.ProtoReflect.Descriptor instead.
+func (*ApplyLocalAppSharedLocalAgentAIProfileRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *ApplyLocalAppAgentAIProfileRequest) GetAgentHandle() string {
-	if x != nil {
-		return x.AgentHandle
-	}
-	return ""
-}
-
-func (x *ApplyLocalAppAgentAIProfileRequest) GetExpectedConfigurationRevision() uint64 {
-	if x != nil {
-		return x.ExpectedConfigurationRevision
-	}
-	return 0
-}
-
-func (x *ApplyLocalAppAgentAIProfileRequest) GetProfileJson() []byte {
+func (x *ApplyLocalAppSharedLocalAgentAIProfileRequest) GetProfileJson() []byte {
 	if x != nil {
 		return x.ProfileJson
 	}
 	return nil
 }
 
-func (x *ApplyLocalAppAgentAIProfileRequest) GetRuntimeDescriptorJson() []byte {
-	if x != nil {
-		return x.RuntimeDescriptorJson
-	}
-	return nil
+type ApplyLocalAppSharedLocalAgentAIProfileResponse struct {
+	state         protoimpl.MessageState                      `protogen:"open.v1"`
+	Projection    *LocalAppSharedLocalAgentAIConfigProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-type LocalAppAgentAIProfileApplyResponse struct {
-	state                protoimpl.MessageState             `protogen:"open.v1"`
-	Projection           *LocalAppAgentAIConfigProjection   `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
-	Outcome              LocalAppAgentAIProfileApplyOutcome `protobuf:"varint,2,opt,name=outcome,proto3,enum=nimi.runtime.v1.LocalAppAgentAIProfileApplyOutcome" json:"outcome,omitempty"`
-	BlockingCapabilities []string                           `protobuf:"bytes,3,rep,name=blocking_capabilities,json=blockingCapabilities,proto3" json:"blocking_capabilities,omitempty"`
-	ReasonCodes          []string                           `protobuf:"bytes,4,rep,name=reason_codes,json=reasonCodes,proto3" json:"reason_codes,omitempty"`
-	ActionRefs           []string                           `protobuf:"bytes,5,rep,name=action_refs,json=actionRefs,proto3" json:"action_refs,omitempty"`
-	ProbeWarnings        []string                           `protobuf:"bytes,6,rep,name=probe_warnings,json=probeWarnings,proto3" json:"probe_warnings,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *LocalAppAgentAIProfileApplyResponse) Reset() {
-	*x = LocalAppAgentAIProfileApplyResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[16]
+func (x *ApplyLocalAppSharedLocalAgentAIProfileResponse) Reset() {
+	*x = ApplyLocalAppSharedLocalAgentAIProfileResponse{}
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentAIProfileApplyResponse) String() string {
+func (x *ApplyLocalAppSharedLocalAgentAIProfileResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentAIProfileApplyResponse) ProtoMessage() {}
+func (*ApplyLocalAppSharedLocalAgentAIProfileResponse) ProtoMessage() {}
 
-func (x *LocalAppAgentAIProfileApplyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[16]
+func (x *ApplyLocalAppSharedLocalAgentAIProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1346,49 +465,14 @@ func (x *LocalAppAgentAIProfileApplyResponse) ProtoReflect() protoreflect.Messag
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentAIProfileApplyResponse.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentAIProfileApplyResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{16}
+// Deprecated: Use ApplyLocalAppSharedLocalAgentAIProfileResponse.ProtoReflect.Descriptor instead.
+func (*ApplyLocalAppSharedLocalAgentAIProfileResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *LocalAppAgentAIProfileApplyResponse) GetProjection() *LocalAppAgentAIConfigProjection {
+func (x *ApplyLocalAppSharedLocalAgentAIProfileResponse) GetProjection() *LocalAppSharedLocalAgentAIConfigProjection {
 	if x != nil {
 		return x.Projection
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIProfileApplyResponse) GetOutcome() LocalAppAgentAIProfileApplyOutcome {
-	if x != nil {
-		return x.Outcome
-	}
-	return LocalAppAgentAIProfileApplyOutcome_LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED
-}
-
-func (x *LocalAppAgentAIProfileApplyResponse) GetBlockingCapabilities() []string {
-	if x != nil {
-		return x.BlockingCapabilities
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIProfileApplyResponse) GetReasonCodes() []string {
-	if x != nil {
-		return x.ReasonCodes
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIProfileApplyResponse) GetActionRefs() []string {
-	if x != nil {
-		return x.ActionRefs
-	}
-	return nil
-}
-
-func (x *LocalAppAgentAIProfileApplyResponse) GetProbeWarnings() []string {
-	if x != nil {
-		return x.ProbeWarnings
 	}
 	return nil
 }
@@ -1406,7 +490,7 @@ type LocalAppAgentAutonomyConfig struct {
 
 func (x *LocalAppAgentAutonomyConfig) Reset() {
 	*x = LocalAppAgentAutonomyConfig{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[17]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1418,7 +502,7 @@ func (x *LocalAppAgentAutonomyConfig) String() string {
 func (*LocalAppAgentAutonomyConfig) ProtoMessage() {}
 
 func (x *LocalAppAgentAutonomyConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[17]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1431,7 +515,7 @@ func (x *LocalAppAgentAutonomyConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppAgentAutonomyConfig.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentAutonomyConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *LocalAppAgentAutonomyConfig) GetDailyTokenBudget() int64 {
@@ -1484,7 +568,7 @@ type LocalAppAgentAutonomyProjection struct {
 
 func (x *LocalAppAgentAutonomyProjection) Reset() {
 	*x = LocalAppAgentAutonomyProjection{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[18]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1496,7 +580,7 @@ func (x *LocalAppAgentAutonomyProjection) String() string {
 func (*LocalAppAgentAutonomyProjection) ProtoMessage() {}
 
 func (x *LocalAppAgentAutonomyProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[18]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1509,7 +593,7 @@ func (x *LocalAppAgentAutonomyProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppAgentAutonomyProjection.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentAutonomyProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *LocalAppAgentAutonomyProjection) GetEnabled() bool {
@@ -1571,7 +655,7 @@ type LocalAppAgentAutonomyIntent struct {
 
 func (x *LocalAppAgentAutonomyIntent) Reset() {
 	*x = LocalAppAgentAutonomyIntent{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[19]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1583,7 +667,7 @@ func (x *LocalAppAgentAutonomyIntent) String() string {
 func (*LocalAppAgentAutonomyIntent) ProtoMessage() {}
 
 func (x *LocalAppAgentAutonomyIntent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[19]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1596,7 +680,7 @@ func (x *LocalAppAgentAutonomyIntent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppAgentAutonomyIntent.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentAutonomyIntent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *LocalAppAgentAutonomyIntent) GetEnabled() bool {
@@ -1622,7 +706,7 @@ type GetLocalAppAgentAutonomySnapshotRequest struct {
 
 func (x *GetLocalAppAgentAutonomySnapshotRequest) Reset() {
 	*x = GetLocalAppAgentAutonomySnapshotRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[20]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1634,7 +718,7 @@ func (x *GetLocalAppAgentAutonomySnapshotRequest) String() string {
 func (*GetLocalAppAgentAutonomySnapshotRequest) ProtoMessage() {}
 
 func (x *GetLocalAppAgentAutonomySnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[20]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1647,7 +731,7 @@ func (x *GetLocalAppAgentAutonomySnapshotRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use GetLocalAppAgentAutonomySnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalAppAgentAutonomySnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetLocalAppAgentAutonomySnapshotRequest) GetAgentHandle() string {
@@ -1666,7 +750,7 @@ type LocalAppAgentAutonomySnapshotResponse struct {
 
 func (x *LocalAppAgentAutonomySnapshotResponse) Reset() {
 	*x = LocalAppAgentAutonomySnapshotResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[21]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1678,7 +762,7 @@ func (x *LocalAppAgentAutonomySnapshotResponse) String() string {
 func (*LocalAppAgentAutonomySnapshotResponse) ProtoMessage() {}
 
 func (x *LocalAppAgentAutonomySnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[21]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1691,7 +775,7 @@ func (x *LocalAppAgentAutonomySnapshotResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use LocalAppAgentAutonomySnapshotResponse.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentAutonomySnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *LocalAppAgentAutonomySnapshotResponse) GetProjection() *LocalAppAgentAutonomyProjection {
@@ -1712,7 +796,7 @@ type UpdateLocalAppAgentAutonomyRequest struct {
 
 func (x *UpdateLocalAppAgentAutonomyRequest) Reset() {
 	*x = UpdateLocalAppAgentAutonomyRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[22]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1724,7 +808,7 @@ func (x *UpdateLocalAppAgentAutonomyRequest) String() string {
 func (*UpdateLocalAppAgentAutonomyRequest) ProtoMessage() {}
 
 func (x *UpdateLocalAppAgentAutonomyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[22]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1737,7 +821,7 @@ func (x *UpdateLocalAppAgentAutonomyRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use UpdateLocalAppAgentAutonomyRequest.ProtoReflect.Descriptor instead.
 func (*UpdateLocalAppAgentAutonomyRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateLocalAppAgentAutonomyRequest) GetAgentHandle() string {
@@ -1770,7 +854,7 @@ type LocalAppAgentUpdateAutonomyResponse struct {
 
 func (x *LocalAppAgentUpdateAutonomyResponse) Reset() {
 	*x = LocalAppAgentUpdateAutonomyResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[23]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1782,7 +866,7 @@ func (x *LocalAppAgentUpdateAutonomyResponse) String() string {
 func (*LocalAppAgentUpdateAutonomyResponse) ProtoMessage() {}
 
 func (x *LocalAppAgentUpdateAutonomyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[23]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1795,7 +879,7 @@ func (x *LocalAppAgentUpdateAutonomyResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LocalAppAgentUpdateAutonomyResponse.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentUpdateAutonomyResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *LocalAppAgentUpdateAutonomyResponse) GetProjection() *LocalAppAgentAutonomyProjection {
@@ -1817,7 +901,7 @@ type LocalAppAgentPresentationProjection struct {
 
 func (x *LocalAppAgentPresentationProjection) Reset() {
 	*x = LocalAppAgentPresentationProjection{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[24]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1829,7 +913,7 @@ func (x *LocalAppAgentPresentationProjection) String() string {
 func (*LocalAppAgentPresentationProjection) ProtoMessage() {}
 
 func (x *LocalAppAgentPresentationProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[24]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1842,7 +926,7 @@ func (x *LocalAppAgentPresentationProjection) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LocalAppAgentPresentationProjection.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentPresentationProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *LocalAppAgentPresentationProjection) GetProfile() *AgentPresentationProfile {
@@ -1889,7 +973,7 @@ type LocalAppAgentPresentationIntent struct {
 
 func (x *LocalAppAgentPresentationIntent) Reset() {
 	*x = LocalAppAgentPresentationIntent{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[25]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1901,7 +985,7 @@ func (x *LocalAppAgentPresentationIntent) String() string {
 func (*LocalAppAgentPresentationIntent) ProtoMessage() {}
 
 func (x *LocalAppAgentPresentationIntent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[25]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1914,7 +998,7 @@ func (x *LocalAppAgentPresentationIntent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAppAgentPresentationIntent.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentPresentationIntent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *LocalAppAgentPresentationIntent) GetBackendKind() AgentPresentationBackendKind {
@@ -1982,7 +1066,7 @@ type GetLocalAppAgentPresentationSnapshotRequest struct {
 
 func (x *GetLocalAppAgentPresentationSnapshotRequest) Reset() {
 	*x = GetLocalAppAgentPresentationSnapshotRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[26]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1994,7 +1078,7 @@ func (x *GetLocalAppAgentPresentationSnapshotRequest) String() string {
 func (*GetLocalAppAgentPresentationSnapshotRequest) ProtoMessage() {}
 
 func (x *GetLocalAppAgentPresentationSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[26]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2007,7 +1091,7 @@ func (x *GetLocalAppAgentPresentationSnapshotRequest) ProtoReflect() protoreflec
 
 // Deprecated: Use GetLocalAppAgentPresentationSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalAppAgentPresentationSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetLocalAppAgentPresentationSnapshotRequest) GetAgentHandle() string {
@@ -2026,7 +1110,7 @@ type LocalAppAgentPresentationSnapshotResponse struct {
 
 func (x *LocalAppAgentPresentationSnapshotResponse) Reset() {
 	*x = LocalAppAgentPresentationSnapshotResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[27]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2038,7 +1122,7 @@ func (x *LocalAppAgentPresentationSnapshotResponse) String() string {
 func (*LocalAppAgentPresentationSnapshotResponse) ProtoMessage() {}
 
 func (x *LocalAppAgentPresentationSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[27]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2051,7 +1135,7 @@ func (x *LocalAppAgentPresentationSnapshotResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use LocalAppAgentPresentationSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentPresentationSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *LocalAppAgentPresentationSnapshotResponse) GetProjection() *LocalAppAgentPresentationProjection {
@@ -2073,7 +1157,7 @@ type CommitLocalAppAgentPresentationRequest struct {
 
 func (x *CommitLocalAppAgentPresentationRequest) Reset() {
 	*x = CommitLocalAppAgentPresentationRequest{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[28]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2085,7 +1169,7 @@ func (x *CommitLocalAppAgentPresentationRequest) String() string {
 func (*CommitLocalAppAgentPresentationRequest) ProtoMessage() {}
 
 func (x *CommitLocalAppAgentPresentationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[28]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2098,7 +1182,7 @@ func (x *CommitLocalAppAgentPresentationRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use CommitLocalAppAgentPresentationRequest.ProtoReflect.Descriptor instead.
 func (*CommitLocalAppAgentPresentationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CommitLocalAppAgentPresentationRequest) GetAgentHandle() string {
@@ -2138,7 +1222,7 @@ type LocalAppAgentCommitPresentationResponse struct {
 
 func (x *LocalAppAgentCommitPresentationResponse) Reset() {
 	*x = LocalAppAgentCommitPresentationResponse{}
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[29]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2150,7 +1234,7 @@ func (x *LocalAppAgentCommitPresentationResponse) String() string {
 func (*LocalAppAgentCommitPresentationResponse) ProtoMessage() {}
 
 func (x *LocalAppAgentCommitPresentationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_configure_proto_msgTypes[29]
+	mi := &file_runtime_v1_agent_configure_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2163,7 +1247,7 @@ func (x *LocalAppAgentCommitPresentationResponse) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use LocalAppAgentCommitPresentationResponse.ProtoReflect.Descriptor instead.
 func (*LocalAppAgentCommitPresentationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_agent_configure_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *LocalAppAgentCommitPresentationResponse) GetProjection() *LocalAppAgentPresentationProjection {
@@ -2177,109 +1261,31 @@ var File_runtime_v1_agent_configure_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_agent_configure_proto_rawDesc = "" +
 	"\n" +
-	" runtime/v1/agent_configure.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a#runtime/v1/agent_presentation.proto\x1a\x13runtime/v1/ai.proto\"\xb0\x02\n" +
-	"'LocalAppAgentAIConfigComponentSelection\x12#\n" +
-	"\roccurrence_id\x18\x01 \x01(\tR\foccurrenceId\x12\x14\n" +
-	"\x05order\x18\x02 \x01(\rR\x05order\x12\x12\n" +
-	"\x04role\x18\x03 \x01(\tR\x04role\x12%\n" +
-	"\x0ecomponent_kind\x18\x04 \x01(\tR\rcomponentKind\x12(\n" +
-	"\x10logical_model_id\x18\x05 \x01(\tR\x0elogicalModelId\x12\x1a\n" +
-	"\brequired\x18\x06 \x01(\bR\brequired\x12\x16\n" +
-	"\x06weight\x18\a \x01(\tR\x06weight\x121\n" +
-	"\aoptions\x18\b \x01(\v2\x17.google.protobuf.StructR\aoptions\"\xf1\x02\n" +
-	"\x1bLocalAppAgentAIConfigIntent\x12\x1e\n" +
+	" runtime/v1/agent_configure.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a#runtime/v1/agent_presentation.proto\x1a)runtime/v1/capability_configuration.proto\"_\n" +
+	"*LocalAppSharedLocalAgentAIConfigProjection\x121\n" +
+	"\x06config\x18\x01 \x01(\v2\x19.nimi.runtime.v1.AIConfigR\x06config\",\n" +
+	"*GetLocalAppSharedLocalAgentAIConfigRequest\"\x8a\x01\n" +
+	"+GetLocalAppSharedLocalAgentAIConfigResponse\x12[\n" +
 	"\n" +
-	"capability\x18\x01 \x01(\tR\n" +
-	"capability\x12\x1a\n" +
-	"\bprovider\x18\x02 \x01(\tR\bprovider\x12(\n" +
-	"\x10logical_model_id\x18\x03 \x01(\tR\x0elogicalModelId\x12?\n" +
-	"\froute_policy\x18\x04 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12@\n" +
-	"\x0fselected_params\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x0eselectedParams\x12i\n" +
-	"\x13selected_components\x18\x06 \x03(\v28.nimi.runtime.v1.LocalAppAgentAIConfigComponentSelectionR\x12selectedComponents\"\xdb\x01\n" +
-	" LocalAppAgentCapabilityReadiness\x12\x1e\n" +
+	"projection\x18\x01 \x01(\v2;.nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjectionR\n" +
+	"projection\"\x81\x01\n" +
+	"0OverwriteLocalAppSharedLocalAgentAIConfigRequest\x12M\n" +
+	"\fcapabilities\x18\x01 \x03(\v2).nimi.runtime.v1.AIConfigCapabilityIntentR\fcapabilities\"\x90\x01\n" +
+	"1OverwriteLocalAppSharedLocalAgentAIConfigResponse\x12[\n" +
 	"\n" +
-	"capability\x18\x01 \x01(\tR\n" +
-	"capability\x12B\n" +
-	"\x05state\x18\x02 \x01(\x0e2,.nimi.runtime.v1.LocalAppAgentReadinessStateR\x05state\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reason\x12;\n" +
-	"\vobserved_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"observedAt\"\xb2\x02\n" +
-	"\x18LocalAppAgentRouteOption\x12\x1e\n" +
+	"projection\x18\x01 \x01(\v2;.nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjectionR\n" +
+	"projection\"T\n" +
+	"/PreviewLocalAppSharedLocalAgentAIProfileRequest\x12!\n" +
+	"\fprofile_json\x18\x01 \x01(\fR\vprofileJson\"\xda\x01\n" +
+	"0PreviewLocalAppSharedLocalAgentAIProfileResponse\x12S\n" +
+	"\x06before\x18\x01 \x01(\v2;.nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjectionR\x06before\x12Q\n" +
+	"\x05after\x18\x02 \x01(\v2;.nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjectionR\x05after\"R\n" +
+	"-ApplyLocalAppSharedLocalAgentAIProfileRequest\x12!\n" +
+	"\fprofile_json\x18\x01 \x01(\fR\vprofileJson\"\x8d\x01\n" +
+	".ApplyLocalAppSharedLocalAgentAIProfileResponse\x12[\n" +
 	"\n" +
-	"capability\x18\x01 \x01(\tR\n" +
-	"capability\x12\x1a\n" +
-	"\bprovider\x18\x02 \x01(\tR\bprovider\x12(\n" +
-	"\x10logical_model_id\x18\x03 \x01(\tR\x0elogicalModelId\x12?\n" +
-	"\froute_policy\x18\x04 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12\x14\n" +
-	"\x05label\x18\x05 \x01(\tR\x05label\x12Y\n" +
-	"\favailability\x18\x06 \x01(\x0e25.nimi.runtime.v1.LocalAppAgentRouteOptionAvailabilityR\favailability\"\x8e\x01\n" +
-	"\x1cLocalAppAgentAIProfileOrigin\x12\x1d\n" +
-	"\n" +
-	"profile_id\x18\x01 \x01(\tR\tprofileId\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x129\n" +
-	"\n" +
-	"applied_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tappliedAt\"\xe1\x03\n" +
-	"\x1fLocalAppAgentAIConfigProjection\x12\"\n" +
-	"\fcapabilities\x18\x01 \x03(\tR\fcapabilities\x12F\n" +
-	"\aintents\x18\x02 \x03(\v2,.nimi.runtime.v1.LocalAppAgentAIConfigIntentR\aintents\x12O\n" +
-	"\treadiness\x18\x03 \x03(\v21.nimi.runtime.v1.LocalAppAgentCapabilityReadinessR\treadiness\x125\n" +
-	"\x16configuration_revision\x18\x04 \x01(\x04R\x15configurationRevision\x12N\n" +
-	"\rroute_options\x18\x05 \x03(\v2).nimi.runtime.v1.LocalAppAgentRouteOptionR\frouteOptions\x12$\n" +
-	"\x0escope_owner_id\x18\x06 \x01(\tR\fscopeOwnerId\x12T\n" +
-	"\x0eprofile_origin\x18\a \x01(\v2-.nimi.runtime.v1.LocalAppAgentAIProfileOriginR\rprofileOrigin\"\xb0\x01\n" +
-	" LocalAppAgentReadinessProjection\x12U\n" +
-	"\fcapabilities\x18\x01 \x03(\v21.nimi.runtime.v1.LocalAppAgentCapabilityReadinessR\fcapabilities\x125\n" +
-	"\x16configuration_revision\x18\x02 \x01(\x04R\x15configurationRevision\"Q\n" +
-	",GetLocalAppAgentConfigurationSnapshotRequest\x12!\n" +
-	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\"~\n" +
-	"*LocalAppAgentConfigurationSnapshotResponse\x12P\n" +
-	"\n" +
-	"projection\x18\x01 \x01(\v20.nimi.runtime.v1.LocalAppAgentAIConfigProjectionR\n" +
-	"projection\"\xb2\x02\n" +
-	"'UpdateLocalAppAgentConfigurationRequest\x12!\n" +
-	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12F\n" +
-	"\x1fexpected_configuration_revision\x18\x02 \x01(\x04R\x1dexpectedConfigurationRevision\x12F\n" +
-	"\aintents\x18\x03 \x03(\v2,.nimi.runtime.v1.LocalAppAgentAIConfigIntentR\aintents\x12T\n" +
-	"\x0eprofile_origin\x18\x04 \x01(\v2-.nimi.runtime.v1.LocalAppAgentAIProfileOriginR\rprofileOrigin\"|\n" +
-	"(LocalAppAgentUpdateConfigurationResponse\x12P\n" +
-	"\n" +
-	"projection\x18\x01 \x01(\v20.nimi.runtime.v1.LocalAppAgentAIConfigProjectionR\n" +
-	"projection\"M\n" +
-	"(GetLocalAppAgentReadinessSnapshotRequest\x12!\n" +
-	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\"{\n" +
-	"&LocalAppAgentReadinessSnapshotResponse\x12Q\n" +
-	"\n" +
-	"projection\x18\x01 \x01(\v21.nimi.runtime.v1.LocalAppAgentReadinessProjectionR\n" +
-	"projection\"\xa4\x01\n" +
-	"$PreviewLocalAppAgentAIProfileRequest\x12!\n" +
-	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12!\n" +
-	"\fprofile_json\x18\x02 \x01(\fR\vprofileJson\x126\n" +
-	"\x17runtime_descriptor_json\x18\x03 \x01(\fR\x15runtimeDescriptorJson\"\xcd\x03\n" +
-	"%LocalAppAgentAIProfilePreviewResponse\x12H\n" +
-	"\x06before\x18\x01 \x01(\v20.nimi.runtime.v1.LocalAppAgentAIConfigProjectionR\x06before\x12F\n" +
-	"\x05after\x18\x02 \x01(\v20.nimi.runtime.v1.LocalAppAgentAIConfigProjectionR\x05after\x12M\n" +
-	"\aoutcome\x18\x03 \x01(\x0e23.nimi.runtime.v1.LocalAppAgentAIProfileApplyOutcomeR\aoutcome\x12#\n" +
-	"\rbase_revision\x18\x04 \x01(\x04R\fbaseRevision\x123\n" +
-	"\x15blocking_capabilities\x18\x05 \x03(\tR\x14blockingCapabilities\x12!\n" +
-	"\freason_codes\x18\x06 \x03(\tR\vreasonCodes\x12\x1f\n" +
-	"\vaction_refs\x18\a \x03(\tR\n" +
-	"actionRefs\x12%\n" +
-	"\x0eprobe_warnings\x18\b \x03(\tR\rprobeWarnings\"\xea\x01\n" +
-	"\"ApplyLocalAppAgentAIProfileRequest\x12!\n" +
-	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12F\n" +
-	"\x1fexpected_configuration_revision\x18\x02 \x01(\x04R\x1dexpectedConfigurationRevision\x12!\n" +
-	"\fprofile_json\x18\x03 \x01(\fR\vprofileJson\x126\n" +
-	"\x17runtime_descriptor_json\x18\x04 \x01(\fR\x15runtimeDescriptorJson\"\xe6\x02\n" +
-	"#LocalAppAgentAIProfileApplyResponse\x12P\n" +
-	"\n" +
-	"projection\x18\x01 \x01(\v20.nimi.runtime.v1.LocalAppAgentAIConfigProjectionR\n" +
-	"projection\x12M\n" +
-	"\aoutcome\x18\x02 \x01(\x0e23.nimi.runtime.v1.LocalAppAgentAIProfileApplyOutcomeR\aoutcome\x123\n" +
-	"\x15blocking_capabilities\x18\x03 \x03(\tR\x14blockingCapabilities\x12!\n" +
-	"\freason_codes\x18\x04 \x03(\tR\vreasonCodes\x12\x1f\n" +
-	"\vaction_refs\x18\x05 \x03(\tR\n" +
-	"actionRefs\x12%\n" +
-	"\x0eprobe_warnings\x18\x06 \x03(\tR\rprobeWarnings\"\xc2\x02\n" +
+	"projection\x18\x01 \x01(\v2;.nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjectionR\n" +
+	"projection\"\xc2\x02\n" +
 	"\x1bLocalAppAgentAutonomyConfig\x12,\n" +
 	"\x12daily_token_budget\x18\x01 \x01(\x03R\x10dailyTokenBudget\x12-\n" +
 	"\x13max_tokens_per_hook\x18\x02 \x01(\x03R\x10maxTokensPerHook\x12E\n" +
@@ -2343,26 +1349,7 @@ const file_runtime_v1_agent_configure_proto_rawDesc = "" +
 	"'LocalAppAgentCommitPresentationResponse\x12T\n" +
 	"\n" +
 	"projection\x18\x01 \x01(\v24.nimi.runtime.v1.LocalAppAgentPresentationProjectionR\n" +
-	"projection*\xbe\x02\n" +
-	"\x1bLocalAppAgentReadinessState\x12/\n" +
-	"+LOCAL_APP_AGENT_READINESS_STATE_UNSPECIFIED\x10\x00\x12)\n" +
-	"%LOCAL_APP_AGENT_READINESS_STATE_READY\x10\x01\x12+\n" +
-	"'LOCAL_APP_AGENT_READINESS_STATE_BLOCKED\x10\x02\x12/\n" +
-	"+LOCAL_APP_AGENT_READINESS_STATE_UNAVAILABLE\x10\x03\x12*\n" +
-	"&LOCAL_APP_AGENT_READINESS_STATE_FAILED\x10\x04\x129\n" +
-	"5LOCAL_APP_AGENT_READINESS_STATE_CONFIGURED_UNVERIFIED\x10\x05*\xcf\x01\n" +
-	"$LocalAppAgentRouteOptionAvailability\x129\n" +
-	"5LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_UNSPECIFIED\x10\x00\x123\n" +
-	"/LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_READY\x10\x01\x127\n" +
-	"3LOCAL_APP_AGENT_ROUTE_OPTION_AVAILABILITY_INSTALLED\x10\x02*\xdc\x03\n" +
-	"\"LocalAppAgentAIProfileApplyOutcome\x128\n" +
-	"4LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSPECIFIED\x10\x00\x12;\n" +
-	"7LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY\x10\x01\x12J\n" +
-	"FLOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG\x10\x02\x12G\n" +
-	"CLOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG\x10\x03\x12<\n" +
-	"8LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE\x10\x04\x127\n" +
-	"3LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE\x10\x05\x123\n" +
-	"/LOCAL_APP_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED\x10\x06*\xea\x01\n" +
+	"projection*\xea\x01\n" +
 	"\x19LocalAppAgentAutonomyMode\x12-\n" +
 	")LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED\x10\x00\x12%\n" +
 	"!LOCAL_APP_AGENT_AUTONOMY_MODE_OFF\x10\x01\x12%\n" +
@@ -2382,98 +1369,70 @@ func file_runtime_v1_agent_configure_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_agent_configure_proto_rawDescData
 }
 
-var file_runtime_v1_agent_configure_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_runtime_v1_agent_configure_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_runtime_v1_agent_configure_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_runtime_v1_agent_configure_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_runtime_v1_agent_configure_proto_goTypes = []any{
-	(LocalAppAgentReadinessState)(0),                     // 0: nimi.runtime.v1.LocalAppAgentReadinessState
-	(LocalAppAgentRouteOptionAvailability)(0),            // 1: nimi.runtime.v1.LocalAppAgentRouteOptionAvailability
-	(LocalAppAgentAIProfileApplyOutcome)(0),              // 2: nimi.runtime.v1.LocalAppAgentAIProfileApplyOutcome
-	(LocalAppAgentAutonomyMode)(0),                       // 3: nimi.runtime.v1.LocalAppAgentAutonomyMode
-	(*LocalAppAgentAIConfigComponentSelection)(nil),      // 4: nimi.runtime.v1.LocalAppAgentAIConfigComponentSelection
-	(*LocalAppAgentAIConfigIntent)(nil),                  // 5: nimi.runtime.v1.LocalAppAgentAIConfigIntent
-	(*LocalAppAgentCapabilityReadiness)(nil),             // 6: nimi.runtime.v1.LocalAppAgentCapabilityReadiness
-	(*LocalAppAgentRouteOption)(nil),                     // 7: nimi.runtime.v1.LocalAppAgentRouteOption
-	(*LocalAppAgentAIProfileOrigin)(nil),                 // 8: nimi.runtime.v1.LocalAppAgentAIProfileOrigin
-	(*LocalAppAgentAIConfigProjection)(nil),              // 9: nimi.runtime.v1.LocalAppAgentAIConfigProjection
-	(*LocalAppAgentReadinessProjection)(nil),             // 10: nimi.runtime.v1.LocalAppAgentReadinessProjection
-	(*GetLocalAppAgentConfigurationSnapshotRequest)(nil), // 11: nimi.runtime.v1.GetLocalAppAgentConfigurationSnapshotRequest
-	(*LocalAppAgentConfigurationSnapshotResponse)(nil),   // 12: nimi.runtime.v1.LocalAppAgentConfigurationSnapshotResponse
-	(*UpdateLocalAppAgentConfigurationRequest)(nil),      // 13: nimi.runtime.v1.UpdateLocalAppAgentConfigurationRequest
-	(*LocalAppAgentUpdateConfigurationResponse)(nil),     // 14: nimi.runtime.v1.LocalAppAgentUpdateConfigurationResponse
-	(*GetLocalAppAgentReadinessSnapshotRequest)(nil),     // 15: nimi.runtime.v1.GetLocalAppAgentReadinessSnapshotRequest
-	(*LocalAppAgentReadinessSnapshotResponse)(nil),       // 16: nimi.runtime.v1.LocalAppAgentReadinessSnapshotResponse
-	(*PreviewLocalAppAgentAIProfileRequest)(nil),         // 17: nimi.runtime.v1.PreviewLocalAppAgentAIProfileRequest
-	(*LocalAppAgentAIProfilePreviewResponse)(nil),        // 18: nimi.runtime.v1.LocalAppAgentAIProfilePreviewResponse
-	(*ApplyLocalAppAgentAIProfileRequest)(nil),           // 19: nimi.runtime.v1.ApplyLocalAppAgentAIProfileRequest
-	(*LocalAppAgentAIProfileApplyResponse)(nil),          // 20: nimi.runtime.v1.LocalAppAgentAIProfileApplyResponse
-	(*LocalAppAgentAutonomyConfig)(nil),                  // 21: nimi.runtime.v1.LocalAppAgentAutonomyConfig
-	(*LocalAppAgentAutonomyProjection)(nil),              // 22: nimi.runtime.v1.LocalAppAgentAutonomyProjection
-	(*LocalAppAgentAutonomyIntent)(nil),                  // 23: nimi.runtime.v1.LocalAppAgentAutonomyIntent
-	(*GetLocalAppAgentAutonomySnapshotRequest)(nil),      // 24: nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
-	(*LocalAppAgentAutonomySnapshotResponse)(nil),        // 25: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
-	(*UpdateLocalAppAgentAutonomyRequest)(nil),           // 26: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
-	(*LocalAppAgentUpdateAutonomyResponse)(nil),          // 27: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
-	(*LocalAppAgentPresentationProjection)(nil),          // 28: nimi.runtime.v1.LocalAppAgentPresentationProjection
-	(*LocalAppAgentPresentationIntent)(nil),              // 29: nimi.runtime.v1.LocalAppAgentPresentationIntent
-	(*GetLocalAppAgentPresentationSnapshotRequest)(nil),  // 30: nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
-	(*LocalAppAgentPresentationSnapshotResponse)(nil),    // 31: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
-	(*CommitLocalAppAgentPresentationRequest)(nil),       // 32: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
-	(*LocalAppAgentCommitPresentationResponse)(nil),      // 33: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
-	(*structpb.Struct)(nil),                              // 34: google.protobuf.Struct
-	(RoutePolicy)(0),                                     // 35: nimi.runtime.v1.RoutePolicy
-	(*timestamppb.Timestamp)(nil),                        // 36: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),                          // 37: google.protobuf.Duration
-	(*AgentPresentationProfile)(nil),                     // 38: nimi.runtime.v1.AgentPresentationProfile
-	(AgentPresentationBackendKind)(0),                    // 39: nimi.runtime.v1.AgentPresentationBackendKind
-	(*AgentPresentationAssetMaterial)(nil),               // 40: nimi.runtime.v1.AgentPresentationAssetMaterial
+	(LocalAppAgentAutonomyMode)(0),                            // 0: nimi.runtime.v1.LocalAppAgentAutonomyMode
+	(*LocalAppSharedLocalAgentAIConfigProjection)(nil),        // 1: nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
+	(*GetLocalAppSharedLocalAgentAIConfigRequest)(nil),        // 2: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
+	(*GetLocalAppSharedLocalAgentAIConfigResponse)(nil),       // 3: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
+	(*OverwriteLocalAppSharedLocalAgentAIConfigRequest)(nil),  // 4: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
+	(*OverwriteLocalAppSharedLocalAgentAIConfigResponse)(nil), // 5: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
+	(*PreviewLocalAppSharedLocalAgentAIProfileRequest)(nil),   // 6: nimi.runtime.v1.PreviewLocalAppSharedLocalAgentAIProfileRequest
+	(*PreviewLocalAppSharedLocalAgentAIProfileResponse)(nil),  // 7: nimi.runtime.v1.PreviewLocalAppSharedLocalAgentAIProfileResponse
+	(*ApplyLocalAppSharedLocalAgentAIProfileRequest)(nil),     // 8: nimi.runtime.v1.ApplyLocalAppSharedLocalAgentAIProfileRequest
+	(*ApplyLocalAppSharedLocalAgentAIProfileResponse)(nil),    // 9: nimi.runtime.v1.ApplyLocalAppSharedLocalAgentAIProfileResponse
+	(*LocalAppAgentAutonomyConfig)(nil),                       // 10: nimi.runtime.v1.LocalAppAgentAutonomyConfig
+	(*LocalAppAgentAutonomyProjection)(nil),                   // 11: nimi.runtime.v1.LocalAppAgentAutonomyProjection
+	(*LocalAppAgentAutonomyIntent)(nil),                       // 12: nimi.runtime.v1.LocalAppAgentAutonomyIntent
+	(*GetLocalAppAgentAutonomySnapshotRequest)(nil),           // 13: nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
+	(*LocalAppAgentAutonomySnapshotResponse)(nil),             // 14: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
+	(*UpdateLocalAppAgentAutonomyRequest)(nil),                // 15: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
+	(*LocalAppAgentUpdateAutonomyResponse)(nil),               // 16: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
+	(*LocalAppAgentPresentationProjection)(nil),               // 17: nimi.runtime.v1.LocalAppAgentPresentationProjection
+	(*LocalAppAgentPresentationIntent)(nil),                   // 18: nimi.runtime.v1.LocalAppAgentPresentationIntent
+	(*GetLocalAppAgentPresentationSnapshotRequest)(nil),       // 19: nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
+	(*LocalAppAgentPresentationSnapshotResponse)(nil),         // 20: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
+	(*CommitLocalAppAgentPresentationRequest)(nil),            // 21: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
+	(*LocalAppAgentCommitPresentationResponse)(nil),           // 22: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
+	(*AIConfig)(nil),                       // 23: nimi.runtime.v1.AIConfig
+	(*AIConfigCapabilityIntent)(nil),       // 24: nimi.runtime.v1.AIConfigCapabilityIntent
+	(*durationpb.Duration)(nil),            // 25: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),          // 26: google.protobuf.Timestamp
+	(*AgentPresentationProfile)(nil),       // 27: nimi.runtime.v1.AgentPresentationProfile
+	(AgentPresentationBackendKind)(0),      // 28: nimi.runtime.v1.AgentPresentationBackendKind
+	(*AgentPresentationAssetMaterial)(nil), // 29: nimi.runtime.v1.AgentPresentationAssetMaterial
 }
 var file_runtime_v1_agent_configure_proto_depIdxs = []int32{
-	34, // 0: nimi.runtime.v1.LocalAppAgentAIConfigComponentSelection.options:type_name -> google.protobuf.Struct
-	35, // 1: nimi.runtime.v1.LocalAppAgentAIConfigIntent.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	34, // 2: nimi.runtime.v1.LocalAppAgentAIConfigIntent.selected_params:type_name -> google.protobuf.Struct
-	4,  // 3: nimi.runtime.v1.LocalAppAgentAIConfigIntent.selected_components:type_name -> nimi.runtime.v1.LocalAppAgentAIConfigComponentSelection
-	0,  // 4: nimi.runtime.v1.LocalAppAgentCapabilityReadiness.state:type_name -> nimi.runtime.v1.LocalAppAgentReadinessState
-	36, // 5: nimi.runtime.v1.LocalAppAgentCapabilityReadiness.observed_at:type_name -> google.protobuf.Timestamp
-	35, // 6: nimi.runtime.v1.LocalAppAgentRouteOption.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	1,  // 7: nimi.runtime.v1.LocalAppAgentRouteOption.availability:type_name -> nimi.runtime.v1.LocalAppAgentRouteOptionAvailability
-	36, // 8: nimi.runtime.v1.LocalAppAgentAIProfileOrigin.applied_at:type_name -> google.protobuf.Timestamp
-	5,  // 9: nimi.runtime.v1.LocalAppAgentAIConfigProjection.intents:type_name -> nimi.runtime.v1.LocalAppAgentAIConfigIntent
-	6,  // 10: nimi.runtime.v1.LocalAppAgentAIConfigProjection.readiness:type_name -> nimi.runtime.v1.LocalAppAgentCapabilityReadiness
-	7,  // 11: nimi.runtime.v1.LocalAppAgentAIConfigProjection.route_options:type_name -> nimi.runtime.v1.LocalAppAgentRouteOption
-	8,  // 12: nimi.runtime.v1.LocalAppAgentAIConfigProjection.profile_origin:type_name -> nimi.runtime.v1.LocalAppAgentAIProfileOrigin
-	6,  // 13: nimi.runtime.v1.LocalAppAgentReadinessProjection.capabilities:type_name -> nimi.runtime.v1.LocalAppAgentCapabilityReadiness
-	9,  // 14: nimi.runtime.v1.LocalAppAgentConfigurationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAIConfigProjection
-	5,  // 15: nimi.runtime.v1.UpdateLocalAppAgentConfigurationRequest.intents:type_name -> nimi.runtime.v1.LocalAppAgentAIConfigIntent
-	8,  // 16: nimi.runtime.v1.UpdateLocalAppAgentConfigurationRequest.profile_origin:type_name -> nimi.runtime.v1.LocalAppAgentAIProfileOrigin
-	9,  // 17: nimi.runtime.v1.LocalAppAgentUpdateConfigurationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAIConfigProjection
-	10, // 18: nimi.runtime.v1.LocalAppAgentReadinessSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentReadinessProjection
-	9,  // 19: nimi.runtime.v1.LocalAppAgentAIProfilePreviewResponse.before:type_name -> nimi.runtime.v1.LocalAppAgentAIConfigProjection
-	9,  // 20: nimi.runtime.v1.LocalAppAgentAIProfilePreviewResponse.after:type_name -> nimi.runtime.v1.LocalAppAgentAIConfigProjection
-	2,  // 21: nimi.runtime.v1.LocalAppAgentAIProfilePreviewResponse.outcome:type_name -> nimi.runtime.v1.LocalAppAgentAIProfileApplyOutcome
-	9,  // 22: nimi.runtime.v1.LocalAppAgentAIProfileApplyResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAIConfigProjection
-	2,  // 23: nimi.runtime.v1.LocalAppAgentAIProfileApplyResponse.outcome:type_name -> nimi.runtime.v1.LocalAppAgentAIProfileApplyOutcome
-	37, // 24: nimi.runtime.v1.LocalAppAgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
-	36, // 25: nimi.runtime.v1.LocalAppAgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
-	3,  // 26: nimi.runtime.v1.LocalAppAgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyMode
-	21, // 27: nimi.runtime.v1.LocalAppAgentAutonomyProjection.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
-	36, // 28: nimi.runtime.v1.LocalAppAgentAutonomyProjection.window_started_at:type_name -> google.protobuf.Timestamp
-	36, // 29: nimi.runtime.v1.LocalAppAgentAutonomyProjection.suspended_until:type_name -> google.protobuf.Timestamp
-	21, // 30: nimi.runtime.v1.LocalAppAgentAutonomyIntent.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
-	22, // 31: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
-	23, // 32: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyIntent
-	22, // 33: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
-	38, // 34: nimi.runtime.v1.LocalAppAgentPresentationProjection.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	38, // 35: nimi.runtime.v1.LocalAppAgentPresentationProjection.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	39, // 36: nimi.runtime.v1.LocalAppAgentPresentationIntent.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
-	28, // 37: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
-	29, // 38: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentPresentationIntent
-	40, // 39: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
-	28, // 40: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
-	41, // [41:41] is the sub-list for method output_type
-	41, // [41:41] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	23, // 0: nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection.config:type_name -> nimi.runtime.v1.AIConfig
+	1,  // 1: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse.projection:type_name -> nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
+	24, // 2: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
+	1,  // 3: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse.projection:type_name -> nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
+	1,  // 4: nimi.runtime.v1.PreviewLocalAppSharedLocalAgentAIProfileResponse.before:type_name -> nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
+	1,  // 5: nimi.runtime.v1.PreviewLocalAppSharedLocalAgentAIProfileResponse.after:type_name -> nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
+	1,  // 6: nimi.runtime.v1.ApplyLocalAppSharedLocalAgentAIProfileResponse.projection:type_name -> nimi.runtime.v1.LocalAppSharedLocalAgentAIConfigProjection
+	25, // 7: nimi.runtime.v1.LocalAppAgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
+	26, // 8: nimi.runtime.v1.LocalAppAgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
+	0,  // 9: nimi.runtime.v1.LocalAppAgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyMode
+	10, // 10: nimi.runtime.v1.LocalAppAgentAutonomyProjection.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
+	26, // 11: nimi.runtime.v1.LocalAppAgentAutonomyProjection.window_started_at:type_name -> google.protobuf.Timestamp
+	26, // 12: nimi.runtime.v1.LocalAppAgentAutonomyProjection.suspended_until:type_name -> google.protobuf.Timestamp
+	10, // 13: nimi.runtime.v1.LocalAppAgentAutonomyIntent.config:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyConfig
+	11, // 14: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
+	12, // 15: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyIntent
+	11, // 16: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
+	27, // 17: nimi.runtime.v1.LocalAppAgentPresentationProjection.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	27, // 18: nimi.runtime.v1.LocalAppAgentPresentationProjection.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	28, // 19: nimi.runtime.v1.LocalAppAgentPresentationIntent.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
+	17, // 20: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
+	18, // 21: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentPresentationIntent
+	29, // 22: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
+	17, // 23: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
+	24, // [24:24] is the sub-list for method output_type
+	24, // [24:24] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_configure_proto_init() }
@@ -2482,15 +1441,15 @@ func file_runtime_v1_agent_configure_proto_init() {
 		return
 	}
 	file_runtime_v1_agent_presentation_proto_init()
-	file_runtime_v1_ai_proto_init()
-	file_runtime_v1_agent_configure_proto_msgTypes[19].OneofWrappers = []any{}
+	file_runtime_v1_capability_configuration_proto_init()
+	file_runtime_v1_agent_configure_proto_msgTypes[11].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_configure_proto_rawDesc), len(file_runtime_v1_agent_configure_proto_rawDesc)),
-			NumEnums:      4,
-			NumMessages:   30,
+			NumEnums:      1,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

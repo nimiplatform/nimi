@@ -11,6 +11,18 @@ function createLocalAppClient(input: NimiLocalAppClientInput) {
   return createNimiClient({ localApp: input });
 }
 
+function sharedAgentConfig(capabilities: unknown = []) {
+  return {
+    owner: {
+      owner: {
+        oneofKind: 'runtimeLocalAgentSubsystem',
+        runtimeLocalAgentSubsystem: {},
+      },
+    },
+    capabilities,
+  };
+}
+
 function standardShell(overrides: Record<string, unknown> = {}) {
   return {
     session: {
@@ -77,11 +89,10 @@ function standardShell(overrides: Record<string, unknown> = {}) {
       readBytes: async () => ({ bytes: new Uint8Array([137, 80, 78, 71]), mimeType: 'image/png' }),
     },
     agentConfigure: {
-      configurationSnapshot: async () => ({}),
-      updateConfiguration: async () => ({}),
-      readinessSnapshot: async () => ({}),
-      aiProfilePreview: async () => ({}),
-      aiProfileApply: async () => ({}),
+      sharedAgentAIConfigGet: async () => sharedAgentConfig(),
+      sharedAgentAIConfigOverwrite: async (capabilities: unknown) => sharedAgentConfig(capabilities),
+      sharedAgentAIProfilePreview: async () => ({ before: null, after: sharedAgentConfig() }),
+      sharedAgentAIProfileApply: async () => sharedAgentConfig(),
       autonomySnapshot: async () => ({}),
       updateAutonomy: async () => ({}),
       presentationSnapshot: async () => ({}),
@@ -153,6 +164,90 @@ test('App AIConfig carrier rejects owner injection and mismatched projection sha
     route: { oneofKind: 'local', local: {} },
     owner: { appId: 'forbidden' },
   } as never]), /unsupported fields/u);
+});
+
+test('shared LocalAgent AIConfig and portable profile carry no Agent identity or revision', async () => {
+  const calls: unknown[] = [];
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      agentConfigure: {
+        sharedAgentAIConfigGet: async () => sharedAgentConfig(),
+        sharedAgentAIConfigOverwrite: async (capabilities: unknown) => {
+          calls.push(['overwrite', capabilities]);
+          return sharedAgentConfig(capabilities);
+        },
+        sharedAgentAIProfilePreview: async (profileJson: string) => {
+          calls.push(['preview', profileJson]);
+          return { before: null, after: sharedAgentConfig() };
+        },
+        sharedAgentAIProfileApply: async (profileJson: string) => {
+          calls.push(['apply', profileJson]);
+          return sharedAgentConfig();
+        },
+        autonomySnapshot: async () => ({}),
+        updateAutonomy: async () => ({}),
+        presentationSnapshot: async () => ({}),
+        commitPresentation: async () => ({}),
+      },
+    }),
+  });
+  const intent = {
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+    route: { oneofKind: 'local' as const, local: {} },
+  };
+  const profile = {
+    profileId: 'shared-local',
+    title: 'Shared Local',
+    capabilities: {
+      'text.generate': { route: 'local' as const, requiredFeatures: [] },
+    },
+  };
+  assert.equal((await client.agentConfigure.sharedAIConfig.get()).owner?.owner.oneofKind, 'runtimeLocalAgentSubsystem');
+  assert.deepEqual((await client.agentConfigure.sharedAIConfig.overwrite([intent])).capabilities, [intent]);
+  const preview = await client.agentConfigure.sharedAIProfile.preview(profile);
+  assert.equal(preview.source.profileId, 'shared-local');
+  assert.equal(preview.before, null);
+  assert.equal(preview.identical, false);
+  await assert.doesNotReject(() => client.agentConfigure.sharedAIProfile.apply(profile));
+  assert.deepEqual(calls[0], ['overwrite', [intent]]);
+  assert.equal(typeof (calls[1] as unknown[])[1], 'string');
+  assert.deepEqual(JSON.parse((calls[1] as [string, string])[1]), profile);
+  assert.equal(JSON.stringify(calls).match(/agentHandle|revision|readiness/gu), null);
+});
+
+test('shared LocalAgent AIConfig/profile fail closed on owner and profile violations', async () => {
+  let calls = 0;
+  const client = createLocalAppClient({
+    standardShell: standardShell({
+      agentConfigure: {
+        sharedAgentAIConfigGet: async () => ({
+          owner: { owner: { oneofKind: 'app', app: { appId: 'forbidden' } } },
+          capabilities: [],
+        }),
+        sharedAgentAIConfigOverwrite: async () => { calls += 1; return sharedAgentConfig(); },
+        sharedAgentAIProfilePreview: async () => { calls += 1; return { before: null, after: sharedAgentConfig() }; },
+        sharedAgentAIProfileApply: async () => { calls += 1; return sharedAgentConfig(); },
+        autonomySnapshot: async () => ({}),
+        updateAutonomy: async () => ({}),
+        presentationSnapshot: async () => ({}),
+        commitPresentation: async () => ({}),
+      },
+    }),
+  });
+  await assert.rejects(
+    () => client.agentConfigure.sharedAIConfig.get(),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+  await assert.rejects(
+    () => client.agentConfigure.sharedAIConfig.overwrite([{ owner: {} }] as never),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN',
+  );
+  await assert.rejects(
+    () => client.agentConfigure.sharedAIProfile.preview('{'),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'AI_PROFILE_INVALID',
+  );
+  assert.equal(calls, 0);
 });
 
 test('text candidate generation forwards only bounded prompt controls', async () => {

@@ -7,7 +7,8 @@ use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
     LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppPermissionRequest,
     LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
-    LocalAppSessionStatus, LocalAppStorageDocument, LocalAppStorageReadRequest,
+    LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppSharedAgentAIProfileRequest, LocalAppStorageDocument, LocalAppStorageReadRequest,
     LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
     LocalAppTextCandidateRequest, LocalAppTextCandidateResult, NimiLocalAppCarrier,
     NimiLocalAppSession,
@@ -126,6 +127,61 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.app_ai_config_overwrite(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn shared_agent_ai_config_get(
+        &self,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.shared_agent_ai_config_get().await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn shared_agent_ai_config_overwrite(
+        &self,
+        request: LocalAppSharedAgentAIConfigOverwriteRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.shared_agent_ai_config_overwrite(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn shared_agent_ai_profile_preview(
+        &self,
+        request: LocalAppSharedAgentAIProfileRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.shared_agent_ai_profile_preview(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn shared_agent_ai_profile_apply(
+        &self,
+        request: LocalAppSharedAgentAIProfileRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.shared_agent_ai_profile_apply(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

@@ -23,31 +23,30 @@ var (
 type LocalAppOperation string
 
 const (
-	LocalAppOperationReadArtifactBytes     LocalAppOperation = "artifacts.read_runtime_bytes"
-	LocalAppOperationOpenConversation      LocalAppOperation = "runtime_agent.conversation.open"
-	LocalAppOperationSendConversationTurn  LocalAppOperation = "runtime_agent.conversation.turn_send"
-	LocalAppOperationInterruptConversation LocalAppOperation = "runtime_agent.conversation.turn_interrupt"
-	LocalAppOperationSubscribeConversation LocalAppOperation = "runtime_agent.conversation.turn_subscribe"
-	LocalAppOperationConversationSnapshot  LocalAppOperation = "runtime_agent.conversation.snapshot"
-	LocalAppOperationConfigurationSnapshot LocalAppOperation = "runtime_agent.configuration.snapshot"
-	LocalAppOperationUpdateConfiguration   LocalAppOperation = "runtime_agent.configuration.update"
-	LocalAppOperationReadinessSnapshot     LocalAppOperation = "runtime_agent.readiness.snapshot"
-	LocalAppOperationAIProfilePreview      LocalAppOperation = "runtime_agent.ai_profile.preview"
-	LocalAppOperationAIProfileApply        LocalAppOperation = "runtime_agent.ai_profile.apply"
-	LocalAppOperationAutonomySnapshot      LocalAppOperation = "runtime_agent.autonomy.snapshot"
-	LocalAppOperationUpdateAutonomy        LocalAppOperation = "runtime_agent.autonomy.update"
-	LocalAppOperationPresentationSnapshot  LocalAppOperation = "runtime_agent.presentation.snapshot"
-	LocalAppOperationCommitPresentation    LocalAppOperation = "runtime_agent.presentation.commit"
-	LocalAppOperationStorageJSONRead       LocalAppOperation = "app_storage.json.read"
-	LocalAppOperationStorageJSONWrite      LocalAppOperation = "app_storage.json.write"
-	LocalAppOperationStorageJSONRemove     LocalAppOperation = "app_storage.json.remove"
-	LocalAppOperationRealmWorldCoreList    LocalAppOperation = "realm.world_core.list"
-	LocalAppOperationRealmWorldCoreCreate  LocalAppOperation = "realm.world_core.create"
-	LocalAppOperationAppAIConfigRead       LocalAppOperation = "runtime.ai.app_config.read"
-	LocalAppOperationAppAIConfigOverwrite  LocalAppOperation = "runtime.ai.app_config.overwrite"
-	LocalAppOperationTextCandidateGenerate LocalAppOperation = "runtime.ai.text_candidate.generate"
-	LocalAppOperationVoiceTranscribe       LocalAppOperation = "runtime_agent.voice.transcribe"
-	LocalAppOperationVoiceStreamSubscribe  LocalAppOperation = "runtime_agent.voice.stream_subscribe"
+	LocalAppOperationReadArtifactBytes       LocalAppOperation = "artifacts.read_runtime_bytes"
+	LocalAppOperationOpenConversation        LocalAppOperation = "runtime_agent.conversation.open"
+	LocalAppOperationSendConversationTurn    LocalAppOperation = "runtime_agent.conversation.turn_send"
+	LocalAppOperationInterruptConversation   LocalAppOperation = "runtime_agent.conversation.turn_interrupt"
+	LocalAppOperationSubscribeConversation   LocalAppOperation = "runtime_agent.conversation.turn_subscribe"
+	LocalAppOperationConversationSnapshot    LocalAppOperation = "runtime_agent.conversation.snapshot"
+	LocalAppOperationSharedAIConfigGet       LocalAppOperation = "runtime_agent.shared_ai_config.get"
+	LocalAppOperationSharedAIConfigOverwrite LocalAppOperation = "runtime_agent.shared_ai_config.overwrite"
+	LocalAppOperationSharedAIProfilePreview  LocalAppOperation = "runtime_agent.shared_ai_profile.preview"
+	LocalAppOperationSharedAIProfileApply    LocalAppOperation = "runtime_agent.shared_ai_profile.apply"
+	LocalAppOperationAutonomySnapshot        LocalAppOperation = "runtime_agent.autonomy.snapshot"
+	LocalAppOperationUpdateAutonomy          LocalAppOperation = "runtime_agent.autonomy.update"
+	LocalAppOperationPresentationSnapshot    LocalAppOperation = "runtime_agent.presentation.snapshot"
+	LocalAppOperationCommitPresentation      LocalAppOperation = "runtime_agent.presentation.commit"
+	LocalAppOperationStorageJSONRead         LocalAppOperation = "app_storage.json.read"
+	LocalAppOperationStorageJSONWrite        LocalAppOperation = "app_storage.json.write"
+	LocalAppOperationStorageJSONRemove       LocalAppOperation = "app_storage.json.remove"
+	LocalAppOperationRealmWorldCoreList      LocalAppOperation = "realm.world_core.list"
+	LocalAppOperationRealmWorldCoreCreate    LocalAppOperation = "realm.world_core.create"
+	LocalAppOperationAppAIConfigRead         LocalAppOperation = "runtime.ai.app_config.read"
+	LocalAppOperationAppAIConfigOverwrite    LocalAppOperation = "runtime.ai.app_config.overwrite"
+	LocalAppOperationTextCandidateGenerate   LocalAppOperation = "runtime.ai.text_candidate.generate"
+	LocalAppOperationVoiceTranscribe         LocalAppOperation = "runtime_agent.voice.transcribe"
+	LocalAppOperationVoiceStreamSubscribe    LocalAppOperation = "runtime_agent.voice.stream_subscribe"
 )
 
 type LocalAppTrustClass string
@@ -299,11 +298,10 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 		LocalAppOperationInterruptConversation, LocalAppOperationSubscribeConversation,
 		LocalAppOperationConversationSnapshot:
 		return localAppAgentPermissionID, true
-	case LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
-		LocalAppOperationReadinessSnapshot, LocalAppOperationAIProfilePreview,
-		LocalAppOperationAIProfileApply, LocalAppOperationAutonomySnapshot,
-		LocalAppOperationUpdateAutonomy, LocalAppOperationPresentationSnapshot,
-		LocalAppOperationCommitPresentation:
+	case LocalAppOperationSharedAIConfigGet, LocalAppOperationSharedAIConfigOverwrite,
+		LocalAppOperationSharedAIProfilePreview, LocalAppOperationSharedAIProfileApply,
+		LocalAppOperationAutonomySnapshot, LocalAppOperationUpdateAutonomy,
+		LocalAppOperationPresentationSnapshot, LocalAppOperationCommitPresentation:
 		return "agents.configure", true
 	case LocalAppOperationStorageJSONRead, LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
 		return appstorage.LocalAppPrivateStorageEntitlement, true

@@ -16,6 +16,11 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** The Local App carrier replaces per-Agent AI configuration,
+  readiness, and AIProfile commands with shared LocalAgent-subsystem AIConfig
+  get/overwrite and portable-profile preview/apply. The new operations carry no
+  Agent handle, configuration revision, readiness, model binding, or owner
+  assertion; autonomy and presentation remain per-Agent.
 - **Breaking (0.x):** The generic standard-shell `ai-config.get` /
   `ai-config.set` capability and its Electron/Tauri host-local file stores are
   removed. AIConfig persistence and mutation belong to Runtime-owned canonical

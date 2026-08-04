@@ -2,663 +2,475 @@ package runtimeagent
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"sort"
+	"strconv"
 	"strings"
-	"time"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const runtimeAgentAIProfileJSONLimit = 4 << 20
+var errPortableAIProfileInvalid = errors.New("portable AIProfile is invalid")
 
-var runtimeAgentAIProfileForbiddenFields = map[string]struct{}{
-	"RuntimeRouteBinding":          {},
-	"selectedBindings":             {},
-	"selected_source_records":      {},
-	"selectedSourceRecords":        {},
-	"install_evidence":             {},
-	"installEvidence":              {},
-	"materialization_evidence":     {},
-	"materializationEvidence":      {},
-	"workflow_binding_id":          {},
-	"workflowBindingId":            {},
-	"prepared_asset_id":            {},
-	"preparedAssetId":              {},
-	"backend_environment_evidence": {},
-	"backendEnvironmentEvidence":   {},
-	"provider_health":              {},
-	"providerHealth":               {},
-	"scheduler_state":              {},
-	"schedulerState":               {},
-	"credential_payload":           {},
-	"credentialPayload":            {},
-	"secret":                       {},
-	"token":                        {},
-	"apiKey":                       {},
-	"api_key":                      {},
-	"oauth":                        {},
-	"endpoint":                     {},
-	"localModelId":                 {},
-	"goRuntimeLocalModelId":        {},
-	"goRuntimeStatus":              {},
-	"boundAssetId":                 {},
-	"runtimeLocalRouteTarget":      {},
-	"runtimeExecutionTraceId":      {},
-	"providerHints":                {},
-	"binding":                      {},
-	"localProfileRef":              {},
-	"localProfileRefs":             {},
+var portableAIProfileForbiddenKeys = map[string]struct{}{
+	"connectorgrantid": {}, "connectorgrant": {}, "grantid": {}, "connectorid": {}, "connector": {},
+	"accountid": {}, "account": {}, "subjectuserid": {}, "owneruserid": {}, "localassetid": {},
+	"localassetpath": {}, "binding": {}, "bindings": {}, "exactbinding": {}, "exactbindings": {},
+	"path": {}, "filepath": {}, "secret": {}, "secrets": {}, "credential": {}, "credentials": {},
+	"credentialpayload": {}, "apikey": {}, "accesstoken": {}, "refreshtoken": {}, "oauthtoken": {},
+	"endpoint": {}, "endpointurl": {}, "baseurl": {}, "runtimeprocessid": {}, "jobid": {},
 }
 
-type runtimeAgentPortableAIProfile struct {
-	ProfileID    string                                              `json:"profileId"`
-	Version      string                                              `json:"version,omitempty"`
-	Revision     string                                              `json:"revision,omitempty"`
-	Title        string                                              `json:"title"`
-	Capabilities map[string]*runtimeAgentPortableAIProfileCapability `json:"capabilities"`
+type portableAIProfileCapability struct {
+	route               string
+	requiredFeatures    []string
+	defaults            *structpb.Struct
+	implementation      *runtimev1.CapabilityImplementationIdentity
+	providerModelTarget *structpb.Struct
 }
 
-type runtimeAgentPortableAIProfileCapability struct {
-	LogicalModelID  string                                  `json:"logicalModelId,omitempty"`
-	TargetRef       *runtimeAgentPortableAIProfileTargetRef `json:"targetRef,omitempty"`
-	Params          json.RawMessage                         `json:"params,omitempty"`
-	ReadinessPolicy string                                  `json:"readinessPolicy,omitempty"`
-	ContractState   string                                  `json:"contractState,omitempty"`
+type portableAIProfile struct {
+	capabilities map[string]portableAIProfileCapability
 }
 
-type runtimeAgentPortableAIProfileTargetRef struct {
-	Kind                 string `json:"kind"`
-	SourceProfileID      string `json:"sourceProfileId,omitempty"`
-	SliceID              string `json:"sliceId,omitempty"`
-	ConnectorID          string `json:"connectorId,omitempty"`
-	RemoteModelCatalogID string `json:"remoteModelCatalogId,omitempty"`
-	ProviderModelID      string `json:"providerModelId,omitempty"`
-	Provider             string `json:"provider,omitempty"`
-}
-
-type runtimeAgentAIProfileProjection struct {
-	before               *runtimev1.RuntimeAgentAIConfig
-	after                *runtimev1.RuntimeAgentAIConfig
-	outcome              runtimev1.RuntimeAgentAIProfileApplyOutcome
-	blockingCapabilities []string
-	reasonCodes          []string
-	actionRefs           []string
-	probeWarnings        []string
-}
-
-func (s *Service) PreviewRuntimeAgentAIProfile(
-	ctx context.Context,
-	req *runtimev1.PreviewRuntimeAgentAIProfileRequest,
-) (*runtimev1.PreviewRuntimeAgentAIProfileResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "preview runtime agent ai profile request is required")
-	}
-	if s.isClosed() {
-		return nil, status.Error(codes.Unavailable, "runtime agent service is closed")
-	}
-	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.write"); err != nil {
-		return nil, err
-	}
-	projection, err := s.prepareRuntimeAgentAIProfileProjection(
-		ctx,
-		req.GetContext(),
-		req.GetProfileJson(),
-		req.GetRuntimeDescriptorJson(),
-	)
+// sharedLocalAgentAIConfigFromProfile parses the same closed portable
+// AIProfile document admitted by the TypeScript SDK, projects consumer intent
+// only, and canonicalizes the resulting singular shared-owner AIConfig. Local
+// implementation and resource recommendations are validated but never become
+// a model, binding, or machine selection.
+func sharedLocalAgentAIConfigFromProfile(raw []byte) (*runtimev1.AIConfig, error) {
+	profile, err := parsePortableAIProfile(raw)
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.PreviewRuntimeAgentAIProfileResponse{
-		Before:               cloneRuntimeAgentAIConfig(projection.before),
-		After:                cloneRuntimeAgentAIConfig(projection.after),
-		Outcome:              projection.outcome,
-		BaseRevision:         projection.before.GetRevision(),
-		BlockingCapabilities: append([]string(nil), projection.blockingCapabilities...),
-		ReasonCodes:          append([]string(nil), projection.reasonCodes...),
-		ActionRefs:           append([]string(nil), projection.actionRefs...),
-		ProbeWarnings:        append([]string(nil), projection.probeWarnings...),
-	}, nil
+	contracts := make([]string, 0, len(profile.capabilities))
+	for contract := range profile.capabilities {
+		contracts = append(contracts, contract)
+	}
+	sort.Strings(contracts)
+	capabilities := make([]*runtimev1.AIConfigCapabilityIntent, 0, len(contracts))
+	for _, contract := range contracts {
+		capability := profile.capabilities[contract]
+		intent := &runtimev1.AIConfigCapabilityIntent{
+			CapabilityContract: contract,
+			RequiredFeatures:   append([]string(nil), capability.requiredFeatures...),
+			Defaults:           capability.defaults,
+		}
+		switch capability.route {
+		case "local":
+			intent.Route = &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}}
+		case "cloud":
+			intent.Route = &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+				Implementation:      capability.implementation,
+				ProviderModelTarget: capability.providerModelTarget,
+				// ConnectorGrant is account-local authorization and is absent
+				// from the portable profile format.
+				ConnectorGrantId: "",
+			}}
+		default:
+			return nil, errPortableAIProfileInvalid
+		}
+		capabilities = append(capabilities, intent)
+	}
+	canonical, err := aiconfig.Canonicalize(&runtimev1.AIConfig{
+		Owner:        aiconfig.LocalAgentSubsystemOwner(),
+		Capabilities: capabilities,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errPortableAIProfileInvalid, err)
+	}
+	return canonical, nil
 }
 
-func (s *Service) ApplyRuntimeAgentAIProfile(
-	ctx context.Context,
-	req *runtimev1.ApplyRuntimeAgentAIProfileRequest,
-) (*runtimev1.ApplyRuntimeAgentAIProfileResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "apply runtime agent ai profile request is required")
+func parsePortableAIProfile(raw []byte) (*portableAIProfile, error) {
+	if len(bytes.TrimSpace(raw)) == 0 || !utf8.Valid(raw) {
+		return nil, errPortableAIProfileInvalid
 	}
-	if s.isClosed() {
-		return nil, status.Error(codes.Unavailable, "runtime agent service is closed")
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var value any
+	if err := decoder.Decode(&value); err != nil {
+		return nil, errPortableAIProfileInvalid
 	}
-	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.write"); err != nil {
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		return nil, errPortableAIProfileInvalid
+	}
+	root, ok := value.(map[string]any)
+	if !ok {
+		return nil, errPortableAIProfileInvalid
+	}
+	if err := requirePortableExactKeys(root, []string{
+		"profileId", "title", "description", "capabilities", "provenance", "license", "displayMetadata",
+	}); err != nil {
 		return nil, err
 	}
-	current, err := s.committedRuntimeAgentAIConfigForContext(req.GetContext())
-	if err != nil {
+	if err := validatePortableAIProfileValue(root); err != nil {
 		return nil, err
 	}
-	if current.GetRevision() != req.GetExpectedRevision() {
-		return &runtimev1.ApplyRuntimeAgentAIProfileResponse{
-			Outcome:       runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE,
-			ReasonCodes:   []string{"stale_base"},
-			ProbeWarnings: nil,
-		}, nil
-	}
-	projection, err := s.prepareRuntimeAgentAIProfileProjection(
-		ctx,
-		req.GetContext(),
-		req.GetProfileJson(),
-		req.GetRuntimeDescriptorJson(),
-	)
-	if err != nil {
+	if _, err := requirePortableText(root["profileId"]); err != nil {
 		return nil, err
 	}
-	response := &runtimev1.ApplyRuntimeAgentAIProfileResponse{
-		Outcome:              projection.outcome,
-		BlockingCapabilities: append([]string(nil), projection.blockingCapabilities...),
-		ReasonCodes:          append([]string(nil), projection.reasonCodes...),
-		ActionRefs:           append([]string(nil), projection.actionRefs...),
-		ProbeWarnings:        append([]string(nil), projection.probeWarnings...),
+	if _, err := requirePortableText(root["title"]); err != nil {
+		return nil, err
 	}
-	if projection.outcome != runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY ||
-		projection.after == nil {
-		return response, nil
+	if value, present := root["description"]; present {
+		if _, err := requirePortableExactText(value); err != nil {
+			return nil, err
+		}
 	}
-	committed, err := s.upsertRuntimeAgentAIConfig(
-		req.GetContext(),
-		req.GetExpectedRevision(),
-		projection.after.GetIntents(),
-		projection.after.GetProfileOrigin(),
-	)
-	if err != nil {
-		if reason, ok := grpcerr.ExtractReasonCode(err); ok {
-			switch reason {
-			case runtimev1.ReasonCode_AGENT_AI_CONFIG_REVISION_CONFLICT:
-				response.Outcome = runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_STALE_BASE
-				response.ReasonCodes = []string{"stale_base"}
-				return response, nil
-			case runtimev1.ReasonCode_AGENT_AI_CONFIG_TARGET_UNAVAILABLE:
-				response.Outcome = runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG
-				response.ReasonCodes = []string{"target_unavailable"}
-				return response, nil
-			case runtimev1.ReasonCode_AGENT_AI_CONFIG_INVALID,
-				runtimev1.ReasonCode_AGENT_AI_CONFIG_TARGET_INVALID,
-				runtimev1.ReasonCode_AGENT_AI_CONFIG_CAPABILITY_MISMATCH,
-				runtimev1.ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH:
-				response.Outcome = runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE
-				response.ReasonCodes = []string{"profile_materialization_invalid"}
-				return response, nil
+	for _, key := range []string{"provenance", "displayMetadata"} {
+		if value, present := root[key]; present {
+			if _, ok := value.(map[string]any); !ok {
+				return nil, errPortableAIProfileInvalid
 			}
 		}
-		return nil, err
 	}
-	response.Config = committed
-	return response, nil
-}
-
-func (s *Service) prepareRuntimeAgentAIProfileProjection(
-	ctx context.Context,
-	requestContext *runtimev1.AgentRequestContext,
-	profileJSON []byte,
-	descriptorJSON []byte,
-) (*runtimeAgentAIProfileProjection, error) {
-	before, err := s.committedRuntimeAgentAIConfigForContext(requestContext)
-	if err != nil {
-		return nil, err
+	capabilityRecord, ok := root["capabilities"].(map[string]any)
+	if !ok || len(capabilityRecord) == 0 {
+		return nil, errPortableAIProfileInvalid
 	}
-	projection := &runtimeAgentAIProfileProjection{
-		before:  before,
-		outcome: runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_INVALID_PROFILE,
+	contracts := make([]string, 0, len(capabilityRecord))
+	for contract := range capabilityRecord {
+		contracts = append(contracts, contract)
 	}
-	profile, warnings := parseRuntimeAgentPortableAIProfile(profileJSON)
-	if profile == nil {
-		projection.reasonCodes = []string{"invalid_profile"}
-		projection.probeWarnings = warnings
-		return projection, nil
-	}
-	s.localAppRouteOptionsMu.RLock()
-	preparer := s.profileDescriptorPreparer
-	s.localAppRouteOptionsMu.RUnlock()
-	if preparer == nil {
-		projection.outcome = runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED
-		projection.reasonCodes = []string{"runtime_profile_preparer_unavailable"}
-		return projection, nil
-	}
-	prepared, err := preparer.PrepareProfileRuntimeDescriptorForAIConfig(ctx, descriptorJSON)
-	if err != nil {
-		if status.Code(err) == codes.InvalidArgument {
-			projection.reasonCodes = []string{"invalid_runtime_descriptor"}
-			projection.probeWarnings = []string{"runtime_descriptor_rejected"}
-			return projection, nil
-		}
-		return nil, err
-	}
-	if prepared == nil || strings.TrimSpace(prepared.ProfileID) != profile.ProfileID {
-		projection.reasonCodes = []string{"profile_descriptor_mismatch"}
-		return projection, nil
-	}
-
-	intents := make([]*runtimev1.RuntimeAgentAIConfigIntent, 0, len(prepared.SliceResults))
-	seenCapabilities := make(map[string]struct{}, len(prepared.SliceResults))
-	blockingOutcome := runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY
-	for _, slice := range prepared.SliceResults {
-		capability := strings.TrimSpace(slice.Capability)
-		if capability == "" || !isAdmittedRuntimeAgentAIConfigCapability(capability) {
-			projection.reasonCodes = []string{"profile_capability_invalid"}
-			return projection, nil
-		}
-		if _, duplicate := seenCapabilities[capability]; duplicate {
-			projection.reasonCodes = []string{"profile_capability_ambiguous"}
-			return projection, nil
-		}
-		seenCapabilities[capability] = struct{}{}
-		switch strings.TrimSpace(slice.Outcome) {
-		case "optional_omitted":
-			continue
-		case "setup_required_no_live_config":
-			blockingOutcome = mergeRuntimeAgentAIProfileBlockingOutcome(
-				blockingOutcome,
-				runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG,
-			)
-			addRuntimeAgentAIProfileBlocker(projection, capability, slice.SliceID, slice.ReasonCodes)
-			continue
-		case "unsupported_no_live_config":
-			blockingOutcome = mergeRuntimeAgentAIProfileBlockingOutcome(
-				blockingOutcome,
-				runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG,
-			)
-			addRuntimeAgentAIProfileBlocker(projection, capability, slice.SliceID, slice.ReasonCodes)
-			continue
-		case "failed_no_live_config":
-			blockingOutcome = mergeRuntimeAgentAIProfileBlockingOutcome(
-				blockingOutcome,
-				runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED,
-			)
-			addRuntimeAgentAIProfileBlocker(projection, capability, slice.SliceID, slice.ReasonCodes)
-			continue
-		case "ready":
-		default:
-			projection.reasonCodes = []string{"profile_prepare_outcome_invalid"}
-			return projection, nil
-		}
-		intent, materializeReason, err := s.materializeRuntimeAgentAIProfileIntent(ctx, profile, slice)
+	sort.Strings(contracts)
+	profile := &portableAIProfile{capabilities: make(map[string]portableAIProfileCapability, len(contracts))}
+	for _, rawContract := range contracts {
+		contract, err := requirePortableText(rawContract)
 		if err != nil {
 			return nil, err
 		}
-		if materializeReason != "" {
-			if materializeReason == "connector_route_unavailable" || materializeReason == "connector_route_ambiguous" {
-				blockingOutcome = mergeRuntimeAgentAIProfileBlockingOutcome(
-					blockingOutcome,
-					runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG,
-				)
-				addRuntimeAgentAIProfileBlocker(projection, capability, slice.SliceID, []string{materializeReason})
-				continue
-			}
-			projection.reasonCodes = []string{materializeReason}
-			return projection, nil
+		record, ok := capabilityRecord[rawContract].(map[string]any)
+		if !ok {
+			return nil, errPortableAIProfileInvalid
 		}
-		intents = append(intents, intent)
-	}
-	if blockingOutcome != runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY {
-		projection.outcome = blockingOutcome
-		projection.blockingCapabilities = uniqueSortedRuntimeAgentAIProfileStrings(projection.blockingCapabilities)
-		projection.reasonCodes = uniqueSortedRuntimeAgentAIProfileStrings(projection.reasonCodes)
-		projection.actionRefs = uniqueSortedRuntimeAgentAIProfileStrings(projection.actionRefs)
-		return projection, nil
-	}
-	normalized, err := normalizeRuntimeAgentAIConfigIntents(intents)
-	if err != nil {
-		projection.reasonCodes = []string{"profile_ai_config_invalid"}
-		return projection, nil
-	}
-	if err := s.validateRuntimeAgentAIConfigLocalTargets(ctx, before, normalized); err != nil {
-		if reason, ok := grpcerr.ExtractReasonCode(err); ok &&
-			reason == runtimev1.ReasonCode_AGENT_AI_CONFIG_TARGET_UNAVAILABLE {
-			projection.outcome = runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG
-			projection.reasonCodes = []string{"target_unavailable"}
-			return projection, nil
+		if err := requirePortableExactKeys(record, []string{
+			"route", "requiredFeatures", "defaults", "implementation", "driverPortableConfig", "resourceOccurrences", "providerModelTarget",
+		}); err != nil {
+			return nil, err
 		}
-		projection.reasonCodes = []string{"profile_materialization_invalid"}
-		return projection, nil
-	}
-	appliedAt := timestamppb.New(time.Now().UTC())
-	projection.after = &runtimev1.RuntimeAgentAIConfig{
-		AgentInstanceId: requestContext.GetLocalAgentRef(),
-		Revision:        before.GetRevision() + 1,
-		Intents:         normalized,
-		UpdatedAt:       appliedAt,
-		UpdatedByAppId:  strings.TrimSpace(requestContext.GetAppId()),
-		ProfileOrigin: &runtimev1.RuntimeAgentAIProfileOrigin{
-			ProfileId: profile.ProfileID,
-			Title:     profile.Title,
-			AppliedAt: appliedAt,
-		},
-	}
-	projection.outcome = runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_READY_TO_APPLY
-	return projection, nil
-}
-
-func (s *Service) materializeRuntimeAgentAIProfileIntent(
-	ctx context.Context,
-	profile *runtimeAgentPortableAIProfile,
-	slice localservice.ProfileRuntimeDescriptorPrepareSliceResult,
-) (*runtimev1.RuntimeAgentAIConfigIntent, string, error) {
-	capability := strings.TrimSpace(slice.Capability)
-	authored := profile.Capabilities[capability]
-	if authored == nil || authored.TargetRef == nil {
-		return nil, "profile_slice_unresolved", nil
-	}
-	if authored.ReadinessPolicy != "" && authored.ReadinessPolicy != strings.TrimSpace(slice.ReadinessPolicy) {
-		return nil, "profile_readiness_policy_mismatch", nil
-	}
-	if authored.ContractState != "" && authored.ContractState != "declared" {
-		return nil, "profile_contract_state_mismatch", nil
-	}
-	params, ok := runtimeAgentAIProfileParams(authored.Params)
-	if !ok {
-		return nil, "profile_params_invalid", nil
-	}
-	switch strings.TrimSpace(slice.ExecutionMode) {
-	case "local":
-		target := authored.TargetRef
-		if target.Kind != "profile-slice" ||
-			strings.TrimSpace(target.SourceProfileID) != profile.ProfileID ||
-			strings.TrimSpace(target.SliceID) != strings.TrimSpace(slice.SliceID) {
-			return nil, "profile_slice_target_mismatch", nil
-		}
-		if slice.TargetRef == nil {
-			return nil, "profile_slice_target_mismatch", nil
-		}
-		logicalModelID := strings.TrimSpace(slice.LogicalModelID)
-		if logicalModelID == "" {
-			return nil, "profile_logical_model_unresolved", nil
-		}
-		if authoredModel := strings.TrimSpace(authored.LogicalModelID); authoredModel != "" && authoredModel != logicalModelID {
-			return nil, "profile_model_target_mismatch", nil
-		}
-		components, err := runtimeAgentAIProfileComponentSelections(slice.SelectedComponents)
+		route, err := requirePortableText(record["route"])
 		if err != nil {
-			return nil, "profile_component_materialization_invalid", nil
+			return nil, err
 		}
-		return &runtimev1.RuntimeAgentAIConfigIntent{
-			Capability:  capability,
-			ModelId:     logicalModelID,
-			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			TargetRef: &runtimev1.RuntimeDurableTargetRef{
-				Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-					LocalRuntime: proto.Clone(slice.TargetRef).(*runtimev1.RuntimeDurableLocalTargetRef),
-				},
-			},
-			SelectedParams:     params,
-			SelectedComponents: components,
-		}, "", nil
-	case "cloud_connector":
-		return s.materializeRuntimeAgentAIProfileCloudIntent(ctx, authored, slice, params)
+		requiredFeatures, err := parsePortableFeatureSet(record, "requiredFeatures", false)
+		if err != nil {
+			return nil, err
+		}
+		var defaults *structpb.Struct
+		if value, present := record["defaults"]; present {
+			defaults, err = portableStruct(value)
+			if err != nil {
+				return nil, err
+			}
+		}
+		capability := portableAIProfileCapability{
+			route:            route,
+			requiredFeatures: requiredFeatures,
+			defaults:         defaults,
+		}
+		switch route {
+		case "local":
+			if _, present := record["providerModelTarget"]; present {
+				return nil, errPortableAIProfileInvalid
+			}
+			if value, present := record["implementation"]; present {
+				capability.implementation, err = parsePortableImplementation(value, requiredFeatures)
+				if err != nil {
+					return nil, err
+				}
+			}
+			_, driverConfigPresent := record["driverPortableConfig"]
+			if driverConfigPresent {
+				if _, err := portableStruct(record["driverPortableConfig"]); err != nil {
+					return nil, err
+				}
+			}
+			resourceCount := 0
+			if value, present := record["resourceOccurrences"]; present {
+				resourceCount, err = validatePortableResourceOccurrences(value)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if capability.implementation == nil && (driverConfigPresent || resourceCount > 0) {
+				return nil, errPortableAIProfileInvalid
+			}
+		case "cloud":
+			if _, present := record["driverPortableConfig"]; present {
+				return nil, errPortableAIProfileInvalid
+			}
+			if _, present := record["resourceOccurrences"]; present {
+				return nil, errPortableAIProfileInvalid
+			}
+			capability.providerModelTarget, err = portableStruct(record["providerModelTarget"])
+			if err != nil || len(capability.providerModelTarget.GetFields()) == 0 {
+				return nil, errPortableAIProfileInvalid
+			}
+			capability.implementation, err = parsePortableImplementation(record["implementation"], requiredFeatures)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, errPortableAIProfileInvalid
+		}
+		profile.capabilities[contract] = capability
+	}
+	return profile, nil
+}
+
+func parsePortableImplementation(value any, requiredFeatures []string) (*runtimev1.CapabilityImplementationIdentity, error) {
+	record, ok := value.(map[string]any)
+	if !ok {
+		return nil, errPortableAIProfileInvalid
+	}
+	if err := requirePortableExactKeys(record, []string{"implementationId", "driverId", "driverDialect", "supportedFeatures"}); err != nil {
+		return nil, err
+	}
+	supportedFeatures, err := parsePortableFeatureSet(record, "supportedFeatures", true)
+	if err != nil {
+		return nil, err
+	}
+	supported := make(map[string]struct{}, len(supportedFeatures))
+	for _, feature := range supportedFeatures {
+		supported[feature] = struct{}{}
+	}
+	for _, feature := range requiredFeatures {
+		if _, ok := supported[feature]; !ok {
+			return nil, errPortableAIProfileInvalid
+		}
+	}
+	implementationID, err := requirePortableText(record["implementationId"])
+	if err != nil {
+		return nil, err
+	}
+	driverID, err := requirePortableText(record["driverId"])
+	if err != nil {
+		return nil, err
+	}
+	driverDialect, err := requirePortableText(record["driverDialect"])
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.CapabilityImplementationIdentity{
+		ImplementationId: implementationID,
+		DriverId:         driverID,
+		DriverDialect:    driverDialect,
+	}, nil
+}
+
+func parsePortableFeatureSet(record map[string]any, key string, required bool) ([]string, error) {
+	value, present := record[key]
+	if !present {
+		if required {
+			return nil, errPortableAIProfileInvalid
+		}
+		return []string{}, nil
+	}
+	items, ok := value.([]any)
+	if !ok {
+		return nil, errPortableAIProfileInvalid
+	}
+	features := make([]string, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		feature, err := requirePortableText(item)
+		if err != nil {
+			return nil, err
+		}
+		if _, duplicate := seen[feature]; duplicate {
+			return nil, errPortableAIProfileInvalid
+		}
+		seen[feature] = struct{}{}
+		features = append(features, feature)
+	}
+	sort.Strings(features)
+	return features, nil
+}
+
+func validatePortableResourceOccurrences(value any) (int, error) {
+	items, ok := value.([]any)
+	if !ok {
+		return 0, errPortableAIProfileInvalid
+	}
+	seen := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		record, ok := item.(map[string]any)
+		if !ok {
+			return 0, errPortableAIProfileInvalid
+		}
+		occurrenceID, err := requirePortableText(record["occurrenceId"])
+		if err != nil {
+			return 0, err
+		}
+		if _, duplicate := seen[occurrenceID]; duplicate {
+			return 0, errPortableAIProfileInvalid
+		}
+		seen[occurrenceID] = struct{}{}
+	}
+	return len(items), nil
+}
+
+func validatePortableAIProfileValue(value any) error {
+	switch typed := value.(type) {
+	case nil, bool:
+		return nil
+	case string:
+		if portableAIProfileStringIsPath(typed) {
+			return errPortableAIProfileInvalid
+		}
+		return nil
+	case json.Number:
+		number, _ := strconv.ParseFloat(typed.String(), 64)
+		if math.IsNaN(number) || math.IsInf(number, 0) {
+			return errPortableAIProfileInvalid
+		}
+		return nil
+	case []any:
+		for _, child := range typed {
+			if err := validatePortableAIProfileValue(child); err != nil {
+				return err
+			}
+		}
+		return nil
+	case map[string]any:
+		for key, child := range typed {
+			if portableAIProfileUnsafeKey(key) || portableAIProfileForbiddenKey(key) {
+				return errPortableAIProfileInvalid
+			}
+			if err := validatePortableAIProfileValue(child); err != nil {
+				return err
+			}
+		}
+		return nil
 	default:
-		return nil, "profile_execution_mode_invalid", nil
+		return errPortableAIProfileInvalid
 	}
 }
 
-func runtimeAgentAIProfileComponentSelections(
-	values []localservice.ProfileRuntimeDescriptorPreparedComponentSelection,
-) ([]*runtimev1.RuntimeAgentAIConfigComponentSelection, error) {
-	out := make([]*runtimev1.RuntimeAgentAIConfigComponentSelection, 0, len(values))
-	for _, value := range values {
-		if strings.TrimSpace(value.OccurrenceID) == "" ||
-			value.Order < 0 ||
-			strings.TrimSpace(value.Role) == "" ||
-			strings.TrimSpace(value.ComponentKind) == "" ||
-			strings.TrimSpace(value.LogicalModelID) == "" ||
-			value.TargetRef == nil {
-			return nil, fmt.Errorf("prepared profile component selection is incomplete")
-		}
-		var options *structpb.Struct
-		if len(value.Options) > 0 {
-			var err error
-			options, err = structpb.NewStruct(value.Options)
-			if err != nil {
-				return nil, fmt.Errorf("prepared profile component options: %w", err)
-			}
-		}
-		out = append(out, &runtimev1.RuntimeAgentAIConfigComponentSelection{
-			OccurrenceId:   strings.TrimSpace(value.OccurrenceID),
-			Order:          uint32(value.Order),
-			Role:           strings.TrimSpace(value.Role),
-			ComponentKind:  strings.TrimSpace(value.ComponentKind),
-			LogicalModelId: strings.TrimSpace(value.LogicalModelID),
-			TargetRef: &runtimev1.RuntimeDurableTargetRef{
-				Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-					LocalRuntime: proto.Clone(value.TargetRef).(*runtimev1.RuntimeDurableLocalTargetRef),
-				},
-			},
-			Required: value.Required,
-			Weight:   strings.TrimSpace(value.Weight),
-			Options:  options,
-		})
+func portableAIProfileForbiddenKey(key string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
+	if _, forbidden := portableAIProfileForbiddenKeys[normalized]; forbidden {
+		return true
+	}
+	return strings.HasSuffix(normalized, "path") ||
+		strings.HasSuffix(normalized, "bindingid") ||
+		strings.Contains(normalized, "connectorgrant") ||
+		strings.HasSuffix(normalized, "connectorid") ||
+		strings.HasSuffix(normalized, "accountid") ||
+		strings.Contains(normalized, "localasset")
+}
+
+func portableAIProfileUnsafeKey(key string) bool {
+	return key == "__proto__" || key == "constructor" || key == "prototype"
+}
+
+func portableAIProfileStringIsPath(value string) bool {
+	trimmed := trimJavaScriptWhitespace(value)
+	lower := strings.ToLower(trimmed)
+	if strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "~/") || strings.HasPrefix(lower, "file://") {
+		return true
+	}
+	return len(trimmed) >= 3 && ((trimmed[0] >= 'A' && trimmed[0] <= 'Z') || (trimmed[0] >= 'a' && trimmed[0] <= 'z')) &&
+		trimmed[1] == ':' && (trimmed[2] == '/' || trimmed[2] == '\\')
+}
+
+func portableStruct(value any) (*structpb.Struct, error) {
+	record, ok := value.(map[string]any)
+	if !ok {
+		return nil, errPortableAIProfileInvalid
+	}
+	normalized, err := portableStructValue(record)
+	if err != nil {
+		return nil, err
+	}
+	out, err := structpb.NewStruct(normalized.(map[string]any))
+	if err != nil {
+		return nil, errPortableAIProfileInvalid
 	}
 	return out, nil
 }
 
-func (s *Service) materializeRuntimeAgentAIProfileCloudIntent(
-	ctx context.Context,
-	authored *runtimeAgentPortableAIProfileCapability,
-	slice localservice.ProfileRuntimeDescriptorPrepareSliceResult,
-	params *structpb.Struct,
-) (*runtimev1.RuntimeAgentAIConfigIntent, string, error) {
-	target := authored.TargetRef
-	if target == nil || target.Kind != "cloud-connector" {
-		return nil, "profile_cloud_target_invalid", nil
-	}
-	provider := strings.TrimSpace(slice.Provider)
-	providerModelID := strings.TrimSpace(slice.ProviderModelID)
-	connectorSelector := strings.TrimSpace(slice.ConnectorSelector)
-	if provider == "" || providerModelID == "" ||
-		(strings.TrimSpace(target.Provider) != "" && strings.TrimSpace(target.Provider) != provider) ||
-		strings.TrimSpace(target.ProviderModelID) != providerModelID ||
-		(connectorSelector != "" && strings.TrimSpace(target.ConnectorID) != connectorSelector) {
-		return nil, "profile_cloud_target_mismatch", nil
-	}
-	if authoredModel := strings.TrimSpace(authored.LogicalModelID); authoredModel != "" && authoredModel != providerModelID {
-		return nil, "profile_model_target_mismatch", nil
-	}
-	candidates, err := s.localAppCloudRouteCandidates(ctx)
-	if err != nil {
-		return nil, "", err
-	}
-	matches := make([]localAppCloudRouteCandidate, 0, 1)
-	for _, candidate := range candidates {
-		cloud := candidate.targetRef.GetCloud()
-		if cloud == nil ||
-			strings.TrimSpace(candidate.option.GetCapability()) != strings.TrimSpace(slice.Capability) ||
-			strings.TrimSpace(cloud.GetProvider()) != provider ||
-			strings.TrimSpace(cloud.GetProviderModelId()) != providerModelID ||
-			strings.TrimSpace(cloud.GetConnectorId()) != strings.TrimSpace(target.ConnectorID) ||
-			strings.TrimSpace(cloud.GetRemoteModelCatalogId()) != strings.TrimSpace(target.RemoteModelCatalogID) {
-			continue
-		}
-		matches = append(matches, candidate)
-	}
-	if len(matches) == 0 {
-		return nil, "connector_route_unavailable", nil
-	}
-	if len(matches) != 1 {
-		return nil, "connector_route_ambiguous", nil
-	}
-	selected := matches[0].targetRef
-	return &runtimev1.RuntimeAgentAIConfigIntent{
-		Capability:     strings.TrimSpace(slice.Capability),
-		ModelId:        providerModelID,
-		RoutePolicy:    runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ConnectorId:    strings.TrimSpace(selected.GetCloud().GetConnectorId()),
-		Provider:       provider,
-		TargetRef:      proto.Clone(selected).(*runtimev1.RuntimeDurableTargetRef),
-		SelectedParams: params,
-	}, "", nil
-}
-
-func parseRuntimeAgentPortableAIProfile(raw []byte) (*runtimeAgentPortableAIProfile, []string) {
-	if len(raw) == 0 || len(raw) > runtimeAgentAIProfileJSONLimit {
-		return nil, []string{"profile_json_invalid"}
-	}
-	var generic any
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	if err := decoder.Decode(&generic); err != nil {
-		return nil, []string{"profile_json_invalid"}
-	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return nil, []string{"profile_json_trailing_data"}
-	}
-	if runtimeAgentAIProfileContainsForbiddenField(generic) {
-		return nil, []string{"profile_contains_private_field"}
-	}
-	var profile runtimeAgentPortableAIProfile
-	if err := json.Unmarshal(raw, &profile); err != nil {
-		return nil, []string{"profile_json_invalid"}
-	}
-	profile.ProfileID = strings.TrimSpace(profile.ProfileID)
-	profile.Title = strings.TrimSpace(profile.Title)
-	if profile.ProfileID == "" || profile.Title == "" || len(profile.Capabilities) == 0 {
-		return nil, []string{"profile_required_field_missing"}
-	}
-	for capability, intent := range profile.Capabilities {
-		if strings.TrimSpace(capability) == "" || capability != strings.TrimSpace(capability) || intent == nil {
-			return nil, []string{"profile_capability_invalid"}
-		}
-		intent.LogicalModelID = strings.TrimSpace(intent.LogicalModelID)
-		intent.ReadinessPolicy = strings.TrimSpace(intent.ReadinessPolicy)
-		intent.ContractState = strings.TrimSpace(intent.ContractState)
-		if intent.ReadinessPolicy != "" && intent.ReadinessPolicy != "required" && intent.ReadinessPolicy != "optional" {
-			return nil, []string{"profile_readiness_policy_invalid"}
-		}
-		if intent.ContractState != "" && intent.ContractState != "declared" &&
-			intent.ContractState != "proposed" && intent.ContractState != "unsupported" {
-			return nil, []string{"profile_contract_state_invalid"}
-		}
-	}
-	return &profile, nil
-}
-
-func runtimeAgentAIProfileContainsForbiddenField(value any) bool {
+func portableStructValue(value any) (any, error) {
 	switch typed := value.(type) {
-	case map[string]any:
-		for key, child := range typed {
-			if _, forbidden := runtimeAgentAIProfileForbiddenFields[key]; forbidden {
-				return true
-			}
-			if runtimeAgentAIProfileContainsForbiddenField(child) {
-				return true
-			}
-		}
-	case []any:
-		for _, child := range typed {
-			if runtimeAgentAIProfileContainsForbiddenField(child) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func runtimeAgentAIProfileParams(raw json.RawMessage) (*structpb.Struct, bool) {
-	trimmed := bytes.TrimSpace(raw)
-	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
-		return nil, true
-	}
-	var params map[string]any
-	decoder := json.NewDecoder(bytes.NewReader(trimmed))
-	decoder.UseNumber()
-	if err := decoder.Decode(&params); err != nil {
-		return nil, false
-	}
-	normalized := normalizeRuntimeAgentAIProfileJSONNumbers(params).(map[string]any)
-	out, err := structpb.NewStruct(normalized)
-	return out, err == nil
-}
-
-func normalizeRuntimeAgentAIProfileJSONNumbers(value any) any {
-	switch typed := value.(type) {
+	case nil, bool, string:
+		return typed, nil
 	case json.Number:
-		if integer, err := typed.Int64(); err == nil {
-			return integer
+		number, _ := strconv.ParseFloat(typed.String(), 64)
+		if math.IsNaN(number) || math.IsInf(number, 0) {
+			return nil, errPortableAIProfileInvalid
 		}
-		if decimal, err := typed.Float64(); err == nil {
-			return decimal
-		}
-		return typed.String()
-	case map[string]any:
-		out := make(map[string]any, len(typed))
-		for key, child := range typed {
-			out[key] = normalizeRuntimeAgentAIProfileJSONNumbers(child)
-		}
-		return out
+		return number, nil
 	case []any:
 		out := make([]any, len(typed))
 		for index, child := range typed {
-			out[index] = normalizeRuntimeAgentAIProfileJSONNumbers(child)
+			converted, err := portableStructValue(child)
+			if err != nil {
+				return nil, err
+			}
+			out[index] = converted
 		}
-		return out
+		return out, nil
+	case map[string]any:
+		out := make(map[string]any, len(typed))
+		for key, child := range typed {
+			converted, err := portableStructValue(child)
+			if err != nil {
+				return nil, err
+			}
+			out[key] = converted
+		}
+		return out, nil
 	default:
-		return value
+		return nil, errPortableAIProfileInvalid
 	}
 }
 
-func addRuntimeAgentAIProfileBlocker(
-	projection *runtimeAgentAIProfileProjection,
-	capability string,
-	sliceID string,
-	reasons []string,
-) {
-	projection.blockingCapabilities = append(projection.blockingCapabilities, strings.TrimSpace(capability))
-	projection.actionRefs = append(projection.actionRefs, "setup:"+strings.TrimSpace(sliceID))
-	projection.reasonCodes = append(projection.reasonCodes, reasons...)
-}
-
-func uniqueSortedRuntimeAgentAIProfileStrings(values []string) []string {
-	set := make(map[string]struct{}, len(values))
-	for _, value := range values {
-		if trimmed := strings.TrimSpace(value); trimmed != "" {
-			set[trimmed] = struct{}{}
+func requirePortableExactKeys(record map[string]any, allowed []string) error {
+	admitted := make(map[string]struct{}, len(allowed))
+	for _, key := range allowed {
+		admitted[key] = struct{}{}
+	}
+	for key := range record {
+		if _, ok := admitted[key]; !ok {
+			return errPortableAIProfileInvalid
 		}
 	}
-	out := make([]string, 0, len(set))
-	for value := range set {
-		out = append(out, value)
-	}
-	sort.Strings(out)
-	return out
+	return nil
 }
 
-func mergeRuntimeAgentAIProfileBlockingOutcome(
-	current runtimev1.RuntimeAgentAIProfileApplyOutcome,
-	next runtimev1.RuntimeAgentAIProfileApplyOutcome,
-) runtimev1.RuntimeAgentAIProfileApplyOutcome {
-	rank := func(outcome runtimev1.RuntimeAgentAIProfileApplyOutcome) int {
-		switch outcome {
-		case runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_UNSUPPORTED_NO_LIVE_CONFIG:
-			return 3
-		case runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_SETUP_REQUIRED_NO_LIVE_CONFIG:
-			return 2
-		case runtimev1.RuntimeAgentAIProfileApplyOutcome_RUNTIME_AGENT_AI_PROFILE_APPLY_OUTCOME_FAILED:
-			return 1
+func requirePortableText(value any) (string, error) {
+	text, ok := value.(string)
+	if !ok || text == "" || trimJavaScriptWhitespace(text) != text {
+		return "", errPortableAIProfileInvalid
+	}
+	return text, nil
+}
+
+func requirePortableExactText(value any) (string, error) {
+	text, ok := value.(string)
+	if !ok || trimJavaScriptWhitespace(text) != text {
+		return "", errPortableAIProfileInvalid
+	}
+	return text, nil
+}
+
+func trimJavaScriptWhitespace(value string) string {
+	return strings.TrimFunc(value, func(r rune) bool {
+		switch r {
+		case '\u0009', '\u000a', '\u000b', '\u000c', '\u000d', '\u0020', '\u00a0', '\u1680',
+			'\u2028', '\u2029', '\u202f', '\u205f', '\u3000', '\ufeff':
+			return true
 		default:
-			return 0
+			return r >= '\u2000' && r <= '\u200a'
 		}
-	}
-	if rank(next) > rank(current) {
-		return next
-	}
-	return current
+	})
 }

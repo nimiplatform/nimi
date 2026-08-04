@@ -12,7 +12,7 @@ func TestSubjectUserIDFromContextUsesAuthorizedLocalAppAccount(t *testing.T) {
 		LocalAppPrincipalID: "principal-local-app",
 		LocalAppRecordID:    "record-local-app",
 		AccountID:           "account-local-app",
-		Operation:           accountservice.LocalAppOperationConfigurationSnapshot,
+		Operation:           accountservice.LocalAppOperationSharedAIConfigGet,
 		OperationCapability: "agents.configure",
 	})
 	subjectUserID, ok := subjectUserIDFromContext(ctx)

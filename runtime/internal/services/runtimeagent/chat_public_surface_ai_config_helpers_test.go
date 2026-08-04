@@ -2,66 +2,63 @@ package runtimeagent
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-// upsertPublicChatTestAgentAIConfig gives a test Agent an explicit executable
-// AIConfig. Product initialization intentionally carries no implicit models.
-func upsertPublicChatTestAgentAIConfig(t *testing.T, svc *Service, extra ...*runtimev1.RuntimeAgentAIConfigIntent) {
+// upsertPublicChatTestAgentAIConfig now installs an explicit machine execution
+// binding fixture. Shared AIConfig itself carries no model, target, revision,
+// or readiness truth.
+func upsertPublicChatTestAgentAIConfig(t *testing.T, svc *Service, extra ...publicChatExecutionBinding) {
 	t.Helper()
 	upsertPublicChatTestAgentAIConfigForContext(t, svc, publicChatTestAIConfigContext(t, svc), extra...)
 }
 
 func ensurePublicChatTestAgentAIConfig(t *testing.T, svc *Service) {
 	t.Helper()
-	ctx := publicChatTestAIConfigContext(t, svc)
-	current, err := svc.GetRuntimeAgentAIConfig(context.Background(), &runtimev1.GetRuntimeAgentAIConfigRequest{
-		Context: ctx,
-	})
-	if err != nil {
-		t.Fatalf("GetRuntimeAgentAIConfig: %v", err)
-	}
-	for _, intent := range current.GetConfig().GetIntents() {
-		if intent.GetCapability() == runtimeAgentAIConfigCapabilityTextGenerate &&
-			intent.GetTargetRef().GetTarget() != nil {
-			return
-		}
-	}
-	upsertPublicChatTestAgentAIConfigForContext(t, svc, ctx)
+	upsertPublicChatTestAgentAIConfig(t, svc)
 }
 
-func upsertPublicChatTestAgentAIConfigForContext(t *testing.T, svc *Service, ctx *runtimev1.AgentRequestContext, extra ...*runtimev1.RuntimeAgentAIConfigIntent) {
+func upsertPublicChatTestAgentAIConfigForContext(t *testing.T, svc *Service, requestContext *runtimev1.AgentRequestContext, extra ...publicChatExecutionBinding) {
 	t.Helper()
-	current, err := svc.GetRuntimeAgentAIConfig(context.Background(), &runtimev1.GetRuntimeAgentAIConfigRequest{
-		Context: ctx,
-	})
-	if err != nil {
-		t.Fatalf("GetRuntimeAgentAIConfig: %v", err)
+	if svc == nil || requestContext == nil {
+		t.Fatal("service and request context are required")
 	}
-	intents := []*runtimev1.RuntimeAgentAIConfigIntent{
-		{
-			Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
-			ModelId:     "local/default",
-			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-text"),
+	accountNamespace := strings.TrimSpace(requestContext.GetOwnerUserId())
+	bindings := publicChatExecutionBindings{
+		runtimeAgentAIConfigCapabilityTextGenerate: {
+			ModelID: "local/default", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef: publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:default-text"),
 		},
-		{
-			Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
-			ModelId:     runtimeAgentAIConfigTestEmbedModel,
-			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-embed"),
+		runtimeAgentAIConfigCapabilityTextEmbed: {
+			ModelID: runtimeAgentAIConfigTestEmbedModel, RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef: publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:default-embed"),
 		},
 	}
-	intents = append(intents, extra...)
-	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
-		Context:          ctx,
-		ExpectedRevision: current.GetConfig().GetRevision(),
-		Intents:          intents,
-	}); err != nil {
-		t.Fatalf("UpsertRuntimeAgentAIConfig: %v", err)
+	for _, binding := range extra {
+		if strings.TrimSpace(binding.ModelID) == "" {
+			continue
+		}
+		capability := runtimeAgentAIConfigCapabilityTextGenerate
+		switch {
+		case binding.SelectedParams != nil && binding.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED:
+			capability = runtimeAgentAIConfigCapabilityImageGenerate
+		case strings.Contains(strings.ToLower(binding.ModelID), "speech"), strings.Contains(strings.ToLower(binding.ModelID), "tts"), strings.Contains(strings.ToLower(binding.ModelID), "voice"):
+			capability = runtimeAgentAIConfigCapabilityAudioSynthesize
+		case strings.Contains(strings.ToLower(binding.ModelID), "image"):
+			capability = runtimeAgentAIConfigCapabilityImageGenerate
+		}
+		bindings[capability] = binding
 	}
+	frozen := clonePublicChatExecutionBindings(bindings)
+	svc.setMachineExecutionBindingResolver(machineExecutionBindingResolverFunc(func(_ context.Context, requestedAccount string) (publicChatExecutionBindings, error) {
+		if strings.TrimSpace(requestedAccount) != accountNamespace {
+			return nil, unresolvedSharedAIConfigExecutionBindingError()
+		}
+		return clonePublicChatExecutionBindings(frozen), nil
+	}))
 }
 
 func publicChatTestAIConfigContext(t *testing.T, svc *Service) *runtimev1.AgentRequestContext {
@@ -84,13 +81,10 @@ func publicChatTestAIConfigContext(t *testing.T, svc *Service) *runtimev1.AgentR
 		}
 	}
 	if selected == nil {
-		t.Fatal("expected initialized runtime local agent before AI Config mutation")
+		t.Fatal("expected initialized Runtime LocalAgent before machine binding setup")
 	}
 	return &runtimev1.AgentRequestContext{
-		AppId:            "desktop.app",
-		SubjectUserId:    selected.GetOwnerUserId(),
-		OwnerUserId:      selected.GetOwnerUserId(),
-		RuntimeSourceRef: selected.GetRuntimeSourceRef(),
-		LocalAgentRef:    selected.GetLocalAgentRef(),
+		AppId: "desktop.app", SubjectUserId: selected.GetOwnerUserId(), OwnerUserId: selected.GetOwnerUserId(),
+		RuntimeSourceRef: selected.GetRuntimeSourceRef(), LocalAgentRef: selected.GetLocalAgentRef(),
 	}
 }

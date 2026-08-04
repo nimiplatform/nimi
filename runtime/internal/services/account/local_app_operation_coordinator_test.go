@@ -26,9 +26,10 @@ func TestAuthorizeLocalAppProtectedOperationsFailClosedUntilProductPermissionAdm
 		{LocalAppOperationInterruptConversation, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a"}},
 		{LocalAppOperationSubscribeConversation, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a"}},
 		{LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a"}},
-		{LocalAppOperationConfigurationSnapshot, localappop.Selector{AgentID: "agent-a"}},
-		{LocalAppOperationUpdateConfiguration, localappop.Selector{AgentID: "agent-a"}},
-		{LocalAppOperationReadinessSnapshot, localappop.Selector{AgentID: "agent-a"}},
+		{LocalAppOperationSharedAIConfigGet, localappop.Selector{}},
+		{LocalAppOperationSharedAIConfigOverwrite, localappop.Selector{}},
+		{LocalAppOperationSharedAIProfilePreview, localappop.Selector{}},
+		{LocalAppOperationSharedAIProfileApply, localappop.Selector{}},
 		{LocalAppOperationAutonomySnapshot, localappop.Selector{AgentID: "agent-a"}},
 		{LocalAppOperationUpdateAutonomy, localappop.Selector{AgentID: "agent-a"}},
 		{LocalAppOperationPresentationSnapshot, localappop.Selector{AgentID: "agent-a"}},
@@ -56,6 +57,31 @@ func apppermissionForTestOperation(operation LocalAppOperation) (string, bool) {
 	}
 }
 
+func TestSharedLocalAgentAIOperationsUseAccountScopeWithoutAgentHandle(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	fixture.service.permissionAdmitted = func(id string) bool { return id == "agents.interact" || id == "agents.configure" }
+	fixture.service.auditStore = auditlog.New(32, 32)
+	fixture.resolver.binding.Capabilities = []string{"agents.interact", "agents.configure"}
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	for _, permissionID := range []string{"agents.interact", "agents.configure"} {
+		grantLocalAppPermissionForTest(t, fixture, permissionID, "request-shared-"+permissionID)
+	}
+	for _, operation := range []LocalAppOperation{
+		LocalAppOperationSharedAIConfigGet,
+		LocalAppOperationSharedAIConfigOverwrite,
+		LocalAppOperationSharedAIProfilePreview,
+		LocalAppOperationSharedAIProfileApply,
+	} {
+		decision, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, operation, localappop.Selector{})
+		if err != nil {
+			t.Fatalf("authorize %s: %v", operation, err)
+		}
+		if decision.OperationCapability != "agents.configure" || decision.LocalAgentID != "" || decision.AccountID != "acct-1" {
+			t.Fatalf("shared operation decision = %+v", decision)
+		}
+	}
+}
+
 func TestConfigureGrantCannotMaterializeOrValidateHandlesWithoutInteract(t *testing.T) {
 	fixture := newLocalAppAuthorityFixture(t)
 	fixture.service.permissionAdmitted = func(id string) bool { return id == "agents.interact" || id == "agents.configure" }
@@ -78,7 +104,7 @@ func TestConfigureGrantCannotMaterializeOrValidateHandlesWithoutInteract(t *test
 	if _, err := fixture.service.materializeAccountAgentHandles(ctx, caller, "agents.configure", digest); !errors.Is(err, ErrLocalAppSelectorUnavailable) {
 		t.Fatalf("configure materialization without interact error = %v", err)
 	}
-	_, err = fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationConfigurationSnapshot, localappop.Selector{AgentID: handle.Handle})
+	_, err = fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationAutonomySnapshot, localappop.Selector{AgentID: handle.Handle})
 	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED {
 		t.Fatalf("configure without interact reason = %s, want required (err=%v)", got, err)
 	}
@@ -119,10 +145,8 @@ func TestConfigureGrantBecomesImmediatelyIneffectiveWhenInteractIsRevoked(t *tes
 	}
 	selector := localappop.Selector{AgentID: handle.Handle}
 	configureOperations := []LocalAppOperation{
-		LocalAppOperationConfigurationSnapshot, LocalAppOperationUpdateConfiguration,
-		LocalAppOperationReadinessSnapshot, LocalAppOperationAutonomySnapshot,
-		LocalAppOperationUpdateAutonomy, LocalAppOperationPresentationSnapshot,
-		LocalAppOperationCommitPresentation,
+		LocalAppOperationAutonomySnapshot, LocalAppOperationUpdateAutonomy,
+		LocalAppOperationPresentationSnapshot, LocalAppOperationCommitPresentation,
 	}
 	for _, operation := range configureOperations {
 		if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, operation, selector); err != nil {
@@ -143,7 +167,7 @@ func TestConfigureGrantBecomesImmediatelyIneffectiveWhenInteractIsRevoked(t *tes
 	}); err != nil {
 		t.Fatal(err)
 	}
-	_, err = fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationConfigurationSnapshot, selector)
+	_, err = fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationAutonomySnapshot, selector)
 	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED {
 		t.Fatalf("configure after interact revoke reason = %s, want required (err=%v)", got, err)
 	}

@@ -176,86 +176,47 @@ pub async fn local_app_realm_world_core_create(
     .await
 }
 
-#[napi(js_name = "localAppAgentConfigurationSnapshot")]
-pub async fn local_app_agent_configuration_snapshot(
-    input: NativeAgentHandleInput,
+#[napi(js_name = "localAppSharedAgentAIConfigGet")]
+pub async fn local_app_shared_agent_ai_config_get() -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.shared_agent_ai_config_get().await }).await
+}
+
+#[napi(js_name = "localAppSharedAgentAIConfigOverwrite")]
+pub async fn local_app_shared_agent_ai_config_overwrite(
+    input: NativeAIConfigOverwriteInput,
 ) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
         session
-            .agent_configuration_snapshot(LocalAppAgentHandleRequest {
-                agent_handle: input.agent_handle,
+            .shared_agent_ai_config_overwrite(LocalAppSharedAgentAIConfigOverwriteRequest {
+                capabilities: input.capabilities,
             })
             .await
     })
     .await
 }
 
-#[napi(js_name = "localAppAgentUpdateConfiguration")]
-pub async fn local_app_agent_update_configuration(
-    input: NativeAgentUpdateConfigurationInput,
+#[napi(js_name = "localAppSharedAgentAIProfilePreview")]
+pub async fn local_app_shared_agent_ai_profile_preview(
+    input: NativeSharedAgentAIProfileInput,
 ) -> NativeJsonOutcome {
-    let revision = match decimal_revision(&input.expected_configuration_revision, false) {
-        Ok(value) => value,
-        Err(error) => return NativeJsonOutcome::error(error),
-    };
     invoke_agent(|session| async move {
         session
-            .agent_update_configuration(LocalAppAgentUpdateConfigurationRequest {
-                agent_handle: input.agent_handle,
-                expected_configuration_revision: revision,
-                intents: input.intents,
-                profile_origin: input.profile_origin,
+            .shared_agent_ai_profile_preview(LocalAppSharedAgentAIProfileRequest {
+                profile_json: input.profile_json,
             })
             .await
     })
     .await
 }
 
-#[napi(js_name = "localAppAgentAIProfilePreview")]
-pub async fn local_app_agent_ai_profile_preview(
-    input: NativeAgentAIProfilePreviewInput,
+#[napi(js_name = "localAppSharedAgentAIProfileApply")]
+pub async fn local_app_shared_agent_ai_profile_apply(
+    input: NativeSharedAgentAIProfileInput,
 ) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
         session
-            .agent_ai_profile_preview(LocalAppAgentAIProfilePreviewRequest {
-                agent_handle: input.agent_handle,
-                profile: input.profile,
-                runtime_descriptor: input.runtime_descriptor,
-            })
-            .await
-    })
-    .await
-}
-
-#[napi(js_name = "localAppAgentAIProfileApply")]
-pub async fn local_app_agent_ai_profile_apply(
-    input: NativeAgentAIProfileApplyInput,
-) -> NativeJsonOutcome {
-    let revision = match decimal_revision(&input.expected_configuration_revision, false) {
-        Ok(value) => value,
-        Err(error) => return NativeJsonOutcome::error(error),
-    };
-    invoke_agent(|session| async move {
-        session
-            .agent_ai_profile_apply(LocalAppAgentAIProfileApplyRequest {
-                agent_handle: input.agent_handle,
-                expected_configuration_revision: revision,
-                profile: input.profile,
-                runtime_descriptor: input.runtime_descriptor,
-            })
-            .await
-    })
-    .await
-}
-
-#[napi(js_name = "localAppAgentReadinessSnapshot")]
-pub async fn local_app_agent_readiness_snapshot(
-    input: NativeAgentHandleInput,
-) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .agent_readiness_snapshot(LocalAppAgentHandleRequest {
-                agent_handle: input.agent_handle,
+            .shared_agent_ai_profile_apply(LocalAppSharedAgentAIProfileRequest {
+                profile_json: input.profile_json,
             })
             .await
     })

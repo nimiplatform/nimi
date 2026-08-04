@@ -10,7 +10,7 @@ import (
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
-func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
+func TestRuntimeAgentCanonicalMemoryBankRemainsUnavailableWithoutMachineBinding(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -71,36 +71,7 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 		t.Fatalf("initial mode = %s, want unavailable", initial.GetStatus().GetMode())
 	}
 
-	configureRuntimeAgentTestAIConfig(t, svc, agentCtx)
-
-	baseline, err := svc.GetAgentCanonicalMemoryBankStatus(ctx, &runtimev1.GetAgentCanonicalMemoryBankStatusRequest{
-		Context: agentCtx,
-		AgentId: agentCtx.GetLocalAgentRef(),
-	})
-	if err != nil {
-		t.Fatalf("GetAgentCanonicalMemoryBankStatus(baseline): %v", err)
-	}
-	if baseline.GetStatus().GetMode() != runtimev1.AgentCanonicalMemoryBankMode_AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE {
-		t.Fatalf("baseline mode = %s, want baseline", baseline.GetStatus().GetMode())
-	}
-	if !baseline.GetStatus().GetBindAllowed() {
-		t.Fatal("baseline bind_allowed = false, want true")
-	}
-
-	bind, err := svc.RequestAgentCanonicalMemoryBankBind(ctx, &runtimev1.RequestAgentCanonicalMemoryBankBindRequest{
-		Context: agentCtx,
-		AgentId: agentCtx.GetLocalAgentRef(),
-	})
-	if err != nil {
-		t.Fatalf("RequestAgentCanonicalMemoryBankBind: %v", err)
-	}
-	if bind.GetOutcome() != "bound" {
-		t.Fatalf("bind outcome = %q, want bound", bind.GetOutcome())
-	}
-	if bind.GetStatus().GetMode() != runtimev1.AgentCanonicalMemoryBankMode_AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD {
-		t.Fatalf("bind status mode = %s, want standard", bind.GetStatus().GetMode())
-	}
-	if bind.GetStatus().GetEmbeddingProfile().GetModelId() != runtimeAgentAIConfigTestEmbedModel {
-		t.Fatalf("embedding model = %q, want %s", bind.GetStatus().GetEmbeddingProfile().GetModelId(), runtimeAgentAIConfigTestEmbedModel)
+	if initial.GetStatus().GetBindAllowed() {
+		t.Fatal("portable shared intent must not fabricate a bindable machine embedding target")
 	}
 }

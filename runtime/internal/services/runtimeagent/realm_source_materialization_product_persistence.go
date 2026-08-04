@@ -22,7 +22,6 @@ type preparedRealmSourceMaterializationProductV3 struct {
 	previousSequence uint64
 	persisted        persistedRuntimeAgentState
 	committedEvents  []*runtimev1.AgentEvent
-	seedAIConfig     *runtimev1.RuntimeAgentAIConfig
 	snapshot         localAgentSourceSnapshotV2
 	commitMu         sync.Mutex
 	commitAttempted  bool
@@ -30,7 +29,7 @@ type preparedRealmSourceMaterializationProductV3 struct {
 }
 
 func (p *preparedRealmSourceMaterializationProductV3) commitTx(tx *sql.Tx) error {
-	if p == nil || p.svc == nil || p.svc.stateRepo == nil || p.svc.agentAIConfigRepo == nil || tx == nil {
+	if p == nil || p.svc == nil || p.svc.stateRepo == nil || tx == nil {
 		return fmt.Errorf("prepared Realm source materialization product is unavailable")
 	}
 	p.commitMu.Lock()
@@ -41,9 +40,6 @@ func (p *preparedRealmSourceMaterializationProductV3) commitTx(tx *sql.Tx) error
 	p.commitAttempted = true
 	p.commitMu.Unlock()
 	if err := p.svc.stateRepo.persistSnapshotTx(tx, p.persisted, nil); err != nil {
-		return err
-	}
-	if err := p.svc.agentAIConfigRepo.commitSeedTx(tx, p.seedAIConfig); err != nil {
 		return err
 	}
 	if err := persistLocalAgentSourceSnapshotV2Tx(tx, p.snapshot); err != nil {
@@ -60,10 +56,6 @@ func (p *preparedRealmSourceMaterializationProductV3) committed() {
 		targets := p.svc.eventStreamRuntime().matchingSubscribersLocked(p.committedEvents)
 		p.svc.mu.Unlock()
 		p.svc.eventStreamRuntime().broadcast(p.committedEvents, targets)
-		p.svc.recordRuntimeAgentAIConfigAudit(p.seedAIConfig, runtimeAgentAIConfigSeededEventType)
-		if err := p.svc.refreshRuntimeAgentAIConfigReadiness(p.localAgentRef); err != nil && p.svc.logger != nil {
-			p.svc.logger.Warn("recompute runtime agent ai config readiness after Realm source materialization failed", "local_agent_ref", p.localAgentRef, "error", err)
-		}
 	})
 }
 

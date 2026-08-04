@@ -13,6 +13,16 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type failingSharedAIConfigStore struct{ err error }
+
+func (s failingSharedAIConfigStore) Get(context.Context, string, *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, bool, error) {
+	return nil, false, s.err
+}
+
+func (s failingSharedAIConfigStore) Overwrite(context.Context, string, *runtimev1.AIConfig) error {
+	return s.err
+}
+
 type runtimeAgentTestStructPayload struct {
 	values map[string]any
 }
@@ -21,13 +31,13 @@ func (p runtimeAgentTestStructPayload) AsMap() map[string]any {
 	return p.values
 }
 
-func TestCommittedRuntimeAgentAIConfigPreservesRepositoryCause(t *testing.T) {
-	svc, closeService := newAgentAIConfigTestServiceWithClose(t, t.TempDir()+"/runtime-state.json")
-	closeService()
+func TestSharedAIConfigReadPreservesRepositoryCause(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	svc.SetAIConfigStore(failingSharedAIConfigStore{err: errors.New("private store closed")})
 
-	_, err := svc.committedRuntimeAgentAIConfigByAgentInstanceID(runtimeAgentAIConfigTestLocalRef)
+	_, _, err := svc.readSharedLocalAgentAIConfig(context.Background(), "account-a")
 	if err == nil {
-		t.Fatal("expected closed repository error")
+		t.Fatal("expected repository error")
 	}
 	if errors.Unwrap(err) == nil {
 		t.Fatalf("repository cause was discarded: %T: %v", err, err)

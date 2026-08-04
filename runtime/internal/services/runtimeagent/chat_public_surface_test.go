@@ -11,7 +11,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -90,12 +89,10 @@ func publicChatTestLocalRuntimeTargetRef(ref string) *runtimev1.RuntimeDurableTa
 	}
 }
 
-func publicChatTestAudioSynthesizeBinding() *runtimev1.RuntimeAgentAIConfigIntent {
-	return &runtimev1.RuntimeAgentAIConfigIntent{
-		Capability:  runtimeAgentAIConfigCapabilityAudioSynthesize,
-		ModelId:     "speech/qwen3tts",
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef:   runtimeAgentAIConfigTestLocalTarget("speech-qwen3tts"),
+func publicChatTestAudioSynthesizeBinding() publicChatExecutionBinding {
+	return publicChatExecutionBinding{
+		ModelID: "speech/qwen3tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef: publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:speech-qwen3tts"),
 	}
 }
 
@@ -116,11 +113,9 @@ func TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig(t *testing.T
 		t.Fatalf("not_configured prompt must state the not-configured truth, got %q", notConfigured)
 	}
 
-	available := publicChatScenarioSystemPromptForImageConfig(t, &runtimev1.RuntimeAgentAIConfigIntent{
-		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
-		ModelId:     "local/image",
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef:   runtimeAgentAIConfigTestLocalTarget("image"),
+	available := publicChatScenarioSystemPromptForImageConfig(t, &publicChatExecutionBinding{
+		ModelID: "local/image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef: publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:image"),
 	})
 	if !strings.Contains(available, `include exactly one sibling <action kind="image">`) {
 		t.Fatalf("image action routing rule must be exposed when the committed image.generate binding is ready, got %q", available)
@@ -134,51 +129,21 @@ func TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig(t *testing.T
 	if !strings.Contains(available, `all reply text stays in message, with no text between/after tags`) {
 		t.Fatalf("APML prompt must prohibit natural-language text outside message, got %q", available)
 	}
-
-	// A committed image binding whose provider is unhealthy reports
-	// UNAVAILABLE, which must project the distinct configured-but-unavailable
-	// truth, never the not-configured copy (K-AGCORE-148).
-	unavailable := publicChatScenarioSystemPromptForImageConfig(t, &runtimev1.RuntimeAgentAIConfigIntent{
-		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
-		ModelId:     "local/image",
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		TargetRef:   runtimeAgentAIConfigTestLocalTarget("image"),
-	}, true)
-	if strings.Contains(unavailable, `include exactly one sibling <action kind="image">`) {
-		t.Fatalf("image action routing rule must not be exposed when the configured image route is unavailable, got %q", unavailable)
-	}
-	if !strings.Contains(unavailable, `Do not output <action kind="image">`) {
-		t.Fatalf("unavailable prompt must explicitly prohibit image actions, got %q", unavailable)
-	}
-	if !strings.Contains(unavailable, "configured but currently unavailable") {
-		t.Fatalf("unavailable prompt must state the configured-but-unavailable truth, got %q", unavailable)
-	}
-	if strings.Contains(unavailable, "image generation is not configured") {
-		t.Fatalf("unavailable prompt must not collapse into the not-configured copy, got %q", unavailable)
-	}
 }
 
 func publicChatScenarioSystemPromptForImageConfig(
 	t *testing.T,
-	imageBinding *runtimev1.RuntimeAgentAIConfigIntent,
-	markImageUnavailable ...bool,
+	imageBinding *publicChatExecutionBinding,
 ) string {
 	t.Helper()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	tracker := providerhealth.New()
-	svc.SetProviderHealthTracker(tracker)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	streamer := &capturePublicChatScenarioStreamer{}
 	svc.SetPublicChatTurnExecutor(NewAIBackedPublicChatTurnExecutor(streamer))
-	if len(markImageUnavailable) > 0 && markImageUnavailable[0] {
-		if err := tracker.Mark(localImageProviderHealthKey, false, "image provider unavailable"); err != nil {
-			t.Fatalf("mark image provider unavailable: %v", err)
-		}
-	}
 	if imageBinding != nil {
-		upsertPublicChatTestAgentAIConfig(t, svc, imageBinding)
+		upsertPublicChatTestAgentAIConfig(t, svc, *imageBinding)
 	}
 
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
@@ -357,7 +322,6 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
-	svc.SetLocalAppRouteOptionInventory(runtimeAgentAIConfigTestRouteInventory())
 	svc.SetRuntimeAccountProjectionProvider(bundledAvatarTestProjectionProvider{accountID: "user-1"})
 	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-alpha"),

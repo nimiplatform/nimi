@@ -197,11 +197,10 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 	}
 }
 
-// TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation proves
-// K-AGCORE-147 turn admission truth: every turn binds to the committed
-// Runtime Agent AI Config at admission and fixes the config_revision into the
-// session snapshot projection; a config mutation applies to the next turn.
-func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testing.T) {
+// TestPublicChatTurnAdmissionFollowsMachineBindingReplacement proves every
+// turn resolves independent exact machine binding truth at admission. The
+// retired AIConfig revision remains zero in the legacy snapshot field.
+func TestPublicChatTurnAdmissionFollowsMachineBindingReplacement(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -275,8 +274,8 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 
 	firstSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-config-revision-first")
 	firstDetail := publicChatSessionSnapshotDetail(t, firstSnapshot)
-	if got := firstDetail["config_revision"]; got != float64(2) {
-		t.Fatalf("expected first turn to stamp explicit config_revision=2, got=%v", firstDetail)
+	if got := firstDetail["config_revision"]; got != float64(0) {
+		t.Fatalf("retired config revision must remain zero, got=%v", firstDetail)
 	}
 	firstBindings := firstDetail["execution_bindings"].(map[string]any)
 	firstText := firstBindings["text.generate"].(map[string]any)
@@ -284,28 +283,13 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 		t.Fatalf("expected first turn to bind seeded text model, got=%v", firstText)
 	}
 
-	// Mutate the committed config; the next turn must bind to the new
-	// committed truth and stamp the new revision.
-	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
-		Context:          publicChatTestAIConfigContext(t, svc),
-		ExpectedRevision: 2,
-		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{
-			{
-				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
-				ModelId:     "local/qwen3-chat",
-				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				TargetRef:   runtimeAgentAIConfigTestLocalTarget("qwen3-chat"),
-			},
-			{
-				Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
-				ModelId:     runtimeAgentAIConfigTestEmbedModel,
-				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				TargetRef:   runtimeAgentAIConfigTestLocalTarget("default-embed"),
-			},
-		},
-	}); err != nil {
-		t.Fatalf("UpsertRuntimeAgentAIConfig: %v", err)
-	}
+	// Replace independent machine execution truth; the next turn binds the
+	// new exact target without a config revision or CAS.
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatExecutionBinding{
+		BindingAlias: "local/qwen3-chat", ModelID: "local/qwen3-chat",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   publicChatTestLocalRuntimeTargetRef("test_runtime_readiness:v2:qwen3-chat"),
+	})
 
 	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
@@ -332,8 +316,8 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 
 	secondSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-config-revision-second")
 	secondDetail := publicChatSessionSnapshotDetail(t, secondSnapshot)
-	if got := secondDetail["config_revision"]; got != float64(3) {
-		t.Fatalf("expected post-mutation turn to stamp config_revision=3, got=%v", secondDetail)
+	if got := secondDetail["config_revision"]; got != float64(0) {
+		t.Fatalf("retired config revision must remain zero after replacement, got=%v", secondDetail)
 	}
 	secondBindings := secondDetail["execution_bindings"].(map[string]any)
 	secondText := secondBindings["text.generate"].(map[string]any)

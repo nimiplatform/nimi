@@ -54,16 +54,16 @@ function agentCenterSetupProgress(state: AgentCenterState) {
   );
   const projectedEmbeddingCapabilities = state.capabilities
     .filter((capability) => canonicalEmbeddingCapabilities.has(capability.capability));
-  const requiredModelReady = requiredCapabilities.length > 0
-    ? requiredCapabilities.every((capability) => capability.readinessState === 'ready' && capability.binding !== null)
-    : state.baseTextReady
+  const requiredCapabilitiesConfigured = requiredCapabilities.length > 0
+    ? requiredCapabilities.every((capability) => capability.configurationState === 'configured' && capability.intent !== null)
+    : state.baseTextConfigured
       && projectedEmbeddingCapabilities.length > 0
       && projectedEmbeddingCapabilities.every((capability) => (
-        capability.readinessState === 'ready' && capability.binding !== null
+        capability.configurationState === 'configured' && capability.intent !== null
       ));
   const checklistDone = [
     isAgentCenterCommittedAppearanceReady(state.appearance),
-    requiredModelReady,
+    requiredCapabilitiesConfigured,
     state.autonomy.enabled === true,
     state.cognition.memoryState !== 'unavailable',
     state.runtimeStatus === 'ready',
@@ -73,7 +73,7 @@ function agentCenterSetupProgress(state: AgentCenterState) {
     done: checklistDone,
     total,
     remaining: Math.max(0, total - checklistDone),
-    requiredModelReady,
+    requiredCapabilitiesConfigured,
   };
 }
 
@@ -170,11 +170,13 @@ function AgentCenterOverview({
     },
     {
       section: 'model' as const,
-      done: setup.requiredModelReady,
-      attention: !setup.requiredModelReady,
+      done: setup.requiredCapabilitiesConfigured,
+      attention: !setup.requiredCapabilitiesConfigured,
       title: sectionLabels.model,
-      description: setup.requiredModelReady ? copy.modelReadyDescription : copy.modelPendingDescription,
-      pill: setup.requiredModelReady ? copy.readyPill : copy.needsSetupPill,
+      description: setup.requiredCapabilitiesConfigured
+        ? copy.capabilitiesConfiguredDescription
+        : copy.capabilitiesNotConfiguredDescription,
+      pill: setup.requiredCapabilitiesConfigured ? copy.configuredPill : copy.needsSetupPill,
     },
     {
       section: 'behavior' as const,
@@ -266,7 +268,6 @@ function AgentCenterAdvanced({
       />
       <Card>
         <KvGrid>
-          <Kv label={copy.configRevisionLabel} value={state.diagnostics.configRevision ?? copy.unavailableValue} />
           <Kv label={copy.runtimeTurnLabel} value={state.diagnostics.runtimeTurnId || copy.notProjectedValue} mono />
           <Kv label={copy.runtimeErrorLabel} value={state.diagnostics.runtimeError || copy.noneValue} muted={!state.diagnostics.runtimeError} />
         </KvGrid>
@@ -442,7 +443,7 @@ function AgentCenterChromeHeader(props: {
           props.state.statusTone === 'loading' && 'text-sky-700',
           props.state.statusTone === 'disabled' && 'text-slate-500',
         )}>
-          {props.state.baseTextReady ? props.copy.textReadyLabel : props.state.baseTextDisabledReason}
+          {props.state.baseTextConfigured ? props.copy.textConfiguredLabel : props.state.baseTextConfigurationDetail}
         </p>
       </div>
       <AgentCenterChromeActions actions={props.actions} copy={props.copy} />

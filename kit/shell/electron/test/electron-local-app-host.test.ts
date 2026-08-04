@@ -78,6 +78,15 @@ describe('Electron protected local-app host', () => {
       .resolves.toMatchObject({ state: 'unavailable', permissionId: 'agents.interact', canRequest: false });
     await expect(host.aiConfigGet()).resolves.toMatchObject({ capabilities: [] });
     await expect(host.aiConfigOverwrite({ capabilities: [] })).resolves.toMatchObject({ capabilities: [] });
+    await expect(host.sharedAgentAIConfigGet()).resolves.toMatchObject({
+      owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem' } },
+      capabilities: [],
+    });
+    await expect(host.sharedAgentAIConfigOverwrite({ capabilities: [] })).resolves.toMatchObject({ capabilities: [] });
+    await expect(host.sharedAgentAIProfilePreview({ profileJson: '{"profileId":"profile-1"}' }))
+      .resolves.toMatchObject({ before: null, after: { capabilities: [] } });
+    await expect(host.sharedAgentAIProfileApply({ profileJson: '{"profileId":"profile-1"}' }))
+      .resolves.toMatchObject({ capabilities: [] });
     await expect(host.textGenerateCandidate({
       messages: [{ role: 'user', text: 'Create one persona.' }],
       temperature: 0.7,
@@ -124,6 +133,10 @@ describe('Electron protected local-app host', () => {
       'localAppPermissionRequest',
       'localAppAIConfigGet',
       'localAppAIConfigOverwrite',
+      'localAppSharedAgentAIConfigGet',
+      'localAppSharedAgentAIConfigOverwrite',
+      'localAppSharedAgentAIProfilePreview',
+      'localAppSharedAgentAIProfileApply',
       'localAppTextGenerateCandidate',
       'localAppRealmWorldCoreList',
       'localAppRealmWorldCoreCreate',
@@ -142,50 +155,26 @@ describe('Electron protected local-app host', () => {
     ]);
   });
 
-  it('preserves public AI Config components through native configuration round-trip', async () => {
+  it('preserves shared LocalAgent AIConfig/profile payloads without Agent identity', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
-    const selectedComponents = [{
-      occurrenceId: 'text-encoder',
-      order: 0,
-      role: 'encoder',
-      componentKind: 'text_encoder',
-      logicalModelId: 'local/text-encoder',
-      required: true,
+    const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+    const capabilities = [{
+      capabilityContract: 'text.generate',
+      requiredFeatures: [],
+      route: { oneofKind: 'local', local: {} },
     }];
-    const projection = {
-      configurationRevision: '2',
-      intents: [{
-        capability: 'text.generate',
-        provider: '',
-        logicalModelId: 'local/default',
-        routePolicy: 'local',
-        selectedComponents,
-        selectedParams: null,
-      }],
-    };
-    const candidate = {
-      ...binding(calls),
-      localAppAgentConfigurationSnapshot: async (input: unknown) => {
-        calls.push({ method: 'localAppAgentConfigurationSnapshot', input });
-        return { status: 'ok' as const, value: projection };
+    await expect(host.sharedAgentAIConfigOverwrite({ capabilities }))
+      .resolves.toMatchObject({ capabilities: [] });
+    await expect(host.sharedAgentAIProfileApply({ profileJson: '{"profileId":"profile-1"}' }))
+      .resolves.toMatchObject({ capabilities: [] });
+    expect(calls).toEqual([
+      { method: 'localAppSharedAgentAIConfigOverwrite', input: { capabilities } },
+      {
+        method: 'localAppSharedAgentAIProfileApply',
+        input: { profileJson: '{"profileId":"profile-1"}' },
       },
-      localAppAgentUpdateConfiguration: async (input: unknown) => {
-        calls.push({ method: 'localAppAgentUpdateConfiguration', input });
-        return { status: 'ok' as const, value: projection };
-      },
-    };
-    const host = createNimiElectronLocalAppHostForBinding(candidate);
-    await expect(host.agentConfigurationSnapshot({ agentHandle: 'lash_one' }))
-      .resolves.toMatchObject({ intents: [{ selectedComponents }] });
-    await expect(host.agentUpdateConfiguration({
-      agentHandle: 'lash_one',
-      expectedConfigurationRevision: '1',
-      intents: projection.intents,
-      profileOrigin: null,
-    })).resolves.toMatchObject({ intents: [{ selectedComponents }] });
-    expect(calls[1]?.input).toMatchObject({
-      intents: [{ selectedComponents }],
-    });
+    ]);
+    expect(JSON.stringify(calls)).not.toMatch(/agentHandle|revision|readiness/u);
   });
 
   it('preserves closed product permission reasons and rejects unknown native reasons', async () => {
@@ -332,6 +321,18 @@ function statusProjection() {
   return { state: 'ready', reasonCode: 'action-executed', retryable: false };
 }
 
+function sharedAgentConfig() {
+  return {
+    owner: {
+      owner: {
+        oneofKind: 'runtimeLocalAgentSubsystem',
+        runtimeLocalAgentSubsystem: {},
+      },
+    },
+    capabilities: [],
+  };
+}
+
 function binding(calls: Array<{ method: string; input?: unknown }>) {
   const record = (method: string, value: unknown) => async (input?: unknown) => {
     calls.push({ method, ...(input === undefined ? {} : { input }) });
@@ -352,6 +353,13 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppAIConfigOverwrite: record('localAppAIConfigOverwrite', {
       owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [],
     }),
+    localAppSharedAgentAIConfigGet: record('localAppSharedAgentAIConfigGet', sharedAgentConfig()),
+    localAppSharedAgentAIConfigOverwrite: record('localAppSharedAgentAIConfigOverwrite', sharedAgentConfig()),
+    localAppSharedAgentAIProfilePreview: record('localAppSharedAgentAIProfilePreview', {
+      before: null,
+      after: sharedAgentConfig(),
+    }),
+    localAppSharedAgentAIProfileApply: record('localAppSharedAgentAIProfileApply', sharedAgentConfig()),
     localAppTextGenerateCandidate: record('localAppTextGenerateCandidate', {
       text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1',
     }),
@@ -376,9 +384,6 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       bytes: new Uint8Array([137, 80, 78, 71]),
       mimeType: 'image/png',
     }),
-    localAppAgentConfigurationSnapshot: record('localAppAgentConfigurationSnapshot', { configurationRevision: '1' }),
-    localAppAgentUpdateConfiguration: record('localAppAgentUpdateConfiguration', { configurationRevision: '2' }),
-    localAppAgentReadinessSnapshot: record('localAppAgentReadinessSnapshot', { configurationRevision: '1' }),
     localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', { autonomyRevision: '1' }),
     localAppAgentUpdateAutonomy: record('localAppAgentUpdateAutonomy', { autonomyRevision: '2' }),
     localAppAgentPresentationSnapshot: record('localAppAgentPresentationSnapshot', { presentationRevision: '0' }),

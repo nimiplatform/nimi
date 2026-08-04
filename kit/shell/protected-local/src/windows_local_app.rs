@@ -4,6 +4,7 @@ mod configure;
 mod conversation;
 mod permission;
 mod realm_world_core;
+mod shared_agent_ai_config;
 mod storage;
 mod text_candidate;
 
@@ -24,18 +25,17 @@ use crate::windows_peer_trust::VerifiedRuntimePeer;
 #[cfg(target_os = "windows")]
 use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
-    LocalAppAIConfigOverwriteRequest, LocalAppAgentAIProfileApplyRequest,
-    LocalAppAgentAIProfilePreviewRequest, LocalAppAgentCommitPresentationRequest,
-    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppAgentUpdateConfigurationRequest, LocalAppArtifactPutRequest, LocalAppArtifactPutResult,
-    LocalAppArtifactReadRequest, LocalAppArtifactReadResult, LocalAppConversationInterruptRequest,
-    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
-    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
-    LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
-    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
-    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionStatus,
-    LocalAppPermissionStatusRequest, LocalAppReasonCode, LocalAppSessionState,
-    LocalAppSessionStatus, LocalAppStorageDocument, LocalAppStorageReadRequest,
+    LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppArtifactPutRequest,
+    LocalAppArtifactPutResult, LocalAppArtifactReadRequest, LocalAppArtifactReadResult,
+    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
+    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
+    LocalAppConversationSendRequest, LocalAppConversationSendResult,
+    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
+    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
+    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppSessionState, LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppSharedAgentAIProfileRequest, LocalAppStorageDocument, LocalAppStorageReadRequest,
     LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
     LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,
     LocalAppWorldCoreListRequest, NimiLocalAppCarrier, NimiLocalAppSession,
@@ -375,58 +375,46 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
-    fn agent_configuration_snapshot(
+    fn shared_agent_ai_config_get(
         &self,
-        request: LocalAppAgentHandleRequest,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
     {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
-            configure::configuration_snapshot(self.checked_channel()?, request).await
+            shared_agent_ai_config::get(self.checked_channel()?).await
         })
     }
 
-    fn agent_update_configuration(
+    fn shared_agent_ai_config_overwrite(
         &self,
-        request: LocalAppAgentUpdateConfigurationRequest,
+        request: LocalAppSharedAgentAIConfigOverwriteRequest,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
     {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
-            configure::update_configuration(self.checked_channel()?, request).await
+            shared_agent_ai_config::overwrite(self.checked_channel()?, request).await
         })
     }
 
-    fn agent_readiness_snapshot(
+    fn shared_agent_ai_profile_preview(
         &self,
-        request: LocalAppAgentHandleRequest,
+        request: LocalAppSharedAgentAIProfileRequest,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
     {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
-            configure::readiness_snapshot(self.checked_channel()?, request).await
+            shared_agent_ai_config::preview_profile(self.checked_channel()?, request).await
         })
     }
 
-    fn agent_ai_profile_preview(
+    fn shared_agent_ai_profile_apply(
         &self,
-        request: LocalAppAgentAIProfilePreviewRequest,
+        request: LocalAppSharedAgentAIProfileRequest,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
     {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
-            configure::ai_profile_preview(self.checked_channel()?, request).await
-        })
-    }
-
-    fn agent_ai_profile_apply(
-        &self,
-        request: LocalAppAgentAIProfileApplyRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
-    {
-        Box::pin(async move {
-            let _operation = self.operation_gate.read().await;
-            configure::ai_profile_apply(self.checked_channel()?, request).await
+            shared_agent_ai_config::apply_profile(self.checked_channel()?, request).await
         })
     }
 

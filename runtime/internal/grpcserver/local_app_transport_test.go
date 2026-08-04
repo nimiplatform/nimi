@@ -258,9 +258,10 @@ func TestProtectedLocalAppPoliciesExposeOnlyNamedLocalAppOperations(t *testing.T
 		protectedOpenConversationMethod,
 		protectedSendConversationTurnMethod,
 		protectedConversationSnapshotMethod,
-		protectedConfigurationSnapshotMethod,
-		protectedUpdateConfigurationMethod,
-		protectedReadinessSnapshotMethod,
+		protectedGetSharedAIConfigMethod,
+		protectedOverwriteSharedAIConfigMethod,
+		protectedSharedAIProfilePreviewMethod,
+		protectedSharedAIProfileApplyMethod,
 		protectedAutonomySnapshotMethod,
 		protectedUpdateAutonomyMethod,
 		protectedPresentationSnapshotMethod,
@@ -300,6 +301,10 @@ func TestSelectedProtectedLocalAppAIConfigOperationsAreSelectorFree(t *testing.T
 	}{
 		{protectedGetAppAIConfigMethod, &runtimev1.GetAppAIConfigRequest{}, accountservice.LocalAppOperationAppAIConfigRead},
 		{protectedOverwriteAppAIConfigMethod, &runtimev1.OverwriteAppAIConfigRequest{}, accountservice.LocalAppOperationAppAIConfigOverwrite},
+		{protectedGetSharedAIConfigMethod, &runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest{}, accountservice.LocalAppOperationSharedAIConfigGet},
+		{protectedOverwriteSharedAIConfigMethod, &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{}, accountservice.LocalAppOperationSharedAIConfigOverwrite},
+		{protectedSharedAIProfilePreviewMethod, &runtimev1.PreviewLocalAppSharedLocalAgentAIProfileRequest{}, accountservice.LocalAppOperationSharedAIProfilePreview},
+		{protectedSharedAIProfileApplyMethod, &runtimev1.ApplyLocalAppSharedLocalAgentAIProfileRequest{}, accountservice.LocalAppOperationSharedAIProfileApply},
 	} {
 		operation, selector, selected := selectedLocalAppUnaryOperation(test.method, test.request)
 		if !selected || operation != test.operation || selector != (localappop.Selector{}) {
@@ -376,18 +381,20 @@ func TestProtectedLocalAppConfigureOperationsRemainReservedWithPermissionMetadat
 		method    string
 		request   any
 		operation accountservice.LocalAppOperation
+		selector  localappop.Selector
 	}{
-		{protectedConfigurationSnapshotMethod, &runtimev1.GetLocalAppAgentConfigurationSnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationConfigurationSnapshot},
-		{protectedUpdateConfigurationMethod, &runtimev1.UpdateLocalAppAgentConfigurationRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationUpdateConfiguration},
-		{protectedReadinessSnapshotMethod, &runtimev1.GetLocalAppAgentReadinessSnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationReadinessSnapshot},
-		{protectedAutonomySnapshotMethod, &runtimev1.GetLocalAppAgentAutonomySnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationAutonomySnapshot},
-		{protectedUpdateAutonomyMethod, &runtimev1.UpdateLocalAppAgentAutonomyRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationUpdateAutonomy},
-		{protectedPresentationSnapshotMethod, &runtimev1.GetLocalAppAgentPresentationSnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationPresentationSnapshot},
-		{protectedCommitPresentationMethod, &runtimev1.CommitLocalAppAgentPresentationRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationCommitPresentation},
+		{protectedGetSharedAIConfigMethod, &runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest{}, accountservice.LocalAppOperationSharedAIConfigGet, localappop.Selector{}},
+		{protectedOverwriteSharedAIConfigMethod, &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{}, accountservice.LocalAppOperationSharedAIConfigOverwrite, localappop.Selector{}},
+		{protectedSharedAIProfilePreviewMethod, &runtimev1.PreviewLocalAppSharedLocalAgentAIProfileRequest{}, accountservice.LocalAppOperationSharedAIProfilePreview, localappop.Selector{}},
+		{protectedSharedAIProfileApplyMethod, &runtimev1.ApplyLocalAppSharedLocalAgentAIProfileRequest{}, accountservice.LocalAppOperationSharedAIProfileApply, localappop.Selector{}},
+		{protectedAutonomySnapshotMethod, &runtimev1.GetLocalAppAgentAutonomySnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationAutonomySnapshot, localappop.Selector{AgentID: "lah_v1_opaque"}},
+		{protectedUpdateAutonomyMethod, &runtimev1.UpdateLocalAppAgentAutonomyRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationUpdateAutonomy, localappop.Selector{AgentID: "lah_v1_opaque"}},
+		{protectedPresentationSnapshotMethod, &runtimev1.GetLocalAppAgentPresentationSnapshotRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationPresentationSnapshot, localappop.Selector{AgentID: "lah_v1_opaque"}},
+		{protectedCommitPresentationMethod, &runtimev1.CommitLocalAppAgentPresentationRequest{AgentHandle: "lah_v1_opaque"}, accountservice.LocalAppOperationCommitPresentation, localappop.Selector{AgentID: "lah_v1_opaque"}},
 	}
 	for _, test := range tests {
 		operation, selector, selected := selectedLocalAppUnaryOperation(test.method, test.request)
-		if !selected || operation != test.operation || selector != (localappop.Selector{AgentID: "lah_v1_opaque"}) {
+		if !selected || operation != test.operation || selector != test.selector {
 			t.Fatalf("configure selector for %s = (%q, %+v, %v)", test.method, operation, selector, selected)
 		}
 		handlerCalled := false
@@ -412,7 +419,7 @@ func TestProtectedLocalAppConfigureOperationsRemainReservedWithPermissionMetadat
 		{runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED, "revoked"},
 	} {
 		interceptor := newUnaryProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{err: localAppTransportReasonError{reason: test.reason}})
-		_, err := interceptor(ctx, &runtimev1.GetLocalAppAgentConfigurationSnapshotRequest{AgentHandle: "lah_v1_opaque"}, &grpc.UnaryServerInfo{FullMethod: protectedConfigurationSnapshotMethod}, func(context.Context, any) (any, error) {
+		_, err := interceptor(ctx, &runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest{}, &grpc.UnaryServerInfo{FullMethod: protectedGetSharedAIConfigMethod}, func(context.Context, any) (any, error) {
 			t.Fatal("non-granted configure operation reached handler")
 			return nil, nil
 		})

@@ -678,6 +678,40 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_shared_agent_ai_config_get(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::shared_agent_ai_config_get_for_host(host.inner()).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_shared_agent_ai_config_overwrite(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::shared_agent_ai_config_overwrite_for_host(host.inner(), payload)
+            .await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_shared_agent_ai_profile_preview(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::shared_agent_ai_profile_preview_for_host(host.inner(), payload)
+            .await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_shared_agent_ai_profile_apply(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::shared_agent_ai_profile_apply_for_host(host.inner(), payload)
+            .await
+    }
+
+    #[tauri::command]
     pub async fn local_app_text_generate_candidate(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,

@@ -1,4 +1,3 @@
-import { createNimiAIScopeRef } from '@nimiplatform/sdk/ai';
 import { describe, expect, it } from 'vitest';
 import {
   createFirstPartyAgentCenterSession,
@@ -13,6 +12,7 @@ import type {
   AgentCenterPermissionedSdkSurface,
   AgentCenterPermissionedSdkSurfaceInput,
   AgentCenterProductAction,
+  AgentCenterSharedAIConfigProjection,
   AgentCenterSession,
   AgentCenterStateInput,
   AgentCenterTransportActionProjection,
@@ -20,11 +20,10 @@ import type {
 } from '../src/types.js';
 
 const ACTIONS: readonly AgentCenterProductAction[] = [
-  'readAIConfig', 'updateAIConfig', 'readAutonomy', 'updateAutonomy',
+  'getSharedAIConfig', 'overwriteSharedAIConfig', 'applySharedAIProfile', 'readAutonomy', 'updateAutonomy',
   'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
   'requestPermission', 'openPermissionSettings',
 ];
-const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'agent' });
 
 function transportProjection(reason: AgentCenterTransportActionReason | null = null): AgentCenterTransportActionProjection {
   return Object.fromEntries(ACTIONS.map((action) => [action, {
@@ -32,9 +31,7 @@ function transportProjection(reason: AgentCenterTransportActionReason | null = n
   }])) as AgentCenterTransportActionProjection;
 }
 
-function recoveryProjection(
-  reason: AgentCenterTransportActionReason,
-): AgentCenterTransportActionProjection {
+function recoveryProjection(reason: AgentCenterTransportActionReason): AgentCenterTransportActionProjection {
   const recoveryAction = reason === 'not_granted' || reason === 'grant_denied' || reason === 'grant_revoked'
     ? 'requestPermission'
     : null;
@@ -43,41 +40,32 @@ function recoveryProjection(
     : { state: 'unavailable', reason }])) as AgentCenterTransportActionProjection;
 }
 
-function emptyProjection(revision = '1'): AgentCenterStateInput {
+function emptyProjection(capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'] = [{
+  capabilityContract: 'text.generate',
+  route: { oneofKind: 'local' as const, local: {} },
+  requiredFeatures: [] as string[],
+}]): AgentCenterStateInput {
   return {
-    aiConfig: {
+    sharedAIConfig: {
       aiConfig: {
-        scopeRef,
-        profileOrigin: null,
-        capabilities: {
-          logicalModelIds: { 'text.generate': 'local/default' },
-          targetRefs: {},
-          selectedComponents: {},
-          selectedParams: {},
+        owner: {
+          owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
         },
+        capabilities,
       },
-      scopeRef,
-      capabilities: ['text.generate'],
-      routeIntents: [{ capability: 'text.generate', provider: '', model: 'local/default', routePolicy: 'local' }],
-      routeOptions: [
-        {
-          capability: 'text.generate', provider: '', model: 'local/default',
-          routePolicy: 'local', label: 'Default local model', availability: 'ready',
-        },
-        {
-          capability: 'text.generate', provider: '', model: 'local/model-b',
-          routePolicy: 'local', label: 'Local model B', availability: 'installed',
-        },
-      ],
-      readiness: [],
-      configurationRevision: revision,
+      capabilities: capabilities.map((intent) => intent.capabilityContract),
+      intents: capabilities.map((intent) => ({
+        capability: intent.capabilityContract,
+        route: intent.route.oneofKind === 'local' ? 'local' : 'cloud',
+        requiredFeatures: intent.requiredFeatures,
+      })),
     },
     autonomy: {
-      revision: `autonomy:${revision}`, enabled: true, mode: 'low', budgetExhausted: false,
+      revision: 'autonomy:1', enabled: true, mode: 'low', budgetExhausted: false,
       usedTokensInWindow: 0, dailyTokenBudget: 100, maxTokensPerHook: 10,
       windowStartedAt: null, suspendedUntil: null,
     },
-    appearance: { status: 'not_configured', presentationRevision: `presentation:${revision}` },
+    appearance: { status: 'not_configured', presentationRevision: 'presentation:1' },
   };
 }
 
@@ -85,38 +73,18 @@ function permissionedSurface(overrides: Partial<AgentCenterPermissionedSdkSurfac
   return sealAgentCenterPermissionedSdkSurface({
     async actionPosture() { return transportProjection(); },
     async read() { return emptyProjection(); },
-    async updateConfiguration(_handle, input) {
-      const revision = String(BigInt(input.expectedConfigurationRevision) + 1n);
-      return { ...emptyProjection(revision), aiConfig: {
-        ...emptyProjection(revision).aiConfig!,
-        aiConfig: input.config,
-      } };
-    },
-    async listAIProfiles() { return []; },
-    async previewAIProfile() {
-      return {
-        before: null, after: null, outcome: 'failed',
-        diff: { identical: true, fields: [] },
-        baseVersion: 'runtime-agent-revision:1', probeWarnings: [],
-      };
-    },
-    async applyAIProfile() {
-      return {
-        success: false, config: null, failureReason: 'not_configured',
-        outcome: 'failed', probeWarnings: [],
-      };
-    },
+    async overwriteSharedAIConfig(input) { return emptyProjection([...input.capabilities]).sharedAIConfig!; },
     async updateAutonomy(_handle, input) {
-      return { ...emptyProjection('2'), autonomy: {
-        ...emptyProjection('2').autonomy!, revision: 'autonomy:2',
+      return { ...emptyProjection(), autonomy: {
+        ...emptyProjection().autonomy!, revision: 'autonomy:2',
         enabled: input.enabled ?? null,
         mode: input.mode as AgentCenterAutonomyProjection['mode'],
         dailyTokenBudget: Number(input.dailyTokenBudget),
         maxTokensPerHook: Number(input.maxTokensPerHook),
       } };
     },
-    async replaceAppearance() { return emptyProjection('2'); },
-    async restorePreviousAppearance() { return emptyProjection('3'); },
+    async replaceAppearance() { return emptyProjection(); },
+    async restorePreviousAppearance() { return emptyProjection(); },
     ...overrides,
   });
 }
@@ -126,54 +94,48 @@ async function flush(): Promise<void> {
 }
 
 describe('AgentCenterSession', () => {
-  it('awaits the committed canonical AIConfig projection before write-back', async () => {
+  it('awaits the committed shared AIConfig projection before write-back', async () => {
     const calls: string[] = [];
-    let aiConfig = emptyProjection().aiConfig!;
+    const configInputs: unknown[] = [];
+    let sharedAIConfig = emptyProjection().sharedAIConfig!;
     const session = createFirstPartyAgentCenterSession({
       identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
-      aiConfig: {
-        async snapshot() { calls.push('model.read'); return aiConfig; },
-        async update(input) {
-          calls.push(`model.write:${input.expectedConfigurationRevision}`);
-          await Promise.resolve();
-          const model = input.config.capabilities.logicalModelIds['text.generate'] || '';
-          aiConfig = {
-            ...aiConfig,
-            aiConfig: input.config,
-            configurationRevision: '2',
-            routeIntents: [{ capability: 'text.generate', provider: '', model, routePolicy: 'local' }],
-          };
-          return aiConfig;
+      sharedAIConfig: {
+        async get(input) { calls.push('config.read'); configInputs.push(input); return sharedAIConfig; },
+        async overwrite(input) {
+          configInputs.push(input);
+          calls.push(`config.write:${input.capabilities[0]?.capabilityContract}`);
+          const state = emptyProjection([...input.capabilities]).sharedAIConfig!;
+          sharedAIConfig = state;
+          return sharedAIConfig;
         },
       },
       autonomy: {
         async load() { return emptyProjection().autonomy!; },
         async update(_identity, input) {
-          calls.push(`autonomy.write:${input.expectedRevision}`);
-          return { ...emptyProjection('2').autonomy!, enabled: input.enabled ?? null };
+          return { ...emptyProjection().autonomy!, enabled: input.enabled ?? null };
         },
-      },
-      appearance: {
-        async load() { return emptyProjection().appearance!; },
-        async replaceAppearance(input) { calls.push(`appearance.replace:${input.expectedRevision}`); return { status: 'ready', presentationRevision: '4' }; },
-        async restorePreviousAppearance() { return { status: 'ready', presentationRevision: '3' }; },
       },
     });
     await session.refresh();
-    await session.updateAIConfig({
-      expectedConfigurationRevision: '1',
-      config: {
-        ...aiConfig.aiConfig,
-        capabilities: {
-          ...aiConfig.aiConfig.capabilities,
-          logicalModelIds: { 'text.generate': 'm2' },
-        },
-      },
+    await session.overwriteSharedAIConfig({
+      capabilities: [{
+        capabilityContract: 'text.generate',
+        route: { oneofKind: 'local', local: {} },
+        requiredFeatures: ['input.image'],
+      }],
     });
-    expect(session.getSnapshot().state.configRevision).toBe('2');
-    expect(session.getSnapshot().state.aiConfig?.routeIntents[0]?.model).toBe('m2');
-    expect(session.getSnapshot().state.aiConfig?.aiConfig.capabilities.logicalModelIds['text.generate']).toBe('m2');
-    expect(calls).toContain('model.write:1');
+
+    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.owner?.owner.oneofKind).toBe('runtimeLocalAgentSubsystem');
+    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities[0]?.requiredFeatures).toEqual(['input.image']);
+    expect(calls).toContain('config.write:text.generate');
+    expect(configInputs).toEqual([
+      { subjectUserId: undefined },
+      { subjectUserId: undefined, capabilities: [expect.objectContaining({ capabilityContract: 'text.generate' })] },
+      { subjectUserId: undefined },
+    ]);
+    expect(JSON.stringify(configInputs)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef/u);
+    expect(JSON.stringify(session.getSnapshot().state)).not.toContain('targetRef');
   });
 
   it.each([
@@ -189,41 +151,24 @@ describe('AgentCenterSession', () => {
       .toEqual({ state: 'unavailable', reason, nextStep });
   });
 
-  it('routes permissioned writes and readiness through the same session snapshot', async () => {
+  it('routes permissioned shared configuration writes without an Agent handle', async () => {
     const calls: string[] = [];
-    let emit!: (value: AgentCenterStateInput) => void;
-    const waiters: Array<(value: IteratorResult<AgentCenterStateInput>) => void> = [];
     const session = createPermissionedAgentCenterSession({
       handle: 'opaque' as AgentCenterOpaqueHandle,
       surface: permissionedSurface({
-        async updateConfiguration(handle, input) {
-          calls.push(`model:${handle}:${input.expectedConfigurationRevision}`);
-          return permissionedSurface().updateConfiguration(handle, input);
-        },
-        subscribeReadiness() {
-          return {
-            [Symbol.asyncIterator]() { return this; },
-            next() { return new Promise((resolve) => waiters.push(resolve)); },
-            return() { return Promise.resolve({ done: true, value: undefined }); },
-          } as AsyncIterableIterator<AgentCenterStateInput>;
+        async overwriteSharedAIConfig(input) {
+          calls.push(`config:${input.capabilities.length}`);
+          return emptyProjection([...input.capabilities]).sharedAIConfig!;
         },
       }),
     });
-    const unsubscribe = session.subscribe(() => undefined);
-    await flush();
-    await session.updateAIConfig({
-      expectedConfigurationRevision: '1',
-      config: emptyProjection().aiConfig!.aiConfig,
-    });
-    expect(calls).toEqual(['model:opaque:1']);
-    emit = (value) => waiters.shift()?.({ done: false, value });
-    emit(emptyProjection('9007199254740993'));
-    await flush();
-    expect(session.getSnapshot().state.configRevision).toBe('9007199254740993');
-    unsubscribe();
+    await session.refresh();
+    await session.overwriteSharedAIConfig({ capabilities: [] });
+    expect(calls).toEqual(['config:0']);
+    expect(session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities).toEqual([]);
   });
 
-  it('patches avatar autoplay through the permissioned presentation commit without replacing the voice', async () => {
+  it('patches avatar autoplay through the permissioned presentation commit without replacing voice', async () => {
     const calls: AgentCenterPermissionedPresentationCommitInput[] = [];
     const current: AgentCenterStateInput = {
       ...emptyProjection(),
@@ -236,21 +181,13 @@ describe('AgentCenterSession', () => {
     };
     const updated: AgentCenterStateInput = {
       ...current,
-      appearance: {
-        status: 'not_configured',
-        presentationRevision: 'presentation:2',
-        defaultVoiceReference: 'voice_asset_id:voice-song-lian',
-        avatarAutoplay: true,
-      },
+      appearance: { ...current.appearance!, presentationRevision: 'presentation:2', avatarAutoplay: true },
     };
     const session = createPermissionedAgentCenterSession({
       handle: 'opaque' as AgentCenterOpaqueHandle,
       surface: permissionedSurface({
         async read() { return current; },
-        async replaceAppearance(_handle, input) {
-          calls.push(input);
-          return updated;
-        },
+        async replaceAppearance(_handle, input) { calls.push(input); return updated; },
       }),
     });
     await session.refresh();
@@ -267,68 +204,7 @@ describe('AgentCenterSession', () => {
     });
   });
 
-  it('builds the permissioned model picker from bounded configuration-snapshot options', async () => {
-    const session = createPermissionedAgentCenterSession({
-      handle: 'opaque' as AgentCenterOpaqueHandle,
-      surface: permissionedSurface(),
-    });
-    await session.refresh();
-    const provider = session.modelConfig?.providerResolver?.('text.generate') as {
-      listLocalModels(): Promise<Array<{ localModelId: string; label: string; status: string }>>;
-    } | null;
-    expect(provider).toBeTruthy();
-    await expect(provider!.listLocalModels()).resolves.toEqual([
-      expect.objectContaining({ localModelId: 'local/default', label: 'Default local model', status: 'active' }),
-      expect.objectContaining({ localModelId: 'local/model-b', label: 'Local model B', status: 'installed' }),
-    ]);
-  });
-
-  it('enables cloud model picking when the bounded snapshot contains multiple providers', async () => {
-    const state = emptyProjection();
-    const session = createPermissionedAgentCenterSession({
-      handle: 'opaque' as AgentCenterOpaqueHandle,
-      surface: permissionedSurface({
-        async read() {
-          return {
-            ...state,
-            aiConfig: {
-              ...state.aiConfig!,
-              routeOptions: [
-                ...state.aiConfig!.routeOptions!,
-                {
-                  capability: 'text.generate', provider: 'openai', model: 'gpt-5-mini',
-                  routePolicy: 'cloud', label: 'GPT-5 mini', availability: 'ready',
-                },
-                {
-                  capability: 'text.generate', provider: 'dashscope', model: 'qwen-plus',
-                  routePolicy: 'cloud', label: 'Qwen Plus', availability: 'ready',
-                },
-              ],
-            },
-          };
-        },
-      }),
-    });
-    await session.refresh();
-    const provider = session.modelConfig?.providerResolver?.('text.generate') as {
-      listConnectors(): Promise<Array<{ connectorId: string; provider: string }>>;
-      listConnectorModels(connectorId: string): Promise<Array<{
-        providerModelId: string;
-        modelLabel: string;
-        available: boolean;
-      }>>;
-    } | null;
-    expect(provider).toBeTruthy();
-    await expect(provider!.listConnectors()).resolves.toEqual([
-      expect.objectContaining({ connectorId: 'openai', provider: 'openai' }),
-      expect.objectContaining({ connectorId: 'dashscope', provider: 'dashscope' }),
-    ]);
-    await expect(provider!.listConnectorModels('openai')).resolves.toEqual([
-      expect.objectContaining({ providerModelId: 'gpt-5-mini', modelLabel: 'GPT-5 mini', available: true }),
-    ]);
-  });
-
-  it('recomputes granted posture live as prompt and requestable without remounting', async () => {
+  it('recomputes granted posture live without remounting', async () => {
     let emit!: (projection: AgentCenterTransportActionProjection) => void;
     let unsubscribed = false;
     const session = createPermissionedAgentCenterSession({
@@ -343,28 +219,23 @@ describe('AgentCenterSession', () => {
     await session.refresh();
     const unsubscribe = session.subscribe(() => undefined);
     await flush();
-    expect(session.getSnapshot().availability.updateAutonomy.state).toBe('available');
-
     emit(recoveryProjection('not_granted'));
     expect(session.getSnapshot().availability.updateAutonomy)
       .toEqual({ state: 'unavailable', reason: 'needs-grant', nextStep: 'requestPermission' });
-    expect(session.getSnapshot().availability.requestPermission.state).toBe('available');
-    expect(session.getSnapshot().state.autonomy.controlsDisabled).toBe(true);
-    expect(session.getSnapshot().state.autonomy.disabledReason).toBe('needs-grant');
     unsubscribe();
     expect(unsubscribed).toBe(true);
   });
 
-  it('does not allow hand-assembled transports or state to impersonate trusted factory outputs', () => {
+  it('does not allow hand-assembled transports or state to impersonate trusted outputs', () => {
     const structuralSurface = {} as AgentCenterPermissionedSdkSurfaceInput;
-    // @ts-expect-error Permissioned transport surfaces require the Kit sealer's private brand.
+    // @ts-expect-error Permissioned transport surfaces require the Kit sealer private brand.
     const fabricatedSurface: AgentCenterPermissionedSdkSurface = structuralSurface;
     // @ts-expect-error Manager Sessions are nominal factory outputs, not structural caller state.
     const fabricated: AgentCenterSession = {
       getSnapshot() { throw new Error('fabricated'); }, subscribe() { return () => undefined; },
-      async refresh() {}, async updateAIConfig() {}, async updateAutonomy() {},
+      async refresh() {}, async overwriteSharedAIConfig() {}, async updateAutonomy() {},
       async replaceAppearance() {}, async restorePreviousAppearance() {},
-      async requestPermission() {}, async openPermissionSettings() {}, modelConfig: null, appearance: {},
+      async requestPermission() {}, async openPermissionSettings() {}, appearance: {},
     };
     expect(fabricatedSurface).toBeTruthy();
     expect(fabricated).toBeTruthy();

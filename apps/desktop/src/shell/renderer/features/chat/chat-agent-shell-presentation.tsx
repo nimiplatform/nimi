@@ -19,10 +19,6 @@ import {
   resolveAgentTargetSummaries,
 } from './chat-agent-shell-view-model';
 import { InlineFeedback } from '../../ui/feedback/inline-feedback';
-import { useDismissibleSchedulingFeedback } from './chat-shared-dismissible-scheduling-feedback';
-import {
-  resolveAgentComposerVoiceState,
-} from './chat-agent-voice-session';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
 import { useAgentConversationLocalAvatarControls } from './chat-agent-shell-local-avatar-controls';
@@ -54,13 +50,6 @@ export function useAgentConversationPresentation(
   | 'transcriptProps'
 > {
   const streamController = useStreamController();
-  const {
-    guard: schedulingGuard,
-    feedbackNode: schedulingFeedbackNode,
-  } = useDismissibleSchedulingFeedback({
-    judgement: input.schedulingJudgement,
-    t: input.t,
-  });
   const targetSummaries = useMemo(
     () => resolveAgentTargetSummaries(input.targetSummariesInput),
     [input.targetSummariesInput],
@@ -86,16 +75,19 @@ export function useAgentConversationPresentation(
   }, [input.runtimeInspect]);
   const surfaceState = useMemo(() => resolveAgentConversationSurfaceState({
     composerReady: input.composerReady,
-    routeDisabledReason: input.activeTarget && !input.agentRouteReady
-      ? input.agentRouteDisabledReason
-      : null,
+    routeDisabledReason: null,
     activeTarget: input.activeTarget,
     activeThreadId: input.activeThreadId,
     activeConversationAnchorId: input.activeConversationAnchorId,
     submittingThreadId: input.submittingThreadId,
-    voiceCaptureState: input.voiceCaptureState,
-    voicePlaybackState: input.voicePlaybackState,
-    voiceSessionState: input.voiceSessionState,
+    voiceCaptureState: null,
+    voicePlaybackState: null,
+    voiceSessionState: {
+      status: 'idle',
+      mode: 'push-to-talk',
+      conversationAnchorId: null,
+      message: null,
+    },
     latestStatusCue,
     runtimeCommittedStatus,
     footerViewState,
@@ -122,7 +114,7 @@ export function useAgentConversationPresentation(
         defaultValue: 'Transcribing…',
       }),
     },
-  }), [footerViewState, input.activeTarget, input.activeThreadId, input.agentRouteDisabledReason, input.agentRouteReady, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState, latestStatusCue, runtimeCommittedStatus]);
+  }), [footerViewState, input.activeConversationAnchorId, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, latestStatusCue, runtimeCommittedStatus]);
   const localAvatar = useAgentConversationLocalAvatarControls(input);
   const characterData = useMemo(() => ({
     ...surfaceState.character,
@@ -265,17 +257,17 @@ export function useAgentConversationPresentation(
             attachments: composerInput.attachments as readonly PendingAttachment[],
           });
         },
-        disabled: surfaceState.composer.disabled || schedulingGuard.disabled,
-        disabledReason: schedulingGuard.disabledReason || surfaceState.composer.disabledReason,
+        disabled: surfaceState.composer.disabled,
+        disabledReason: surfaceState.composer.disabledReason,
         placeholder: surfaceState.composer.placeholder,
       }
       : null,
-  }), [input.bundle, input.handleSubmit, input.messages, input.setupState, schedulingGuard.disabled, schedulingGuard.disabledReason, surfaceState.composer]);
+  }), [input.bundle, input.handleSubmit, input.messages, input.setupState, surfaceState.composer]);
   return useMemo(() => ({
     ...hostSnapshot,
     adapter,
     stagePanelProps: undefined,
-    topContent: schedulingFeedbackNode,
+    topContent: undefined,
     settingsContent: (
       <AgentConversationSettingsContent input={input} />
     ),
@@ -289,18 +281,13 @@ export function useAgentConversationPresentation(
           <AgentCanonicalComposer
             composerKey={`${input.activeThreadId || 'none'}:${input.composerPrefillRequestId ?? 0}`}
             initialText={input.currentComposerTextRef.current}
-            disabled={Boolean(surfaceState.composer?.disabled) || schedulingGuard.disabled}
+            disabled={Boolean(surfaceState.composer?.disabled)}
             runtimeHint={surfaceState.composer?.disabledReason && !input.submittingThreadId
               ? surfaceState.composer.disabledReason
               : null}
             pendingAttachments={input.pendingAttachments}
             onAttachmentsChange={input.onAttachmentsChange}
             onSubmit={input.handleSubmit}
-            voiceState={resolveAgentComposerVoiceState({
-              state: input.voiceSessionState,
-              onToggle: input.onVoiceSessionToggle,
-              onCancel: input.onVoiceSessionCancel,
-            })}
             placeholder={input.t('Chat.agentComposerPlaceholder', { defaultValue: 'Talk to this agent…' })}
             onInputCaptureText={(text) => {
               input.currentComposerTextRef.current = text;
@@ -312,15 +299,6 @@ export function useAgentConversationPresentation(
               ...input.behaviorSettings,
               thinkingPreference: input.thinkingPreference === 'on' ? 'off' : 'on',
             })}
-            handsFreeState={{
-              mode: input.voiceSessionState.mode,
-              status: input.voiceSessionState.status,
-              disabled: Boolean(input.submittingThreadId)
-                || input.voiceSessionState.status === 'transcribing'
-                || input.voiceSessionState.status === 'listening',
-              onEnter: input.onEnterHandsFreeVoiceSession,
-              onExit: input.onExitHandsFreeVoiceSession,
-            }}
             leadingSlot={(
               <ChatComposerLeadingAvatar
                 kind="agent"
@@ -358,7 +336,6 @@ export function useAgentConversationPresentation(
   }), [
     adapter,
     hostFeedbackNode,
-    schedulingFeedbackNode,
     hostSnapshot,
     characterData.name,
     characterData.avatarUrl,
@@ -368,8 +345,6 @@ export function useAgentConversationPresentation(
     input.activeConversationAnchorId,
     input.activeThreadId,
     input.composerPrefillRequestId,
-    input.agentRouteReady,
-    input.agentRouteDisabledReason,
     input.mutationPendingAction,
     input.behaviorSettings,
     input.currentComposerTextRef,
@@ -379,22 +354,14 @@ export function useAgentConversationPresentation(
     input.onEnableAutonomy,
     input.onDisableAutonomy,
     input.onUpdateAutonomyConfig,
-    input.onEnterHandsFreeVoiceSession,
-    input.onExitHandsFreeVoiceSession,
     input.setBehaviorSettings,
     input.submittingThreadId,
     input.t,
     input.thinkingPreference,
     input.thinkingSupported,
     input.thinkingUnsupportedReason,
-    input.voiceSessionState,
-    input.onVoiceSessionToggle,
-    input.onVoiceSessionCancel,
-    input.initialModelSelection,
-    input.onModelSelectionChange,
     input.pendingAttachments,
     selectedTargetId,
-    schedulingGuard.disabled,
     surfaceState.composer,
     resolvedAgentDisplayName,
     input.onOpenAgentCenter,

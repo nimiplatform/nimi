@@ -93,12 +93,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus
       - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind
       - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage

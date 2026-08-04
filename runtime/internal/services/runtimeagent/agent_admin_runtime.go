@@ -146,9 +146,6 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		cancel()
 	}
 	targetsByEvent := r.svc.eventStreamRuntime().matchingSubscribersLocked(liveEvents)
-	r.svc.agentAIConfigReadinessMu.Lock()
-	delete(r.svc.agentAIConfigReadiness, localAgentRef)
-	r.svc.agentAIConfigReadinessMu.Unlock()
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.mu.Unlock()
 	r.svc.eventStreamRuntime().broadcast(liveEvents, targetsByEvent)

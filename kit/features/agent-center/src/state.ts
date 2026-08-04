@@ -21,9 +21,8 @@ function capabilityLabel(capability: AgentCenterCapabilityId): string {
 
 function projectedCapabilities(input: AgentCenterStateInput): readonly AgentCenterCapabilityId[] {
   const reported = new Set<string>([
-    ...(input.aiConfig?.capabilities || []),
-    ...(input.aiConfig?.readiness.map((entry) => entry.capability) || []),
-    ...(input.aiConfig?.routeIntents.map((entry) => entry.capability) || []),
+    ...(input.sharedAIConfig?.capabilities || []),
+    ...(input.sharedAIConfig?.intents.map((entry) => entry.capability) || []),
   ]);
   return CANONICAL_CAPABILITY_CATALOG
     .map((descriptor) => descriptor.capabilityId)
@@ -41,44 +40,42 @@ const DEFAULT_APPEARANCE: AgentCenterAppearanceProjection = {
   disabledReason: 'appearance asset not configured',
 };
 
-function readinessSummary(state: AgentCenterCapabilityState): string {
-  if (state.readinessState === 'ready') return 'Ready';
-  if (state.readinessState === 'not_configured') {
-    return state.required ? 'Not configured' : 'Optional route not configured';
+function configurationSummary(state: AgentCenterCapabilityState): string {
+  if (state.configurationState === 'configured') {
+    return `${state.intent?.route === 'local' ? 'Local' : 'Cloud'} intent configured`;
   }
-  if (state.readinessState === 'unavailable') return 'Unavailable';
-  if (state.readinessState === 'configured_unverified') return 'Configured, not yet execution-verified';
-  return 'Readiness unknown';
+  if (state.configurationState === 'not_configured') {
+    return state.required ? 'Not configured' : 'Optional capability not configured';
+  }
+  if (state.configurationState === 'unavailable') return 'Unavailable';
+  return 'Configuration unknown';
 }
 
 function buildCapabilityState(
   input: AgentCenterStateInput,
   capability: AgentCenterCapabilityId,
 ): AgentCenterCapabilityState {
-  const readiness = input.aiConfig?.readiness.find((entry) => entry.capability === capability);
-  const binding = input.aiConfig?.routeIntents.find((entry) => entry.capability === capability) ?? null;
+  const intent = input.sharedAIConfig?.intents.find((entry) => entry.capability === capability) ?? null;
   const required = capability === 'text.generate' || capability === 'text.embed';
-  const readinessState = readiness?.state === 'blocked' ? 'not_configured' : readiness?.state ?? 'unknown';
+  const configurationState = intent ? 'configured' : 'not_configured';
   const state: AgentCenterCapabilityState = {
     capability,
     label: capabilityLabel(capability),
     required,
-    readinessState,
-    probedAt: readiness?.observedAt ?? null,
-    binding,
-    blocksTextTurns: required && readinessState !== 'ready',
+    configurationState,
+    intent,
     editable: true,
     summary: '',
   };
   return {
     ...state,
-    summary: readinessSummary(state),
+    summary: configurationSummary(state),
   };
 }
 
 function statusTone(
   input: AgentCenterStateInput,
-  baseTextReady: boolean,
+  baseTextConfigured: boolean,
   sourceContextStatus: AgentCenterSourceContextStatus,
 ): AgentCenterStatusTone {
   if (input.runtimeError) {
@@ -90,10 +87,10 @@ function statusTone(
   if (sourceContextStatus === 'blocked') {
     return 'attention';
   }
-  if (!input.aiConfig && !input.inspect && !input.sourceContextStatus && !input.turnContextSummary) {
+  if (!input.sharedAIConfig && !input.inspect && !input.sourceContextStatus && !input.turnContextSummary) {
     return 'disabled';
   }
-  if (!baseTextReady) {
+  if (!baseTextConfigured) {
     return 'attention';
   }
   return 'ready';
@@ -102,9 +99,9 @@ function statusTone(
 export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenterState {
   const capabilities = projectedCapabilities(input).map((capability) => buildCapabilityState(input, capability));
   const text = capabilities.find((capability) => capability.capability === 'text.generate');
-  const baseTextReady = text?.readinessState === 'ready' && text.binding !== null;
+  const baseTextConfigured = text?.configurationState === 'configured' && text.intent !== null;
   const sourceContext = projectAgentCenterSourceContext(input);
-  const tone = statusTone(input, baseTextReady, sourceContext.status);
+  const tone = statusTone(input, baseTextConfigured, sourceContext.status);
   const inspect = input.inspect || null;
   const memory = input.memory || null;
   const autonomyProjection = input.autonomy || null;
@@ -112,25 +109,18 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   const presentationRevision = input.appearance?.presentationRevision
     ?? inspect?.presentationProfileRevision
     ?? null;
-  const configRevisionCandidate = input.aiConfig?.configurationRevision;
-  const configRevision = typeof configRevisionCandidate === 'string' && /^(?:0|[1-9]\d*)$/u.test(configRevisionCandidate)
-    ? configRevisionCandidate
-    : null;
-  const agentAIConfigMutationDisabledReason: AgentCenterState['agentAIConfigMutationDisabledReason'] = !input.aiConfig
+  const agentAIConfigMutationDisabledReason: AgentCenterState['agentAIConfigMutationDisabledReason'] = !input.sharedAIConfig
     ? 'agent-ai-config-snapshot-unavailable'
-    : configRevision === null
-      ? 'agent-ai-config-revision-unavailable'
-      : null;
+    : null;
 
   return {
     runtimeStatus: input.runtimeError
       ? 'failed'
-      : (!input.aiConfig && !inspect && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
+      : (!input.sharedAIConfig && !inspect && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
     statusTone: tone,
-    baseTextReady,
-    aiConfig: input.aiConfig ?? null,
-    baseTextDisabledReason: baseTextReady ? null : (text?.summary || 'Text readiness unavailable'),
-    configRevision,
+    baseTextConfigured,
+    sharedAIConfig: input.sharedAIConfig ?? null,
+    baseTextConfigurationDetail: baseTextConfigured ? null : (text?.summary || 'Text capability is not configured'),
     autonomyRevision,
     presentationRevision,
     agentAIConfigMutationDisabledReason,
@@ -177,7 +167,6 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     } : DEFAULT_APPEARANCE,
     diagnostics: {
       source: input.runtimeError ? 'unavailable' : 'runtime-projection',
-      configRevision,
       runtimeTurnId: sourceContext.context?.turnId || null,
       runtimeError: input.runtimeError || null,
     },
@@ -189,7 +178,7 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
 export function isAgentCenterState(value: AgentCenterState | AgentCenterStateInput): value is AgentCenterState {
   return Array.isArray((value as AgentCenterState).capabilities)
     && Array.isArray((value as AgentCenterState).sections)
-    && typeof (value as AgentCenterState).baseTextReady === 'boolean';
+    && typeof (value as AgentCenterState).baseTextConfigured === 'boolean';
 }
 
 export function resolveAgentCenterState(value: AgentCenterState | AgentCenterStateInput): AgentCenterState {

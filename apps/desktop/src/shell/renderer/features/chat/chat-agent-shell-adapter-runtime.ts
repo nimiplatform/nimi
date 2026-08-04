@@ -9,15 +9,17 @@ import {
 } from 'react';
 import {
   createNimiRuntimeAgentConsumeClient,
+  type NimiSharedLocalAgentAIConfigCallInput,
+  type NimiSharedLocalAgentAIConfigOverwriteInput,
 } from '@nimiplatform/sdk/runtime';
-import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import type { TFunction } from 'i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   createFirstPartyAgentCenterSession,
   createAgentCenterShellAppearanceAdapter,
-  type AgentCenterRuntimeAIConfigProjection,
+  type AgentCenterSharedAIConfigModule,
+  type AgentCenterSharedAIConfigProjection,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -38,7 +40,6 @@ import {
 import {
   createRuntimeAgentAIConfigAdapter,
   type NimiRuntimeAgentAIConfigSnapshot,
-  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
 } from '../../infra/runtime-agent-ai-config';
 import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatform/sdk/runtime';
 import {
@@ -46,18 +47,9 @@ import {
   type AutonomyConfigInput,
   type RuntimeStateInput,
 } from './chat-agent-shell-adapter-runtime-mutations';
-import { useDesktopRouteModelPickerProviderResolver } from '../runtime-config/desktop-route-model-picker-provider';
-import { useLocalAssets } from './capability-settings-shared';
 import { createDesktopAgentCenterAutonomyAdapter } from './chat-agent-center-autonomy-adapter.js';
 import { createDesktopAgentCenterAvatarPreviewAdapter } from './chat-agent-center-avatar-preview-adapter.js';
 import { createRuntimeAgentPresentationProfileAdapter } from '../../infra/runtime-agent-presentation-profile';
-import { listAccountProfileLibrary } from '../../bridge/runtime-bridge/account-profile-library.js';
-
-async function listRuntimeAgentAIProfiles(): Promise<NimiAIProfile[]> {
-  const accountLibrary = await listAccountProfileLibrary();
-  return accountLibrary.profiles.map((entry) => entry.profile);
-}
-
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,
   action?: string,
@@ -85,12 +77,9 @@ type AgentConversationRuntimeController = {
   mutationPendingAction: string | null;
   recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
   runtimeAgentAIConfig: NimiRuntimeAgentAIConfigSnapshot | null;
-  runtimeAgentAIConfigReadiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null;
   runtimeAgentAIConfigLoading: boolean;
   runtimeAgentAIConfigError: string | null;
   runtimeAgentCenterAdapter: AgentCenterSession | null;
-  runtimeAgentTextReady: boolean;
-  runtimeAgentTextDisabledReason: string | null;
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   runtimePresentationProfile: NimiRuntimeAgentPresentationProfileProjection | null;
@@ -125,36 +114,22 @@ function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdenti
 
 function projectAgentCenterAIConfig(
   snapshot: NimiRuntimeAgentAIConfigSnapshot,
-  readiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-): AgentCenterRuntimeAIConfigProjection {
-  if (readiness.configRevision !== snapshot.revision) {
-    throw new Error('Runtime Agent AIConfig and readiness revisions do not match.');
-  }
-  const readinessByCapability = readiness.capabilities.map((entry) => ({
-    capability: entry.capability,
-    state: entry.state === 'not_configured' ? 'blocked' as const : entry.state,
-    reason: entry.reasonCode,
-    observedAt: entry.probedAt,
-  }));
-  const capabilities = [...new Set([
-    ...Object.keys(snapshot.intents),
-    ...readiness.capabilities.map((entry) => entry.capability),
-  ])];
+): AgentCenterSharedAIConfigProjection {
+  const intents = snapshot.aiConfig.capabilities.map((intent) => {
+    const route = intent.route.oneofKind;
+    if (route !== 'local' && route !== 'cloud') {
+      throw new Error(`Shared LocalAgent AIConfig capability ${intent.capabilityContract} has no route.`);
+    }
+    return {
+      capability: intent.capabilityContract,
+      route,
+      requiredFeatures: [...intent.requiredFeatures],
+    };
+  });
   return {
     aiConfig: snapshot.aiConfig,
-    scopeRef: snapshot.aiConfig.scopeRef,
-    capabilities,
-    routeIntents: Object.entries(snapshot.intents).map(([capability, binding]) => ({
-      capability,
-      provider: binding.targetRef?.kind === 'cloud-connector'
-        ? (binding.targetRef.provider || '')
-        : '',
-      model: binding.modelId,
-      routePolicy: binding.route,
-      ...(binding.targetRef ? { targetRef: binding.targetRef } : {}),
-    })),
-    readiness: readinessByCapability,
-    configurationRevision: String(snapshot.revision),
+    capabilities: intents.map((intent) => intent.capability),
+    intents,
   };
 }
 
@@ -163,12 +138,6 @@ export function useAgentConversationRuntimeController(
 ): AgentConversationRuntimeController {
   const anchorBindings = useAgentConversationAnchorBindings();
   const bindings = useDesktopRendererBindings();
-  const providerResolver = useDesktopRouteModelPickerProviderResolver();
-  const localAssetsQuery = useLocalAssets();
-  const localAssetSource = useMemo(() => ({
-    loading: localAssetsQuery.isFetching,
-    list: () => localAssetsQuery.data || [],
-  }), [localAssetsQuery.data, localAssetsQuery.isFetching]);
   const subjectUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
   const getSubjectUserId = useCallback(() => {
     if (!subjectUserId) {
@@ -188,7 +157,6 @@ export function useAgentConversationRuntimeController(
   const [canonicalMemoryStatus, setCanonicalMemoryStatus] = useState<CanonicalMemoryBankStatus | null>(null);
   const [canonicalMemoryLoading, setCanonicalMemoryLoading] = useState(false);
   const [runtimeAgentAIConfig, setRuntimeAgentAIConfig] = useState<NimiRuntimeAgentAIConfigSnapshot | null>(null);
-  const [runtimeAgentAIConfigReadiness, setRuntimeAgentAIConfigReadiness] = useState<NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null>(null);
   const [runtimeAgentAIConfigLoading, setRuntimeAgentAIConfigLoading] = useState(false);
   const [runtimeAgentAIConfigError, setRuntimeAgentAIConfigError] = useState<string | null>(null);
   const [runtimeInspect, setRuntimeInspect] = useState<NimiRuntimeAgentInspectSnapshot | null>(null);
@@ -225,42 +193,19 @@ export function useAgentConversationRuntimeController(
     },
     getSubjectUserId,
     withScopes: bindings.sdk.withRuntimeProtectedScopes,
-    profileSource: {
-      list: listRuntimeAgentAIProfiles,
-      async get(profileId) {
-        return (await listRuntimeAgentAIProfiles())
-          .find((profile) => profile.profileId === profileId) ?? null;
-      },
-    },
   }), [bindings, getSubjectUserId]);
-  const runtimeAgentCenterAIConfig = useMemo(() => ({
-    async snapshot(identity: RuntimeIdentityInput & { readonly subjectUserId?: string }) {
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        const [config, readiness] = await Promise.all([
-          runtimeAgentAIConfigAdapter.get(identity),
-          runtimeAgentAIConfigAdapter.readiness(identity),
-        ]);
-        if (config.revision === readiness.configRevision) {
-          return projectAgentCenterAIConfig(config, readiness);
-        }
-      }
-      throw new Error('Runtime Agent AIConfig changed while Agent Center was reading a coherent snapshot.');
+  const runtimeAgentCenterSharedAIConfig = useMemo<AgentCenterSharedAIConfigModule>(() => ({
+    async get(account: NimiSharedLocalAgentAIConfigCallInput) {
+      return projectAgentCenterAIConfig(await runtimeAgentAIConfigAdapter.get({
+        subjectUserId: account.subjectUserId,
+      }));
     },
-    async update(updateInput: RuntimeIdentityInput & {
-      readonly subjectUserId?: string;
-      readonly expectedConfigurationRevision: string;
-      readonly config: NimiRuntimeAgentAIConfigSnapshot['aiConfig'];
-    }) {
-      const expectedRevision = Number(updateInput.expectedConfigurationRevision);
-      if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) {
-        throw new Error('Runtime Agent AIConfig revision is invalid.');
-      }
+    async overwrite(updateInput: NimiSharedLocalAgentAIConfigOverwriteInput) {
       const config = await runtimeAgentAIConfigAdapter.update({
-        ...updateInput,
-        expectedRevision,
+        subjectUserId: updateInput.subjectUserId,
+        capabilities: updateInput.capabilities,
       });
-      const readiness = await runtimeAgentAIConfigAdapter.readiness(updateInput);
-      return projectAgentCenterAIConfig(config, readiness);
+      return projectAgentCenterAIConfig(config);
     },
   }), [runtimeAgentAIConfigAdapter]);
   const runtimeAgentCenterAdapter = useMemo(() => {
@@ -292,37 +237,9 @@ export function useAgentConversationRuntimeController(
     return createFirstPartyAgentCenterSession({
       identity,
       appearance,
-      aiConfig: runtimeAgentCenterAIConfig,
+      sharedAIConfig: runtimeAgentCenterSharedAIConfig,
       autonomy: createDesktopAgentCenterAutonomyAdapter(runtimeAgentInspect),
       inspect: runtimeAgentInspect,
-      modelConfig: {
-        localAssetSource,
-        providerResolver,
-        aiProfile: {
-          async list() {
-            return [...await runtimeAgentAIConfigAdapter.aiProfile.list()];
-          },
-          previewApply: (scopeRef, profileId, options) => (
-            runtimeAgentAIConfigAdapter.aiProfile.previewApply({
-              ...identity,
-              subjectUserId,
-              scopeRef,
-              profileId,
-              requirementDeclarations: options.requirementDeclarations,
-            })
-          ),
-          apply: (scopeRef, profileId, options) => (
-            runtimeAgentAIConfigAdapter.aiProfile.apply({
-              ...identity,
-              subjectUserId,
-              scopeRef,
-              profileId,
-              requirementDeclarations: options.requirementDeclarations,
-              ...(options.expectedBaseVersion ? { expectedBaseVersion: options.expectedBaseVersion } : {}),
-            })
-          ),
-        },
-      },
       async loadSourceContextStatus(identity) {
         const discovered = await lifecycle.discoverLocalAgentsBySource({
           ownerUserId: identity.ownerUserId,
@@ -346,30 +263,27 @@ export function useAgentConversationRuntimeController(
         return snapshot.turnContextSummary ?? null;
       },
     });
-  }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, localAssetSource, providerResolver, runtimeAgentCenterAIConfig, runtimeAgentInspect, runtimeInspect, subjectUserId]);
+  }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, runtimeAgentCenterSharedAIConfig, runtimeAgentInspect, runtimeInspect, subjectUserId]);
 
   useEffect(() => {
     let cancelled = false;
     if (authStatus !== 'authenticated' || !activeTarget) {
       setRuntimeAgentAIConfig(null);
-      setRuntimeAgentAIConfigReadiness(null);
       setRuntimeAgentAIConfigLoading(false);
       setRuntimeAgentAIConfigError(null);
       return () => {
         cancelled = true;
       };
     }
-    const identity = toRuntimeIdentityInput(activeTarget);
     setRuntimeAgentAIConfigLoading(true);
-    // Runtime owns route health at execution time. Loading the committed
-    // config here must not trigger a readiness probe while the shell opens.
-    void runtimeAgentAIConfigAdapter.get(identity)
+    // Runtime owns execution admission. Shell load reads configuration facts
+    // only and never probes or resolves a capability implementation.
+    void runtimeAgentAIConfigAdapter.get({ subjectUserId })
       .then((agentAIConfig) => {
         if (cancelled) {
           return;
         }
         setRuntimeAgentAIConfig(agentAIConfig);
-        setRuntimeAgentAIConfigReadiness(null);
         setRuntimeAgentAIConfigError(null);
       })
       .catch((error) => {
@@ -377,7 +291,6 @@ export function useAgentConversationRuntimeController(
           return;
         }
         setRuntimeAgentAIConfig(null);
-        setRuntimeAgentAIConfigReadiness(null);
         setRuntimeAgentAIConfigError(error instanceof Error ? error.message : String(error || ''));
         logRendererEvent({
           level: 'warn',
@@ -675,14 +588,9 @@ export function useAgentConversationRuntimeController(
     mutationPendingAction: runtimeMutations.mutationPendingAction,
     recentRuntimeEvents,
     runtimeAgentAIConfig,
-    runtimeAgentAIConfigReadiness,
     runtimeAgentAIConfigLoading,
     runtimeAgentAIConfigError,
     runtimeAgentCenterAdapter,
-    // A readiness snapshot is deliberately not a pre-submit gate. Runtime
-    // returns the authoritative route result from the actual turn request.
-    runtimeAgentTextReady: runtimeAgentAIConfigError === null,
-    runtimeAgentTextDisabledReason: runtimeAgentAIConfigError,
     runtimeInspect,
     runtimeInspectLoading,
     runtimePresentationProfile,

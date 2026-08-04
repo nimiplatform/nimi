@@ -19,63 +19,60 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAgentService_MaterializeRealmSource_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource"
-	RuntimeAgentService_TerminateAgent_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
-	RuntimeAgentService_GetAgent_FullMethodName                               = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
-	RuntimeAgentService_ListAgents_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
-	RuntimeAgentService_OpenConversationAnchor_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
-	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
-	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
-	RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding"
-	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
-	RuntimeAgentService_ListAgentConversationSummaries_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries"
-	RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection"
-	RuntimeAgentService_RequestCompanionParticipation_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation"
-	RuntimeAgentService_CancelCompanionParticipation_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation"
-	RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay"
-	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
-	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
-	RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult"
-	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
-	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
-	RuntimeAgentService_GetAgentState_FullMethodName                          = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
-	RuntimeAgentService_UpdateAgentState_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
-	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
-	RuntimeAgentService_GetAgentPresentationAsset_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset"
-	RuntimeAgentService_EnableAutonomy_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
-	RuntimeAgentService_DisableAutonomy_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
-	RuntimeAgentService_SetAutonomyConfig_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
-	RuntimeAgentService_ListPendingHooks_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
-	RuntimeAgentService_CancelHook_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
-	RuntimeAgentService_ListDelegatedProviderProfiles_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles"
-	RuntimeAgentService_ListDelegatedApprovalRequests_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests"
-	RuntimeAgentService_SubmitDelegatedApprovalDecision_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision"
-	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
-	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
-	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
-	RuntimeAgentService_QueryAgentMemory_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
-	RuntimeAgentService_WriteAgentMemory_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
-	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
-	RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
-	RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus"
-	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
-	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
-	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
-	RuntimeAgentService_GetRuntimeAgentAIConfig_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig"
-	RuntimeAgentService_UpsertRuntimeAgentAIConfig_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig"
-	RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness"
-	RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness"
-	RuntimeAgentService_PreviewRuntimeAgentAIProfile_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/PreviewRuntimeAgentAIProfile"
-	RuntimeAgentService_ApplyRuntimeAgentAIProfile_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ApplyRuntimeAgentAIProfile"
-	RuntimeAgentService_GetLocalAppAgentConfigurationSnapshot_FullMethodName  = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentConfigurationSnapshot"
-	RuntimeAgentService_UpdateLocalAppAgentConfiguration_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConfiguration"
-	RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentReadinessSnapshot"
-	RuntimeAgentService_PreviewLocalAppAgentAIProfile_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppAgentAIProfile"
-	RuntimeAgentService_ApplyLocalAppAgentAIProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppAgentAIProfile"
-	RuntimeAgentService_GetLocalAppAgentAutonomySnapshot_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
-	RuntimeAgentService_UpdateLocalAppAgentAutonomy_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
-	RuntimeAgentService_GetLocalAppAgentPresentationSnapshot_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
-	RuntimeAgentService_CommitLocalAppAgentPresentation_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
+	RuntimeAgentService_MaterializeRealmSource_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource"
+	RuntimeAgentService_TerminateAgent_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
+	RuntimeAgentService_GetAgent_FullMethodName                                  = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
+	RuntimeAgentService_ListAgents_FullMethodName                                = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
+	RuntimeAgentService_OpenConversationAnchor_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
+	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
+	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
+	RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding"
+	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	RuntimeAgentService_ListAgentConversationSummaries_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries"
+	RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection"
+	RuntimeAgentService_RequestCompanionParticipation_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation"
+	RuntimeAgentService_CancelCompanionParticipation_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation"
+	RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay"
+	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
+	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
+	RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult"
+	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
+	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
+	RuntimeAgentService_GetAgentState_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
+	RuntimeAgentService_UpdateAgentState_FullMethodName                          = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
+	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
+	RuntimeAgentService_GetAgentPresentationAsset_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset"
+	RuntimeAgentService_EnableAutonomy_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
+	RuntimeAgentService_DisableAutonomy_FullMethodName                           = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
+	RuntimeAgentService_SetAutonomyConfig_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
+	RuntimeAgentService_ListPendingHooks_FullMethodName                          = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
+	RuntimeAgentService_CancelHook_FullMethodName                                = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
+	RuntimeAgentService_ListDelegatedProviderProfiles_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles"
+	RuntimeAgentService_ListDelegatedApprovalRequests_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests"
+	RuntimeAgentService_SubmitDelegatedApprovalDecision_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision"
+	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
+	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
+	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
+	RuntimeAgentService_QueryAgentMemory_FullMethodName                          = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
+	RuntimeAgentService_WriteAgentMemory_FullMethodName                          = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
+	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
+	RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
+	RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus"
+	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
+	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
+	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
+	RuntimeAgentService_GetSharedLocalAgentAIConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig"
+	RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig"
+	RuntimeAgentService_PreviewSharedLocalAgentAIProfile_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile"
+	RuntimeAgentService_ApplySharedLocalAgentAIProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile"
+	RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
+	RuntimeAgentService_OverwriteLocalAppSharedLocalAgentAIConfig_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
+	RuntimeAgentService_PreviewLocalAppSharedLocalAgentAIProfile_FullMethodName  = "/nimi.runtime.v1.RuntimeAgentService/PreviewLocalAppSharedLocalAgentAIProfile"
+	RuntimeAgentService_ApplyLocalAppSharedLocalAgentAIProfile_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/ApplyLocalAppSharedLocalAgentAIProfile"
+	RuntimeAgentService_GetLocalAppAgentAutonomySnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
+	RuntimeAgentService_UpdateLocalAppAgentAutonomy_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
+	RuntimeAgentService_GetLocalAppAgentPresentationSnapshot_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
+	RuntimeAgentService_CommitLocalAppAgentPresentation_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
 )
 
 // RuntimeAgentServiceClient is the client API for RuntimeAgentService service.
@@ -127,20 +124,17 @@ type RuntimeAgentServiceClient interface {
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
 	SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error)
 	InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error)
-	// K-AGCORE-144..150 Runtime Agent AI Config surface.
-	GetRuntimeAgentAIConfig(ctx context.Context, in *GetRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigResponse, error)
-	UpsertRuntimeAgentAIConfig(ctx context.Context, in *UpsertRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*UpsertRuntimeAgentAIConfigResponse, error)
-	GetRuntimeAgentAIConfigReadiness(ctx context.Context, in *GetRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigReadinessResponse, error)
-	SubscribeRuntimeAgentAIConfigReadiness(ctx context.Context, in *SubscribeRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RuntimeAgentAIConfigReadinessSnapshot], error)
-	PreviewRuntimeAgentAIProfile(ctx context.Context, in *PreviewRuntimeAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewRuntimeAgentAIProfileResponse, error)
-	ApplyRuntimeAgentAIProfile(ctx context.Context, in *ApplyRuntimeAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplyRuntimeAgentAIProfileResponse, error)
+	// Shared Runtime LocalAgent subsystem AIConfig surface.
+	GetSharedLocalAgentAIConfig(ctx context.Context, in *GetSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetSharedLocalAgentAIConfigResponse, error)
+	OverwriteSharedLocalAgentAIConfig(ctx context.Context, in *OverwriteSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*OverwriteSharedLocalAgentAIConfigResponse, error)
+	PreviewSharedLocalAgentAIProfile(ctx context.Context, in *PreviewSharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewSharedLocalAgentAIProfileResponse, error)
+	ApplySharedLocalAgentAIProfile(ctx context.Context, in *ApplySharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplySharedLocalAgentAIProfileResponse, error)
 	// Reserved agents.configure carrier. Protected-local admission remains
 	// fail-closed until the owner-complete publication flip.
-	GetLocalAppAgentConfigurationSnapshot(ctx context.Context, in *GetLocalAppAgentConfigurationSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentConfigurationSnapshotResponse, error)
-	UpdateLocalAppAgentConfiguration(ctx context.Context, in *UpdateLocalAppAgentConfigurationRequest, opts ...grpc.CallOption) (*LocalAppAgentUpdateConfigurationResponse, error)
-	GetLocalAppAgentReadinessSnapshot(ctx context.Context, in *GetLocalAppAgentReadinessSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentReadinessSnapshotResponse, error)
-	PreviewLocalAppAgentAIProfile(ctx context.Context, in *PreviewLocalAppAgentAIProfileRequest, opts ...grpc.CallOption) (*LocalAppAgentAIProfilePreviewResponse, error)
-	ApplyLocalAppAgentAIProfile(ctx context.Context, in *ApplyLocalAppAgentAIProfileRequest, opts ...grpc.CallOption) (*LocalAppAgentAIProfileApplyResponse, error)
+	GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, in *GetLocalAppSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetLocalAppSharedLocalAgentAIConfigResponse, error)
+	OverwriteLocalAppSharedLocalAgentAIConfig(ctx context.Context, in *OverwriteLocalAppSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*OverwriteLocalAppSharedLocalAgentAIConfigResponse, error)
+	PreviewLocalAppSharedLocalAgentAIProfile(ctx context.Context, in *PreviewLocalAppSharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewLocalAppSharedLocalAgentAIProfileResponse, error)
+	ApplyLocalAppSharedLocalAgentAIProfile(ctx context.Context, in *ApplyLocalAppSharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplyLocalAppSharedLocalAgentAIProfileResponse, error)
 	GetLocalAppAgentAutonomySnapshot(ctx context.Context, in *GetLocalAppAgentAutonomySnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentAutonomySnapshotResponse, error)
 	UpdateLocalAppAgentAutonomy(ctx context.Context, in *UpdateLocalAppAgentAutonomyRequest, opts ...grpc.CallOption) (*LocalAppAgentUpdateAutonomyResponse, error)
 	GetLocalAppAgentPresentationSnapshot(ctx context.Context, in *GetLocalAppAgentPresentationSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentPresentationSnapshotResponse, error)
@@ -593,119 +587,80 @@ func (c *runtimeAgentServiceClient) InterruptAgentVoicePlayback(ctx context.Cont
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) GetRuntimeAgentAIConfig(ctx context.Context, in *GetRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigResponse, error) {
+func (c *runtimeAgentServiceClient) GetSharedLocalAgentAIConfig(ctx context.Context, in *GetSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetSharedLocalAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetRuntimeAgentAIConfigResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetRuntimeAgentAIConfig_FullMethodName, in, out, cOpts...)
+	out := new(GetSharedLocalAgentAIConfigResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetSharedLocalAgentAIConfig_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) UpsertRuntimeAgentAIConfig(ctx context.Context, in *UpsertRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*UpsertRuntimeAgentAIConfigResponse, error) {
+func (c *runtimeAgentServiceClient) OverwriteSharedLocalAgentAIConfig(ctx context.Context, in *OverwriteSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*OverwriteSharedLocalAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpsertRuntimeAgentAIConfigResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_UpsertRuntimeAgentAIConfig_FullMethodName, in, out, cOpts...)
+	out := new(OverwriteSharedLocalAgentAIConfigResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) GetRuntimeAgentAIConfigReadiness(ctx context.Context, in *GetRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigReadinessResponse, error) {
+func (c *runtimeAgentServiceClient) PreviewSharedLocalAgentAIProfile(ctx context.Context, in *PreviewSharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewSharedLocalAgentAIProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetRuntimeAgentAIConfigReadinessResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_FullMethodName, in, out, cOpts...)
+	out := new(PreviewSharedLocalAgentAIProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_PreviewSharedLocalAgentAIProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) SubscribeRuntimeAgentAIConfigReadiness(ctx context.Context, in *SubscribeRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RuntimeAgentAIConfigReadinessSnapshot], error) {
+func (c *runtimeAgentServiceClient) ApplySharedLocalAgentAIProfile(ctx context.Context, in *ApplySharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplySharedLocalAgentAIProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[2], RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[SubscribeRuntimeAgentAIConfigReadinessRequest, RuntimeAgentAIConfigReadinessSnapshot]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadinessClient = grpc.ServerStreamingClient[RuntimeAgentAIConfigReadinessSnapshot]
-
-func (c *runtimeAgentServiceClient) PreviewRuntimeAgentAIProfile(ctx context.Context, in *PreviewRuntimeAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewRuntimeAgentAIProfileResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PreviewRuntimeAgentAIProfileResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_PreviewRuntimeAgentAIProfile_FullMethodName, in, out, cOpts...)
+	out := new(ApplySharedLocalAgentAIProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ApplySharedLocalAgentAIProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) ApplyRuntimeAgentAIProfile(ctx context.Context, in *ApplyRuntimeAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplyRuntimeAgentAIProfileResponse, error) {
+func (c *runtimeAgentServiceClient) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, in *GetLocalAppSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetLocalAppSharedLocalAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ApplyRuntimeAgentAIProfileResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_ApplyRuntimeAgentAIProfile_FullMethodName, in, out, cOpts...)
+	out := new(GetLocalAppSharedLocalAgentAIConfigResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) GetLocalAppAgentConfigurationSnapshot(ctx context.Context, in *GetLocalAppAgentConfigurationSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentConfigurationSnapshotResponse, error) {
+func (c *runtimeAgentServiceClient) OverwriteLocalAppSharedLocalAgentAIConfig(ctx context.Context, in *OverwriteLocalAppSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*OverwriteLocalAppSharedLocalAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LocalAppAgentConfigurationSnapshotResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetLocalAppAgentConfigurationSnapshot_FullMethodName, in, out, cOpts...)
+	out := new(OverwriteLocalAppSharedLocalAgentAIConfigResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_OverwriteLocalAppSharedLocalAgentAIConfig_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) UpdateLocalAppAgentConfiguration(ctx context.Context, in *UpdateLocalAppAgentConfigurationRequest, opts ...grpc.CallOption) (*LocalAppAgentUpdateConfigurationResponse, error) {
+func (c *runtimeAgentServiceClient) PreviewLocalAppSharedLocalAgentAIProfile(ctx context.Context, in *PreviewLocalAppSharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*PreviewLocalAppSharedLocalAgentAIProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LocalAppAgentUpdateConfigurationResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_UpdateLocalAppAgentConfiguration_FullMethodName, in, out, cOpts...)
+	out := new(PreviewLocalAppSharedLocalAgentAIProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_PreviewLocalAppSharedLocalAgentAIProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) GetLocalAppAgentReadinessSnapshot(ctx context.Context, in *GetLocalAppAgentReadinessSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentReadinessSnapshotResponse, error) {
+func (c *runtimeAgentServiceClient) ApplyLocalAppSharedLocalAgentAIProfile(ctx context.Context, in *ApplyLocalAppSharedLocalAgentAIProfileRequest, opts ...grpc.CallOption) (*ApplyLocalAppSharedLocalAgentAIProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LocalAppAgentReadinessSnapshotResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) PreviewLocalAppAgentAIProfile(ctx context.Context, in *PreviewLocalAppAgentAIProfileRequest, opts ...grpc.CallOption) (*LocalAppAgentAIProfilePreviewResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LocalAppAgentAIProfilePreviewResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_PreviewLocalAppAgentAIProfile_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) ApplyLocalAppAgentAIProfile(ctx context.Context, in *ApplyLocalAppAgentAIProfileRequest, opts ...grpc.CallOption) (*LocalAppAgentAIProfileApplyResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LocalAppAgentAIProfileApplyResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_ApplyLocalAppAgentAIProfile_FullMethodName, in, out, cOpts...)
+	out := new(ApplyLocalAppSharedLocalAgentAIProfileResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ApplyLocalAppSharedLocalAgentAIProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -801,20 +756,17 @@ type RuntimeAgentServiceServer interface {
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
 	SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error
 	InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error)
-	// K-AGCORE-144..150 Runtime Agent AI Config surface.
-	GetRuntimeAgentAIConfig(context.Context, *GetRuntimeAgentAIConfigRequest) (*GetRuntimeAgentAIConfigResponse, error)
-	UpsertRuntimeAgentAIConfig(context.Context, *UpsertRuntimeAgentAIConfigRequest) (*UpsertRuntimeAgentAIConfigResponse, error)
-	GetRuntimeAgentAIConfigReadiness(context.Context, *GetRuntimeAgentAIConfigReadinessRequest) (*GetRuntimeAgentAIConfigReadinessResponse, error)
-	SubscribeRuntimeAgentAIConfigReadiness(*SubscribeRuntimeAgentAIConfigReadinessRequest, grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]) error
-	PreviewRuntimeAgentAIProfile(context.Context, *PreviewRuntimeAgentAIProfileRequest) (*PreviewRuntimeAgentAIProfileResponse, error)
-	ApplyRuntimeAgentAIProfile(context.Context, *ApplyRuntimeAgentAIProfileRequest) (*ApplyRuntimeAgentAIProfileResponse, error)
+	// Shared Runtime LocalAgent subsystem AIConfig surface.
+	GetSharedLocalAgentAIConfig(context.Context, *GetSharedLocalAgentAIConfigRequest) (*GetSharedLocalAgentAIConfigResponse, error)
+	OverwriteSharedLocalAgentAIConfig(context.Context, *OverwriteSharedLocalAgentAIConfigRequest) (*OverwriteSharedLocalAgentAIConfigResponse, error)
+	PreviewSharedLocalAgentAIProfile(context.Context, *PreviewSharedLocalAgentAIProfileRequest) (*PreviewSharedLocalAgentAIProfileResponse, error)
+	ApplySharedLocalAgentAIProfile(context.Context, *ApplySharedLocalAgentAIProfileRequest) (*ApplySharedLocalAgentAIProfileResponse, error)
 	// Reserved agents.configure carrier. Protected-local admission remains
 	// fail-closed until the owner-complete publication flip.
-	GetLocalAppAgentConfigurationSnapshot(context.Context, *GetLocalAppAgentConfigurationSnapshotRequest) (*LocalAppAgentConfigurationSnapshotResponse, error)
-	UpdateLocalAppAgentConfiguration(context.Context, *UpdateLocalAppAgentConfigurationRequest) (*LocalAppAgentUpdateConfigurationResponse, error)
-	GetLocalAppAgentReadinessSnapshot(context.Context, *GetLocalAppAgentReadinessSnapshotRequest) (*LocalAppAgentReadinessSnapshotResponse, error)
-	PreviewLocalAppAgentAIProfile(context.Context, *PreviewLocalAppAgentAIProfileRequest) (*LocalAppAgentAIProfilePreviewResponse, error)
-	ApplyLocalAppAgentAIProfile(context.Context, *ApplyLocalAppAgentAIProfileRequest) (*LocalAppAgentAIProfileApplyResponse, error)
+	GetLocalAppSharedLocalAgentAIConfig(context.Context, *GetLocalAppSharedLocalAgentAIConfigRequest) (*GetLocalAppSharedLocalAgentAIConfigResponse, error)
+	OverwriteLocalAppSharedLocalAgentAIConfig(context.Context, *OverwriteLocalAppSharedLocalAgentAIConfigRequest) (*OverwriteLocalAppSharedLocalAgentAIConfigResponse, error)
+	PreviewLocalAppSharedLocalAgentAIProfile(context.Context, *PreviewLocalAppSharedLocalAgentAIProfileRequest) (*PreviewLocalAppSharedLocalAgentAIProfileResponse, error)
+	ApplyLocalAppSharedLocalAgentAIProfile(context.Context, *ApplyLocalAppSharedLocalAgentAIProfileRequest) (*ApplyLocalAppSharedLocalAgentAIProfileResponse, error)
 	GetLocalAppAgentAutonomySnapshot(context.Context, *GetLocalAppAgentAutonomySnapshotRequest) (*LocalAppAgentAutonomySnapshotResponse, error)
 	UpdateLocalAppAgentAutonomy(context.Context, *UpdateLocalAppAgentAutonomyRequest) (*LocalAppAgentUpdateAutonomyResponse, error)
 	GetLocalAppAgentPresentationSnapshot(context.Context, *GetLocalAppAgentPresentationSnapshotRequest) (*LocalAppAgentPresentationSnapshotResponse, error)
@@ -954,38 +906,29 @@ func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentVoiceStream(*Subscri
 func (UnimplementedRuntimeAgentServiceServer) InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method InterruptAgentVoicePlayback not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) GetRuntimeAgentAIConfig(context.Context, *GetRuntimeAgentAIConfigRequest) (*GetRuntimeAgentAIConfigResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetRuntimeAgentAIConfig not implemented")
+func (UnimplementedRuntimeAgentServiceServer) GetSharedLocalAgentAIConfig(context.Context, *GetSharedLocalAgentAIConfigRequest) (*GetSharedLocalAgentAIConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSharedLocalAgentAIConfig not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) UpsertRuntimeAgentAIConfig(context.Context, *UpsertRuntimeAgentAIConfigRequest) (*UpsertRuntimeAgentAIConfigResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpsertRuntimeAgentAIConfig not implemented")
+func (UnimplementedRuntimeAgentServiceServer) OverwriteSharedLocalAgentAIConfig(context.Context, *OverwriteSharedLocalAgentAIConfigRequest) (*OverwriteSharedLocalAgentAIConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OverwriteSharedLocalAgentAIConfig not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) GetRuntimeAgentAIConfigReadiness(context.Context, *GetRuntimeAgentAIConfigReadinessRequest) (*GetRuntimeAgentAIConfigReadinessResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetRuntimeAgentAIConfigReadiness not implemented")
+func (UnimplementedRuntimeAgentServiceServer) PreviewSharedLocalAgentAIProfile(context.Context, *PreviewSharedLocalAgentAIProfileRequest) (*PreviewSharedLocalAgentAIProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PreviewSharedLocalAgentAIProfile not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) SubscribeRuntimeAgentAIConfigReadiness(*SubscribeRuntimeAgentAIConfigReadinessRequest, grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]) error {
-	return status.Error(codes.Unimplemented, "method SubscribeRuntimeAgentAIConfigReadiness not implemented")
+func (UnimplementedRuntimeAgentServiceServer) ApplySharedLocalAgentAIProfile(context.Context, *ApplySharedLocalAgentAIProfileRequest) (*ApplySharedLocalAgentAIProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplySharedLocalAgentAIProfile not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) PreviewRuntimeAgentAIProfile(context.Context, *PreviewRuntimeAgentAIProfileRequest) (*PreviewRuntimeAgentAIProfileResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method PreviewRuntimeAgentAIProfile not implemented")
+func (UnimplementedRuntimeAgentServiceServer) GetLocalAppSharedLocalAgentAIConfig(context.Context, *GetLocalAppSharedLocalAgentAIConfigRequest) (*GetLocalAppSharedLocalAgentAIConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLocalAppSharedLocalAgentAIConfig not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) ApplyRuntimeAgentAIProfile(context.Context, *ApplyRuntimeAgentAIProfileRequest) (*ApplyRuntimeAgentAIProfileResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ApplyRuntimeAgentAIProfile not implemented")
+func (UnimplementedRuntimeAgentServiceServer) OverwriteLocalAppSharedLocalAgentAIConfig(context.Context, *OverwriteLocalAppSharedLocalAgentAIConfigRequest) (*OverwriteLocalAppSharedLocalAgentAIConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OverwriteLocalAppSharedLocalAgentAIConfig not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentConfigurationSnapshot(context.Context, *GetLocalAppAgentConfigurationSnapshotRequest) (*LocalAppAgentConfigurationSnapshotResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentConfigurationSnapshot not implemented")
+func (UnimplementedRuntimeAgentServiceServer) PreviewLocalAppSharedLocalAgentAIProfile(context.Context, *PreviewLocalAppSharedLocalAgentAIProfileRequest) (*PreviewLocalAppSharedLocalAgentAIProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PreviewLocalAppSharedLocalAgentAIProfile not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) UpdateLocalAppAgentConfiguration(context.Context, *UpdateLocalAppAgentConfigurationRequest) (*LocalAppAgentUpdateConfigurationResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateLocalAppAgentConfiguration not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentReadinessSnapshot(context.Context, *GetLocalAppAgentReadinessSnapshotRequest) (*LocalAppAgentReadinessSnapshotResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentReadinessSnapshot not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) PreviewLocalAppAgentAIProfile(context.Context, *PreviewLocalAppAgentAIProfileRequest) (*LocalAppAgentAIProfilePreviewResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method PreviewLocalAppAgentAIProfile not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) ApplyLocalAppAgentAIProfile(context.Context, *ApplyLocalAppAgentAIProfileRequest) (*LocalAppAgentAIProfileApplyResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ApplyLocalAppAgentAIProfile not implemented")
+func (UnimplementedRuntimeAgentServiceServer) ApplyLocalAppSharedLocalAgentAIProfile(context.Context, *ApplyLocalAppSharedLocalAgentAIProfileRequest) (*ApplyLocalAppSharedLocalAgentAIProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyLocalAppSharedLocalAgentAIProfile not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentAutonomySnapshot(context.Context, *GetLocalAppAgentAutonomySnapshotRequest) (*LocalAppAgentAutonomySnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentAutonomySnapshot not implemented")
@@ -1761,193 +1704,146 @@ func _RuntimeAgentService_InterruptAgentVoicePlayback_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_GetRuntimeAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRuntimeAgentAIConfigRequest)
+func _RuntimeAgentService_GetSharedLocalAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSharedLocalAgentAIConfigRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetRuntimeAgentAIConfig(ctx, in)
+		return srv.(RuntimeAgentServiceServer).GetSharedLocalAgentAIConfig(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_GetRuntimeAgentAIConfig_FullMethodName,
+		FullMethod: RuntimeAgentService_GetSharedLocalAgentAIConfig_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetRuntimeAgentAIConfig(ctx, req.(*GetRuntimeAgentAIConfigRequest))
+		return srv.(RuntimeAgentServiceServer).GetSharedLocalAgentAIConfig(ctx, req.(*GetSharedLocalAgentAIConfigRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_UpsertRuntimeAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpsertRuntimeAgentAIConfigRequest)
+func _RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OverwriteSharedLocalAgentAIConfigRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).UpsertRuntimeAgentAIConfig(ctx, in)
+		return srv.(RuntimeAgentServiceServer).OverwriteSharedLocalAgentAIConfig(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_UpsertRuntimeAgentAIConfig_FullMethodName,
+		FullMethod: RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).UpsertRuntimeAgentAIConfig(ctx, req.(*UpsertRuntimeAgentAIConfigRequest))
+		return srv.(RuntimeAgentServiceServer).OverwriteSharedLocalAgentAIConfig(ctx, req.(*OverwriteSharedLocalAgentAIConfigRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRuntimeAgentAIConfigReadinessRequest)
+func _RuntimeAgentService_PreviewSharedLocalAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreviewSharedLocalAgentAIProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetRuntimeAgentAIConfigReadiness(ctx, in)
+		return srv.(RuntimeAgentServiceServer).PreviewSharedLocalAgentAIProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_FullMethodName,
+		FullMethod: RuntimeAgentService_PreviewSharedLocalAgentAIProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetRuntimeAgentAIConfigReadiness(ctx, req.(*GetRuntimeAgentAIConfigReadinessRequest))
+		return srv.(RuntimeAgentServiceServer).PreviewSharedLocalAgentAIProfile(ctx, req.(*PreviewSharedLocalAgentAIProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeRuntimeAgentAIConfigReadinessRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RuntimeAgentServiceServer).SubscribeRuntimeAgentAIConfigReadiness(m, &grpc.GenericServerStream[SubscribeRuntimeAgentAIConfigReadinessRequest, RuntimeAgentAIConfigReadinessSnapshot]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadinessServer = grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]
-
-func _RuntimeAgentService_PreviewRuntimeAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PreviewRuntimeAgentAIProfileRequest)
+func _RuntimeAgentService_ApplySharedLocalAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplySharedLocalAgentAIProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).PreviewRuntimeAgentAIProfile(ctx, in)
+		return srv.(RuntimeAgentServiceServer).ApplySharedLocalAgentAIProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_PreviewRuntimeAgentAIProfile_FullMethodName,
+		FullMethod: RuntimeAgentService_ApplySharedLocalAgentAIProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).PreviewRuntimeAgentAIProfile(ctx, req.(*PreviewRuntimeAgentAIProfileRequest))
+		return srv.(RuntimeAgentServiceServer).ApplySharedLocalAgentAIProfile(ctx, req.(*ApplySharedLocalAgentAIProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_ApplyRuntimeAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ApplyRuntimeAgentAIProfileRequest)
+func _RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLocalAppSharedLocalAgentAIConfigRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).ApplyRuntimeAgentAIProfile(ctx, in)
+		return srv.(RuntimeAgentServiceServer).GetLocalAppSharedLocalAgentAIConfig(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_ApplyRuntimeAgentAIProfile_FullMethodName,
+		FullMethod: RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).ApplyRuntimeAgentAIProfile(ctx, req.(*ApplyRuntimeAgentAIProfileRequest))
+		return srv.(RuntimeAgentServiceServer).GetLocalAppSharedLocalAgentAIConfig(ctx, req.(*GetLocalAppSharedLocalAgentAIConfigRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_GetLocalAppAgentConfigurationSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetLocalAppAgentConfigurationSnapshotRequest)
+func _RuntimeAgentService_OverwriteLocalAppSharedLocalAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OverwriteLocalAppSharedLocalAgentAIConfigRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetLocalAppAgentConfigurationSnapshot(ctx, in)
+		return srv.(RuntimeAgentServiceServer).OverwriteLocalAppSharedLocalAgentAIConfig(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_GetLocalAppAgentConfigurationSnapshot_FullMethodName,
+		FullMethod: RuntimeAgentService_OverwriteLocalAppSharedLocalAgentAIConfig_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetLocalAppAgentConfigurationSnapshot(ctx, req.(*GetLocalAppAgentConfigurationSnapshotRequest))
+		return srv.(RuntimeAgentServiceServer).OverwriteLocalAppSharedLocalAgentAIConfig(ctx, req.(*OverwriteLocalAppSharedLocalAgentAIConfigRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_UpdateLocalAppAgentConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateLocalAppAgentConfigurationRequest)
+func _RuntimeAgentService_PreviewLocalAppSharedLocalAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreviewLocalAppSharedLocalAgentAIProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).UpdateLocalAppAgentConfiguration(ctx, in)
+		return srv.(RuntimeAgentServiceServer).PreviewLocalAppSharedLocalAgentAIProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_UpdateLocalAppAgentConfiguration_FullMethodName,
+		FullMethod: RuntimeAgentService_PreviewLocalAppSharedLocalAgentAIProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).UpdateLocalAppAgentConfiguration(ctx, req.(*UpdateLocalAppAgentConfigurationRequest))
+		return srv.(RuntimeAgentServiceServer).PreviewLocalAppSharedLocalAgentAIProfile(ctx, req.(*PreviewLocalAppSharedLocalAgentAIProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetLocalAppAgentReadinessSnapshotRequest)
+func _RuntimeAgentService_ApplyLocalAppSharedLocalAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyLocalAppSharedLocalAgentAIProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetLocalAppAgentReadinessSnapshot(ctx, in)
+		return srv.(RuntimeAgentServiceServer).ApplyLocalAppSharedLocalAgentAIProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_FullMethodName,
+		FullMethod: RuntimeAgentService_ApplyLocalAppSharedLocalAgentAIProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetLocalAppAgentReadinessSnapshot(ctx, req.(*GetLocalAppAgentReadinessSnapshotRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_PreviewLocalAppAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PreviewLocalAppAgentAIProfileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).PreviewLocalAppAgentAIProfile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_PreviewLocalAppAgentAIProfile_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).PreviewLocalAppAgentAIProfile(ctx, req.(*PreviewLocalAppAgentAIProfileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_ApplyLocalAppAgentAIProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ApplyLocalAppAgentAIProfileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).ApplyLocalAppAgentAIProfile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_ApplyLocalAppAgentAIProfile_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).ApplyLocalAppAgentAIProfile(ctx, req.(*ApplyLocalAppAgentAIProfileRequest))
+		return srv.(RuntimeAgentServiceServer).ApplyLocalAppSharedLocalAgentAIProfile(ctx, req.(*ApplyLocalAppSharedLocalAgentAIProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2192,44 +2088,36 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_InterruptAgentVoicePlayback_Handler,
 		},
 		{
-			MethodName: "GetRuntimeAgentAIConfig",
-			Handler:    _RuntimeAgentService_GetRuntimeAgentAIConfig_Handler,
+			MethodName: "GetSharedLocalAgentAIConfig",
+			Handler:    _RuntimeAgentService_GetSharedLocalAgentAIConfig_Handler,
 		},
 		{
-			MethodName: "UpsertRuntimeAgentAIConfig",
-			Handler:    _RuntimeAgentService_UpsertRuntimeAgentAIConfig_Handler,
+			MethodName: "OverwriteSharedLocalAgentAIConfig",
+			Handler:    _RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_Handler,
 		},
 		{
-			MethodName: "GetRuntimeAgentAIConfigReadiness",
-			Handler:    _RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_Handler,
+			MethodName: "PreviewSharedLocalAgentAIProfile",
+			Handler:    _RuntimeAgentService_PreviewSharedLocalAgentAIProfile_Handler,
 		},
 		{
-			MethodName: "PreviewRuntimeAgentAIProfile",
-			Handler:    _RuntimeAgentService_PreviewRuntimeAgentAIProfile_Handler,
+			MethodName: "ApplySharedLocalAgentAIProfile",
+			Handler:    _RuntimeAgentService_ApplySharedLocalAgentAIProfile_Handler,
 		},
 		{
-			MethodName: "ApplyRuntimeAgentAIProfile",
-			Handler:    _RuntimeAgentService_ApplyRuntimeAgentAIProfile_Handler,
+			MethodName: "GetLocalAppSharedLocalAgentAIConfig",
+			Handler:    _RuntimeAgentService_GetLocalAppSharedLocalAgentAIConfig_Handler,
 		},
 		{
-			MethodName: "GetLocalAppAgentConfigurationSnapshot",
-			Handler:    _RuntimeAgentService_GetLocalAppAgentConfigurationSnapshot_Handler,
+			MethodName: "OverwriteLocalAppSharedLocalAgentAIConfig",
+			Handler:    _RuntimeAgentService_OverwriteLocalAppSharedLocalAgentAIConfig_Handler,
 		},
 		{
-			MethodName: "UpdateLocalAppAgentConfiguration",
-			Handler:    _RuntimeAgentService_UpdateLocalAppAgentConfiguration_Handler,
+			MethodName: "PreviewLocalAppSharedLocalAgentAIProfile",
+			Handler:    _RuntimeAgentService_PreviewLocalAppSharedLocalAgentAIProfile_Handler,
 		},
 		{
-			MethodName: "GetLocalAppAgentReadinessSnapshot",
-			Handler:    _RuntimeAgentService_GetLocalAppAgentReadinessSnapshot_Handler,
-		},
-		{
-			MethodName: "PreviewLocalAppAgentAIProfile",
-			Handler:    _RuntimeAgentService_PreviewLocalAppAgentAIProfile_Handler,
-		},
-		{
-			MethodName: "ApplyLocalAppAgentAIProfile",
-			Handler:    _RuntimeAgentService_ApplyLocalAppAgentAIProfile_Handler,
+			MethodName: "ApplyLocalAppSharedLocalAgentAIProfile",
+			Handler:    _RuntimeAgentService_ApplyLocalAppSharedLocalAgentAIProfile_Handler,
 		},
 		{
 			MethodName: "GetLocalAppAgentAutonomySnapshot",
@@ -2257,11 +2145,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeAgentVoiceStream",
 			Handler:       _RuntimeAgentService_SubscribeAgentVoiceStream_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "SubscribeRuntimeAgentAIConfigReadiness",
-			Handler:       _RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_Handler,
 			ServerStreams: true,
 		},
 	},

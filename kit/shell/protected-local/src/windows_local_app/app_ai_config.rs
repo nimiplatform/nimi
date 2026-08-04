@@ -45,7 +45,7 @@ pub async fn overwrite(
     project_config(response.config.ok_or_else(untrusted)?)
 }
 
-fn parse_capabilities(
+pub(super) fn parse_capabilities(
     value: JsonValue,
 ) -> Result<Vec<AiConfigCapabilityIntent>, LocalAppOperationError> {
     let entries = value.as_array().ok_or_else(invalid_payload)?;
@@ -292,7 +292,7 @@ fn project_config(config: AiConfig) -> Result<JsonValue, LocalAppOperationError>
     }))
 }
 
-fn project_capability(
+pub(super) fn project_capability(
     intent: AiConfigCapabilityIntent,
 ) -> Result<JsonValue, LocalAppOperationError> {
     if intent.capability_contract.trim().is_empty()

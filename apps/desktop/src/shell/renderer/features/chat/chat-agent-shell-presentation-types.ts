@@ -8,9 +8,7 @@ import type {
 import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThreadSummary } from '../../bridge/runtime-bridge/types';
 import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
-import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
-import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
@@ -23,9 +21,7 @@ import type {
 } from '../../infra/runtime-agent-inspect';
 import type {
   NimiRuntimeAgentAIConfigSnapshot,
-  NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
 } from '../../infra/runtime-agent-ai-config';
-import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 
 export type UseAgentConversationPresentationInput = {
@@ -54,28 +50,21 @@ export type UseAgentConversationPresentationInput = {
   recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
-  initialModelSelection?: Partial<RouteModelPickerSelection>;
   inputSelectionLocalAgentRef: AgentConversationSelection['localAgentRef'];
   isBundleLoading: boolean;
   messages: readonly ConversationMessageViewModel[];
   pendingAttachments: readonly PendingAttachment[];
   onDismissHostFeedback: () => void;
   onAttachmentsChange: (attachments: readonly PendingAttachment[]) => void;
-  onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   reasoningLabel: string;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;
-  routeReady: boolean;
   runtimeAgentAIConfig: NimiRuntimeAgentAIConfigSnapshot | null;
-  runtimeAgentAIConfigReadiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null;
   runtimeAgentAIConfigLoading: boolean;
   runtimeAgentAIConfigError: string | null;
   runtimeAgentCenterAdapter: AgentCenterSession | null;
-  runtimeAgentTextReady: boolean;
-  runtimeAgentTextDisabledReason: string | null;
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
-  schedulingJudgement: NimiAISchedulingJudgement | null;
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;
@@ -84,22 +73,6 @@ export type UseAgentConversationPresentationInput = {
   onOpenAgentCenter?: () => void;
   onCloseAgentCenter?: () => void;
   agentCenterOpen?: boolean;
-  voiceSessionState: AgentVoiceSessionShellState;
-  voiceCaptureState: {
-    active: boolean;
-    amplitude: number;
-  } | null;
-  voicePlaybackState: {
-    conversationAnchorId: string;
-    messageId: string;
-    active: boolean;
-    amplitude: number;
-    visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
-  } | null;
-  onVoiceSessionToggle: () => void;
-  onVoiceSessionCancel: () => void;
-  onEnterHandsFreeVoiceSession: () => void;
-  onExitHandsFreeVoiceSession: () => void;
   setupState: ConversationSetupState;
   streamState: StreamState | null;
   submittingThreadId: string | null;
@@ -113,6 +86,4 @@ export type UseAgentConversationPresentationInput = {
   thinkingPreference: ChatThinkingPreference;
   thinkingSupported: boolean;
   thinkingUnsupportedReason: string | null;
-  agentRouteReady: boolean;
-  agentRouteDisabledReason: string | null;
 };

@@ -574,13 +574,6 @@ func (b *Backend) ensureSchema() error {
 			PRIMARY KEY(provenance_key, local_agent_ref),
 			FOREIGN KEY(local_agent_ref) REFERENCES runtime_local_agent_source_snapshot_v2(local_agent_ref) ON DELETE CASCADE
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_ai_config (
-			agent_instance_id TEXT PRIMARY KEY,
-			revision INTEGER NOT NULL,
-			config_json TEXT NOT NULL,
-			updated_at TEXT NOT NULL,
-			updated_by_app_id TEXT NOT NULL
-		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_ai_config (
 			account_namespace TEXT NOT NULL,
 			owner_kind INTEGER NOT NULL,

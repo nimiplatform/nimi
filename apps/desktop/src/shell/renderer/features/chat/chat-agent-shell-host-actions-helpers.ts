@@ -9,14 +9,12 @@ import type {
   AgentLocalThreadSummary,
   JsonObject,
 } from '../../bridge/runtime-bridge/types';
-import { resolveNimiAIConfigRuntimeSchedulingTargetForCapability } from '@nimiplatform/sdk/ai';
 import {
   bundleQueryKey,
   createAgentConversationCacheThreadId,
   normalizeText,
 } from './chat-agent-shell-core';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
-import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
 import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
 import type { AgentConversationAnchorBinding } from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
@@ -91,27 +89,6 @@ export async function ensureRuntimeAgentExists(
   const returnedLocalAgentRef = normalizeText(response.agent?.localAgentRef);
   if (returnedLocalAgentRef !== context.localAgentRef) {
     throw new Error('Runtime LocalAgent inventory did not return the selected opaque localAgentRef.');
-  }
-}
-
-export async function assertAgentSubmitSchedulingAllowed(input: {
-  aiConfig: UseAgentConversationHostActionsInput['aiConfig'];
-  sdk?: DesktopRendererSdkPort;
-  t: UseAgentConversationHostActionsInput['t'];
-}): Promise<void> {
-  const target = resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
-  const schedulingGuard = await probeExecutionSchedulingGuard({
-    scopeRef: input.aiConfig.scopeRef,
-    target,
-    runtime: input.sdk?.machineProduct(),
-    surface: input.sdk?.aiConfig(),
-    t: input.t,
-  });
-  if (schedulingGuard.disabled) {
-    throw new Error(schedulingGuard.disabledReason || input.t('Chat.schedulingDeniedDetail', {
-      defaultValue: 'Cannot execute: {{detail}}',
-      detail: '',
-    }));
   }
 }
 

@@ -1,4 +1,3 @@
-import { createNimiAIScopeRef } from '@nimiplatform/sdk/ai';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -7,10 +6,6 @@ import {
   createPermissionedAgentCenterSession,
   sealAgentCenterPermissionedSdkSurface,
 } from '../src/session.js';
-import type {
-  NimiAICapabilityRequirementDeclaration,
-  NimiAIProfile,
-} from '@nimiplatform/sdk/ai';
 import type {
   AgentCenterOpaqueHandle,
   AgentCenterProductAction,
@@ -46,7 +41,7 @@ async function flush(): Promise<void> {
 }
 
 const PRODUCT_ACTIONS: readonly AgentCenterProductAction[] = [
-  'readAIConfig', 'updateAIConfig', 'readAutonomy', 'updateAutonomy',
+  'getSharedAIConfig', 'overwriteSharedAIConfig', 'applySharedAIProfile', 'readAutonomy', 'updateAutonomy',
   'readMemorySummary', 'replaceAppearance', 'restorePreviousAppearance',
   'requestPermission', 'openPermissionSettings',
 ];
@@ -81,19 +76,16 @@ function permissionedSession(input: {
           },
         };
       },
-      async updateConfiguration() { return {}; },
-      async listAIProfiles() { return []; },
-      async previewAIProfile() {
+      async overwriteSharedAIConfig() {
         return {
-          before: null, after: null, outcome: 'failed',
-          diff: { identical: true, fields: [] },
-          baseVersion: 'runtime-agent-revision:1', probeWarnings: [],
-        };
-      },
-      async applyAIProfile() {
-        return {
-          success: false, config: null, failureReason: 'not_configured',
-          outcome: 'failed', probeWarnings: [],
+          aiConfig: {
+            owner: {
+              owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
+            },
+            capabilities: [],
+          },
+          capabilities: [],
+          intents: [],
         };
       },
       async updateAutonomy() { return {}; },
@@ -113,24 +105,21 @@ function permissionedSession(input: {
 
 describe('AgentCenter UI session contract', () => {
   it('renders from the Manager Session and exposes only UI composition props', async () => {
-    const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'local-agent:test' });
+    const intent = {
+      capabilityContract: 'text.generate',
+      route: { oneofKind: 'local' as const, local: {} },
+      requiredFeatures: [] as string[],
+    };
     const session = await sessionFor({
-      aiConfig: {
+      sharedAIConfig: {
         aiConfig: {
-          scopeRef,
-          profileOrigin: null,
-          capabilities: {
-            logicalModelIds: { 'text.generate': 'model-a' },
-            targetRefs: {},
-            selectedComponents: {},
-            selectedParams: {},
+          owner: {
+            owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
           },
+          capabilities: [intent],
         },
-        scopeRef,
         capabilities: ['text.generate'],
-        routeIntents: [{ capability: 'text.generate', provider: '', model: 'model-a', routePolicy: 'local' }],
-        readiness: [{ capability: 'text.generate', state: 'ready', reason: '', observedAt: null }],
-        configurationRevision: '2',
+        intents: [{ capability: 'text.generate', route: 'local', requiredFeatures: [] }],
       },
     });
     const node = render(
@@ -260,77 +249,22 @@ describe('AgentCenter UI session contract', () => {
     }
   });
 
-  it('partitions optional Agent capabilities out of required AIProfile slices', async () => {
-    const scopeRef = createNimiAIScopeRef({ kind: 'local-agent', ownerId: 'local-agent:test' });
-    const profile: NimiAIProfile = {
-      profileId: 'profile:image',
-      title: 'Image profile',
-      capabilities: {
-        'image.generate': { logicalModelId: 'image-model', readinessPolicy: 'optional' },
-      },
-    };
-    let declaration: NimiAICapabilityRequirementDeclaration | null = null;
-    const session = await sessionFor({
-      aiConfig: {
-        aiConfig: {
-          scopeRef,
-          profileOrigin: null,
-          capabilities: {
-            logicalModelIds: {}, targetRefs: {}, selectedComponents: {}, selectedParams: {},
-          },
-        },
-        scopeRef,
-        capabilities: ['text.generate', 'image.generate'],
-        routeIntents: [],
-        readiness: [
-          { capability: 'text.generate', state: 'blocked', reason: 'not_configured', observedAt: null },
-          { capability: 'image.generate', state: 'blocked', reason: 'not_configured', observedAt: null },
-        ],
-        configurationRevision: '1',
-      },
-    }, null, {
-      aiProfile: {
-        async list() { return [profile]; },
-        async previewApply(_scopeRef, _profileId, options) {
-          declaration = options.requirementDeclarations[0] ?? null;
-          return {
-            before: null,
-            after: null,
-            outcome: 'setup_required_no_live_config',
-            diff: { identical: true, fields: [] },
-            baseVersion: 'runtime-agent-revision:1',
-            probeWarnings: [],
-          };
-        },
-        async apply() {
-          throw new Error('apply must remain preview-gated');
-        },
-      },
-    });
+  it('writes a Local text.generate intent without exposing model targets', async () => {
+    const session = await sessionFor();
     const node = render(<AgentCenter activeSection="model" session={session} />);
     await flush();
-    act(() => {
-      (Array.from(node.querySelectorAll('button'))
-        .find((button) => button.textContent?.includes('Import AI Profile')) as HTMLButtonElement).click();
-    });
-    await flush();
-    act(() => {
-      (Array.from(node.querySelectorAll('button'))
-        .find((button) => button.textContent?.includes('Image profile')) as HTMLButtonElement).click();
-    });
-    await flush();
-    act(() => {
-      (Array.from(node.querySelectorAll('button'))
-        .find((button) => button.textContent?.trim() === 'Confirm') as HTMLButtonElement).click();
-    });
+    const configure = Array.from(node.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Use Machine Local')) as HTMLButtonElement;
+    expect(configure).toBeTruthy();
+    await act(async () => { configure.click(); await Promise.resolve(); });
     await flush();
 
-    const capturedDeclaration = declaration as NimiAICapabilityRequirementDeclaration | null;
-    expect(capturedDeclaration?.requiredSlices).toEqual([expect.objectContaining({
-      capability: 'text.generate', readinessPolicy: 'required',
+    const config = session.getSnapshot().state.sharedAIConfig?.aiConfig;
+    expect(config?.owner?.owner.oneofKind).toBe('runtimeLocalAgentSubsystem');
+    expect(config?.capabilities).toEqual([expect.objectContaining({
+      capabilityContract: 'text.generate',
+      route: { oneofKind: 'local', local: {} },
     })]);
-    expect(capturedDeclaration?.optionalSlices).toEqual([expect.objectContaining({
-      capability: 'image.generate', readinessPolicy: 'optional',
-    })]);
+    expect(JSON.stringify(config)).not.toContain('targetRef');
   });
 });

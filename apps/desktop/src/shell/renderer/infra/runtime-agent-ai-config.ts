@@ -1,57 +1,44 @@
 import {
-  createNimiRuntimeAgentAIConfigModule,
-  type NimiRuntimeAgentAIConfigModule,
-  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-  type NimiRuntimeAgentAIConfigRuntime,
-  type NimiRuntimeAgentAIProfileSource,
+  createNimiSharedLocalAgentAISurface,
   type NimiRuntimeAgentScopeRunner,
+  type NimiSharedLocalAgentAIConfigCallInput,
+  type NimiSharedLocalAgentAIConfigClient,
+  type NimiSharedLocalAgentAIConfigOverwriteInput,
+  type NimiSharedLocalAgentAIConfigRuntime,
 } from '@nimiplatform/sdk/runtime';
 
-export type {
-  NimiRuntimeAgentAIConfigBinding,
-  NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-  NimiRuntimeAgentAIConfigSnapshot,
-} from '@nimiplatform/sdk/runtime';
+type SharedLocalAgentAIConfig = Awaited<ReturnType<NimiSharedLocalAgentAIConfigClient['get']>>;
+
+export interface NimiRuntimeAgentAIConfigSnapshot {
+  readonly aiConfig: SharedLocalAgentAIConfig;
+}
+
+export interface NimiRuntimeAgentAIConfigAdapter {
+  get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<NimiRuntimeAgentAIConfigSnapshot>;
+  update(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiRuntimeAgentAIConfigSnapshot>;
+}
 
 type RuntimeAgentAIConfigDeps = {
-  runtime: NimiRuntimeAgentAIConfigRuntime;
+  runtime: NimiSharedLocalAgentAIConfigRuntime;
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
   withScopes?: NimiRuntimeAgentScopeRunner;
-  profileSource?: NimiRuntimeAgentAIProfileSource;
 };
 
 export function createRuntimeAgentAIConfigAdapter(
   deps: RuntimeAgentAIConfigDeps,
-): NimiRuntimeAgentAIConfigModule {
-  return createNimiRuntimeAgentAIConfigModule({
+): NimiRuntimeAgentAIConfigAdapter {
+  const { sharedAIConfig } = createNimiSharedLocalAgentAISurface({
     runtime: deps.runtime,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
     ...(deps.withScopes ? { withScopes: deps.withScopes } : {}),
-    ...(deps.profileSource ? { profileSource: deps.profileSource } : {}),
   });
-}
 
-export function isRuntimeAgentTextReadinessReady(
-  readiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null | undefined,
-): boolean {
-  return readiness?.capabilities.some((entry) => (
-    entry.capability === 'text.generate' && entry.state === 'ready'
-  )) === true;
-}
-
-export function describeRuntimeAgentTextReadiness(
-  readiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null | undefined,
-  fallback = 'Runtime Agent text execution is unavailable.',
-): string {
-  const text = readiness?.capabilities.find((entry) => entry.capability === 'text.generate') || null;
-  if (!text) {
-    return fallback;
-  }
-  if (text.state === 'ready') {
-    return 'Runtime Agent text turns ready.';
-  }
-  if (text.reasonCode) {
-    return `Runtime Agent text execution is ${text.state}: ${text.reasonCode}.`;
-  }
-  return `Runtime Agent text execution is ${text.state}.`;
+  return Object.freeze({
+    async get(input: NimiSharedLocalAgentAIConfigCallInput = {}) {
+      return Object.freeze({ aiConfig: await sharedAIConfig.get(input) });
+    },
+    async update(input: NimiSharedLocalAgentAIConfigOverwriteInput) {
+      return Object.freeze({ aiConfig: await sharedAIConfig.overwrite(input) });
+    },
+  });
 }

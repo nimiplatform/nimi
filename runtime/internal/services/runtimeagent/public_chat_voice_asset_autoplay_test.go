@@ -95,13 +95,9 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 	}
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestAgentAIConfig(t, svc, &runtimev1.RuntimeAgentAIConfigIntent{
-		Capability:  runtimeAgentAIConfigCapabilityAudioSynthesize,
-		ModelId:     "dashscope/cosyvoice-v3-flash",
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ConnectorId: connectorID,
-		TargetRef:   proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef),
-		Provider:    "dashscope",
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatExecutionBinding{
+		ModelID: "dashscope/cosyvoice-v3-flash", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ConnectorID: connectorID, TargetRef: proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef),
 	})
 	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, requestedID string) (*runtimev1.VoiceAsset, error) {
 		return &runtimev1.VoiceAsset{

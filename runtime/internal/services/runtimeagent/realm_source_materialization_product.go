@@ -585,7 +585,7 @@ func (s *Service) prepareRealmSourceMaterializationProductV3(
 	localAgentRef string,
 	verified verifiedSourceMaterializationV3,
 ) (*preparedRealmSourceMaterializationProductV3, *runtimev1.LocalAgentSourceContextStatus, error) {
-	if s == nil || s.stateRepo == nil || s.agentAIConfigRepo == nil {
+	if s == nil || s.stateRepo == nil {
 		return nil, nil, fmt.Errorf("Realm source materialization product store is unavailable")
 	}
 	if s.isClosed() {
@@ -651,12 +651,10 @@ func (s *Service) prepareRealmSourceMaterializationProductV3(
 		s.mu.Unlock()
 		return nil, nil, err
 	}
-	seed := seedRuntimeAgentAIConfig(localAgentRef)
-	seed.UpdatedAt = timestamppb.New(capturedAt)
 	prepared := &preparedRealmSourceMaterializationProductV3{
 		svc: s, localAgentRef: localAgentRef, previousEntry: previousEntry, hadEntry: hadEntry,
 		previousEvents: previousEvents, previousSequence: previousSequence,
-		persisted: persisted, committedEvents: committedEvents, seedAIConfig: seed,
+		persisted: persisted, committedEvents: committedEvents,
 		snapshot: snapshot,
 	}
 	return prepared, proto.Clone(status).(*runtimev1.LocalAgentSourceContextStatus), nil
