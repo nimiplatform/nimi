@@ -255,6 +255,42 @@ WorldEntityRefKindV3 = Literal["WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED", "WORLD_EN
 WorldRelation = Literal["WORLD_RELATION_UNSPECIFIED", "WORLD_RELATION_NONE", "WORLD_RELATION_RENDER", "WORLD_RELATION_EXTENSION"]
 
 @dataclass(frozen=True)
+class AIConfig:
+    owner: AIConfigOwner | None = None
+    capabilities: tuple[AIConfigCapabilityIntent, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AIConfigAppOwner:
+    app_id: str | None = None
+
+@dataclass(frozen=True)
+class AIConfigCapabilityIntent:
+    capability_contract: str | None = None
+    required_features: tuple[str, ...] = field(default_factory=tuple)
+    defaults: Mapping[str, object] | None = None
+    local: AIConfigLocalIntent | None = None
+    cloud: AIConfigCloudIntent | None = None
+
+@dataclass(frozen=True)
+class AIConfigCloudIntent:
+    implementation: CapabilityImplementationIdentity | None = None
+    provider_model_target: Mapping[str, object] | None = None
+    connector_grant_id: str | None = None
+
+@dataclass(frozen=True)
+class AIConfigLocalIntent:
+    pass
+
+@dataclass(frozen=True)
+class AIConfigOwner:
+    app: AIConfigAppOwner | None = None
+    runtime_local_agent_subsystem: AIConfigRuntimeLocalAgentSubsystemOwner | None = None
+
+@dataclass(frozen=True)
+class AIConfigRuntimeLocalAgentSubsystemOwner:
+    pass
+
+@dataclass(frozen=True)
 class AIProviderHealthEvent:
     sequence: int | None = None
     provider_name: str | None = None

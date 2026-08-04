@@ -162,6 +162,130 @@ export interface MachineLocalAIConfiguration {
     selections: LocalCapabilitySelection[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigAppOwner
+ */
+export interface AIConfigAppOwner {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+}
+/**
+ * AIConfigRuntimeLocalAgentSubsystemOwner is a fixed marker. No individual
+ * LocalAgent identity can be expressed as an AIConfig owner.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
+ */
+export interface AIConfigRuntimeLocalAgentSubsystemOwner {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AIConfigOwner
+ */
+export interface AIConfigOwner {
+    /**
+     * @generated from protobuf oneof: owner
+     */
+    owner: {
+        oneofKind: "app";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigAppOwner app = 1
+         */
+        app: AIConfigAppOwner;
+    } | {
+        oneofKind: "runtimeLocalAgentSubsystem";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner runtime_local_agent_subsystem = 2
+         */
+        runtimeLocalAgentSubsystem: AIConfigRuntimeLocalAgentSubsystemOwner;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * AIConfigLocalIntent is deliberately empty: Local implementation identity,
+ * machine selection, resources, and bindings belong to machine configuration.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AIConfigLocalIntent
+ */
+export interface AIConfigLocalIntent {
+}
+/**
+ * AIConfigCloudIntent carries the exact Cloud implementation and its
+ * Driver-owned provider-model target. ConnectorGrant is an optional explicit
+ * account authorization reference; no credential material belongs here.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCloudIntent
+ */
+export interface AIConfigCloudIntent {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CapabilityImplementationIdentity implementation = 1
+     */
+    implementation?: CapabilityImplementationIdentity;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_model_target = 2
+     */
+    providerModelTarget?: Struct;
+    /**
+     * @generated from protobuf field: string connector_grant_id = 3
+     */
+    connectorGrantId: string;
+}
+/**
+ * AIConfigCapabilityIntent is consumer intent only. Local execution identity,
+ * machine selection, assets, bindings, Driver state, and readiness never enter
+ * this payload.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AIConfigCapabilityIntent
+ */
+export interface AIConfigCapabilityIntent {
+    /**
+     * @generated from protobuf field: string capability_contract = 1
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: repeated string required_features = 2
+     */
+    requiredFeatures: string[];
+    /**
+     * @generated from protobuf field: google.protobuf.Struct defaults = 3
+     */
+    defaults?: Struct;
+    /**
+     * @generated from protobuf oneof: route
+     */
+    route: {
+        oneofKind: "local";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigLocalIntent local = 4
+         */
+        local: AIConfigLocalIntent;
+    } | {
+        oneofKind: "cloud";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudIntent cloud = 5
+         */
+        cloud: AIConfigCloudIntent;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * AIConfig is the complete current capability intent for exactly one owner.
+ * It has overwrite semantics and carries no revision, history, or readiness.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AIConfig
+ */
+export interface AIConfig {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AIConfigOwner owner = 1
+     */
+    owner?: AIConfigOwner;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigCapabilityIntent capabilities = 2
+     */
+    capabilities: AIConfigCapabilityIntent[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GetMachineLocalAIConfigurationRequest
  */
 export interface GetMachineLocalAIConfigurationRequest {
@@ -939,6 +1063,387 @@ class MachineLocalAIConfiguration$Type extends MessageType<MachineLocalAIConfigu
  * @generated MessageType for protobuf message nimi.runtime.v1.MachineLocalAIConfiguration
  */
 export const MachineLocalAIConfiguration = new MachineLocalAIConfiguration$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigAppOwner$Type extends MessageType<AIConfigAppOwner> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigAppOwner", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigAppOwner>): AIConfigAppOwner {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigAppOwner>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigAppOwner): AIConfigAppOwner {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigAppOwner, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigAppOwner
+ */
+export const AIConfigAppOwner = new AIConfigAppOwner$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigRuntimeLocalAgentSubsystemOwner$Type extends MessageType<AIConfigRuntimeLocalAgentSubsystemOwner> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner", []);
+    }
+    create(value?: PartialMessage<AIConfigRuntimeLocalAgentSubsystemOwner>): AIConfigRuntimeLocalAgentSubsystemOwner {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigRuntimeLocalAgentSubsystemOwner>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigRuntimeLocalAgentSubsystemOwner): AIConfigRuntimeLocalAgentSubsystemOwner {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigRuntimeLocalAgentSubsystemOwner, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
+ */
+export const AIConfigRuntimeLocalAgentSubsystemOwner = new AIConfigRuntimeLocalAgentSubsystemOwner$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigOwner$Type extends MessageType<AIConfigOwner> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigOwner", [
+            { no: 1, name: "app", kind: "message", oneof: "owner", T: () => AIConfigAppOwner },
+            { no: 2, name: "runtime_local_agent_subsystem", kind: "message", oneof: "owner", T: () => AIConfigRuntimeLocalAgentSubsystemOwner }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigOwner>): AIConfigOwner {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.owner = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigOwner>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigOwner): AIConfigOwner {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfigAppOwner app */ 1:
+                    message.owner = {
+                        oneofKind: "app",
+                        app: AIConfigAppOwner.internalBinaryRead(reader, reader.uint32(), options, (message.owner as any).app)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner runtime_local_agent_subsystem */ 2:
+                    message.owner = {
+                        oneofKind: "runtimeLocalAgentSubsystem",
+                        runtimeLocalAgentSubsystem: AIConfigRuntimeLocalAgentSubsystemOwner.internalBinaryRead(reader, reader.uint32(), options, (message.owner as any).runtimeLocalAgentSubsystem)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigOwner, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfigAppOwner app = 1; */
+        if (message.owner.oneofKind === "app")
+            AIConfigAppOwner.internalBinaryWrite(message.owner.app, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner runtime_local_agent_subsystem = 2; */
+        if (message.owner.oneofKind === "runtimeLocalAgentSubsystem")
+            AIConfigRuntimeLocalAgentSubsystemOwner.internalBinaryWrite(message.owner.runtimeLocalAgentSubsystem, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigOwner
+ */
+export const AIConfigOwner = new AIConfigOwner$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigLocalIntent$Type extends MessageType<AIConfigLocalIntent> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigLocalIntent", []);
+    }
+    create(value?: PartialMessage<AIConfigLocalIntent>): AIConfigLocalIntent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigLocalIntent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigLocalIntent): AIConfigLocalIntent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigLocalIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigLocalIntent
+ */
+export const AIConfigLocalIntent = new AIConfigLocalIntent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCloudIntent$Type extends MessageType<AIConfigCloudIntent> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCloudIntent", [
+            { no: 1, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
+            { no: 2, name: "provider_model_target", kind: "message", T: () => Struct },
+            { no: 3, name: "connector_grant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCloudIntent>): AIConfigCloudIntent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectorGrantId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCloudIntent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCloudIntent): AIConfigCloudIntent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.CapabilityImplementationIdentity implementation */ 1:
+                    message.implementation = CapabilityImplementationIdentity.internalBinaryRead(reader, reader.uint32(), options, message.implementation);
+                    break;
+                case /* google.protobuf.Struct provider_model_target */ 2:
+                    message.providerModelTarget = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerModelTarget);
+                    break;
+                case /* string connector_grant_id */ 3:
+                    message.connectorGrantId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCloudIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.CapabilityImplementationIdentity implementation = 1; */
+        if (message.implementation)
+            CapabilityImplementationIdentity.internalBinaryWrite(message.implementation, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct provider_model_target = 2; */
+        if (message.providerModelTarget)
+            Struct.internalBinaryWrite(message.providerModelTarget, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string connector_grant_id = 3; */
+        if (message.connectorGrantId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.connectorGrantId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCloudIntent
+ */
+export const AIConfigCloudIntent = new AIConfigCloudIntent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfigCapabilityIntent$Type extends MessageType<AIConfigCapabilityIntent> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfigCapabilityIntent", [
+            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "required_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "defaults", kind: "message", T: () => Struct },
+            { no: 4, name: "local", kind: "message", oneof: "route", T: () => AIConfigLocalIntent },
+            { no: 5, name: "cloud", kind: "message", oneof: "route", T: () => AIConfigCloudIntent }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfigCapabilityIntent>): AIConfigCapabilityIntent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        message.requiredFeatures = [];
+        message.route = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<AIConfigCapabilityIntent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfigCapabilityIntent): AIConfigCapabilityIntent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability_contract */ 1:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* repeated string required_features */ 2:
+                    message.requiredFeatures.push(reader.string());
+                    break;
+                case /* google.protobuf.Struct defaults */ 3:
+                    message.defaults = Struct.internalBinaryRead(reader, reader.uint32(), options, message.defaults);
+                    break;
+                case /* nimi.runtime.v1.AIConfigLocalIntent local */ 4:
+                    message.route = {
+                        oneofKind: "local",
+                        local: AIConfigLocalIntent.internalBinaryRead(reader, reader.uint32(), options, (message.route as any).local)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AIConfigCloudIntent cloud */ 5:
+                    message.route = {
+                        oneofKind: "cloud",
+                        cloud: AIConfigCloudIntent.internalBinaryRead(reader, reader.uint32(), options, (message.route as any).cloud)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfigCapabilityIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability_contract = 1; */
+        if (message.capabilityContract !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
+        /* repeated string required_features = 2; */
+        for (let i = 0; i < message.requiredFeatures.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.requiredFeatures[i]);
+        /* google.protobuf.Struct defaults = 3; */
+        if (message.defaults)
+            Struct.internalBinaryWrite(message.defaults, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigLocalIntent local = 4; */
+        if (message.route.oneofKind === "local")
+            AIConfigLocalIntent.internalBinaryWrite(message.route.local, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AIConfigCloudIntent cloud = 5; */
+        if (message.route.oneofKind === "cloud")
+            AIConfigCloudIntent.internalBinaryWrite(message.route.cloud, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigCapabilityIntent
+ */
+export const AIConfigCapabilityIntent = new AIConfigCapabilityIntent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIConfig$Type extends MessageType<AIConfig> {
+    constructor() {
+        super("nimi.runtime.v1.AIConfig", [
+            { no: 1, name: "owner", kind: "message", T: () => AIConfigOwner },
+            { no: 2, name: "capabilities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigCapabilityIntent }
+        ]);
+    }
+    create(value?: PartialMessage<AIConfig>): AIConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilities = [];
+        if (value !== undefined)
+            reflectionMergePartial<AIConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIConfig): AIConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AIConfigOwner owner */ 1:
+                    message.owner = AIConfigOwner.internalBinaryRead(reader, reader.uint32(), options, message.owner);
+                    break;
+                case /* repeated nimi.runtime.v1.AIConfigCapabilityIntent capabilities */ 2:
+                    message.capabilities.push(AIConfigCapabilityIntent.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AIConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AIConfigOwner owner = 1; */
+        if (message.owner)
+            AIConfigOwner.internalBinaryWrite(message.owner, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.AIConfigCapabilityIntent capabilities = 2; */
+        for (let i = 0; i < message.capabilities.length; i++)
+            AIConfigCapabilityIntent.internalBinaryWrite(message.capabilities[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIConfig
+ */
+export const AIConfig = new AIConfig$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetMachineLocalAIConfigurationRequest$Type extends MessageType<GetMachineLocalAIConfigurationRequest> {
     constructor() {

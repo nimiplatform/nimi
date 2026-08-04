@@ -1848,6 +1848,42 @@ const (
 	WORLDRELATIONEXTENSION WorldRelation = "WORLD_RELATION_EXTENSION"
 )
 
+type AIConfig struct {
+	Owner *AIConfigOwner `json:"owner,omitempty"`
+	Capabilities []AIConfigCapabilityIntent `json:"capabilities,omitempty"`
+}
+
+type AIConfigAppOwner struct {
+	AppId string `json:"app_id,omitempty"`
+}
+
+type AIConfigCapabilityIntent struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+	RequiredFeatures []string `json:"required_features,omitempty"`
+	Defaults map[string]any `json:"defaults,omitempty"`
+	Local *AIConfigLocalIntent `json:"local,omitempty"`
+	Cloud *AIConfigCloudIntent `json:"cloud,omitempty"`
+}
+
+type AIConfigCloudIntent struct {
+	Implementation *CapabilityImplementationIdentity `json:"implementation,omitempty"`
+	ProviderModelTarget map[string]any `json:"provider_model_target,omitempty"`
+	ConnectorGrantId string `json:"connector_grant_id,omitempty"`
+}
+
+type AIConfigLocalIntent struct {
+
+}
+
+type AIConfigOwner struct {
+	App *AIConfigAppOwner `json:"app,omitempty"`
+	RuntimeLocalAgentSubsystem *AIConfigRuntimeLocalAgentSubsystemOwner `json:"runtime_local_agent_subsystem,omitempty"`
+}
+
+type AIConfigRuntimeLocalAgentSubsystemOwner struct {
+
+}
+
 type AIProviderHealthEvent struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	ProviderName string `json:"provider_name,omitempty"`

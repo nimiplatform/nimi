@@ -6695,6 +6695,13 @@
   ],
   "schema_types": {
     "messages": [
+      "AIConfig",
+      "AIConfigAppOwner",
+      "AIConfigCapabilityIntent",
+      "AIConfigCloudIntent",
+      "AIConfigLocalIntent",
+      "AIConfigOwner",
+      "AIConfigRuntimeLocalAgentSubsystemOwner",
       "AIProviderHealthEvent",
       "AIProviderHealthSnapshot",
       "AIProviderSubHealth",
@@ -10132,6 +10139,137 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AIConfig",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "AIConfigOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "capabilities",
+            "type": "AIConfigCapabilityIntent",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigAppOwner",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigCapabilityIntent",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "required_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "defaults",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "local",
+            "type": "AIConfigLocalIntent",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "cloud",
+            "type": "AIConfigCloudIntent",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigCloudIntent",
+        "fields": [
+          {
+            "name": "implementation",
+            "type": "CapabilityImplementationIdentity",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "provider_model_target",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "connector_grant_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigLocalIntent",
+        "fields": [],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigOwner",
+        "fields": [
+          {
+            "name": "app",
+            "type": "AIConfigAppOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "runtime_local_agent_subsystem",
+            "type": "AIConfigRuntimeLocalAgentSubsystemOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AIConfigRuntimeLocalAgentSubsystemOwner",
+        "fields": [],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "AIProviderHealthEvent",

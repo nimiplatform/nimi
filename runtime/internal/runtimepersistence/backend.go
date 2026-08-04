@@ -581,6 +581,13 @@ func (b *Backend) ensureSchema() error {
 			updated_at TEXT NOT NULL,
 			updated_by_app_id TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_ai_config (
+			account_namespace TEXT NOT NULL,
+			owner_kind INTEGER NOT NULL,
+			owner_id TEXT NOT NULL,
+			config_blob BLOB NOT NULL,
+			PRIMARY KEY(account_namespace, owner_kind, owner_id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_agent_presentation_asset (
 			asset_ref TEXT PRIMARY KEY,
 			local_agent_ref TEXT NOT NULL,

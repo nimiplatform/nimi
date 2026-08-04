@@ -94,6 +94,56 @@ message MachineLocalAIConfiguration {
   repeated LocalCapabilitySelection selections = 2;
 }
 
+message AIConfigAppOwner {
+  string app_id = 1;
+}
+
+// AIConfigRuntimeLocalAgentSubsystemOwner is a fixed marker. No individual
+// LocalAgent identity can be expressed as an AIConfig owner.
+message AIConfigRuntimeLocalAgentSubsystemOwner {
+}
+
+message AIConfigOwner {
+  oneof owner {
+    AIConfigAppOwner app = 1;
+    AIConfigRuntimeLocalAgentSubsystemOwner runtime_local_agent_subsystem = 2;
+  }
+}
+
+// AIConfigLocalIntent is deliberately empty: Local implementation identity,
+// machine selection, resources, and bindings belong to machine configuration.
+message AIConfigLocalIntent {
+}
+
+// AIConfigCloudIntent carries the exact Cloud implementation and its
+// Driver-owned provider-model target. ConnectorGrant is an optional explicit
+// account authorization reference; no credential material belongs here.
+message AIConfigCloudIntent {
+  CapabilityImplementationIdentity implementation = 1;
+  google.protobuf.Struct provider_model_target = 2;
+  string connector_grant_id = 3;
+}
+
+// AIConfigCapabilityIntent is consumer intent only. Local execution identity,
+// machine selection, assets, bindings, Driver state, and readiness never enter
+// this payload.
+message AIConfigCapabilityIntent {
+  string capability_contract = 1;
+  repeated string required_features = 2;
+  google.protobuf.Struct defaults = 3;
+  oneof route {
+    AIConfigLocalIntent local = 4;
+    AIConfigCloudIntent cloud = 5;
+  }
+}
+
+// AIConfig is the complete current capability intent for exactly one owner.
+// It has overwrite semantics and carries no revision, history, or readiness.
+message AIConfig {
+  AIConfigOwner owner = 1;
+  repeated AIConfigCapabilityIntent capabilities = 2;
+}
+
 message GetMachineLocalAIConfigurationRequest {}
 
 message GetMachineLocalAIConfigurationResponse {

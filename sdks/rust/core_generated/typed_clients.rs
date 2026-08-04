@@ -2714,6 +2714,190 @@ impl Default for WorldRelation {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfig {
+    pub owner: Option<Box<AIConfigOwner>>,
+    pub capabilities: Vec<Box<AIConfigCapabilityIntent>>,
+}
+
+impl AIConfig {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.owner.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode owner"); }
+        if !self.capabilities.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode capabilities"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["owner", "capabilities"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigAppOwner {
+    pub app_id: Option<String>,
+}
+
+impl AIConfigAppOwner {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.app_id = pairs.get("app_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCapabilityIntent {
+    pub capability_contract: Option<String>,
+    pub required_features: Vec<String>,
+    pub defaults: Option<BTreeMap<String, String>>,
+    pub local: Option<Box<AIConfigLocalIntent>>,
+    pub cloud: Option<Box<AIConfigCloudIntent>>,
+}
+
+impl AIConfigCapabilityIntent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability_contract { pairs.push(format!("capability_contract={}", value)); }
+        for value in &self.required_features { pairs.push(format!("required_features={}", value)); }
+        if self.defaults.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode defaults"); }
+        if self.local.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local"); }
+        if self.cloud.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["defaults", "local", "cloud"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.capability_contract = pairs.get("capability_contract").cloned();
+        out.required_features = parse_repeated_string(raw, "required_features");
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigCloudIntent {
+    pub implementation: Option<Box<CapabilityImplementationIdentity>>,
+    pub provider_model_target: Option<BTreeMap<String, String>>,
+    pub connector_grant_id: Option<String>,
+}
+
+impl AIConfigCloudIntent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.implementation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode implementation"); }
+        if self.provider_model_target.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode provider_model_target"); }
+        if let Some(value) = &self.connector_grant_id { pairs.push(format!("connector_grant_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["implementation", "provider_model_target"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.connector_grant_id = pairs.get("connector_grant_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigLocalIntent {
+
+}
+
+impl AIConfigLocalIntent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigOwner {
+    pub app: Option<Box<AIConfigAppOwner>>,
+    pub runtime_local_agent_subsystem: Option<Box<AIConfigRuntimeLocalAgentSubsystemOwner>>,
+}
+
+impl AIConfigOwner {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.app.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode app"); }
+        if self.runtime_local_agent_subsystem.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode runtime_local_agent_subsystem"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["app", "runtime_local_agent_subsystem"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AIConfigRuntimeLocalAgentSubsystemOwner {
+
+}
+
+impl AIConfigRuntimeLocalAgentSubsystemOwner {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AIProviderHealthEvent {
     pub sequence: Option<u64>,
     pub provider_name: Option<String>,
@@ -30582,6 +30766,48 @@ where
 {
     pub fn recv(&mut self) -> Option<R> {
         self.inner.recv_typed_payload().map(R::from)
+    }
+}
+
+impl From<Vec<u8>> for AIConfig {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigAppOwner {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigCapabilityIntent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigCloudIntent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigLocalIntent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigOwner {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AIConfigRuntimeLocalAgentSubsystemOwner {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
     }
 }
 

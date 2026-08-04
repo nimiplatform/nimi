@@ -238,6 +238,13 @@ export type {
 };
 
 import type {
+  AIConfig,
+  AIConfigAppOwner,
+  AIConfigCapabilityIntent,
+  AIConfigCloudIntent,
+  AIConfigLocalIntent,
+  AIConfigOwner,
+  AIConfigRuntimeLocalAgentSubsystemOwner,
   AddLocalCapabilityConfigurationRequest,
   AddLocalCapabilityConfigurationResponse,
   BindLocalCapabilityRequirementRequest,
@@ -262,6 +269,13 @@ import type {
 } from "../../core-generated/runtime-protobuf/runtime/v1/capability_configuration";
 
 export type {
+  AIConfig,
+  AIConfigAppOwner,
+  AIConfigCapabilityIntent,
+  AIConfigCloudIntent,
+  AIConfigLocalIntent,
+  AIConfigOwner,
+  AIConfigRuntimeLocalAgentSubsystemOwner,
   AddLocalCapabilityConfigurationRequest,
   AddLocalCapabilityConfigurationResponse,
   BindLocalCapabilityRequirementRequest,
