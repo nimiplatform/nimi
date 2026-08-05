@@ -30,12 +30,6 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if !fileConfigLocalServiceEqual(before.LocalService, after.LocalService) {
 		return true
 	}
-	if strings.TrimSpace(before.DefaultLocalTextModel) != strings.TrimSpace(after.DefaultLocalTextModel) {
-		return true
-	}
-	if strings.TrimSpace(before.DefaultCloudProvider) != strings.TrimSpace(after.DefaultCloudProvider) {
-		return true
-	}
 	if intPtrValue(before.ShutdownTimeoutSeconds) != intPtrValue(after.ShutdownTimeoutSeconds) {
 		return true
 	}
@@ -143,9 +137,6 @@ func runtimeProvidersEqual(before, after map[string]config.RuntimeFileTarget) bo
 			return false
 		}
 		if strings.TrimSpace(beforeTarget.APIKey) != strings.TrimSpace(afterTarget.APIKey) {
-			return false
-		}
-		if strings.TrimSpace(beforeTarget.DefaultModel) != strings.TrimSpace(afterTarget.DefaultModel) {
 			return false
 		}
 	}

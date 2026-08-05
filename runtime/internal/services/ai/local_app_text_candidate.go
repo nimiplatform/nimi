@@ -38,8 +38,6 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 	head := &runtimev1.ScenarioRequestHead{
 		AppId:         decision.AppID,
 		SubjectUserId: decision.AccountID,
-		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 	}
 	effective, err := s.captureLocalTextEffectiveInputs(ctx, head, &runtimev1.TextGenerateScenarioSpec{
 		Input:        messages,

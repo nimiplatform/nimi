@@ -32,17 +32,14 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_UNSPECIFIED {
 		mode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
 	}
-	localTextCtx := ctx
-	localText := false
-	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE {
-		var localTextErr error
-		localTextCtx, localText, localTextErr = s.captureLocalTextRoutingIntent(ctx, req.GetHead())
-		if localTextErr != nil {
-			return nil, localTextErr
-		}
-		if mode == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB && !localText {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-		}
+	var intentErr error
+	ctx, intent, intentErr := s.captureScenarioExecutionIntent(ctx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
+	if intentErr != nil {
+		return nil, intentErr
+	}
+	localText := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE && intent.IsLocal()
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE && mode == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB && !localText {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	if err := validateScenarioExecutionMode(req.GetScenarioType(), mode); err != nil {
 		return nil, err
@@ -63,7 +60,7 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		if !localText {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 		}
-		return s.submitLocalTextScenarioJob(localTextCtx, req, mode, ignored)
+		return s.submitLocalTextScenarioJob(ctx, req, mode, ignored)
 
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
 		return s.submitVoiceWorkflowJob(ctx, req, ignored)

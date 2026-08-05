@@ -109,6 +109,7 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 			message:        err.Error(),
 		}
 	}
+	ctx = withPublicChatExecutionIntent(ctx, req.ExecutionBinding, "text.generate")
 	resp, err := e.ai.ExecuteScenario(ctx, execReq)
 	if err != nil {
 		return nil, &lifeTurnExecutionError{
@@ -149,11 +150,6 @@ func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScena
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         lifeTurnExecutorAppID,
 			SubjectUserId: subjectUserID,
-			ModelId:       req.ExecutionBinding.ModelID,
-			RoutePolicy:   req.ExecutionBinding.RoutePolicy,
-			ConnectorId:   req.ExecutionBinding.ConnectorID,
-			TargetRef:     clonePublicChatTargetRef(req.ExecutionBinding.TargetRef),
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,

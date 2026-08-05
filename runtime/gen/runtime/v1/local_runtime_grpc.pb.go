@@ -46,8 +46,6 @@ const (
 	RuntimeLocalService_InstallModelFromPlan_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan"
 	RuntimeLocalService_StartLocalAsset_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
 	RuntimeLocalService_StopLocalAsset_FullMethodName                                      = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
-	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName                               = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
-	RuntimeLocalService_WarmLocalAsset_FullMethodName                                      = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset"
 	RuntimeLocalService_ListLocalTransfers_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
 	RuntimeLocalService_PauseLocalTransfer_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
 	RuntimeLocalService_ResumeLocalTransfer_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
@@ -127,8 +125,6 @@ type RuntimeLocalServiceClient interface {
 	// Asset lifecycle (runnable assets)
 	StartLocalAsset(ctx context.Context, in *StartLocalAssetRequest, opts ...grpc.CallOption) (*StartLocalAssetResponse, error)
 	StopLocalAsset(ctx context.Context, in *StopLocalAssetRequest, opts ...grpc.CallOption) (*StopLocalAssetResponse, error)
-	CheckLocalAssetHealth(ctx context.Context, in *CheckLocalAssetHealthRequest, opts ...grpc.CallOption) (*CheckLocalAssetHealthResponse, error)
-	WarmLocalAsset(ctx context.Context, in *WarmLocalAssetRequest, opts ...grpc.CallOption) (*WarmLocalAssetResponse, error)
 	// Transfers
 	ListLocalTransfers(ctx context.Context, in *ListLocalTransfersRequest, opts ...grpc.CallOption) (*ListLocalTransfersResponse, error)
 	PauseLocalTransfer(ctx context.Context, in *PauseLocalTransferRequest, opts ...grpc.CallOption) (*PauseLocalTransferResponse, error)
@@ -455,26 +451,6 @@ func (c *runtimeLocalServiceClient) StopLocalAsset(ctx context.Context, in *Stop
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StopLocalAssetResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_StopLocalAsset_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) CheckLocalAssetHealth(ctx context.Context, in *CheckLocalAssetHealthRequest, opts ...grpc.CallOption) (*CheckLocalAssetHealthResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckLocalAssetHealthResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_CheckLocalAssetHealth_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) WarmLocalAsset(ctx context.Context, in *WarmLocalAssetRequest, opts ...grpc.CallOption) (*WarmLocalAssetResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WarmLocalAssetResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_WarmLocalAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -945,8 +921,6 @@ type RuntimeLocalServiceServer interface {
 	// Asset lifecycle (runnable assets)
 	StartLocalAsset(context.Context, *StartLocalAssetRequest) (*StartLocalAssetResponse, error)
 	StopLocalAsset(context.Context, *StopLocalAssetRequest) (*StopLocalAssetResponse, error)
-	CheckLocalAssetHealth(context.Context, *CheckLocalAssetHealthRequest) (*CheckLocalAssetHealthResponse, error)
-	WarmLocalAsset(context.Context, *WarmLocalAssetRequest) (*WarmLocalAssetResponse, error)
 	// Transfers
 	ListLocalTransfers(context.Context, *ListLocalTransfersRequest) (*ListLocalTransfersResponse, error)
 	PauseLocalTransfer(context.Context, *PauseLocalTransferRequest) (*PauseLocalTransferResponse, error)
@@ -1088,12 +1062,6 @@ func (UnimplementedRuntimeLocalServiceServer) StartLocalAsset(context.Context, *
 }
 func (UnimplementedRuntimeLocalServiceServer) StopLocalAsset(context.Context, *StopLocalAssetRequest) (*StopLocalAssetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StopLocalAsset not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) CheckLocalAssetHealth(context.Context, *CheckLocalAssetHealthRequest) (*CheckLocalAssetHealthResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CheckLocalAssetHealth not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) WarmLocalAsset(context.Context, *WarmLocalAssetRequest) (*WarmLocalAssetResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method WarmLocalAsset not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) ListLocalTransfers(context.Context, *ListLocalTransfersRequest) (*ListLocalTransfersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalTransfers not implemented")
@@ -1723,42 +1691,6 @@ func _RuntimeLocalService_StopLocalAsset_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).StopLocalAsset(ctx, req.(*StopLocalAssetRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_CheckLocalAssetHealth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckLocalAssetHealthRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).CheckLocalAssetHealth(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_CheckLocalAssetHealth_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).CheckLocalAssetHealth(ctx, req.(*CheckLocalAssetHealthRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_WarmLocalAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WarmLocalAssetRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).WarmLocalAsset(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_WarmLocalAsset_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).WarmLocalAsset(ctx, req.(*WarmLocalAssetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2626,14 +2558,6 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StopLocalAsset",
 			Handler:    _RuntimeLocalService_StopLocalAsset_Handler,
-		},
-		{
-			MethodName: "CheckLocalAssetHealth",
-			Handler:    _RuntimeLocalService_CheckLocalAssetHealth_Handler,
-		},
-		{
-			MethodName: "WarmLocalAsset",
-			Handler:    _RuntimeLocalService_WarmLocalAsset_Handler,
 		},
 		{
 			MethodName: "ListLocalTransfers",

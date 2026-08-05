@@ -5,6 +5,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -22,6 +23,24 @@ func (s *voiceAssetStore) getAsset(voiceAssetID string) (*runtimev1.VoiceAsset, 
 	out := cloneVoiceAsset(asset)
 	s.mu.RUnlock()
 	return out, true
+}
+
+func (s *voiceAssetStore) getAssetBinding(voiceAssetID string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, bool) {
+	id := strings.TrimSpace(voiceAssetID)
+	if id == "" {
+		return nil, nil, false
+	}
+	s.mu.RLock()
+	asset, ok := s.assets[id]
+	target := s.targets[id]
+	if !ok || asset == nil || target == nil || !target.Valid() {
+		s.mu.RUnlock()
+		return nil, nil, false
+	}
+	out := cloneVoiceAsset(asset)
+	outTarget := target.Clone()
+	s.mu.RUnlock()
+	return out, outTarget, true
 }
 
 func (s *voiceAssetStore) listAssets(req *runtimev1.ListVoiceAssetsRequest) []*runtimev1.VoiceAsset {

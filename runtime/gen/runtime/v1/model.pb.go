@@ -254,7 +254,6 @@ type ModelDescriptor struct {
 	PreferredEngine   string                  `protobuf:"bytes,10,opt,name=preferred_engine,json=preferredEngine,proto3" json:"preferred_engine,omitempty"`
 	FallbackEngines   []string                `protobuf:"bytes,11,rep,name=fallback_engines,json=fallbackEngines,proto3" json:"fallback_engines,omitempty"`
 	BundleState       LocalBundleState        `protobuf:"varint,12,opt,name=bundle_state,json=bundleState,proto3,enum=nimi.runtime.v1.LocalBundleState" json:"bundle_state,omitempty"`
-	WarmState         LocalWarmState          `protobuf:"varint,13,opt,name=warm_state,json=warmState,proto3,enum=nimi.runtime.v1.LocalWarmState" json:"warm_state,omitempty"`
 	HostRequirements  *LocalHostRequirements  `protobuf:"bytes,14,opt,name=host_requirements,json=hostRequirements,proto3" json:"host_requirements,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
@@ -372,13 +371,6 @@ func (x *ModelDescriptor) GetBundleState() LocalBundleState {
 		return x.BundleState
 	}
 	return LocalBundleState_LOCAL_BUNDLE_STATE_UNSPECIFIED
-}
-
-func (x *ModelDescriptor) GetWarmState() LocalWarmState {
-	if x != nil {
-		return x.WarmState
-	}
-	return LocalWarmState_LOCAL_WARM_STATE_UNSPECIFIED
 }
 
 func (x *ModelDescriptor) GetHostRequirements() *LocalHostRequirements {
@@ -838,7 +830,7 @@ const file_runtime_v1_model_proto_rawDesc = "" +
 	"\x19supports_speech_synthesis\x18\x06 \x01(\bR\x17supportsSpeechSynthesis\x12B\n" +
 	"\x1dsupports_speech_transcription\x18\a \x01(\bR\x1bsupportsSpeechTranscription\x127\n" +
 	"\x18supports_async_media_job\x18\b \x01(\bR\x15supportsAsyncMediaJob\x12-\n" +
-	"\x12supports_streaming\x18\t \x01(\bR\x11supportsStreaming\"\xd4\x05\n" +
+	"\x12supports_streaming\x18\t \x01(\bR\x11supportsStreaming\"\xa6\x05\n" +
 	"\x0fModelDescriptor\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x124\n" +
@@ -852,10 +844,9 @@ const file_runtime_v1_model_proto_rawDesc = "" +
 	"\x10preferred_engine\x18\n" +
 	" \x01(\tR\x0fpreferredEngine\x12)\n" +
 	"\x10fallback_engines\x18\v \x03(\tR\x0ffallbackEngines\x12D\n" +
-	"\fbundle_state\x18\f \x01(\x0e2!.nimi.runtime.v1.LocalBundleStateR\vbundleState\x12>\n" +
-	"\n" +
-	"warm_state\x18\r \x01(\x0e2\x1f.nimi.runtime.v1.LocalWarmStateR\twarmState\x12S\n" +
-	"\x11host_requirements\x18\x0e \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirements\"\x13\n" +
+	"\fbundle_state\x18\f \x01(\x0e2!.nimi.runtime.v1.LocalBundleStateR\vbundleState\x12S\n" +
+	"\x11host_requirements\x18\x0e \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirementsJ\x04\b\r\x10\x0eR\n" +
+	"warm_state\"\x13\n" +
 	"\x11ListModelsRequest\"N\n" +
 	"\x12ListModelsResponse\x128\n" +
 	"\x06models\x18\x01 \x03(\v2 .nimi.runtime.v1.ModelDescriptorR\x06models\"v\n" +
@@ -938,35 +929,33 @@ var file_runtime_v1_model_proto_goTypes = []any{
 	(*CheckModelHealthResponse)(nil), // 10: nimi.runtime.v1.CheckModelHealthResponse
 	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
 	(LocalBundleState)(0),            // 12: nimi.runtime.v1.LocalBundleState
-	(LocalWarmState)(0),              // 13: nimi.runtime.v1.LocalWarmState
-	(*LocalHostRequirements)(nil),    // 14: nimi.runtime.v1.LocalHostRequirements
-	(ReasonCode)(0),                  // 15: nimi.runtime.v1.ReasonCode
-	(*Ack)(nil),                      // 16: nimi.runtime.v1.Ack
+	(*LocalHostRequirements)(nil),    // 13: nimi.runtime.v1.LocalHostRequirements
+	(ReasonCode)(0),                  // 14: nimi.runtime.v1.ReasonCode
+	(*Ack)(nil),                      // 15: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_model_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.ModelDescriptor.status:type_name -> nimi.runtime.v1.ModelStatus
 	11, // 1: nimi.runtime.v1.ModelDescriptor.last_health_at:type_name -> google.protobuf.Timestamp
 	2,  // 2: nimi.runtime.v1.ModelDescriptor.capability_profile:type_name -> nimi.runtime.v1.ModelCapabilityProfile
 	12, // 3: nimi.runtime.v1.ModelDescriptor.bundle_state:type_name -> nimi.runtime.v1.LocalBundleState
-	13, // 4: nimi.runtime.v1.ModelDescriptor.warm_state:type_name -> nimi.runtime.v1.LocalWarmState
-	14, // 5: nimi.runtime.v1.ModelDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
-	3,  // 6: nimi.runtime.v1.ListModelsResponse.models:type_name -> nimi.runtime.v1.ModelDescriptor
-	15, // 7: nimi.runtime.v1.PullModelResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 8: nimi.runtime.v1.CheckModelHealthResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	1,  // 9: nimi.runtime.v1.CheckModelHealthResponse.status:type_name -> nimi.runtime.v1.ModelHealthStatus
-	4,  // 10: nimi.runtime.v1.RuntimeModelService.ListModels:input_type -> nimi.runtime.v1.ListModelsRequest
-	6,  // 11: nimi.runtime.v1.RuntimeModelService.PullModel:input_type -> nimi.runtime.v1.PullModelRequest
-	8,  // 12: nimi.runtime.v1.RuntimeModelService.RemoveModel:input_type -> nimi.runtime.v1.RemoveModelRequest
-	9,  // 13: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:input_type -> nimi.runtime.v1.CheckModelHealthRequest
-	5,  // 14: nimi.runtime.v1.RuntimeModelService.ListModels:output_type -> nimi.runtime.v1.ListModelsResponse
-	7,  // 15: nimi.runtime.v1.RuntimeModelService.PullModel:output_type -> nimi.runtime.v1.PullModelResponse
-	16, // 16: nimi.runtime.v1.RuntimeModelService.RemoveModel:output_type -> nimi.runtime.v1.Ack
-	10, // 17: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:output_type -> nimi.runtime.v1.CheckModelHealthResponse
-	14, // [14:18] is the sub-list for method output_type
-	10, // [10:14] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	13, // 4: nimi.runtime.v1.ModelDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
+	3,  // 5: nimi.runtime.v1.ListModelsResponse.models:type_name -> nimi.runtime.v1.ModelDescriptor
+	14, // 6: nimi.runtime.v1.PullModelResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	14, // 7: nimi.runtime.v1.CheckModelHealthResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	1,  // 8: nimi.runtime.v1.CheckModelHealthResponse.status:type_name -> nimi.runtime.v1.ModelHealthStatus
+	4,  // 9: nimi.runtime.v1.RuntimeModelService.ListModels:input_type -> nimi.runtime.v1.ListModelsRequest
+	6,  // 10: nimi.runtime.v1.RuntimeModelService.PullModel:input_type -> nimi.runtime.v1.PullModelRequest
+	8,  // 11: nimi.runtime.v1.RuntimeModelService.RemoveModel:input_type -> nimi.runtime.v1.RemoveModelRequest
+	9,  // 12: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:input_type -> nimi.runtime.v1.CheckModelHealthRequest
+	5,  // 13: nimi.runtime.v1.RuntimeModelService.ListModels:output_type -> nimi.runtime.v1.ListModelsResponse
+	7,  // 14: nimi.runtime.v1.RuntimeModelService.PullModel:output_type -> nimi.runtime.v1.PullModelResponse
+	15, // 15: nimi.runtime.v1.RuntimeModelService.RemoveModel:output_type -> nimi.runtime.v1.Ack
+	10, // 16: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:output_type -> nimi.runtime.v1.CheckModelHealthResponse
+	13, // [13:17] is the sub-list for method output_type
+	9,  // [9:13] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_model_proto_init() }

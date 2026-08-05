@@ -13,61 +13,33 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func TestResolveVoiceWorkflowBaseURLRejectsForeignAndPathOverride(t *testing.T) {
-	cfg := MediaAdapterConfig{BaseURL: "https://api.example.com/v1"}
-
-	got := resolveVoiceWorkflowBaseURL("elevenlabs", cfg, map[string]any{
-		"base_url": "https://evil.example.com/voice",
-	})
-	if got != "https://api.example.com/v1" {
-		t.Fatalf("foreign override should fall back to config base URL, got %q", got)
+func TestResolveVoiceWorkflowBaseURLRequiresExactTargetBaseURL(t *testing.T) {
+	cfg := MediaAdapterConfig{BaseURL: "https://api.example.com/v1/"}
+	if got := resolveVoiceWorkflowBaseURL("elevenlabs", cfg); got != "https://api.example.com/v1" {
+		t.Fatalf("exact base URL = %q", got)
 	}
-
-	got = resolveVoiceWorkflowBaseURL("elevenlabs", cfg, map[string]any{
-		"base_url": "https://api.example.com/custom",
-	})
-	if got != "https://api.example.com/v1" {
-		t.Fatalf("same-origin path override should fall back to config base URL, got %q", got)
-	}
-
-	got = resolveVoiceWorkflowBaseURL("elevenlabs", cfg, map[string]any{
-		"base_url": "https://api.example.com/v1/",
-	})
-	if got != "https://api.example.com/v1" {
-		t.Fatalf("same base URL should still be allowed, got %q", got)
+	if got := resolveVoiceWorkflowBaseURL("elevenlabs", MediaAdapterConfig{}); got != "" {
+		t.Fatalf("missing exact base URL fell back to %q", got)
 	}
 }
 
-func TestVoiceWorkflowHeadersAllowOnlySafeCustomHeaders(t *testing.T) {
-	headers := voiceWorkflowHeaders("elevenlabs", "secret", map[string]any{
-		"headers": map[string]any{
-			"Authorization": "Bearer injected",
-			"Host":          "evil.example.com",
+func TestVoiceWorkflowHeadersUseOnlyExactTargetConfiguration(t *testing.T) {
+	cfg := MediaAdapterConfig{
+		APIKey: "secret",
+		Headers: map[string]string{
+			"Authorization": "Exact connector header",
 			"X-Trace-Id":    "trace-1",
 		},
-		"api_key_header": "x-api-key",
-	})
-
-	if _, exists := headers["Authorization"]; exists {
-		t.Fatalf("authorization header should be filtered: %#v", headers)
 	}
-	if _, exists := headers["Host"]; exists {
-		t.Fatalf("host header should be filtered: %#v", headers)
+	headers := voiceWorkflowHeaders("elevenlabs", cfg)
+	if got := headers["Authorization"]; got != "Exact connector header" {
+		t.Fatalf("exact connector header mismatch: %#v", headers)
 	}
 	if got := headers["X-Trace-Id"]; got != "trace-1" {
-		t.Fatalf("custom x-* header mismatch: %#v", headers)
+		t.Fatalf("exact trace header mismatch: %#v", headers)
 	}
-	if got := headers["x-api-key"]; got != "secret" {
-		t.Fatalf("api key header mismatch: %#v", headers)
-	}
-}
-
-func TestVoiceWorkflowHeadersRejectUnsafeAPIKeyHeaderOverride(t *testing.T) {
-	headers := voiceWorkflowHeaders("elevenlabs", "secret", map[string]any{
-		"api_key_header": "Authorization",
-	})
-	if _, exists := headers["Authorization"]; exists {
-		t.Fatalf("unsafe api key header should be rejected: %#v", headers)
+	if got := headers["xi-api-key"]; got != "secret" {
+		t.Fatalf("provider auth header mismatch: %#v", headers)
 	}
 }
 
@@ -350,19 +322,10 @@ func TestResolveBytedanceOpenSpeechWSReadTimeoutClampsToMaximum(t *testing.T) {
 	}
 }
 
-func TestResolveBytedanceOpenSpeechWSURLRejectsSecureDowngrade(t *testing.T) {
-	got := resolveBytedanceOpenSpeechWSURL("https://openspeech.example.com/api/v1", map[string]any{
-		"ws_url": "ws://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream",
-	})
-	if got != "" {
-		t.Fatalf("secure base URL must not be downgraded to plaintext websocket, got %q", got)
-	}
-
-	got = resolveBytedanceOpenSpeechWSURL("https://openspeech.example.com/api/v1", map[string]any{
-		"ws_url": "wss://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream",
-	})
+func TestResolveBytedanceOpenSpeechWSURLUsesExactTargetOriginAndAdapterPath(t *testing.T) {
+	got := resolveBytedanceOpenSpeechWSURL("https://openspeech.example.com/api/v1")
 	if got != "wss://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream" {
-		t.Fatalf("same-host wss override should be allowed, got %q", got)
+		t.Fatalf("adapter-owned websocket URL = %q", got)
 	}
 }
 
@@ -407,7 +370,6 @@ func newTTSSecurityJob(text, voiceRef string) *runtimev1.SubmitScenarioJobReques
 			},
 		},
 		Head: &runtimev1.ScenarioRequestHead{
-			ModelId:   "test-model",
 			TimeoutMs: 1000,
 		},
 	}

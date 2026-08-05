@@ -62,7 +62,6 @@ type localStateAssetState struct {
 	PreferredEngine      string         `json:"preferredEngine,omitempty"`
 	FallbackEngines      []string       `json:"fallbackEngines,omitempty"`
 	BundleState          int32          `json:"bundleState,omitempty"`
-	WarmState            int32          `json:"warmState,omitempty"`
 	HostRequirements     map[string]any `json:"hostRequirements,omitempty"`
 	LocalInvokeProfileID string         `json:"localInvokeProfileId,omitempty"`
 	EngineConfig         map[string]any `json:"engineConfig,omitempty"`
@@ -205,7 +204,6 @@ func (s *Service) restoreState() error {
 			PreferredEngine:      item.PreferredEngine,
 			FallbackEngines:      normalizeStringSlice(item.FallbackEngines),
 			BundleState:          runtimev1.LocalBundleState(item.BundleState),
-			WarmState:            runtimev1.LocalWarmState(item.WarmState),
 			HostRequirements:     hostRequirementsFromMap(item.HostRequirements),
 			LocalInvokeProfileId: item.LocalInvokeProfileID,
 			EngineConfig:         toStruct(item.EngineConfig),
@@ -433,7 +431,6 @@ func (s *Service) persistStateLocked() {
 			PreferredEngine:      asset.GetPreferredEngine(),
 			FallbackEngines:      append([]string(nil), asset.GetFallbackEngines()...),
 			BundleState:          int32(asset.GetBundleState()),
-			WarmState:            int32(asset.GetWarmState()),
 			HostRequirements:     hostRequirementsToMap(asset.GetHostRequirements()),
 			LocalInvokeProfileID: asset.GetLocalInvokeProfileId(),
 			EngineConfig:         structToMap(asset.GetEngineConfig()),

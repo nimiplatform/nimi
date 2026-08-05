@@ -37,7 +37,6 @@ lint:
       - runtime/v1/memory.proto
       - runtime/v1/model.proto
       - runtime/v1/runtime_service_control.proto
-      - runtime/v1/runtime_target_identity.proto
       - runtime/v1/voice.proto
     ENUM_VALUE_PREFIX:
       - runtime/v1/ai.proto

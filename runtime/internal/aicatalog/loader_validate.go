@@ -191,12 +191,12 @@ func validateSnapshot(snapshot Snapshot) error {
 	for _, workflowModel := range snapshot.VoiceWorkflowModels {
 		workflowModelID := normalizeID(workflowModel.WorkflowModelID)
 		workflowType := normalizeWorkflowType(workflowModel.WorkflowType)
-		if workflowModelID == "" || workflowType == "" {
-			return fmt.Errorf("voice workflow model missing workflow_model_id/workflow_type")
+		if workflowModelID == "" || workflowType == "" || strings.TrimSpace(workflowModel.WorkflowFamily) == "" {
+			return fmt.Errorf("voice workflow model missing workflow_model_id/workflow_type/workflow_family")
 		}
-		provider := normalizeProvider(inferProviderFromWorkflowModelID(workflowModelID, workflowModel.TargetModelRefs, modelSet))
+		provider := normalizeProvider(workflowModel.Provider)
 		if provider == "" {
-			return fmt.Errorf("voice workflow model %s cannot infer provider", workflowModelID)
+			return fmt.Errorf("voice workflow model %s is missing its provider document identity", workflowModelID)
 		}
 		if len(workflowModel.TargetModelRefs) == 0 {
 			return fmt.Errorf("voice workflow model %s must include target_model_refs", workflowModelID)
@@ -240,9 +240,9 @@ func validateSnapshot(snapshot Snapshot) error {
 			}
 		}
 
-		provider := normalizeProvider(inferProviderFromBindingModelID(modelID, modelSet))
+		provider := normalizeProvider(binding.Provider)
 		if provider == "" {
-			return fmt.Errorf("model workflow binding %s references unknown model", modelID)
+			return fmt.Errorf("model workflow binding %s is missing its provider document identity", modelID)
 		}
 		modelKey := provider + ":" + modelID
 		if _, exists := bindingByModel[modelKey]; exists {
@@ -268,6 +268,7 @@ func validateSnapshot(snapshot Snapshot) error {
 			}
 		}
 		bindingByModel[modelKey] = ModelWorkflowBinding{
+			Provider:          provider,
 			ModelID:           binding.ModelID,
 			WorkflowModelRefs: refs,
 			WorkflowTypes:     workflowTypes,

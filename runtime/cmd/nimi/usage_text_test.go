@@ -84,8 +84,6 @@ func TestPrintRuntimeProviderUsageIncludesSubcommands(t *testing.T) {
 		"nimi provider set <provider>",
 		"--api-key",
 		"--api-key-env",
-		"--default-model",
-		"--default",
 		"nimi provider unset <provider>",
 		"nimi provider test <provider>",
 	}
@@ -93,6 +91,9 @@ func TestPrintRuntimeProviderUsageIncludesSubcommands(t *testing.T) {
 		if !strings.Contains(output, command) {
 			t.Fatalf("runtime provider usage missing %s: %q", command, output)
 		}
+	}
+	if strings.Contains(output, "--default") {
+		t.Fatalf("runtime provider usage must not expose default routing: %q", output)
 	}
 }
 

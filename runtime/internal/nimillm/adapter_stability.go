@@ -24,7 +24,7 @@ func ExecuteStabilityImage(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.stability.ai"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
@@ -36,7 +36,7 @@ func ExecuteStabilityImage(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	resolvedModel := StripProviderModelPrefix(modelResolved, "stability")
+	resolvedModel := strings.TrimSpace(modelResolved)
 	payload := map[string]any{
 		"prompt": strings.TrimSpace(spec.GetPrompt()),
 	}
@@ -62,12 +62,7 @@ func ExecuteStabilityImage(
 	if resolvedModel != "" {
 		engine = resolvedModel
 	}
-	endpoint := FirstProviderEndpointPath(
-		nil,
-		[]string{"image_path"},
-		[]string{"image_paths"},
-		[]string{"/v2beta/stable-image/generate/" + engine},
-	)
+	endpoint := firstProviderEndpointPath([]string{"/v2beta/stable-image/generate/" + engine})
 
 	resp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, &resp); err != nil {

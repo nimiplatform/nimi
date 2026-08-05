@@ -26,7 +26,7 @@ func ExecuteGoogleVeoOperation(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://generativelanguage.googleapis.com"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -41,7 +41,7 @@ func ExecuteGoogleVeoOperation(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	resolvedModel := StripProviderModelPrefix(modelResolved, "google_veo", "google-veo")
+	resolvedModel := strings.TrimSpace(modelResolved)
 	if resolvedModel == "" {
 		resolvedModel = "veo-2.0-generate-001"
 	}
@@ -73,12 +73,8 @@ func ExecuteGoogleVeoOperation(
 		"parameters": parameters,
 	}
 
-	submitPath := FirstProviderEndpointPath(nil,
-		[]string{"video_submit_path"}, []string{"video_submit_paths"},
-		[]string{"/v1beta/models/" + resolvedModel + ":predictLongRunning"})
-	queryPathTemplate := ResolveTaskQueryPathTemplate(nil,
-		[]string{"video_query_path", "operation_query_path"}, []string{"video_query_paths", "operation_query_paths"},
-		[]string{"/v1beta/operations/{task_id}"})
+	submitPath := firstProviderEndpointPath([]string{"/v1beta/models/" + resolvedModel + ":predictLongRunning"})
+	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1beta/operations/{task_id}"})
 
 	submitResp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {

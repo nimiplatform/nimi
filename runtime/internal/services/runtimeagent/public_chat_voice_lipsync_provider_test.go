@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
@@ -269,11 +270,9 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 	if voiceAI.submitReq == nil {
 		t.Fatalf("expected provider voice synthesis submit")
 	}
-	if got := strings.TrimSpace(voiceAI.submitReq.GetHead().GetModelId()); got != "speech/qwen3tts" {
-		t.Fatalf("expected speech model speech/qwen3tts, got %q", got)
-	}
-	if got := voiceAI.submitReq.GetHead().GetRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		t.Fatalf("expected local speech route policy, got %v", got)
+	intent, ok := executionintent.FromContext(voiceAI.submitCtx)
+	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
+		t.Fatalf("expected private Local speech intent, got %+v, ok=%v", intent, ok)
 	}
 
 	lipsyncPayload := publicChatPayloadMap(t, lipsyncBatch)

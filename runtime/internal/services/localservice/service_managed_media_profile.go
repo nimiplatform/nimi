@@ -21,7 +21,7 @@ const (
 	managedMediaWorkflowProfileOverridesKey = "profile_overrides"
 )
 
-var managedMediaRuntimeResolvedComponentOptionKeys = map[string]struct{}{
+var managedMediaResolvedComponentOptionKeys = map[string]struct{}{
 	"clip_l_path":            {},
 	"llm_path":               {},
 	"t5xxl_path":             {},
@@ -264,10 +264,7 @@ func profileEntryStaticConfigAssetUsable(asset *runtimev1.LocalAssetRecord) bool
 	if !profileEntryInstalledAssetUsable(asset) {
 		return false
 	}
-	status := asset.GetDurableTargetStatus()
-	if status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
-		status = asset.GetStatus()
-	}
+	status := asset.GetStatus()
 	return status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED ||
 		status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 }
@@ -865,7 +862,7 @@ func managedMediaProfileOverrideOptionKeyForbidden(key string) bool {
 	if normalizedKey == "diffusion_model" {
 		return true
 	}
-	if _, ok := managedMediaRuntimeResolvedComponentOptionKeys[normalizedKey]; ok {
+	if _, ok := managedMediaResolvedComponentOptionKeys[normalizedKey]; ok {
 		return true
 	}
 	return strings.HasSuffix(normalizedKey, "_path")

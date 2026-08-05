@@ -420,44 +420,6 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 	}
 }
 
-func TestCheckLocalImageModelHealthProjectsCUDADependencyConfirmation(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	setNvidiaGPUProbeForTest(t, false)
-	svc.SetEngineManager(&mockEngineManager{})
-
-	sourceDir := t.TempDir()
-	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K_M.gguf")
-	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
-		t.Fatalf("write source model: %v", err)
-	}
-
-	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
-		FilePath:     sourcePath,
-		Capabilities: []string{"image"},
-		Engine:       "media",
-	})
-	if err != nil {
-		t.Fatalf("expected Windows GGUF image import without global CUDA Toolkit to succeed, got %v", err)
-	}
-	health, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
-		LocalAssetId: resp.GetAsset().GetLocalAssetId(),
-	})
-	if err != nil {
-		t.Fatalf("CheckLocalAssetHealth: %v", err)
-	}
-	if len(health.GetAssets()) != 1 {
-		t.Fatalf("expected one health result, got %d", len(health.GetAssets()))
-	}
-	got := health.GetAssets()[0]
-	if got.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		t.Fatalf("expected dependency setup to fail closed as unhealthy, got %s", got.GetStatus())
-	}
-	if detail := got.GetDetail(); !strings.Contains(detail, "local environment activation blocked") || !strings.Contains(detail, "model.asset") {
-		t.Fatalf("expected consumer dependency activation block detail, got %q", detail)
-	}
-}
-
 func TestImportLocalImageModelFileAcceptsZImageTensorSignatureWithoutSDVersionMetadata(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")

@@ -26,7 +26,7 @@ func ExecuteRunwayTask(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.dev.runwayml.com"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -41,7 +41,7 @@ func ExecuteRunwayTask(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	resolvedModel := StripProviderModelPrefix(modelResolved, "runway")
+	resolvedModel := strings.TrimSpace(modelResolved)
 	if resolvedModel == "" {
 		resolvedModel = "gen3a_turbo"
 	}
@@ -70,12 +70,8 @@ func ExecuteRunwayTask(
 		}
 	}
 
-	submitPath := FirstProviderEndpointPath(nil,
-		[]string{"video_submit_path"}, []string{"video_submit_paths"},
-		[]string{"/v1/image_to_video"})
-	queryPathTemplate := ResolveTaskQueryPathTemplate(nil,
-		[]string{"video_query_path"}, []string{"video_query_paths"},
-		[]string{"/v1/tasks/{task_id}"})
+	submitPath := firstProviderEndpointPath([]string{"/v1/image_to_video"})
+	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1/tasks/{task_id}"})
 
 	headers := map[string]string{
 		"X-Runway-Version": "2024-11-06",

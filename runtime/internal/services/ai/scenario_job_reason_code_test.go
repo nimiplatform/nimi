@@ -48,10 +48,6 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 			Head: &runtimev1.ScenarioRequestHead{
 				AppId:         "nimi.desktop",
 				SubjectUserId: "user-001",
-				ModelId:       "local/sd3",
-				TargetRef:     localScenarioTargetRefForModel("local/sd3"),
-				RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			},
 			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -85,14 +81,11 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 	})
 
 	t.Run("SubmitScenarioJob_OptionUnsupported_ImageN", func(t *testing.T) {
-		_, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		localCtx := withLocalScenarioTestIntent(ctx, "image.generate")
+		_, err := svc.SubmitScenarioJob(localCtx, &runtimev1.SubmitScenarioJobRequest{
 			Head: &runtimev1.ScenarioRequestHead{
 				AppId:         "nimi.desktop",
 				SubjectUserId: "user-001",
-				ModelId:       "local/sd3",
-				TargetRef:     localScenarioTargetRefForModel("local/sd3"),
-				RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			},
 			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,

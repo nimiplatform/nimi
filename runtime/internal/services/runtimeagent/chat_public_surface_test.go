@@ -11,7 +11,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
-	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -45,15 +46,13 @@ func (s *targetRefCapturePublicChatScenarioStreamer) StreamScenario(
 	return nil
 }
 
-func TestAIBackedPublicChatTurnExecutorPassesCloudDurableTargetRef(t *testing.T) {
+func TestAIBackedPublicChatTurnExecutorPassesCloudIntentPrivately(t *testing.T) {
 	t.Parallel()
 	streamer := &targetRefCapturePublicChatScenarioStreamer{}
 	executor := NewAIBackedPublicChatTurnExecutor(streamer)
-	targetRef := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-		Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-			Version: "nimi.runtime.target.cloud/v1", ConnectorId: "connector-1",
-			RemoteModelCatalogId: "catalog-1", ProviderModelId: "provider-model-1", Provider: "openai",
-		},
+	targetRef := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID: "connector-1", RemoteModelCatalogID: "catalog-1",
+		ProviderModelID: "provider-model-1", Provider: "openai",
 	}}
 	err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
 		AppID:         "nimi.zhiyu",
@@ -71,9 +70,9 @@ func TestAIBackedPublicChatTurnExecutorPassesCloudDurableTargetRef(t *testing.T)
 	if err != nil {
 		t.Fatalf("StreamChatTurn: %v", err)
 	}
-	got := streamer.request.GetHead().GetTargetRef().GetCloud().GetProviderModelId()
-	if got != "provider-model-1" {
-		t.Fatalf("expected Cloud durable target provider model id, got %q", got)
+	intent, ok := executionintent.FromContext(streamer.ctx)
+	if !ok || intent.CloudTarget == nil || intent.CloudTarget.ProviderModelID != "provider-model-1" {
+		t.Fatalf("expected private Cloud intent, got %+v, ok=%v", intent, ok)
 	}
 }
 
@@ -100,26 +99,16 @@ func TestAIBackedPublicChatTurnExecutorCarriesLocalIntentWithoutDurableTarget(t 
 	}, nil); err != nil {
 		t.Fatalf("StreamChatTurn: %v", err)
 	}
-	if streamer.request.GetHead().GetTargetRef() != nil {
-		t.Fatalf("LocalAgent intent leaked durable target: %+v", streamer.request.GetHead().GetTargetRef())
-	}
-	intent, ok := localexecution.ConsumerIntentFromContext(streamer.ctx)
-	if !ok || !intent.Local || intent.CapabilityContract != "text.generate" ||
+	intent, ok := executionintent.FromContext(streamer.ctx)
+	if !ok || !intent.IsLocal() || intent.CapabilityContract != "text.generate" ||
 		len(intent.RequiredFeatures) != 1 || intent.RequiredFeatures[0] != "input.image" ||
 		intent.Defaults.GetFields()["temperature"].GetNumberValue() != 0.4 {
 		t.Fatalf("consumer intent = %+v, ok=%v", intent, ok)
 	}
 }
 
-func publicChatTestLocalRuntimeTargetRef(ref string) *runtimev1.RuntimeDurableTargetRef {
-	return &runtimev1.RuntimeDurableTargetRef{
-		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-				Version: "v2",
-				Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: ref},
-			},
-		},
-	}
+func publicChatTestLocalRuntimeTargetRef(ref string) *runtimeidentity.Target {
+	return &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ProfileBindingID: ref}}
 }
 
 func publicChatTestAudioSynthesizeBinding() publicChatExecutionBinding {
@@ -384,23 +373,17 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 		resolve: func(_ context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
 			route := req.RouteHint
 			if route == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-				modelID := strings.ToLower(strings.TrimSpace(req.ModelID))
-				if strings.HasPrefix(modelID, "cloud/") || strings.HasPrefix(modelID, "openai/") {
-					route = runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
-				} else {
-					route = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-				}
+				return PublicChatBindingResolution{}, status.Error(codes.FailedPrecondition, "test binding route is required")
 			}
 			resolvedTargetRef := clonePublicChatTargetRef(req.TargetRef)
 			if resolvedTargetRef == nil {
 				if route == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-					resolvedTargetRef = &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-						Version:              "v2",
-						ConnectorId:          firstNonEmpty(strings.TrimSpace(req.ConnectorID), "public-chat-test-connector"),
-						RemoteModelCatalogId: "public-chat-test-catalog-v1",
-						ProviderModelId:      strings.TrimSpace(req.ModelID),
+					resolvedTargetRef = &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+						ConnectorID:          firstNonEmpty(strings.TrimSpace(req.ConnectorID), "public-chat-test-connector"),
+						RemoteModelCatalogID: "public-chat-test-catalog-v1",
+						ProviderModelID:      strings.TrimSpace(req.ModelID),
 						Provider:             "public-chat-test-provider",
-					}}}
+					}}
 				} else {
 					resolvedTargetRef = publicChatTestLocalRuntimeTargetRef("local-runtime:public-chat-test")
 				}

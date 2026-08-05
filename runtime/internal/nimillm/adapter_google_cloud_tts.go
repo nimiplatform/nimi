@@ -25,7 +25,7 @@ func ExecuteGoogleCloudTTS(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://texttospeech.googleapis.com"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -59,12 +59,7 @@ func ExecuteGoogleCloudTTS(
 		payload["parent"] = parent
 	}
 
-	endpoint := FirstProviderEndpointPath(
-		ext,
-		[]string{"tts_path", "speech_path"},
-		[]string{"tts_paths", "speech_paths"},
-		[]string{"/v1/text:synthesize"},
-	)
+	endpoint := firstProviderEndpointPath([]string{"/v1/text:synthesize"})
 	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, nil)
 	if err != nil {
 		return nil, nil, "", err
@@ -81,7 +76,7 @@ func ExecuteGoogleCloudTTS(
 		"endpoint":       endpoint,
 		"voice":          voiceRef,
 		"language":       language,
-		"resolved_model": strings.TrimSpace(StripProviderModelPrefix(modelResolved, "google_cloud_tts", "google-cloud-tts")),
+		"resolved_model": strings.TrimSpace(modelResolved),
 		"extensions":     ext,
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
@@ -117,7 +112,7 @@ func resolveGoogleCloudTTSVoice(
 		voice["name"] = voiceRef
 	}
 	mergeGoogleCloudTTSMap(voice, MapField(scenarioExtensions, "voice"))
-	resolvedModel := strings.TrimSpace(StripProviderModelPrefix(modelResolved, "google_cloud_tts", "google-cloud-tts"))
+	resolvedModel := strings.TrimSpace(modelResolved)
 	if strings.HasPrefix(strings.ToLower(resolvedModel), "gemini-") {
 		if strings.TrimSpace(ValueAsString(voice["modelName"])) == "" {
 			voice["modelName"] = resolvedModel

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
 
 func TestAgentTurnContextLocalAndCloudRoutesPreserveSemanticPromptIdentity(t *testing.T) {
@@ -18,14 +19,7 @@ func TestAgentTurnContextLocalAndCloudRoutesPreserveSemanticPromptIdentity(t *te
 		ModelRevision:       "fixture-local-model-r7",
 		ProviderID:          "fixture-local-provider",
 	}
-	localTarget := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-		LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-			Version: "nimi.runtime.target.local/v1",
-			Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-				ProfileBindingId: "fixture-local-profile",
-			},
-		},
-	}}
+	localTarget := &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ProfileBindingID: "fixture-local-profile"}}
 	cloudResolution := PublicChatBindingResolution{
 		ModelID:             "fixture-cloud-model",
 		RoutePolicy:         runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
@@ -35,14 +29,11 @@ func TestAgentTurnContextLocalAndCloudRoutesPreserveSemanticPromptIdentity(t *te
 		ModelRevision:       "fixture-cloud-model-r11",
 		ProviderID:          "fixture-cloud-provider",
 	}
-	cloudTarget := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-		Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-			Version:              "nimi.runtime.target.cloud/v1",
-			ConnectorId:          cloudResolution.ConnectorID,
-			RemoteModelCatalogId: cloudResolution.CatalogRevision,
-			ProviderModelId:      cloudResolution.ModelID,
-			Provider:             cloudResolution.ProviderID,
-		},
+	cloudTarget := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID:          cloudResolution.ConnectorID,
+		RemoteModelCatalogID: cloudResolution.CatalogRevision,
+		ProviderModelID:      cloudResolution.ModelID,
+		Provider:             cloudResolution.ProviderID,
 	}}
 
 	localRoute := agentTurnContextTestRouteIdentity(t, localResolution, localTarget)
@@ -86,7 +77,7 @@ func TestAgentTurnContextLocalAndCloudRoutesPreserveSemanticPromptIdentity(t *te
 	}
 }
 
-func agentTurnContextTestRouteIdentity(t *testing.T, resolution PublicChatBindingResolution, target *runtimev1.RuntimeDurableTargetRef) agentTurnContextRouteInput {
+func agentTurnContextTestRouteIdentity(t *testing.T, resolution PublicChatBindingResolution, target *runtimeidentity.Target) agentTurnContextRouteInput {
 	t.Helper()
 
 	routeDigest := publicChatResolvedRouteDigest(resolution, target)

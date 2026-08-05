@@ -45,28 +45,6 @@ func (f *multiStringFlag) Values() []string {
 	return out
 }
 
-func parseRoutePolicy(raw string) (runtimev1.RoutePolicy, error) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "local":
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, nil
-	case "cloud":
-		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, nil
-	default:
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, fmt.Errorf("invalid route %q (expected local|cloud)", raw)
-	}
-}
-
-func parseFallbackPolicy(raw string) (runtimev1.FallbackPolicy, error) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "deny":
-		return runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY, nil
-	case "allow":
-		return runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW, nil
-	default:
-		return runtimev1.FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED, fmt.Errorf("invalid fallback %q (expected deny|allow)", raw)
-	}
-}
-
 func parseExternalPrincipalType(raw string) (runtimev1.ExternalPrincipalType, error) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "agent":

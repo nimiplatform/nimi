@@ -369,7 +369,6 @@ func listHFCatalogVariantsFromDetails(details *hfModelDetails) []*runtimev1.Loca
 	if len(capabilities) == 0 {
 		return nil
 	}
-	engine := strings.ToLower(defaultLocalEngine("", capabilities))
 	variants := make([]*runtimev1.LocalCatalogVariantDescriptor, 0, len(details.Siblings))
 	for _, sibling := range details.Siblings {
 		entry, ok := normalizeHFFilePath(sibling.Rfilename)
@@ -389,7 +388,7 @@ func listHFCatalogVariantsFromDetails(details *hfModelDetails) []*runtimev1.Loca
 		variants = append(variants, &runtimev1.LocalCatalogVariantDescriptor{
 			Filename:  entry,
 			Entry:     entry,
-			Files:     selectHFCatalogInstallFiles(details.Siblings, entry, engine),
+			Files:     selectHFCatalogInstallFiles(details.Siblings, entry),
 			Format:    variantFormatForEntry(entry),
 			SizeBytes: sizeBytes,
 			Sha256:    sha256,
@@ -429,12 +428,12 @@ func normalizeHFFilePath(value string) (string, bool) {
 	return normalized, true
 }
 
-func selectHFCatalogInstallFiles(siblings []hfModelSibling, entry string, engine string) []string {
+func selectHFCatalogInstallFiles(siblings []hfModelSibling, entry string) []string {
 	entry, ok := normalizeHFFilePath(entry)
 	if !ok {
 		return nil
 	}
-	if strings.EqualFold(strings.TrimSpace(engine), "llama") && strings.HasSuffix(strings.ToLower(entry), ".gguf") {
+	if strings.HasSuffix(strings.ToLower(entry), ".gguf") {
 		return []string{entry}
 	}
 

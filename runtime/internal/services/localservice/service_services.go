@@ -9,7 +9,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -449,14 +448,10 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 			reasonCode := ""
 			policyGate := ""
 			availabilityDetail := ""
-			if provider == "" || provider == "llama" {
+			if provider == "" || provider == "llama" || isManagedLocalProviderID(provider) {
 				available = false
 				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
 				policyGate = "selected_capability_configuration.required"
-			} else if localrouting.IsKnownProvider(provider) && isKnownLocalCapability(capability) && !localrouting.ProviderSupportsCapability(provider, capability) {
-				available = false
-				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
-				policyGate = unsupportedProviderCapabilityPolicyGate(provider, capability)
 			}
 			if available && provider == "media" && capabilityRequiresNodeProbe(provider, capability) {
 				model := models[strings.TrimSpace(service.GetLocalModelId())]
@@ -533,7 +528,7 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 
 func unsupportedProviderCapabilityPolicyGate(provider string, capability string) string {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
-	switch localrouting.NormalizeCapability(capability) {
+	switch normalizeLocalCapabilityToken(capability) {
 	case "image.generate":
 		return normalizedProvider + ".image.unsupported"
 	case "video.generate":
@@ -550,9 +545,18 @@ func unsupportedProviderCapabilityPolicyGate(provider string, capability string)
 }
 
 func isKnownLocalCapability(capability string) bool {
-	switch localrouting.NormalizeCapability(capability) {
+	switch normalizeLocalCapabilityToken(capability) {
 	case "text.generate", "text.embed", "image.generate", "image.edit", "video.generate", "i2v", "image.understand", "audio.understand", "music.generate",
 		"audio.synthesize", "audio.transcribe", "voice_workflow.voice_clone", "voice_workflow.voice_design":
+		return true
+	default:
+		return false
+	}
+}
+
+func isManagedLocalProviderID(provider string) bool {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "media", "speech", "sidecar":
 		return true
 	default:
 		return false

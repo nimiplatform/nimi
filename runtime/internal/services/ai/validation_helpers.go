@@ -2,55 +2,13 @@ package ai
 
 import (
 	"context"
-	"strings"
-	"time"
-
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
-
-func (s *Service) recordRouteAutoSwitch(appID string, subjectUserID string, requestedModelID string, resolvedModelID string, decision nimillm.RouteDecisionInfo) {
-	if !decision.HintAutoSwitch {
-		return
-	}
-	s.persistModelRegistry()
-	if s.audit == nil {
-		return
-	}
-	payload, _ := structpb.NewStruct(map[string]any{
-		"requestedModelId": strings.TrimSpace(requestedModelID),
-		"resolvedModelId":  strings.TrimSpace(resolvedModelID),
-		"backendName":      strings.TrimSpace(decision.BackendName),
-		"hintFrom":         strings.TrimSpace(decision.HintFrom),
-		"hintTo":           strings.TrimSpace(decision.HintTo),
-	})
-	s.audit.AppendEvent(&runtimev1.AuditEventRecord{
-		AuditId:       ulid.Make().String(),
-		AppId:         strings.TrimSpace(appID),
-		SubjectUserId: strings.TrimSpace(subjectUserID),
-		Domain:        "runtime.ai",
-		Operation:     "route.auto_switch",
-		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
-		TraceId:       ulid.Make().String(),
-		Timestamp:     timestamppb.New(time.Now().UTC()),
-		Payload:       payload,
-	})
-}
-
-func (s *Service) persistModelRegistry() {
-	if s.registry == nil || s.registryPath == "" {
-		return
-	}
-	if err := s.registry.SaveToFile(s.registryPath); err != nil && s.logger != nil {
-		s.logger.Error("persist model registry from ai route switch failed", "path", s.registryPath, "error", err)
-	}
-}
 
 func validatePromptRequest(appID string, subjectUserID string, modelID string, prompt string, route runtimev1.RoutePolicy) error {
 	if err := validateBaseRequest(appID, subjectUserID, modelID, route); err != nil {
@@ -85,88 +43,41 @@ func validateBaseRequestWithOptions(appID string, subjectUserID string, modelID 
 	return nil
 }
 
-func requireSubjectUserIDForScenario(
-	route runtimev1.RoutePolicy,
-	parsed ParsedKeySource,
-	remoteTarget *nimillm.RemoteTarget,
-) bool {
-	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return true
-	}
-	if remoteTarget != nil {
-		return true
-	}
-	if strings.TrimSpace(parsed.KeySource) == keySourceInline {
-		return true
-	}
-	if strings.TrimSpace(parsed.ProviderType) != "" || strings.TrimSpace(parsed.Endpoint) != "" || strings.TrimSpace(parsed.APIKey) != "" {
-		return true
-	}
-	return false
-}
-
 func (s *Service) prepareScenarioRequest(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType) (*nimillm.RemoteTarget, error) {
 	return s.prepareScenarioRequestWithExtensions(ctx, head, scenarioType, nil)
 }
 
-func (s *Service) prepareScenarioRequestWithExtensions(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, extensions []*runtimev1.ScenarioExtension) (*nimillm.RemoteTarget, error) {
-	remoteTarget, _, err := s.prepareScenarioRequestWithExtensionsAndLocalPlan(ctx, head, scenarioType, extensions)
-	return remoteTarget, err
-}
-
-func (s *Service) prepareScenarioRequestWithLocalPlan(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType) (*nimillm.RemoteTarget, *localModelExecutionPlan, error) {
-	return s.prepareScenarioRequestWithExtensionsAndLocalPlan(ctx, head, scenarioType, nil)
-}
-
-func (s *Service) prepareScenarioRequestWithExtensionsAndLocalPlan(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, extensions []*runtimev1.ScenarioExtension) (*nimillm.RemoteTarget, *localModelExecutionPlan, error) {
+func (s *Service) prepareScenarioRequestWithExtensions(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, _ []*runtimev1.ScenarioExtension) (*nimillm.RemoteTarget, error) {
 	if head == nil {
-		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	targetCapability := scenarioTargetCapability(scenarioType)
-	remoteBinding, localBinding, localAsset, err := s.normalizeScenarioRuntimeTargetRef(ctx, head, targetCapability)
+	capability := scenarioTargetCapability(scenarioType)
+	capturedCtx, intent, err := s.captureScenarioExecutionIntent(ctx, head, capability)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	parsed := parseKeySource(ctx, head.GetConnectorId())
-	if err := validateKeySource(parsed, head.GetAppId()); err != nil {
-		return nil, nil, err
+	if intent.IsLocal() {
+		return nil, localExactMediaUnsupportedError(scenarioType)
 	}
-	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
+	if !intent.IsCloud() {
+		return nil, missingAIConfigRouteError()
+	}
+	if strings.TrimSpace(head.GetAppId()) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_APP_ID_REQUIRED)
+	}
+	if scenarioTargetSubjectUserID(capturedCtx, head) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	binding, err := s.normalizeScenarioCloudTarget(capturedCtx, head, intent.CloudTarget)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	applyRemoteModelCatalogBinding(remoteTarget, remoteBinding)
-	if err := validateBaseRequestWithOptions(
-		head.GetAppId(),
-		head.GetSubjectUserId(),
-		head.GetModelId(),
-		head.GetRoutePolicy(),
-		requireSubjectUserIDForScenario(head.GetRoutePolicy(), parsed, remoteTarget),
-	); err != nil {
-		return nil, nil, err
-	}
-	var localPlan *localModelExecutionPlan
-	if localBinding != nil {
-		localPlan, err = s.prepareDurableLocalModelExecutionPlan(
-			ctx,
-			head.GetModelId(),
-			localBinding,
-			localAsset,
-			scenarioModalFromType(scenarioType),
-			nimillm.ScenarioExtensionPayloadForType(scenarioType, extensions),
-		)
-	} else if remoteTarget == nil && head.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return nil, nil, grpcerr.WithReasonCodeOptions(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
-			grpcerr.ReasonOptions{Message: "local execution requires an exact supported composition; ambient LocalAsset routing is retired"},
-		)
-	}
+	remoteTarget, err := resolveManagedTarget(capturedCtx, intent.ConnectorID(), s.connStore, s.allowLoopback)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return remoteTarget, localPlan, nil
+	applyRemoteModelCatalogBinding(remoteTarget, binding)
+	return remoteTarget, nil
 }
 
 func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
@@ -179,10 +90,12 @@ func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 		return "image.generate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
 		return "video.generate"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		return "audio.synthesize"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
+		return "voice_workflow.voice_clone"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		return "voice_workflow.voice_design"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return "audio.transcribe"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:

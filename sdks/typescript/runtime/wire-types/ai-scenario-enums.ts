@@ -39,12 +39,6 @@ export enum ExecutionMode {
   ASYNC_JOB = 3,
 }
 
-export enum FallbackPolicy {
-  UNSPECIFIED = 0,
-  DENY = 1,
-  ALLOW = 2,
-}
-
 export enum FinishReason {
   UNSPECIFIED = 0,
   STOP = 1,

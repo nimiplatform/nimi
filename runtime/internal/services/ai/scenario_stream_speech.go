@@ -61,7 +61,11 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if strings.TrimSpace(spec.GetText()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if requestExplicitlyDeclaresLocalExecution(req.GetHead()) {
+	intent, err := scenarioExecutionIntentFromContext(stream.Context(), scenarioTargetCapability(req.GetScenarioType()))
+	if err != nil {
+		return err
+	}
+	if intent.IsLocal() {
 		return localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 
@@ -104,11 +108,10 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		defer firstPacketTimer.Stop()
 	}
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
+	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		stream.Context(),
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		intent.ModelID(),
 		remoteTarget,
 		runtimev1.Modal_MODAL_TTS,
 	)
@@ -121,25 +124,6 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if err := s.validateScenarioCapability(stream.Context(), req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return err
 	}
-	releaseLocalLease, err := s.acquireSelectedLocalModelLease(
-		requestCtx,
-		modelResolved,
-		remoteTarget,
-		runtimev1.Modal_MODAL_TTS,
-		"stream_speech_synthesize_request",
-	)
-	if err != nil {
-		return err
-	}
-	defer releaseLocalLease()
-	s.recordRouteAutoSwitch(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		modelResolved,
-		routeInfo,
-	)
-
 	traceID := ulid.Make().String()
 	var seq atomic.Uint64
 	send := func(event *runtimev1.StreamScenarioEvent) error {
@@ -195,17 +179,13 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		return err
 	}
 
-	var backend *nimillm.Backend
-	var backendModelID string
-	if remoteTarget != nil && s.selector.cloudProvider != nil {
-		backend, backendModelID = s.selector.cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
-	} else {
-		mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
-		if !ok || mbp == nil {
-			return failAndStop(grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE))
-		}
-		backend, backendModelID = mbp.ResolveMediaBackend(modelResolved)
+	if remoteTarget == nil {
+		return failAndStop(localExactMediaUnsupportedError(req.GetScenarioType()))
 	}
+	if s.selector.cloudProvider == nil {
+		return failAndStop(grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE))
+	}
+	backend, backendModelID := s.selector.cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
 	if backend == nil {
 		return failAndStop(grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE))
 	}

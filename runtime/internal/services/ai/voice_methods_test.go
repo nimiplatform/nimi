@@ -13,7 +13,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -37,56 +40,33 @@ func (p staticProvider) Embed(context.Context, string, []string) ([]*structpb.Li
 	return nil, nil, nil
 }
 
-func TestListPresetVoicesReturnsCatalogVoices(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"}},
-	})
-
-	resp, err := svc.ListPresetVoices(context.Background(), &runtimev1.ListPresetVoicesRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "dashscope/qwen3-tts-instruct-flash",
-	})
+func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, provider string, endpoint string, apiKey string) {
+	t.Helper()
+	if svc.connStore == nil {
+		svc.connStore = connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	}
+	connectorID := "voice-delete-" + assetID
+	_, err := svc.connStore.Create(connector.ConnectorRecord{
+		ConnectorID: connectorID,
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:     "system",
+		Provider:    provider,
+		Endpoint:    endpoint,
+		Label:       "Voice delete test",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, apiKey)
 	if err != nil {
-		t.Fatalf("ListPresetVoices: %v", err)
+		t.Fatalf("create voice delete connector: %v", err)
 	}
-	if len(resp.GetVoices()) == 0 {
-		t.Fatalf("expected non-empty preset voice list")
-	}
-	if resp.GetTraceId() == "" {
-		t.Fatalf("trace id must be set")
-	}
-	if resp.GetModelResolved() == "" {
-		t.Fatalf("model resolved must be set")
-	}
-}
-
-func TestListPresetVoicesInfersProviderTypeForCloudAlias(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"stepfun": {BaseURL: "https://example.com", APIKey: "test-key"}},
-	})
-
-	resp, err := svc.ListPresetVoices(context.Background(), &runtimev1.ListPresetVoicesRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "cloud/step-tts-2",
-	})
-	if err != nil {
-		t.Fatalf("ListPresetVoices(cloud alias): %v", err)
-	}
-	if len(resp.GetVoices()) == 0 {
-		t.Fatalf("expected non-empty preset voice list for cloud alias")
-	}
-	if resp.GetModelResolved() == "" {
-		t.Fatalf("model resolved must be set for cloud alias")
-	}
-}
-
-func TestPresetVoiceCatalogProviderTypeNormalizesLocalSpeechProviderType(t *testing.T) {
-	got := presetVoiceCatalogProviderType(nil, newStaticProvider(runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL), "speech/qwen3tts")
-	if got != "local" {
-		t.Fatalf("presetVoiceCatalogProviderType(local speech) = %q, want %q", got, "local")
-	}
+	svc.voiceAssets.mu.Lock()
+	svc.voiceAssets.targets[assetID] = &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID:          connectorID,
+		RemoteModelCatalogID: "voice-delete-catalog-" + assetID,
+		ProviderModelID:      "voice-delete-model-" + assetID,
+		Provider:             provider,
+	}}
+	svc.voiceAssets.mu.Unlock()
 }
 
 func TestVoiceAssetMethodsLifecycle(t *testing.T) {
@@ -94,15 +74,15 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	svc := fixture.service
 
 	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
+	ctx = executionintent.WithIntent(ctx, executionintent.Intent{
+		CapabilityContract: "voice_workflow.voice_clone",
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		CloudTarget:        fixture.targetRef.GetCloud().Clone(),
+	})
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "dashscope/" + fixture.descriptor.GetProviderModelId(),
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     fixture.targetRef,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -257,6 +237,7 @@ func TestDeleteVoiceAssetDeletesProviderPersistentVoiceWhenSupported(t *testing.
 	})
 
 	const assetID = "asset-elevenlabs-1"
+	bindVoiceAssetDeleteTarget(t, svc, assetID, "elevenlabs", server.URL, "test-key")
 	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
@@ -325,6 +306,7 @@ func TestDeleteVoiceAssetDeletesFishAudioProviderModelWhenSupported(t *testing.T
 	})
 
 	const assetID = "asset-fish-1"
+	bindVoiceAssetDeleteTarget(t, svc, assetID, "fish_audio", server.URL, "test-key")
 	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
@@ -423,6 +405,7 @@ func TestDeleteVoiceAssetProviderFailureMarksPendingReconciliationAndRetryClears
 	svc.audit = auditlog.New(128, 128)
 
 	const assetID = "asset-elevenlabs-reconcile-1"
+	bindVoiceAssetDeleteTarget(t, svc, assetID, "elevenlabs", server.URL, "test-key")
 	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
@@ -548,6 +531,7 @@ func TestListVoiceAssetsRetriesPendingVoiceDeleteReconciliation(t *testing.T) {
 	svc.audit = auditlog.New(128, 128)
 
 	const assetID = "asset-elevenlabs-list-reconcile-1"
+	bindVoiceAssetDeleteTarget(t, svc, assetID, "elevenlabs", server.URL, "test-key")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
 		AppId:            "nimi.desktop",
@@ -633,6 +617,7 @@ func TestListVoiceAssetsSkipsVoiceDeleteReconciliationWithinCooldown(t *testing.
 	})
 
 	const assetID = "asset-elevenlabs-cooldown-1"
+	bindVoiceAssetDeleteTarget(t, svc, assetID, "elevenlabs", server.URL, "test-key")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
 		AppId:            "nimi.desktop",
@@ -693,6 +678,7 @@ func TestListVoiceAssetsMarksVoiceDeleteReconciliationExhaustedAfterMaxAttempts(
 	svc.audit = auditlog.New(128, 128)
 
 	const assetID = "asset-elevenlabs-exhausted-1"
+	bindVoiceAssetDeleteTarget(t, svc, assetID, "elevenlabs", server.URL, "test-key")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
 		AppId:            "nimi.desktop",
@@ -796,6 +782,7 @@ func TestRunVoiceAssetDeleteReconciliationLoopRetriesPendingDelete(t *testing.T)
 	svc.voiceAssetDeleteReconciliationInterval = 10 * time.Millisecond
 
 	const assetID = "asset-elevenlabs-loop-1"
+	bindVoiceAssetDeleteTarget(t, svc, assetID, "elevenlabs", server.URL, "test-key")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
 		AppId:            "nimi.desktop",

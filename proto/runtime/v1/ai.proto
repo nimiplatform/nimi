@@ -9,7 +9,6 @@ import "google/protobuf/timestamp.proto";
 import "runtime/v1/ai_scheduling.proto";
 import "runtime/v1/capability_configuration.proto";
 import "runtime/v1/common.proto";
-import "runtime/v1/runtime_target_identity.proto";
 import "runtime/v1/voice.proto";
 
 enum Modal {
@@ -49,12 +48,6 @@ enum RoutePolicy {
   ROUTE_POLICY_UNSPECIFIED = 0;
   ROUTE_POLICY_LOCAL = 1;
   ROUTE_POLICY_CLOUD = 2;
-}
-
-enum FallbackPolicy {
-  FALLBACK_POLICY_UNSPECIFIED = 0;
-  FALLBACK_POLICY_DENY = 1;
-  FALLBACK_POLICY_ALLOW = 2;
 }
 
 enum FinishReason {
@@ -280,12 +273,11 @@ message RawChunk {
 message ScenarioRequestHead {
   string app_id = 1;
   string subject_user_id = 2;
-  string model_id = 3;
-  RoutePolicy route_policy = 4;
-  FallbackPolicy fallback = 5;
+  reserved 3, 4, 5;
+  reserved "model_id", "route_policy", "fallback";
   int32 timeout_ms = 6;
-  string connector_id = 7;
-  RuntimeDurableTargetRef target_ref = 8;
+  reserved 7, 8;
+  reserved "connector_id", "target_ref";
 }
 
 message ScenarioExtension {
@@ -531,7 +523,8 @@ message ExecuteScenarioResponse {
   string model_resolved = 5;
   string trace_id = 6;
   repeated IgnoredScenarioExtension ignored_extensions = 7;
-  RuntimeResolvedExecutionBinding resolved_execution_binding = 8;
+  reserved 8;
+  reserved "resolved_execution_binding";
 }
 
 // Exact third-party Local App foreground text-candidate contract. Runtime
@@ -566,7 +559,8 @@ message StreamScenarioRequest {
 message ScenarioStreamStarted {
   string model_resolved = 1;
   RoutePolicy route_decision = 2;
-  RuntimeResolvedExecutionBinding resolved_execution_binding = 3;
+  reserved 3;
+  reserved "resolved_execution_binding";
   // Positive selected output-truth for SPEECH_SYNTHESIZE streams
   // (K-STREAM-004, K-VOICE-019). Populated only for speech scenario streams,
   // where it declares NATIVE_STREAM vs SIMULATED_STREAM at route decision;

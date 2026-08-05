@@ -3,11 +3,13 @@ package runtimeagent
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -16,7 +18,7 @@ import (
 
 type publicChatBindingResolverService interface {
 	ResolvePublicChatTextBinding(context.Context, runtimev1.RoutePolicy, string) (runtimev1.RoutePolicy, string, error)
-	ResolvePublicChatTextContextMetadataLease(context.Context, runtimev1.RoutePolicy, string, *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, func(), error)
+	ResolvePublicChatTextContextMetadataLease(context.Context, runtimev1.RoutePolicy, string, *runtimeidentity.Target) (uint64, string, string, string, *runtimeidentity.Target, func(), error)
 }
 
 type PublicChatBindingResolutionRequest struct {
@@ -29,7 +31,7 @@ type PublicChatBindingResolutionRequest struct {
 	SystemPrompt    string
 	Messages        []*runtimev1.ChatMessage
 	MaxOutputTokens int32
-	TargetRef       *runtimev1.RuntimeDurableTargetRef
+	TargetRef       *runtimeidentity.Target
 }
 
 type PublicChatBindingResolution struct {
@@ -37,7 +39,7 @@ type PublicChatBindingResolution struct {
 	ModelID             string
 	RoutePolicy         runtimev1.RoutePolicy
 	ConnectorID         string
-	TargetRef           *runtimev1.RuntimeDurableTargetRef
+	TargetRef           *runtimeidentity.Target
 	ContextWindowTokens uint64
 	CatalogRevision     string
 	ModelRevision       string
@@ -132,8 +134,8 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 	return resolution, nil
 }
 
-func publicChatResolvedRouteDigest(resolution PublicChatBindingResolution, targetRef *runtimev1.RuntimeDurableTargetRef) string {
-	targetBytes, err := proto.MarshalOptions{Deterministic: true}.Marshal(targetRef)
+func publicChatResolvedRouteDigest(resolution PublicChatBindingResolution, targetRef *runtimeidentity.Target) string {
+	targetBytes, err := json.Marshal(targetRef)
 	if err != nil {
 		return ""
 	}
@@ -439,7 +441,7 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 	}, nil
 }
 
-func firstPublicChatTargetRef(values ...*runtimev1.RuntimeDurableTargetRef) *runtimev1.RuntimeDurableTargetRef {
+func firstPublicChatTargetRef(values ...*runtimeidentity.Target) *runtimeidentity.Target {
 	for _, value := range values {
 		if value != nil && value.GetTarget() != nil {
 			return value

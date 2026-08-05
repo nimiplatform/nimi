@@ -37,9 +37,6 @@ func runRuntimeAISTT(args []string) error {
 	timeoutRaw := fs.String("timeout", "15s", "grpc request timeout")
 	appID := fs.String("app-id", "nimi.desktop", "caller app id")
 	subjectUserID := fs.String("subject-user-id", "local-user", "subject user id")
-	modelID := fs.String("model-id", "local/whisper-1", "target model id")
-	routeRaw := fs.String("route", "local", "route policy: local|cloud")
-	fallbackRaw := fs.String("fallback", "deny", "fallback policy: deny|allow")
 	timeoutMS := fs.Int("timeout-ms", 90000, "ai request timeout in milliseconds")
 	audioPath := fs.String("audio-file", "", "audio file path")
 	mimeType := fs.String("mime-type", "audio/wav", "audio mime type")
@@ -69,14 +66,6 @@ func runRuntimeAISTT(args []string) error {
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
-	routePolicy, err := parseRoutePolicy(*routeRaw)
-	if err != nil {
-		return err
-	}
-	fallbackPolicy, err := parseFallbackPolicy(*fallbackRaw)
-	if err != nil {
-		return err
-	}
 	audioBytes, err := os.ReadFile(strings.TrimSpace(*audioPath))
 	if err != nil {
 		return fmt.Errorf("read audio-file: %w", err)
@@ -87,9 +76,6 @@ func runRuntimeAISTT(args []string) error {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         strings.TrimSpace(*appID),
 			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
 			TimeoutMs:     timeoutMsValue,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
@@ -164,9 +150,6 @@ func runRuntimeAIArtifact(args []string, mode runtimeAIArtifactMode) error {
 	timeoutRaw := fs.String("timeout", defaultRuntimeAIArtifactTimeout(mode), "grpc request timeout")
 	appID := fs.String("app-id", "nimi.desktop", "caller app id")
 	subjectUserID := fs.String("subject-user-id", "local-user", "subject user id")
-	modelID := fs.String("model-id", defaultRuntimeAIArtifactModel(mode), "target model id")
-	routeRaw := fs.String("route", "local", "route policy: local|cloud")
-	fallbackRaw := fs.String("fallback", "deny", "fallback policy: deny|allow")
 	timeoutMS := fs.Int("timeout-ms", defaultRuntimeAIArtifactTimeoutMs(mode), "ai request timeout in milliseconds")
 	outputPath := fs.String("output", "", "artifact output file path")
 	jsonOutput := fs.Bool("json", false, "output json")
@@ -204,23 +187,12 @@ func runRuntimeAIArtifact(args []string, mode runtimeAIArtifactMode) error {
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
-	routePolicy, err := parseRoutePolicy(*routeRaw)
-	if err != nil {
-		return err
-	}
-	fallbackPolicy, err := parseFallbackPolicy(*fallbackRaw)
-	if err != nil {
-		return err
-	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
 	submitReq := &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         strings.TrimSpace(*appID),
 			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
 			TimeoutMs:     timeoutMsValue,
 		},
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -309,19 +281,6 @@ func runRuntimeAIArtifact(args []string, mode runtimeAIArtifactMode) error {
 		artifact.Usage.GetComputeMs(),
 	)
 	return nil
-}
-
-func defaultRuntimeAIArtifactModel(mode runtimeAIArtifactMode) string {
-	switch mode {
-	case runtimeAIArtifactModeImage:
-		return "local/sd3"
-	case runtimeAIArtifactModeVideo:
-		return "local/video-default"
-	case runtimeAIArtifactModeTTS:
-		return "local/tts-default"
-	default:
-		return "local/default"
-	}
 }
 
 func defaultRuntimeAIArtifactTimeout(mode runtimeAIArtifactMode) string {

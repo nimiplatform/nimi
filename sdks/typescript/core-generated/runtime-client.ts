@@ -1503,14 +1503,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelLocalTransferResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-    "service": "RuntimeLocalService",
-    "method": "CheckLocalAssetHealth",
-    "kind": "unary",
-    "requestType": "CheckLocalAssetHealthRequest",
-    "responseType": "CheckLocalAssetHealthResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
     "service": "RuntimeLocalService",
     "method": "CheckLocalServiceHealth",
@@ -1989,14 +1981,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "UnbindLocalCapabilityRequirementRequest",
     "responseType": "UnbindLocalCapabilityRequirementResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
-    "service": "RuntimeLocalService",
-    "method": "WarmLocalAsset",
-    "kind": "unary",
-    "requestType": "WarmLocalAssetRequest",
-    "responseType": "WarmLocalAssetResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",

@@ -69,12 +69,11 @@ func mapProbeSpeechVoices(payload probeSpeechVoicesResponse, modelID string) []*
 		return nil
 	}
 
-	normalizedTarget := normalizeComparableVoiceModelID(modelID)
-	targetBase := voiceModelIDBase(normalizedTarget)
+	targetModelID := strings.TrimSpace(modelID)
 	seen := make(map[string]struct{}, len(entries))
 	out := make([]*runtimev1.VoicePresetDescriptor, 0, len(entries))
 	for _, entry := range entries {
-		if !voiceSupportsTargetModel(entry, normalizedTarget, targetBase) {
+		if !voiceSupportsTargetModel(entry, targetModelID) {
 			continue
 		}
 		voiceID := FirstNonEmpty(
@@ -123,50 +122,22 @@ func shouldRetryVoiceListPath(err error) bool {
 	}
 }
 
-func voiceSupportsTargetModel(entry probeSpeechVoice, normalizedTarget string, targetBase string) bool {
-	if normalizedTarget == "" {
+func voiceSupportsTargetModel(entry probeSpeechVoice, targetModelID string) bool {
+	if targetModelID == "" {
 		return true
 	}
 	if len(entry.Models) > 0 {
 		for _, model := range entry.Models {
-			if voiceModelMatchesTarget(model, normalizedTarget, targetBase) {
+			if model == targetModelID {
 				return true
 			}
 		}
 		return false
 	}
-	if strings.TrimSpace(entry.Model) != "" {
-		return voiceModelMatchesTarget(entry.Model, normalizedTarget, targetBase)
+	if entry.Model != "" {
+		return entry.Model == targetModelID
 	}
 	return true
-}
-
-func voiceModelMatchesTarget(candidate string, normalizedTarget string, targetBase string) bool {
-	normalizedCandidate := normalizeComparableVoiceModelID(candidate)
-	if normalizedCandidate == "" {
-		return false
-	}
-	if normalizedCandidate == normalizedTarget {
-		return true
-	}
-	return voiceModelIDBase(normalizedCandidate) == targetBase
-}
-
-func normalizeComparableVoiceModelID(value string) string {
-	normalized := strings.ToLower(strings.TrimSpace(value))
-	normalized = strings.TrimPrefix(normalized, "cloud/")
-	normalized = strings.TrimPrefix(normalized, "token/")
-	normalized = strings.TrimPrefix(normalized, "local/")
-	return normalized
-}
-
-func voiceModelIDBase(value string) string {
-	normalized := strings.TrimSpace(value)
-	if normalized == "" {
-		return ""
-	}
-	segments := strings.Split(normalized, "/")
-	return strings.TrimSpace(segments[len(segments)-1])
 }
 
 func normalizeStringSlice(values []string) []string {

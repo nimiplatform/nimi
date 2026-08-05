@@ -36,13 +36,18 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if localText {
 		return streamLocalTextGenerateScenario(localCtx, s, req, stream)
 	}
+	intent, err := scenarioExecutionIntentFromContext(localCtx, aicapabilities.TextGenerate)
+	if err != nil {
+		return err
+	}
+	stream = &executionIntentScenarioStream{ServerStreamingServer: stream, ctx: localCtx}
 
 	prepareStartedAt := time.Now()
-	remoteTarget, localPlan, err := s.prepareScenarioRequestWithLocalPlan(stream.Context(), req.GetHead(), req.GetScenarioType())
+	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead(), req.GetScenarioType())
 	s.observeLatency("runtime.ai.stream.prepare_request_ms", prepareStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),
 		"scenario_type", req.GetScenarioType().String(),
-		"requested_model_id", req.GetHead().GetModelId(),
+		"requested_model_id", intent.ModelID(),
 	)
 	if err != nil {
 		return err
@@ -53,7 +58,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	s.observeLatency("runtime.ai.scheduler_acquire_ms", schedulerStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),
 		"scenario_type", req.GetScenarioType().String(),
-		"requested_model_id", req.GetHead().GetModelId(),
+		"requested_model_id", intent.ModelID(),
 	)
 	if acquireErr != nil {
 		return schedulerAcquireError(acquireErr)
@@ -125,18 +130,17 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 
 	routeStartedAt := time.Now()
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
+	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		stream.Context(),
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		intent.ModelID(),
 		remoteTarget,
 		runtimev1.Modal_MODAL_TEXT,
 	)
 	s.observeLatency("runtime.ai.route_resolve_ms", routeStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),
 		"scenario_type", req.GetScenarioType().String(),
-		"requested_model_id", req.GetHead().GetModelId(),
+		"requested_model_id", intent.ModelID(),
 		"resolved_model_id", modelResolved,
 		"route_decision", routeDecision.String(),
 	)
@@ -146,31 +150,18 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
-	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if err := s.validateScenarioCapability(stream.Context(), req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return err
 	}
 	if err := validateReasoningRequest(spec, modelResolved, remoteTarget, selectedProvider, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM); err != nil {
 		return err
 	}
-	s.recordRouteAutoSwitch(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		modelResolved,
-		routeInfo,
-	)
 	resolved, err := s.resolveTextGenerateScenario(stream.Context(), req.GetHead(), modelResolved, remoteTarget, selectedProvider, spec)
 	if err != nil {
 		return err
 	}
 	defer resolved.release()
-	releaseLease, err := s.acquireSelectedLocalModelLeaseWithPlan(requestCtx, localPlan, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_TEXT, "stream_text_generate_request")
-	if err != nil {
-		return err
-	}
-	defer releaseLease()
-	if err := s.validateTextGenerateInputPartsWithLocalPlan(stream.Context(), localPlan, modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
+	if err := s.validateTextGenerateInputParts(stream.Context(), modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
 		return err
 	}
 
@@ -216,17 +207,12 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		})
 	}
 
-	resolvedBinding, err := s.buildResolvedExecutionBinding(stream.Context(), req.GetHead(), aicapabilities.TextGenerate, "", remoteTarget)
-	if err != nil {
-		return err
-	}
 	if err := send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 		Payload: &runtimev1.StreamScenarioEvent_Started{
 			Started: &runtimev1.ScenarioStreamStarted{
-				ModelResolved:            modelResolved,
-				RouteDecision:            routeDecision,
-				ResolvedExecutionBinding: resolvedBinding,
+				ModelResolved: modelResolved,
+				RouteDecision: routeDecision,
 			},
 		},
 	}); err != nil {
@@ -236,7 +222,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	s.observeCounter("runtime_ai_stream_started_total", 1,
 		"caller_app_id", req.GetHead().GetAppId(),
 		"scenario_type", req.GetScenarioType().String(),
-		"requested_model_id", req.GetHead().GetModelId(),
+		"requested_model_id", intent.ModelID(),
 		"resolved_model_id", modelResolved,
 		"route_decision", routeDecision.String(),
 	)
@@ -250,7 +236,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	var usage *runtimev1.UsageStats
 	var finishReason runtimev1.FinishReason
 	streamSimulated := false
-	separateReasoning := requestedReasoningSeparate(resolved.spec)
 	firstProviderCallbackAt := time.Time{}
 	firstDeltaSent := atomic.Bool{}
 	recordFirstProviderCallback := func() {
@@ -259,7 +244,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			s.observeCounter("runtime_ai_stream_first_provider_callback_total", 1,
 				"caller_app_id", req.GetHead().GetAppId(),
 				"scenario_type", req.GetScenarioType().String(),
-				"requested_model_id", req.GetHead().GetModelId(),
+				"requested_model_id", intent.ModelID(),
 				"resolved_model_id", modelResolved,
 				"route_decision", routeDecision.String(),
 				"stream_simulated", streamSimulated,
@@ -267,7 +252,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			s.observeLatency("runtime.ai.stream.started_to_provider_first_callback_ms", streamStartedAt,
 				"caller_app_id", req.GetHead().GetAppId(),
 				"scenario_type", req.GetScenarioType().String(),
-				"requested_model_id", req.GetHead().GetModelId(),
+				"requested_model_id", intent.ModelID(),
 				"resolved_model_id", modelResolved,
 				"route_decision", routeDecision.String(),
 				"stream_simulated", streamSimulated,
@@ -279,7 +264,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			s.observeCounter("runtime_ai_stream_first_delta_sent_total", 1,
 				"caller_app_id", req.GetHead().GetAppId(),
 				"scenario_type", req.GetScenarioType().String(),
-				"requested_model_id", req.GetHead().GetModelId(),
+				"requested_model_id", intent.ModelID(),
 				"resolved_model_id", modelResolved,
 				"route_decision", routeDecision.String(),
 				"stream_simulated", streamSimulated,
@@ -288,7 +273,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 				s.observeLatency("runtime.ai.stream.provider_first_callback_to_first_delta_send_ms", firstProviderCallbackAt,
 					"caller_app_id", req.GetHead().GetAppId(),
 					"scenario_type", req.GetScenarioType().String(),
-					"requested_model_id", req.GetHead().GetModelId(),
+					"requested_model_id", intent.ModelID(),
 					"resolved_model_id", modelResolved,
 					"route_decision", routeDecision.String(),
 					"stream_simulated", streamSimulated,
@@ -296,7 +281,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 				s.observeLatency("runtime.ai.stream.chunk_buffer_wait_ms", firstProviderCallbackAt,
 					"caller_app_id", req.GetHead().GetAppId(),
 					"scenario_type", req.GetScenarioType().String(),
-					"requested_model_id", req.GetHead().GetModelId(),
+					"requested_model_id", intent.ModelID(),
 					"resolved_model_id", modelResolved,
 					"route_decision", routeDecision.String(),
 					"stream_simulated", streamSimulated,
@@ -333,30 +318,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		recordFirstDeltaSent()
 		return nil
 	}
-	var reasoningBuf strings.Builder
-	sendReasoning := func(text string) error {
-		if !separateReasoning || text == "" {
-			return nil
-		}
-		reasoningBuf.WriteString(text)
-		if reasoningBuf.Len() < minStreamChunkBytes {
-			return nil
-		}
-		chunk := reasoningBuf.String()
-		reasoningBuf.Reset()
-		return send(&runtimev1.StreamScenarioEvent{
-			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload: &runtimev1.StreamScenarioEvent_Delta{
-				Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Reasoning{
-						Reasoning: &runtimev1.ReasoningStreamDelta{
-							Text: chunk,
-						},
-					},
-				},
-			},
-		})
-	}
 	flushDelta := func() error {
 		if chunkBuf.Len() == 0 {
 			return nil
@@ -380,36 +341,20 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		recordFirstDeltaSent()
 		return nil
 	}
-	flushReasoning := func() error {
-		if reasoningBuf.Len() == 0 {
-			return nil
-		}
-		chunk := reasoningBuf.String()
-		reasoningBuf.Reset()
-		return send(&runtimev1.StreamScenarioEvent{
-			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload: &runtimev1.StreamScenarioEvent_Delta{
-				Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Reasoning{
-						Reasoning: &runtimev1.ReasoningStreamDelta{
-							Text: chunk,
-						},
-					},
-				},
-			},
-		})
+	if remoteTarget == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-
-	richStreamer, canRichStreamScenario := selectedProvider.(scenarioRichStreamingTextProvider)
-	scenarioStreamer, canStreamScenario := selectedProvider.(scenarioStreamingTextProvider)
-	scenarioGenerator, canGenerateScenario := selectedProvider.(scenarioTextProvider)
+	cloudProvider := s.selector.cloudProvider
+	if cloudProvider == nil {
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
 	// Tool calls and structured output stream as a simulated stream over the sync
 	// scenario path, which executes them end-to-end and returns the tool calls.
 	usesToolSurface := nimillm.TextScenarioUsesToolSurface(resolved.spec)
 	var pendingToolCalls []*runtimev1.ToolCall
-	if !usesToolSurface && remoteTarget != nil && s.selector.cloudProvider != nil {
+	if !usesToolSurface {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-		usage, finishReason, err = s.selector.cloudProvider.StreamGenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, func(part string) error {
+		usage, finishReason, err = cloudProvider.StreamGenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, func(part string) error {
 			recordFirstProviderCallback()
 			recordActivity()
 			return sendDelta(part)
@@ -417,56 +362,16 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		if err != nil {
 			return failAndStop(err)
 		}
-	} else if !usesToolSurface && separateReasoning && canRichStreamScenario {
-		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-		usage, finishReason, err = richStreamer.StreamGenerateTextScenarioRich(requestCtx, modelResolved, resolved.spec, nimillm.TextStreamEventHandler{
-			OnText: func(part string) error {
-				recordFirstProviderCallback()
-				recordActivity()
-				return sendDelta(part)
-			},
-			OnReasoning: func(part string) error {
-				recordFirstProviderCallback()
-				recordActivity()
-				return sendReasoning(part)
-			},
-		})
-		if err != nil {
-			return failAndStop(err)
-		}
-	} else if !usesToolSurface && canStreamScenario {
-		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-		usage, finishReason, err = scenarioStreamer.StreamGenerateTextScenario(requestCtx, modelResolved, resolved.spec, func(part string) error {
-			recordFirstProviderCallback()
-			recordActivity()
-			return sendDelta(part)
-		})
-		if err != nil {
-			return failAndStop(err)
-		}
 	} else {
-		if !canGenerateScenario && (remoteTarget == nil || s.selector.cloudProvider == nil) {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-		}
 		streamSimulated = true
-		var (
-			outputText   string
-			streamUsage  *runtimev1.UsageStats
-			streamFinish runtimev1.FinishReason
-			generateErr  error
-		)
-		if remoteTarget != nil && s.selector.cloudProvider != nil {
-			outputText, pendingToolCalls, streamUsage, streamFinish, generateErr = s.selector.cloudProvider.GenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, inputText, remoteTarget)
-		} else {
-			outputText, pendingToolCalls, streamUsage, streamFinish, generateErr = scenarioGenerator.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
-		}
+		outputText, toolCalls, streamUsage, streamFinish, generateErr := cloudProvider.GenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, inputText, remoteTarget)
 		if generateErr != nil {
 			return failAndStop(generateErr)
 		}
+		pendingToolCalls = toolCalls
 		usage = streamUsage
 		finishReason = streamFinish
-		parts := nimillm.SplitText(outputText, 24)
-		for _, part := range parts {
+		for _, part := range nimillm.SplitText(outputText, 24) {
 			recordFirstProviderCallback()
 			recordActivity()
 			if err := sendDelta(part); err != nil {
@@ -475,9 +380,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		}
 	}
 
-	if err := flushReasoning(); err != nil {
-		return err
-	}
 	if err := flushDelta(); err != nil {
 		return err
 	}
@@ -495,14 +397,14 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		s.recordStreamFallbackSimulated(
 			req.GetHead().GetAppId(),
 			req.GetHead().GetSubjectUserId(),
-			req.GetHead().GetModelId(),
+			intent.ModelID(),
 			modelResolved,
 		)
 	}
 	s.observeLatency("runtime.ai.stream.total_ms", scenarioStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),
 		"scenario_type", req.GetScenarioType().String(),
-		"requested_model_id", req.GetHead().GetModelId(),
+		"requested_model_id", intent.ModelID(),
 		"resolved_model_id", modelResolved,
 		"route_decision", routeDecision.String(),
 		"stream_simulated", streamSimulated,

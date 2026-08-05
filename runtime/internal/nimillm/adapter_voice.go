@@ -3,15 +3,11 @@ package nimillm
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"strings"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
+	"google.golang.org/grpc/codes"
 )
 
 // VoiceWorkflowRequest captures the unified input for a voice workflow adapter.
@@ -21,7 +17,6 @@ type VoiceWorkflowRequest struct {
 	WorkflowModelID string
 	ModelID         string
 	Payload         map[string]any
-	Headers         map[string]string
 	ExtPayload      map[string]any
 }
 
@@ -68,172 +63,81 @@ func ExecuteVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg Med
 	}
 }
 
-// voiceWorkflowTryEndpoints posts the payload to each endpoint path in order,
-// returning the first successful response. This is a shared helper for all
-// provider voice workflow adapters.
-func voiceWorkflowTryEndpoints(
+// voiceWorkflowPost posts to one adapter-owned endpoint.
+func voiceWorkflowPost(
 	ctx context.Context,
 	baseURL string,
 	apiKey string,
-	paths []string,
+	path string,
 	payload map[string]any,
 	headers map[string]string,
 	provider string,
 	workflowType string,
 	workflowModelID string,
 ) (VoiceWorkflowResult, error) {
-	if len(paths) == 0 {
+	if strings.TrimSpace(path) == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
-
-	var lastErr error
-	for _, path := range paths {
-		if err := ctx.Err(); err != nil {
-			return VoiceWorkflowResult{}, err
-		}
-		targetURL := JoinURL(baseURL, path)
-		response := map[string]any{}
-		err := DoJSONRequestWithHeaders(ctx, http.MethodPost, targetURL, apiKey, payload, &response, headers)
-		if err != nil {
-			lastErr = err
-			if status.Code(err) == codes.NotFound {
-				continue
-			}
-			return VoiceWorkflowResult{}, err
-		}
-		providerJobID := ExtractTaskIDFromAdapterPayload("voice:"+provider, response)
-		providerVoiceRef := extractVoiceWorkflowVoiceRef(response)
-		if providerVoiceRef == "" {
-			lastErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-			continue
-		}
-
-		metadata := map[string]any{
-			"provider":          provider,
-			"workflow_type":     strings.TrimSpace(workflowType),
-			"workflow_model_id": strings.TrimSpace(workflowModelID),
-			"adapter":           "nimillm_voice_adapter_" + provider,
-			"endpoint":          strings.TrimSpace(path),
-		}
-		if statusText := strings.TrimSpace(ResolveAsyncTaskStatus(response)); statusText != "" {
-			metadata["provider_status"] = statusText
-		}
-		return VoiceWorkflowResult{
-			ProviderJobID:    providerJobID,
-			ProviderVoiceRef: providerVoiceRef,
-			Metadata:         metadata,
-		}, nil
+	if err := ctx.Err(); err != nil {
+		return VoiceWorkflowResult{}, err
 	}
-	if lastErr != nil {
-		return VoiceWorkflowResult{}, lastErr
+	response := map[string]any{}
+	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, path), apiKey, payload, &response, headers); err != nil {
+		return VoiceWorkflowResult{}, err
 	}
-	return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	providerVoiceRef := extractVoiceWorkflowVoiceRef(response)
+	if providerVoiceRef == "" {
+		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	metadata := map[string]any{
+		"provider":          provider,
+		"workflow_type":     strings.TrimSpace(workflowType),
+		"workflow_model_id": strings.TrimSpace(workflowModelID),
+		"adapter":           "nimillm_voice_adapter_" + provider,
+		"endpoint":          strings.TrimSpace(path),
+	}
+	if statusText := strings.TrimSpace(ResolveAsyncTaskStatus(response)); statusText != "" {
+		metadata["provider_status"] = statusText
+	}
+	return VoiceWorkflowResult{
+		ProviderJobID:    ExtractTaskIDFromAdapterPayload("voice:"+provider, response),
+		ProviderVoiceRef: providerVoiceRef,
+		Metadata:         metadata,
+	}, nil
 }
 
-// executeSimpleVoiceWorkflow handles providers whose voice workflow follows the
-// standard pattern: resolve base URL → resolve paths → build headers → try endpoints.
 func executeSimpleVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig, provider string, defaults []string) (VoiceWorkflowResult, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := resolveVoiceWorkflowBaseURL(provider, cfg, req.ExtPayload)
+	baseURL := resolveVoiceWorkflowBaseURL(provider, cfg)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	paths := resolveVoiceEndpointPaths(req.WorkflowType, req.ExtPayload, defaults)
-	headers := voiceWorkflowHeaders(provider, cfg.APIKey, req.ExtPayload)
-	return voiceWorkflowTryEndpoints(ctx, baseURL, cfg.APIKey, paths, req.Payload, headers, provider, req.WorkflowType, req.WorkflowModelID)
+	path := resolveVoiceEndpointPath(req.WorkflowType, defaults)
+	headers := voiceWorkflowHeaders(provider, cfg)
+	return voiceWorkflowPost(ctx, baseURL, cfg.APIKey, path, req.Payload, headers, provider, req.WorkflowType, req.WorkflowModelID)
 }
 
-// resolveVoiceWorkflowBaseURL resolves the base URL for voice workflow requests.
-func resolveVoiceWorkflowBaseURL(provider string, cfg MediaAdapterConfig, extPayload map[string]any) string {
-	normalizeBaseURL := func(raw string) string {
-		trimmed := strings.TrimSuffix(strings.TrimSpace(raw), "/")
-		if trimmed == "" {
-			return ""
-		}
-		if strings.EqualFold(strings.TrimSpace(provider), "dashscope") {
-			return strings.TrimSuffix(nativeOriginURL(trimmed), "/")
-		}
-		return trimmed
+// resolveVoiceWorkflowBaseURL derives execution only from the exact target.
+func resolveVoiceWorkflowBaseURL(provider string, cfg MediaAdapterConfig) string {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	if baseURL == "" {
+		return ""
 	}
-	if extPayload != nil {
-		if value := strings.TrimSpace(ValueAsString(extPayload["base_url"])); value != "" {
-			overrideURL := normalizeBaseURL(value)
-			defaultBaseURL := normalizeBaseURL(cfg.BaseURL)
-			if defaultBaseURL == "" {
-				if record, ok := providerregistry.Lookup(strings.TrimSpace(strings.ToLower(provider))); ok {
-					defaultBaseURL = normalizeBaseURL(record.DefaultEndpoint)
-				}
-			}
-			if sameVoiceWorkflowBaseURL(defaultBaseURL, overrideURL) {
-				return overrideURL
-			}
-		}
+	if strings.EqualFold(strings.TrimSpace(provider), "dashscope") {
+		return strings.TrimSuffix(nativeOriginURL(baseURL), "/")
 	}
-	baseURL := normalizeBaseURL(cfg.BaseURL)
-	if baseURL != "" {
-		return baseURL
-	}
-	record, ok := providerregistry.Lookup(strings.TrimSpace(strings.ToLower(provider)))
-	if ok {
-		return normalizeBaseURL(record.DefaultEndpoint)
-	}
-	return ""
+	return baseURL
 }
 
-// voiceWorkflowHeaders builds the HTTP headers for a voice workflow request.
-func voiceWorkflowHeaders(provider string, apiKey string, extPayload map[string]any) map[string]string {
-	headers := map[string]string{}
-	if rawHeaders, ok := extPayload["headers"].(map[string]any); ok {
-		for key, value := range rawHeaders {
-			headerName := strings.TrimSpace(key)
-			if !allowVoiceWorkflowHeader(headerName) {
-				continue
-			}
-			headers[headerName] = strings.TrimSpace(ValueAsString(value))
-		}
+func voiceWorkflowHeaders(provider string, cfg MediaAdapterConfig) map[string]string {
+	headers := make(map[string]string, len(cfg.Headers)+1)
+	for key, value := range cfg.Headers {
+		headers[key] = value
 	}
-	if provider == "elevenlabs" && strings.TrimSpace(apiKey) != "" {
-		headers["xi-api-key"] = strings.TrimSpace(apiKey)
-	}
-	if apiKeyHeader := strings.TrimSpace(ValueAsString(extPayload["api_key_header"])); apiKeyHeader != "" && strings.TrimSpace(apiKey) != "" {
-		if !allowVoiceWorkflowHeader(apiKeyHeader) {
-			return headers
-		}
-		headers[apiKeyHeader] = strings.TrimSpace(apiKey)
+	if provider == "elevenlabs" && strings.TrimSpace(cfg.APIKey) != "" {
+		headers["xi-api-key"] = strings.TrimSpace(cfg.APIKey)
 	}
 	return headers
-}
-
-func sameVoiceWorkflowBaseURL(baseURL string, candidate string) bool {
-	if strings.TrimSpace(baseURL) == "" || strings.TrimSpace(candidate) == "" {
-		return false
-	}
-	baseParsed, err := url.Parse(baseURL)
-	if err != nil {
-		return false
-	}
-	candidateParsed, err := url.Parse(candidate)
-	if err != nil {
-		return false
-	}
-	if !strings.EqualFold(baseParsed.Scheme, candidateParsed.Scheme) || !strings.EqualFold(baseParsed.Host, candidateParsed.Host) {
-		return false
-	}
-	basePath := strings.TrimSuffix(strings.TrimSpace(baseParsed.EscapedPath()), "/")
-	candidatePath := strings.TrimSuffix(strings.TrimSpace(candidateParsed.EscapedPath()), "/")
-	return basePath == candidatePath
-}
-
-func allowVoiceWorkflowHeader(name string) bool {
-	lower := strings.ToLower(strings.TrimSpace(name))
-	if lower == "" {
-		return false
-	}
-	switch lower {
-	case "authorization", "host", "cookie", "content-length", "transfer-encoding", "connection":
-		return false
-	}
-	return strings.HasPrefix(lower, "x-")
 }
 
 // extractVoiceWorkflowVoiceRef extracts a voice reference from the provider response.
@@ -319,60 +223,15 @@ func extractPreviewIDFromVoiceWorkflowResponse(payload map[string]any) string {
 	return ""
 }
 
-// resolveVoiceEndpointPaths returns provider-specific or extension-provided paths.
-func resolveVoiceEndpointPaths(workflowType string, extPayload map[string]any, defaults []string) []string {
+func resolveVoiceEndpointPath(workflowType string, defaults []string) string {
 	workflow := strings.ToLower(strings.TrimSpace(workflowType))
-	if workflow == "" {
-		return nil
+	if workflow != "voice_clone" && workflow != "voice_design" {
+		return ""
 	}
-	keys := []string{"workflow_paths"}
-	if workflow == "voice_clone" {
-		keys = append(keys, "clone_paths")
-	}
-	if workflow == "voice_design" {
-		keys = append(keys, "design_paths")
-	}
-
-	candidates := make([]string, 0, 8)
-	for _, key := range keys {
-		candidates = append(candidates, valueAsTrimmedStringSliceVoice(extPayload[key])...)
-	}
-	candidates = append(candidates, defaults...)
-
-	seen := make(map[string]struct{}, len(candidates))
-	out := make([]string, 0, len(candidates))
-	for _, item := range candidates {
-		normalized := strings.TrimSpace(item)
-		if normalized == "" {
-			continue
-		}
-		if _, exists := seen[normalized]; exists {
-			continue
-		}
-		seen[normalized] = struct{}{}
-		out = append(out, normalized)
-	}
-	return out
-}
-
-func valueAsTrimmedStringSliceVoice(value any) []string {
-	items := make([]string, 0)
-	switch typed := value.(type) {
-	case []string:
-		for _, item := range typed {
-			if trimmed := strings.TrimSpace(item); trimmed != "" {
-				items = append(items, trimmed)
-			}
-		}
-	case []any:
-		for _, item := range typed {
-			if trimmed := strings.TrimSpace(ValueAsString(item)); trimmed != "" {
-				items = append(items, trimmed)
-			}
+	for _, candidate := range defaults {
+		if path := strings.TrimSpace(candidate); path != "" {
+			return path
 		}
 	}
-	if len(items) == 0 {
-		return nil
-	}
-	return items
+	return ""
 }

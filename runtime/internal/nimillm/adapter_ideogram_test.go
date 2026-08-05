@@ -11,7 +11,7 @@ import (
 func TestExecuteIdeogramImageRejectsMissingAPIKey(t *testing.T) {
 	_, _, _, err := ExecuteIdeogramImage(
 		context.Background(),
-		MediaAdapterConfig{},
+		MediaAdapterConfig{BaseURL: "https://api.ideogram.ai"},
 		&runtimev1.SubmitScenarioJobRequest{
 			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 			Spec: &runtimev1.ScenarioSpec{

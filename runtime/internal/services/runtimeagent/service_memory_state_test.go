@@ -336,10 +336,12 @@ type fakeLifeTurnAI struct {
 	response *runtimev1.ExecuteScenarioResponse
 	err      error
 	requests []*runtimev1.ExecuteScenarioRequest
+	contexts []context.Context
 }
 
-func (f *fakeLifeTurnAI) ExecuteScenario(_ context.Context, req *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
+func (f *fakeLifeTurnAI) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
 	f.requests = append(f.requests, proto.Clone(req).(*runtimev1.ExecuteScenarioRequest))
+	f.contexts = append(f.contexts, ctx)
 	if f.err != nil {
 		return nil, f.err
 	}

@@ -35,42 +35,26 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		targetModelID = strings.TrimSpace(spec.GetVoiceDesign().GetTargetModelId())
 	}
 	provider := strings.TrimSpace(input.Provider)
-	if provider == "" {
-		provider = inferVoiceAssetProvider(head.GetModelId())
-	}
-	if provider == "" {
-		provider = "local"
-	}
 	persistence := runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL
 	switch strings.ToLower(strings.TrimSpace(input.OutputPersistence)) {
 	case "provider_persistent":
 		persistence = runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT
 	}
 	asset := &runtimev1.VoiceAsset{
-		VoiceAssetId:        assetID,
-		AppId:               head.GetAppId(),
-		SubjectUserId:       head.GetSubjectUserId(),
-		WorkflowType:        workflowType,
-		Provider:            provider,
-		ModelId:             head.GetModelId(),
-		TargetModelId:       targetModelID,
-		ProviderVoiceRef:    "",
-		Persistence:         persistence,
-		Status:              runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
-		CreatedAt:           now,
-		UpdatedAt:           now,
-		TargetRef:           cloneRuntimeDurableTargetRef(head.GetTargetRef()),
-		VoiceAssetTargetRef: cloneRuntimeDurableTargetRef(head.GetTargetRef()),
+		VoiceAssetId:     assetID,
+		AppId:            head.GetAppId(),
+		SubjectUserId:    head.GetSubjectUserId(),
+		WorkflowType:     workflowType,
+		Provider:         provider,
+		ModelId:          strings.TrimSpace(input.ModelResolved),
+		TargetModelId:    targetModelID,
+		ProviderVoiceRef: "",
+		Persistence:      persistence,
+		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 	workflowFamily := strings.TrimSpace(input.WorkflowFamily)
-	if workflowFamily == "" {
-		workflowFamily = inferVoiceWorkflowFamily(
-			input.WorkflowModelID,
-			input.ModelResolved,
-			targetModelID,
-			head.GetModelId(),
-		)
-	}
 	if strings.TrimSpace(input.WorkflowModelID) != "" ||
 		workflowFamily != "" ||
 		strings.TrimSpace(input.ModelResolved) != "" ||
@@ -127,12 +111,6 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		NextPollAt:        nil,
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(input.IgnoredExtensions),
 	}
-	if job.ModelResolved == "" {
-		job.ModelResolved = head.GetModelId()
-	}
-	if job.RouteDecision == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		job.RouteDecision = head.GetRoutePolicy()
-	}
 	record := &voiceScenarioJobRecord{
 		job:         cloneScenarioJob(job),
 		assetID:     assetID,
@@ -145,6 +123,7 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
 	s.jobs[jobID] = record
 	s.assets[assetID] = cloneVoiceAsset(asset)
+	s.targets[assetID] = input.ExecutionTarget.Clone()
 	s.pruneLocked(now.AsTime())
 	s.mu.Unlock()
 	return cloneScenarioJob(job), cloneVoiceAsset(asset)

@@ -59,7 +59,7 @@ func resolveCloudProviders(fileTargets map[string]RuntimeFileTarget) map[string]
 
 		resolvedAPIKey, resolvedAPIKeyEnv := resolveProviderAPIKeyWithBindingSource(target, binding.apiKeyKey)
 		declaredAPIKeyEnv := strings.TrimSpace(target.APIKeyEnv)
-		if resolvedBase == "" && resolvedAPIKey == "" && strings.TrimSpace(target.DefaultModel) == "" {
+		if resolvedBase == "" && resolvedAPIKey == "" {
 			continue
 		}
 		if resolvedBase == "" {

@@ -47,13 +47,12 @@ type textEmbedRouteDescribeMetadataPayload struct {
 }
 
 type runtimeRouteDescribeResultPayload struct {
-	Capability         string         `json:"capability"`
-	MetadataVersion    string         `json:"metadataVersion"`
-	ResolvedBindingRef string         `json:"resolvedBindingRef"`
-	RouteMetadataRef   string         `json:"routeMetadataRef"`
-	SourceTargetRef    map[string]any `json:"sourceTargetRef,omitempty"`
-	MetadataKind       string         `json:"metadataKind"`
-	Metadata           any            `json:"metadata"`
+	Capability         string `json:"capability"`
+	MetadataVersion    string `json:"metadataVersion"`
+	ResolvedBindingRef string `json:"resolvedBindingRef"`
+	RouteMetadataRef   string `json:"routeMetadataRef"`
+	MetadataKind       string `json:"metadataKind"`
+	Metadata           any    `json:"metadata"`
 }
 
 func textGenerateRouteDescribeProbeFromExtensions(
@@ -227,7 +226,6 @@ func (s *Service) describeTextGenerateRouteMetadata(
 		MetadataVersion:    "v1",
 		ResolvedBindingRef: probe.resolvedBindingRef,
 		RouteMetadataRef:   routeMetadataRefForResolvedBinding(aicapabilities.TextGenerate, probe.resolvedBindingRef),
-		SourceTargetRef:    runtimeDurableTargetRefJSON(head.GetTargetRef()),
 		MetadataKind:       aicapabilities.TextGenerate,
 		Metadata: textGenerateRouteDescribeMetadataPayload{
 			SupportsThinking:         reasoningCapability.SupportsModeToggle,
@@ -260,7 +258,7 @@ func (s *Service) describeTextEmbedRouteMetadata(
 		}
 		dimensions = localTextEmbedDimensions(selectedModel)
 	} else {
-		providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_EMBEDDING)
+		providerType := scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_EMBEDDING)
 		if providerType != "" && providerregistry.Contains(providerType) {
 			if s == nil || s.speechCatalog == nil {
 				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
@@ -292,7 +290,6 @@ func (s *Service) describeTextEmbedRouteMetadata(
 		MetadataVersion:    "v1",
 		ResolvedBindingRef: probe.resolvedBindingRef,
 		RouteMetadataRef:   routeMetadataRefForResolvedBinding(aicapabilities.TextEmbed, probe.resolvedBindingRef),
-		SourceTargetRef:    runtimeDurableTargetRefJSON(head.GetTargetRef()),
 		MetadataKind:       aicapabilities.TextEmbed,
 		Metadata:           metadataPayload,
 	}, nil
@@ -341,7 +338,7 @@ func (s *Service) describeRemoteTextGenerateCapabilitySupport(
 	selected provider,
 	capability string,
 ) (bool, error) {
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED)
+	providerType := scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED)
 	if providerType == "" || !providerregistry.Contains(providerType) {
 		return false, nil
 	}
@@ -367,100 +364,6 @@ func stringValue(value any) string {
 	default:
 		return ""
 	}
-}
-
-func selectLocalTextGenerateDescribeModelFromTargetRef(
-	models []*runtimev1.LocalAssetRecord,
-	targetRef *runtimev1.RuntimeDurableTargetRef,
-) (*runtimev1.LocalAssetRecord, runtimev1.ReasonCode, string) {
-	localAssetID := localTextGenerateDescribeTargetRefLocalAssetID(targetRef)
-	if localAssetID == "" {
-		return nil, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "text.generate route describe requires a local-runtime targetRef"
-	}
-	if candidate := findLocalTextGenerateDescribeModelByAssetID(models, localAssetID); candidate != nil {
-		return candidate, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
-	}
-	return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "text.generate route describe targetRef did not match a local asset"
-}
-
-func selectLocalTextEmbedDescribeModelFromTargetRef(
-	models []*runtimev1.LocalAssetRecord,
-	targetRef *runtimev1.RuntimeDurableTargetRef,
-) (*runtimev1.LocalAssetRecord, runtimev1.ReasonCode, string) {
-	localAssetID := localTextGenerateDescribeTargetRefLocalAssetID(targetRef)
-	if localAssetID == "" {
-		return nil, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "text.embed route describe requires a local-runtime targetRef"
-	}
-	if candidate := findLocalTextEmbedDescribeModelByAssetID(models, localAssetID); candidate != nil {
-		return candidate, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
-	}
-	return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "text.embed route describe targetRef did not match a local embedding asset"
-}
-
-func localTextGenerateDescribeTargetRefLocalAssetID(targetRef *runtimev1.RuntimeDurableTargetRef) string {
-	if targetRef == nil {
-		return ""
-	}
-	local := targetRef.GetLocalRuntime()
-	if local == nil {
-		return ""
-	}
-	var ref string
-	switch local.GetRef().(type) {
-	case *runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId:
-		ref = local.GetProfileBindingId()
-	case *runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef:
-		ref = local.GetReadinessRef()
-	default:
-		return ""
-	}
-	ref = strings.TrimSpace(ref)
-	return strings.TrimPrefix(ref, "local-runtime:")
-}
-
-func findLocalTextGenerateDescribeModelByAssetID(
-	models []*runtimev1.LocalAssetRecord,
-	assetID string,
-) *runtimev1.LocalAssetRecord {
-	normalized := strings.TrimSpace(assetID)
-	if normalized == "" {
-		return nil
-	}
-	for _, model := range models {
-		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
-			continue
-		}
-		if strings.TrimSpace(model.GetLocalAssetId()) == normalized {
-			return model
-		}
-	}
-	return nil
-}
-
-func findLocalTextEmbedDescribeModelByAssetID(
-	models []*runtimev1.LocalAssetRecord,
-	assetID string,
-) *runtimev1.LocalAssetRecord {
-	normalized := strings.TrimSpace(assetID)
-	if normalized == "" {
-		return nil
-	}
-	for _, model := range models {
-		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
-			continue
-		}
-		if strings.TrimSpace(model.GetLocalAssetId()) != normalized {
-			continue
-		}
-		if model.GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING {
-			continue
-		}
-		if !localModelSupportsTextGenerateCapability(model, aicapabilities.TextEmbed) {
-			continue
-		}
-		return model
-	}
-	return nil
 }
 
 func localTextEmbedDimensions(model *runtimev1.LocalAssetRecord) int {

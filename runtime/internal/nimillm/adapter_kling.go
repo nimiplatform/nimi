@@ -26,7 +26,7 @@ func ExecuteKlingTask(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.klingai.com"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -57,7 +57,7 @@ func executeKlingImageTask(
 	}
 
 	payload := map[string]any{
-		"model_name": StripProviderModelPrefix(modelResolved, "kling"),
+		"model_name": strings.TrimSpace(modelResolved),
 		"prompt":     strings.TrimSpace(spec.GetPrompt()),
 	}
 	if negPrompt := strings.TrimSpace(spec.GetNegativePrompt()); negPrompt != "" {
@@ -73,12 +73,8 @@ func executeKlingImageTask(
 		payload["image"] = spec.GetReferenceImages()[0]
 	}
 
-	submitPath := FirstProviderEndpointPath(nil,
-		[]string{"image_submit_path"}, []string{"image_submit_paths"},
-		[]string{"/v1/images/generations"})
-	queryPathTemplate := ResolveTaskQueryPathTemplate(nil,
-		[]string{"image_query_path"}, []string{"image_query_paths"},
-		[]string{"/v1/images/generations/{task_id}"})
+	submitPath := firstProviderEndpointPath([]string{"/v1/images/generations"})
+	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1/images/generations/{task_id}"})
 
 	submitResp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
@@ -127,7 +123,7 @@ func executeKlingVideoTask(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	payload := map[string]any{
-		"model_name": StripProviderModelPrefix(modelResolved, "kling"),
+		"model_name": strings.TrimSpace(modelResolved),
 		"content":    contentPayload,
 	}
 	if prompt := VideoPrompt(spec); prompt != "" {
@@ -143,12 +139,8 @@ func executeKlingVideoTask(
 		payload["aspect_ratio"] = ratio
 	}
 
-	submitPath := FirstProviderEndpointPath(nil,
-		[]string{"video_submit_path"}, []string{"video_submit_paths"},
-		[]string{"/v1/videos/text2video"})
-	queryPathTemplate := ResolveTaskQueryPathTemplate(nil,
-		[]string{"video_query_path"}, []string{"video_query_paths"},
-		[]string{"/v1/videos/text2video/{task_id}"})
+	submitPath := firstProviderEndpointPath([]string{"/v1/videos/text2video"})
+	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1/videos/text2video/{task_id}"})
 
 	submitResp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {

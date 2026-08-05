@@ -7,6 +7,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/spendvisibility"
 )
 
@@ -23,11 +25,16 @@ func TestReportScenarioSpendDisclosureProjectsCloudUnknownCost(t *testing.T) {
 		gotDisclosure = disclosure
 	})
 
-	err := svc.reportScenarioSpendDisclosure(context.Background(), &runtimev1.ScenarioRequestHead{
+	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
+		CapabilityContract: "text.generate",
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		CloudTarget: &runtimeidentity.CloudTarget{
+			ConnectorID: "connector-1", RemoteModelCatalogID: "catalog-1", ProviderModelID: "gemini-pro", Provider: "gemini",
+		},
+	})
+	err := svc.reportScenarioSpendDisclosure(ctx, &runtimev1.ScenarioRequestHead{
 		AppId:         "nimi.example-app",
 		SubjectUserId: "user-1",
-		ModelId:       "gemini/gemini-pro",
-		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err != nil {
 		t.Fatalf("report spend disclosure: %v", err)
@@ -61,11 +68,12 @@ func TestReportScenarioSpendDisclosureProjectsLocalZeroCost(t *testing.T) {
 		gotDisclosure = disclosure
 	})
 
-	err := svc.reportScenarioSpendDisclosure(context.Background(), &runtimev1.ScenarioRequestHead{
-		AppId:       "nimi.desktop",
-		ModelId:     "local/qwen",
-		TargetRef:   localScenarioTargetRefForModel("local/qwen"),
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
+		CapabilityContract: "text.generate",
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+	err := svc.reportScenarioSpendDisclosure(ctx, &runtimev1.ScenarioRequestHead{
+		AppId: "nimi.desktop",
 	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err != nil {
 		t.Fatalf("report spend disclosure: %v", err)

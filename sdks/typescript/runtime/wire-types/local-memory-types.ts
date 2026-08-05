@@ -11,8 +11,6 @@ import type {
   CancelLocalEnvironmentDependencyJobResponse,
   CancelLocalTransferRequest,
   CancelLocalTransferResponse,
-  CheckLocalAssetHealthRequest,
-  CheckLocalAssetHealthResponse,
   CheckLocalServiceHealthRequest,
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
@@ -106,8 +104,6 @@ import type {
   StopLocalAssetResponse,
   StopLocalServiceRequest,
   StopLocalServiceResponse,
-  WarmLocalAssetRequest,
-  WarmLocalAssetResponse,
   WatchLocalTransfersRequest,
 } from "../../core-generated/runtime-protobuf/runtime/v1/local_runtime";
 
@@ -121,8 +117,6 @@ export type {
   CancelLocalEnvironmentDependencyJobResponse,
   CancelLocalTransferRequest,
   CancelLocalTransferResponse,
-  CheckLocalAssetHealthRequest,
-  CheckLocalAssetHealthResponse,
   CheckLocalServiceHealthRequest,
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
@@ -216,13 +210,10 @@ export type {
   StopLocalAssetResponse,
   StopLocalServiceRequest,
   StopLocalServiceResponse,
-  WarmLocalAssetRequest,
-  WarmLocalAssetResponse,
   WatchLocalTransfersRequest,
 };
 
 import type {
-  LocalAssetHealth,
   LocalAssetRecord,
   LocalAssetSource,
   LocalCatalogModelDescriptor,
@@ -237,7 +228,6 @@ import type {
 } from "../../core-generated/runtime-protobuf/runtime/v1/local_runtime_asset_catalog";
 
 export type {
-  LocalAssetHealth,
   LocalAssetRecord,
   LocalAssetSource,
   LocalCatalogModelDescriptor,
@@ -399,7 +389,6 @@ import type {
   MemoryBankOwnerFilter,
   MemoryDeletedDetail,
   MemoryEmbeddingCloudBindingRef,
-  MemoryEmbeddingLocalBindingRef,
   MemoryEmbeddingOperationReadiness,
   MemoryEmbeddingProfile,
   MemoryEvent,
@@ -459,7 +448,6 @@ export type {
   MemoryBankOwnerFilter,
   MemoryDeletedDetail,
   MemoryEmbeddingCloudBindingRef,
-  MemoryEmbeddingLocalBindingRef,
   MemoryEmbeddingOperationReadiness,
   MemoryEmbeddingProfile,
   MemoryEvent,
@@ -517,22 +505,4 @@ export type {
   PullModelRequest,
   PullModelResponse,
   RemoveModelRequest,
-};
-
-import type {
-  RuntimeDurableCloudTargetRef,
-  RuntimeDurableLocalTargetRef,
-  RuntimeDurableTargetRef,
-  RuntimeResolvedCloudExecutionBinding,
-  RuntimeResolvedExecutionBinding,
-  RuntimeResolvedLocalExecutionBinding,
-} from "../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity";
-
-export type {
-  RuntimeDurableCloudTargetRef,
-  RuntimeDurableLocalTargetRef,
-  RuntimeDurableTargetRef,
-  RuntimeResolvedCloudExecutionBinding,
-  RuntimeResolvedExecutionBinding,
-  RuntimeResolvedLocalExecutionBinding,
 };

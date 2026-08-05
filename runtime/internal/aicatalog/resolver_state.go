@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
-	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
 func (r *Resolver) stateForSubject(subjectUserID string) (*catalogState, error) {
@@ -160,7 +159,6 @@ func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
 		}
 		key := normalizeLookupModelID(model.ModelID, provider)
 		indexed.models[provider][key] = model
-		indexed.models[provider][modelIDBase(key)] = model
 	}
 
 	for _, voice := range snapshot.Voices {
@@ -174,26 +172,7 @@ func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
 	}
 
 	for _, workflowModel := range snapshot.VoiceWorkflowModels {
-		provider := inferProviderFromWorkflowModelID(workflowModel.WorkflowModelID, workflowModel.TargetModelRefs, map[string]ModelEntry{})
-		if provider == "" {
-			for _, targetModelRaw := range workflowModel.TargetModelRefs {
-				targetModelID := normalizeLookupModelID(targetModelRaw, "")
-				for candidateProvider, modelMap := range indexed.models {
-					if _, ok := modelMap[targetModelID]; ok {
-						provider = candidateProvider
-						break
-					}
-					if _, ok := modelMap[modelIDBase(targetModelID)]; ok {
-						provider = candidateProvider
-						break
-					}
-				}
-				if provider != "" {
-					break
-				}
-			}
-		}
-		provider = normalizeProvider(provider)
+		provider := normalizeProvider(workflowModel.Provider)
 		if provider == "" {
 			continue
 		}
@@ -204,23 +183,15 @@ func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
 	}
 
 	for _, binding := range snapshot.ModelWorkflowBindings {
-		modelID := normalizeLookupModelID(binding.ModelID, "")
-		if modelID == "" {
+		provider := normalizeProvider(binding.Provider)
+		modelID := normalizeLookupModelID(binding.ModelID, provider)
+		if provider == "" || modelID == "" || indexed.models[provider][modelID].ModelID == "" {
 			continue
 		}
-		for provider, modelMap := range indexed.models {
-			if _, ok := modelMap[modelID]; !ok {
-				if _, baseOK := modelMap[modelIDBase(modelID)]; !baseOK {
-					continue
-				}
-			}
-			if indexed.workflowBindings[provider] == nil {
-				indexed.workflowBindings[provider] = make(map[string]ModelWorkflowBinding)
-			}
-			indexed.workflowBindings[provider][modelID] = binding
-			indexed.workflowBindings[provider][modelIDBase(modelID)] = binding
-			break
+		if indexed.workflowBindings[provider] == nil {
+			indexed.workflowBindings[provider] = make(map[string]ModelWorkflowBinding)
 		}
+		indexed.workflowBindings[provider][modelID] = binding
 	}
 	for _, policy := range snapshot.VoiceHandlePolicies {
 		provider := normalizeProvider(policy.Provider)
@@ -237,18 +208,8 @@ func resolveModelEntry(snapshot *indexedSnapshot, provider string, normalizedMod
 	if len(providerModels) == 0 {
 		return ModelEntry{}, false
 	}
-	for _, candidate := range modelLookupCandidates(provider, normalizedModel) {
-		modelEntry, ok := providerModels[candidate]
-		if ok {
-			return modelEntry, true
-		}
-		base := modelIDBase(candidate)
-		modelEntry, ok = providerModels[base]
-		if ok {
-			return modelEntry, true
-		}
-	}
-	return ModelEntry{}, false
+	modelEntry, ok := providerModels[normalizedModel]
+	return modelEntry, ok
 }
 
 func resolveModelWorkflowBinding(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelWorkflowBinding, bool) {
@@ -257,11 +218,6 @@ func resolveModelWorkflowBinding(snapshot *indexedSnapshot, provider string, nor
 		return ModelWorkflowBinding{}, false
 	}
 	binding, ok := providerBindings[normalizedModel]
-	if ok {
-		return binding, true
-	}
-	base := modelIDBase(normalizedModel)
-	binding, ok = providerBindings[base]
 	return binding, ok
 }
 
@@ -307,62 +263,8 @@ func resolveVoiceHandlePolicy(snapshot *indexedSnapshot, provider string, workfl
 	return VoiceHandlePolicy{}, false
 }
 
-func normalizeLookupModelID(raw string, provider string) string {
-	value := strings.ToLower(strings.TrimSpace(raw))
-	value = strings.TrimPrefix(value, "cloud/")
-	value = strings.TrimPrefix(value, "token/")
-	value = strings.TrimPrefix(value, "local/")
-	provider = normalizeProvider(provider)
-	if provider != "" {
-		prefix := provider + "/"
-		value = strings.TrimPrefix(value, prefix)
-	}
-	return strings.TrimSpace(value)
-}
-
-func modelLookupCandidates(provider string, normalizedModel string) []string {
-	return []string{normalizedModel}
-}
-
-func modelIDBase(value string) string {
-	normalized := strings.TrimSpace(value)
-	if normalized == "" {
-		return ""
-	}
-	segments := strings.Split(normalized, "/")
-	return strings.TrimSpace(segments[len(segments)-1])
-}
-
-func inferProviderFromModel(modelID string) string {
-	normalized := strings.TrimSpace(strings.ToLower(modelID))
-	if idx := strings.Index(normalized, "/"); idx > 0 {
-		prefix := strings.TrimSpace(normalized[:idx])
-		if providerregistry.Contains(prefix) {
-			return prefix
-		}
-	}
-	switch {
-	case strings.HasPrefix(normalized, "local/"):
-		return "local"
-	case normalized == "qwen3-tts-local", normalized == "qwen3-tts", strings.Contains(normalized, "qwen/qwen3-tts"):
-		return "local"
-	case normalized == "qwen3-asr-local", normalized == "qwen3-asr", strings.Contains(normalized, "qwen/qwen3-asr"):
-		return "local"
-	case strings.Contains(normalized, "qwen3-tts"):
-		return "dashscope"
-	case strings.Contains(normalized, "gpt-audio"), strings.HasPrefix(normalized, "tts-1"):
-		return "openai"
-	case strings.Contains(normalized, "doubao-tts"),
-		strings.Contains(normalized, "volc.service_type.10029"),
-		strings.Contains(normalized, "volc.bigasr"),
-		strings.Contains(normalized, "bv001_streaming"),
-		strings.Contains(normalized, "bv002_streaming"):
-		return "volcengine_openspeech"
-	case strings.HasPrefix(normalized, "eleven_"), strings.HasPrefix(normalized, "eleven-"):
-		return "elevenlabs"
-	default:
-		return ""
-	}
+func normalizeLookupModelID(raw string, _ string) string {
+	return strings.TrimSpace(raw)
 }
 
 func normalizeStringSlice(values []string) []string {
@@ -394,13 +296,8 @@ func voiceMatchesModel(entry VoiceEntry, modelID string) bool {
 	if len(entry.ModelIDs) == 0 {
 		return true
 	}
-	targetBase := modelIDBase(target)
 	for _, model := range entry.ModelIDs {
-		candidate := normalizeLookupModelID(model, "")
-		if candidate == "" {
-			continue
-		}
-		if candidate == target || modelIDBase(candidate) == targetBase {
+		if normalizeLookupModelID(model, "") == target {
 			return true
 		}
 	}

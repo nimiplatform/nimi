@@ -26,7 +26,7 @@ func ExecuteLumaTask(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.lumalabs.ai"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -44,7 +44,7 @@ func ExecuteLumaTask(
 	payload := map[string]any{
 		"prompt": VideoPrompt(spec),
 	}
-	if resolvedModel := StripProviderModelPrefix(modelResolved, "luma"); resolvedModel != "" {
+	if resolvedModel := strings.TrimSpace(modelResolved); resolvedModel != "" {
 		payload["model"] = resolvedModel
 	}
 	if ratio := VideoRatio(spec); ratio != "" {
@@ -65,12 +65,8 @@ func ExecuteLumaTask(
 		}
 	}
 
-	submitPath := FirstProviderEndpointPath(nil,
-		[]string{"video_submit_path"}, []string{"video_submit_paths"},
-		[]string{"/dream-machine/v1/generations"})
-	queryPathTemplate := ResolveTaskQueryPathTemplate(nil,
-		[]string{"video_query_path"}, []string{"video_query_paths"},
-		[]string{"/dream-machine/v1/generations/{task_id}"})
+	submitPath := firstProviderEndpointPath([]string{"/dream-machine/v1/generations"})
+	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/dream-machine/v1/generations/{task_id}"})
 
 	submitResp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {

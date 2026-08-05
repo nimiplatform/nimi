@@ -222,6 +222,7 @@ models:
 voice_workflow_models:
   - workflow_model_id: elevenlabs-voice-clone
     workflow_type: voice_clone
+    workflow_family: elevenlabs
     input_contract_ref: elevenlabs_voice_clone_input_v1
     output_persistence: provider_persistent
     request_options:
@@ -238,6 +239,7 @@ voice_workflow_models:
     source_ids: [elevenlabs_voice_clone]
   - workflow_model_id: elevenlabs-voice-design
     workflow_type: voice_design
+    workflow_family: elevenlabs
     input_contract_ref: elevenlabs_voice_design_input_v1
     output_persistence: provider_persistent
     request_options:

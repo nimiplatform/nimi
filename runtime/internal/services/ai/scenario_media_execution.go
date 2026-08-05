@@ -12,16 +12,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
-	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
-
-type localModalMediaProvider interface {
-	resolveMediaBackendForModal(modelID string, modal runtimev1.Modal) (*nimillm.Backend, string, string)
-}
 
 // executeBackendSyncMedia routes sync media operations through the underlying
 // Backend (via MediaBackendProvider) rather than the Provider interface.
@@ -30,54 +24,26 @@ func executeBackendSyncMedia(
 	s *Service,
 	logger *slog.Logger,
 	req *runtimev1.SubmitScenarioJobRequest,
-	selectedProvider provider,
+	_ provider,
 	modelResolved string,
 	adapterName string,
 	remoteTarget *nimillm.RemoteTarget,
-	localPlan *localModelExecutionPlan,
 	cloudProvider *nimillm.CloudProvider,
 	voiceCatalog *catalog.Resolver,
-	onProgress func(nimillm.ManagedMediaImageProgress),
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	var backend *nimillm.Backend
-	var backendModelID string
-	modal := scenarioModalFromType(req.GetScenarioType())
-	if remoteTarget != nil && cloudProvider != nil {
-		backend, backendModelID = cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
-	} else if modalProvider, ok := selectedProvider.(localModalMediaProvider); ok {
-		var providerType string
-		backend, backendModelID, providerType = modalProvider.resolveMediaBackendForModal(modelResolved, modal)
-		if providerType != "" && !localrouting.ProviderSupportsCapability(providerType, localRoutingCapabilityForModal(modal)) {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-		}
-		if adapterName == "" && providerType != "" {
-			adapterName = resolveMediaAdapterName(req.GetHead().GetModelId(), modelResolved, modal, providerType)
-		}
-	} else {
-		mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
-		if !ok || mbp == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-		}
-		backend, backendModelID = mbp.ResolveMediaBackend(modelResolved)
+	if remoteTarget == nil {
+		return nil, nil, "", localExactMediaUnsupportedError(req.GetScenarioType())
 	}
+	if cloudProvider == nil {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	backend, backendModelID := cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
 	if backend == nil {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if backendModelID == "" {
 		backendModelID = modelResolved
 	}
-	releaseLease, err := s.acquireSelectedLocalModelLeaseWithPlan(
-		ctx,
-		localPlan,
-		req.GetHead().GetModelId(),
-		remoteTarget,
-		modal,
-		"scenario_media_request",
-	)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	defer releaseLease()
 	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
 		normalizedExtensions, _, resolveErr := resolveMusicGenerateExtensionPayload(req)
@@ -98,185 +64,7 @@ func executeBackendSyncMedia(
 			}
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		var (
-			payload  []byte
-			usage    *runtimev1.UsageStats
-			err      error
-			diag     *nimillm.ManagedMediaImageDiagnostics
-			loadDiag *nimillm.ManagedMediaImageLoadDiagnostics
-		)
-		if remoteTarget != nil {
-			payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec, scenarioExtensions)
-		} else {
-			if s == nil || s.localImageProfile == nil || localPlan == nil || localPlan.selectedLocalAssetID() == "" {
-				if logger != nil {
-					logger.Warn("managed image resolver unavailable",
-						"model_id", strings.TrimSpace(backendModelID),
-						"has_service", s != nil,
-					)
-				}
-				return nil, nil, "", grpcerr.WithReasonCodeOptions(
-					codes.FailedPrecondition,
-					runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-					grpcerr.ReasonOptions{Message: "canonical image resolver unavailable for local image execution"},
-				)
-			}
-			localAssetID := localPlan.selectedLocalAssetID()
-			var imageSelection engine.ImageSupervisedMatrixSelection
-			resolvedSelection, resolveErr := s.localImageProfile.ResolveCanonicalImageSelectionForLocalAsset(ctx, localAssetID)
-			if resolveErr != nil {
-				if logger != nil {
-					logger.Warn("managed image selection resolve failed",
-						"model_id", strings.TrimSpace(backendModelID),
-						"error", resolveErr,
-					)
-				}
-				return nil, nil, "", resolveErr
-			}
-			imageSelection = resolvedSelection
-			if !imageSelection.Matched || imageSelection.Conflict || imageSelection.Entry == nil {
-				if logger != nil {
-					logger.Warn("managed image selection rejected",
-						"model_id", strings.TrimSpace(backendModelID),
-						"matched", imageSelection.Matched,
-						"conflict", imageSelection.Conflict,
-						"detail", strings.TrimSpace(imageSelection.CompatibilityDetail),
-					)
-				}
-				return nil, nil, "", grpcerr.WithReasonCodeOptions(
-					codes.FailedPrecondition,
-					runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-					grpcerr.ReasonOptions{Message: strings.TrimSpace(imageSelection.CompatibilityDetail)},
-				)
-			}
-			if imageSelection.ProductState != engine.ImageProductStateSupported {
-				if logger != nil {
-					logger.Warn("managed image product state rejected",
-						"model_id", strings.TrimSpace(backendModelID),
-						"product_state", imageSelection.ProductState,
-						"detail", strings.TrimSpace(imageSelection.CompatibilityDetail),
-					)
-				}
-				return nil, nil, "", grpcerr.WithReasonCodeOptions(
-					codes.FailedPrecondition,
-					runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-					grpcerr.ReasonOptions{Message: strings.TrimSpace(imageSelection.CompatibilityDetail)},
-				)
-			}
-			switch {
-			case imageSelection.ControlPlane == engine.ImageControlPlaneRuntime &&
-				imageSelection.ExecutionPlane == engine.EngineMedia &&
-				imageSelection.BackendClass == engine.ImageBackendClassNativeBinary:
-				profileBindingID := strings.TrimSpace(localPlan.targetBinding.GetProfileBindingId())
-				if profileBindingID == "" {
-					return nil, nil, "", grpcerr.WithReasonCodeOptions(
-						codes.FailedPrecondition,
-						runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-						grpcerr.ReasonOptions{Message: "committed image target has no exact workflow binding"},
-					)
-				}
-				alias, profile, forwardedExtensions, managedErr := s.localImageProfile.ResolveManagedMediaImageProfileForBinding(
-					ctx,
-					profileBindingID,
-					localAssetID,
-					scenarioExtensions,
-				)
-				if managedErr != nil {
-					if logger != nil {
-						logger.Warn("managed image profile resolve failed",
-							"model_id", strings.TrimSpace(backendModelID),
-							"error", managedErr,
-						)
-					}
-					return nil, nil, "", managedErr
-				}
-				if len(profile) == 0 {
-					if logger != nil {
-						logger.Warn("managed image profile resolve returned empty profile", "model_id", strings.TrimSpace(backendModelID))
-					}
-					return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-				}
-				adapterName = adapterMediaNative
-				modelsRoot, backendAddress, targetErr := s.localImageProfile.ResolveManagedMediaBackendTarget(ctx)
-				scenarioExtensions = forwardedExtensions
-				if targetErr != nil || strings.TrimSpace(modelsRoot) == "" || strings.TrimSpace(backendAddress) == "" {
-					if targetErr != nil {
-						if logger != nil {
-							logger.Warn("managed image backend target resolve failed",
-								"model_id", strings.TrimSpace(backendModelID),
-								"error", targetErr,
-							)
-						}
-						return nil, nil, "", targetErr
-					}
-					if logger != nil {
-						logger.Warn("managed image backend target unavailable",
-							"model_id", strings.TrimSpace(backendModelID),
-							"has_models_root", strings.TrimSpace(modelsRoot) != "",
-							"has_backend_address", strings.TrimSpace(backendAddress) != "",
-						)
-					}
-					return nil, nil, "", grpcerr.WithReasonCodeOptions(
-						codes.FailedPrecondition,
-						runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-						grpcerr.ReasonOptions{Message: "managed image backend target is unavailable"},
-					)
-				}
-				if logger != nil {
-					logger.Info("managed image generate profile resolved",
-						"model_id", strings.TrimSpace(backendModelID),
-						"profile_alias", strings.TrimSpace(alias),
-						"extension_count", len(scenarioExtensions),
-					)
-				}
-				loadDiag, err = s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, localAssetID, alias, profile, scenarioExtensions, "generate_request")
-				if err != nil {
-					if logger != nil {
-						logger.Warn("managed image generate load failed",
-							"model_id", strings.TrimSpace(backendModelID),
-							"profile_alias", strings.TrimSpace(alias),
-							"error", err,
-						)
-					}
-					_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, localAssetID, false, scenarioExecutionProviderMessage(err))
-					return nil, nil, "", err
-				}
-				defer func() {
-					if releaseErr := s.localImageProfile.ReleaseManagedMediaImage(ctx, localAssetID, alias, profile, scenarioExtensions, "generate_request_cleanup"); releaseErr != nil && logger != nil {
-						logger.Warn("managed image release after generate failed", "model_id", backendModelID, "error", releaseErr)
-					}
-				}()
-				payload, usage, diag, err = backend.GenerateImageManagedMediaDirect(ctx, modelsRoot, backendAddress, profile, spec, scenarioExtensions, onProgress)
-				if err != nil {
-					_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, localAssetID, false, scenarioExecutionProviderMessage(err))
-					return nil, nil, "", err
-				}
-				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, localAssetID, true, "")
-			case imageSelection.ControlPlane == engine.ImageControlPlaneRuntime &&
-				imageSelection.ExecutionPlane == engine.EngineMedia &&
-				imageSelection.BackendClass == engine.ImageBackendClassPythonPipeline:
-				payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec, scenarioExtensions)
-			default:
-				detail := strings.TrimSpace(imageSelection.CompatibilityDetail)
-				if detail == "" {
-					detail = "canonical image resolver returned an unsupported execution path"
-				}
-				if logger != nil {
-					logger.Warn("managed image selection path unsupported",
-						"model_id", strings.TrimSpace(backendModelID),
-						"control_plane", imageSelection.ControlPlane,
-						"execution_plane", imageSelection.ExecutionPlane,
-						"backend_class", imageSelection.BackendClass,
-						"detail", detail,
-					)
-				}
-				return nil, nil, "", grpcerr.WithReasonCodeOptions(
-					codes.FailedPrecondition,
-					runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-					grpcerr.ReasonOptions{Message: detail},
-				)
-			}
-		}
+		payload, usage, err := backend.GenerateImage(ctx, backendModelID, spec, scenarioExtensions)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -294,25 +82,6 @@ func executeBackendSyncMedia(
 		}
 		if len(scenarioExtensions) > 0 {
 			artifactMeta["extensions"] = scenarioExtensions
-		}
-		if diag != nil {
-			artifactMeta["local_prompt"] = diag.LocalPrompt
-			artifactMeta["source_image"] = diag.SourceImage
-			artifactMeta["ref_images_count"] = diag.RefImagesCount
-			artifactMeta["local.applied_options"] = append([]string(nil), diag.AppliedOptions...)
-			artifactMeta["local.ignored_options"] = append([]string(nil), diag.IgnoredOptions...)
-			artifactMeta["image_generate_ms"] = diag.GenerateDurationMs
-			artifactMeta["queue_wait_ms"] = diag.QueueWaitMs
-			artifactMeta["queue_serialized"] = diag.QueueSerialized
-			if loadDiag == nil {
-				artifactMeta["resident_reused"] = diag.ResidentReused
-			}
-		}
-		if loadDiag != nil {
-			artifactMeta["image_load_ms"] = loadDiag.LoadDurationMs
-			artifactMeta["load_cache_hit"] = loadDiag.LoadCacheHit
-			artifactMeta["resident_reused"] = loadDiag.ResidentReused
-			artifactMeta["resident_restarted"] = loadDiag.ResidentRestarted
 		}
 		for key, value := range managedImageProfileOverrideMetadata(scenarioExtensions) {
 			artifactMeta[key] = value
@@ -504,9 +273,6 @@ func validateConnectorTTSModelSupport(
 	if req == nil || req.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
 		return nil
 	}
-	if strings.TrimSpace(req.GetHead().GetConnectorId()) == "" {
-		return nil
-	}
 	if remoteTarget == nil {
 		return nil
 	}
@@ -576,7 +342,7 @@ func validateConnectorTTSModelSupport(
 				"catalog_version", catalogVersion,
 				"model_resolved", strings.TrimSpace(matchedModelID),
 				"provider_type", strings.TrimSpace(remoteTarget.ProviderType),
-				"connector_id", strings.TrimSpace(req.GetHead().GetConnectorId()),
+				"connector_id", strings.TrimSpace(remoteTarget.ConnectorID),
 			)
 		}
 

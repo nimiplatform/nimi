@@ -20,16 +20,13 @@ func (s *Service) submitScenarioAsyncJob(
 	mode runtimev1.ExecutionMode,
 	ignored []*runtimev1.IgnoredScenarioExtension,
 ) (*runtimev1.SubmitScenarioJobResponse, error) {
-	requestedModelID := ""
-	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED
-	if req != nil {
-		requestedModelID = strings.TrimSpace(req.GetHead().GetModelId())
-		scenarioType = req.GetScenarioType()
+	intent, err := scenarioExecutionIntentFromContext(ctx, scenarioTargetCapability(req.GetScenarioType()))
+	if err != nil {
+		return nil, err
 	}
-	logLocalImageSubmit := s != nil &&
-		s.logger != nil &&
-		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE &&
-		preferredRoute(requestedModelID) == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	requestedModelID := intent.ModelID()
+	scenarioType := req.GetScenarioType()
+	logLocalImageSubmit := false
 	if logLocalImageSubmit {
 		s.logger.Info("submit local image scenario job: start", "requested_model_id", requestedModelID)
 	}
@@ -42,12 +39,12 @@ func (s *Service) submitScenarioAsyncJob(
 	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 		return nil, err
 	}
-	if requestExplicitlyDeclaresLocalExecution(req.GetHead()) {
+	if intent.IsLocal() {
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 
 	prepareStartedAt := time.Now()
-	remoteTarget, localPlan, err := s.prepareScenarioRequestWithExtensionsAndLocalPlan(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
+	remoteTarget, err := s.prepareScenarioRequestWithExtensions(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +57,7 @@ func (s *Service) submitScenarioAsyncJob(
 		)
 	}
 
-	idempotencyScope, err := buildScenarioJobIdempotencyScope(req)
+	idempotencyScope, err := buildScenarioJobIdempotencyScope(ctx, req)
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{
 			Message: "scenario job idempotency scope is invalid",
@@ -81,11 +78,10 @@ func (s *Service) submitScenarioAsyncJob(
 	s.logQueueWait("submit_scenario_job", req.GetHead().GetAppId(), acquireResult)
 
 	resolveStartedAt := time.Now()
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
+	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		requestedModelID,
 		remoteTarget,
 		scenarioModalFromType(req.GetScenarioType()),
 	)
@@ -95,7 +91,6 @@ func (s *Service) submitScenarioAsyncJob(
 	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
-	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if logLocalImageSubmit {
 		s.logger.Info(
 			"submit local image scenario job: provider resolved",
@@ -121,20 +116,11 @@ func (s *Service) submitScenarioAsyncJob(
 	} else if supportErr := validateMusicGenerateIterationSupport(ctx, s, modelResolved, remoteTarget, selectedProvider, iteration); supportErr != nil {
 		return nil, supportErr
 	}
-	s.recordRouteAutoSwitch(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		modelResolved,
-		routeInfo,
-	)
 	providerType := ""
 	if remoteTarget != nil {
 		providerType = remoteTarget.ProviderType
-	} else {
-		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, scenarioModalFromType(req.GetScenarioType()))
 	}
-	adapterName := resolveMediaAdapterName(req.GetHead().GetModelId(), modelResolved, scenarioModalFromType(req.GetScenarioType()), providerType)
+	adapterName := resolveMediaAdapterName(requestedModelID, modelResolved, scenarioModalFromType(req.GetScenarioType()), providerType)
 
 	jobID := ulid.Make().String()
 	traceID := ulid.Make().String()
@@ -191,7 +177,7 @@ func (s *Service) submitScenarioAsyncJob(
 	if idempotencyScope != "" {
 		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
 	}
-	go s.executeScenarioAsyncJob(jobCtx, jobID, cloneSubmitScenarioJobRequest(req), selectedProvider, modelResolved, remoteTarget, localPlan)
+	go s.executeScenarioAsyncJob(jobCtx, jobID, cloneSubmitScenarioJobRequest(req), selectedProvider, modelResolved, remoteTarget)
 	if logLocalImageSubmit {
 		s.logger.Info(
 			"submit local image scenario job: submitted",

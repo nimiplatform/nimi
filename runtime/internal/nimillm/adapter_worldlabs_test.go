@@ -15,7 +15,7 @@ func TestBuildWorldLabsGeneratePayloadForTextPrompt(t *testing.T) {
 		Seed:        17,
 	}
 
-	payload, promptText, err := buildWorldLabsGeneratePayload(spec, "worldlabs/marble-1.1")
+	payload, promptText, err := buildWorldLabsGeneratePayload(spec, "marble-1.1")
 	if err != nil {
 		t.Fatalf("build payload: %v", err)
 	}

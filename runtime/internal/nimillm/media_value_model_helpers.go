@@ -132,31 +132,3 @@ func FirstNonNil(values ...any) any {
 	}
 	return nil
 }
-
-// ---------------------------------------------------------------------------
-// Model helpers
-// ---------------------------------------------------------------------------
-
-// StripProviderModelPrefix removes a known provider prefix (e.g. "kimi/")
-// from a model ID, returning the bare model name.
-func StripProviderModelPrefix(modelID string, prefixes ...string) string {
-	trimmed := strings.TrimSpace(modelID)
-	if trimmed == "" {
-		return trimmed
-	}
-	parts := strings.SplitN(trimmed, "/", 2)
-	if len(parts) != 2 {
-		return trimmed
-	}
-	prefix := strings.ToLower(strings.TrimSpace(parts[0]))
-	rest := strings.TrimSpace(parts[1])
-	if rest == "" {
-		return trimmed
-	}
-	for _, candidate := range prefixes {
-		if prefix == strings.ToLower(strings.TrimSpace(candidate)) {
-			return rest
-		}
-	}
-	return trimmed
-}

@@ -72,7 +72,6 @@ const runtimeWireTypeShardDefinitions = [
       '/local_runtime',
       '/memory',
       '/model',
-      '/runtime_target_identity',
     ].some((segment) => importPath.includes(segment)),
   },
   {

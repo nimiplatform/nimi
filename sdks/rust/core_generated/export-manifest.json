@@ -34,7 +34,6 @@
     "proto/runtime/v1/memory.proto",
     "proto/runtime/v1/model.proto",
     "proto/runtime/v1/runtime_service_control.proto",
-    "proto/runtime/v1/runtime_target_identity.proto",
     "proto/runtime/v1/voice.proto",
     "config/realm-openapi-source.json",
     "config/realm-openapi/api-nimi.yaml",

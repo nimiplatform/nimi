@@ -41,333 +41,6 @@ func TestLiveSmokeVideoGenerateSpecVolcengineUsesBuiltInFallbacks(t *testing.T) 
 	}
 }
 
-func TestLiveQualifyLocalSpeechModelID(t *testing.T) {
-	cases := []struct {
-		in   string
-		want string
-	}{
-		{in: "", want: ""},
-		{in: "qwen3tts", want: "speech/qwen3tts"},
-		{in: "speech/qwen3tts", want: "speech/qwen3tts"},
-		{in: "local/qwen3-tts", want: "local/qwen3-tts"},
-	}
-	for _, tc := range cases {
-		if got := qualifyLocalSpeechLiveModelID(tc.in); got != tc.want {
-			t.Fatalf("qualifyLocalSpeechLiveModelID(%q)=%q, want %q", tc.in, got, tc.want)
-		}
-	}
-}
-
-func TestLiveSmokeLocalQwen3Synthesize(t *testing.T) {
-	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
-	if baseURL == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local qwen3 synth live smoke")
-	}
-	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst("NIMI_LIVE_LOCAL_QWEN3_TTS_MODEL_ID", "NIMI_LIVE_LOCAL_TTS_MODEL_ID"))
-	if modelID == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_QWEN3_TTS_MODEL_ID or NIMI_LIVE_LOCAL_TTS_MODEL_ID to run local qwen3 synth live smoke")
-	}
-	if !isAdmittedLocalQwen3WorkflowModelID(modelID) {
-		t.Skip("local qwen3 synth smoke only accepts admitted qwen3 family model ids")
-	}
-	apiKey := firstNonEmptyString(
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
-	)
-	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
-
-	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsTTS {
-		t.Skip("local provider does not advertise speech synthesis support")
-	}
-	t.Setenv("NIMI_LIVE_LOCAL_TTS_MODEL_ID", modelID)
-	runLiveSmokeMediaForProvider(t, "local", record, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE)
-}
-
-func TestLiveSmokeLocalQwen3Transcribe(t *testing.T) {
-	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
-	if baseURL == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local qwen3 transcribe live smoke")
-	}
-	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst(
-		"NIMI_LIVE_LOCAL_STT_MODEL_ID",
-		"NIMI_LIVE_LOCAL_QWEN3_ASR_MODEL_ID",
-		"NIMI_LIVE_LOCAL_MODEL_ID",
-	))
-	if modelID == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_STT_MODEL_ID or NIMI_LIVE_LOCAL_QWEN3_ASR_MODEL_ID to run local qwen3 transcribe live smoke")
-	}
-	if !isAdmittedLocalQwen3STTModelID(modelID) {
-		t.Skip("local qwen3 transcribe smoke only accepts admitted qwen3 asr model ids")
-	}
-	if liveEnvFirst("NIMI_LIVE_STT_AUDIO_PATH", "NIMI_LIVE_STT_AUDIO_URI") == "" {
-		t.Skip("set NIMI_LIVE_STT_AUDIO_PATH or NIMI_LIVE_STT_AUDIO_URI to run local qwen3 transcribe live smoke")
-	}
-	apiKey := firstNonEmptyString(
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
-	)
-	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
-
-	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsSTT {
-		t.Skip("local provider does not advertise speech transcription support")
-	}
-	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
-	t.Setenv("NIMI_LIVE_LOCAL_STT_MODEL_ID", modelID)
-	runLiveSmokeMediaForProvider(t, "local", record, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE)
-}
-
-func TestLiveSmokeLocalQwen3VoiceDesign(t *testing.T) {
-	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
-	if baseURL == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local qwen3 voice design live smoke")
-	}
-	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst(
-		"NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID",
-		"NIMI_LIVE_LOCAL_QWEN3_TTS_VOICEDESIGN_MODEL_ID",
-		"NIMI_LIVE_LOCAL_QWEN3_TTS_MODEL_ID",
-		"NIMI_LIVE_LOCAL_TTS_MODEL_ID",
-	))
-	if modelID == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID or NIMI_LIVE_LOCAL_QWEN3_TTS_VOICEDESIGN_MODEL_ID to run local qwen3 voice design live smoke")
-	}
-	if !isAdmittedLocalQwen3WorkflowModelID(modelID) {
-		t.Skip("local qwen3 voice design smoke only accepts admitted qwen3 family model ids")
-	}
-	apiKey := firstNonEmptyString(
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
-	)
-	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
-
-	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsVoiceDesign {
-		t.Skip("local provider does not advertise the admitted qwen3 voice design slice")
-	}
-	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
-	t.Setenv("NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID", modelID)
-	t.Setenv("NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID", modelID)
-	runLiveSmokeVoiceWorkflowForProvider(t, "local", record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN)
-}
-
-func TestLiveSmokeLocalQwen3VoiceClone(t *testing.T) {
-	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
-	if baseURL == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local qwen3 voice clone live smoke")
-	}
-	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst(
-		"NIMI_LIVE_LOCAL_VOICE_CLONE_MODEL_ID",
-		"NIMI_LIVE_LOCAL_QWEN3_TTS_BASE_MODEL_ID",
-		"NIMI_LIVE_LOCAL_QWEN3_TTS_MODEL_ID",
-		"NIMI_LIVE_LOCAL_TTS_MODEL_ID",
-	))
-	if modelID == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_VOICE_CLONE_MODEL_ID or NIMI_LIVE_LOCAL_QWEN3_TTS_BASE_MODEL_ID to run local qwen3 voice clone live smoke")
-	}
-	if !isAdmittedLocalQwen3WorkflowModelID(modelID) {
-		t.Skip("local qwen3 voice clone smoke only accepts admitted qwen3 family model ids")
-	}
-	apiKey := firstNonEmptyString(
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
-	)
-	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
-
-	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsVoiceClone {
-		t.Skip("local provider does not advertise the admitted qwen3 voice clone slice")
-	}
-	if liveEnvFirst("NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH", "NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI") == "" {
-		t.Skip("set NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH or NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI to run local qwen3 voice clone live smoke")
-	}
-	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
-	t.Setenv("NIMI_LIVE_LOCAL_VOICE_CLONE_MODEL_ID", modelID)
-	t.Setenv("NIMI_LIVE_LOCAL_VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID", modelID)
-	runLiveSmokeVoiceWorkflowForProvider(t, "local", record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
-}
-
-func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
-	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
-	if baseURL == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local qwen3 voice asset lifecycle live smoke")
-	}
-	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst(
-		"NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID",
-		"NIMI_LIVE_LOCAL_QWEN3_TTS_VOICEDESIGN_MODEL_ID",
-		"NIMI_LIVE_LOCAL_QWEN3_TTS_MODEL_ID",
-		"NIMI_LIVE_LOCAL_TTS_MODEL_ID",
-	))
-	if modelID == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID or NIMI_LIVE_LOCAL_QWEN3_TTS_VOICEDESIGN_MODEL_ID to run local qwen3 voice asset lifecycle live smoke")
-	}
-	if !isAdmittedLocalQwen3WorkflowModelID(modelID) {
-		t.Skip("local qwen3 voice asset lifecycle smoke only accepts admitted qwen3 family model ids")
-	}
-	apiKey := firstNonEmptyString(
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
-		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
-	)
-	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
-
-	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsVoiceDesign || !record.SupportsTTS {
-		t.Skip("local provider does not advertise required qwen3 speech workflow capabilities")
-	}
-
-	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
-	harness := newLiveSmokeProviderHarnessForProvider(t, "local", record)
-	svc := harness.service
-	submitResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
-		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-				TargetModelId: modelID,
-				Input:         &runtimev1.VoiceT2VInput{InstructionText: liveSmokeVoiceDesignInstruction},
-			}},
-		},
-	})
-	if err != nil {
-		t.Fatalf("submit local qwen3 voice design for asset lifecycle failed: %v", err)
-	}
-	if submitResp.GetAsset() == nil || strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId()) == "" {
-		t.Fatalf("voice design must return voice asset")
-	}
-
-	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
-	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("voice design asset lifecycle seed job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
-	}
-
-	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
-	ownerCtx := scenarioJobContext(liveSmokeMatrixAppID)
-	assetResp, err := svc.GetVoiceAsset(ownerCtx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
-	if err != nil {
-		t.Fatalf("GetVoiceAsset(%s): %v", voiceAssetID, err)
-	}
-	asset := assetResp.GetAsset()
-	if asset == nil {
-		t.Fatalf("GetVoiceAsset(%s) returned nil asset", voiceAssetID)
-	}
-	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
-		t.Fatalf("voice asset status=%s, want ACTIVE", asset.GetStatus().String())
-	}
-	if got := strings.TrimSpace(asset.GetProviderVoiceRef()); got == "" {
-		t.Fatalf("voice asset %s missing provider_voice_ref", voiceAssetID)
-	}
-	if got := strings.TrimSpace(asset.GetMetadata().GetFields()["workflow_family"].GetStringValue()); got != "qwen3_tts" {
-		t.Fatalf("workflow_family=%q, want qwen3_tts", got)
-	}
-	if got := strings.TrimSpace(asset.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue()); got != "runtime_authoritative_delete" {
-		t.Fatalf("voice_handle_policy_delete_semantics=%q, want runtime_authoritative_delete", got)
-	}
-
-	listResp, err := svc.ListVoiceAssets(ownerCtx, &runtimev1.ListVoiceAssetsRequest{
-		AppId:         liveSmokeMatrixAppID,
-		SubjectUserId: anonymousScenarioJobOwner,
-		PageSize:      20,
-	})
-	if err != nil {
-		t.Fatalf("ListVoiceAssets: %v", err)
-	}
-	found := false
-	for _, candidate := range listResp.GetAssets() {
-		if strings.TrimSpace(candidate.GetVoiceAssetId()) == voiceAssetID {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("ListVoiceAssets missing created voice asset %s", voiceAssetID)
-	}
-
-	synthResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
-		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
-					Text: "Hello from Nimi live voice asset lifecycle smoke.",
-					VoiceRef: &runtimev1.VoiceReference{
-						Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
-						Reference: &runtimev1.VoiceReference_VoiceAssetId{
-							VoiceAssetId: voiceAssetID,
-						},
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("submit local qwen3 synth via voice asset failed: %v", err)
-	}
-	synthJob := waitLiveSmokeScenarioJob(t, svc, synthResp.GetJob().GetJobId())
-	if synthJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("voice asset synth job status not completed: %s reason=%s detail=%s", synthJob.GetStatus().String(), synthJob.GetReasonCode().String(), synthJob.GetReasonDetail())
-	}
-	artifactsResp, err := svc.GetScenarioArtifacts(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioArtifactsRequest{
-		JobId: synthJob.GetJobId(),
-	})
-	if err != nil {
-		t.Fatalf("GetScenarioArtifacts(%s): %v", synthJob.GetJobId(), err)
-	}
-	if len(artifactsResp.GetArtifacts()) == 0 {
-		t.Fatalf("voice asset synth returned no artifacts")
-	}
-	firstArtifact := artifactsResp.GetArtifacts()[0]
-	if len(firstArtifact.GetBytes()) == 0 && strings.TrimSpace(firstArtifact.GetUri()) == "" {
-		t.Fatalf("voice asset synth artifact must contain bytes or uri")
-	}
-
-	deleteResp, err := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
-	if err != nil {
-		t.Fatalf("DeleteVoiceAsset(%s): %v", voiceAssetID, err)
-	}
-	if deleteResp.GetAck() == nil || !deleteResp.GetAck().GetOk() {
-		t.Fatalf("DeleteVoiceAsset(%s) ack must be ok", voiceAssetID)
-	}
-
-	deletedResp, err := svc.GetVoiceAsset(ownerCtx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
-	if err != nil {
-		t.Fatalf("GetVoiceAsset(after delete %s): %v", voiceAssetID, err)
-	}
-	if deletedResp.GetAsset() == nil || deletedResp.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
-		t.Fatalf("voice asset status after delete=%v, want DELETED", deletedResp.GetAsset().GetStatus())
-	}
-
-	failedSynthResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
-		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
-					Text: "This synth must fail after delete.",
-					VoiceRef: &runtimev1.VoiceReference{
-						Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
-						Reference: &runtimev1.VoiceReference_VoiceAssetId{
-							VoiceAssetId: voiceAssetID,
-						},
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("submit local qwen3 synth after delete failed: %v", err)
-	}
-	failedJob := waitLiveSmokeScenarioJob(t, svc, failedSynthResp.GetJob().GetJobId())
-	if failedJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
-		t.Fatalf("expected failed synth job after delete, got status=%s", failedJob.GetStatus().String())
-	}
-	if failedJob.GetReasonCode() != runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND {
-		t.Fatalf("expected AI_VOICE_ASSET_NOT_FOUND after delete, got %s", failedJob.GetReasonCode().String())
-	}
-}
-
 func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord, scenarioType runtimev1.ScenarioType) {
 	t.Helper()
 	harness := newLiveSmokeProviderHarnessForProvider(t, providerID, record)
@@ -383,7 +56,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		modelKey = "VOICE_DESIGN_MODEL_ID"
 		fallbackModelKey = "TTS_MODEL_ID"
 	}
-	modelID := qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, modelKey, fallbackModelKey))
+	modelID := envModelIDForProvider(t, providerID, modelKey, fallbackModelKey)
 	targetModelID := strings.TrimSpace(os.Getenv("NIMI_LIVE_" + token + "_" + modelKey + "_TARGET_MODEL_ID"))
 	if targetModelID == "" {
 		targetModelID = modelID
@@ -404,7 +77,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 	}
 	maybeSkipFishAudioBalancePreflight(t, svc, providerID, modelID)
 
-	submitResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+	submitResp, err := svc.SubmitScenarioJob(harness.scenarioContext(t, scenarioType, modelID), &runtimev1.SubmitScenarioJobRequest{
 		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
 		ScenarioType:  scenarioType,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -437,14 +110,14 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
 	if strings.EqualFold(strings.TrimSpace(providerID), "mimo") {
-		runLiveSmokeSpeechSynthesizeWithVoiceAsset(t, harness, providerID, qualifyLiveModelIDForRoute(providerID, targetModelID), voiceAssetID)
+		runLiveSmokeSpeechSynthesizeWithVoiceAsset(t, harness, providerID, targetModelID, voiceAssetID)
 	}
 }
 
 func runLiveSmokeSpeechSynthesizeWithVoiceAsset(t *testing.T, harness liveSmokeProviderHarness, providerID string, modelID string, voiceAssetID string) {
 	t.Helper()
 	svc := harness.service
-	synthResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+	synthResp, err := svc.SubmitScenarioJob(harness.scenarioContext(t, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, modelID), &runtimev1.SubmitScenarioJobRequest{
 		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,

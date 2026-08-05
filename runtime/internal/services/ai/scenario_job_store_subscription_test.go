@@ -41,17 +41,12 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 
 	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
-	ctx := scenarioJobContext("nimi.desktop")
+	ctx := withCloudScenarioTestIntent(scenarioJobContext("nimi.desktop"), "video.generate", fixture.targetRef)
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       fixture.descriptor.GetProviderModelId(),
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     fixture.targetRef,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		Spec: &runtimev1.ScenarioSpec{
@@ -109,26 +104,21 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 	_, _ = svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: jobID, Reason: "test-cleanup"})
 }
 
-func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
+func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", "https://example.com", Config{})
 	svc := fixture.service
-	ctx := scenarioJobContext("nimi.desktop")
+	ctx := withCloudScenarioTestIntent(scenarioJobContext("nimi.desktop"), "voice_workflow.voice_design", fixture.targetRef)
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       fixture.descriptor.GetProviderModelId(),
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     fixture.targetRef,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
 				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-					TargetModelId: "dashscope/qwen3-tts-vd",
+					TargetModelId: "qwen3-tts-vd",
 					Input: &runtimev1.VoiceT2VInput{
 						InstructionText: "calm female voice",
 					},
@@ -193,17 +183,12 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
-	ctx := scenarioJobContext("nimi.desktop")
+	ctx := withCloudScenarioTestIntent(scenarioJobContext("nimi.desktop"), "voice_workflow.voice_design", fixture.targetRef)
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       fixture.descriptor.GetProviderModelId(),
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     fixture.targetRef,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
@@ -211,7 +196,7 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
 				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-					TargetModelId: "dashscope/qwen3-tts-vd",
+					TargetModelId: "qwen3-tts-vd",
 					Input: &runtimev1.VoiceT2VInput{
 						InstructionText: "Warm, clear Mandarin speaking voice with steady pacing.",
 						PreviewText:     "Hello from the desktop voice design workflow.",
@@ -255,10 +240,6 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/qwen3-tts",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen3-tts"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		Spec: &runtimev1.ScenarioSpec{
@@ -310,10 +291,6 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/qwen3-tts",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen3-tts"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		Spec: &runtimev1.ScenarioSpec{
@@ -354,15 +331,12 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
+	localImageCtx := withLocalScenarioTestIntent(ctx, "image.generate")
 
-	_, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+	_, err := svc.SubmitScenarioJob(localImageCtx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
-			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -374,13 +348,11 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 		t.Fatalf("expected route unsupported for non-async media submit, got=%v", reason)
 	}
 
-	_, err = svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+	cloudTextCtx := withCloudScenarioTestIntent(ctx, "text.generate", cloudScenarioTargetRef("connector-test", "catalog-test", "gpt-4o-mini", "openai"))
+	_, err = svc.SubmitScenarioJob(cloudTextCtx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
-			ModelId:       "gpt-4o-mini",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		Spec: &runtimev1.ScenarioSpec{
@@ -394,14 +366,11 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 
 func TestScenarioJobStoreSubmitUnsupportedExtension(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	_, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+	ctx := withLocalScenarioTestIntent(context.Background(), "image.generate")
+	_, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
-			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Spec: &runtimev1.ScenarioSpec{
@@ -422,7 +391,7 @@ func TestScenarioJobStoreSubscribeBranches(t *testing.T) {
 	terminalJobID := "scenario-subscribe-terminal"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        terminalJobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		TraceId:      "trace-terminal",
@@ -448,7 +417,7 @@ func TestScenarioJobStoreSubscribeBranches(t *testing.T) {
 	runningJobID := "scenario-subscribe-cancel-context"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        runningJobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		TraceId:      "trace-running",
@@ -467,7 +436,7 @@ func TestScenarioJobStoreRejectsUnauthorizedSubscriptionAndVoiceCancel(t *testin
 	jobID := "scenario-auth-job"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app-a", SubjectUserId: "user-a", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app-a", SubjectUserId: "user-a"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		TraceId:      "trace-auth-job",
@@ -487,7 +456,7 @@ func TestScenarioJobStoreRejectsUnauthorizedSubscriptionAndVoiceCancel(t *testin
 	svc.voiceAssets.jobs[voiceJobID] = &voiceScenarioJobRecord{
 		job: &runtimev1.ScenarioJob{
 			JobId:      voiceJobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app-a", SubjectUserId: "user-a", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app-a", SubjectUserId: "user-a"},
 			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 			TraceId:    "trace-voice-auth",
 			CreatedAt:  timestamppb.New(now),
@@ -519,9 +488,6 @@ func TestNormalizeSubmitScenarioJobOwnerUsesAuthnSubject(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app",
 			SubjectUserId: "request-body-user",
-			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -555,9 +521,6 @@ func TestAuthorizeScenarioJobRejectsAnonymousAccessToUserOwnedJob(t *testing.T) 
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app",
 			SubjectUserId: "user-a",
-			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 	}
 	err := authorizeScenarioJob(metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app")), userOwned)
@@ -570,9 +533,6 @@ func TestAuthorizeScenarioJobRejectsAnonymousAccessToUserOwnedJob(t *testing.T) 
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app",
 			SubjectUserId: anonymousScenarioJobOwner,
-			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 	}
 	if err := authorizeScenarioJob(metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app")), anonymousOwned); err != nil {
@@ -610,9 +570,6 @@ func TestScenarioJobStoreSubscribeScenarioContextCancelBranch(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app",
 			SubjectUserId: "user",
-			ModelId:       "local/sd3",
-			TargetRef:     localScenarioTargetRefForModel("local/sd3"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -655,9 +612,6 @@ func TestScenarioJobStoreSubscribeScenarioBacklogSendError(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app",
 			SubjectUserId: "user",
-			ModelId:       "local/sd3",
-			TargetRef:     localScenarioTargetRefForModel("local/sd3"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -694,9 +648,6 @@ func TestScenarioJobStoreSubscribeScenarioTerminalBacklogReturns(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app",
 			SubjectUserId: "user",
-			ModelId:       "local/sd3",
-			TargetRef:     localScenarioTargetRefForModel("local/sd3"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -737,7 +688,7 @@ func TestScenarioJobStoreSubscribeVoiceStreamingBranch(t *testing.T) {
 	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
 		job: &runtimev1.ScenarioJob{
 			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 			TraceId:    "trace-voice-stream",
 			CreatedAt:  timestamppb.New(now),
@@ -783,7 +734,7 @@ func TestScenarioJobStoreSubscribeVoiceTerminalBacklogBranch(t *testing.T) {
 	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
 		job: &runtimev1.ScenarioJob{
 			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 			TraceId:    "trace-voice-terminal",
 			CreatedAt:  timestamppb.New(now),
@@ -822,7 +773,7 @@ func TestScenarioJobStoreSubscribeVoiceBacklogSendError(t *testing.T) {
 	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
 		job: &runtimev1.ScenarioJob{
 			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 			TraceId:    "trace-voice-backlog-send-error",
 			CreatedAt:  timestamppb.New(now),
@@ -860,7 +811,7 @@ func TestScenarioJobStoreSubscribeVoiceContextDeadline(t *testing.T) {
 	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
 		job: &runtimev1.ScenarioJob{
 			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 			TraceId:    "trace-voice-context-deadline",
 			CreatedAt:  timestamppb.New(now),

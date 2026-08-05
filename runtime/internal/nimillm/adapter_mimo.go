@@ -30,19 +30,11 @@ func (b *Backend) supportsMimoChatCompletions() bool {
 }
 
 func isMimoModelID(modelID string) bool {
-	normalized := normalizeMimoModelID(modelID)
-	return strings.HasPrefix(normalized, "mimo-")
-}
-
-func normalizeMimoModelID(modelID string) string {
-	normalized := strings.ToLower(strings.TrimSpace(modelID))
-	normalized = strings.TrimPrefix(normalized, "cloud/")
-	normalized = strings.TrimPrefix(normalized, "mimo/")
-	return normalized
+	return strings.HasPrefix(strings.TrimSpace(modelID), "mimo-")
 }
 
 func mimoTTSModelKind(modelID string) string {
-	switch normalizeMimoModelID(modelID) {
+	switch strings.TrimSpace(modelID) {
 	case "mimo-v2.5-tts-voiceclone":
 		return "voice_clone"
 	case "mimo-v2.5-tts-voicedesign":

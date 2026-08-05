@@ -226,10 +226,6 @@ export interface MemoryEmbeddingProfile {
      * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding = 7
      */
     cloudBinding?: MemoryEmbeddingCloudBindingRef;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding = 8
-     */
-    localBinding?: MemoryEmbeddingLocalBindingRef;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
@@ -251,29 +247,6 @@ export interface MemoryEmbeddingCloudBindingRef {
      * @generated from protobuf field: string provider = 5
      */
     provider: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
- */
-export interface MemoryEmbeddingLocalBindingRef {
-    /**
-     * @generated from protobuf oneof: ref
-     */
-    ref: {
-        oneofKind: "profileBindingId";
-        /**
-         * @generated from protobuf field: string profile_binding_id = 2
-         */
-        profileBindingId: string;
-    } | {
-        oneofKind: "readinessRef";
-        /**
-         * @generated from protobuf field: string readiness_ref = 3
-         */
-        readinessRef: string;
-    } | {
-        oneofKind: undefined;
-    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MemoryEmbeddingOperationReadiness
@@ -2001,8 +1974,7 @@ class MemoryEmbeddingProfile$Type extends MessageType<MemoryEmbeddingProfile> {
             { no: 4, name: "distance_metric", kind: "enum", T: () => ["nimi.runtime.v1.MemoryDistanceMetric", MemoryDistanceMetric, "MEMORY_DISTANCE_METRIC_"] },
             { no: 5, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "migration_policy", kind: "enum", T: () => ["nimi.runtime.v1.MemoryMigrationPolicy", MemoryMigrationPolicy, "MEMORY_MIGRATION_POLICY_"] },
-            { no: 7, name: "cloud_binding", kind: "message", T: () => MemoryEmbeddingCloudBindingRef },
-            { no: 8, name: "local_binding", kind: "message", T: () => MemoryEmbeddingLocalBindingRef }
+            { no: 7, name: "cloud_binding", kind: "message", T: () => MemoryEmbeddingCloudBindingRef }
         ]);
     }
     create(value?: PartialMessage<MemoryEmbeddingProfile>): MemoryEmbeddingProfile {
@@ -2043,9 +2015,6 @@ class MemoryEmbeddingProfile$Type extends MessageType<MemoryEmbeddingProfile> {
                 case /* nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding */ 7:
                     message.cloudBinding = MemoryEmbeddingCloudBindingRef.internalBinaryRead(reader, reader.uint32(), options, message.cloudBinding);
                     break;
-                case /* nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding */ 8:
-                    message.localBinding = MemoryEmbeddingLocalBindingRef.internalBinaryRead(reader, reader.uint32(), options, message.localBinding);
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2079,9 +2048,6 @@ class MemoryEmbeddingProfile$Type extends MessageType<MemoryEmbeddingProfile> {
         /* nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding = 7; */
         if (message.cloudBinding)
             MemoryEmbeddingCloudBindingRef.internalBinaryWrite(message.cloudBinding, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding = 8; */
-        if (message.localBinding)
-            MemoryEmbeddingLocalBindingRef.internalBinaryWrite(message.localBinding, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2163,66 +2129,6 @@ class MemoryEmbeddingCloudBindingRef$Type extends MessageType<MemoryEmbeddingClo
  * @generated MessageType for protobuf message nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
  */
 export const MemoryEmbeddingCloudBindingRef = new MemoryEmbeddingCloudBindingRef$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class MemoryEmbeddingLocalBindingRef$Type extends MessageType<MemoryEmbeddingLocalBindingRef> {
-    constructor() {
-        super("nimi.runtime.v1.MemoryEmbeddingLocalBindingRef", [
-            { no: 2, name: "profile_binding_id", kind: "scalar", oneof: "ref", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "readiness_ref", kind: "scalar", oneof: "ref", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<MemoryEmbeddingLocalBindingRef>): MemoryEmbeddingLocalBindingRef {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.ref = { oneofKind: undefined };
-        if (value !== undefined)
-            reflectionMergePartial<MemoryEmbeddingLocalBindingRef>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MemoryEmbeddingLocalBindingRef): MemoryEmbeddingLocalBindingRef {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string profile_binding_id */ 2:
-                    message.ref = {
-                        oneofKind: "profileBindingId",
-                        profileBindingId: reader.string()
-                    };
-                    break;
-                case /* string readiness_ref */ 3:
-                    message.ref = {
-                        oneofKind: "readinessRef",
-                        readinessRef: reader.string()
-                    };
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: MemoryEmbeddingLocalBindingRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string profile_binding_id = 2; */
-        if (message.ref.oneofKind === "profileBindingId")
-            writer.tag(2, WireType.LengthDelimited).string(message.ref.profileBindingId);
-        /* string readiness_ref = 3; */
-        if (message.ref.oneofKind === "readinessRef")
-            writer.tag(3, WireType.LengthDelimited).string(message.ref.readinessRef);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
- */
-export const MemoryEmbeddingLocalBindingRef = new MemoryEmbeddingLocalBindingRef$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class MemoryEmbeddingOperationReadiness$Type extends MessageType<MemoryEmbeddingOperationReadiness> {
     constructor() {

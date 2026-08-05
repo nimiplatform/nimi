@@ -109,21 +109,18 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		plan.Warnings = append(plan.GetWarnings(), "modelId is required for install plan resolution")
 		return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 	}
+	if plan.GetEngine() == "" {
+		plan.InstallAvailable = false
+		plan.ReasonCode = "LOCAL_ENGINE_REQUIRED"
+		plan.Warnings = append(plan.GetWarnings(), "engine is required; Runtime does not select a backend from capability order")
+		return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
+	}
 	s.evaluateInstallPlanAvailability(plan, binding.autoRecommended)
 	return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 }
 
-func defaultLocalEngine(raw string, capabilities []string) string {
-	if trimmed := strings.TrimSpace(raw); trimmed != "" {
-		return trimmed
-	}
-	for _, capability := range capabilities {
-		order := localProviderPreferenceOrder(localRuntimeGOOSFromProfile(""), capability)
-		if len(order) > 0 {
-			return order[0]
-		}
-	}
-	return "llama"
+func defaultLocalEngine(raw string, _ []string) string {
+	return strings.TrimSpace(raw)
 }
 
 func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPlanDescriptor, autoRecommended bool) {
@@ -286,9 +283,6 @@ func (s *Service) installLocalAssetRecord(
 		if projectionOverride.BundleState != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_UNSPECIFIED {
 			projection.BundleState = projectionOverride.BundleState
 		}
-		if projectionOverride.WarmState != runtimev1.LocalWarmState_LOCAL_WARM_STATE_UNSPECIFIED {
-			projection.WarmState = projectionOverride.WarmState
-		}
 		if projectionOverride.HostRequirements != nil {
 			projection.HostRequirements = cloneHostRequirements(projectionOverride.HostRequirements)
 		}
@@ -320,7 +314,6 @@ func (s *Service) installLocalAssetRecord(
 		PreferredEngine:      projection.PreferredEngine,
 		FallbackEngines:      append([]string(nil), projection.FallbackEngines...),
 		BundleState:          projection.BundleState,
-		WarmState:            projection.WarmState,
 		HostRequirements:     cloneHostRequirements(projection.HostRequirements),
 		Endpoint: storedEndpointForAssetRuntimeMode(
 			engine,
@@ -379,7 +372,6 @@ func (s *Service) installLocalAssetRecord(
 				cloned.PreferredEngine = record.GetPreferredEngine()
 				cloned.FallbackEngines = append([]string(nil), record.GetFallbackEngines()...)
 				cloned.BundleState = record.GetBundleState()
-				cloned.WarmState = record.GetWarmState()
 				cloned.HostRequirements = cloneHostRequirements(record.GetHostRequirements())
 				cloned.Endpoint = record.GetEndpoint()
 				s.assets[cloned.GetLocalAssetId()] = cloneLocalAsset(cloned)

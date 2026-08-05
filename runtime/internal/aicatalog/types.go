@@ -295,8 +295,10 @@ type VoiceEntry struct {
 }
 
 type VoiceWorkflowModel struct {
+	Provider          string                       `yaml:"-" json:"provider,omitempty"`
 	WorkflowModelID   string                       `yaml:"workflow_model_id" json:"workflow_model_id"`
 	WorkflowType      string                       `yaml:"workflow_type" json:"workflow_type"`
+	WorkflowFamily    string                       `yaml:"workflow_family" json:"workflow_family"`
 	InputContractRef  string                       `yaml:"input_contract_ref,omitempty" json:"input_contract_ref,omitempty"`
 	OutputPersistence string                       `yaml:"output_persistence,omitempty" json:"output_persistence,omitempty"`
 	RequestOptions    *VoiceWorkflowRequestOptions `yaml:"request_options,omitempty" json:"request_options,omitempty"`
@@ -318,6 +320,7 @@ type VoiceHandlePolicy struct {
 }
 
 type ModelWorkflowBinding struct {
+	Provider          string   `yaml:"-" json:"provider,omitempty"`
 	ModelID           string   `yaml:"model_id" json:"model_id"`
 	WorkflowModelRefs []string `yaml:"workflow_model_refs" json:"workflow_model_refs"`
 	WorkflowTypes     []string `yaml:"workflow_types" json:"workflow_types"`

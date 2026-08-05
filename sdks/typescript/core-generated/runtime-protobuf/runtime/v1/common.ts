@@ -1247,7 +1247,11 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_LOCAL_EXECUTION_PROCESS_CRASHED = 704;
      */
-    AI_LOCAL_EXECUTION_PROCESS_CRASHED = 704
+    AI_LOCAL_EXECUTION_PROCESS_CRASHED = 704,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_EXECUTION_CONTENT_MISMATCH = 705;
+     */
+    AI_LOCAL_EXECUTION_CONTENT_MISMATCH = 705
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

@@ -85,6 +85,7 @@ func (e *aiBackedChatTrackSidecarExecutor) ExecuteChatTrackSidecar(ctx context.C
 	if err != nil {
 		return nil, err
 	}
+	ctx = withPublicChatExecutionIntent(ctx, req.ExecutionBinding, "text.generate")
 	resp, err := e.ai.ExecuteScenario(ctx, execReq)
 	if err != nil {
 		return nil, err
@@ -112,11 +113,6 @@ func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) 
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         firstNonEmpty(strings.TrimSpace(req.CallerAppID), chatTrackSidecarExecutorAppID),
 			SubjectUserId: subjectUserID,
-			ModelId:       req.ExecutionBinding.ModelID,
-			RoutePolicy:   req.ExecutionBinding.RoutePolicy,
-			ConnectorId:   req.ExecutionBinding.ConnectorID,
-			TargetRef:     clonePublicChatTargetRef(req.ExecutionBinding.TargetRef),
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     publicChatDefaultTurnTimeoutMs,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,

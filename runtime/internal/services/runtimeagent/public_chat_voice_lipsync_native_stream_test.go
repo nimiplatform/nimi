@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 )
 
 func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(t *testing.T) {
@@ -238,8 +239,9 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(
 	if voiceAI.streamReq == nil || voiceAI.streamReq.GetExecutionMode() != runtimev1.ExecutionMode_EXECUTION_MODE_STREAM {
 		t.Fatalf("expected native voice StreamScenario request, got %#v", voiceAI.streamReq)
 	}
-	if got := voiceAI.streamReq.GetHead().GetTargetRef().GetLocalRuntime().GetProfileBindingId(); got != "test_runtime_readiness:v2:speech-qwen3tts" {
-		t.Fatalf("native voice StreamScenario target_ref = %q", got)
+	intent, ok := executionintent.FromContext(voiceAI.streamCtx)
+	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
+		t.Fatalf("native voice private intent = %+v, ok=%v", intent, ok)
 	}
 	types := capture.messageTypes()
 	firstChunkIndex := indexOfMessageType(types, publicChatPresentationVoiceStreamChunkType)

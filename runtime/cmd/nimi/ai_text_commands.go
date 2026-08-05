@@ -25,9 +25,6 @@ func runRuntimeAITextGenerate(args []string) error {
 	timeoutRaw := fs.String("timeout", "10s", "grpc request timeout")
 	appID := fs.String("app-id", "nimi.desktop", "caller app id")
 	subjectUserID := fs.String("subject-user-id", "local-user", "subject user id")
-	modelID := fs.String("model-id", "local/qwen2.5", "target model id")
-	routeRaw := fs.String("route", "local", "route policy: local|cloud")
-	fallbackRaw := fs.String("fallback", "deny", "fallback policy: deny|allow")
 	systemPrompt := fs.String("system", "", "system prompt")
 	prompt := fs.String("prompt", "", "user prompt text")
 	timeoutMS := fs.Int("timeout-ms", 30000, "ai request timeout in milliseconds")
@@ -54,23 +51,12 @@ func runRuntimeAITextGenerate(args []string) error {
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
-	routePolicy, err := parseRoutePolicy(*routeRaw)
-	if err != nil {
-		return err
-	}
-	fallbackPolicy, err := parseFallbackPolicy(*fallbackRaw)
-	if err != nil {
-		return err
-	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
 	resp, err := entrypoint.ExecuteScenarioGRPC(*grpcAddr, timeout, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         strings.TrimSpace(*appID),
 			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
 			TimeoutMs:     timeoutMsValue,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
@@ -141,9 +127,6 @@ func runRuntimeAIStream(args []string) error {
 	timeoutRaw := fs.String("timeout", "130s", "stream timeout")
 	appID := fs.String("app-id", "nimi.desktop", "caller app id")
 	subjectUserID := fs.String("subject-user-id", "local-user", "subject user id")
-	modelID := fs.String("model-id", "local/qwen2.5", "target model id")
-	routeRaw := fs.String("route", "local", "route policy: local|cloud")
-	fallbackRaw := fs.String("fallback", "deny", "fallback policy: deny|allow")
 	systemPrompt := fs.String("system", "", "system prompt")
 	prompt := fs.String("prompt", "", "user prompt text")
 	timeoutMS := fs.Int("timeout-ms", 120000, "ai request timeout in milliseconds")
@@ -170,14 +153,6 @@ func runRuntimeAIStream(args []string) error {
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
-	routePolicy, err := parseRoutePolicy(*routeRaw)
-	if err != nil {
-		return err
-	}
-	fallbackPolicy, err := parseFallbackPolicy(*fallbackRaw)
-	if err != nil {
-		return err
-	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -187,9 +162,6 @@ func runRuntimeAIStream(args []string) error {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         strings.TrimSpace(*appID),
 			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
 			TimeoutMs:     timeoutMsValue,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
@@ -300,9 +272,6 @@ func runRuntimeAITextEmbed(args []string) error {
 	timeoutRaw := fs.String("timeout", "10s", "grpc request timeout")
 	appID := fs.String("app-id", "nimi.desktop", "caller app id")
 	subjectUserID := fs.String("subject-user-id", "local-user", "subject user id")
-	modelID := fs.String("model-id", "local/text-embedding-3-small", "target model id")
-	routeRaw := fs.String("route", "local", "route policy: local|cloud")
-	fallbackRaw := fs.String("fallback", "deny", "fallback policy: deny|allow")
 	timeoutMS := fs.Int("timeout-ms", 20000, "ai request timeout in milliseconds")
 	jsonOutput := fs.Bool("json", false, "output json")
 	callerKind := fs.String("caller-kind", "third-party-service", "caller kind metadata")
@@ -329,23 +298,12 @@ func runRuntimeAITextEmbed(args []string) error {
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
-	routePolicy, err := parseRoutePolicy(*routeRaw)
-	if err != nil {
-		return err
-	}
-	fallbackPolicy, err := parseFallbackPolicy(*fallbackRaw)
-	if err != nil {
-		return err
-	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
 	resp, err := entrypoint.ExecuteScenarioGRPC(*grpcAddr, timeout, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         strings.TrimSpace(*appID),
 			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
 			TimeoutMs:     timeoutMsValue,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,

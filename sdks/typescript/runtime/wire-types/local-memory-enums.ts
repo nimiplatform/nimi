@@ -243,14 +243,6 @@ export enum LocalServiceStatus {
   REMOVED = 4,
 }
 
-export enum LocalWarmState {
-  UNSPECIFIED = 0,
-  COLD = 1,
-  WARMING = 2,
-  READY = 3,
-  FAILED = 4,
-}
-
 export enum MemoryBankScope {
   UNSPECIFIED = 0,
   AGENT_CORE = 1,

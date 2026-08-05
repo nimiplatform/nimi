@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -31,8 +31,8 @@ func (b publicChatExecutionBinding) MarshalJSON() ([]byte, error) {
 	if b.SelectedParams != nil && len(b.SelectedParams.GetFields()) > 0 {
 		out.SelectedParams = b.SelectedParams.AsMap()
 	}
-	if b.TargetRef != nil && b.TargetRef.GetTarget() != nil {
-		raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(b.TargetRef)
+	if b.TargetRef != nil && b.TargetRef.Valid() {
+		raw, err := json.Marshal(b.TargetRef)
 		if err != nil {
 			return nil, fmt.Errorf("marshal public chat execution binding target_ref: %w", err)
 		}
@@ -129,74 +129,19 @@ func decodePublicChatBindingRoutePolicy(raw json.RawMessage) (runtimev1.RoutePol
 	return parseOptionalPublicChatRoutePolicy(label)
 }
 
-func decodePublicChatBindingTargetRef(raw json.RawMessage) (*runtimev1.RuntimeDurableTargetRef, error) {
+func decodePublicChatBindingTargetRef(raw json.RawMessage) (*runtimeidentity.Target, error) {
 	trimmed := bytes.TrimSpace(raw)
 	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
 		return nil, nil
 	}
-	var targetRef runtimev1.RuntimeDurableTargetRef
-	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(trimmed, &targetRef); err == nil && targetRef.GetTarget() != nil {
-		return &targetRef, nil
-	}
-	legacy, err := decodePublicChatLegacyGoStructTargetRef(trimmed)
-	if err != nil {
-		return nil, err
-	}
-	return legacy, nil
-}
-
-func decodePublicChatLegacyGoStructTargetRef(raw []byte) (*runtimev1.RuntimeDurableTargetRef, error) {
-	var legacy struct {
-		Target *struct {
-			LocalRuntime *struct {
-				Version string `json:"version"`
-				Ref     *struct {
-					ProfileBindingID string `json:"ProfileBindingId"`
-					ReadinessRef     string `json:"ReadinessRef"`
-				} `json:"Ref"`
-			} `json:"LocalRuntime"`
-			Cloud *struct {
-				Version              string `json:"version"`
-				ConnectorID          string `json:"connector_id"`
-				RemoteModelCatalogID string `json:"remote_model_catalog_id"`
-				ProviderModelID      string `json:"provider_model_id"`
-				Provider             string `json:"provider"`
-			} `json:"Cloud"`
-		} `json:"Target"`
-	}
-	if err := json.Unmarshal(raw, &legacy); err != nil {
+	var targetRef runtimeidentity.Target
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&targetRef); err != nil {
 		return nil, fmt.Errorf("parse public chat execution binding target_ref: %w", err)
 	}
-	if legacy.Target == nil {
-		return nil, fmt.Errorf("parse public chat execution binding target_ref: missing Target")
+	if !targetRef.Valid() {
+		return nil, fmt.Errorf("parse public chat execution binding target_ref: invalid target")
 	}
-	if local := legacy.Target.LocalRuntime; local != nil {
-		out := &runtimev1.RuntimeDurableLocalTargetRef{
-			Version: strings.TrimSpace(local.Version),
-		}
-		if local.Ref != nil {
-			if profileBindingID := strings.TrimSpace(local.Ref.ProfileBindingID); profileBindingID != "" {
-				out.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: profileBindingID}
-			} else if readinessRef := strings.TrimSpace(local.Ref.ReadinessRef); readinessRef != "" {
-				out.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{ReadinessRef: readinessRef}
-			}
-		}
-		return &runtimev1.RuntimeDurableTargetRef{
-			Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: out},
-		}, nil
-	}
-	if cloud := legacy.Target.Cloud; cloud != nil {
-		return &runtimev1.RuntimeDurableTargetRef{
-			Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-				Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-					Version:              strings.TrimSpace(cloud.Version),
-					ConnectorId:          strings.TrimSpace(cloud.ConnectorID),
-					RemoteModelCatalogId: strings.TrimSpace(cloud.RemoteModelCatalogID),
-					ProviderModelId:      strings.TrimSpace(cloud.ProviderModelID),
-					Provider:             strings.TrimSpace(cloud.Provider),
-				},
-			},
-		}, nil
-	}
-	return nil, fmt.Errorf("parse public chat execution binding target_ref: missing target")
+	return &targetRef, nil
 }

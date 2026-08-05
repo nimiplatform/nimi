@@ -66,7 +66,6 @@ func TestRunRuntimeProviderSetListUnset(t *testing.T) {
 			"openai",
 			"--api-key-env", "NIMI_RUNTIME_CLOUD_OPENAI_API_KEY",
 			"--base-url", "https://api.openai.example/v1",
-			"--default",
 			"--json",
 		})
 	})
@@ -90,13 +89,6 @@ func TestRunRuntimeProviderSetListUnset(t *testing.T) {
 	if target.APIKeyEnv != "NIMI_RUNTIME_CLOUD_OPENAI_API_KEY" {
 		t.Fatalf("apiKeyEnv mismatch: %#v", target)
 	}
-	if target.DefaultModel != "" {
-		t.Fatalf("defaultModel should stay empty when catalog default is used: %#v", target)
-	}
-	if fileCfg.DefaultCloudProvider != "openai" {
-		t.Fatalf("defaultCloudProvider mismatch: %#v", fileCfg)
-	}
-
 	listOutput, err := captureStdoutFromRun(func() error {
 		return runRuntimeProvider([]string{"list", "--json"})
 	})
@@ -111,12 +103,9 @@ func TestRunRuntimeProviderSetListUnset(t *testing.T) {
 	if !ok || len(providers) != 1 {
 		t.Fatalf("providers payload mismatch: %#v", listPayload["providers"])
 	}
-	if got := asString(listPayload["defaultCloudProvider"]); got != "openai" {
-		t.Fatalf("defaultCloudProvider list mismatch: %q", got)
-	}
 	firstProvider, ok := providers[0].(map[string]any)
-	if !ok || asString(firstProvider["provider"]) != "openai" || firstProvider["default"] != true {
-		t.Fatalf("provider list default marker mismatch: %#v", providers[0])
+	if !ok || asString(firstProvider["provider"]) != "openai" {
+		t.Fatalf("provider list entry mismatch: %#v", providers[0])
 	}
 
 	if _, err := captureStdoutFromRun(func() error {
@@ -130,9 +119,6 @@ func TestRunRuntimeProviderSetListUnset(t *testing.T) {
 	}
 	if len(fileCfg.Providers) != 0 {
 		t.Fatalf("providers should be empty after unset: %#v", fileCfg.Providers)
-	}
-	if fileCfg.DefaultCloudProvider != "" {
-		t.Fatalf("defaultCloudProvider should be cleared after unset: %#v", fileCfg)
 	}
 }
 
@@ -150,7 +136,7 @@ func TestRunRuntimeProviderListPlainTextShowsNextStepWhenEmpty(t *testing.T) {
 	if !strings.Contains(output, "Nimi Providers") {
 		t.Fatalf("missing providers header: %q", output)
 	}
-	if !strings.Contains(output, `nimi run "What is Nimi?" --provider gemini`) {
+	if !strings.Contains(output, `configure caller-owned AIConfig, then run: nimi run "What is Nimi?"`) {
 		t.Fatalf("missing next-step cloud command: %q", output)
 	}
 }
@@ -335,7 +321,7 @@ func TestRunRuntimeDoctorPlainTextShowsNextStepWhenRuntimeUnavailable(t *testing
 	}
 }
 
-func TestRunTopLevelRunInstallsLocalModelAndStreamsJSON(t *testing.T) {
+func TestRunTopLevelRunStreamsUsingCallerAIConfig(t *testing.T) {
 	service := &cmdTestOnboardingService{
 		listResponse: &runtimev1.ListModelsResponse{},
 		healthResponse: &runtimev1.CheckModelHealthResponse{
@@ -385,7 +371,7 @@ func TestRunTopLevelRunInstallsLocalModelAndStreamsJSON(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", addr)
 
 	output, err := captureStdoutFromRun(func() error {
-		return runTopLevelRun([]string{"What is Nimi?", "--yes", "--json"})
+		return runTopLevelRun([]string{"What is Nimi?", "--json"})
 	})
 	if err != nil {
 		t.Fatalf("runTopLevelRun local: %v", err)
@@ -402,266 +388,21 @@ func TestRunTopLevelRunInstallsLocalModelAndStreamsJSON(t *testing.T) {
 		t.Fatalf("route decision mismatch: %q", got)
 	}
 
-	if req := service.lastPullRequest(); req.GetModelRef() != "local/qwen2.5@latest" {
-		t.Fatalf("pull request mismatch: %#v", req)
-	}
-	if req := service.lastStreamRequest(); req.GetHead().GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		t.Fatalf("stream route mismatch: %#v", req.GetHead())
+	if req := service.lastStreamRequest(); req.GetHead().GetAppId() != onboardingAppID {
+		t.Fatalf("stream app mismatch: %#v", req.GetHead())
 	}
 }
 
-func TestRunTopLevelRunCloudInteractiveCredentialCapture(t *testing.T) {
-	service := &cmdTestOnboardingService{
-		listResponse: &runtimev1.ListModelsResponse{},
-		streamEvents: []*runtimev1.StreamScenarioEvent{
-			{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
-				TraceId:   "trace-cloud-run",
-				Payload: &runtimev1.StreamScenarioEvent_Started{
-					Started: &runtimev1.ScenarioStreamStarted{
-						ModelResolved: "gemini/gemini-2.5-flash",
-						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-					},
-				},
-			},
-			{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: testTextStreamDelta("hello cloud"),
-				},
-			},
-			{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-				TraceId:   "trace-cloud-run",
-				Payload: &runtimev1.StreamScenarioEvent_Completed{
-					Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP},
-				},
-			},
-		},
-	}
-	addr, shutdown := startCmdTestOnboardingServer(t, service)
-	defer shutdown()
-	homeDir := t.TempDir()
-	setCmdTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", cmdTestPortableConfigPath(homeDir))
-	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", addr)
-
-	restoreInteractive := onboardingInteractiveTerminal
-	restorePrompt := onboardingSecretPrompt
-	onboardingInteractiveTerminal = func() bool { return true }
-	onboardingSecretPrompt = func(message string) (string, error) {
-		if !strings.Contains(message, "gemini API key is not configured") {
-			t.Fatalf("unexpected prompt message: %q", message)
-		}
-		return "gemini-inline-key", nil
-	}
-	defer func() {
-		onboardingInteractiveTerminal = restoreInteractive
-		onboardingSecretPrompt = restorePrompt
-	}()
-
-	output, err := captureStdoutFromRun(func() error {
-		return runTopLevelRun([]string{"hello from cloud", "--provider", "gemini", "--model", "gemini-2.5-flash", "--json"})
-	})
-	if err != nil {
-		t.Fatalf("runTopLevelRun cloud interactive: %v", err)
-	}
-
-	var payload map[string]any
-	if unmarshalErr := json.Unmarshal([]byte(output), &payload); unmarshalErr != nil {
-		t.Fatalf("unmarshal cloud output: %v output=%q", unmarshalErr, output)
-	}
-	if got := asString(payload["text"]); got != "hello cloud" {
-		t.Fatalf("cloud text mismatch: %q", got)
-	}
-
-	fileCfg, err := config.LoadFileConfig(config.RuntimeConfigPath())
-	if err != nil {
-		t.Fatalf("load saved provider config: %v", err)
-	}
-	if got := fileCfg.Providers["gemini"].APIKey; got != "gemini-inline-key" {
-		t.Fatalf("interactive run must persist pasted provider api key in canonical config, got %#v", fileCfg.Providers["gemini"])
-	}
-	if got := strings.TrimSpace(fileCfg.Providers["gemini"].APIKeyEnv); got != "" {
-		t.Fatalf("interactive inline persistence must not also set apiKeyEnv, got %q", got)
-	}
-	md := service.lastStreamMetadata()
-	if got := firstMD(md, "x-nimi-key-source"); got != "inline" {
-		t.Fatalf("key source metadata mismatch: %q", got)
-	}
-	if got := firstMD(md, "x-nimi-provider-type"); got != "gemini" {
-		t.Fatalf("provider type metadata mismatch: %q", got)
-	}
-	if got := firstMD(md, "x-nimi-provider-api-key"); got != "gemini-inline-key" {
-		t.Fatalf("provider api key metadata mismatch: %q", got)
-	}
-	if req := service.lastStreamRequest(); req.GetHead().GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		t.Fatalf("stream route mismatch: %#v", req.GetHead())
-	}
-	if req := service.lastStreamRequest(); req.GetHead().GetModelId() != "gemini/gemini-2.5-flash" {
-		t.Fatalf("stream model mismatch: %#v", req.GetHead())
-	}
-}
-
-func TestRunTopLevelRunCloudNonInteractiveCredentialHint(t *testing.T) {
-	service := &cmdTestOnboardingService{
-		listResponse: &runtimev1.ListModelsResponse{},
-	}
-	addr, shutdown := startCmdTestOnboardingServer(t, service)
-	defer shutdown()
-	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", addr)
-
-	restoreInteractive := onboardingInteractiveTerminal
-	onboardingInteractiveTerminal = func() bool { return false }
-	defer func() {
-		onboardingInteractiveTerminal = restoreInteractive
-	}()
-
-	err := runTopLevelRun([]string{"hello from cloud", "--provider", "openai", "--model", "gpt-4o-mini"})
-	if err == nil {
-		t.Fatalf("expected cloud credential error")
-	}
-	if !strings.Contains(err.Error(), "nimi provider set openai --api-key-env <ENV_VAR>") {
-		t.Fatalf("unexpected cloud credential error: %v", err)
-	}
-}
-
-func TestRunTopLevelRunCloudUsesDefaultProvider(t *testing.T) {
-	service := &cmdTestOnboardingService{
-		listResponse: &runtimev1.ListModelsResponse{},
-		streamEvents: []*runtimev1.StreamScenarioEvent{
-			{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
-				TraceId:   "trace-cloud-default",
-				Payload: &runtimev1.StreamScenarioEvent_Started{
-					Started: &runtimev1.ScenarioStreamStarted{
-						ModelResolved: "openai/gpt-4o-mini",
-						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-					},
-				},
-			},
-			{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: testTextStreamDelta("default cloud"),
-				},
-			},
-			{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-				TraceId:   "trace-cloud-default",
-				Payload: &runtimev1.StreamScenarioEvent_Completed{
-					Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP},
-				},
-			},
-		},
-	}
-	addr, shutdown := startCmdTestOnboardingServer(t, service)
-	defer shutdown()
-	homeDir := t.TempDir()
-	configPath := filepath.Join(homeDir, ".nimi", "config.json")
-	setCmdTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
-	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", addr)
-	if err := config.WriteFileConfig(configPath, config.FileConfig{
-		SchemaVersion:        config.DefaultSchemaVersion,
-		DefaultCloudProvider: "openai",
-		Providers: map[string]config.RuntimeFileTarget{
-			"openai": {
-				APIKey: "openai-inline-key",
-			},
-		},
-	}); err != nil {
-		t.Fatalf("write runtime config: %v", err)
-	}
-
-	output, err := captureStdoutFromRun(func() error {
-		return runTopLevelRun([]string{"hello from cloud", "--cloud", "--json"})
-	})
-	if err != nil {
-		t.Fatalf("runTopLevelRun --cloud: %v", err)
-	}
-
-	var payload map[string]any
-	if unmarshalErr := json.Unmarshal([]byte(output), &payload); unmarshalErr != nil {
-		t.Fatalf("unmarshal cloud default output: %v output=%q", unmarshalErr, output)
-	}
-	if got := asString(payload["text"]); got != "default cloud" {
-		t.Fatalf("cloud default text mismatch: %q", got)
-	}
-	if req := service.lastStreamRequest(); req.GetHead().GetModelId() != "cloud/default" {
-		t.Fatalf("default cloud model mismatch: %#v", req.GetHead())
-	}
-	md := service.lastStreamMetadata()
-	if got := firstMD(md, "x-nimi-provider-type"); got != "openai" {
-		t.Fatalf("default cloud provider metadata mismatch: %q", got)
-	}
-	if got := firstMD(md, "x-nimi-provider-api-key"); got != "openai-inline-key" {
-		t.Fatalf("default cloud api key metadata mismatch: %q", got)
-	}
-}
-
-func TestRunTopLevelRunBarePromptUsesLocalDefault(t *testing.T) {
-	target, err := resolveOnboardingRunTarget(config.Config{}, "hello", "", "", false, false)
-	if err != nil {
-		t.Fatalf("resolveOnboardingRunTarget: %v", err)
-	}
-	if target.ModelID != "local/qwen2.5" {
-		t.Fatalf("bare run should use bundled local default: %#v", target)
-	}
-}
-
-func TestRunTopLevelRunRejectsPrefixedProviderModel(t *testing.T) {
-	err := runTopLevelRun([]string{"hello", "--provider", "gemini", "--model", "openai/gpt-5.2"})
-	if err == nil {
-		t.Fatalf("expected ambiguous model/provider error")
-	}
-	if !strings.Contains(err.Error(), "provider-scoped model id") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestRunTopLevelRunCloudRequiresDefaultProvider(t *testing.T) {
-	err := runTopLevelRun([]string{"hello from cloud", "--cloud"})
-	if err == nil {
-		t.Fatalf("expected default cloud provider error")
-	}
-	if !strings.Contains(err.Error(), "default cloud target is not configured") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestRunRuntimeProviderSetDefaultRequiresModelWithoutCatalogDefault(t *testing.T) {
+func TestRunRuntimeProviderSetRejectsRemovedDefaultRoutingFlag(t *testing.T) {
 	homeDir := t.TempDir()
 	configPath := filepath.Join(homeDir, ".nimi", "config.json")
 	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	err := runRuntimeProvider([]string{"set", "stability", "--api-key", "stability-inline-key", "--default"})
 	if err == nil {
-		t.Fatalf("expected provider default-model validation error")
+		t.Fatalf("expected removed provider default routing flag error")
 	}
-	if !strings.Contains(err.Error(), "has no catalog default text model") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestRunTopLevelRunRuntimeUnavailable(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:1")
-
-	err := runTopLevelRun([]string{"hello"})
-	if err == nil {
-		t.Fatalf("expected runtime unavailable error")
-	}
-	if !strings.Contains(err.Error(), "Run 'nimi start' for background mode, or 'nimi serve' in another terminal.") {
-		t.Fatalf("unexpected runtime unavailable error: %v", err)
-	}
-}
-
-func TestRunTopLevelRunRejectsCloudModelWithoutProvider(t *testing.T) {
-	err := runTopLevelRun([]string{"hello", "--cloud", "--model", "gemini-2.5-pro"})
-	if err == nil {
-		t.Fatalf("expected --cloud --model validation error")
-	}
-	if !strings.Contains(err.Error(), "Use --provider <provider> --model <model>") {
+	if !strings.Contains(err.Error(), "flag provided but not defined") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

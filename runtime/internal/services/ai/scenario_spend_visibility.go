@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/spendvisibility"
 	"google.golang.org/grpc/codes"
@@ -27,9 +28,13 @@ func (s *Service) reportScenarioSpendDisclosure(ctx context.Context, head *runti
 	if !ok {
 		return nil
 	}
+	intent, present := executionintent.FromContext(ctx)
+	if !present || intent.CapabilityContract != capabilityID || (!intent.IsLocal() && !intent.IsCloud()) {
+		return missingAIConfigRouteError()
+	}
 	input := spendvisibility.ExecutionInput{
 		CapabilityID:  capabilityID,
-		IsCloudRoute:  scenarioSpendRouteIsCloud(head),
+		IsCloudRoute:  intent.IsCloud(),
 		BillingScope:  strings.TrimSpace(head.GetAppId()),
 		PolicyVersion: runtimeAISpendPolicyVersion,
 	}
@@ -65,17 +70,4 @@ func (s *Service) reportScenarioSpendDisclosure(ctx context.Context, head *runti
 		}
 	}
 	return nil
-}
-
-func scenarioSpendRouteIsCloud(head *runtimev1.ScenarioRequestHead) bool {
-	if head == nil {
-		return false
-	}
-	switch head.GetRoutePolicy() {
-	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
-		return true
-	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
-		return false
-	}
-	return preferredRoute(head.GetModelId()) == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 }

@@ -86,10 +86,6 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalAsset
     posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset
-    posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer

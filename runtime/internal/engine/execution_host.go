@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -20,7 +23,7 @@ import (
 const maxLlamaInvocationErrorBody = 64 << 10
 
 type llamaInvocationSubstrate interface {
-	Ensure(context.Context, string, []string, localexecution.TextProgressFunc) (string, bool, error)
+	Ensure(context.Context, string, []string, func() error, localexecution.TextProgressFunc) (string, bool, error)
 	Healthy() bool
 }
 
@@ -135,10 +138,15 @@ func (h *ExecutionHost) execute(
 	}
 	defer func() { h.lease <- struct{}{} }()
 
-	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), progress)
+	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
+		return validateInvocationModelContent(plan.ModelFiles())
+	}, progress)
 	if err != nil {
 		if ctx.Err() != nil {
 			return localexecution.TextResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
+		}
+		if localexecution.FailureKindOf(err) == localexecution.FailureContentMismatch {
+			return localexecution.TextResult{}, err
 		}
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("load llama invocation process: %w", err))
 	}
@@ -164,6 +172,32 @@ func (h *ExecutionHost) execute(
 		return h.consumeStream(ctx, response.Body, onDelta)
 	}
 	return h.consumeResponse(ctx, response.Body)
+}
+
+func validateInvocationModelContent(files []capabilitydriver.InvocationExactBinding) error {
+	if len(files) == 0 {
+		return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured llama invocation has no model files"))
+	}
+	for _, file := range files {
+		opened, err := os.Open(file.AbsolutePath)
+		if err != nil {
+			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model content: %w", err))
+		}
+		hash := sha256.New()
+		_, copyErr := io.Copy(hash, opened)
+		closeErr := opened.Close()
+		if copyErr != nil {
+			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("hash captured model content: %w", copyErr))
+		}
+		if closeErr != nil {
+			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("close captured model content: %w", closeErr))
+		}
+		actual := hex.EncodeToString(hash.Sum(nil))
+		if !strings.EqualFold(actual, strings.TrimSpace(file.EntrySHA256)) {
+			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model content does not match entry SHA-256"))
+		}
+	}
+	return nil
 }
 
 func (h *ExecutionHost) consumeResponse(ctx context.Context, body io.Reader) (localexecution.TextResult, error) {
@@ -284,11 +318,12 @@ type managerLlamaInvocationSubstrate struct {
 }
 
 type managerLlamaInvocationLoad struct {
-	processKey string
-	args       []string
-	done       chan struct{}
-	endpoint   string
-	err        error
+	processKey      string
+	args            []string
+	validateContent func() error
+	done            chan struct{}
+	endpoint        string
+	err             error
 }
 
 func newManagerLlamaInvocationSubstrate(manager *Manager) *managerLlamaInvocationSubstrate {
@@ -311,6 +346,7 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 	ctx context.Context,
 	processKey string,
 	processArgs []string,
+	validateContent func() error,
 	progress localexecution.TextProgressFunc,
 ) (string, bool, error) {
 	if s == nil || s.manager == nil {
@@ -335,9 +371,10 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 		load := s.loading
 		if load == nil {
 			load = &managerLlamaInvocationLoad{
-				processKey: processKey,
-				args:       append([]string(nil), processArgs...),
-				done:       make(chan struct{}),
+				processKey:      processKey,
+				args:            append([]string(nil), processArgs...),
+				validateContent: validateContent,
+				done:            make(chan struct{}),
 			}
 			s.loading = load
 			go s.runLoad(load)
@@ -371,6 +408,15 @@ func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLo
 	if info, err := s.manager.EngineStatus(EngineLlama); err == nil && info.Status != StatusStopped {
 		if err := s.manager.StopEngine(EngineLlama); err != nil {
 			s.finishLoad(load, "", fmt.Errorf("stop prior llama process: %w", err))
+			return
+		}
+	}
+	// Revalidate only after the prior worker has stopped and immediately before
+	// StartEngine gives the captured paths to llama-server. Performing this
+	// check earlier would leave process shutdown as a replacement window.
+	if load.validateContent != nil {
+		if err := load.validateContent(); err != nil {
+			s.finishLoad(load, "", err)
 			return
 		}
 	}

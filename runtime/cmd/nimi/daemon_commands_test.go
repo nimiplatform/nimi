@@ -72,9 +72,9 @@ func TestRunRuntimeStatusStoppedPrintsNextStep(t *testing.T) {
 	daemonManagerFactory = func() daemonManager {
 		return stubDaemonManager{
 			status: daemonctl.Status{
-				Mode:       daemonctl.ModeStopped,
-				Process:    "stopped",
-				GRPCAddr:   "127.0.0.1:46371",
+				Mode:     daemonctl.ModeStopped,
+				Process:  "stopped",
+				GRPCAddr: "127.0.0.1:46371",
 			},
 		}
 	}
@@ -102,9 +102,9 @@ func TestRunRuntimeStatusReturnsStoppedExitCode(t *testing.T) {
 	daemonManagerFactory = func() daemonManager {
 		return stubDaemonManager{
 			status: daemonctl.Status{
-				Mode:       daemonctl.ModeStopped,
-				Process:    "stopped",
-				GRPCAddr:   "127.0.0.1:46371",
+				Mode:     daemonctl.ModeStopped,
+				Process:  "stopped",
+				GRPCAddr: "127.0.0.1:46371",
 			},
 		}
 	}

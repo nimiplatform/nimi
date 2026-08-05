@@ -24,7 +24,7 @@ func ExecuteIdeogramImage(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.ideogram.ai"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 	if apiKey == "" {
@@ -41,7 +41,7 @@ func ExecuteIdeogramImage(
 
 	imageRequest := map[string]any{
 		"prompt": strings.TrimSpace(spec.GetPrompt()),
-		"model":  StripProviderModelPrefix(modelResolved, "ideogram"),
+		"model":  strings.TrimSpace(modelResolved),
 	}
 	if negPrompt := strings.TrimSpace(spec.GetNegativePrompt()); negPrompt != "" {
 		imageRequest["negative_prompt"] = negPrompt
@@ -60,12 +60,7 @@ func ExecuteIdeogramImage(
 		"image_request": imageRequest,
 	}
 
-	endpoint := FirstProviderEndpointPath(
-		nil,
-		[]string{"image_path"},
-		[]string{"image_paths"},
-		[]string{"/generate"},
-	)
+	endpoint := firstProviderEndpointPath([]string{"/generate"})
 	resp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, &resp); err != nil {
 		return nil, nil, "", err

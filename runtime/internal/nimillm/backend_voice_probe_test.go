@@ -39,7 +39,7 @@ func TestListSpeechVoicesFiltersByModel(t *testing.T) {
 		t.Fatal("expected backend")
 	}
 
-	voices, err := backend.ListSpeechVoices(context.Background(), "cloud/qwen3-tts-instruct-flash-2026-01-26")
+	voices, err := backend.ListSpeechVoices(context.Background(), "qwen3-tts-instruct-flash-2026-01-26")
 	if err != nil {
 		t.Fatalf("ListSpeechVoices failed: %v", err)
 	}

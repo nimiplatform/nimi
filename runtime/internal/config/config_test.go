@@ -134,7 +134,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "shutdownTimeoutSeconds": 13,
   "localStatePath": "~/runtime/custom-state.json",
   "appIdentityProjectionPath": "~/runtime/nimi-app-identity-surfaces.yaml",
-  "defaultCloudProvider": "gemini",
   "aiHttpTimeoutSeconds": 21,
   "aiHealthIntervalSeconds": 3,
   "providers": {
@@ -177,10 +176,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if cfg.AppIdentityProjectionPath != filepath.Join(homeDir, "runtime/nimi-app-identity-surfaces.yaml") {
 		t.Fatalf("app identity projection path mismatch: %q", cfg.AppIdentityProjectionPath)
 	}
-	if cfg.DefaultCloudProvider != "gemini" {
-		t.Fatalf("defaultCloudProvider mismatch: %q", cfg.DefaultCloudProvider)
-	}
-
 	if cfg.AIHTTPTimeoutSeconds != 21 {
 		t.Fatalf("aiHttpTimeoutSeconds mismatch: got=%d want=21", cfg.AIHTTPTimeoutSeconds)
 	}
@@ -499,7 +494,7 @@ func TestLoadRejectsProviderAPIKeyAndEnvConflict(t *testing.T) {
 	}
 }
 
-func TestLoadRejectsDefaultCloudProviderWithoutConfiguredTarget(t *testing.T) {
+func TestLoadRejectsRemovedDefaultCloudProvider(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
@@ -520,16 +515,15 @@ func TestLoadRejectsDefaultCloudProviderWithoutConfiguredTarget(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected invalid defaultCloudProvider error")
 	}
-	if !strings.Contains(err.Error(), `defaultCloudProvider "openai" must reference a configured provider`) {
+	if !strings.Contains(err.Error(), "defaultCloudProvider is removed") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestLoadDefaultCloudProviderEnvOverrideWinsAndNormalizes(t *testing.T) {
+func TestLoadRejectsRemovedDefaultCloudProviderEnv(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
-  "defaultCloudProvider": "gemini",
   "providers": {
     "gemini": {
       "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
@@ -544,12 +538,9 @@ func TestLoadDefaultCloudProviderEnvOverrideWinsAndNormalizes(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER", " Gemini ")
 	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "gemini-from-env")
 
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.DefaultCloudProvider != "gemini" {
-		t.Fatalf("expected normalized env override, got %q", cfg.DefaultCloudProvider)
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER") {
+		t.Fatalf("removed default cloud provider env error = %v", err)
 	}
 }
 

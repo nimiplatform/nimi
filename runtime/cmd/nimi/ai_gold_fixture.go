@@ -160,35 +160,6 @@ func (f *aiGoldFixture) validateAudioRequest(capability string) error {
 	return nil
 }
 
-func (f *aiGoldFixture) routePolicy() runtimev1.RoutePolicy {
-	if strings.EqualFold(strings.TrimSpace(f.Provider), "local") {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	}
-	return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
-}
-
-func (f *aiGoldFixture) fallbackPolicy() runtimev1.FallbackPolicy {
-	return runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY
-}
-
-func (f *aiGoldFixture) runtimeModelID() string {
-	if f == nil {
-		return ""
-	}
-	modelID := strings.TrimSpace(f.ModelID)
-	if modelID == "" {
-		return ""
-	}
-	if f.routePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		return modelID
-	}
-	lower := strings.ToLower(modelID)
-	if strings.HasPrefix(lower, "cloud/") || strings.Contains(modelID, "/") {
-		return modelID
-	}
-	return "cloud/" + modelID
-}
-
 func (f *aiGoldFixture) requestDigest() string {
 	if f == nil {
 		return ""
@@ -300,9 +271,6 @@ func (f *aiGoldFixture) buildExecuteScenarioRequest(appID string, subjectUserID 
 	head := &runtimev1.ScenarioRequestHead{
 		AppId:         strings.TrimSpace(appID),
 		SubjectUserId: strings.TrimSpace(subjectUserID),
-		ModelId:       f.runtimeModelID(),
-		RoutePolicy:   f.routePolicy(),
-		Fallback:      f.fallbackPolicy(),
 		TimeoutMs:     120_000,
 	}
 	switch strings.TrimSpace(strings.ToLower(f.Capability)) {
@@ -355,9 +323,6 @@ func (f *aiGoldFixture) buildSubmitScenarioJobRequest(appID string, subjectUserI
 	head := &runtimev1.ScenarioRequestHead{
 		AppId:         strings.TrimSpace(appID),
 		SubjectUserId: strings.TrimSpace(subjectUserID),
-		ModelId:       f.runtimeModelID(),
-		RoutePolicy:   f.routePolicy(),
-		Fallback:      f.fallbackPolicy(),
 		TimeoutMs:     180_000,
 	}
 	request := &runtimev1.SubmitScenarioJobRequest{

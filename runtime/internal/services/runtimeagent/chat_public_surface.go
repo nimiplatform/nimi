@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 	"time"
@@ -62,7 +63,7 @@ type publicChatExecutionBinding struct {
 	ModelID             string
 	RoutePolicy         runtimev1.RoutePolicy
 	ConnectorID         string
-	TargetRef           *runtimev1.RuntimeDurableTargetRef
+	TargetRef           *runtimeidentity.Target
 	SelectedParams      *structpb.Struct
 	CapabilityContract  string
 	RequiredFeatures    []string

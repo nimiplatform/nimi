@@ -77,10 +77,8 @@ func (p *CloudProvider) ResolveProbeBackend(providerID string, endpoint string, 
 }
 
 func (p *CloudProvider) probeTimeout() time.Duration {
-	for _, providerID := range knownProviders {
-		if b := p.backends[providerID]; b != nil && b.client != nil {
-			return b.client.Timeout
-		}
+	if p != nil && p.httpTimeout > 0 {
+		return p.httpTimeout
 	}
 	return defaultHTTPTimeout
 }

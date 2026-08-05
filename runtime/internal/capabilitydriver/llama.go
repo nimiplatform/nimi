@@ -195,9 +195,16 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 	if portable.contextSize > 0 {
 		contextWindow = uint64(portable.contextSize)
 	}
+	modelFiles := make([]InvocationExactBinding, 0, len(bindings))
+	for _, requirementID := range []string{MainGGUFRequirementID, CompanionMMProjRequirementID} {
+		if binding, ok := bindings[requirementID]; ok {
+			modelFiles = append(modelFiles, binding)
+		}
+	}
 	return &TextInvocationPlan{
 		processKey:    hex.EncodeToString(hash.Sum(nil)),
 		processArgs:   processArgs,
+		modelFiles:    modelFiles,
 		requestPath:   "/v1/chat/completions",
 		requestBody:   requestBody,
 		stream:        input.Stream,

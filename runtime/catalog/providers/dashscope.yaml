@@ -3498,6 +3498,7 @@ selection_profiles:
 voice_workflow_models:
   - workflow_model_id: qwen-voice-enrollment
     workflow_type: voice_clone
+    workflow_family: dashscope
     input_contract_ref: dashscope_voice_clone_input_v1
     output_persistence: provider_persistent
     request_options:
@@ -3534,6 +3535,7 @@ voice_workflow_models:
       - ru
   - workflow_model_id: qwen-voice-design
     workflow_type: voice_design
+    workflow_family: dashscope
     input_contract_ref: dashscope_voice_design_input_v1
     output_persistence: provider_persistent
     request_options:
@@ -3562,6 +3564,7 @@ voice_workflow_models:
       - ru
   - workflow_model_id: voice-enrollment-clone
     workflow_type: voice_clone
+    workflow_family: cosyvoice
     input_contract_ref: dashscope_cosyvoice_voice_clone_input_v1
     output_persistence: provider_persistent
     request_options:
@@ -3603,6 +3606,7 @@ voice_workflow_models:
       - vi
   - workflow_model_id: voice-enrollment-design
     workflow_type: voice_design
+    workflow_family: cosyvoice
     input_contract_ref: dashscope_cosyvoice_voice_design_input_v1
     output_persistence: provider_persistent
     request_options:

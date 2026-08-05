@@ -9,7 +9,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -43,48 +42,6 @@ type SelectedLocalExecution struct {
 type Resolver interface {
 	SelectedLocalCapabilityContracts() []string
 	ResolveSelectedLocalExecution(capabilityContract string) (*SelectedLocalExecution, error)
-}
-
-// ConsumerIntent is an immutable Runtime-private AIConfig capability snapshot.
-// RuntimeAgent uses the context carrier below when it calls the in-process AI
-// service; public requests cannot construct or override this value.
-type ConsumerIntent struct {
-	CapabilityContract string
-	RequiredFeatures   []string
-	Defaults           *structpb.Struct
-	Local              bool
-}
-
-type consumerIntentContextKey struct{}
-
-func WithConsumerIntent(ctx context.Context, intent ConsumerIntent) context.Context {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	return context.WithValue(ctx, consumerIntentContextKey{}, cloneConsumerIntent(intent))
-}
-
-func ConsumerIntentFromContext(ctx context.Context) (ConsumerIntent, bool) {
-	if ctx == nil {
-		return ConsumerIntent{}, false
-	}
-	intent, ok := ctx.Value(consumerIntentContextKey{}).(ConsumerIntent)
-	if !ok {
-		return ConsumerIntent{}, false
-	}
-	return cloneConsumerIntent(intent), true
-}
-
-func cloneConsumerIntent(input ConsumerIntent) ConsumerIntent {
-	out := ConsumerIntent{
-		CapabilityContract: input.CapabilityContract,
-		RequiredFeatures:   append([]string(nil), input.RequiredFeatures...),
-		Local:              input.Local,
-	}
-	if input.Defaults != nil {
-		out.Defaults, _ = proto.Clone(input.Defaults).(*structpb.Struct)
-	}
-	return out
 }
 
 // TextExecutionProgress reports private host lifecycle progress to the job or
@@ -122,10 +79,11 @@ type TextExecutionHost interface {
 type FailureKind string
 
 const (
-	FailureLoad         FailureKind = "load"
-	FailureInference    FailureKind = "inference"
-	FailureCanceled     FailureKind = "cancel"
-	FailureProcessCrash FailureKind = "process_crash"
+	FailureLoad            FailureKind = "load"
+	FailureContentMismatch FailureKind = "content_mismatch"
+	FailureInference       FailureKind = "inference"
+	FailureCanceled        FailureKind = "cancel"
+	FailureProcessCrash    FailureKind = "process_crash"
 )
 
 // ExecutionError preserves the private failure phase so service boundaries can

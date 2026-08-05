@@ -7,6 +7,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc"
 )
 
@@ -171,14 +173,9 @@ func TestAIBackedVoiceLipsyncSynthesizerSubmitsSpeechSynthesisJob(t *testing.T) 
 	if got := ai.submitReq.GetScenarioType(); got != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
 		t.Fatalf("scenario type = %v", got)
 	}
-	if got := ai.submitReq.GetHead().GetModelId(); got != "speech/qwen3tts" {
-		t.Fatalf("model id = %q", got)
-	}
-	if got := ai.submitReq.GetHead().GetRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		t.Fatalf("route policy = %v", got)
-	}
-	if got := ai.submitReq.GetHead().GetTargetRef().GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:speech/qwen3tts" {
-		t.Fatalf("target_ref profile_binding_id = %q", got)
+	intent, ok := executionintent.FromContext(ai.submitCtx)
+	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
+		t.Fatalf("private speech intent = %+v, ok=%v", intent, ok)
 	}
 	spec := ai.submitReq.GetSpec().GetSpeechSynthesize()
 	if spec == nil {
@@ -312,6 +309,10 @@ func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) 
 		DefaultVoiceReference: "preset_voice_id:zh_narrator",
 		SpeechModelID:         "speech/anchor",
 		SpeechRoutePolicy:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		SpeechTargetRef: &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+			ConnectorID: "connector-anchor", RemoteModelCatalogID: "catalog-anchor",
+			ProviderModelID: "speech/anchor", Provider: "provider-anchor",
+		}},
 	})
 	if err != nil {
 		t.Fatalf("synthesize anchor provider: %v", err)
@@ -319,11 +320,9 @@ func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) 
 	if ai.submitReq == nil {
 		t.Fatalf("expected provider submit with anchor speech model")
 	}
-	if got := ai.submitReq.GetHead().GetModelId(); got != "speech/anchor" {
-		t.Fatalf("anchor model id = %q", got)
-	}
-	if got := ai.submitReq.GetHead().GetRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		t.Fatalf("anchor route policy = %v", got)
+	intent, ok := executionintent.FromContext(ai.submitCtx)
+	if !ok || !intent.IsCloud() || intent.CloudTarget.ProviderModelID != "speech/anchor" {
+		t.Fatalf("anchor private Cloud intent = %+v, ok=%v", intent, ok)
 	}
 	if out.VoiceRouteBinding == nil || out.VoiceRouteBinding.ModelID != "speech/anchor" {
 		t.Fatalf("expected anchor model route binding, got %+v", out.VoiceRouteBinding)
@@ -335,13 +334,16 @@ type fakeVoiceLipsyncScenarioExecutor struct {
 	streamReq     *runtimev1.StreamScenarioRequest
 	streamEvents  []*runtimev1.StreamScenarioEvent
 	streamErr     error
+	submitCtx     context.Context
+	streamCtx     context.Context
 	jobID         string
 	modelResolved string
 	artifact      *runtimev1.ScenarioArtifact
 }
 
-func (f *fakeVoiceLipsyncScenarioExecutor) SubmitScenarioJob(_ context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
+func (f *fakeVoiceLipsyncScenarioExecutor) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
 	f.submitReq = req
+	f.submitCtx = ctx
 	return &runtimev1.SubmitScenarioJobResponse{
 		Job: &runtimev1.ScenarioJob{
 			JobId:         f.jobID,
@@ -370,6 +372,7 @@ func (f *fakeVoiceLipsyncScenarioExecutor) GetScenarioArtifacts(context.Context,
 
 func (f *fakeVoiceLipsyncScenarioExecutor) StreamScenario(req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
 	f.streamReq = req
+	f.streamCtx = stream.Context()
 	for _, event := range f.streamEvents {
 		if err := stream.Send(event); err != nil {
 			return err

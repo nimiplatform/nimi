@@ -120,7 +120,7 @@ func ExecuteMiniMaxTask(
 		if len(scenarioExtensions) > 0 {
 			openAIPayload["extensions"] = scenarioExtensions
 		}
-		paths := resolveMiniMaxSpeechPaths(scenarioExtensions)
+		paths := resolveMiniMaxSpeechPaths()
 		var firstNotFoundErr error
 		var firstOtherErr error
 		for _, endpointPath := range paths {
@@ -168,7 +168,7 @@ func ExecuteMiniMaxTask(
 				codes.FailedPrecondition,
 				runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
 				firstNotFoundErr,
-				grpcerr.ReasonOptions{Message: "provider speech fallback routes were unavailable"},
+				grpcerr.ReasonOptions{Message: "provider speech endpoint is unsupported"},
 			)
 		}
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -378,9 +378,8 @@ func ExecuteMiniMaxTask(
 	}
 }
 
-// ExecuteMiniMaxTranscribe attempts transcription across multiple MiniMax
-// endpoint paths, delegating to ExecuteGLMTranscribe for the actual multipart
-// POST.
+// ExecuteMiniMaxTranscribe uses the single adapter-owned MiniMax endpoint and
+// delegates the multipart POST to ExecuteGLMTranscribe.
 func ExecuteMiniMaxTranscribe(
 	ctx context.Context,
 	baseURL string,
@@ -391,7 +390,7 @@ func ExecuteMiniMaxTranscribe(
 	mimeType string,
 	scenarioExtensions map[string]any,
 ) (string, string, error) {
-	paths := resolveMiniMaxTranscriptionPaths(scenarioExtensions)
+	paths := resolveMiniMaxTranscriptionPaths()
 	if len(paths) == 0 {
 		return "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -412,7 +411,7 @@ func ExecuteMiniMaxTranscribe(
 			codes.FailedPrecondition,
 			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
 			lastErr,
-			grpcerr.ReasonOptions{Message: "provider transcription fallback routes were unavailable"},
+			grpcerr.ReasonOptions{Message: "provider transcription endpoint is unsupported"},
 		)
 	}
 	return "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -440,22 +439,12 @@ func isMiniMaxTaskFailedStatus(statusText string) bool {
 	}
 }
 
-func resolveMiniMaxSpeechPaths(scenarioExtensions map[string]any) []string {
-	return ResolveProviderEndpointPaths(
-		scenarioExtensions,
-		[]string{"tts_path", "speech_path", "audio_speech_path"},
-		[]string{"tts_paths", "speech_paths"},
-		[]string{"/v1/t2a_v2", "/v1/audio/speech"},
-	)
+func resolveMiniMaxSpeechPaths() []string {
+	return providerEndpointPaths([]string{"/v1/t2a_v2"})
 }
 
-func resolveMiniMaxTranscriptionPaths(scenarioExtensions map[string]any) []string {
-	return ResolveProviderEndpointPaths(
-		scenarioExtensions,
-		[]string{"stt_path", "transcription_path", "audio_transcriptions_path"},
-		[]string{"stt_paths", "transcription_paths"},
-		[]string{"/v1/audio/transcriptions", "/v1/stt/transcriptions", "/v1/stt"},
-	)
+func resolveMiniMaxTranscriptionPaths() []string {
+	return providerEndpointPaths([]string{"/v1/audio/transcriptions"})
 }
 
 func isMiniMaxNativeTTSPath(endpointPath string) bool {

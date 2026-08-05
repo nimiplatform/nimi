@@ -10,15 +10,19 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/proto"
 )
 
 // VoiceAssetResolver is the Runtime-private owner boundary used by
 // RuntimeAgent to resolve an admitted VoiceAsset without reaching into AI
 // storage. The production adapter delegates to RuntimeAiService.GetVoiceAsset,
 // preserving its app/subject isolation checks.
+type resolvedVoiceAsset struct {
+	Asset  *runtimev1.VoiceAsset
+	Target *runtimeidentity.Target
+}
+
 type VoiceAssetResolver interface {
-	ResolveVoiceAsset(ctx context.Context, voiceAssetID string) (*runtimev1.VoiceAsset, error)
+	ResolveVoiceAsset(ctx context.Context, voiceAssetID string) (*resolvedVoiceAsset, error)
 }
 
 type runtimeAIVoiceAssetService interface {
@@ -26,7 +30,7 @@ type runtimeAIVoiceAssetService interface {
 }
 
 type runtimeAgentVoiceAssetService interface {
-	ResolveRuntimeAgentVoiceAsset(context.Context, string, string) (*runtimev1.VoiceAsset, error)
+	ResolveRuntimeAgentVoiceAsset(context.Context, string, string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error)
 }
 
 type aiBackedVoiceAssetResolver struct {
@@ -57,27 +61,25 @@ func NewAIBackedVoiceAssetResolver(ai runtimeAIVoiceAssetService) VoiceAssetReso
 	return aiBackedVoiceAssetResolver{ai: ai}
 }
 
-func (r aiBackedVoiceAssetResolver) ResolveVoiceAsset(ctx context.Context, voiceAssetID string) (*runtimev1.VoiceAsset, error) {
-	if ownerUserID := runtimeAgentVoiceAssetOwnerFromContext(ctx); ownerUserID != "" {
-		agentService, ok := r.ai.(runtimeAgentVoiceAssetService)
-		if !ok {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED)
-		}
-		return agentService.ResolveRuntimeAgentVoiceAsset(ctx, strings.TrimSpace(voiceAssetID), ownerUserID)
+func (r aiBackedVoiceAssetResolver) ResolveVoiceAsset(ctx context.Context, voiceAssetID string) (*resolvedVoiceAsset, error) {
+	ownerUserID := runtimeAgentVoiceAssetOwnerFromContext(ctx)
+	if ownerUserID == "" {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED)
 	}
-	response, err := r.ai.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: strings.TrimSpace(voiceAssetID)})
+	agentService, ok := r.ai.(runtimeAgentVoiceAssetService)
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED)
+	}
+	asset, target, err := agentService.ResolveRuntimeAgentVoiceAsset(ctx, strings.TrimSpace(voiceAssetID), ownerUserID)
 	if err != nil {
 		return nil, err
 	}
-	if response == nil || response.GetAsset() == nil {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
-	}
-	return response.GetAsset(), nil
+	return &resolvedVoiceAsset{Asset: asset, Target: target}, nil
 }
 
 type rejectingVoiceAssetResolver struct{}
 
-func (rejectingVoiceAssetResolver) ResolveVoiceAsset(context.Context, string) (*runtimev1.VoiceAsset, error) {
+func (rejectingVoiceAssetResolver) ResolveVoiceAsset(context.Context, string) (*resolvedVoiceAsset, error) {
 	return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED)
 }
 
@@ -135,13 +137,14 @@ func validateAgentPresentationVoiceAssetBinding(
 	if resolver == nil {
 		resolver = rejectingVoiceAssetResolver{}
 	}
-	asset, err := resolver.ResolveVoiceAsset(ctx, voiceAssetID)
+	resolved, err := resolver.ResolveVoiceAsset(withRuntimeAgentVoiceAssetOwner(ctx, identity.OwnerUserID), voiceAssetID)
 	if err != nil {
 		return err
 	}
-	if asset == nil {
+	if resolved == nil || resolved.Asset == nil || resolved.Target == nil {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
+	asset := resolved.Asset
 	if strings.TrimSpace(asset.GetVoiceAssetId()) != voiceAssetID {
 		return invalidProfileVoiceAssetBinding()
 	}
@@ -157,21 +160,19 @@ func validateAgentPresentationVoiceAssetBinding(
 		strings.TrimSpace(asset.GetProvider()) == "" ||
 		strings.TrimSpace(asset.GetProviderVoiceRef()) == "" ||
 		voiceAssetExpiryElapsed(asset, time.Now().UTC()) ||
-		runtimeidentity.ValidateDurableTargetRef(asset.GetTargetRef()) != nil ||
-		runtimeidentity.ValidateDurableTargetRef(asset.GetVoiceAssetTargetRef()) != nil ||
-		!proto.Equal(asset.GetTargetRef(), asset.GetVoiceAssetTargetRef()) ||
-		!voiceAssetProviderMatchesDurableTarget(asset.GetProvider(), asset.GetTargetRef()) {
+		!resolved.Target.Valid() ||
+		!voiceAssetProviderMatchesDurableTarget(asset.GetProvider(), resolved.Target) {
 		return invalidProfileVoiceAssetBinding()
 	}
 	return nil
 }
 
-func voiceAssetProviderMatchesDurableTarget(provider string, targetRef *runtimev1.RuntimeDurableTargetRef) bool {
+func voiceAssetProviderMatchesDurableTarget(provider string, targetRef *runtimeidentity.Target) bool {
 	if provider == "" || strings.TrimSpace(provider) != provider {
 		return false
 	}
 	cloud := targetRef.GetCloud()
-	return cloud == nil || provider == cloud.GetProvider()
+	return cloud == nil || provider == cloud.Provider
 }
 
 func validProfileVoiceAssetWorkflowType(workflowType runtimev1.VoiceWorkflowType) bool {
@@ -227,20 +228,24 @@ func resolveRuntimeAgentBoundVoiceAsset(
 	resolver VoiceAssetResolver,
 	ownerUserID string,
 	voiceAssetID string,
-) (*runtimev1.VoiceAsset, error) {
+) (*resolvedVoiceAsset, error) {
 	ownerUserID = strings.TrimSpace(ownerUserID)
 	voiceAssetID = strings.TrimSpace(voiceAssetID)
 	if ownerUserID == "" || voiceAssetID == "" || resolver == nil {
 		return nil, invalidProfileVoiceAssetBinding()
 	}
-	asset, err := resolver.ResolveVoiceAsset(
+	resolved, err := resolver.ResolveVoiceAsset(
 		withRuntimeAgentVoiceAssetOwner(ctx, ownerUserID),
 		voiceAssetID,
 	)
 	if err != nil {
 		return nil, err
 	}
-	if asset == nil || strings.TrimSpace(asset.GetVoiceAssetId()) != voiceAssetID {
+	if resolved == nil || resolved.Asset == nil || resolved.Target == nil {
+		return nil, invalidProfileVoiceAssetBinding()
+	}
+	asset := resolved.Asset
+	if strings.TrimSpace(asset.GetVoiceAssetId()) != voiceAssetID {
 		return nil, invalidProfileVoiceAssetBinding()
 	}
 	if strings.TrimSpace(asset.GetAppId()) == "" || strings.TrimSpace(asset.GetSubjectUserId()) != ownerUserID {
@@ -252,13 +257,11 @@ func resolveRuntimeAgentBoundVoiceAsset(
 		strings.TrimSpace(asset.GetProvider()) == "" ||
 		strings.TrimSpace(asset.GetProviderVoiceRef()) == "" ||
 		voiceAssetExpiryElapsed(asset, time.Now().UTC()) ||
-		runtimeidentity.ValidateDurableTargetRef(asset.GetTargetRef()) != nil ||
-		runtimeidentity.ValidateDurableTargetRef(asset.GetVoiceAssetTargetRef()) != nil ||
-		!proto.Equal(asset.GetTargetRef(), asset.GetVoiceAssetTargetRef()) ||
-		!voiceAssetProviderMatchesDurableTarget(asset.GetProvider(), asset.GetTargetRef()) {
+		!resolved.Target.Valid() ||
+		!voiceAssetProviderMatchesDurableTarget(asset.GetProvider(), resolved.Target) {
 		return nil, invalidProfileVoiceAssetBinding()
 	}
-	return asset, nil
+	return resolved, nil
 }
 
 func resolveRuntimeAgentVoiceAssetExecutionApp(
@@ -266,7 +269,7 @@ func resolveRuntimeAgentVoiceAssetExecutionApp(
 	resolver VoiceAssetResolver,
 	ownerUserID string,
 	defaultVoiceReference string,
-	speechTargetRef *runtimev1.RuntimeDurableTargetRef,
+	speechTargetRef *runtimeidentity.Target,
 ) (string, error) {
 	kind, voiceAssetID, ok := strings.Cut(strings.TrimSpace(defaultVoiceReference), ":")
 	kind = strings.TrimSpace(kind)
@@ -277,12 +280,12 @@ func resolveRuntimeAgentVoiceAssetExecutionApp(
 	if kind != "voice_asset_id" {
 		return runtimeAgentVoiceSynthesisAppID, nil
 	}
-	asset, err := resolveRuntimeAgentBoundVoiceAsset(ctx, resolver, ownerUserID, voiceAssetID)
+	resolved, err := resolveRuntimeAgentBoundVoiceAsset(ctx, resolver, ownerUserID, voiceAssetID)
 	if err != nil {
 		return "", err
 	}
-	appID := strings.TrimSpace(asset.GetAppId())
-	if speechTargetRef == nil || !proto.Equal(speechTargetRef, asset.GetVoiceAssetTargetRef()) {
+	appID := strings.TrimSpace(resolved.Asset.GetAppId())
+	if speechTargetRef == nil || !runtimeidentity.Equal(speechTargetRef, resolved.Target) {
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}
 	return appID, nil

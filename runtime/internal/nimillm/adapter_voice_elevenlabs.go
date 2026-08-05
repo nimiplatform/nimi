@@ -12,7 +12,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func executeElevenLabsVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
@@ -30,11 +29,11 @@ func executeElevenLabsVoiceWorkflow(ctx context.Context, req VoiceWorkflowReques
 
 func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg, req.ExtPayload)
+	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	headers := voiceWorkflowHeaders("elevenlabs", cfg.APIKey, req.ExtPayload)
+	headers := voiceWorkflowHeaders("elevenlabs", cfg)
 	name := FirstNonEmpty(
 		ValueAsString(req.Payload["name"]),
 		ValueAsString(req.Payload["voice_name"]),
@@ -63,30 +62,10 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 		previewPayload["extensions"] = req.ExtPayload
 	}
 
-	previewPaths := resolveVoiceEndpointPaths("voice_design", req.ExtPayload, nil)
-	// Use preview-specific extension keys if provided.
-	if extPaths := valueAsTrimmedStringSliceVoice(req.ExtPayload["preview_paths"]); len(extPaths) > 0 {
-		previewPaths = extPaths
-	} else if len(previewPaths) == 0 {
-		previewPaths = []string{"/v1/text-to-voice/design"}
-	}
-
+	const previewPath = "/v1/text-to-voice/design"
 	previewResp := map[string]any{}
-	var lastErr error
-	for _, path := range previewPaths {
-		err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, path), "", previewPayload, &previewResp, headers)
-		if err != nil {
-			lastErr = err
-			if status.Code(err) == codes.NotFound {
-				continue
-			}
-			return VoiceWorkflowResult{}, err
-		}
-		lastErr = nil
-		break
-	}
-	if lastErr != nil {
-		return VoiceWorkflowResult{}, lastErr
+	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, previewPath), "", previewPayload, &previewResp, headers); err != nil {
+		return VoiceWorkflowResult{}, err
 	}
 
 	previewID := extractPreviewIDFromVoiceWorkflowResponse(previewResp)
@@ -118,52 +97,32 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 		createPayload["extensions"] = req.ExtPayload
 	}
 
-	var createPaths []string
-	if extPaths := valueAsTrimmedStringSliceVoice(req.ExtPayload["create_paths"]); len(extPaths) > 0 {
-		createPaths = extPaths
-	} else {
-		createPaths = []string{"/v1/text-to-voice"}
-	}
-
+	const createPath = "/v1/text-to-voice"
 	createResp := map[string]any{}
-	lastErr = nil
-	for _, path := range createPaths {
-		err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, path), "", createPayload, &createResp, headers)
-		if err != nil {
-			lastErr = err
-			if status.Code(err) == codes.NotFound {
-				continue
-			}
-			return VoiceWorkflowResult{}, err
-		}
-		providerVoiceRef := extractVoiceWorkflowVoiceRef(createResp)
-		if providerVoiceRef == "" {
-			lastErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-			continue
-		}
-		providerJobID := ExtractTaskIDFromAdapterPayload("voice:elevenlabs", createResp)
-		return VoiceWorkflowResult{
-			ProviderJobID:    providerJobID,
-			ProviderVoiceRef: providerVoiceRef,
-			Metadata: map[string]any{
-				"provider":           "elevenlabs",
-				"workflow_type":      strings.TrimSpace(req.WorkflowType),
-				"workflow_model_id":  strings.TrimSpace(req.WorkflowModelID),
-				"adapter":            "nimillm_voice_adapter_elevenlabs",
-				"endpoint":           strings.TrimSpace(path),
-				"generated_voice_id": previewID,
-			},
-		}, nil
+	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, createPath), "", createPayload, &createResp, headers); err != nil {
+		return VoiceWorkflowResult{}, err
 	}
-	if lastErr != nil {
-		return VoiceWorkflowResult{}, lastErr
+	providerVoiceRef := extractVoiceWorkflowVoiceRef(createResp)
+	if providerVoiceRef == "" {
+		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	return VoiceWorkflowResult{
+		ProviderJobID:    ExtractTaskIDFromAdapterPayload("voice:elevenlabs", createResp),
+		ProviderVoiceRef: providerVoiceRef,
+		Metadata: map[string]any{
+			"provider":           "elevenlabs",
+			"workflow_type":      strings.TrimSpace(req.WorkflowType),
+			"workflow_model_id":  strings.TrimSpace(req.WorkflowModelID),
+			"adapter":            "nimillm_voice_adapter_elevenlabs",
+			"endpoint":           createPath,
+			"generated_voice_id": previewID,
+		},
+	}, nil
 }
 
 func executeElevenLabsInstantVoiceClone(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg, req.ExtPayload)
+	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -179,8 +138,8 @@ func executeElevenLabsInstantVoiceClone(ctx context.Context, req VoiceWorkflowRe
 		ValueAsString(MapField(req.Payload["input"], "preferred_name")),
 		"nimi_voice",
 	)
-	headers := voiceWorkflowHeaders("elevenlabs", cfg.APIKey, req.ExtPayload)
-	paths := resolveVoiceEndpointPaths(req.WorkflowType, req.ExtPayload, []string{"/v1/voices/add"})
+	headers := voiceWorkflowHeaders("elevenlabs", cfg)
+	const path = "/v1/voices/add"
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -201,38 +160,25 @@ func executeElevenLabsInstantVoiceClone(ctx context.Context, req VoiceWorkflowRe
 		return VoiceWorkflowResult{}, MapProviderRequestError(err)
 	}
 
-	var lastErr error
-	for _, path := range paths {
-		response := map[string]any{}
-		err := doElevenLabsMultipartJSONRequest(ctx, JoinURL(baseURL, path), body.Bytes(), writer.FormDataContentType(), headers, &response)
-		if err != nil {
-			lastErr = err
-			if status.Code(err) == codes.NotFound {
-				continue
-			}
-			return VoiceWorkflowResult{}, err
-		}
-		providerVoiceRef := extractVoiceWorkflowVoiceRef(response)
-		if providerVoiceRef == "" {
-			lastErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-			continue
-		}
-		return VoiceWorkflowResult{
-			ProviderJobID:    ExtractTaskIDFromAdapterPayload("voice:elevenlabs", response),
-			ProviderVoiceRef: providerVoiceRef,
-			Metadata: map[string]any{
-				"provider":          "elevenlabs",
-				"workflow_type":     strings.TrimSpace(req.WorkflowType),
-				"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
-				"adapter":           "nimillm_voice_adapter_elevenlabs",
-				"endpoint":          strings.TrimSpace(path),
-			},
-		}, nil
+	response := map[string]any{}
+	if err := doElevenLabsMultipartJSONRequest(ctx, JoinURL(baseURL, path), body.Bytes(), writer.FormDataContentType(), headers, &response); err != nil {
+		return VoiceWorkflowResult{}, err
 	}
-	if lastErr != nil {
-		return VoiceWorkflowResult{}, lastErr
+	providerVoiceRef := extractVoiceWorkflowVoiceRef(response)
+	if providerVoiceRef == "" {
+		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	return VoiceWorkflowResult{
+		ProviderJobID:    ExtractTaskIDFromAdapterPayload("voice:elevenlabs", response),
+		ProviderVoiceRef: providerVoiceRef,
+		Metadata: map[string]any{
+			"provider":          "elevenlabs",
+			"workflow_type":     strings.TrimSpace(req.WorkflowType),
+			"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
+			"adapter":           "nimillm_voice_adapter_elevenlabs",
+			"endpoint":          path,
+		},
+	}, nil
 }
 
 func resolveElevenLabsReferenceAudio(ctx context.Context, payload map[string]any) ([]byte, string, error) {

@@ -55,7 +55,6 @@ type Service struct {
 	selector                               *routeSelector
 	audit                                  *auditlog.Store
 	registry                               *modelregistry.Registry
-	registryPath                           string
 	scheduler                              *scheduler.Scheduler
 	scenarioJobs                           *scenarioJobStore
 	realtimeSessions                       *realtimeSessionStore
@@ -64,8 +63,6 @@ type Service struct {
 	aiConfigStore                          aiconfig.Store
 	spendDisclosureReporter                SpendDisclosureReporter
 	connStore                              *connector.ConnectorStore
-	localModel                             localModelLister
-	localTarget                            durableLocalTargetResolver
 	localImageProfile                      localImageProfileResolver
 	localExecution                         localexecution.Resolver
 	localTextHost                          localexecution.TextExecutionHost
@@ -90,11 +87,6 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 	}
 	effectiveCfg.EnforceEndpointSecurity = true
 	effectiveCfg.AllowLoopbackEndpoint = daemonCfg.AllowLoopbackProviderEndpoint
-	effectiveCfg.DefaultLocalTextModel = strings.TrimSpace(daemonCfg.DefaultLocalTextModel)
-	effectiveCfg.DefaultCloudProvider = strings.TrimSpace(daemonCfg.DefaultCloudProvider)
-	if effectiveCfg.ProviderDefaultModels == nil {
-		effectiveCfg.ProviderDefaultModels = map[string]string{}
-	}
 	for providerID, target := range daemonCfg.Providers {
 		creds := effectiveCfg.CloudProviders[providerID]
 		if strings.TrimSpace(creds.BaseURL) == "" {
@@ -105,9 +97,6 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 		}
 		if strings.TrimSpace(creds.BaseURL) != "" || strings.TrimSpace(creds.APIKey) != "" {
 			effectiveCfg.CloudProviders[providerID] = creds
-		}
-		if defaultModel := strings.TrimSpace(target.DefaultModel); defaultModel != "" {
-			effectiveCfg.ProviderDefaultModels[providerID] = defaultModel
 		}
 	}
 	return newService(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, strings.TrimSpace(daemonCfg.ModelCatalogCustomDir))
@@ -206,19 +195,6 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 	return svc, nil
 }
 
-func (s *Service) SetModelRegistryPersistencePath(path string) {
-	s.registryPath = strings.TrimSpace(path)
-}
-
-// SetLocalModelLister wires RuntimeLocalService for local model availability checks.
-func (s *Service) SetLocalModelLister(localSvc localModelLister) {
-	s.localModel = localSvc
-	s.localTarget = nil
-	if resolver, ok := localSvc.(durableLocalTargetResolver); ok {
-		s.localTarget = resolver
-	}
-}
-
 // SetLocalExecutionResolver wires the machine Local Capability Configuration
 // owner into job-time composition. It is independent from legacy LocalAsset
 // listing and lifecycle APIs.
@@ -289,8 +265,8 @@ func (s *Service) SetSchedulerDependencyChecker(checker scheduler.DependencyFeas
 	}
 }
 
-// SetLocalImageProfileResolver wires RuntimeLocalService for dynamic
-// managed media profile materialization.
+// SetLocalImageProfileResolver wires RuntimeLocalService only for resolving
+// already-managed local input artifact paths. It is not an execution backend.
 func (s *Service) SetLocalImageProfileResolver(resolver localImageProfileResolver) {
 	s.localImageProfile = resolver
 }
@@ -332,7 +308,7 @@ type publicChatTextContextMetadataResolution struct {
 	catalogVersion string
 	modelRevision  string
 	provider       string
-	targetRef      *runtimev1.RuntimeDurableTargetRef
+	targetRef      *runtimeidentity.Target
 	release        func()
 }
 
@@ -343,8 +319,8 @@ func (s *Service) ResolvePublicChatTextContextMetadata(
 	ctx context.Context,
 	route runtimev1.RoutePolicy,
 	modelID string,
-	targetRef *runtimev1.RuntimeDurableTargetRef,
-) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, error) {
+	targetRef *runtimeidentity.Target,
+) (uint64, string, string, string, *runtimeidentity.Target, error) {
 	resolved, err := s.resolvePublicChatTextContextMetadataLease(ctx, route, modelID, targetRef)
 	if err != nil {
 		return 0, "", "", "", nil, err
@@ -362,8 +338,8 @@ func (s *Service) ResolvePublicChatTextContextMetadataLease(
 	ctx context.Context,
 	route runtimev1.RoutePolicy,
 	modelID string,
-	targetRef *runtimev1.RuntimeDurableTargetRef,
-) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, func(), error) {
+	targetRef *runtimeidentity.Target,
+) (uint64, string, string, string, *runtimeidentity.Target, func(), error) {
 	resolved, err := s.resolvePublicChatTextContextMetadataLease(ctx, route, modelID, targetRef)
 	if err != nil {
 		return 0, "", "", "", nil, nil, err
@@ -375,10 +351,10 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 	ctx context.Context,
 	route runtimev1.RoutePolicy,
 	modelID string,
-	targetRef *runtimev1.RuntimeDurableTargetRef,
+	targetRef *runtimeidentity.Target,
 ) (publicChatTextContextMetadataResolution, error) {
 	if route == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		if targetRef != nil && targetRef.GetTarget() != nil {
+		if targetRef != nil && targetRef.Valid() {
 			return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 		}
 		return s.resolveSelectedLocalTextContextMetadata(ctx)
@@ -388,25 +364,25 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 	}
 	provider := ""
 	resolvedModelID := strings.TrimSpace(modelID)
-	resolvedTargetRef := cloneRuntimeDurableTargetRef(targetRef)
+	resolvedTargetRef := targetRef.Clone()
 	switch route {
 	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
-		var cloud *runtimev1.RuntimeDurableCloudTargetRef
+		var cloud *runtimeidentity.CloudTarget
 		if targetRef != nil {
 			cloud = targetRef.GetCloud()
 		}
 		if cloud == nil {
 			return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		provider = strings.TrimSpace(cloud.GetProvider())
-		if providerModelID := strings.TrimSpace(cloud.GetProviderModelId()); providerModelID != "" {
+		provider = strings.TrimSpace(cloud.Provider)
+		if providerModelID := strings.TrimSpace(cloud.ProviderModelID); providerModelID != "" {
 			resolvedModelID = providerModelID
 		}
 	default:
 		return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	if err := runtimeidentity.ValidateDurableTargetRef(resolvedTargetRef); err != nil {
-		return publicChatTextContextMetadataResolution{}, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, err, grpcerr.ReasonOptions{
+	if resolvedTargetRef == nil || !resolvedTargetRef.Valid() {
+		return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			Message: "runtime target reference is invalid",
 		})
 	}
@@ -433,25 +409,6 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 		targetRef:      resolvedTargetRef,
 		release:        release,
 	}, nil
-}
-
-// SetLocalProviderEndpoint hot-swaps non-text local media backends after the
-// daemon bootstraps a managed engine. llama text execution is Host-owned and
-// never projected into the ambient provider router.
-func (s *Service) SetLocalProviderEndpoint(providerID string, endpoint string, apiKey string) {
-	if s == nil || s.selector == nil || strings.EqualFold(strings.TrimSpace(providerID), "llama") {
-		return
-	}
-	local, ok := s.selector.local.(*localProvider)
-	if !ok || local == nil {
-		return
-	}
-
-	creds := nimillm.ProviderCredentials{
-		BaseURL: strings.TrimSpace(endpoint),
-		APIKey:  strings.TrimSpace(apiKey),
-	}
-	local.setBackend(providerID, newLocalBackend("local-"+strings.TrimSpace(providerID), creds, s.config))
 }
 
 // CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).

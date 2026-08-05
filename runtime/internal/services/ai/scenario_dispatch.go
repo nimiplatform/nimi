@@ -48,6 +48,10 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	if err != nil {
 		return nil, err
 	}
+	ctx, _, err = s.captureScenarioExecutionIntent(ctx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
+	if err != nil {
+		return nil, err
+	}
 	if err := s.reportScenarioSpendDisclosure(ctx, req.GetHead(), req.GetScenarioType()); err != nil {
 		return nil, err
 	}

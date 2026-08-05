@@ -86,11 +86,6 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 		)
 		return
 	}
-	if aiSvc := d.grpc.AIService(); aiSvc != nil {
-		if providerID, apiKeyEnv, ok := localProviderEnvBinding(kind); ok {
-			aiSvc.SetLocalProviderEndpoint(providerID, resolved, runtimeGetenv(apiKeyEnv))
-		}
-	}
 	d.logger.Info("engine endpoint env injected",
 		"engine", kind,
 		"source", source,

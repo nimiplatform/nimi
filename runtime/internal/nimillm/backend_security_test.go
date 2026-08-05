@@ -96,21 +96,21 @@ func TestCloudProviderWithTargetLoopbackPolicy(t *testing.T) {
 		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
 	}
 
-	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "openai/gpt-4o-mini", req, "hello", &RemoteTarget{
-		ProviderType:  "openai",
-		Endpoint:      server.URL,
-		APIKey:        "",
-		AllowLoopback: false,
+	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "gpt-4o-mini", req, "hello", &RemoteTarget{
+		ProviderType:    "openai",
+		Endpoint:        server.URL,
+		ProviderModelID: "gpt-4o-mini",
+		AllowLoopback:   false,
 	})
 	if status.Code(err) != codes.Unavailable {
 		t.Fatalf("expected unavailable when loopback not allowed, got: %v", err)
 	}
 
-	text, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "openai/gpt-4o-mini", req, "hello", &RemoteTarget{
-		ProviderType:  "openai",
-		Endpoint:      server.URL,
-		APIKey:        "",
-		AllowLoopback: true,
+	text, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "gpt-4o-mini", req, "hello", &RemoteTarget{
+		ProviderType:    "openai",
+		Endpoint:        server.URL,
+		ProviderModelID: "gpt-4o-mini",
+		AllowLoopback:   true,
 	})
 	if err != nil {
 		t.Fatalf("expected success with loopback allowed: %v", err)

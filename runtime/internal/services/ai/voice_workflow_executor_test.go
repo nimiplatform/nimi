@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
@@ -128,8 +128,7 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 	defer func() { server.Close() }()
 
 	req := voiceCloneRequest()
-	req.Head.ModelId = "stepfun/step-tts-2"
-	req.Spec.GetVoiceClone().TargetModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().TargetModelId = "step-tts-2"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
@@ -141,7 +140,7 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 		req,
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
-			ModelID:         "stepfun/step-tts-2",
+			ModelID:         "step-tts-2",
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "stepfun-voice-clone",
 		},
@@ -184,8 +183,7 @@ func TestEstimateVoiceWorkflowUsageIsDeterministic(t *testing.T) {
 
 func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
 	req := voiceCloneRequest()
-	req.Head.ModelId = "stepfun/step-tts-2"
-	req.Spec.GetVoiceClone().TargetModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().TargetModelId = "step-tts-2"
 	req.Spec.GetVoiceClone().Input.Text = ""
 
 	_, err := executeVoiceWorkflowViaNimillm(
@@ -194,7 +192,7 @@ func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
 		req,
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
-			ModelID:         "stepfun/step-tts-2",
+			ModelID:         "step-tts-2",
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "stepfun-voice-clone",
 		},
@@ -211,8 +209,7 @@ func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
 
 func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *testing.T) {
 	req := voiceCloneRequest()
-	req.Head.ModelId = "stepfun/step-tts-2"
-	req.Spec.GetVoiceClone().TargetModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().TargetModelId = "step-tts-2"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/ogg"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
@@ -224,7 +221,7 @@ func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *
 		req,
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
-			ModelID:         "stepfun/step-tts-2",
+			ModelID:         "step-tts-2",
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "stepfun-voice-clone",
 			RequestOptions: &catalog.VoiceWorkflowRequestOptions{
@@ -249,8 +246,7 @@ func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *
 
 func TestVoiceWorkflowMetadataValidationRejectsMissingRequiredInstruction(t *testing.T) {
 	req := voiceDesignRequest()
-	req.Head.ModelId = "dashscope/qwen3-tts-vd"
-	req.Spec.GetVoiceDesign().TargetModelId = "dashscope/qwen3-tts-vd"
+	req.Spec.GetVoiceDesign().TargetModelId = "qwen3-tts-vd"
 	req.Spec.GetVoiceDesign().Input.InstructionText = ""
 	req.Spec.GetVoiceDesign().Input.PreviewText = "preview only"
 
@@ -318,7 +314,6 @@ func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 	defer func() { server.Close() }()
 
 	req := voiceCloneRequest()
-	req.Head.ModelId = "fish_audio/s1"
 	req.Spec.GetVoiceClone().TargetModelId = "fish_audio/s1"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
@@ -390,7 +385,6 @@ func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
 	defer func() { server.Close() }()
 
 	req := voiceCloneRequest()
-	req.Head.ModelId = "elevenlabs/eleven_multilingual_sts_v2"
 	req.Spec.GetVoiceClone().TargetModelId = "elevenlabs/eleven_multilingual_sts_v2"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
@@ -496,7 +490,7 @@ func TestBuildVoiceWorkflowPayloadCloneUsesCanonicalInputShape(t *testing.T) {
 	req := voiceCloneRequest()
 	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
 		Provider:        "dashscope",
-		ModelID:         "dashscope/qwen3-tts-vc",
+		ModelID:         "qwen3-tts-vc",
 		APIModelID:      "qwen3-tts-vc-2026-01-22",
 		WorkflowType:    "voice_clone",
 		WorkflowModelID: "qwen-voice-enrollment",
@@ -523,7 +517,7 @@ func TestBuildVoiceWorkflowPayloadDesignUsesCanonicalInputShape(t *testing.T) {
 	req := voiceDesignRequest()
 	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
 		Provider:        "elevenlabs",
-		ModelID:         "elevenlabs/eleven_ttv_v3",
+		ModelID:         "eleven_ttv_v3",
 		WorkflowType:    "voice_design",
 		WorkflowModelID: "elevenlabs-voice-design",
 	}, nil)
@@ -547,8 +541,7 @@ func TestBuildVoiceWorkflowPayloadDesignUsesCanonicalInputShape(t *testing.T) {
 
 func TestBuildVoiceWorkflowPayloadDesignUsesAPIModelIDForProviderTarget(t *testing.T) {
 	req := voiceDesignRequest()
-	req.Head.ModelId = "dashscope/qwen3-tts-vd"
-	req.Spec.GetVoiceDesign().TargetModelId = "dashscope/qwen3-tts-vd"
+	req.Spec.GetVoiceDesign().TargetModelId = "qwen3-tts-vd"
 	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
 		Provider:        "dashscope",
 		ModelID:         "qwen3-tts-vd",
@@ -572,20 +565,20 @@ func TestNormalizeVoiceWorkflowTargetModelID(t *testing.T) {
 		want     string
 	}{
 		{
-			name:     "dashscope provider scoped design target",
+			name:     "exact catalog design target",
 			provider: "dashscope",
-			target:   "dashscope/qwen3-tts-vd",
+			target:   "qwen3-tts-vd",
 			resolved: "qwen3-tts-vd",
 			api:      "qwen3-tts-vd-2026-01-26",
 			want:     "qwen3-tts-vd-2026-01-26",
 		},
 		{
-			name:     "cloud scoped provider target",
+			name:     "route-prefixed target is not interpreted",
 			provider: "dashscope",
 			target:   "cloud/dashscope/qwen3-tts-vd-2026-01-26",
 			resolved: "qwen3-tts-vd",
 			api:      "qwen3-tts-vd-2026-01-26",
-			want:     "qwen3-tts-vd-2026-01-26",
+			want:     "cloud/dashscope/qwen3-tts-vd-2026-01-26",
 		},
 		{
 			name:     "local speech engine prefix is semantic",

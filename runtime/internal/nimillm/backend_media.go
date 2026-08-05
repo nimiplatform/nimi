@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -20,15 +19,6 @@ import (
 )
 
 const defaultProviderStreamReadBufferBytes = 16 * 1024
-
-func (b *Backend) isMediaBackend() bool {
-	if b == nil {
-		return false
-	}
-	normalized := strings.ToLower(strings.TrimSpace(b.Name))
-	return strings.Contains(normalized, "local-media") ||
-		normalized == "media"
-}
 
 func transcriptionUploadFilename(mimeType string) string {
 	switch strings.ToLower(strings.TrimSpace(mimeType)) {
@@ -245,27 +235,6 @@ type ManagedMediaImageLoadDiagnostics struct {
 	ResidentRestarted bool
 }
 
-type ManagedMediaImageDiagnostics struct {
-	LocalPrompt        string
-	SourceImage        string
-	RefImagesCount     int
-	AppliedOptions     []string
-	IgnoredOptions     []string
-	LoadDurationMs     int64
-	GenerateDurationMs int64
-	QueueWaitMs        int64
-	LoadCacheHit       bool
-	ResidentReused     bool
-	ResidentRestarted  bool
-	QueueSerialized    bool
-}
-
-type ManagedMediaImageProgress struct {
-	CurrentStep     int32
-	TotalSteps      int32
-	ProgressPercent int32
-}
-
 func normalizeImageResponseFormat(raw string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "", "base64", "b64_json":
@@ -279,9 +248,6 @@ func normalizeImageResponseFormat(raw string) (string, error) {
 
 // GenerateImage sends an image generation request.
 func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
-	if b.isMediaBackend() {
-		return b.generateImageMedia(ctx, modelID, spec, scenarioExtensions)
-	}
 	if b.supportsCodexResponses() {
 		return b.generateImageCodexResponses(ctx, modelID, spec)
 	}
@@ -350,10 +316,6 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 
 // GenerateVideo sends a video generation request.
 func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
-	if b.isMediaBackend() {
-		return b.generateVideoMedia(ctx, modelID, spec, scenarioExtensions)
-	}
-
 	type videoRequest struct {
 		Model                    string           `json:"model"`
 		Prompt                   string           `json:"prompt"`
@@ -394,46 +356,29 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 	}
 	content := VideoContentPayload(spec)
 
-	paths := []string{"/v1/video/generations", "/v1/videos/generations"}
 	var respBody videoResponse
-	var err error
-	for _, path := range paths {
-		err = b.postJSON(ctx, path, videoRequest{
-			Model:                    modelID,
-			Prompt:                   prompt,
-			NegativePrompt:           VideoNegativePrompt(spec),
-			Mode:                     mode,
-			Content:                  content,
-			DurationSec:              VideoDurationSec(spec),
-			Frames:                   VideoFrames(spec),
-			Fps:                      VideoFPS(spec),
-			Resolution:               VideoResolution(spec),
-			AspectRatio:              VideoRatio(spec),
-			Seed:                     VideoSeed(spec),
-			CameraFixed:              VideoCameraFixed(spec),
-			Watermark:                VideoWatermark(spec),
-			GenerateAudio:            VideoGenerateAudio(spec),
-			Draft:                    VideoDraft(spec),
-			ServiceTier:              VideoServiceTier(spec),
-			ExecutionExpiresAfterSec: VideoExecutionExpiresAfterSec(spec),
-			ReturnLastFrame:          VideoReturnLastFrame(spec),
-			Extensions:               scenarioExtensions,
-		}, &respBody)
-		if err == nil {
-			break
-		}
-		if status.Code(err) == codes.NotFound {
-			continue
-		}
+	if err := b.postJSON(ctx, "/v1/video/generations", videoRequest{
+		Model:                    modelID,
+		Prompt:                   prompt,
+		NegativePrompt:           VideoNegativePrompt(spec),
+		Mode:                     mode,
+		Content:                  content,
+		DurationSec:              VideoDurationSec(spec),
+		Frames:                   VideoFrames(spec),
+		Fps:                      VideoFPS(spec),
+		Resolution:               VideoResolution(spec),
+		AspectRatio:              VideoRatio(spec),
+		Seed:                     VideoSeed(spec),
+		CameraFixed:              VideoCameraFixed(spec),
+		Watermark:                VideoWatermark(spec),
+		GenerateAudio:            VideoGenerateAudio(spec),
+		Draft:                    VideoDraft(spec),
+		ServiceTier:              VideoServiceTier(spec),
+		ExecutionExpiresAfterSec: VideoExecutionExpiresAfterSec(spec),
+		ReturnLastFrame:          VideoReturnLastFrame(spec),
+		Extensions:               scenarioExtensions,
+	}, &respBody); err != nil {
 		return nil, nil, err
-	}
-	if err != nil {
-		return nil, nil, grpcerr.WrapWithReasonCode(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
-			err,
-			grpcerr.ReasonOptions{Message: "provider video fallback routes were unavailable"},
-		)
 	}
 
 	var b64Data string
@@ -473,25 +418,9 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 	if err != nil {
 		return nil, nil, err
 	}
-	paths := []string{"/v1/music/generations", "/v1/audio/generations"}
 	var respBody musicResponse
-	for _, path := range paths {
-		err = b.postJSON(ctx, path, requestBody, &respBody)
-		if err == nil {
-			break
-		}
-		if status.Code(err) == codes.NotFound {
-			continue
-		}
+	if err = b.postJSON(ctx, "/v1/music/generations", requestBody, &respBody); err != nil {
 		return nil, nil, err
-	}
-	if err != nil {
-		return nil, nil, grpcerr.WrapWithReasonCode(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
-			err,
-			grpcerr.ReasonOptions{Message: "provider music fallback routes were unavailable"},
-		)
 	}
 
 	var b64Data string

@@ -595,24 +595,6 @@ func publicChatExecutionBindingProjectionPayload(binding publicChatExecutionBind
 	if strings.TrimSpace(binding.ConnectorID) != "" {
 		out["connector_id"] = strings.TrimSpace(binding.ConnectorID)
 	}
-	if targetRef := publicChatTargetRefProjectionPayload(binding.TargetRef); targetRef != nil {
-		out["target_ref"] = targetRef
-	}
-	return out
-}
-
-func publicChatTargetRefProjectionPayload(targetRef *runtimev1.RuntimeDurableTargetRef) map[string]any {
-	if targetRef == nil {
-		return nil
-	}
-	raw, err := (protojson.MarshalOptions{UseProtoNames: false, EmitUnpopulated: false}).Marshal(targetRef)
-	if err != nil {
-		return nil
-	}
-	var out map[string]any
-	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil
-	}
 	return out
 }
 

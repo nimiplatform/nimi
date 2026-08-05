@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -497,67 +496,6 @@ func TestResolveTextGenerateScenarioResolvesArtifactRefsAndCleansUp(t *testing.T
 	resolved.release()
 	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
 		t.Fatalf("resolved temp artifact should be removed after release, got %v", statErr)
-	}
-}
-
-func TestVoiceListRoutePolicyHelpers(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name   string
-		model  string
-		remote *nimillm.RemoteTarget
-		want   runtimev1.RoutePolicy
-	}{
-		{
-			name:  "local_prefix",
-			model: "speech/qwen3tts",
-			want:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		},
-		{
-			name:  "sidecar_prefix",
-			model: "sidecar/musicgen",
-			want:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		},
-		{
-			name:  "cloud_prefix",
-			model: "openai/gpt-4.1",
-			want:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		},
-		{
-			name:   "remote_target_forces_cloud",
-			model:  "qwen3-chat",
-			remote: &nimillm.RemoteTarget{ProviderType: "openai"},
-			want:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		},
-		{
-			name:  "bare_model_defaults_local",
-			model: "qwen3-chat",
-			want:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			if got := inferVoiceListRoutePolicy(tt.model, tt.remote); got != tt.want {
-				t.Fatalf("inferVoiceListRoutePolicy() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-
-	if offset, err := parseVoiceAssetPageToken(""); err != nil || offset != 0 {
-		t.Fatalf("parseVoiceAssetPageToken(empty) = (%d, %v)", offset, err)
-	}
-	if offset, err := parseVoiceAssetPageToken("12"); err != nil || offset != 12 {
-		t.Fatalf("parseVoiceAssetPageToken(valid) = (%d, %v)", offset, err)
-	}
-	if _, err := parseVoiceAssetPageToken("-1"); err == nil {
-		t.Fatal("parseVoiceAssetPageToken(negative) should fail")
-	}
-	if _, err := parseVoiceAssetPageToken("bad-token"); err == nil {
-		t.Fatal("parseVoiceAssetPageToken(non-numeric) should fail")
 	}
 }
 

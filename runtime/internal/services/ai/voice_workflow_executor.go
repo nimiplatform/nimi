@@ -11,7 +11,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -106,20 +105,13 @@ func (s *Service) resolveVoiceWorkflow(ctx context.Context, providerType string,
 	}
 	provider := strings.TrimSpace(strings.ToLower(providerType))
 	if provider == "" {
-		provider = inferVoiceAssetProvider(modelResolved)
-	}
-	if provider == "" {
-		provider = inferScenarioProviderType(modelResolved, nil, nil, runtimev1.Modal_MODAL_UNSPECIFIED)
+		return catalog.ResolveVoiceWorkflowResult{}, catalog.ErrVoiceWorkflowUnsupported
 	}
 	return s.speechCatalog.ResolveVoiceWorkflowForSubject(catalogSubjectUserIDFromContext(ctx), provider, modelResolved, workflowType)
 }
 
 func voiceWorkflowCatalogProviderType(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) string {
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_TTS)
-	if remoteTarget == nil && selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && localrouting.IsKnownProvider(providerType) {
-		return "local"
-	}
-	return providerType
+	return scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_TTS)
 }
 
 func (s *Service) executeVoiceWorkflowJob(
@@ -283,26 +275,8 @@ func (s *Service) executeVoiceWorkflowJob(
 	s.voiceAssets.completeJob(jobID, result.ProviderJobID, result.ProviderVoiceRef, result.Metadata, result.Usage)
 }
 
-func (s *Service) resolveLocalVoiceWorkflowAdapterConfig(req *runtimev1.SubmitScenarioJobRequest, resolution catalog.ResolveVoiceWorkflowResult) nimillm.MediaAdapterConfig {
-	if s == nil || s.selector == nil || req == nil {
-		return nimillm.MediaAdapterConfig{}
-	}
-	local, ok := s.selector.local.(*localProvider)
-	if !ok || local == nil {
-		return nimillm.MediaAdapterConfig{}
-	}
-	modelResolved := strings.TrimSpace(resolution.ModelID)
-	if modelResolved == "" {
-		modelResolved = strings.TrimSpace(req.GetHead().GetModelId())
-	}
-	backend, _, providerType := local.resolveMediaBackendForModal(modelResolved, runtimev1.Modal_MODAL_TTS)
-	if backend == nil || !strings.EqualFold(strings.TrimSpace(providerType), "speech") {
-		return nimillm.MediaAdapterConfig{}
-	}
-	return nimillm.MediaAdapterConfig{
-		BaseURL:               strings.TrimSpace(backend.Endpoint()),
-		AllowLoopbackEndpoint: s.allowLoopback,
-	}
+func (*Service) resolveLocalVoiceWorkflowAdapterConfig(*runtimev1.SubmitScenarioJobRequest, catalog.ResolveVoiceWorkflowResult) nimillm.MediaAdapterConfig {
+	return nimillm.MediaAdapterConfig{}
 }
 
 func executeVoiceWorkflowViaLocalSpeechHost(
@@ -482,39 +456,12 @@ func normalizeVoiceWorkflowTargetModelID(targetModelID string, resolution catalo
 	if value == "" {
 		return ""
 	}
-	apiModelID := normalizeVoiceWorkflowProviderModelID(resolution.APIModelID, resolution.Provider)
-	catalogModelID := normalizeVoiceWorkflowProviderModelID(resolution.ModelID, resolution.Provider)
-	value = normalizeVoiceWorkflowProviderModelID(value, resolution.Provider)
-	if apiModelID != "" && catalogModelID != "" && strings.EqualFold(value, catalogModelID) {
+	apiModelID := strings.TrimSpace(resolution.APIModelID)
+	catalogModelID := strings.TrimSpace(resolution.ModelID)
+	if apiModelID != "" && catalogModelID != "" && value == catalogModelID {
 		return apiModelID
 	}
 	return value
-}
-
-func normalizeVoiceWorkflowProviderModelID(modelID string, provider string) string {
-	value := strings.TrimSpace(modelID)
-	if value == "" {
-		return ""
-	}
-	for {
-		lower := strings.ToLower(value)
-		switch {
-		case strings.HasPrefix(lower, "cloud/"):
-			value = strings.TrimSpace(value[len("cloud/"):])
-		case strings.HasPrefix(lower, "token/"):
-			value = strings.TrimSpace(value[len("token/"):])
-		default:
-			normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
-			if normalizedProvider == "" {
-				return value
-			}
-			prefix := normalizedProvider + "/"
-			if strings.HasPrefix(strings.ToLower(value), prefix) {
-				return strings.TrimSpace(value[len(prefix):])
-			}
-			return value
-		}
-	}
 }
 
 func validateVoiceWorkflowRequestAgainstMetadata(

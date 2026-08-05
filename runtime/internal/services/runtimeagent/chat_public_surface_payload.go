@@ -8,9 +8,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 func normalizePublicChatReasoning(input *publicChatReasoningPayload) *publicChatReasoningConfig {
@@ -242,15 +242,8 @@ func parseOptionalPublicChatRoutePolicy(value string) (runtimev1.RoutePolicy, er
 	}
 	return parsePublicChatRoutePolicy(value)
 }
-func clonePublicChatTargetRef(input *runtimev1.RuntimeDurableTargetRef) *runtimev1.RuntimeDurableTargetRef {
-	if input == nil {
-		return nil
-	}
-	cloned, ok := proto.Clone(input).(*runtimev1.RuntimeDurableTargetRef)
-	if !ok {
-		return nil
-	}
-	return cloned
+func clonePublicChatTargetRef(input *runtimeidentity.Target) *runtimeidentity.Target {
+	return input.Clone()
 }
 func parsePublicChatReasoningMode(value string) runtimev1.ReasoningMode {
 	switch strings.ToLower(strings.TrimSpace(value)) {

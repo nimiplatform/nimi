@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -140,10 +141,7 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesExactTargetWithoutAlias
 		t.Fatal("local-app conversation anchor id is empty")
 	}
 
-	resolvedTarget := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-		Version: "v2",
-		Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "local-runtime:local-asset-live"},
-	}}}
+	resolvedTarget := &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ProfileBindingID: "local-runtime:local-asset-live"}}
 	var bindingReleaseCount atomic.Int32
 	svc.SetPublicChatBindingResolver(stubPublicChatBindingResolver{
 		resolve: func(_ context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
@@ -279,12 +277,7 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesExactTargetWithoutAlias
 	if bindingAlias, present := textBinding["binding_alias"]; present {
 		t.Fatalf("exact-target snapshot must not retain model-selection alias, got %v", bindingAlias)
 	}
-	targetRef, ok := textBinding["target_ref"].(map[string]any)
-	if !ok {
-		t.Fatalf("snapshot target ref = %#v", textBinding["target_ref"])
-	}
-	localTarget, ok := targetRef["localRuntime"].(map[string]any)
-	if !ok || localTarget["profileBindingId"] != "local-runtime:local-asset-live" {
-		t.Fatalf("snapshot local durable target = %#v", targetRef)
+	if _, present := textBinding["target_ref"]; present {
+		t.Fatalf("public snapshot leaked Runtime-private target identity: %#v", textBinding)
 	}
 }

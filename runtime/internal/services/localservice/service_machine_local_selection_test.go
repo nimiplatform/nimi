@@ -49,7 +49,7 @@ func TestMachineLocalSelectionOverwritesOneCapabilityAndPersistsClear(t *testing
 	assertOnlyMachineLocalSelection(t, restartedAgain, "", "")
 }
 
-func TestMachineLocalSelectionAllowsUnconfiguredAndMismatchButResolutionFailsTyped(t *testing.T) {
+func TestMachineLocalSelectionAllowsUnconfiguredButRejectsCapabilityMismatch(t *testing.T) {
 	service := newMachineLocalConfigurationTestService(t, t.TempDir())
 	configuration := addMachineLocalConfigurationForTest(t, service, nil, nil, llamaIdentityForTest())
 
@@ -70,12 +70,15 @@ func TestMachineLocalSelectionAllowsUnconfiguredAndMismatchButResolutionFailsTyp
 	}
 
 	const mismatchedCapability = "image.generate"
-	selectMachineLocalConfigurationForTest(t, service, mismatchedCapability, configuration.GetConfigurationId())
-	resolved, err = service.ResolveSelectedLocalExecution(mismatchedCapability)
-	if resolved != nil || status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("mismatched resolution = %#v err=%v", resolved, err)
+	response, err := service.SelectLocalCapabilityConfiguration(context.Background(), &runtimev1.SelectLocalCapabilityConfigurationRequest{
+		CapabilityContract: mismatchedCapability,
+		ConfigurationId:    configuration.GetConfigurationId(),
+	})
+	if response != nil || status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("mismatched selection = %#v err=%v", response, err)
 	}
-	assertGRPCReasonCode(t, err, "ResolveSelectedLocalExecution(mismatch)", runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
+	assertGRPCReasonCode(t, err, "SelectLocalCapabilityConfiguration(mismatch)", runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID)
+	assertOnlyMachineLocalSelection(t, service, capabilitydriver.LlamaCapabilityContract, configuration.GetConfigurationId())
 }
 
 func TestMachineLocalExecutionRelevantBindingUpdateRetainsSelection(t *testing.T) {

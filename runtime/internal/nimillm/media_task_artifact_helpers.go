@@ -576,36 +576,17 @@ func ExtractSpeechArtifactFromResponseBody(ctx context.Context, body *JSONOrBina
 // Endpoint resolution
 // ---------------------------------------------------------------------------
 
-// ResolveProviderEndpointPaths resolves provider endpoint paths from provider
-// options, checking single-value keys, list-value keys, and defaults.
-// Paths are deduplicated and normalised.
-func ResolveProviderEndpointPaths(scenarioExtensions map[string]any, singleKeys, listKeys, defaults []string) []string {
-	paths := make([]string, 0, len(defaults)+len(singleKeys))
+// providerEndpointPaths returns only adapter-owned endpoint paths.
+func providerEndpointPaths(defaults []string) []string {
+	paths := make([]string, 0, len(defaults))
 	seen := map[string]bool{}
 	addPath := func(raw string) {
-		normalized := NormalizeProviderEndpointPath(raw)
+		normalized := normalizeProviderEndpointPath(raw)
 		if normalized == "" || seen[normalized] {
 			return
 		}
 		seen[normalized] = true
 		paths = append(paths, normalized)
-	}
-	for _, key := range singleKeys {
-		addPath(ValueAsString(scenarioExtensions[key]))
-	}
-	for _, key := range listKeys {
-		switch typed := scenarioExtensions[key].(type) {
-		case string:
-			addPath(typed)
-		case []string:
-			for _, item := range typed {
-				addPath(item)
-			}
-		case []any:
-			for _, item := range typed {
-				addPath(ValueAsString(item))
-			}
-		}
 	}
 	for _, item := range defaults {
 		addPath(item)
@@ -613,9 +594,8 @@ func ResolveProviderEndpointPaths(scenarioExtensions map[string]any, singleKeys,
 	return paths
 }
 
-// NormalizeProviderEndpointPath normalises a provider endpoint path, ensuring
-// it starts with "/" unless it is an absolute URL.
-func NormalizeProviderEndpointPath(raw string) string {
+// normalizeProviderEndpointPath normalizes an adapter-owned endpoint path.
+func normalizeProviderEndpointPath(raw string) string {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
 		return ""
@@ -629,20 +609,18 @@ func NormalizeProviderEndpointPath(raw string) string {
 	return trimmed
 }
 
-// FirstProviderEndpointPath returns the first resolved provider endpoint path,
-// or empty string if none are found.
-func FirstProviderEndpointPath(scenarioExtensions map[string]any, singleKeys, listKeys, defaults []string) string {
-	paths := ResolveProviderEndpointPaths(scenarioExtensions, singleKeys, listKeys, defaults)
+// firstProviderEndpointPath returns one adapter-owned endpoint path.
+func firstProviderEndpointPath(defaults []string) string {
+	paths := providerEndpointPaths(defaults)
 	if len(paths) == 0 {
 		return ""
 	}
 	return paths[0]
 }
 
-// ResolveTaskQueryPathTemplate resolves a task query path template from
-// provider options, ensuring it contains a {task_id} placeholder.
-func ResolveTaskQueryPathTemplate(scenarioExtensions map[string]any, singleKeys, listKeys, defaults []string) string {
-	candidates := ResolveProviderEndpointPaths(scenarioExtensions, singleKeys, listKeys, defaults)
+// resolveTaskQueryPathTemplate resolves an adapter-owned task query template.
+func resolveTaskQueryPathTemplate(defaults []string) string {
+	candidates := providerEndpointPaths(defaults)
 	for _, candidate := range candidates {
 		trimmed := strings.TrimSpace(candidate)
 		if trimmed == "" {

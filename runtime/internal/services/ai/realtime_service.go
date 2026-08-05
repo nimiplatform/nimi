@@ -28,14 +28,15 @@ type realtimeConn interface {
 	Close() error
 }
 
-func (s *Service) OpenRealtimeSession(_ context.Context, req *runtimev1.OpenRealtimeSessionRequest) (*runtimev1.OpenRealtimeSessionResponse, error) {
+func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRealtimeSessionRequest) (*runtimev1.OpenRealtimeSessionResponse, error) {
 	if req == nil || req.GetHead() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	head := req.GetHead()
-	modelID := strings.TrimSpace(head.GetModelId())
-	if head.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || head.GetTargetRef().GetCloud() != nil ||
-		(modelID != "" && preferredRoute(modelID) == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD) {
+	_, intent, err := s.captureScenarioExecutionIntent(ctx, req.GetHead(), "text.generate")
+	if err != nil {
+		return nil, err
+	}
+	if intent.IsCloud() {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)

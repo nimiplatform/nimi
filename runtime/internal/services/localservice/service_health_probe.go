@@ -18,7 +18,7 @@ import (
 
 const (
 	localHealthProbeTimeout             = 5 * time.Second
-	localSpeechHealthProbeTimeout       = maxWarmLocalModelTimeout
+	localSpeechHealthProbeTimeout       = 30 * time.Second
 	localRecoverySuccessThreshold       = 3
 	localRecoveryDefaultProbeInterval   = 30 * time.Second
 	localRecoverySlowProbeInterval      = 60 * time.Second

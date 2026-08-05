@@ -11,7 +11,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -120,11 +119,7 @@ func speechCatalogProviderType(
 	remoteTarget *nimillm.RemoteTarget,
 	selected provider,
 ) string {
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, scenarioModalFromType(scenarioType))
-	if remoteTarget == nil && selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && localrouting.IsKnownProvider(providerType) {
-		return "local"
-	}
-	return providerType
+	return scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, scenarioModalFromType(scenarioType))
 }
 
 func validateSpeechRouteDescribeSpec(scenarioType runtimev1.ScenarioType, spec *runtimev1.ScenarioSpec) error {
@@ -333,6 +328,13 @@ func executeSpeechRouteDescribeScenario(
 		return nil, err
 	}
 
+	intent, err := scenarioExecutionIntentFromContext(ctx, scenarioTargetCapability(req.GetScenarioType()))
+	if err != nil {
+		return nil, err
+	}
+	if intent.IsLocal() {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
+	}
 	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
@@ -348,9 +350,8 @@ func executeSpeechRouteDescribeScenario(
 
 	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		intent.ModelID(),
 		remoteTarget,
 		scenarioModalFromType(req.GetScenarioType()),
 	)

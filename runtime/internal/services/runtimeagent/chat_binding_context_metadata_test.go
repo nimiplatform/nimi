@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
 
 type contextMetadataBindingAIStub struct {
@@ -13,7 +14,7 @@ type contextMetadataBindingAIStub struct {
 	catalogRevision string
 	modelRevision   string
 	providerID      string
-	resolvedTarget  *runtimev1.RuntimeDurableTargetRef
+	resolvedTarget  *runtimeidentity.Target
 	metadataErr     error
 }
 
@@ -21,7 +22,7 @@ func (s contextMetadataBindingAIStub) ResolvePublicChatTextBinding(_ context.Con
 	return route, modelID, nil
 }
 
-func (s contextMetadataBindingAIStub) ResolvePublicChatTextContextMetadataLease(_ context.Context, _ runtimev1.RoutePolicy, _ string, targetRef *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, func(), error) {
+func (s contextMetadataBindingAIStub) ResolvePublicChatTextContextMetadataLease(_ context.Context, _ runtimev1.RoutePolicy, _ string, targetRef *runtimeidentity.Target) (uint64, string, string, string, *runtimeidentity.Target, func(), error) {
 	if s.resolvedTarget != nil {
 		targetRef = s.resolvedTarget
 	}

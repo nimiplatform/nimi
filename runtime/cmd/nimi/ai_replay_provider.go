@@ -24,8 +24,6 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 		ResolvedProvider:    strings.TrimSpace(fixture.Provider),
 		ResolvedModel:       strings.TrimSpace(fixture.ModelID),
 		ResolvedTargetModel: strings.TrimSpace(fixture.TargetModelID),
-		RoutePolicy:         "cloud",
-		FallbackPolicy:      "deny",
 		TraceID:             providerReplayTraceID(requestDigest),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)

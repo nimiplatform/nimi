@@ -119,7 +119,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
     "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
     "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer",
-    "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
     "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
     "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
     "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
@@ -157,7 +156,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
     "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
-    "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
 ];
 

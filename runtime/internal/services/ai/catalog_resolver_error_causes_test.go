@@ -31,8 +31,8 @@ func TestCatalogResolverErrorsRetainModelNotFoundCause(t *testing.T) {
 				return svc.validateScenarioCapability(
 					ctx,
 					&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE},
-					"openai/unknown-model",
-					nil,
+					"unknown-model",
+					&nimillm.RemoteTarget{ProviderType: "openai"},
 					nil,
 				)
 			},
@@ -53,8 +53,8 @@ func TestCatalogResolverErrorsRetainModelNotFoundCause(t *testing.T) {
 			run: func() error {
 				return svc.validateRemoteTextGenerateInputCapabilities(
 					ctx,
-					"openai/unknown-model",
-					nil,
+					"unknown-model",
+					&nimillm.RemoteTarget{ProviderType: "openai"},
 					nil,
 					[]*runtimev1.ChatMessage{{
 						Parts: []*runtimev1.ChatContentPart{{
@@ -73,8 +73,8 @@ func TestCatalogResolverErrorsRetainModelNotFoundCause(t *testing.T) {
 				return validateMusicGenerateIterationSupport(
 					ctx,
 					svc,
-					"stability/unknown-model",
-					nil,
+					"unknown-model",
+					&nimillm.RemoteTarget{ProviderType: "stability"},
 					nil,
 					&nimillm.MusicIterationExtension{},
 				)
@@ -85,7 +85,7 @@ func TestCatalogResolverErrorsRetainModelNotFoundCause(t *testing.T) {
 			run: func() error {
 				_, _, _, err := resolveCatalogVoicesForSubject(
 					ctx,
-					"openai/unknown-model",
+					"unknown-model",
 					"openai",
 					svc.speechCatalog,
 				)

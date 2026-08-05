@@ -28,11 +28,20 @@ func (s *Service) SelectLocalCapabilityConfiguration(
 	defer s.machineLocalConfigurationMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.machineLocalConfigurations[configurationID] == nil {
+	configuration := s.machineLocalConfigurations[configurationID]
+	if configuration == nil || configuration.Configuration == nil {
 		return nil, machineLocalSelectionError(
 			codes.NotFound,
 			runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_FOUND,
 			"local capability configuration was not found",
+			map[string]string{"capability_contract": capabilityContract, "configuration_id": configurationID},
+		)
+	}
+	if configuration.Configuration.GetCapabilityContract() != capabilityContract {
+		return nil, machineLocalSelectionError(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID,
+			"selection capability_contract does not match the local capability configuration",
 			map[string]string{"capability_contract": capabilityContract, "configuration_id": configurationID},
 		)
 	}

@@ -460,6 +460,10 @@ export function generateProviderCatalog(doc) {
       }
     }
 
+    const workflowFamily = normalizeString(workflowModel?.workflow_family);
+    if (!workflowFamily) {
+      throw new Error(`${provider} workflow model ${workflowModelID} missing workflow_family`);
+    }
     const inputContractRef = normalizeString(workflowModel?.input_contract_ref);
     const outputPersistence = normalizeString(workflowModel?.output_persistence);
     const requestOptions = normalizeVoiceWorkflowRequestOptions(
@@ -474,6 +478,7 @@ export function generateProviderCatalog(doc) {
     const entry = {
       workflow_model_id: workflowModelID,
       workflow_type: workflowType,
+      workflow_family: workflowFamily,
       input_contract_ref: inputContractRef,
       output_persistence: outputPersistence,
       request_options: requestOptions,

@@ -65,31 +65,17 @@ func decodeRouteDescribeHeader(t *testing.T, md metadata.MD) map[string]any {
 	return payload
 }
 
-func repeatedLocalAssetsResponse(asset *runtimev1.LocalAssetRecord, count int) []*runtimev1.ListLocalAssetsResponse {
-	responses := make([]*runtimev1.ListLocalAssetsResponse, 0, count)
-	for i := 0; i < count; i++ {
-		responses = append(responses, &runtimev1.ListLocalAssetsResponse{
-			Assets: []*runtimev1.LocalAssetRecord{asset},
-		})
-	}
-	return responses
-}
-
 func TestExecuteScenarioTextGenerateRouteDescribeProbeWritesHeaderForManagedCloudRoute(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", "https://api.openai.com/v1", Config{})
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	ctx := withCloudScenarioTestIntent(fixture.context, "text.generate", fixture.targetRef)
+	ctx = grpc.NewContextWithServerTransportStream(ctx, transport)
 	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       fixture.descriptor.GetProviderModelId(),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     fixture.targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -139,7 +125,7 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeWritesHeaderForManagedClou
 	}
 }
 
-func TestExecuteScenarioTextGenerateRouteDescribeReturnsResolvedCloudBinding(t *testing.T) {
+func TestExecuteScenarioTextGenerateRouteDescribeDoesNotProjectExecutionBinding(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	connectorSvc := connector.New(logger, store, nil)
@@ -153,45 +139,22 @@ func TestExecuteScenarioTextGenerateRouteDescribeReturnsResolvedCloudBinding(t *
 	}
 	connectorID := created.GetConnector().GetConnectorId()
 	descriptor := connectorModelDescriptorForAITest(t, connectorSvc, ctx, connectorID, "gpt-4o-mini")
-	if descriptor.GetRemoteModelCatalogId() == "" {
-		t.Fatalf("remote_model_catalog_id missing: %#v", descriptor)
-	}
+	target := cloudScenarioTargetRefForDescriptor(connectorID, descriptor)
 
-	svc, err := newFromProviderConfig(
-		logger,
-		nil,
-		nil,
-		nil,
-		store,
-		Config{},
-		8,
-		2,
-	)
+	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, Config{}, 8, 2)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
 
 	transport := &routeDescribeTransportStream{}
 	execCtx := metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-key-source", "managed"))
+	execCtx = withCloudScenarioTestIntent(execCtx, "text.generate", target)
 	execCtx = grpc.NewContextWithServerTransportStream(execCtx, transport)
 	resp, err := svc.ExecuteScenario(execCtx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			TargetRef: &runtimev1.RuntimeDurableTargetRef{
-				Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-					Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-						Version:              "v2",
-						ConnectorId:          connectorID,
-						RemoteModelCatalogId: descriptor.GetRemoteModelCatalogId(),
-						ProviderModelId:      descriptor.GetProviderModelId(),
-						Provider:             descriptor.GetProvider(),
-					},
-				},
-			},
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -202,97 +165,41 @@ func TestExecuteScenarioTextGenerateRouteDescribeReturnsResolvedCloudBinding(t *
 				"resolvedBindingRef": "binding-cloud-v2",
 			}),
 		}},
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_TextGenerate{
-				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-					Input: []*runtimev1.ChatMessage{{
-						Role:    "user",
-						Content: "route describe probe",
-					}},
-				},
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{
+			TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+				Input: []*runtimev1.ChatMessage{{Role: "user", Content: "route describe probe"}},
 			},
-		},
+		}},
 	})
 	if err != nil {
 		t.Fatalf("execute scenario cloud route describe probe: %v", err)
 	}
-	binding := resp.GetResolvedExecutionBinding()
-	if binding == nil {
-		t.Fatalf("resolved_execution_binding missing")
+	if resp.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || resp.GetModelResolved() != descriptor.GetProviderModelId() {
+		t.Fatalf("public outcome diagnostics mismatch: route=%v model=%q", resp.GetRouteDecision(), resp.GetModelResolved())
 	}
-	if binding.GetBindingVersion() != "v2" {
-		t.Fatalf("binding_version = %q", binding.GetBindingVersion())
-	}
-	if binding.GetCapability() != "text.generate" {
-		t.Fatalf("capability = %q", binding.GetCapability())
-	}
-	if binding.GetResolvedBindingRef() != "binding-cloud-v2" {
-		t.Fatalf("resolved_binding_ref = %q", binding.GetResolvedBindingRef())
-	}
-	if binding.GetRouteMetadataRef() == "" {
-		t.Fatalf("route_metadata_ref missing")
-	}
-	if binding.GetSourceTargetRef().GetCloud().GetRemoteModelCatalogId() != descriptor.GetRemoteModelCatalogId() {
-		t.Fatalf("source target ref mismatch: %#v", binding.GetSourceTargetRef())
-	}
-	cloud := binding.GetCloud()
-	if cloud == nil {
-		t.Fatalf("cloud binding missing: %#v", binding)
-	}
-	if cloud.GetConnectorId() != connectorID {
-		t.Fatalf("connector_id = %q want %q", cloud.GetConnectorId(), connectorID)
-	}
-	if cloud.GetRemoteModelCatalogId() != descriptor.GetRemoteModelCatalogId() {
-		t.Fatalf("remote_model_catalog_id = %q want %q", cloud.GetRemoteModelCatalogId(), descriptor.GetRemoteModelCatalogId())
-	}
-	if cloud.GetProviderModelId() != descriptor.GetProviderModelId() {
-		t.Fatalf("provider_model_id = %q want %q", cloud.GetProviderModelId(), descriptor.GetProviderModelId())
-	}
-	if cloud.GetProvider() != descriptor.GetProvider() {
-		t.Fatalf("provider = %q want %q", cloud.GetProvider(), descriptor.GetProvider())
-	}
-	if cloud.GetEndpointProfileId() != descriptor.GetEndpointProfileId() {
-		t.Fatalf("endpoint_profile_id = %q want %q", cloud.GetEndpointProfileId(), descriptor.GetEndpointProfileId())
-	}
-	if cloud.GetConnectorSnapshotId() != descriptor.GetConnectorSnapshotId() {
-		t.Fatalf("connector_snapshot_id = %q want %q", cloud.GetConnectorSnapshotId(), descriptor.GetConnectorSnapshotId())
+	if field := resp.ProtoReflect().Descriptor().Fields().ByName("resolved_execution_binding"); field != nil {
+		t.Fatalf("public response still declares resolved_execution_binding: %v", field)
 	}
 	payload := decodeRouteDescribeHeader(t, transport.header)
-	if got := payload["routeMetadataRef"]; got != binding.GetRouteMetadataRef() {
-		t.Fatalf("routeMetadataRef = %v want %q", got, binding.GetRouteMetadataRef())
+	if got := payload["routeMetadataRef"]; got == nil || got == "" {
+		t.Fatalf("routeMetadataRef missing: %#v", payload)
 	}
-	sourceTarget, ok := payload["sourceTargetRef"].(map[string]any)
-	if !ok {
-		t.Fatalf("sourceTargetRef missing: %#v", payload["sourceTargetRef"])
-	}
-	sourceCloud, ok := sourceTarget["cloud"].(map[string]any)
-	if !ok {
-		t.Fatalf("sourceTargetRef.cloud missing: %#v", sourceTarget)
-	}
-	if got := sourceCloud["remoteModelCatalogId"]; got != descriptor.GetRemoteModelCatalogId() {
-		t.Fatalf("sourceTargetRef.cloud.remoteModelCatalogId = %v want %q", got, descriptor.GetRemoteModelCatalogId())
+	for _, forbidden := range []string{"sourceTargetRef", "targetRef", "resolvedExecutionBinding"} {
+		if value, exists := payload[forbidden]; exists {
+			t.Fatalf("route describe projected private %s=%#v", forbidden, value)
+		}
 	}
 }
 
-func TestExecuteScenarioTextGenerateCloudTargetRefRequiresRemoteCatalogID(t *testing.T) {
+func TestExecuteScenarioTextGenerateRejectsIncompletePrivateCloudIntent(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	_, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
+	target := cloudScenarioTargetRef("connector-openai-managed", "", "gpt-4o-mini", "openai")
+	ctx := withCloudScenarioTestIntent(context.Background(), "text.generate", target)
+	_, err := svc.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			TargetRef: &runtimev1.RuntimeDurableTargetRef{
-				Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-					Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-						Version:         "v2",
-						ConnectorId:     "connector-openai-managed",
-						ProviderModelId: "gpt-4o-mini",
-						Provider:        "openai",
-					},
-				},
-			},
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -303,19 +210,17 @@ func TestExecuteScenarioTextGenerateCloudTargetRefRequiresRemoteCatalogID(t *tes
 				"resolvedBindingRef": "binding-cloud-missing-catalog",
 			}),
 		}},
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_TextGenerate{
-				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-					Input: []*runtimev1.ChatMessage{{Role: "user", Content: "route describe probe"}},
-				},
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{
+			TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+				Input: []*runtimev1.ChatMessage{{Role: "user", Content: "route describe probe"}},
 			},
-		},
+		}},
 	})
 	if err == nil {
-		t.Fatal("expected missing remote model catalog id error")
+		t.Fatal("expected incomplete private cloud intent error")
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED {
-		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONFIG_INVALID {
+		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
 }
 
@@ -355,25 +260,14 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
+	target := cloudScenarioTargetRefForDescriptor(connectorID, descriptor)
 	execCtx := metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-key-source", "managed"))
+	execCtx = withCloudScenarioTestIntent(execCtx, "text.generate", target)
 	_, err = svc.ExecuteScenario(execCtx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			TargetRef: &runtimev1.RuntimeDurableTargetRef{
-				Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-					Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-						Version:              "v2",
-						ConnectorId:          connectorID,
-						RemoteModelCatalogId: descriptor.GetRemoteModelCatalogId(),
-						ProviderModelId:      descriptor.GetProviderModelId(),
-						Provider:             descriptor.GetProvider(),
-					},
-				},
-			},
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -398,28 +292,4 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE {
 		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 	}
-}
-
-func connectorModelDescriptorForAITest(
-	t *testing.T,
-	svc *connector.Service,
-	ctx context.Context,
-	connectorID string,
-	modelID string,
-) *runtimev1.ConnectorModelDescriptor {
-	t.Helper()
-	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
-		ConnectorId: connectorID,
-		PageSize:    200,
-	})
-	if err != nil {
-		t.Fatalf("ListConnectorModels: %v", err)
-	}
-	for _, model := range resp.GetModels() {
-		if model.GetModelId() == modelID {
-			return model
-		}
-	}
-	t.Fatalf("model %q not found", modelID)
-	return nil
 }

@@ -6,7 +6,6 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 
 import "google/protobuf/struct.proto";
 import "runtime/v1/common.proto";
-import "runtime/v1/runtime_target_identity.proto";
 
 // === Asset Kind & Status (unified from Model + Artifact) ===
 
@@ -58,14 +57,6 @@ enum LocalBundleState {
   LOCAL_BUNDLE_STATE_DEGRADED   = 3;
   LOCAL_BUNDLE_STATE_INVALID    = 4;
   LOCAL_BUNDLE_STATE_REMOVED    = 5;
-}
-
-enum LocalWarmState {
-  LOCAL_WARM_STATE_UNSPECIFIED = 0;
-  LOCAL_WARM_STATE_COLD        = 1;
-  LOCAL_WARM_STATE_WARMING     = 2;
-  LOCAL_WARM_STATE_READY       = 3;
-  LOCAL_WARM_STATE_FAILED      = 4;
 }
 
 enum LocalExecutionEntryKind {
@@ -127,7 +118,8 @@ message LocalAssetRecord {
   string preferred_engine              = 24;
   repeated string fallback_engines     = 25;
   LocalBundleState bundle_state        = 26;
-  LocalWarmState warm_state            = 27;
+  reserved 27;
+  reserved "warm_state";
   LocalHostRequirements host_requirements = 28;
   string local_invoke_profile_id       = 29;
   google.protobuf.Struct engine_config = 30;
@@ -143,20 +135,8 @@ message LocalAssetRecord {
   string source_file_name = 42;
   string import_instance_id = 43;
 
-  // Runtime-issued v2 execution identity and its target-specific readiness.
-  // The target is opaque to consumers and never derived from asset_id,
-  // local_asset_id, or logical_model_id outside Runtime.
-  RuntimeDurableLocalTargetRef durable_target_ref = 44;
-  LocalAssetStatus durable_target_status = 45;
-  ReasonCode durable_target_reason_code = 46;
-}
-
-message LocalAssetHealth {
-  string local_asset_id  = 1;
-  LocalAssetStatus status = 2;
-  string detail          = 3;
-  string endpoint        = 4;
-  ReasonCode reason_code = 5;
+  reserved 44, 45, 46;
+  reserved "durable_target_ref", "durable_target_status", "durable_target_reason_code";
 }
 
 // === Verified Asset Descriptor (unified from Model + Artifact) ===

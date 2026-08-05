@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	runtimecfg "github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
@@ -23,50 +21,14 @@ const (
 // provider is a type alias for nimillm.Provider.
 type provider = nimillm.Provider
 
-// streamingTextProvider is a type alias for nimillm.StreamingTextProvider.
-type streamingTextProvider = nimillm.StreamingTextProvider
-
-// scenarioTextProvider defines Scenario-native sync text generation for providers.
-type scenarioTextProvider interface {
-	GenerateTextScenario(
-		ctx context.Context,
-		modelID string,
-		spec *runtimev1.TextGenerateScenarioSpec,
-		inputText string,
-	) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error)
-}
-
-// scenarioStreamingTextProvider defines Scenario-native stream text generation for providers.
-type scenarioStreamingTextProvider interface {
-	StreamGenerateTextScenario(
-		ctx context.Context,
-		modelID string,
-		spec *runtimev1.TextGenerateScenarioSpec,
-		onDelta func(string) error,
-	) (*runtimev1.UsageStats, runtimev1.FinishReason, error)
-}
-
-type scenarioRichStreamingTextProvider interface {
-	StreamGenerateTextScenarioRich(
-		ctx context.Context,
-		modelID string,
-		spec *runtimev1.TextGenerateScenarioSpec,
-		handler nimillm.TextStreamEventHandler,
-	) (*runtimev1.UsageStats, runtimev1.FinishReason, error)
-}
-
 type scenarioSpeechStreamChunk = nimillm.SpeechStreamChunk
 
 type scenarioStreamingSpeechProvider = nimillm.StreamingSpeechProvider
 
 // Config controls local/cloud provider connectivity.
 type Config struct {
-	LocalProviders        map[string]nimillm.ProviderCredentials // "media", "speech", "sidecar"
-	CloudProviders        map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
-	ProviderDefaultModels map[string]string
-	DefaultLocalTextModel string
-	DefaultCloudProvider  string
-	AIHTTPTimeout         time.Duration
+	CloudProviders map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
+	AIHTTPTimeout  time.Duration
 
 	// EnforceEndpointSecurity enables endpoint validation + DNS pinning for
 	// outbound provider HTTP requests (K-SEC-003/K-SEC-004).
@@ -126,23 +88,6 @@ func buildCloudProviderEnvBindings() []struct {
 }
 
 func loadConfigFromEnv() Config {
-	localProviders := make(map[string]nimillm.ProviderCredentials)
-	localMediaBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"))
-	localMediaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
-	if localMediaBase != "" || localMediaKey != "" {
-		localProviders["media"] = nimillm.ProviderCredentials{BaseURL: localMediaBase, APIKey: localMediaKey}
-	}
-	localSpeechBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL"))
-	localSpeechKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SPEECH_API_KEY"))
-	if localSpeechBase != "" || localSpeechKey != "" {
-		localProviders["speech"] = nimillm.ProviderCredentials{BaseURL: localSpeechBase, APIKey: localSpeechKey}
-	}
-	localSidecarBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"))
-	localSidecarKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
-	if localSidecarBase != "" || localSidecarKey != "" {
-		localProviders["sidecar"] = nimillm.ProviderCredentials{BaseURL: localSidecarBase, APIKey: localSidecarKey}
-	}
-
 	cloudProviders := make(map[string]nimillm.ProviderCredentials)
 	for _, b := range cloudProviderEnvBindings {
 		baseURL := strings.TrimSpace(os.Getenv(b.baseEnv))
@@ -154,7 +99,6 @@ func loadConfigFromEnv() Config {
 	}
 
 	cfg := Config{
-		LocalProviders: localProviders,
 		CloudProviders: cloudProviders,
 		AIHTTPTimeout:  defaultAIHTTPTimeout,
 	}
@@ -172,26 +116,15 @@ func (c Config) normalized() Config {
 	if c.AIHTTPTimeout <= 0 {
 		c.AIHTTPTimeout = defaultAIHTTPTimeout
 	}
-	if c.LocalProviders == nil {
-		c.LocalProviders = make(map[string]nimillm.ProviderCredentials)
-	}
 	if c.CloudProviders == nil {
 		c.CloudProviders = make(map[string]nimillm.ProviderCredentials)
 	}
-	if c.ProviderDefaultModels == nil {
-		c.ProviderDefaultModels = make(map[string]string)
-	}
-	c.DefaultLocalTextModel = strings.TrimSpace(c.DefaultLocalTextModel)
-	c.DefaultCloudProvider = strings.TrimSpace(c.DefaultCloudProvider)
 	return c
 }
 
 func (c Config) toCloudConfig() nimillm.CloudConfig {
 	providers := make(map[string]nimillm.ProviderCredentials, len(c.CloudProviders))
 	for providerID, creds := range c.CloudProviders {
-		if model := strings.TrimSpace(c.ProviderDefaultModels[providerID]); model != "" {
-			creds.DefaultModel = model
-		}
 		providers[providerID] = creds
 	}
 	return nimillm.CloudConfig{
@@ -206,7 +139,6 @@ type routeSelector struct {
 	local         provider
 	cloud         provider
 	cloudProvider *nimillm.CloudProvider
-	targetConfig  runtimecfg.Config
 }
 
 func newRouteSelector(cfg Config) *routeSelector {
@@ -218,50 +150,11 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	cloudProvider := nimillm.NewCloudProvider(normalized.toCloudConfig(), registry, aiHealth)
 
-	mediaCreds := normalized.LocalProviders["media"]
-	speechCreds := normalized.LocalProviders["speech"]
-	sidecarCreds := normalized.LocalProviders["sidecar"]
-	mediaBackend := newLocalBackend("local-media", mediaCreds, normalized)
-	speechBackend := newLocalBackend("local-speech", speechCreds, normalized)
-	mediaDiffusersBackend := newLocalBackend("local-media-fallback", mediaCreds, normalized)
-	sidecarBackend := newLocalBackend("local-sidecar", sidecarCreds, normalized)
-	targetConfig := runtimecfg.Config{
-		DefaultLocalTextModel: normalized.DefaultLocalTextModel,
-		DefaultCloudProvider:  normalized.DefaultCloudProvider,
-		Providers:             map[string]runtimecfg.RuntimeFileTarget{},
-	}
-	for providerID, creds := range normalized.CloudProviders {
-		target := targetConfig.Providers[providerID]
-		target.BaseURL = creds.BaseURL
-		target.APIKey = creds.APIKey
-		target.DefaultModel = strings.TrimSpace(normalized.ProviderDefaultModels[providerID])
-		targetConfig.Providers[providerID] = target
-	}
-	for providerID, defaultModel := range normalized.ProviderDefaultModels {
-		target := targetConfig.Providers[providerID]
-		target.DefaultModel = strings.TrimSpace(defaultModel)
-		targetConfig.Providers[providerID] = target
-	}
 	return &routeSelector{
-		local: &localProvider{
-			media:          mediaBackend,
-			speech:         speechBackend,
-			mediaDiffusers: mediaDiffusersBackend,
-			sidecar:        sidecarBackend,
-		},
+		local:         &localProvider{},
 		cloud:         cloudProvider,
 		cloudProvider: cloudProvider,
-		targetConfig:  targetConfig,
 	}
-}
-
-func newLocalBackend(name string, creds nimillm.ProviderCredentials, cfg Config) *nimillm.Backend {
-	normalized := cfg.normalized()
-	if normalized.EnforceEndpointSecurity {
-		// Local engines run on loopback and must allow HTTP loopback.
-		return nimillm.NewSecuredBackend(name, creds.BaseURL, creds.APIKey, normalized.AIHTTPTimeout, true)
-	}
-	return nimillm.NewBackend(name, creds.BaseURL, creds.APIKey, normalized.AIHTTPTimeout)
 }
 
 func providerCredentialHeadersFromEnv(providerID string) map[string]string {

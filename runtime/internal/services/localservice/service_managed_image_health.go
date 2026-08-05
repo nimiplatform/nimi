@@ -19,11 +19,11 @@ import (
 
 var errManagedImageValidationPending = errors.New("managed local image backend validation pending")
 
-func (s *Service) checkManagedSupervisedImageHealth(ctx context.Context, model *runtimev1.LocalAssetRecord) (*runtimev1.LocalAssetHealth, error) {
+func (s *Service) checkManagedSupervisedImageHealth(ctx context.Context, model *runtimev1.LocalAssetRecord) (*localAssetHealth, error) {
 	return s.checkManagedSupervisedImageHealthWithReason(ctx, model, "explicit_health_check")
 }
 
-func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Context, model *runtimev1.LocalAssetRecord, loadReason string) (*runtimev1.LocalAssetHealth, error) {
+func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Context, model *runtimev1.LocalAssetRecord, loadReason string) (*localAssetHealth, error) {
 	if model == nil {
 		return nil, nil
 	}
@@ -437,7 +437,7 @@ func managedImageProfileOptionValue(profile map[string]any, key string) string {
 	return ""
 }
 
-func (s *Service) setManagedSupervisedImageUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*runtimev1.LocalAssetHealth, error) {
+func (s *Service) setManagedSupervisedImageUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*localAssetHealth, error) {
 	return s.setManagedSupervisedImageUnhealthyWithReason(
 		model,
 		detail,
@@ -449,7 +449,7 @@ func (s *Service) setManagedSupervisedImageUnhealthyWithReason(
 	model *runtimev1.LocalAssetRecord,
 	detail string,
 	reason runtimev1.ReasonCode,
-) (*runtimev1.LocalAssetHealth, error) {
+) (*localAssetHealth, error) {
 	if model == nil {
 		return nil, nil
 	}

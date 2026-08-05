@@ -200,11 +200,7 @@ func shouldSkipQuiescentManagedRecoveryTarget(
 		// installed and unhealthy assets untouched until an explicit load.
 		return true
 	}
-	coldDetail := managedLocalModelColdDetail()
-	coldReason := projectionReasonCodeForEngine(model.GetEngine(), coldDetail)
-	return model.GetWarmState() == runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD &&
-		model.GetHealthDetail() == coldDetail &&
-		model.GetReasonCode() == coldReason
+	return true
 }
 
 func shouldCollectModelRecoveryTarget(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {

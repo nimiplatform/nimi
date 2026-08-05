@@ -166,10 +166,6 @@ func TestUnaryAIAuditIncludesRequestAndExecutionLineage(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/qwen2.5",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			ConnectorId:   "local",
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -232,9 +228,6 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		var got runtimev1.StreamScenarioRequest
 		if recvErr := ss.RecvMsg(&got); recvErr != nil {
 			return recvErr
-		}
-		if got.GetHead().GetModelId() != "local/qwen2.5" {
-			t.Fatalf("request model mismatch: %s", got.GetHead().GetModelId())
 		}
 		if sendErr := ss.SendMsg(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
@@ -606,14 +599,11 @@ func TestAppendAuditEventFallsBackWhenPayloadCannotBeEncoded(t *testing.T) {
 	}
 }
 
-func scenarioExecuteTextRequest(appID string, subjectUserID string, modelID string) *runtimev1.ExecuteScenarioRequest {
+func scenarioExecuteTextRequest(appID string, subjectUserID string, _ string) *runtimev1.ExecuteScenarioRequest {
 	return &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         appID,
 			SubjectUserId: subjectUserID,
-			ModelId:       modelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -629,14 +619,11 @@ func scenarioExecuteTextRequest(appID string, subjectUserID string, modelID stri
 	}
 }
 
-func scenarioStreamTextRequest(appID string, subjectUserID string, modelID string) *runtimev1.StreamScenarioRequest {
+func scenarioStreamTextRequest(appID string, subjectUserID string, _ string) *runtimev1.StreamScenarioRequest {
 	return &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         appID,
 			SubjectUserId: subjectUserID,
-			ModelId:       modelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,

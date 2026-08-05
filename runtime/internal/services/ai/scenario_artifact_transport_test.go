@@ -46,7 +46,7 @@ func TestGetScenarioJobAndArtifactsCompactVideoResponsePayloads(t *testing.T) {
 	}
 	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user", ModelId: "cloud/seedance", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		TraceId:      "trace-video-compact",
@@ -114,7 +114,7 @@ func TestGetScenarioJobAndArtifactsCompactLargeImageResponsePayloads(t *testing.
 	}
 	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user", ModelId: "cloud/gemini-image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		TraceId:      "trace-image-compact",
@@ -171,7 +171,7 @@ func TestGetScenarioArtifactsFailsClosedForProviderAuthFailedJob(t *testing.T) {
 	jobID := "scenario-provider-auth-failed-job"
 	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user", ModelId: "cloud/provider", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
 		ReasonCode:   runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED,

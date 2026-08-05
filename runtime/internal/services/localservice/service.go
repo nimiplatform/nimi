@@ -115,7 +115,6 @@ type Service struct {
 	capabilityDrivers                       *capabilitydriver.Registry
 	jobLifetimeCtx                          context.Context
 	jobLifetimeCancel                       context.CancelFunc
-	localProviderEndpointSink               LocalProviderEndpointSink
 
 	profileRegistry *ProfileRegistry
 

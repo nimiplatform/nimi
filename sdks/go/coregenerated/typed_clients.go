@@ -700,14 +700,6 @@ const (
 	EXTERNALPROOFTYPEJWT ExternalProofType = "EXTERNAL_PROOF_TYPE_JWT"
 )
 
-type FallbackPolicy string
-
-const (
-	FALLBACKPOLICYUNSPECIFIED FallbackPolicy = "FALLBACK_POLICY_UNSPECIFIED"
-	FALLBACKPOLICYDENY FallbackPolicy = "FALLBACK_POLICY_DENY"
-	FALLBACKPOLICYALLOW FallbackPolicy = "FALLBACK_POLICY_ALLOW"
-)
-
 type FinishReason string
 
 const (
@@ -1059,16 +1051,6 @@ const (
 	LOCALSERVICESTATUSACTIVE LocalServiceStatus = "LOCAL_SERVICE_STATUS_ACTIVE"
 	LOCALSERVICESTATUSUNHEALTHY LocalServiceStatus = "LOCAL_SERVICE_STATUS_UNHEALTHY"
 	LOCALSERVICESTATUSREMOVED LocalServiceStatus = "LOCAL_SERVICE_STATUS_REMOVED"
-)
-
-type LocalWarmState string
-
-const (
-	LOCALWARMSTATEUNSPECIFIED LocalWarmState = "LOCAL_WARM_STATE_UNSPECIFIED"
-	LOCALWARMSTATECOLD LocalWarmState = "LOCAL_WARM_STATE_COLD"
-	LOCALWARMSTATEWARMING LocalWarmState = "LOCAL_WARM_STATE_WARMING"
-	LOCALWARMSTATEREADY LocalWarmState = "LOCAL_WARM_STATE_READY"
-	LOCALWARMSTATEFAILED LocalWarmState = "LOCAL_WARM_STATE_FAILED"
 )
 
 type MemoryBankScope string
@@ -1486,6 +1468,7 @@ const (
 	AILOCALEXECUTIONINFERENCEFAILED ReasonCode = "AI_LOCAL_EXECUTION_INFERENCE_FAILED"
 	AILOCALEXECUTIONCANCELED ReasonCode = "AI_LOCAL_EXECUTION_CANCELED"
 	AILOCALEXECUTIONPROCESSCRASHED ReasonCode = "AI_LOCAL_EXECUTION_PROCESS_CRASHED"
+	AILOCALEXECUTIONCONTENTMISMATCH ReasonCode = "AI_LOCAL_EXECUTION_CONTENT_MISMATCH"
 )
 
 type ReasoningMode string
@@ -2799,14 +2782,6 @@ type ChatMessage struct {
 	ToolApprovalResponses []ToolApprovalResponse `json:"tool_approval_responses,omitempty"`
 }
 
-type CheckLocalAssetHealthRequest struct {
-	LocalAssetId string `json:"local_asset_id,omitempty"`
-}
-
-type CheckLocalAssetHealthResponse struct {
-	Assets []LocalAssetHealth `json:"assets,omitempty"`
-}
-
 type CheckLocalServiceHealthRequest struct {
 	ServiceId string `json:"service_id,omitempty"`
 }
@@ -3337,7 +3312,6 @@ type ExecuteScenarioResponse struct {
 	ModelResolved string `json:"model_resolved,omitempty"`
 	TraceId string `json:"trace_id,omitempty"`
 	IgnoredExtensions []IgnoredScenarioExtension `json:"ignored_extensions,omitempty"`
-	ResolvedExecutionBinding *RuntimeResolvedExecutionBinding `json:"resolved_execution_binding,omitempty"`
 }
 
 type ExportAuditEventsRequest struct {
@@ -4743,14 +4717,6 @@ type LocalAssetExactBindingTarget struct {
 	ExpectedVerifiedContentId string `json:"expected_verified_content_id,omitempty"`
 }
 
-type LocalAssetHealth struct {
-	LocalAssetId string `json:"local_asset_id,omitempty"`
-	Status LocalAssetStatus `json:"status,omitempty"`
-	Detail string `json:"detail,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type LocalAssetRecord struct {
 	LocalAssetId string `json:"local_asset_id,omitempty"`
 	AssetId string `json:"asset_id,omitempty"`
@@ -4772,7 +4738,6 @@ type LocalAssetRecord struct {
 	PreferredEngine string `json:"preferred_engine,omitempty"`
 	FallbackEngines []string `json:"fallback_engines,omitempty"`
 	BundleState LocalBundleState `json:"bundle_state,omitempty"`
-	WarmState LocalWarmState `json:"warm_state,omitempty"`
 	HostRequirements *LocalHostRequirements `json:"host_requirements,omitempty"`
 	LocalInvokeProfileId string `json:"local_invoke_profile_id,omitempty"`
 	EngineConfig map[string]any `json:"engine_config,omitempty"`
@@ -4782,9 +4747,6 @@ type LocalAssetRecord struct {
 	DisplayName string `json:"display_name,omitempty"`
 	SourceFileName string `json:"source_file_name,omitempty"`
 	ImportInstanceId string `json:"import_instance_id,omitempty"`
-	DurableTargetRef *RuntimeDurableLocalTargetRef `json:"durable_target_ref,omitempty"`
-	DurableTargetStatus LocalAssetStatus `json:"durable_target_status,omitempty"`
-	DurableTargetReasonCode ReasonCode `json:"durable_target_reason_code,omitempty"`
 }
 
 type LocalAssetSource struct {
@@ -5580,11 +5542,6 @@ type MemoryEmbeddingCloudBindingRef struct {
 	Provider string `json:"provider,omitempty"`
 }
 
-type MemoryEmbeddingLocalBindingRef struct {
-	ProfileBindingId string `json:"profile_binding_id,omitempty"`
-	ReadinessRef string `json:"readiness_ref,omitempty"`
-}
-
 type MemoryEmbeddingOperationReadiness struct {
 	BindAllowed bool `json:"bind_allowed,omitempty"`
 	CutoverAllowed bool `json:"cutover_allowed,omitempty"`
@@ -5598,7 +5555,6 @@ type MemoryEmbeddingProfile struct {
 	Version string `json:"version,omitempty"`
 	MigrationPolicy MemoryMigrationPolicy `json:"migration_policy,omitempty"`
 	CloudBinding *MemoryEmbeddingCloudBindingRef `json:"cloud_binding,omitempty"`
-	LocalBinding *MemoryEmbeddingLocalBindingRef `json:"local_binding,omitempty"`
 }
 
 type MemoryEvent struct {
@@ -5782,7 +5738,6 @@ type ModelDescriptor struct {
 	PreferredEngine string `json:"preferred_engine,omitempty"`
 	FallbackEngines []string `json:"fallback_engines,omitempty"`
 	BundleState LocalBundleState `json:"bundle_state,omitempty"`
-	WarmState LocalWarmState `json:"warm_state,omitempty"`
 	HostRequirements *LocalHostRequirements `json:"host_requirements,omitempty"`
 }
 
@@ -6623,25 +6578,6 @@ type RevokeWorkspaceBindingResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
-type RuntimeDurableCloudTargetRef struct {
-	Version string `json:"version,omitempty"`
-	ConnectorId string `json:"connector_id,omitempty"`
-	RemoteModelCatalogId string `json:"remote_model_catalog_id,omitempty"`
-	ProviderModelId string `json:"provider_model_id,omitempty"`
-	Provider string `json:"provider,omitempty"`
-}
-
-type RuntimeDurableLocalTargetRef struct {
-	Version string `json:"version,omitempty"`
-	ProfileBindingId string `json:"profile_binding_id,omitempty"`
-	ReadinessRef string `json:"readiness_ref,omitempty"`
-}
-
-type RuntimeDurableTargetRef struct {
-	LocalRuntime *RuntimeDurableLocalTargetRef `json:"local_runtime,omitempty"`
-	Cloud *RuntimeDurableCloudTargetRef `json:"cloud,omitempty"`
-}
-
 type RuntimeHealthEvent struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	Status RuntimeHealthStatus `json:"status,omitempty"`
@@ -6652,33 +6588,6 @@ type RuntimeHealthEvent struct {
 	MemoryBytes int64 `json:"memory_bytes,omitempty"`
 	VramBytes int64 `json:"vram_bytes,omitempty"`
 	SampledAt string `json:"sampled_at,omitempty"`
-}
-
-type RuntimeResolvedCloudExecutionBinding struct {
-	ConnectorId string `json:"connector_id,omitempty"`
-	RemoteModelCatalogId string `json:"remote_model_catalog_id,omitempty"`
-	ProviderModelId string `json:"provider_model_id,omitempty"`
-	Provider string `json:"provider,omitempty"`
-	EndpointProfileId string `json:"endpoint_profile_id,omitempty"`
-	ConnectorSnapshotId string `json:"connector_snapshot_id,omitempty"`
-}
-
-type RuntimeResolvedExecutionBinding struct {
-	BindingVersion string `json:"binding_version,omitempty"`
-	Capability string `json:"capability,omitempty"`
-	ResolvedBindingRef string `json:"resolved_binding_ref,omitempty"`
-	SourceTargetRef *RuntimeDurableTargetRef `json:"source_target_ref,omitempty"`
-	RouteMetadataRef string `json:"route_metadata_ref,omitempty"`
-	LocalRuntime *RuntimeResolvedLocalExecutionBinding `json:"local_runtime,omitempty"`
-	Cloud *RuntimeResolvedCloudExecutionBinding `json:"cloud,omitempty"`
-}
-
-type RuntimeResolvedLocalExecutionBinding struct {
-	ProfileBindingId string `json:"profile_binding_id,omitempty"`
-	ReadinessRef string `json:"readiness_ref,omitempty"`
-	LocalAssetId string `json:"local_asset_id,omitempty"`
-	ExecutionProfileId string `json:"execution_profile_id,omitempty"`
-	ResolvedModelId string `json:"resolved_model_id,omitempty"`
 }
 
 type ScaffoldOrphanAssetRequest struct {
@@ -6776,12 +6685,7 @@ type ScenarioProfile struct {
 type ScenarioRequestHead struct {
 	AppId string `json:"app_id,omitempty"`
 	SubjectUserId string `json:"subject_user_id,omitempty"`
-	ModelId string `json:"model_id,omitempty"`
-	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
-	Fallback FallbackPolicy `json:"fallback,omitempty"`
 	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-	ConnectorId string `json:"connector_id,omitempty"`
-	TargetRef *RuntimeDurableTargetRef `json:"target_ref,omitempty"`
 }
 
 type ScenarioSpec struct {
@@ -6819,7 +6723,6 @@ type ScenarioStreamFailed struct {
 type ScenarioStreamStarted struct {
 	ModelResolved string `json:"model_resolved,omitempty"`
 	RouteDecision RoutePolicy `json:"route_decision,omitempty"`
-	ResolvedExecutionBinding *RuntimeResolvedExecutionBinding `json:"resolved_execution_binding,omitempty"`
 	VoiceOutputMode VoiceOutputMode `json:"voice_output_mode,omitempty"`
 }
 
@@ -7522,8 +7425,6 @@ type VoiceAsset struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 	ExpiresAt string `json:"expires_at,omitempty"`
 	Metadata map[string]any `json:"metadata,omitempty"`
-	TargetRef *RuntimeDurableTargetRef `json:"target_ref,omitempty"`
-	VoiceAssetTargetRef *RuntimeDurableTargetRef `json:"voice_asset_target_ref,omitempty"`
 }
 
 type VoiceCloneScenarioSpec struct {
@@ -7575,22 +7476,6 @@ type VoiceV2VInput struct {
 	LanguageHints []string `json:"language_hints,omitempty"`
 	PreferredName string `json:"preferred_name,omitempty"`
 	Text string `json:"text,omitempty"`
-}
-
-type WarmLocalAssetRequest struct {
-	LocalAssetId string `json:"local_asset_id,omitempty"`
-	TimeoutMs int32 `json:"timeout_ms,omitempty"`
-}
-
-type WarmLocalAssetResponse struct {
-	LocalAssetId string `json:"local_asset_id,omitempty"`
-	AssetId string `json:"asset_id,omitempty"`
-	ModelResolved string `json:"model_resolved,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
-	Engine string `json:"engine,omitempty"`
-	AlreadyWarm bool `json:"already_warm,omitempty"`
-	LatencyMs int64 `json:"latency_ms,omitempty"`
-	TraceId string `json:"trace_id,omitempty"`
 }
 
 type WatchLocalTransfersRequest struct {
@@ -9318,14 +9203,6 @@ func (c RuntimeTypedClient) CancelLocalTransfer(ctx context.Context, request Can
 	return decodeRuntimeTypedResponse[CancelLocalTransferResponse](raw, "CancelLocalTransferResponse")
 }
 
-func (c RuntimeTypedClient) CheckLocalAssetHealth(ctx context.Context, request CheckLocalAssetHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckLocalAssetHealthResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth", request, metadata, timeoutMS)
-	if err != nil {
-		return CheckLocalAssetHealthResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CheckLocalAssetHealthResponse](raw, "CheckLocalAssetHealthResponse")
-}
-
 func (c RuntimeTypedClient) CheckLocalServiceHealth(ctx context.Context, request CheckLocalServiceHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckLocalServiceHealthResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth", request, metadata, timeoutMS)
 	if err != nil {
@@ -9804,14 +9681,6 @@ func (c RuntimeTypedClient) UnbindLocalCapabilityRequirement(ctx context.Context
 		return UnbindLocalCapabilityRequirementResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UnbindLocalCapabilityRequirementResponse](raw, "UnbindLocalCapabilityRequirementResponse")
-}
-
-func (c RuntimeTypedClient) WarmLocalAsset(ctx context.Context, request WarmLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WarmLocalAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset", request, metadata, timeoutMS)
-	if err != nil {
-		return WarmLocalAssetResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[WarmLocalAssetResponse](raw, "WarmLocalAssetResponse")
 }
 
 func (c RuntimeTypedClient) WatchLocalTransfers(ctx context.Context, request WatchLocalTransfersRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalTransferProgressEvent], error) {

@@ -92,9 +92,6 @@ func (r *Resolver) ResolveVoices(providerType string, modelID string) (ResolveVo
 func (r *Resolver) ResolveVoicesForSubject(subjectUserID string, providerType string, modelID string) (ResolveVoicesResult, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
-	if provider == "" {
-		provider = inferProviderFromModel(normalizedModel)
-	}
 	if provider == "" || normalizedModel == "" {
 		return ResolveVoicesResult{}, ErrModelNotFound
 	}
@@ -155,9 +152,6 @@ func (r *Resolver) ResolveModelEntry(providerType string, modelID string) (Model
 func (r *Resolver) ResolveModelEntryForSubject(subjectUserID string, providerType string, modelID string) (ModelEntry, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
-	if provider == "" {
-		provider = inferProviderFromModel(normalizedModel)
-	}
 	if provider == "" || normalizedModel == "" {
 		return ModelEntry{}, ErrModelNotFound
 	}
@@ -183,9 +177,6 @@ func (r *Resolver) ResolveModelEntryForSubject(subjectUserID string, providerTyp
 func (r *Resolver) ResolveTextContextMetadataForSubject(subjectUserID string, providerType string, modelID string) (TextContextMetadata, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
-	if provider == "" {
-		provider = inferProviderFromModel(normalizedModel)
-	}
 	if provider == "" || normalizedModel == "" {
 		return TextContextMetadata{}, ErrModelNotFound
 	}
@@ -285,9 +276,6 @@ func (r *Resolver) ListModelsForProviderForSubject(subjectUserID string, provide
 func (r *Resolver) GetModelDetailForSubject(subjectUserID string, providerType string, modelID string) (CatalogModelDetailRecord, CatalogProviderRecord, CatalogSource, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
-	if provider == "" {
-		provider = inferProviderFromModel(normalizedModel)
-	}
 	if provider == "" || normalizedModel == "" {
 		return CatalogModelDetailRecord{}, CatalogProviderRecord{}, SourceBuiltinSnapshot, ErrModelNotFound
 	}
@@ -306,9 +294,6 @@ func (r *Resolver) ResolveVoiceWorkflow(providerType string, modelID string, wor
 func (r *Resolver) ResolveVoiceWorkflowForSubject(subjectUserID string, providerType string, modelID string, workflowType string) (ResolveVoiceWorkflowResult, error) {
 	provider := normalizeProvider(providerType)
 	normalizedModel := normalizeLookupModelID(modelID, provider)
-	if provider == "" {
-		provider = inferProviderFromModel(normalizedModel)
-	}
 	if provider == "" || normalizedModel == "" {
 		return ResolveVoiceWorkflowResult{}, ErrModelNotFound
 	}
@@ -351,7 +336,7 @@ func (r *Resolver) ResolveVoiceWorkflowForSubject(subjectUserID string, provider
 			APIModelID:                     strings.TrimSpace(modelEntry.ApiModelID),
 			WorkflowType:                   normalizedWorkflowType,
 			WorkflowModelID:                strings.TrimSpace(workflowModel.WorkflowModelID),
-			WorkflowFamily:                 inferWorkflowFamily(workflowModel.WorkflowModelID, modelEntry.ModelID),
+			WorkflowFamily:                 strings.TrimSpace(workflowModel.WorkflowFamily),
 			InputContractRef:               strings.TrimSpace(workflowModel.InputContractRef),
 			OutputPersistence:              strings.TrimSpace(workflowModel.OutputPersistence),
 			HandlePolicyID:                 strings.TrimSpace(policy.PolicyID),

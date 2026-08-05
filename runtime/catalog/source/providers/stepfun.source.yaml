@@ -454,6 +454,7 @@ models:
 voice_workflow_models:
   - workflow_model_id: stepfun-voice-clone
     workflow_type: voice_clone
+    workflow_family: stepfun
     input_contract_ref: stepfun_voice_clone_input_v2
     output_persistence: provider_persistent
     request_options:

@@ -13,34 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestCheckLocalAssetHealthBulkDoesNotLoadManagedImage(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedImageBackendHealth(true, "image backend active")
-
-	loadCalls := 0
-	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
-		loadCalls++
-		return nil, nil
-	}
-
-	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-health-bulk")
-	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
-
-	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{})
-	if err != nil {
-		t.Fatalf("CheckLocalAssetHealth: %v", err)
-	}
-	if len(resp.GetAssets()) != 1 {
-		t.Fatalf("expected one asset, got %d", len(resp.GetAssets()))
-	}
-	if loadCalls != 0 {
-		t.Fatalf("expected bulk health to avoid managed image load, got %d calls", loadCalls)
-	}
-}
-
 func TestManagedImageProfileCachePreservesMaterializationForSameResolvedProfile(t *testing.T) {
 	svc := newTestService(t)
 	profile := map[string]any{
@@ -128,50 +100,6 @@ func TestManagedImageProfileCacheDoesNotPreserveMaterializationWhenProfileHashFa
 	}
 	if cached.MaterializationResolved {
 		t.Fatal("unhashable profile refresh must not inherit stale materialization bindings")
-	}
-}
-
-func TestManagedImageExplicitHealthLoadsAndMarksActive(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedImageBackendHealth(true, "image backend active")
-
-	loadCalls := 0
-	freeCalls := 0
-	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
-		loadCalls++
-		return nil, nil
-	}
-	svc.managedImageFreeModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
-		freeCalls++
-		return nil
-	}
-
-	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-explicit-health")
-	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
-
-	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
-		LocalAssetId: asset.GetLocalAssetId(),
-	})
-	if err != nil {
-		t.Fatalf("CheckLocalAssetHealth(targeted): %v", err)
-	}
-	if len(resp.GetAssets()) != 1 {
-		t.Fatalf("expected one health row, got %d", len(resp.GetAssets()))
-	}
-	if loadCalls != 1 {
-		t.Fatalf("expected one managed image load, got %d", loadCalls)
-	}
-	if freeCalls != 0 {
-		t.Fatalf("expected explicit health check to keep managed image resident during keep_alive, got %d", freeCalls)
-	}
-	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-		t.Fatalf("expected active image asset, got %s", got)
-	}
-	if detail := resp.GetAssets()[0].GetDetail(); !strings.Contains(detail, "backend load verified") {
-		t.Fatalf("unexpected health detail: %q", detail)
 	}
 }
 
@@ -310,33 +238,6 @@ func TestStartLocalAssetProjectsBackendShapeValidationAsComponentIncompatible(t 
 	}
 	if started.GetAsset().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE {
 		t.Fatalf("asset reason = %s, want %s", started.GetAsset().GetReasonCode(), runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
-	}
-}
-
-func TestCheckLocalAssetHealthProjectsBackendShapeValidationAsComponentIncompatible(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedImageBackendHealth(true, "image backend active")
-
-	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
-		return nil, errors.New(`VAE tensor "first_stage_model.decoder.conv_in.weight" has wrong shape in model metadata; model metadata validation failed`)
-	}
-
-	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-health-incompatible-vae")
-	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
-	health, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
-		LocalAssetId: asset.GetLocalAssetId(),
-	})
-	if err != nil {
-		t.Fatalf("CheckLocalAssetHealth should return unhealthy asset state, got transport error: %v", err)
-	}
-	if len(health.GetAssets()) != 1 {
-		t.Fatalf("health assets = %d, want 1", len(health.GetAssets()))
-	}
-	if health.GetAssets()[0].GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE {
-		t.Fatalf("health reason = %s, want %s", health.GetAssets()[0].GetReasonCode(), runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
 	}
 }
 

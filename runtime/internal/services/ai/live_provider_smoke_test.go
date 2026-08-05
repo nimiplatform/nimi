@@ -28,17 +28,10 @@ func liveEnvOrDefault(_ *testing.T, key string, fallback string) string {
 	return strings.TrimSpace(fallback)
 }
 
-func runLiveSmokeLocalGenerateText(t *testing.T) {
-	modelID := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_MODEL_ID")
-	harness := newLiveSmokeLocalProviderHarness(t, "local")
-	runLiveSmokeScenarioGenerateText(t, harness, modelID)
-}
-
 func runLiveSmokeCloudGenerateText(t *testing.T, providerID string, envPrefix string, fallbackBaseURL string) {
 	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_"+envPrefix+"_BASE_URL", fallbackBaseURL)
 	apiKey := requiredLiveEnv(t, "NIMI_LIVE_"+envPrefix+"_API_KEY")
 	modelID := requiredLiveEnv(t, "NIMI_LIVE_"+envPrefix+"_MODEL_ID")
-	modelID = qualifyLiveModelIDForRoute(providerID, modelID)
 
 	harness := newLiveSmokeCloudProviderHarness(t, providerID, baseURL, apiKey, liveSmokeProviderHeaders(providerID))
 	runLiveSmokeScenarioGenerateText(t, harness, modelID)
@@ -47,7 +40,7 @@ func runLiveSmokeCloudGenerateText(t *testing.T, providerID string, envPrefix st
 func runLiveSmokeScenarioGenerateText(t *testing.T, harness liveSmokeProviderHarness, modelID string) {
 	t.Helper()
 	text, err := executeLiveSmokeScenarioGenerateTextWithHead(
-		harness.context,
+		harness.scenarioContext(t, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, modelID),
 		harness.service,
 		harness.scenarioHead(t, "nimi.live-smoke", "smoke-user", modelID, 45_000),
 	)
@@ -78,8 +71,6 @@ func executeLiveSmokeScenarioGenerateTextWithHead(ctx context.Context, svc *Serv
 	text := strings.TrimSpace(outputText(resp.GetOutput()))
 	return text, nil
 }
-
-func TestLiveSmokeLocalGenerateText(t *testing.T) { runLiveSmokeLocalGenerateText(t) }
 
 func TestLiveSmokeNimiLLMGenerateText(t *testing.T) {
 	runLiveSmokeCloudGenerateText(t, "nimillm", "NIMILLM", "")

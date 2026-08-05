@@ -642,69 +642,6 @@ func TestStartLocalModelAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
 	}
 }
 
-func TestCheckLocalAssetHealthAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
-	probeCalls := 0
-	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
-		probeCalls += 1
-		return endpointProbeResult{
-			healthy:  false,
-			detail:   "probe should not run",
-			probeURL: endpoint,
-		}
-	})
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	modelsRoot := t.TempDir()
-	setLocalModelsPathForTest(t, svc, modelsRoot)
-	model, err := svc.installLocalAssetRecord(
-		"local-import/z_video_turbo_health",
-		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
-		[]string{"video.generate"},
-		"media",
-		"z_video_turbo.bin",
-		"unknown",
-		"local-import/z_video_turbo_health",
-		"local",
-		map[string]string{},
-		defaultMediaEndpoint,
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
-		"",
-		nil,
-		nil,
-		"runtime_model_imported",
-		"seed bad media loopback asset",
-		localAssetExistingPolicyFail,
-	)
-	if err != nil {
-		t.Fatalf("seed loopback asset: %v", err)
-	}
-	entryPath := filepath.Join(resolveLocalModelsPath(modelsRoot), slugifyLocalModelID(model.GetAssetId()), model.GetEntry())
-	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
-		t.Fatalf("create managed entry dir: %v", err)
-	}
-	if err := os.WriteFile(entryPath, []byte("stub"), 0o600); err != nil {
-		t.Fatalf("write managed entry file: %v", err)
-	}
-
-	health, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
-		LocalAssetId: model.GetLocalAssetId(),
-	})
-	if err != nil {
-		t.Fatalf("check health: %v", err)
-	}
-	if len(health.GetAssets()) != 1 {
-		t.Fatalf("expected one health record, got %d", len(health.GetAssets()))
-	}
-	if health.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		t.Fatalf("expected unhealthy fast-fail status, got %s", health.GetAssets()[0].GetStatus())
-	}
-	if probeCalls != 0 {
-		t.Fatalf("expected no probe for attached-loopback config error, got %d probe calls", probeCalls)
-	}
-	if !strings.Contains(health.GetAssets()[0].GetDetail(), "attached endpoint") {
-		t.Fatalf("expected attached endpoint config detail, got %q", health.GetAssets()[0].GetDetail())
-	}
-}
-
 func TestLocalImportManifestRejectsSymlinkOutsideModelsRoot(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := t.TempDir()

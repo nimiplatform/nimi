@@ -11,7 +11,6 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { RuntimeDurableLocalTargetRef } from "./runtime_target_identity";
 import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 // === Source ===
@@ -143,10 +142,6 @@ export interface LocalAssetRecord {
      */
     bundleState: LocalBundleState;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalWarmState warm_state = 27
-     */
-    warmState: LocalWarmState;
-    /**
      * @generated from protobuf field: nimi.runtime.v1.LocalHostRequirements host_requirements = 28
      */
     hostRequirements?: LocalHostRequirements;
@@ -187,47 +182,6 @@ export interface LocalAssetRecord {
      * @generated from protobuf field: string import_instance_id = 43
      */
     importInstanceId: string;
-    /**
-     * Runtime-issued v2 execution identity and its target-specific readiness.
-     * The target is opaque to consumers and never derived from asset_id,
-     * local_asset_id, or logical_model_id outside Runtime.
-     *
-     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableLocalTargetRef durable_target_ref = 44
-     */
-    durableTargetRef?: RuntimeDurableLocalTargetRef;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetStatus durable_target_status = 45
-     */
-    durableTargetStatus: LocalAssetStatus;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode durable_target_reason_code = 46
-     */
-    durableTargetReasonCode: ReasonCode;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalAssetHealth
- */
-export interface LocalAssetHealth {
-    /**
-     * @generated from protobuf field: string local_asset_id = 1
-     */
-    localAssetId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetStatus status = 2
-     */
-    status: LocalAssetStatus;
-    /**
-     * @generated from protobuf field: string detail = 3
-     */
-    detail: string;
-    /**
-     * @generated from protobuf field: string endpoint = 4
-     */
-    endpoint: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
-     */
-    reasonCode: ReasonCode;
 }
 // === Verified Asset Descriptor (unified from Model + Artifact) ===
 
@@ -829,31 +783,6 @@ export enum LocalBundleState {
     REMOVED = 5
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.LocalWarmState
- */
-export enum LocalWarmState {
-    /**
-     * @generated from protobuf enum value: LOCAL_WARM_STATE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_WARM_STATE_COLD = 1;
-     */
-    COLD = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_WARM_STATE_WARMING = 2;
-     */
-    WARMING = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_WARM_STATE_READY = 3;
-     */
-    READY = 3,
-    /**
-     * @generated from protobuf enum value: LOCAL_WARM_STATE_FAILED = 4;
-     */
-    FAILED = 4
-}
-/**
  * @generated from protobuf enum nimi.runtime.v1.LocalExecutionEntryKind
  */
 export enum LocalExecutionEntryKind {
@@ -1045,7 +974,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
             { no: 24, name: "preferred_engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 25, name: "fallback_engines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 26, name: "bundle_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalBundleState", LocalBundleState, "LOCAL_BUNDLE_STATE_"] },
-            { no: 27, name: "warm_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalWarmState", LocalWarmState, "LOCAL_WARM_STATE_"] },
             { no: 28, name: "host_requirements", kind: "message", T: () => LocalHostRequirements },
             { no: 29, name: "local_invoke_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 30, name: "engine_config", kind: "message", T: () => Struct },
@@ -1054,10 +982,7 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
             { no: 40, name: "metadata", kind: "message", T: () => Struct },
             { no: 41, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 42, name: "source_file_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 43, name: "import_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 44, name: "durable_target_ref", kind: "message", T: () => RuntimeDurableLocalTargetRef },
-            { no: 45, name: "durable_target_status", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetStatus", LocalAssetStatus, "LOCAL_ASSET_STATUS_"] },
-            { no: 46, name: "durable_target_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 43, name: "import_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAssetRecord>): LocalAssetRecord {
@@ -1081,15 +1006,12 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         message.preferredEngine = "";
         message.fallbackEngines = [];
         message.bundleState = 0;
-        message.warmState = 0;
         message.localInvokeProfileId = "";
         message.endpoint = "";
         message.reasonCode = 0;
         message.displayName = "";
         message.sourceFileName = "";
         message.importInstanceId = "";
-        message.durableTargetStatus = 0;
-        message.durableTargetReasonCode = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAssetRecord>(this, message, value);
         return message;
@@ -1159,9 +1081,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
                 case /* nimi.runtime.v1.LocalBundleState bundle_state */ 26:
                     message.bundleState = reader.int32();
                     break;
-                case /* nimi.runtime.v1.LocalWarmState warm_state */ 27:
-                    message.warmState = reader.int32();
-                    break;
                 case /* nimi.runtime.v1.LocalHostRequirements host_requirements */ 28:
                     message.hostRequirements = LocalHostRequirements.internalBinaryRead(reader, reader.uint32(), options, message.hostRequirements);
                     break;
@@ -1188,15 +1107,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
                     break;
                 case /* string import_instance_id */ 43:
                     message.importInstanceId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.RuntimeDurableLocalTargetRef durable_target_ref */ 44:
-                    message.durableTargetRef = RuntimeDurableLocalTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.durableTargetRef);
-                    break;
-                case /* nimi.runtime.v1.LocalAssetStatus durable_target_status */ 45:
-                    message.durableTargetStatus = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.ReasonCode durable_target_reason_code */ 46:
-                    message.durableTargetReasonCode = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1286,9 +1196,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         /* nimi.runtime.v1.LocalBundleState bundle_state = 26; */
         if (message.bundleState !== 0)
             writer.tag(26, WireType.Varint).int32(message.bundleState);
-        /* nimi.runtime.v1.LocalWarmState warm_state = 27; */
-        if (message.warmState !== 0)
-            writer.tag(27, WireType.Varint).int32(message.warmState);
         /* nimi.runtime.v1.LocalHostRequirements host_requirements = 28; */
         if (message.hostRequirements)
             LocalHostRequirements.internalBinaryWrite(message.hostRequirements, writer.tag(28, WireType.LengthDelimited).fork(), options).join();
@@ -1316,15 +1223,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         /* string import_instance_id = 43; */
         if (message.importInstanceId !== "")
             writer.tag(43, WireType.LengthDelimited).string(message.importInstanceId);
-        /* nimi.runtime.v1.RuntimeDurableLocalTargetRef durable_target_ref = 44; */
-        if (message.durableTargetRef)
-            RuntimeDurableLocalTargetRef.internalBinaryWrite(message.durableTargetRef, writer.tag(44, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAssetStatus durable_target_status = 45; */
-        if (message.durableTargetStatus !== 0)
-            writer.tag(45, WireType.Varint).int32(message.durableTargetStatus);
-        /* nimi.runtime.v1.ReasonCode durable_target_reason_code = 46; */
-        if (message.durableTargetReasonCode !== 0)
-            writer.tag(46, WireType.Varint).int32(message.durableTargetReasonCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1335,85 +1233,6 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
  * @generated MessageType for protobuf message nimi.runtime.v1.LocalAssetRecord
  */
 export const LocalAssetRecord = new LocalAssetRecord$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalAssetHealth$Type extends MessageType<LocalAssetHealth> {
-    constructor() {
-        super("nimi.runtime.v1.LocalAssetHealth", [
-            { no: 1, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetStatus", LocalAssetStatus, "LOCAL_ASSET_STATUS_"] },
-            { no: 3, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
-        ]);
-    }
-    create(value?: PartialMessage<LocalAssetHealth>): LocalAssetHealth {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.localAssetId = "";
-        message.status = 0;
-        message.detail = "";
-        message.endpoint = "";
-        message.reasonCode = 0;
-        if (value !== undefined)
-            reflectionMergePartial<LocalAssetHealth>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAssetHealth): LocalAssetHealth {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string local_asset_id */ 1:
-                    message.localAssetId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.LocalAssetStatus status */ 2:
-                    message.status = reader.int32();
-                    break;
-                case /* string detail */ 3:
-                    message.detail = reader.string();
-                    break;
-                case /* string endpoint */ 4:
-                    message.endpoint = reader.string();
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
-                    message.reasonCode = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalAssetHealth, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string local_asset_id = 1; */
-        if (message.localAssetId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.localAssetId);
-        /* nimi.runtime.v1.LocalAssetStatus status = 2; */
-        if (message.status !== 0)
-            writer.tag(2, WireType.Varint).int32(message.status);
-        /* string detail = 3; */
-        if (message.detail !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.detail);
-        /* string endpoint = 4; */
-        if (message.endpoint !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.endpoint);
-        /* nimi.runtime.v1.ReasonCode reason_code = 5; */
-        if (message.reasonCode !== 0)
-            writer.tag(5, WireType.Varint).int32(message.reasonCode);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAssetHealth
- */
-export const LocalAssetHealth = new LocalAssetHealth$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDescriptor> {
     constructor() {

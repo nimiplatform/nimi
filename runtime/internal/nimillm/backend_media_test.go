@@ -109,6 +109,13 @@ func TestBackendGenerateImageForwardsScenarioExtensions(t *testing.T) {
 	}
 }
 
+func TestProviderEndpointPathUsesAdapterOwnedCanonicalPath(t *testing.T) {
+	got := firstProviderEndpointPath([]string{"/v1/canonical"})
+	if got != "/v1/canonical" {
+		t.Fatalf("endpoint path = %q, want adapter-owned canonical path", got)
+	}
+}
+
 func TestNormalizeImageResponseFormatRejectsUnsupportedValue(t *testing.T) {
 	_, err := normalizeImageResponseFormat("signed_url")
 	if err == nil {
@@ -192,8 +199,8 @@ func TestBackendGenerateImageUsesCodexResponsesTool(t *testing.T) {
 	if string(payload) != "image-codex" {
 		t.Fatalf("unexpected payload: %q", string(payload))
 	}
-	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-5.4" {
-		t.Fatalf("expected catalog codex host model, got=%q", got)
+	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-image-2" {
+		t.Fatalf("expected caller-bound codex host model, got=%q", got)
 	}
 	tools, ok := captured["tools"].([]any)
 	if !ok || len(tools) != 1 {
@@ -235,15 +242,21 @@ func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
 	provider := NewCloudProvider(CloudConfig{
 		Providers: map[string]ProviderCredentials{
 			"openai_codex": {
-				BaseURL:      server.URL + "/backend-api/codex",
-				APIKey:       "token-123",
-				Headers:      map[string]string{"originator": "codex_cli_rs"},
-				DefaultModel: "gpt-5.3-codex",
+				BaseURL: server.URL + "/backend-api/codex",
+				APIKey:  "token-123",
+				Headers: map[string]string{"originator": "codex_cli_rs"},
 			},
 		},
 		AllowLoopbackEndpoint: true,
 	}, nil, nil)
-	backend, toolModel := provider.ResolveMediaBackend("openai_codex/gpt-image-2")
+	backend, toolModel := provider.ResolveMediaBackendWithTarget("gpt-image-2", &RemoteTarget{
+		ProviderType:    "openai_codex",
+		Endpoint:        server.URL + "/backend-api/codex",
+		APIKey:          "token-123",
+		Headers:         map[string]string{"originator": "codex_cli_rs"},
+		ProviderModelID: "gpt-image-2",
+		AllowLoopback:   true,
+	})
 	if backend == nil {
 		t.Fatal("expected codex backend")
 	}
@@ -256,8 +269,8 @@ func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GenerateImage failed: %v", err)
 	}
-	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-5.3-codex" {
-		t.Fatalf("expected configured codex host model, got=%q", got)
+	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-image-2" {
+		t.Fatalf("expected caller-bound codex model, got=%q", got)
 	}
 }
 
@@ -295,24 +308,6 @@ func TestBackendEmbedUsesOpenAICompatiblePathResolver(t *testing.T) {
 	}
 	if len(vectors) != 1 {
 		t.Fatalf("expected one embedding vector, got %d", len(vectors))
-	}
-}
-
-func TestMaterializeManagedMediaImageRejectsCallerControlledLocalInputs(t *testing.T) {
-	backend := NewBackend("local-managed-image", "https://example.com", "", time.Second)
-	if backend == nil {
-		t.Fatal("expected backend")
-	}
-	tempDir := t.TempDir()
-	for _, source := range []string{
-		"data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("png")),
-		"file:///etc/passwd",
-		"/etc/passwd",
-		`C:\Windows\win.ini`,
-	} {
-		if _, err := backend.materializeManagedMediaImage(context.Background(), source, tempDir, "ref"); err == nil {
-			t.Fatalf("expected source %q to fail closed", source)
-		}
 	}
 }
 
@@ -373,90 +368,6 @@ func TestBackendSynthesizeSpeechRejectsNilSpec(t *testing.T) {
 	}
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("unexpected code: %v", status.Code(err))
-	}
-}
-
-func TestBackendGenerateImageUsesMediaCanonicalPath(t *testing.T) {
-	var captured map[string]any
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1/media/image/generate" {
-			http.NotFound(w, r)
-			return
-		}
-		captured = decodeJSONBodyForBackendMediaTest(t, r)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"artifact": map[string]any{
-				"mime_type":   "image/png",
-				"data_base64": base64.StdEncoding.EncodeToString([]byte("image-media")),
-			},
-		})
-	}))
-	defer func() { server.Close() }()
-
-	backend := NewBackend("local-media", server.URL, "", time.Second)
-	payload, _, err := backend.GenerateImage(context.Background(), "media/flux.1-schnell", &runtimev1.ImageGenerateScenarioSpec{
-		Prompt: "make a skyline",
-	}, map[string]any{"scheduler": "ddim"})
-	if err != nil {
-		t.Fatalf("GenerateImage failed: %v", err)
-	}
-	if string(payload) != "image-media" {
-		t.Fatalf("unexpected payload: %q", string(payload))
-	}
-	spec, ok := captured["spec"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected canonical spec payload, got=%T", captured["spec"])
-	}
-	if got := strings.TrimSpace(ValueAsString(spec["prompt"])); got != "make a skyline" {
-		t.Fatalf("expected prompt in canonical spec, got=%q", got)
-	}
-}
-
-func TestBackendGenerateVideoUsesMediaCanonicalPath(t *testing.T) {
-	var captured map[string]any
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1/media/video/generate" {
-			http.NotFound(w, r)
-			return
-		}
-		captured = decodeJSONBodyForBackendMediaTest(t, r)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"artifact": map[string]any{
-				"mime_type":   "video/mp4",
-				"data_base64": base64.StdEncoding.EncodeToString([]byte("video-media")),
-			},
-		})
-	}))
-	defer func() { server.Close() }()
-
-	backend := NewBackend("local-media", server.URL, "", time.Second)
-	payload, _, err := backend.GenerateVideo(context.Background(), "media/wan2.1-video", &runtimev1.VideoGenerateScenarioSpec{
-		Prompt: "a sunrise over water",
-		Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
-		Content: []*runtimev1.VideoContentItem{
-			{
-				Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
-				Text: "a sunrise over water",
-			},
-		},
-		Options: &runtimev1.VideoGenerationOptions{},
-	}, map[string]any{"seed_mode": "locked"})
-	if err != nil {
-		t.Fatalf("GenerateVideo failed: %v", err)
-	}
-	if string(payload) != "video-media" {
-		t.Fatalf("unexpected payload: %q", string(payload))
-	}
-	spec, ok := captured["spec"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected canonical spec payload, got=%T", captured["spec"])
-	}
-	if got := strings.TrimSpace(ValueAsString(spec["prompt"])); got != "a sunrise over water" {
-		t.Fatalf("expected prompt in canonical spec, got=%q", got)
 	}
 }
 

@@ -49,10 +49,10 @@ func ExecuteStabilityMusic(
 
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.stability.ai"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	backend := NewBackend("cloud-stability", baseURL, strings.TrimSpace(cfg.APIKey), 5*time.Minute)
-	resolvedModel := StripProviderModelPrefix(modelResolved, "stability")
+	resolvedModel := strings.TrimSpace(modelResolved)
 	if resolvedModel == "" {
 		resolvedModel = "stable-audio-2"
 	}
@@ -147,7 +147,7 @@ func ExecuteSoundverseMusic(
 
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.soundverse.ai"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	payload := map[string]any{
 		"prompt": strings.TrimSpace(spec.GetPrompt()),
@@ -209,7 +209,7 @@ func ExecuteMubertMusic(
 	}
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://music-api.mubert.com/api/v3"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	payload := map[string]any{
 		"prompt":   strings.TrimSpace(spec.GetPrompt()),
@@ -314,7 +314,7 @@ func ExecuteLoudlyMusic(
 
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://soundtracks.loudly.com"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	headers := cloneHeaderMap(cfg.Headers)
 	if headers == nil {
@@ -338,7 +338,7 @@ func ExecuteLoudlyMusic(
 					return err
 				}
 			}
-			model := strings.TrimSpace(StripProviderModelPrefix(modelResolved, "loudly"))
+			model := strings.TrimSpace(modelResolved)
 			if model == "" {
 				model = "VEGA_2"
 			}
@@ -379,7 +379,7 @@ func ExecuteLlamaMusic(
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	resolvedModel := strings.TrimSpace(StripProviderModelPrefix(modelResolved, "llama"))
+	resolvedModel := strings.TrimSpace(modelResolved)
 	if resolvedModel == "" {
 		resolvedModel = strings.TrimSpace(modelResolved)
 	}

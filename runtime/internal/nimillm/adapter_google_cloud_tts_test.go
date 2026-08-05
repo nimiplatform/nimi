@@ -57,7 +57,7 @@ func TestExecuteGoogleCloudTTS_ChirpRequestUsesVoiceNameWithoutModelName(t *test
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "google-token",
-	}, req, "google_cloud_tts/chirp-3-hd")
+	}, req, "chirp-3-hd")
 	if err != nil {
 		t.Fatalf("ExecuteGoogleCloudTTS: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestExecuteGoogleCloudTTS_GeminiRequestAddsModelPromptAndProviderOverrides(
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "google-token",
-	}, req, "google_cloud_tts/gemini-2.5-pro-tts")
+	}, req, "gemini-2.5-pro-tts")
 	if err != nil {
 		t.Fatalf("ExecuteGoogleCloudTTS: %v", err)
 	}

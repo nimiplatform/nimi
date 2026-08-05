@@ -9,130 +9,86 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 )
 
-func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
-	return s.resolveProviderWithTarget(ctx, requested, fallback, modelID, nil)
-}
-
-func (s *routeSelector) resolveProviderWithTarget(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string, remoteTarget *nimillm.RemoteTarget) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
-	return s.resolveProviderWithTargetAndModal(ctx, requested, fallback, modelID, remoteTarget, runtimev1.Modal_MODAL_UNSPECIFIED)
-}
-
-func (s *routeSelector) resolveBindingRouteModel(requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (runtimev1.RoutePolicy, string, error) {
+func (s *routeSelector) resolveCommittedBindingRouteModel(
+	requested runtimev1.RoutePolicy,
+	modelID string,
+) (runtimev1.RoutePolicy, string, error) {
 	rawModel := strings.TrimSpace(modelID)
-	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
-	if err != nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", defaultTargetResolutionError(err)
-	}
-	rawModel = strings.TrimSpace(resolvedModel)
-	preferred := preferredRoute(rawModel)
 	if requested == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		requested = preferred
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", missingAIConfigRouteError()
 	}
-
-	target := s.local
-	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	if preferred == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		target = s.cloud
-		routeDecision = runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
+	if rawModel == "" {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-
-	if requested != preferred && fallback != runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_FALLBACK_DENIED)
-	}
-	if target == nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	return routeDecision, target.ResolveModelID(rawModel), nil
-}
-
-func (s *routeSelector) resolveCommittedBindingRouteModel(requested runtimev1.RoutePolicy, modelID string) (runtimev1.RoutePolicy, string, error) {
-	rawModel := strings.TrimSpace(modelID)
-	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
-	if err != nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", defaultTargetResolutionError(err)
-	}
-	rawModel = strings.TrimSpace(resolvedModel)
-	var target provider
 	switch requested {
 	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
-		target = s.local
+		if s == nil || s.local == nil {
+			return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		}
+		return requested, rawModel, nil
 	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
-		target = s.cloud
+		if s == nil || s.cloud == nil {
+			return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		}
+		return requested, rawModel, nil
 	default:
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_FALLBACK_DENIED)
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", missingAIConfigRouteError()
 	}
-	if target == nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	return requested, target.ResolveModelID(rawModel), nil
 }
 
-func (s *routeSelector) resolveProviderWithTargetAndModal(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
+func (s *routeSelector) resolveProviderWithTargetAndModal(
+	_ context.Context,
+	requested runtimev1.RoutePolicy,
+	modelID string,
+	remoteTarget *nimillm.RemoteTarget,
+	_ runtimev1.Modal,
+) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
 	rawModel := strings.TrimSpace(modelID)
-	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
-	if err != nil {
-		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", nimillm.RouteDecisionInfo{}, defaultTargetResolutionError(err)
+	if requested == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", nimillm.RouteDecisionInfo{}, missingAIConfigRouteError()
 	}
-	rawModel = strings.TrimSpace(resolvedModel)
-
-	// If a RemoteTarget is provided, force cloud/CLOUD route
 	if remoteTarget != nil {
-		decision := nimillm.RouteDecisionInfo{BackendName: "cloud-" + remoteTarget.ProviderType}
-		if s.cloud == nil {
+		decision := nimillm.RouteDecisionInfo{BackendName: "cloud-" + strings.TrimSpace(remoteTarget.ProviderType)}
+		if requested != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+			return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		if s == nil || s.cloud == nil {
 			return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
-		modelResolved := s.cloud.ResolveModelID(rawModel)
-		return s.cloud, runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, modelResolved, decision, nil
-	}
-
-	preferred := preferredRoute(rawModel)
-
-	target := s.local
-	decision := nimillm.RouteDecisionInfo{BackendName: "local"}
-	if preferred == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		target = s.cloud
-		decision.BackendName = "cloud"
-	}
-
-	if requested != preferred && fallback != runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW {
-		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_FALLBACK_DENIED)
-	}
-
-	modelResolved := target.ResolveModelID(rawModel)
-	if err := checkProviderModelAvailability(target, modelResolved, modal); err != nil {
-		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, err
-	}
-
-	if cloud, ok := target.(nimillm.DecisionInfoProvider); ok {
-		if info, found := cloud.GetDecisionInfo(modelResolved); found {
-			if info.BackendName != "" {
-				decision.BackendName = info.BackendName
-			}
-			decision.HintAutoSwitch = info.HintAutoSwitch
-			decision.HintFrom = info.HintFrom
-			decision.HintTo = info.HintTo
+		exactModel := strings.TrimSpace(remoteTarget.ProviderModelID)
+		if rawModel != "" && rawModel != exactModel {
+			return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		}
+		rawModel = exactModel
+		if rawModel == "" {
+			return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		return s.cloud, runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, rawModel, decision, nil
 	}
-	return target, target.Route(), modelResolved, decision, nil
-}
 
-func defaultTargetResolutionError(cause error) error {
-	return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, cause, grpcerr.ReasonOptions{
-		ActionHint: "configure_runtime_default_target",
-		Message:    "runtime default target could not be resolved",
-	})
-}
-
-type modalAvailabilityProvider interface {
-	CheckModelAvailabilityForModal(string, runtimev1.Modal) error
-}
-
-func checkProviderModelAvailability(target provider, modelID string, modal runtimev1.Modal) error {
-	if targetWithModal, ok := target.(modalAvailabilityProvider); ok && targetWithModal != nil {
-		return targetWithModal.CheckModelAvailabilityForModal(modelID, modal)
+	switch requested {
+	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
+		if s == nil || s.local == nil {
+			return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", nimillm.RouteDecisionInfo{BackendName: "local"}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		}
+		// Local execution is admitted by a capability Driver before this legacy
+		// provider boundary. Returning the committed route here lets each caller
+		// produce its modality-specific typed unsupported failure; no backend is
+		// selected from model text or inventory order.
+		return s.local, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, rawModel, nimillm.RouteDecisionInfo{BackendName: "local"}, nil
+	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
+		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", nimillm.RouteDecisionInfo{BackendName: "cloud"}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	default:
+		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", nimillm.RouteDecisionInfo{}, missingAIConfigRouteError()
 	}
-	return target.CheckModelAvailability(modelID)
+}
+
+func missingAIConfigRouteError() error {
+	return grpcerr.WithReasonCodeOptions(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_AI_CONFIG_INVALID,
+		grpcerr.ReasonOptions{Message: "AIConfig capability route is required"},
+	)
 }

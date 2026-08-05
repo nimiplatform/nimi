@@ -8,6 +8,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -22,15 +24,17 @@ type stubPublicChatActionExecutor struct {
 
 type capturePublicChatImageScenarioExecutor struct {
 	submitRequest *runtimev1.SubmitScenarioJobRequest
+	submitContext context.Context
 }
 
-func (f *capturePublicChatImageScenarioExecutor) SubmitScenarioJob(_ context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
+func (f *capturePublicChatImageScenarioExecutor) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
 	f.submitRequest = proto.Clone(req).(*runtimev1.SubmitScenarioJobRequest)
+	f.submitContext = ctx
 	return &runtimev1.SubmitScenarioJobResponse{
 		Job: &runtimev1.ScenarioJob{
 			JobId:         "job-image-config-params",
 			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
-			ModelResolved: req.GetHead().GetModelId(),
+			ModelResolved: "captured-model",
 		},
 	}, nil
 }
@@ -112,19 +116,12 @@ func emitPublicChatImageActionStream(traceID string, rawAPML string) func(contex
 	}
 }
 
-func TestPublicChatImageActionSubmitRequestCarriesRuntimeTargetRef(t *testing.T) {
+func TestPublicChatImageActionSubmitRequestOmitsRuntimeTargetIdentity(t *testing.T) {
 	t.Parallel()
-	targetRef := &runtimev1.RuntimeDurableTargetRef{
-		Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-			Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-				Version:              "v2",
-				ConnectorId:          "connector-image",
-				RemoteModelCatalogId: "remote-catalog-image",
-				ProviderModelId:      "gpt-image-1.5",
-				Provider:             "openai",
-			},
-		},
-	}
+	targetRef := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID: "connector-image", RemoteModelCatalogID: "remote-catalog-image",
+		ProviderModelID: "gpt-image-1.5", Provider: "openai",
+	}}
 
 	req := buildPublicChatImageActionSubmitRequest(publicChatExecutionBinding{
 		ModelID:     "gpt-image-1.5",
@@ -140,14 +137,8 @@ func TestPublicChatImageActionSubmitRequestCarriesRuntimeTargetRef(t *testing.T)
 	if head == nil {
 		t.Fatal("expected image action submit request head")
 	}
-	if !proto.Equal(head.GetTargetRef(), targetRef) {
-		t.Fatalf("image action submit request lost target_ref: got=%v want=%v", head.GetTargetRef(), targetRef)
-	}
-	if head.GetConnectorId() != "connector-image" {
-		t.Fatalf("expected connector id to stay aligned with target_ref, got %q", head.GetConnectorId())
-	}
-	if head.GetModelId() != "gpt-image-1.5" {
-		t.Fatalf("expected model id to stay aligned with target_ref, got %q", head.GetModelId())
+	if head.GetAppId() != runtimeAgentImageActionAppID {
+		t.Fatalf("unexpected image action app id %q", head.GetAppId())
 	}
 }
 
@@ -202,8 +193,9 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 	if req == nil {
 		t.Fatal("expected SubmitScenarioJob request")
 	}
-	if !proto.Equal(req.GetHead().GetTargetRef(), targetRef) {
-		t.Fatalf("target_ref changed: got=%v want=%v", req.GetHead().GetTargetRef(), targetRef)
+	intent, ok := executionintent.FromContext(scenario.submitContext)
+	if !ok || !intent.IsLocal() {
+		t.Fatalf("private Local intent missing: %+v, ok=%v", intent, ok)
 	}
 	if got := req.GetHead().GetTimeoutMs(); got != 120000 {
 		t.Fatalf("timeout_ms = %d, want 120000", got)
@@ -233,16 +225,13 @@ func TestPublicChatImageActionUsesCommittedAIConfigSelectedParams(t *testing.T) 
 	}
 }
 
-func TestPublicChatImageActionLeavesLocalProfileMaterializationRuntimeOwned(t *testing.T) {
+func TestPublicChatImageActionLeavesExecutionMaterializationRuntimePrivate(t *testing.T) {
 	t.Parallel()
 	req := buildPublicChatImageActionSubmitRequest(publicChatExecutionBinding{
 		ModelID:     "local-z-image",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	}, nil, "studio portrait of the current local agent", "runtime-agent-image-action:local", time.Second)
 
-	if got := req.GetHead().GetModelId(); got != "local-z-image" {
-		t.Fatalf("local image target = %q, want local-z-image", got)
-	}
 	if len(req.GetExtensions()) != 0 {
 		t.Fatalf("Agent Chat must not fabricate private profile_entries: %+v", req.GetExtensions())
 	}

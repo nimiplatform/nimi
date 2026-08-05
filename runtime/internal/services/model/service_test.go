@@ -325,7 +325,7 @@ func TestCheckModelHealthLocalSpeechFailsClosedWhenCatalogMissesRequiredCapabili
 	}
 }
 
-func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
+func TestCheckModelHealthLocalModelKeepsExecutionHealthRuntimePrivate(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalModelLister(&fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -334,7 +334,6 @@ func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
 				LogicalModelId: "local/qwen3-4b-q4_k_m",
 				Engine:         "llama",
 				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
 			}},
 		}},
 	})
@@ -346,8 +345,11 @@ func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("check model health: %v", err)
 	}
-	if !resp.GetHealthy() {
-		t.Fatalf("active local model from local service must be healthy: %+v", resp)
+	if resp.GetHealthy() || resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("public model health exposed Runtime-private execution health: %+v", resp)
+	}
+	if got := resp.GetActionHint(); got != "execute through selected Local Capability Configuration" {
+		t.Fatalf("unexpected action hint: %q", got)
 	}
 }
 
@@ -361,7 +363,6 @@ func TestCheckModelHealthLocalSpeechLocalServiceRequiresAdmittedPlainCapability(
 				Engine:         "speech",
 				Capabilities:   []string{},
 				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
 			}},
 		}},
 	})
@@ -384,7 +385,7 @@ func TestCheckModelHealthLocalSpeechLocalServiceRequiresAdmittedPlainCapability(
 	}
 }
 
-func TestCheckModelHealthLocalSpeechLocalServiceUsesAdmittedPlainCapability(t *testing.T) {
+func TestCheckModelHealthLocalSpeechKeepsExecutionHealthRuntimePrivate(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalModelLister(&fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -394,7 +395,6 @@ func TestCheckModelHealthLocalSpeechLocalServiceUsesAdmittedPlainCapability(t *t
 				Engine:         "speech",
 				Capabilities:   []string{"audio.synthesize"},
 				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
 			}},
 		}},
 	})
@@ -406,8 +406,11 @@ func TestCheckModelHealthLocalSpeechLocalServiceUsesAdmittedPlainCapability(t *t
 	if err != nil {
 		t.Fatalf("check model health: %v", err)
 	}
-	if !resp.GetHealthy() {
-		t.Fatalf("speech localservice fast path with admitted plain-speech capability must stay healthy: %+v", resp)
+	if resp.GetHealthy() || resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("public speech health exposed Runtime-private execution health: %+v", resp)
+	}
+	if got := resp.GetActionHint(); got != "execute through selected Local Capability Configuration" {
+		t.Fatalf("unexpected action hint: %q", got)
 	}
 }
 
@@ -420,7 +423,6 @@ func TestCheckModelHealthLocalModelUsesLocalServiceActiveColdState(t *testing.T)
 				LogicalModelId: "local/qwen3-4b-q4_k_m",
 				Engine:         "llama",
 				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
 			}},
 		}},
 	})
@@ -466,7 +468,7 @@ func TestCheckModelHealthLocalModelUsesLocalServiceInstalledState(t *testing.T) 
 	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
 		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
 	}
-	if got := resp.GetActionHint(); got != "warm local model" {
+	if got := resp.GetActionHint(); got != "execute through selected Local Capability Configuration" {
 		t.Fatalf("unexpected action hint: %q", got)
 	}
 }
@@ -498,7 +500,7 @@ func TestCheckModelHealthLocalModelFallsBackToRegistryOnLocalServiceError(t *tes
 	}
 }
 
-func TestCheckModelHealthLocalMediaUsesLocalServiceActiveState(t *testing.T) {
+func TestCheckModelHealthLocalMediaKeepsExecutionHealthRuntimePrivate(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalModelLister(&fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -508,7 +510,6 @@ func TestCheckModelHealthLocalMediaUsesLocalServiceActiveState(t *testing.T) {
 				Engine:         "media",
 				Capabilities:   []string{"image.generate"},
 				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
 			}},
 		}},
 	})
@@ -520,8 +521,8 @@ func TestCheckModelHealthLocalMediaUsesLocalServiceActiveState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("check model health: %v", err)
 	}
-	if !resp.GetHealthy() {
-		t.Fatalf("local media model with active RuntimeLocalService fact must be healthy: %+v", resp)
+	if resp.GetHealthy() || resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("public media health exposed Runtime-private execution health: %+v", resp)
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 )
@@ -24,7 +25,11 @@ func (s *Service) submitVoiceWorkflowJob(
 	if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
 		return nil, err
 	}
-	if requestExplicitlyDeclaresLocalExecution(req.GetHead()) {
+	intent, err := scenarioExecutionIntentFromContext(ctx, scenarioTargetCapability(req.GetScenarioType()))
+	if err != nil {
+		return nil, err
+	}
+	if intent.IsLocal() {
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 
@@ -41,11 +46,10 @@ func (s *Service) submitVoiceWorkflowJob(
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("submit_voice_workflow_job", req.GetHead().GetAppId(), acquireResult)
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
+	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		intent.ModelID(),
 		remoteTarget,
 		scenarioModalFromType(req.GetScenarioType()),
 	)
@@ -62,14 +66,6 @@ func (s *Service) submitVoiceWorkflowJob(
 	if err := s.validateCatalogAwareScenarioSupport(ctx, req.GetScenarioType(), providerType, modelResolved, req.GetSpec()); err != nil {
 		return nil, err
 	}
-	s.recordRouteAutoSwitch(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		modelResolved,
-		routeInfo,
-	)
-
 	workflowType := workflowTypeFromScenarioType(req.GetScenarioType())
 	workflowResolution, err := s.resolveVoiceWorkflow(ctx, providerType, modelResolved, workflowType)
 	if err != nil {
@@ -110,6 +106,7 @@ func (s *Service) submitVoiceWorkflowJob(
 		HandleDefaultTTL:  workflowResolution.HandlePolicyDefaultTTL,
 		HandleDeleteSem:   workflowResolution.HandlePolicyDeleteSemantics,
 		RuntimeReconcile:  workflowResolution.RuntimeReconciliationRequired,
+		ExecutionTarget:   &runtimeidentity.Target{Cloud: intent.CloudTarget.Clone()},
 		IgnoredExtensions: ignored,
 	})
 	if job == nil || asset == nil {

@@ -63,12 +63,7 @@ func ExecuteAWSPollyTTS(
 		payload["LanguageCode"] = language
 	}
 
-	endpoint := FirstProviderEndpointPath(
-		ext,
-		[]string{"tts_path", "speech_path"},
-		[]string{"tts_paths", "speech_paths"},
-		[]string{"/v1/speech"},
-	)
+	endpoint := firstProviderEndpointPath([]string{"/v1/speech"})
 	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, nil)
 	if err != nil {
 		return nil, nil, "", err
@@ -92,7 +87,7 @@ func ExecuteAWSPollyTTS(
 }
 
 func resolveAWSPollyEngine(modelResolved string) string {
-	resolved := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(modelResolved, "aws_polly", "aws-polly")))
+	resolved := strings.ToLower(strings.TrimSpace(modelResolved))
 	switch resolved {
 	case "polly-standard-tts", "standard", "standard-tts":
 		return "standard"

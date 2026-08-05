@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
@@ -15,6 +16,17 @@ import (
 var committedConfigTestBinding = publicChatExecutionBinding{
 	ModelID:     "local/qwen3-chat",
 	RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+}
+
+func assertCapturedCommittedConfigIntent(t *testing.T, fakeAI *fakeLifeTurnAI, index int) {
+	t.Helper()
+	if fakeAI == nil || index < 0 || index >= len(fakeAI.contexts) {
+		t.Fatalf("missing captured execution context at index %d", index)
+	}
+	intent, ok := executionintent.FromContext(fakeAI.contexts[index])
+	if !ok || !intent.IsLocal() || intent.CapabilityContract != "text.generate" {
+		t.Fatalf("committed private execution intent = %+v, ok=%v", intent, ok)
+	}
 }
 
 func TestAIBackedLifeTrackExecutorUsesCommittedConfigBinding(t *testing.T) {
@@ -42,13 +54,7 @@ func TestAIBackedLifeTrackExecutorUsesCommittedConfigBinding(t *testing.T) {
 	if len(fakeAI.requests) != 1 {
 		t.Fatalf("expected one scenario request, got %d", len(fakeAI.requests))
 	}
-	head := fakeAI.requests[0].GetHead()
-	if head.GetModelId() != committedConfigTestBinding.ModelID {
-		t.Fatalf("expected committed config model, got %q", head.GetModelId())
-	}
-	if head.GetRoutePolicy() != committedConfigTestBinding.RoutePolicy {
-		t.Fatalf("expected committed config route policy, got %v", head.GetRoutePolicy())
-	}
+	assertCapturedCommittedConfigIntent(t, fakeAI, 0)
 }
 
 func TestAIBackedLifeTrackExecutorFailsClosedWithoutConfigBinding(t *testing.T) {
@@ -102,13 +108,7 @@ func TestAIBackedCanonicalReviewExecutorUsesCommittedConfigBinding(t *testing.T)
 	if len(fakeAI.requests) != 1 {
 		t.Fatalf("expected one scenario request, got %d", len(fakeAI.requests))
 	}
-	head := fakeAI.requests[0].GetHead()
-	if head.GetModelId() != committedConfigTestBinding.ModelID {
-		t.Fatalf("expected committed config model, got %q", head.GetModelId())
-	}
-	if head.GetRoutePolicy() != committedConfigTestBinding.RoutePolicy {
-		t.Fatalf("expected committed config route policy, got %v", head.GetRoutePolicy())
-	}
+	assertCapturedCommittedConfigIntent(t, fakeAI, 0)
 }
 
 func TestAIBackedCanonicalReviewExecutorFailsClosedWithoutConfigBinding(t *testing.T) {
@@ -161,13 +161,8 @@ func TestAIBackedChatTrackSidecarExecutorUsesCommittedConfigBinding(t *testing.T
 	if len(fakeAI.requests) != 1 {
 		t.Fatalf("expected one scenario request, got %d", len(fakeAI.requests))
 	}
+	assertCapturedCommittedConfigIntent(t, fakeAI, 0)
 	head := fakeAI.requests[0].GetHead()
-	if head.GetModelId() != committedConfigTestBinding.ModelID {
-		t.Fatalf("expected committed config model, got %q", head.GetModelId())
-	}
-	if head.GetRoutePolicy() != committedConfigTestBinding.RoutePolicy {
-		t.Fatalf("expected committed config route policy, got %v", head.GetRoutePolicy())
-	}
 	if head.GetTimeoutMs() != publicChatDefaultTurnTimeoutMs {
 		t.Fatalf("chat-track sidecar must share the provider-compatible public turn timeout budget, got %d", head.GetTimeoutMs())
 	}
@@ -193,10 +188,9 @@ func TestAIBackedChatTrackSidecarExecutorFailsClosedWithoutConfigBinding(t *test
 	}
 }
 
-// TestChatTrackSidecarServiceStampsCommittedConfigModel proves the service
-// path stamps the committed (upserted) Runtime Agent AI Config text.generate model
-// into the runtime-private sidecar scenario head (K-AGCORE-147).
-func TestChatTrackSidecarServiceStampsCommittedConfigModel(t *testing.T) {
+// TestChatTrackSidecarServiceCarriesCommittedConfigIntent proves the service
+// path carries the committed Runtime Agent AIConfig route privately.
+func TestChatTrackSidecarServiceCarriesCommittedConfigIntent(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	fakeAI := &fakeLifeTurnAI{
@@ -227,7 +221,5 @@ func TestChatTrackSidecarServiceStampsCommittedConfigModel(t *testing.T) {
 	if len(fakeAI.requests) != 1 {
 		t.Fatalf("expected one scenario request, got %d", len(fakeAI.requests))
 	}
-	if got := fakeAI.requests[0].GetHead().GetModelId(); got != "local/qwen3-chat" {
-		t.Fatalf("expected upserted committed config model on sidecar head, got %q", got)
-	}
+	assertCapturedCommittedConfigIntent(t, fakeAI, 0)
 }

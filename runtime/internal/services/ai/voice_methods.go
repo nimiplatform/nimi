@@ -11,13 +11,12 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -25,26 +24,11 @@ import (
 const maxListVoiceAssetsPageSize = 200
 const maxVoiceAssetReconciliationSweep = 8
 
-func presetVoiceCatalogProviderType(remoteTarget *nimillm.RemoteTarget, selectedProvider provider, modelResolved string) string {
-	if remoteTarget != nil {
-		return strings.TrimSpace(remoteTarget.ProviderType)
+func presetVoiceCatalogProviderType(remoteTarget *nimillm.RemoteTarget) string {
+	if remoteTarget == nil {
+		return ""
 	}
-	providerType := inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, runtimev1.Modal_MODAL_TTS)
-	if providerType == "" && selectedProvider != nil && selectedProvider.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		normalizedModel := strings.ToLower(strings.TrimSpace(modelResolved))
-		if idx := strings.Index(normalizedModel, "/"); idx > 0 {
-			candidate := strings.TrimSpace(normalizedModel[:idx])
-			if localrouting.IsKnownProvider(candidate) {
-				providerType = candidate
-			}
-		}
-	}
-	if selectedProvider != nil &&
-		selectedProvider.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL &&
-		localrouting.IsKnownProvider(providerType) {
-		return "local"
-	}
-	return providerType
+	return strings.TrimSpace(remoteTarget.ProviderType)
 }
 
 func (s *Service) GetVoiceAsset(ctx context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
@@ -70,23 +54,23 @@ func (s *Service) ResolveRuntimeAgentVoiceAsset(
 	_ context.Context,
 	voiceAssetID string,
 	ownerUserID string,
-) (*runtimev1.VoiceAsset, error) {
+) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error) {
 	voiceAssetID = strings.TrimSpace(voiceAssetID)
 	ownerUserID = strings.TrimSpace(ownerUserID)
 	if voiceAssetID == "" || ownerUserID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if s == nil || s.voiceAssets == nil {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+		return nil, nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
-	asset, ok := s.voiceAssets.getAsset(voiceAssetID)
-	if !ok || asset == nil {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+	asset, target, ok := s.voiceAssets.getAssetBinding(voiceAssetID)
+	if !ok || asset == nil || target == nil {
+		return nil, nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
 	if strings.TrimSpace(asset.GetSubjectUserId()) != ownerUserID {
-		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+		return nil, nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
 	}
-	return proto.Clone(asset).(*runtimev1.VoiceAsset), nil
+	return asset, target, nil
 }
 
 func (s *Service) ListVoiceAssets(ctx context.Context, req *runtimev1.ListVoiceAssetsRequest) (*runtimev1.ListVoiceAssetsResponse, error) {
@@ -140,7 +124,8 @@ func (s *Service) reconcilePendingVoiceAssetDeletes(ctx context.Context, appID s
 		if asset == nil {
 			continue
 		}
-		result := s.deleteProviderPersistentVoiceAsset(ctx, asset)
+		_, target, _ := s.voiceAssets.getAssetBinding(asset.GetVoiceAssetId())
+		result := s.deleteProviderPersistentVoiceAsset(ctx, asset, target)
 		if !result.Attempted {
 			continue
 		}
@@ -160,7 +145,8 @@ func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoi
 	if err := authorizeVoiceAssetOwner(ctx, asset); err != nil {
 		return nil, err
 	}
-	deleteResult := s.deleteProviderPersistentVoiceAsset(ctx, asset)
+	_, target, _ := s.voiceAssets.getAssetBinding(req.GetVoiceAssetId())
+	deleteResult := s.deleteProviderPersistentVoiceAsset(ctx, asset, target)
 	if deleteResult.Attempted && !deleteResult.Succeeded {
 		s.voiceAssets.updateAssetDeleteResult(req.GetVoiceAssetId(), deleteResult)
 		s.recordVoiceAssetDeleteAudit(asset, "voice_asset.delete_failed", deleteResult)
@@ -252,7 +238,7 @@ func (s *Service) recordVoiceAssetDeleteAudit(asset *runtimev1.VoiceAsset, opera
 	})
 }
 
-func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset *runtimev1.VoiceAsset) voiceAssetDeleteResult {
+func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset *runtimev1.VoiceAsset, target *runtimeidentity.Target) voiceAssetDeleteResult {
 	result := voiceAssetDeleteResult{}
 	if asset != nil && asset.GetMetadata() != nil {
 		result.DeleteSemantics = strings.TrimSpace(asset.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue())
@@ -269,9 +255,9 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 		}
 		return result
 	}
-	provider := strings.TrimSpace(strings.ToLower(asset.GetProvider()))
+	assetProvider := strings.TrimSpace(asset.GetProvider())
 	providerVoiceRef := strings.TrimSpace(asset.GetProviderVoiceRef())
-	if provider == "" || providerVoiceRef == "" || !nimillm.SupportsProviderVoiceDelete(provider) {
+	if providerVoiceRef == "" {
 		if result.DeleteSemantics == "" {
 			result.DeleteSemantics = "best_effort_provider_delete"
 		}
@@ -283,9 +269,7 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 	if result.DeleteSemantics == "" {
 		result.DeleteSemantics = "best_effort_provider_delete"
 	}
-	cfg := s.resolveNativeAdapterConfig(provider, nil)
-	extPayload := nimillm.StructToMap(asset.GetMetadata())
-	if err := nimillm.DeleteProviderVoice(ctx, provider, providerVoiceRef, cfg, extPayload); err != nil {
+	fail := func(err error) voiceAssetDeleteResult {
 		result.Succeeded = false
 		if result.ReconciliationRequired || result.DeleteSemantics == "best_effort_provider_delete" {
 			result.PendingReconciliation = true
@@ -297,6 +281,31 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 			result.NextRetryAfter = nextVoiceAssetDeleteRetryAt(result.LastAttemptAt, result.RetryAttemptCount)
 		}
 		result.LastError = summarizeVoiceDeleteError(err)
+		return result
+	}
+	if target == nil || target.Cloud == nil || !target.Cloud.Valid() {
+		return fail(fmt.Errorf("voice asset private cloud target is unavailable"))
+	}
+	provider := target.Cloud.Provider
+	if assetProvider != provider {
+		return fail(fmt.Errorf("voice asset provider metadata does not match its private target"))
+	}
+	if !nimillm.SupportsProviderVoiceDelete(provider) {
+		result.Attempted = false
+		result.RetryAttemptCount = 0
+		result.LastAttemptAt = time.Time{}
+		return result
+	}
+	remoteTarget, err := resolveManagedTarget(ctx, target.Cloud.ConnectorID, s.connStore, s.allowLoopback)
+	if err != nil {
+		return fail(err)
+	}
+	if strings.TrimSpace(remoteTarget.ProviderType) != target.Cloud.Provider {
+		return fail(fmt.Errorf("voice asset connector provider no longer matches its private target"))
+	}
+	cfg := s.resolveNativeAdapterConfig(provider, remoteTarget)
+	if err := nimillm.DeleteProviderVoice(ctx, provider, providerVoiceRef, cfg); err != nil {
+		result = fail(err)
 		if s.logger != nil {
 			s.logger.Warn("provider voice delete failed; local asset delete continues",
 				"provider", provider,
@@ -381,7 +390,7 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	if err != nil {
 		return nil, err
 	}
-	routePolicy := inferVoiceListRoutePolicy(effectiveModelID, remoteTarget)
+	routePolicy := voiceListRoutePolicyForTarget(effectiveModelID, remoteTarget)
 	if remoteTarget == nil && routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nil, grpcerr.WithReasonCodeOptions(
 			codes.FailedPrecondition,
@@ -390,10 +399,9 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 		)
 	}
 
-	selectedProvider, _, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
+	_, _, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
 		routePolicy,
-		runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		effectiveModelID,
 		remoteTarget,
 		runtimev1.Modal_MODAL_TTS,
@@ -401,9 +409,7 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	if err != nil {
 		return nil, err
 	}
-	s.recordRouteAutoSwitch(appID, subjectUserID, effectiveModelID, modelResolved, routeInfo)
-
-	providerType := presetVoiceCatalogProviderType(remoteTarget, selectedProvider, modelResolved)
+	providerType := presetVoiceCatalogProviderType(remoteTarget)
 	voices, source, catalogVersion, err := resolveCatalogVoicesForSubject(ctx, modelResolved, providerType, s.speechCatalog)
 	if err != nil {
 		return nil, err
@@ -449,24 +455,9 @@ func parseVoiceAssetPageToken(token string) (int, error) {
 	return offset, nil
 }
 
-func inferVoiceListRoutePolicy(modelID string, remoteTarget *nimillm.RemoteTarget) runtimev1.RoutePolicy {
+func voiceListRoutePolicyForTarget(_ string, remoteTarget *nimillm.RemoteTarget) runtimev1.RoutePolicy {
 	if remoteTarget != nil {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 	}
-	normalized := strings.ToLower(strings.TrimSpace(modelID))
-	if normalized == "" {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	}
-	switch {
-	case strings.HasPrefix(normalized, "local/"),
-		strings.HasPrefix(normalized, "media/"),
-		strings.HasPrefix(normalized, "speech/"),
-		strings.HasPrefix(normalized, "sidecar/"):
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	default:
-		if strings.Contains(normalized, "/") {
-			return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
-		}
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	}
+	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 }

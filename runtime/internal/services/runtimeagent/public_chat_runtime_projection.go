@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
 
 func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
@@ -394,7 +395,7 @@ type agentVoiceOutputPolicy struct {
 	SpeechModelID         string
 	SpeechRoutePolicy     runtimev1.RoutePolicy
 	SpeechConnectorID     string
-	SpeechTargetRef       *runtimev1.RuntimeDurableTargetRef
+	SpeechTargetRef       *runtimeidentity.Target
 	SpeechAppID           string
 	OwnerUserID           string
 }

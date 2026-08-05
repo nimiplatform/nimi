@@ -1504,14 +1504,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CancelLocalTransferResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-        service: "RuntimeLocalService",
-        method: "CheckLocalAssetHealth",
-        kind: "unary",
-        request_type: "CheckLocalAssetHealthRequest",
-        response_type: "CheckLocalAssetHealthResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
         service: "RuntimeLocalService",
         method: "CheckLocalServiceHealth",
@@ -1990,14 +1982,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "UnbindLocalCapabilityRequirementRequest",
         response_type: "UnbindLocalCapabilityRequirementResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
-        service: "RuntimeLocalService",
-        method: "WarmLocalAsset",
-        kind: "unary",
-        request_type: "WarmLocalAssetRequest",
-        response_type: "WarmLocalAssetResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",

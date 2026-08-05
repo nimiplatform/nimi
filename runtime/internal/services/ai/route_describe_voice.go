@@ -254,6 +254,13 @@ func executeVoiceWorkflowRouteDescribeScenario(
 		return nil, err
 	}
 
+	intent, err := scenarioExecutionIntentFromContext(ctx, scenarioTargetCapability(req.GetScenarioType()))
+	if err != nil {
+		return nil, err
+	}
+	if intent.IsLocal() {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
+	}
 	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
@@ -269,9 +276,8 @@ func executeVoiceWorkflowRouteDescribeScenario(
 
 	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		intent.ModelID(),
 		remoteTarget,
 		scenarioModalFromType(req.GetScenarioType()),
 	)

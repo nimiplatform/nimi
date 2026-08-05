@@ -19,17 +19,13 @@ func TestExecuteScenarioSpeechSynthesizeRouteDescribeProbeWritesHeaderForManaged
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-audio", "https://example.com", Config{})
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	ctx := withCloudScenarioTestIntent(fixture.context, "audio.synthesize", fixture.targetRef)
+	ctx = grpc.NewContextWithServerTransportStream(ctx, transport)
 	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       fixture.descriptor.GetProviderModelId(),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     fixture.targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -82,17 +78,13 @@ func TestExecuteScenarioSpeechSynthesizeRouteDescribeProjectsCatalogNativeStream
 	targetRef := cloudScenarioTargetRefForDescriptor(fixture.connectorID, descriptor)
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	ctx := withCloudScenarioTestIntent(fixture.context, "audio.synthesize", targetRef)
+	ctx = grpc.NewContextWithServerTransportStream(ctx, transport)
 	_, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       descriptor.GetProviderModelId(),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -128,17 +120,13 @@ func TestExecuteScenarioSpeechTranscribeRouteDescribeProbeWritesHeaderForManaged
 	fixture := newManagedCloudScenarioTestFixture(t, "gemini", "gemini-2.5-flash", "https://example.com", Config{})
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	ctx := withCloudScenarioTestIntent(fixture.context, "audio.transcribe", fixture.targetRef)
+	ctx = grpc.NewContextWithServerTransportStream(ctx, transport)
 	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       fixture.descriptor.GetProviderModelId(),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     fixture.targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -207,8 +195,8 @@ func TestWriteSpeechRouteDescribeHeaderFailsClosedWhenCatalogMetadataMissing(t *
 		t.Fatalf("expected speech route describe probe to fail-close when metadata is missing")
 	}
 	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
-		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		t.Fatalf("expected AI_MODEL_NOT_FOUND, got reason=%v ok=%v err=%v", reason, ok, err)
 	}
 	if transport.header.Len() != 0 {
 		t.Fatalf("route describe header must not be written on fail-close")

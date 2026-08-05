@@ -34,9 +34,6 @@ type Config struct {
 	// LocalService declares the Runtime local service posture. (K-CFG-018)
 	LocalService LocalServiceConfig
 
-	DefaultLocalTextModel string
-	DefaultCloudProvider  string
-
 	// AllowLoopbackProviderEndpoint permits HTTP (non-TLS) connections to
 	// loopback addresses (127.0.0.0/8, ::1, localhost) for provider endpoints.
 	// Default: false. (K-SEC-002, K-DAEMON-009)
@@ -230,8 +227,6 @@ type FileConfig struct {
 	DataRootRef            string                  `json:"dataRootRef,omitempty"`
 	ManagedRoots           *FileConfigManagedRoots `json:"managedRoots,omitempty"`
 	LocalService           *FileConfigLocalService `json:"localService,omitempty"`
-	DefaultLocalTextModel  string                  `json:"defaultLocalTextModel,omitempty"`
-	DefaultCloudProvider   string                  `json:"defaultCloudProvider,omitempty"`
 
 	AIHealthIntervalSeconds   *int                         `json:"aiHealthIntervalSeconds,omitempty"`
 	AIHTTPTimeoutSeconds      *int                         `json:"aiHttpTimeoutSeconds,omitempty"`
@@ -332,8 +327,7 @@ type FileConfigAccount struct {
 }
 
 type RuntimeFileTarget struct {
-	BaseURL      string `json:"baseUrl"`
-	APIKey       string `json:"apiKey"`
-	APIKeyEnv    string `json:"apiKeyEnv"`
-	DefaultModel string `json:"defaultModel,omitempty"`
+	BaseURL   string `json:"baseUrl"`
+	APIKey    string `json:"apiKey"`
+	APIKeyEnv string `json:"apiKeyEnv"`
 }

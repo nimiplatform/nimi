@@ -21,8 +21,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
@@ -250,7 +250,7 @@ func TestLiveLlamaLocalJourney(t *testing.T) {
 		return
 	}
 
-	if !t.Run("tampered_captured_binding_load_fails_and_configuration_persists", func(t *testing.T) {
+	if !t.Run("tampered_captured_binding_fails_content_check_and_configuration_persists", func(t *testing.T) {
 		badEntryPath, badConfig := createLiveLlamaBadConfiguration(t, harness.local, harness.modelsRoot)
 		selectLiveLlamaConfiguration(t, harness.local, badConfig.GetConfigurationId())
 		originalBindings := cloneLiveLlamaBindings(badConfig.GetExactBindings())
@@ -285,17 +285,17 @@ func TestLiveLlamaLocalJourney(t *testing.T) {
 		select {
 		case err := <-done:
 			if err != nil {
-				t.Fatalf("load failure should be represented by a typed stream terminal event: %v", err)
+				t.Fatalf("content mismatch should be represented by a typed stream terminal event: %v", err)
 			}
 		case <-time.After(30 * time.Second):
-			t.Fatal("bad-binding load did not terminate")
+			t.Fatal("bad-binding content check did not terminate")
 		}
 		outcome := summarizeLiveLlamaStream(stream.snapshot())
-		if outcome.failed == nil || outcome.failed.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED || outcome.completed != nil || strings.TrimSpace(outcome.text) != "" {
+		if outcome.failed == nil || outcome.failed.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CONTENT_MISMATCH || outcome.completed != nil || strings.TrimSpace(outcome.text) != "" {
 			t.Fatalf("bad-binding terminal outcome=%+v", outcome)
 		}
 		assertLiveLlamaSelection(t, harness.local, badConfig.GetConfigurationId(), originalBindings)
-		t.Logf("typed_load_reason=%s action_hint=%q persisted_configuration=%s elapsed=%s",
+		t.Logf("typed_content_reason=%s action_hint=%q persisted_configuration=%s elapsed=%s",
 			outcome.failed.GetReasonCode(), outcome.failed.GetActionHint(), badConfig.GetConfigurationId(), time.Since(startedAt).Round(time.Millisecond))
 	}) {
 		return
@@ -633,9 +633,9 @@ func liveLlamaEnvOrDefault(key string, fallback string) string {
 }
 
 func liveLlamaLocalContext(parent context.Context) context.Context {
-	return localexecution.WithConsumerIntent(parent, localexecution.ConsumerIntent{
+	return executionintent.WithIntent(parent, executionintent.Intent{
 		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
-		Local:              true,
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 }
 
@@ -644,8 +644,6 @@ func liveLlamaStreamRequest(prompt string, maxTokens int32) *runtimev1.StreamSce
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.live-llama-journey",
 			SubjectUserId: "live-local-user",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     120_000,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,

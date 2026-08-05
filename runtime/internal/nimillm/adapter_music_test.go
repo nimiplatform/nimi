@@ -345,7 +345,6 @@ func newMusicJobRequest(modelID string, prompt string) *runtimev1.SubmitScenario
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.test",
 			SubjectUserId: "user-1",
-			ModelId:       modelID,
 			TimeoutMs:     int32((5 * time.Second) / time.Millisecond),
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,

@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
@@ -23,10 +24,6 @@ func baseScenarioJobRequest() *runtimev1.SubmitScenarioJobRequest {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
-			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 	}
@@ -267,11 +264,11 @@ func TestScenarioJobIdempotencyAndTimeoutHelpers(t *testing.T) {
 	req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
 	req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "p"}}}
 
-	scope1, err := buildScenarioJobIdempotencyScope(req)
+	scope1, err := buildScenarioJobIdempotencyScope(context.Background(), req)
 	if err != nil || scope1 == "" {
 		t.Fatalf("expected non-empty scope, err=%v scope=%q", err, scope1)
 	}
-	scope2, err := buildScenarioJobIdempotencyScope(req)
+	scope2, err := buildScenarioJobIdempotencyScope(context.Background(), req)
 	if err != nil || scope2 != scope1 {
 		t.Fatalf("idempotency scope should be stable: %q vs %q err=%v", scope1, scope2, err)
 	}
@@ -332,36 +329,7 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "groq"); got != adapterOpenAICompat {
 		t.Fatalf("unexpected groq stt adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("flux.1-schnell", "", runtimev1.Modal_MODAL_IMAGE, "media"); got != adapterMediaNative {
-		t.Fatalf("unexpected media provider adapter: %s", got)
-	}
-	if got := resolveMediaAdapterName("ace-step-local", "", runtimev1.Modal_MODAL_MUSIC, "sidecar"); got != adapterSidecarMusic {
-		t.Fatalf("unexpected sidecar music adapter: %s", got)
-	}
-	if got := resolveMediaAdapterName("sidecar/stable-audio-open-sidecar", "", runtimev1.Modal_MODAL_MUSIC, "sidecar"); got != adapterSidecarMusic {
-		t.Fatalf("unexpected sidecar music adapter: %s", got)
-	}
-	if got := resolveMediaAdapterName("speech/qwen3-tts-30b", "", runtimev1.Modal_MODAL_TTS, ""); got != adapterSpeechNative {
-		t.Fatalf("unexpected speech tts adapter: %s", got)
-	}
-	if got := resolveMediaAdapterName("", "kimi/k1", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterKimiChatMultimodal {
-		t.Fatalf("unexpected adapter: %s", got)
-	}
-	// Gemini model name heuristic: gemini-* models should use native adapter even
-	// when the connector providerType is not set to "gemini".
-	if got := resolveMediaAdapterName("gemini-3.1-flash-image-preview", "gemini-3.1-flash-image-preview", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterGeminiOperation {
-		t.Fatalf("unexpected adapter for gemini model with empty providerType: %s", got)
-	}
-	if got := resolveMediaAdapterName("gemini-3.1-flash-image-preview", "gemini-3.1-flash-image-preview", runtimev1.Modal_MODAL_IMAGE, "openai"); got != adapterGeminiOperation {
-		t.Fatalf("unexpected adapter for gemini model with openai providerType: %s", got)
-	}
 
-	if got := inferMediaProviderTypeFromBackendName(nil); got != "" {
-		t.Fatalf("nil backend should infer empty provider")
-	}
-	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "cloud-openai"}); got != "openai" {
-		t.Fatalf("unexpected cloud provider type: %q", got)
-	}
 	if got := stringSliceToAny([]string{"  a ", "", "b"}); len(got) != 2 {
 		t.Fatalf("unexpected trimmed slice length: %d", len(got))
 	}
@@ -369,15 +337,6 @@ func TestMediaRoutingHelpers(t *testing.T) {
 		t.Fatalf("expected nil for empty trimmed values")
 	}
 
-	if got := normalizeComparableModelID("models/ABC"); got != "abc" {
-		t.Fatalf("unexpected comparable model id: %q", got)
-	}
-	if got := modelIDBase("gpt-4o@2024-11-01"); got != "gpt-4o" {
-		t.Fatalf("unexpected model base: %q", got)
-	}
-	if got := modelIDBase("plain-model"); got != "plain-model" {
-		t.Fatalf("unexpected plain model base: %q", got)
-	}
 	if !supportsTTSCapability([]string{"text.generate", "audio.synthesize"}) {
 		t.Fatalf("tts capability should be detected from audio.synthesize")
 	}
@@ -385,15 +344,12 @@ func TestMediaRoutingHelpers(t *testing.T) {
 		t.Fatalf("tts capability should be false for non-tts capabilities")
 	}
 
-	models := []nimillm.ProbeModel{
-		{ModelID: "models/gpt-4o"},
-		{ModelID: "gpt-4o-mini@latest"},
+	models := []nimillm.ProbeModel{{ModelID: "gpt-4o"}, {ModelID: "gpt-4o-mini@latest"}}
+	if resolved, ok := findProbeModelID(models, "gpt-4o"); !ok || resolved != "gpt-4o" {
+		t.Fatalf("findProbeModelID exact mismatch: ok=%v resolved=%q", ok, resolved)
 	}
-	if resolved, ok := findProbeModelID(models, "gpt-4o"); !ok || resolved != "models/gpt-4o" {
-		t.Fatalf("findProbeModelID exact comparable mismatch: ok=%v resolved=%q", ok, resolved)
-	}
-	if resolved, ok := findProbeModelID(models, "gpt-4o-mini"); !ok || resolved != "gpt-4o-mini@latest" {
-		t.Fatalf("findProbeModelID base fallback mismatch: ok=%v resolved=%q", ok, resolved)
+	if resolved, ok := findProbeModelID(models, "gpt-4o-mini"); ok || resolved != "" {
+		t.Fatalf("findProbeModelID must reject version/base fallback: ok=%v resolved=%q", ok, resolved)
 	}
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{})
 	if err != nil {
@@ -412,8 +368,12 @@ func TestMediaRoutingHelpers(t *testing.T) {
 		},
 	})
 	cfg := svc.resolveNativeAdapterConfig("gemini", nil)
+	if cfg.BaseURL != "" || cfg.APIKey != "" {
+		t.Fatalf("execution adapter config must reject a missing exact target: %#v", cfg)
+	}
+	cfg = svc.resolveConfiguredProbeAdapterConfig("gemini")
 	if cfg.BaseURL == "" {
-		t.Fatalf("resolveNativeAdapterConfig should fallback to configured base url")
+		t.Fatalf("probe adapter config should use configured base url")
 	}
 	cfg = svc.resolveNativeAdapterConfig("gemini", &nimillm.RemoteTarget{Endpoint: "https://remote.test/v1", APIKey: "remote-key"})
 	if cfg.BaseURL != "https://remote.test/v1" || cfg.APIKey != "remote-key" {
@@ -423,7 +383,7 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	jobID := "poll-state-job"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
 		CreatedAt:    timestamppb.Now(),
@@ -517,8 +477,15 @@ func TestResolveSynthesizeSpeechSpecVoiceRefRejectsExpiredVoiceAsset(t *testing.
 		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
 		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED,
 	}
+	target := runtimeAgentVoiceAssetTestTarget("connector-expired")
+	svc.voiceAssets.targets[assetID] = target
+	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
+		CapabilityContract: "audio.synthesize",
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		CloudTarget:        target.GetCloud().Clone(),
+	})
 
-	_, err := svc.resolveSynthesizeSpeechSpecVoiceRef(context.Background(), &runtimev1.ScenarioRequestHead{
+	_, err := svc.resolveSynthesizeSpeechSpecVoiceRef(ctx, &runtimev1.ScenarioRequestHead{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-1",
 	}, "dashscope/qwen3-tts-vc", &runtimev1.SpeechSynthesizeScenarioSpec{

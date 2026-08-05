@@ -34,7 +34,6 @@ func (s *Service) executeScenarioAsyncJob(
 	selectedProvider provider,
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
-	localPlan *localModelExecutionPlan,
 ) {
 	_, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil)
 	if !ok {
@@ -47,10 +46,8 @@ func (s *Service) executeScenarioAsyncJob(
 	providerType := ""
 	if remoteTarget != nil {
 		providerType = remoteTarget.ProviderType
-	} else {
-		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, scenarioModalFromType(req.GetScenarioType()))
 	}
-	adapterName := resolveMediaAdapterName(req.GetHead().GetModelId(), modelResolved, scenarioModalFromType(req.GetScenarioType()), providerType)
+	adapterName := resolveMediaAdapterName("", modelResolved, scenarioModalFromType(req.GetScenarioType()), providerType)
 
 	// Resolve catalog alias → canonical API model ID (e.g. "seedance-2.0" → "doubao-seedance-2-0-260128").
 	apiModelID := modelResolved
@@ -64,16 +61,6 @@ func (s *Service) executeScenarioAsyncJob(
 		providerJobID string
 		err           error
 	)
-	if s.logger != nil && req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && preferredRoute(req.GetHead().GetModelId()) == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		s.logger.Info(
-			"execute local image scenario job: adapter resolved",
-			"job_id", jobID,
-			"requested_model_id", strings.TrimSpace(req.GetHead().GetModelId()),
-			"model_resolved", strings.TrimSpace(modelResolved),
-			"provider_type", strings.TrimSpace(providerType),
-			"adapter", strings.TrimSpace(adapterName),
-		)
-	}
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
 		originalReq := req
 		var effectiveSpec *runtimev1.SpeechSynthesizeScenarioSpec
@@ -177,15 +164,6 @@ func (s *Service) executeScenarioAsyncJob(
 		case adapterLoudlyMusic:
 			cfg := s.resolveNativeAdapterConfig("loudly", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteLoudlyMusic(ctx, cfg, req, apiModelID)
-		case adapterSidecarMusic:
-			creds := s.config.LocalProviders["sidecar"]
-			cfg := nimillm.MediaAdapterConfig{
-				BaseURL:               creds.BaseURL,
-				APIKey:                creds.APIKey,
-				Headers:               creds.Headers,
-				AllowLoopbackEndpoint: s.allowLoopback,
-			}
-			artifacts, usage, providerJobID, err = nimillm.ExecuteSidecarMusic(ctx, cfg, req, apiModelID)
 		case adapterWorldLabsNative:
 			cfg := s.resolveNativeAdapterConfig("worldlabs", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteWorldLabsWorld(ctx, cfg, s, jobID, req, apiModelID)
@@ -199,14 +177,8 @@ func (s *Service) executeScenarioAsyncJob(
 				apiModelID,
 				adapterName,
 				remoteTarget,
-				localPlan,
 				s.selector.cloudProvider,
 				s.speechCatalog,
-				func(progress nimillm.ManagedMediaImageProgress) {
-					if _, ok := s.scenarioJobs.updateProgress(jobID, progress.CurrentStep, progress.TotalSteps, progress.ProgressPercent); !ok {
-						s.logger.Debug("scenario job progress update skipped", "job_id", jobID)
-					}
-				},
 			)
 		}
 	}
@@ -220,7 +192,6 @@ func (s *Service) executeScenarioAsyncJob(
 			s.logger.Warn("scenario job execution failed",
 				"job_id", jobID,
 				"scenario_type", req.GetScenarioType().String(),
-				"requested_model_id", strings.TrimSpace(req.GetHead().GetModelId()),
 				"model_resolved", strings.TrimSpace(modelResolved),
 				"adapter", strings.TrimSpace(adapterName),
 				"reason_code", reasonCode.String(),

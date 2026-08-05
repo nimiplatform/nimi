@@ -213,6 +213,7 @@ models:
 voice_workflow_models:
   - workflow_model_id: mimo-v2.5-tts-voiceclone
     workflow_type: voice_clone
+    workflow_family: mimo
     input_contract_ref: mimo_voice_clone_input_v1
     output_persistence: session_ephemeral
     request_options:
@@ -228,6 +229,7 @@ voice_workflow_models:
     source_ids: [mimo_tts_v25_guide_doc]
   - workflow_model_id: mimo-v2.5-tts-voicedesign
     workflow_type: voice_design
+    workflow_family: mimo
     input_contract_ref: mimo_voice_design_input_v1
     output_persistence: session_ephemeral
     request_options:

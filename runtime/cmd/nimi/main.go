@@ -9,8 +9,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
-	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"math"
 	"os"
 	"strings"
@@ -148,12 +146,6 @@ func runTopLevelRun(args []string) error {
 	timeoutRaw := fs.String("timeout", "90s", "grpc request timeout")
 	systemPrompt := fs.String("system", "", "system prompt")
 	jsonOutput := fs.Bool("json", false, "output json")
-	yes := fs.Bool("yes", false, "auto-confirm local model installation")
-	noInstall := fs.Bool("no-install", false, "fail instead of installing missing local models")
-	modelFlag := fs.String("model", "", "model id")
-	providerFlag := fs.String("provider", "", "cloud provider")
-	cloudTarget := fs.Bool("cloud", false, "use the configured default cloud provider")
-	localTarget := fs.Bool("local", false, "use the default local model")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -169,66 +161,10 @@ func runTopLevelRun(args []string) error {
 	if err != nil {
 		return err
 	}
-	target, err := resolveOnboardingRunTarget(cfg, promptValue, *modelFlag, *providerFlag, *localTarget, *cloudTarget)
-	if err != nil {
-		return err
-	}
-	if _, err := entrypoint.ListModelsGRPC(cfg.GRPCAddr, minDuration(timeout, 3*time.Second), onboardingAppID); err != nil {
-		return fmt.Errorf("runtime is not running. %s", onboardingRuntimeUnavailableHint())
-	}
-
-	modelID := target.ModelID
-	routePolicy := target.RoutePolicy
-	fallbackPolicy := runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY
-	if isLocalOnboardingModel(modelID) {
-		healthResp, healthErr := entrypoint.CheckModelHealthGRPC(
-			cfg.GRPCAddr,
-			minDuration(timeout, 3*time.Second),
-			&runtimev1.CheckModelHealthRequest{
-				AppId:   onboardingAppID,
-				ModelId: modelID,
-			},
-			onboardingAppID,
-		)
-		if healthErr != nil {
-			return fmt.Errorf("failed to inspect model %s: %w", modelID, healthErr)
-		}
-		if !healthResp.GetHealthy() {
-			modelRef := texttarget.EnsureLocalLatestModelRef(modelID)
-			if *noInstall {
-				return fmt.Errorf("model %s is not installed. Run 'nimi model pull --model-ref %s'", modelID, modelRef)
-			}
-			shouldInstall := *yes
-			if !shouldInstall {
-				answer, promptErr := promptYesNo(os.Stdin, os.Stdout, fmt.Sprintf("Model %s is not installed. Pull now?", modelID), true)
-				if promptErr != nil {
-					return promptErr
-				}
-				shouldInstall = answer
-			}
-			if !shouldInstall {
-				return fmt.Errorf("model %s is required. Run 'nimi model pull --model-ref %s'", modelID, modelRef)
-			}
-			if _, pullErr := entrypoint.PullModelGRPC(cfg.GRPCAddr, timeout, &runtimev1.PullModelRequest{
-				AppId:    onboardingAppID,
-				ModelRef: modelRef,
-				Source:   "official",
-			}); pullErr != nil {
-				return fmt.Errorf("failed to install %s: %w", modelID, pullErr)
-			}
-			if !*jsonOutput {
-				fmt.Printf("Installed %s.\n", modelID)
-			}
-		}
-	}
-
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         onboardingAppID,
 			SubjectUserId: onboardingSubjectUserID,
-			ModelId:       modelID,
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
 			TimeoutMs:     timeoutMs,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
@@ -247,37 +183,6 @@ func runTopLevelRun(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	callerMeta := runtimeAICallerMetadataFromFlags("third-party-service", "nimi-cli", "runtime-cli", "")
-	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		providerTarget := cfg.Providers[target.ProviderName]
-		apiKey := strings.TrimSpace(config.ResolveProviderAPIKey(providerTarget))
-		if apiKey == "" {
-			if !onboardingInteractiveTerminal() {
-				return fmt.Errorf("cloud credentials for %s are missing. Run '%s'", target.ProviderName, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
-			}
-			apiKey, err = promptOnboardingAPIKey(target.ProviderName)
-			if err != nil {
-				return err
-			}
-			configPath, persistErr := persistOnboardingProviderAPIKey(target.ProviderName, apiKey)
-			if persistErr != nil {
-				return fmt.Errorf("persist cloud credentials for %s: %w", target.ProviderName, persistErr)
-			}
-			if !*jsonOutput {
-				fmt.Printf("Saved pasted %s API key to %s. Prefer '%s' for future setup when possible.\n", target.ProviderName, configPath, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
-			}
-		}
-		endpoint := target.ProviderEndpoint
-		if strings.TrimSpace(endpoint) == "" {
-			endpoint = resolveProviderEndpoint(target.ProviderName, providerTarget)
-		}
-		if entry, ok := connector.ProviderCatalog[target.ProviderName]; ok && entry.RequiresExplicitEndpoint && strings.TrimSpace(endpoint) == "" {
-			return fmt.Errorf("provider %s requires an explicit endpoint. Run '%s --base-url ...'", target.ProviderName, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
-		}
-		callerMeta.CredentialSource = "inline"
-		callerMeta.ProviderType = target.ProviderName
-		callerMeta.ProviderEndpoint = endpoint
-		callerMeta.ProviderAPIKey = apiKey
-	}
 	events, errCh, err := entrypoint.StreamScenarioGRPC(ctx, cfg.GRPCAddr, req, callerMeta)
 	if err != nil {
 		return fmt.Errorf("runtime stream failed: %w", err)
@@ -286,7 +191,7 @@ func runTopLevelRun(args []string) error {
 	buffer := strings.Builder{}
 	streamTraceID := ""
 	modelResolved := ""
-	routeDecision := routePolicy
+	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED
 	finishReason := runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED
 	usage := &runtimev1.UsageStats{}
 	failedReason := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
@@ -337,24 +242,16 @@ func runTopLevelRun(args []string) error {
 		}
 	}
 	if failedReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		switch failedReason {
-		case runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID, runtimev1.ReasonCode_AUTH_TOKEN_INVALID:
-			return fmt.Errorf("cloud credentials for %s are missing or invalid. Run '%s'", target.ProviderName, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
-		case runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, runtimev1.ReasonCode_AI_MODEL_NOT_READY:
-			return fmt.Errorf("local model %s is unavailable. Run 'nimi model pull --model-ref %s'", modelID, texttarget.EnsureLocalLatestModelRef(modelID))
-		default:
-			return fmt.Errorf("run failed: %s", failedReason.String())
-		}
+		return fmt.Errorf("run failed for the caller-owned AIConfig binding: %s", failedReason.String())
 	}
 	if !*jsonOutput {
 		fmt.Println()
 		return nil
 	}
 	out, err := json.MarshalIndent(map[string]any{
-		"modelId":       modelID,
 		"text":          buffer.String(),
 		"traceId":       streamTraceID,
-		"modelResolved": firstNonEmptyString(modelResolved, modelID),
+		"modelResolved": modelResolved,
 		"routeDecision": routePolicyLabel(routeDecision),
 		"finishReason":  finishReason.String(),
 		"usage": map[string]any{

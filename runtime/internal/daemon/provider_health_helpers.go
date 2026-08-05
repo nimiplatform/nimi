@@ -41,19 +41,6 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 	}
 }
 
-func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
-	switch kind {
-	case engine.EngineMedia:
-		return "media", "NIMI_RUNTIME_LOCAL_MEDIA_API_KEY", true
-	case engine.EngineSpeech:
-		return "speech", "NIMI_RUNTIME_LOCAL_SPEECH_API_KEY", true
-	case engineSidecar:
-		return "sidecar", "NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY", true
-	default:
-		return "", "", false
-	}
-}
-
 func engineKindForName(engineName string) (engine.EngineKind, bool) {
 	switch strings.TrimSpace(strings.ToLower(engineName)) {
 	case string(engine.EngineMedia):

@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -117,7 +116,7 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 		AllowLoopbackEndpoint: true,
 	})
 	req := voiceCloneRequest()
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "dashscope", "dashscope/qwen3-tts-vc", "voice_clone")
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "dashscope", "qwen3-tts-vc", "voice_clone")
 	if err != nil {
 		t.Fatalf("resolveVoiceWorkflow: %v", err)
 	}
@@ -125,7 +124,7 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 		Head:              req.GetHead(),
 		ScenarioType:      req.GetScenarioType(),
 		Spec:              req.GetSpec(),
-		ModelResolved:     "dashscope/qwen3-tts-vc",
+		ModelResolved:     "qwen3-tts-vc",
 		Provider:          "dashscope",
 		WorkflowModelID:   resolution.WorkflowModelID,
 		OutputPersistence: resolution.OutputPersistence,
@@ -140,15 +139,18 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 		asset.GetVoiceAssetId(),
 		resolution,
 		req,
-		svc.resolveNativeAdapterConfig("dashscope", nil),
+		svc.resolveNativeAdapterConfig("dashscope", &nimillm.RemoteTarget{
+			ProviderType:    "dashscope",
+			Endpoint:        server.URL,
+			APIKey:          "test-key",
+			ProviderModelID: "qwen3-tts-vc",
+			AllowLoopback:   true,
+		}),
 	)
 
 	stored, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
 	if !ok {
 		t.Fatalf("expected stored asset")
-	}
-	if got := stored.GetMetadata().GetFields()["workflow_family"].GetStringValue(); got != "dashscope" {
-		t.Fatalf("workflow_family=%q, want dashscope", got)
 	}
 	if got := stored.GetMetadata().GetFields()["voice_handle_policy_id"].GetStringValue(); got != "dashscope_provider_persistent_default" {
 		t.Fatalf("voice_handle_policy_id=%q", got)
@@ -285,183 +287,17 @@ func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 	}
 }
 
-func TestExecuteVoiceWorkflowJobLocalQwenFailCloseUsesFamilySpecificDetail(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	req := voiceCloneRequest()
-	req.Head.ModelId = "speech/qwen3tts-base"
-	req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	req.Spec.GetVoiceClone().TargetModelId = "speech/qwen3tts-base"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
-	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
-
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts-base", "voice_clone")
-	if err != nil {
-		t.Fatalf("resolveVoiceWorkflow(local qwen3): %v", err)
-	}
-	job, asset := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
-		Head:              req.GetHead(),
-		ScenarioType:      req.GetScenarioType(),
-		Spec:              req.GetSpec(),
-		ModelResolved:     "speech/qwen3tts-base",
-		Provider:          "local",
-		WorkflowModelID:   resolution.WorkflowModelID,
-		WorkflowFamily:    resolution.WorkflowFamily,
-		OutputPersistence: resolution.OutputPersistence,
-		HandlePolicyID:    resolution.HandlePolicyID,
-		HandlePersistence: resolution.HandlePolicyPersistence,
-		HandleScope:       resolution.HandlePolicyScope,
-		HandleDefaultTTL:  resolution.HandlePolicyDefaultTTL,
-		HandleDeleteSem:   resolution.HandlePolicyDeleteSemantics,
-		RuntimeReconcile:  resolution.RuntimeReconciliationRequired,
-	})
-	if job == nil || asset == nil {
-		t.Fatalf("submit should create workflow job and asset")
-	}
-
-	svc.executeVoiceWorkflowJob(
-		context.Background(),
-		job.GetJobId(),
-		asset.GetVoiceAssetId(),
-		resolution,
-		req,
-		nimillm.MediaAdapterConfig{},
-	)
-
-	storedJob, ok := svc.voiceAssets.getJob(job.GetJobId())
-	if !ok {
-		t.Fatalf("expected stored job")
-	}
-	if storedJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
-		t.Fatalf("job status=%s, want FAILED", storedJob.GetStatus().String())
-	}
-	if storedJob.GetReasonCode() != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
-		t.Fatalf("reason code=%s, want AI_VOICE_WORKFLOW_UNSUPPORTED", storedJob.GetReasonCode().String())
-	}
-	if strings.TrimSpace(storedJob.GetReasonDetail()) == "" {
-		t.Fatal("expected stable non-empty reason detail")
-	}
-	if got := storedJob.GetReasonMetadata().GetFields()["workflow_family"].GetStringValue(); got != "qwen3_tts" {
-		t.Fatalf("workflow_family metadata=%q, want qwen3_tts", got)
-	}
-	if got := storedJob.GetReasonMetadata().GetFields()["failure_stage"].GetStringValue(); got != "voice_workflow_execution" {
-		t.Fatalf("failure_stage metadata=%q, want voice_workflow_execution", got)
-	}
-	storedAsset, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
-	if !ok {
-		t.Fatalf("expected stored asset")
-	}
-	if got := storedAsset.GetMetadata().GetFields()["voice_handle_policy_id"].GetStringValue(); got != "local_runtime_session_ephemeral_default" {
-		t.Fatalf("stored asset voice_handle_policy_id=%q", got)
-	}
-}
-
-func TestExecuteVoiceWorkflowJobLocalQwenSucceedsViaSpeechHost(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{AllowLoopbackEndpoint: true})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/voice/clone" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatalf("read body: %v", err)
-		}
-		payload := map[string]any{}
-		if err := json.Unmarshal(body, &payload); err != nil {
-			t.Fatalf("unmarshal body: %v", err)
-		}
-		if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "speech/qwen3tts-base" {
-			t.Fatalf("unexpected target_model_id: %q", got)
-		}
-		input, ok := payload["input"].(map[string]any)
-		if !ok {
-			t.Fatalf("expected canonical input map")
-		}
-		if got := strings.TrimSpace(nimillm.ValueAsString(input["preferred_name"])); got != "test-clone-voice" {
-			t.Fatalf("unexpected preferred_name: %q", got)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"voice_id":"voice-local-qwen3-001","job_id":"job-local-qwen3-001","metadata":{"host_family":"qwen3_tts"}}`)
-	}))
-	defer func() { server.Close() }()
-
-	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
-	req := voiceCloneRequest()
-	req.Head.ModelId = "speech/qwen3tts-base"
-	req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	req.Spec.GetVoiceClone().TargetModelId = "speech/qwen3tts-base"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
-	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
-	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
-
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts-base", "voice_clone")
-	if err != nil {
-		t.Fatalf("resolveVoiceWorkflow(local qwen3): %v", err)
-	}
-	job, asset := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
-		Head:              req.GetHead(),
-		ScenarioType:      req.GetScenarioType(),
-		Spec:              req.GetSpec(),
-		ModelResolved:     "speech/qwen3tts-base",
-		Provider:          "local",
-		WorkflowModelID:   resolution.WorkflowModelID,
-		WorkflowFamily:    resolution.WorkflowFamily,
-		OutputPersistence: resolution.OutputPersistence,
-		HandlePolicyID:    resolution.HandlePolicyID,
-		HandlePersistence: resolution.HandlePolicyPersistence,
-		HandleScope:       resolution.HandlePolicyScope,
-		HandleDefaultTTL:  resolution.HandlePolicyDefaultTTL,
-		HandleDeleteSem:   resolution.HandlePolicyDeleteSemantics,
-		RuntimeReconcile:  resolution.RuntimeReconciliationRequired,
-	})
-	if job == nil || asset == nil {
-		t.Fatalf("submit should create workflow job and asset")
-	}
-
-	svc.executeVoiceWorkflowJob(
-		context.Background(),
-		job.GetJobId(),
-		asset.GetVoiceAssetId(),
-		resolution,
-		req,
-		nimillm.MediaAdapterConfig{},
-	)
-
-	storedJob, ok := svc.voiceAssets.getJob(job.GetJobId())
-	if !ok {
-		t.Fatalf("expected stored job")
-	}
-	if got := storedJob.GetStatus(); got != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("job status = %v", got)
-	}
-	storedAsset, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
-	if !ok {
-		t.Fatalf("expected stored asset")
-	}
-	if got := storedAsset.GetProviderVoiceRef(); got != "voice-local-qwen3-001" {
-		t.Fatalf("provider voice ref = %q", got)
-	}
-	if got := storedAsset.GetMetadata().GetFields()["host_family"].GetStringValue(); got != "qwen3_tts" {
-		t.Fatalf("host_family metadata = %q", got)
-	}
-	if got := storedAsset.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue(); got != "runtime_authoritative_delete" {
-		t.Fatalf("voice_handle_policy_delete_semantics = %q", got)
-	}
-}
-
 func voiceCloneRequest() *runtimev1.SubmitScenarioJobRequest {
 	return &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vc",
+				TargetModelId: "qwen3-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -479,14 +315,12 @@ func voiceDesignRequest() *runtimev1.SubmitScenarioJobRequest {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "elevenlabs/eleven_ttv_v3",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-				TargetModelId: "elevenlabs/eleven_ttv_v3",
+				TargetModelId: "eleven_ttv_v3",
 				Input: &runtimev1.VoiceT2VInput{
 					InstructionText: "A warm, calm and natural female narrator voice.",
 					PreviewText:     "Hello from Nimi voice design.",

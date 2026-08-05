@@ -156,13 +156,11 @@ func newConnectorTTSValidationTestService(t *testing.T, providerID string, model
 	}
 }
 
-func connectorTTSValidationRequest(connectorID string, modelID string, voiceRef *runtimev1.VoiceReference) *runtimev1.SubmitScenarioJobRequest {
+func connectorTTSValidationRequest(_ string, _ string, voiceRef *runtimev1.VoiceReference) *runtimev1.SubmitScenarioJobRequest {
 	return &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ConnectorId:   connectorID,
-			ModelId:       modelID,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		Spec: &runtimev1.ScenarioSpec{

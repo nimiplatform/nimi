@@ -128,7 +128,8 @@ message MemoryEmbeddingProfile {
   string version = 5;
   MemoryMigrationPolicy migration_policy = 6;
   MemoryEmbeddingCloudBindingRef cloud_binding = 7;
-  MemoryEmbeddingLocalBindingRef local_binding = 8;
+  reserved 8;
+  reserved "local_binding";
 }
 
 message MemoryEmbeddingCloudBindingRef {
@@ -138,15 +139,6 @@ message MemoryEmbeddingCloudBindingRef {
   string remote_model_catalog_id = 3;
   string provider_model_id = 4;
   string provider = 5;
-}
-
-message MemoryEmbeddingLocalBindingRef {
-  reserved 1;
-  reserved "target_id";
-  oneof ref {
-    string profile_binding_id = 2;
-    string readiness_ref = 3;
-  }
 }
 
 message MemoryEmbeddingOperationReadiness {

@@ -11,7 +11,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -76,11 +75,7 @@ func imageGenerateRouteDescribeProbeFromExtensions(
 }
 
 func imageCatalogProviderType(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) string {
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_IMAGE)
-	if remoteTarget == nil && selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && localrouting.IsKnownProvider(providerType) {
-		return "local"
-	}
-	return providerType
+	return scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_IMAGE)
 }
 
 func validateImageGenerateRouteDescribeSpec(spec *runtimev1.ScenarioSpec) error {
@@ -194,7 +189,14 @@ func executeImageGenerateRouteDescribeScenario(
 		return nil, err
 	}
 
-	remoteTarget, localPlan, err := s.prepareScenarioRequestWithLocalPlan(ctx, req.GetHead(), req.GetScenarioType())
+	intent, err := scenarioExecutionIntentFromContext(ctx, scenarioTargetCapability(req.GetScenarioType()))
+	if err != nil {
+		return nil, err
+	}
+	if intent.IsLocal() {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
+	}
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
 	}
@@ -209,16 +211,14 @@ func executeImageGenerateRouteDescribeScenario(
 
 	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		intent.ModelID(),
 		remoteTarget,
 		scenarioModalFromType(req.GetScenarioType()),
 	)
 	if err != nil {
 		return nil, err
 	}
-	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}

@@ -23,6 +23,7 @@ presets:
 voice_workflow_models:
   - workflow_model_id: qwen3-local-voice-clone
     workflow_type: voice_clone
+    workflow_family: qwen3_tts
     input_contract_ref: local_voice_clone_input_v1
     output_persistence: session_ephemeral
     request_options:
@@ -41,6 +42,7 @@ voice_workflow_models:
     source_ids: [qwen3_tts_base_modelcard]
   - workflow_model_id: qwen3-local-voice-design
     workflow_type: voice_design
+    workflow_family: qwen3_tts
     input_contract_ref: local_voice_design_input_v1
     output_persistence: session_ephemeral
     request_options:

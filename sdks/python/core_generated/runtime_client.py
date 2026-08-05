@@ -1496,14 +1496,6 @@ RUNTIME_METHODS = [
     "response_type": "CancelLocalTransferResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-    "service": "RuntimeLocalService",
-    "method": "CheckLocalAssetHealth",
-    "kind": "unary",
-    "request_type": "CheckLocalAssetHealthRequest",
-    "response_type": "CheckLocalAssetHealthResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
     "service": "RuntimeLocalService",
     "method": "CheckLocalServiceHealth",
@@ -1982,14 +1974,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "UnbindLocalCapabilityRequirementRequest",
     "response_type": "UnbindLocalCapabilityRequirementResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
-    "service": "RuntimeLocalService",
-    "method": "WarmLocalAsset",
-    "kind": "unary",
-    "request_type": "WarmLocalAssetRequest",
-    "response_type": "WarmLocalAssetResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",

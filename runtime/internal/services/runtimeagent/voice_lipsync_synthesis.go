@@ -10,6 +10,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
@@ -58,7 +60,7 @@ type voiceLipsyncSynthesisInput struct {
 	SpeechModelID         string
 	SpeechRoutePolicy     runtimev1.RoutePolicy
 	SpeechConnectorID     string
-	SpeechTargetRef       *runtimev1.RuntimeDurableTargetRef
+	SpeechTargetRef       *runtimeidentity.Target
 	SpeechAppID           string
 	OwnerUserID           string
 	AgentID               string
@@ -107,13 +109,12 @@ type voiceLipsyncScenarioExecutor interface {
 }
 
 type aiBackedVoiceLipsyncSynthesizer struct {
-	ai             voiceLipsyncScenarioExecutor
-	streamer       publicChatScenarioStreamer
-	modelID        string
-	routePolicy    runtimev1.RoutePolicy
-	fallbackPolicy runtimev1.FallbackPolicy
-	waitTimeout    time.Duration
-	pollInterval   time.Duration
+	ai           voiceLipsyncScenarioExecutor
+	streamer     publicChatScenarioStreamer
+	modelID      string
+	routePolicy  runtimev1.RoutePolicy
+	waitTimeout  time.Duration
+	pollInterval time.Duration
 }
 
 func newSyntheticVoiceLipsyncSynthesizer() syntheticVoiceLipsyncSynthesizer {
@@ -129,13 +130,12 @@ func newAIBackedVoiceLipsyncSynthesizer(ai voiceLipsyncScenarioExecutor, modelID
 	}
 	streamer, _ := ai.(publicChatScenarioStreamer)
 	return &aiBackedVoiceLipsyncSynthesizer{
-		ai:             ai,
-		streamer:       streamer,
-		modelID:        strings.TrimSpace(modelID),
-		routePolicy:    routePolicy,
-		fallbackPolicy: runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-		waitTimeout:    defaultProviderVoiceSynthesisWait,
-		pollInterval:   defaultProviderVoiceSynthesisPoll,
+		ai:           ai,
+		streamer:     streamer,
+		modelID:      strings.TrimSpace(modelID),
+		routePolicy:  routePolicy,
+		waitTimeout:  defaultProviderVoiceSynthesisWait,
+		pollInterval: defaultProviderVoiceSynthesisPoll,
 	}
 }
 
@@ -224,15 +224,15 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
 	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
+	intent := executionintent.Intent{CapabilityContract: "audio.synthesize", Route: routePolicy}
+	if input.SpeechTargetRef != nil {
+		intent.CloudTarget = input.SpeechTargetRef.GetCloud().Clone()
+	}
+	ctx = executionintent.WithIntent(ctx, intent)
 	submitResp, err := s.ai.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         speechAppID,
 			SubjectUserId: ownerUserID,
-			ModelId:       modelID,
-			RoutePolicy:   routePolicy,
-			ConnectorId:   strings.TrimSpace(input.SpeechConnectorID),
-			TargetRef:     cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
-			Fallback:      s.fallbackPolicy,
 			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
@@ -294,15 +294,8 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	}, nil
 }
 
-func cloneVoiceSynthesisTargetRef(input *runtimev1.RuntimeDurableTargetRef) *runtimev1.RuntimeDurableTargetRef {
-	if input == nil {
-		return nil
-	}
-	cloned, ok := proto.Clone(input).(*runtimev1.RuntimeDurableTargetRef)
-	if !ok {
-		return nil
-	}
-	return cloned
+func cloneVoiceSynthesisTargetRef(input *runtimeidentity.Target) *runtimeidentity.Target {
+	return input.Clone()
 }
 
 func runtimeAgentVoiceLipsyncIdempotencyKey(input voiceLipsyncSynthesisInput) string {

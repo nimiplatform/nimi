@@ -13,6 +13,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
@@ -49,49 +50,11 @@ func (input *localTextEffectiveInputs) modelResolved() string {
 }
 
 func (s *Service) captureLocalTextRoutingIntent(ctx context.Context, head *runtimev1.ScenarioRequestHead) (context.Context, bool, error) {
-	requestLocal := requestDeclaresLocalExecution(head)
-	if intent, ok := localexecution.ConsumerIntentFromContext(ctx); ok {
-		if intent.Local && intent.CapabilityContract == capabilitydriver.LlamaCapabilityContract {
-			return ctx, true, nil
-		}
-		return ctx, requestLocal, nil
+	capturedCtx, intent, err := s.captureScenarioExecutionIntent(ctx, head, capabilitydriver.LlamaCapabilityContract)
+	if err != nil {
+		return ctx, false, err
 	}
-	if s != nil && s.aiConfigStore != nil && head != nil {
-		if caller, err := scenarioAppAIConfigCaller(ctx, head); err == nil {
-			config, found, err := s.aiConfigStore.Get(ctx, caller.accountNamespace, derivedAppAIConfigOwner(caller.appID))
-			if err != nil {
-				return ctx, false, appAIConfigPersistenceError(err)
-			}
-			if found && config != nil {
-				for _, capability := range config.GetCapabilities() {
-					if capability.GetCapabilityContract() != capabilitydriver.LlamaCapabilityContract {
-						continue
-					}
-					if capability.GetLocal() != nil {
-						intent := localTextConsumerIntentFromCapability(capability)
-						return localexecution.WithConsumerIntent(ctx, intent), true, nil
-					}
-					return ctx, requestLocal, nil
-				}
-			}
-		}
-	}
-	return ctx, requestLocal, nil
-}
-
-func requestDeclaresLocalExecution(head *runtimev1.ScenarioRequestHead) bool {
-	if head == nil {
-		return false
-	}
-	if head.GetTargetRef().GetLocalRuntime() != nil {
-		return true
-	}
-	if head.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || head.GetTargetRef().GetCloud() != nil {
-		return false
-	}
-	modelID := strings.TrimSpace(head.GetModelId())
-	return head.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL ||
-		(modelID != "" && preferredRoute(modelID) == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
+	return capturedCtx, intent.IsLocal(), nil
 }
 
 func (s *Service) captureLocalTextEffectiveInputs(
@@ -107,9 +70,7 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	if err != nil {
 		return nil, err
 	}
-	if !intent.Local || intent.CapabilityContract != capabilitydriver.LlamaCapabilityContract ||
-		head.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || head.GetTargetRef().GetCloud() != nil ||
-		(head.GetTargetRef() != nil && head.GetTargetRef().GetTarget() != nil) {
+	if !intent.IsLocal() || intent.CapabilityContract != capabilitydriver.LlamaCapabilityContract {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
 	if s.localExecution == nil {
@@ -246,47 +207,12 @@ func validSelectedTextExecution(selected *localexecution.SelectedLocalExecution)
 func (s *Service) resolveLocalTextConsumerIntent(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
-) (localexecution.ConsumerIntent, error) {
-	if intent, ok := localexecution.ConsumerIntentFromContext(ctx); ok {
+) (executionintent.Intent, error) {
+	if intent, ok := executionintent.FromContext(ctx); ok {
 		return intent, nil
 	}
-	caller, err := scenarioAppAIConfigCaller(ctx, head)
-	if err != nil {
-		return localexecution.ConsumerIntent{}, err
-	}
-	if s.aiConfigStore == nil {
-		return localexecution.ConsumerIntent{}, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
-	}
-	config, found, err := s.aiConfigStore.Get(ctx, caller.accountNamespace, derivedAppAIConfigOwner(caller.appID))
-	if err != nil {
-		return localexecution.ConsumerIntent{}, appAIConfigPersistenceError(err)
-	}
-	if !found || config == nil {
-		return localexecution.ConsumerIntent{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
-	}
-	for _, capability := range config.GetCapabilities() {
-		if capability.GetCapabilityContract() != capabilitydriver.LlamaCapabilityContract {
-			continue
-		}
-		if capability.GetLocal() == nil {
-			return localexecution.ConsumerIntent{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
-		}
-		return localTextConsumerIntentFromCapability(capability), nil
-	}
-	return localexecution.ConsumerIntent{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
-}
-
-func localTextConsumerIntentFromCapability(capability *runtimev1.AIConfigCapabilityIntent) localexecution.ConsumerIntent {
-	if capability == nil {
-		return localexecution.ConsumerIntent{}
-	}
-	defaults, _ := proto.Clone(capability.GetDefaults()).(*structpb.Struct)
-	return localexecution.ConsumerIntent{
-		CapabilityContract: capability.GetCapabilityContract(),
-		RequiredFeatures:   append([]string(nil), capability.GetRequiredFeatures()...),
-		Defaults:           defaults,
-		Local:              capability.GetLocal() != nil,
-	}
+	_, intent, err := s.captureScenarioExecutionIntent(ctx, head, capabilitydriver.LlamaCapabilityContract)
+	return intent, err
 }
 
 func scenarioAppAIConfigCaller(ctx context.Context, head *runtimev1.ScenarioRequestHead) (appAIConfigCaller, error) {
@@ -482,6 +408,10 @@ func localTextExecutionError(err error) error {
 		options.ActionHint = "request_canceled"
 		options.Retryable = &retryable
 		return grpcerr.WrapWithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED, err, options)
+	case localexecution.FailureContentMismatch:
+		options.ActionHint = "reverify_or_rebind_local_model_content"
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CONTENT_MISMATCH, err, options)
 	case localexecution.FailureLoad:
 		options.ActionHint = "inspect_local_configuration_and_host_resources"
 		options.Retryable = &retryable

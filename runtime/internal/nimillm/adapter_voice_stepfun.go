@@ -20,16 +20,16 @@ func executeStepFunVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, 
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 
-	baseURL := resolveVoiceWorkflowBaseURL("stepfun", cfg, req.ExtPayload)
+	baseURL := resolveVoiceWorkflowBaseURL("stepfun", cfg)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 
-	modelID := strings.TrimSpace(StripProviderModelPrefix(FirstNonEmpty(
+	modelID := strings.TrimSpace(FirstNonEmpty(
 		ValueAsString(req.Payload["target_model_id"]),
 		ValueAsString(req.Payload["model"]),
 		req.ModelID,
-	), "stepfun"))
+	))
 	if modelID == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}

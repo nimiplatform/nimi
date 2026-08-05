@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
@@ -201,29 +202,17 @@ func TestUploadArtifactRejectsOversizedChunk(t *testing.T) {
 
 func TestOpenRealtimeSessionFailsClosedWithoutDriverContract(t *testing.T) {
 	svc := newTestService(nil)
-	response, err := svc.OpenRealtimeSession(context.Background(), &runtimev1.OpenRealtimeSessionRequest{
+	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
+		CapabilityContract: "text.generate",
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+	response, err := svc.OpenRealtimeSession(ctx, &runtimev1.OpenRealtimeSessionRequest{
 		Head: &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 	})
 	if response != nil {
 		t.Fatalf("response = %+v", response)
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-		t.Fatalf("error = %v, reason=%v ok=%v", err, reason, ok)
-	}
-}
-
-func TestOpenRealtimeSessionPreservesCloudUnsupportedContract(t *testing.T) {
-	svc := newTestService(nil)
-	_, err := svc.OpenRealtimeSession(context.Background(), &runtimev1.OpenRealtimeSessionRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId: "app", SubjectUserId: "user", ModelId: "openai/gpt-test",
-			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		},
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("status = %s, err=%v", status.Code(err), err)
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 		t.Fatalf("error = %v, reason=%v ok=%v", err, reason, ok)
 	}
 }

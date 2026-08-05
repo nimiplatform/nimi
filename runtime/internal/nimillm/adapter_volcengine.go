@@ -41,7 +41,7 @@ func ExecuteBytedanceARKTask(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		submitPath := resolveBytedanceARKImagePath(scenarioExtensions)
+		submitPath := resolveBytedanceARKImagePath()
 		submitPayload := map[string]any{
 			"model":           modelResolved,
 			"prompt":          spec.GetPrompt(),
@@ -189,31 +189,16 @@ func ExecuteBytedanceARKTask(
 
 // Provider-specific path resolvers (package-private)
 
-func resolveBytedanceARKImagePath(scenarioExtensions map[string]any) string {
-	return FirstProviderEndpointPath(
-		scenarioExtensions,
-		[]string{"image_path", "image_submit_path"},
-		[]string{"image_paths", "image_submit_paths"},
-		[]string{"/images/generations"},
-	)
+func resolveBytedanceARKImagePath() string {
+	return firstProviderEndpointPath([]string{"/images/generations"})
 }
 
 func resolveBytedanceARKVideoSubmitPath() string {
-	return FirstProviderEndpointPath(
-		nil,
-		[]string{"video_path", "video_submit_path", "task_submit_path"},
-		[]string{"video_paths", "video_submit_paths", "task_submit_paths"},
-		[]string{"/contents/generations/tasks"},
-	)
+	return firstProviderEndpointPath([]string{"/contents/generations/tasks"})
 }
 
 func resolveBytedanceARKVideoQueryPathTemplate() string {
-	return ResolveTaskQueryPathTemplate(
-		nil,
-		[]string{"video_query_path", "video_query_path_template", "task_query_path"},
-		[]string{"video_query_paths", "video_query_path_templates", "task_query_paths"},
-		[]string{"/contents/generations/tasks/{task_id}"},
-	)
+	return resolveTaskQueryPathTemplate([]string{"/contents/generations/tasks/{task_id}"})
 }
 
 func normalizeBytedanceARKImageSize(modelResolved string, rawSize string) string {
@@ -240,7 +225,7 @@ func normalizeBytedanceARKImageSize(modelResolved string, rawSize string) string
 }
 
 func isBytedanceARKSeedreamImageModel(modelResolved string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(modelResolved, "volcengine")))
+	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
 	return strings.Contains(normalized, "seedream")
 }
 

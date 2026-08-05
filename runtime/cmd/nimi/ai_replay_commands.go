@@ -28,8 +28,6 @@ type aiReplayPayload struct {
 	ResolvedProvider     string         `json:"resolvedProvider"`
 	ResolvedModel        string         `json:"resolvedModel"`
 	ResolvedTargetModel  string         `json:"resolvedTargetModel,omitempty"`
-	RoutePolicy          string         `json:"routePolicy"`
-	FallbackPolicy       string         `json:"fallbackPolicy"`
 	JobID                string         `json:"jobId,omitempty"`
 	ArtifactSummary      map[string]any `json:"artifactSummary,omitempty"`
 	ReasonCode           string         `json:"reasonCode,omitempty"`

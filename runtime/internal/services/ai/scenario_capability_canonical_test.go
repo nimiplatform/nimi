@@ -63,25 +63,3 @@ func TestMediaScenarioSupportedByProviderRecord(t *testing.T) {
 		t.Fatalf("expected stt to be unsupported")
 	}
 }
-
-func TestInferVoiceAssetProvider(t *testing.T) {
-	cases := []struct {
-		modelID string
-		want    string
-	}{
-		{modelID: "local/qwen3-tts-local", want: "local"},
-		{modelID: "dashscope/qwen3-tts-vc", want: "dashscope"},
-		{modelID: "qwen3-tts-local", want: "local"},
-		{modelID: "cosyvoice2-local", want: "local"},
-		{modelID: "openbmb/VoxCPM2", want: "local"},
-		{modelID: "k2-fsa/OmniVoice", want: "local"},
-		{modelID: "voxcpm2-local", want: "local"},
-		{modelID: "omnivoice-local", want: "local"},
-		{modelID: "", want: ""},
-	}
-	for _, tc := range cases {
-		if got := inferVoiceAssetProvider(tc.modelID); got != tc.want {
-			t.Fatalf("inferVoiceAssetProvider(%q)=%q, want=%q", tc.modelID, got, tc.want)
-		}
-	}
-}

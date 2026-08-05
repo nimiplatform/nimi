@@ -59,7 +59,7 @@ func TestExecuteFishAudioTTS_UsesModelHeaderAndReferenceID(t *testing.T) {
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "fish-key",
-	}, req, "fish_audio/s1")
+	}, req, "s1")
 	if err != nil {
 		t.Fatalf("ExecuteFishAudioTTS: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestExecuteFishAudioTTS_MapsProsodyAndProviderOptions(t *testing.T) {
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "fish-key",
-	}, req, "fish_audio/s2-pro"); err != nil {
+	}, req, "s2-pro"); err != nil {
 		t.Fatalf("ExecuteFishAudioTTS: %v", err)
 	}
 

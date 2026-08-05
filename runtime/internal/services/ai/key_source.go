@@ -117,7 +117,7 @@ func validateKeySource(parsed ParsedKeySource, requestAppID string) error {
 			// declares key_source=inline.
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID)
 		}
-		// No key-source, no connector_id, no inline fields = use runtime config
+		// No key-source and no connector/inline fields means no remote catalog target.
 	default:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID)
 	}
@@ -126,7 +126,7 @@ func validateKeySource(parsed ParsedKeySource, requestAppID string) error {
 }
 
 // resolveKeySourceToTarget resolves parsed key-source into a RemoteTarget (K-KEYSRC-004 steps 5-8).
-// Returns nil if routing should use runtime config (local/cloud defaults).
+// Returns nil when no remote catalog target was supplied.
 func resolveKeySourceToTarget(ctx context.Context, parsed ParsedKeySource, connStore *connector.ConnectorStore, allowLoopback bool) (*nimillm.RemoteTarget, error) {
 	ks := parsed.KeySource
 
@@ -141,7 +141,7 @@ func resolveKeySourceToTarget(ctx context.Context, parsed ParsedKeySource, connS
 		return resolveInlineTarget(parsed, allowLoopback)
 	}
 
-	// No key-source specified, no connector_id, no inline fields → runtime config
+	// No key-source specified, no connector_id, no inline fields.
 	return nil, nil
 }
 

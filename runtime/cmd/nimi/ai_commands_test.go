@@ -524,7 +524,7 @@ func (s *cmdTestRuntimeAIService) SubmitScenarioJob(ctx context.Context, req *ru
 				Chunk:         []byte(s.sttText),
 				Eof:           true,
 				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				ModelResolved: req.GetHead().GetModelId(),
+				ModelResolved: "test-model",
 				TraceId:       "trace-stt-1",
 			},
 		}

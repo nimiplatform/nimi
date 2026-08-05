@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -251,11 +252,9 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	if voiceAI.submitReq == nil {
 		t.Fatalf("expected CBDB speech route to submit provider voice synthesis")
 	}
-	if got := voiceAI.submitReq.GetHead().GetModelId(); got != "speech/qwen3tts" {
-		t.Fatalf("expected CBDB speech model id speech/qwen3tts, got %q", got)
-	}
-	if got := voiceAI.submitReq.GetHead().GetRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		t.Fatalf("expected CBDB speech route policy local, got %v", got)
+	intent, ok := executionintent.FromContext(voiceAI.submitCtx)
+	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
+		t.Fatalf("expected CBDB private Local speech intent, got %+v, ok=%v", intent, ok)
 	}
 	if got := strings.TrimSpace(voiceRouteBinding["model_id"].(string)); got != "speech/qwen3tts" {
 		t.Fatalf("expected CBDB voice model id speech/qwen3tts, got %q", got)

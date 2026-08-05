@@ -9,33 +9,16 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"google.golang.org/grpc/codes"
 )
 
-func inferScenarioProviderType(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider, modal runtimev1.Modal) string {
-	if remoteTarget != nil {
-		providerType := strings.TrimSpace(strings.ToLower(remoteTarget.ProviderType))
-		if providerType != "" {
-			return providerType
-		}
+func scenarioProviderTypeFromTarget(_ string, remoteTarget *nimillm.RemoteTarget, _ provider, _ runtimev1.Modal) string {
+	if remoteTarget == nil {
+		return ""
 	}
-	if providerType := inferMediaProviderTypeFromSelectedBackend(selected, modelResolved, modal); providerType != "" {
-		return strings.ToLower(strings.TrimSpace(providerType))
-	}
-	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
-	if idx := strings.Index(normalized, "/"); idx > 0 {
-		candidate := strings.TrimSpace(normalized[:idx])
-		if providerregistry.Contains(candidate) {
-			return candidate
-		}
-	}
-	if providerType := inferVoiceAssetProvider(modelResolved); providerType != "" {
-		return providerType
-	}
-	return ""
+	return strings.TrimSpace(strings.ToLower(remoteTarget.ProviderType))
 }
 
 func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtimev1.ReasonCode {
@@ -103,20 +86,12 @@ func (s *Service) validateScenarioCapability(
 	selected provider,
 ) error {
 	scenarioType := req.GetScenarioType()
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, scenarioModalFromType(scenarioType))
+	providerType := scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, scenarioModalFromType(scenarioType))
 	if providerType == "" {
 		return nil
 	}
-	if localrouting.IsKnownProvider(providerType) {
-		if capability, ok := localScenarioCapability(scenarioType); ok {
-			if !localrouting.ProviderSupportsCapability(providerType, capability) {
-				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-			}
-			if s == nil || s.speechCatalog == nil {
-				return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
-			}
-			return nil
-		}
+	if isRetiredAmbientLocalProvider(providerType) {
+		return localExactMediaUnsupportedError(scenarioType)
 	}
 	catalogProviderType := scenarioCapabilityCatalogProviderType(providerType, scenarioType)
 	if catalogProviderType == "" && !isVoiceWorkflowScenario(scenarioType) {
@@ -128,11 +103,6 @@ func (s *Service) validateScenarioCapability(
 	supported, err := s.speechCatalog.SupportsScenarioForSubject(catalogSubjectUserIDFromContext(ctx), catalogProviderType, modelResolved, scenarioType)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrModelNotFound) {
-			if isVoiceWorkflowScenario(scenarioType) && localrouting.IsKnownProvider(providerType) {
-				return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, err, grpcerr.ReasonOptions{
-					Message: "voice workflow is unavailable for the selected model",
-				})
-			}
 			return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
 				Message: "model was not found in the AI catalog",
 			})
@@ -159,8 +129,8 @@ func isVoiceWorkflowScenario(scenarioType runtimev1.ScenarioType) bool {
 
 func scenarioCapabilityCatalogProviderType(providerType string, scenarioType runtimev1.ScenarioType) string {
 	normalized := strings.ToLower(strings.TrimSpace(providerType))
-	if localrouting.IsKnownProvider(normalized) {
-		return "local"
+	if isRetiredAmbientLocalProvider(normalized) {
+		return ""
 	}
 	if providerregistry.Contains(normalized) {
 		return normalized
@@ -237,16 +207,7 @@ func localModelSupportsTextGenerateCapability(model *runtimev1.LocalAssetRecord,
 }
 
 func (s *Service) validateLocalTextGenerateInputCapabilities(
-	ctx context.Context,
-	modelResolved string,
-	input []*runtimev1.ChatMessage,
-) error {
-	return s.validateLocalTextGenerateInputCapabilitiesWithPlan(ctx, nil, modelResolved, input)
-}
-
-func (s *Service) validateLocalTextGenerateInputCapabilitiesWithPlan(
 	context.Context,
-	*localModelExecutionPlan,
 	string,
 	[]*runtimev1.ChatMessage,
 ) error {
@@ -268,7 +229,7 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 	if len(required) == 0 {
 		return nil
 	}
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED)
+	providerType := scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED)
 	if providerType == "" {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 	}
@@ -304,22 +265,11 @@ func (s *Service) validateTextGenerateInputParts(
 	selected provider,
 	input []*runtimev1.ChatMessage,
 ) error {
-	return s.validateTextGenerateInputPartsWithLocalPlan(ctx, nil, modelResolved, remoteTarget, selected, input)
-}
-
-func (s *Service) validateTextGenerateInputPartsWithLocalPlan(
-	ctx context.Context,
-	plan *localModelExecutionPlan,
-	modelResolved string,
-	remoteTarget *nimillm.RemoteTarget,
-	selected provider,
-	input []*runtimev1.ChatMessage,
-) error {
 	if _, unsupported := unsupportedTextGeneratePartType(input); unsupported {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && remoteTarget == nil {
-		return s.validateLocalTextGenerateInputCapabilitiesWithPlan(ctx, plan, modelResolved, input)
+		return s.validateLocalTextGenerateInputCapabilities(ctx, modelResolved, input)
 	}
 	return s.validateRemoteTextGenerateInputCapabilities(ctx, modelResolved, remoteTarget, selected, input)
 }

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
@@ -42,24 +43,30 @@ type liveSmokeProviderHarness struct {
 	modelCatalog map[string]*runtimev1.ConnectorModelDescriptor
 }
 
-func (h liveSmokeProviderHarness) scenarioHead(t *testing.T, appID string, subjectUserID string, modelID string, timeoutMS int32) *runtimev1.ScenarioRequestHead {
+func (h liveSmokeProviderHarness) scenarioHead(t *testing.T, appID string, subjectUserID string, _ string, timeoutMS int32) *runtimev1.ScenarioRequestHead {
 	t.Helper()
-	head := &runtimev1.ScenarioRequestHead{
+	return &runtimev1.ScenarioRequestHead{
 		AppId:         appID,
 		SubjectUserId: subjectUserID,
-		ModelId:       strings.TrimSpace(modelID),
-		RoutePolicy:   h.routePolicy,
-		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		TimeoutMs:     timeoutMS,
 	}
-	if h.routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		head.TargetRef = localScenarioTargetRefForModel(modelID)
-		return head
+}
+
+func (h liveSmokeProviderHarness) scenarioContext(t *testing.T, scenarioType runtimev1.ScenarioType, modelID string) context.Context {
+	t.Helper()
+	if h.routePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		t.Fatalf("live Scenario provider smoke requires caller-owned Cloud AIConfig intent; Local execution is covered by the selected-capability llama journey")
 	}
 	descriptor := h.connectorModelDescriptor(t, modelID)
-	head.ConnectorId = h.connectorID
-	head.TargetRef = cloudScenarioTargetRefForDescriptor(h.connectorID, descriptor)
-	return head
+	target := cloudScenarioTargetRefForDescriptor(h.connectorID, descriptor)
+	if target == nil || target.Cloud == nil || !target.Cloud.Valid() {
+		t.Fatalf("live cloud smoke model %q for provider %s produced an incomplete private target", modelID, h.providerID)
+	}
+	return executionintent.WithIntent(h.context, executionintent.Intent{
+		CapabilityContract: scenarioTargetCapability(scenarioType),
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		CloudTarget:        target.Cloud,
+	})
 }
 
 func (h liveSmokeProviderHarness) connectorModelDescriptor(t *testing.T, modelID string) *runtimev1.ConnectorModelDescriptor {
@@ -67,8 +74,9 @@ func (h liveSmokeProviderHarness) connectorModelDescriptor(t *testing.T, modelID
 	if strings.TrimSpace(h.connectorID) == "" {
 		t.Fatalf("live cloud smoke for %s is missing connector identity", h.providerID)
 	}
-	for _, candidate := range liveSmokeCatalogModelCandidates(h.providerID, modelID) {
-		if descriptor := h.modelCatalog[candidate]; descriptor != nil {
+	exactModelID := strings.TrimSpace(modelID)
+	if exactModelID == modelID {
+		if descriptor := h.modelCatalog[exactModelID]; descriptor != nil {
 			return descriptor
 		}
 	}
@@ -76,45 +84,7 @@ func (h liveSmokeProviderHarness) connectorModelDescriptor(t *testing.T, modelID
 	return nil
 }
 
-func liveSmokeCatalogModelCandidates(providerID string, modelID string) []string {
-	candidates := make([]string, 0, 8)
-	add := func(value string) {
-		trimmed := strings.TrimSpace(value)
-		if trimmed == "" {
-			return
-		}
-		for _, existing := range candidates {
-			if existing == trimmed {
-				return
-			}
-		}
-		candidates = append(candidates, trimmed)
-		lower := strings.ToLower(trimmed)
-		if lower != trimmed {
-			candidates = append(candidates, lower)
-		}
-	}
-	add(modelID)
-	withoutRoute := strings.TrimSpace(modelID)
-	for {
-		next := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(withoutRoute, "cloud/"), "token/"))
-		if next == withoutRoute {
-			break
-		}
-		withoutRoute = next
-		add(withoutRoute)
-	}
-	if segments := strings.SplitN(withoutRoute, "/", 2); len(segments) == 2 {
-		prefix := strings.TrimSpace(segments[0])
-		rest := strings.TrimSpace(segments[1])
-		if nimillm.ResolveProviderAlias(prefix) == nimillm.ResolveProviderAlias(providerID) {
-			add(rest)
-		}
-	}
-	return candidates
-}
-
-func TestLiveSmokeCloudScenarioHeadUsesManagedCatalogTargetRef(t *testing.T) {
+func TestLiveSmokeCloudScenarioContextUsesManagedCatalogTarget(t *testing.T) {
 	harness := liveSmokeProviderHarness{
 		providerID:   "openai",
 		connectorID:  liveSmokeCloudConnectorID("openai"),
@@ -130,17 +100,14 @@ func TestLiveSmokeCloudScenarioHeadUsesManagedCatalogTargetRef(t *testing.T) {
 		EndpointProfileId:    "endpoint-profile-openai",
 	}
 
-	head := harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, "cloud/gpt-4o-mini", 45_000)
-
-	if head.GetConnectorId() != liveSmokeCloudConnectorID("openai") {
-		t.Fatalf("connector_id = %q", head.GetConnectorId())
+	ctx := harness.scenarioContext(t, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, "gpt-4o-mini")
+	intent, ok := executionintent.FromContext(ctx)
+	if !ok || intent.CloudTarget == nil {
+		t.Fatalf("expected private cloud AIConfig intent")
 	}
-	cloud := head.GetTargetRef().GetCloud()
-	if cloud == nil {
-		t.Fatalf("expected cloud targetRef, got %#v", head.GetTargetRef())
-	}
+	cloud := intent.CloudTarget
 	if cloud.GetConnectorId() != liveSmokeCloudConnectorID("openai") {
-		t.Fatalf("targetRef connector_id = %q", cloud.GetConnectorId())
+		t.Fatalf("private target connector_id = %q", cloud.GetConnectorId())
 	}
 	if cloud.GetRemoteModelCatalogId() != "remote-catalog-openai-gpt-4o-mini" {
 		t.Fatalf("remote_model_catalog_id = %q", cloud.GetRemoteModelCatalogId())
@@ -157,7 +124,7 @@ func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 	for _, providerID := range providerregistry.SourceProviders {
 		providerID := providerID
 		record, ok := providerregistry.Lookup(providerID)
-		if !ok {
+		if !ok || providerID == "local" {
 			continue
 		}
 		t.Run(providerID, func(t *testing.T) {
@@ -206,58 +173,6 @@ func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 	}
 }
 
-func TestLiveSmokeLocalSidecarMusicPromptOnly(t *testing.T) {
-	sidecarBaseURL := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_BASE_URL"))
-	if sidecarBaseURL == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_SIDECAR_BASE_URL to run local sidecar music live smoke")
-	}
-	modelID := liveEnvFirst("NIMI_LIVE_LOCAL_SIDECAR_MUSIC_MODEL_ID", "NIMI_LIVE_LOCAL_MUSIC_MODEL_ID")
-	if modelID == "" {
-		t.Skip("set NIMI_LIVE_LOCAL_SIDECAR_MUSIC_MODEL_ID or NIMI_LIVE_LOCAL_MUSIC_MODEL_ID to run local sidecar music live smoke")
-	}
-	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsMusic {
-		t.Skip("local provider does not advertise music support")
-	}
-
-	harness := newLiveSmokeProviderHarnessForProvider(t, "local", record)
-	svc := harness.service
-	submitResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
-		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, qualifyLocalSidecarLiveModelID(modelID), 120_000),
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateScenarioSpec{
-				Prompt: "A short atmospheric cue with warm pads and a gentle pulse.",
-				Title:  "Nimi Local Sidecar Smoke",
-			}},
-		},
-	})
-	if err != nil {
-		t.Fatalf("submit local sidecar music scenario job failed: %v", err)
-	}
-	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
-	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
-		t.Fatalf("local sidecar music job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
-	}
-	artifactsResp, err := svc.GetScenarioArtifacts(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioArtifactsRequest{
-		JobId: submitResp.GetJob().GetJobId(),
-	})
-	if err != nil {
-		t.Fatalf("GetScenarioArtifacts(%s): %v", submitResp.GetJob().GetJobId(), err)
-	}
-	if len(artifactsResp.GetArtifacts()) == 0 {
-		t.Fatalf("local sidecar music live smoke returned no artifacts")
-	}
-	first := artifactsResp.GetArtifacts()[0]
-	if len(first.GetBytes()) == 0 && strings.TrimSpace(first.GetUri()) == "" {
-		t.Fatalf("local sidecar music artifact must contain bytes or uri")
-	}
-	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(first.GetMimeType())), "audio/") {
-		t.Fatalf("local sidecar music artifact mime type must be audio/*, got %q", first.GetMimeType())
-	}
-}
-
 func liveProviderEnvToken(providerID string) string {
 	token := strings.TrimSpace(strings.ToUpper(providerID))
 	token = strings.ReplaceAll(token, "-", "_")
@@ -277,37 +192,12 @@ func newLiveSmokeServiceForProvider(t *testing.T, providerID string, record prov
 func newLiveSmokeProviderHarnessForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord) liveSmokeProviderHarness {
 	t.Helper()
 	if providerID == "local" {
-		return newLiveSmokeLocalProviderHarness(t, providerID)
+		t.Fatalf("ambient Local provider smoke is retired; use the selected-capability llama journey")
 	}
-
 	envToken := liveProviderEnvToken(providerID)
 	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_"+envToken+"_BASE_URL", record.DefaultEndpoint)
 	apiKey := requiredLiveProviderAPIKey(t, providerID, envToken)
 	return newLiveSmokeCloudProviderHarness(t, providerID, baseURL, apiKey, liveSmokeProviderHeaders(providerID))
-}
-
-func newLiveSmokeLocalProviderHarness(t *testing.T, providerID string) liveSmokeProviderHarness {
-	t.Helper()
-	baseURL := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_BASE_URL")
-	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY"))
-	speechBaseURL := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_BASE_URL"))
-	speechAPIKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY"))
-	sidecarBaseURL := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_BASE_URL"))
-	sidecarAPIKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_API_KEY"))
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{
-			"llama":   {BaseURL: baseURL, APIKey: apiKey},
-			"media":   {BaseURL: baseURL, APIKey: apiKey},
-			"speech":  {BaseURL: firstNonEmptyString(speechBaseURL, baseURL), APIKey: firstNonEmptyString(speechAPIKey, apiKey)},
-			"sidecar": {BaseURL: firstNonEmptyString(sidecarBaseURL, baseURL), APIKey: firstNonEmptyString(sidecarAPIKey, apiKey)},
-		},
-	})
-	return liveSmokeProviderHarness{
-		service:     svc,
-		context:     context.Background(),
-		providerID:  providerID,
-		routePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-	}
 }
 
 func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL string, apiKey string, headers map[string]string) liveSmokeProviderHarness {
@@ -409,11 +299,11 @@ func liveSmokeIndexConnectorModel(index map[string]*runtimev1.ConnectorModelDesc
 	if trimmed == "" {
 		return
 	}
-	index[trimmed] = descriptor
-	lower := strings.ToLower(trimmed)
-	if lower != trimmed {
-		index[lower] = descriptor
+	if existing, found := index[trimmed]; found && existing != descriptor {
+		index[trimmed] = nil
+		return
 	}
+	index[trimmed] = descriptor
 }
 
 func requiredLiveProviderAPIKey(t *testing.T, providerID string, envToken string) string {
@@ -427,141 +317,6 @@ func requiredLiveProviderAPIKey(t *testing.T, providerID string, envToken string
 	}
 	t.Skipf("set one of %s to run %s live smoke", strings.Join(keys, ", "), providerID)
 	return ""
-}
-
-func routePolicyForProvider(providerID string) runtimev1.RoutePolicy {
-	if providerID == "local" {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	}
-	return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
-}
-
-func qualifyLiveModelIDForRoute(providerID string, modelID string) string {
-	modelID = strings.TrimSpace(modelID)
-	if modelID == "" || providerID == "local" {
-		return modelID
-	}
-	lower := strings.ToLower(modelID)
-	if strings.HasPrefix(lower, "cloud/") || strings.HasPrefix(lower, "token/") || strings.Contains(modelID, "/") {
-		return modelID
-	}
-	return "cloud/" + modelID
-}
-
-func qualifyLocalSidecarLiveModelID(modelID string) string {
-	normalized := strings.TrimSpace(modelID)
-	lower := strings.ToLower(normalized)
-	switch {
-	case normalized == "":
-		return ""
-	case strings.HasPrefix(lower, "sidecar/"):
-		return normalized
-	default:
-		return "sidecar/" + normalized
-	}
-}
-
-func qualifyLocalSpeechLiveModelID(modelID string) string {
-	normalized := strings.TrimSpace(modelID)
-	lower := strings.ToLower(normalized)
-	switch {
-	case normalized == "":
-		return ""
-	case strings.HasPrefix(lower, "speech/"):
-		return normalized
-	case strings.Contains(normalized, "/"):
-		return normalized
-	default:
-		return "speech/" + normalized
-	}
-}
-
-func isAdmittedLocalQwen3WorkflowModelID(modelID string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(modelID))
-	return normalized != "" && (strings.Contains(normalized, "qwen3-tts") || strings.Contains(normalized, "qwen3tts"))
-}
-
-func isAdmittedLocalQwen3STTModelID(modelID string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(modelID))
-	return normalized != "" && (strings.Contains(normalized, "qwen3-asr") || strings.Contains(normalized, "qwen3asr"))
-}
-
-func localSpeechHealthURL(baseURL string) string {
-	normalized := strings.TrimRight(strings.TrimSpace(baseURL), "/")
-	if strings.HasSuffix(normalized, "/v1") {
-		return strings.TrimSuffix(normalized, "/v1") + "/healthz"
-	}
-	return normalized + "/healthz"
-}
-
-func localSpeechCatalogURL(baseURL string) string {
-	normalized := strings.TrimRight(strings.TrimSpace(baseURL), "/")
-	if strings.HasSuffix(normalized, "/v1") {
-		return normalized + "/catalog"
-	}
-	return normalized + "/v1/catalog"
-}
-
-func runLocalSpeechHostPreflight(t *testing.T, baseURL string, apiKey string, modelID string) {
-	t.Helper()
-
-	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, localSpeechHealthURL(baseURL), nil)
-	if err != nil {
-		t.Fatalf("build local speech health request: %v", err)
-	}
-	if strings.TrimSpace(apiKey) != "" {
-		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
-	}
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		t.Fatalf("local speech health preflight failed: %v", err)
-	}
-	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("local speech health preflight status=%d", response.StatusCode)
-	}
-	var healthPayload map[string]any
-	if err := json.NewDecoder(response.Body).Decode(&healthPayload); err != nil {
-		t.Fatalf("decode local speech health preflight: %v", err)
-	}
-	if ready, _ := healthPayload["ready"].(bool); !ready {
-		t.Fatalf("local speech health preflight not ready: %#v", healthPayload)
-	}
-
-	catalogRequest, err := http.NewRequestWithContext(context.Background(), http.MethodGet, localSpeechCatalogURL(baseURL), nil)
-	if err != nil {
-		t.Fatalf("build local speech catalog request: %v", err)
-	}
-	if strings.TrimSpace(apiKey) != "" {
-		catalogRequest.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
-	}
-	catalogResponse, err := http.DefaultClient.Do(catalogRequest)
-	if err != nil {
-		t.Fatalf("local speech catalog preflight failed: %v", err)
-	}
-	defer func() { _ = catalogResponse.Body.Close() }()
-	if catalogResponse.StatusCode != http.StatusOK {
-		t.Fatalf("local speech catalog preflight status=%d", catalogResponse.StatusCode)
-	}
-	var catalogPayload map[string]any
-	if err := json.NewDecoder(catalogResponse.Body).Decode(&catalogPayload); err != nil {
-		t.Fatalf("decode local speech catalog preflight: %v", err)
-	}
-	if ready, _ := catalogPayload["ready"].(bool); !ready {
-		t.Fatalf("local speech catalog preflight not ready: %#v", catalogPayload)
-	}
-	models, _ := catalogPayload["models"].([]any)
-	for _, item := range models {
-		entry, _ := item.(map[string]any)
-		if strings.TrimSpace(nimillm.ValueAsString(entry["id"])) != modelID {
-			continue
-		}
-		if ready, _ := entry["ready"].(bool); !ready {
-			t.Fatalf("local speech catalog model %q not ready: %#v", modelID, entry)
-		}
-		return
-	}
-	t.Fatalf("local speech catalog missing ready model %q: %#v", modelID, catalogPayload)
 }
 
 func resolveLiveTTSVoiceRef(t *testing.T, svc *Service, providerID string, modelID string) string {
@@ -637,16 +392,6 @@ func liveSmokeTimeoutMS(scenarioType runtimev1.ScenarioType) int32 {
 func liveSmokeShouldOnlyVerifyAsyncAcceptance(providerID string, scenarioType runtimev1.ScenarioType) bool {
 	return scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE &&
 		strings.EqualFold(strings.TrimSpace(providerID), "volcengine")
-}
-
-func firstNonEmptyString(values ...string) string {
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }
 
 func resolveLiveAudioMIME(resource string) string {
@@ -800,7 +545,7 @@ func maybeSkipFishAudioBalancePreflight(t *testing.T, svc *Service, providerID s
 		return
 	}
 
-	cfg := svc.resolveNativeAdapterConfig("fish_audio", nil)
+	cfg := svc.resolveConfiguredProbeAdapterConfig("fish_audio")
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		baseURL = "https://api.fish.audio"
@@ -823,7 +568,7 @@ func maybeSkipFishAudioBalancePreflight(t *testing.T, svc *Service, providerID s
 		t.Fatalf("build fish_audio preflight request: %v", err)
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("model", strings.TrimSpace(strings.TrimPrefix(modelID, "cloud/")))
+	request.Header.Set("model", strings.TrimSpace(modelID))
 	if strings.TrimSpace(cfg.APIKey) != "" {
 		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(cfg.APIKey))
 	}
@@ -844,9 +589,9 @@ func maybeSkipFishAudioBalancePreflight(t *testing.T, svc *Service, providerID s
 func runLiveSmokeGenerateForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord) {
 	t.Helper()
 	harness := newLiveSmokeProviderHarnessForProvider(t, providerID, record)
-	modelID := qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "MODEL_ID", ""))
+	modelID := envModelIDForProvider(t, providerID, "MODEL_ID", "")
 	text, err := executeLiveSmokeScenarioGenerateTextWithHead(
-		harness.context,
+		harness.scenarioContext(t, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, modelID),
 		harness.service,
 		harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 45_000),
 	)
@@ -862,9 +607,9 @@ func runLiveSmokeGenerateForProvider(t *testing.T, providerID string, record pro
 func runLiveSmokeEmbedForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord) {
 	t.Helper()
 	harness := newLiveSmokeProviderHarnessForProvider(t, providerID, record)
-	modelID := qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "EMBED_MODEL_ID", "MODEL_ID"))
+	modelID := envModelIDForProvider(t, providerID, "EMBED_MODEL_ID", "MODEL_ID")
 
-	resp, err := harness.service.ExecuteScenario(harness.context, &runtimev1.ExecuteScenarioRequest{
+	resp, err := harness.service.ExecuteScenario(harness.scenarioContext(t, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, modelID), &runtimev1.ExecuteScenarioRequest{
 		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 45_000),
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -891,16 +636,13 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 	spec := &runtimev1.ScenarioSpec{}
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
-		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "IMAGE_MODEL_ID", "MODEL_ID"))
+		modelID = envModelIDForProvider(t, providerID, "IMAGE_MODEL_ID", "MODEL_ID")
 		spec.Spec = &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "A tiny planet above the sea."}}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
-		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "VIDEO_MODEL_ID", "MODEL_ID"))
+		modelID = envModelIDForProvider(t, providerID, "VIDEO_MODEL_ID", "MODEL_ID")
 		spec.Spec = &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: liveSmokeVideoGenerateSpec(providerID, modelID)}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
-		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "TTS_MODEL_ID", "MODEL_ID"))
-		if providerID == "local" {
-			modelID = qualifyLocalSpeechLiveModelID(modelID)
-		}
+		modelID = envModelIDForProvider(t, providerID, "TTS_MODEL_ID", "MODEL_ID")
 		speechText := "Hello from Nimi live smoke."
 		language := ""
 		audioFormat := ""
@@ -920,17 +662,14 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		}
 		spec.Spec = &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: speechSpec}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
-		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "STT_MODEL_ID", "MODEL_ID"))
-		if providerID == "local" {
-			modelID = qualifyLocalSpeechLiveModelID(modelID)
-		}
+		modelID = envModelIDForProvider(t, providerID, "STT_MODEL_ID", "MODEL_ID")
 		audioSource, mimeType := resolveLiveTranscriptionAudioSource(t)
 		spec.Spec = &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
 			MimeType:    mimeType,
 			AudioSource: audioSource,
 		}}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
-		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "MUSIC_MODEL_ID", "MODEL_ID"))
+		modelID = envModelIDForProvider(t, providerID, "MUSIC_MODEL_ID", "MODEL_ID")
 		spec.Spec = &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateScenarioSpec{
 			Prompt: "A short cinematic electronic cue with warm synths and a steady pulse.",
 			Title:  "Nimi Live Smoke Cue",
@@ -942,7 +681,7 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		maybeSkipFishAudioBalancePreflight(t, svc, providerID, modelID)
 	}
 
-	submitResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+	submitResp, err := svc.SubmitScenarioJob(harness.scenarioContext(t, scenarioType, modelID), &runtimev1.SubmitScenarioJobRequest{
 		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, liveSmokeTimeoutMS(scenarioType)),
 		ScenarioType:  scenarioType,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,

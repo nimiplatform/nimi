@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -91,10 +92,10 @@ func TestValidateMusicGenerateIterationSupport(t *testing.T) {
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	if err := validateMusicGenerateIterationSupport(context.Background(), svc, "stability/stable-audio-2", nil, nil, parsed); err != nil {
+	if err := validateMusicGenerateIterationSupport(context.Background(), svc, "stable-audio-2", &nimillm.RemoteTarget{ProviderType: "stability"}, nil, parsed); err != nil {
 		t.Fatalf("expected stability iteration support, got err=%v", err)
 	}
-	err = validateMusicGenerateIterationSupport(context.Background(), svc, "openai/gpt-5.2", nil, nil, parsed)
+	err = validateMusicGenerateIterationSupport(context.Background(), svc, "gpt-5.2", &nimillm.RemoteTarget{ProviderType: "openai"}, nil, parsed)
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)

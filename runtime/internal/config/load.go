@@ -104,8 +104,6 @@ func Load() (Config, error) {
 		DataRootRef:                     resolveDataRootRef(fileCfg),
 		ManagedRoots:                    resolveManagedRoots(fileCfg),
 		LocalService:                    resolveLocalService(fileCfg),
-		DefaultLocalTextModel:           readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL", fileCfg.DefaultLocalTextModel, ""),
-		DefaultCloudProvider:            normalizeDefaultCloudProvider(readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER", fileCfg.DefaultCloudProvider, "")),
 		SessionTTLMinSeconds:            sessionTTLMinSeconds,
 		SessionTTLMaxSeconds:            sessionTTLMaxSeconds,
 		AIHealthIntervalSeconds:         aiHealthIntervalSeconds,
@@ -302,6 +300,8 @@ func rejectRemovedModelCatalogRemoteEnv() error {
 
 func rejectLegacyLocalRuntimeEnv() error {
 	legacyMessages := map[string]string{
+		"NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL":                 "local execution is selected by AIConfig intent and Machine Local Capability Configuration",
+		"NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER":                   "cloud execution is selected by caller-owned AIConfig intent",
 		"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL":                     "ambient llama endpoints are retired; use a selected Local Capability Configuration",
 		"NIMI_RUNTIME_LOCAL_LLAMA_API_KEY":                      "ambient llama endpoints are retired; use a selected Local Capability Configuration",
 		"NIMI_RUNTIME_LOCAL_AI_BASE_URL":                        "ambient local AI endpoints are retired; use a selected Local Capability Configuration",
@@ -351,15 +351,4 @@ func readString(envKey string, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-func normalizeDefaultCloudProvider(raw string) string {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
-		return ""
-	}
-	if canonical, ok := ResolveCanonicalProviderID(trimmed); ok {
-		return canonical
-	}
-	return trimmed
 }

@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 )
 
 const (
@@ -77,7 +77,34 @@ func classifyManagedEngineSupportForAsset(
 }
 
 func normalizeLocalCapabilityToken(value string) string {
-	return localrouting.NormalizeCapability(value)
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	switch normalized {
+	case "chat":
+		normalized = aicapabilities.TextGenerate
+	case "embedding", "embed":
+		normalized = aicapabilities.TextEmbed
+	case "image":
+		normalized = aicapabilities.ImageGenerate
+	case "video":
+		normalized = aicapabilities.VideoGenerate
+	case "music":
+		normalized = aicapabilities.MusicGenerate
+	case "tts", "speech":
+		normalized = aicapabilities.AudioSynthesize
+	case "stt", "transcription":
+		normalized = aicapabilities.AudioTranscribe
+	}
+	if catalogCapability, err := aicapabilities.NormalizeCatalogCapability(normalized); err == nil {
+		switch catalogCapability {
+		case aicapabilities.TextGenerateVision, aicapabilities.TextGenerateAudio, aicapabilities.TextGenerateVideo:
+			return aicapabilities.TextGenerate
+		case aicapabilities.MusicGenerateIteration:
+			return aicapabilities.MusicGenerate
+		default:
+			return catalogCapability
+		}
+	}
+	return normalized
 }
 
 func localAssetHasCapability(capabilities []string, targets ...string) bool {

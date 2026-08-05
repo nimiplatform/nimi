@@ -61,7 +61,6 @@ func newAsyncVideoJobRequest(prompt string) *runtimev1.SubmitScenarioJobRequest 
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.test",
 			SubjectUserId: "user-1",
-			ModelId:       "video-model",
 			TimeoutMs:     int32((5 * time.Second) / time.Millisecond),
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,

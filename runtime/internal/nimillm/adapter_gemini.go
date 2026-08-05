@@ -252,7 +252,7 @@ func ExecuteGeminiImageGenerateContent(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	resolvedModel := normalizeGeminiGenerateContentModel(modelResolved)
+	resolvedModel := strings.TrimSpace(modelResolved)
 	generationConfig := map[string]any{
 		"responseModalities": []string{"IMAGE"},
 	}
@@ -322,18 +322,6 @@ func resolveGeminiNativeBaseURL(baseURL string) string {
 		return strings.TrimSuffix(normalized, "/openai")
 	}
 	return normalized
-}
-
-func normalizeGeminiGenerateContentModel(modelResolved string) string {
-	normalized := strings.TrimSpace(modelResolved)
-	normalized = strings.TrimPrefix(normalized, "models/")
-	if idx := strings.Index(normalized, "/"); idx > 0 {
-		prefix := strings.TrimSpace(normalized[:idx])
-		if strings.EqualFold(prefix, "gemini") {
-			normalized = strings.TrimSpace(normalized[idx+1:])
-		}
-	}
-	return strings.TrimSpace(normalized)
 }
 
 func resolveGeminiImageAspectRatio(spec *runtimev1.ImageGenerateScenarioSpec) string {

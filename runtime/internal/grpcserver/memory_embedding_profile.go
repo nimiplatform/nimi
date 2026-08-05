@@ -9,6 +9,7 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
@@ -163,33 +164,24 @@ func resolveLocalRuntimeMemoryEmbeddingProfile(
 				return strings.TrimSpace(asset.GetAssetId())
 			}(),
 			MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
-			LocalBinding:    runtimeMemoryEmbeddingLocalBinding(snapshot.LocalBinding),
 		},
 		ResolutionState:   "resolved",
 		BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 	}
 }
 
-func runtimeMemoryEmbeddingDurableLocalTarget(
-	input *memoryservice.MemoryEmbeddingLocalBindingRef,
-) *runtimev1.RuntimeDurableLocalTargetRef {
+func runtimeMemoryEmbeddingDurableLocalTarget(input *memoryservice.MemoryEmbeddingLocalBindingRef) *runtimeidentity.LocalTarget {
 	if input == nil {
 		return nil
 	}
-	target := &runtimev1.RuntimeDurableLocalTargetRef{Version: "v2"}
-	if profileBindingID := strings.TrimSpace(input.ProfileBindingID); profileBindingID != "" {
-		target.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-			ProfileBindingId: profileBindingID,
-		}
-		return target
+	target := &runtimeidentity.LocalTarget{
+		ProfileBindingID: strings.TrimSpace(input.ProfileBindingID),
+		ReadinessRef:     strings.TrimSpace(input.ReadinessRef),
 	}
-	if readinessRef := strings.TrimSpace(input.ReadinessRef); readinessRef != "" {
-		target.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{
-			ReadinessRef: readinessRef,
-		}
-		return target
+	if !target.Valid() {
+		return nil
 	}
-	return nil
+	return target
 }
 
 func resolveCloudRuntimeMemoryEmbeddingProfile(
@@ -295,23 +287,6 @@ func resolveCloudRuntimeMemoryEmbeddingProfile(
 		ResolutionState:   "resolved",
 		BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 	}
-}
-
-func runtimeMemoryEmbeddingLocalBinding(input *memoryservice.MemoryEmbeddingLocalBindingRef) *runtimev1.MemoryEmbeddingLocalBindingRef {
-	if input == nil {
-		return nil
-	}
-	if profileBindingID := strings.TrimSpace(input.ProfileBindingID); profileBindingID != "" {
-		return &runtimev1.MemoryEmbeddingLocalBindingRef{
-			Ref: &runtimev1.MemoryEmbeddingLocalBindingRef_ProfileBindingId{ProfileBindingId: profileBindingID},
-		}
-	}
-	if readinessRef := strings.TrimSpace(input.ReadinessRef); readinessRef != "" {
-		return &runtimev1.MemoryEmbeddingLocalBindingRef{
-			Ref: &runtimev1.MemoryEmbeddingLocalBindingRef_ReadinessRef{ReadinessRef: readinessRef},
-		}
-	}
-	return nil
 }
 
 func memoryEmbeddingConnectorVisibleToCaller(ctx context.Context, record connectorservice.ConnectorRecord) bool {

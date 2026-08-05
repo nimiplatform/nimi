@@ -42,12 +42,6 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 		merged.ManagedRoots = &managedRootsCopy
 		pruneEmptyManagedRootsConfig(&merged)
 	}
-	if v := strings.TrimSpace(raw.DefaultLocalTextModel); v != "" {
-		merged.DefaultLocalTextModel = v
-	}
-	if v := strings.TrimSpace(raw.DefaultCloudProvider); v != "" {
-		merged.DefaultCloudProvider = v
-	}
 	if raw.AIHealthIntervalSeconds != nil {
 		merged.AIHealthIntervalSeconds = raw.AIHealthIntervalSeconds
 	}

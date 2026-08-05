@@ -27,7 +27,7 @@ func ExecuteElevenLabsTTS(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.elevenlabs.io"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -59,7 +59,7 @@ func ExecuteElevenLabsTTS(
 	}
 
 	payload := map[string]any{
-		"model_id":       StripProviderModelPrefix(modelResolved, "elevenlabs"),
+		"model_id":       strings.TrimSpace(modelResolved),
 		"text":           strings.TrimSpace(spec.GetText()),
 		"voice_settings": voiceSettings,
 	}

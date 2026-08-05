@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 )
 
@@ -19,7 +20,7 @@ type DurableLocalComponentSelection struct {
 	Role           string
 	ComponentKind  string
 	LogicalModelID string
-	TargetRef      *runtimev1.RuntimeDurableLocalTargetRef
+	TargetRef      *runtimeidentity.LocalTarget
 	Required       bool
 	Weight         string
 	Options        map[string]any
@@ -61,7 +62,7 @@ var durableLocalImageComponentMetadataSchemas = map[string]map[string]durableLoc
 
 func (s *Service) ValidateDurableLocalImageTargetComponents(
 	ctx context.Context,
-	target *runtimev1.RuntimeDurableLocalTargetRef,
+	target *runtimeidentity.LocalTarget,
 	components []DurableLocalComponentSelection,
 ) error {
 	state, err := s.durableLocalImageBindingState(target)
@@ -117,9 +118,9 @@ func (s *Service) ValidateDurableLocalImageTargetComponents(
 
 func (s *Service) MaterializeDurableLocalImageTarget(
 	ctx context.Context,
-	baseTarget *runtimev1.RuntimeDurableLocalTargetRef,
+	baseTarget *runtimeidentity.LocalTarget,
 	components []DurableLocalComponentSelection,
-) (*runtimev1.RuntimeDurableLocalTargetRef, error) {
+) (*runtimeidentity.LocalTarget, error) {
 	return s.materializeDurableLocalImageTargetWithStructure(ctx, baseTarget, baseTarget, components)
 }
 
@@ -130,19 +131,19 @@ func (s *Service) MaterializeDurableLocalImageTarget(
 // readiness reference from being misused as a profile structure template.
 func (s *Service) MaterializeDurableLocalImageTargetFromCommitted(
 	ctx context.Context,
-	committedTarget *runtimev1.RuntimeDurableLocalTargetRef,
-	mainTarget *runtimev1.RuntimeDurableLocalTargetRef,
+	committedTarget *runtimeidentity.LocalTarget,
+	mainTarget *runtimeidentity.LocalTarget,
 	components []DurableLocalComponentSelection,
-) (*runtimev1.RuntimeDurableLocalTargetRef, error) {
+) (*runtimeidentity.LocalTarget, error) {
 	return s.materializeDurableLocalImageTargetWithStructure(ctx, committedTarget, mainTarget, components)
 }
 
 func (s *Service) materializeDurableLocalImageTargetWithStructure(
 	ctx context.Context,
-	structureTarget *runtimev1.RuntimeDurableLocalTargetRef,
-	mainTarget *runtimev1.RuntimeDurableLocalTargetRef,
+	structureTarget *runtimeidentity.LocalTarget,
+	mainTarget *runtimeidentity.LocalTarget,
 	components []DurableLocalComponentSelection,
-) (*runtimev1.RuntimeDurableLocalTargetRef, error) {
+) (*runtimeidentity.LocalTarget, error) {
 	base, err := s.durableLocalImageBindingState(structureTarget)
 	if err != nil {
 		return nil, err
@@ -368,7 +369,7 @@ func validateDurableLocalImageComponentCompatibility(
 }
 
 func (s *Service) durableLocalImageBindingState(
-	target *runtimev1.RuntimeDurableLocalTargetRef,
+	target *runtimeidentity.LocalTarget,
 ) (managedImageProfileState, error) {
 	if s == nil || target == nil || strings.TrimSpace(target.GetVersion()) != "v2" {
 		return managedImageProfileState{}, durableLocalTargetInvalidError()

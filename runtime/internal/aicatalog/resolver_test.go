@@ -136,6 +136,19 @@ func TestResolveVoicesVolcengineOpenSpeechCanonicalModels(t *testing.T) {
 	}
 }
 
+func TestParseProviderDocumentYAMLRejectsFilenameProviderInference(t *testing.T) {
+	raw := []byte(`version: 1
+catalog_version: test-v1
+inventory_mode: static_source
+models:
+  - model_id: gpt-test
+    capabilities: [text.generate]
+`)
+	if _, err := parseProviderDocumentYAML(raw, "openai.yaml"); err == nil || !strings.Contains(err.Error(), "provider is required") {
+		t.Fatalf("missing explicit provider error = %v", err)
+	}
+}
+
 func TestParseProviderDocumentYAMLPreservesDashScopeCanonicalVoiceIDs(t *testing.T) {
 	raw, err := runtimecatalog.DefaultProvidersFS.ReadFile("providers/dashscope.yaml")
 	if err != nil {
@@ -247,22 +260,13 @@ func TestResolveVoicesElevenLabsModel(t *testing.T) {
 	}
 }
 
-func TestInferProviderFromModelLocalAndDashScope(t *testing.T) {
-	cases := []struct {
-		modelID  string
-		expected string
-	}{
-		{modelID: "local/qwen3-tts-local", expected: "local"},
-		{modelID: "qwen3-tts-local", expected: "local"},
-		{modelID: "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", expected: "local"},
-		{modelID: "qwen3-tts-instruct-flash", expected: "dashscope"},
-		{modelID: "elevenlabs/eleven_multilingual_v2", expected: "elevenlabs"},
-		{modelID: "eleven_flash_v2_5", expected: "elevenlabs"},
+func TestResolveVoicesRequiresExplicitProvider(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
 	}
-	for _, c := range cases {
-		if got := inferProviderFromModel(c.modelID); got != c.expected {
-			t.Fatalf("inferProviderFromModel(%q)=%q, want=%q", c.modelID, got, c.expected)
-		}
+	if _, err := resolver.ResolveVoices("", "qwen3-tts-instruct-flash"); err != ErrModelNotFound {
+		t.Fatalf("provider-less ResolveVoices error = %v, want ErrModelNotFound", err)
 	}
 }
 

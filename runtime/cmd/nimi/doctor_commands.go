@@ -143,10 +143,10 @@ func runRuntimeDoctor(args []string) error {
 				Name:   "cloud provider",
 				Value:  "none",
 				Status: "warn",
-				Detail: "Try 'nimi run \"Hello from Nimi\" --provider gemini'",
+				Detail: "Configure caller-owned AIConfig, then try 'nimi run \"Hello from Nimi\"'",
 			})
 			if nextStep == "" {
-				nextStep = `nimi run "Hello from Nimi" --provider gemini`
+				nextStep = `configure caller-owned AIConfig, then run: nimi run "Hello from Nimi"`
 			}
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
 
 const profileRuntimeDescriptorSchemaVersion = 1
@@ -187,7 +188,7 @@ type ProfileRuntimeDescriptorPrepareSliceResult struct {
 	Provider             string
 	ProviderModelID      string
 	ConnectorSelector    string
-	TargetRef            *runtimev1.RuntimeDurableLocalTargetRef
+	TargetRef            *runtimeidentity.LocalTarget
 	SelectedComponents   []ProfileRuntimeDescriptorPreparedComponentSelection
 }
 
@@ -197,7 +198,7 @@ type ProfileRuntimeDescriptorPreparedComponentSelection struct {
 	Role           string
 	ComponentKind  string
 	LogicalModelID string
-	TargetRef      *runtimev1.RuntimeDurableLocalTargetRef
+	TargetRef      *runtimeidentity.LocalTarget
 	Required       bool
 	Weight         string
 	Options        map[string]any
@@ -290,7 +291,7 @@ func (s *Service) prepareProfileRuntimeDescriptorInternal(
 			}
 			asset := s.localAssetByID(mainFact.LocalAssetID)
 			var (
-				target *runtimev1.RuntimeDurableLocalTargetRef
+				target *runtimeidentity.LocalTarget
 				status runtimev1.LocalAssetStatus
 			)
 			if strings.TrimSpace(result.Capability) == "image.generate" &&
@@ -541,17 +542,12 @@ func (s *Service) profileRuntimeDescriptorPreparedComponents(
 	return out, nil
 }
 
-func durableLocalWorkflowBindingTargetRef(profileBindingID string) *runtimev1.RuntimeDurableLocalTargetRef {
+func durableLocalWorkflowBindingTargetRef(profileBindingID string) *runtimeidentity.LocalTarget {
 	bindingID := strings.TrimSpace(profileBindingID)
 	if !strings.HasPrefix(bindingID, workflowBindingIDPrefix+profileRuntimeMaterializationKeyPrefix) {
 		return nil
 	}
-	return &runtimev1.RuntimeDurableLocalTargetRef{
-		Version: "v2",
-		Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-			ProfileBindingId: bindingID,
-		},
-	}
+	return &runtimeidentity.LocalTarget{ProfileBindingID: bindingID}
 }
 
 func profileRuntimeDescriptorMainAssetFact(

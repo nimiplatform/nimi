@@ -7,6 +7,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
@@ -21,6 +23,7 @@ type ownerAwareRuntimeAIVoiceAssetService struct {
 	publicCalls  int
 	privateCalls int
 	asset        *runtimev1.VoiceAsset
+	target       *runtimeidentity.Target
 }
 
 func (s *ownerAwareRuntimeAIVoiceAssetService) GetVoiceAsset(
@@ -35,9 +38,9 @@ func (s *ownerAwareRuntimeAIVoiceAssetService) ResolveRuntimeAgentVoiceAsset(
 	_ context.Context,
 	_ string,
 	_ string,
-) (*runtimev1.VoiceAsset, error) {
+) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error) {
 	s.privateCalls++
-	return proto.Clone(s.asset).(*runtimev1.VoiceAsset), nil
+	return proto.Clone(s.asset).(*runtimev1.VoiceAsset), s.target.Clone(), nil
 }
 
 func (f *ownerCapturingNativeVoiceExecutor) StreamScenario(
@@ -56,6 +59,7 @@ func TestAIBackedVoiceAssetResolverUsesOwnerAwareRuntimePrivateLookupForAutoplay
 			AppId:         "nimi.voice-demo",
 			SubjectUserId: "user-1",
 		},
+		target: durableVoiceAssetTargetRef(),
 	}
 	resolver := NewAIBackedVoiceAssetResolver(aiService)
 	asset, err := resolver.ResolveVoiceAsset(
@@ -68,7 +72,7 @@ func TestAIBackedVoiceAssetResolverUsesOwnerAwareRuntimePrivateLookupForAutoplay
 	if aiService.privateCalls != 1 || aiService.publicCalls != 0 {
 		t.Fatalf("resolver calls private=%d public=%d, want private=1 public=0", aiService.privateCalls, aiService.publicCalls)
 	}
-	if asset.GetAppId() != "nimi.voice-demo" || asset.GetSubjectUserId() != "user-1" {
+	if asset.Asset.GetAppId() != "nimi.voice-demo" || asset.Asset.GetSubjectUserId() != "user-1" || asset.Target == nil {
 		t.Fatalf("owner-aware asset = %v", asset)
 	}
 }
@@ -82,37 +86,30 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 		voiceAssetID   = "voice-asset-song-lian"
 		connectorID    = "connector-dashscope-owner"
 	)
-	targetRef := &runtimev1.RuntimeDurableTargetRef{
-		Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-			Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-				Version:              "v2",
-				ConnectorId:          connectorID,
-				RemoteModelCatalogId: "dashscope/cosyvoice-v3-flash",
-				ProviderModelId:      "cosyvoice-v3-flash",
-				Provider:             "dashscope",
-			},
-		},
-	}
+	targetRef := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID: connectorID, RemoteModelCatalogID: "dashscope/cosyvoice-v3-flash",
+		ProviderModelID: "cosyvoice-v3-flash", Provider: "dashscope",
+	}}
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	upsertPublicChatTestAgentAIConfig(t, svc, publicChatExecutionBinding{
 		ModelID: "dashscope/cosyvoice-v3-flash", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ConnectorID: connectorID, TargetRef: proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef),
+		ConnectorID: connectorID, TargetRef: targetRef.Clone(),
 	})
 	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, requestedID string) (*runtimev1.VoiceAsset, error) {
-		return &runtimev1.VoiceAsset{
-			VoiceAssetId:        requestedID,
-			AppId:               voiceDemoAppID,
-			SubjectUserId:       ownerUserID,
-			WorkflowType:        runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
-			Provider:            "dashscope",
-			TargetModelId:       "dashscope/cosyvoice-v3-flash",
-			ProviderVoiceRef:    "cosyvoice-song-lian",
-			Persistence:         runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
-			Status:              runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
-			TargetRef:           proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef),
-			VoiceAssetTargetRef: proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef),
-		}, nil
+		asset := &runtimev1.VoiceAsset{
+			VoiceAssetId:     requestedID,
+			AppId:            voiceDemoAppID,
+			SubjectUserId:    ownerUserID,
+			WorkflowType:     runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
+			Provider:         "dashscope",
+			TargetModelId:    "dashscope/cosyvoice-v3-flash",
+			ProviderVoiceRef: "cosyvoice-song-lian",
+			Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+			Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+		}
+		setVoiceAssetTargetRefs(asset, targetRef)
+		return asset, nil
 	}))
 
 	presentationContext := testLocalAgentContext(ownerUserID, "agent-alpha")
@@ -241,8 +238,10 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 	if head.GetAppId() != voiceDemoAppID || head.GetSubjectUserId() != ownerUserID {
 		t.Fatalf("voice execution owner = %q/%q, want %q/%q", head.GetAppId(), head.GetSubjectUserId(), voiceDemoAppID, ownerUserID)
 	}
-	if head.GetConnectorId() != connectorID || !proto.Equal(head.GetTargetRef(), targetRef) {
-		t.Fatalf("voice execution lost committed connector/target: head=%v", head)
+	intent, ok := executionintent.FromContext(voiceAI.streamContext)
+	if !ok || intent.CloudTarget == nil || intent.CloudTarget.ConnectorID != connectorID ||
+		!runtimeidentity.Equal(&runtimeidentity.Target{Cloud: intent.CloudTarget}, targetRef) {
+		t.Fatalf("voice execution lost private connector/target intent: %+v, ok=%v", intent, ok)
 	}
 	voiceRef := voiceAI.streamReq.GetSpec().GetSpeechSynthesize().GetVoiceRef()
 	if voiceRef.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||

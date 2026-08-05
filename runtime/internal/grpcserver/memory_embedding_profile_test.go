@@ -183,7 +183,6 @@ func TestResolveLocalRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *t
 func TestRuntimeMemoryEmbeddingDurableLocalTargetPreservesOpaqueV2Binding(t *testing.T) {
 	profileTarget := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{
 		ProfileBindingID: "opaque-profile-binding",
-		ReadinessRef:     "ignored-readiness-ref",
 	})
 	if profileTarget.GetVersion() != "v2" ||
 		profileTarget.GetProfileBindingId() != "opaque-profile-binding" ||
@@ -202,5 +201,11 @@ func TestRuntimeMemoryEmbeddingDurableLocalTargetPreservesOpaqueV2Binding(t *tes
 
 	if got := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{}); got != nil {
 		t.Fatalf("empty binding target = %+v", got)
+	}
+	if got := runtimeMemoryEmbeddingDurableLocalTarget(&memoryservice.MemoryEmbeddingLocalBindingRef{
+		ProfileBindingID: "profile",
+		ReadinessRef:     "readiness",
+	}); got != nil {
+		t.Fatalf("ambiguous binding target = %+v", got)
 	}
 }

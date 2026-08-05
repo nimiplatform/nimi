@@ -24,7 +24,6 @@ type NativeProjection struct {
 	PreferredEngine  string
 	FallbackEngines  []string
 	BundleState      runtimev1.LocalBundleState
-	WarmState        runtimev1.LocalWarmState
 	HostRequirements *runtimev1.LocalHostRequirements
 }
 
@@ -62,7 +61,6 @@ func InferNativeProjection(modelID string, capabilities []string, files []string
 		PreferredEngine:  inferPreferredEngine(normalizedCaps),
 		FallbackEngines:  inferFallbackEngines(normalizedCaps),
 		BundleState:      bundleStateForModelStatus(status),
-		WarmState:        warmStateForModelStatus(status),
 		HostRequirements: inferHostRequirements(normalizedCaps),
 	}
 	return projection, nil
@@ -115,7 +113,6 @@ func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) 
 		PreferredEngine:  firstNonEmpty(disk.PreferredEngine, inferPreferredEngine(disk.Capabilities)),
 		FallbackEngines:  publicFallbackEngines(disk.FallbackEngines),
 		BundleState:      bundleStateForModelStatus(status),
-		WarmState:        warmStateForModelStatus(status),
 		HostRequirements: hostRequirementsFromDiskMap(disk.HostRequirements),
 	}
 	if projection.HostRequirements == nil {
@@ -539,19 +536,6 @@ func bundleStateForModelStatus(status runtimev1.ModelStatus) runtimev1.LocalBund
 		return runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_REMOVED
 	default:
 		return runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_UNSPECIFIED
-	}
-}
-
-func warmStateForModelStatus(status runtimev1.ModelStatus) runtimev1.LocalWarmState {
-	switch status {
-	case runtimev1.ModelStatus_MODEL_STATUS_PULLING:
-		return runtimev1.LocalWarmState_LOCAL_WARM_STATE_WARMING
-	case runtimev1.ModelStatus_MODEL_STATUS_INSTALLED:
-		return runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD
-	case runtimev1.ModelStatus_MODEL_STATUS_FAILED:
-		return runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED
-	default:
-		return runtimev1.LocalWarmState_LOCAL_WARM_STATE_UNSPECIFIED
 	}
 }
 

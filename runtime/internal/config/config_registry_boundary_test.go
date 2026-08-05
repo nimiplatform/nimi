@@ -114,7 +114,6 @@ func TestLoadAcceptsRegistryDrivenCanonicalProviderNameInConfigFile(t *testing.T
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
-  "defaultCloudProvider": "together",
   "providers": {
     "together": {
       "baseUrl": "https://api.together.xyz/v1",
@@ -131,9 +130,6 @@ func TestLoadAcceptsRegistryDrivenCanonicalProviderNameInConfigFile(t *testing.T
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.DefaultCloudProvider != "together" {
-		t.Fatalf("defaultCloudProvider mismatch: %q", cfg.DefaultCloudProvider)
 	}
 	target, ok := cfg.Providers["together"]
 	if !ok {

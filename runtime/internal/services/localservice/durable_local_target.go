@@ -9,8 +9,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -30,9 +30,9 @@ var (
 // interprets model_id, asset_id, logical_model_id, or source prefixes.
 func (s *Service) ResolveDurableLocalTarget(
 	ctx context.Context,
-	target *runtimev1.RuntimeDurableLocalTargetRef,
+	target *runtimeidentity.LocalTarget,
 	capability string,
-) (*runtimev1.RuntimeResolvedLocalExecutionBinding, *runtimev1.LocalAssetRecord, error) {
+) (*runtimeidentity.ResolvedLocalBinding, *runtimev1.LocalAssetRecord, error) {
 	return s.resolveDurableLocalTarget(ctx, target, capability, "")
 }
 
@@ -41,19 +41,19 @@ func (s *Service) ResolveDurableLocalTarget(
 // is only a compatibility constraint; it never participates in identity.
 func (s *Service) ResolveDurableLocalComponentTarget(
 	ctx context.Context,
-	target *runtimev1.RuntimeDurableLocalTargetRef,
+	target *runtimeidentity.LocalTarget,
 	componentKind string,
-) (*runtimev1.RuntimeResolvedLocalExecutionBinding, *runtimev1.LocalAssetRecord, error) {
+) (*runtimeidentity.ResolvedLocalBinding, *runtimev1.LocalAssetRecord, error) {
 	return s.resolveDurableLocalTarget(ctx, target, "", componentKind)
 }
 
 func (s *Service) resolveDurableLocalTarget(
 	_ context.Context,
-	target *runtimev1.RuntimeDurableLocalTargetRef,
+	target *runtimeidentity.LocalTarget,
 	capability string,
 	componentKind string,
-) (*runtimev1.RuntimeResolvedLocalExecutionBinding, *runtimev1.LocalAssetRecord, error) {
-	if s == nil || target == nil || strings.TrimSpace(target.GetVersion()) != "v2" {
+) (*runtimeidentity.ResolvedLocalBinding, *runtimev1.LocalAssetRecord, error) {
+	if s == nil || target == nil || !target.Valid() {
 		return nil, nil, durableLocalTargetInvalidError()
 	}
 	normalizedCapability := normalizeLocalCapabilityToken(capability)
@@ -66,13 +66,8 @@ func (s *Service) resolveDurableLocalTarget(
 	defer s.mu.RUnlock()
 
 	var asset *runtimev1.LocalAssetRecord
-	binding := &runtimev1.RuntimeResolvedLocalExecutionBinding{}
-	switch ref := target.GetRef().(type) {
-	case *runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId:
-		profileBindingID := strings.TrimSpace(ref.ProfileBindingId)
-		if profileBindingID == "" {
-			return nil, nil, durableLocalTargetInvalidError()
-		}
+	binding := &runtimeidentity.ResolvedLocalBinding{}
+	if profileBindingID := strings.TrimSpace(target.ProfileBindingID); profileBindingID != "" {
 		profile, matched := s.managedImageProfileBindings[profileBindingID]
 		if !matched || !profile.MaterializationResolved {
 			return nil, nil, durableLocalTargetUnavailableError()
@@ -82,12 +77,8 @@ func (s *Service) resolveDurableLocalTarget(
 		if asset == nil {
 			return nil, nil, durableLocalTargetUnavailableError()
 		}
-		binding.ProfileBindingId = profileBindingID
-	case *runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef:
-		readinessRef := strings.TrimSpace(ref.ReadinessRef)
-		if readinessRef == "" {
-			return nil, nil, durableLocalTargetInvalidError()
-		}
+		binding.ProfileBindingID = profileBindingID
+	} else if readinessRef := strings.TrimSpace(target.ReadinessRef); readinessRef != "" {
 		var matched *runtimev1.LocalAssetRecord
 		for _, candidate := range s.assets {
 			canonical := s.durableLocalTargetRefForAssetLocked(candidate)
@@ -107,7 +98,7 @@ func (s *Service) resolveDurableLocalTarget(
 		}
 		asset = matched
 		binding.ReadinessRef = readinessRef
-	default:
+	} else {
 		return nil, nil, durableLocalTargetInvalidError()
 	}
 
@@ -130,18 +121,15 @@ func (s *Service) resolveDurableLocalTarget(
 	}
 
 	projected := cloneLocalAsset(asset)
-	projected.DurableTargetRef = cloneDurableLocalTargetRef(target)
-	projected.DurableTargetStatus, projected.DurableTargetReasonCode =
-		s.durableLocalTargetReadinessLocked(asset, target)
-	binding.LocalAssetId = localAssetID
-	binding.ExecutionProfileId = strings.TrimSpace(asset.GetLocalInvokeProfileId())
-	binding.ResolvedModelId = resolvedPublicIdentity
+	binding.LocalAssetID = localAssetID
+	binding.ExecutionProfileID = strings.TrimSpace(asset.GetLocalInvokeProfileId())
+	binding.ResolvedModelID = resolvedPublicIdentity
 	return binding, projected, nil
 }
 
 func (s *Service) projectDurableLocalTargetForAsset(
 	asset *runtimev1.LocalAssetRecord,
-) (*runtimev1.RuntimeDurableLocalTargetRef, runtimev1.LocalAssetStatus, runtimev1.ReasonCode) {
+) (*runtimeidentity.LocalTarget, runtimev1.LocalAssetStatus, runtimev1.ReasonCode) {
 	if s == nil || asset == nil {
 		return nil, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	}
@@ -165,7 +153,7 @@ func (s *Service) projectDurableLocalTargetForAsset(
 
 func (s *Service) projectDurableLocalSelectionTargetForAsset(
 	asset *runtimev1.LocalAssetRecord,
-) *runtimev1.RuntimeDurableLocalTargetRef {
+) *runtimeidentity.LocalTarget {
 	if s == nil || asset == nil {
 		return nil
 	}
@@ -184,7 +172,7 @@ func (s *Service) projectDurableLocalSelectionTargetForAsset(
 
 func (s *Service) durableLocalTargetRefForAssetLocked(
 	asset *runtimev1.LocalAssetRecord,
-) *runtimev1.RuntimeDurableLocalTargetRef {
+) *runtimeidentity.LocalTarget {
 	if asset == nil || strings.TrimSpace(asset.GetLogicalModelId()) == "" {
 		return nil
 	}
@@ -193,7 +181,7 @@ func (s *Service) durableLocalTargetRefForAssetLocked(
 
 func (s *Service) durableLocalAssetSelectionRefForAssetLocked(
 	asset *runtimev1.LocalAssetRecord,
-) *runtimev1.RuntimeDurableLocalTargetRef {
+) *runtimeidentity.LocalTarget {
 	if asset == nil {
 		return nil
 	}
@@ -201,12 +189,7 @@ func (s *Service) durableLocalAssetSelectionRefForAssetLocked(
 	if localAssetID == "" || effectiveLocalComponentPublicIdentity(asset) == "" {
 		return nil
 	}
-	return &runtimev1.RuntimeDurableLocalTargetRef{
-		Version: "v2",
-		Ref: &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{
-			ReadinessRef: durableLocalAssetReadinessRef(localAssetID),
-		},
-	}
+	return &runtimeidentity.LocalTarget{ReadinessRef: durableLocalAssetReadinessRef(localAssetID)}
 }
 
 // effectiveLocalComponentPublicIdentity returns the public identity carried by
@@ -238,7 +221,7 @@ func effectiveLocalComponentPublicIdentity(asset *runtimev1.LocalAssetRecord) st
 
 func (s *Service) durableLocalTargetReadinessLocked(
 	asset *runtimev1.LocalAssetRecord,
-	target *runtimev1.RuntimeDurableLocalTargetRef,
+	target *runtimeidentity.LocalTarget,
 ) (runtimev1.LocalAssetStatus, runtimev1.ReasonCode) {
 	if asset == nil || target == nil {
 		return runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
@@ -322,13 +305,8 @@ func localAssetTargetReason(asset *runtimev1.LocalAssetRecord) runtimev1.ReasonC
 	return runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
 }
 
-func cloneDurableLocalTargetRef(
-	target *runtimev1.RuntimeDurableLocalTargetRef,
-) *runtimev1.RuntimeDurableLocalTargetRef {
-	if target == nil {
-		return nil
-	}
-	return proto.Clone(target).(*runtimev1.RuntimeDurableLocalTargetRef)
+func cloneDurableLocalTargetRef(target *runtimeidentity.LocalTarget) *runtimeidentity.LocalTarget {
+	return target.Clone()
 }
 
 func durableLocalTargetInvalidError() error {

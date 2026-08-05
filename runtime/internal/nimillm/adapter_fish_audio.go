@@ -26,7 +26,7 @@ func ExecuteFishAudioTTS(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.fish.audio"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -42,7 +42,7 @@ func ExecuteFishAudioTTS(
 	}
 
 	voiceRef := strings.TrimSpace(scenarioVoiceRef(spec))
-	resolvedModel := StripProviderModelPrefix(modelResolved, "fish_audio", "fish-audio")
+	resolvedModel := strings.TrimSpace(modelResolved)
 	ext := scenarioExtensionPayloadForScenario(req)
 
 	payload := map[string]any{
@@ -70,7 +70,7 @@ func ExecuteFishAudioTTS(
 		applyFishAudioTTSExtensions(payload, ext)
 	}
 
-	endpoint := resolveFishAudioTTSPath(ext)
+	endpoint := resolveFishAudioTTSPath()
 	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, headers)
 	if err != nil {
 		return nil, nil, "", err
@@ -93,13 +93,8 @@ func ExecuteFishAudioTTS(
 	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
 }
 
-func resolveFishAudioTTSPath(scenarioExtensions map[string]any) string {
-	return FirstProviderEndpointPath(
-		scenarioExtensions,
-		[]string{"tts_path", "speech_path"},
-		[]string{"tts_paths", "speech_paths"},
-		[]string{"/v1/tts"},
-	)
+func resolveFishAudioTTSPath() string {
+	return firstProviderEndpointPath([]string{"/v1/tts"})
 }
 
 func applyFishAudioTTSExtensions(payload map[string]any, ext map[string]any) {

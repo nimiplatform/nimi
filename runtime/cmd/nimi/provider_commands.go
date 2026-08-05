@@ -11,16 +11,12 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
-	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
 type providerListItem struct {
-	Provider      string `json:"provider"`
-	BaseURL       string `json:"baseUrl,omitempty"`
-	DefaultModel  string `json:"defaultModel,omitempty"`
-	DefaultSource string `json:"defaultSource,omitempty"`
-	Credential    string `json:"credential"`
-	Default       bool   `json:"default"`
+	Provider   string `json:"provider"`
+	BaseURL    string `json:"baseUrl,omitempty"`
+	Credential string `json:"credential"`
 }
 
 func splitLeadingPositionalArg(args []string) (string, []string) {
@@ -84,17 +80,6 @@ func mutateProviderConfig(mutator func(*config.FileConfig) error) (string, confi
 	return path, fileCfg, nil
 }
 
-func providerDefaultModelValue(providerName string, fileCfg config.FileConfig) (string, string) {
-	target := fileCfg.Providers[providerName]
-	if value := strings.TrimSpace(target.DefaultModel); value != "" {
-		return value, "config"
-	}
-	if entry, ok := connector.ProviderCatalog[providerName]; ok && strings.TrimSpace(entry.DefaultTextModel) != "" {
-		return strings.TrimSpace(entry.DefaultTextModel), "catalog"
-	}
-	return "", ""
-}
-
 func runRuntimeProviderList(args []string) error {
 	fs := flag.NewFlagSet("nimi provider list", flag.ContinueOnError)
 	fs.SetOutput(os.Stdout)
@@ -121,14 +106,10 @@ func runRuntimeProviderList(args []string) error {
 
 	items := make([]providerListItem, 0, len(fileCfg.Providers))
 	for providerName, target := range fileCfg.Providers {
-		defaultModel, defaultSource := providerDefaultModelValue(providerName, fileCfg)
 		items = append(items, providerListItem{
-			Provider:      providerName,
-			BaseURL:       strings.TrimSpace(target.BaseURL),
-			DefaultModel:  defaultModel,
-			DefaultSource: defaultSource,
-			Credential:    providerCredentialKind(target),
-			Default:       strings.TrimSpace(fileCfg.DefaultCloudProvider) == providerName,
+			Provider:   providerName,
+			BaseURL:    strings.TrimSpace(target.BaseURL),
+			Credential: providerCredentialKind(target),
 		})
 	}
 	sort.Slice(items, func(i, j int) bool {
@@ -137,9 +118,8 @@ func runRuntimeProviderList(args []string) error {
 
 	if *jsonOutput {
 		out, err := json.MarshalIndent(map[string]any{
-			"path":                 path,
-			"defaultCloudProvider": strings.TrimSpace(fileCfg.DefaultCloudProvider),
-			"providers":            items,
+			"path":      path,
+			"providers": items,
 		}, "", "  ")
 		if err != nil {
 			return err
@@ -151,28 +131,16 @@ func runRuntimeProviderList(args []string) error {
 	if len(items) == 0 {
 		printCLIHeader(os.Stdout, "Nimi Providers")
 		printCLIField(os.Stdout, "config", path)
-		printCLIField(os.Stdout, "default", "(none)")
 		printCLIField(os.Stdout, "providers", "none")
-		printCLINextStep(os.Stdout, `nimi run "What is Nimi?" --provider gemini`)
+		printCLINextStep(os.Stdout, `configure caller-owned AIConfig, then run: nimi run "What is Nimi?"`)
 		return nil
 	}
 	printCLIHeader(os.Stdout, "Nimi Providers")
 	printCLIField(os.Stdout, "config", path)
-	defaultProvider := strings.TrimSpace(fileCfg.DefaultCloudProvider)
-	if defaultProvider == "" {
-		defaultProvider = "(none)"
-	}
-	printCLIField(os.Stdout, "default", defaultProvider)
 	fmt.Println()
 	for _, item := range items {
 		fmt.Printf("  %s\n", item.Provider)
-		credentialValue := item.Credential
-		if item.Default {
-			credentialValue = credentialValue + " (default)"
-		}
-		printCLIField(os.Stdout, "credential", credentialValue)
-		printCLIField(os.Stdout, "model", item.DefaultModel)
-		printCLIField(os.Stdout, "model source", item.DefaultSource)
+		printCLIField(os.Stdout, "credential", item.Credential)
 		printCLIField(os.Stdout, "base URL", item.BaseURL)
 		fmt.Println()
 	}
@@ -187,8 +155,6 @@ func runRuntimeProviderSet(args []string) error {
 	apiKey := fs.String("api-key", "", "provider api key")
 	apiKeyEnv := fs.String("api-key-env", "", "provider api key env var name")
 	baseURL := fs.String("base-url", "", "provider base url")
-	defaultModel := fs.String("default-model", "", "default model id")
-	setDefault := fs.Bool("default", false, "set this provider as the default cloud provider")
 	jsonOutput := fs.Bool("json", false, "output json")
 	if err := fs.Parse(remainingArgs); err != nil {
 		return err
@@ -197,7 +163,7 @@ func runRuntimeProviderSet(args []string) error {
 		providerArg = fs.Arg(0)
 	}
 	if providerArg == "" {
-		return fmt.Errorf("provider name is required. Usage: nimi provider set <provider> [--api-key ... | --api-key-env ...] [--default-model <model>] [--default]")
+		return fmt.Errorf("provider name is required. Usage: nimi provider set <provider> [--api-key ... | --api-key-env ...] [--base-url ...]")
 	}
 	if strings.TrimSpace(*apiKey) != "" && strings.TrimSpace(*apiKeyEnv) != "" {
 		return fmt.Errorf("choose one credential source: use either --api-key or --api-key-env")
@@ -206,11 +172,6 @@ func runRuntimeProviderSet(args []string) error {
 	providerName, err := canonicalCloudProviderName(providerArg)
 	if err != nil {
 		return err
-	}
-	if *setDefault && strings.TrimSpace(*defaultModel) == "" {
-		if entry, ok := connector.ProviderCatalog[providerName]; !ok || strings.TrimSpace(entry.DefaultTextModel) == "" {
-			return fmt.Errorf("provider %s has no catalog default text model. Use --default-model <model> together with --default", providerName)
-		}
 	}
 	path, fileCfg, err := mutateProviderConfig(func(fileCfg *config.FileConfig) error {
 		target := fileCfg.Providers[providerName]
@@ -225,30 +186,18 @@ func runRuntimeProviderSet(args []string) error {
 		if value := strings.TrimSpace(*baseURL); value != "" {
 			target.BaseURL = value
 		}
-		if value := strings.TrimSpace(*defaultModel); value != "" {
-			target.DefaultModel = value
-		}
 		fileCfg.Providers[providerName] = target
-		if *setDefault {
-			fileCfg.DefaultCloudProvider = providerName
-		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
 	target := fileCfg.Providers[providerName]
-	displayDefaultModel, defaultSource := providerDefaultModelValue(providerName, fileCfg)
-
 	payload := map[string]any{
-		"path":                   path,
-		"provider":               providerName,
-		"credential":             providerCredentialKind(target),
-		"default_model":          displayDefaultModel,
-		"default_model_source":   defaultSource,
-		"base_url":               target.BaseURL,
-		"default":                strings.TrimSpace(fileCfg.DefaultCloudProvider) == providerName,
-		"default_cloud_provider": strings.TrimSpace(fileCfg.DefaultCloudProvider),
+		"path":       path,
+		"provider":   providerName,
+		"credential": providerCredentialKind(target),
+		"base_url":   target.BaseURL,
 	}
 	if *jsonOutput {
 		out, err := json.MarshalIndent(payload, "", "  ")
@@ -262,21 +211,12 @@ func runRuntimeProviderSet(args []string) error {
 	printCLIHeader(os.Stdout, "Configured Provider")
 	printCLIField(os.Stdout, "provider", providerName)
 	printCLIField(os.Stdout, "credential", providerCredentialKind(target))
-	printCLIField(os.Stdout, "model", displayDefaultModel)
-	printCLIField(os.Stdout, "model source", defaultSource)
 	printCLIField(os.Stdout, "base URL", target.BaseURL)
-	if strings.TrimSpace(fileCfg.DefaultCloudProvider) == providerName {
-		printCLIField(os.Stdout, "default", "yes")
-	}
 	printCLIField(os.Stdout, "config", path)
 	if strings.TrimSpace(target.APIKey) != "" {
 		printCLIField(os.Stdout, "warning", fmt.Sprintf("stored API key inline in %s. Prefer --api-key-env when possible.", path))
 	}
-	if strings.TrimSpace(fileCfg.DefaultCloudProvider) == providerName {
-		printCLINextStep(os.Stdout, `nimi run "What is Nimi?" --cloud`)
-		return nil
-	}
-	printCLINextStep(os.Stdout, fmt.Sprintf(`nimi run "What is Nimi?" --provider %s`, providerName))
+	printCLINextStep(os.Stdout, `configure caller-owned AIConfig, then run: nimi run "What is Nimi?"`)
 	return nil
 }
 
@@ -300,11 +240,8 @@ func runRuntimeProviderUnset(args []string) error {
 	if err != nil {
 		return err
 	}
-	path, fileCfg, err := mutateProviderConfig(func(fileCfg *config.FileConfig) error {
+	path, _, err := mutateProviderConfig(func(fileCfg *config.FileConfig) error {
 		delete(fileCfg.Providers, providerName)
-		if strings.TrimSpace(fileCfg.DefaultCloudProvider) == providerName {
-			fileCfg.DefaultCloudProvider = ""
-		}
 		return nil
 	})
 	if err != nil {
@@ -312,10 +249,9 @@ func runRuntimeProviderUnset(args []string) error {
 	}
 
 	payload := map[string]any{
-		"path":                 path,
-		"provider":             providerName,
-		"removed":              true,
-		"defaultCloudProvider": strings.TrimSpace(fileCfg.DefaultCloudProvider),
+		"path":     path,
+		"provider": providerName,
+		"removed":  true,
 	}
 	if *jsonOutput {
 		out, err := json.MarshalIndent(payload, "", "  ")
@@ -329,9 +265,6 @@ func runRuntimeProviderUnset(args []string) error {
 	printCLIHeader(os.Stdout, "Removed Provider")
 	printCLIField(os.Stdout, "provider", providerName)
 	printCLIField(os.Stdout, "config", path)
-	if strings.TrimSpace(fileCfg.DefaultCloudProvider) == "" {
-		printCLIField(os.Stdout, "default", "(none)")
-	}
 	return nil
 }
 

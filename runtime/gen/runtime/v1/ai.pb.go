@@ -264,55 +264,6 @@ func (RoutePolicy) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{3}
 }
 
-type FallbackPolicy int32
-
-const (
-	FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED FallbackPolicy = 0
-	FallbackPolicy_FALLBACK_POLICY_DENY        FallbackPolicy = 1
-	FallbackPolicy_FALLBACK_POLICY_ALLOW       FallbackPolicy = 2
-)
-
-// Enum value maps for FallbackPolicy.
-var (
-	FallbackPolicy_name = map[int32]string{
-		0: "FALLBACK_POLICY_UNSPECIFIED",
-		1: "FALLBACK_POLICY_DENY",
-		2: "FALLBACK_POLICY_ALLOW",
-	}
-	FallbackPolicy_value = map[string]int32{
-		"FALLBACK_POLICY_UNSPECIFIED": 0,
-		"FALLBACK_POLICY_DENY":        1,
-		"FALLBACK_POLICY_ALLOW":       2,
-	}
-)
-
-func (x FallbackPolicy) Enum() *FallbackPolicy {
-	p := new(FallbackPolicy)
-	*p = x
-	return p
-}
-
-func (x FallbackPolicy) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (FallbackPolicy) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[4].Descriptor()
-}
-
-func (FallbackPolicy) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[4]
-}
-
-func (x FallbackPolicy) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use FallbackPolicy.Descriptor instead.
-func (FallbackPolicy) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{4}
-}
-
 type FinishReason int32
 
 const (
@@ -355,11 +306,11 @@ func (x FinishReason) String() string {
 }
 
 func (FinishReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[5].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[4].Descriptor()
 }
 
 func (FinishReason) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[5]
+	return &file_runtime_v1_ai_proto_enumTypes[4]
 }
 
 func (x FinishReason) Number() protoreflect.EnumNumber {
@@ -368,7 +319,7 @@ func (x FinishReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FinishReason.Descriptor instead.
 func (FinishReason) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{4}
 }
 
 type ReasoningMode int32
@@ -404,11 +355,11 @@ func (x ReasoningMode) String() string {
 }
 
 func (ReasoningMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[6].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[5].Descriptor()
 }
 
 func (ReasoningMode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[6]
+	return &file_runtime_v1_ai_proto_enumTypes[5]
 }
 
 func (x ReasoningMode) Number() protoreflect.EnumNumber {
@@ -417,7 +368,7 @@ func (x ReasoningMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ReasoningMode.Descriptor instead.
 func (ReasoningMode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{5}
 }
 
 type ReasoningTraceMode int32
@@ -453,11 +404,11 @@ func (x ReasoningTraceMode) String() string {
 }
 
 func (ReasoningTraceMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[7].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[6].Descriptor()
 }
 
 func (ReasoningTraceMode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[7]
+	return &file_runtime_v1_ai_proto_enumTypes[6]
 }
 
 func (x ReasoningTraceMode) Number() protoreflect.EnumNumber {
@@ -466,7 +417,7 @@ func (x ReasoningTraceMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ReasoningTraceMode.Descriptor instead.
 func (ReasoningTraceMode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{6}
 }
 
 type TokenProviderHealthStatus int32
@@ -511,11 +462,11 @@ func (x TokenProviderHealthStatus) String() string {
 }
 
 func (TokenProviderHealthStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[8].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[7].Descriptor()
 }
 
 func (TokenProviderHealthStatus) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[8]
+	return &file_runtime_v1_ai_proto_enumTypes[7]
 }
 
 func (x TokenProviderHealthStatus) Number() protoreflect.EnumNumber {
@@ -524,7 +475,7 @@ func (x TokenProviderHealthStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TokenProviderHealthStatus.Descriptor instead.
 func (TokenProviderHealthStatus) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{7}
 }
 
 type StreamEventType int32
@@ -578,11 +529,11 @@ func (x StreamEventType) String() string {
 }
 
 func (StreamEventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[9].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[8].Descriptor()
 }
 
 func (StreamEventType) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[9]
+	return &file_runtime_v1_ai_proto_enumTypes[8]
 }
 
 func (x StreamEventType) Number() protoreflect.EnumNumber {
@@ -591,7 +542,7 @@ func (x StreamEventType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use StreamEventType.Descriptor instead.
 func (StreamEventType) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{8}
 }
 
 type VideoMode int32
@@ -633,11 +584,11 @@ func (x VideoMode) String() string {
 }
 
 func (VideoMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[10].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[9].Descriptor()
 }
 
 func (VideoMode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[10]
+	return &file_runtime_v1_ai_proto_enumTypes[9]
 }
 
 func (x VideoMode) Number() protoreflect.EnumNumber {
@@ -646,7 +597,7 @@ func (x VideoMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VideoMode.Descriptor instead.
 func (VideoMode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{9}
 }
 
 type VideoContentType int32
@@ -688,11 +639,11 @@ func (x VideoContentType) String() string {
 }
 
 func (VideoContentType) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[11].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[10].Descriptor()
 }
 
 func (VideoContentType) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[11]
+	return &file_runtime_v1_ai_proto_enumTypes[10]
 }
 
 func (x VideoContentType) Number() protoreflect.EnumNumber {
@@ -701,7 +652,7 @@ func (x VideoContentType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VideoContentType.Descriptor instead.
 func (VideoContentType) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{10}
 }
 
 type VideoContentRole int32
@@ -749,11 +700,11 @@ func (x VideoContentRole) String() string {
 }
 
 func (VideoContentRole) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[12].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[11].Descriptor()
 }
 
 func (VideoContentRole) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[12]
+	return &file_runtime_v1_ai_proto_enumTypes[11]
 }
 
 func (x VideoContentRole) Number() protoreflect.EnumNumber {
@@ -762,7 +713,7 @@ func (x VideoContentRole) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VideoContentRole.Descriptor instead.
 func (VideoContentRole) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{11}
 }
 
 type SpeechTimingMode int32
@@ -801,11 +752,11 @@ func (x SpeechTimingMode) String() string {
 }
 
 func (SpeechTimingMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[13].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[12].Descriptor()
 }
 
 func (SpeechTimingMode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[13]
+	return &file_runtime_v1_ai_proto_enumTypes[12]
 }
 
 func (x SpeechTimingMode) Number() protoreflect.EnumNumber {
@@ -814,7 +765,7 @@ func (x SpeechTimingMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SpeechTimingMode.Descriptor instead.
 func (SpeechTimingMode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{12}
 }
 
 type SpeechAlignmentUnit int32
@@ -850,11 +801,11 @@ func (x SpeechAlignmentUnit) String() string {
 }
 
 func (SpeechAlignmentUnit) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[14].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[13].Descriptor()
 }
 
 func (SpeechAlignmentUnit) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[14]
+	return &file_runtime_v1_ai_proto_enumTypes[13]
 }
 
 func (x SpeechAlignmentUnit) Number() protoreflect.EnumNumber {
@@ -863,7 +814,7 @@ func (x SpeechAlignmentUnit) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SpeechAlignmentUnit.Descriptor instead.
 func (SpeechAlignmentUnit) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{13}
 }
 
 type ChatContentPartType int32
@@ -908,11 +859,11 @@ func (x ChatContentPartType) String() string {
 }
 
 func (ChatContentPartType) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[15].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[14].Descriptor()
 }
 
 func (ChatContentPartType) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[15]
+	return &file_runtime_v1_ai_proto_enumTypes[14]
 }
 
 func (x ChatContentPartType) Number() protoreflect.EnumNumber {
@@ -921,7 +872,7 @@ func (x ChatContentPartType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ChatContentPartType.Descriptor instead.
 func (ChatContentPartType) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{14}
 }
 
 type ToolSpecKind int32
@@ -957,11 +908,11 @@ func (x ToolSpecKind) String() string {
 }
 
 func (ToolSpecKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[16].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[15].Descriptor()
 }
 
 func (ToolSpecKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[16]
+	return &file_runtime_v1_ai_proto_enumTypes[15]
 }
 
 func (x ToolSpecKind) Number() protoreflect.EnumNumber {
@@ -970,7 +921,7 @@ func (x ToolSpecKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ToolSpecKind.Descriptor instead.
 func (ToolSpecKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{15}
 }
 
 // How the model is allowed or required to select tools for a text scenario.
@@ -1013,11 +964,11 @@ func (x ToolChoiceMode) String() string {
 }
 
 func (ToolChoiceMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[17].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[16].Descriptor()
 }
 
 func (ToolChoiceMode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[17]
+	return &file_runtime_v1_ai_proto_enumTypes[16]
 }
 
 func (x ToolChoiceMode) Number() protoreflect.EnumNumber {
@@ -1026,7 +977,7 @@ func (x ToolChoiceMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ToolChoiceMode.Descriptor instead.
 func (ToolChoiceMode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{16}
 }
 
 // Requested structured-output shape for a text scenario.
@@ -1066,11 +1017,11 @@ func (x ResponseFormatKind) String() string {
 }
 
 func (ResponseFormatKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[18].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[17].Descriptor()
 }
 
 func (ResponseFormatKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[18]
+	return &file_runtime_v1_ai_proto_enumTypes[17]
 }
 
 func (x ResponseFormatKind) Number() protoreflect.EnumNumber {
@@ -1079,7 +1030,7 @@ func (x ResponseFormatKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ResponseFormatKind.Descriptor instead.
 func (ResponseFormatKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{17}
 }
 
 type TextSourceType int32
@@ -1115,11 +1066,11 @@ func (x TextSourceType) String() string {
 }
 
 func (TextSourceType) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[19].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[18].Descriptor()
 }
 
 func (TextSourceType) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[19]
+	return &file_runtime_v1_ai_proto_enumTypes[18]
 }
 
 func (x TextSourceType) Number() protoreflect.EnumNumber {
@@ -1128,7 +1079,7 @@ func (x TextSourceType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TextSourceType.Descriptor instead.
 func (TextSourceType) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{18}
 }
 
 type ScenarioJobStatus int32
@@ -1179,11 +1130,11 @@ func (x ScenarioJobStatus) String() string {
 }
 
 func (ScenarioJobStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[20].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[19].Descriptor()
 }
 
 func (ScenarioJobStatus) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[20]
+	return &file_runtime_v1_ai_proto_enumTypes[19]
 }
 
 func (x ScenarioJobStatus) Number() protoreflect.EnumNumber {
@@ -1192,7 +1143,7 @@ func (x ScenarioJobStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ScenarioJobStatus.Descriptor instead.
 func (ScenarioJobStatus) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{19}
 }
 
 type ScenarioJobEventType int32
@@ -1243,11 +1194,11 @@ func (x ScenarioJobEventType) String() string {
 }
 
 func (ScenarioJobEventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_ai_proto_enumTypes[21].Descriptor()
+	return file_runtime_v1_ai_proto_enumTypes[20].Descriptor()
 }
 
 func (ScenarioJobEventType) Type() protoreflect.EnumType {
-	return &file_runtime_v1_ai_proto_enumTypes[21]
+	return &file_runtime_v1_ai_proto_enumTypes[20]
 }
 
 func (x ScenarioJobEventType) Number() protoreflect.EnumNumber {
@@ -1256,7 +1207,7 @@ func (x ScenarioJobEventType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ScenarioJobEventType.Descriptor instead.
 func (ScenarioJobEventType) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{20}
 }
 
 type ChatMessage struct {
@@ -2229,15 +2180,10 @@ func (x *RawChunk) GetValue() *structpb.Value {
 }
 
 type ScenarioRequestHead struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	AppId         string                   `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                   `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	ModelId       string                   `protobuf:"bytes,3,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	RoutePolicy   RoutePolicy              `protobuf:"varint,4,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
-	Fallback      FallbackPolicy           `protobuf:"varint,5,opt,name=fallback,proto3,enum=nimi.runtime.v1.FallbackPolicy" json:"fallback,omitempty"`
-	TimeoutMs     int32                    `protobuf:"varint,6,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
-	ConnectorId   string                   `protobuf:"bytes,7,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
-	TargetRef     *RuntimeDurableTargetRef `protobuf:"bytes,8,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	TimeoutMs     int32                  `protobuf:"varint,6,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2286,46 +2232,11 @@ func (x *ScenarioRequestHead) GetSubjectUserId() string {
 	return ""
 }
 
-func (x *ScenarioRequestHead) GetModelId() string {
-	if x != nil {
-		return x.ModelId
-	}
-	return ""
-}
-
-func (x *ScenarioRequestHead) GetRoutePolicy() RoutePolicy {
-	if x != nil {
-		return x.RoutePolicy
-	}
-	return RoutePolicy_ROUTE_POLICY_UNSPECIFIED
-}
-
-func (x *ScenarioRequestHead) GetFallback() FallbackPolicy {
-	if x != nil {
-		return x.Fallback
-	}
-	return FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED
-}
-
 func (x *ScenarioRequestHead) GetTimeoutMs() int32 {
 	if x != nil {
 		return x.TimeoutMs
 	}
 	return 0
-}
-
-func (x *ScenarioRequestHead) GetConnectorId() string {
-	if x != nil {
-		return x.ConnectorId
-	}
-	return ""
-}
-
-func (x *ScenarioRequestHead) GetTargetRef() *RuntimeDurableTargetRef {
-	if x != nil {
-		return x.TargetRef
-	}
-	return nil
 }
 
 type ScenarioExtension struct {
@@ -4757,17 +4668,16 @@ func (*ScenarioOutput_MusicGenerate) isScenarioOutput_Output() {}
 func (*ScenarioOutput_WorldGenerate) isScenarioOutput_Output() {}
 
 type ExecuteScenarioResponse struct {
-	state                    protoimpl.MessageState           `protogen:"open.v1"`
-	Output                   *ScenarioOutput                  `protobuf:"bytes,1,opt,name=output,proto3" json:"output,omitempty"`
-	FinishReason             FinishReason                     `protobuf:"varint,2,opt,name=finish_reason,json=finishReason,proto3,enum=nimi.runtime.v1.FinishReason" json:"finish_reason,omitempty"`
-	Usage                    *UsageStats                      `protobuf:"bytes,3,opt,name=usage,proto3" json:"usage,omitempty"`
-	RouteDecision            RoutePolicy                      `protobuf:"varint,4,opt,name=route_decision,json=routeDecision,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_decision,omitempty"`
-	ModelResolved            string                           `protobuf:"bytes,5,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
-	TraceId                  string                           `protobuf:"bytes,6,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	IgnoredExtensions        []*IgnoredScenarioExtension      `protobuf:"bytes,7,rep,name=ignored_extensions,json=ignoredExtensions,proto3" json:"ignored_extensions,omitempty"`
-	ResolvedExecutionBinding *RuntimeResolvedExecutionBinding `protobuf:"bytes,8,opt,name=resolved_execution_binding,json=resolvedExecutionBinding,proto3" json:"resolved_execution_binding,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state             protoimpl.MessageState      `protogen:"open.v1"`
+	Output            *ScenarioOutput             `protobuf:"bytes,1,opt,name=output,proto3" json:"output,omitempty"`
+	FinishReason      FinishReason                `protobuf:"varint,2,opt,name=finish_reason,json=finishReason,proto3,enum=nimi.runtime.v1.FinishReason" json:"finish_reason,omitempty"`
+	Usage             *UsageStats                 `protobuf:"bytes,3,opt,name=usage,proto3" json:"usage,omitempty"`
+	RouteDecision     RoutePolicy                 `protobuf:"varint,4,opt,name=route_decision,json=routeDecision,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_decision,omitempty"`
+	ModelResolved     string                      `protobuf:"bytes,5,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
+	TraceId           string                      `protobuf:"bytes,6,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	IgnoredExtensions []*IgnoredScenarioExtension `protobuf:"bytes,7,rep,name=ignored_extensions,json=ignoredExtensions,proto3" json:"ignored_extensions,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ExecuteScenarioResponse) Reset() {
@@ -4845,13 +4755,6 @@ func (x *ExecuteScenarioResponse) GetTraceId() string {
 func (x *ExecuteScenarioResponse) GetIgnoredExtensions() []*IgnoredScenarioExtension {
 	if x != nil {
 		return x.IgnoredExtensions
-	}
-	return nil
-}
-
-func (x *ExecuteScenarioResponse) GetResolvedExecutionBinding() *RuntimeResolvedExecutionBinding {
-	if x != nil {
-		return x.ResolvedExecutionBinding
 	}
 	return nil
 }
@@ -5116,10 +5019,9 @@ func (x *StreamScenarioRequest) GetExtensions() []*ScenarioExtension {
 }
 
 type ScenarioStreamStarted struct {
-	state                    protoimpl.MessageState           `protogen:"open.v1"`
-	ModelResolved            string                           `protobuf:"bytes,1,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
-	RouteDecision            RoutePolicy                      `protobuf:"varint,2,opt,name=route_decision,json=routeDecision,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_decision,omitempty"`
-	ResolvedExecutionBinding *RuntimeResolvedExecutionBinding `protobuf:"bytes,3,opt,name=resolved_execution_binding,json=resolvedExecutionBinding,proto3" json:"resolved_execution_binding,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelResolved string                 `protobuf:"bytes,1,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
+	RouteDecision RoutePolicy            `protobuf:"varint,2,opt,name=route_decision,json=routeDecision,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_decision,omitempty"`
 	// Positive selected output-truth for SPEECH_SYNTHESIZE streams
 	// (K-STREAM-004, K-VOICE-019). Populated only for speech scenario streams,
 	// where it declares NATIVE_STREAM vs SIMULATED_STREAM at route decision;
@@ -5172,13 +5074,6 @@ func (x *ScenarioStreamStarted) GetRouteDecision() RoutePolicy {
 		return x.RouteDecision
 	}
 	return RoutePolicy_ROUTE_POLICY_UNSPECIFIED
-}
-
-func (x *ScenarioStreamStarted) GetResolvedExecutionBinding() *RuntimeResolvedExecutionBinding {
-	if x != nil {
-		return x.ResolvedExecutionBinding
-	}
-	return nil
 }
 
 func (x *ScenarioStreamStarted) GetVoiceOutputMode() VoiceOutputMode {
@@ -7912,7 +7807,7 @@ var File_runtime_v1_ai_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\n" +
-	"\x13runtime/v1/ai.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1eruntime/v1/ai_scheduling.proto\x1a)runtime/v1/capability_configuration.proto\x1a\x17runtime/v1/common.proto\x1a(runtime/v1/runtime_target_identity.proto\x1a\x16runtime/v1/voice.proto\"\x82\x03\n" +
+	"\x13runtime/v1/ai.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1eruntime/v1/ai_scheduling.proto\x1a)runtime/v1/capability_configuration.proto\x1a\x17runtime/v1/common.proto\x1a\x16runtime/v1/voice.proto\"\x82\x03\n" +
 	"\vChatMessage\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x12\n" +
@@ -7998,18 +7893,13 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\bfilename\x18\x06 \x01(\tR\bfilename\x12D\n" +
 	"\x11provider_metadata\x18\a \x01(\v2\x17.google.protobuf.StructR\x10providerMetadata\"8\n" +
 	"\bRawChunk\x12,\n" +
-	"\x05value\x18\x01 \x01(\v2\x16.google.protobuf.ValueR\x05value\"\xf8\x02\n" +
+	"\x05value\x18\x01 \x01(\v2\x16.google.protobuf.ValueR\x05value\"\xcd\x01\n" +
 	"\x13ScenarioRequestHead\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
-	"\bmodel_id\x18\x03 \x01(\tR\amodelId\x12?\n" +
-	"\froute_policy\x18\x04 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12;\n" +
-	"\bfallback\x18\x05 \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\x12\x1d\n" +
+	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\x06 \x01(\x05R\ttimeoutMs\x12!\n" +
-	"\fconnector_id\x18\a \x01(\tR\vconnectorId\x12G\n" +
-	"\n" +
-	"target_ref\x18\b \x01(\v2(.nimi.runtime.v1.RuntimeDurableTargetRefR\ttargetRef\"d\n" +
+	"timeout_ms\x18\x06 \x01(\x05R\ttimeoutMsJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\a\x10\bJ\x04\b\b\x10\tR\bmodel_idR\froute_policyR\bfallbackR\fconnector_idR\n" +
+	"target_ref\"d\n" +
 	"\x11ScenarioExtension\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x121\n" +
 	"\apayload\x18\x02 \x01(\v2\x17.google.protobuf.StructR\apayload\"P\n" +
@@ -8200,7 +8090,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x11speech_transcribe\x18\x06 \x01(\v2'.nimi.runtime.v1.SpeechTranscribeResultH\x00R\x10speechTranscribe\x12M\n" +
 	"\x0emusic_generate\x18\a \x01(\v2$.nimi.runtime.v1.MusicGenerateResultH\x00R\rmusicGenerate\x12M\n" +
 	"\x0eworld_generate\x18\b \x01(\v2$.nimi.runtime.v1.WorldGenerateResultH\x00R\rworldGenerateB\b\n" +
-	"\x06output\"\x9a\x04\n" +
+	"\x06output\"\xcc\x03\n" +
 	"\x17ExecuteScenarioResponse\x127\n" +
 	"\x06output\x18\x01 \x01(\v2\x1f.nimi.runtime.v1.ScenarioOutputR\x06output\x12B\n" +
 	"\rfinish_reason\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.FinishReasonR\ffinishReason\x121\n" +
@@ -8208,8 +8098,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0eroute_decision\x18\x04 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\x12%\n" +
 	"\x0emodel_resolved\x18\x05 \x01(\tR\rmodelResolved\x12\x19\n" +
 	"\btrace_id\x18\x06 \x01(\tR\atraceId\x12X\n" +
-	"\x12ignored_extensions\x18\a \x03(\v2).nimi.runtime.v1.IgnoredScenarioExtensionR\x11ignoredExtensions\x12n\n" +
-	"\x1aresolved_execution_binding\x18\b \x01(\v20.nimi.runtime.v1.RuntimeResolvedExecutionBindingR\x18resolvedExecutionBinding\"F\n" +
+	"\x12ignored_extensions\x18\a \x03(\v2).nimi.runtime.v1.IgnoredScenarioExtensionR\x11ignoredExtensionsJ\x04\b\b\x10\tR\x1aresolved_execution_binding\"F\n" +
 	"\x1cLocalAppTextCandidateMessage\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\"\xc7\x01\n" +
@@ -8230,12 +8119,11 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x04spec\x18\x04 \x01(\v2\x1d.nimi.runtime.v1.ScenarioSpecR\x04spec\x12B\n" +
 	"\n" +
 	"extensions\x18\x05 \x03(\v2\".nimi.runtime.v1.ScenarioExtensionR\n" +
-	"extensions\"\xc1\x02\n" +
+	"extensions\"\xf3\x01\n" +
 	"\x15ScenarioStreamStarted\x12%\n" +
 	"\x0emodel_resolved\x18\x01 \x01(\tR\rmodelResolved\x12C\n" +
-	"\x0eroute_decision\x18\x02 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\x12n\n" +
-	"\x1aresolved_execution_binding\x18\x03 \x01(\v20.nimi.runtime.v1.RuntimeResolvedExecutionBindingR\x18resolvedExecutionBinding\x12L\n" +
-	"\x11voice_output_mode\x18\x04 \x01(\x0e2 .nimi.runtime.v1.VoiceOutputModeR\x0fvoiceOutputMode\"%\n" +
+	"\x0eroute_decision\x18\x02 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\x12L\n" +
+	"\x11voice_output_mode\x18\x04 \x01(\x0e2 .nimi.runtime.v1.VoiceOutputModeR\x0fvoiceOutputModeJ\x04\b\x03\x10\x04R\x1aresolved_execution_binding\"%\n" +
 	"\x0fTextStreamDelta\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\"*\n" +
 	"\x14ReasoningStreamDelta\x12\x12\n" +
@@ -8484,11 +8372,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\vRoutePolicy\x12\x1c\n" +
 	"\x18ROUTE_POLICY_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12ROUTE_POLICY_LOCAL\x10\x01\x12\x16\n" +
-	"\x12ROUTE_POLICY_CLOUD\x10\x02*f\n" +
-	"\x0eFallbackPolicy\x12\x1f\n" +
-	"\x1bFALLBACK_POLICY_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14FALLBACK_POLICY_DENY\x10\x01\x12\x19\n" +
-	"\x15FALLBACK_POLICY_ALLOW\x10\x02*\xb7\x01\n" +
+	"\x12ROUTE_POLICY_CLOUD\x10\x02*\xb7\x01\n" +
 	"\fFinishReason\x12\x1d\n" +
 	"\x19FINISH_REASON_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12FINISH_REASON_STOP\x10\x01\x12\x18\n" +
@@ -8625,352 +8509,344 @@ func file_runtime_v1_ai_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_ai_proto_rawDescData
 }
 
-var file_runtime_v1_ai_proto_enumTypes = make([]protoimpl.EnumInfo, 22)
+var file_runtime_v1_ai_proto_enumTypes = make([]protoimpl.EnumInfo, 21)
 var file_runtime_v1_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 89)
 var file_runtime_v1_ai_proto_goTypes = []any{
 	(Modal)(0),                                    // 0: nimi.runtime.v1.Modal
 	(ScenarioType)(0),                             // 1: nimi.runtime.v1.ScenarioType
 	(ExecutionMode)(0),                            // 2: nimi.runtime.v1.ExecutionMode
 	(RoutePolicy)(0),                              // 3: nimi.runtime.v1.RoutePolicy
-	(FallbackPolicy)(0),                           // 4: nimi.runtime.v1.FallbackPolicy
-	(FinishReason)(0),                             // 5: nimi.runtime.v1.FinishReason
-	(ReasoningMode)(0),                            // 6: nimi.runtime.v1.ReasoningMode
-	(ReasoningTraceMode)(0),                       // 7: nimi.runtime.v1.ReasoningTraceMode
-	(TokenProviderHealthStatus)(0),                // 8: nimi.runtime.v1.TokenProviderHealthStatus
-	(StreamEventType)(0),                          // 9: nimi.runtime.v1.StreamEventType
-	(VideoMode)(0),                                // 10: nimi.runtime.v1.VideoMode
-	(VideoContentType)(0),                         // 11: nimi.runtime.v1.VideoContentType
-	(VideoContentRole)(0),                         // 12: nimi.runtime.v1.VideoContentRole
-	(SpeechTimingMode)(0),                         // 13: nimi.runtime.v1.SpeechTimingMode
-	(SpeechAlignmentUnit)(0),                      // 14: nimi.runtime.v1.SpeechAlignmentUnit
-	(ChatContentPartType)(0),                      // 15: nimi.runtime.v1.ChatContentPartType
-	(ToolSpecKind)(0),                             // 16: nimi.runtime.v1.ToolSpecKind
-	(ToolChoiceMode)(0),                           // 17: nimi.runtime.v1.ToolChoiceMode
-	(ResponseFormatKind)(0),                       // 18: nimi.runtime.v1.ResponseFormatKind
-	(TextSourceType)(0),                           // 19: nimi.runtime.v1.TextSourceType
-	(ScenarioJobStatus)(0),                        // 20: nimi.runtime.v1.ScenarioJobStatus
-	(ScenarioJobEventType)(0),                     // 21: nimi.runtime.v1.ScenarioJobEventType
-	(*ChatMessage)(nil),                           // 22: nimi.runtime.v1.ChatMessage
-	(*ChatContentImageURL)(nil),                   // 23: nimi.runtime.v1.ChatContentImageURL
-	(*ChatContentArtifactRef)(nil),                // 24: nimi.runtime.v1.ChatContentArtifactRef
-	(*ChatContentPart)(nil),                       // 25: nimi.runtime.v1.ChatContentPart
-	(*ToolSpec)(nil),                              // 26: nimi.runtime.v1.ToolSpec
-	(*ResponseFormat)(nil),                        // 27: nimi.runtime.v1.ResponseFormat
-	(*ToolCall)(nil),                              // 28: nimi.runtime.v1.ToolCall
-	(*ToolResult)(nil),                            // 29: nimi.runtime.v1.ToolResult
-	(*ToolApprovalRequest)(nil),                   // 30: nimi.runtime.v1.ToolApprovalRequest
-	(*ToolApprovalResponse)(nil),                  // 31: nimi.runtime.v1.ToolApprovalResponse
-	(*TextSource)(nil),                            // 32: nimi.runtime.v1.TextSource
-	(*RawChunk)(nil),                              // 33: nimi.runtime.v1.RawChunk
-	(*ScenarioRequestHead)(nil),                   // 34: nimi.runtime.v1.ScenarioRequestHead
-	(*ScenarioExtension)(nil),                     // 35: nimi.runtime.v1.ScenarioExtension
-	(*IgnoredScenarioExtension)(nil),              // 36: nimi.runtime.v1.IgnoredScenarioExtension
-	(*ReasoningConfig)(nil),                       // 37: nimi.runtime.v1.ReasoningConfig
-	(*TextGenerateScenarioSpec)(nil),              // 38: nimi.runtime.v1.TextGenerateScenarioSpec
-	(*TextEmbedScenarioSpec)(nil),                 // 39: nimi.runtime.v1.TextEmbedScenarioSpec
-	(*ImageGenerateScenarioSpec)(nil),             // 40: nimi.runtime.v1.ImageGenerateScenarioSpec
-	(*VideoGenerateScenarioSpec)(nil),             // 41: nimi.runtime.v1.VideoGenerateScenarioSpec
-	(*SpeechSynthesizeScenarioSpec)(nil),          // 42: nimi.runtime.v1.SpeechSynthesizeScenarioSpec
-	(*SpeechTranscribeScenarioSpec)(nil),          // 43: nimi.runtime.v1.SpeechTranscribeScenarioSpec
-	(*VoiceCloneScenarioSpec)(nil),                // 44: nimi.runtime.v1.VoiceCloneScenarioSpec
-	(*VoiceDesignScenarioSpec)(nil),               // 45: nimi.runtime.v1.VoiceDesignScenarioSpec
-	(*MusicGenerateScenarioSpec)(nil),             // 46: nimi.runtime.v1.MusicGenerateScenarioSpec
-	(*WorldGenerateAssetSource)(nil),              // 47: nimi.runtime.v1.WorldGenerateAssetSource
-	(*WorldGenerateImagePrompt)(nil),              // 48: nimi.runtime.v1.WorldGenerateImagePrompt
-	(*WorldGenerateMultiImageReference)(nil),      // 49: nimi.runtime.v1.WorldGenerateMultiImageReference
-	(*WorldGenerateMultiImagePrompt)(nil),         // 50: nimi.runtime.v1.WorldGenerateMultiImagePrompt
-	(*WorldGenerateVideoPrompt)(nil),              // 51: nimi.runtime.v1.WorldGenerateVideoPrompt
-	(*WorldGenerateScenarioSpec)(nil),             // 52: nimi.runtime.v1.WorldGenerateScenarioSpec
-	(*ScenarioSpec)(nil),                          // 53: nimi.runtime.v1.ScenarioSpec
-	(*ExecuteScenarioRequest)(nil),                // 54: nimi.runtime.v1.ExecuteScenarioRequest
-	(*TextGenerateOutput)(nil),                    // 55: nimi.runtime.v1.TextGenerateOutput
-	(*EmbeddingVector)(nil),                       // 56: nimi.runtime.v1.EmbeddingVector
-	(*TextEmbedOutput)(nil),                       // 57: nimi.runtime.v1.TextEmbedOutput
-	(*ImageGenerateResult)(nil),                   // 58: nimi.runtime.v1.ImageGenerateResult
-	(*VideoGenerateResult)(nil),                   // 59: nimi.runtime.v1.VideoGenerateResult
-	(*SpeechSynthesizeResult)(nil),                // 60: nimi.runtime.v1.SpeechSynthesizeResult
-	(*SpeechTranscribeResult)(nil),                // 61: nimi.runtime.v1.SpeechTranscribeResult
-	(*MusicGenerateResult)(nil),                   // 62: nimi.runtime.v1.MusicGenerateResult
-	(*WorldGenerateSemanticsMetadata)(nil),        // 63: nimi.runtime.v1.WorldGenerateSemanticsMetadata
-	(*WorldGenerateResult)(nil),                   // 64: nimi.runtime.v1.WorldGenerateResult
-	(*ScenarioOutput)(nil),                        // 65: nimi.runtime.v1.ScenarioOutput
-	(*ExecuteScenarioResponse)(nil),               // 66: nimi.runtime.v1.ExecuteScenarioResponse
-	(*LocalAppTextCandidateMessage)(nil),          // 67: nimi.runtime.v1.LocalAppTextCandidateMessage
-	(*GenerateLocalAppTextCandidateRequest)(nil),  // 68: nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
-	(*GenerateLocalAppTextCandidateResponse)(nil), // 69: nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
-	(*StreamScenarioRequest)(nil),                 // 70: nimi.runtime.v1.StreamScenarioRequest
-	(*ScenarioStreamStarted)(nil),                 // 71: nimi.runtime.v1.ScenarioStreamStarted
-	(*TextStreamDelta)(nil),                       // 72: nimi.runtime.v1.TextStreamDelta
-	(*ReasoningStreamDelta)(nil),                  // 73: nimi.runtime.v1.ReasoningStreamDelta
-	(*ArtifactStreamDelta)(nil),                   // 74: nimi.runtime.v1.ArtifactStreamDelta
-	(*ScenarioStreamDelta)(nil),                   // 75: nimi.runtime.v1.ScenarioStreamDelta
-	(*ScenarioStreamCompleted)(nil),               // 76: nimi.runtime.v1.ScenarioStreamCompleted
-	(*ScenarioStreamFailed)(nil),                  // 77: nimi.runtime.v1.ScenarioStreamFailed
-	(*StreamScenarioEvent)(nil),                   // 78: nimi.runtime.v1.StreamScenarioEvent
-	(*ScenarioArtifact)(nil),                      // 79: nimi.runtime.v1.ScenarioArtifact
-	(*ScenarioJob)(nil),                           // 80: nimi.runtime.v1.ScenarioJob
-	(*SubmitScenarioJobRequest)(nil),              // 81: nimi.runtime.v1.SubmitScenarioJobRequest
-	(*SubmitScenarioJobResponse)(nil),             // 82: nimi.runtime.v1.SubmitScenarioJobResponse
-	(*GetScenarioJobRequest)(nil),                 // 83: nimi.runtime.v1.GetScenarioJobRequest
-	(*GetScenarioJobResponse)(nil),                // 84: nimi.runtime.v1.GetScenarioJobResponse
-	(*CancelScenarioJobRequest)(nil),              // 85: nimi.runtime.v1.CancelScenarioJobRequest
-	(*CancelScenarioJobResponse)(nil),             // 86: nimi.runtime.v1.CancelScenarioJobResponse
-	(*ScenarioJobEvent)(nil),                      // 87: nimi.runtime.v1.ScenarioJobEvent
-	(*SubscribeScenarioJobEventsRequest)(nil),     // 88: nimi.runtime.v1.SubscribeScenarioJobEventsRequest
-	(*GetScenarioArtifactsRequest)(nil),           // 89: nimi.runtime.v1.GetScenarioArtifactsRequest
-	(*GetScenarioArtifactsResponse)(nil),          // 90: nimi.runtime.v1.GetScenarioArtifactsResponse
-	(*ScenarioProfile)(nil),                       // 91: nimi.runtime.v1.ScenarioProfile
-	(*ListScenarioProfilesRequest)(nil),           // 92: nimi.runtime.v1.ListScenarioProfilesRequest
-	(*ListScenarioProfilesResponse)(nil),          // 93: nimi.runtime.v1.ListScenarioProfilesResponse
-	(*VideoContentImageURL)(nil),                  // 94: nimi.runtime.v1.VideoContentImageURL
-	(*VideoContentVideoURL)(nil),                  // 95: nimi.runtime.v1.VideoContentVideoURL
-	(*VideoContentAudioURL)(nil),                  // 96: nimi.runtime.v1.VideoContentAudioURL
-	(*VideoContentItem)(nil),                      // 97: nimi.runtime.v1.VideoContentItem
-	(*VideoGenerationOptions)(nil),                // 98: nimi.runtime.v1.VideoGenerationOptions
-	(*VoiceRenderHints)(nil),                      // 99: nimi.runtime.v1.VoiceRenderHints
-	(*AudioChunks)(nil),                           // 100: nimi.runtime.v1.AudioChunks
-	(*SpeechTranscriptionAudioSource)(nil),        // 101: nimi.runtime.v1.SpeechTranscriptionAudioSource
-	(*SpeechAlignmentToken)(nil),                  // 102: nimi.runtime.v1.SpeechAlignmentToken
-	(*SpeechAlignment)(nil),                       // 103: nimi.runtime.v1.SpeechAlignment
-	(*ArtifactChunk)(nil),                         // 104: nimi.runtime.v1.ArtifactChunk
-	(*UploadArtifactMetadata)(nil),                // 105: nimi.runtime.v1.UploadArtifactMetadata
-	(*UploadArtifactChunk)(nil),                   // 106: nimi.runtime.v1.UploadArtifactChunk
-	(*UploadArtifactRequest)(nil),                 // 107: nimi.runtime.v1.UploadArtifactRequest
-	(*UploadArtifactResponse)(nil),                // 108: nimi.runtime.v1.UploadArtifactResponse
-	nil,                                           // 109: nimi.runtime.v1.WorldGenerateResult.SpzUrlsEntry
-	nil,                                           // 110: nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
-	(*structpb.Struct)(nil),                       // 111: google.protobuf.Struct
-	(*structpb.Value)(nil),                        // 112: google.protobuf.Value
-	(*RuntimeDurableTargetRef)(nil),               // 113: nimi.runtime.v1.RuntimeDurableTargetRef
-	(*VoiceReference)(nil),                        // 114: nimi.runtime.v1.VoiceReference
-	(*VoiceV2VInput)(nil),                         // 115: nimi.runtime.v1.VoiceV2VInput
-	(*VoiceT2VInput)(nil),                         // 116: nimi.runtime.v1.VoiceT2VInput
-	(*UsageStats)(nil),                            // 117: nimi.runtime.v1.UsageStats
-	(*RuntimeResolvedExecutionBinding)(nil),       // 118: nimi.runtime.v1.RuntimeResolvedExecutionBinding
-	(VoiceOutputMode)(0),                          // 119: nimi.runtime.v1.VoiceOutputMode
-	(ReasonCode)(0),                               // 120: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),                 // 121: google.protobuf.Timestamp
-	(*VoiceAsset)(nil),                            // 122: nimi.runtime.v1.VoiceAsset
-	(*GetAppAIConfigRequest)(nil),                 // 123: nimi.runtime.v1.GetAppAIConfigRequest
-	(*OverwriteAppAIConfigRequest)(nil),           // 124: nimi.runtime.v1.OverwriteAppAIConfigRequest
-	(*GetVoiceAssetRequest)(nil),                  // 125: nimi.runtime.v1.GetVoiceAssetRequest
-	(*ListVoiceAssetsRequest)(nil),                // 126: nimi.runtime.v1.ListVoiceAssetsRequest
-	(*DeleteVoiceAssetRequest)(nil),               // 127: nimi.runtime.v1.DeleteVoiceAssetRequest
-	(*ListPresetVoicesRequest)(nil),               // 128: nimi.runtime.v1.ListPresetVoicesRequest
-	(*PeekSchedulingRequest)(nil),                 // 129: nimi.runtime.v1.PeekSchedulingRequest
-	(*GetAppAIConfigResponse)(nil),                // 130: nimi.runtime.v1.GetAppAIConfigResponse
-	(*OverwriteAppAIConfigResponse)(nil),          // 131: nimi.runtime.v1.OverwriteAppAIConfigResponse
-	(*GetVoiceAssetResponse)(nil),                 // 132: nimi.runtime.v1.GetVoiceAssetResponse
-	(*ListVoiceAssetsResponse)(nil),               // 133: nimi.runtime.v1.ListVoiceAssetsResponse
-	(*DeleteVoiceAssetResponse)(nil),              // 134: nimi.runtime.v1.DeleteVoiceAssetResponse
-	(*ListPresetVoicesResponse)(nil),              // 135: nimi.runtime.v1.ListPresetVoicesResponse
-	(*PeekSchedulingResponse)(nil),                // 136: nimi.runtime.v1.PeekSchedulingResponse
+	(FinishReason)(0),                             // 4: nimi.runtime.v1.FinishReason
+	(ReasoningMode)(0),                            // 5: nimi.runtime.v1.ReasoningMode
+	(ReasoningTraceMode)(0),                       // 6: nimi.runtime.v1.ReasoningTraceMode
+	(TokenProviderHealthStatus)(0),                // 7: nimi.runtime.v1.TokenProviderHealthStatus
+	(StreamEventType)(0),                          // 8: nimi.runtime.v1.StreamEventType
+	(VideoMode)(0),                                // 9: nimi.runtime.v1.VideoMode
+	(VideoContentType)(0),                         // 10: nimi.runtime.v1.VideoContentType
+	(VideoContentRole)(0),                         // 11: nimi.runtime.v1.VideoContentRole
+	(SpeechTimingMode)(0),                         // 12: nimi.runtime.v1.SpeechTimingMode
+	(SpeechAlignmentUnit)(0),                      // 13: nimi.runtime.v1.SpeechAlignmentUnit
+	(ChatContentPartType)(0),                      // 14: nimi.runtime.v1.ChatContentPartType
+	(ToolSpecKind)(0),                             // 15: nimi.runtime.v1.ToolSpecKind
+	(ToolChoiceMode)(0),                           // 16: nimi.runtime.v1.ToolChoiceMode
+	(ResponseFormatKind)(0),                       // 17: nimi.runtime.v1.ResponseFormatKind
+	(TextSourceType)(0),                           // 18: nimi.runtime.v1.TextSourceType
+	(ScenarioJobStatus)(0),                        // 19: nimi.runtime.v1.ScenarioJobStatus
+	(ScenarioJobEventType)(0),                     // 20: nimi.runtime.v1.ScenarioJobEventType
+	(*ChatMessage)(nil),                           // 21: nimi.runtime.v1.ChatMessage
+	(*ChatContentImageURL)(nil),                   // 22: nimi.runtime.v1.ChatContentImageURL
+	(*ChatContentArtifactRef)(nil),                // 23: nimi.runtime.v1.ChatContentArtifactRef
+	(*ChatContentPart)(nil),                       // 24: nimi.runtime.v1.ChatContentPart
+	(*ToolSpec)(nil),                              // 25: nimi.runtime.v1.ToolSpec
+	(*ResponseFormat)(nil),                        // 26: nimi.runtime.v1.ResponseFormat
+	(*ToolCall)(nil),                              // 27: nimi.runtime.v1.ToolCall
+	(*ToolResult)(nil),                            // 28: nimi.runtime.v1.ToolResult
+	(*ToolApprovalRequest)(nil),                   // 29: nimi.runtime.v1.ToolApprovalRequest
+	(*ToolApprovalResponse)(nil),                  // 30: nimi.runtime.v1.ToolApprovalResponse
+	(*TextSource)(nil),                            // 31: nimi.runtime.v1.TextSource
+	(*RawChunk)(nil),                              // 32: nimi.runtime.v1.RawChunk
+	(*ScenarioRequestHead)(nil),                   // 33: nimi.runtime.v1.ScenarioRequestHead
+	(*ScenarioExtension)(nil),                     // 34: nimi.runtime.v1.ScenarioExtension
+	(*IgnoredScenarioExtension)(nil),              // 35: nimi.runtime.v1.IgnoredScenarioExtension
+	(*ReasoningConfig)(nil),                       // 36: nimi.runtime.v1.ReasoningConfig
+	(*TextGenerateScenarioSpec)(nil),              // 37: nimi.runtime.v1.TextGenerateScenarioSpec
+	(*TextEmbedScenarioSpec)(nil),                 // 38: nimi.runtime.v1.TextEmbedScenarioSpec
+	(*ImageGenerateScenarioSpec)(nil),             // 39: nimi.runtime.v1.ImageGenerateScenarioSpec
+	(*VideoGenerateScenarioSpec)(nil),             // 40: nimi.runtime.v1.VideoGenerateScenarioSpec
+	(*SpeechSynthesizeScenarioSpec)(nil),          // 41: nimi.runtime.v1.SpeechSynthesizeScenarioSpec
+	(*SpeechTranscribeScenarioSpec)(nil),          // 42: nimi.runtime.v1.SpeechTranscribeScenarioSpec
+	(*VoiceCloneScenarioSpec)(nil),                // 43: nimi.runtime.v1.VoiceCloneScenarioSpec
+	(*VoiceDesignScenarioSpec)(nil),               // 44: nimi.runtime.v1.VoiceDesignScenarioSpec
+	(*MusicGenerateScenarioSpec)(nil),             // 45: nimi.runtime.v1.MusicGenerateScenarioSpec
+	(*WorldGenerateAssetSource)(nil),              // 46: nimi.runtime.v1.WorldGenerateAssetSource
+	(*WorldGenerateImagePrompt)(nil),              // 47: nimi.runtime.v1.WorldGenerateImagePrompt
+	(*WorldGenerateMultiImageReference)(nil),      // 48: nimi.runtime.v1.WorldGenerateMultiImageReference
+	(*WorldGenerateMultiImagePrompt)(nil),         // 49: nimi.runtime.v1.WorldGenerateMultiImagePrompt
+	(*WorldGenerateVideoPrompt)(nil),              // 50: nimi.runtime.v1.WorldGenerateVideoPrompt
+	(*WorldGenerateScenarioSpec)(nil),             // 51: nimi.runtime.v1.WorldGenerateScenarioSpec
+	(*ScenarioSpec)(nil),                          // 52: nimi.runtime.v1.ScenarioSpec
+	(*ExecuteScenarioRequest)(nil),                // 53: nimi.runtime.v1.ExecuteScenarioRequest
+	(*TextGenerateOutput)(nil),                    // 54: nimi.runtime.v1.TextGenerateOutput
+	(*EmbeddingVector)(nil),                       // 55: nimi.runtime.v1.EmbeddingVector
+	(*TextEmbedOutput)(nil),                       // 56: nimi.runtime.v1.TextEmbedOutput
+	(*ImageGenerateResult)(nil),                   // 57: nimi.runtime.v1.ImageGenerateResult
+	(*VideoGenerateResult)(nil),                   // 58: nimi.runtime.v1.VideoGenerateResult
+	(*SpeechSynthesizeResult)(nil),                // 59: nimi.runtime.v1.SpeechSynthesizeResult
+	(*SpeechTranscribeResult)(nil),                // 60: nimi.runtime.v1.SpeechTranscribeResult
+	(*MusicGenerateResult)(nil),                   // 61: nimi.runtime.v1.MusicGenerateResult
+	(*WorldGenerateSemanticsMetadata)(nil),        // 62: nimi.runtime.v1.WorldGenerateSemanticsMetadata
+	(*WorldGenerateResult)(nil),                   // 63: nimi.runtime.v1.WorldGenerateResult
+	(*ScenarioOutput)(nil),                        // 64: nimi.runtime.v1.ScenarioOutput
+	(*ExecuteScenarioResponse)(nil),               // 65: nimi.runtime.v1.ExecuteScenarioResponse
+	(*LocalAppTextCandidateMessage)(nil),          // 66: nimi.runtime.v1.LocalAppTextCandidateMessage
+	(*GenerateLocalAppTextCandidateRequest)(nil),  // 67: nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
+	(*GenerateLocalAppTextCandidateResponse)(nil), // 68: nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
+	(*StreamScenarioRequest)(nil),                 // 69: nimi.runtime.v1.StreamScenarioRequest
+	(*ScenarioStreamStarted)(nil),                 // 70: nimi.runtime.v1.ScenarioStreamStarted
+	(*TextStreamDelta)(nil),                       // 71: nimi.runtime.v1.TextStreamDelta
+	(*ReasoningStreamDelta)(nil),                  // 72: nimi.runtime.v1.ReasoningStreamDelta
+	(*ArtifactStreamDelta)(nil),                   // 73: nimi.runtime.v1.ArtifactStreamDelta
+	(*ScenarioStreamDelta)(nil),                   // 74: nimi.runtime.v1.ScenarioStreamDelta
+	(*ScenarioStreamCompleted)(nil),               // 75: nimi.runtime.v1.ScenarioStreamCompleted
+	(*ScenarioStreamFailed)(nil),                  // 76: nimi.runtime.v1.ScenarioStreamFailed
+	(*StreamScenarioEvent)(nil),                   // 77: nimi.runtime.v1.StreamScenarioEvent
+	(*ScenarioArtifact)(nil),                      // 78: nimi.runtime.v1.ScenarioArtifact
+	(*ScenarioJob)(nil),                           // 79: nimi.runtime.v1.ScenarioJob
+	(*SubmitScenarioJobRequest)(nil),              // 80: nimi.runtime.v1.SubmitScenarioJobRequest
+	(*SubmitScenarioJobResponse)(nil),             // 81: nimi.runtime.v1.SubmitScenarioJobResponse
+	(*GetScenarioJobRequest)(nil),                 // 82: nimi.runtime.v1.GetScenarioJobRequest
+	(*GetScenarioJobResponse)(nil),                // 83: nimi.runtime.v1.GetScenarioJobResponse
+	(*CancelScenarioJobRequest)(nil),              // 84: nimi.runtime.v1.CancelScenarioJobRequest
+	(*CancelScenarioJobResponse)(nil),             // 85: nimi.runtime.v1.CancelScenarioJobResponse
+	(*ScenarioJobEvent)(nil),                      // 86: nimi.runtime.v1.ScenarioJobEvent
+	(*SubscribeScenarioJobEventsRequest)(nil),     // 87: nimi.runtime.v1.SubscribeScenarioJobEventsRequest
+	(*GetScenarioArtifactsRequest)(nil),           // 88: nimi.runtime.v1.GetScenarioArtifactsRequest
+	(*GetScenarioArtifactsResponse)(nil),          // 89: nimi.runtime.v1.GetScenarioArtifactsResponse
+	(*ScenarioProfile)(nil),                       // 90: nimi.runtime.v1.ScenarioProfile
+	(*ListScenarioProfilesRequest)(nil),           // 91: nimi.runtime.v1.ListScenarioProfilesRequest
+	(*ListScenarioProfilesResponse)(nil),          // 92: nimi.runtime.v1.ListScenarioProfilesResponse
+	(*VideoContentImageURL)(nil),                  // 93: nimi.runtime.v1.VideoContentImageURL
+	(*VideoContentVideoURL)(nil),                  // 94: nimi.runtime.v1.VideoContentVideoURL
+	(*VideoContentAudioURL)(nil),                  // 95: nimi.runtime.v1.VideoContentAudioURL
+	(*VideoContentItem)(nil),                      // 96: nimi.runtime.v1.VideoContentItem
+	(*VideoGenerationOptions)(nil),                // 97: nimi.runtime.v1.VideoGenerationOptions
+	(*VoiceRenderHints)(nil),                      // 98: nimi.runtime.v1.VoiceRenderHints
+	(*AudioChunks)(nil),                           // 99: nimi.runtime.v1.AudioChunks
+	(*SpeechTranscriptionAudioSource)(nil),        // 100: nimi.runtime.v1.SpeechTranscriptionAudioSource
+	(*SpeechAlignmentToken)(nil),                  // 101: nimi.runtime.v1.SpeechAlignmentToken
+	(*SpeechAlignment)(nil),                       // 102: nimi.runtime.v1.SpeechAlignment
+	(*ArtifactChunk)(nil),                         // 103: nimi.runtime.v1.ArtifactChunk
+	(*UploadArtifactMetadata)(nil),                // 104: nimi.runtime.v1.UploadArtifactMetadata
+	(*UploadArtifactChunk)(nil),                   // 105: nimi.runtime.v1.UploadArtifactChunk
+	(*UploadArtifactRequest)(nil),                 // 106: nimi.runtime.v1.UploadArtifactRequest
+	(*UploadArtifactResponse)(nil),                // 107: nimi.runtime.v1.UploadArtifactResponse
+	nil,                                           // 108: nimi.runtime.v1.WorldGenerateResult.SpzUrlsEntry
+	nil,                                           // 109: nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
+	(*structpb.Struct)(nil),                       // 110: google.protobuf.Struct
+	(*structpb.Value)(nil),                        // 111: google.protobuf.Value
+	(*VoiceReference)(nil),                        // 112: nimi.runtime.v1.VoiceReference
+	(*VoiceV2VInput)(nil),                         // 113: nimi.runtime.v1.VoiceV2VInput
+	(*VoiceT2VInput)(nil),                         // 114: nimi.runtime.v1.VoiceT2VInput
+	(*UsageStats)(nil),                            // 115: nimi.runtime.v1.UsageStats
+	(VoiceOutputMode)(0),                          // 116: nimi.runtime.v1.VoiceOutputMode
+	(ReasonCode)(0),                               // 117: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),                 // 118: google.protobuf.Timestamp
+	(*VoiceAsset)(nil),                            // 119: nimi.runtime.v1.VoiceAsset
+	(*GetAppAIConfigRequest)(nil),                 // 120: nimi.runtime.v1.GetAppAIConfigRequest
+	(*OverwriteAppAIConfigRequest)(nil),           // 121: nimi.runtime.v1.OverwriteAppAIConfigRequest
+	(*GetVoiceAssetRequest)(nil),                  // 122: nimi.runtime.v1.GetVoiceAssetRequest
+	(*ListVoiceAssetsRequest)(nil),                // 123: nimi.runtime.v1.ListVoiceAssetsRequest
+	(*DeleteVoiceAssetRequest)(nil),               // 124: nimi.runtime.v1.DeleteVoiceAssetRequest
+	(*ListPresetVoicesRequest)(nil),               // 125: nimi.runtime.v1.ListPresetVoicesRequest
+	(*PeekSchedulingRequest)(nil),                 // 126: nimi.runtime.v1.PeekSchedulingRequest
+	(*GetAppAIConfigResponse)(nil),                // 127: nimi.runtime.v1.GetAppAIConfigResponse
+	(*OverwriteAppAIConfigResponse)(nil),          // 128: nimi.runtime.v1.OverwriteAppAIConfigResponse
+	(*GetVoiceAssetResponse)(nil),                 // 129: nimi.runtime.v1.GetVoiceAssetResponse
+	(*ListVoiceAssetsResponse)(nil),               // 130: nimi.runtime.v1.ListVoiceAssetsResponse
+	(*DeleteVoiceAssetResponse)(nil),              // 131: nimi.runtime.v1.DeleteVoiceAssetResponse
+	(*ListPresetVoicesResponse)(nil),              // 132: nimi.runtime.v1.ListPresetVoicesResponse
+	(*PeekSchedulingResponse)(nil),                // 133: nimi.runtime.v1.PeekSchedulingResponse
 }
 var file_runtime_v1_ai_proto_depIdxs = []int32{
-	25,  // 0: nimi.runtime.v1.ChatMessage.parts:type_name -> nimi.runtime.v1.ChatContentPart
-	28,  // 1: nimi.runtime.v1.ChatMessage.tool_calls:type_name -> nimi.runtime.v1.ToolCall
-	29,  // 2: nimi.runtime.v1.ChatMessage.tool_results:type_name -> nimi.runtime.v1.ToolResult
-	31,  // 3: nimi.runtime.v1.ChatMessage.tool_approval_responses:type_name -> nimi.runtime.v1.ToolApprovalResponse
-	15,  // 4: nimi.runtime.v1.ChatContentPart.type:type_name -> nimi.runtime.v1.ChatContentPartType
-	23,  // 5: nimi.runtime.v1.ChatContentPart.image_url:type_name -> nimi.runtime.v1.ChatContentImageURL
-	24,  // 6: nimi.runtime.v1.ChatContentPart.artifact_ref:type_name -> nimi.runtime.v1.ChatContentArtifactRef
-	111, // 7: nimi.runtime.v1.ToolSpec.input_schema:type_name -> google.protobuf.Struct
-	16,  // 8: nimi.runtime.v1.ToolSpec.kind:type_name -> nimi.runtime.v1.ToolSpecKind
-	111, // 9: nimi.runtime.v1.ToolSpec.provider_args:type_name -> google.protobuf.Struct
-	111, // 10: nimi.runtime.v1.ToolSpec.provider_metadata:type_name -> google.protobuf.Struct
-	18,  // 11: nimi.runtime.v1.ResponseFormat.kind:type_name -> nimi.runtime.v1.ResponseFormatKind
-	111, // 12: nimi.runtime.v1.ResponseFormat.json_schema:type_name -> google.protobuf.Struct
-	111, // 13: nimi.runtime.v1.ToolCall.provider_metadata:type_name -> google.protobuf.Struct
-	112, // 14: nimi.runtime.v1.ToolResult.result:type_name -> google.protobuf.Value
-	111, // 15: nimi.runtime.v1.ToolResult.provider_metadata:type_name -> google.protobuf.Struct
-	111, // 16: nimi.runtime.v1.ToolApprovalRequest.provider_metadata:type_name -> google.protobuf.Struct
-	111, // 17: nimi.runtime.v1.ToolApprovalResponse.provider_metadata:type_name -> google.protobuf.Struct
-	19,  // 18: nimi.runtime.v1.TextSource.source_type:type_name -> nimi.runtime.v1.TextSourceType
-	111, // 19: nimi.runtime.v1.TextSource.provider_metadata:type_name -> google.protobuf.Struct
-	112, // 20: nimi.runtime.v1.RawChunk.value:type_name -> google.protobuf.Value
-	3,   // 21: nimi.runtime.v1.ScenarioRequestHead.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	4,   // 22: nimi.runtime.v1.ScenarioRequestHead.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	113, // 23: nimi.runtime.v1.ScenarioRequestHead.target_ref:type_name -> nimi.runtime.v1.RuntimeDurableTargetRef
-	111, // 24: nimi.runtime.v1.ScenarioExtension.payload:type_name -> google.protobuf.Struct
-	6,   // 25: nimi.runtime.v1.ReasoningConfig.mode:type_name -> nimi.runtime.v1.ReasoningMode
-	7,   // 26: nimi.runtime.v1.ReasoningConfig.trace_mode:type_name -> nimi.runtime.v1.ReasoningTraceMode
-	22,  // 27: nimi.runtime.v1.TextGenerateScenarioSpec.input:type_name -> nimi.runtime.v1.ChatMessage
-	26,  // 28: nimi.runtime.v1.TextGenerateScenarioSpec.tools:type_name -> nimi.runtime.v1.ToolSpec
-	37,  // 29: nimi.runtime.v1.TextGenerateScenarioSpec.reasoning:type_name -> nimi.runtime.v1.ReasoningConfig
-	17,  // 30: nimi.runtime.v1.TextGenerateScenarioSpec.tool_choice:type_name -> nimi.runtime.v1.ToolChoiceMode
-	27,  // 31: nimi.runtime.v1.TextGenerateScenarioSpec.response_format:type_name -> nimi.runtime.v1.ResponseFormat
-	10,  // 32: nimi.runtime.v1.VideoGenerateScenarioSpec.mode:type_name -> nimi.runtime.v1.VideoMode
-	97,  // 33: nimi.runtime.v1.VideoGenerateScenarioSpec.content:type_name -> nimi.runtime.v1.VideoContentItem
-	98,  // 34: nimi.runtime.v1.VideoGenerateScenarioSpec.options:type_name -> nimi.runtime.v1.VideoGenerationOptions
-	114, // 35: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.voice_ref:type_name -> nimi.runtime.v1.VoiceReference
-	13,  // 36: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.timing_mode:type_name -> nimi.runtime.v1.SpeechTimingMode
-	99,  // 37: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.voice_render_hints:type_name -> nimi.runtime.v1.VoiceRenderHints
-	101, // 38: nimi.runtime.v1.SpeechTranscribeScenarioSpec.audio_source:type_name -> nimi.runtime.v1.SpeechTranscriptionAudioSource
-	115, // 39: nimi.runtime.v1.VoiceCloneScenarioSpec.input:type_name -> nimi.runtime.v1.VoiceV2VInput
-	116, // 40: nimi.runtime.v1.VoiceDesignScenarioSpec.input:type_name -> nimi.runtime.v1.VoiceT2VInput
-	47,  // 41: nimi.runtime.v1.WorldGenerateImagePrompt.content:type_name -> nimi.runtime.v1.WorldGenerateAssetSource
-	47,  // 42: nimi.runtime.v1.WorldGenerateMultiImageReference.content:type_name -> nimi.runtime.v1.WorldGenerateAssetSource
-	49,  // 43: nimi.runtime.v1.WorldGenerateMultiImagePrompt.images:type_name -> nimi.runtime.v1.WorldGenerateMultiImageReference
-	47,  // 44: nimi.runtime.v1.WorldGenerateVideoPrompt.content:type_name -> nimi.runtime.v1.WorldGenerateAssetSource
-	48,  // 45: nimi.runtime.v1.WorldGenerateScenarioSpec.image_prompt:type_name -> nimi.runtime.v1.WorldGenerateImagePrompt
-	50,  // 46: nimi.runtime.v1.WorldGenerateScenarioSpec.multi_image_prompt:type_name -> nimi.runtime.v1.WorldGenerateMultiImagePrompt
-	51,  // 47: nimi.runtime.v1.WorldGenerateScenarioSpec.video_prompt:type_name -> nimi.runtime.v1.WorldGenerateVideoPrompt
-	38,  // 48: nimi.runtime.v1.ScenarioSpec.text_generate:type_name -> nimi.runtime.v1.TextGenerateScenarioSpec
-	39,  // 49: nimi.runtime.v1.ScenarioSpec.text_embed:type_name -> nimi.runtime.v1.TextEmbedScenarioSpec
-	40,  // 50: nimi.runtime.v1.ScenarioSpec.image_generate:type_name -> nimi.runtime.v1.ImageGenerateScenarioSpec
-	41,  // 51: nimi.runtime.v1.ScenarioSpec.video_generate:type_name -> nimi.runtime.v1.VideoGenerateScenarioSpec
-	42,  // 52: nimi.runtime.v1.ScenarioSpec.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeScenarioSpec
-	43,  // 53: nimi.runtime.v1.ScenarioSpec.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeScenarioSpec
-	44,  // 54: nimi.runtime.v1.ScenarioSpec.voice_clone:type_name -> nimi.runtime.v1.VoiceCloneScenarioSpec
-	45,  // 55: nimi.runtime.v1.ScenarioSpec.voice_design:type_name -> nimi.runtime.v1.VoiceDesignScenarioSpec
-	46,  // 56: nimi.runtime.v1.ScenarioSpec.music_generate:type_name -> nimi.runtime.v1.MusicGenerateScenarioSpec
-	52,  // 57: nimi.runtime.v1.ScenarioSpec.world_generate:type_name -> nimi.runtime.v1.WorldGenerateScenarioSpec
-	34,  // 58: nimi.runtime.v1.ExecuteScenarioRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
-	1,   // 59: nimi.runtime.v1.ExecuteScenarioRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
-	2,   // 60: nimi.runtime.v1.ExecuteScenarioRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
-	53,  // 61: nimi.runtime.v1.ExecuteScenarioRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
-	35,  // 62: nimi.runtime.v1.ExecuteScenarioRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
-	28,  // 63: nimi.runtime.v1.TextGenerateOutput.tool_calls:type_name -> nimi.runtime.v1.ToolCall
-	29,  // 64: nimi.runtime.v1.TextGenerateOutput.tool_results:type_name -> nimi.runtime.v1.ToolResult
-	30,  // 65: nimi.runtime.v1.TextGenerateOutput.tool_approval_requests:type_name -> nimi.runtime.v1.ToolApprovalRequest
-	32,  // 66: nimi.runtime.v1.TextGenerateOutput.sources:type_name -> nimi.runtime.v1.TextSource
-	33,  // 67: nimi.runtime.v1.TextGenerateOutput.raw_chunks:type_name -> nimi.runtime.v1.RawChunk
-	56,  // 68: nimi.runtime.v1.TextEmbedOutput.vectors:type_name -> nimi.runtime.v1.EmbeddingVector
-	79,  // 69: nimi.runtime.v1.ImageGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	79,  // 70: nimi.runtime.v1.VideoGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	79,  // 71: nimi.runtime.v1.SpeechSynthesizeResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	79,  // 72: nimi.runtime.v1.SpeechTranscribeResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	79,  // 73: nimi.runtime.v1.MusicGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	109, // 74: nimi.runtime.v1.WorldGenerateResult.spz_urls:type_name -> nimi.runtime.v1.WorldGenerateResult.SpzUrlsEntry
-	63,  // 75: nimi.runtime.v1.WorldGenerateResult.semantics_metadata:type_name -> nimi.runtime.v1.WorldGenerateSemanticsMetadata
-	79,  // 76: nimi.runtime.v1.WorldGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	55,  // 77: nimi.runtime.v1.ScenarioOutput.text_generate:type_name -> nimi.runtime.v1.TextGenerateOutput
-	57,  // 78: nimi.runtime.v1.ScenarioOutput.text_embed:type_name -> nimi.runtime.v1.TextEmbedOutput
-	58,  // 79: nimi.runtime.v1.ScenarioOutput.image_generate:type_name -> nimi.runtime.v1.ImageGenerateResult
-	59,  // 80: nimi.runtime.v1.ScenarioOutput.video_generate:type_name -> nimi.runtime.v1.VideoGenerateResult
-	60,  // 81: nimi.runtime.v1.ScenarioOutput.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeResult
-	61,  // 82: nimi.runtime.v1.ScenarioOutput.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeResult
-	62,  // 83: nimi.runtime.v1.ScenarioOutput.music_generate:type_name -> nimi.runtime.v1.MusicGenerateResult
-	64,  // 84: nimi.runtime.v1.ScenarioOutput.world_generate:type_name -> nimi.runtime.v1.WorldGenerateResult
-	65,  // 85: nimi.runtime.v1.ExecuteScenarioResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
-	5,   // 86: nimi.runtime.v1.ExecuteScenarioResponse.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	117, // 87: nimi.runtime.v1.ExecuteScenarioResponse.usage:type_name -> nimi.runtime.v1.UsageStats
-	3,   // 88: nimi.runtime.v1.ExecuteScenarioResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	36,  // 89: nimi.runtime.v1.ExecuteScenarioResponse.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
-	118, // 90: nimi.runtime.v1.ExecuteScenarioResponse.resolved_execution_binding:type_name -> nimi.runtime.v1.RuntimeResolvedExecutionBinding
-	67,  // 91: nimi.runtime.v1.GenerateLocalAppTextCandidateRequest.messages:type_name -> nimi.runtime.v1.LocalAppTextCandidateMessage
-	5,   // 92: nimi.runtime.v1.GenerateLocalAppTextCandidateResponse.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	34,  // 93: nimi.runtime.v1.StreamScenarioRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
-	1,   // 94: nimi.runtime.v1.StreamScenarioRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
-	2,   // 95: nimi.runtime.v1.StreamScenarioRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
-	53,  // 96: nimi.runtime.v1.StreamScenarioRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
-	35,  // 97: nimi.runtime.v1.StreamScenarioRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
-	3,   // 98: nimi.runtime.v1.ScenarioStreamStarted.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	118, // 99: nimi.runtime.v1.ScenarioStreamStarted.resolved_execution_binding:type_name -> nimi.runtime.v1.RuntimeResolvedExecutionBinding
-	119, // 100: nimi.runtime.v1.ScenarioStreamStarted.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
-	72,  // 101: nimi.runtime.v1.ScenarioStreamDelta.text:type_name -> nimi.runtime.v1.TextStreamDelta
-	74,  // 102: nimi.runtime.v1.ScenarioStreamDelta.artifact:type_name -> nimi.runtime.v1.ArtifactStreamDelta
-	73,  // 103: nimi.runtime.v1.ScenarioStreamDelta.reasoning:type_name -> nimi.runtime.v1.ReasoningStreamDelta
-	32,  // 104: nimi.runtime.v1.ScenarioStreamDelta.source:type_name -> nimi.runtime.v1.TextSource
-	33,  // 105: nimi.runtime.v1.ScenarioStreamDelta.raw:type_name -> nimi.runtime.v1.RawChunk
-	5,   // 106: nimi.runtime.v1.ScenarioStreamCompleted.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	117, // 107: nimi.runtime.v1.ScenarioStreamCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
-	120, // 108: nimi.runtime.v1.ScenarioStreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	9,   // 109: nimi.runtime.v1.StreamScenarioEvent.event_type:type_name -> nimi.runtime.v1.StreamEventType
-	121, // 110: nimi.runtime.v1.StreamScenarioEvent.timestamp:type_name -> google.protobuf.Timestamp
-	71,  // 111: nimi.runtime.v1.StreamScenarioEvent.started:type_name -> nimi.runtime.v1.ScenarioStreamStarted
-	75,  // 112: nimi.runtime.v1.StreamScenarioEvent.delta:type_name -> nimi.runtime.v1.ScenarioStreamDelta
-	117, // 113: nimi.runtime.v1.StreamScenarioEvent.usage:type_name -> nimi.runtime.v1.UsageStats
-	76,  // 114: nimi.runtime.v1.StreamScenarioEvent.completed:type_name -> nimi.runtime.v1.ScenarioStreamCompleted
-	77,  // 115: nimi.runtime.v1.StreamScenarioEvent.failed:type_name -> nimi.runtime.v1.ScenarioStreamFailed
-	28,  // 116: nimi.runtime.v1.StreamScenarioEvent.tool_call:type_name -> nimi.runtime.v1.ToolCall
-	29,  // 117: nimi.runtime.v1.StreamScenarioEvent.tool_result:type_name -> nimi.runtime.v1.ToolResult
-	30,  // 118: nimi.runtime.v1.StreamScenarioEvent.tool_approval_request:type_name -> nimi.runtime.v1.ToolApprovalRequest
-	103, // 119: nimi.runtime.v1.ScenarioArtifact.speech_alignment:type_name -> nimi.runtime.v1.SpeechAlignment
-	111, // 120: nimi.runtime.v1.ScenarioArtifact.metadata:type_name -> google.protobuf.Struct
-	34,  // 121: nimi.runtime.v1.ScenarioJob.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
-	1,   // 122: nimi.runtime.v1.ScenarioJob.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
-	2,   // 123: nimi.runtime.v1.ScenarioJob.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
-	3,   // 124: nimi.runtime.v1.ScenarioJob.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	20,  // 125: nimi.runtime.v1.ScenarioJob.status:type_name -> nimi.runtime.v1.ScenarioJobStatus
-	120, // 126: nimi.runtime.v1.ScenarioJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	121, // 127: nimi.runtime.v1.ScenarioJob.created_at:type_name -> google.protobuf.Timestamp
-	121, // 128: nimi.runtime.v1.ScenarioJob.updated_at:type_name -> google.protobuf.Timestamp
-	121, // 129: nimi.runtime.v1.ScenarioJob.next_poll_at:type_name -> google.protobuf.Timestamp
-	79,  // 130: nimi.runtime.v1.ScenarioJob.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	117, // 131: nimi.runtime.v1.ScenarioJob.usage:type_name -> nimi.runtime.v1.UsageStats
-	36,  // 132: nimi.runtime.v1.ScenarioJob.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
-	111, // 133: nimi.runtime.v1.ScenarioJob.reason_metadata:type_name -> google.protobuf.Struct
-	34,  // 134: nimi.runtime.v1.SubmitScenarioJobRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
-	1,   // 135: nimi.runtime.v1.SubmitScenarioJobRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
-	2,   // 136: nimi.runtime.v1.SubmitScenarioJobRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
-	53,  // 137: nimi.runtime.v1.SubmitScenarioJobRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
-	110, // 138: nimi.runtime.v1.SubmitScenarioJobRequest.labels:type_name -> nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
-	35,  // 139: nimi.runtime.v1.SubmitScenarioJobRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
-	80,  // 140: nimi.runtime.v1.SubmitScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	122, // 141: nimi.runtime.v1.SubmitScenarioJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
-	80,  // 142: nimi.runtime.v1.GetScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	80,  // 143: nimi.runtime.v1.CancelScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	21,  // 144: nimi.runtime.v1.ScenarioJobEvent.event_type:type_name -> nimi.runtime.v1.ScenarioJobEventType
-	121, // 145: nimi.runtime.v1.ScenarioJobEvent.timestamp:type_name -> google.protobuf.Timestamp
-	80,  // 146: nimi.runtime.v1.ScenarioJobEvent.job:type_name -> nimi.runtime.v1.ScenarioJob
-	79,  // 147: nimi.runtime.v1.GetScenarioArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	65,  // 148: nimi.runtime.v1.GetScenarioArtifactsResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
-	1,   // 149: nimi.runtime.v1.ScenarioProfile.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
-	2,   // 150: nimi.runtime.v1.ScenarioProfile.supported_execution_modes:type_name -> nimi.runtime.v1.ExecutionMode
-	91,  // 151: nimi.runtime.v1.ListScenarioProfilesResponse.profiles:type_name -> nimi.runtime.v1.ScenarioProfile
-	11,  // 152: nimi.runtime.v1.VideoContentItem.type:type_name -> nimi.runtime.v1.VideoContentType
-	12,  // 153: nimi.runtime.v1.VideoContentItem.role:type_name -> nimi.runtime.v1.VideoContentRole
-	94,  // 154: nimi.runtime.v1.VideoContentItem.image_url:type_name -> nimi.runtime.v1.VideoContentImageURL
-	95,  // 155: nimi.runtime.v1.VideoContentItem.video_url:type_name -> nimi.runtime.v1.VideoContentVideoURL
-	96,  // 156: nimi.runtime.v1.VideoContentItem.audio_url:type_name -> nimi.runtime.v1.VideoContentAudioURL
-	100, // 157: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
-	14,  // 158: nimi.runtime.v1.SpeechAlignment.unit:type_name -> nimi.runtime.v1.SpeechAlignmentUnit
-	102, // 159: nimi.runtime.v1.SpeechAlignment.tokens:type_name -> nimi.runtime.v1.SpeechAlignmentToken
-	117, // 160: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
-	3,   // 161: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	105, // 162: nimi.runtime.v1.UploadArtifactRequest.metadata:type_name -> nimi.runtime.v1.UploadArtifactMetadata
-	106, // 163: nimi.runtime.v1.UploadArtifactRequest.chunk:type_name -> nimi.runtime.v1.UploadArtifactChunk
-	79,  // 164: nimi.runtime.v1.UploadArtifactResponse.artifact:type_name -> nimi.runtime.v1.ScenarioArtifact
-	123, // 165: nimi.runtime.v1.RuntimeAiService.GetAppAIConfig:input_type -> nimi.runtime.v1.GetAppAIConfigRequest
-	124, // 166: nimi.runtime.v1.RuntimeAiService.OverwriteAppAIConfig:input_type -> nimi.runtime.v1.OverwriteAppAIConfigRequest
-	68,  // 167: nimi.runtime.v1.RuntimeAiService.GenerateLocalAppTextCandidate:input_type -> nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
-	54,  // 168: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:input_type -> nimi.runtime.v1.ExecuteScenarioRequest
-	70,  // 169: nimi.runtime.v1.RuntimeAiService.StreamScenario:input_type -> nimi.runtime.v1.StreamScenarioRequest
-	81,  // 170: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:input_type -> nimi.runtime.v1.SubmitScenarioJobRequest
-	83,  // 171: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:input_type -> nimi.runtime.v1.GetScenarioJobRequest
-	85,  // 172: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:input_type -> nimi.runtime.v1.CancelScenarioJobRequest
-	88,  // 173: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:input_type -> nimi.runtime.v1.SubscribeScenarioJobEventsRequest
-	89,  // 174: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:input_type -> nimi.runtime.v1.GetScenarioArtifactsRequest
-	92,  // 175: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:input_type -> nimi.runtime.v1.ListScenarioProfilesRequest
-	125, // 176: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:input_type -> nimi.runtime.v1.GetVoiceAssetRequest
-	126, // 177: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:input_type -> nimi.runtime.v1.ListVoiceAssetsRequest
-	127, // 178: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:input_type -> nimi.runtime.v1.DeleteVoiceAssetRequest
-	128, // 179: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:input_type -> nimi.runtime.v1.ListPresetVoicesRequest
-	107, // 180: nimi.runtime.v1.RuntimeAiService.UploadArtifact:input_type -> nimi.runtime.v1.UploadArtifactRequest
-	129, // 181: nimi.runtime.v1.RuntimeAiService.PeekScheduling:input_type -> nimi.runtime.v1.PeekSchedulingRequest
-	130, // 182: nimi.runtime.v1.RuntimeAiService.GetAppAIConfig:output_type -> nimi.runtime.v1.GetAppAIConfigResponse
-	131, // 183: nimi.runtime.v1.RuntimeAiService.OverwriteAppAIConfig:output_type -> nimi.runtime.v1.OverwriteAppAIConfigResponse
-	69,  // 184: nimi.runtime.v1.RuntimeAiService.GenerateLocalAppTextCandidate:output_type -> nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
-	66,  // 185: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:output_type -> nimi.runtime.v1.ExecuteScenarioResponse
-	78,  // 186: nimi.runtime.v1.RuntimeAiService.StreamScenario:output_type -> nimi.runtime.v1.StreamScenarioEvent
-	82,  // 187: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:output_type -> nimi.runtime.v1.SubmitScenarioJobResponse
-	84,  // 188: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:output_type -> nimi.runtime.v1.GetScenarioJobResponse
-	86,  // 189: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:output_type -> nimi.runtime.v1.CancelScenarioJobResponse
-	87,  // 190: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:output_type -> nimi.runtime.v1.ScenarioJobEvent
-	90,  // 191: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:output_type -> nimi.runtime.v1.GetScenarioArtifactsResponse
-	93,  // 192: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:output_type -> nimi.runtime.v1.ListScenarioProfilesResponse
-	132, // 193: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:output_type -> nimi.runtime.v1.GetVoiceAssetResponse
-	133, // 194: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:output_type -> nimi.runtime.v1.ListVoiceAssetsResponse
-	134, // 195: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:output_type -> nimi.runtime.v1.DeleteVoiceAssetResponse
-	135, // 196: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:output_type -> nimi.runtime.v1.ListPresetVoicesResponse
-	108, // 197: nimi.runtime.v1.RuntimeAiService.UploadArtifact:output_type -> nimi.runtime.v1.UploadArtifactResponse
-	136, // 198: nimi.runtime.v1.RuntimeAiService.PeekScheduling:output_type -> nimi.runtime.v1.PeekSchedulingResponse
-	182, // [182:199] is the sub-list for method output_type
-	165, // [165:182] is the sub-list for method input_type
-	165, // [165:165] is the sub-list for extension type_name
-	165, // [165:165] is the sub-list for extension extendee
-	0,   // [0:165] is the sub-list for field type_name
+	24,  // 0: nimi.runtime.v1.ChatMessage.parts:type_name -> nimi.runtime.v1.ChatContentPart
+	27,  // 1: nimi.runtime.v1.ChatMessage.tool_calls:type_name -> nimi.runtime.v1.ToolCall
+	28,  // 2: nimi.runtime.v1.ChatMessage.tool_results:type_name -> nimi.runtime.v1.ToolResult
+	30,  // 3: nimi.runtime.v1.ChatMessage.tool_approval_responses:type_name -> nimi.runtime.v1.ToolApprovalResponse
+	14,  // 4: nimi.runtime.v1.ChatContentPart.type:type_name -> nimi.runtime.v1.ChatContentPartType
+	22,  // 5: nimi.runtime.v1.ChatContentPart.image_url:type_name -> nimi.runtime.v1.ChatContentImageURL
+	23,  // 6: nimi.runtime.v1.ChatContentPart.artifact_ref:type_name -> nimi.runtime.v1.ChatContentArtifactRef
+	110, // 7: nimi.runtime.v1.ToolSpec.input_schema:type_name -> google.protobuf.Struct
+	15,  // 8: nimi.runtime.v1.ToolSpec.kind:type_name -> nimi.runtime.v1.ToolSpecKind
+	110, // 9: nimi.runtime.v1.ToolSpec.provider_args:type_name -> google.protobuf.Struct
+	110, // 10: nimi.runtime.v1.ToolSpec.provider_metadata:type_name -> google.protobuf.Struct
+	17,  // 11: nimi.runtime.v1.ResponseFormat.kind:type_name -> nimi.runtime.v1.ResponseFormatKind
+	110, // 12: nimi.runtime.v1.ResponseFormat.json_schema:type_name -> google.protobuf.Struct
+	110, // 13: nimi.runtime.v1.ToolCall.provider_metadata:type_name -> google.protobuf.Struct
+	111, // 14: nimi.runtime.v1.ToolResult.result:type_name -> google.protobuf.Value
+	110, // 15: nimi.runtime.v1.ToolResult.provider_metadata:type_name -> google.protobuf.Struct
+	110, // 16: nimi.runtime.v1.ToolApprovalRequest.provider_metadata:type_name -> google.protobuf.Struct
+	110, // 17: nimi.runtime.v1.ToolApprovalResponse.provider_metadata:type_name -> google.protobuf.Struct
+	18,  // 18: nimi.runtime.v1.TextSource.source_type:type_name -> nimi.runtime.v1.TextSourceType
+	110, // 19: nimi.runtime.v1.TextSource.provider_metadata:type_name -> google.protobuf.Struct
+	111, // 20: nimi.runtime.v1.RawChunk.value:type_name -> google.protobuf.Value
+	110, // 21: nimi.runtime.v1.ScenarioExtension.payload:type_name -> google.protobuf.Struct
+	5,   // 22: nimi.runtime.v1.ReasoningConfig.mode:type_name -> nimi.runtime.v1.ReasoningMode
+	6,   // 23: nimi.runtime.v1.ReasoningConfig.trace_mode:type_name -> nimi.runtime.v1.ReasoningTraceMode
+	21,  // 24: nimi.runtime.v1.TextGenerateScenarioSpec.input:type_name -> nimi.runtime.v1.ChatMessage
+	25,  // 25: nimi.runtime.v1.TextGenerateScenarioSpec.tools:type_name -> nimi.runtime.v1.ToolSpec
+	36,  // 26: nimi.runtime.v1.TextGenerateScenarioSpec.reasoning:type_name -> nimi.runtime.v1.ReasoningConfig
+	16,  // 27: nimi.runtime.v1.TextGenerateScenarioSpec.tool_choice:type_name -> nimi.runtime.v1.ToolChoiceMode
+	26,  // 28: nimi.runtime.v1.TextGenerateScenarioSpec.response_format:type_name -> nimi.runtime.v1.ResponseFormat
+	9,   // 29: nimi.runtime.v1.VideoGenerateScenarioSpec.mode:type_name -> nimi.runtime.v1.VideoMode
+	96,  // 30: nimi.runtime.v1.VideoGenerateScenarioSpec.content:type_name -> nimi.runtime.v1.VideoContentItem
+	97,  // 31: nimi.runtime.v1.VideoGenerateScenarioSpec.options:type_name -> nimi.runtime.v1.VideoGenerationOptions
+	112, // 32: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.voice_ref:type_name -> nimi.runtime.v1.VoiceReference
+	12,  // 33: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.timing_mode:type_name -> nimi.runtime.v1.SpeechTimingMode
+	98,  // 34: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.voice_render_hints:type_name -> nimi.runtime.v1.VoiceRenderHints
+	100, // 35: nimi.runtime.v1.SpeechTranscribeScenarioSpec.audio_source:type_name -> nimi.runtime.v1.SpeechTranscriptionAudioSource
+	113, // 36: nimi.runtime.v1.VoiceCloneScenarioSpec.input:type_name -> nimi.runtime.v1.VoiceV2VInput
+	114, // 37: nimi.runtime.v1.VoiceDesignScenarioSpec.input:type_name -> nimi.runtime.v1.VoiceT2VInput
+	46,  // 38: nimi.runtime.v1.WorldGenerateImagePrompt.content:type_name -> nimi.runtime.v1.WorldGenerateAssetSource
+	46,  // 39: nimi.runtime.v1.WorldGenerateMultiImageReference.content:type_name -> nimi.runtime.v1.WorldGenerateAssetSource
+	48,  // 40: nimi.runtime.v1.WorldGenerateMultiImagePrompt.images:type_name -> nimi.runtime.v1.WorldGenerateMultiImageReference
+	46,  // 41: nimi.runtime.v1.WorldGenerateVideoPrompt.content:type_name -> nimi.runtime.v1.WorldGenerateAssetSource
+	47,  // 42: nimi.runtime.v1.WorldGenerateScenarioSpec.image_prompt:type_name -> nimi.runtime.v1.WorldGenerateImagePrompt
+	49,  // 43: nimi.runtime.v1.WorldGenerateScenarioSpec.multi_image_prompt:type_name -> nimi.runtime.v1.WorldGenerateMultiImagePrompt
+	50,  // 44: nimi.runtime.v1.WorldGenerateScenarioSpec.video_prompt:type_name -> nimi.runtime.v1.WorldGenerateVideoPrompt
+	37,  // 45: nimi.runtime.v1.ScenarioSpec.text_generate:type_name -> nimi.runtime.v1.TextGenerateScenarioSpec
+	38,  // 46: nimi.runtime.v1.ScenarioSpec.text_embed:type_name -> nimi.runtime.v1.TextEmbedScenarioSpec
+	39,  // 47: nimi.runtime.v1.ScenarioSpec.image_generate:type_name -> nimi.runtime.v1.ImageGenerateScenarioSpec
+	40,  // 48: nimi.runtime.v1.ScenarioSpec.video_generate:type_name -> nimi.runtime.v1.VideoGenerateScenarioSpec
+	41,  // 49: nimi.runtime.v1.ScenarioSpec.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeScenarioSpec
+	42,  // 50: nimi.runtime.v1.ScenarioSpec.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeScenarioSpec
+	43,  // 51: nimi.runtime.v1.ScenarioSpec.voice_clone:type_name -> nimi.runtime.v1.VoiceCloneScenarioSpec
+	44,  // 52: nimi.runtime.v1.ScenarioSpec.voice_design:type_name -> nimi.runtime.v1.VoiceDesignScenarioSpec
+	45,  // 53: nimi.runtime.v1.ScenarioSpec.music_generate:type_name -> nimi.runtime.v1.MusicGenerateScenarioSpec
+	51,  // 54: nimi.runtime.v1.ScenarioSpec.world_generate:type_name -> nimi.runtime.v1.WorldGenerateScenarioSpec
+	33,  // 55: nimi.runtime.v1.ExecuteScenarioRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	1,   // 56: nimi.runtime.v1.ExecuteScenarioRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
+	2,   // 57: nimi.runtime.v1.ExecuteScenarioRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
+	52,  // 58: nimi.runtime.v1.ExecuteScenarioRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
+	34,  // 59: nimi.runtime.v1.ExecuteScenarioRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
+	27,  // 60: nimi.runtime.v1.TextGenerateOutput.tool_calls:type_name -> nimi.runtime.v1.ToolCall
+	28,  // 61: nimi.runtime.v1.TextGenerateOutput.tool_results:type_name -> nimi.runtime.v1.ToolResult
+	29,  // 62: nimi.runtime.v1.TextGenerateOutput.tool_approval_requests:type_name -> nimi.runtime.v1.ToolApprovalRequest
+	31,  // 63: nimi.runtime.v1.TextGenerateOutput.sources:type_name -> nimi.runtime.v1.TextSource
+	32,  // 64: nimi.runtime.v1.TextGenerateOutput.raw_chunks:type_name -> nimi.runtime.v1.RawChunk
+	55,  // 65: nimi.runtime.v1.TextEmbedOutput.vectors:type_name -> nimi.runtime.v1.EmbeddingVector
+	78,  // 66: nimi.runtime.v1.ImageGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	78,  // 67: nimi.runtime.v1.VideoGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	78,  // 68: nimi.runtime.v1.SpeechSynthesizeResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	78,  // 69: nimi.runtime.v1.SpeechTranscribeResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	78,  // 70: nimi.runtime.v1.MusicGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	108, // 71: nimi.runtime.v1.WorldGenerateResult.spz_urls:type_name -> nimi.runtime.v1.WorldGenerateResult.SpzUrlsEntry
+	62,  // 72: nimi.runtime.v1.WorldGenerateResult.semantics_metadata:type_name -> nimi.runtime.v1.WorldGenerateSemanticsMetadata
+	78,  // 73: nimi.runtime.v1.WorldGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	54,  // 74: nimi.runtime.v1.ScenarioOutput.text_generate:type_name -> nimi.runtime.v1.TextGenerateOutput
+	56,  // 75: nimi.runtime.v1.ScenarioOutput.text_embed:type_name -> nimi.runtime.v1.TextEmbedOutput
+	57,  // 76: nimi.runtime.v1.ScenarioOutput.image_generate:type_name -> nimi.runtime.v1.ImageGenerateResult
+	58,  // 77: nimi.runtime.v1.ScenarioOutput.video_generate:type_name -> nimi.runtime.v1.VideoGenerateResult
+	59,  // 78: nimi.runtime.v1.ScenarioOutput.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeResult
+	60,  // 79: nimi.runtime.v1.ScenarioOutput.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeResult
+	61,  // 80: nimi.runtime.v1.ScenarioOutput.music_generate:type_name -> nimi.runtime.v1.MusicGenerateResult
+	63,  // 81: nimi.runtime.v1.ScenarioOutput.world_generate:type_name -> nimi.runtime.v1.WorldGenerateResult
+	64,  // 82: nimi.runtime.v1.ExecuteScenarioResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
+	4,   // 83: nimi.runtime.v1.ExecuteScenarioResponse.finish_reason:type_name -> nimi.runtime.v1.FinishReason
+	115, // 84: nimi.runtime.v1.ExecuteScenarioResponse.usage:type_name -> nimi.runtime.v1.UsageStats
+	3,   // 85: nimi.runtime.v1.ExecuteScenarioResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	35,  // 86: nimi.runtime.v1.ExecuteScenarioResponse.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
+	66,  // 87: nimi.runtime.v1.GenerateLocalAppTextCandidateRequest.messages:type_name -> nimi.runtime.v1.LocalAppTextCandidateMessage
+	4,   // 88: nimi.runtime.v1.GenerateLocalAppTextCandidateResponse.finish_reason:type_name -> nimi.runtime.v1.FinishReason
+	33,  // 89: nimi.runtime.v1.StreamScenarioRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	1,   // 90: nimi.runtime.v1.StreamScenarioRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
+	2,   // 91: nimi.runtime.v1.StreamScenarioRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
+	52,  // 92: nimi.runtime.v1.StreamScenarioRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
+	34,  // 93: nimi.runtime.v1.StreamScenarioRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
+	3,   // 94: nimi.runtime.v1.ScenarioStreamStarted.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	116, // 95: nimi.runtime.v1.ScenarioStreamStarted.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
+	71,  // 96: nimi.runtime.v1.ScenarioStreamDelta.text:type_name -> nimi.runtime.v1.TextStreamDelta
+	73,  // 97: nimi.runtime.v1.ScenarioStreamDelta.artifact:type_name -> nimi.runtime.v1.ArtifactStreamDelta
+	72,  // 98: nimi.runtime.v1.ScenarioStreamDelta.reasoning:type_name -> nimi.runtime.v1.ReasoningStreamDelta
+	31,  // 99: nimi.runtime.v1.ScenarioStreamDelta.source:type_name -> nimi.runtime.v1.TextSource
+	32,  // 100: nimi.runtime.v1.ScenarioStreamDelta.raw:type_name -> nimi.runtime.v1.RawChunk
+	4,   // 101: nimi.runtime.v1.ScenarioStreamCompleted.finish_reason:type_name -> nimi.runtime.v1.FinishReason
+	115, // 102: nimi.runtime.v1.ScenarioStreamCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
+	117, // 103: nimi.runtime.v1.ScenarioStreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	8,   // 104: nimi.runtime.v1.StreamScenarioEvent.event_type:type_name -> nimi.runtime.v1.StreamEventType
+	118, // 105: nimi.runtime.v1.StreamScenarioEvent.timestamp:type_name -> google.protobuf.Timestamp
+	70,  // 106: nimi.runtime.v1.StreamScenarioEvent.started:type_name -> nimi.runtime.v1.ScenarioStreamStarted
+	74,  // 107: nimi.runtime.v1.StreamScenarioEvent.delta:type_name -> nimi.runtime.v1.ScenarioStreamDelta
+	115, // 108: nimi.runtime.v1.StreamScenarioEvent.usage:type_name -> nimi.runtime.v1.UsageStats
+	75,  // 109: nimi.runtime.v1.StreamScenarioEvent.completed:type_name -> nimi.runtime.v1.ScenarioStreamCompleted
+	76,  // 110: nimi.runtime.v1.StreamScenarioEvent.failed:type_name -> nimi.runtime.v1.ScenarioStreamFailed
+	27,  // 111: nimi.runtime.v1.StreamScenarioEvent.tool_call:type_name -> nimi.runtime.v1.ToolCall
+	28,  // 112: nimi.runtime.v1.StreamScenarioEvent.tool_result:type_name -> nimi.runtime.v1.ToolResult
+	29,  // 113: nimi.runtime.v1.StreamScenarioEvent.tool_approval_request:type_name -> nimi.runtime.v1.ToolApprovalRequest
+	102, // 114: nimi.runtime.v1.ScenarioArtifact.speech_alignment:type_name -> nimi.runtime.v1.SpeechAlignment
+	110, // 115: nimi.runtime.v1.ScenarioArtifact.metadata:type_name -> google.protobuf.Struct
+	33,  // 116: nimi.runtime.v1.ScenarioJob.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	1,   // 117: nimi.runtime.v1.ScenarioJob.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
+	2,   // 118: nimi.runtime.v1.ScenarioJob.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
+	3,   // 119: nimi.runtime.v1.ScenarioJob.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	19,  // 120: nimi.runtime.v1.ScenarioJob.status:type_name -> nimi.runtime.v1.ScenarioJobStatus
+	117, // 121: nimi.runtime.v1.ScenarioJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	118, // 122: nimi.runtime.v1.ScenarioJob.created_at:type_name -> google.protobuf.Timestamp
+	118, // 123: nimi.runtime.v1.ScenarioJob.updated_at:type_name -> google.protobuf.Timestamp
+	118, // 124: nimi.runtime.v1.ScenarioJob.next_poll_at:type_name -> google.protobuf.Timestamp
+	78,  // 125: nimi.runtime.v1.ScenarioJob.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	115, // 126: nimi.runtime.v1.ScenarioJob.usage:type_name -> nimi.runtime.v1.UsageStats
+	35,  // 127: nimi.runtime.v1.ScenarioJob.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
+	110, // 128: nimi.runtime.v1.ScenarioJob.reason_metadata:type_name -> google.protobuf.Struct
+	33,  // 129: nimi.runtime.v1.SubmitScenarioJobRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	1,   // 130: nimi.runtime.v1.SubmitScenarioJobRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
+	2,   // 131: nimi.runtime.v1.SubmitScenarioJobRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
+	52,  // 132: nimi.runtime.v1.SubmitScenarioJobRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
+	109, // 133: nimi.runtime.v1.SubmitScenarioJobRequest.labels:type_name -> nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
+	34,  // 134: nimi.runtime.v1.SubmitScenarioJobRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
+	79,  // 135: nimi.runtime.v1.SubmitScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	119, // 136: nimi.runtime.v1.SubmitScenarioJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
+	79,  // 137: nimi.runtime.v1.GetScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	79,  // 138: nimi.runtime.v1.CancelScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	20,  // 139: nimi.runtime.v1.ScenarioJobEvent.event_type:type_name -> nimi.runtime.v1.ScenarioJobEventType
+	118, // 140: nimi.runtime.v1.ScenarioJobEvent.timestamp:type_name -> google.protobuf.Timestamp
+	79,  // 141: nimi.runtime.v1.ScenarioJobEvent.job:type_name -> nimi.runtime.v1.ScenarioJob
+	78,  // 142: nimi.runtime.v1.GetScenarioArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	64,  // 143: nimi.runtime.v1.GetScenarioArtifactsResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
+	1,   // 144: nimi.runtime.v1.ScenarioProfile.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
+	2,   // 145: nimi.runtime.v1.ScenarioProfile.supported_execution_modes:type_name -> nimi.runtime.v1.ExecutionMode
+	90,  // 146: nimi.runtime.v1.ListScenarioProfilesResponse.profiles:type_name -> nimi.runtime.v1.ScenarioProfile
+	10,  // 147: nimi.runtime.v1.VideoContentItem.type:type_name -> nimi.runtime.v1.VideoContentType
+	11,  // 148: nimi.runtime.v1.VideoContentItem.role:type_name -> nimi.runtime.v1.VideoContentRole
+	93,  // 149: nimi.runtime.v1.VideoContentItem.image_url:type_name -> nimi.runtime.v1.VideoContentImageURL
+	94,  // 150: nimi.runtime.v1.VideoContentItem.video_url:type_name -> nimi.runtime.v1.VideoContentVideoURL
+	95,  // 151: nimi.runtime.v1.VideoContentItem.audio_url:type_name -> nimi.runtime.v1.VideoContentAudioURL
+	99,  // 152: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
+	13,  // 153: nimi.runtime.v1.SpeechAlignment.unit:type_name -> nimi.runtime.v1.SpeechAlignmentUnit
+	101, // 154: nimi.runtime.v1.SpeechAlignment.tokens:type_name -> nimi.runtime.v1.SpeechAlignmentToken
+	115, // 155: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
+	3,   // 156: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	104, // 157: nimi.runtime.v1.UploadArtifactRequest.metadata:type_name -> nimi.runtime.v1.UploadArtifactMetadata
+	105, // 158: nimi.runtime.v1.UploadArtifactRequest.chunk:type_name -> nimi.runtime.v1.UploadArtifactChunk
+	78,  // 159: nimi.runtime.v1.UploadArtifactResponse.artifact:type_name -> nimi.runtime.v1.ScenarioArtifact
+	120, // 160: nimi.runtime.v1.RuntimeAiService.GetAppAIConfig:input_type -> nimi.runtime.v1.GetAppAIConfigRequest
+	121, // 161: nimi.runtime.v1.RuntimeAiService.OverwriteAppAIConfig:input_type -> nimi.runtime.v1.OverwriteAppAIConfigRequest
+	67,  // 162: nimi.runtime.v1.RuntimeAiService.GenerateLocalAppTextCandidate:input_type -> nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
+	53,  // 163: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:input_type -> nimi.runtime.v1.ExecuteScenarioRequest
+	69,  // 164: nimi.runtime.v1.RuntimeAiService.StreamScenario:input_type -> nimi.runtime.v1.StreamScenarioRequest
+	80,  // 165: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:input_type -> nimi.runtime.v1.SubmitScenarioJobRequest
+	82,  // 166: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:input_type -> nimi.runtime.v1.GetScenarioJobRequest
+	84,  // 167: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:input_type -> nimi.runtime.v1.CancelScenarioJobRequest
+	87,  // 168: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:input_type -> nimi.runtime.v1.SubscribeScenarioJobEventsRequest
+	88,  // 169: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:input_type -> nimi.runtime.v1.GetScenarioArtifactsRequest
+	91,  // 170: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:input_type -> nimi.runtime.v1.ListScenarioProfilesRequest
+	122, // 171: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:input_type -> nimi.runtime.v1.GetVoiceAssetRequest
+	123, // 172: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:input_type -> nimi.runtime.v1.ListVoiceAssetsRequest
+	124, // 173: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:input_type -> nimi.runtime.v1.DeleteVoiceAssetRequest
+	125, // 174: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:input_type -> nimi.runtime.v1.ListPresetVoicesRequest
+	106, // 175: nimi.runtime.v1.RuntimeAiService.UploadArtifact:input_type -> nimi.runtime.v1.UploadArtifactRequest
+	126, // 176: nimi.runtime.v1.RuntimeAiService.PeekScheduling:input_type -> nimi.runtime.v1.PeekSchedulingRequest
+	127, // 177: nimi.runtime.v1.RuntimeAiService.GetAppAIConfig:output_type -> nimi.runtime.v1.GetAppAIConfigResponse
+	128, // 178: nimi.runtime.v1.RuntimeAiService.OverwriteAppAIConfig:output_type -> nimi.runtime.v1.OverwriteAppAIConfigResponse
+	68,  // 179: nimi.runtime.v1.RuntimeAiService.GenerateLocalAppTextCandidate:output_type -> nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
+	65,  // 180: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:output_type -> nimi.runtime.v1.ExecuteScenarioResponse
+	77,  // 181: nimi.runtime.v1.RuntimeAiService.StreamScenario:output_type -> nimi.runtime.v1.StreamScenarioEvent
+	81,  // 182: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:output_type -> nimi.runtime.v1.SubmitScenarioJobResponse
+	83,  // 183: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:output_type -> nimi.runtime.v1.GetScenarioJobResponse
+	85,  // 184: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:output_type -> nimi.runtime.v1.CancelScenarioJobResponse
+	86,  // 185: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:output_type -> nimi.runtime.v1.ScenarioJobEvent
+	89,  // 186: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:output_type -> nimi.runtime.v1.GetScenarioArtifactsResponse
+	92,  // 187: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:output_type -> nimi.runtime.v1.ListScenarioProfilesResponse
+	129, // 188: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:output_type -> nimi.runtime.v1.GetVoiceAssetResponse
+	130, // 189: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:output_type -> nimi.runtime.v1.ListVoiceAssetsResponse
+	131, // 190: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:output_type -> nimi.runtime.v1.DeleteVoiceAssetResponse
+	132, // 191: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:output_type -> nimi.runtime.v1.ListPresetVoicesResponse
+	107, // 192: nimi.runtime.v1.RuntimeAiService.UploadArtifact:output_type -> nimi.runtime.v1.UploadArtifactResponse
+	133, // 193: nimi.runtime.v1.RuntimeAiService.PeekScheduling:output_type -> nimi.runtime.v1.PeekSchedulingResponse
+	177, // [177:194] is the sub-list for method output_type
+	160, // [160:177] is the sub-list for method input_type
+	160, // [160:160] is the sub-list for extension type_name
+	160, // [160:160] is the sub-list for extension extendee
+	0,   // [0:160] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_ai_proto_init() }
@@ -8981,7 +8857,6 @@ func file_runtime_v1_ai_proto_init() {
 	file_runtime_v1_ai_scheduling_proto_init()
 	file_runtime_v1_capability_configuration_proto_init()
 	file_runtime_v1_common_proto_init()
-	file_runtime_v1_runtime_target_identity_proto_init()
 	file_runtime_v1_voice_proto_init()
 	file_runtime_v1_ai_proto_msgTypes[3].OneofWrappers = []any{
 		(*ChatContentPart_Text)(nil),
@@ -9052,7 +8927,7 @@ func file_runtime_v1_ai_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_ai_proto_rawDesc), len(file_runtime_v1_ai_proto_rawDesc)),
-			NumEnums:      22,
+			NumEnums:      21,
 			NumMessages:   89,
 			NumExtensions: 0,
 			NumServices:   1,

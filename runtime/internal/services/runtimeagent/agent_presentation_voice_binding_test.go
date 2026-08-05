@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -18,51 +19,58 @@ import (
 
 type testVoiceAssetResolver func(context.Context, string) (*runtimev1.VoiceAsset, error)
 
-func (resolve testVoiceAssetResolver) ResolveVoiceAsset(ctx context.Context, voiceAssetID string) (*runtimev1.VoiceAsset, error) {
-	return resolve(ctx, voiceAssetID)
+var testVoiceAssetTargets sync.Map
+
+func (resolve testVoiceAssetResolver) ResolveVoiceAsset(ctx context.Context, voiceAssetID string) (*resolvedVoiceAsset, error) {
+	asset, err := resolve(ctx, voiceAssetID)
+	if err != nil || asset == nil {
+		return nil, err
+	}
+	target, _ := testVoiceAssetTargets.Load(asset)
+	resolvedTarget, _ := target.(*runtimeidentity.Target)
+	return &resolvedVoiceAsset{Asset: asset, Target: resolvedTarget.Clone()}, nil
 }
 
 type testRuntimeAIVoiceAssetService struct {
-	get func(context.Context, *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error)
+	get     func(context.Context, *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error)
+	resolve func(context.Context, string, string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error)
 }
 
 func (service testRuntimeAIVoiceAssetService) GetVoiceAsset(ctx context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
 	return service.get(ctx, req)
 }
 
-func durableVoiceAssetTargetRef() *runtimev1.RuntimeDurableTargetRef {
-	return &runtimev1.RuntimeDurableTargetRef{
-		Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
-			Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-				Version:              "v2",
-				ConnectorId:          "connector-1",
-				RemoteModelCatalogId: "remote-catalog-1",
-				ProviderModelId:      "provider-model-1",
-				Provider:             "provider-1",
-			},
-		},
-	}
+func (service testRuntimeAIVoiceAssetService) ResolveRuntimeAgentVoiceAsset(ctx context.Context, voiceAssetID string, ownerUserID string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error) {
+	return service.resolve(ctx, voiceAssetID, ownerUserID)
+}
+
+func durableVoiceAssetTargetRef() *runtimeidentity.Target {
+	return &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID:          "connector-1",
+		RemoteModelCatalogID: "remote-catalog-1",
+		ProviderModelID:      "provider-model-1",
+		Provider:             "provider-1",
+	}}
 }
 
 func bindableVoiceAsset(voiceAssetID string) *runtimev1.VoiceAsset {
 	targetRef := durableVoiceAssetTargetRef()
-	return &runtimev1.VoiceAsset{
-		VoiceAssetId:        voiceAssetID,
-		AppId:               "runtime-agent-boundary-test",
-		SubjectUserId:       "user-1",
-		WorkflowType:        runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
-		Provider:            "provider-1",
-		ProviderVoiceRef:    "provider-voice-1",
-		Persistence:         runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
-		Status:              runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
-		TargetRef:           proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef),
-		VoiceAssetTargetRef: targetRef,
+	asset := &runtimev1.VoiceAsset{
+		VoiceAssetId:     voiceAssetID,
+		AppId:            "runtime-agent-boundary-test",
+		SubjectUserId:    "user-1",
+		WorkflowType:     runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
+		Provider:         "provider-1",
+		ProviderVoiceRef: "provider-voice-1",
+		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
 	}
+	testVoiceAssetTargets.Store(asset, targetRef.Clone())
+	return asset
 }
 
-func setVoiceAssetTargetRefs(asset *runtimev1.VoiceAsset, targetRef *runtimev1.RuntimeDurableTargetRef) {
-	asset.TargetRef = proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef)
-	asset.VoiceAssetTargetRef = proto.Clone(targetRef).(*runtimev1.RuntimeDurableTargetRef)
+func setVoiceAssetTargetRefs(asset *runtimev1.VoiceAsset, targetRef *runtimeidentity.Target) {
+	testVoiceAssetTargets.Store(asset, targetRef.Clone())
 }
 
 func initializePresentationVoiceTestAgent(t *testing.T, svc *Service, runtimeSourceRef string) *runtimev1.AgentRequestContext {
@@ -311,71 +319,21 @@ func TestSetAgentPresentationProfileValidatesResolvedVoiceAsset(t *testing.T) {
 		})
 	}
 
-	invalidTargetMutations := []struct {
-		name   string
-		mutate func(*runtimev1.VoiceAsset)
+	tests = append(tests, struct {
+		name       string
+		resolve    testVoiceAssetResolver
+		wantCode   codes.Code
+		wantReason runtimev1.ReasonCode
 	}{
-		{name: "missing target ref", mutate: func(asset *runtimev1.VoiceAsset) { asset.TargetRef = nil }},
-		{name: "missing voice asset target ref", mutate: func(asset *runtimev1.VoiceAsset) { asset.VoiceAssetTargetRef = nil }},
-		{name: "empty target oneof", mutate: func(asset *runtimev1.VoiceAsset) { asset.TargetRef = &runtimev1.RuntimeDurableTargetRef{} }},
-		{name: "empty voice asset target oneof", mutate: func(asset *runtimev1.VoiceAsset) { asset.VoiceAssetTargetRef = &runtimev1.RuntimeDurableTargetRef{} }},
-		{name: "nil cloud target payload", mutate: func(asset *runtimev1.VoiceAsset) {
-			asset.TargetRef = &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{}}
-		}},
-		{name: "nil voice asset cloud target payload", mutate: func(asset *runtimev1.VoiceAsset) {
-			asset.VoiceAssetTargetRef = &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{}}
-		}},
-		{name: "wrong cloud target version", mutate: func(asset *runtimev1.VoiceAsset) { asset.TargetRef.GetCloud().Version = "v1" }},
-		{name: "incomplete cloud target", mutate: func(asset *runtimev1.VoiceAsset) { asset.TargetRef.GetCloud().ConnectorId = "" }},
-		{name: "empty local target id", mutate: func(asset *runtimev1.VoiceAsset) {
-			asset.TargetRef = &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-				Version: "v2",
-				Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{},
-			}}}
-		}},
-		{name: "padded cloud target field", mutate: func(asset *runtimev1.VoiceAsset) {
-			asset.TargetRef.GetCloud().ConnectorId = " connector-1"
-		}},
-		{name: "padded voice asset cloud target field", mutate: func(asset *runtimev1.VoiceAsset) {
-			asset.VoiceAssetTargetRef.GetCloud().ProviderModelId = "provider-model-1 "
-		}},
-		{name: "padded local target profile binding", mutate: func(asset *runtimev1.VoiceAsset) {
-			asset.TargetRef = &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-				Version: "v2",
-				Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: " profile-binding-1"},
-			}}}
-		}},
-		{name: "padded local voice asset readiness ref", mutate: func(asset *runtimev1.VoiceAsset) {
-			asset.VoiceAssetTargetRef = &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-				Version: "v2",
-				Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{ReadinessRef: "readiness-1 "},
-			}}}
-		}},
-		{name: "contradictory durable targets", mutate: func(asset *runtimev1.VoiceAsset) {
-			asset.VoiceAssetTargetRef.GetCloud().ConnectorId = "connector-other"
-		}},
-		{name: "voice asset provider mismatches cloud target", mutate: func(asset *runtimev1.VoiceAsset) {
+		name: "voice asset provider mismatches private cloud target",
+		resolve: func(_ context.Context, id string) (*runtimev1.VoiceAsset, error) {
+			asset := bindableVoiceAsset(id)
 			asset.Provider = "provider-other"
-		}},
-	}
-	for _, invalid := range invalidTargetMutations {
-		invalid := invalid
-		tests = append(tests, struct {
-			name       string
-			resolve    testVoiceAssetResolver
-			wantCode   codes.Code
-			wantReason runtimev1.ReasonCode
-		}{
-			name: invalid.name,
-			resolve: func(_ context.Context, id string) (*runtimev1.VoiceAsset, error) {
-				asset := bindableVoiceAsset(id)
-				invalid.mutate(asset)
-				return asset, nil
-			},
-			wantCode:   codes.FailedPrecondition,
-			wantReason: runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED,
-		})
-	}
+			return asset, nil
+		},
+		wantCode:   codes.FailedPrecondition,
+		wantReason: runtimev1.ReasonCode_AI_VOICE_ASSET_EXPIRED,
+	})
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -475,10 +433,7 @@ func TestSetAgentPresentationProfileAcceptsCanonicalLocalDurableVoiceAssetTarget
 	requestContext := initializePresentationVoiceTestAgent(t, svc, "valid-local-voice-binding")
 	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, id string) (*runtimev1.VoiceAsset, error) {
 		asset := bindableVoiceAsset(id)
-		localTarget := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-			Version: "v2",
-			Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{ReadinessRef: "readiness-1"},
-		}}}
+		localTarget := &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "readiness-1"}}
 		setVoiceAssetTargetRefs(asset, localTarget)
 		return asset, nil
 	}))
@@ -610,18 +565,24 @@ func TestAIBackedVoiceAssetResolverDelegatesContextAndPreservesOwnerBoundaryErro
 	sentinel := &struct{}{}
 	scopeErr := grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
 	serviceCalls := 0
-	resolver := NewAIBackedVoiceAssetResolver(testRuntimeAIVoiceAssetService{get: func(ctx context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
-		serviceCalls++
-		if ctx.Value(contextKey{}) != sentinel {
-			t.Fatal("GetVoiceAsset did not receive incoming context")
-		}
-		if req.GetVoiceAssetId() != "asset-owner-boundary" {
-			t.Fatalf("voice_asset_id = %q", req.GetVoiceAssetId())
-		}
-		return nil, scopeErr
-	}})
+	resolver := NewAIBackedVoiceAssetResolver(testRuntimeAIVoiceAssetService{
+		get: func(context.Context, *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
+			return nil, errors.New("public GetVoiceAsset must not be called")
+		},
+		resolve: func(ctx context.Context, voiceAssetID string, ownerUserID string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error) {
+			serviceCalls++
+			if ctx.Value(contextKey{}) != sentinel {
+				t.Fatal("private resolver did not receive incoming context")
+			}
+			if voiceAssetID != "asset-owner-boundary" || ownerUserID != "owner-1" {
+				t.Fatalf("private scope = %q/%q", voiceAssetID, ownerUserID)
+			}
+			return nil, nil, scopeErr
+		},
+	})
 
-	_, err := resolver.ResolveVoiceAsset(context.WithValue(context.Background(), contextKey{}, sentinel), " asset-owner-boundary ")
+	ctx := withRuntimeAgentVoiceAssetOwner(context.WithValue(context.Background(), contextKey{}, sentinel), "owner-1")
+	_, err := resolver.ResolveVoiceAsset(ctx, " asset-owner-boundary ")
 	if serviceCalls != 1 {
 		t.Fatalf("GetVoiceAsset calls = %d, want 1", serviceCalls)
 	}

@@ -1101,19 +1101,6 @@ impl Default for ExternalProofType {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum FallbackPolicy {
-    FALLBACKPOLICYUNSPECIFIED,
-    FALLBACKPOLICYDENY,
-    FALLBACKPOLICYALLOW,
-}
-
-impl Default for FallbackPolicy {
-    fn default() -> Self {
-        Self::FALLBACKPOLICYUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FinishReason {
     FINISHREASONUNSPECIFIED,
     FINISHREASONSTOP,
@@ -1657,21 +1644,6 @@ impl Default for LocalServiceStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalWarmState {
-    LOCALWARMSTATEUNSPECIFIED,
-    LOCALWARMSTATECOLD,
-    LOCALWARMSTATEWARMING,
-    LOCALWARMSTATEREADY,
-    LOCALWARMSTATEFAILED,
-}
-
-impl Default for LocalWarmState {
-    fn default() -> Self {
-        Self::LOCALWARMSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MemoryBankScope {
     MEMORYBANKSCOPEUNSPECIFIED,
     MEMORYBANKSCOPEAGENTCORE,
@@ -2160,6 +2132,7 @@ pub enum ReasonCode {
     AILOCALEXECUTIONINFERENCEFAILED,
     AILOCALEXECUTIONCANCELED,
     AILOCALEXECUTIONPROCESSCRASHED,
+    AILOCALEXECUTIONCONTENTMISMATCH,
 }
 
 impl Default for ReasonCode {
@@ -6967,56 +6940,6 @@ impl ChatMessage {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct CheckLocalAssetHealthRequest {
-    pub local_asset_id: Option<String>,
-}
-
-impl CheckLocalAssetHealthRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.local_asset_id { pairs.push(format!("local_asset_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.local_asset_id = pairs.get("local_asset_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CheckLocalAssetHealthResponse {
-    pub assets: Vec<Box<LocalAssetHealth>>,
-}
-
-impl CheckLocalAssetHealthResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if !self.assets.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode assets"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["assets"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CheckLocalServiceHealthRequest {
     pub service_id: Option<String>,
 }
@@ -9524,7 +9447,6 @@ pub struct ExecuteScenarioResponse {
     pub model_resolved: Option<String>,
     pub trace_id: Option<String>,
     pub ignored_extensions: Vec<Box<IgnoredScenarioExtension>>,
-    pub resolved_execution_binding: Option<Box<RuntimeResolvedExecutionBinding>>,
 }
 
 impl ExecuteScenarioResponse {
@@ -9537,14 +9459,13 @@ impl ExecuteScenarioResponse {
         if let Some(value) = &self.model_resolved { pairs.push(format!("model_resolved={}", value)); }
         if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
         if !self.ignored_extensions.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ignored_extensions"); }
-        if self.resolved_execution_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode resolved_execution_binding"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["output", "finish_reason", "usage", "route_decision", "ignored_extensions", "resolved_execution_binding"] {
+        for key in ["output", "finish_reason", "usage", "route_decision", "ignored_extensions"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -16654,42 +16575,6 @@ impl LocalAssetExactBindingTarget {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAssetHealth {
-    pub local_asset_id: Option<String>,
-    pub status: Option<LocalAssetStatus>,
-    pub detail: Option<String>,
-    pub endpoint: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl LocalAssetHealth {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.local_asset_id { pairs.push(format!("local_asset_id={}", value)); }
-        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["status", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.local_asset_id = pairs.get("local_asset_id").cloned();
-        out.detail = pairs.get("detail").cloned();
-        out.endpoint = pairs.get("endpoint").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAssetRecord {
     pub local_asset_id: Option<String>,
     pub asset_id: Option<String>,
@@ -16711,7 +16596,6 @@ pub struct LocalAssetRecord {
     pub preferred_engine: Option<String>,
     pub fallback_engines: Vec<String>,
     pub bundle_state: Option<LocalBundleState>,
-    pub warm_state: Option<LocalWarmState>,
     pub host_requirements: Option<Box<LocalHostRequirements>>,
     pub local_invoke_profile_id: Option<String>,
     pub engine_config: Option<BTreeMap<String, String>>,
@@ -16721,9 +16605,6 @@ pub struct LocalAssetRecord {
     pub display_name: Option<String>,
     pub source_file_name: Option<String>,
     pub import_instance_id: Option<String>,
-    pub durable_target_ref: Option<Box<RuntimeDurableLocalTargetRef>>,
-    pub durable_target_status: Option<LocalAssetStatus>,
-    pub durable_target_reason_code: Option<ReasonCode>,
 }
 
 impl LocalAssetRecord {
@@ -16749,7 +16630,6 @@ impl LocalAssetRecord {
         if let Some(value) = &self.preferred_engine { pairs.push(format!("preferred_engine={}", value)); }
         for value in &self.fallback_engines { pairs.push(format!("fallback_engines={}", value)); }
         if let Some(value) = &self.bundle_state { pairs.push(format!("bundle_state={:?}", value)); }
-        if let Some(value) = &self.warm_state { pairs.push(format!("warm_state={:?}", value)); }
         if self.host_requirements.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_requirements"); }
         if let Some(value) = &self.local_invoke_profile_id { pairs.push(format!("local_invoke_profile_id={}", value)); }
         if self.engine_config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode engine_config"); }
@@ -16759,16 +16639,13 @@ impl LocalAssetRecord {
         if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
         if let Some(value) = &self.source_file_name { pairs.push(format!("source_file_name={}", value)); }
         if let Some(value) = &self.import_instance_id { pairs.push(format!("import_instance_id={}", value)); }
-        if self.durable_target_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode durable_target_ref"); }
-        if let Some(value) = &self.durable_target_status { pairs.push(format!("durable_target_status={:?}", value)); }
-        if let Some(value) = &self.durable_target_reason_code { pairs.push(format!("durable_target_reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["kind", "source", "hashes", "status", "bundle_state", "warm_state", "host_requirements", "engine_config", "reason_code", "metadata", "durable_target_ref", "durable_target_status", "durable_target_reason_code"] {
+        for key in ["kind", "source", "hashes", "status", "bundle_state", "host_requirements", "engine_config", "reason_code", "metadata"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -19935,30 +19812,6 @@ impl MemoryEmbeddingCloudBindingRef {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryEmbeddingLocalBindingRef {
-    pub profile_binding_id: Option<String>,
-    pub readiness_ref: Option<String>,
-}
-
-impl MemoryEmbeddingLocalBindingRef {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.profile_binding_id { pairs.push(format!("profile_binding_id={}", value)); }
-        if let Some(value) = &self.readiness_ref { pairs.push(format!("readiness_ref={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.profile_binding_id = pairs.get("profile_binding_id").cloned();
-        out.readiness_ref = pairs.get("readiness_ref").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MemoryEmbeddingOperationReadiness {
     pub bind_allowed: Option<bool>,
     pub cutover_allowed: Option<bool>,
@@ -19991,7 +19844,6 @@ pub struct MemoryEmbeddingProfile {
     pub version: Option<String>,
     pub migration_policy: Option<MemoryMigrationPolicy>,
     pub cloud_binding: Option<Box<MemoryEmbeddingCloudBindingRef>>,
-    pub local_binding: Option<Box<MemoryEmbeddingLocalBindingRef>>,
 }
 
 impl MemoryEmbeddingProfile {
@@ -20004,14 +19856,13 @@ impl MemoryEmbeddingProfile {
         if let Some(value) = &self.version { pairs.push(format!("version={}", value)); }
         if let Some(value) = &self.migration_policy { pairs.push(format!("migration_policy={:?}", value)); }
         if self.cloud_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud_binding"); }
-        if self.local_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_binding"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["distance_metric", "migration_policy", "cloud_binding", "local_binding"] {
+        for key in ["distance_metric", "migration_policy", "cloud_binding"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -20725,7 +20576,6 @@ pub struct ModelDescriptor {
     pub preferred_engine: Option<String>,
     pub fallback_engines: Vec<String>,
     pub bundle_state: Option<LocalBundleState>,
-    pub warm_state: Option<LocalWarmState>,
     pub host_requirements: Option<Box<LocalHostRequirements>>,
 }
 
@@ -20744,7 +20594,6 @@ impl ModelDescriptor {
         if let Some(value) = &self.preferred_engine { pairs.push(format!("preferred_engine={}", value)); }
         for value in &self.fallback_engines { pairs.push(format!("fallback_engines={}", value)); }
         if let Some(value) = &self.bundle_state { pairs.push(format!("bundle_state={:?}", value)); }
-        if let Some(value) = &self.warm_state { pairs.push(format!("warm_state={:?}", value)); }
         if self.host_requirements.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode host_requirements"); }
         pairs.join(";").into_bytes()
     }
@@ -20752,7 +20601,7 @@ impl ModelDescriptor {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["status", "capability_profile", "bundle_state", "warm_state", "host_requirements"] {
+        for key in ["status", "capability_profile", "bundle_state", "host_requirements"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -25083,97 +24932,6 @@ impl RevokeWorkspaceBindingResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeDurableCloudTargetRef {
-    pub version: Option<String>,
-    pub connector_id: Option<String>,
-    pub remote_model_catalog_id: Option<String>,
-    pub provider_model_id: Option<String>,
-    pub provider: Option<String>,
-}
-
-impl RuntimeDurableCloudTargetRef {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.version { pairs.push(format!("version={}", value)); }
-        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
-        if let Some(value) = &self.remote_model_catalog_id { pairs.push(format!("remote_model_catalog_id={}", value)); }
-        if let Some(value) = &self.provider_model_id { pairs.push(format!("provider_model_id={}", value)); }
-        if let Some(value) = &self.provider { pairs.push(format!("provider={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.version = pairs.get("version").cloned();
-        out.connector_id = pairs.get("connector_id").cloned();
-        out.remote_model_catalog_id = pairs.get("remote_model_catalog_id").cloned();
-        out.provider_model_id = pairs.get("provider_model_id").cloned();
-        out.provider = pairs.get("provider").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeDurableLocalTargetRef {
-    pub version: Option<String>,
-    pub profile_binding_id: Option<String>,
-    pub readiness_ref: Option<String>,
-}
-
-impl RuntimeDurableLocalTargetRef {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.version { pairs.push(format!("version={}", value)); }
-        if let Some(value) = &self.profile_binding_id { pairs.push(format!("profile_binding_id={}", value)); }
-        if let Some(value) = &self.readiness_ref { pairs.push(format!("readiness_ref={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.version = pairs.get("version").cloned();
-        out.profile_binding_id = pairs.get("profile_binding_id").cloned();
-        out.readiness_ref = pairs.get("readiness_ref").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeDurableTargetRef {
-    pub local_runtime: Option<Box<RuntimeDurableLocalTargetRef>>,
-    pub cloud: Option<Box<RuntimeDurableCloudTargetRef>>,
-}
-
-impl RuntimeDurableTargetRef {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.local_runtime.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_runtime"); }
-        if self.cloud.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["local_runtime", "cloud"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuntimeHealthEvent {
     pub sequence: Option<u64>,
     pub status: Option<RuntimeHealthStatus>,
@@ -25218,116 +24976,6 @@ impl RuntimeHealthEvent {
         out.memory_bytes = pairs.get("memory_bytes").and_then(|value| value.parse().ok());
         out.vram_bytes = pairs.get("vram_bytes").and_then(|value| value.parse().ok());
         out.sampled_at = pairs.get("sampled_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeResolvedCloudExecutionBinding {
-    pub connector_id: Option<String>,
-    pub remote_model_catalog_id: Option<String>,
-    pub provider_model_id: Option<String>,
-    pub provider: Option<String>,
-    pub endpoint_profile_id: Option<String>,
-    pub connector_snapshot_id: Option<String>,
-}
-
-impl RuntimeResolvedCloudExecutionBinding {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
-        if let Some(value) = &self.remote_model_catalog_id { pairs.push(format!("remote_model_catalog_id={}", value)); }
-        if let Some(value) = &self.provider_model_id { pairs.push(format!("provider_model_id={}", value)); }
-        if let Some(value) = &self.provider { pairs.push(format!("provider={}", value)); }
-        if let Some(value) = &self.endpoint_profile_id { pairs.push(format!("endpoint_profile_id={}", value)); }
-        if let Some(value) = &self.connector_snapshot_id { pairs.push(format!("connector_snapshot_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.connector_id = pairs.get("connector_id").cloned();
-        out.remote_model_catalog_id = pairs.get("remote_model_catalog_id").cloned();
-        out.provider_model_id = pairs.get("provider_model_id").cloned();
-        out.provider = pairs.get("provider").cloned();
-        out.endpoint_profile_id = pairs.get("endpoint_profile_id").cloned();
-        out.connector_snapshot_id = pairs.get("connector_snapshot_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeResolvedExecutionBinding {
-    pub binding_version: Option<String>,
-    pub capability: Option<String>,
-    pub resolved_binding_ref: Option<String>,
-    pub source_target_ref: Option<Box<RuntimeDurableTargetRef>>,
-    pub route_metadata_ref: Option<String>,
-    pub local_runtime: Option<Box<RuntimeResolvedLocalExecutionBinding>>,
-    pub cloud: Option<Box<RuntimeResolvedCloudExecutionBinding>>,
-}
-
-impl RuntimeResolvedExecutionBinding {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.binding_version { pairs.push(format!("binding_version={}", value)); }
-        if let Some(value) = &self.capability { pairs.push(format!("capability={}", value)); }
-        if let Some(value) = &self.resolved_binding_ref { pairs.push(format!("resolved_binding_ref={}", value)); }
-        if self.source_target_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_target_ref"); }
-        if let Some(value) = &self.route_metadata_ref { pairs.push(format!("route_metadata_ref={}", value)); }
-        if self.local_runtime.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_runtime"); }
-        if self.cloud.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode cloud"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["source_target_ref", "local_runtime", "cloud"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.binding_version = pairs.get("binding_version").cloned();
-        out.capability = pairs.get("capability").cloned();
-        out.resolved_binding_ref = pairs.get("resolved_binding_ref").cloned();
-        out.route_metadata_ref = pairs.get("route_metadata_ref").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeResolvedLocalExecutionBinding {
-    pub profile_binding_id: Option<String>,
-    pub readiness_ref: Option<String>,
-    pub local_asset_id: Option<String>,
-    pub execution_profile_id: Option<String>,
-    pub resolved_model_id: Option<String>,
-}
-
-impl RuntimeResolvedLocalExecutionBinding {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.profile_binding_id { pairs.push(format!("profile_binding_id={}", value)); }
-        if let Some(value) = &self.readiness_ref { pairs.push(format!("readiness_ref={}", value)); }
-        if let Some(value) = &self.local_asset_id { pairs.push(format!("local_asset_id={}", value)); }
-        if let Some(value) = &self.execution_profile_id { pairs.push(format!("execution_profile_id={}", value)); }
-        if let Some(value) = &self.resolved_model_id { pairs.push(format!("resolved_model_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.profile_binding_id = pairs.get("profile_binding_id").cloned();
-        out.readiness_ref = pairs.get("readiness_ref").cloned();
-        out.local_asset_id = pairs.get("local_asset_id").cloned();
-        out.execution_profile_id = pairs.get("execution_profile_id").cloned();
-        out.resolved_model_id = pairs.get("resolved_model_id").cloned();
         out
     }
 }
@@ -25727,12 +25375,7 @@ impl ScenarioProfile {
 pub struct ScenarioRequestHead {
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
-    pub model_id: Option<String>,
-    pub route_policy: Option<RoutePolicy>,
-    pub fallback: Option<FallbackPolicy>,
     pub timeout_ms: Option<i32>,
-    pub connector_id: Option<String>,
-    pub target_ref: Option<Box<RuntimeDurableTargetRef>>,
 }
 
 impl ScenarioRequestHead {
@@ -25740,29 +25383,17 @@ impl ScenarioRequestHead {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
         if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
-        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
-        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
-        if let Some(value) = &self.fallback { pairs.push(format!("fallback={:?}", value)); }
         if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
-        if self.target_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target_ref"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["route_policy", "fallback", "target_ref"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
 
         out.app_id = pairs.get("app_id").cloned();
         out.subject_user_id = pairs.get("subject_user_id").cloned();
-        out.model_id = pairs.get("model_id").cloned();
         out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out.connector_id = pairs.get("connector_id").cloned();
         out
     }
 }
@@ -25913,7 +25544,6 @@ impl ScenarioStreamFailed {
 pub struct ScenarioStreamStarted {
     pub model_resolved: Option<String>,
     pub route_decision: Option<RoutePolicy>,
-    pub resolved_execution_binding: Option<Box<RuntimeResolvedExecutionBinding>>,
     pub voice_output_mode: Option<VoiceOutputMode>,
 }
 
@@ -25922,7 +25552,6 @@ impl ScenarioStreamStarted {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.model_resolved { pairs.push(format!("model_resolved={}", value)); }
         if let Some(value) = &self.route_decision { pairs.push(format!("route_decision={:?}", value)); }
-        if self.resolved_execution_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode resolved_execution_binding"); }
         if let Some(value) = &self.voice_output_mode { pairs.push(format!("voice_output_mode={:?}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -25930,7 +25559,7 @@ impl ScenarioStreamStarted {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["route_decision", "resolved_execution_binding", "voice_output_mode"] {
+        for key in ["route_decision", "voice_output_mode"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -29289,8 +28918,6 @@ pub struct VoiceAsset {
     pub updated_at: Option<String>,
     pub expires_at: Option<String>,
     pub metadata: Option<BTreeMap<String, String>>,
-    pub target_ref: Option<Box<RuntimeDurableTargetRef>>,
-    pub voice_asset_target_ref: Option<Box<RuntimeDurableTargetRef>>,
 }
 
 impl VoiceAsset {
@@ -29310,15 +28937,13 @@ impl VoiceAsset {
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
         if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
-        if self.target_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target_ref"); }
-        if self.voice_asset_target_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_asset_target_ref"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["workflow_type", "persistence", "status", "metadata", "target_ref", "voice_asset_target_ref"] {
+        for key in ["workflow_type", "persistence", "status", "metadata"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -29570,72 +29195,6 @@ impl VoiceV2VInput {
         out.language_hints = parse_repeated_string(raw, "language_hints");
         out.preferred_name = pairs.get("preferred_name").cloned();
         out.text = pairs.get("text").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WarmLocalAssetRequest {
-    pub local_asset_id: Option<String>,
-    pub timeout_ms: Option<i32>,
-}
-
-impl WarmLocalAssetRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.local_asset_id { pairs.push(format!("local_asset_id={}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.local_asset_id = pairs.get("local_asset_id").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WarmLocalAssetResponse {
-    pub local_asset_id: Option<String>,
-    pub asset_id: Option<String>,
-    pub model_resolved: Option<String>,
-    pub endpoint: Option<String>,
-    pub engine: Option<String>,
-    pub already_warm: Option<bool>,
-    pub latency_ms: Option<i64>,
-    pub trace_id: Option<String>,
-}
-
-impl WarmLocalAssetResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.local_asset_id { pairs.push(format!("local_asset_id={}", value)); }
-        if let Some(value) = &self.asset_id { pairs.push(format!("asset_id={}", value)); }
-        if let Some(value) = &self.model_resolved { pairs.push(format!("model_resolved={}", value)); }
-        if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
-        if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
-        if let Some(value) = &self.already_warm { pairs.push(format!("already_warm={}", value)); }
-        if let Some(value) = &self.latency_ms { pairs.push(format!("latency_ms={}", value)); }
-        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.local_asset_id = pairs.get("local_asset_id").cloned();
-        out.asset_id = pairs.get("asset_id").cloned();
-        out.model_resolved = pairs.get("model_resolved").cloned();
-        out.endpoint = pairs.get("endpoint").cloned();
-        out.engine = pairs.get("engine").cloned();
-        out.already_warm = pairs.get("already_warm").and_then(|value| value.parse().ok());
-        out.latency_ms = pairs.get("latency_ms").and_then(|value| value.parse().ok());
-        out.trace_id = pairs.get("trace_id").cloned();
         out
     }
 }
@@ -30996,18 +30555,6 @@ impl From<Vec<u8>> for ChatContentPart {
 }
 
 impl From<Vec<u8>> for ChatMessage {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for CheckLocalAssetHealthRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for CheckLocalAssetHealthResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -32849,12 +32396,6 @@ impl From<Vec<u8>> for LocalAssetExactBindingTarget {
     }
 }
 
-impl From<Vec<u8>> for LocalAssetHealth {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for LocalAssetRecord {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33282,12 +32823,6 @@ impl From<Vec<u8>> for MemoryDeletedDetail {
 }
 
 impl From<Vec<u8>> for MemoryEmbeddingCloudBindingRef {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for MemoryEmbeddingLocalBindingRef {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34265,43 +33800,7 @@ impl From<Vec<u8>> for RevokeWorkspaceBindingResponse {
     }
 }
 
-impl From<Vec<u8>> for RuntimeDurableCloudTargetRef {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeDurableLocalTargetRef {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeDurableTargetRef {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for RuntimeHealthEvent {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeResolvedCloudExecutionBinding {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeResolvedExecutionBinding {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RuntimeResolvedLocalExecutionBinding {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35076,18 +34575,6 @@ impl From<Vec<u8>> for VoiceT2VInput {
 }
 
 impl From<Vec<u8>> for VoiceV2VInput {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for WarmLocalAssetRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for WarmLocalAssetResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37120,16 +36607,6 @@ where
         Ok(CancelLocalTransferResponse::from_transport(&raw))
     }
 
-    pub fn check_local_asset_health(&self, request: CheckLocalAssetHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckLocalAssetHealthResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(CheckLocalAssetHealthResponse::from_transport(&raw))
-    }
-
     pub fn check_local_service_health(&self, request: CheckLocalServiceHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckLocalServiceHealthResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth".to_string(),
@@ -37728,16 +37205,6 @@ where
             timeout,
         })?;
         Ok(UnbindLocalCapabilityRequirementResponse::from_transport(&raw))
-    }
-
-    pub fn warm_local_asset(&self, request: WarmLocalAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WarmLocalAssetResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(WarmLocalAssetResponse::from_transport(&raw))
     }
 
     pub fn watch_local_transfers(&self, request: WatchLocalTransfersRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, LocalTransferProgressEvent>, T::Error>

@@ -23,24 +23,19 @@ func (contract dashScopeTTSRequestContract) String() string {
 }
 
 func resolveDashScopeTTSRequestContract(modelResolved string) dashScopeTTSRequestContract {
-	normalized := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(modelResolved, "dashscope")))
+	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
 	if strings.HasPrefix(normalized, "cosyvoice-") {
 		return dashScopeTTSRequestContractCosyVoiceSpeechSynthesizer
 	}
 	return dashScopeTTSRequestContractQwenMultimodal
 }
 
-func resolveAlibabaTTSPath(scenarioExtensions map[string]any, contract dashScopeTTSRequestContract) string {
+func resolveAlibabaTTSPath(contract dashScopeTTSRequestContract) string {
 	defaults := []string{"/api/v1/services/aigc/multimodal-generation/generation"}
 	if contract == dashScopeTTSRequestContractCosyVoiceSpeechSynthesizer {
 		defaults = []string{"/api/v1/services/audio/tts/SpeechSynthesizer"}
 	}
-	return FirstProviderEndpointPath(
-		scenarioExtensions,
-		[]string{"tts_path", "speech_path"},
-		[]string{"tts_paths", "speech_paths"},
-		defaults,
-	)
+	return firstProviderEndpointPath(defaults)
 }
 
 func buildAlibabaTTSPayload(

@@ -94,7 +94,7 @@ func reasoningCapabilityForRequest(modelResolved string, remoteTarget *nimillm.R
 	if remoteTarget == nil && selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nimillm.UnsupportedReasoningCapability()
 	}
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_TEXT)
+	providerType := scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_TEXT)
 	switch strings.ToLower(strings.TrimSpace(providerType)) {
 	case "ollama":
 		return nimillm.OllamaReasoningCapability()

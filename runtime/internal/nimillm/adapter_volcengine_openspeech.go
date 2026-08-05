@@ -100,7 +100,7 @@ func ExecuteBytedanceOpenSpeech(
 			return nil, nil, "", resolveErr
 		}
 		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
-		if shouldUseBytedanceOpenSpeechWS(spec, scenarioExtensions) {
+		if shouldUseBytedanceOpenSpeechWS(spec) {
 			text, wsRaw, wsErr := executeBytedanceOpenSpeechWS(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensions)
 			if wsErr != nil {
 				return nil, nil, "", wsErr
@@ -169,16 +169,9 @@ func ExecuteBytedanceOpenSpeech(
 // WebSocket-based STT helpers (package-private)
 // ---------------------------------------------------------------------------
 
-func shouldUseBytedanceOpenSpeechWS(spec *runtimev1.SpeechTranscribeScenarioSpec, scenarioExtensions map[string]any) bool {
+func shouldUseBytedanceOpenSpeechWS(spec *runtimev1.SpeechTranscribeScenarioSpec) bool {
 	if spec == nil {
 		return false
-	}
-	if ValueAsBool(FirstNonNil(scenarioExtensions["prefer_ws"], scenarioExtensions["use_ws"], scenarioExtensions["websocket"])) {
-		return true
-	}
-	transport := strings.ToLower(strings.TrimSpace(ValueAsString(scenarioExtensions["transport"])))
-	if transport == "ws" || transport == "websocket" {
-		return true
 	}
 	if source := spec.GetAudioSource(); source != nil {
 		if chunks := source.GetAudioChunks(); chunks != nil && len(chunks.GetChunks()) > 0 {
@@ -198,7 +191,7 @@ func executeBytedanceOpenSpeechWS(
 	mimeType string,
 	scenarioExtensions map[string]any,
 ) (string, map[string]any, error) {
-	targetURL := resolveBytedanceOpenSpeechWSURL(baseURL, scenarioExtensions)
+	targetURL := resolveBytedanceOpenSpeechWSURL(baseURL)
 	if targetURL == "" {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -378,34 +371,8 @@ func computeWSReadDeadline(ctx context.Context, readTimeout time.Duration) time.
 	return deadline
 }
 
-func resolveBytedanceOpenSpeechWSURL(baseURL string, scenarioExtensions map[string]any) string {
-	if explicitURL := strings.TrimSpace(ValueAsString(scenarioExtensions["ws_url"])); explicitURL != "" {
-		baseParsed, baseErr := url.Parse(strings.TrimSpace(baseURL))
-		explicitParsed, explicitErr := url.Parse(explicitURL)
-		if baseErr != nil || explicitErr != nil || baseParsed == nil || explicitParsed == nil {
-			return ""
-		}
-		if !explicitParsed.IsAbs() {
-			return resolveBytedanceOpenSpeechWSURL(baseURL, map[string]any{"ws_path": explicitURL})
-		}
-		explicitScheme := strings.ToLower(strings.TrimSpace(explicitParsed.Scheme))
-		if explicitScheme != "ws" && explicitScheme != "wss" {
-			return ""
-		}
-		if !strings.EqualFold(strings.TrimSpace(baseParsed.Host), strings.TrimSpace(explicitParsed.Host)) {
-			return ""
-		}
-		if isSecureEndpointScheme(baseParsed.Scheme) && explicitScheme != "wss" {
-			return ""
-		}
-		return explicitParsed.String()
-	}
-	wsPath := strings.TrimSpace(ValueAsString(scenarioExtensions["ws_path"]))
-	if wsPath == "" {
-		wsPath = "/api/v3/auc/bigmodel/recognize/stream"
-	}
-	httpURL := JoinURL(baseURL, wsPath)
-	parsed, err := url.Parse(httpURL)
+func resolveBytedanceOpenSpeechWSURL(baseURL string) string {
+	parsed, err := url.Parse(strings.TrimSpace(baseURL))
 	if err != nil || parsed == nil || strings.TrimSpace(parsed.Host) == "" {
 		return ""
 	}
@@ -415,6 +382,10 @@ func resolveBytedanceOpenSpeechWSURL(baseURL string, scenarioExtensions map[stri
 	default:
 		parsed.Scheme = "ws"
 	}
+	parsed.Path = "/api/v3/auc/bigmodel/recognize/stream"
+	parsed.RawPath = ""
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
 	return parsed.String()
 }
 

@@ -137,9 +137,6 @@ func addAIExecutionAuditPayload(payload map[string]any, req any, traceID string,
 	}
 	payload["scenario_type"] = details.ScenarioType
 	payload["execution_mode"] = details.ExecutionMode
-	payload["route_policy"] = details.RoutePolicy
-	payload["fallback_policy"] = details.FallbackPolicy
-	payload["connector_id"] = details.ConnectorID
 	// K-AUDIT-018 fields sourced from interceptor context. provider is the
 	// provider identity (provider_endpoint is the separate network endpoint and
 	// is already recorded elsewhere in the payload).
@@ -165,9 +162,6 @@ type aiExecutionAuditDetails struct {
 	IdempotencyKey      string
 	ScenarioType        string
 	ExecutionMode       string
-	RoutePolicy         string
-	FallbackPolicy      string
-	ConnectorID         string
 	ExtensionNamespaces []string
 }
 
@@ -184,18 +178,13 @@ func inferAIExecutionAuditDetails(req any) (aiExecutionAuditDetails, bool) {
 	}
 }
 
-func aiExecutionAuditDetailsFromScenario(head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, executionMode runtimev1.ExecutionMode, extensions []*runtimev1.ScenarioExtension, requestID string, idempotencyKey string) aiExecutionAuditDetails {
+func aiExecutionAuditDetailsFromScenario(_ *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, executionMode runtimev1.ExecutionMode, extensions []*runtimev1.ScenarioExtension, requestID string, idempotencyKey string) aiExecutionAuditDetails {
 	details := aiExecutionAuditDetails{
 		RequestID:           strings.TrimSpace(requestID),
 		IdempotencyKey:      strings.TrimSpace(idempotencyKey),
 		ScenarioType:        scenarioType.String(),
 		ExecutionMode:       executionMode.String(),
 		ExtensionNamespaces: make([]string, 0, len(extensions)),
-	}
-	if head != nil {
-		details.RoutePolicy = head.GetRoutePolicy().String()
-		details.FallbackPolicy = head.GetFallback().String()
-		details.ConnectorID = strings.TrimSpace(head.GetConnectorId())
 	}
 	for _, extension := range extensions {
 		namespace := strings.TrimSpace(extension.GetNamespace())

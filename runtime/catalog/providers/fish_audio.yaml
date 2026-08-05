@@ -108,6 +108,7 @@ voices:
 voice_workflow_models:
   - workflow_model_id: fish-audio-create-model
     workflow_type: voice_clone
+    workflow_family: fish-audio
     input_contract_ref: fish_audio_voice_clone_input_v1
     output_persistence: provider_persistent
     request_options:

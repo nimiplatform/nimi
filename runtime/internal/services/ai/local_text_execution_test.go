@@ -13,6 +13,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
@@ -153,11 +154,7 @@ func TestSubmitLocalTextCapturesSelectionBeforeRunningJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := localexecution.WithConsumerIntent(context.Background(), localexecution.ConsumerIntent{
-		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
-		Defaults:           defaults,
-		Local:              true,
-	})
+	ctx := localTextIntentContext(context.Background(), defaults)
 
 	response, err := svc.SubmitScenarioJob(ctx, localTextJobRequestForTest())
 	if err != nil {
@@ -220,8 +217,6 @@ func TestSubmitAppLocalTextCapturesAIConfigBeforeRunningJob(t *testing.T) {
 		1, [32]byte{1}, make(chan struct{}),
 	)
 	request := localTextJobRequestForTest()
-	request.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED
-	request.Head.ModelId = ""
 	response, err := svc.SubmitScenarioJob(protectedprincipal.With(context.Background(), principal), request)
 	if err != nil {
 		t.Fatalf("SubmitScenarioJob: %v", err)
@@ -278,10 +273,7 @@ func TestLocalTextLoadFailureIsTypedAndDoesNotMutateSelection(t *testing.T) {
 	host := &localTextHostStub{err: &localexecution.ExecutionError{Kind: localexecution.FailureLoad, Err: fmt.Errorf("mmap failed")}}
 	svc.SetLocalExecutionResolver(resolver)
 	svc.SetLocalTextExecutionHost(host)
-	ctx := localexecution.WithConsumerIntent(context.Background(), localexecution.ConsumerIntent{
-		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
-		Local:              true,
-	})
+	ctx := localTextIntentContext(context.Background(), nil)
 	_, err := svc.ExecuteScenario(ctx, localTextExecuteRequestForTest())
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED {
 		t.Fatalf("load error = %v, reason=%v ok=%v", err, reason, ok)
@@ -332,11 +324,12 @@ func TestUnsupportedLocalMediaFailsClosedWithoutLlamaInference(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := newTestService(nil)
-			_, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
-				Head: &runtimev1.ScenarioRequestHead{
-					AppId: "app.local", SubjectUserId: "account-a", ModelId: "local/legacy",
-					RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, Fallback: runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW,
-				},
+			ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
+				CapabilityContract: scenarioTargetCapability(tt.scenarioType),
+				Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			})
+			_, err := svc.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+				Head:         &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "account-a"},
 				ScenarioType: tt.scenarioType, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, Spec: tt.spec,
 			})
 			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
@@ -346,31 +339,12 @@ func TestUnsupportedLocalMediaFailsClosedWithoutLlamaInference(t *testing.T) {
 	}
 }
 
-func TestLegacyLocalTextTargetFailsBeforeMachineResolution(t *testing.T) {
-	svc := newTestService(nil)
-	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{err: errors.New("machine resolver must not run")})
-	ctx := localexecution.WithConsumerIntent(context.Background(), localexecution.ConsumerIntent{
-		CapabilityContract: capabilitydriver.LlamaCapabilityContract, Local: true,
-	})
-	request := localTextExecuteRequestForTest()
-	request.Head.TargetRef = &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-		LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{Version: "v2", Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "legacy"}},
-	}}
-	_, err := svc.ExecuteScenario(ctx, request)
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH {
-		t.Fatalf("legacy target error = %v, reason=%v ok=%v", err, reason, ok)
-	}
-}
-
 func TestLocalTextWithoutMachineSelectionFailsClosed(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{err: grpcerr.WithReasonCode(
 		codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND,
 	)})
-	ctx := localexecution.WithConsumerIntent(context.Background(), localexecution.ConsumerIntent{
-		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
-		Local:              true,
-	})
+	ctx := localTextIntentContext(context.Background(), nil)
 	_, err := svc.ExecuteScenario(ctx, localTextExecuteRequestForTest())
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND {
 		t.Fatalf("missing selection error = %v, reason=%v ok=%v", err, reason, ok)
@@ -408,9 +382,7 @@ func TestLocalTextStreamEmitsStartedDeltasAndRealUsage(t *testing.T) {
 		},
 	})
 	executeRequest := localTextExecuteRequestForTest()
-	stream := &mockScenarioEventStream{ctx: localexecution.WithConsumerIntent(context.Background(), localexecution.ConsumerIntent{
-		CapabilityContract: capabilitydriver.LlamaCapabilityContract, Local: true,
-	})}
+	stream := &mockScenarioEventStream{ctx: localTextIntentContext(context.Background(), nil)}
 	request := &runtimev1.StreamScenarioRequest{
 		Head: executeRequest.GetHead(), ScenarioType: executeRequest.GetScenarioType(),
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, Spec: executeRequest.GetSpec(),
@@ -445,9 +417,7 @@ func TestLocalTextStreamFailureEmitsTypedTerminalEvent(t *testing.T) {
 		Kind: localexecution.FailureInference, Err: errors.New("inference failed"),
 	}})
 	executeRequest := localTextExecuteRequestForTest()
-	stream := &mockScenarioEventStream{ctx: localexecution.WithConsumerIntent(context.Background(), localexecution.ConsumerIntent{
-		CapabilityContract: capabilitydriver.LlamaCapabilityContract, Local: true,
-	})}
+	stream := &mockScenarioEventStream{ctx: localTextIntentContext(context.Background(), nil)}
 	request := &runtimev1.StreamScenarioRequest{
 		Head: executeRequest.GetHead(), ScenarioType: executeRequest.GetScenarioType(),
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, Spec: executeRequest.GetSpec(),
@@ -468,10 +438,7 @@ func TestLocalTextStreamCancelTerminatesHostRequest(t *testing.T) {
 	host := &localTextHostStub{started: make(chan struct{}), canceled: make(chan struct{})}
 	svc.SetLocalTextExecutionHost(host)
 	baseCtx, cancel := context.WithCancel(context.Background())
-	ctx := localexecution.WithConsumerIntent(baseCtx, localexecution.ConsumerIntent{
-		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
-		Local:              true,
-	})
+	ctx := localTextIntentContext(baseCtx, nil)
 	stream := &mockScenarioEventStream{ctx: ctx}
 	errCh := make(chan error, 1)
 	go func() {
@@ -543,14 +510,19 @@ func cloneSelectedExecutionForTest(input *localexecution.SelectedLocalExecution)
 	return &out
 }
 
+func localTextIntentContext(parent context.Context, defaults *structpb.Struct) context.Context {
+	return executionintent.WithIntent(parent, executionintent.Intent{
+		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
+		Defaults:           defaults,
+		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+}
+
 func localTextExecuteRequestForTest() *runtimev1.ExecuteScenarioRequest {
 	return &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app.local",
 			SubjectUserId: "account-a",
-			ModelId:       "request-model-is-not-execution-truth",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,

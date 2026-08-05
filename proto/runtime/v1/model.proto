@@ -49,7 +49,8 @@ message ModelDescriptor {
   string preferred_engine = 10;
   repeated string fallback_engines = 11;
   LocalBundleState bundle_state = 12;
-  LocalWarmState warm_state = 13;
+  reserved 13;
+  reserved "warm_state";
   LocalHostRequirements host_requirements = 14;
 }
 

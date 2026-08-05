@@ -564,10 +564,8 @@ type VoiceAsset struct {
 	WorkflowType  VoiceWorkflowType      `protobuf:"varint,4,opt,name=workflow_type,json=workflowType,proto3,enum=nimi.runtime.v1.VoiceWorkflowType" json:"workflow_type,omitempty"`
 	Provider      string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
 	// model_id / target_model_id are post-resolve provider / catalog / audit /
-	// voice asset compatibility facts only (allowed_non_identity_fact,
-	// K-RTARGET-008, K-VOICE-000). They must be guarded so they cannot mint or
-	// persist durable target identity. Durable identity is target_ref /
-	// voice_asset_target_ref below.
+	// voice asset compatibility facts only. Exact execution identity remains
+	// Runtime-private and is never projected through this artifact response.
 	ModelId          string                 `protobuf:"bytes,6,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	TargetModelId    string                 `protobuf:"bytes,7,opt,name=target_model_id,json=targetModelId,proto3" json:"target_model_id,omitempty"`
 	ProviderVoiceRef string                 `protobuf:"bytes,8,opt,name=provider_voice_ref,json=providerVoiceRef,proto3" json:"provider_voice_ref,omitempty"`
@@ -577,15 +575,8 @@ type VoiceAsset struct {
 	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	ExpiresAt        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	Metadata         *structpb.Struct       `protobuf:"bytes,14,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Durable v2 target identity for the resolved synthesis route the asset
-	// executes against (K-VOICE-004, K-RTARGET-002/008).
-	TargetRef *RuntimeDurableTargetRef `protobuf:"bytes,15,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
-	// Durable v2 target identity bound to the voice asset at creation
-	// (voice_asset_target_ref, K-VOICE-004/K-VOICE-007). tts_synthesize requests
-	// whose target ref conflicts fail with AI_VOICE_TARGET_MODEL_MISMATCH.
-	VoiceAssetTargetRef *RuntimeDurableTargetRef `protobuf:"bytes,16,opt,name=voice_asset_target_ref,json=voiceAssetTargetRef,proto3" json:"voice_asset_target_ref,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *VoiceAsset) Reset() {
@@ -712,20 +703,6 @@ func (x *VoiceAsset) GetExpiresAt() *timestamppb.Timestamp {
 func (x *VoiceAsset) GetMetadata() *structpb.Struct {
 	if x != nil {
 		return x.Metadata
-	}
-	return nil
-}
-
-func (x *VoiceAsset) GetTargetRef() *RuntimeDurableTargetRef {
-	if x != nil {
-		return x.TargetRef
-	}
-	return nil
-}
-
-func (x *VoiceAsset) GetVoiceAssetTargetRef() *RuntimeDurableTargetRef {
-	if x != nil {
-		return x.VoiceAssetTargetRef
 	}
 	return nil
 }
@@ -1358,7 +1335,7 @@ var File_runtime_v1_voice_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_voice_proto_rawDesc = "" +
 	"\n" +
-	"\x16runtime/v1/voice.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\x1a(runtime/v1/runtime_target_identity.proto\"\xd8\x01\n" +
+	"\x16runtime/v1/voice.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\xd8\x01\n" +
 	"\x0eVoiceReference\x127\n" +
 	"\x04kind\x18\x01 \x01(\x0e2#.nimi.runtime.v1.VoiceReferenceKindR\x04kind\x12(\n" +
 	"\x0fpreset_voice_id\x18\x02 \x01(\tH\x00R\rpresetVoiceId\x12&\n" +
@@ -1375,7 +1352,7 @@ const file_runtime_v1_voice_proto_rawDesc = "" +
 	"\x11preview_audio_uri\x18\a \x01(\tR\x0fpreviewAudioUri\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xda\x06\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe2\x05\n" +
 	"\n" +
 	"VoiceAsset\x12$\n" +
 	"\x0evoice_asset_id\x18\x01 \x01(\tR\fvoiceAssetId\x12\x15\n" +
@@ -1395,10 +1372,8 @@ const file_runtime_v1_voice_proto_rawDesc = "" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x129\n" +
 	"\n" +
 	"expires_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x123\n" +
-	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12G\n" +
-	"\n" +
-	"target_ref\x18\x0f \x01(\v2(.nimi.runtime.v1.RuntimeDurableTargetRefR\ttargetRef\x12]\n" +
-	"\x16voice_asset_target_ref\x18\x10 \x01(\v2(.nimi.runtime.v1.RuntimeDurableTargetRefR\x13voiceAssetTargetRef\"\x9f\x02\n" +
+	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadataJ\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11R\n" +
+	"target_refR\x16voice_asset_target_ref\"\x9f\x02\n" +
 	"\rVoiceV2VInput\x122\n" +
 	"\x15reference_audio_bytes\x18\x01 \x01(\fR\x13referenceAudioBytes\x12.\n" +
 	"\x13reference_audio_uri\x18\x02 \x01(\tR\x11referenceAudioUri\x120\n" +
@@ -1513,8 +1488,7 @@ var file_runtime_v1_voice_proto_goTypes = []any{
 	nil,                              // 19: nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
 	(*timestamppb.Timestamp)(nil),    // 20: google.protobuf.Timestamp
 	(*structpb.Struct)(nil),          // 21: google.protobuf.Struct
-	(*RuntimeDurableTargetRef)(nil),  // 22: nimi.runtime.v1.RuntimeDurableTargetRef
-	(*Ack)(nil),                      // 23: nimi.runtime.v1.Ack
+	(*Ack)(nil),                      // 22: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_voice_proto_depIdxs = []int32{
 	3,  // 0: nimi.runtime.v1.VoiceReference.kind:type_name -> nimi.runtime.v1.VoiceReferenceKind
@@ -1526,19 +1500,17 @@ var file_runtime_v1_voice_proto_depIdxs = []int32{
 	20, // 6: nimi.runtime.v1.VoiceAsset.updated_at:type_name -> google.protobuf.Timestamp
 	20, // 7: nimi.runtime.v1.VoiceAsset.expires_at:type_name -> google.protobuf.Timestamp
 	21, // 8: nimi.runtime.v1.VoiceAsset.metadata:type_name -> google.protobuf.Struct
-	22, // 9: nimi.runtime.v1.VoiceAsset.target_ref:type_name -> nimi.runtime.v1.RuntimeDurableTargetRef
-	22, // 10: nimi.runtime.v1.VoiceAsset.voice_asset_target_ref:type_name -> nimi.runtime.v1.RuntimeDurableTargetRef
-	8,  // 11: nimi.runtime.v1.GetVoiceAssetResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
-	0,  // 12: nimi.runtime.v1.ListVoiceAssetsRequest.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
-	5,  // 13: nimi.runtime.v1.ListVoiceAssetsRequest.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
-	8,  // 14: nimi.runtime.v1.ListVoiceAssetsResponse.assets:type_name -> nimi.runtime.v1.VoiceAsset
-	23, // 15: nimi.runtime.v1.DeleteVoiceAssetResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,  // 16: nimi.runtime.v1.ListPresetVoicesResponse.voices:type_name -> nimi.runtime.v1.VoicePresetDescriptor
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	8,  // 9: nimi.runtime.v1.GetVoiceAssetResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
+	0,  // 10: nimi.runtime.v1.ListVoiceAssetsRequest.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
+	5,  // 11: nimi.runtime.v1.ListVoiceAssetsRequest.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
+	8,  // 12: nimi.runtime.v1.ListVoiceAssetsResponse.assets:type_name -> nimi.runtime.v1.VoiceAsset
+	22, // 13: nimi.runtime.v1.DeleteVoiceAssetResponse.ack:type_name -> nimi.runtime.v1.Ack
+	7,  // 14: nimi.runtime.v1.ListPresetVoicesResponse.voices:type_name -> nimi.runtime.v1.VoicePresetDescriptor
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_voice_proto_init() }
@@ -1547,7 +1519,6 @@ func file_runtime_v1_voice_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
-	file_runtime_v1_runtime_target_identity_proto_init()
 	file_runtime_v1_voice_proto_msgTypes[0].OneofWrappers = []any{
 		(*VoiceReference_PresetVoiceId)(nil),
 		(*VoiceReference_VoiceAssetId)(nil),

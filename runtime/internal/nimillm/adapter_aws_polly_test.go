@@ -17,10 +17,10 @@ func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
 		modelResolved string
 		wantEngine    string
 	}{
-		{name: "standard", modelResolved: "aws_polly/polly-standard-tts", wantEngine: "standard"},
-		{name: "neural", modelResolved: "aws_polly/polly-neural-tts", wantEngine: "neural"},
-		{name: "long-form", modelResolved: "aws_polly/polly-long-form-tts", wantEngine: "long-form"},
-		{name: "generative", modelResolved: "aws_polly/polly-generative-tts", wantEngine: "generative"},
+		{name: "standard", modelResolved: "polly-standard-tts", wantEngine: "standard"},
+		{name: "neural", modelResolved: "polly-neural-tts", wantEngine: "neural"},
+		{name: "long-form", modelResolved: "polly-long-form-tts", wantEngine: "long-form"},
+		{name: "generative", modelResolved: "polly-generative-tts", wantEngine: "generative"},
 	}
 
 	for _, tc := range tests {

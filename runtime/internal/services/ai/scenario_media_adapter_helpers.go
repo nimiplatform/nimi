@@ -15,10 +15,11 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
 
 const (
@@ -55,7 +56,6 @@ const (
 	adapterSoundverseMusic     = "soundverse_music_adapter"
 	adapterMubertMusic         = "mubert_music_adapter"
 	adapterLoudlyMusic         = "loudly_music_adapter"
-	adapterSidecarMusic        = "sidecar_music_adapter"
 	adapterWorldLabsNative     = "worldlabs_world_adapter"
 )
 
@@ -95,9 +95,6 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 	"speech": {
 		TTS: adapterSpeechNative,
 		STT: adapterSpeechNative,
-	},
-	"sidecar": {
-		Music: adapterSidecarMusic,
 	},
 	"volcengine_openspeech": {
 		TTS: adapterBytedanceOpenSpeech,
@@ -197,6 +194,15 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 	},
 }
 
+func isRetiredAmbientLocalProvider(providerID string) bool {
+	switch strings.TrimSpace(strings.ToLower(providerID)) {
+	case "media", "speech", "sidecar":
+		return true
+	default:
+		return false
+	}
+}
+
 func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal {
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
@@ -222,17 +228,12 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 }
 
 func findProbeModelID(models []nimillm.ProbeModel, targetModelID string) (string, bool) {
-	targetComparable := normalizeComparableModelID(targetModelID)
-	targetBase := modelIDBase(targetModelID)
+	target := strings.TrimSpace(targetModelID)
+	if target == "" || target != targetModelID {
+		return "", false
+	}
 	for _, model := range models {
-		id := strings.TrimSpace(model.ModelID)
-		if id == "" {
-			continue
-		}
-		if normalizeComparableModelID(id) == targetComparable {
-			return id, true
-		}
-		if modelIDBase(id) == targetBase {
+		if id := strings.TrimSpace(model.ModelID); id == target && id == model.ModelID {
 			return id, true
 		}
 	}
@@ -258,26 +259,6 @@ func resolveConnectorTTSModelID(
 	return "", false
 }
 
-func normalizeComparableModelID(value string) string {
-	comparable := strings.ToLower(strings.TrimSpace(value))
-	comparable = strings.TrimPrefix(comparable, "local-runtime:")
-	comparable = strings.TrimPrefix(comparable, "models/")
-	comparable = strings.TrimPrefix(comparable, "model/")
-	comparable = strings.TrimPrefix(comparable, "local/")
-	comparable = strings.TrimPrefix(comparable, "media/")
-	comparable = strings.TrimPrefix(comparable, "speech/")
-	comparable = strings.TrimPrefix(comparable, "sidecar/")
-	return comparable
-}
-
-func modelIDBase(value string) string {
-	trimmed := strings.TrimSpace(value)
-	if idx := strings.Index(trimmed, "@"); idx > 0 {
-		return strings.ToLower(strings.TrimSpace(trimmed[:idx]))
-	}
-	return strings.ToLower(trimmed)
-}
-
 func supportsTTSCapability(capabilities []string) bool {
 	for _, capability := range capabilities {
 		normalized, err := aicapabilities.NormalizeCatalogCapability(capability)
@@ -291,62 +272,18 @@ func supportsTTSCapability(capabilities []string) bool {
 	return false
 }
 
-func resolveMediaAdapterName(modelID string, modelResolved string, modal runtimev1.Modal, providerType string) string {
-	resolvedLower := strings.ToLower(strings.TrimSpace(modelResolved))
+func resolveMediaAdapterName(_ string, _ string, modal runtimev1.Modal, providerType string) string {
 	providerLower := strings.ToLower(strings.TrimSpace(providerType))
-	lowerModel := strings.ToLower(strings.TrimSpace(modelID))
-	if providerLower == "" {
-		if idx := strings.Index(resolvedLower, "/"); idx > 0 {
-			candidate := strings.TrimSpace(resolvedLower[:idx])
-			if providerregistry.Contains(candidate) {
-				providerLower = candidate
-			}
-		}
-	}
-
-	switch {
-	case strings.HasPrefix(lowerModel, "media/"):
-		if adapter := mediaAdapterStrategiesByProvider["media"].forModal(modal); adapter != "" {
-			return adapter
-		}
-		return ""
-	case strings.HasPrefix(lowerModel, "speech/"):
-		if adapter := mediaAdapterStrategiesByProvider["speech"].forModal(modal); adapter != "" {
-			return adapter
-		}
+	if providerLower == "" || isRetiredAmbientLocalProvider(providerLower) {
 		return ""
 	}
-
 	if strategy, ok := mediaAdapterStrategiesByProvider[providerLower]; ok {
-		if adapter := strategy.forModal(modal); adapter != "" {
-			return adapter
-		}
+		return strategy.forModal(modal)
 	}
-	if localrouting.IsKnownProvider(providerLower) {
-		return ""
+	if record, ok := providerregistry.Lookup(providerLower); ok && mediaScenarioSupportedByProviderRecord(record, modal) {
+		return adapterOpenAICompat
 	}
-	if strings.HasPrefix(lowerModel, "gemini-") || strings.HasPrefix(resolvedLower, "gemini-") {
-		if strategy, ok := mediaAdapterStrategiesByProvider["gemini"]; ok {
-			if adapter := strategy.forModal(modal); adapter != "" {
-				return adapter
-			}
-		}
-	}
-	if providerLower != "" {
-		if record, ok := providerregistry.Lookup(providerLower); ok {
-			if mediaScenarioSupportedByProviderRecord(record, modal) {
-				return adapterOpenAICompat
-			}
-		}
-	}
-
-	if modal == runtimev1.Modal_MODAL_VIDEO && strings.Contains(resolvedLower, "glm") {
-		return adapterGLMTask
-	}
-	if modal == runtimev1.Modal_MODAL_IMAGE && strings.Contains(resolvedLower, "kimi") {
-		return adapterKimiChatMultimodal
-	}
-	return adapterOpenAICompat
+	return ""
 }
 
 func mediaScenarioSupportedByProviderRecord(record providerregistry.ProviderRecord, modal runtimev1.Modal) bool {
@@ -368,44 +305,6 @@ func mediaScenarioSupportedByProviderRecord(record providerregistry.ProviderReco
 	}
 }
 
-func inferMediaProviderTypeFromSelectedBackend(selectedProvider provider, modelResolved string, modal runtimev1.Modal) string {
-	if cloud, ok := selectedProvider.(*nimillm.CloudProvider); ok && cloud != nil {
-		if backend, _, _, _ := cloud.PickBackend(modelResolved); backend != nil {
-			return inferMediaProviderTypeFromBackendName(backend)
-		}
-	}
-	if modalProvider, ok := selectedProvider.(localModalMediaProvider); ok && modalProvider != nil {
-		if _, _, providerType := modalProvider.resolveMediaBackendForModal(modelResolved, modal); providerType != "" {
-			return providerType
-		}
-	}
-	if backendProvider, ok := selectedProvider.(nimillm.MediaBackendProvider); ok && backendProvider != nil {
-		if backend, _ := backendProvider.ResolveMediaBackend(modelResolved); backend != nil {
-			return inferMediaProviderTypeFromBackendName(backend)
-		}
-	}
-	return ""
-}
-
-func inferMediaProviderTypeFromBackendName(backend *nimillm.Backend) string {
-	if backend == nil {
-		return ""
-	}
-	name := strings.ToLower(strings.TrimSpace(backend.Name))
-	switch {
-	case strings.HasPrefix(name, "local-"):
-		providerType := strings.TrimSpace(strings.TrimPrefix(name, "local-"))
-		if providerType == "llama" {
-			return ""
-		}
-		return providerType
-	case strings.HasPrefix(name, "cloud-"):
-		return strings.TrimSpace(strings.TrimPrefix(name, "cloud-"))
-	default:
-		return ""
-	}
-}
-
 func stringSliceToAny(values []string) []any {
 	if len(values) == 0 {
 		return nil
@@ -424,17 +323,24 @@ func stringSliceToAny(values []string) []any {
 	return output
 }
 
-// resolveNativeAdapterConfig returns adapter credentials from remoteTarget when
-// available (connector path), falling back to the config-based cloud provider entry.
-func (s *Service) resolveNativeAdapterConfig(configKey string, remoteTarget *nimillm.RemoteTarget) nimillm.MediaAdapterConfig {
-	allowLoopback := s != nil && s.allowLoopback
-	if remoteTarget != nil && remoteTarget.APIKey != "" {
-		return nimillm.MediaAdapterConfig{
-			BaseURL:               remoteTarget.Endpoint,
-			APIKey:                remoteTarget.APIKey,
-			AllowLoopbackEndpoint: allowLoopback || remoteTarget.AllowLoopback,
-		}
+// resolveNativeAdapterConfig uses the exact connector target whenever one was
+// captured. A target with anonymous authentication must not fall through to a
+// configured provider credential or endpoint.
+func (s *Service) resolveNativeAdapterConfig(_ string, remoteTarget *nimillm.RemoteTarget) nimillm.MediaAdapterConfig {
+	if remoteTarget == nil {
+		return nimillm.MediaAdapterConfig{}
 	}
+	allowLoopback := s != nil && s.allowLoopback
+	return nimillm.MediaAdapterConfig{
+		BaseURL:               remoteTarget.Endpoint,
+		APIKey:                remoteTarget.APIKey,
+		Headers:               remoteTarget.Headers,
+		AllowLoopbackEndpoint: allowLoopback || remoteTarget.AllowLoopback,
+	}
+}
+
+func (s *Service) resolveConfiguredProbeAdapterConfig(configKey string) nimillm.MediaAdapterConfig {
+	allowLoopback := s != nil && s.allowLoopback
 	creds := s.config.CloudProviders[configKey]
 	return nimillm.MediaAdapterConfig{
 		BaseURL:               creds.BaseURL,
@@ -626,7 +532,7 @@ func resolveScenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) strin
 func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
-	modelResolved string,
+	_ string,
 	spec *runtimev1.SpeechSynthesizeScenarioSpec,
 ) (*runtimev1.SpeechSynthesizeScenarioSpec, error) {
 	if spec == nil || spec.GetVoiceRef() == nil {
@@ -643,8 +549,8 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
 	if s == nil || s.voiceAssets == nil {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
-	asset, ok := s.voiceAssets.getAsset(voiceAssetID)
-	if !ok || asset == nil || asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
+	asset, assetTarget, ok := s.voiceAssets.getAssetBinding(voiceAssetID)
+	if !ok || asset == nil || assetTarget == nil || asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
 	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
@@ -663,15 +569,9 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
 		callerAppID != strings.TrimSpace(asset.GetAppId()) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
 	}
-	assetTargetRef := asset.GetVoiceAssetTargetRef()
-	if assetTargetRef == nil || !proto.Equal(head.GetTargetRef(), assetTargetRef) {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
-	}
-	if cloud := assetTargetRef.GetCloud(); cloud != nil &&
-		strings.TrimSpace(head.GetConnectorId()) != strings.TrimSpace(cloud.GetConnectorId()) {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
-	}
-	if targetModelID := normalizeVoiceWorkflowProviderModelID(asset.GetTargetModelId(), asset.GetProvider()); targetModelID != "" && strings.TrimSpace(modelResolved) != "" && !strings.EqualFold(targetModelID, normalizeVoiceWorkflowProviderModelID(modelResolved, asset.GetProvider())) {
+	intent, ok := executionintent.FromContext(ctx)
+	requestTarget := &runtimeidentity.Target{Cloud: intent.CloudTarget.Clone()}
+	if !ok || !runtimeidentity.Equal(requestTarget, assetTarget) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}
 	providerVoiceRef := strings.TrimSpace(asset.GetProviderVoiceRef())

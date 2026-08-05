@@ -47,9 +47,6 @@ func inferRequestIdentity(req any) (string, string, string) {
 			if subjectUserID == "" {
 				subjectUserID = strings.TrimSpace(head.GetSubjectUserId())
 			}
-			if modelID == "" {
-				modelID = strings.TrimSpace(head.GetModelId())
-			}
 		}
 	}
 	return appID, subjectUserID, modelID

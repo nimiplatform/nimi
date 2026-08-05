@@ -355,69 +355,6 @@ func TestNormalizeRootArgsStripsAllLeadingDoubleDashMarkers(t *testing.T) {
 	}
 }
 
-func TestParseRoutePolicy(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    runtimev1.RoutePolicy
-		wantErr bool
-	}{
-		{name: "local", input: "local", want: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
-		{name: "cloud", input: "cloud", want: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD},
-		{name: "legacy alias rejected", input: "token-api", wantErr: true},
-		{name: "invalid", input: "unknown", wantErr: true},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseRoutePolicy(tc.input)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("expected error")
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got != tc.want {
-				t.Fatalf("route mismatch: got=%v want=%v", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestParseFallbackPolicy(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    runtimev1.FallbackPolicy
-		wantErr bool
-	}{
-		{name: "deny", input: "deny", want: runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY},
-		{name: "allow", input: "allow", want: runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW},
-		{name: "invalid", input: "maybe", wantErr: true},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseFallbackPolicy(tc.input)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("expected error")
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got != tc.want {
-				t.Fatalf("fallback mismatch: got=%v want=%v", got, tc.want)
-			}
-		})
-	}
-}
-
 func TestStreamEventJSONDelta(t *testing.T) {
 	event := &runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
@@ -467,18 +404,6 @@ func TestDefaultRuntimeAIArtifactTimeoutMs(t *testing.T) {
 	}
 	if got := defaultRuntimeAIArtifactTimeoutMs(runtimeAIArtifactModeTTS); got != 45000 {
 		t.Fatalf("tts timeout ms mismatch: %d", got)
-	}
-}
-
-func TestDefaultRuntimeAIArtifactModel(t *testing.T) {
-	if got := defaultRuntimeAIArtifactModel(runtimeAIArtifactModeImage); got != "local/sd3" {
-		t.Fatalf("image model mismatch: %s", got)
-	}
-	if got := defaultRuntimeAIArtifactModel(runtimeAIArtifactModeVideo); got != "local/video-default" {
-		t.Fatalf("video model mismatch: %s", got)
-	}
-	if got := defaultRuntimeAIArtifactModel(runtimeAIArtifactModeTTS); got != "local/tts-default" {
-		t.Fatalf("tts model mismatch: %s", got)
 	}
 }
 

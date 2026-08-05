@@ -27,7 +27,7 @@ func (s *Service) submitLocalTextScenarioJob(
 	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 		return nil, err
 	}
-	idempotencyScope, err := buildScenarioJobIdempotencyScope(req)
+	idempotencyScope, err := buildScenarioJobIdempotencyScope(ctx, req)
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
 	}

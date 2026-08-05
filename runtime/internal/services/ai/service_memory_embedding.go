@@ -49,68 +49,10 @@ func (s *Service) EmbedTextsForMemory(ctx context.Context, profile *runtimev1.Me
 	return out, nil
 }
 
-func (s *Service) embedMemoryTextsLocal(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([]*runtimev1.EmbeddingVector, error) {
-	if s == nil || s.localTarget == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	target := memoryEmbeddingDurableLocalTarget(profile.GetLocalBinding())
-	if target == nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
-	}
-	binding, asset, err := s.localTarget.ResolveDurableLocalTarget(ctx, target, "text.embed")
-	if err != nil {
-		return nil, err
-	}
-	modelID := strings.TrimSpace(profile.GetModelId())
-	if binding == nil || strings.TrimSpace(binding.GetResolvedModelId()) != modelID {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH)
-	}
-	plan, err := s.prepareDurableLocalModelExecutionPlan(
-		ctx,
-		modelID,
-		binding,
-		asset,
-		runtimev1.Modal_MODAL_EMBEDDING,
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-	selected, ok := s.selector.local.(*localProvider)
-	if !ok || selected == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	rawVectors, _, err := selected.Embed(ctx, plan.providerModelID, inputs)
-	if err != nil {
-		return nil, err
-	}
-	return embeddingVectorsFromListValues(rawVectors), nil
-}
-
-func memoryEmbeddingDurableLocalTarget(
-	input *runtimev1.MemoryEmbeddingLocalBindingRef,
-) *runtimev1.RuntimeDurableLocalTargetRef {
-	if input == nil {
-		return nil
-	}
-	target := &runtimev1.RuntimeDurableLocalTargetRef{Version: "v2"}
-	switch ref := input.GetRef().(type) {
-	case *runtimev1.MemoryEmbeddingLocalBindingRef_ProfileBindingId:
-		if value := strings.TrimSpace(ref.ProfileBindingId); value != "" {
-			target.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-				ProfileBindingId: value,
-			}
-			return target
-		}
-	case *runtimev1.MemoryEmbeddingLocalBindingRef_ReadinessRef:
-		if value := strings.TrimSpace(ref.ReadinessRef); value != "" {
-			target.Ref = &runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef{
-				ReadinessRef: value,
-			}
-			return target
-		}
-	}
-	return nil
+func (s *Service) embedMemoryTextsLocal(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([]*runtimev1.EmbeddingVector, error) {
+	return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED, grpcerr.ReasonOptions{
+		Message: "Local memory embedding requires a private capability-configuration execution binding",
+	})
 }
 
 func (s *Service) embedMemoryTextsRemote(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([]*runtimev1.EmbeddingVector, error) {
@@ -134,7 +76,7 @@ func (s *Service) embedMemoryTextsRemote(ctx context.Context, profile *runtimev1
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 	}
 	applyMemoryEmbeddingCloudBinding(target, cloudBinding)
-	rawVectors, _, err := s.selector.cloudProvider.EmbedWithTarget(ctx, strings.TrimSpace(profile.GetModelId()), inputs, target)
+	rawVectors, _, err := s.selector.cloudProvider.EmbedWithTarget(ctx, strings.TrimSpace(cloudBinding.GetProviderModelId()), inputs, target)
 	if err != nil {
 		return nil, err
 	}

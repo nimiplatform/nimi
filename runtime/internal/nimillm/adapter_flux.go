@@ -26,7 +26,7 @@ func ExecuteFluxImage(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.bfl.ml"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -41,7 +41,7 @@ func ExecuteFluxImage(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	resolvedModel := StripProviderModelPrefix(modelResolved, "flux")
+	resolvedModel := strings.TrimSpace(modelResolved)
 	if resolvedModel == "" {
 		resolvedModel = "flux-pro-1.1"
 	}
@@ -62,18 +62,8 @@ func ExecuteFluxImage(
 		payload["seed"] = seed
 	}
 
-	submitPath := FirstProviderEndpointPath(
-		nil,
-		[]string{"image_path", "image_submit_path"},
-		[]string{"image_paths", "image_submit_paths"},
-		[]string{"/v1/" + resolvedModel},
-	)
-	queryPathTemplate := ResolveTaskQueryPathTemplate(
-		nil,
-		[]string{"image_query_path", "task_query_path"},
-		[]string{"image_query_paths", "task_query_paths"},
-		[]string{"/v1/get_result"},
-	)
+	submitPath := firstProviderEndpointPath([]string{"/v1/" + resolvedModel})
+	queryPathTemplate := resolveTaskQueryPathTemplate([]string{"/v1/get_result"})
 
 	submitResp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -49,6 +50,7 @@ type voiceWorkflowSubmitInput struct {
 	HandleDefaultTTL  string
 	HandleDeleteSem   string
 	RuntimeReconcile  bool
+	ExecutionTarget   *runtimeidentity.Target
 	IgnoredExtensions []*runtimev1.IgnoredScenarioExtension
 }
 
@@ -56,6 +58,7 @@ type voiceAssetStore struct {
 	mu          sync.RWMutex
 	jobs        map[string]*voiceScenarioJobRecord
 	assets      map[string]*runtimev1.VoiceAsset
+	targets     map[string]*runtimeidentity.Target
 	durablePath string
 }
 
@@ -74,69 +77,10 @@ type voiceAssetDeleteResult struct {
 
 func newVoiceAssetStore() *voiceAssetStore {
 	return &voiceAssetStore{
-		jobs:   make(map[string]*voiceScenarioJobRecord),
-		assets: make(map[string]*runtimev1.VoiceAsset),
+		jobs:    make(map[string]*voiceScenarioJobRecord),
+		assets:  make(map[string]*runtimev1.VoiceAsset),
+		targets: make(map[string]*runtimeidentity.Target),
 	}
-}
-
-func inferVoiceAssetProvider(modelID string) string {
-	normalized := strings.ToLower(strings.TrimSpace(modelID))
-	if normalized == "" {
-		return ""
-	}
-	switch {
-	case strings.HasPrefix(normalized, "openbmb/voxcpm2"),
-		strings.HasPrefix(normalized, "k2-fsa/omnivoice"):
-		return "local"
-	}
-	if strings.HasPrefix(normalized, "local/") {
-		return "local"
-	}
-	segments := strings.Split(normalized, "/")
-	if len(segments) > 1 && strings.TrimSpace(segments[0]) != "" {
-		return strings.TrimSpace(segments[0])
-	}
-	switch {
-	case strings.HasPrefix(normalized, "qwen3-tts"):
-		return "local"
-	case strings.HasPrefix(normalized, "cosyvoice"),
-		strings.HasPrefix(normalized, "gpt-sovits"),
-		strings.HasPrefix(normalized, "f5-tts"),
-		strings.HasPrefix(normalized, "piper"),
-		strings.HasPrefix(normalized, "kokoro"),
-		strings.HasPrefix(normalized, "voxcpm"),
-		strings.HasPrefix(normalized, "omnivoice"):
-		return "local"
-	default:
-		return ""
-	}
-}
-
-func inferVoiceWorkflowFamily(ids ...string) string {
-	for _, raw := range ids {
-		normalized := strings.ToLower(strings.TrimSpace(raw))
-		if normalized == "" {
-			continue
-		}
-		switch {
-		case strings.Contains(normalized, "voxcpm"):
-			return "voxcpm"
-		case strings.Contains(normalized, "omnivoice"):
-			return "omnivoice"
-		case strings.Contains(normalized, "qwen3-tts"),
-			strings.Contains(normalized, "qwen3tts"):
-			return "qwen3_tts"
-		case strings.Contains(normalized, "cosyvoice"):
-			return "cosyvoice"
-		case strings.Contains(normalized, "f5-tts"),
-			strings.Contains(normalized, "f5tts"):
-			return "f5tts"
-		case strings.Contains(normalized, "gpt-sovits"),
-			strings.Contains(normalized, "gptsovits"):
-			return "gpt-sovits"
-		}
-	}
-	return ""
 }
 
 func (s *voiceAssetStore) publishLocked(record *voiceScenarioJobRecord, eventType runtimev1.ScenarioJobEventType) {

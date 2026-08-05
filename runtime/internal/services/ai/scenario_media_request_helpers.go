@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -302,7 +304,7 @@ func hasTranscriptionAudioSource(spec *runtimev1.SpeechTranscribeScenarioSpec) b
 	return false
 }
 
-func buildScenarioJobIdempotencyScope(req *runtimev1.SubmitScenarioJobRequest) (string, error) {
+func buildScenarioJobIdempotencyScope(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (string, error) {
 	if req == nil {
 		return "", nil
 	}
@@ -314,10 +316,13 @@ func buildScenarioJobIdempotencyScope(req *runtimev1.SubmitScenarioJobRequest) (
 	if err != nil {
 		return "", err
 	}
+	intent, _ := executionintent.FromContext(ctx)
 	return strings.Join([]string{
 		strings.TrimSpace(req.GetHead().GetAppId()),
 		strings.TrimSpace(req.GetHead().GetSubjectUserId()),
-		strings.TrimSpace(req.GetHead().GetModelId()),
+		strconv.FormatInt(int64(intent.Route), 10),
+		intent.ConnectorID(),
+		intent.ModelID(),
 		strconv.FormatInt(int64(req.GetScenarioType()), 10),
 		idempotencyKey,
 		specHash,

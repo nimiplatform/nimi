@@ -31,8 +31,13 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if localText {
 		return executeLocalTextGenerateScenario(localCtx, s, req, ignored)
 	}
+	ctx = localCtx
+	intent, err := scenarioExecutionIntentFromContext(ctx, aicapabilities.TextGenerate)
+	if err != nil {
+		return nil, err
+	}
 
-	remoteTarget, localPlan, err := s.prepareScenarioRequestWithLocalPlan(ctx, req.GetHead(), req.GetScenarioType())
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
 	}
@@ -47,11 +52,10 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
 	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
+	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		intent.ModelID(),
 		remoteTarget,
 		runtimev1.Modal_MODAL_TEXT,
 	)
@@ -61,7 +65,6 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
-	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
@@ -73,10 +76,6 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		if err := s.writeTextGenerateRouteDescribeHeader(ctx, req.GetHead(), describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
 			return nil, err
 		}
-		resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextGenerate, describeProbe.resolvedBindingRef, remoteTarget)
-		if err != nil {
-			return nil, err
-		}
 		return &runtimev1.ExecuteScenarioResponse{
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
@@ -85,12 +84,11 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 					},
 				},
 			},
-			FinishReason:             runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision:            routeDecision,
-			ModelResolved:            modelResolved,
-			TraceId:                  ulid.Make().String(),
-			IgnoredExtensions:        ignored,
-			ResolvedExecutionBinding: resolvedBinding,
+			FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
+			RouteDecision:     routeDecision,
+			ModelResolved:     modelResolved,
+			TraceId:           ulid.Make().String(),
+			IgnoredExtensions: ignored,
 		}, nil
 	}
 	if err := validateReasoningRequest(spec, modelResolved, remoteTarget, selectedProvider, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC); err != nil {
@@ -101,22 +99,9 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		return nil, err
 	}
 	defer resolved.release()
-	releaseLease, err := s.acquireSelectedLocalModelLeaseWithPlan(requestCtx, localPlan, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_TEXT, "text_generate_request")
-	if err != nil {
+	if err := s.validateTextGenerateInputParts(ctx, modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
 		return nil, err
 	}
-	defer releaseLease()
-	if err := s.validateTextGenerateInputPartsWithLocalPlan(ctx, localPlan, modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
-		return nil, err
-	}
-	s.recordRouteAutoSwitch(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		modelResolved,
-		routeInfo,
-	)
-
 	traceID := ulid.Make().String()
 	inputText := nimillm.ComposeInputText(resolved.spec.GetSystemPrompt(), resolved.spec.GetInput())
 	providerModelID := s.resolveTextProviderModelID(ctx, req.GetHead(), modelResolved, remoteTarget)
@@ -127,23 +112,13 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		usage        *runtimev1.UsageStats
 		finishReason runtimev1.FinishReason
 	)
-	if remoteTarget != nil {
-		if cp := s.selector.cloudProvider; cp != nil {
-			outputText, toolCalls, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, inputText, remoteTarget)
-		} else if scenarioProvider, ok := selectedProvider.(scenarioTextProvider); ok {
-			outputText, toolCalls, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
-		} else {
-			err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-		}
-	} else if scenarioProvider, ok := selectedProvider.(scenarioTextProvider); ok {
-		outputText, toolCalls, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
-	} else {
+	if remoteTarget == nil {
 		err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	} else if cp := s.selector.cloudProvider; cp != nil {
+		outputText, toolCalls, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, inputText, remoteTarget)
+	} else {
+		err = grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	if err != nil {
-		return nil, err
-	}
-	resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextGenerate, "", remoteTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -156,13 +131,12 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 				},
 			},
 		},
-		FinishReason:             finishReason,
-		Usage:                    usage,
-		RouteDecision:            routeDecision,
-		ModelResolved:            modelResolved,
-		TraceId:                  traceID,
-		IgnoredExtensions:        ignored,
-		ResolvedExecutionBinding: resolvedBinding,
+		FinishReason:      finishReason,
+		Usage:             usage,
+		RouteDecision:     routeDecision,
+		ModelResolved:     modelResolved,
+		TraceId:           traceID,
+		IgnoredExtensions: ignored,
 	}, nil
 }
 
@@ -183,11 +157,15 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 		}
 	}
 	inputs := spec.GetInputs()
-	if requestExplicitlyDeclaresLocalExecution(req.GetHead()) {
+	intent, err := scenarioExecutionIntentFromContext(ctx, aicapabilities.TextEmbed)
+	if err != nil {
+		return nil, err
+	}
+	if intent.IsLocal() {
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 
-	remoteTarget, localPlan, err := s.prepareScenarioRequestWithLocalPlan(ctx, req.GetHead(), req.GetScenarioType())
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
 	}
@@ -202,11 +180,10 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
 	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
+	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
+		intent.Route,
+		intent.ModelID(),
 		remoteTarget,
 		runtimev1.Modal_MODAL_EMBEDDING,
 	)
@@ -216,7 +193,6 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
-	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
@@ -228,49 +204,29 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 		if err := s.writeTextEmbedRouteDescribeHeader(ctx, req.GetHead(), describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
 			return nil, err
 		}
-		resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextEmbed, describeProbe.resolvedBindingRef, remoteTarget)
-		if err != nil {
-			return nil, err
-		}
 		return &runtimev1.ExecuteScenarioResponse{
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextEmbed{
 					TextEmbed: &runtimev1.TextEmbedOutput{},
 				},
 			},
-			FinishReason:             runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision:            routeDecision,
-			ModelResolved:            modelResolved,
-			TraceId:                  ulid.Make().String(),
-			IgnoredExtensions:        ignored,
-			ResolvedExecutionBinding: resolvedBinding,
+			FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
+			RouteDecision:     routeDecision,
+			ModelResolved:     modelResolved,
+			TraceId:           ulid.Make().String(),
+			IgnoredExtensions: ignored,
 		}, nil
 	}
-	s.recordRouteAutoSwitch(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		modelResolved,
-		routeInfo,
-	)
-	releaseLease, err := s.acquireSelectedLocalModelLeaseWithPlan(requestCtx, localPlan, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_EMBEDDING, "text_embed_request")
-	if err != nil {
-		return nil, err
-	}
-	defer releaseLease()
-
 	var (
 		vectors []*structpb.ListValue
 		usage   *runtimev1.UsageStats
 	)
-	if remoteTarget != nil {
-		if cp := s.selector.cloudProvider; cp != nil {
-			vectors, usage, err = cp.EmbedWithTarget(requestCtx, modelResolved, inputs, remoteTarget)
-		} else {
-			vectors, usage, err = selectedProvider.Embed(requestCtx, modelResolved, inputs)
-		}
+	if remoteTarget == nil {
+		err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	} else if cp := s.selector.cloudProvider; cp != nil {
+		vectors, usage, err = cp.EmbedWithTarget(requestCtx, modelResolved, inputs, remoteTarget)
 	} else {
-		vectors, usage, err = selectedProvider.Embed(requestCtx, modelResolved, inputs)
+		err = grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if err != nil {
 		return nil, err
@@ -296,10 +252,6 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 			Values: values,
 		})
 	}
-	resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextEmbed, "", remoteTarget)
-	if err != nil {
-		return nil, err
-	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_TextEmbed{
@@ -308,12 +260,11 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 				},
 			},
 		},
-		FinishReason:             runtimev1.FinishReason_FINISH_REASON_STOP,
-		Usage:                    usage,
-		RouteDecision:            routeDecision,
-		ModelResolved:            modelResolved,
-		TraceId:                  ulid.Make().String(),
-		IgnoredExtensions:        ignored,
-		ResolvedExecutionBinding: resolvedBinding,
+		FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
+		Usage:             usage,
+		RouteDecision:     routeDecision,
+		ModelResolved:     modelResolved,
+		TraceId:           ulid.Make().String(),
+		IgnoredExtensions: ignored,
 	}, nil
 }

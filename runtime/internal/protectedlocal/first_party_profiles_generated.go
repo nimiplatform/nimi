@@ -77,10 +77,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset":
-			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth":
@@ -373,8 +369,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth", Kind: FirstPartyMethodUnary},

@@ -34,7 +34,6 @@
     "proto/runtime/v1/memory.proto",
     "proto/runtime/v1/model.proto",
     "proto/runtime/v1/runtime_service_control.proto",
-    "proto/runtime/v1/runtime_target_identity.proto",
     "proto/runtime/v1/voice.proto"
   ],
   "provenance": {
@@ -1966,24 +1965,6 @@
           "response_stream": false
         },
         {
-          "name": "CheckLocalAssetHealth",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-          "kind": "unary",
-          "request_type": "CheckLocalAssetHealthRequest",
-          "response_type": "CheckLocalAssetHealthResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "WarmLocalAsset",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
-          "kind": "unary",
-          "request_type": "WarmLocalAssetRequest",
-          "response_type": "WarmLocalAssetResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "ListLocalTransfers",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers",
           "kind": "unary",
@@ -2608,7 +2589,6 @@
     "/nimi.runtime.v1.RuntimeLocalService/BindLocalCapabilityRequirement",
     "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
     "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer",
-    "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
     "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
     "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
     "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
@@ -2669,7 +2649,6 @@
     "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
     "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement",
-    "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
     "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth",
     "/nimi.runtime.v1.RuntimeModelService/ListModels",
@@ -4167,14 +4146,6 @@
       "response_type": "CancelLocalTransferResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-      "service": "RuntimeLocalService",
-      "method": "CheckLocalAssetHealth",
-      "kind": "unary",
-      "request_type": "CheckLocalAssetHealthRequest",
-      "response_type": "CheckLocalAssetHealthResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
       "service": "RuntimeLocalService",
       "method": "CheckLocalServiceHealth",
@@ -4653,14 +4624,6 @@
       "kind": "unary",
       "request_type": "UnbindLocalCapabilityRequirementRequest",
       "response_type": "UnbindLocalCapabilityRequirementResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
-      "service": "RuntimeLocalService",
-      "method": "WarmLocalAsset",
-      "kind": "unary",
-      "request_type": "WarmLocalAssetRequest",
-      "response_type": "WarmLocalAssetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
@@ -6201,14 +6164,6 @@
       "response_type": "CancelLocalTransferResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-      "service": "RuntimeLocalService",
-      "method": "CheckLocalAssetHealth",
-      "kind": "unary",
-      "request_type": "CheckLocalAssetHealthRequest",
-      "response_type": "CheckLocalAssetHealthResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
       "service": "RuntimeLocalService",
       "method": "CheckLocalServiceHealth",
@@ -6689,14 +6644,6 @@
       "response_type": "UnbindLocalCapabilityRequirementResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
-      "service": "RuntimeLocalService",
-      "method": "WarmLocalAsset",
-      "kind": "unary",
-      "request_type": "WarmLocalAssetRequest",
-      "response_type": "WarmLocalAssetResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
       "service": "RuntimeLocalService",
       "method": "WatchLocalTransfers",
@@ -6864,8 +6811,6 @@
       "ChatContentImageURL",
       "ChatContentPart",
       "ChatMessage",
-      "CheckLocalAssetHealthRequest",
-      "CheckLocalAssetHealthResponse",
       "CheckLocalServiceHealthRequest",
       "CheckLocalServiceHealthResponse",
       "CheckModelHealthRequest",
@@ -7172,7 +7117,6 @@
       "LocalAppTextCandidateMessage",
       "LocalAssetExactBinding",
       "LocalAssetExactBindingTarget",
-      "LocalAssetHealth",
       "LocalAssetRecord",
       "LocalAssetSource",
       "LocalAuditEvent",
@@ -7245,7 +7189,6 @@
       "MemoryBankOwnerFilter",
       "MemoryDeletedDetail",
       "MemoryEmbeddingCloudBindingRef",
-      "MemoryEmbeddingLocalBindingRef",
       "MemoryEmbeddingOperationReadiness",
       "MemoryEmbeddingProfile",
       "MemoryEvent",
@@ -7408,13 +7351,7 @@
       "RevokeSessionRequest",
       "RevokeWorkspaceBindingRequest",
       "RevokeWorkspaceBindingResponse",
-      "RuntimeDurableCloudTargetRef",
-      "RuntimeDurableLocalTargetRef",
-      "RuntimeDurableTargetRef",
       "RuntimeHealthEvent",
-      "RuntimeResolvedCloudExecutionBinding",
-      "RuntimeResolvedExecutionBinding",
-      "RuntimeResolvedLocalExecutionBinding",
       "ScaffoldOrphanAssetRequest",
       "ScaffoldOrphanAssetResponse",
       "ScanUnregisteredAssetsRequest",
@@ -7544,8 +7481,6 @@
       "VoiceRenderHints",
       "VoiceT2VInput",
       "VoiceV2VInput",
-      "WarmLocalAssetRequest",
-      "WarmLocalAssetResponse",
       "WatchLocalTransfersRequest",
       "WorkspaceBindingAttachment",
       "WorkspaceBindingRelation",
@@ -7640,7 +7575,6 @@
       "ExecutionMode",
       "ExternalPrincipalType",
       "ExternalProofType",
-      "FallbackPolicy",
       "FinishReason",
       "GpuMemoryModel",
       "HookAdmissionState",
@@ -7679,7 +7613,6 @@
       "LocalRecommendationSource",
       "LocalRecommendationTier",
       "LocalServiceStatus",
-      "LocalWarmState",
       "MemoryBankScope",
       "MemoryCanonicalClass",
       "MemoryDistanceMetric",
@@ -12888,32 +12821,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "CheckLocalAssetHealthRequest",
-        "fields": [
-          {
-            "name": "local_asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "CheckLocalAssetHealthResponse",
-        "fields": [
-          {
-            "name": "assets",
-            "type": "LocalAssetHealth",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
         "name": "CheckLocalServiceHealthRequest",
         "fields": [
           {
@@ -15438,13 +15345,6 @@
             "repeated": true,
             "optional": false,
             "number": 7
-          },
-          {
-            "name": "resolved_execution_binding",
-            "type": "RuntimeResolvedExecutionBinding",
-            "repeated": false,
-            "optional": false,
-            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -21708,47 +21608,6 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
-        "name": "LocalAssetHealth",
-        "fields": [
-          {
-            "name": "local_asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "status",
-            "type": "LocalAssetStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "detail",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
-      },
-      {
         "name": "LocalAssetRecord",
         "fields": [
           {
@@ -21893,13 +21752,6 @@
             "number": 26
           },
           {
-            "name": "warm_state",
-            "type": "LocalWarmState",
-            "repeated": false,
-            "optional": false,
-            "number": 27
-          },
-          {
             "name": "host_requirements",
             "type": "LocalHostRequirements",
             "repeated": false,
@@ -21961,27 +21813,6 @@
             "repeated": false,
             "optional": false,
             "number": 43
-          },
-          {
-            "name": "durable_target_ref",
-            "type": "RuntimeDurableLocalTargetRef",
-            "repeated": false,
-            "optional": false,
-            "number": 44
-          },
-          {
-            "name": "durable_target_status",
-            "type": "LocalAssetStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 45
-          },
-          {
-            "name": "durable_target_reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 46
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
@@ -26480,26 +26311,6 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
-        "name": "MemoryEmbeddingLocalBindingRef",
-        "fields": [
-          {
-            "name": "profile_binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "readiness_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "MemoryEmbeddingOperationReadiness",
         "fields": [
           {
@@ -26570,13 +26381,6 @@
             "repeated": false,
             "optional": false,
             "number": 7
-          },
-          {
-            "name": "local_binding",
-            "type": "MemoryEmbeddingLocalBindingRef",
-            "repeated": false,
-            "optional": false,
-            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
@@ -27573,13 +27377,6 @@
             "repeated": false,
             "optional": false,
             "number": 12
-          },
-          {
-            "name": "warm_state",
-            "type": "LocalWarmState",
-            "repeated": false,
-            "optional": false,
-            "number": 13
           },
           {
             "name": "host_requirements",
@@ -31298,94 +31095,6 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "RuntimeDurableCloudTargetRef",
-        "fields": [
-          {
-            "name": "version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "connector_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "remote_model_catalog_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "provider_model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "provider",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/runtime_target_identity.proto"
-      },
-      {
-        "name": "RuntimeDurableLocalTargetRef",
-        "fields": [
-          {
-            "name": "version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "profile_binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "readiness_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/runtime_target_identity.proto"
-      },
-      {
-        "name": "RuntimeDurableTargetRef",
-        "fields": [
-          {
-            "name": "local_runtime",
-            "type": "RuntimeDurableLocalTargetRef",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "cloud",
-            "type": "RuntimeDurableCloudTargetRef",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/runtime_target_identity.proto"
-      },
-      {
         "name": "RuntimeHealthEvent",
         "fields": [
           {
@@ -31453,150 +31162,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
-      },
-      {
-        "name": "RuntimeResolvedCloudExecutionBinding",
-        "fields": [
-          {
-            "name": "connector_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "remote_model_catalog_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "provider_model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "provider",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "endpoint_profile_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "connector_snapshot_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/runtime_target_identity.proto"
-      },
-      {
-        "name": "RuntimeResolvedExecutionBinding",
-        "fields": [
-          {
-            "name": "binding_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "capability",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "resolved_binding_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "source_target_ref",
-            "type": "RuntimeDurableTargetRef",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "route_metadata_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "local_runtime",
-            "type": "RuntimeResolvedLocalExecutionBinding",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "cloud",
-            "type": "RuntimeResolvedCloudExecutionBinding",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/runtime_target_identity.proto"
-      },
-      {
-        "name": "RuntimeResolvedLocalExecutionBinding",
-        "fields": [
-          {
-            "name": "profile_binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "readiness_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "local_asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "execution_profile_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "resolved_model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/runtime_target_identity.proto"
       },
       {
         "name": "ScaffoldOrphanAssetRequest",
@@ -32102,46 +31667,11 @@
             "number": 2
           },
           {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "fallback",
-            "type": "FallbackPolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
             "name": "timeout_ms",
             "type": "int32",
             "repeated": false,
             "optional": false,
             "number": 6
-          },
-          {
-            "name": "connector_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "target_ref",
-            "type": "RuntimeDurableTargetRef",
-            "repeated": false,
-            "optional": false,
-            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32326,13 +31856,6 @@
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "resolved_execution_binding",
-            "type": "RuntimeResolvedExecutionBinding",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           },
           {
             "name": "voice_output_mode",
@@ -35642,20 +35165,6 @@
             "repeated": false,
             "optional": false,
             "number": 14
-          },
-          {
-            "name": "target_ref",
-            "type": "RuntimeDurableTargetRef",
-            "repeated": false,
-            "optional": false,
-            "number": 15
-          },
-          {
-            "name": "voice_asset_target_ref",
-            "type": "RuntimeDurableTargetRef",
-            "repeated": false,
-            "optional": false,
-            "number": 16
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
@@ -35912,88 +35421,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
-      },
-      {
-        "name": "WarmLocalAssetRequest",
-        "fields": [
-          {
-            "name": "local_asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "timeout_ms",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "WarmLocalAssetResponse",
-        "fields": [
-          {
-            "name": "local_asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "asset_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "model_resolved",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "engine",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "already_warm",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "latency_ms",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "trace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "WatchLocalTransfersRequest",
@@ -37384,15 +36811,6 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
-        "name": "FallbackPolicy",
-        "values": [
-          "FALLBACK_POLICY_UNSPECIFIED",
-          "FALLBACK_POLICY_DENY",
-          "FALLBACK_POLICY_ALLOW"
-        ],
-        "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
         "name": "FinishReason",
         "values": [
           "FINISH_REASON_UNSPECIFIED",
@@ -37780,17 +37198,6 @@
           "LOCAL_SERVICE_STATUS_ACTIVE",
           "LOCAL_SERVICE_STATUS_UNHEALTHY",
           "LOCAL_SERVICE_STATUS_REMOVED"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
-      },
-      {
-        "name": "LocalWarmState",
-        "values": [
-          "LOCAL_WARM_STATE_UNSPECIFIED",
-          "LOCAL_WARM_STATE_COLD",
-          "LOCAL_WARM_STATE_WARMING",
-          "LOCAL_WARM_STATE_READY",
-          "LOCAL_WARM_STATE_FAILED"
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
@@ -38223,7 +37630,8 @@
           "AI_LOCAL_EXECUTION_LOAD_FAILED",
           "AI_LOCAL_EXECUTION_INFERENCE_FAILED",
           "AI_LOCAL_EXECUTION_CANCELED",
-          "AI_LOCAL_EXECUTION_PROCESS_CRASHED"
+          "AI_LOCAL_EXECUTION_PROCESS_CRASHED",
+          "AI_LOCAL_EXECUTION_CONTENT_MISMATCH"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

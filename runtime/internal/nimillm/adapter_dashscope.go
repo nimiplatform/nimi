@@ -111,7 +111,7 @@ func ExecuteAlibabaNative(
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		submitPath := resolveAlibabaVideoSubmitPath()
-		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(nil)
+		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate()
 		submitPayload := map[string]any{
 			"model":           modelResolved,
 			"prompt":          VideoPrompt(spec),
@@ -194,7 +194,7 @@ func ExecuteAlibabaNative(
 		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
 		ttsContract := resolveDashScopeTTSRequestContract(modelResolved)
 		payload := buildAlibabaTTSPayload(modelResolved, spec, requestedVoice, scenarioExtensions, ttsContract)
-		ttsPath := resolveAlibabaTTSPath(scenarioExtensions, ttsContract)
+		ttsPath := resolveAlibabaTTSPath(ttsContract)
 		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, ttsPath), apiKey, payload, nil)
 		if err != nil {
 			return nil, nil, "", err
@@ -299,7 +299,7 @@ func ExecuteDashScopeTranscribe(
 		payload["asr_options"] = asrOptions
 	}
 
-	endpoint := resolveAlibabaSTTPath(scenarioExtensions)
+	endpoint := resolveAlibabaSTTPath()
 	responsePayload := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), strings.TrimSpace(cfg.APIKey), payload, &responsePayload); err != nil {
 		return nil, nil, "", err
@@ -339,7 +339,7 @@ func dashScopeAsyncTaskHeaders() map[string]string {
 // Alibaba-specific path resolvers (package-private)
 // ---------------------------------------------------------------------------
 
-func resolveAlibabaImageSubmitPath(modelResolved string, scenarioExtensions map[string]any) string {
+func resolveAlibabaImageSubmitPath(modelResolved string) string {
 	defaults := []string{"/api/v1/services/aigc/multimodal-generation/generation"}
 	switch resolveDashScopeImageRequestContract(modelResolved) {
 	case dashScopeImageRequestContractAsyncTask:
@@ -347,39 +347,19 @@ func resolveAlibabaImageSubmitPath(modelResolved string, scenarioExtensions map[
 	case dashScopeImageRequestContractAsyncText2Image:
 		defaults = []string{"/api/v1/services/aigc/text2image/image-synthesis"}
 	}
-	return FirstProviderEndpointPath(
-		scenarioExtensions,
-		[]string{"image_path", "image_submit_path"},
-		[]string{"image_paths", "image_submit_paths"},
-		defaults,
-	)
+	return firstProviderEndpointPath(defaults)
 }
 
 func resolveAlibabaVideoSubmitPath() string {
-	return FirstProviderEndpointPath(
-		nil,
-		[]string{"video_path", "video_submit_path"},
-		[]string{"video_paths", "video_submit_paths"},
-		[]string{"/api/v1/services/aigc/video-generation/video-synthesis"},
-	)
+	return firstProviderEndpointPath([]string{"/api/v1/services/aigc/video-generation/video-synthesis"})
 }
 
-func resolveAlibabaTaskQueryPathTemplate(scenarioExtensions map[string]any) string {
-	return ResolveTaskQueryPathTemplate(
-		scenarioExtensions,
-		[]string{"task_query_path", "query_path", "task_query_path_template"},
-		[]string{"task_query_paths", "query_paths", "task_query_path_templates"},
-		[]string{"/api/v1/tasks/{task_id}"},
-	)
+func resolveAlibabaTaskQueryPathTemplate() string {
+	return resolveTaskQueryPathTemplate([]string{"/api/v1/tasks/{task_id}"})
 }
 
-func resolveAlibabaSTTPath(scenarioExtensions map[string]any) string {
-	return FirstProviderEndpointPath(
-		scenarioExtensions,
-		[]string{"stt_path", "transcription_path"},
-		[]string{"stt_paths", "transcription_paths"},
-		[]string{"/chat/completions"},
-	)
+func resolveAlibabaSTTPath() string {
+	return firstProviderEndpointPath([]string{"/chat/completions"})
 }
 
 func buildAlibabaImageSubmitRequest(
@@ -387,8 +367,8 @@ func buildAlibabaImageSubmitRequest(
 	spec *runtimev1.ImageGenerateScenarioSpec,
 	scenarioExtensions map[string]any,
 ) (string, string, map[string]any, map[string]string) {
-	submitPath := resolveAlibabaImageSubmitPath(modelResolved, scenarioExtensions)
-	queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(scenarioExtensions)
+	submitPath := resolveAlibabaImageSubmitPath(modelResolved)
+	queryPathTemplate := resolveAlibabaTaskQueryPathTemplate()
 	normalizedSize := normalizeDashScopeImageSize(spec.GetSize())
 	switch resolveDashScopeImageRequestContract(modelResolved) {
 	case dashScopeImageRequestContractAsyncTask:
@@ -548,7 +528,7 @@ const (
 )
 
 func resolveDashScopeImageRequestContract(modelResolved string) dashScopeImageRequestContract {
-	normalized := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(modelResolved, "dashscope")))
+	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
 	switch {
 	case strings.HasPrefix(normalized, "wan2.6"):
 		return dashScopeImageRequestContractAsyncTask

@@ -669,7 +669,7 @@ func TestLocalApplyExecutionPlanFailsWhenNodeUnresolved(t *testing.T) {
 	}
 }
 
-func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
+func TestLocalApplyExecutionPlanFailsClosedForRetiredAmbientManagedNode(t *testing.T) {
 	svc := newTestService(t)
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
@@ -727,7 +727,7 @@ func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 			},
 		},
 	})
-	if result.GetReasonCode() != "ACTION_EXECUTED" {
+	if result.GetReasonCode() != "LOCAL_DEPENDENCY_NODE_UNAVAILABLE" {
 		t.Fatalf("unexpected reason code: %s", result.GetReasonCode())
 	}
 	if len(result.GetInstalledAssets()) != 0 || len(result.GetServices()) != 0 {

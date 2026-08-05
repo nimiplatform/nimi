@@ -131,6 +131,7 @@ func (e *InvocationError) Unwrap() error {
 type TextInvocationPlan struct {
 	processKey    string
 	processArgs   []string
+	modelFiles    []InvocationExactBinding
 	requestPath   string
 	requestBody   []byte
 	stream        bool
@@ -149,6 +150,16 @@ func (p *TextInvocationPlan) ProcessArgs() []string {
 		return nil
 	}
 	return append([]string(nil), p.processArgs...)
+}
+
+// ModelFiles returns the exact captured content identities that must be
+// revalidated immediately before a new process loads them. A resident process
+// reused for the same ProcessKey does not reopen or revalidate these paths.
+func (p *TextInvocationPlan) ModelFiles() []InvocationExactBinding {
+	if p == nil {
+		return nil
+	}
+	return append([]InvocationExactBinding(nil), p.modelFiles...)
 }
 
 func (p *TextInvocationPlan) RequestPath() string {

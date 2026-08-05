@@ -203,30 +203,6 @@ message StopLocalAssetResponse {
   LocalAssetRecord asset = 1;
 }
 
-message CheckLocalAssetHealthRequest {
-  string local_asset_id = 1;
-}
-
-message CheckLocalAssetHealthResponse {
-  repeated LocalAssetHealth assets = 1;
-}
-
-message WarmLocalAssetRequest {
-  string local_asset_id = 1;
-  int32 timeout_ms      = 2;
-}
-
-message WarmLocalAssetResponse {
-  string local_asset_id = 1;
-  string asset_id       = 2;
-  string model_resolved = 3;
-  string endpoint       = 4;
-  string engine         = 5;
-  bool already_warm     = 6;
-  int64 latency_ms      = 7;
-  string trace_id       = 8;
-}
-
 // === Unregistered Asset Scan ===
 
 message ScanUnregisteredAssetsRequest {}
@@ -701,8 +677,6 @@ service RuntimeLocalService {
   // Asset lifecycle (runnable assets)
   rpc StartLocalAsset(StartLocalAssetRequest) returns (StartLocalAssetResponse);
   rpc StopLocalAsset(StopLocalAssetRequest) returns (StopLocalAssetResponse);
-  rpc CheckLocalAssetHealth(CheckLocalAssetHealthRequest) returns (CheckLocalAssetHealthResponse);
-  rpc WarmLocalAsset(WarmLocalAssetRequest) returns (WarmLocalAssetResponse);
 
   // Transfers
   rpc ListLocalTransfers(ListLocalTransfersRequest) returns (ListLocalTransfersResponse);

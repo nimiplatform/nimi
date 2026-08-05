@@ -4,10 +4,12 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
 func TestValidateScenarioCapabilitySupportedModelPasses(t *testing.T) {
@@ -16,8 +18,8 @@ func TestValidateScenarioCapabilitySupportedModelPasses(t *testing.T) {
 	err := svc.validateScenarioCapability(
 		context.Background(),
 		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE},
-		"anthropic/claude-sonnet-4-6",
-		nil,
+		"claude-sonnet-4-6",
+		&nimillm.RemoteTarget{ProviderType: "anthropic"},
 		nil,
 	)
 	if err != nil {
@@ -56,7 +58,9 @@ func TestValidateScenarioCapabilityFailCloseReasonCodes(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := svc.validateScenarioCapability(context.Background(), &runtimev1.ExecuteScenarioRequest{ScenarioType: tc.scenario}, tc.model, nil, nil)
+			provider := strings.SplitN(tc.model, "/", 2)[0]
+			model := strings.TrimPrefix(tc.model, provider+"/")
+			err := svc.validateScenarioCapability(context.Background(), &runtimev1.ExecuteScenarioRequest{ScenarioType: tc.scenario}, model, &nimillm.RemoteTarget{ProviderType: provider}, nil)
 			if err == nil {
 				t.Fatalf("expected capability guard error")
 			}
@@ -78,8 +82,8 @@ func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForCloudProvider
 	err := svc.validateScenarioCapability(
 		context.Background(),
 		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE},
-		"anthropic/claude-sonnet-4-6",
-		nil,
+		"claude-sonnet-4-6",
+		&nimillm.RemoteTarget{ProviderType: "anthropic"},
 		nil,
 	)
 	if err == nil {
@@ -91,72 +95,6 @@ func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForCloudProvider
 	}
 	if reasonCode != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
 		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
-	}
-}
-
-func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForLocalProvider(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc.speechCatalog = nil
-
-	err := svc.validateScenarioCapability(
-		context.Background(),
-		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE},
-		"media/local-import/z_image_turbo-Q4_K",
-		nil,
-		nil,
-	)
-	if err == nil {
-		t.Fatal("expected local provider capability guard to fail closed without catalog")
-	}
-	reasonCode, ok := grpcerr.ExtractReasonCode(err)
-	if !ok {
-		t.Fatalf("expected grpc reason code, got error: %v", err)
-	}
-	if reasonCode != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
-		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
-	}
-}
-
-func TestValidateScenarioCapabilityLocalVoiceWorkflowBoundedFamilyOnly(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-
-	if err := svc.validateScenarioCapability(
-		context.Background(),
-		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE},
-		"speech/qwen3tts-base",
-		nil,
-		nil,
-	); err != nil {
-		t.Fatalf("expected local qwen3 voice clone to stay admitted, got %v", err)
-	}
-
-	err := svc.validateScenarioCapability(
-		context.Background(),
-		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN},
-		"kokoro-local",
-		nil,
-		nil,
-	)
-	if err == nil {
-		t.Fatal("expected generic local voice workflow family to fail-close")
-	}
-	reasonCode, ok := grpcerr.ExtractReasonCode(err)
-	if !ok {
-		t.Fatalf("expected grpc reason code, got error: %v", err)
-	}
-	if reasonCode != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
-		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED.String())
-	}
-
-	err = svc.validateScenarioCapability(
-		context.Background(),
-		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE},
-		"speech/qwen3tts",
-		nil,
-		nil,
-	)
-	if err == nil {
-		t.Fatal("expected plain synth qwen3 lane to fail-close for voice clone")
 	}
 }
 
@@ -265,7 +203,7 @@ func TestValidateTextGenerateInputPartsUnknownCatalogModelFailsClosed(t *testing
 			},
 		},
 	}
-	err := svc.validateTextGenerateInputParts(context.Background(), "openai/unknown-vision-model", nil, nil, input)
+	err := svc.validateTextGenerateInputParts(context.Background(), "unknown-vision-model", &nimillm.RemoteTarget{ProviderType: "openai"}, nil, input)
 	if err == nil {
 		t.Fatal("expected unknown catalog model with image input to fail closed")
 	}
@@ -289,7 +227,7 @@ func TestValidateTextGenerateInputPartsUnknownProviderFailsClosed(t *testing.T) 
 			},
 		},
 	}
-	err := svc.validateTextGenerateInputParts(context.Background(), "custom/vision-model", nil, nil, input)
+	err := svc.validateTextGenerateInputParts(context.Background(), "vision-model", &nimillm.RemoteTarget{ProviderType: "custom"}, nil, input)
 	if err == nil {
 		t.Fatal("expected unknown provider with image input to fail closed")
 	}
@@ -313,7 +251,7 @@ func TestValidateTextGenerateInputPartsNonVisionModelRejects(t *testing.T) {
 			},
 		},
 	}
-	err := svc.validateTextGenerateInputParts(context.Background(), "openai/tts-1", nil, nil, input)
+	err := svc.validateTextGenerateInputParts(context.Background(), "tts-1", &nimillm.RemoteTarget{ProviderType: "openai"}, nil, input)
 	if err == nil {
 		t.Fatal("expected non-vision model to reject image input")
 	}
@@ -338,7 +276,7 @@ func TestValidateTextGenerateInputPartsRejectsVideoForNonVideoModel(t *testing.T
 			},
 		},
 	}
-	err := svc.validateTextGenerateInputParts(context.Background(), "openai/tts-1", nil, nil, input)
+	err := svc.validateTextGenerateInputParts(context.Background(), "tts-1", &nimillm.RemoteTarget{ProviderType: "openai"}, nil, input)
 	if err == nil {
 		t.Fatal("expected non-video model to reject video input")
 	}
@@ -362,7 +300,7 @@ func TestValidateTextGenerateInputPartsDelegatesImageVisionCheck(t *testing.T) {
 			},
 		},
 	}
-	err := svc.validateTextGenerateInputParts(context.Background(), "openai/tts-1", nil, nil, input)
+	err := svc.validateTextGenerateInputParts(context.Background(), "tts-1", &nimillm.RemoteTarget{ProviderType: "openai"}, nil, input)
 	if err == nil {
 		t.Fatal("expected non-vision model to reject image input")
 	}

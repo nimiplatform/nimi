@@ -109,7 +109,18 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 	for _, dep := range selected {
 		switch dep.GetKind() {
 		case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL:
-			modelID := defaultString(dep.GetModelId(), "local/default")
+			modelID := strings.TrimSpace(dep.GetModelId())
+			if modelID == "" {
+				result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
+					Stage:      applyStageInstall,
+					Ok:         false,
+					ReasonCode: "LOCAL_DEPENDENCY_MODEL_ID_REQUIRED",
+					Detail:     "profile dependency has no exact model identity",
+				})
+				result.ReasonCode = "LOCAL_DEPENDENCY_MODEL_ID_REQUIRED"
+				s.rollbackApply(ctx, installedModelIDs, installedServiceIDs, result)
+				return result
+			}
 
 			// Override path: if modelID matches an already-installed asset by
 			// local_asset_id, use it directly — no verified lookup or install needed.
@@ -326,8 +337,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 		if passiveAssetIDs[modelID] {
 			continue
 		}
-		health, err := s.CheckLocalAssetHealth(ctx, &runtimev1.CheckLocalAssetHealthRequest{LocalAssetId: modelID})
-		if err != nil || !localAssetHealthIsActive(health, modelID) {
+		if !s.localAssetStatusIsActive(modelID) {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
 				Stage:      applyStageHealth,
 				Ok:         false,
@@ -379,13 +389,14 @@ func unresolvedRequiredDependencyApplyReason(plan *runtimev1.LocalExecutionPlan)
 	return ""
 }
 
-func localAssetHealthIsActive(response *runtimev1.CheckLocalAssetHealthResponse, localAssetID string) bool {
-	for _, asset := range response.GetAssets() {
-		if asset.GetLocalAssetId() == localAssetID {
-			return asset.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
-		}
+func (s *Service) localAssetStatusIsActive(localAssetID string) bool {
+	if s == nil {
+		return false
 	}
-	return false
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	asset := s.assets[strings.TrimSpace(localAssetID)]
+	return asset != nil && asset.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 }
 
 func localServiceHealthIsActive(response *runtimev1.CheckLocalServiceHealthResponse, serviceID string) bool {

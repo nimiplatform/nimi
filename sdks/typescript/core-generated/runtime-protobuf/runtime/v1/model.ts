@@ -14,7 +14,6 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { ReasonCode } from "./common";
 import { LocalHostRequirements } from "./local_runtime_asset_catalog";
-import { LocalWarmState } from "./local_runtime_asset_catalog";
 import { LocalBundleState } from "./local_runtime_asset_catalog";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
@@ -110,10 +109,6 @@ export interface ModelDescriptor {
      * @generated from protobuf field: nimi.runtime.v1.LocalBundleState bundle_state = 12
      */
     bundleState: LocalBundleState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalWarmState warm_state = 13
-     */
-    warmState: LocalWarmState;
     /**
      * @generated from protobuf field: nimi.runtime.v1.LocalHostRequirements host_requirements = 14
      */
@@ -423,7 +418,6 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
             { no: 10, name: "preferred_engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "fallback_engines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "bundle_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalBundleState", LocalBundleState, "LOCAL_BUNDLE_STATE_"] },
-            { no: 13, name: "warm_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalWarmState", LocalWarmState, "LOCAL_WARM_STATE_"] },
             { no: 14, name: "host_requirements", kind: "message", T: () => LocalHostRequirements }
         ]);
     }
@@ -439,7 +433,6 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
         message.preferredEngine = "";
         message.fallbackEngines = [];
         message.bundleState = 0;
-        message.warmState = 0;
         if (value !== undefined)
             reflectionMergePartial<ModelDescriptor>(this, message, value);
         return message;
@@ -484,9 +477,6 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
                     break;
                 case /* nimi.runtime.v1.LocalBundleState bundle_state */ 12:
                     message.bundleState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.LocalWarmState warm_state */ 13:
-                    message.warmState = reader.int32();
                     break;
                 case /* nimi.runtime.v1.LocalHostRequirements host_requirements */ 14:
                     message.hostRequirements = LocalHostRequirements.internalBinaryRead(reader, reader.uint32(), options, message.hostRequirements);
@@ -539,9 +529,6 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
         /* nimi.runtime.v1.LocalBundleState bundle_state = 12; */
         if (message.bundleState !== 0)
             writer.tag(12, WireType.Varint).int32(message.bundleState);
-        /* nimi.runtime.v1.LocalWarmState warm_state = 13; */
-        if (message.warmState !== 0)
-            writer.tag(13, WireType.Varint).int32(message.warmState);
         /* nimi.runtime.v1.LocalHostRequirements host_requirements = 14; */
         if (message.hostRequirements)
             LocalHostRequirements.internalBinaryWrite(message.hostRequirements, writer.tag(14, WireType.LengthDelimited).fork(), options).join();

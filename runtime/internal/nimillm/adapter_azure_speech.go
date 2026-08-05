@@ -55,12 +55,7 @@ func ExecuteAzureSpeechTTS(
 	ssml := buildAzureSSML(language, voiceRef, text)
 	outputFormat := resolveAzureOutputFormat(spec)
 
-	endpoint := FirstProviderEndpointPath(
-		ext,
-		[]string{"tts_path", "speech_path"},
-		[]string{"tts_paths", "speech_paths"},
-		[]string{"/cognitiveservices/v1"},
-	)
+	endpoint := firstProviderEndpointPath([]string{"/cognitiveservices/v1"})
 	targetURL := JoinURL(baseURL, endpoint)
 
 	bodyBytes, mimeType, err := doAzureSpeechRequest(ctx, targetURL, apiKey, ssml, outputFormat)

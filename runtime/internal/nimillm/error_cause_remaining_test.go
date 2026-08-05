@@ -72,33 +72,6 @@ func TestDecodeMusicIterationBase64PreservesBothDecoderCausesWithoutLeakingInput
 	}
 }
 
-func TestManagedImageGenerationErrorPreservesCauseWithoutPublishingIt(t *testing.T) {
-	cause := errors.New(`managed backend failed for C:\private\models\secret.gguf credential=secret`)
-
-	err := managedImageGenerationError(cause)
-	if !errors.Is(err, cause) {
-		t.Fatalf("expected managed image backend cause to remain available: %v", err)
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatal("expected gRPC status error")
-	}
-	if st.Code() != codes.Internal {
-		t.Fatalf("unexpected status code: %v", st.Code())
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
-		t.Fatalf("unexpected reason: ok=%v reason=%v", ok, reason)
-	}
-	if strings.Contains(st.Message(), cause.Error()) || strings.Contains(st.Message(), `C:\private`) {
-		t.Fatalf("public status leaked managed backend cause: %q", st.Message())
-	}
-	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
-		if _, exists := metadata["provider_message"]; exists {
-			t.Fatalf("public metadata exposed managed backend cause: %#v", metadata)
-		}
-	}
-}
-
 func TestFireworksModelDiscoveryPreservesBaseURLCauseWithoutPublishingIt(t *testing.T) {
 	const invalidBaseURL = "https://private.example/%zz?api_key=secret"
 	backend := NewBackend("cloud-fireworks", invalidBaseURL, "secret", time.Second)

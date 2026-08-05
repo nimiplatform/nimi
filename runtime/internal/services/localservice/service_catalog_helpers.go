@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -48,7 +47,7 @@ func matchesCatalogSearch(item *runtimev1.LocalCatalogModelDescriptor, query str
 
 func adapterForProviderCapability(provider string, capability string) string {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
-	normalizedCapability := localrouting.NormalizeCapability(capability)
+	normalizedCapability := normalizeLocalCapabilityToken(capability)
 	switch normalizedProvider {
 	case "sidecar":
 		switch normalizedCapability {
@@ -83,7 +82,7 @@ func apiPathForProviderCapability(provider string, capability string) string {
 	if normalizedProvider == "llama" {
 		return ""
 	}
-	cap := localrouting.NormalizeCapability(capability)
+	cap := normalizeLocalCapabilityToken(capability)
 	switch cap {
 	case "text.embed":
 		return "/v1/embeddings"
@@ -138,10 +137,6 @@ func buildNodeProviderHints(
 			"availability": fmt.Sprintf("%t", available),
 		},
 	}
-	hints.Extra["local_default_rank"] = fmt.Sprintf(
-		"%d",
-		localProviderPreferenceRank(localRuntimeGOOSFromProfile(deviceProfile.GetOs()), normalizedCapability, normalizedProvider),
-	)
 	if supportClass, supportDetail := classifyManagedEngineSupportForAsset(
 		service.GetEngine(),
 		[]string{capability},
@@ -182,9 +177,9 @@ func buildNodeProviderHints(
 	return hints
 }
 
-func modelHealth(model *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetHealth {
+func modelHealth(model *runtimev1.LocalAssetRecord) *localAssetHealth {
 	if model == nil {
-		return &runtimev1.LocalAssetHealth{
+		return &localAssetHealth{
 			Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 			Detail: "model not found",
 		}
@@ -193,16 +188,7 @@ func modelHealth(model *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetHealth 
 	switch model.GetStatus() {
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		if detail == "" {
-			switch model.GetWarmState() {
-			case runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY:
-				detail = "model healthy"
-			case runtimev1.LocalWarmState_LOCAL_WARM_STATE_WARMING:
-				detail = "model warming"
-			case runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED:
-				detail = "model warm failed"
-			default:
-				detail = "model cold"
-			}
+			detail = "model process active; execution health remains Runtime-private"
 		}
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		if detail == "" {
@@ -221,7 +207,7 @@ func modelHealth(model *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetHealth 
 	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		reason = projectionReasonCodeForEngine(model.GetEngine(), detail)
 	}
-	return &runtimev1.LocalAssetHealth{
+	return &localAssetHealth{
 		LocalAssetId: model.GetLocalAssetId(),
 		Status:       model.GetStatus(),
 		Detail:       detail,

@@ -1,11 +1,25 @@
 package ai
 
 import (
+	"context"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
+
+type executionIntentScenarioStream struct {
+	grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]
+	ctx context.Context
+}
+
+func (s *executionIntentScenarioStream) Context() context.Context {
+	if s == nil || s.ctx == nil {
+		return context.Background()
+	}
+	return s.ctx
+}
 
 func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
 	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
@@ -24,6 +38,11 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 	if _, err := classifyScenarioExtensions(req.GetScenarioType(), req.GetExtensions()); err != nil {
 		return err
 	}
+	capturedCtx, _, err := s.captureScenarioExecutionIntent(stream.Context(), req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
+	if err != nil {
+		return err
+	}
+	stream = &executionIntentScenarioStream{ServerStreamingServer: stream, ctx: capturedCtx}
 	if err := s.reportScenarioSpendDisclosure(stream.Context(), req.GetHead(), req.GetScenarioType()); err != nil {
 		return err
 	}

@@ -143,7 +143,7 @@ func LoadFileConfig(path string) (FileConfig, error) {
 		if _, nestedRuntime := root["runtime"]; nestedRuntime {
 			return FileConfig{}, fmt.Errorf("parse runtime config file %q: nested runtime object is removed; use top-level runtime config fields", path)
 		}
-		if err := rejectLegacyLocalRuntimeConfigKeys(path, root); err != nil {
+		if err := rejectRemovedExecutionRoutingConfigKeys(path, root); err != nil {
 			return FileConfig{}, err
 		}
 		if rawAuth, ok := root["auth"]; ok {
@@ -188,28 +188,12 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 	if fileCfg.SchemaVersion != DefaultSchemaVersion {
 		return fmt.Errorf("schemaVersion must be %d", DefaultSchemaVersion)
 	}
-	defaultCloudProvider := strings.TrimSpace(fileCfg.DefaultCloudProvider)
-	defaultLocalTextModel := strings.TrimSpace(fileCfg.DefaultLocalTextModel)
 	for providerName, providerCfg := range fileCfg.Providers {
 		if !isCanonicalProviderName(providerName) {
 			return fmt.Errorf("provider %q is forbidden; use canonical provider name", providerName)
 		}
 		if strings.TrimSpace(providerCfg.APIKey) != "" && strings.TrimSpace(providerCfg.APIKeyEnv) != "" {
 			return fmt.Errorf("provider %q cannot set both apiKey and apiKeyEnv", providerName)
-		}
-	}
-	if defaultCloudProvider != "" {
-		canonical, ok := ResolveCanonicalProviderID(defaultCloudProvider)
-		if !ok {
-			return fmt.Errorf("defaultCloudProvider %q must name a canonical configured cloud provider", defaultCloudProvider)
-		}
-		if _, exists := fileCfg.Providers[canonical]; !exists {
-			return fmt.Errorf("defaultCloudProvider %q must reference a configured provider", canonical)
-		}
-	}
-	if defaultLocalTextModel != "" {
-		if looksLikeQualifiedRemoteModel(defaultLocalTextModel) {
-			return fmt.Errorf("defaultLocalTextModel %q must name a local model id, not a remote qualified model", defaultLocalTextModel)
 		}
 	}
 	if fileCfg.Auth != nil && fileCfg.Auth.JWT != nil {
@@ -305,7 +289,13 @@ func validateOptionalFileConfigPort(value *int, field string) error {
 	return nil
 }
 
-func rejectLegacyLocalRuntimeConfigKeys(path string, root map[string]json.RawMessage) error {
+func rejectRemovedExecutionRoutingConfigKeys(path string, root map[string]json.RawMessage) error {
+	if _, exists := root["defaultLocalTextModel"]; exists {
+		return fmt.Errorf("parse runtime config file %q: defaultLocalTextModel is removed; local execution is selected by AIConfig intent and Machine Local Capability Configuration", path)
+	}
+	if _, exists := root["defaultCloudProvider"]; exists {
+		return fmt.Errorf("parse runtime config file %q: defaultCloudProvider is removed; cloud execution is selected by caller-owned AIConfig intent", path)
+	}
 	for _, key := range []string{"providers"} {
 		raw, ok := root[key]
 		if !ok {
@@ -315,9 +305,15 @@ func rejectLegacyLocalRuntimeConfigKeys(path string, root map[string]json.RawMes
 		if err := json.Unmarshal(raw, &section); err != nil {
 			continue
 		}
-		for _, legacyKey := range []string{"local", "nexa", "nimi_media"} {
-			if _, exists := section[legacyKey]; exists {
-				return fmt.Errorf("parse runtime config file %q: providers.%s is removed; clear legacy local runtime config and reconfigure engines.llama and engines.media", path, legacyKey)
+		for providerID, providerRaw := range section {
+			if providerID == "local" || providerID == "nexa" || providerID == "nimi_media" {
+				return fmt.Errorf("parse runtime config file %q: providers.%s is removed; clear legacy local runtime config and reconfigure engines.llama and engines.media", path, providerID)
+			}
+			var providerFields map[string]json.RawMessage
+			if err := json.Unmarshal(providerRaw, &providerFields); err == nil {
+				if _, exists := providerFields["defaultModel"]; exists {
+					return fmt.Errorf("parse runtime config file %q: providers.%s.defaultModel is removed; model execution is selected by caller-owned AIConfig intent", path, providerID)
+				}
 			}
 		}
 	}
@@ -335,26 +331,6 @@ func rejectLegacyLocalRuntimeConfigKeys(path string, root map[string]json.RawMes
 		}
 	}
 	return nil
-}
-
-func looksLikeQualifiedRemoteModel(modelID string) bool {
-	normalized := strings.TrimSpace(modelID)
-	if normalized == "" {
-		return false
-	}
-	parts := strings.SplitN(normalized, "/", 2)
-	if len(parts) != 2 {
-		return false
-	}
-	prefix := strings.TrimSpace(parts[0])
-	if prefix == "" {
-		return false
-	}
-	if strings.EqualFold(prefix, "cloud") {
-		return true
-	}
-	_, ok := ResolveCanonicalProviderID(prefix)
-	return ok
 }
 
 func MarshalFileConfig(fileCfg FileConfig) ([]byte, error) {

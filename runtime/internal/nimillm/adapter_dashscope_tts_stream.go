@@ -28,7 +28,7 @@ func (b *Backend) shouldUseDashScopeRealtimeTTS(modelID string) bool {
 	if b == nil || !b.isDashScopeBackend() {
 		return false
 	}
-	normalized := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(modelID, "dashscope")))
+	normalized := strings.ToLower(strings.TrimSpace(modelID))
 	return strings.HasPrefix(normalized, "cosyvoice-")
 }
 
@@ -68,7 +68,7 @@ func (b *Backend) streamDashScopeRealtimeTTS(
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
-	targetURL := resolveDashScopeRealtimeTTSWebSocketURL(b.baseURL, scenarioExtensions)
+	targetURL := resolveDashScopeRealtimeTTSWebSocketURL(b.baseURL)
 	if targetURL == "" {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -331,22 +331,8 @@ func receiveDashScopeRealtimeTTSFrame(ctx context.Context, connection *websocket
 	}, nil, nil
 }
 
-func resolveDashScopeRealtimeTTSWebSocketURL(baseURL string, scenarioExtensions map[string]any) string {
-	override := strings.TrimSpace(FirstNonEmpty(
-		ValueAsString(scenarioExtensions["dashscope_ws_url"]),
-		ValueAsString(scenarioExtensions["dashscopeWebsocketUrl"]),
-		ValueAsString(scenarioExtensions["websocket_url"]),
-		ValueAsString(scenarioExtensions["ws_url"]),
-	))
+func resolveDashScopeRealtimeTTSWebSocketURL(baseURL string) string {
 	baseParsed, _ := url.Parse(strings.TrimSpace(baseURL))
-	if override != "" {
-		parsed, err := url.Parse(override)
-		if err == nil && parsed != nil && parsed.Host != "" {
-			if baseParsed == nil || baseParsed.Hostname() == "" || strings.EqualFold(parsed.Hostname(), baseParsed.Hostname()) {
-				return normalizeDashScopeRealtimeTTSWebSocketURL(parsed)
-			}
-		}
-	}
 	if baseParsed == nil || strings.TrimSpace(baseParsed.Host) == "" {
 		return ""
 	}

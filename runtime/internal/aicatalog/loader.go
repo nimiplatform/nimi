@@ -156,7 +156,7 @@ func parseProviderDocumentYAMLWithMode(raw []byte, filename string, overlay bool
 	if err := yaml.Unmarshal(raw, &parsed); err != nil {
 		return ProviderDocument{}, err
 	}
-	doc, err := normalizeProviderDocument(parsed, filename, overlay)
+	doc, err := normalizeProviderDocument(parsed, overlay)
 	if err != nil {
 		return ProviderDocument{}, err
 	}
@@ -171,11 +171,8 @@ func parseProviderDocumentYAMLWithMode(raw []byte, filename string, overlay bool
 	return doc, nil
 }
 
-func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay bool) (ProviderDocument, error) {
+func normalizeProviderDocument(parsed ProviderDocument, overlay bool) (ProviderDocument, error) {
 	provider := normalizeProvider(parsed.Provider)
-	if provider == "" {
-		provider = inferProviderFromFilename(filename)
-	}
 	if provider == "" {
 		return ProviderDocument{}, errors.New("provider is required")
 	}
@@ -251,13 +248,16 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 		}
 	}
 
-	for _, workflowModel := range doc.VoiceWorkflowModels {
-		if normalizeID(workflowModel.WorkflowModelID) == "" {
-			return ProviderDocument{}, errors.New("voice workflow model missing workflow_model_id")
+	for i := range doc.VoiceWorkflowModels {
+		doc.VoiceWorkflowModels[i].Provider = provider
+		doc.VoiceWorkflowModels[i].WorkflowFamily = strings.TrimSpace(doc.VoiceWorkflowModels[i].WorkflowFamily)
+		if normalizeID(doc.VoiceWorkflowModels[i].WorkflowModelID) == "" || doc.VoiceWorkflowModels[i].WorkflowFamily == "" {
+			return ProviderDocument{}, errors.New("voice workflow model missing workflow_model_id/workflow_family")
 		}
 	}
-	for _, binding := range doc.ModelWorkflowBindings {
-		if normalizeID(binding.ModelID) == "" {
+	for i := range doc.ModelWorkflowBindings {
+		doc.ModelWorkflowBindings[i].Provider = provider
+		if normalizeID(doc.ModelWorkflowBindings[i].ModelID) == "" {
 			return ProviderDocument{}, errors.New("model workflow binding missing model_id")
 		}
 	}
@@ -302,18 +302,6 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 	}
 
 	return doc, nil
-}
-
-func inferProviderFromFilename(filename string) string {
-	base := strings.TrimSpace(filepath.Base(filename))
-	if base == "" {
-		return ""
-	}
-	ext := filepath.Ext(base)
-	if strings.EqualFold(ext, providerFileExt) {
-		base = strings.TrimSuffix(base, ext)
-	}
-	return normalizeProvider(base)
 }
 
 // The closed canonical video mode vocabulary from

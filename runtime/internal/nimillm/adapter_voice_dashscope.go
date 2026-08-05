@@ -11,7 +11,7 @@ import (
 
 func executeDashScopeVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := resolveVoiceWorkflowBaseURL("dashscope", cfg, req.ExtPayload)
+	baseURL := resolveVoiceWorkflowBaseURL("dashscope", cfg)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -27,14 +27,14 @@ func executeDashScopeVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 
-	paths := resolveVoiceEndpointPaths(req.WorkflowType, req.ExtPayload, defaults)
-	headers := voiceWorkflowHeaders("dashscope", cfg.APIKey, req.ExtPayload)
+	path := resolveVoiceEndpointPath(req.WorkflowType, defaults)
+	headers := voiceWorkflowHeaders("dashscope", cfg)
 	payload, err := buildDashScopeVoiceWorkflowPayload(req)
 	if err != nil {
 		return VoiceWorkflowResult{}, err
 	}
 
-	return voiceWorkflowTryEndpoints(ctx, baseURL, cfg.APIKey, paths, payload, headers, "dashscope", req.WorkflowType, req.WorkflowModelID)
+	return voiceWorkflowPost(ctx, baseURL, cfg.APIKey, path, payload, headers, "dashscope", req.WorkflowType, req.WorkflowModelID)
 }
 
 func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) (map[string]any, error) {
@@ -174,7 +174,7 @@ func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) (map[string]an
 }
 
 func dashScopeVoiceWorkflowAPIModelID(workflowModelID string) string {
-	normalized := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(workflowModelID, "dashscope")))
+	normalized := strings.ToLower(strings.TrimSpace(workflowModelID))
 	if strings.HasPrefix(normalized, "voice-enrollment") {
 		return "voice-enrollment"
 	}
@@ -182,8 +182,8 @@ func dashScopeVoiceWorkflowAPIModelID(workflowModelID string) string {
 }
 
 func isDashScopeCosyVoiceWorkflow(workflowModelID string, targetModelID string) bool {
-	workflow := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(workflowModelID, "dashscope")))
-	target := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(targetModelID, "dashscope")))
+	workflow := strings.ToLower(strings.TrimSpace(workflowModelID))
+	target := strings.ToLower(strings.TrimSpace(targetModelID))
 	return strings.HasPrefix(workflow, "voice-enrollment") || strings.HasPrefix(target, "cosyvoice-")
 }
 

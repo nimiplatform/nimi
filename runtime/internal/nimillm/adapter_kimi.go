@@ -74,7 +74,7 @@ func ExecuteKimiImageChatMultimodal(
 // image generation, building a multimodal message with text and reference
 // images.
 func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) map[string]any {
-	resolvedModelID := StripProviderModelPrefix(modelResolved, "kimi", "moonshot")
+	resolvedModelID := strings.TrimSpace(modelResolved)
 	contentParts := make([]any, 0, 1+len(spec.GetReferenceImages()))
 	contentParts = append(contentParts, map[string]any{
 		"type": "text",

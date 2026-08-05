@@ -23,7 +23,7 @@ func ExecuteStepFunMedia(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.stepfun.ai/v1"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
@@ -49,7 +49,7 @@ func executeStepFunTTS(
 	}
 	voiceRef := strings.TrimSpace(scenarioVoiceRef(spec))
 	payload := map[string]any{
-		"model": StripProviderModelPrefix(modelResolved, "stepfun"),
+		"model": strings.TrimSpace(modelResolved),
 		"input": strings.TrimSpace(spec.GetText()),
 	}
 	if voiceRef != "" {
@@ -94,7 +94,7 @@ func executeStepFunImage(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	payload := map[string]any{
-		"model":  StripProviderModelPrefix(modelResolved, "stepfun"),
+		"model":  strings.TrimSpace(modelResolved),
 		"prompt": strings.TrimSpace(spec.GetPrompt()),
 	}
 	if negPrompt := strings.TrimSpace(spec.GetNegativePrompt()); negPrompt != "" {

@@ -111,6 +111,7 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	}
 	actionCtx, cancel := context.WithTimeout(runtimeAgentImageActionContext(ctx), waitTimeout)
 	defer cancel()
+	actionCtx = withPublicChatExecutionIntent(actionCtx, binding, "image.generate")
 	idempotencyKey := "runtime-agent-image-action:" + strings.TrimSpace(req.Turn.TurnID) + ":" + actionID
 	submitResp, err := e.ai.SubmitScenarioJob(actionCtx, buildPublicChatImageActionSubmitRequest(binding, params, prompt, idempotencyKey, waitTimeout))
 	if err != nil {
@@ -159,11 +160,6 @@ func buildPublicChatImageActionSubmitRequest(binding publicChatExecutionBinding,
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         runtimeAgentImageActionAppID,
 			SubjectUserId: runtimeAgentImageActionSubjectID,
-			ModelId:       strings.TrimSpace(binding.ModelID),
-			RoutePolicy:   binding.RoutePolicy,
-			ConnectorId:   strings.TrimSpace(binding.ConnectorID),
-			TargetRef:     clonePublicChatTargetRef(binding.TargetRef),
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,

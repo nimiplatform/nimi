@@ -68,16 +68,17 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 	speechAppID := runtimeAgentVoiceSynthesisAppIDForInput(input)
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
 	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
+	ctx = withPublicChatExecutionIntent(ctx, publicChatExecutionBinding{
+		ModelID:     modelID,
+		RoutePolicy: routePolicy,
+		ConnectorID: strings.TrimSpace(input.SpeechConnectorID),
+		TargetRef:   cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
+	}, "audio.synthesize")
 
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         speechAppID,
 			SubjectUserId: ownerUserID,
-			ModelId:       modelID,
-			RoutePolicy:   routePolicy,
-			ConnectorId:   strings.TrimSpace(input.SpeechConnectorID),
-			TargetRef:     cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
-			Fallback:      s.fallbackPolicy,
 			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,

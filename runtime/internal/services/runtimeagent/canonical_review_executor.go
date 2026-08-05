@@ -95,6 +95,7 @@ func (e *aiBackedCanonicalReviewExecutor) ExecuteCanonicalReview(ctx context.Con
 	if err != nil {
 		return nil, err
 	}
+	ctx = withPublicChatExecutionIntent(ctx, req.ExecutionBinding, "text.generate")
 	resp, err := e.ai.ExecuteScenario(ctx, execReq)
 	if err != nil {
 		return nil, err
@@ -122,11 +123,6 @@ func buildCanonicalReviewScenarioRequest(req *CanonicalReviewExecutorRequest) (*
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         canonicalReviewExecutorAppID,
 			SubjectUserId: subjectUserID,
-			ModelId:       req.ExecutionBinding.ModelID,
-			RoutePolicy:   req.ExecutionBinding.RoutePolicy,
-			ConnectorId:   req.ExecutionBinding.ConnectorID,
-			TargetRef:     clonePublicChatTargetRef(req.ExecutionBinding.TargetRef),
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,

@@ -14,86 +14,16 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
-func (s *Service) normalizeScenarioRuntimeTargetRef(
+// normalizeScenarioCloudTarget validates and resolves an already captured
+// private AIConfig Cloud target. It never reads or mutates public Scenario
+// model, connector, route, fallback, or target fields.
+func (s *Service) normalizeScenarioCloudTarget(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
-	capability string,
-) (
-	*connector.RemoteModelCatalogBinding,
-	*runtimev1.RuntimeResolvedLocalExecutionBinding,
-	*runtimev1.LocalAssetRecord,
-	error,
-) {
-	if head == nil || head.GetTargetRef() == nil {
-		return nil, nil, nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
-			ActionHint: "provide_runtime_target_ref",
-		})
-	}
-	if err := runtimeidentity.ValidateDurableTargetRef(head.GetTargetRef()); err != nil {
-		return nil, nil, nil, invalidScenarioDurableTargetRef(head.GetTargetRef())
-	}
-	switch target := head.GetTargetRef().GetTarget().(type) {
-	case *runtimev1.RuntimeDurableTargetRef_Cloud:
-		binding, err := s.normalizeScenarioCloudTargetRef(ctx, head, target.Cloud)
-		return binding, nil, nil, err
-	case *runtimev1.RuntimeDurableTargetRef_LocalRuntime:
-		if head.GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || s == nil || s.localTarget == nil {
-			return nil, nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-		}
-		binding, asset, err := s.localTarget.ResolveDurableLocalTarget(ctx, target.LocalRuntime, capability)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		if strings.TrimSpace(head.GetModelId()) != strings.TrimSpace(binding.GetResolvedModelId()) {
-			return nil, nil, nil, grpcerr.WithReasonCode(
-				codes.FailedPrecondition,
-				runtimev1.ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH,
-			)
-		}
-		return nil, binding, asset, nil
-	default:
-		return nil, nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-}
-
-func invalidScenarioDurableTargetRef(targetRef *runtimev1.RuntimeDurableTargetRef) error {
-	if cloud := targetRef.GetCloud(); cloud != nil {
-		if strings.TrimSpace(cloud.GetConnectorId()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED)
-		}
-		if strings.TrimSpace(cloud.GetProviderModelId()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED)
-		}
-		if strings.TrimSpace(cloud.GetRemoteModelCatalogId()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED)
-		}
-	}
-	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-}
-
-func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *runtimev1.ScenarioRequestHead, ref *runtimev1.RuntimeDurableCloudTargetRef) (*connector.RemoteModelCatalogBinding, error) {
-	if ref == nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	connectorID := strings.TrimSpace(ref.GetConnectorId())
-	if connectorID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED)
-	}
-	if existing := strings.TrimSpace(head.GetConnectorId()); existing != "" && existing != connectorID {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
-	}
-	providerModelID := strings.TrimSpace(ref.GetProviderModelId())
-	if providerModelID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED)
-	}
-	if strings.TrimSpace(ref.GetRemoteModelCatalogId()) == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED)
-	}
-	if strings.TrimSpace(head.GetConnectorId()) == "" {
-		head.ConnectorId = connectorID
-	}
-	if strings.TrimSpace(head.GetModelId()) == "" {
-		head.ModelId = providerModelID
+	ref *runtimeidentity.CloudTarget,
+) (*connector.RemoteModelCatalogBinding, error) {
+	if ref == nil || !ref.Valid() {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
 	subjectUserID := scenarioTargetSubjectUserID(ctx, head)
 	if subjectUserID == "" {
@@ -102,7 +32,8 @@ func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *run
 	if s == nil || s.connStore == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
-	rec, found, err := s.connStore.Get(connectorID)
+	connectorID := strings.TrimSpace(ref.ConnectorID)
+	record, found, err := s.connStore.Get(connectorID)
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_runtime_logs",
@@ -112,21 +43,14 @@ func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *run
 	if !found {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
-	binding, err := connector.ResolveRemoteModelCatalogBinding(s.speechCatalog, subjectUserID, rec, connector.RemoteModelCatalogRef{
+	binding, err := connector.ResolveRemoteModelCatalogBinding(s.speechCatalog, subjectUserID, record, connector.RemoteModelCatalogRef{
 		ConnectorID:          connectorID,
-		RemoteModelCatalogID: strings.TrimSpace(ref.GetRemoteModelCatalogId()),
-		ProviderModelID:      providerModelID,
-		Provider:             strings.TrimSpace(ref.GetProvider()),
+		RemoteModelCatalogID: strings.TrimSpace(ref.RemoteModelCatalogID),
+		ProviderModelID:      strings.TrimSpace(ref.ProviderModelID),
+		Provider:             strings.TrimSpace(ref.Provider),
 	})
 	if err != nil {
 		return nil, err
-	}
-	canonicalProviderModelID := strings.TrimSpace(binding.ProviderModelID)
-	if canonicalProviderModelID != "" {
-		ref.ProviderModelId = canonicalProviderModelID
-		if strings.TrimSpace(head.GetModelId()) == "" || strings.TrimSpace(head.GetModelId()) == providerModelID {
-			head.ModelId = canonicalProviderModelID
-		}
 	}
 	return &binding, nil
 }

@@ -5,23 +5,22 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/proto"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
 
 func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 	store := newVoiceAssetStore()
 
 	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -62,16 +61,15 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 	}
 
 	timeoutJob, timeoutAsset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "stepfun/step-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "stepfun/step-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -109,16 +107,15 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 	store := newVoiceAssetStore()
 	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -139,16 +136,15 @@ func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 	store.mu.Unlock()
 
 	if nextJob, nextAsset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -171,16 +167,15 @@ func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *testing.T) {
 	store := newVoiceAssetStore()
 	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -202,16 +197,15 @@ func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *te
 	store.mu.Unlock()
 
 	if nextJob, nextAsset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vd",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vd",
 				Input: &runtimev1.VoiceT2VInput{
 					InstructionText: "warm cinematic narrator",
 				},
@@ -237,21 +231,19 @@ func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *te
 	}
 }
 
-func TestVoiceAssetStoreSubmitCopiesDurableTargetRefToVoiceAsset(t *testing.T) {
+func TestVoiceAssetStoreSubmitKeepsTargetRuntimePrivate(t *testing.T) {
 	store := newVoiceAssetStore()
 	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
 	_, asset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: targetRef,
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			TargetRef:     targetRef,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -264,11 +256,9 @@ func TestVoiceAssetStoreSubmitCopiesDurableTargetRefToVoiceAsset(t *testing.T) {
 	if asset == nil {
 		t.Fatalf("submit should create voice asset")
 	}
-	if !proto.Equal(asset.GetTargetRef(), targetRef) {
-		t.Fatalf("asset target_ref mismatch: got=%#v want=%#v", asset.GetTargetRef(), targetRef)
-	}
-	if !proto.Equal(asset.GetVoiceAssetTargetRef(), targetRef) {
-		t.Fatalf("asset voice_asset_target_ref mismatch: got=%#v want=%#v", asset.GetVoiceAssetTargetRef(), targetRef)
+	_, storedTarget, ok := store.getAssetBinding(asset.GetVoiceAssetId())
+	if !ok || !runtimeidentity.Equal(storedTarget, targetRef) {
+		t.Fatalf("private target mismatch: got=%#v want=%#v", storedTarget, targetRef)
 	}
 }
 
@@ -280,17 +270,15 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 	}
 	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
 	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: targetRef,
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			TargetRef:     targetRef,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -311,15 +299,15 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 	if err != nil {
 		t.Fatalf("reopen voice asset store: %v", err)
 	}
-	stored, ok := reopened.getAsset(asset.GetVoiceAssetId())
+	stored, storedTarget, ok := reopened.getAssetBinding(asset.GetVoiceAssetId())
 	if !ok {
 		t.Fatalf("provider-persistent voice asset must survive store reopen")
 	}
 	if stored.GetProviderVoiceRef() != "dashscope-provider-voice-ref" {
 		t.Fatalf("provider voice ref after reopen=%q", stored.GetProviderVoiceRef())
 	}
-	if !proto.Equal(stored.GetVoiceAssetTargetRef(), targetRef) {
-		t.Fatalf("voice_asset_target_ref after reopen mismatch: got=%#v want=%#v", stored.GetVoiceAssetTargetRef(), targetRef)
+	if !runtimeidentity.Equal(storedTarget, targetRef) {
+		t.Fatalf("private target after reopen mismatch: got=%#v want=%#v", storedTarget, targetRef)
 	}
 }
 
@@ -327,16 +315,15 @@ func TestVoiceAssetStoreCompleteFailsClosedWhenProviderPersistentSnapshotCannotP
 	store := newVoiceAssetStore()
 	store.durablePath = t.TempDir()
 	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
-			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-				TargetModelId: "dashscope/qwen3-tts-vc",
 				Input: &runtimev1.VoiceV2VInput{
 					ReferenceAudioUri:  "https://example.com/reference.wav",
 					ReferenceAudioMime: "audio/wav",
@@ -372,7 +359,7 @@ func TestVoiceAssetStoreCompleteFailsClosedWhenProviderPersistentSnapshotCannotP
 	}
 }
 
-func TestVoiceAssetStoreSubmitPersistsWorkflowFamilyMetadata(t *testing.T) {
+func TestVoiceAssetStoreSubmitPersistsExplicitWorkflowFamilyMetadata(t *testing.T) {
 	store := newVoiceAssetStore()
 	cases := []struct {
 		name            string
@@ -400,16 +387,15 @@ func TestVoiceAssetStoreSubmitPersistsWorkflowFamilyMetadata(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, asset := store.submit(&voiceWorkflowSubmitInput{
+				RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+				ExecutionTarget: runtimeAgentVoiceAssetTestTarget("connector-test"),
 				Head: &runtimev1.ScenarioRequestHead{
 					AppId:         "app-1",
 					SubjectUserId: "user-1",
-					ModelId:       tc.modelID,
-					RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				},
 				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 				Spec: &runtimev1.ScenarioSpec{
 					Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
-						TargetModelId: tc.targetModelID,
 						Input: &runtimev1.VoiceT2VInput{
 							InstructionText: "warm cinematic narrator",
 						},
@@ -417,6 +403,7 @@ func TestVoiceAssetStoreSubmitPersistsWorkflowFamilyMetadata(t *testing.T) {
 				},
 				ModelResolved:   tc.modelID,
 				WorkflowModelID: tc.workflowModelID,
+				WorkflowFamily:  tc.wantFamily,
 				Provider:        "local",
 			})
 			if asset == nil {

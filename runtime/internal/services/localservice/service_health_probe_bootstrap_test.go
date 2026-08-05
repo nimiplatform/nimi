@@ -9,16 +9,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func TestLocalCheckLocalModelHealthNotFoundWhenTargetMissing(t *testing.T) {
-	svc := newTestService(t)
-
-	_, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
-		LocalAssetId: "model_missing",
-	})
-	assertGRPCCode(t, err, "CheckLocalModelHealth(not_found)", codes.NotFound)
-	assertGRPCReasonCode(t, err, "CheckLocalModelHealth(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-}
-
 func TestLocalCheckLocalServiceHealthNotFoundWhenTargetMissing(t *testing.T) {
 	svc := newTestService(t)
 

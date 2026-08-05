@@ -130,7 +130,6 @@ func (r *Registry) ListDescriptors() ([]*runtimev1.ModelDescriptor, error) {
 			PreferredEngine:   projection.PreferredEngine,
 			FallbackEngines:   append([]string(nil), projection.FallbackEngines...),
 			BundleState:       projection.BundleState,
-			WarmState:         projection.WarmState,
 			HostRequirements:  protoCloneHostRequirements(projection.HostRequirements),
 		}
 		if !item.LastHealthAt.IsZero() {

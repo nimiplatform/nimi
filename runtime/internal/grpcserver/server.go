@@ -567,7 +567,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init ai service: %w", err)
 	}
 	aiSvc.SetRuntimeArtifactStore(artifactStore)
-	aiSvc.SetModelRegistryPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
 
@@ -604,9 +603,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	localSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	modelSvc.SetLocalModelLister(localSvc)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
-	aiSvc.SetLocalModelLister(localSvc)
 	aiSvc.SetLocalImageProfileResolver(localSvc)
-	localSvc.SetLocalProviderEndpointSink(aiSvc)
 	memorySvc, err := memoryservice.New(logger, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("init memory service: %w", err)

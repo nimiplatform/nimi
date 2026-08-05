@@ -33,8 +33,6 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeLocalService/RebindLocalCapabilityRequirement": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/UnbindLocalCapabilityRequirement": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog": { kind: "unary" },
-      "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth": { kind: "unary" },
-      "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth": { kind: "unary" },

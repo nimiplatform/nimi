@@ -15,17 +15,13 @@ func TestExecuteScenarioImageGenerateRouteDescribeProbeWritesHeaderForManagedClo
 	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-image-1.5", "https://example.com", Config{})
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	ctx := withCloudScenarioTestIntent(fixture.context, "image.generate", fixture.targetRef)
+	ctx = grpc.NewContextWithServerTransportStream(ctx, transport)
 	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       fixture.descriptor.GetProviderModelId(),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			ConnectorId:   fixture.connectorID,
-			TargetRef:     fixture.targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -90,7 +86,7 @@ func TestWriteImageRouteDescribeHeaderFailsClosedWhenCatalogMetadataMissing(t *t
 	if err == nil {
 		t.Fatalf("expected image route describe probe to fail-close when metadata is missing")
 	}
-	if got, ok := grpcerr.ExtractReasonCode(err); !ok || got != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+	if got, ok := grpcerr.ExtractReasonCode(err); !ok || got != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
 		t.Fatalf("reason code mismatch: got=%s", got)
 	}
 }

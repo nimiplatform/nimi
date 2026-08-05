@@ -28,7 +28,7 @@ func SupportsProviderVoiceDelete(provider string) bool {
 
 // DeleteProviderVoice deletes a provider-persistent voice reference when the
 // provider offers a native delete API.
-func DeleteProviderVoice(ctx context.Context, provider string, providerVoiceRef string, cfg MediaAdapterConfig, extPayload map[string]any) error {
+func DeleteProviderVoice(ctx context.Context, provider string, providerVoiceRef string, cfg MediaAdapterConfig) error {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	normalizedProvider := strings.TrimSpace(strings.ToLower(provider))
 	normalizedVoiceRef := strings.TrimSpace(providerVoiceRef)
@@ -38,21 +38,21 @@ func DeleteProviderVoice(ctx context.Context, provider string, providerVoiceRef 
 
 	switch normalizedProvider {
 	case "elevenlabs":
-		return deleteElevenLabsVoice(ctx, normalizedVoiceRef, cfg, extPayload)
+		return deleteElevenLabsVoice(ctx, normalizedVoiceRef, cfg)
 	case "fish_audio":
-		return deleteFishAudioVoiceModel(ctx, normalizedVoiceRef, cfg, extPayload)
+		return deleteFishAudioVoiceModel(ctx, normalizedVoiceRef, cfg)
 	default:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 }
 
-func deleteElevenLabsVoice(ctx context.Context, providerVoiceRef string, cfg MediaAdapterConfig, extPayload map[string]any) error {
+func deleteElevenLabsVoice(ctx context.Context, providerVoiceRef string, cfg MediaAdapterConfig) error {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg, extPayload)
+	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg)
 	if baseURL == "" {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	headers := voiceWorkflowHeaders("elevenlabs", cfg.APIKey, extPayload)
+	headers := voiceWorkflowHeaders("elevenlabs", cfg)
 	targetURL := JoinURL(baseURL, "/v1/voices/"+url.PathEscape(strings.TrimSpace(providerVoiceRef)))
 	err := DoJSONRequestWithHeaders(ctx, http.MethodDelete, targetURL, "", nil, nil, headers)
 	if err != nil && status.Code(err) == codes.NotFound {
@@ -61,9 +61,9 @@ func deleteElevenLabsVoice(ctx context.Context, providerVoiceRef string, cfg Med
 	return err
 }
 
-func deleteFishAudioVoiceModel(ctx context.Context, providerVoiceRef string, cfg MediaAdapterConfig, extPayload map[string]any) error {
+func deleteFishAudioVoiceModel(ctx context.Context, providerVoiceRef string, cfg MediaAdapterConfig) error {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := resolveVoiceWorkflowBaseURL("fish_audio", cfg, extPayload)
+	baseURL := resolveVoiceWorkflowBaseURL("fish_audio", cfg)
 	if baseURL == "" {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}

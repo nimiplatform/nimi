@@ -36,7 +36,6 @@ func main() {
 	grpcAddr := flag.String("grpc-addr", "127.0.0.1:46381", "runtime gRPC address")
 	appID := flag.String("app-id", "nimi.desktop", "caller app id")
 	subjectUserID := flag.String("subject-user-id", "local-user", "subject user id")
-	modelID := flag.String("model-id", "", "runtime model id")
 	prompt := flag.String("prompt", "", "image prompt")
 	negativePrompt := flag.String("negative-prompt", "", "image negative prompt")
 	size := flag.String("size", "1024x1024", "image size")
@@ -49,9 +48,6 @@ func main() {
 	progress := flag.Bool("progress", true, "print job progress to stderr")
 	flag.Parse()
 
-	if strings.TrimSpace(*modelID) == "" {
-		exitf("model-id is required")
-	}
 	if strings.TrimSpace(*prompt) == "" {
 		exitf("prompt is required")
 	}
@@ -63,9 +59,6 @@ func main() {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         strings.TrimSpace(*appID),
 			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     int32(*timeoutMS),
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,

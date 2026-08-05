@@ -2,10 +2,12 @@ package engine
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -86,6 +88,7 @@ func (f *fakeLlamaInvocationSubstrate) Ensure(
 	_ context.Context,
 	key string,
 	args []string,
+	validateContent func() error,
 	progress localexecution.TextProgressFunc,
 ) (string, bool, error) {
 	f.mu.Lock()
@@ -98,6 +101,11 @@ func (f *fakeLlamaInvocationSubstrate) Ensure(
 			progress(localexecution.TextExecutionProgressReused)
 		}
 		return f.endpoint, true, nil
+	}
+	if validateContent != nil {
+		if err := validateContent(); err != nil {
+			return "", false, err
+		}
 	}
 	if progress != nil {
 		progress(localexecution.TextExecutionProgressLoading)
@@ -123,7 +131,7 @@ func TestManagerInvocationSubstrateStartsWithoutStoppingAbsentWorker(t *testing.
 	substrate := newManagerLlamaInvocationSubstrate(nil)
 	substrate.manager = manager
 	var progress []localexecution.TextExecutionProgress
-	endpoint, reused, err := substrate.Ensure(context.Background(), "plan-a", []string{"--model", "/exact/main.gguf"}, func(stage localexecution.TextExecutionProgress) {
+	endpoint, reused, err := substrate.Ensure(context.Background(), "plan-a", []string{"--model", "/exact/main.gguf"}, nil, func(stage localexecution.TextExecutionProgress) {
 		progress = append(progress, stage)
 	})
 	if err != nil {
@@ -141,6 +149,28 @@ func TestManagerInvocationSubstrateStartsWithoutStoppingAbsentWorker(t *testing.
 	}
 }
 
+func TestManagerInvocationSubstrateRevalidatesAfterStopAndBeforeStart(t *testing.T) {
+	manager := &fakeLlamaExecutionManager{status: StatusHealthy, endpoint: "http://127.0.0.1:1234"}
+	substrate := newManagerLlamaInvocationSubstrate(nil)
+	substrate.manager = manager
+	validatedAtSpawnBoundary := false
+	_, _, err := substrate.Ensure(context.Background(), "replacement-plan", []string{"--model", "/exact/main.gguf"}, func() error {
+		manager.mu.Lock()
+		defer manager.mu.Unlock()
+		validatedAtSpawnBoundary = manager.stops == 1 && manager.starts == 0 && manager.status == StatusStopped
+		return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("replacement detected"))
+	}, nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureContentMismatch {
+		t.Fatalf("spawn-boundary validation kind = %q, err=%v", localexecution.FailureKindOf(err), err)
+	}
+	manager.mu.Lock()
+	starts, stops := manager.starts, manager.stops
+	manager.mu.Unlock()
+	if !validatedAtSpawnBoundary || starts != 0 || stops != 1 {
+		t.Fatalf("spawn-boundary validation observed=%t starts=%d stops=%d", validatedAtSpawnBoundary, starts, stops)
+	}
+}
+
 func TestManagerInvocationSubstrateUsesExplicitHostConfig(t *testing.T) {
 	manager := &fakeLlamaExecutionManager{status: StatusStopped, endpoint: "http://127.0.0.1:45678"}
 	config := DefaultLlamaConfig()
@@ -149,7 +179,7 @@ func TestManagerInvocationSubstrateUsesExplicitHostConfig(t *testing.T) {
 	substrate := newManagerLlamaInvocationSubstrateWithConfig(nil, config)
 	substrate.manager = manager
 	planArgs := []string{"--model", "/exact/main.gguf"}
-	if _, _, err := substrate.Ensure(context.Background(), "plan-explicit", planArgs, nil); err != nil {
+	if _, _, err := substrate.Ensure(context.Background(), "plan-explicit", planArgs, nil, nil); err != nil {
 		t.Fatalf("Ensure: %v", err)
 	}
 	manager.mu.Lock()
@@ -173,7 +203,7 @@ func TestManagerInvocationSubstrateCancellationDoesNotKillInFlightLoad(t *testin
 	ctx, cancel := context.WithCancel(context.Background())
 	result := make(chan error, 1)
 	go func() {
-		_, _, err := substrate.Ensure(ctx, "plan-a", []string{"--model", "/exact/main.gguf"}, nil)
+		_, _, err := substrate.Ensure(ctx, "plan-a", []string{"--model", "/exact/main.gguf"}, nil, nil)
 		result <- err
 	}()
 	select {
@@ -191,7 +221,7 @@ func TestManagerInvocationSubstrateCancellationDoesNotKillInFlightLoad(t *testin
 		t.Fatal("canceled Ensure waited for process loading")
 	}
 	close(block)
-	endpoint, _, err := substrate.Ensure(context.Background(), "plan-a", []string{"--model", "/exact/main.gguf"}, nil)
+	endpoint, _, err := substrate.Ensure(context.Background(), "plan-a", []string{"--model", "/exact/main.gguf"}, nil, nil)
 	if err != nil || endpoint != manager.endpoint {
 		t.Fatalf("reuse completed background load: endpoint=%q err=%v", endpoint, err)
 	}
@@ -401,16 +431,43 @@ func TestExecutionHostClassifiesLoadFailure(t *testing.T) {
 	}
 }
 
+func TestExecutionHostRejectsCapturedContentDriftBeforeSpawn(t *testing.T) {
+	substrate := &fakeLlamaInvocationSubstrate{endpoint: "http://127.0.0.1:1", healthy: true}
+	host := newExecutionHostWithSubstrate(substrate, nil)
+	plan := llamaInvocationPlanForHostTest(t, "drift", nil, false)
+	files := plan.ModelFiles()
+	if len(files) != 1 {
+		t.Fatalf("captured model files = %d, want 1", len(files))
+	}
+	if err := os.WriteFile(files[0].AbsolutePath, []byte("replacement model bytes"), 0o600); err != nil {
+		t.Fatalf("replace captured model: %v", err)
+	}
+	_, err := host.ExecuteText(context.Background(), plan, nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureContentMismatch {
+		t.Fatalf("content drift kind = %q, err=%v", localexecution.FailureKindOf(err), err)
+	}
+	if substrate.starts != 0 {
+		t.Fatalf("content drift spawned %d process(es)", substrate.starts)
+	}
+}
+
 func llamaInvocationPlanForHostTest(t *testing.T, name string, portable *structpb.Struct, stream bool) *capabilitydriver.TextInvocationPlan {
 	t.Helper()
+	modelBytes := []byte("captured model bytes for " + name)
+	digest := sha256.Sum256(modelBytes)
+	digestHex := fmt.Sprintf("%x", digest[:])
+	modelPath := filepath.Join(t.TempDir(), name+".gguf")
+	if err := os.WriteFile(modelPath, modelBytes, 0o600); err != nil {
+		t.Fatalf("write captured model: %v", err)
+	}
 	plan, err := (capabilitydriver.LlamaTextDriver{}).PlanTextInvocation(capabilitydriver.TextInvocationInput{
 		PortableConfig: portable,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{{
 			RequirementID:     capabilitydriver.MainGGUFRequirementID,
 			LocalAssetID:      "asset-" + name,
-			AbsolutePath:      filepath.Join(t.TempDir(), name+".gguf"),
-			VerifiedContentID: "sha256:" + strings.Repeat("a", 64),
-			EntrySHA256:       strings.Repeat("b", 64),
+			AbsolutePath:      modelPath,
+			VerifiedContentID: "sha256:" + digestHex,
+			EntrySHA256:       digestHex,
 		}},
 		Request: &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}},
 		Stream:  stream,

@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -134,29 +135,26 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	targetRef := clonePublicChatTargetRef(req.Binding.TargetRef)
-	if req.Binding.LocalAIConfigIntent {
-		ctx = localexecution.WithConsumerIntent(ctx, localexecution.ConsumerIntent{
-			CapabilityContract: req.Binding.CapabilityContract,
-			RequiredFeatures:   append([]string(nil), req.Binding.RequiredFeatures...),
-			Defaults:           clonePublicChatSelectedParams(req.Binding.SelectedParams),
-			Local:              true,
-		})
-		// The shared LocalAgent AIConfig owns only intent. Exact machine
-		// selection is captured by AI at execution time, never carried as a
-		// durable target or profile binding through the Agent request.
-		targetRef = nil
+	intent := executionintent.Intent{
+		CapabilityContract: req.Binding.CapabilityContract,
+		RequiredFeatures:   append([]string(nil), req.Binding.RequiredFeatures...),
+		Defaults:           clonePublicChatSelectedParams(req.Binding.SelectedParams),
+		Route:              req.Binding.RoutePolicy,
 	}
+	if cloud := req.Binding.TargetRef.GetCloud(); cloud != nil {
+		intent.CloudTarget = &runtimeidentity.CloudTarget{
+			ConnectorID:          cloud.GetConnectorId(),
+			RemoteModelCatalogID: cloud.GetRemoteModelCatalogId(),
+			ProviderModelID:      cloud.GetProviderModelId(),
+			Provider:             cloud.GetProvider(),
+		}
+	}
+	ctx = executionintent.WithIntent(ctx, intent)
 	streamReq := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         firstNonEmpty(strings.TrimSpace(req.AppID), publicChatRuntimeAppID),
 			SubjectUserId: strings.TrimSpace(req.SubjectUserID),
-			ModelId:       strings.TrimSpace(req.Binding.ModelID),
-			RoutePolicy:   req.Binding.RoutePolicy,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     publicChatDefaultTurnTimeoutMs,
-			ConnectorId:   strings.TrimSpace(req.Binding.ConnectorID),
-			TargetRef:     targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,

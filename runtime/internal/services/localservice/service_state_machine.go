@@ -66,36 +66,13 @@ func isValidServiceTransition(from, to runtimev1.LocalServiceStatus) bool {
 }
 
 func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalAssetStatus, detail string) (*runtimev1.LocalAssetRecord, error) {
-	return s.updateModelAvailabilityAndWarmState(localModelID, status, runtimev1.LocalWarmState_LOCAL_WARM_STATE_UNSPECIFIED, detail, false)
+	return s.updateModelStatusWithReason(localModelID, status, detail, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED)
 }
 
-func (s *Service) updateModelWarmState(localModelID string, warmState runtimev1.LocalWarmState, detail string) (*runtimev1.LocalAssetRecord, error) {
-	return s.updateModelAvailabilityAndWarmState(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED, warmState, detail, true)
-}
-
-func (s *Service) updateModelAvailabilityAndWarmState(
+func (s *Service) updateModelStatusWithReason(
 	localModelID string,
 	status runtimev1.LocalAssetStatus,
-	warmState runtimev1.LocalWarmState,
 	detail string,
-	updateWarmState bool,
-) (*runtimev1.LocalAssetRecord, error) {
-	return s.updateModelAvailabilityAndWarmStateWithReason(
-		localModelID,
-		status,
-		warmState,
-		detail,
-		updateWarmState,
-		runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
-	)
-}
-
-func (s *Service) updateModelAvailabilityAndWarmStateWithReason(
-	localModelID string,
-	status runtimev1.LocalAssetStatus,
-	warmState runtimev1.LocalWarmState,
-	detail string,
-	updateWarmState bool,
 	reason runtimev1.ReasonCode,
 ) (*runtimev1.LocalAssetRecord, error) {
 	id := strings.TrimSpace(localModelID)
@@ -115,25 +92,15 @@ func (s *Service) updateModelAvailabilityAndWarmStateWithReason(
 	if nextStatus != current.GetStatus() && !isValidModelTransition(current.GetStatus(), nextStatus) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
-	nextWarmState := current.GetWarmState()
-	if updateWarmState {
-		nextWarmState = warmState
-	}
 	nextReason := reason
 	if nextReason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		nextReason = projectionReasonCodeForEngine(current.GetEngine(), detail)
 	}
-	if nextStatus == current.GetStatus() &&
-		nextWarmState == current.GetWarmState() &&
-		detail == current.GetHealthDetail() &&
-		nextReason == current.GetReasonCode() {
+	if nextStatus == current.GetStatus() && detail == current.GetHealthDetail() && nextReason == current.GetReasonCode() {
 		return current, nil
 	}
 	now := nowISO()
 	current.Status = nextStatus
-	if updateWarmState {
-		current.WarmState = nextWarmState
-	}
 	current.UpdatedAt = now
 	current.HealthDetail = detail
 	current.ReasonCode = nextReason
@@ -152,10 +119,7 @@ func (s *Service) updateModelAvailabilityAndWarmStateWithReason(
 		ModelId:      current.GetAssetId(),
 		LocalModelId: current.GetLocalAssetId(),
 		Detail:       detail,
-		Payload: toStruct(map[string]any{
-			"status":     current.GetStatus().String(),
-			"warm_state": current.GetWarmState().String(),
-		}),
+		Payload:      toStruct(map[string]any{"status": current.GetStatus().String()}),
 	})
 	return current, nil
 }

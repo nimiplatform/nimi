@@ -84,12 +84,6 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		return fmt.Errorf("managedRoots.logs is Product Control-derived and cannot be set")
 	case "managedRoots.audit":
 		return fmt.Errorf("managedRoots.audit is Product Control-derived and cannot be set")
-	case "defaultLocalTextModel":
-		cfg.DefaultLocalTextModel = strings.TrimSpace(value)
-		return nil
-	case "defaultCloudProvider":
-		cfg.DefaultCloudProvider = strings.TrimSpace(value)
-		return nil
 	case "aiHealthIntervalSeconds":
 		parsed, err := strconv.Atoi(strings.TrimSpace(value))
 		if err != nil {
@@ -244,8 +238,6 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		target.APIKeyEnv = value
 	case "apiKey":
 		target.APIKey = value
-	case "defaultModel":
-		target.DefaultModel = value
 	default:
 		return fmt.Errorf("unsupported provider config key %q", key)
 	}
@@ -303,12 +295,6 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return fmt.Errorf("managedRoots.logs is Product Control-derived and cannot be unset")
 	case "managedRoots.audit":
 		return fmt.Errorf("managedRoots.audit is Product Control-derived and cannot be unset")
-	case "defaultLocalTextModel":
-		cfg.DefaultLocalTextModel = strings.TrimSpace(defaultCfg.DefaultLocalTextModel)
-		return nil
-	case "defaultCloudProvider":
-		cfg.DefaultCloudProvider = strings.TrimSpace(defaultCfg.DefaultCloudProvider)
-		return nil
 	case "aiHealthIntervalSeconds":
 		cfg.AIHealthIntervalSeconds = defaultCfg.AIHealthIntervalSeconds
 		return nil
@@ -423,8 +409,6 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		target.APIKeyEnv = ""
 	case "apiKey":
 		target.APIKey = ""
-	case "defaultModel":
-		target.DefaultModel = ""
 	default:
 		return fmt.Errorf("unsupported unset key %q", key)
 	}

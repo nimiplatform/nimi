@@ -2,9 +2,8 @@ package nimillm
 
 import (
 	"context"
-	"sort"
 	"strings"
-	"sync"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -13,99 +12,20 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
-	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
-// knownProviders lists the canonical provider IDs in priority order for default routing.
-var knownProviders = buildKnownProviders()
-
-// prefixToProvider maps model-ID prefix segments to canonical provider IDs.
-var prefixToProvider = buildPrefixToProvider()
-
-func buildKnownProviders() []string {
-	// Keep historical priority first, then append newly onboarded providers.
-	preferred := []string{
-		"nimillm", "dashscope", "volcengine", "gemini", "deepseek", "openrouter",
-		"minimax", "kimi", "glm",
-		"mistral", "groq", "xai", "azure", "qianfan", "hunyuan", "spark",
-		"openai", "anthropic", "openai_compatible", "volcengine_openspeech",
-	}
-	seen := make(map[string]struct{}, len(providerregistry.RemoteProviders))
-	out := make([]string, 0, len(providerregistry.RemoteProviders))
-	for _, providerID := range preferred {
-		record, ok := providerregistry.Lookup(providerID)
-		if !ok || record.RuntimePlane != "remote" {
-			continue
-		}
-		if _, exists := seen[providerID]; exists {
-			continue
-		}
-		seen[providerID] = struct{}{}
-		out = append(out, providerID)
-	}
-	rest := make([]string, 0, len(providerregistry.RemoteProviders))
-	for _, providerID := range providerregistry.RemoteProviders {
-		if _, exists := seen[providerID]; exists {
-			continue
-		}
-		record, ok := providerregistry.Lookup(providerID)
-		if !ok || record.RuntimePlane != "remote" {
-			continue
-		}
-		rest = append(rest, providerID)
-	}
-	sort.Strings(rest)
-	out = append(out, rest...)
-	return out
-}
-
-func buildPrefixToProvider() map[string]string {
-	lookup := make(map[string]string, len(knownProviders))
-	for _, providerID := range knownProviders {
-		lookup[providerID] = providerID
-	}
-	return lookup
-}
-
-// forbiddenPrefixToProvider maps legacy/non-canonical prefixes to the provider
-// they used to alias. These are rejected rather than auto-normalized.
-var forbiddenPrefixToProvider = map[string]string{
-	"alibaba":              "dashscope",
-	"aliyun":               "dashscope",
-	"bytedance":            "volcengine",
-	"byte":                 "volcengine",
-	"moonshot":             "kimi",
-	"zhipu":                "glm",
-	"bigmodel":             "glm",
-	"volcengineopenspeech": "volcengine_openspeech",
-	"openaicompatible":     "openai_compatible",
-}
-
-// hintToProvider maps modelregistry.ProviderHint to canonical provider IDs.
-var hintToProvider = map[modelregistry.ProviderHint]string{
-	modelregistry.ProviderHintNimiLLM:    "nimillm",
-	modelregistry.ProviderHintDashScope:  "dashscope",
-	modelregistry.ProviderHintVolcengine: "volcengine",
-	modelregistry.ProviderHintGemini:     "gemini",
-	modelregistry.ProviderHintMiniMax:    "minimax",
-	modelregistry.ProviderHintKimi:       "kimi",
-	modelregistry.ProviderHintGLM:        "glm",
-}
-
-// CloudProvider routes AI requests across multiple cloud backends.
+// CloudProvider executes only an exact caller-owned connector target. The
+// backend map remains probe/configuration substrate; it is never ranked or
+// selected from model text.
 type CloudProvider struct {
-	backends  map[string]*Backend
-	registry  *modelregistry.Registry
-	health    *providerhealth.Tracker
-	lastMu    sync.RWMutex
-	lastRoute map[string]RouteDecisionInfo
+	backends    map[string]*Backend
+	httpTimeout time.Duration
 
-	enforceEndpointSecurity bool
-	allowLoopbackEndpoint   bool
+	allowLoopbackEndpoint bool
 }
 
 // NewCloudProvider creates a CloudProvider from the given config.
-func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health *providerhealth.Tracker) *CloudProvider {
+func NewCloudProvider(cfg CloudConfig, _ *modelregistry.Registry, _ *providerhealth.Tracker) *CloudProvider {
 	backends := make(map[string]*Backend, len(cfg.Providers))
 	for providerID, creds := range cfg.Providers {
 		canonical := ResolveProviderAlias(providerID)
@@ -115,32 +35,14 @@ func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health 
 		backendName := "cloud-" + canonical
 		b := NewSecuredBackendWithHeaders(backendName, creds.BaseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
 		if b != nil {
-			if model := strings.TrimSpace(creds.DefaultModel); model != "" {
-				b.defaultModel = model
-			}
 			backends[canonical] = b
 		}
 	}
 	return &CloudProvider{
-		backends:                backends,
-		registry:                registry,
-		health:                  health,
-		enforceEndpointSecurity: true,
-		allowLoopbackEndpoint:   cfg.AllowLoopbackEndpoint,
+		backends:              backends,
+		httpTimeout:           cfg.HTTPTimeout,
+		allowLoopbackEndpoint: cfg.AllowLoopbackEndpoint,
 	}
-}
-
-// BackendWithRequestCredentials returns a backend with overridden credentials from explicit endpoint+apiKey.
-func (p *CloudProvider) BackendWithRequestCredentials(backend *Backend, endpoint string, apiKey string) *Backend {
-	if backend == nil {
-		return nil
-	}
-	endpoint = strings.TrimSpace(endpoint)
-	apiKey = strings.TrimSpace(apiKey)
-	if endpoint == "" && apiKey == "" {
-		return backend
-	}
-	return backend.WithRequestOverridesWithPolicy(endpoint, apiKey, p.allowLoopbackEndpoint)
 }
 
 // Route returns the route policy for cloud.
@@ -148,48 +50,7 @@ func (p *CloudProvider) Route() runtimev1.RoutePolicy {
 	return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 }
 
-// ResolveModelID resolves a raw model ID for cloud routing.
-func (p *CloudProvider) ResolveModelID(raw string) string {
-	modelID := strings.TrimSpace(strings.TrimPrefix(raw, "cloud/"))
-	modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "token/"))
-	if modelID == "" {
-		return "cloud-default"
-	}
-	return modelID
-}
-
-// CheckModelAvailability checks if a model is available via cloud providers.
-func (p *CloudProvider) CheckModelAvailability(modelID string) error {
-	_, _, explicit, ok := p.PickBackend(modelID)
-	if explicit && !ok {
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	if !ok {
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	return nil
-}
-
-// GenerateText routes a text generation request to the appropriate backend.
-func (p *CloudProvider) GenerateText(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if spec == nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	text, _, usage, finish, err := p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, nil)
-	return text, usage, finish, err
-}
-
-// GenerateTextScenario routes a Scenario-native text generation request.
-func (p *CloudProvider) GenerateTextScenario(
-	ctx context.Context,
-	modelID string,
-	spec *runtimev1.TextGenerateScenarioSpec,
-	inputText string,
-) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	return p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, nil)
-}
-
-// GenerateTextScenarioWithTarget routes a Scenario-native request with optional target override.
+// GenerateTextScenarioWithTarget executes one exact connector target.
 func (p *CloudProvider) GenerateTextScenarioWithTarget(
 	ctx context.Context,
 	modelID string,
@@ -200,11 +61,13 @@ func (p *CloudProvider) GenerateTextScenarioWithTarget(
 	if spec == nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if target == nil {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	p.rememberDecision(modelID, backend.Name)
 	text, toolCalls, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), BuildTextGenParams(spec))
 	if err != nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
@@ -212,60 +75,19 @@ func (p *CloudProvider) GenerateTextScenarioWithTarget(
 	return text, toolCalls, usage, finish, nil
 }
 
-// Embed routes an embedding request to the appropriate backend.
-func (p *CloudProvider) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
-	if explicit && !ok {
-		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	if backend != nil {
-		p.rememberDecision(modelID, backend.Name)
-		return backend.Embed(ctx, resolvedModelID, inputs)
-	}
-	return nil, nil, grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
-}
-
-// EmbedWithTarget routes an embedding request, optionally using a RemoteTarget override.
+// EmbedWithTarget executes one exact connector target.
 func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inputs []string, target *RemoteTarget) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
-	if target != nil {
-		backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
-		if backend == nil {
-			return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-		}
-		p.rememberDecision(modelID, backend.Name)
-		return backend.Embed(ctx, resolvedModelID, inputs)
+	if target == nil {
+		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-	// Original Embed logic preserving explicit/default distinction
-	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
-	if explicit && !ok {
+	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
+	if backend == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	if backend != nil {
-		p.rememberDecision(modelID, backend.Name)
-		return backend.Embed(ctx, resolvedModelID, inputs)
-	}
-	return nil, nil, grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
+	return backend.Embed(ctx, resolvedModelID, inputs)
 }
 
-// StreamGenerateText routes a streaming text generation request.
-func (p *CloudProvider) StreamGenerateText(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if spec == nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	return p.StreamGenerateTextScenarioWithTarget(ctx, modelID, spec, onDelta, nil)
-}
-
-// StreamGenerateTextScenario routes a Scenario-native streaming request.
-func (p *CloudProvider) StreamGenerateTextScenario(
-	ctx context.Context,
-	modelID string,
-	spec *runtimev1.TextGenerateScenarioSpec,
-	onDelta func(string) error,
-) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	return p.StreamGenerateTextScenarioWithTarget(ctx, modelID, spec, onDelta, nil)
-}
-
-// StreamGenerateTextScenarioWithTarget routes a Scenario-native streaming request with optional target.
+// StreamGenerateTextScenarioWithTarget executes one exact connector target.
 func (p *CloudProvider) StreamGenerateTextScenarioWithTarget(
 	ctx context.Context,
 	modelID string,
@@ -276,266 +98,62 @@ func (p *CloudProvider) StreamGenerateTextScenarioWithTarget(
 	if spec == nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if target == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	p.rememberDecision(modelID, backend.Name)
 	return backend.StreamGenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), BuildTextGenParams(spec), onDelta)
 }
 
-func (p *CloudProvider) StreamGenerateTextScenarioRich(
-	ctx context.Context,
-	modelID string,
-	spec *runtimev1.TextGenerateScenarioSpec,
-	handler TextStreamEventHandler,
-) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if spec == nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	backend, resolvedModelID := p.resolveBackendForTarget(modelID, nil)
-	if backend == nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	p.rememberDecision(modelID, backend.Name)
-	return backend.StreamGenerateTextRich(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), BuildTextGenParams(spec), handler)
-}
-
-// ResolveMediaBackend returns the underlying Backend for sync media operations.
-func (p *CloudProvider) ResolveMediaBackend(modelID string) (*Backend, string) {
-	backend, resolvedModelID, _, _ := p.PickBackend(modelID)
-	return backend, resolvedModelID
-}
-
-// ResolveMediaBackendWithTarget returns a backend for sync media operations,
-// optionally using a RemoteTarget override for managed connector credentials.
+// ResolveMediaBackendWithTarget resolves one exact connector target.
 func (p *CloudProvider) ResolveMediaBackendWithTarget(modelID string, target *RemoteTarget) (*Backend, string) {
 	return p.resolveBackendForTarget(modelID, target)
 }
 
-// PickBackend selects the appropriate backend for a model ID.
-// Returns (backend, resolvedModelID, isExplicit, isAvailable).
-//
-// Routing logic (simplified per NIMI-032 — no cross-provider fallback):
-//  1. Model prefix routing: "dashscope/model-name" → lookup "dashscope"
-//  2. Registry hint: model registered with ProviderHint → lookup that provider
-//  3. Default: return first configured backend (nimillm preferred)
-//  4. Provider unavailable → return UNAVAILABLE (no cross-provider fallback)
-func (p *CloudProvider) PickBackend(modelID string) (*Backend, string, bool, bool) {
-	id := strings.TrimSpace(modelID)
-	if id == "" {
-		if b := p.backends["nimillm"]; b != nil {
-			if p.isBackendHealthy(b.Name) {
-				return b, "cloud-default", false, true
-			}
-			return nil, "cloud-default", false, false
-		}
-		return nil, "cloud-default", false, false
-	}
-
-	// 1. Model prefix routing.
-	segments := strings.SplitN(id, "/", 2)
-	if len(segments) == 2 {
-		prefix := strings.ToLower(strings.TrimSpace(segments[0]))
-		rest := strings.TrimSpace(segments[1])
-		if rest == "" {
-			rest = "default"
-		}
-		if providerID, ok := prefixToProvider[prefix]; ok {
-			b := p.backends[providerID]
-			if b == nil || !p.isBackendHealthy(b.Name) {
-				return nil, rest, true, false
-			}
-			return b, rest, true, true
-		}
-		if _, forbidden := forbiddenPrefixToProvider[prefix]; forbidden {
-			return nil, rest, true, false
-		}
-	}
-
-	// 2. Registry hint routing.
-	if p.registry != nil {
-		if item, exists := p.registry.Get(id); exists {
-			if providerID, ok := hintToProvider[item.ProviderHint]; ok {
-				if b := p.backends[providerID]; b != nil && p.isBackendHealthy(b.Name) {
-					hintFrom := string(item.ProviderHint)
-					p.rememberHintDecision(id, hintFrom, providerID, false)
-					return b, id, false, true
-				}
-			}
-			// Hint provider unavailable — return UNAVAILABLE (NIMI-032: no cross-provider fallback).
-			if item.ProviderHint != modelregistry.ProviderHintLocal && item.ProviderHint != modelregistry.ProviderHintUnknown {
-				return nil, id, false, false
-			}
-		}
-	}
-
-	// 3. Default: first configured and healthy backend.
-	for _, providerID := range knownProviders {
-		if b := p.backends[providerID]; b != nil {
-			if p.isBackendHealthy(b.Name) {
-				p.rememberHintDecision(id, "", providerID, false)
-				return b, id, false, true
-			}
-		}
-	}
-
-	// 4. No healthy backend. K-PROV-004: when all probe targets are unhealthy the
-	// consume path must surface UNAVAILABLE. Return not-available (ok=false) with
-	// no backend — the same fail-closed shape as the explicit-prefix and hint
-	// unhealthy paths above — instead of fail-open returning a usable backend.
-	return nil, id, false, false
-}
-
-func (p *CloudProvider) isBackendHealthy(name string) bool {
-	if p.health == nil {
-		return true
-	}
-	if p.health.IsHealthy(name) {
-		return true
-	}
-	normalized := strings.ReplaceAll(strings.TrimSpace(name), "_", "-")
-	return normalized != name && p.health.SnapshotOf(name).State == providerhealth.StateUnknown && p.health.IsHealthy(normalized)
-}
-
-func (p *CloudProvider) rememberDecision(modelID string, backendName string) {
-	key := strings.TrimSpace(modelID)
-	if key == "" {
-		return
-	}
-	info, _ := p.GetDecisionInfo(key)
-	info.BackendName = backendName
-	p.lastMu.Lock()
-	if p.lastRoute == nil {
-		p.lastRoute = make(map[string]RouteDecisionInfo)
-	}
-	p.lastRoute[key] = info
-	p.lastMu.Unlock()
-}
-
-func (p *CloudProvider) rememberHintDecision(modelID string, hintFrom string, hintTo string, switched bool) {
-	key := strings.TrimSpace(modelID)
-	if key == "" {
-		return
-	}
-	p.lastMu.Lock()
-	if p.lastRoute == nil {
-		p.lastRoute = make(map[string]RouteDecisionInfo)
-	}
-	item := p.lastRoute[key]
-	item.HintFrom = hintFrom
-	item.HintTo = hintTo
-	item.HintAutoSwitch = switched
-	p.lastRoute[key] = item
-	p.lastMu.Unlock()
-}
-
-// GetDecisionInfo retrieves the routing decision info for a model.
-func (p *CloudProvider) GetDecisionInfo(modelID string) (RouteDecisionInfo, bool) {
-	key := strings.TrimSpace(modelID)
-	if key == "" {
-		return RouteDecisionInfo{}, false
-	}
-	p.lastMu.RLock()
-	item, exists := p.lastRoute[key]
-	p.lastMu.RUnlock()
-	return item, exists
-}
-
-// Backends returns the backend map for probe/inspection use.
-func (p *CloudProvider) Backends() map[string]*Backend {
-	return p.backends
-}
-
-// resolveBackendForTarget selects a backend for the given model, optionally overriding with a RemoteTarget.
+// resolveBackendForTarget composes one exact provider/model target. It never
+// parses model prefixes, consults registry hints, or chooses a configured
+// backend by order.
 func (p *CloudProvider) resolveBackendForTarget(modelID string, target *RemoteTarget) (*Backend, string) {
-	if target != nil {
-		canonical := ResolveProviderAlias(target.ProviderType)
-		if canonical == "" {
-			return nil, ""
-		}
-		resolvedModelID, ok := resolveRemoteTargetModelID(modelID, canonical, target.ProviderModelID)
-		if !ok {
-			return nil, resolvedModelID
-		}
-		backend := p.backendFromTarget(target)
-		return backend, resolvedModelID
+	if target == nil {
+		return nil, ""
 	}
-	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
-	if explicit && !ok {
+	canonical := ResolveProviderAlias(target.ProviderType)
+	if canonical == "" || canonical != target.ProviderType {
+		return nil, ""
+	}
+	resolvedModelID, ok := resolveRemoteTargetModelID(modelID, target.ProviderModelID)
+	if !ok {
 		return nil, resolvedModelID
 	}
-	return backend, resolvedModelID
+	return p.backendFromTarget(target), resolvedModelID
 }
 
-func resolveRemoteTargetModelID(modelID string, canonicalProvider string, boundProviderModelID string) (string, bool) {
-	if bound := strings.TrimSpace(boundProviderModelID); bound != "" {
-		return bound, true
+func resolveRemoteTargetModelID(modelID string, boundProviderModelID string) (string, bool) {
+	bound := strings.TrimSpace(boundProviderModelID)
+	requested := strings.TrimSpace(modelID)
+	if bound == "" || bound != boundProviderModelID || requested == "" || requested != modelID || requested != bound {
+		return bound, false
 	}
-	id := strings.TrimSpace(modelID)
-	for {
-		next := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(id, "cloud/"), "token/"))
-		if next == id {
-			break
-		}
-		id = next
-	}
-	if id == "" {
-		return "cloud-default", true
-	}
-	segments := strings.SplitN(id, "/", 2)
-	if len(segments) != 2 {
-		return id, true
-	}
-	prefix := strings.ToLower(strings.TrimSpace(segments[0]))
-	rest := strings.TrimSpace(segments[1])
-	if rest == "" {
-		rest = "default"
-	}
-	if providerID, ok := prefixToProvider[prefix]; ok {
-		if providerID == canonicalProvider {
-			return rest, true
-		}
-		return rest, false
-	}
-	if _, forbidden := forbiddenPrefixToProvider[prefix]; forbidden {
-		return rest, false
-	}
-	return id, true
+	return bound, true
 }
 
-// stripModelPrefix removes cloud/, token/, and provider prefixes (e.g. "deepseek/deepseek-chat" -> "deepseek-chat").
-// It is intentionally used only on RemoteTarget override paths where the backend/provider has already
-// been selected explicitly, so sending the prefixed model ID downstream would be redundant. Non-target
-// text-generation paths continue to use the normal provider/model resolution flow rather than this helper.
-func stripModelPrefix(modelID string) string {
-	id := strings.TrimSpace(modelID)
-	id = strings.TrimSpace(strings.TrimPrefix(id, "cloud/"))
-	id = strings.TrimSpace(strings.TrimPrefix(id, "token/"))
-	if segments := strings.SplitN(id, "/", 2); len(segments) == 2 {
-		if rest := strings.TrimSpace(segments[1]); rest != "" {
-			return rest
-		}
-	}
-	if id == "" {
-		return "cloud-default"
-	}
-	return id
-}
-
-// backendFromTarget creates a backend from a RemoteTarget.
+// backendFromTarget creates an execution backend only from the exact target.
+// Configured backends are probe substrate and can never contribute an endpoint,
+// credential, or header to execution.
 func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
-	allowLoopback := p.allowLoopbackEndpoint || target.AllowLoopback
-	// Try to find an existing backend and override it
-	if canonical := ResolveProviderAlias(target.ProviderType); canonical != "" {
-		if b := p.backends[canonical]; b != nil {
-			return b.WithRequestOverridesAndHeadersWithPolicy(target.Endpoint, target.APIKey, target.Headers, allowLoopback)
-		}
-	}
-	// No existing backend, create a temporary one
-	if target.Endpoint == "" {
+	if target == nil || target.Endpoint == "" || target.Endpoint != strings.TrimSpace(target.Endpoint) {
 		return nil
 	}
-	timeout := p.probeTimeout()
-	return NewSecuredBackendWithHeaders("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, target.Headers, timeout, allowLoopback)
+	allowLoopback := p.allowLoopbackEndpoint || target.AllowLoopback
+	return NewSecuredBackendWithHeaders(
+		"cloud-"+target.ProviderType,
+		target.Endpoint,
+		target.APIKey,
+		target.Headers,
+		p.probeTimeout(),
+		allowLoopback,
+	)
 }

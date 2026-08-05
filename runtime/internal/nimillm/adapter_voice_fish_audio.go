@@ -12,7 +12,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func executeFishAudioVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
@@ -21,7 +20,7 @@ func executeFishAudioVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 
-	baseURL := resolveVoiceWorkflowBaseURL("fish_audio", cfg, req.ExtPayload)
+	baseURL := resolveVoiceWorkflowBaseURL("fish_audio", cfg)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -72,47 +71,34 @@ func executeFishAudioVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest
 		return VoiceWorkflowResult{}, MapProviderRequestError(err)
 	}
 
-	paths := resolveVoiceEndpointPaths(req.WorkflowType, req.ExtPayload, []string{"/model"})
-	var lastErr error
-	for _, path := range paths {
-		response := map[string]any{}
-		err := doFishAudioMultipartJSONRequest(
-			ctx,
-			JoinURL(baseURL, path),
-			cfg.APIKey,
-			body.Bytes(),
-			writer.FormDataContentType(),
-			&response,
-		)
-		if err != nil {
-			lastErr = err
-			if status.Code(err) == codes.NotFound {
-				continue
-			}
-			return VoiceWorkflowResult{}, err
-		}
-		providerVoiceRef := extractFishAudioModelID(response)
-		if providerVoiceRef == "" {
-			lastErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-			continue
-		}
-		return VoiceWorkflowResult{
-			ProviderVoiceRef: providerVoiceRef,
-			Metadata: map[string]any{
-				"provider":          "fish_audio",
-				"workflow_type":     strings.TrimSpace(req.WorkflowType),
-				"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
-				"adapter":           "nimillm_voice_adapter_fish_audio",
-				"endpoint":          strings.TrimSpace(path),
-				"visibility":        visibility,
-				"train_mode":        trainMode,
-			},
-		}, nil
+	const path = "/model"
+	response := map[string]any{}
+	if err := doFishAudioMultipartJSONRequest(
+		ctx,
+		JoinURL(baseURL, path),
+		cfg.APIKey,
+		body.Bytes(),
+		writer.FormDataContentType(),
+		&response,
+	); err != nil {
+		return VoiceWorkflowResult{}, err
 	}
-	if lastErr != nil {
-		return VoiceWorkflowResult{}, lastErr
+	providerVoiceRef := extractFishAudioModelID(response)
+	if providerVoiceRef == "" {
+		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	return VoiceWorkflowResult{
+		ProviderVoiceRef: providerVoiceRef,
+		Metadata: map[string]any{
+			"provider":          "fish_audio",
+			"workflow_type":     strings.TrimSpace(req.WorkflowType),
+			"workflow_model_id": strings.TrimSpace(req.WorkflowModelID),
+			"adapter":           "nimillm_voice_adapter_fish_audio",
+			"endpoint":          path,
+			"visibility":        visibility,
+			"train_mode":        trainMode,
+		},
+	}, nil
 }
 
 func resolveFishAudioReferenceAudio(ctx context.Context, payload map[string]any) ([]byte, string, error) {

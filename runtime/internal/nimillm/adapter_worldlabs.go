@@ -31,7 +31,7 @@ func ExecuteWorldLabsWorld(
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		baseURL = "https://api.worldlabs.ai"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey, err := requireProviderAPIKey(cfg.APIKey)
 	if err != nil {
@@ -175,7 +175,7 @@ func buildWorldLabsGeneratePayload(spec *runtimev1.WorldGenerateScenarioSpec, mo
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	modelID := strings.TrimSpace(StripProviderModelPrefix(modelResolved, "worldlabs"))
+	modelID := strings.TrimSpace(strings.TrimSpace(modelResolved))
 	if modelID == "" {
 		modelID = strings.TrimSpace(modelResolved)
 	}

@@ -12,7 +12,6 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Ack } from "./common";
-import { RuntimeDurableTargetRef } from "./runtime_target_identity";
 import { Struct } from "../../google/protobuf/struct";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
@@ -115,10 +114,8 @@ export interface VoiceAsset {
     provider: string;
     /**
      * model_id / target_model_id are post-resolve provider / catalog / audit /
-     * voice asset compatibility facts only (allowed_non_identity_fact,
-     * K-RTARGET-008, K-VOICE-000). They must be guarded so they cannot mint or
-     * persist durable target identity. Durable identity is target_ref /
-     * voice_asset_target_ref below.
+     * voice asset compatibility facts only. Exact execution identity remains
+     * Runtime-private and is never projected through this artifact response.
      *
      * @generated from protobuf field: string model_id = 6
      */
@@ -155,21 +152,6 @@ export interface VoiceAsset {
      * @generated from protobuf field: google.protobuf.Struct metadata = 14
      */
     metadata?: Struct;
-    /**
-     * Durable v2 target identity for the resolved synthesis route the asset
-     * executes against (K-VOICE-004, K-RTARGET-002/008).
-     *
-     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 15
-     */
-    targetRef?: RuntimeDurableTargetRef;
-    /**
-     * Durable v2 target identity bound to the voice asset at creation
-     * (voice_asset_target_ref, K-VOICE-004/K-VOICE-007). tts_synthesize requests
-     * whose target ref conflicts fail with AI_VOICE_TARGET_MODEL_MISMATCH.
-     *
-     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableTargetRef voice_asset_target_ref = 16
-     */
-    voiceAssetTargetRef?: RuntimeDurableTargetRef;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VoiceV2VInput
@@ -707,9 +689,7 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 13, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 14, name: "metadata", kind: "message", T: () => Struct },
-            { no: 15, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef },
-            { no: 16, name: "voice_asset_target_ref", kind: "message", T: () => RuntimeDurableTargetRef }
+            { no: 14, name: "metadata", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<VoiceAsset>): VoiceAsset {
@@ -775,12 +755,6 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
                 case /* google.protobuf.Struct metadata */ 14:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
                     break;
-                case /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref */ 15:
-                    message.targetRef = RuntimeDurableTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.targetRef);
-                    break;
-                case /* nimi.runtime.v1.RuntimeDurableTargetRef voice_asset_target_ref */ 16:
-                    message.voiceAssetTargetRef = RuntimeDurableTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.voiceAssetTargetRef);
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -835,12 +809,6 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
         /* google.protobuf.Struct metadata = 14; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 15; */
-        if (message.targetRef)
-            RuntimeDurableTargetRef.internalBinaryWrite(message.targetRef, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.RuntimeDurableTargetRef voice_asset_target_ref = 16; */
-        if (message.voiceAssetTargetRef)
-            RuntimeDurableTargetRef.internalBinaryWrite(message.voiceAssetTargetRef, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

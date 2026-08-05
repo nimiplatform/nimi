@@ -251,21 +251,13 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 	}
 
 	switch selected.GetStatus() {
-	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
-		switch selected.GetWarmState() {
-		case runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY:
-			return modelHealthResponse(true, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_HEALTHY, runtimev1.ReasonCode_ACTION_EXECUTED, "", "", selected.GetEndpoint(), normalizedModelID), true
-		case runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED:
-			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "inspect_local_runtime_model_health", strings.TrimSpace(selected.GetHealthDetail()), selected.GetEndpoint(), normalizedModelID), true
-		default:
-			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model", "", selected.GetEndpoint(), normalizedModelID), true
-		}
-	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
-		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model", "", selected.GetEndpoint(), normalizedModelID), true
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "execute through selected Local Capability Configuration", "execution health is Runtime-private", selected.GetEndpoint(), normalizedModelID), true
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		detail := strings.TrimSpace(selected.GetHealthDetail())
 		if isRecoverableSupervisedIdleProbe(detail) {
-			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model", "managed local model ready to warm", selected.GetEndpoint(), normalizedModelID), true
+			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "execute through selected Local Capability Configuration", "execution health is Runtime-private", selected.GetEndpoint(), normalizedModelID), true
 		}
 		if detail == "" {
 			detail = "runtime local model unhealthy"
@@ -376,10 +368,6 @@ func checkLocalNativeModelHealth(
 	if projection.BundleState != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY {
 		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "finish local model install"
 	}
-	if projection.WarmState == runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
-		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model"
-	}
-
 	preferredEngine := strings.ToLower(strings.TrimSpace(projection.PreferredEngine))
 	switch preferredEngine {
 	case "llama":

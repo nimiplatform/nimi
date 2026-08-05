@@ -159,10 +159,6 @@ services:
         type: unary
       - name: StopLocalAsset
         type: unary
-      - name: CheckLocalAssetHealth
-        type: unary
-      - name: WarmLocalAsset
-        type: unary
       - name: SearchCatalogModels
         type: unary
       - name: ListCatalogVariants

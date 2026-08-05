@@ -25,7 +25,7 @@ func TestDeleteProviderVoice_ElevenLabs(t *testing.T) {
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "test-key",
-	}, nil)
+	})
 	if err != nil {
 		t.Fatalf("DeleteProviderVoice: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestDeleteProviderVoice_ElevenLabsNotFoundIsIgnored(t *testing.T) {
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "test-key",
-	}, nil)
+	})
 	if err != nil {
 		t.Fatalf("DeleteProviderVoice notfound should be ignored: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestDeleteProviderVoice_FishAudio(t *testing.T) {
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "test-key",
-	}, nil)
+	})
 	if err != nil {
 		t.Fatalf("DeleteProviderVoice(fish_audio): %v", err)
 	}
@@ -103,7 +103,7 @@ func TestDeleteProviderVoice_FishAudioNotFoundIsIgnored(t *testing.T) {
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "test-key",
-	}, nil)
+	})
 	if err != nil {
 		t.Fatalf("DeleteProviderVoice fish_audio notfound should be ignored: %v", err)
 	}

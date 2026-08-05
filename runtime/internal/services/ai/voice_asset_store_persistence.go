@@ -1,20 +1,35 @@
 package ai
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
 	voiceAssetDiskStoreDirName  = "runtime-voice-assets"
 	voiceAssetDiskStoreFileName = "voice-assets.json"
+	voiceAssetDiskStoreVersion  = 1
 )
+
+type voiceAssetDiskSnapshot struct {
+	Version int                    `json:"version"`
+	Records []voiceAssetDiskRecord `json:"records"`
+}
+
+type voiceAssetDiskRecord struct {
+	Asset  json.RawMessage         `json:"asset"`
+	Target *runtimeidentity.Target `json:"target"`
+}
 
 func newVoiceAssetStoreForLocalStatePath(localStatePath string) (*voiceAssetStore, error) {
 	store := newVoiceAssetStore()
@@ -47,17 +62,28 @@ func (s *voiceAssetStore) loadDurableAssets() error {
 		}
 		return err
 	}
-	var snapshot runtimev1.ListVoiceAssetsResponse
-	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(raw, &snapshot); err != nil {
+	var snapshot voiceAssetDiskSnapshot
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&snapshot); err != nil {
 		return err
+	}
+	if snapshot.Version != voiceAssetDiskStoreVersion {
+		return fmt.Errorf("unsupported voice asset store version %d", snapshot.Version)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, asset := range snapshot.GetAssets() {
-		if !isPersistableVoiceAsset(asset) {
+	for _, record := range snapshot.Records {
+		var asset runtimev1.VoiceAsset
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(record.Asset, &asset); err != nil {
+			return err
+		}
+		if !isPersistableVoiceAsset(&asset, record.Target) {
 			continue
 		}
-		s.assets[strings.TrimSpace(asset.GetVoiceAssetId())] = cloneVoiceAsset(asset)
+		id := strings.TrimSpace(asset.GetVoiceAssetId())
+		s.assets[id] = cloneVoiceAsset(&asset)
+		s.targets[id] = record.Target.Clone()
 	}
 	return nil
 }
@@ -66,17 +92,25 @@ func (s *voiceAssetStore) persistDurableAssetsLocked() error {
 	if s == nil || strings.TrimSpace(s.durablePath) == "" {
 		return nil
 	}
-	assets := make([]*runtimev1.VoiceAsset, 0, len(s.assets))
-	for _, asset := range s.assets {
-		if !isPersistableVoiceAsset(asset) {
-			continue
+	ids := make([]string, 0, len(s.assets))
+	for id, asset := range s.assets {
+		if isPersistableVoiceAsset(asset, s.targets[id]) {
+			ids = append(ids, id)
 		}
-		assets = append(assets, cloneVoiceAsset(asset))
 	}
-	sort.Slice(assets, func(i, j int) bool {
-		return strings.TrimSpace(assets[i].GetVoiceAssetId()) < strings.TrimSpace(assets[j].GetVoiceAssetId())
-	})
-	raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(&runtimev1.ListVoiceAssetsResponse{Assets: assets})
+	sort.Strings(ids)
+	snapshot := voiceAssetDiskSnapshot{Version: voiceAssetDiskStoreVersion, Records: make([]voiceAssetDiskRecord, 0, len(ids))}
+	for _, id := range ids {
+		assetRaw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(s.assets[id])
+		if err != nil {
+			return err
+		}
+		snapshot.Records = append(snapshot.Records, voiceAssetDiskRecord{
+			Asset:  append(json.RawMessage(nil), assetRaw...),
+			Target: s.targets[id].Clone(),
+		})
+	}
+	raw, err := json.Marshal(snapshot)
 	if err != nil {
 		return err
 	}
@@ -109,8 +143,9 @@ func (s *voiceAssetStore) persistDurableAssetsLocked() error {
 	return nil
 }
 
-func isPersistableVoiceAsset(asset *runtimev1.VoiceAsset) bool {
+func isPersistableVoiceAsset(asset *runtimev1.VoiceAsset, target *runtimeidentity.Target) bool {
 	return asset != nil &&
+		target != nil && target.Valid() &&
 		strings.TrimSpace(asset.GetVoiceAssetId()) != "" &&
 		asset.GetPersistence() == runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT &&
 		strings.TrimSpace(asset.GetProviderVoiceRef()) != ""
