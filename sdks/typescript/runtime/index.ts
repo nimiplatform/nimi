@@ -61,6 +61,10 @@ import {
 import type { RuntimeNodeGrpcTransportOptions } from './node-grpc';
 import type { NimiRuntimeAgentSourceRef } from './runtime-agent-context-projections';
 import {
+  NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS,
+  type DesktopMachineProductRuntimeMethods,
+} from './first-party-protected-runtime-profiles.generated.js';
+import {
   strictMaterializationRecord,
   strictMaterializationRequestId,
   toRuntimeCharacterSourceRefV3,
@@ -141,6 +145,7 @@ export * from './external-agent';
 export * from './first-run-materialization';
 export * from './health-coordinator';
 export * from './local-asset-vocabulary';
+export * from './machine-local-ai-configuration.js';
 export * from './runtime-local-model-center';
 export * from './runtime-local-profile-manifest';
 export * from './runtime-local-recommendation';
@@ -408,6 +413,8 @@ export class Runtime {
   readonly generated: RuntimePublicGeneratedClient;
   /** Protected Desktop owner plane; present only for host-owned Runtime clients. */
   readonly desktopPermissionOwner?: NimiDesktopPermissionOwnerRuntimeClient;
+  /** Exact machine product profile; present only for host-owned Runtime clients. */
+  readonly desktopMachineProduct?: DesktopMachineProductRuntimeMethods;
   readonly account: RuntimeAccountModule;
   readonly agents: RuntimeAgentModule;
   readonly ai: RuntimeAiModule;
@@ -444,6 +451,10 @@ export class Runtime {
         'decideLocalAppPermission',
         'revokeLocalAppPermission',
       ] as const);
+      this.desktopMachineProduct = bindRuntimeModule(
+        generated,
+        NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS.desktop_machine_product_v1,
+      );
     }
     this.account = bindRuntimeModule(this.generated, RUNTIME_ACCOUNT_METHODS);
     this.agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);

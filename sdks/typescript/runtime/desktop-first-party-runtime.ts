@@ -17,6 +17,11 @@ import type {
 import type { NimiRuntimeAgentAuthClient } from './runtime-agent-protected';
 import type { NimiRuntimeScenarioJobClient } from './scenario-jobs';
 import {
+  createNimiMachineLocalAIConfigurationClient,
+  type NimiMachineLocalAIConfigurationClient,
+} from './machine-local-ai-configuration.js';
+import { createNimiError, ReasonCode } from '../types/index.js';
+import {
   createNimiAppAIConfigClient,
   type NimiAppAIConfigClient,
 } from '../core/ai/capability-configuration';
@@ -57,7 +62,9 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'scaffoldOrphanAsset'
     | 'resolveProfile'
     | 'applyProfile'
-    | 'listLocalAudits'>;
+    | 'listLocalAudits'> & {
+      readonly aiConfiguration: NimiMachineLocalAIConfigurationClient;
+    };
   readonly connectors: Pick<DesktopMachineProductRuntimeMethods,
     | 'listConnectors'
     | 'listProviderCatalog'>;
@@ -205,6 +212,18 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     getSubjectUserId: input.getSubjectUserId,
     hostOwnedIdentity: true,
   });
+  const machineProductRuntime = runtime.desktopMachineProduct;
+  if (!machineProductRuntime) {
+    throw createNimiError({
+      message: 'Desktop machine product Runtime profile is unavailable.',
+      reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+      actionHint: 'create_host_owned_desktop_runtime_client',
+      source: 'sdk',
+    });
+  }
+  const machineLocalAIConfiguration = createNimiMachineLocalAIConfigurationClient({
+    runtime: machineProductRuntime,
+  });
   const protectedAgent = <T extends RuntimeOperation>(operation: T): T => (
     bindProtectedAccountAgentOperation(operation, input.appId)
   );
@@ -285,6 +304,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         resolveProfile: runtime.local.resolveProfile,
         applyProfile: runtime.local.applyProfile,
         listLocalAudits: runtime.local.listLocalAudits,
+        aiConfiguration: machineLocalAIConfiguration,
       }),
       connectors: Object.freeze({
         listConnectors: machineIntentRuntime.connectors.listConnectors,

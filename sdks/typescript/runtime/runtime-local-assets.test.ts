@@ -203,6 +203,23 @@ test('Runtime local asset projection preserves artifact roles for companion depe
   });
 });
 
+test('Runtime local asset projection exposes only the exact entry hash as a binding target identity', () => {
+  const projected = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
+    entry: 'model.gguf',
+    hashes: {
+      'model.gguf': `SHA256:${'A'.repeat(64)}`,
+      'other.gguf': `sha256:${'b'.repeat(64)}`,
+    },
+  }));
+  assert.equal(projected.expectedVerifiedContentId, `sha256:${'a'.repeat(64)}`);
+
+  const missingExactEntryHash = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
+    entry: 'model.gguf',
+    hashes: { 'other.gguf': `sha256:${'b'.repeat(64)}` },
+  }));
+  assert.equal(missingExactEntryHash.expectedVerifiedContentId, undefined);
+});
+
 test('Runtime local asset projection preserves public model identity and exact Desktop target metadata', () => {
   const projected = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
     localAssetId: 'local-qwen',

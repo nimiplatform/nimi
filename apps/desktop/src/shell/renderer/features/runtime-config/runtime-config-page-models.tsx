@@ -14,9 +14,10 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 import { RecommendPage } from './runtime-config-page-recommend';
 import { LocalPage } from './runtime-config-page-local';
 import { CatalogPage } from './runtime-config-page-catalog';
+import { MachineLocalAIConfigurationsPage } from './runtime-config-page-machine-local-ai.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
-type ModelsSubTabId = 'recommend' | 'installed' | 'catalog';
+type ModelsSubTabId = 'recommend' | 'installed' | 'configurations' | 'catalog';
 
 type ModelsPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -26,6 +27,7 @@ type ModelsPageProps = {
 const SUB_TABS: Array<{ id: ModelsSubTabId; labelKey: string; defaultLabel: string }> = [
   { id: 'recommend', labelKey: 'runtimeConfig.models.tabRecommend', defaultLabel: 'Recommended' },
   { id: 'installed', labelKey: 'runtimeConfig.models.tabInstalled', defaultLabel: 'Installed' },
+  { id: 'configurations', labelKey: 'runtimeConfig.models.tabConfigurations', defaultLabel: 'Local AI Configurations' },
   { id: 'catalog', labelKey: 'runtimeConfig.models.tabCatalog', defaultLabel: 'Model Catalog' },
 ];
 
@@ -77,6 +79,11 @@ export function ModelsPage({ model, state }: ModelsPageProps) {
         {subTab === 'installed' ? (
           <div data-testid={E2E_IDS.runtimeModelsPane('installed')} className="flex min-h-0 flex-1 flex-col">
             <LocalPage model={model} state={state} />
+          </div>
+        ) : null}
+        {subTab === 'configurations' ? (
+          <div data-testid={E2E_IDS.runtimeModelsPane('configurations')} className="min-w-0">
+            <MachineLocalAIConfigurationsPage />
           </div>
         ) : null}
         {subTab === 'catalog' ? (

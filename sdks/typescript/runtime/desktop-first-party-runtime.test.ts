@@ -6,6 +6,37 @@ import type { AIConfigCapabilityIntent } from '../core-generated/runtime-protobu
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import { createNimiDesktopFirstPartyRuntimeClients } from './desktop-first-party-runtime';
 
+test('Desktop machine product carries the typed Machine Local AI Configuration module', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
+      calls.push(request);
+      if (request.methodId === '/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration') {
+        return {
+          aggregate: { configurations: [], selections: [] },
+        } as Response;
+      }
+      throw new Error(`unexpected Runtime method: ${request.methodId}`);
+    },
+    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
+      throw new Error('unexpected Runtime stream');
+    },
+  };
+  const clients = createNimiDesktopFirstPartyRuntimeClients({
+    appId: 'nimi.desktop',
+    transport,
+  });
+
+  const aggregate = await clients.machineProduct.local.aiConfiguration.get();
+
+  assert.deepEqual(aggregate, { configurations: [], selections: [] });
+  assert.equal(
+    calls[0]?.methodId,
+    '/nimi.runtime.v1.RuntimeLocalService/GetMachineLocalAIConfiguration',
+  );
+  assert.equal(calls[0]?.metadata?.appId, undefined, 'protected host owns caller identity');
+});
+
 test('Desktop account product binds App AIConfig to its exact product owner', async () => {
   const calls: CoreUnaryRequest[] = [];
   const transport: CoreTransport = {

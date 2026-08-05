@@ -31,6 +31,8 @@ export interface NimiRuntimeLocalAssetEntry {
   readonly family?: string;
   readonly modelFamily?: string;
   readonly artifactRoles?: readonly string[];
+  /** Canonical content identity the caller may echo in an exact binding target. */
+  readonly expectedVerifiedContentId?: string;
   readonly durableTargetRef?: NimiRuntimeLocalAssetTargetRef;
   readonly durableTargetStatus?: NimiRuntimeLocalAssetStatusId;
   readonly durableTargetReasonCode?: string;
@@ -99,6 +101,7 @@ export function projectNimiRuntimeLocalAssetEntry(
   const displayName = normalizeText(input.displayName);
   const sourceFileName = normalizeText(input.sourceFileName);
   const artifactRoles = textListOrUndefined(input.artifactRoles);
+  const expectedVerifiedContentId = projectExpectedVerifiedContentId(input);
   const durableTargetRef = projectLocalAssetTargetRef(input.durableTargetRef);
   const durableTargetStatus = parseNimiRuntimeLocalAssetStatusId(input.durableTargetStatus);
   const durableTargetReasonCode = normalizeNimiRuntimeReasonCode(input.durableTargetReasonCode);
@@ -113,6 +116,7 @@ export function projectNimiRuntimeLocalAssetEntry(
     status,
     ...(family ? { family, modelFamily: family } : {}),
     ...(artifactRoles ? { artifactRoles } : {}),
+    ...(expectedVerifiedContentId ? { expectedVerifiedContentId } : {}),
     ...(durableTargetRef ? { durableTargetRef } : {}),
     ...(durableTargetStatus ? { durableTargetStatus } : {}),
     ...(durableTargetReasonCode ? { durableTargetReasonCode } : {}),
@@ -164,6 +168,15 @@ function textListOrUndefined(value: unknown): readonly string[] | undefined {
     .map((item) => normalizeText(item))
     .filter(Boolean);
   return out.length > 0 ? out : undefined;
+}
+
+function projectExpectedVerifiedContentId(input: LocalAssetRecord): string | undefined {
+  const entry = normalizeText(input.entry);
+  if (!entry || !input.hashes || typeof input.hashes !== 'object') return undefined;
+  const declared = normalizeText(input.hashes[entry])
+    .toLowerCase()
+    .replace(/^sha256:/u, '');
+  return /^[a-f0-9]{64}$/u.test(declared) ? `sha256:${declared}` : undefined;
 }
 
 function projectLocalAssetTargetRef(
