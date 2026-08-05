@@ -298,16 +298,8 @@ func (s *Service) describeTextEmbedRouteMetadata(
 	}, nil
 }
 
-func reasoningCapabilityForLocalTextGenerateModel(model *runtimev1.LocalAssetRecord) nimillm.ReasoningCapability {
-	if model == nil {
-		return nimillm.UnsupportedReasoningCapability()
-	}
-	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
-	case "llama":
-		return nimillm.OllamaReasoningCapability()
-	default:
-		return nimillm.UnsupportedReasoningCapability()
-	}
+func reasoningCapabilityForLocalTextGenerateModel(*runtimev1.LocalAssetRecord) nimillm.ReasoningCapability {
+	return nimillm.UnsupportedReasoningCapability()
 }
 
 func traceModeSupportForReasoningCapability(capability nimillm.ReasoningCapability) string {
@@ -321,69 +313,25 @@ func traceModeSupportForReasoningCapability(capability nimillm.ReasoningCapabili
 }
 
 func (s *Service) selectLocalTextGenerateDescribeModel(
-	ctx context.Context,
-	head *runtimev1.ScenarioRequestHead,
+	context.Context,
+	*runtimev1.ScenarioRequestHead,
 ) (*runtimev1.LocalAssetRecord, error) {
-	if s == nil || s.localModel == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	models, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, err, grpcerr.ReasonOptions{
-			Message: "local text generation models could not be listed",
-		})
-	}
-
-	selectedModel, reason, detail := selectLocalTextGenerateDescribeModelFromTargetRef(models, head.GetTargetRef())
-	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		if detail != "" {
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
-				ActionHint: "inspect_local_runtime_model_health",
-				Message:    detail,
-			})
-		}
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
-	}
-	if selectedModel == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "inspect_local_runtime_model_health",
-			Message:    "text.generate route describe targetRef did not match a local asset",
-		})
-	}
-	return selectedModel, nil
+	return nil, grpcerr.WithReasonCodeOptions(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+		grpcerr.ReasonOptions{Message: "Local text route describe no longer admits LocalAsset target inference"},
+	)
 }
 
 func (s *Service) selectLocalTextEmbedDescribeModel(
-	ctx context.Context,
-	head *runtimev1.ScenarioRequestHead,
+	context.Context,
+	*runtimev1.ScenarioRequestHead,
 ) (*runtimev1.LocalAssetRecord, error) {
-	if s == nil || s.localModel == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	models, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, err, grpcerr.ReasonOptions{
-			Message: "local text embedding models could not be listed",
-		})
-	}
-
-	selectedModel, reason, detail := selectLocalTextEmbedDescribeModelFromTargetRef(models, head.GetTargetRef())
-	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		if detail != "" {
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
-				ActionHint: "inspect_local_runtime_model_health",
-				Message:    detail,
-			})
-		}
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
-	}
-	if selectedModel == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "inspect_local_runtime_model_health",
-			Message:    "text.embed route describe targetRef did not match a local embedding asset",
-		})
-	}
-	return selectedModel, nil
+	return nil, grpcerr.WithReasonCodeOptions(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+		grpcerr.ReasonOptions{Message: "Local text embedding route describe is not migrated to capability configuration"},
+	)
 }
 
 func (s *Service) describeRemoteTextGenerateCapabilitySupport(

@@ -33,8 +33,17 @@ func (s *Service) submitScenarioAsyncJob(
 	if logLocalImageSubmit {
 		s.logger.Info("submit local image scenario job: start", "requested_model_id", requestedModelID)
 	}
+	// Local text jobs are captured before this legacy Cloud/media dispatcher.
+	// Reaching this path for text therefore means Cloud text async, whose
+	// existing unsupported contract must remain unchanged.
+	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
 	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 		return nil, err
+	}
+	if requestExplicitlyDeclaresLocalExecution(req.GetHead()) {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 
 	prepareStartedAt := time.Now()
@@ -82,6 +91,9 @@ func (s *Service) submitScenarioAsyncJob(
 	)
 	if err != nil {
 		return nil, err
+	}
+	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if logLocalImageSubmit {

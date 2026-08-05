@@ -8,13 +8,10 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func modelProbeSucceeded(model *runtimev1.LocalAssetRecord, probe endpointProbeResult, registration managedLlamaRegistration) bool {
-	if isManagedSupervisedLlamaModel(model, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED) {
-		return managedLlamaModelProbeSucceeded(probe, registration)
-	}
+func modelProbeSucceeded(model *runtimev1.LocalAssetRecord, probe endpointProbeResult) bool {
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
-		return managedLlamaModelProbeSucceeded(probe, registration)
+		return false
 	case "media":
 		return mediaModelProbeSucceeded(model, probe)
 	case "speech":
@@ -23,13 +20,10 @@ func modelProbeSucceeded(model *runtimev1.LocalAssetRecord, probe endpointProbeR
 	return probe.healthy
 }
 
-func modelProbeFailureDetail(model *runtimev1.LocalAssetRecord, probe endpointProbeResult, registration managedLlamaRegistration) string {
-	if isManagedSupervisedLlamaModel(model, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED) {
-		return managedLlamaModelProbeFailureDetail(probe, registration)
-	}
+func modelProbeFailureDetail(model *runtimev1.LocalAssetRecord, probe endpointProbeResult) string {
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
-		return managedLlamaModelProbeFailureDetail(probe, registration)
+		return "llama execution health is private to exact local capability jobs"
 	case "media":
 		return mediaModelProbeFailureDetail(model, probe)
 	case "speech":
@@ -130,59 +124,6 @@ func speechModelProbeFailureDetail(model *runtimev1.LocalAssetRecord, probe endp
 	return defaultString(probe.detail, "speech model probe failed")
 }
 
-func managedLlamaModelProbeSucceeded(probe endpointProbeResult, registration managedLlamaRegistration) bool {
-	if strings.TrimSpace(registration.Problem) != "" {
-		return false
-	}
-	if registration.DynamicProfile {
-		return probe.healthy && len(probe.models) > 0
-	}
-	if !probe.healthy {
-		return false
-	}
-	expectedModelName := strings.TrimSpace(registration.ExposedModelName)
-	if expectedModelName == "" || len(probe.models) == 0 {
-		return true
-	}
-	for _, modelID := range probe.models {
-		if strings.EqualFold(strings.TrimSpace(modelID), expectedModelName) {
-			return true
-		}
-	}
-	return false
-}
-
-func managedLlamaModelProbeFailureDetail(probe endpointProbeResult, registration managedLlamaRegistration) string {
-	if detail := strings.TrimSpace(registration.Problem); detail != "" {
-		return detail
-	}
-	if registration.DynamicProfile {
-		if probe.healthy && len(probe.models) > 0 {
-			return "local media workflow ready"
-		}
-		return defaultString(probe.detail, "local media workflow unavailable")
-	}
-	if !probe.healthy {
-		return defaultString(probe.detail, "model probe failed")
-	}
-	expectedModelName := strings.TrimSpace(registration.ExposedModelName)
-	if expectedModelName == "" || len(probe.models) == 0 {
-		return defaultString(probe.detail, "model probe failed")
-	}
-	available := make([]string, 0, len(probe.models))
-	for _, modelID := range probe.models {
-		trimmed := strings.TrimSpace(modelID)
-		if trimmed != "" {
-			available = append(available, trimmed)
-		}
-	}
-	sort.Strings(available)
-	if len(available) == 0 {
-		return fmt.Sprintf("probe response missing expected model %q", expectedModelName)
-	}
-	return fmt.Sprintf("probe response missing expected model %q; available_models=%s", expectedModelName, strings.Join(available, ","))
-}
-
 func compactProbeModelIDs(models []string) []string {
 	available := make([]string, 0, len(models))
 	for _, modelID := range models {
@@ -248,7 +189,6 @@ func normalizeComparableModelID(value string) string {
 	comparable = strings.TrimPrefix(comparable, "models/")
 	comparable = strings.TrimPrefix(comparable, "model/")
 	comparable = strings.TrimPrefix(comparable, "local/")
-	comparable = strings.TrimPrefix(comparable, "llama/")
 	comparable = strings.TrimPrefix(comparable, "media/")
 	comparable = strings.TrimPrefix(comparable, "speech/")
 	return comparable

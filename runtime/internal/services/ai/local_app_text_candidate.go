@@ -9,6 +9,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 )
 
@@ -20,10 +21,9 @@ const (
 )
 
 // GenerateLocalAppTextCandidate preserves the third-party Local App text
-// capability contract while canonical App AIConfig execution composition is
-// unavailable. The protected interceptor still supplies the current
-// App/account permission decision and valid requests fail closed without
-// resolving an ambient model, route, target, or fallback.
+// contract while composing its App AIConfig Local intent with the machine's
+// selected Local Capability Configuration. It never resolves an ambient
+// model, request target, or fallback.
 func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtimev1.GenerateLocalAppTextCandidateRequest) (*runtimev1.GenerateLocalAppTextCandidateResponse, error) {
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || decision.Operation != accountservice.LocalAppOperationTextCandidateGenerate ||
@@ -31,10 +31,36 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 		decision.OperationCapability != "ai.text.generate" {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	if _, _, err := validateLocalAppTextCandidateRequest(req); err != nil {
+	systemPrompt, messages, err := validateLocalAppTextCandidateRequest(req)
+	if err != nil {
 		return nil, err
 	}
-	return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	head := &runtimev1.ScenarioRequestHead{
+		AppId:         decision.AppID,
+		SubjectUserId: decision.AccountID,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+	}
+	effective, err := s.captureLocalTextEffectiveInputs(ctx, head, &runtimev1.TextGenerateScenarioSpec{
+		Input:        messages,
+		SystemPrompt: systemPrompt,
+		Temperature:  req.GetTemperature(),
+		TopP:         req.GetTopP(),
+		MaxTokens:    req.GetMaxTokens(),
+	}, false)
+	if err != nil {
+		return nil, err
+	}
+	defer effective.release()
+	result, err := s.executeCapturedLocalText(ctx, effective, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.GenerateLocalAppTextCandidateResponse{
+		Text:         result.Text,
+		FinishReason: result.FinishReason,
+		TraceId:      ulid.Make().String(),
+	}, nil
 }
 
 func validateLocalAppTextCandidateRequest(req *runtimev1.GenerateLocalAppTextCandidateRequest) (string, []*runtimev1.ChatMessage, error) {

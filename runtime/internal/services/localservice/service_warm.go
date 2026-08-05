@@ -39,6 +39,9 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 	if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
+	if isLlamaLocalAsset(model) {
+		return nil, privateExecutionHostEngineError()
+	}
 	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(model.GetLocalAssetId()); err != nil {
 		return nil, grpcerr.WrapWithReasonCode(
 			codes.FailedPrecondition,
@@ -89,69 +92,32 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 	if refreshed := s.modelByID(model.GetLocalAssetId()); refreshed != nil {
 		model = refreshed
 	}
-	registration := s.managedLlamaRegistrationForModel(model)
-	if strings.TrimSpace(registration.Problem) != "" {
-		detail := managedLocalModelRegistrationFailureDetail(registration.Problem)
-		if recordErr := s.recordWarmFailure(model, detail, false); recordErr != nil {
-			return nil, recordErr
+	probeEndpoint := s.effectiveLocalModelEndpoint(model)
+	if err := s.bootstrapLocalModelIfManaged(requestCtx, model); err != nil {
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{
+				Message:    "local runtime engine could not be started",
+				ActionHint: "check_local_runtime_engine",
+			},
+		)
+	}
+
+	probe := s.waitForWarmProbe(requestCtx, model, probeEndpoint)
+	if !modelProbeSucceeded(model, probe) {
+		detail := modelProbeFailureDetail(model, probe)
+		if requestCtx.Err() != nil {
+			detail = appendWarmWaitDetail(detail, requestCtx.Err())
+		}
+		if err := s.recordWarmFailure(model, detail, false); err != nil {
+			return nil, err
 		}
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    detail,
 			ActionHint: "inspect_local_runtime_model_health",
 		})
-	}
-
-	if isManagedSupervisedLlamaModel(model, s.modelRuntimeMode(model.GetLocalAssetId())) {
-		readyModel, err := s.ensureManagedSupervisedLlamaLeaseReady(requestCtx, model, "warm_local_asset")
-		if err != nil {
-			detail := strings.TrimSpace(err.Error())
-			if requestCtx.Err() != nil {
-				detail = appendWarmWaitDetail(detail, requestCtx.Err())
-			}
-			if recordErr := s.recordWarmFailure(model, detail, false); recordErr != nil {
-				return nil, recordErr
-			}
-			return nil, grpcerr.WrapWithReasonCode(
-				codes.FailedPrecondition,
-				runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-				err,
-				grpcerr.ReasonOptions{
-					Message:    "managed local model runtime is unavailable",
-					ActionHint: "inspect_local_runtime_model_health",
-				},
-			)
-		}
-		if readyModel != nil {
-			model = readyModel
-		}
-	} else {
-		endpoint := s.effectiveLocalModelEndpoint(model)
-		if err := s.bootstrapLocalModelIfManaged(requestCtx, model); err != nil {
-			return nil, grpcerr.WrapWithReasonCode(
-				codes.Unavailable,
-				runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
-				err,
-				grpcerr.ReasonOptions{
-					Message:    "local runtime engine could not be started",
-					ActionHint: "check_local_runtime_engine",
-				},
-			)
-		}
-
-		probe := s.waitForWarmProbe(requestCtx, model, registration, endpoint)
-		if !modelProbeSucceeded(model, probe, registration) {
-			detail := modelProbeFailureDetail(model, probe, registration)
-			if requestCtx.Err() != nil {
-				detail = appendWarmWaitDetail(detail, requestCtx.Err())
-			}
-			if err := s.recordWarmFailure(model, detail, false); err != nil {
-				return nil, err
-			}
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-				Message:    detail,
-				ActionHint: "inspect_local_runtime_model_health",
-			})
-		}
 	}
 
 	endpoint := s.effectiveLocalModelEndpoint(model)
@@ -218,8 +184,6 @@ func normalizeWarmResolvedModelID(modelID string) string {
 	normalized := strings.TrimSpace(modelID)
 	lower := strings.ToLower(normalized)
 	switch {
-	case strings.HasPrefix(lower, "llama/"):
-		return strings.TrimSpace(normalized[len("llama/"):])
 	case strings.HasPrefix(lower, "media/"):
 		return strings.TrimSpace(normalized[len("media/"):])
 	case strings.HasPrefix(lower, "sidecar/"):
@@ -337,11 +301,10 @@ func shouldRetryWarmProbe(engine string, endpoint string) bool {
 func (s *Service) waitForWarmProbe(
 	ctx context.Context,
 	model *runtimev1.LocalAssetRecord,
-	registration managedLlamaRegistration,
 	endpoint string,
 ) endpointProbeResult {
 	probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
-	if modelProbeSucceeded(model, probe, registration) || probe.healthy || !shouldRetryWarmProbe(model.GetEngine(), endpoint) {
+	if modelProbeSucceeded(model, probe) || probe.healthy || !shouldRetryWarmProbe(model.GetEngine(), endpoint) {
 		return probe
 	}
 
@@ -356,7 +319,7 @@ func (s *Service) waitForWarmProbe(
 		}
 
 		probe = s.probeEndpoint(ctx, model.GetEngine(), endpoint)
-		if modelProbeSucceeded(model, probe, registration) || probe.healthy {
+		if modelProbeSucceeded(model, probe) || probe.healthy {
 			return probe
 		}
 		timer.Reset(warmManagedProbeRetryInterval)

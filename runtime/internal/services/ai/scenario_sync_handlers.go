@@ -24,6 +24,13 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if len(spec.GetInput()) == 0 && strings.TrimSpace(spec.GetSystemPrompt()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	localCtx, localText, err := s.captureLocalTextRoutingIntent(ctx, req.GetHead())
+	if err != nil {
+		return nil, err
+	}
+	if localText {
+		return executeLocalTextGenerateScenario(localCtx, s, req, ignored)
+	}
 
 	remoteTarget, localPlan, err := s.prepareScenarioRequestWithLocalPlan(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
@@ -50,6 +57,9 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	)
 	if err != nil {
 		return nil, err
+	}
+	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
 	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
@@ -173,6 +183,9 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 		}
 	}
 	inputs := spec.GetInputs()
+	if requestExplicitlyDeclaresLocalExecution(req.GetHead()) {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
+	}
 
 	remoteTarget, localPlan, err := s.prepareScenarioRequestWithLocalPlan(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
@@ -199,6 +212,9 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	)
 	if err != nil {
 		return nil, err
+	}
+	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {

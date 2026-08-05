@@ -72,12 +72,7 @@ func adapterForProviderCapability(provider string, capability string) string {
 			return "openai_compat_adapter"
 		}
 	case "llama":
-		switch normalizedCapability {
-		case "chat", "text.generate", "embedding", "embed", "text.embed", "image.understand", "audio.understand", "vision", "multimodal", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video":
-			return "llama_native_adapter"
-		default:
-			return "openai_compat_adapter"
-		}
+		return ""
 	default:
 		return "openai_compat_adapter"
 	}
@@ -85,6 +80,9 @@ func adapterForProviderCapability(provider string, capability string) string {
 
 func apiPathForProviderCapability(provider string, capability string) string {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
+	if normalizedProvider == "llama" {
+		return ""
+	}
 	cap := localrouting.NormalizeCapability(capability)
 	switch cap {
 	case "text.embed":
@@ -125,6 +123,9 @@ func buildNodeProviderHints(
 ) *runtimev1.LocalProviderHints {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
 	normalizedCapability := strings.ToLower(strings.TrimSpace(capability))
+	if normalizedProvider == "llama" {
+		return nil
+	}
 	normalizedPolicyGate := strings.TrimSpace(policyGate)
 	hints := &runtimev1.LocalProviderHints{
 		Extra: map[string]string{
@@ -153,12 +154,6 @@ func buildNodeProviderHints(
 		}
 	}
 	switch normalizedProvider {
-	case "llama":
-		llama := &runtimev1.LocalProviderHintsLlama{
-			Backend:          "llama",
-			PreferredAdapter: strings.TrimSpace(adapter),
-		}
-		hints.Llama = llama
 	case "media":
 		hints.Media = &runtimev1.LocalProviderHintsMedia{
 			Backend:          normalizedProvider,

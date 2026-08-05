@@ -3,7 +3,6 @@ package daemon
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,14 +14,6 @@ var (
 	engineCrashExitStatusPattern = regexp.MustCompile(`exit status (\d+)`)
 	runtimeEnvMu                 sync.RWMutex
 )
-
-func resolveManagedLlamaModelsConfigPath(localStatePath string) string {
-	statePath := strings.TrimSpace(localStatePath)
-	if statePath == "" || !filepath.IsAbs(statePath) {
-		return ""
-	}
-	return filepath.Join(filepath.Dir(filepath.Clean(statePath)), "llama-models.yaml")
-}
 
 func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCode int) {
 	exitCode = -1

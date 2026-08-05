@@ -268,8 +268,6 @@ func localCapabilityDriverBindingError(reason runtimev1.LocalCapabilityReason, c
 		code = runtimev1.ReasonCode_AI_LOCAL_ASSET_CONTENT_MISMATCH
 	case runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE:
 		code = runtimev1.ReasonCode_AI_LOCAL_ASSET_INCOMPATIBLE
-	default:
-		code = runtimev1.ReasonCode_AI_LOCAL_ASSET_INCOMPATIBLE
 	}
 	metadata := map[string]string{
 		"configuration_id": configurationID,

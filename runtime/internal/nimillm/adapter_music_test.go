@@ -300,7 +300,7 @@ func TestExecuteLlamaMusicFallsBackAcrossEndpoints(t *testing.T) {
 	artifacts, _, _, err := ExecuteLlamaMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
-	}, newMusicJobRequest("ace-step-local", "ambient loop"), "llama/ace-step-local")
+	}, newMusicJobRequest("ace-step-local", "ambient loop"), "local/ace-step-local")
 	if err != nil {
 		t.Fatalf("ExecuteLlamaMusic failed: %v", err)
 	}

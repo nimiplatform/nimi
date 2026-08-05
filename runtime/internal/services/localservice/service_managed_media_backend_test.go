@@ -43,7 +43,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 		"options": []any{
@@ -265,7 +265,7 @@ func TestResolveManagedMediaImageProfileAcceptsLocalAssetIDRequestIdentity(t *te
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local-import/z-image-turbo-Q4_K_M",
@@ -306,7 +306,7 @@ func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *te
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	setNvidiaGPUProbeForTest(t, true)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
@@ -376,7 +376,7 @@ func TestResolveManagedMediaImageProfileEnablesDiffusionFAOnAppleSilicon(t *test
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 		"options": []any{
@@ -426,7 +426,7 @@ func TestResolveManagedMediaImageProfilePreservesExplicitCFGScale(t *testing.T) 
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"cfg_scale": 3,
@@ -478,7 +478,7 @@ func TestResolveManagedMediaImageProfileRetainsDiffusionModelWhenOverridesReplac
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
@@ -521,7 +521,7 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 	})
@@ -608,7 +608,7 @@ func TestResolveManagedMediaImageProfileAllowsSelectedUnhealthyMainOverride(t *t
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 	})

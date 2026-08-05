@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -133,6 +134,19 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	targetRef := clonePublicChatTargetRef(req.Binding.TargetRef)
+	if req.Binding.LocalAIConfigIntent {
+		ctx = localexecution.WithConsumerIntent(ctx, localexecution.ConsumerIntent{
+			CapabilityContract: req.Binding.CapabilityContract,
+			RequiredFeatures:   append([]string(nil), req.Binding.RequiredFeatures...),
+			Defaults:           clonePublicChatSelectedParams(req.Binding.SelectedParams),
+			Local:              true,
+		})
+		// The shared LocalAgent AIConfig owns only intent. Exact machine
+		// selection is captured by AI at execution time, never carried as a
+		// durable target or profile binding through the Agent request.
+		targetRef = nil
+	}
 	streamReq := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         firstNonEmpty(strings.TrimSpace(req.AppID), publicChatRuntimeAppID),
@@ -142,7 +156,7 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     publicChatDefaultTurnTimeoutMs,
 			ConnectorId:   strings.TrimSpace(req.Binding.ConnectorID),
-			TargetRef:     clonePublicChatTargetRef(req.Binding.TargetRef),
+			TargetRef:     targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,

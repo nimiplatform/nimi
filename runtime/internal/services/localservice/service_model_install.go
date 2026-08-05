@@ -396,9 +396,6 @@ func (s *Service) installLocalAssetRecord(
 					Detail:       auditDetail,
 				})
 				s.mu.Unlock()
-				if syncErr := s.SyncManagedLlamaAssets(context.Background()); syncErr != nil {
-					s.logger.Warn("sync llama assets after model mutation failed", "model_id", cloned.GetAssetId(), "error", syncErr)
-				}
 				return cloned, nil
 			default:
 				s.mu.Unlock()
@@ -419,9 +416,6 @@ func (s *Service) installLocalAssetRecord(
 		Detail:       auditDetail,
 	})
 	s.mu.Unlock()
-	if syncErr := s.SyncManagedLlamaAssets(context.Background()); syncErr != nil {
-		s.logger.Warn("sync llama assets after model mutation failed", "model_id", record.GetAssetId(), "error", syncErr)
-	}
 	return record, nil
 }
 

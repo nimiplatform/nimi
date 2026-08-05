@@ -61,6 +61,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if strings.TrimSpace(spec.GetText()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if requestExplicitlyDeclaresLocalExecution(req.GetHead()) {
+		return localExactMediaUnsupportedError(req.GetScenarioType())
+	}
 
 	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead(), req.GetScenarioType())
 	if err != nil {
@@ -111,6 +114,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	)
 	if err != nil {
 		return err
+	}
+	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 	if err := s.validateScenarioCapability(stream.Context(), req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return err

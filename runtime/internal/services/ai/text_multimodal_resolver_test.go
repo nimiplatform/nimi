@@ -160,9 +160,7 @@ func TestResolveTextGenerateArtifactPathFromScenarioArtifacts(t *testing.T) {
 	path, mimeType, cleanup, err := svc.resolveTextGenerateArtifactPath(
 		context.Background(),
 		head,
-		"llama/qwen3-chat",
-		nil,
-		nil,
+		true,
 		&runtimev1.ChatContentArtifactRef{ArtifactId: "artifact-uri"},
 	)
 	if err != nil {
@@ -175,9 +173,7 @@ func TestResolveTextGenerateArtifactPathFromScenarioArtifacts(t *testing.T) {
 	path, mimeType, cleanup, err = svc.resolveTextGenerateArtifactPath(
 		context.Background(),
 		head,
-		"llama/qwen3-chat",
-		nil,
-		nil,
+		true,
 		&runtimev1.ChatContentArtifactRef{ArtifactId: "artifact-bytes"},
 	)
 	if err != nil {
@@ -197,9 +193,7 @@ func TestResolveTextGenerateArtifactPathFromScenarioArtifacts(t *testing.T) {
 	_, _, _, err = svc.resolveTextGenerateArtifactPath(
 		context.Background(),
 		head,
-		"llama/qwen3-chat",
-		nil,
-		nil,
+		true,
 		&runtimev1.ChatContentArtifactRef{ArtifactId: "artifact-data-uri"},
 	)
 	if err == nil {
@@ -265,9 +259,7 @@ func TestResolveTextGenerateArtifactPartClassifiesMedia(t *testing.T) {
 		part, cleanup, err := svc.resolveTextGenerateArtifactPart(
 			context.Background(),
 			head,
-			"llama/qwen3-chat",
-			nil,
-			nil,
+			true,
 			tt.ref,
 		)
 		if err != nil {
@@ -303,9 +295,7 @@ func TestResolveTextGenerateArtifactPartInlinesImageForRemoteRoute(t *testing.T)
 	part, cleanup, err := svc.resolveTextGenerateArtifactPart(
 		context.Background(),
 		head,
-		"gemini/gemini-2.5-flash",
-		nil,
-		nil,
+		false,
 		&runtimev1.ChatContentArtifactRef{ArtifactId: "image-bytes"},
 	)
 	if err != nil {
@@ -346,9 +336,7 @@ func TestResolveTextGenerateArtifactPartCleansUpUnsupportedTempArtifacts(t *test
 	_, _, err := svc.resolveTextGenerateArtifactPart(
 		context.Background(),
 		head,
-		"llama/qwen3-chat",
-		nil,
-		nil,
+		true,
 		&runtimev1.ChatContentArtifactRef{ArtifactId: "unsupported-binary"},
 	)
 	if err == nil {
@@ -363,40 +351,32 @@ func TestResolveTextGenerateArtifactPathRejectsInvalidRefs(t *testing.T) {
 	svc := newTestService(logger)
 	head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"}
 
-	if _, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, "llama/qwen3-chat", nil, nil, nil); err == nil {
+	if _, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, true, nil); err == nil {
 		t.Fatal("resolveTextGenerateArtifactPath(nil) should fail")
 	}
 	if _, _, _, err := svc.resolveTextGenerateArtifactPath(
 		context.Background(),
 		head,
-		"openai/gpt-4.1",
-		&nimillm.RemoteTarget{ProviderType: "openai"},
-		nil,
+		false,
 		&runtimev1.ChatContentArtifactRef{LocalArtifactId: "local-artifact-1"},
 	); err == nil {
-		t.Fatal("resolveTextGenerateArtifactPath(non-llama local artifact) should fail")
+		t.Fatal("resolveTextGenerateArtifactPath(Cloud local artifact) should fail")
 	}
 	if _, _, _, err := svc.resolveTextGenerateArtifactPath(
 		context.Background(),
 		head,
-		"llama/qwen3-chat",
-		nil,
-		nil,
+		true,
 		&runtimev1.ChatContentArtifactRef{LocalArtifactId: "local-artifact-2"},
 	); err == nil {
 		t.Fatal("resolveTextGenerateArtifactPath(local artifact without profile) should fail")
 	}
-	if _, _, err := svc.resolveTextGenerateArtifactPart(context.Background(), head, "llama/qwen3-chat", nil, nil, nil); err == nil {
+	if _, _, err := svc.resolveTextGenerateArtifactPart(context.Background(), head, true, nil); err == nil {
 		t.Fatal("resolveTextGenerateArtifactPart(nil) should fail")
 	}
 }
 
 func TestTextGenerateArtifactHelpers(t *testing.T) {
 	t.Parallel()
-
-	if isLlamaTextGenerateRoute("openai/gpt-4.1", &nimillm.RemoteTarget{ProviderType: "openai"}, nil) {
-		t.Fatal("remote target should not resolve as llama route")
-	}
 
 	tests := []struct {
 		name     string
@@ -487,12 +467,9 @@ func TestResolveTextGenerateScenarioResolvesArtifactRefsAndCleansUp(t *testing.T
 		UpdatedAt: timestamppb.Now(),
 	}, func() {})
 
-	resolved, err := svc.resolveTextGenerateScenario(
+	resolved, err := svc.resolveTextGenerateScenarioForRoute(
 		context.Background(),
 		head,
-		"llama/qwen3-chat",
-		nil,
-		nil,
 		&runtimev1.TextGenerateScenarioSpec{
 			Input: []*runtimev1.ChatMessage{{
 				Role: "user",
@@ -501,6 +478,7 @@ func TestResolveTextGenerateScenarioResolvesArtifactRefsAndCleansUp(t *testing.T
 				})},
 			}},
 		},
+		true,
 	)
 	if err != nil {
 		t.Fatalf("resolveTextGenerateScenario() error = %v", err)
@@ -548,7 +526,7 @@ func TestVoiceListRoutePolicyHelpers(t *testing.T) {
 		},
 		{
 			name:   "remote_target_forces_cloud",
-			model:  "llama/qwen3-chat",
+			model:  "qwen3-chat",
 			remote: &nimillm.RemoteTarget{ProviderType: "openai"},
 			want:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},

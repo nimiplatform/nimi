@@ -460,7 +460,7 @@ func TestImportLocalAssetStoresReusableFactsOnly(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-import", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_image_turbo-Q4_K",

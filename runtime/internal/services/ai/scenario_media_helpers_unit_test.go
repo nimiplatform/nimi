@@ -233,13 +233,13 @@ func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("unsupported scenario", func(t *testing.T) {
+	t.Run("local text requires input", func(t *testing.T) {
 		req := baseScenarioJobRequest()
 		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE
 		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{}}}
 		err := validateSubmitScenarioAsyncJobRequest(req)
 		reason, _ := grpcerr.ExtractReasonCode(err)
-		if reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		if reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
 			t.Fatalf("unexpected reason: %v", reason)
 		}
 	})
@@ -332,26 +332,14 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "groq"); got != adapterOpenAICompat {
 		t.Fatalf("unexpected groq stt adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("llama/whisper-large-v3", "", runtimev1.Modal_MODAL_STT, ""); got != adapterLlamaNative {
-		t.Fatalf("unexpected llama stt adapter: %s", got)
-	}
 	if got := resolveMediaAdapterName("flux.1-schnell", "", runtimev1.Modal_MODAL_IMAGE, "media"); got != adapterMediaNative {
 		t.Fatalf("unexpected media provider adapter: %s", got)
-	}
-	if got := resolveMediaAdapterName("whisper-large-v3", "", runtimev1.Modal_MODAL_STT, "llama"); got != adapterLlamaNative {
-		t.Fatalf("unexpected llama stt adapter: %s", got)
 	}
 	if got := resolveMediaAdapterName("ace-step-local", "", runtimev1.Modal_MODAL_MUSIC, "sidecar"); got != adapterSidecarMusic {
 		t.Fatalf("unexpected sidecar music adapter: %s", got)
 	}
 	if got := resolveMediaAdapterName("sidecar/stable-audio-open-sidecar", "", runtimev1.Modal_MODAL_MUSIC, "sidecar"); got != adapterSidecarMusic {
 		t.Fatalf("unexpected sidecar music adapter: %s", got)
-	}
-	if got := resolveMediaAdapterName("llama/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != "" {
-		t.Fatalf("unexpected adapter for unsupported llama image route: %s", got)
-	}
-	if got := resolveMediaAdapterName("wan2.2", "", runtimev1.Modal_MODAL_VIDEO, "llama"); got != "" {
-		t.Fatalf("unexpected llama provider adapter for unsupported video route: %s", got)
 	}
 	if got := resolveMediaAdapterName("speech/qwen3-tts-30b", "", runtimev1.Modal_MODAL_TTS, ""); got != adapterSpeechNative {
 		t.Fatalf("unexpected speech tts adapter: %s", got)
@@ -374,16 +362,6 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "cloud-openai"}); got != "openai" {
 		t.Fatalf("unexpected cloud provider type: %q", got)
 	}
-	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "local-llama"}); got != "llama" {
-		t.Fatalf("unexpected local provider type: %q", got)
-	}
-	localProvider := &localProvider{
-		llama: &nimillm.Backend{Name: "local-llama"},
-	}
-	if got := inferMediaProviderTypeFromSelectedBackend(localProvider, "llama/whisper-large-v3", runtimev1.Modal_MODAL_STT); got != "llama" {
-		t.Fatalf("unexpected local provider backend type: %q", got)
-	}
-
 	if got := stringSliceToAny([]string{"  a ", "", "b"}); len(got) != 2 {
 		t.Fatalf("unexpected trimmed slice length: %d", len(got))
 	}

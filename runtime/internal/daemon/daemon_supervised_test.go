@@ -7,7 +7,6 @@ import (
 	"errors"
 	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
@@ -24,7 +23,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
-func TestOnEngineStateChangeHealthyDoesNotReinjectAfterCleanBootstrap(t *testing.T) {
+func TestLlamaHostStateNeverInjectsAmbientProviderEndpoint(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 	daemon := newTestDaemon(t, logger)
@@ -33,40 +32,26 @@ func TestOnEngineStateChangeHealthyDoesNotReinjectAfterCleanBootstrap(t *testing
 	daemon.injectEngineEndpointEnv(engine.EngineLlama, "NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "bootstrap")
 	daemon.onEngineStateChange("llama", "healthy", "ready")
 
-	logs := logBuf.String()
-	if count := strings.Count(logs, "msg=\"engine endpoint env injected\""); count != 1 {
-		t.Fatalf("expected exactly one endpoint injection log on clean boot, got %d logs:\n%s", count, logs)
-	}
-	if !strings.Contains(logs, "source=bootstrap") {
-		t.Fatalf("expected bootstrap injection log, got:\n%s", logs)
-	}
-	if strings.Contains(logs, "source=recovered") {
-		t.Fatalf("did not expect recovered injection on clean boot, got:\n%s", logs)
+	if logs := logBuf.String(); strings.Contains(logs, "msg=\"engine endpoint env injected\"") {
+		t.Fatalf("private llama Host leaked endpoint projection:\n%s", logs)
 	}
 }
 
-func TestOnEngineStateChangeHealthyReinjectsOnlyForSameEngineRecovery(t *testing.T) {
+func TestLlamaHostStateNeverMutatesDaemonReadiness(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 	daemon := newTestDaemon(t, logger)
 	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
-	daemon.state.SetStatus(health.StatusDegraded, "engine:llama unhealthy (probe failed)")
-	daemon.setProviderFailureHint("local", "engine unhealthy (llama: probe failed)")
+	daemon.state.SetStatus(health.StatusDegraded, "unrelated degraded state")
+	daemon.setProviderFailureHint("local", "must remain untouched")
 
 	daemon.onEngineStateChange("llama", "healthy", "probe recovered")
 
-	logs := logBuf.String()
-	if count := strings.Count(logs, "msg=\"engine endpoint env injected\""); count != 1 {
-		t.Fatalf("expected one recovered injection log, got %d logs:\n%s", count, logs)
+	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusDegraded || snapshot.Reason != "unrelated degraded state" {
+		t.Fatalf("private llama Host mutated Runtime readiness: %s (%s)", snapshot.Status, snapshot.Reason)
 	}
-	if !strings.Contains(logs, "source=recovered") {
-		t.Fatalf("expected recovered injection log, got:\n%s", logs)
-	}
-	if got := daemon.state.Snapshot().Status; got != health.StatusReady {
-		t.Fatalf("expected daemon to recover to ready, got %s", got)
-	}
-	if hint := daemon.providerFailureHint("local"); hint != "" {
-		t.Fatalf("expected local provider failure hint to clear on same-engine recovery, got %q", hint)
+	if hint := daemon.providerFailureHint("local"); hint != "must remain untouched" {
+		t.Fatalf("private llama Host mutated provider hint: %q", hint)
 	}
 }
 
@@ -118,77 +103,6 @@ func TestOnEngineStateChangeManagedImageBackendMarksLocalImageProviderHealth(t *
 	}
 }
 
-func TestSampleAIProviderHealthSkipsManagedLoopbackProbeWhenEngineIsIdle(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
-	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	stateRaw, err := json.Marshal(map[string]any{
-		"schemaVersion": 2,
-		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
-		"assets": []map[string]any{{
-			"localAssetId":      "01KIDLECHAT",
-			"assetId":           "local/test-chat",
-			"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT),
-			"capabilities":      []string{"chat"},
-			"engine":            "llama",
-			"entry":             "test.gguf",
-			"status":            int32(runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED),
-			"installedAt":       time.Now().UTC().Format(time.RFC3339Nano),
-			"updatedAt":         time.Now().UTC().Format(time.RFC3339Nano),
-			"healthDetail":      "managed local model available (cold)",
-			"engineRuntimeMode": int32(runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED),
-		}},
-		"services":  []map[string]any{},
-		"transfers": []map[string]any{},
-		"audits":    []map[string]any{},
-	})
-	if err != nil {
-		t.Fatalf("marshal local state: %v", err)
-	}
-	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
-		t.Fatalf("write local state: %v", err)
-	}
-	daemon, err := newDaemonForTest(t, config.Config{
-		GRPCAddr:            "127.0.0.1:0",
-		HTTPAddr:            "127.0.0.1:0",
-		LocalStatePath:      localStatePath,
-		IdempotencyCapacity: 32,
-	}, logger, "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-	daemon.state.SetStatus(health.StatusReady, "ready")
-	daemon.aiHealth = providerhealth.New()
-
-	probeCalls := 0
-	daemon.probeAIProviderFn = func(_ context.Context, _ *http.Client, _ aiProviderTarget) error {
-		probeCalls++
-		return errors.New("probe should be skipped while idle")
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		daemon.sampleAIProviderHealth(ctx)
-	}()
-
-	snapshot := waitForProviderState(t, daemon.aiHealth, "local", providerhealth.StateHealthy)
-	cancel()
-	<-done
-
-	if probeCalls != 0 {
-		t.Fatalf("expected idle local provider probe to be skipped, got %d calls", probeCalls)
-	}
-	if snapshot.LastReason != "supervised engine idle" {
-		t.Fatalf("unexpected idle local provider reason: %q", snapshot.LastReason)
-	}
-}
-
 func TestProviderProbePathsIncludeOpenAICompatibleModelsFallback(t *testing.T) {
 	paths := providerProbePaths("cloud-gemini")
 	if !slices.Contains(paths, "/models") {
@@ -199,78 +113,6 @@ func TestProviderProbePathsIncludeOpenAICompatibleModelsFallback(t *testing.T) {
 	}
 	if got := resolveProbeEndpoint("https://generativelanguage.googleapis.com/v1beta/openai", "/models"); got != "https://generativelanguage.googleapis.com/v1beta/openai/models" {
 		t.Fatalf("unexpected openai-compatible probe endpoint: %s", got)
-	}
-}
-
-func TestSampleAIProviderHealthProbesManagedLoopbackWhenActiveSupervisedAssetExists(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
-	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	stateRaw, err := json.Marshal(map[string]any{
-		"schemaVersion": 2,
-		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
-		"assets": []map[string]any{{
-			"localAssetId":      "01KACTIVECHAT",
-			"assetId":           "local/test-chat",
-			"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT),
-			"capabilities":      []string{"chat"},
-			"engine":            "llama",
-			"entry":             "test.gguf",
-			"status":            int32(runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE),
-			"installedAt":       time.Now().UTC().Format(time.RFC3339Nano),
-			"updatedAt":         time.Now().UTC().Format(time.RFC3339Nano),
-			"healthDetail":      "model active",
-			"engineRuntimeMode": int32(runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED),
-		}},
-		"services":  []map[string]any{},
-		"transfers": []map[string]any{},
-		"audits":    []map[string]any{},
-	})
-	if err != nil {
-		t.Fatalf("marshal local state: %v", err)
-	}
-	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
-		t.Fatalf("write local state: %v", err)
-	}
-
-	daemon, err := newDaemonForTest(t, config.Config{
-		GRPCAddr:            "127.0.0.1:0",
-		HTTPAddr:            "127.0.0.1:0",
-		LocalStatePath:      localStatePath,
-		IdempotencyCapacity: 32,
-	}, logger, "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-	daemon.state.SetStatus(health.StatusReady, "ready")
-	daemon.aiHealth = providerhealth.New()
-
-	probeCalls := 0
-	daemon.probeAIProviderFn = func(_ context.Context, _ *http.Client, _ aiProviderTarget) error {
-		probeCalls++
-		return errors.New("dial tcp 127.0.0.1:1234: connect: connection refused")
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		daemon.sampleAIProviderHealth(ctx)
-	}()
-
-	snapshot := waitForProviderState(t, daemon.aiHealth, "local", providerhealth.StateUnhealthy)
-	cancel()
-	<-done
-
-	if probeCalls == 0 {
-		t.Fatal("expected active supervised local asset to keep provider probing enabled")
-	}
-	if !strings.Contains(snapshot.LastReason, "connect: connection refused") {
-		t.Fatalf("unexpected unhealthy local provider reason: %q", snapshot.LastReason)
 	}
 }
 

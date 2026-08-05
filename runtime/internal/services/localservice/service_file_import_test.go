@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -244,104 +242,6 @@ func TestResolveCatalogModelIDForLocalAssetUsesExactCatalogHashProof(t *testing.
 	svc.assets["imported-gemma-q8"].Hashes["renamed.gguf"] = "sha256:" + strings.Repeat("0", 64)
 	if modelID, ok := svc.ResolveCatalogModelIDForLocalAsset("imported-gemma-q8"); ok || modelID != "" {
 		t.Fatalf("mismatched hash must not resolve catalog identity: model=%q ok=%v", modelID, ok)
-	}
-}
-
-func TestResolveLocalTextContextMetadataUsesGGUFContextAndEntryHash(t *testing.T) {
-	svc := newTestService(t)
-	var propsModelPath string
-	llama := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.URL.Path != "/props" {
-			http.NotFound(w, req)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"default_generation_settings": map[string]any{"n_ctx": 144384},
-			"model_path":                  propsModelPath,
-		})
-	}))
-	defer llama.Close()
-	logicalModelID := "nimi/imported-gemma-context"
-	entry := "renamed-gemma.gguf"
-	modelDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
-	if err := os.MkdirAll(modelDir, 0o755); err != nil {
-		t.Fatalf("mkdir model dir: %v", err)
-	}
-	payload := validGemma4TestGGUF()
-	if err := os.WriteFile(filepath.Join(modelDir, entry), payload, 0o600); err != nil {
-		t.Fatalf("write GGUF: %v", err)
-	}
-	propsModelPath = filepath.Join(modelDir, entry)
-	if err := os.WriteFile(filepath.Join(modelDir, "asset.manifest.json"), []byte("{}"), 0o600); err != nil {
-		t.Fatalf("write manifest: %v", err)
-	}
-	hash := validGemma4TestGGUFHash()
-	svc.assets["imported-gemma-context"] = &runtimev1.LocalAssetRecord{
-		LocalAssetId:   "imported-gemma-context",
-		AssetId:        "local-import/gemma/import-instance",
-		LogicalModelId: logicalModelID,
-		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		Engine:         "llama",
-		Endpoint:       llama.URL + "/v1",
-		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-		Entry:          entry,
-		Source: &runtimev1.LocalAssetSource{
-			Repo: "file://" + filepath.ToSlash(filepath.Join(modelDir, "asset.manifest.json")),
-		},
-		Hashes: map[string]string{entry: "sha256:" + hash},
-	}
-	svc.assetRuntimeModes["imported-gemma-context"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
-
-	window, revision, ok := svc.ResolveLocalTextContextMetadata(context.Background(), "imported-gemma-context")
-	if !ok || window != 144384 || revision != "sha256:"+hash {
-		t.Fatalf("local context metadata = window:%d revision:%q ok=%v", window, revision, ok)
-	}
-}
-
-func TestProbeLlamaExecutionContextWindowFailsClosedOnInvalidProps(t *testing.T) {
-	expectedPath := filepath.Join(t.TempDir(), "expected.gguf")
-	otherPath := filepath.Join(t.TempDir(), "other.gguf")
-	if err := os.WriteFile(expectedPath, []byte("expected"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(otherPath, []byte("other"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	tests := []struct {
-		name    string
-		payload map[string]any
-	}{
-		{
-			name: "missing context",
-			payload: map[string]any{
-				"default_generation_settings": map[string]any{},
-				"model_path":                  expectedPath,
-			},
-		},
-		{
-			name: "mismatched model path",
-			payload: map[string]any{
-				"default_generation_settings": map[string]any{"n_ctx": 144384},
-				"model_path":                  otherPath,
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				if req.URL.Path != "/props" {
-					http.NotFound(w, req)
-					return
-				}
-				w.Header().Set("Content-Type", "application/json")
-				_ = json.NewEncoder(w).Encode(test.payload)
-			}))
-			defer server.Close()
-			if window, ok := probeLlamaExecutionContextWindow(context.Background(), server.URL+"/v1", expectedPath); ok || window != 0 {
-				t.Fatalf("invalid props admitted window=%d ok=%v", window, ok)
-			}
-		})
 	}
 }
 
@@ -894,7 +794,7 @@ func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	setUnsupportedGPUProbeForTest(t)
 	modelsRoot := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K_M.gguf")
@@ -1002,7 +902,7 @@ func TestScaffoldOrphanModelDuplicateCreatesDistinctAssetWithoutQuarantine(t *te
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	svc := newTestService(t)
 	modelsRoot := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", true)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 	existing := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local-import/orphan",
 		capabilities: []string{"chat"},

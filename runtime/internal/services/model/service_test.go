@@ -172,7 +172,7 @@ func TestModelLifecycle(t *testing.T) {
 	}
 }
 
-func TestCheckModelHealthLocalLlamaRequiresWarmProof(t *testing.T) {
+func TestCheckModelHealthLegacyLocalLlamaFailsClosed(t *testing.T) {
 	registry := modelregistry.New()
 	registry.Upsert(modelregistry.Entry{
 		ModelID:      "local/qwen2.5",
@@ -191,12 +191,12 @@ func TestCheckModelHealthLocalLlamaRequiresWarmProof(t *testing.T) {
 		t.Fatalf("check model health: %v", err)
 	}
 	if resp.GetHealthy() {
-		t.Fatalf("local llama model without warm proof must fail closed")
+		t.Fatalf("legacy local llama model must fail closed")
 	}
 	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
 		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
 	}
-	if got := resp.GetActionHint(); got != "warm local model" {
+	if got := resp.GetActionHint(); got != "select a configured Local Capability Configuration" {
 		t.Fatalf("unexpected action hint: %q", got)
 	}
 }

@@ -28,23 +28,19 @@ func (s contextMetadataBindingAIStub) ResolvePublicChatTextContextMetadataLease(
 	return s.window, s.catalogRevision, s.modelRevision, s.providerID, clonePublicChatTargetRef(targetRef), nil, s.metadataErr
 }
 
-func TestPublicChatBindingResolutionBindsCatalogCapacityAndRouteDigest(t *testing.T) {
-	targetRef := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-		Version: "v2",
-		Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "profile-binding-a"},
-	}}}
+func TestPublicChatBindingResolutionBindsLocalConfigurationMetadataAndRouteDigest(t *testing.T) {
 	resolver := NewAIBackedPublicChatBindingResolver(contextMetadataBindingAIStub{
 		window: 32768, catalogRevision: "catalog-v1", modelRevision: "model-v1", providerID: "local",
 	})
 
 	first, err := resolver.ResolvePublicChatBinding(context.Background(), PublicChatBindingResolutionRequest{
-		ModelID: "gemma-4-e2b-it-local", RouteHint: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, TargetRef: targetRef,
+		ModelID: "gemma-4-e2b-it-local", RouteHint: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	if err != nil {
 		t.Fatalf("ResolvePublicChatBinding: %v", err)
 	}
 	second, err := resolver.ResolvePublicChatBinding(context.Background(), PublicChatBindingResolutionRequest{
-		ModelID: "gemma-4-e2b-it-local", RouteHint: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, TargetRef: targetRef,
+		ModelID: "gemma-4-e2b-it-local", RouteHint: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	if err != nil {
 		t.Fatalf("ResolvePublicChatBinding replay: %v", err)
@@ -56,26 +52,23 @@ func TestPublicChatBindingResolutionBindsCatalogCapacityAndRouteDigest(t *testin
 		t.Fatalf("route digest is not stable: first=%q second=%q", first.RouteDigest, second.RouteDigest)
 	}
 
-	changedTarget := clonePublicChatTargetRef(targetRef)
-	changedTarget.GetLocalRuntime().Ref = &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "profile-binding-b"}
-	changed, err := resolver.ResolvePublicChatBinding(context.Background(), PublicChatBindingResolutionRequest{
-		ModelID: "gemma-4-e2b-it-local", RouteHint: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, TargetRef: changedTarget,
+	changedResolver := NewAIBackedPublicChatBindingResolver(contextMetadataBindingAIStub{
+		window: 32768, catalogRevision: "catalog-v1", modelRevision: "model-v2", providerID: "local",
+	})
+	changed, err := changedResolver.ResolvePublicChatBinding(context.Background(), PublicChatBindingResolutionRequest{
+		ModelID: "gemma-4-e2b-it-local", RouteHint: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	if err != nil {
-		t.Fatalf("ResolvePublicChatBinding changed target: %v", err)
+		t.Fatalf("ResolvePublicChatBinding changed content: %v", err)
 	}
 	if changed.RouteDigest == first.RouteDigest {
-		t.Fatal("route digest must bind the durable target identity")
+		t.Fatal("route digest must bind exact local content revision")
 	}
 }
 
-func TestPublicChatBindingResolutionFreezesResolvedAliasTarget(t *testing.T) {
-	resolvedTarget := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-		Version: "v2",
-		Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "local-runtime:local-asset-a"},
-	}}}
+func TestPublicChatBindingResolutionKeepsLocalIntentTargetless(t *testing.T) {
 	resolver := NewAIBackedPublicChatBindingResolver(contextMetadataBindingAIStub{
-		window: 32768, catalogRevision: "catalog-v1", modelRevision: "model-v1", providerID: "local", resolvedTarget: resolvedTarget,
+		window: 32768, catalogRevision: "catalog-v1", modelRevision: "model-v1", providerID: "local",
 	})
 
 	resolved, err := resolver.ResolvePublicChatBinding(context.Background(), PublicChatBindingResolutionRequest{
@@ -87,8 +80,8 @@ func TestPublicChatBindingResolutionFreezesResolvedAliasTarget(t *testing.T) {
 	if resolved.BindingAlias != "local/default" {
 		t.Fatalf("binding alias = %q", resolved.BindingAlias)
 	}
-	if got := resolved.TargetRef.GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:local-asset-a" {
-		t.Fatalf("resolved target = %q", got)
+	if resolved.TargetRef != nil {
+		t.Fatalf("LocalAgent intent gained a durable target: %+v", resolved.TargetRef)
 	}
 	if resolved.RouteDigest == "" {
 		t.Fatal("resolved alias route digest is empty")

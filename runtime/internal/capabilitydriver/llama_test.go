@@ -1,6 +1,8 @@
 package capabilitydriver
 
 import (
+	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -232,6 +234,104 @@ func TestLlamaValidateCombinationRejectsReusedOccurrenceIdentity(t *testing.T) {
 				t.Fatalf("reason = %v, want binding ambiguous", reason)
 			}
 		})
+	}
+}
+
+func TestLlamaInvocationPlanUsesExactTextBindingAndPortableOptions(t *testing.T) {
+	portable, err := structpb.NewStruct(map[string]any{
+		"contextSize":    8192,
+		"cacheTypeK":     "q8_0",
+		"cacheTypeV":     "f16",
+		"flashAttention": true,
+		"gpuLayers":      -1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mainPath := filepath.Join(t.TempDir(), "main.gguf")
+	plan, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{
+		PortableConfig: portable,
+		ExactBindings: []InvocationExactBinding{{
+			RequirementID: MainGGUFRequirementID, LocalAssetID: "main", AbsolutePath: mainPath,
+			VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("b", 64),
+		}},
+		Request: &runtimev1.TextGenerateScenarioSpec{
+			Input:       []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+			Temperature: 0.7,
+			TopP:        0.9,
+			TopK:        40,
+			MaxTokens:   128,
+		},
+	})
+	if err != nil {
+		t.Fatalf("PlanTextInvocation: %v", err)
+	}
+	args := strings.Join(plan.ProcessArgs(), " ")
+	for _, expected := range []string{
+		"--model " + mainPath,
+		"--ctx-size 8192",
+		"--cache-type-k q8_0",
+		"--cache-type-v f16",
+		"--flash-attn on",
+		"--n-gpu-layers -1",
+	} {
+		if !strings.Contains(args, expected) {
+			t.Fatalf("process args %q do not contain %q", args, expected)
+		}
+	}
+	if strings.Contains(args, "--mmproj") {
+		t.Fatalf("text-only invocation unexpectedly contains mmproj: %s", args)
+	}
+	mutableArgs := plan.ProcessArgs()
+	mutableArgs[0] = "mutated"
+	mutableBody := plan.RequestBody()
+	mutableBody[0] = 'x'
+	if plan.ProcessArgs()[0] == "mutated" || plan.RequestBody()[0] == 'x' {
+		t.Fatal("captured invocation plan accessors exposed mutable storage")
+	}
+	var body map[string]any
+	if err := json.Unmarshal(plan.RequestBody(), &body); err != nil {
+		t.Fatalf("decode request body: %v", err)
+	}
+	if body["model"] != "nimi-selected-local" || body["stream"] != false || body["top_k"] != float64(40) {
+		t.Fatalf("request body = %#v", body)
+	}
+}
+
+func TestLlamaInvocationPlanRequiresAndUsesExactMMProjForImage(t *testing.T) {
+	root := t.TempDir()
+	mainPath := filepath.Join(root, "main.gguf")
+	mmprojPath := filepath.Join(root, "mmproj.gguf")
+	request := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{
+		Role: "user",
+		Parts: []*runtimev1.ChatContentPart{
+			{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: "describe"}},
+			{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL, Content: &runtimev1.ChatContentPart_ImageUrl{ImageUrl: &runtimev1.ChatContentImageURL{Url: "/tmp/input.png"}}},
+		},
+	}}}
+	main := InvocationExactBinding{
+		RequirementID: MainGGUFRequirementID, LocalAssetID: "main", AbsolutePath: mainPath,
+		VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("b", 64),
+	}
+	if _, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{ExactBindings: []InvocationExactBinding{main}, Request: request}); err == nil {
+		t.Fatal("image invocation without configured mmproj must fail closed")
+	}
+	plan, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{
+		ExactBindings: []InvocationExactBinding{main, {
+			RequirementID: CompanionMMProjRequirementID, LocalAssetID: "mmproj", AbsolutePath: mmprojPath,
+			VerifiedContentID: "sha256:" + strings.Repeat("c", 64), EntrySHA256: strings.Repeat("d", 64),
+		}},
+		Request: request,
+		Stream:  true,
+	})
+	if err != nil {
+		t.Fatalf("PlanTextInvocation(image): %v", err)
+	}
+	if args := strings.Join(plan.ProcessArgs(), " "); !strings.Contains(args, "--mmproj "+mmprojPath) {
+		t.Fatalf("process args = %q", args)
+	}
+	if !plan.Stream() {
+		t.Fatal("stream invocation did not retain request mode")
 	}
 }
 

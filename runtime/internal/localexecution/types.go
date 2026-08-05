@@ -4,7 +4,12 @@
 package localexecution
 
 import (
+	"context"
+	"errors"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -38,4 +43,116 @@ type SelectedLocalExecution struct {
 type Resolver interface {
 	SelectedLocalCapabilityContracts() []string
 	ResolveSelectedLocalExecution(capabilityContract string) (*SelectedLocalExecution, error)
+}
+
+// ConsumerIntent is an immutable Runtime-private AIConfig capability snapshot.
+// RuntimeAgent uses the context carrier below when it calls the in-process AI
+// service; public requests cannot construct or override this value.
+type ConsumerIntent struct {
+	CapabilityContract string
+	RequiredFeatures   []string
+	Defaults           *structpb.Struct
+	Local              bool
+}
+
+type consumerIntentContextKey struct{}
+
+func WithConsumerIntent(ctx context.Context, intent ConsumerIntent) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, consumerIntentContextKey{}, cloneConsumerIntent(intent))
+}
+
+func ConsumerIntentFromContext(ctx context.Context) (ConsumerIntent, bool) {
+	if ctx == nil {
+		return ConsumerIntent{}, false
+	}
+	intent, ok := ctx.Value(consumerIntentContextKey{}).(ConsumerIntent)
+	if !ok {
+		return ConsumerIntent{}, false
+	}
+	return cloneConsumerIntent(intent), true
+}
+
+func cloneConsumerIntent(input ConsumerIntent) ConsumerIntent {
+	out := ConsumerIntent{
+		CapabilityContract: input.CapabilityContract,
+		RequiredFeatures:   append([]string(nil), input.RequiredFeatures...),
+		Local:              input.Local,
+	}
+	if input.Defaults != nil {
+		out.Defaults, _ = proto.Clone(input.Defaults).(*structpb.Struct)
+	}
+	return out
+}
+
+// TextExecutionProgress reports private host lifecycle progress to the job or
+// stream owner. It is execution lifecycle, never selected/configured truth.
+type TextExecutionProgress string
+
+const (
+	TextExecutionProgressLoading TextExecutionProgress = "loading"
+	TextExecutionProgressReady   TextExecutionProgress = "ready"
+	TextExecutionProgressReused  TextExecutionProgress = "reused"
+)
+
+type TextProgressFunc func(TextExecutionProgress)
+
+type TextDelta struct {
+	Text      string
+	Reasoning string
+}
+
+type TextResult struct {
+	Text         string
+	InputTokens  int64
+	OutputTokens int64
+	ComputeMS    int64
+	FinishReason runtimev1.FinishReason
+}
+
+// TextExecutionHost executes only substrate instructions already formed by a
+// Driver. Implementations add host-owned binary, loopback, and port facts.
+type TextExecutionHost interface {
+	ExecuteText(context.Context, *capabilitydriver.TextInvocationPlan, TextProgressFunc) (TextResult, error)
+	StreamText(context.Context, *capabilitydriver.TextInvocationPlan, func(TextDelta) error, TextProgressFunc) (TextResult, error)
+}
+
+type FailureKind string
+
+const (
+	FailureLoad         FailureKind = "load"
+	FailureInference    FailureKind = "inference"
+	FailureCanceled     FailureKind = "cancel"
+	FailureProcessCrash FailureKind = "process_crash"
+)
+
+// ExecutionError preserves the private failure phase so service boundaries can
+// map load, inference/crash, and cancellation to distinct typed public reasons.
+type ExecutionError struct {
+	Kind FailureKind
+	Err  error
+}
+
+func (e *ExecutionError) Error() string {
+	if e == nil || e.Err == nil {
+		return "local execution failed"
+	}
+	return e.Err.Error()
+}
+
+func (e *ExecutionError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}
+
+func FailureKindOf(err error) FailureKind {
+	var executionErr *ExecutionError
+	if errors.As(err, &executionErr) {
+		return executionErr.Kind
+	}
+	return ""
 }

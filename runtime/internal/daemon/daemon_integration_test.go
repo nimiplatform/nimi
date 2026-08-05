@@ -171,7 +171,7 @@ func TestDaemonRunTransitionsReadyBeforeStartupDegraded(t *testing.T) {
 	}
 }
 
-func TestDaemonRunReadyDefersEmptyManagedLlamaBootstrap(t *testing.T) {
+func TestDaemonRunNeverBootstrapsPrivateLlamaWorker(t *testing.T) {
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
 		HTTPAddr:             "127.0.0.1:0",
@@ -214,7 +214,7 @@ func TestDaemonRunReadyDefersEmptyManagedLlamaBootstrap(t *testing.T) {
 	select {
 	case <-started:
 		cancel()
-		t.Fatal("empty managed llama state must not start supervised bootstrap without a generated preset")
+		t.Fatal("daemon startup activated the private llama worker")
 	default:
 	}
 
@@ -289,7 +289,7 @@ func TestDaemonRunRefreshesManagedEmbeddingProfileOnStartup(t *testing.T) {
 }
 
 func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
+	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", "http://127.0.0.1:8321/v1")
 	cfg := config.Config{
 		GRPCAddr:                "127.0.0.1:0",
 		HTTPAddr:                "127.0.0.1:0",

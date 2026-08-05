@@ -225,14 +225,8 @@ func (s *Service) restoreState() error {
 		s.assets[record.GetLocalAssetId()] = record
 	}
 
-	// Self-heal: augment llama engine config from manifest for assets that
-	// have mmproj companion files on disk but lack engine_config.llama.mmproj
-	// (e.g. mmproj added after initial import).
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
 	for _, record := range s.assets {
-		if healed := healMissingMmprojEngineConfig(modelsRoot, record, s.logger); healed {
-			healedSnapshot = true
-		}
 		if healed := healManagedImageNativeProjection(modelsRoot, record, s.logger); healed {
 			healedSnapshot = true
 		}

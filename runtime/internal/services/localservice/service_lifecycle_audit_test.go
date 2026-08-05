@@ -41,7 +41,7 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	}
 
 	importRoot := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(importRoot, "", false)
+	setLocalModelsPathForTest(t, svc, importRoot)
 	manifestPath := filepath.Join(importRoot, "resolved", "nimi", "persisted-import", "asset.manifest.json")
 	manifestRaw, _ := json.Marshal(map[string]any{
 		"asset_id":                "local/persisted-import",
@@ -126,87 +126,6 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	}
 	if event.GetOperation() != "append_inference_audit" {
 		t.Fatalf("unexpected restored operation: %s", event.GetOperation())
-	}
-}
-
-func TestStartLocalModelSanitizesBootstrapFailureDetail(t *testing.T) {
-	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
-		return endpointProbeResult{
-			healthy:  false,
-			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
-			probeURL: endpoint,
-		}
-	})
-	svc.SetEngineManager(&mockEngineManager{
-		startErr: fmt.Errorf("bootstrap failed for /tmp/private-model on 127.0.0.1:1234"),
-	})
-	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "local/bootstrap-sanitize",
-		capabilities: []string{"chat"},
-		engine:       "llama",
-	})
-
-	resp, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
-		LocalAssetId: installed.GetLocalAssetId(),
-	})
-	if err != nil {
-		t.Fatalf("start local model: %v", err)
-	}
-	detail := resp.GetAsset().GetHealthDetail()
-	if !strings.Contains(detail, "bootstrap_error=managed_engine_bootstrap_failed") {
-		t.Fatalf("expected sanitized bootstrap marker, got %q", detail)
-	}
-	if !strings.Contains(detail, "plane=local-supervised") {
-		t.Fatalf("expected supervised plane marker, got %q", detail)
-	}
-	if strings.Contains(detail, "/tmp/private-model") {
-		t.Fatalf("bootstrap detail should not leak filesystem paths: %q", detail)
-	}
-	if strings.Contains(detail, "http://127.0.0.1:1234") {
-		t.Fatalf("model detail should not leak raw probe urls: %q", detail)
-	}
-	if strings.Contains(detail, "probe_url=") {
-		t.Fatalf("model detail should not emit raw probe_url markers: %q", detail)
-	}
-}
-
-func TestCheckLocalModelHealthSanitizesAttachedProbeMetadata(t *testing.T) {
-	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
-		return endpointProbeResult{
-			healthy:  false,
-			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
-			probeURL: endpoint,
-		}
-	})
-	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "local/attached-model-sanitize",
-		capabilities: []string{"chat"},
-		engine:       "llama",
-		endpoint:     "https://models.example.com/v1",
-	})
-	localModelID := installed.GetLocalAssetId()
-	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active"); err != nil {
-		t.Fatalf("promote model to active: %v", err)
-	}
-
-	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
-		LocalAssetId: localModelID,
-	})
-	if err != nil {
-		t.Fatalf("check local model health: %v", err)
-	}
-	if len(resp.GetAssets()) != 1 {
-		t.Fatalf("expected one model row, got %d", len(resp.GetAssets()))
-	}
-	detail := resp.GetAssets()[0].GetDetail()
-	if !strings.Contains(detail, "plane=attached-endpoint") {
-		t.Fatalf("expected attached plane marker, got %q", detail)
-	}
-	if strings.Contains(detail, "models.example.com") {
-		t.Fatalf("model detail should not leak attached endpoint hosts: %q", detail)
-	}
-	if strings.Contains(detail, "probe_url=") {
-		t.Fatalf("model detail should not emit raw probe_url markers: %q", detail)
 	}
 }
 

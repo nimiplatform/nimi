@@ -60,10 +60,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		if localModelID == "" || !s.shouldProbeModelNow(localModelID, now) {
 			continue
 		}
-		if isManagedSupervisedLlamaModel(localModel, model.mode) {
-			if _, err := s.checkManagedSupervisedLlamaHealthWithReason(ctx, localModel, "recovery_sweep"); err != nil {
-				s.logger.Debug("managed llama recovery health failed", "local_model_id", localModelID, "error", err)
-			}
+		if isLlamaLocalAsset(localModel) {
 			continue
 		}
 		if isManagedSupervisedSpeechModel(localModel, model.mode) {
@@ -78,8 +75,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		endpoint := s.effectiveLocalModelEndpoint(localModel)
 		bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, localModel)
 		probe := s.probeLocalModelEndpoint(ctx, localModel, endpoint)
-		registration := s.managedLlamaRegistrationForModel(localModel)
-		if modelProbeSucceeded(localModel, probe, registration) {
+		if modelProbeSucceeded(localModel, probe) {
 			successes := s.modelRecoverySuccess(localModelID, now)
 			if successes >= localRecoverySuccessThreshold {
 				if _, err := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active"); err != nil {
@@ -90,7 +86,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 			continue
 		}
 		failures, interval := s.modelRecoveryFailure(localModelID, now)
-		detail := modelProbeFailureDetail(localModel, probe, registration)
+		detail := modelProbeFailureDetail(localModel, probe)
 		detail = sanitizedModelProbeDetail(detail, model.mode, bootstrapErr)
 		detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
 		s.setModelHealthDetail(localModelID, detail)
@@ -99,7 +95,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 	for _, service := range services {
 		serviceRecord := service.record
 		serviceID := strings.TrimSpace(serviceRecord.GetServiceId())
-		if serviceID == "" || !s.shouldProbeServiceNow(serviceID, now) {
+		if serviceID == "" || privateExecutionHostEngine(serviceRecord.GetEngine()) || !s.shouldProbeServiceNow(serviceID, now) {
 			continue
 		}
 		probeEndpoint := s.serviceProbeEndpoint(serviceRecord)
@@ -124,20 +120,21 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 
 func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []serviceRecoveryTarget) {
 	manager := s.engineManagerOrNil()
-	_, llamaEngineHealthy := managedLlamaEngineInfo(manager)
 	speechEngineActive := managedRecoveryEngineActive(manager, "speech")
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	llamaRecoveryActive := strings.TrimSpace(s.managedLlamaLoadedLocalAssetID) != "" || llamaEngineHealthy
 	models := make([]modelRecoveryTarget, 0, len(s.assets))
 	for _, model := range s.assets {
 		if model == nil {
 			continue
 		}
 		mode := s.assetRuntimeModes[model.GetLocalAssetId()]
+		if isLlamaLocalAsset(model) {
+			continue
+		}
 		if shouldCollectModelRecoveryTarget(model, mode) {
-			if shouldSkipQuiescentManagedRecoveryTarget(model, mode, llamaRecoveryActive, speechEngineActive) {
+			if shouldSkipQuiescentManagedRecoveryTarget(model, mode, speechEngineActive) {
 				continue
 			}
 			models = append(models, modelRecoveryTarget{
@@ -181,7 +178,6 @@ func managedRecoveryEngineActive(manager EngineManager, engineName string) bool 
 func shouldSkipQuiescentManagedRecoveryTarget(
 	model *runtimev1.LocalAssetRecord,
 	mode runtimev1.LocalEngineRuntimeMode,
-	llamaRecoveryActive bool,
 	speechEngineActive bool,
 ) bool {
 	if model == nil {
@@ -193,16 +189,10 @@ func shouldSkipQuiescentManagedRecoveryTarget(
 		// potentially large bundle inventory every interval is pure overhead.
 		return true
 	}
-	engineActive := true
-	switch {
-	case isManagedSupervisedLlamaModel(model, mode):
-		engineActive = llamaRecoveryActive
-	case isManagedSupervisedSpeechModel(model, mode):
-		engineActive = speechEngineActive
-	default:
+	if !isManagedSupervisedSpeechModel(model, mode) {
 		return false
 	}
-	if engineActive {
+	if speechEngineActive {
 		return false
 	}
 	if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
@@ -226,7 +216,7 @@ func shouldCollectModelRecoveryTarget(model *runtimev1.LocalAssetRecord, mode ru
 		return true
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
-		return isManagedSupervisedLlamaModel(model, mode) || isManagedSupervisedSpeechModel(model, mode)
+		return isManagedSupervisedSpeechModel(model, mode)
 	default:
 		return false
 	}

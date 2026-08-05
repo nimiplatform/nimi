@@ -1226,7 +1226,28 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_LOCAL_SELECTION_INVALID = 700;
      */
-    AI_LOCAL_SELECTION_INVALID = 700
+    AI_LOCAL_SELECTION_INVALID = 700,
+    /**
+     * Captured local execution outcomes. Load is process/model activation;
+     * inference is a request failure while the worker remains healthy; process
+     * crash is loss of the resident worker; canceled is explicit termination.
+     * None mutates selection/exact bindings or admits fallback.
+     *
+     * @generated from protobuf enum value: AI_LOCAL_EXECUTION_LOAD_FAILED = 701;
+     */
+    AI_LOCAL_EXECUTION_LOAD_FAILED = 701,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_EXECUTION_INFERENCE_FAILED = 702;
+     */
+    AI_LOCAL_EXECUTION_INFERENCE_FAILED = 702,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_EXECUTION_CANCELED = 703;
+     */
+    AI_LOCAL_EXECUTION_CANCELED = 703,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_EXECUTION_PROCESS_CRASHED = 704;
+     */
+    AI_LOCAL_EXECUTION_PROCESS_CRASHED = 704
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

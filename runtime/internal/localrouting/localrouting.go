@@ -173,7 +173,7 @@ func providerSupportsNormalizedCapability(provider string, capability string) bo
 }
 
 func knownProviders() []string {
-	return []string{"llama", "media", "speech", "sidecar"}
+	return []string{"media", "speech", "sidecar"}
 }
 
 func loadAuthorityRoutes() ([]authorityRoute, error) {

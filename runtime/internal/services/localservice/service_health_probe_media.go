@@ -63,6 +63,9 @@ func (s *Service) bootstrapAssetExecutionEngineIfManaged(ctx context.Context, mo
 		}
 		return nil
 	}
+	if privateExecutionHostEngine(engineName) {
+		return fmt.Errorf("llama process lifecycle is private to the capability ExecutionHost")
+	}
 	endpoint := s.effectiveLocalModelEndpoint(model)
 	port, err := parseManagedEndpointPort(engineName, endpoint)
 	if err != nil {

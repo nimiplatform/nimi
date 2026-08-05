@@ -2,8 +2,6 @@ package localservice
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -82,67 +80,6 @@ func writeManagedRuntimeLocalStateForTest(t *testing.T, statePath string, localM
 	}
 }
 
-func TestStartLocalModelInvalidManagedBundleTransitionsUnhealthy(t *testing.T) {
-	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
-
-	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
-		return endpointProbeResult{
-			healthy:   true,
-			responded: true,
-			detail:    "probe mocked healthy",
-			probeURL:  endpoint,
-			models:    []string{"local-import/Qwen3-4B-Q4_K_M"},
-		}
-	})
-	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
-	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
-
-	sourcePath := filepath.Join(t.TempDir(), "Qwen3-4B-Q4_K_M.gguf")
-	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
-		t.Fatalf("write source model: %v", err)
-	}
-
-	imported, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
-		FilePath:     sourcePath,
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		AssetName:    "Qwen3-4B-Q4_K_M",
-	})
-	if err != nil {
-		t.Fatalf("ImportLocalModelFile: %v", err)
-	}
-	model := imported.GetAsset()
-	runtimeManifestPath := runtimeManagedAssetManifestPath(modelsRoot, model.GetLogicalModelId())
-	runtimeEntryPath := filepath.Join(filepath.Dir(runtimeManifestPath), model.GetEntry())
-	if err := os.WriteFile(runtimeEntryPath, fakeGGUFHeaderOnlyForTest(), 0o644); err != nil {
-		t.Fatalf("corrupt runtime entry: %v", err)
-	}
-	svc.mu.Lock()
-	cloned := cloneLocalAsset(svc.assets[model.GetLocalAssetId()])
-	sum := sha256.Sum256(validTestGGUF())
-	cloned.Hashes = map[string]string{
-		model.GetEntry(): "sha256:" + hex.EncodeToString(sum[:]),
-	}
-	svc.assets[model.GetLocalAssetId()] = cloned
-	svc.persistStateLocked()
-	svc.mu.Unlock()
-
-	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
-		LocalAssetId: model.GetLocalAssetId(),
-	})
-	if err != nil {
-		t.Fatalf("StartLocalModel: %v", err)
-	}
-	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		t.Fatalf("status = %s", started.GetAsset().GetStatus())
-	}
-	if !strings.Contains(started.GetAsset().GetHealthDetail(), "managed local model bundle invalid") {
-		t.Fatalf("health detail = %q", started.GetAsset().GetHealthDetail())
-	}
-}
-
 func TestListLocalModelsDoesNotNormalizeManagedUnhealthyRecord(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
@@ -171,8 +108,7 @@ func TestListLocalModelsDoesNotNormalizeManagedUnhealthyRecord(t *testing.T) {
 			probeURL:  endpoint,
 		}
 	}
-	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
 	if err != nil {
@@ -220,8 +156,7 @@ func TestListLocalModelsDoesNotHealManagedAttachedRuntimeMode(t *testing.T) {
 			probeURL:  endpoint,
 		}
 	}
-	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
 	if err != nil {
@@ -354,61 +289,6 @@ func TestManagedSpeechHealingNormalizesSupervisedEndpoint(t *testing.T) {
 	last := svc.audits[len(svc.audits)-1]
 	if got := last.GetDetail(); got != "managed speech runtime binding healed to supervised managed endpoint" {
 		t.Fatalf("audit detail = %q", got)
-	}
-}
-
-func TestEnsureManagedLocalModelBundleReadyAcceptsVerifiedCatalogLogicalModelID(t *testing.T) {
-	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
-
-	svc := newTestService(t)
-	modelsRoot := filepath.Join(homeDir, "selected-nimi-data", "models")
-	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
-	logicalModelID := "gemma-4-e2b-it-local"
-	modelID := "local.chat.gemma-4-e2b-it.q8-0"
-	entry := "gemma-4-E2B-it-Q8_0.gguf"
-	manifestPath := writeManagedGGUFBundleForTest(t, modelsRoot, logicalModelID, modelID, entry)
-	sum := sha256.Sum256(validTestGGUF())
-
-	localModelID := "verified_catalog_model"
-	svc.mu.Lock()
-	svc.assets[localModelID] = &runtimev1.LocalAssetRecord{
-		LocalAssetId:   localModelID,
-		AssetId:        modelID,
-		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		Capabilities:   []string{"text.generate"},
-		Engine:         "llama",
-		Entry:          entry,
-		Source:         &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(manifestPath), Revision: "90f9618340396838ee7ff5b0ba2da27da62953d3"},
-		Hashes:         map[string]string{entry: "sha256:" + hex.EncodeToString(sum[:])},
-		LogicalModelId: logicalModelID,
-		BundleState:    runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY,
-		WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
-	}
-	svc.setModelRuntimeModeLocked(localModelID, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
-	svc.persistStateLocked()
-	svc.mu.Unlock()
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
-
-	entryPath, repaired, err := svc.ensureManagedLocalModelBundleReady(context.Background(), svc.modelByID(localModelID))
-	if err != nil {
-		t.Fatalf("ensure managed local model bundle ready: %v", err)
-	}
-	if repaired {
-		t.Fatal("verified catalog bundle should be adopted without repair")
-	}
-	if !strings.HasSuffix(entryPath, filepath.Join("resolved", logicalModelID, entry)) {
-		t.Fatalf("entry path = %q", entryPath)
-	}
-	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
-		t.Fatalf("sync managed llama assets: %v", err)
-	}
-	raw, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("expected generated managed llama preset: %v", err)
-	}
-	if !strings.Contains(string(raw), "gemma-4-e2b-it-local") {
-		t.Fatalf("generated preset did not include catalog logical model id:\n%s", raw)
 	}
 }
 

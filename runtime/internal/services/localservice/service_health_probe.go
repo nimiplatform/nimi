@@ -494,12 +494,6 @@ func appendWarnings(detail string, warnings []string) string {
 	return base + "; warnings=" + strings.Join(warnings, ",")
 }
 
-func (s *Service) managedLlamaEndpoint() string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return strings.TrimSpace(s.managedLlamaEndpointValue)
-}
-
 func (s *Service) managedMediaEndpoint() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -677,6 +671,9 @@ func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, m
 	}
 	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		return nil
+	}
+	if privateExecutionHostEngine(engine) {
+		return fmt.Errorf("llama process lifecycle is private to the capability ExecutionHost")
 	}
 	port, err := parseManagedEndpointPort(engine, endpoint)
 	if err != nil {

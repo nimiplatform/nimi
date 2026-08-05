@@ -24,6 +24,9 @@ func (s *Service) submitVoiceWorkflowJob(
 	if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
 		return nil, err
 	}
+	if requestExplicitlyDeclaresLocalExecution(req.GetHead()) {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
+	}
 
 	remoteTarget, err := s.prepareScenarioRequestWithExtensions(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
 	if err != nil {
@@ -48,6 +51,9 @@ func (s *Service) submitVoiceWorkflowJob(
 	)
 	if err != nil {
 		return nil, err
+	}
+	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err

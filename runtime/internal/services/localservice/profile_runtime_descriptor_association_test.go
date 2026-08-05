@@ -11,7 +11,7 @@ import (
 
 func TestProfileRuntimeSelectedSourceSatisfiesPortableHFBindingExactly(t *testing.T) {
 	svc := newTestService(t)
-	svc.SetManagedLlamaRegistrationConfig(filepath.Join(t.TempDir(), "models"), "", false)
+	setLocalModelsPathForTest(t, svc, filepath.Join(t.TempDir(), "models"))
 	contentHash := strings.Repeat("a", 64)
 	binding := profileRuntimeDescriptorAssetBinding{
 		BindingID:        "main",

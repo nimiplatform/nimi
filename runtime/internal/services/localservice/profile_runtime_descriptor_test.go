@@ -1013,7 +1013,7 @@ func TestPrepareProfileRuntimeDescriptorForAIConfigReturnsExactPrivateTarget(t *
 func TestPrepareProfileRuntimeDescriptorForAIConfigMaterializesExactTextAndEmbeddingTargets(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	svc.SetManagedLlamaRegistrationConfig(filepath.Join(t.TempDir(), "models"), "", false)
+	setLocalModelsPathForTest(t, svc, filepath.Join(t.TempDir(), "models"))
 	descriptor := profileRuntimeDescriptor{
 		SchemaVersion:       profileRuntimeDescriptorSchemaVersion,
 		DescriptorID:        "descriptor-exact-text",

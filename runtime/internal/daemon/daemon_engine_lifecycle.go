@@ -13,7 +13,7 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 	var cfg engine.EngineConfig
 	switch kind {
 	case engine.EngineLlama:
-		cfg = engine.DefaultLlamaConfig()
+		return fmt.Errorf("llama lifecycle is owned by the capability execution Host")
 	case engine.EngineMedia:
 		cfg = engine.DefaultMediaConfig()
 	case engine.EngineSpeech:
@@ -60,7 +60,7 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 }
 
 func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, source string) {
-	if d.engineMgr == nil || strings.TrimSpace(envKey) == "" {
+	if kind == engine.EngineLlama || d.engineMgr == nil || strings.TrimSpace(envKey) == "" {
 		return
 	}
 	endpoint, err := d.engineMgr.EngineEndpoint(kind)
@@ -100,6 +100,11 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 }
 
 func (d *Daemon) onEngineStateChange(engineName string, status string, detail string) {
+	if strings.EqualFold(strings.TrimSpace(engineName), string(engine.EngineLlama)) {
+		// llama execution health belongs to the exact job and must never become
+		// ambient Runtime readiness or provider routing truth.
+		return
+	}
 	snapshot := d.state.Snapshot()
 	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
 		return

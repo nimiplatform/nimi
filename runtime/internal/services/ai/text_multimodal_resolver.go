@@ -31,10 +31,32 @@ func (r textGenerateResolution) release() {
 func (s *Service) resolveTextGenerateScenario(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
-	modelResolved string,
-	remoteTarget *nimillm.RemoteTarget,
-	selected provider,
+	_ string,
+	_ *nimillm.RemoteTarget,
+	_ provider,
 	spec *runtimev1.TextGenerateScenarioSpec,
+) (textGenerateResolution, error) {
+	return s.resolveTextGenerateScenarioForRoute(
+		ctx,
+		head,
+		spec,
+		false,
+	)
+}
+
+func (s *Service) resolveSelectedLocalTextGenerateScenario(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	spec *runtimev1.TextGenerateScenarioSpec,
+) (textGenerateResolution, error) {
+	return s.resolveTextGenerateScenarioForRoute(ctx, head, spec, true)
+}
+
+func (s *Service) resolveTextGenerateScenarioForRoute(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	localText bool,
 ) (textGenerateResolution, error) {
 	if spec == nil {
 		return textGenerateResolution{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -65,7 +87,7 @@ func (s *Service) resolveTextGenerateScenario(
 				resolvedParts = append(resolvedParts, part)
 				continue
 			}
-			resolvedPart, cleanup, err := s.resolveTextGenerateArtifactPart(ctx, head, modelResolved, remoteTarget, selected, part.GetArtifactRef())
+			resolvedPart, cleanup, err := s.resolveTextGenerateArtifactPart(ctx, head, localText, part.GetArtifactRef())
 			if err != nil {
 				release()
 				return textGenerateResolution{}, err
@@ -140,16 +162,14 @@ func chatMessageHasRenderableContent(message *runtimev1.ChatMessage) bool {
 func (s *Service) resolveTextGenerateArtifactPart(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
-	modelResolved string,
-	remoteTarget *nimillm.RemoteTarget,
-	selected provider,
+	localText bool,
 	ref *runtimev1.ChatContentArtifactRef,
 ) (*runtimev1.ChatContentPart, func(), error) {
 	if ref == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	resolvedPath, mimeType, cleanup, err := s.resolveTextGenerateArtifactPath(ctx, head, modelResolved, remoteTarget, selected, ref)
+	resolvedPath, mimeType, cleanup, err := s.resolveTextGenerateArtifactPath(ctx, head, localText, ref)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -164,7 +184,7 @@ func (s *Service) resolveTextGenerateArtifactPart(
 	switch partType {
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
 		imageURL := resolvedPath
-		if !isLlamaTextGenerateRoute(modelResolved, remoteTarget, selected) {
+		if !localText {
 			inlineURL, err := inlineRemoteTextGenerateImageURL(resolvedPath, mimeType)
 			if err != nil {
 				if cleanup != nil {
@@ -208,9 +228,7 @@ func (s *Service) resolveTextGenerateArtifactPart(
 func (s *Service) resolveTextGenerateArtifactPath(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
-	modelResolved string,
-	remoteTarget *nimillm.RemoteTarget,
-	selected provider,
+	localText bool,
 	ref *runtimev1.ChatContentArtifactRef,
 ) (string, string, func(), error) {
 	if ref == nil {
@@ -262,7 +280,7 @@ func (s *Service) resolveTextGenerateArtifactPath(
 			return path, mimeType, cleanup, nil
 		}
 	}
-	if !isLlamaTextGenerateRoute(modelResolved, remoteTarget, selected) {
+	if !localText {
 		return "", "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if s == nil || s.localImageProfile == nil {
@@ -273,10 +291,6 @@ func (s *Service) resolveTextGenerateArtifactPath(
 		return "", "", nil, err
 	}
 	return path, strings.TrimSpace(ref.GetMimeType()), nil, nil
-}
-
-func isLlamaTextGenerateRoute(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) bool {
-	return inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED) == "llama"
 }
 
 func classifyTextGenerateArtifactMedia(explicitMime string, resolvedMime string, resolvedPath string) (runtimev1.ChatContentPartType, error) {

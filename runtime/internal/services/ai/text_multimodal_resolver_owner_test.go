@@ -34,7 +34,7 @@ func TestResolveTextGenerateArtifactPathResolvesOwnedRuntimeArtifact(t *testing.
 
 	t.Run("owner match resolves bytes", func(t *testing.T) {
 		head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"}
-		path, mimeType, cleanup, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, "llama/qwen3-chat", nil, nil, &runtimev1.ChatContentArtifactRef{
+		path, mimeType, cleanup, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, true, &runtimev1.ChatContentArtifactRef{
 			LocalArtifactId: "artifact_upload",
 			MimeType:        "image/png",
 		})
@@ -53,7 +53,7 @@ func TestResolveTextGenerateArtifactPathResolvesOwnedRuntimeArtifact(t *testing.
 
 	t.Run("cross subject fails closed", func(t *testing.T) {
 		head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "other-user"}
-		_, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, "llama/qwen3-chat", nil, nil, &runtimev1.ChatContentArtifactRef{
+		_, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, true, &runtimev1.ChatContentArtifactRef{
 			LocalArtifactId: "artifact_upload",
 			MimeType:        "image/png",
 		})
@@ -64,7 +64,7 @@ func TestResolveTextGenerateArtifactPathResolvesOwnedRuntimeArtifact(t *testing.
 
 	t.Run("cross app fails closed", func(t *testing.T) {
 		head := &runtimev1.ScenarioRequestHead{AppId: "other-app", SubjectUserId: "user"}
-		_, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, "llama/qwen3-chat", nil, nil, &runtimev1.ChatContentArtifactRef{
+		_, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, true, &runtimev1.ChatContentArtifactRef{
 			LocalArtifactId: "artifact_upload",
 			MimeType:        "image/png",
 		})
@@ -77,7 +77,7 @@ func TestResolveTextGenerateArtifactPathResolvesOwnedRuntimeArtifact(t *testing.
 		head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"}
 		// Non-llama route: ownerless records are not resolved from the runtime
 		// artifact store, so the existing media-option rejection stands.
-		_, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, "openai/gpt-4o", nil, nil, &runtimev1.ChatContentArtifactRef{
+		_, _, _, err := svc.resolveTextGenerateArtifactPath(context.Background(), head, false, &runtimev1.ChatContentArtifactRef{
 			LocalArtifactId: "artifact_ownerless",
 			MimeType:        "image/png",
 		})

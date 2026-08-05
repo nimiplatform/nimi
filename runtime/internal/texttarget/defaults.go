@@ -13,7 +13,7 @@ const (
 	InternalDefaultLocalTextModelAlias = "local/default"
 )
 
-var localQualifiedPrefixes = []string{"local", "llama", "media", "speech", "sidecar"}
+var localQualifiedPrefixes = []string{"local", "media", "speech", "sidecar"}
 
 func ResolveLocalDefaultModel(cfg config.Config) string {
 	if value := strings.TrimSpace(cfg.DefaultLocalTextModel); value != "" {
@@ -137,7 +137,7 @@ func IsHighLevelQualifiedModel(modelID string) bool {
 		return false
 	}
 	lower := strings.ToLower(strings.TrimSpace(prefix))
-	return lower == "local" || lower == "llama" || lower == "media" || lower == "speech" || lower == "sidecar" || LooksLikeQualifiedRemoteModel(normalized)
+	return lower == "local" || lower == "media" || lower == "speech" || lower == "sidecar" || LooksLikeQualifiedRemoteModel(normalized)
 }
 
 func ResolveInternalDefaultAlias(cfg config.Config, rawModelID string) (string, error) {

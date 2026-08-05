@@ -60,34 +60,16 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 		return nil, machineExecutionAccountError("machine execution binding account namespace does not match the authenticated Runtime account")
 	}
 
-	contracts := r.source.SelectedLocalCapabilityContracts()
-	if len(contracts) == 0 {
-		return nil, machineExecutionProjectionError(
-			runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND,
-			"no local capability configuration is selected",
-			nil,
-		)
+	config, err := r.owner.requireSharedLocalAgentAIConfig(ctx, accountNamespace)
+	if err != nil {
+		return nil, err
 	}
-	bindings := make(publicChatExecutionBindings, len(contracts))
-	seen := make(map[string]struct{}, len(contracts))
-	for _, capabilityContract := range contracts {
-		capabilityContract = strings.TrimSpace(capabilityContract)
-		if capabilityContract == "" {
-			return nil, machineExecutionProjectionError(
-				runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID,
-				"machine selection returned an invalid capability contract",
-				nil,
-			)
+	bindings := make(publicChatExecutionBindings, len(config.GetCapabilities()))
+	for _, intent := range config.GetCapabilities() {
+		capabilityContract := strings.TrimSpace(intent.GetCapabilityContract())
+		if capabilityContract == "" || intent.GetLocal() == nil {
+			continue
 		}
-		if _, exists := seen[capabilityContract]; exists {
-			return nil, machineExecutionProjectionError(
-				runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID,
-				"machine selection returned a duplicate capability contract",
-				map[string]string{"capability_contract": capabilityContract},
-			)
-		}
-		seen[capabilityContract] = struct{}{}
-
 		selected, err := r.source.ResolveSelectedLocalExecution(capabilityContract)
 		if err != nil {
 			return nil, err
@@ -105,21 +87,21 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 			modelID = configurationID
 		}
 		bindings[capabilityContract] = publicChatExecutionBinding{
-			BindingAlias: configurationID,
-			ModelID:      modelID,
-			RoutePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			TargetRef: &runtimev1.RuntimeDurableTargetRef{
-				Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-					LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-						Version: "v2",
-						Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-							ProfileBindingId: configurationID,
-						},
-					},
-				},
-			},
-			SelectedParams: clonePublicChatSelectedParams(selected.PortableConfig),
+			BindingAlias:        configurationID,
+			ModelID:             modelID,
+			RoutePolicy:         runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			CapabilityContract:  capabilityContract,
+			RequiredFeatures:    append([]string(nil), intent.GetRequiredFeatures()...),
+			LocalAIConfigIntent: true,
+			SelectedParams:      clonePublicChatSelectedParams(intent.GetDefaults()),
 		}
+	}
+	if len(bindings) == 0 {
+		return nil, machineExecutionProjectionError(
+			runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH,
+			"shared LocalAgent AIConfig has no Local capability intent",
+			nil,
+		)
 	}
 	return bindings, nil
 }

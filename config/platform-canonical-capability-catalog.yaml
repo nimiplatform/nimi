@@ -23,11 +23,6 @@ entries:
   - deferred_4
   - deferred_5
   - deferred_6
-  - deferred_7
-  - deferred_8
-  - deferred_9
-  - deferred_10
-  - deferred_11
 # Canonical capability catalog — spec-resident cross-layer identity authority.
 # See capability-catalog-contract.md (P-CAPCAT-001..004).
 # Codegen output: kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts
@@ -38,9 +33,6 @@ capabilities:
     sourceRef:
       table: provider-capabilities
       capability: text.generate
-    additionalRuntimeTables:
-      - table: local-adapter-routing
-        capability: text.generate
     i18nKeys:
       title: ModelConfig.capability.textGenerate.title
       subtitle: ModelConfig.capability.textGenerate.subtitle
@@ -77,9 +69,6 @@ capabilities:
     sourceRef:
       table: provider-capabilities
       capability: text.embed
-    additionalRuntimeTables:
-      - table: local-adapter-routing
-        capability: text.embed
     i18nKeys:
       title: ModelConfig.capability.textEmbed.title
       subtitle: ModelConfig.capability.textEmbed.subtitle
@@ -252,41 +241,6 @@ capabilities:
 # Runtime-admitted capability tokens that are intentionally not yet canonical.
 # Each deferred entry must carry a reason and a source_rule (P-CAPCAT-003).
 deferred:
-  - capability: chat
-    table: local-adapter-routing
-    reason: >-
-      Legacy alias token emitted by llama_native_adapter route; the canonical
-      identity for conversational text is text.generate (P-CAPCAT-001). The
-      runtime route remains admitted while the adapter migrates off the alias.
-    source_rule: P-CAPCAT-003
-  - capability: embedding
-    table: local-adapter-routing
-    reason: >-
-      Legacy alias token for llama_native_adapter embedding route; canonical
-      identity is text.embed. Runtime route stays admitted until the adapter
-      rename lands.
-    source_rule: P-CAPCAT-003
-  - capability: embed
-    table: local-adapter-routing
-    reason: >-
-      Short-form alias emitted by llama_native_adapter embedding route;
-      canonical identity is text.embed. Kept admitted only as a runtime route
-      token.
-    source_rule: P-CAPCAT-003
-  - capability: image.understand
-    table: local-adapter-routing
-    reason: >-
-      Image-understanding route admitted by llama_native_adapter but not yet
-      admitted as a cross-layer CanonicalCapabilityId; consumers today obtain
-      vision context through text.generate.vision instead.
-    source_rule: P-CAPCAT-003
-  - capability: audio.understand
-    table: local-adapter-routing
-    reason: >-
-      Audio-understanding route admitted by llama_native_adapter but not yet
-      admitted as a cross-layer CanonicalCapabilityId; consumers currently
-      consume transcription via audio.transcribe.
-    source_rule: P-CAPCAT-003
   - capability: i2v
     table: local-adapter-routing
     reason: >-

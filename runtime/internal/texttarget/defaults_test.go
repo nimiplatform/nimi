@@ -27,7 +27,6 @@ func TestEnsureLocalQualifiedModel(t *testing.T) {
 	}{
 		{"qwen2.5", "local/qwen2.5"},
 		{"local/qwen2.5", "local/qwen2.5"},
-		{"llama/phi3", "llama/phi3"},
 		{"media/flux.1-schnell", "media/flux.1-schnell"},
 		{"speech/kokoro-82m", "speech/kokoro-82m"},
 		{"sidecar/musicgen", "sidecar/musicgen"},
@@ -198,7 +197,6 @@ func TestIsHighLevelQualifiedModel(t *testing.T) {
 		want  bool
 	}{
 		{"local/qwen2.5", true},
-		{"llama/phi3", true},
 		{"media/flux.1-schnell", true},
 		{"speech/kokoro-82m", true},
 		{"sidecar/musicgen", true},

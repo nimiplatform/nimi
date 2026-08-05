@@ -164,7 +164,7 @@ func (s *Service) installManagedDownloadedModel(
 			grpcerr.ReasonOptions{Message: "downloaded model entry is incompatible with its declaration"},
 		)
 	}
-	engineConfig, projectionOverride, err := augmentManagedLlamaBundleFacts(
+	engineConfig, projectionOverride, err := augmentManagedGGUFBundleFacts(
 		modelsRoot,
 		modelDir,
 		stagingDir,

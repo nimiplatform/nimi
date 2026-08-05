@@ -3,10 +3,7 @@ package localservice
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,7 +12,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type registrarTestEngineManager struct {
@@ -176,41 +172,6 @@ func (m *registrarTestEngineManager) EngineStatus(_ string) (EngineInfo, error) 
 	}, nil
 }
 
-func TestLocalStartLocalModelRequiresExactManagedLlamaModel(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"data":[{"id":"other-model"}]}`))
-	}))
-	defer func() { server.Close() }()
-
-	svc := newTestServiceWithProbe(t, nil)
-	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
-		assetID:      "local/expected-model",
-		capabilities: []string{"chat"},
-		engine:       "llama",
-		endpoint:     server.URL + "/v1",
-	})
-	if err != nil {
-		t.Fatalf("install local model: %v", err)
-	}
-
-	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
-		LocalAssetId: installed.GetLocalAssetId(),
-	})
-	if err != nil {
-		t.Fatalf("start local model: %v", err)
-	}
-	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-		t.Fatalf("expected UNHEALTHY, got %s", started.GetAsset().GetStatus())
-	}
-	if !strings.Contains(started.GetAsset().GetHealthDetail(), `missing expected model "expected-model"`) {
-		t.Fatalf("expected exact-model mismatch detail, got %q", started.GetAsset().GetHealthDetail())
-	}
-	if !strings.Contains(started.GetAsset().GetHealthDetail(), "available_models=other-model") {
-		t.Fatalf("expected available model listing, got %q", started.GetAsset().GetHealthDetail())
-	}
-}
-
 func TestWaitForManagedEnginePortReleaseWaitsUntilLoopbackPortIsFree(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -244,73 +205,6 @@ func TestWaitForManagedEnginePortReleaseTimesOutWhenPortStaysOccupied(t *testing
 	}
 	if !strings.Contains(err.Error(), "remained unavailable") {
 		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestSyncManagedLlamaAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T) {
-	svc := newTestService(t)
-	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	mgr := &registrarTestEngineManager{statusErr: errors.New("engine llama not started")}
-	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
-	svc.SetEngineManager(mgr)
-
-	writeManagedLlamaManifest(t, modelsPath, "local/test-chat", "./weights/model.gguf", []string{"chat"})
-	first := installManagedLlamaModelForRegistrarTest(t, svc, "local/test-chat", "./weights/model.gguf", []string{"chat"}, "", nil)
-
-	raw, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("read generated config: %v", err)
-	}
-	configText := string(raw)
-	for _, want := range []string{
-		"version = 1",
-		"[test-chat]",
-		"model = " + filepath.Join(modelsPath, "resolved", "nimi", "local-test-chat", "weights", "model.gguf"),
-		"load-on-startup = true",
-	} {
-		if !strings.Contains(configText, want) {
-			t.Fatalf("expected managed llama preset to contain %q, got:\n%s", want, configText)
-		}
-	}
-	if mgr.startCalls != 0 || mgr.stopCalls != 0 {
-		t.Fatalf("expected no restart while engine is not started, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
-	}
-
-	mgr.statusErr = nil
-	writeManagedLlamaManifest(t, modelsPath, "local/second-chat", "./weights/model-2.gguf", []string{"chat"})
-	second := installManagedLlamaModelForRegistrarTest(t, svc, "local/second-chat", "./weights/model-2.gguf", []string{"chat"}, "", nil)
-	if mgr.startCalls != 1 || mgr.stopCalls != 1 {
-		t.Fatalf("expected one controlled restart on config change, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
-	}
-
-	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
-		t.Fatalf("sync llama assets without changes: %v", err)
-	}
-	if mgr.startCalls != 1 || mgr.stopCalls != 1 {
-		t.Fatalf("expected no restart when config fingerprint is unchanged, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
-	}
-
-	if _, err := svc.RemoveLocalAsset(context.Background(), &runtimev1.RemoveLocalAssetRequest{
-		LocalAssetId: second.GetLocalAssetId(),
-	}); err != nil {
-		t.Fatalf("remove managed local model: %v", err)
-	}
-	if mgr.startCalls != 2 || mgr.stopCalls != 2 {
-		t.Fatalf("expected second controlled restart after removal, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
-	}
-
-	remainingRaw, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("read generated config after removal: %v", err)
-	}
-	remainingText := string(remainingRaw)
-	if !strings.Contains(remainingText, "[test-chat]") || strings.Contains(remainingText, "[second-chat]") {
-		t.Fatalf("expected only first model to remain after removal, got:\n%s", remainingText)
-	}
-
-	if first.GetLocalAssetId() == "" {
-		t.Fatalf("expected non-empty first local model id")
 	}
 }
 
@@ -381,100 +275,17 @@ func TestSetManagedSpeechEndpointSyncsSupervisedSpeechProjection(t *testing.T) {
 	}
 }
 
-func TestSyncManagedLlamaAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
-	svc := newTestService(t)
-	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	mgr := &registrarTestEngineManager{}
-	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
-	svc.SetEngineManager(mgr)
-
-	if _, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
-		assetID:      "local/external-only",
-		capabilities: []string{"chat"},
-		engine:       "llama",
-		endpoint:     "https://example.com/v1",
-	}); err != nil {
-		t.Fatalf("install external llama model: %v", err)
-	}
-
-	if _, err := os.Stat(configPath); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("expected no generated config for external endpoint model, stat err=%v", err)
-	}
-	if mgr.startCalls != 0 || mgr.stopCalls != 0 {
-		t.Fatalf("expected no restart for external endpoint model, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
-	}
-}
-
-func TestBuildManagedLlamaRegistrationsRejectsManagedNameConflicts(t *testing.T) {
-	svc := newTestService(t)
-	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
-
-	writeManagedLlamaManifest(t, modelsPath, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"})
-	writeManagedLlamaManifest(t, modelsPath, "llama/conflict-model", "./weights/model-b.gguf", []string{"chat"})
-	firstManifestPath := filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID("local/conflict-model"), "asset.manifest.json")
-	secondManifestPath := filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID("llama/conflict-model"), "asset.manifest.json")
-	first := &runtimev1.LocalAssetRecord{
-		LocalAssetId:   "local-conflict-a",
-		AssetId:        "local/conflict-model",
-		LogicalModelId: "nimi/" + slugifyLocalModelID("local/conflict-model"),
-		Capabilities:   []string{"chat"},
-		Engine:         "llama",
-		Entry:          "./weights/model-a.gguf",
-		License:        "apache-2.0",
-		Source:         &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(firstManifestPath), Revision: "local"},
-		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-		InstalledAt:    nowISO(),
-		UpdatedAt:      nowISO(),
-	}
-	second := &runtimev1.LocalAssetRecord{
-		LocalAssetId:   "local-conflict-b",
-		AssetId:        "llama/conflict-model",
-		LogicalModelId: "nimi/" + slugifyLocalModelID("llama/conflict-model"),
-		Capabilities:   []string{"chat"},
-		Engine:         "llama",
-		Entry:          "./weights/model-b.gguf",
-		License:        "apache-2.0",
-		Source:         &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(secondManifestPath), Revision: "local"},
-		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-		InstalledAt:    nowISO(),
-		UpdatedAt:      nowISO(),
-	}
-	svc.assets[first.GetLocalAssetId()] = first
-	svc.assets[second.GetLocalAssetId()] = second
-	svc.setModelRuntimeModeLocked(first.GetLocalAssetId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
-	svc.setModelRuntimeModeLocked(second.GetLocalAssetId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
-
-	registrations, rendered, err := svc.buildManagedLlamaRegistrations()
-	if err != nil {
-		t.Fatalf("build llama registrations: %v", err)
-	}
-	if !strings.Contains(registrations[first.GetLocalAssetId()].Problem, "name conflict") {
-		t.Fatalf("expected first registration conflict problem, got %+v", registrations[first.GetLocalAssetId()])
-	}
-	if !strings.Contains(registrations[second.GetLocalAssetId()].Problem, "name conflict") {
-		t.Fatalf("expected second registration conflict problem, got %+v", registrations[second.GetLocalAssetId()])
-	}
-
-	if strings.TrimSpace(string(rendered)) != "" {
-		t.Fatalf("expected no rendered config entries after name conflict, got %q", string(rendered))
-	}
-}
-
 func TestManagedImageBackendPlatformSupport(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	setNvidiaGPUProbeForTest(t, true)
 	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
+	setLocalModelsPathForTest(t, svc, modelsPath)
 	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
 	svc.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
 
 	modelID := "local/image-model"
-	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
+	writeManagedGGUFManifestForRegistrarTest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
 	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      modelID,
 		capabilities: []string{"image"},
@@ -489,162 +300,12 @@ func TestManagedImageBackendPlatformSupport(t *testing.T) {
 	svc.assets[installed.GetLocalAssetId()] = stored
 	svc.mu.Unlock()
 
-	registration := svc.managedLlamaRegistrationForModel(installed)
-	if registration.Managed {
-		t.Fatalf("image assets must not register with llama control plane anymore: %+v", registration)
+	if isLlamaLocalAsset(installed) {
+		t.Fatalf("managed image asset entered the private llama execution plane: %+v", installed)
 	}
 }
 
-func TestBuildManagedLlamaRegistrationsExcludesManagedMediaImageAssets(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	setNvidiaGPUProbeForTest(t, true)
-	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
-	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
-
-	modelID := "local/image-media-model"
-	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
-	engineConfig, err := structpb.NewStruct(map[string]any{
-		"backend": "stablediffusion-ggml",
-	})
-	if err != nil {
-		t.Fatalf("build engine config: %v", err)
-	}
-	record := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      modelID,
-		capabilities: []string{"image"},
-		engine:       "media",
-		entry:        "./weights/image-model.gguf",
-		repo:         "file://" + filepath.ToSlash(filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID(modelID), "asset.manifest.json")),
-		revision:     "local",
-		engineConfig: engineConfig,
-	})
-	svc.mu.Lock()
-	stored := cloneLocalAsset(svc.assets[record.GetLocalAssetId()])
-	stored.LogicalModelId = "nimi/" + slugifyLocalModelID(modelID)
-	stored.PreferredEngine = "llama"
-	svc.assets[record.GetLocalAssetId()] = stored
-	svc.mu.Unlock()
-
-	registrations, rendered, err := svc.buildManagedLlamaRegistrations()
-	if err != nil {
-		t.Fatalf("build managed llama registrations: %v", err)
-	}
-	if _, ok := registrations[record.GetLocalAssetId()]; ok {
-		t.Fatalf("image asset must not appear in managed llama registrations: %+v", registrations[record.GetLocalAssetId()])
-	}
-	if len(rendered) != 0 {
-		t.Fatalf("image assets should not be rendered into static llama config")
-	}
-}
-
-func TestManagedLlamaModelProbeSucceededForDynamicProfileRequiresHealthyModelEvidence(t *testing.T) {
-	registration := managedLlamaRegistration{
-		Backend:        "stablediffusion-ggml",
-		DynamicProfile: true,
-	}
-	probe := endpointProbeResult{
-		healthy:   false,
-		responded: true,
-		detail:    "probe response missing valid models",
-	}
-	if managedLlamaModelProbeSucceeded(probe, registration) {
-		t.Fatalf("dynamic profile must not be considered healthy from endpoint response alone")
-	}
-	probe = endpointProbeResult{
-		healthy:   true,
-		responded: true,
-		models:    []string{"stablediffusion-ggml"},
-	}
-	if !managedLlamaModelProbeSucceeded(probe, registration) {
-		t.Fatalf("dynamic profile should be healthy with model evidence")
-	}
-}
-
-func TestManagedLlamaRegistrationForManagedImageStaysDetachedFromLlama(t *testing.T) {
-	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	setNvidiaGPUProbeForTest(t, true)
-	modelsPath := filepath.Join(t.TempDir(), "models")
-	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
-	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
-	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
-
-	modelID := "local/image-model"
-	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
-	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      modelID,
-		capabilities: []string{"image"},
-		engine:       "media",
-		entry:        "./weights/image-model.gguf",
-		repo:         "file://" + filepath.ToSlash(filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID(modelID), "asset.manifest.json")),
-		revision:     "local",
-	})
-	svc.mu.Lock()
-	stored := cloneLocalAsset(svc.assets[installed.GetLocalAssetId()])
-	stored.LogicalModelId = "nimi/" + slugifyLocalModelID(modelID)
-	svc.assets[installed.GetLocalAssetId()] = stored
-	svc.mu.Unlock()
-
-	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
-		t.Fatalf("sync managed llama assets: %v", err)
-	}
-	stale := svc.managedLlamaRegistrations[installed.GetLocalAssetId()]
-	if stale.Managed {
-		t.Fatalf("managed image should not be cached as llama registration, got %+v", stale)
-	}
-
-	svc.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
-
-	registration := svc.managedLlamaRegistrationForModel(installed)
-	if registration.Managed {
-		t.Fatalf("managed image should remain detached from llama after backend recovery, got %+v", registration)
-	}
-}
-
-func installManagedLlamaModelForRegistrarTest(t *testing.T, svc *Service, modelID string, entry string, capabilities []string, endpoint string, engineConfig *structpb.Struct) *runtimev1.LocalAssetRecord {
-	t.Helper()
-	req := installLocalAssetParams{
-		assetID:      modelID,
-		capabilities: capabilities,
-		engine:       "llama",
-		entry:        entry,
-		endpoint:     endpoint,
-		engineConfig: engineConfig,
-	}
-	if strings.TrimSpace(endpoint) == "" {
-		record := mustInstallSupervisedLocalModel(t, svc, req)
-		manifestPath := filepath.Join(modelsPathForRegistrarTest(svc), "resolved", "nimi", slugifyLocalModelID(modelID), "asset.manifest.json")
-		svc.mu.Lock()
-		stored := cloneLocalAsset(svc.assets[record.GetLocalAssetId()])
-		stored.LogicalModelId = "nimi/" + slugifyLocalModelID(modelID)
-		if stored.Source == nil {
-			stored.Source = &runtimev1.LocalAssetSource{}
-		}
-		stored.Source.Repo = "file://" + filepath.ToSlash(manifestPath)
-		if strings.TrimSpace(stored.Source.GetRevision()) == "" {
-			stored.Source.Revision = "local"
-		}
-		svc.assets[record.GetLocalAssetId()] = stored
-		svc.mu.Unlock()
-		if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
-			t.Fatalf("sync managed llama assets after manifest rewrite: %v", err)
-		}
-		return cloneLocalAsset(stored)
-	}
-	return mustInstallAttachedLocalModel(t, svc, req)
-}
-
-func modelsPathForRegistrarTest(svc *Service) string {
-	svc.mu.RLock()
-	defer svc.mu.RUnlock()
-	return resolveLocalModelsPath(svc.localModelsPath)
-}
-
-func writeManagedLlamaManifest(t *testing.T, modelsPath string, modelID string, entry string, capabilities []string) {
+func writeManagedGGUFManifestForRegistrarTest(t *testing.T, modelsPath string, modelID string, entry string, capabilities []string) {
 	t.Helper()
 	modelSlug := slugifyLocalModelID(modelID)
 	cleanEntry := strings.TrimPrefix(filepath.Clean(strings.TrimSpace(entry)), "."+string(filepath.Separator))

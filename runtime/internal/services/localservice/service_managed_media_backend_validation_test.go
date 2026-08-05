@@ -49,7 +49,7 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
@@ -149,7 +149,7 @@ func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntriesOrRuntime
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
@@ -187,7 +187,7 @@ func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testi
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
@@ -241,7 +241,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
 	if err != nil {
@@ -291,7 +291,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 func TestResolveProfileSlotsPreservesMissingSlotPathCauseWithoutLeakingPath(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "private-model-root")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	slotAsset := &runtimev1.LocalAssetRecord{
 		LocalAssetId: "artifact_" + ulid.Make().String(),
@@ -332,7 +332,7 @@ func TestResolveManagedMediaImageProfileRejectsLocalImportSlotSourceRepo(t *test
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
@@ -403,7 +403,7 @@ func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *test
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
 	if err != nil {
@@ -444,7 +444,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
 	if err != nil {
@@ -538,7 +538,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux1VAEForZImage(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
 	if err != nil {
@@ -624,7 +624,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux1VAEForZImage(t *testing.T) {
 func TestResolveManagedAssetPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	outsideDir := filepath.Join(t.TempDir(), "outside-artifact")
 	if err := os.MkdirAll(outsideDir, 0o755); err != nil {

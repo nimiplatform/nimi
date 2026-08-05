@@ -64,6 +64,9 @@ type publicChatExecutionBinding struct {
 	ConnectorID         string
 	TargetRef           *runtimev1.RuntimeDurableTargetRef
 	SelectedParams      *structpb.Struct
+	CapabilityContract  string
+	RequiredFeatures    []string
+	LocalAIConfigIntent bool
 	ContextWindowTokens uint64
 	CatalogRevision     string
 	ModelRevision       string

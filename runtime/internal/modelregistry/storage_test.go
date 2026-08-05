@@ -241,7 +241,7 @@ func TestInferNativeProjectionForVoiceWorkflowModel(t *testing.T) {
 func TestInferNativeProjectionForLlamaModel(t *testing.T) {
 	withIsolatedResolvedBundles(t)
 	projection, err := InferNativeProjection(
-		"llama/qwen3-chat",
+		"qwen3-chat",
 		[]string{"text.generate"},
 		[]string{"model.gguf", "tokenizer.json"},
 		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,

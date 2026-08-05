@@ -1,7 +1,6 @@
 package daemon
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -139,23 +138,4 @@ func appendShutdownAudit(store *auditlog.Store, summary grpcserver.ShutdownSumma
 		CallerId:   "runtime-daemon",
 		SurfaceId:  "daemon",
 	})
-}
-
-func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) {
-	trimmedDetail := strings.TrimSpace(detail)
-	if trimmedDetail == "" {
-		trimmedDetail = "managed llama bootstrap failed"
-	}
-	reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", engine.EngineLlama, trimmedDetail)
-
-	d.logger.Error("managed llama bootstrap failed", "detail", trimmedDetail)
-	d.setProviderFailureHint("local", reason)
-	if d.aiHealth != nil {
-		previous := d.aiHealth.SnapshotOf("local")
-		if err := d.aiHealth.Mark("local", false, reason); err == nil {
-			appendProviderHealthAudit(d.auditStore, "local", previous, d.aiHealth.SnapshotOf("local"))
-		}
-	}
-	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLlama), "local", trimmedDetail, nil)
-	d.setDegradedStatus(reason)
 }

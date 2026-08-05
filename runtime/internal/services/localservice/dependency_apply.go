@@ -327,7 +327,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 			continue
 		}
 		health, err := s.CheckLocalAssetHealth(ctx, &runtimev1.CheckLocalAssetHealthRequest{LocalAssetId: modelID})
-		if err != nil || len(health.GetAssets()) == 0 || health.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		if err != nil || !localAssetHealthIsActive(health, modelID) {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
 				Stage:      applyStageHealth,
 				Ok:         false,
@@ -341,7 +341,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 	}
 	for _, serviceID := range installedServiceIDs {
 		health, err := s.CheckLocalServiceHealth(ctx, &runtimev1.CheckLocalServiceHealthRequest{ServiceId: serviceID})
-		if err != nil || len(health.GetServices()) == 0 || health.GetServices()[0].GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE {
+		if err != nil || !localServiceHealthIsActive(health, serviceID) {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
 				Stage:      applyStageHealth,
 				Ok:         false,
@@ -379,6 +379,24 @@ func unresolvedRequiredDependencyApplyReason(plan *runtimev1.LocalExecutionPlan)
 	return ""
 }
 
+func localAssetHealthIsActive(response *runtimev1.CheckLocalAssetHealthResponse, localAssetID string) bool {
+	for _, asset := range response.GetAssets() {
+		if asset.GetLocalAssetId() == localAssetID {
+			return asset.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+		}
+	}
+	return false
+}
+
+func localServiceHealthIsActive(response *runtimev1.CheckLocalServiceHealthResponse, serviceID string) bool {
+	for _, service := range response.GetServices() {
+		if service.GetServiceId() == serviceID {
+			return service.GetStatus() == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE
+		}
+	}
+	return false
+}
+
 func (s *Service) runApplyPreflight(ctx context.Context, dep *runtimev1.LocalExecutionEntryDescriptor, profile *runtimev1.LocalDeviceProfile) *runtimev1.LocalPreflightDecision {
 	if dep == nil {
 		return &runtimev1.LocalPreflightDecision{
@@ -387,6 +405,16 @@ func (s *Service) runApplyPreflight(ctx context.Context, dep *runtimev1.LocalExe
 			Ok:         false,
 			ReasonCode: "LOCAL_DEPENDENCY_OPTION_MISSING",
 			Detail:     "dependency option missing",
+		}
+	}
+
+	if privateExecutionHostEngine(dep.GetEngine()) &&
+		(dep.GetKind() == runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL ||
+			dep.GetKind() == runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE) {
+		return &runtimev1.LocalPreflightDecision{
+			EntryId: dep.GetEntryId(), Target: preflightTargetForDependency(dep), Check: "capability-configuration",
+			Ok: false, ReasonCode: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String(),
+			Detail: "llama execution requires AIConfig Local intent plus machine selection; Profile Apply cannot install, start, or warm a target",
 		}
 	}
 

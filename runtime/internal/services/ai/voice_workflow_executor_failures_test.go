@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -282,68 +282,6 @@ func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
 		t.Fatalf("expected AI_VOICE_WORKFLOW_UNSUPPORTED for local, got reason=%v ok=%v", reason, ok)
-	}
-}
-
-func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{AllowLoopbackEndpoint: true})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = io.WriteString(w, `{"ok":true}`)
-	}))
-	defer func() { server.Close() }()
-	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
-	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
-		Assets: []*runtimev1.LocalAssetRecord{{
-			LocalAssetId: "local-qwen3-tts-base-001",
-			AssetId:      "speech/qwen3tts-base",
-			Engine:       "speech",
-			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-			Endpoint:     server.URL + "/v1",
-		}},
-	}}}
-
-	resp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.desktop",
-			SubjectUserId: "user-001",
-			ModelId:       "speech/qwen3tts-base",
-			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "speech/qwen3tts-base", "voice_workflow.voice_clone", svc.localModel.(*fakeLocalModelLister).responses[0].Assets[0]),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-		},
-		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceClone{
-				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: "speech/qwen3tts-base",
-					Input: &runtimev1.VoiceV2VInput{
-						ReferenceAudioBytes: []byte("voice-audio"),
-						ReferenceAudioMime:  "audio/wav",
-						Text:                "clone me",
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("SubmitScenarioJob(local qwen3): %v", err)
-	}
-	if resp.GetAsset() == nil {
-		t.Fatalf("expected workflow asset")
-	}
-	metadata := resp.GetAsset().GetMetadata().GetFields()
-	if got := metadata["workflow_family"].GetStringValue(); got != "qwen3_tts" {
-		t.Fatalf("workflow_family=%q, want qwen3_tts", got)
-	}
-	if got := metadata["voice_handle_policy_id"].GetStringValue(); got != "local_runtime_session_ephemeral_default" {
-		t.Fatalf("voice_handle_policy_id=%q", got)
-	}
-	if got := metadata["voice_handle_policy_persistence"].GetStringValue(); got != "session_ephemeral" {
-		t.Fatalf("voice_handle_policy_persistence=%q", got)
-	}
-	if got := metadata["voice_handle_policy_delete_semantics"].GetStringValue(); got != "runtime_authoritative_delete" {
-		t.Fatalf("voice_handle_policy_delete_semantics=%q", got)
 	}
 }
 

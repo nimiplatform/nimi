@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -32,30 +33,28 @@ func (s stubPublicChatTurnExecutor) StreamChatTurn(
 
 type targetRefCapturePublicChatScenarioStreamer struct {
 	request *runtimev1.StreamScenarioRequest
+	ctx     context.Context
 }
 
 func (s *targetRefCapturePublicChatScenarioStreamer) StreamScenario(
 	req *runtimev1.StreamScenarioRequest,
-	_ grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent],
+	stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent],
 ) error {
 	s.request = req
+	s.ctx = stream.Context()
 	return nil
 }
 
-func TestAIBackedPublicChatTurnExecutorPassesDurableTargetRef(t *testing.T) {
+func TestAIBackedPublicChatTurnExecutorPassesCloudDurableTargetRef(t *testing.T) {
 	t.Parallel()
 	streamer := &targetRefCapturePublicChatScenarioStreamer{}
 	executor := NewAIBackedPublicChatTurnExecutor(streamer)
-	targetRef := &runtimev1.RuntimeDurableTargetRef{
-		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
-			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-				Version: "v2",
-				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
-					ProfileBindingId: "local-runtime:fixture-chat",
-				},
-			},
+	targetRef := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
+		Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+			Version: "nimi.runtime.target.cloud/v1", ConnectorId: "connector-1",
+			RemoteModelCatalogId: "catalog-1", ProviderModelId: "provider-model-1", Provider: "openai",
 		},
-	}
+	}}
 	err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
 		AppID:         "nimi.zhiyu",
 		SubjectUserID: "user-1",
@@ -64,17 +63,51 @@ func TestAIBackedPublicChatTurnExecutorPassesDurableTargetRef(t *testing.T) {
 			Content: "hello",
 		}},
 		Binding: publicChatExecutionBinding{
-			ModelID:     "runtime-agent-live-e2e",
-			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelID:     "provider-model-1",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			TargetRef:   targetRef,
 		},
 	}, nil)
 	if err != nil {
 		t.Fatalf("StreamChatTurn: %v", err)
 	}
-	got := streamer.request.GetHead().GetTargetRef().GetLocalRuntime().GetProfileBindingId()
-	if got != "local-runtime:fixture-chat" {
-		t.Fatalf("expected scenario head target_ref profile binding id, got %q", got)
+	got := streamer.request.GetHead().GetTargetRef().GetCloud().GetProviderModelId()
+	if got != "provider-model-1" {
+		t.Fatalf("expected Cloud durable target provider model id, got %q", got)
+	}
+}
+
+func TestAIBackedPublicChatTurnExecutorCarriesLocalIntentWithoutDurableTarget(t *testing.T) {
+	streamer := &targetRefCapturePublicChatScenarioStreamer{}
+	executor := NewAIBackedPublicChatTurnExecutor(streamer)
+	defaults, err := structpb.NewStruct(map[string]any{"temperature": 0.4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
+		AppID:         "nimi.zhiyu",
+		SubjectUserID: "account-1",
+		Messages:      []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		Binding: publicChatExecutionBinding{
+			ModelID:             "display-only",
+			RoutePolicy:         runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef:           publicChatTestLocalRuntimeTargetRef("must-not-cross"),
+			CapabilityContract:  "text.generate",
+			RequiredFeatures:    []string{"input.image"},
+			SelectedParams:      defaults,
+			LocalAIConfigIntent: true,
+		},
+	}, nil); err != nil {
+		t.Fatalf("StreamChatTurn: %v", err)
+	}
+	if streamer.request.GetHead().GetTargetRef() != nil {
+		t.Fatalf("LocalAgent intent leaked durable target: %+v", streamer.request.GetHead().GetTargetRef())
+	}
+	intent, ok := localexecution.ConsumerIntentFromContext(streamer.ctx)
+	if !ok || !intent.Local || intent.CapabilityContract != "text.generate" ||
+		len(intent.RequiredFeatures) != 1 || intent.RequiredFeatures[0] != "input.image" ||
+		intent.Defaults.GetFields()["temperature"].GetNumberValue() != 0.4 {
+		t.Fatalf("consumer intent = %+v, ok=%v", intent, ok)
 	}
 }
 

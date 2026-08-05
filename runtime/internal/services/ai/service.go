@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -17,8 +16,10 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
@@ -26,7 +27,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
-	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 )
 
 const (
@@ -67,6 +67,9 @@ type Service struct {
 	localModel                             localModelLister
 	localTarget                            durableLocalTargetResolver
 	localImageProfile                      localImageProfileResolver
+	localExecution                         localexecution.Resolver
+	localTextHost                          localexecution.TextExecutionHost
+	capabilityDrivers                      *capabilitydriver.Registry
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
@@ -188,6 +191,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		realtimeSessions:                       realtimeSessions,
 		voiceAssets:                            newVoiceAssetStore(),
 		aiConfigStore:                          aiconfig.NewMemoryStore(),
+		capabilityDrivers:                      capabilitydriver.NewProductionRegistry(),
 		connStore:                              connStore,
 		allowLoopback:                          cfg.AllowLoopbackEndpoint,
 		streamFirstPacketTimeout:               defaultStreamFirstTimeout,
@@ -212,6 +216,23 @@ func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 	s.localTarget = nil
 	if resolver, ok := localSvc.(durableLocalTargetResolver); ok {
 		s.localTarget = resolver
+	}
+}
+
+// SetLocalExecutionResolver wires the machine Local Capability Configuration
+// owner into job-time composition. It is independent from legacy LocalAsset
+// listing and lifecycle APIs.
+func (s *Service) SetLocalExecutionResolver(resolver localexecution.Resolver) {
+	if s != nil {
+		s.localExecution = resolver
+	}
+}
+
+// SetLocalTextExecutionHost wires the native substrate executor. The Host does
+// not participate in route or selection decisions.
+func (s *Service) SetLocalTextExecutionHost(host localexecution.TextExecutionHost) {
+	if s != nil {
+		s.localTextHost = host
 	}
 }
 
@@ -282,18 +303,22 @@ func (s *Service) ResolvePublicChatTextBinding(
 	if s == nil || s.selector == nil {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	if routeHint == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL &&
-		strings.EqualFold(strings.TrimSpace(modelID), texttarget.InternalDefaultLocalTextModelAlias) &&
-		strings.TrimSpace(s.config.DefaultLocalTextModel) == "" {
-		if resolver, ok := s.localModel.(managedLlamaModelResolver); ok && resolver != nil {
-			if resolved, found := resolver.ResolveManagedLlamaModelByCapabilities("", "text.generate"); found {
-				return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, strings.TrimSpace(resolved), nil
-			}
+	if routeHint == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		if s.localExecution == nil {
+			return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
 		}
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-		)
+		selected, err := s.localExecution.ResolveSelectedLocalExecution(capabilitydriver.LlamaCapabilityContract)
+		if err != nil {
+			return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", err
+		}
+		if !validSelectedTextExecution(selected) {
+			return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
+		}
+		resolved := strings.TrimSpace(selected.DisplayName)
+		if resolved == "" {
+			resolved = strings.TrimSpace(selected.ConfigurationID)
+		}
+		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, resolved, nil
 	}
 	routeDecision, modelResolved, err := s.selector.resolveCommittedBindingRouteModel(routeHint, modelID)
 	if err != nil {
@@ -311,11 +336,9 @@ type publicChatTextContextMetadataResolution struct {
 	release        func()
 }
 
-// ResolvePublicChatTextContextMetadata resolves the same admitted metadata used
-// by Runtime Agent and releases any local worker lease before returning. Callers
-// that compose and execute a turn must use ResolvePublicChatTextContextMetadataLease
-// so the selected single-resident llama worker cannot change between those
-// phases.
+// ResolvePublicChatTextContextMetadata resolves the context metadata used by
+// Runtime Agent. Local metadata is derived from the selected configuration's
+// portable Driver config and exact content identities, never a resident worker.
 func (s *Service) ResolvePublicChatTextContextMetadata(
 	ctx context.Context,
 	route runtimev1.RoutePolicy,
@@ -332,10 +355,9 @@ func (s *Service) ResolvePublicChatTextContextMetadata(
 	return resolved.contextWindow, resolved.catalogVersion, resolved.modelRevision, resolved.provider, resolved.targetRef, nil
 }
 
-// ResolvePublicChatTextContextMetadataLease returns admitted context metadata
-// plus a once-safe release function. For a local route, the lease is acquired
-// before reading llama-server /props and must remain held through context
-// composition and provider execution.
+// ResolvePublicChatTextContextMetadataLease preserves the existing ownership
+// shape for Cloud metadata. Local selection is an immutable job-time snapshot;
+// it has no worker lease or durable target.
 func (s *Service) ResolvePublicChatTextContextMetadataLease(
 	ctx context.Context,
 	route runtimev1.RoutePolicy,
@@ -355,62 +377,19 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 	modelID string,
 	targetRef *runtimev1.RuntimeDurableTargetRef,
 ) (publicChatTextContextMetadataResolution, error) {
+	if route == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		if targetRef != nil && targetRef.GetTarget() != nil {
+			return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
+		}
+		return s.resolveSelectedLocalTextContextMetadata(ctx)
+	}
 	if s == nil || s.speechCatalog == nil {
 		return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
 	}
 	provider := ""
 	resolvedModelID := strings.TrimSpace(modelID)
 	resolvedTargetRef := cloneRuntimeDurableTargetRef(targetRef)
-	resolvedLocalAssetID := ""
 	switch route {
-	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
-		provider = "local"
-		localTarget := targetRef.GetLocalRuntime()
-		if localTarget == nil || s.localTarget == nil {
-			return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(
-				codes.FailedPrecondition,
-				runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			)
-		}
-		binding, selected, resolveErr := s.localTarget.ResolveDurableLocalTarget(
-			ctx,
-			localTarget,
-			"text.generate",
-		)
-		if resolveErr != nil {
-			return publicChatTextContextMetadataResolution{}, resolveErr
-		}
-		if binding == nil ||
-			strings.TrimSpace(binding.GetResolvedModelId()) != resolvedModelID {
-			return publicChatTextContextMetadataResolution{}, grpcerr.WithReasonCode(
-				codes.FailedPrecondition,
-				runtimev1.ReasonCode_AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH,
-			)
-		}
-		plan, resolveErr := s.prepareDurableLocalModelExecutionPlan(
-			ctx,
-			resolvedModelID,
-			binding,
-			selected,
-			runtimev1.Modal_MODAL_TEXT,
-			nil,
-		)
-		if resolveErr != nil {
-			return publicChatTextContextMetadataResolution{}, resolveErr
-		}
-		if plan != nil && plan.selected != nil {
-			resolvedLocalAssetID = strings.TrimSpace(plan.selected.GetLocalAssetId())
-			if logicalModelID := strings.TrimSpace(plan.selected.GetLogicalModelId()); logicalModelID != "" {
-				resolvedModelID = logicalModelID
-			} else if assetID := strings.TrimSpace(plan.selected.GetAssetId()); assetID != "" {
-				resolvedModelID = assetID
-			}
-			if catalogIdentityResolver, ok := s.localModel.(localCatalogModelIdentityResolver); ok {
-				if catalogModelID, found := catalogIdentityResolver.ResolveCatalogModelIDForLocalAsset(plan.selected.GetLocalAssetId()); found {
-					resolvedModelID = catalogModelID
-				}
-			}
-		}
 	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
 		var cloud *runtimev1.RuntimeDurableCloudTargetRef
 		if targetRef != nil {
@@ -431,24 +410,8 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 			Message: "runtime target reference is invalid",
 		})
 	}
-	var release func()
-	if provider == "local" && resolvedLocalAssetID != "" {
-		if err := s.localModel.AcquireLocalAssetLease(ctx, resolvedLocalAssetID, "runtime_agent_text_binding"); err != nil {
-			return publicChatTextContextMetadataResolution{}, err
-		}
-		var releaseOnce sync.Once
-		release = func() {
-			releaseOnce.Do(func() {
-				if err := s.localModel.ReleaseLocalAssetLease(context.Background(), resolvedLocalAssetID, "runtime_agent_text_binding_cleanup"); err != nil && s.logger != nil {
-					s.logger.Warn("release Runtime Agent text binding lease failed", "local_asset_id", resolvedLocalAssetID, "error", err)
-				}
-			})
-		}
-	}
+	release := func() {}
 	releaseOnFailure := func(err error) (publicChatTextContextMetadataResolution, error) {
-		if release != nil {
-			release()
-		}
 		return publicChatTextContextMetadataResolution{}, err
 	}
 	metadata, catalogErr := s.speechCatalog.ResolveTextContextMetadataForSubject(
@@ -456,35 +419,6 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 		provider,
 		resolvedModelID,
 	)
-	if provider == "local" && resolvedLocalAssetID != "" {
-		localMetadataResolver, ok := s.localModel.(localTextContextMetadataResolver)
-		if !ok {
-			return releaseOnFailure(grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-				Message:    "runtime local text execution capacity resolver is unavailable",
-				ActionHint: "inspect_local_runtime_model_health",
-			}))
-		}
-		localContextWindow, localModelRevision, found := localMetadataResolver.ResolveLocalTextContextMetadata(ctx, resolvedLocalAssetID)
-		if !found {
-			return releaseOnFailure(grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
-				Message:    "runtime local text execution capacity could not be proven",
-				ActionHint: "inspect_local_runtime_model_health",
-			}))
-		}
-		if catalogErr != nil {
-			return publicChatTextContextMetadataResolution{
-				contextWindow:  localContextWindow,
-				catalogVersion: "runtime-local-asset/v1",
-				modelRevision:  localModelRevision,
-				provider:       provider,
-				targetRef:      resolvedTargetRef,
-				release:        release,
-			}, nil
-		}
-		if localContextWindow < metadata.ContextWindowTokens {
-			metadata.ContextWindowTokens = localContextWindow
-		}
-	}
 	if catalogErr != nil {
 		return releaseOnFailure(grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, catalogErr, grpcerr.ReasonOptions{
 			ActionHint: "add_model_context_window_to_runtime_catalog",
@@ -501,10 +435,11 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 	}, nil
 }
 
-// SetLocalProviderEndpoint hot-swaps the in-process local provider backend
-// endpoint after the daemon bootstraps a managed engine.
+// SetLocalProviderEndpoint hot-swaps non-text local media backends after the
+// daemon bootstraps a managed engine. llama text execution is Host-owned and
+// never projected into the ambient provider router.
 func (s *Service) SetLocalProviderEndpoint(providerID string, endpoint string, apiKey string) {
-	if s == nil || s.selector == nil {
+	if s == nil || s.selector == nil || strings.EqualFold(strings.TrimSpace(providerID), "llama") {
 		return
 	}
 	local, ok := s.selector.local.(*localProvider)

@@ -29,6 +29,13 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if len(spec.GetInput()) == 0 && strings.TrimSpace(spec.GetSystemPrompt()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	localCtx, localText, err := s.captureLocalTextRoutingIntent(stream.Context(), req.GetHead())
+	if err != nil {
+		return err
+	}
+	if localText {
+		return streamLocalTextGenerateScenario(localCtx, s, req, stream)
+	}
 
 	prepareStartedAt := time.Now()
 	remoteTarget, localPlan, err := s.prepareScenarioRequestWithLocalPlan(stream.Context(), req.GetHead(), req.GetScenarioType())
@@ -135,6 +142,9 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	)
 	if err != nil {
 		return err
+	}
+	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
 	}
 	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if err := s.validateScenarioCapability(stream.Context(), req, modelResolved, remoteTarget, selectedProvider); err != nil {

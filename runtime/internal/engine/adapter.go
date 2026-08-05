@@ -49,7 +49,6 @@ func (a *ServiceAdapter) EnsureEngine(ctx context.Context, engineName string, ve
 	if err != nil {
 		return err
 	}
-	cfg = a.mgr.applyLlamaPaths(cfg)
 	_, err = a.mgr.EnsureEngine(ctx, cfg)
 	return err
 }
@@ -111,7 +110,6 @@ func (a *ServiceAdapter) StartEngine(ctx context.Context, engineName string, por
 }
 
 func (a *ServiceAdapter) StartEngineWithConfig(ctx context.Context, cfg EngineConfig) error {
-	cfg = a.mgr.applyLlamaPaths(cfg)
 	if cfg.Kind == EngineLlama {
 		return a.mgr.StartEngine(ctx, cfg)
 	}

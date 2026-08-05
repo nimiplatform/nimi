@@ -50,9 +50,6 @@ type Manager struct {
 	registry *Registry
 	onState  StateChangeFunc
 
-	llamaModelsPath                   string
-	llamaModelsConfigPath             string
-	llamaBackendsPath                 string
 	speechModelsPath                  string
 	speechQwen3TTSPackageSetRoot      string
 	speechQwen3ASRPackageSetRoot      string
@@ -115,9 +112,6 @@ func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc
 		depsDir:                           depsDir,
 		registry:                          registry,
 		onState:                           onState,
-		llamaModelsPath:                   "",
-		llamaModelsConfigPath:             "",
-		llamaBackendsPath:                 filepath.Join(baseDir, "llama-backends"),
 		managedImageBackendsPath:          filepath.Join(baseDir, "managed-image-backends"),
 		sharedAcceleratorDependenciesPath: filepath.Join(depsDir, "accelerator-dependencies"),
 		supervisors:                       make(map[EngineKind]*Supervisor),
@@ -135,19 +129,6 @@ func (m *Manager) SetSupervisorForTesting(kind EngineKind, supervisor *Superviso
 		m.supervisors[kind] = supervisor
 	}
 	m.mu.Unlock()
-}
-
-// The daemon must inject the generated llama preset path from its verified
-// Runtime state path. Manager construction intentionally has no HOME fallback:
-// protected services do not accept a user-profile path as configuration truth.
-
-// SetLlamaPaths overrides the default llama model directory and generated
-// config path used when callers do not explicitly populate EngineConfig.
-func (m *Manager) SetLlamaPaths(modelsPath string, modelsConfigPath string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.llamaModelsPath = strings.TrimSpace(modelsPath)
-	m.llamaModelsConfigPath = strings.TrimSpace(modelsConfigPath)
 }
 
 // SetSpeechPaths injects Runtime-verified speech materialization records into
@@ -168,35 +149,6 @@ func (m *Manager) SetRuntimeWorkRoot(root string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.runtimeWorkRoot = strings.TrimSpace(root)
-}
-
-func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
-	if cfg.Kind != EngineLlama {
-		return cfg
-	}
-	m.mu.RLock()
-	modelsPath := strings.TrimSpace(m.llamaModelsPath)
-	modelsConfigPath := strings.TrimSpace(m.llamaModelsConfigPath)
-	backendsPath := strings.TrimSpace(m.llamaBackendsPath)
-	m.mu.RUnlock()
-	if cfg.ModelsPath == "" {
-		cfg.ModelsPath = modelsPath
-	}
-	if cfg.ManagedLlamaTarget == nil && cfg.ModelsConfigPath == "" {
-		cfg.ModelsConfigPath = modelsConfigPath
-	}
-	if cfg.BackendsPath == "" {
-		cfg.BackendsPath = backendsPath
-	}
-	if cfg.ManagedLlamaTarget != nil {
-		cfg.ModelsConfigPath = ""
-		cfg.ExternalBackends = normalizeLlamaExternalBackends(cfg.ExternalBackends)
-	} else if len(cfg.ExternalBackends) == 0 {
-		cfg.ExternalBackends = detectLlamaExternalBackends(cfg.ModelsConfigPath)
-	} else {
-		cfg.ExternalBackends = normalizeLlamaExternalBackends(cfg.ExternalBackends)
-	}
-	return cfg
 }
 
 func (m *Manager) applySpeechPaths(cfg EngineConfig) EngineConfig {
@@ -228,7 +180,6 @@ func (m *Manager) applySpeechPaths(cfg EngineConfig) EngineConfig {
 // Llama is read-only here: first materialization is owned by
 // EnsureEngineBinaryDependency, which is called by local environment jobs.
 func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
-	cfg = m.applyLlamaPaths(cfg)
 	cfg = m.applySpeechPaths(cfg)
 	switch cfg.Kind {
 	case EngineLlama:
@@ -246,7 +197,6 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 // already been materialized and recorded. It never downloads or repairs.
 func (m *Manager) RequireEngineBinaryDependency(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
 	_ = ctx
-	cfg = m.applyLlamaPaths(cfg)
 	switch cfg.Kind {
 	case EngineLlama:
 		return m.requireLlamaBinaryDependency(cfg)
@@ -256,7 +206,6 @@ func (m *Manager) RequireEngineBinaryDependency(ctx context.Context, cfg EngineC
 }
 
 func (m *Manager) EnsureEngineBinaryDependency(ctx context.Context, cfg EngineConfig) (EngineBinaryDependencyStatus, error) {
-	cfg = m.applyLlamaPaths(cfg)
 	switch cfg.Kind {
 	case EngineLlama:
 		ensured, err := m.ensureLlama(ctx, cfg)
@@ -376,7 +325,6 @@ func (m *Manager) requireLlamaBinaryDependency(cfg EngineConfig) (EngineConfig, 
 
 // StartEngine starts the engine with the given configuration.
 func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
-	cfg = m.applyLlamaPaths(cfg)
 	cfg = m.applySpeechPaths(cfg)
 	cfg.SupervisedRoot = m.baseDir
 	if cfg.Kind == EngineLlama {
@@ -390,11 +338,6 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 		return err
 	}
 	defer m.finishEngineStart(cfg.Kind)
-	if cfg.Kind == EngineLlama && strings.TrimSpace(cfg.BackendsPath) != "" {
-		if err := os.MkdirAll(cfg.BackendsPath, 0o755); err != nil {
-			return fmt.Errorf("create llama backends directory: %w", err)
-		}
-	}
 	if cfg.Kind == EngineLlama {
 		var err error
 		cfg, err = m.prepareLlamaStart(ctx, cfg)

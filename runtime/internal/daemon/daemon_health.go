@@ -132,8 +132,6 @@ func (d *Daemon) shouldTreatProviderTargetAsIdle(target aiProviderTarget) bool {
 
 func localProviderTargetEngine(providerName string) (string, bool) {
 	switch strings.TrimSpace(strings.ToLower(providerName)) {
-	case "local":
-		return "llama", true
 	case "local-media":
 		return "media", true
 	case "local-speech":
@@ -156,8 +154,6 @@ func isCanonicalManagedProviderTarget(target aiProviderTarget, engineName string
 	}
 	port := parsed.Port()
 	switch engineName {
-	case "llama":
-		return port == "1234"
 	case "media":
 		return port == "8321"
 	case "speech":
@@ -197,7 +193,6 @@ func configuredAIProviderTargets(cfg config.Config) []aiProviderTarget {
 		})
 	}
 
-	add("local", runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
 	add("local-media", runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
 	add("local-speech", runtimeGetenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_SPEECH_API_KEY"))
 	add("local-sidecar", runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
@@ -263,9 +258,6 @@ func providerProbePaths(name string) []string {
 	}
 	if strings.EqualFold(strings.TrimSpace(name), "local-speech") {
 		return []string{"/healthz", "/v1/catalog"}
-	}
-	if strings.EqualFold(strings.TrimSpace(name), "local") {
-		return []string{"/health", "/v1/models"}
 	}
 	return []string{"/healthz", "/v1/models", "/models"}
 }

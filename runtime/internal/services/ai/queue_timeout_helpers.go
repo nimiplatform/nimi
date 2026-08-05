@@ -64,6 +64,9 @@ func reasonCodeFromStreamError(err error) runtimev1.ReasonCode {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
 	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		return reason
+	}
 	st, ok := status.FromError(err)
 	if !ok {
 		return runtimev1.ReasonCode_AI_STREAM_BROKEN

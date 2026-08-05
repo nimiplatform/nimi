@@ -156,13 +156,11 @@ func (s *Service) prepareScenarioRequestWithExtensionsAndLocalPlan(ctx context.C
 			scenarioModalFromType(scenarioType),
 			nimillm.ScenarioExtensionPayloadForType(scenarioType, extensions),
 		)
-	} else {
-		localPlan, err = s.prepareLocalModelExecutionPlan(
-			ctx,
-			head.GetModelId(),
-			remoteTarget,
-			scenarioModalFromType(scenarioType),
-			nimillm.ScenarioExtensionPayloadForType(scenarioType, extensions),
+	} else if remoteTarget == nil && head.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return nil, nil, grpcerr.WithReasonCodeOptions(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+			grpcerr.ReasonOptions{Message: "local execution requires an exact supported composition; ambient LocalAsset routing is retired"},
 		)
 	}
 	if err != nil {

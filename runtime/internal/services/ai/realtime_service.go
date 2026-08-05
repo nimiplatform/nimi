@@ -8,12 +8,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
-	"github.com/oklog/ulid/v2"
-	"golang.org/x/net/websocket"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -22,7 +19,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 )
 
@@ -32,109 +28,17 @@ type realtimeConn interface {
 	Close() error
 }
 
-type websocketRealtimeConn struct {
-	conn *websocket.Conn
-}
-
-var realtimeDialer = dialLlamaRealtime
-
-func (c *websocketRealtimeConn) Send(v any) error {
-	return websocket.JSON.Send(c.conn, v)
-}
-
-func (c *websocketRealtimeConn) Receive(v any) error {
-	return websocket.JSON.Receive(c.conn, v)
-}
-
-func (c *websocketRealtimeConn) Close() error {
-	return c.conn.Close()
-}
-
-func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRealtimeSessionRequest) (*runtimev1.OpenRealtimeSessionResponse, error) {
+func (s *Service) OpenRealtimeSession(_ context.Context, req *runtimev1.OpenRealtimeSessionRequest) (*runtimev1.OpenRealtimeSessionResponse, error) {
 	if req == nil || req.GetHead() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
-	if err != nil {
-		return nil, err
-	}
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
-		ctx,
-		req.GetHead().GetRoutePolicy(),
-		req.GetHead().GetFallback(),
-		req.GetHead().GetModelId(),
-		remoteTarget,
-		runtimev1.Modal_MODAL_TEXT,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if routeDecision != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider, runtimev1.Modal_MODAL_UNSPECIFIED) != "llama" {
+	head := req.GetHead()
+	modelID := strings.TrimSpace(head.GetModelId())
+	if head.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || head.GetTargetRef().GetCloud() != nil ||
+		(modelID != "" && preferredRoute(modelID) == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	backend, realtimeModel, err := resolveLlamaRealtimeBackend(selectedProvider, modelResolved)
-	if err != nil {
-		return nil, err
-	}
-	releaseLease, err := s.acquireSelectedLocalModelLease(ctx, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_TEXT, "realtime_session")
-	if err != nil {
-		return nil, err
-	}
-	conn, err := realtimeDialer(ctx, backend, realtimeModel)
-	if err != nil {
-		releaseLease()
-		return nil, err
-	}
-
-	sessionID := "rt_" + ulid.Make().String()
-	traceID := ulid.Make().String()
-	record := s.realtimeSessions.create(&realtimeSessionRecord{
-		sessionID:     sessionID,
-		appID:         strings.TrimSpace(req.GetHead().GetAppId()),
-		subjectUserID: strings.TrimSpace(req.GetHead().GetSubjectUserId()),
-		modelResolved: modelResolved,
-		traceID:       traceID,
-		routeDecision: routeDecision,
-		conn:          conn,
-		events:        make([]*runtimev1.RealtimeEvent, 0, 16),
-		cleanup:       releaseLease,
-	})
-	if record == nil {
-		_ = conn.Close()
-		releaseLease()
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
-	}
-	s.realtimeSessions.appendEvent(sessionID, &runtimev1.RealtimeEvent{
-		EventType: runtimev1.RealtimeEventType_REALTIME_EVENT_OPENED,
-		TraceId:   traceID,
-		Timestamp: timestamppb.New(time.Now().UTC()),
-		Payload: &runtimev1.RealtimeEvent_Opened{
-			Opened: &runtimev1.RealtimeSessionOpened{
-				SessionId:     sessionID,
-				ModelResolved: modelResolved,
-				RouteDecision: routeDecision,
-			},
-		},
-	})
-	if instructions := strings.TrimSpace(req.GetSystemPrompt()); instructions != "" {
-		if err := sendRealtimeEnvelope(record, map[string]any{
-			"type": "session.update",
-			"session": map[string]any{
-				"instructions": instructions,
-			},
-		}); err != nil {
-			s.realtimeSessions.close(sessionID)
-			return nil, err
-		}
-	}
-	go s.consumeRealtimeEvents(record)
-
-	return &runtimev1.OpenRealtimeSessionResponse{
-		SessionId:     sessionID,
-		RouteDecision: routeDecision,
-		ModelResolved: modelResolved,
-		TraceId:       traceID,
-	}, nil
+	return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 }
 
 func (s *Service) AppendRealtimeInput(ctx context.Context, req *runtimev1.AppendRealtimeInputRequest) (*runtimev1.AppendRealtimeInputResponse, error) {
@@ -325,7 +229,7 @@ func (s *Service) consumeRealtimeEvents(record *realtimeSessionRecord) {
 					Payload: &runtimev1.RealtimeEvent_Failed{
 						Failed: &runtimev1.RealtimeFailed{
 							ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
-							ActionHint: "check_llama_realtime_endpoint",
+							ActionHint: "check_realtime_execution_host",
 						},
 					},
 				})
@@ -394,74 +298,6 @@ func (s *Service) mapRealtimeEnvelope(record *realtimeSessionRecord, payload map
 			},
 		})
 	}
-}
-
-func resolveLlamaRealtimeBackend(selected provider, modelResolved string) (*nimillm.Backend, string, error) {
-	local, ok := selected.(*localProvider)
-	if !ok || local == nil {
-		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-	}
-	backend, resolvedModel := local.ResolveMediaBackend("llama/" + strings.TrimSpace(modelResolved))
-	if backend == nil {
-		return nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	return backend, resolvedModel, nil
-}
-
-func dialLlamaRealtime(ctx context.Context, backend *nimillm.Backend, modelID string) (realtimeConn, error) {
-	if backend == nil || strings.TrimSpace(backend.Endpoint()) == "" || strings.TrimSpace(modelID) == "" {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	endpoint := strings.TrimSpace(backend.Endpoint())
-	if err := endpointsec.ValidateEndpoint(ctx, endpoint, true); err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{
-			Message: "realtime provider endpoint is not allowed",
-		})
-	}
-	targetURL, err := url.Parse(endpoint)
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-			Message: "realtime provider endpoint could not be parsed",
-		})
-	}
-	switch targetURL.Scheme {
-	case "https":
-		targetURL.Scheme = "wss"
-	default:
-		targetURL.Scheme = "ws"
-	}
-	targetURL.Path = "/v1/realtime"
-	query := targetURL.Query()
-	query.Set("model", strings.TrimSpace(modelID))
-	targetURL.RawQuery = query.Encode()
-	config, err := websocket.NewConfig(targetURL.String(), realtimeWebsocketOrigin(targetURL))
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-			Message: "realtime provider connection could not be configured",
-		})
-	}
-	connection, err := config.DialContext(ctx)
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{
-			Message: "realtime provider connection could not be opened",
-		})
-	}
-	return &websocketRealtimeConn{conn: connection}, nil
-}
-
-func realtimeWebsocketOrigin(targetURL *url.URL) string {
-	if targetURL == nil {
-		return "http://localhost"
-	}
-	scheme := "http"
-	if targetURL.Scheme == "wss" || targetURL.Scheme == "https" {
-		scheme = "https"
-	}
-	host := strings.TrimSpace(targetURL.Host)
-	if host == "" {
-		host = "localhost"
-	}
-	return scheme + "://" + host
 }
 
 func sendRealtimeEnvelope(record *realtimeSessionRecord, payload map[string]any) error {

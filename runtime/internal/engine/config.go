@@ -146,14 +146,6 @@ type PythonTorchWheelDependencyStatus struct {
 	Detail           string
 }
 
-// ManagedLlamaTarget explicitly selects the supervised llama model that a
-// single worker should load for this engine start.
-type ManagedLlamaTarget struct {
-	ModelPath    string
-	ModelAlias   string
-	EngineConfig ManagedLlamaEngineConfig
-}
-
 func (c ManagedImageBackendConfig) Enabled() bool {
 	return c.Mode != "" && c.Mode != ManagedImageBackendDisabled
 }
@@ -225,7 +217,7 @@ type EngineConfig struct {
 	// WorkingDir overrides the child process working directory.
 	WorkingDir string
 
-	// ModelsPath is the directory for model files (llama --models-path).
+	// ModelsPath is the Runtime-verified speech model directory.
 	ModelsPath string
 
 	// SpeechQwen3TTSPackageSetRoot is the Runtime-verified qwen3_tts Python
@@ -240,29 +232,6 @@ type EngineConfig struct {
 	// for bounded request/response exchange with supervised speech drivers.
 	// It must never be derived from process TEMP/HOME or the model payload root.
 	SpeechDriverWorkRoot string
-
-	// ModelsConfigPath is the managed llama router preset file passed via
-	// --models-preset when the runtime boots the shared managed llama router.
-	// When ManagedLlamaTarget is set, command construction bypasses router mode
-	// and starts a single explicit worker target instead.
-	ModelsConfigPath string
-
-	// ManagedLlamaTarget explicitly selects the single managed llama model to
-	// load for this engine start. When set, command construction must use this
-	// target instead of inferring the first YAML entry.
-	ManagedLlamaTarget *ManagedLlamaTarget
-
-	// BackendsPath is the llama backend install directory passed via
-	// --backends-path.
-	BackendsPath string
-
-	// ExternalBackends is the set of llama backends to auto-load on boot via
-	// --external-backends.
-	ExternalBackends []string
-
-	// ExternalGRPCBackends is the set of llama gRPC backends to register on
-	// boot via --external-grpc-backends in name:uri form.
-	ExternalGRPCBackends []string
 
 	// ManagedImageBackend configures the daemon-managed runtime-owned image backend.
 	ManagedImageBackend *ManagedImageBackendConfig

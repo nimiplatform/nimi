@@ -28,6 +28,11 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 	}
 
 	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		spec := req.GetSpec().GetTextGenerate()
+		if spec == nil || (len(spec.GetInput()) == 0 && strings.TrimSpace(spec.GetSystemPrompt()) == "") {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		spec := req.GetSpec().GetImageGenerate()
 		if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" {

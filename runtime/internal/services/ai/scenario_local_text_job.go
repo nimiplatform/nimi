@@ -1,0 +1,194 @@
+package ai
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"sync"
+	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+func (s *Service) submitLocalTextScenarioJob(
+	ctx context.Context,
+	req *runtimev1.SubmitScenarioJobRequest,
+	mode runtimev1.ExecutionMode,
+	ignored []*runtimev1.IgnoredScenarioExtension,
+) (*runtimev1.SubmitScenarioJobResponse, error) {
+	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
+		return nil, err
+	}
+	idempotencyScope, err := buildScenarioJobIdempotencyScope(req)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	if idempotencyScope != "" {
+		if existing, ok := s.scenarioJobs.getByIdempotency(idempotencyScope); ok {
+			return &runtimev1.SubmitScenarioJobResponse{Job: existing}, nil
+		}
+	}
+
+	// This is the immutable capture point. The goroutine below never resolves
+	// selection, AIConfig, portable config, or binding paths again.
+	effective, err := s.captureLocalTextEffectiveInputs(ctx, req.GetHead(), req.GetSpec().GetTextGenerate(), false)
+	if err != nil {
+		return nil, err
+	}
+	captureOwned := true
+	defer func() {
+		if captureOwned {
+			effective.release()
+		}
+	}()
+
+	release, acquireResult, err := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
+	if err != nil {
+		return nil, schedulerAcquireError(err)
+	}
+	defer release()
+	s.attachQueueWaitUnary(ctx, acquireResult)
+
+	jobCtx := context.Background()
+	timeout := scenarioJobTimeoutDuration(req, defaultGenerateTimeout, true)
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
+	} else {
+		jobCtx, cancel = context.WithCancel(jobCtx)
+	}
+	if identity := authn.IdentityFromContext(ctx); identity != nil {
+		jobCtx = authn.WithIdentity(jobCtx, identity)
+	}
+
+	jobID := ulid.Make().String()
+	now := timestamppb.New(time.Now().UTC())
+	job := &runtimev1.ScenarioJob{
+		JobId:             jobID,
+		Head:              cloneScenarioHead(req.GetHead()),
+		ScenarioType:      runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode:     mode,
+		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		ModelResolved:     effective.modelResolved(),
+		Status:            runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+		TraceId:           ulid.Make().String(),
+		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
+	}
+	snapshot := s.scenarioJobs.create(job, cancel)
+	if snapshot == nil {
+		cancel()
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if idempotencyScope != "" {
+		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
+	}
+	captureOwned = false
+	go s.executeLocalTextScenarioJob(jobCtx, jobID, effective)
+	return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
+}
+
+func (s *Service) executeLocalTextScenarioJob(
+	ctx context.Context,
+	jobID string,
+	effective *localTextEffectiveInputs,
+) {
+	defer effective.release()
+	if _, ok := s.scenarioJobs.transition(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED,
+		nil,
+	); !ok {
+		return
+	}
+	var runningOnce sync.Once
+	ensureRunning := func() {
+		runningOnce.Do(func() {
+			_, _ = s.scenarioJobs.transition(
+				jobID,
+				runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+				runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING,
+				func(job *runtimev1.ScenarioJob) {
+					job.ProgressCurrentStep = 0
+					job.ProgressTotalSteps = 2
+					job.ProgressPercent = 0
+				},
+			)
+		})
+	}
+	progress := func(stage localexecution.TextExecutionProgress) {
+		ensureRunning()
+		switch stage {
+		case localexecution.TextExecutionProgressLoading:
+			_, _ = s.scenarioJobs.updateProgress(jobID, 0, 2, 0)
+		case localexecution.TextExecutionProgressReady, localexecution.TextExecutionProgressReused:
+			_, _ = s.scenarioJobs.updateProgress(jobID, 1, 2, 50)
+		}
+	}
+	result, err := s.executeCapturedLocalText(ctx, effective, progress)
+	if err != nil {
+		if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
+			return
+		}
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok {
+			reason = runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED
+		}
+		jobStatus := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+		eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
+		if errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled || reason == runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED {
+			jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+			eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
+		}
+		_, _ = s.scenarioJobs.transition(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
+			job.ReasonCode = reason
+			job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
+			job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+		})
+		return
+	}
+
+	ensureRunning()
+	artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{
+		"finish_reason": result.FinishReason.String(),
+	})
+	artifacts := []*runtimev1.ScenarioArtifact{artifact}
+	if err := s.storeRuntimeArtifacts(artifacts); err != nil {
+		_, _ = s.scenarioJobs.transition(
+			jobID,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+			runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED,
+			func(job *runtimev1.ScenarioJob) {
+				job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+				job.ReasonDetail = strings.TrimSpace(err.Error())
+			},
+		)
+		return
+	}
+	_, _ = s.scenarioJobs.transition(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		func(job *runtimev1.ScenarioJob) {
+			job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+			job.ReasonDetail = ""
+			job.ReasonMetadata = nil
+			job.ProgressCurrentStep = 2
+			job.ProgressTotalSteps = 2
+			job.ProgressPercent = 100
+			job.Artifacts = cloneScenarioArtifacts(artifacts)
+			job.Usage = localTextUsage(result, effective.request)
+		},
+	)
+}

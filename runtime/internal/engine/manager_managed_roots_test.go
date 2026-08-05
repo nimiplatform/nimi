@@ -26,11 +26,8 @@ func TestNewManagerResolvesInstallRootsFromDataPlaneRoots(t *testing.T) {
 		t.Fatalf("depsDir mismatch: got %q want %q", mgr.depsDir, roots.Dependencies)
 	}
 
-	// Native engine packages, the managed llama backends, and managed image
-	// backends are executable environments -> environments root.
-	if got, want := mgr.llamaBackendsPath, filepath.Join(roots.Environments, "llama-backends"); got != want {
-		t.Fatalf("llamaBackendsPath mismatch: got %q want %q", got, want)
-	}
+	// Native engine packages and managed image backends are executable
+	// environments -> environments root.
 	if got, want := mgr.managedImageBackendsPath, filepath.Join(roots.Environments, "managed-image-backends"); got != want {
 		t.Fatalf("managedImageBackendsPath mismatch: got %q want %q", got, want)
 	}
@@ -44,7 +41,6 @@ func TestNewManagerResolvesInstallRootsFromDataPlaneRoots(t *testing.T) {
 	for name, path := range map[string]string{
 		"baseDir":                  mgr.baseDir,
 		"depsDir":                  mgr.depsDir,
-		"llamaBackendsPath":        mgr.llamaBackendsPath,
 		"managedImageBackendsPath": mgr.managedImageBackendsPath,
 		"sharedAcceleratorDeps":    mgr.sharedAcceleratorDependenciesPath,
 	} {

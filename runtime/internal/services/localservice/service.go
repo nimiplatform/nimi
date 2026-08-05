@@ -71,9 +71,6 @@ type Service struct {
 	productVersion                     string
 	localModelsPath                    string
 	runtimeDataRoot                    string
-	managedLlamaModelsConfigPath       string
-	managedLlamaEnabled                bool
-	managedLlamaEndpointValue          string
 	managedMediaEndpointValue          string
 	managedSpeechEndpointValue         string
 	managedMediaBackendConfigured      bool
@@ -100,9 +97,6 @@ type Service struct {
 	managedImageLoadInflight                map[string]*managedImageLoadInflight
 	localAssetProbeInflight                 map[string]*localAssetProbeInflight
 	engineMgr                               EngineManager
-	managedLlamaRegistrations               map[string]managedLlamaRegistration
-	primaryManagedLlamaModelName            string
-	managedLlamaLoadedLocalAssetID          string
 	warmedModelKeys                         map[string]struct{}
 	warmedModelOrder                        []string
 	assetResidency                          map[string]localAssetResidencyState
@@ -122,7 +116,6 @@ type Service struct {
 	jobLifetimeCtx                          context.Context
 	jobLifetimeCancel                       context.CancelFunc
 	localProviderEndpointSink               LocalProviderEndpointSink
-	managedLlamaLoadMu                      sync.Mutex
 
 	profileRegistry *ProfileRegistry
 
@@ -203,7 +196,6 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		localAuditCap:                           localAuditCapacity,
 		localModelsPath:                         resolveLocalModelsPath(localModelsPath),
 		runtimeDataRoot:                         resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot),
-		managedLlamaModelsConfigPath:            resolveGeneratedLlamaModelsConfigPath(resolvedStateStorePath),
 		assets:                                  make(map[string]*runtimev1.LocalAssetRecord),
 		assetRuntimeModes:                       make(map[string]runtimev1.LocalEngineRuntimeMode),
 		services:                                make(map[string]*runtimev1.LocalServiceDescriptor),
@@ -216,7 +208,6 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		managedImageLoadCache:                   make(map[string]managedImageLoadedState),
 		managedImageLoadInflight:                make(map[string]*managedImageLoadInflight),
 		localAssetProbeInflight:                 make(map[string]*localAssetProbeInflight),
-		managedLlamaRegistrations:               make(map[string]managedLlamaRegistration),
 		warmedModelKeys:                         make(map[string]struct{}),
 		warmedModelOrder:                        make([]string, 0, 512),
 		assetResidency:                          make(map[string]localAssetResidencyState),

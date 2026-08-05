@@ -382,8 +382,12 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 		return nil, err
 	}
 	routePolicy := inferVoiceListRoutePolicy(effectiveModelID, remoteTarget)
-	if err := s.validateLocalModelRequest(ctx, effectiveModelID, remoteTarget, runtimev1.Modal_MODAL_TTS); err != nil {
-		return nil, err
+	if remoteTarget == nil && routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return nil, grpcerr.WithReasonCodeOptions(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+			grpcerr.ReasonOptions{Message: "ambient local voice model routing is retired"},
+		)
 	}
 
 	selectedProvider, _, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
@@ -455,7 +459,6 @@ func inferVoiceListRoutePolicy(modelID string, remoteTarget *nimillm.RemoteTarge
 	}
 	switch {
 	case strings.HasPrefix(normalized, "local/"),
-		strings.HasPrefix(normalized, "llama/"),
 		strings.HasPrefix(normalized, "media/"),
 		strings.HasPrefix(normalized, "speech/"),
 		strings.HasPrefix(normalized, "sidecar/"):

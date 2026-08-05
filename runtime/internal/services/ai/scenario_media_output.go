@@ -20,6 +20,16 @@ func buildScenarioOutputFromArtifacts(
 	clonedArtifacts := cloneScenarioArtifacts(artifacts)
 
 	switch job.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		text := ""
+		if len(artifacts) > 0 && artifacts[0] != nil {
+			text = string(artifacts[0].GetBytes())
+		}
+		return &runtimev1.ScenarioOutput{
+			Output: &runtimev1.ScenarioOutput_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateOutput{Text: text},
+			},
+		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		return &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_ImageGenerate{

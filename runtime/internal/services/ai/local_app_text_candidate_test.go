@@ -13,7 +13,7 @@ import (
 )
 
 func TestGenerateLocalAppTextCandidateFailsClosedWithoutAmbientExecution(t *testing.T) {
-	svc := &Service{}
+	svc := newTestService(nil)
 	response, err := svc.GenerateLocalAppTextCandidate(
 		localAppTextCandidateContext(),
 		validLocalAppTextCandidateRequest(),
@@ -21,7 +21,29 @@ func TestGenerateLocalAppTextCandidateFailsClosedWithoutAmbientExecution(t *test
 	if response != nil {
 		t.Fatalf("response = %+v, want nil", response)
 	}
-	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	assertLocalAppTextCandidateError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+}
+
+func TestGenerateLocalAppTextCandidateUsesAppIntentAndMachineSelection(t *testing.T) {
+	svc := newTestService(nil)
+	if err := svc.aiConfigStore.Overwrite(context.Background(), "account-1", &runtimev1.AIConfig{
+		Owner: derivedAppAIConfigOwner("nimi.realm-persona-studio"),
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
+			CapabilityContract: "text.generate",
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+		}},
+	}); err != nil {
+		t.Fatalf("install App AIConfig: %v", err)
+	}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-app", "app.gguf")})
+	svc.SetLocalTextExecutionHost(&localTextHostStub{})
+	response, err := svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), validLocalAppTextCandidateRequest())
+	if err != nil {
+		t.Fatalf("GenerateLocalAppTextCandidate: %v", err)
+	}
+	if response.GetText() != "captured response" || response.GetFinishReason() != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("response = %+v", response)
+	}
 }
 
 func TestGenerateLocalAppTextCandidatePreservesPermissionAndInputValidation(t *testing.T) {

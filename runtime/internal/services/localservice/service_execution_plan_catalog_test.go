@@ -16,7 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestLocalResolveAndApplyExecutionPlan(t *testing.T) {
+func TestProfileApplyRejectsLegacyLlamaExecutionBeforeInstallingAnything(t *testing.T) {
 	svc := newTestService(t)
 
 	plan := resolveExecutionPlan(&executionResolveRequest{
@@ -53,28 +53,18 @@ func TestLocalResolveAndApplyExecutionPlan(t *testing.T) {
 	if result.GetPlanId() != plan.GetPlanId() {
 		t.Fatalf("applied plan mismatch: got=%q want=%q", result.GetPlanId(), plan.GetPlanId())
 	}
-	if len(result.GetInstalledAssets()) != 1 {
-		t.Fatalf("installed model count mismatch: got=%d want=1", len(result.GetInstalledAssets()))
-	}
-	if len(result.GetServices()) != 1 {
-		t.Fatalf("installed service count mismatch: got=%d want=1", len(result.GetServices()))
+	if len(result.GetInstalledAssets()) != 0 || len(result.GetServices()) != 0 {
+		t.Fatalf("Profile Apply materialized legacy llama execution state: assets=%d services=%d", len(result.GetInstalledAssets()), len(result.GetServices()))
 	}
 	if len(result.GetCapabilities()) != 1 || result.GetCapabilities()[0] != "chat" {
 		t.Fatalf("applied capabilities mismatch: %#v", result.GetCapabilities())
 	}
-	gotStages := make([]string, 0, len(result.GetStageResults()))
-	for _, stage := range result.GetStageResults() {
-		gotStages = append(gotStages, stage.GetStage())
-		if !stage.GetOk() {
-			t.Fatalf("unexpected failed stage in happy path: %s (%s)", stage.GetStage(), stage.GetReasonCode())
-		}
-	}
-	wantStages := []string{applyStagePreflight, applyStageInstall, applyStageBootstrap, applyStageHealth}
-	if strings.Join(gotStages, ",") != strings.Join(wantStages, ",") {
-		t.Fatalf("unexpected stage order: got=%v want=%v", gotStages, wantStages)
+	if len(result.GetStageResults()) != 1 || result.GetStageResults()[0].GetStage() != applyStagePreflight ||
+		result.GetStageResults()[0].GetOk() || result.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
+		t.Fatalf("legacy llama Profile Apply did not fail in preflight: %+v", result)
 	}
 	if result.GetRollbackApplied() {
-		t.Fatalf("happy path apply must not set rollback_applied")
+		t.Fatal("preflight-only rejection must not require rollback")
 	}
 }
 
@@ -157,7 +147,7 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 		}
 	})
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 	svc.SetEngineManager(&mockEngineManager{})
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	setNvidiaGPUProbeForTest(t, true)
@@ -380,10 +370,8 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if installed.GetService().GetServiceId() != "svc-vision" {
 		t.Fatalf("service id mismatch: %s", installed.GetService().GetServiceId())
 	}
-	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
-		ServiceId: "svc-vision",
-	}); err != nil {
-		t.Fatalf("start local service: %v", err)
+	if _, err := svc.updateServiceStatus("svc-vision", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "legacy fixture"); err != nil {
+		t.Fatalf("activate legacy catalog fixture: %v", err)
 	}
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
@@ -403,23 +391,11 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if !strings.HasPrefix(node.GetNodeId(), "svc-vision:") {
 		t.Fatalf("node id should use <service_id>:<capability>, got: %s", node.GetNodeId())
 	}
-	if node.GetAdapter() != "llama_native_adapter" {
-		t.Fatalf("llama image adapter mismatch: %s", node.GetAdapter())
+	if node.GetAdapter() != "" || node.GetAvailable() || node.GetProviderHints() != nil {
+		t.Fatalf("legacy llama node exposed ambient execution metadata: %+v", node)
 	}
-	if !node.GetAvailable() {
-		t.Fatalf("node must be available before removal")
-	}
-	if node.GetProviderHints() == nil || node.GetProviderHints().GetLlama() == nil {
-		t.Fatalf("llama image node must include provider hints")
-	}
-	if node.GetProviderHints().GetLlama().GetPreferredAdapter() != "llama_native_adapter" {
-		t.Fatalf("llama image preferred adapter mismatch: %s", node.GetProviderHints().GetLlama().GetPreferredAdapter())
-	}
-	if node.GetProviderHints().GetLlama().GetBackend() != "llama" {
-		t.Fatalf("llama image provider hints should carry backend=llama")
-	}
-	if node.GetProviderHints().GetExtra()["service_id"] != "svc-vision" {
-		t.Fatalf("provider hints extra.service_id mismatch: %s", node.GetProviderHints().GetExtra()["service_id"])
+	if node.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() || node.GetApiPath() != "" {
+		t.Fatalf("legacy llama node did not fail closed: %+v", node)
 	}
 
 	chatNodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
@@ -433,14 +409,8 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 		t.Fatalf("chat node count mismatch: got=%d want=1", len(chatNodesResp.GetNodes()))
 	}
 	chatNode := chatNodesResp.GetNodes()[0]
-	if chatNode.GetAdapter() != "llama_native_adapter" {
-		t.Fatalf("llama chat adapter mismatch: %s", chatNode.GetAdapter())
-	}
-	if chatNode.GetProviderHints() == nil || chatNode.GetProviderHints().GetLlama() == nil {
-		t.Fatalf("llama chat node must include provider hints")
-	}
-	if chatNode.GetProviderHints().GetLlama().GetPreferredAdapter() != "llama_native_adapter" {
-		t.Fatalf("llama chat preferred adapter mismatch: %s", chatNode.GetProviderHints().GetLlama().GetPreferredAdapter())
+	if chatNode.GetAdapter() != "" || chatNode.GetAvailable() || chatNode.GetProviderHints() != nil || chatNode.GetApiPath() != "" {
+		t.Fatalf("legacy llama chat node exposed ambient execution metadata: %+v", chatNode)
 	}
 
 	if _, err := svc.RemoveLocalService(context.Background(), &runtimev1.RemoveLocalServiceRequest{
@@ -478,10 +448,8 @@ func TestLocalNodeCatalogSortsByNodeIDWithinSameAdapter(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
-	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
-		ServiceId: "svc-sort",
-	}); err != nil {
-		t.Fatalf("start local service: %v", err)
+	if _, err := svc.updateServiceStatus("svc-sort", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "legacy fixture"); err != nil {
+		t.Fatalf("activate legacy catalog fixture: %v", err)
 	}
 
 	resp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
@@ -496,8 +464,8 @@ func TestLocalNodeCatalogSortsByNodeIDWithinSameAdapter(t *testing.T) {
 
 	first := resp.GetNodes()[0]
 	second := resp.GetNodes()[1]
-	if first.GetAdapter() != "llama_native_adapter" || second.GetAdapter() != "llama_native_adapter" {
-		t.Fatalf("node catalog should keep llama-native adapters together, got adapters: %s, %s", first.GetAdapter(), second.GetAdapter())
+	if first.GetAdapter() != "" || second.GetAdapter() != "" || first.GetAvailable() || second.GetAvailable() {
+		t.Fatalf("legacy llama nodes exposed admitted adapters: %+v, %+v", first, second)
 	}
 	if len(first.GetCapabilities()) == 0 || first.GetCapabilities()[0] != "chat" {
 		t.Fatalf("expected chat node first when adapter names match, got capabilities: %#v", first.GetCapabilities())
@@ -526,10 +494,8 @@ func TestLocalNodeCatalogCustomMissingProfileIsUnavailable(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
-	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
-		ServiceId: "svc-custom",
-	}); err != nil {
-		t.Fatalf("start local service: %v", err)
+	if _, err := svc.updateServiceStatus("svc-custom", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "legacy fixture"); err != nil {
+		t.Fatalf("activate legacy catalog fixture: %v", err)
 	}
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
@@ -545,10 +511,10 @@ func TestLocalNodeCatalogCustomMissingProfileIsUnavailable(t *testing.T) {
 	if node.GetAvailable() {
 		t.Fatalf("custom node without local_invoke_profile_id must be unavailable")
 	}
-	if node.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING.String() {
+	if node.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
 		t.Fatalf("unexpected reason code: %s", node.GetReasonCode())
 	}
-	if node.GetPolicyGate() != "custom.invoke_profile.missing" {
+	if node.GetPolicyGate() != "selected_capability_configuration.required" {
 		t.Fatalf("unexpected policy gate: %s", node.GetPolicyGate())
 	}
 }
@@ -707,29 +673,29 @@ func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 	svc := newTestService(t)
 
 	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
-		assetID:      "local/node-chat-model",
-		capabilities: []string{"chat"},
-		engine:       "llama",
+		assetID:      "local/node-speech-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
 	})
 
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
-		ServiceId:    "svc-node-chat",
-		Title:        "Node Chat Service",
-		Engine:       "llama",
-		Capabilities: []string{"chat"},
+		ServiceId:    "svc-node-speech",
+		Title:        "Node Speech Service",
+		Engine:       "speech",
+		Capabilities: []string{"audio.synthesize"},
 		LocalModelId: modelResp.GetLocalAssetId(),
-		Endpoint:     managedDefaultEndpointForEngine("llama"),
+		Endpoint:     managedDefaultEndpointForEngine("speech"),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
 	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
-		ServiceId: "svc-node-chat",
+		ServiceId: "svc-node-speech",
 	}); err != nil {
 		t.Fatalf("start local service: %v", err)
 	}
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
-		ServiceId: "svc-node-chat",
+		ServiceId: "svc-node-speech",
 	})
 	if err != nil {
 		t.Fatalf("list node catalog: %v", err)
@@ -748,8 +714,8 @@ func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 				Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_NODE,
 				Selected:   true,
 				Required:   true,
-				Capability: "chat",
-				ServiceId:  "svc-node-chat",
+				Capability: "audio.synthesize",
+				ServiceId:  "svc-node-speech",
 				NodeId:     nodeID,
 			},
 		},

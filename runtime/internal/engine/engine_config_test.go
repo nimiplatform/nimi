@@ -29,36 +29,20 @@ func TestDefaultLlamaConfig(t *testing.T) {
 	}
 }
 
-func TestLlamaCommandArgsUsesExplicitManagedTarget(t *testing.T) {
+func TestLlamaCommandAddsOnlyHostFactsToDriverArguments(t *testing.T) {
+	modelPath := filepath.Join("/data/models", "qwen3.gguf")
 	cfg := EngineConfig{
-		Kind:       EngineLlama,
-		BinaryPath: "/usr/local/bin/llama-server",
-		Port:       5555,
-		ModelsPath: "/data/models",
-		ManagedLlamaTarget: &ManagedLlamaTarget{
-			ModelPath:  "qwen/qwen3.gguf",
-			ModelAlias: "managed-qwen-explicit",
-			EngineConfig: ManagedLlamaEngineConfig{
-				CtxSize:    16384,
-				CacheTypeK: "q4_0",
-			},
-		},
+		Kind:        EngineLlama,
+		BinaryPath:  "/usr/local/bin/llama-server",
+		Port:        5555,
+		CommandArgs: []string{"--reasoning", "off", "--model", modelPath, "--ctx-size", "16384"},
 	}
 	cmd, err := llamaCommand(cfg)
 	if err != nil {
 		t.Fatalf("llamaCommand: %v", err)
 	}
 	args := strings.Join(cmd.Args[1:], " ")
-
-	for _, want := range []string{
-		"--host", "127.0.0.1",
-		"--port", "5555",
-		"--model", filepath.Join("/data/models", "qwen/qwen3.gguf"),
-		"--reasoning", "off",
-		"--alias", "managed-qwen-explicit",
-		"--ctx-size", "16384",
-		"--cache-type-k", "q4_0",
-	} {
+	for _, want := range []string{"--host 127.0.0.1", "--port 5555", "--model " + modelPath, "--ctx-size 16384"} {
 		if !strings.Contains(args, want) {
 			t.Errorf("expected args to contain %q, got: %s", want, args)
 		}

@@ -23,7 +23,6 @@ import (
 
 const (
 	adapterOpenAICompat        = "openai_compat_adapter"
-	adapterLlamaNative         = "llama_native_adapter"
 	adapterMediaNative         = "media_native_adapter"
 	adapterSpeechNative        = "speech_native_adapter"
 	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
@@ -89,9 +88,6 @@ func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
 }
 
 var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
-	"llama": {
-		STT: adapterLlamaNative,
-	},
 	"media": {
 		Image: adapterMediaNative,
 		Video: adapterMediaNative,
@@ -268,7 +264,6 @@ func normalizeComparableModelID(value string) string {
 	comparable = strings.TrimPrefix(comparable, "models/")
 	comparable = strings.TrimPrefix(comparable, "model/")
 	comparable = strings.TrimPrefix(comparable, "local/")
-	comparable = strings.TrimPrefix(comparable, "llama/")
 	comparable = strings.TrimPrefix(comparable, "media/")
 	comparable = strings.TrimPrefix(comparable, "speech/")
 	comparable = strings.TrimPrefix(comparable, "sidecar/")
@@ -310,11 +305,6 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 	}
 
 	switch {
-	case strings.HasPrefix(lowerModel, "llama/"):
-		if adapter := mediaAdapterStrategiesByProvider["llama"].forModal(modal); adapter != "" {
-			return adapter
-		}
-		return ""
 	case strings.HasPrefix(lowerModel, "media/"):
 		if adapter := mediaAdapterStrategiesByProvider["media"].forModal(modal); adapter != "" {
 			return adapter
@@ -404,7 +394,11 @@ func inferMediaProviderTypeFromBackendName(backend *nimillm.Backend) string {
 	name := strings.ToLower(strings.TrimSpace(backend.Name))
 	switch {
 	case strings.HasPrefix(name, "local-"):
-		return strings.TrimSpace(strings.TrimPrefix(name, "local-"))
+		providerType := strings.TrimSpace(strings.TrimPrefix(name, "local-"))
+		if providerType == "llama" {
+			return ""
+		}
+		return providerType
 	case strings.HasPrefix(name, "cloud-"):
 		return strings.TrimSpace(strings.TrimPrefix(name, "cloud-"))
 	default:
@@ -540,6 +534,14 @@ func stableScenarioJobReasonDetail(reasonCode runtimev1.ReasonCode) string {
 		return "requested model not found"
 	case runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED:
 		return "requested route is unsupported"
+	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED:
+		return "local execution model load failed"
+	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED:
+		return "local inference failed"
+	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED:
+		return "local execution canceled"
+	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_PROCESS_CRASHED:
+		return "local execution process crashed"
 	case runtimev1.ReasonCode_AI_INPUT_INVALID,
 		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED:
 		return "provider rejected request parameters"

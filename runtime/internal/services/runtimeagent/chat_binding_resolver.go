@@ -118,7 +118,9 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 		Release:             release,
 	}
 	resolution.RouteDigest = publicChatResolvedRouteDigest(resolution, resolution.TargetRef)
-	if resolution.TargetRef == nil || resolution.TargetRef.GetTarget() == nil || resolution.ContextWindowTokens == 0 || resolution.CatalogRevision == "" || resolution.ModelRevision == "" || resolution.ProviderID == "" || resolution.RouteDigest == "" {
+	targetRequired := resolution.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	if targetRequired && (resolution.TargetRef == nil || resolution.TargetRef.GetTarget() == nil) ||
+		resolution.ContextWindowTokens == 0 || resolution.CatalogRevision == "" || resolution.ModelRevision == "" || resolution.ProviderID == "" || resolution.RouteDigest == "" {
 		if resolution.Release != nil {
 			resolution.Release()
 		}
@@ -281,8 +283,15 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		return nil, 0, nil, err
 	}
 	resolvedTargetRef := firstPublicChatTargetRef(resolved.TargetRef, textBinding.TargetRef)
+	if textBinding.LocalAIConfigIntent {
+		if resolved.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+			return fail(status.Error(codes.FailedPrecondition, "LocalAgent Local intent resolved to a non-Local route"))
+		}
+		resolvedTargetRef = nil
+	}
+	targetMissing := resolvedTargetRef == nil || resolvedTargetRef.GetTarget() == nil
 	if strings.TrimSpace(resolved.ModelID) == "" || resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED ||
-		resolvedTargetRef == nil || resolvedTargetRef.GetTarget() == nil || resolved.ContextWindowTokens == 0 ||
+		(!textBinding.LocalAIConfigIntent && targetMissing) || resolved.ContextWindowTokens == 0 ||
 		strings.TrimSpace(resolved.CatalogRevision) == "" || strings.TrimSpace(resolved.ModelRevision) == "" ||
 		strings.TrimSpace(resolved.ProviderID) == "" || !validSHA256Hex(strings.TrimSpace(resolved.RouteDigest)) {
 		return fail(status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned incomplete catalog context metadata"))
@@ -295,6 +304,9 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		ConnectorID:         strings.TrimSpace(resolved.ConnectorID),
 		TargetRef:           clonePublicChatTargetRef(resolvedTargetRef),
 		SelectedParams:      clonePublicChatSelectedParams(textBinding.SelectedParams),
+		CapabilityContract:  textBinding.CapabilityContract,
+		RequiredFeatures:    append([]string(nil), textBinding.RequiredFeatures...),
+		LocalAIConfigIntent: textBinding.LocalAIConfigIntent,
 		ContextWindowTokens: resolved.ContextWindowTokens,
 		CatalogRevision:     strings.TrimSpace(resolved.CatalogRevision),
 		ModelRevision:       strings.TrimSpace(resolved.ModelRevision),
@@ -350,6 +362,9 @@ func clonePublicChatExecutionBindings(input publicChatExecutionBindings) publicC
 			ConnectorID:         strings.TrimSpace(binding.ConnectorID),
 			TargetRef:           clonePublicChatTargetRef(binding.TargetRef),
 			SelectedParams:      clonePublicChatSelectedParams(binding.SelectedParams),
+			CapabilityContract:  strings.TrimSpace(binding.CapabilityContract),
+			RequiredFeatures:    append([]string(nil), binding.RequiredFeatures...),
+			LocalAIConfigIntent: binding.LocalAIConfigIntent,
 			ContextWindowTokens: binding.ContextWindowTokens,
 			CatalogRevision:     strings.TrimSpace(binding.CatalogRevision),
 			ModelRevision:       strings.TrimSpace(binding.ModelRevision),
@@ -399,8 +414,15 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 		defer resolved.Release()
 	}
 	resolvedTargetRef := firstPublicChatTargetRef(resolved.TargetRef, binding.TargetRef)
+	if binding.LocalAIConfigIntent {
+		if resolved.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+			return publicChatExecutionBinding{}, unresolvedSharedAIConfigExecutionBindingError()
+		}
+		resolvedTargetRef = nil
+	}
+	targetMissing := resolvedTargetRef == nil || resolvedTargetRef.GetTarget() == nil
 	if strings.TrimSpace(resolved.ModelID) == "" || resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED ||
-		resolvedTargetRef == nil || resolvedTargetRef.GetTarget() == nil || resolved.ContextWindowTokens == 0 ||
+		(!binding.LocalAIConfigIntent && targetMissing) || resolved.ContextWindowTokens == 0 ||
 		strings.TrimSpace(resolved.CatalogRevision) == "" || strings.TrimSpace(resolved.ModelRevision) == "" ||
 		strings.TrimSpace(resolved.ProviderID) == "" || !validSHA256Hex(strings.TrimSpace(resolved.RouteDigest)) {
 		return publicChatExecutionBinding{}, unresolvedSharedAIConfigExecutionBindingError()
@@ -409,8 +431,10 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 		BindingAlias: firstNonEmpty(strings.TrimSpace(resolved.BindingAlias), binding.BindingAlias),
 		ModelID:      strings.TrimSpace(resolved.ModelID), RoutePolicy: resolved.RoutePolicy,
 		ConnectorID: strings.TrimSpace(resolved.ConnectorID), TargetRef: clonePublicChatTargetRef(resolvedTargetRef),
-		SelectedParams: clonePublicChatSelectedParams(binding.SelectedParams), ContextWindowTokens: resolved.ContextWindowTokens,
-		CatalogRevision: strings.TrimSpace(resolved.CatalogRevision), ModelRevision: strings.TrimSpace(resolved.ModelRevision),
+		SelectedParams: clonePublicChatSelectedParams(binding.SelectedParams), CapabilityContract: binding.CapabilityContract,
+		RequiredFeatures: append([]string(nil), binding.RequiredFeatures...), LocalAIConfigIntent: binding.LocalAIConfigIntent,
+		ContextWindowTokens: resolved.ContextWindowTokens,
+		CatalogRevision:     strings.TrimSpace(resolved.CatalogRevision), ModelRevision: strings.TrimSpace(resolved.ModelRevision),
 		ProviderID: strings.TrimSpace(resolved.ProviderID), RouteDigest: strings.TrimSpace(resolved.RouteDigest),
 	}, nil
 }

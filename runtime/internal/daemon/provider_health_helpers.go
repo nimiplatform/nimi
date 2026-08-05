@@ -17,8 +17,6 @@ const localImageProviderHealthKey = "local-image"
 
 func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
 	switch strings.TrimSpace(strings.ToLower(engineName)) {
-	case string(engine.EngineLlama):
-		return engine.EngineLlama, "NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", true
 	case string(engine.EngineMedia):
 		return engine.EngineMedia, "NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", true
 	case string(engine.EngineSpeech):
@@ -30,8 +28,6 @@ func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
 
 func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 	switch kind {
-	case engine.EngineLlama:
-		return "local", true
 	case engineManagedImageBackend:
 		return localImageProviderHealthKey, true
 	case engine.EngineMedia:
@@ -47,8 +43,6 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 
 func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
 	switch kind {
-	case engine.EngineLlama:
-		return "llama", "NIMI_RUNTIME_LOCAL_LLAMA_API_KEY", true
 	case engine.EngineMedia:
 		return "media", "NIMI_RUNTIME_LOCAL_MEDIA_API_KEY", true
 	case engine.EngineSpeech:
@@ -62,8 +56,6 @@ func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
 
 func engineKindForName(engineName string) (engine.EngineKind, bool) {
 	switch strings.TrimSpace(strings.ToLower(engineName)) {
-	case string(engine.EngineLlama):
-		return engine.EngineLlama, true
 	case string(engine.EngineMedia):
 		return engine.EngineMedia, true
 	case string(engine.EngineSpeech):

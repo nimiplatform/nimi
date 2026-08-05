@@ -399,6 +399,10 @@ func managedLocalImageExecutionFailureDetail(detail string) string {
 	return "managed local image backend validation failed: " + trimmed
 }
 
+func isLlamaLocalAsset(model *runtimev1.LocalAssetRecord) bool {
+	return model != nil && strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama")
+}
+
 func isManagedSupervisedLlamaModel(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
 	if model == nil {
 		return false
@@ -460,10 +464,10 @@ func shouldHealManagedSupervisedRuntimeMode(model *runtimev1.LocalAssetRecord, m
 	if model == nil {
 		return false
 	}
-	isManagedLlama := strings.EqualFold(managedRuntimeEngineForModel(model), "llama")
+	isManagedGGUFLLM := strings.EqualFold(managedRuntimeEngineForModel(model), "llama")
 	isManagedImage := isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind())
 	isManagedSpeech := strings.EqualFold(managedRuntimeEngineForModel(model), "speech")
-	if !isManagedLlama && !isManagedImage && !isManagedSpeech {
+	if !isManagedGGUFLLM && !isManagedImage && !isManagedSpeech {
 		return false
 	}
 	if !isManagedSpeech && strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
@@ -592,7 +596,7 @@ func (s *Service) HasManagedSupervisedImageModels() bool {
 	return false
 }
 
-func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model *runtimev1.LocalAssetRecord) (string, bool, error) {
+func (s *Service) ensureManagedLocalModelBundleReady(_ context.Context, model *runtimev1.LocalAssetRecord) (string, bool, error) {
 	if model == nil {
 		return "", false, fmt.Errorf("managed local model is unavailable")
 	}
@@ -612,7 +616,6 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		return "", false, nil
 	}
-	shouldSyncManagedLlamaAssets := isManagedSupervisedLlamaModel(model, mode)
 	shouldValidateManagedSpeechBundle := isManagedSupervisedSpeechModel(model, mode)
 	if !shouldValidateManagedSpeechBundle && strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
 		return "", false, nil
@@ -626,19 +629,9 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 				if validateErr := validateManagedSpeechBundleFiles(modelsRoot, model); validateErr != nil {
 					err = validateErr
 				} else {
-					if shouldSyncManagedLlamaAssets {
-						if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
-							return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
-						}
-					}
 					return entryPath, false, nil
 				}
 			} else {
-				if shouldSyncManagedLlamaAssets {
-					if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
-						return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
-					}
-				}
 				return entryPath, false, nil
 			}
 		} else {
@@ -658,11 +651,6 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 		if shouldValidateManagedSpeechBundle {
 			if validateErr := validateManagedSpeechBundleFiles(modelsRoot, model); validateErr != nil {
 				return "", true, fmt.Errorf("validate repaired managed speech bundle: %w", validateErr)
-			}
-		}
-		if shouldSyncManagedLlamaAssets {
-			if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
-				return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
 			}
 		}
 		return entryPath, true, nil

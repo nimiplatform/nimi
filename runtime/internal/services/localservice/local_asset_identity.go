@@ -33,7 +33,7 @@ func localAssetIdentityCandidates(identity string) []string {
 		}
 		add(trimmed)
 		lower := strings.ToLower(trimmed)
-		for _, prefix := range []string{"local/", "media/", "llama/", "speech/", "sidecar/"} {
+		for _, prefix := range []string{"local/", "media/", "speech/", "sidecar/"} {
 			if strings.HasPrefix(lower, prefix) {
 				expand(trimmed[len(prefix):])
 				return

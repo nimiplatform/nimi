@@ -292,9 +292,6 @@ func (s *Service) RemoveLocalAsset(_ context.Context, req *runtimev1.RemoveLocal
 	if err != nil {
 		return nil, err
 	}
-	if syncErr := s.SyncManagedLlamaAssets(context.Background()); syncErr != nil {
-		s.logger.Warn("sync llama assets after remove failed", "local_model_id", localModelID, "error", syncErr)
-	}
 	s.cleanupRemovedModelBundle(current)
 	return &runtimev1.RemoveLocalAssetResponse{Asset: model}, nil
 }

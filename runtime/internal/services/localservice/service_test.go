@@ -54,7 +54,6 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 		t.Fatalf("set test product version: %v", err)
 	}
 	svc.SetProductControlDataRootConfigWriter(func(string) (bool, error) { return false, nil })
-	svc.managedLlamaModelsConfigPath = filepath.Join(testRuntimeRoot, "runtime", "llama-models.yaml")
 	if probe != nil {
 		svc.endpointProbe = func(ctx context.Context, _ string, endpoint string) endpointProbeResult {
 			return probe(ctx, endpoint)
@@ -73,6 +72,16 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 		svc.Close()
 	})
 	return svc
+}
+
+func setLocalModelsPathForTest(t *testing.T, svc *Service, modelsPath string) {
+	t.Helper()
+	if svc == nil {
+		t.Fatal("local service is nil")
+	}
+	svc.mu.Lock()
+	svc.localModelsPath = resolveLocalModelsPath(modelsPath)
+	svc.mu.Unlock()
 }
 
 type m1LocalTransferTestStream struct {
@@ -211,22 +220,6 @@ func TestM1LocalProductPostconditionMatrix(t *testing.T) {
 		case <-time.After(25 * time.Millisecond):
 		}
 	})
-}
-
-func TestNewDerivesManagedLlamaConfigFromRuntimeState(t *testing.T) {
-	stateRoot := t.TempDir()
-	statePath := filepath.Join(stateRoot, "local-state.json")
-	t.Setenv("HOME", t.TempDir())
-	t.Setenv("USERPROFILE", t.TempDir())
-	svc, err := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
-	if err != nil {
-		t.Fatalf("create local service: %v", err)
-	}
-	t.Cleanup(func() { svc.Close() })
-	want := filepath.Join(stateRoot, "llama-models.yaml")
-	if got := svc.managedLlamaModelsConfigPath; got != want {
-		t.Fatalf("managed llama config path = %q, want Runtime state path %q", got, want)
-	}
 }
 
 func TestNewUsesConfiguredLocalModelsPathForUnregisteredScan(t *testing.T) {
@@ -404,56 +397,6 @@ func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModel
 	return imported.GetAsset()
 }
 
-func addManagedLlamaAssetForTest(
-	t *testing.T,
-	svc *Service,
-	localAssetID string,
-	assetID string,
-	logicalModelID string,
-	entry string,
-	status runtimev1.LocalAssetStatus,
-	warmState runtimev1.LocalWarmState,
-) *runtimev1.LocalAssetRecord {
-	t.Helper()
-	manifestPath := writeManagedGGUFBundleForTest(t, svc.localModelsPath, logicalModelID, assetID, entry)
-	record := &runtimev1.LocalAssetRecord{
-		LocalAssetId:    localAssetID,
-		AssetId:         assetID,
-		Kind:            runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		Capabilities:    []string{"chat"},
-		Engine:          "llama",
-		Entry:           entry,
-		License:         "unknown",
-		Source:          &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(manifestPath), Revision: "local"},
-		Status:          status,
-		InstalledAt:     nowISO(),
-		UpdatedAt:       nowISO(),
-		HealthDetail:    "",
-		Endpoint:        defaultLocalEndpoint,
-		LogicalModelId:  logicalModelID,
-		PreferredEngine: "llama",
-		BundleState:     runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY,
-		WarmState:       warmState,
-	}
-	svc.mu.Lock()
-	svc.assets[localAssetID] = cloneLocalAsset(record)
-	svc.setModelRuntimeModeLocked(localAssetID, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
-	svc.persistStateLocked()
-	svc.mu.Unlock()
-	return record
-}
-
-func recordManagedLlamaWarmKeyForTest(t *testing.T, svc *Service, model *runtimev1.LocalAssetRecord, endpoint string) {
-	t.Helper()
-	key := warmCacheKey(
-		model,
-		endpoint,
-		normalizeWarmResolvedModelID(model.GetAssetId()),
-		warmCapabilityForModel(model),
-	)
-	svc.recordWarmKey(key)
-}
-
 func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Service, assetID string) *runtimev1.LocalAssetRecord {
 	t.Helper()
 	manifestPath := filepath.Join(t.TempDir(), "asset.manifest.json")
@@ -522,7 +465,7 @@ func TestLocalImportVideoModelRejectsManagedLoopbackEndpointOnAttachedOnlyHost(t
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", false)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "video-model-loopback", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_video_turbo_loopback",
@@ -561,7 +504,7 @@ func TestLocalImportManifestDuplicateCreatesDistinctAssetEndpoint(t *testing.T) 
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", false)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "video-model-rebind", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_video_turbo_rebind",
@@ -651,7 +594,7 @@ func TestStartLocalModelAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
 	})
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 	model, err := svc.installLocalAssetRecord(
 		"local-import/z_video_turbo_fastfail",
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
@@ -711,7 +654,7 @@ func TestCheckLocalAssetHealthAttachedLoopbackConfigFailsBeforeProbe(t *testing.
 	})
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 	model, err := svc.installLocalAssetRecord(
 		"local-import/z_video_turbo_health",
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
@@ -765,7 +708,7 @@ func TestCheckLocalAssetHealthAttachedLoopbackConfigFailsBeforeProbe(t *testing.
 func TestLocalImportManifestRejectsSymlinkOutsideModelsRoot(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	outsideDir := t.TempDir()
 	outsideManifest := filepath.Join(outsideDir, "asset.manifest.json")

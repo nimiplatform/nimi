@@ -182,7 +182,7 @@ func resolvedBundleManifestCandidates(resolvedRoot string, modelID string) []str
 func trimPublicLocalPrefix(modelID string) (string, bool) {
 	normalized := strings.TrimSpace(modelID)
 	lower := strings.ToLower(normalized)
-	for _, prefix := range []string{"local/", "llama/", "media/", "speech/", "sidecar/"} {
+	for _, prefix := range []string{"local/", "media/", "speech/", "sidecar/"} {
 		if strings.HasPrefix(lower, prefix) {
 			return strings.TrimSpace(normalized[len(prefix):]), true
 		}

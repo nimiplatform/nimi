@@ -3,16 +3,17 @@ package ai
 import (
 	"context"
 	"fmt"
+	"os"
+	"sort"
+	"strings"
+	"time"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	runtimecfg "github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
-	"os"
-	"sort"
-	"strings"
-	"time"
 )
 
 const (
@@ -60,7 +61,7 @@ type scenarioStreamingSpeechProvider = nimillm.StreamingSpeechProvider
 
 // Config controls local/cloud provider connectivity.
 type Config struct {
-	LocalProviders        map[string]nimillm.ProviderCredentials // "llama", "media", "speech", "sidecar"
+	LocalProviders        map[string]nimillm.ProviderCredentials // "media", "speech", "sidecar"
 	CloudProviders        map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
 	ProviderDefaultModels map[string]string
 	DefaultLocalTextModel string
@@ -126,11 +127,6 @@ func buildCloudProviderEnvBindings() []struct {
 
 func loadConfigFromEnv() Config {
 	localProviders := make(map[string]nimillm.ProviderCredentials)
-	localLlamaBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"))
-	localLlamaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
-	if localLlamaBase != "" || localLlamaKey != "" {
-		localProviders["llama"] = nimillm.ProviderCredentials{BaseURL: localLlamaBase, APIKey: localLlamaKey}
-	}
 	localMediaBase := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"))
 	localMediaKey := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
 	if localMediaBase != "" || localMediaKey != "" {
@@ -222,11 +218,9 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	cloudProvider := nimillm.NewCloudProvider(normalized.toCloudConfig(), registry, aiHealth)
 
-	llamaCreds := normalized.LocalProviders["llama"]
 	mediaCreds := normalized.LocalProviders["media"]
 	speechCreds := normalized.LocalProviders["speech"]
 	sidecarCreds := normalized.LocalProviders["sidecar"]
-	llamaBackend := newLocalBackend("local-llama", llamaCreds, normalized)
 	mediaBackend := newLocalBackend("local-media", mediaCreds, normalized)
 	speechBackend := newLocalBackend("local-speech", speechCreds, normalized)
 	mediaDiffusersBackend := newLocalBackend("local-media-fallback", mediaCreds, normalized)
@@ -250,7 +244,6 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 	}
 	return &routeSelector{
 		local: &localProvider{
-			llama:          llamaBackend,
 			media:          mediaBackend,
 			speech:         speechBackend,
 			mediaDiffusers: mediaDiffusersBackend,

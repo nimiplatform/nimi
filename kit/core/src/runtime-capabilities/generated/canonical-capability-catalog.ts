@@ -184,12 +184,7 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       table: 'provider-capabilities',
       capability: 'text.embed',
     }),
-    additionalRuntimeTables: Object.freeze([
-      Object.freeze({
-        table: 'local-adapter-routing',
-        capability: 'text.embed',
-      }),
-    ]),
+    additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
       title: 'ModelConfig.capability.textEmbed.title',
       subtitle: 'ModelConfig.capability.textEmbed.subtitle',
@@ -212,12 +207,7 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       table: 'provider-capabilities',
       capability: 'text.generate',
     }),
-    additionalRuntimeTables: Object.freeze([
-      Object.freeze({
-        table: 'local-adapter-routing',
-        capability: 'text.generate',
-      }),
-    ]),
+    additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
       title: 'ModelConfig.capability.textGenerate.title',
       subtitle: 'ModelConfig.capability.textGenerate.subtitle',
@@ -373,39 +363,9 @@ export const CANONICAL_CAPABILITY_DEFERRED: ReadonlyArray<CanonicalCapabilityDef
     sourceRule: 'P-CAPCAT-003',
   }),
   Object.freeze({
-    capability: 'audio.understand',
-    table: 'local-adapter-routing',
-    reason: 'Audio-understanding route admitted by llama_native_adapter but not yet admitted as a cross-layer CanonicalCapabilityId; consumers currently consume transcription via audio.transcribe.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'chat',
-    table: 'local-adapter-routing',
-    reason: 'Legacy alias token emitted by llama_native_adapter route; the canonical identity for conversational text is text.generate (P-CAPCAT-001). The runtime route remains admitted while the adapter migrates off the alias.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'embed',
-    table: 'local-adapter-routing',
-    reason: 'Short-form alias emitted by llama_native_adapter embedding route; canonical identity is text.embed. Kept admitted only as a runtime route token.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'embedding',
-    table: 'local-adapter-routing',
-    reason: 'Legacy alias token for llama_native_adapter embedding route; canonical identity is text.embed. Runtime route stays admitted until the adapter rename lands.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
     capability: 'i2v',
     table: 'local-adapter-routing',
     reason: 'Image-to-video route token emitted by media_native_adapter; canonical identity for cross-layer video generation is video.generate. Kept as a runtime-only token pending adapter rename.',
-    sourceRule: 'P-CAPCAT-003',
-  }),
-  Object.freeze({
-    capability: 'image.understand',
-    table: 'local-adapter-routing',
-    reason: 'Image-understanding route admitted by llama_native_adapter but not yet admitted as a cross-layer CanonicalCapabilityId; consumers today obtain vision context through text.generate.vision instead.',
     sourceRule: 'P-CAPCAT-003',
   }),
   Object.freeze({

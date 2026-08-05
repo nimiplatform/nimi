@@ -146,7 +146,7 @@ func testResolveManagedMediaImageProfileDescriptorAcrossRestart(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
-	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	setLocalModelsPathForTest(t, svc, modelsRoot)
 
 	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
 	if err != nil {

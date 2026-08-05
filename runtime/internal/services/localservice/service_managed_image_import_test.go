@@ -19,7 +19,7 @@ import (
 func TestLocalImportManifestValidation(t *testing.T) {
 	svc := newTestService(t)
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", false)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 
 	invalidPath := filepath.Join(tmpDir, "resolved", "nimi", "invalid", "asset.manifest.json")
 	if err := os.MkdirAll(filepath.Dir(invalidPath), 0o755); err != nil {
@@ -202,8 +202,7 @@ func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testin
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	setNvidiaGPUProbeForTest(t, true)
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
-	svc.SetManagedLlamaEndpoint("http://127.0.0.1:57510/v1")
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_image_turbo-Q4_K",
@@ -267,7 +266,7 @@ func TestLocalImportImageModelSupportsAppleSiliconManagedImageHost(t *testing.T)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-m4", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_image_turbo-Q4_K",
@@ -309,7 +308,7 @@ func TestLocalImportImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
 	setNvidiaGPUProbeForTest(t, true)
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-linux", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_image_turbo-Q4_K",
@@ -352,10 +351,10 @@ func TestLocalImportImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.
 	}
 }
 
-func TestImportLocalAssetAutoDetectsMMProjAndGemma4ArchitectureWithoutManifestFiles(t *testing.T) {
+func TestImportLocalAssetDoesNotProjectMMProjPathConfig(t *testing.T) {
 	svc := newTestService(t)
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "plain-import", "asset.manifest.json")
 	if err := os.MkdirAll(filepath.Join(filepath.Dir(manifestPath), "weights"), 0o755); err != nil {
@@ -396,10 +395,8 @@ func TestImportLocalAssetAutoDetectsMMProjAndGemma4ArchitectureWithoutManifestFi
 	if got := resp.GetAsset().GetFamily(); got != "gemma" {
 		t.Fatalf("family = %q, want gemma", got)
 	}
-	engineConfig := resp.GetAsset().GetEngineConfig().AsMap()
-	llama, _ := engineConfig["llama"].(map[string]any)
-	if got, _ := llama["mmproj"].(string); got != "resolved/nimi/plain-import/mmproj-vision.gguf" {
-		t.Fatalf("engine_config.llama.mmproj = %q", got)
+	if config := resp.GetAsset().GetEngineConfig(); config != nil && len(config.GetFields()) != 0 {
+		t.Fatalf("import projected retired mmproj path config: %+v", config)
 	}
 }
 
@@ -415,7 +412,7 @@ func TestLocalStartManagedImageModelSkipsMediaProxyForNativeBinaryDirectBackend(
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
 	svc.SetManagedImageBackendHealth(true, "image backend active")
 	mgr := &mockEngineManager{}
@@ -571,7 +568,7 @@ func TestStartLocalAssetFailsClosedForUnsupportedImportedGGUFImage(t *testing.T)
 	setNvidiaGPUProbeForTest(t, true)
 
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-linux-start", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_image_turbo-Q4_K",
@@ -630,7 +627,7 @@ func TestStartLocalAssetFailsClosedWhenManagedImageBackendTargetUnavailable(t *t
 	setNvidiaGPUProbeForTest(t, true)
 
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	svc.SetManagedMediaEndpoint("http://127.0.0.1:8321/v1")
 	svc.SetManagedImageBackendConfig(false, "")
 	mgr := &mockEngineManager{sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
@@ -761,7 +758,7 @@ func TestCheckLocalAssetHealthFailsClosedForUnsupportedImportedGGUFImage(t *test
 	setNvidiaGPUProbeForTest(t, true)
 
 	tmpDir := t.TempDir()
-	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	setLocalModelsPathForTest(t, svc, tmpDir)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-linux-health", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_image_turbo-Q4_K",

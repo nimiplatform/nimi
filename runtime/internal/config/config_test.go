@@ -265,90 +265,13 @@ func TestLoadEngineConfigFromFile(t *testing.T) {
 	}
 }
 
-func TestLoadAutoManagesLlamaForLoopbackProvider(t *testing.T) {
+func TestLoadRejectsAmbientLlamaEndpoint(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "runtime-config.json"))
 	clearRuntimeConfigEnv(t)
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
-	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY", "llama-key")
-	setLlamaSupervisedPlatformForTest(t, true, "linux/amd64")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if !cfg.EngineLlamaEnabled {
-		t.Fatalf("llama should be auto-enabled for loopback local endpoint")
-	}
-	if !cfg.EngineLlamaAutoManaged {
-		t.Fatalf("llama should be marked auto-managed for loopback local endpoint")
-	}
-	if cfg.EngineLlamaPort != 2234 {
-		t.Fatalf("llama port should be inferred from loopback endpoint: got=%d want=2234", cfg.EngineLlamaPort)
-	}
-}
-
-func TestLoadDoesNotAutoManageLlamaForLoopbackProviderOnUnsupportedPlatform(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "runtime-config.json"))
-	clearRuntimeConfigEnv(t)
-	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
-	setLlamaSupervisedPlatformForTest(t, false, "windows/amd64")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.EngineLlamaEnabled {
-		t.Fatalf("llama should stay disabled on unsupported supervised platforms")
-	}
-	if cfg.EngineLlamaAutoManaged {
-		t.Fatalf("llama should not be marked auto-managed on unsupported supervised platforms")
-	}
-}
-
-func TestLoadDoesNotAutoManageLlamaForNonLoopbackProvider(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "runtime-config.json"))
-	clearRuntimeConfigEnv(t)
-	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "https://example.com/v1")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.EngineLlamaEnabled {
-		t.Fatalf("llama should remain disabled for non-loopback endpoint")
-	}
-	if cfg.EngineLlamaAutoManaged {
-		t.Fatalf("llama should not be marked auto-managed for non-loopback endpoint")
-	}
-}
-
-func TestLoadLlamaExplicitEnabledFalseDisablesAutoManagement(t *testing.T) {
-	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
-	configBody := `{
-  "schemaVersion": 1,
-  "engines": {
-    "llama": {
-      "enabled": false
-    }
-  }
-}`
-	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
-	}
-
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
-	clearRuntimeConfigEnv(t)
-	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.EngineLlamaEnabled {
-		t.Fatalf("explicit engines.llama.enabled=false must override auto-management")
-	}
-	if cfg.EngineLlamaAutoManaged {
-		t.Fatalf("auto-managed flag should be false when llama.enabled is explicitly configured")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL") {
+		t.Fatalf("Load error = %v, want retired ambient llama endpoint rejection", err)
 	}
 }
 
@@ -376,9 +299,6 @@ func TestLoadDisablesExplicitLlamaEnableOnUnsupportedPlatform(t *testing.T) {
 	}
 	if cfg.EngineLlamaEnabled {
 		t.Fatalf("explicit supervised llama should be disabled on unsupported platforms")
-	}
-	if cfg.EngineLlamaAutoManaged {
-		t.Fatalf("unsupported platforms must not mark llama auto-managed")
 	}
 }
 
@@ -408,57 +328,6 @@ func TestLoadDisablesExplicitMediaEnableOnUnsupportedPlatform(t *testing.T) {
 	if cfg.EngineMediaEnabled {
 		t.Fatalf("explicit supervised media should be disabled when neither media nor llama supervised platforms are supported")
 	}
-}
-
-func TestLoadAutoManagedLlamaPortInferenceFallbackAndOverride(t *testing.T) {
-	t.Run("fallback default port", func(t *testing.T) {
-		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "runtime-config.json"))
-		clearRuntimeConfigEnv(t)
-		t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://localhost/v1")
-		setLlamaSupervisedPlatformForTest(t, true, "linux/amd64")
-
-		cfg, err := Load()
-		if err != nil {
-			t.Fatalf("Load returned error: %v", err)
-		}
-		if !cfg.EngineLlamaEnabled || !cfg.EngineLlamaAutoManaged {
-			t.Fatalf("llama should be auto-managed for localhost endpoint")
-		}
-		if cfg.EngineLlamaPort != 1234 {
-			t.Fatalf("llama port fallback mismatch: got=%d want=1234", cfg.EngineLlamaPort)
-		}
-	})
-
-	t.Run("explicit port override", func(t *testing.T) {
-		configPath := filepath.Join(t.TempDir(), "runtime-config.json")
-		configBody := `{
-  "schemaVersion": 1,
-  "engines": {
-    "llama": {
-      "port": 3344
-    }
-  }
-}`
-		if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
-			t.Fatalf("write config file: %v", err)
-		}
-
-		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
-		clearRuntimeConfigEnv(t)
-		t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
-		setLlamaSupervisedPlatformForTest(t, true, "linux/amd64")
-
-		cfg, err := Load()
-		if err != nil {
-			t.Fatalf("Load returned error: %v", err)
-		}
-		if !cfg.EngineLlamaEnabled || !cfg.EngineLlamaAutoManaged {
-			t.Fatalf("llama should be auto-managed for loopback endpoint")
-		}
-		if cfg.EngineLlamaPort != 3344 {
-			t.Fatalf("explicit llama port must override inferred provider port: got=%d want=3344", cfg.EngineLlamaPort)
-		}
-	})
 }
 
 func TestLoadEnvOverridesConfigFile(t *testing.T) {

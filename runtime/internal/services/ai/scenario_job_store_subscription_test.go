@@ -378,9 +378,8 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
-			ModelId:       "local/qwen",
-			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       "gpt-4o-mini",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,

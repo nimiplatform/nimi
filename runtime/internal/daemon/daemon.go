@@ -4,6 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+	"time"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
@@ -16,14 +25,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	"log/slog"
-	"net"
-	"net/http"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"sync"
-	"time"
 )
 
 // Daemon wires runtime servers and health state lifecycle.
@@ -230,8 +231,13 @@ func newDaemon(cfg config.Config, logger *slog.Logger, version string, newGRPCSe
 	if err != nil {
 		return nil, err
 	}
-	if localSvc, agentSvc := grpcServer.LocalService(), grpcServer.AgentService(); localSvc != nil && agentSvc != nil {
-		agentSvc.SetMachineLocalExecutionResolver(localSvc)
+	if localSvc := grpcServer.LocalService(); localSvc != nil {
+		if agentSvc := grpcServer.AgentService(); agentSvc != nil {
+			agentSvc.SetMachineLocalExecutionResolver(localSvc)
+		}
+		if aiSvc := grpcServer.AIService(); aiSvc != nil {
+			aiSvc.SetLocalExecutionResolver(localSvc)
+		}
 	}
 	listEmbeddingAssets := func(ctx context.Context) ([]*runtimev1.LocalAssetRecord, error) {
 		localSvc := grpcServer.LocalService()
@@ -608,9 +614,6 @@ func (d *Daemon) consumeStartupDegradedReason() string {
 }
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	svc := d.grpc.LocalService()
-	managedLlamaAssetsPresent := svc != nil && svc.HasManagedSupervisedLlamaModels()
-	managedLlamaRegistrationEnabled := d.cfg.EngineLlamaEnabled || managedLlamaAssetsPresent
-	bootstrapManagedLlama := d.cfg.EngineLlamaEnabled
 	managedImageAssetsPresent := svc != nil && svc.HasManagedSupervisedImageModels()
 	onState := func(kind engine.EngineKind, status engine.EngineStatus, detail string) {
 		d.onEngineStateChange(string(kind), string(status), detail)
@@ -628,7 +631,10 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		Environments: strings.TrimSpace(d.cfg.ManagedRoots.Environments),
 		Dependencies: strings.TrimSpace(d.cfg.ManagedRoots.Dependencies),
 	}
-	engineWorkRequested := managedLlamaRegistrationEnabled || managedImageAssetsPresent ||
+	// The llama flag requests only private manager setup used later by
+	// ExecutionHost; it never materializes a package, bootstraps a model, or
+	// creates an ambient provider route.
+	engineWorkRequested := d.cfg.EngineLlamaEnabled || managedImageAssetsPresent ||
 		d.cfg.EngineMediaEnabled || d.cfg.EngineSpeechEnabled || d.cfg.EngineSidecarEnabled
 	mgr, err := managerFactory(d.logger, engineRoots, onState)
 	if err != nil {
@@ -647,19 +653,18 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		return
 	}
 	d.engineMgr = mgr
+	if aiSvc := d.grpc.AIService(); aiSvc != nil {
+		aiSvc.SetLocalTextExecutionHost(engine.NewExecutionHost(mgr, d.logger))
+	}
 	if localStatePath := strings.TrimSpace(d.cfg.LocalStatePath); filepath.IsAbs(localStatePath) {
 		mgr.SetRuntimeWorkRoot(filepath.Join(filepath.Dir(localStatePath), "engine-work"))
 	}
-	managedLlamaConfigPath := resolveManagedLlamaModelsConfigPath(d.cfg.LocalStatePath)
-	mgr.SetLlamaPaths(d.cfg.LocalModelsPath, managedLlamaConfigPath)
 	if svc != nil {
-		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, managedLlamaRegistrationEnabled)
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 	}
 	if !engineWorkRequested {
 		return
 	}
-	skipLlamaBootstrap := false
 	mediaHostSupport, _ := d.detectMediaHostSupport()
 	d.cacheImageMatrix()
 	managedImageSelection := d.resolvedImageMatrix
@@ -708,37 +713,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	}
 	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
 	if svc != nil {
-		if bootstrapManagedLlama {
-			if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
-				d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
-				skipLlamaBootstrap = true
-			} else if !svc.ManagedLlamaRouterReady() {
-				d.logger.Info("managed llama bootstrap deferred; no runtime-verified llama model preset is ready")
-				skipLlamaBootstrap = true
-			}
-		}
-		if bootstrapManagedLlama && !skipLlamaBootstrap {
-			cfg := engine.DefaultLlamaConfig()
-			if strings.TrimSpace(d.cfg.EngineLlamaVersion) != "" {
-				cfg.Version = d.cfg.EngineLlamaVersion
-			}
-			if _, err := mgr.RequireEngineBinaryDependency(ctx, cfg); err != nil {
-				if errors.Is(err, engine.ErrEngineBinaryDependencyNotReady) {
-					d.logger.Info("managed llama bootstrap deferred; local environment dependency is not ready",
-						"detail", err.Error(),
-					)
-					skipLlamaBootstrap = true
-				} else {
-					d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("verify managed llama engine package: %v", err))
-					skipLlamaBootstrap = true
-				}
-			}
-		}
-		if bootstrapManagedLlama && !skipLlamaBootstrap {
-			svc.SetManagedLlamaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
-		} else {
-			svc.SetManagedLlamaEndpoint("")
-		}
 		if managedMediaLoopback {
 			svc.SetManagedMediaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineMediaPort))
 		} else {
@@ -780,10 +754,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 				svc.MarkManagedEngineUsed(string(kind), "engine_bootstrap")
 			}
 		}()
-	}
-	if bootstrapManagedLlama && !skipLlamaBootstrap {
-		bootstrap(engine.EngineLlama, d.cfg.EngineLlamaVersion, d.cfg.EngineLlamaPort,
-			"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")
 	}
 	if managedMediaLoopback {
 		bootstrap(engine.EngineMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,

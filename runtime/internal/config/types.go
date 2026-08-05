@@ -143,13 +143,10 @@ type Config struct {
 	// the bundled install path.
 	AppBundledArtifactsRoot string
 
-	// EngineLlamaEnabled enables the supervised llama engine.
-	// Default: false. (K-LENG-004)
+	// EngineLlamaEnabled requests private llama ExecutionHost manager setup.
+	// Engine package materialization remains an explicit local-environment job;
+	// this flag never installs, starts, warms, or probes a model. Default: false.
 	EngineLlamaEnabled bool
-
-	// EngineLlamaAutoManaged reports whether llama supervised mode was
-	// inferred from a loopback llama endpoint.
-	EngineLlamaAutoManaged bool
 
 	// EngineLlamaVersion is the managed llama engine version.
 	// Default: "b8645". (K-LENG-004)

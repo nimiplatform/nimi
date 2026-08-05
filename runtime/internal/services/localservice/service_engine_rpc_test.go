@@ -41,30 +41,32 @@ func TestEngineRPCsReturnFailedPreconditionWithoutManager(t *testing.T) {
 	assertGRPCCode(t, err, "GetEngineStatus", codes.FailedPrecondition)
 }
 
-func TestEngineRPCsWithMockManager(t *testing.T) {
+func TestEngineRPCsKeepLlamaHostPrivate(t *testing.T) {
+	mgr := &mockEngineManager{}
 	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{})
+	svc.SetEngineManager(mgr)
 	ctx := context.Background()
 
-	// ListEngines should return the mock engines.
 	resp, err := svc.ListEngines(ctx, &runtimev1.ListEnginesRequest{})
-	if err != nil {
-		t.Fatalf("ListEngines: %v", err)
+	if err != nil || len(resp.GetEngines()) != 0 {
+		t.Fatalf("ListEngines leaked private llama Host: %+v, %v", resp, err)
 	}
-	if len(resp.GetEngines()) != 1 {
-		t.Fatalf("expected 1 engine, got %d", len(resp.GetEngines()))
+	for operation, err := range map[string]error{
+		"start": func() error {
+			_, err := svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: "llama"})
+			return err
+		}(),
+		"stop": func() error { _, err := svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: "llama"}); return err }(),
+		"status": func() error {
+			_, err := svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "llama"})
+			return err
+		}(),
+	} {
+		assertGRPCCode(t, err, operation, codes.FailedPrecondition)
+		assertGRPCReasonCode(t, err, operation, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-	if resp.GetEngines()[0].GetEngine() != "llama" {
-		t.Errorf("expected engine llama, got %s", resp.GetEngines()[0].GetEngine())
-	}
-
-	// GetEngineStatus should return the mock engine status.
-	statusResp, err := svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "llama"})
-	if err != nil {
-		t.Fatalf("GetEngineStatus: %v", err)
-	}
-	if statusResp.GetEngine().GetStatus() != runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_HEALTHY {
-		t.Errorf("expected healthy status, got %s", statusResp.GetEngine().GetStatus())
+	if mgr.startCalls != 0 || mgr.stopCalls != 0 {
+		t.Fatalf("private llama RPC touched Host manager: start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
 	}
 }
 
@@ -409,37 +411,6 @@ func TestEngineRPCEnsureEngineFailsClosedToLocalEnvironmentJobControl(t *testing
 	assertGRPCReasonCode(t, err, "EnsureEngine", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
-func TestEngineRPCStartEngineSuccess(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{})
-
-	resp, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{
-		Engine: "llama",
-		Port:   5000,
-	})
-	if err != nil {
-		t.Fatalf("StartEngine: %v", err)
-	}
-	desc := resp.GetEngine()
-	if desc.GetEngine() != "llama" {
-		t.Errorf("expected engine llama, got %s", desc.GetEngine())
-	}
-}
-
-func TestEngineRPCStopEngineSuccess(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{})
-
-	resp, err := svc.StopEngine(context.Background(), &runtimev1.StopEngineRequest{Engine: "llama"})
-	if err != nil {
-		t.Fatalf("StopEngine: %v", err)
-	}
-	desc := resp.GetEngine()
-	if desc.GetStatus() != runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_STOPPED {
-		t.Errorf("expected STOPPED status, got %s", desc.GetStatus())
-	}
-}
-
 func TestEngineRPCGetEngineStatusNotFound(t *testing.T) {
 	svc := newTestService(t)
 	upstreamErr := errors.New(`engine missing not started at C:\private\models\secret.gguf`)
@@ -486,17 +457,6 @@ func TestEngineRPCStartSpeechEngineHostFailureUsesSpeechReason(t *testing.T) {
 	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "speech"})
 	assertGRPCCode(t, err, "StartEngine(speech_host_failure)", codes.FailedPrecondition)
 	assertGRPCReasonCode(t, err, "StartEngine(speech_host_failure)", runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED)
-}
-
-func TestEngineRPCStartEngineDependencyNotReadyPointsToLocalEnvironmentJobControl(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{
-		startErr: engine.ErrEngineBinaryDependencyNotReady,
-	})
-
-	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "StartEngine(dependency_not_ready)", codes.FailedPrecondition)
-	assertGRPCReasonCode(t, err, "StartEngine(dependency_not_ready)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func TestLocalManagementRPCsReturnStructuredModelIDErrors(t *testing.T) {
@@ -557,28 +517,6 @@ func TestLocalManagementRPCsUseReasonCodesForServiceIDs(t *testing.T) {
 	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{ServiceId: "svc_missing"})
 	assertGRPCCode(t, err, "RemoveLocalService(not_found)", codes.NotFound)
 	assertGRPCReasonCode(t, err, "RemoveLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
-}
-
-func TestEngineRPCStartEngineAlreadyRunning(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{
-		startErr: fmt.Errorf("engine llama already running"),
-	})
-
-	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "StartEngine(already_running)", codes.AlreadyExists)
-	assertGRPCReasonCode(t, err, "StartEngine(already_running)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-}
-
-func TestEngineRPCStopEngineNotStarted(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{
-		stopErr: fmt.Errorf("engine llama not started"),
-	})
-
-	_, err := svc.StopEngine(context.Background(), &runtimev1.StopEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "StopEngine(not_started)", codes.NotFound)
-	assertGRPCReasonCode(t, err, "StopEngine(not_started)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 }
 
 func TestEngineRPCGetEngineStatusUnknownEngine(t *testing.T) {

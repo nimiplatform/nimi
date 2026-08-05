@@ -1,9 +1,14 @@
 package capabilitydriver
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"math"
+	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -128,11 +133,326 @@ func (driver LlamaTextDriver) ValidateCombination(requirements []*runtimev1.Loca
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
+func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*TextInvocationPlan, error) {
+	bindings, hasMMProj, err := exactLlamaInvocationBindings(input.ExactBindings)
+	if err != nil {
+		return nil, invocationError(InvocationFailureInvalidBinding, err)
+	}
+	portable, reason := parsePortableConfig(input.PortableConfig, hasMMProj)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("llama portable config: %s", reason.String()))
+	}
+	requestBody, err := llamaTextRequestBody(input.Request, input.Stream, hasMMProj)
+	if err != nil {
+		return nil, err
+	}
+
+	const modelAlias = "nimi-selected-local"
+	processArgs := []string{
+		"--reasoning", "off",
+		"--model", bindings[MainGGUFRequirementID].AbsolutePath,
+		"--alias", modelAlias,
+	}
+	if companion, ok := bindings[CompanionMMProjRequirementID]; ok {
+		processArgs = append(processArgs, "--mmproj", companion.AbsolutePath)
+	}
+	if portable.contextSize > 0 {
+		processArgs = append(processArgs, "--ctx-size", strconv.Itoa(portable.contextSize))
+	}
+	if portable.cacheTypeK != "" {
+		processArgs = append(processArgs, "--cache-type-k", portable.cacheTypeK)
+	}
+	if portable.cacheTypeV != "" {
+		processArgs = append(processArgs, "--cache-type-v", portable.cacheTypeV)
+	}
+	if portable.flashAttention != nil {
+		value := "off"
+		if *portable.flashAttention {
+			value = "on"
+		}
+		processArgs = append(processArgs, "--flash-attn", value)
+	}
+	if portable.gpuLayers != nil {
+		processArgs = append(processArgs, "--n-gpu-layers", strconv.Itoa(*portable.gpuLayers))
+	}
+
+	hash := sha256.New()
+	for _, arg := range processArgs {
+		_, _ = hash.Write([]byte(arg))
+		_, _ = hash.Write([]byte{0})
+	}
+	for _, requirementID := range []string{MainGGUFRequirementID, CompanionMMProjRequirementID} {
+		binding, ok := bindings[requirementID]
+		if !ok {
+			continue
+		}
+		for _, value := range []string{binding.LocalAssetID, binding.VerifiedContentID, binding.EntrySHA256} {
+			_, _ = hash.Write([]byte(value))
+			_, _ = hash.Write([]byte{0})
+		}
+	}
+	contextWindow := uint64(4096)
+	if portable.contextSize > 0 {
+		contextWindow = uint64(portable.contextSize)
+	}
+	return &TextInvocationPlan{
+		processKey:    hex.EncodeToString(hash.Sum(nil)),
+		processArgs:   processArgs,
+		requestPath:   "/v1/chat/completions",
+		requestBody:   requestBody,
+		stream:        input.Stream,
+		contextWindow: contextWindow,
+	}, nil
+}
+
+func (LlamaTextDriver) TextContextWindow(value *structpb.Struct) (uint64, error) {
+	if value == nil {
+		return 4096, nil
+	}
+	fields := value.GetFields()
+	if reason := validatePortableExecutionOptions(fields); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return 0, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("llama portable config: %s", reason.String()))
+	}
+	if contextSize := fields["contextSize"]; contextSize != nil {
+		return uint64(contextSize.GetNumberValue()), nil
+	}
+	return 4096, nil
+}
+
+func exactLlamaInvocationBindings(values []InvocationExactBinding) (map[string]InvocationExactBinding, bool, error) {
+	bindings := make(map[string]InvocationExactBinding, len(values))
+	for _, binding := range values {
+		requirementID := strings.TrimSpace(binding.RequirementID)
+		if requirementID != binding.RequirementID || (requirementID != MainGGUFRequirementID && requirementID != CompanionMMProjRequirementID) {
+			return nil, false, fmt.Errorf("llama invocation contains an unknown requirement %q", binding.RequirementID)
+		}
+		if _, exists := bindings[requirementID]; exists {
+			return nil, false, fmt.Errorf("llama invocation contains duplicate requirement %q", requirementID)
+		}
+		if binding.LocalAssetID == "" || binding.LocalAssetID != strings.TrimSpace(binding.LocalAssetID) ||
+			binding.VerifiedContentID == "" || binding.VerifiedContentID != strings.TrimSpace(binding.VerifiedContentID) ||
+			binding.EntrySHA256 == "" || binding.EntrySHA256 != strings.TrimSpace(binding.EntrySHA256) ||
+			!canonicalInvocationSHA256(binding.VerifiedContentID, binding.EntrySHA256) ||
+			!filepath.IsAbs(binding.AbsolutePath) || filepath.Clean(binding.AbsolutePath) != binding.AbsolutePath {
+			return nil, false, fmt.Errorf("llama invocation requirement %q is not an exact absolute binding", requirementID)
+		}
+		bindings[requirementID] = binding
+	}
+	if _, exists := bindings[MainGGUFRequirementID]; !exists {
+		return nil, false, fmt.Errorf("llama invocation main GGUF binding is required")
+	}
+	if len(bindings) > 2 {
+		return nil, false, fmt.Errorf("llama invocation contains ambiguous bindings")
+	}
+	_, hasMMProj := bindings[CompanionMMProjRequirementID]
+	return bindings, hasMMProj, nil
+}
+
+func canonicalInvocationSHA256(verifiedContentID string, entrySHA256 string) bool {
+	if !strings.HasPrefix(verifiedContentID, "sha256:") || verifiedContentID != strings.ToLower(verifiedContentID) ||
+		len(verifiedContentID) != len("sha256:")+64 || entrySHA256 != strings.ToLower(entrySHA256) || len(entrySHA256) != 64 {
+		return false
+	}
+	_, verifiedErr := hex.DecodeString(strings.TrimPrefix(verifiedContentID, "sha256:"))
+	_, entryErr := hex.DecodeString(entrySHA256)
+	return verifiedErr == nil && entryErr == nil
+}
+
+func llamaTextRequestBody(spec *runtimev1.TextGenerateScenarioSpec, stream bool, hasMMProj bool) ([]byte, error) {
+	if spec == nil {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.generate request is required"))
+	}
+	if err := validateLlamaTextRequest(spec, hasMMProj); err != nil {
+		return nil, err
+	}
+	messages := make([]map[string]any, 0, len(spec.GetInput())+1)
+	if systemPrompt := strings.TrimSpace(spec.GetSystemPrompt()); systemPrompt != "" {
+		messages = append(messages, map[string]any{"role": "system", "content": systemPrompt})
+	}
+	for _, message := range spec.GetInput() {
+		projected, ok := projectLlamaTextMessage(message)
+		if ok {
+			messages = append(messages, projected)
+		}
+	}
+	if len(messages) == 0 {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.generate request has no renderable input"))
+	}
+	body := map[string]any{
+		"model":    "nimi-selected-local",
+		"messages": messages,
+		"stream":   stream,
+	}
+	if stream {
+		body["stream_options"] = map[string]any{"include_usage": true}
+	}
+	if spec.GetTemperature() > 0 {
+		body["temperature"] = spec.GetTemperature()
+	}
+	if spec.GetTopP() > 0 {
+		body["top_p"] = spec.GetTopP()
+	}
+	if spec.GetMaxTokens() > 0 {
+		body["max_tokens"] = spec.GetMaxTokens()
+	}
+	if spec.GetTopK() > 0 {
+		body["top_k"] = spec.GetTopK()
+	}
+	if spec.GetPresencePenalty() != 0 {
+		body["presence_penalty"] = spec.GetPresencePenalty()
+	}
+	if spec.GetFrequencyPenalty() != 0 {
+		body["frequency_penalty"] = spec.GetFrequencyPenalty()
+	}
+	if len(spec.GetStop()) > 0 {
+		body["stop"] = append([]string(nil), spec.GetStop()...)
+	}
+	if spec.GetSeed() != 0 {
+		body["seed"] = spec.GetSeed()
+	}
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("encode llama text request: %w", err))
+	}
+	return payload, nil
+}
+
+func validateLlamaTextRequest(spec *runtimev1.TextGenerateScenarioSpec, hasMMProj bool) error {
+	for name, value := range map[string]float64{
+		"temperature":       float64(spec.GetTemperature()),
+		"top_p":             float64(spec.GetTopP()),
+		"presence_penalty":  float64(spec.GetPresencePenalty()),
+		"frequency_penalty": float64(spec.GetFrequencyPenalty()),
+	} {
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.generate %s must be finite", name))
+		}
+	}
+	if spec.GetTemperature() < 0 || spec.GetTemperature() > 2 || spec.GetTopP() < 0 || spec.GetTopP() > 1 ||
+		spec.GetMaxTokens() < 0 || spec.GetTopK() < 0 ||
+		spec.GetPresencePenalty() < -2 || spec.GetPresencePenalty() > 2 ||
+		spec.GetFrequencyPenalty() < -2 || spec.GetFrequencyPenalty() > 2 {
+		return invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.generate sampling parameters are outside the supported range"))
+	}
+	for _, stop := range spec.GetStop() {
+		if strings.TrimSpace(stop) == "" {
+			return invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.generate stop values must be non-empty"))
+		}
+	}
+	if len(spec.GetTools()) > 0 || spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED ||
+		strings.TrimSpace(spec.GetToolChoiceName()) != "" || spec.GetIncludeRawChunks() {
+		return invocationError(InvocationFailureUnsupported, fmt.Errorf("llama text invocation does not support the requested tool or raw-chunk surface"))
+	}
+	if format := spec.GetResponseFormat(); format != nil &&
+		format.GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_UNSPECIFIED &&
+		format.GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_TEXT {
+		return invocationError(InvocationFailureUnsupported, fmt.Errorf("llama text invocation does not support the requested response format"))
+	}
+	if reasoning := spec.GetReasoning(); reasoning != nil {
+		if reasoning.GetMode() == runtimev1.ReasoningMode_REASONING_MODE_ON ||
+			reasoning.GetTraceMode() == runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_SEPARATE ||
+			reasoning.GetBudgetTokens() > 0 {
+			return invocationError(InvocationFailureUnsupported, fmt.Errorf("llama text invocation does not support requested reasoning semantics"))
+		}
+	}
+	for _, message := range spec.GetInput() {
+		for _, part := range message.GetParts() {
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT:
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+				if !hasMMProj {
+					return invocationError(InvocationFailureUnsupported, fmt.Errorf("text.generate input.image requires the configured mmproj binding"))
+				}
+			default:
+				return invocationError(InvocationFailureUnsupported, fmt.Errorf("llama text invocation does not support content part %s", part.GetType().String()))
+			}
+		}
+	}
+	return nil
+}
+
+func projectLlamaTextMessage(message *runtimev1.ChatMessage) (map[string]any, bool) {
+	if message == nil {
+		return nil, false
+	}
+	role := strings.TrimSpace(message.GetRole())
+	if role == "" {
+		role = "user"
+	}
+	projected := map[string]any{"role": role}
+	if name := strings.TrimSpace(message.GetName()); name != "" {
+		projected["name"] = name
+	}
+	if toolCallID := strings.TrimSpace(message.GetToolCallId()); toolCallID != "" {
+		projected["tool_call_id"] = toolCallID
+	}
+	if len(message.GetToolCalls()) > 0 {
+		toolCalls := make([]map[string]any, 0, len(message.GetToolCalls()))
+		for _, call := range message.GetToolCalls() {
+			if call == nil || strings.TrimSpace(call.GetName()) == "" {
+				continue
+			}
+			toolCalls = append(toolCalls, map[string]any{
+				"id":   strings.TrimSpace(call.GetId()),
+				"type": "function",
+				"function": map[string]any{
+					"name":      strings.TrimSpace(call.GetName()),
+					"arguments": call.GetArgumentsJson(),
+				},
+			})
+		}
+		if len(toolCalls) > 0 {
+			projected["tool_calls"] = toolCalls
+		}
+	}
+	if len(message.GetParts()) == 0 {
+		content := strings.TrimSpace(message.GetContent())
+		if content != "" {
+			projected["content"] = content
+		}
+		_, hasToolCalls := projected["tool_calls"]
+		_, hasToolCallID := projected["tool_call_id"]
+		return projected, content != "" || hasToolCalls || hasToolCallID
+	}
+	parts := make([]map[string]any, 0, len(message.GetParts()))
+	for _, part := range message.GetParts() {
+		switch part.GetType() {
+		case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT:
+			if text := strings.TrimSpace(part.GetText()); text != "" {
+				parts = append(parts, map[string]any{"type": "text", "text": text})
+			}
+		case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+			if imageURL := strings.TrimSpace(part.GetImageUrl().GetUrl()); imageURL != "" {
+				image := map[string]any{"url": imageURL}
+				if detail := strings.TrimSpace(part.GetImageUrl().GetDetail()); detail != "" {
+					image["detail"] = detail
+				}
+				parts = append(parts, map[string]any{"type": "image_url", "image_url": image})
+			}
+		}
+	}
+	if len(parts) > 0 {
+		projected["content"] = parts
+	}
+	_, hasToolCalls := projected["tool_calls"]
+	_, hasToolCallID := projected["tool_call_id"]
+	return projected, len(parts) > 0 || hasToolCalls || hasToolCallID
+}
+
+func invocationError(kind InvocationFailureKind, err error) error {
+	return &InvocationError{Kind: kind, Err: err}
+}
+
 type portableConfig struct {
 	mainPolicy              runtimev1.LocalCapabilityRequirementPolicy
 	mainVerifiedContentID   string
 	mmprojPolicy            runtimev1.LocalCapabilityRequirementPolicy
 	mmprojVerifiedContentID string
+	contextSize             int
+	cacheTypeK              string
+	cacheTypeV              string
+	flashAttention          *bool
+	gpuLayers               *int
 }
 
 func parsePortableConfig(value *structpb.Struct, image bool) (portableConfig, runtimev1.LocalCapabilityReason) {
@@ -155,6 +475,23 @@ func parsePortableConfig(value *structpb.Struct, image bool) (portableConfig, ru
 	var reason runtimev1.LocalCapabilityReason
 	if reason = validatePortableExecutionOptions(fields); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return portableConfig{}, reason
+	}
+	if value, exists := fields["contextSize"]; exists {
+		result.contextSize = int(value.GetNumberValue())
+	}
+	if value, exists := fields["cacheTypeK"]; exists {
+		result.cacheTypeK = value.GetStringValue()
+	}
+	if value, exists := fields["cacheTypeV"]; exists {
+		result.cacheTypeV = value.GetStringValue()
+	}
+	if value, exists := fields["flashAttention"]; exists {
+		enabled := value.GetBoolValue()
+		result.flashAttention = &enabled
+	}
+	if value, exists := fields["gpuLayers"]; exists {
+		layers := int(value.GetNumberValue())
+		result.gpuLayers = &layers
 	}
 	if result.mainPolicy, reason = portablePolicy(fields, "mainRequirementPolicy"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return portableConfig{}, reason

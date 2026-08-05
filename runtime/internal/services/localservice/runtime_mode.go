@@ -175,7 +175,7 @@ func resolveInstallRuntimeBinding(
 func (s *Service) managedEndpointForEngine(engine string) string {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "llama":
-		return s.managedLlamaEndpoint()
+		return ""
 	case "media":
 		return s.managedMediaEndpoint()
 	case "speech":
@@ -198,7 +198,7 @@ func (s *Service) managedEndpointForAsset(
 func (s *Service) managedEndpointForEngineLocked(engine string) string {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "llama":
-		return strings.TrimSpace(s.managedLlamaEndpointValue)
+		return ""
 	case "media":
 		return strings.TrimSpace(s.managedMediaEndpointValue)
 	case "speech":

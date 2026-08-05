@@ -140,9 +140,6 @@ func (s *Service) updateModelAvailabilityAndWarmStateWithReason(
 	s.assets[id] = cloneLocalAsset(current)
 	if nextStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		delete(s.assetRuntimeModes, id)
-		if s.managedLlamaLoadedLocalAssetID == id {
-			s.managedLlamaLoadedLocalAssetID = ""
-		}
 	}
 	if nextStatus != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		delete(s.assetProbeState, id)

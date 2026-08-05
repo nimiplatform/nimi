@@ -117,28 +117,6 @@ func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForLocalProvider
 	}
 }
 
-func TestValidateScenarioCapabilityRejectsUnsupportedLocalLlamaVideo(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-
-	err := svc.validateScenarioCapability(
-		context.Background(),
-		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE},
-		"llama/wan2.2",
-		nil,
-		&localProvider{},
-	)
-	if err == nil {
-		t.Fatal("expected capability guard error")
-	}
-	reasonCode, ok := grpcerr.ExtractReasonCode(err)
-	if !ok {
-		t.Fatalf("expected grpc reason code, got error: %v", err)
-	}
-	if reasonCode != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
-	}
-}
-
 func TestValidateScenarioCapabilityLocalVoiceWorkflowBoundedFamilyOnly(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 

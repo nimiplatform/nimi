@@ -161,6 +161,9 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 	if current.GetStatus() == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION)
 	}
+	if privateExecutionHostEngine(current.GetEngine()) {
+		return nil, privateExecutionHostEngineError()
+	}
 
 	profile := collectDeviceProfile()
 	warnings := startupCompatibilityWarnings(current.GetEngine(), profile)
@@ -254,6 +257,12 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 	healthRows := make([]*runtimev1.LocalServiceDescriptor, 0, len(services))
 	for _, service := range services {
 		if service == nil {
+			continue
+		}
+		if privateExecutionHostEngine(service.GetEngine()) {
+			health := cloneServiceDescriptor(service)
+			health.Detail = "execution health is evaluated by exact local capability jobs"
+			healthRows = append(healthRows, health)
 			continue
 		}
 		if isManagedImageBackendServiceID(service.GetServiceId()) {
@@ -422,14 +431,11 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 		if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE {
 			continue
 		}
-		provider := strings.ToLower(defaultString(service.GetEngine(), "llama"))
+		provider := strings.ToLower(strings.TrimSpace(service.GetEngine()))
 		if providerFilter != "" && provider != providerFilter {
 			continue
 		}
 		capabilities := service.GetCapabilities()
-		if len(capabilities) == 0 {
-			capabilities = []string{"chat"}
-		}
 		for _, capability := range capabilities {
 			if capabilityFilter != "" && strings.ToLower(capability) != capabilityFilter {
 				continue
@@ -443,7 +449,11 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 			reasonCode := ""
 			policyGate := ""
 			availabilityDetail := ""
-			if localrouting.IsKnownProvider(provider) && isKnownLocalCapability(capability) && !localrouting.ProviderSupportsCapability(provider, capability) {
+			if provider == "" || provider == "llama" {
+				available = false
+				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
+				policyGate = "selected_capability_configuration.required"
+			} else if localrouting.IsKnownProvider(provider) && isKnownLocalCapability(capability) && !localrouting.ProviderSupportsCapability(provider, capability) {
 				available = false
 				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
 				policyGate = unsupportedProviderCapabilityPolicyGate(provider, capability)

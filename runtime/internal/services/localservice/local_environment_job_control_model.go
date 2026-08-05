@@ -350,7 +350,7 @@ func (s *Service) adoptExistingResolvedModelBundle(ctx context.Context, assetID 
 // install path staged into and every other models-root consumer reads. An
 // unresolved root fails closed inside resolveManagedModelEntryAbsolutePath
 // rather than resolving a relative path against the runtime process CWD.
-func (s *Service) verifyLocalEnvironmentModelAsset(ctx context.Context, dependencyID string) (*runtimev1.LocalAssetRecord, string, string, string, error) {
+func (s *Service) verifyLocalEnvironmentModelAsset(_ context.Context, dependencyID string) (*runtimev1.LocalAssetRecord, string, string, string, error) {
 	model, err := s.localEnvironmentAssetByDependencyID(dependencyID)
 	if err != nil {
 		return nil, "", "", localEnvironmentSourceManaged, err
@@ -364,11 +364,6 @@ func (s *Service) verifyLocalEnvironmentModelAsset(ctx context.Context, dependen
 	_, entryPath, err := s.validateLocalEnvironmentModelAssetBundle(model)
 	if err != nil {
 		return model, entryPath, "", localEnvironmentSourceKindForAsset(model), err
-	}
-	if isManagedSupervisedLlamaModel(model, s.modelRuntimeMode(model.GetLocalAssetId())) {
-		if err := s.SyncManagedLlamaAssets(ctx); err != nil {
-			return model, entryPath, "", localEnvironmentSourceKindForAsset(model), err
-		}
 	}
 	hash, err := computeFileSHA256(entryPath)
 	if err != nil {

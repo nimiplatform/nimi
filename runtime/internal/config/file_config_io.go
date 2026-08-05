@@ -317,7 +317,7 @@ func rejectLegacyLocalRuntimeConfigKeys(path string, root map[string]json.RawMes
 		}
 		for _, legacyKey := range []string{"local", "nexa", "nimi_media"} {
 			if _, exists := section[legacyKey]; exists {
-				return fmt.Errorf("parse runtime config file %q: providers.%s is removed; clear legacy local runtime config and reconfigure engines.llama/engines.media", path, legacyKey)
+				return fmt.Errorf("parse runtime config file %q: providers.%s is removed; clear legacy local runtime config and reconfigure engines.llama and engines.media", path, legacyKey)
 			}
 		}
 	}
@@ -331,7 +331,7 @@ func rejectLegacyLocalRuntimeConfigKeys(path string, root map[string]json.RawMes
 	}
 	for _, legacyKey := range []string{"localai", "nexa", "nimi_media"} {
 		if _, exists := engines[legacyKey]; exists {
-			return fmt.Errorf("parse runtime config file %q: engines.%s is removed; clear legacy local runtime config and reconfigure engines.llama/engines.media", path, legacyKey)
+			return fmt.Errorf("parse runtime config file %q: engines.%s is removed; clear legacy local runtime config and reconfigure engines.llama and engines.media", path, legacyKey)
 		}
 	}
 	return nil

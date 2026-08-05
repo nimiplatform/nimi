@@ -157,7 +157,7 @@ func normalizeHealthEngine(provider string, modelID string) string {
 		return normalized
 	}
 	lowerModel := strings.ToLower(strings.TrimSpace(modelID))
-	for _, prefix := range []string{"llama/", "media/", "speech/", "sidecar/"} {
+	for _, prefix := range []string{"media/", "speech/", "sidecar/"} {
 		if strings.HasPrefix(lowerModel, prefix) {
 			return strings.TrimSuffix(prefix, "/")
 		}
@@ -360,7 +360,7 @@ func isLocalNativeModel(item modelregistry.Entry) bool {
 		return true
 	}
 	lower := strings.ToLower(strings.TrimSpace(item.ModelID))
-	for _, prefix := range []string{"local/", "llama/", "media/", "speech/", "sidecar/"} {
+	for _, prefix := range []string{"local/", "media/", "speech/", "sidecar/"} {
 		if strings.HasPrefix(lower, prefix) {
 			return true
 		}
@@ -383,12 +383,7 @@ func checkLocalNativeModelHealth(
 	preferredEngine := strings.ToLower(strings.TrimSpace(projection.PreferredEngine))
 	switch preferredEngine {
 	case "llama":
-		if projection.WarmState != runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY {
-			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model"
-		}
-		if err := probeLlamaHealth(ctx); err != nil {
-			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "start local llama engine"
-		}
+		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "select a configured Local Capability Configuration"
 	case "media":
 		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "inspect_local_runtime_model_health"
 	case "speech":
@@ -415,11 +410,6 @@ func localSpeechAssetMissingAdmittedPlainCapability(asset *runtimev1.LocalAssetR
 		}
 	}
 	return true
-}
-
-func probeLlamaHealth(ctx context.Context) error {
-	cfg := engine.DefaultLlamaConfig()
-	return engine.ProbeHealth(ctx, resolveEngineEndpoint("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", cfg.Endpoint()), cfg.HealthPath, cfg.HealthResponse)
 }
 
 func resolveEngineEndpoint(envKey string, fallback string) string {
@@ -584,7 +574,7 @@ func hasComparableProbeModel(models []string, expectedIDs ...string) bool {
 
 func comparableModelID(value string) string {
 	comparable := strings.ToLower(strings.TrimSpace(value))
-	for _, prefix := range []string{"models/", "model/", "local/", "llama/", "media/", "speech/", "sidecar/"} {
+	for _, prefix := range []string{"models/", "model/", "local/", "media/", "speech/", "sidecar/"} {
 		comparable = strings.TrimPrefix(comparable, prefix)
 	}
 	return comparable

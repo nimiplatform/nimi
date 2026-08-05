@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"io"
 	"log/slog"
@@ -13,7 +12,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -201,163 +199,32 @@ func TestUploadArtifactRejectsOversizedChunk(t *testing.T) {
 	}
 }
 
-func TestRealtimeSessionLifecycle(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := newTestService(logger, Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{
-			"llama": {BaseURL: "http://127.0.0.1:18080"},
-		},
+func TestOpenRealtimeSessionFailsClosedWithoutDriverContract(t *testing.T) {
+	svc := newTestService(nil)
+	response, err := svc.OpenRealtimeSession(context.Background(), &runtimev1.OpenRealtimeSessionRequest{
+		Head: &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
 	})
-
-	fakeConn := newFakeRealtimeConn()
-	restore := swapRealtimeDialer(func(context.Context, *nimillm.Backend, string) (realtimeConn, error) {
-		return fakeConn, nil
-	})
-	defer restore()
-
-	openResp, err := svc.OpenRealtimeSession(context.Background(), &runtimev1.OpenRealtimeSessionRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.desktop",
-			SubjectUserId: "user-001",
-			ModelId:       "local/realtime-model",
-			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/realtime-model", "text.generate"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-		},
-		SystemPrompt: "speak tersely",
-	})
-	if err != nil {
-		t.Fatalf("open realtime session: %v", err)
+	if response != nil {
+		t.Fatalf("response = %+v", response)
 	}
-	if openResp.GetSessionId() == "" {
-		t.Fatal("expected session id")
-	}
-	if got := fakeConn.sentTypes(); len(got) == 0 || got[0] != "session.update" {
-		t.Fatalf("expected session.update envelope, got=%v", got)
-	}
-
-	appendResp, err := svc.AppendRealtimeInput(realtimeContext("nimi.desktop"), &runtimev1.AppendRealtimeInputRequest{
-		SessionId: openResp.GetSessionId(),
-		Items: []*runtimev1.RealtimeInputItem{
-			{
-				Item: &runtimev1.RealtimeInputItem_Message{
-					Message: &runtimev1.ChatMessage{
-						Role: "user",
-						Parts: []*runtimev1.ChatContentPart{
-							textPart("hello realtime"),
-						},
-					},
-				},
-			},
-			{
-				Item: &runtimev1.RealtimeInputItem_Audio{
-					Audio: &runtimev1.RealtimeAudioInput{
-						Source:    &runtimev1.RealtimeAudioInput_AudioBytes{AudioBytes: []byte("pcm")},
-						EndOfTurn: true,
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("append realtime input: %v", err)
-	}
-	if appendResp.GetAck() == nil || !appendResp.GetAck().GetOk() {
-		t.Fatal("expected append ack")
-	}
-
-	gotTypes := fakeConn.sentTypes()
-	wantTypes := []string{
-		"session.update",
-		"conversation.item.create",
-		"input_audio_buffer.append",
-		"input_audio_buffer.commit",
-		"response.create",
-	}
-	for i, want := range wantTypes {
-		if i >= len(gotTypes) || gotTypes[i] != want {
-			t.Fatalf("unexpected envelope sequence: got=%v want-prefix=%v", gotTypes, wantTypes)
-		}
-	}
-
-	fakeConn.pushReceive(map[string]any{"type": "response.output_text.delta", "delta": "hello"})
-	fakeConn.pushReceive(map[string]any{
-		"type":  "response.output_audio.delta",
-		"delta": base64.StdEncoding.EncodeToString([]byte("audio")),
-	})
-	fakeConn.pushReceive(map[string]any{"type": "response.done"})
-
-	waitForRealtimeEvents(t, svc, openResp.GetSessionId(), 4)
-
-	readCtx, cancelRead := context.WithCancel(realtimeContext("nimi.desktop"))
-	stream := &mockRealtimeEventStream{
-		ctx: readCtx,
-		onSend: func(event *runtimev1.RealtimeEvent) {
-			if event.GetEventType() == runtimev1.RealtimeEventType_REALTIME_EVENT_COMPLETED {
-				cancelRead()
-			}
-		},
-	}
-	readErr := svc.ReadRealtimeEvents(&runtimev1.ReadRealtimeEventsRequest{
-		SessionId: openResp.GetSessionId(),
-	}, stream)
-	if readErr != nil && readCtx.Err() == nil {
-		t.Fatalf("read realtime events: %v", readErr)
-	}
-	if len(stream.events) < 4 {
-		t.Fatalf("expected backlog of realtime events, got=%d", len(stream.events))
-	}
-	if stream.events[0].GetEventType() != runtimev1.RealtimeEventType_REALTIME_EVENT_OPENED {
-		t.Fatalf("expected opened event first, got=%v", stream.events[0].GetEventType())
-	}
-
-	if _, err := svc.CloseRealtimeSession(realtimeContext("nimi.desktop"), &runtimev1.CloseRealtimeSessionRequest{
-		SessionId: openResp.GetSessionId(),
-	}); err != nil {
-		t.Fatalf("close realtime session: %v", err)
-	}
-	if !fakeConn.isClosed() {
-		t.Fatal("expected upstream realtime connection to be closed")
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("error = %v, reason=%v ok=%v", err, reason, ok)
 	}
 }
 
-func TestOpenRealtimeSessionFailsClosedWhenInitialSessionUpdateFails(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := newTestService(logger, Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{
-			"llama": {BaseURL: "http://127.0.0.1:18080"},
-		},
-	})
-
-	fakeConn := newFakeRealtimeConn()
-	fakeConn.sendErr = io.ErrClosedPipe
-	restore := swapRealtimeDialer(func(context.Context, *nimillm.Backend, string) (realtimeConn, error) {
-		return fakeConn, nil
-	})
-	defer restore()
-
+func TestOpenRealtimeSessionPreservesCloudUnsupportedContract(t *testing.T) {
+	svc := newTestService(nil)
 	_, err := svc.OpenRealtimeSession(context.Background(), &runtimev1.OpenRealtimeSessionRequest{
 		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.desktop",
-			SubjectUserId: "user-001",
-			ModelId:       "local/realtime-model",
-			TargetRef:     setExactLocalScenarioTargetForTest(t, svc, "local/realtime-model", "text.generate"),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			AppId: "app", SubjectUserId: "user", ModelId: "openai/gpt-test",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
-		SystemPrompt: "fail immediately",
 	})
-	if status.Code(err) != codes.Unavailable {
-		t.Fatalf("expected unavailable, got %v", err)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("status = %s, err=%v", status.Code(err), err)
 	}
-	if !fakeConn.isClosed() {
-		t.Fatal("expected failed open to close upstream connection")
-	}
-	svc.realtimeSessions.mu.RLock()
-	sessionCount := len(svc.realtimeSessions.sessions)
-	svc.realtimeSessions.mu.RUnlock()
-	if sessionCount != 0 {
-		t.Fatalf("expected no dangling realtime sessions, got %d", sessionCount)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("error = %v, reason=%v ok=%v", err, reason, ok)
 	}
 }
 
@@ -560,12 +427,4 @@ func waitForRealtimeEvents(t *testing.T, svc *Service, sessionID string, minCoun
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Fatalf("timed out waiting for %d realtime events", minCount)
-}
-
-func swapRealtimeDialer(fn func(context.Context, *nimillm.Backend, string) (realtimeConn, error)) func() {
-	prev := realtimeDialer
-	realtimeDialer = fn
-	return func() {
-		realtimeDialer = prev
-	}
 }

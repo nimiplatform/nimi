@@ -14,6 +14,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/metadata"
 )
@@ -302,7 +303,7 @@ func TestSubmitScenarioJobStoresScenarioNativeState(t *testing.T) {
 	}
 }
 
-func TestSubmitScenarioJobInstalledImageCreatesExactExecutionJobWithoutWarmOrStart(t *testing.T) {
+func TestSubmitScenarioJobInstalledImageFailsClosedWithoutExecutionDriver(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{EnforceEndpointSecurity: true})
 	localModels := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -389,17 +390,18 @@ func TestSubmitScenarioJobInstalledImageCreatesExactExecutionJobWithoutWarmOrSta
 		t.Fatalf("prepare INSTALLED exact image execution plan: plan=%+v err=%v", localPlan, prepareErr)
 	}
 	resp, err := svc.SubmitScenarioJob(context.Background(), request)
-	if err != nil || resp == nil || strings.TrimSpace(resp.GetJob().GetJobId()) == "" {
-		t.Fatalf("INSTALLED exact image target did not create async execution job: response=%#v err=%v", resp, err)
+	if resp != nil {
+		t.Fatalf("unsupported Local image response = %+v", resp)
 	}
-	if jobs := len(svc.scenarioJobs.jobs); jobs != 1 {
-		t.Fatalf("INSTALLED exact image target created %d async jobs, want 1", jobs)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("unsupported Local image error = %v, reason=%v ok=%v", err, reason, ok)
 	}
-	if localModels.calls != 0 || localModels.warmCalls != 0 || localModels.startCalls != 0 {
-		t.Fatalf("INSTALLED exact image target must not search inventory/warm/start: list=%d warm=%d start=%d", localModels.calls, localModels.warmCalls, localModels.startCalls)
+	if jobs := len(svc.scenarioJobs.jobs); jobs != 0 {
+		t.Fatalf("unsupported Local image created %d jobs", jobs)
 	}
-	if resolver.resolveProfileCalls != 0 || resolver.ensureLoadCalls != 0 {
-		t.Fatalf("async admission must defer exact profile load to execution: resolve=%d load=%d", resolver.resolveProfileCalls, resolver.ensureLoadCalls)
+	if localModels.calls != 0 || localModels.warmCalls != 0 || localModels.startCalls != 0 ||
+		resolver.resolveProfileCalls != 0 || resolver.ensureLoadCalls != 0 {
+		t.Fatalf("unsupported Local image touched execution substrate")
 	}
 }
 

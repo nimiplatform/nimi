@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -54,6 +56,7 @@ func TestMachineLocalBindingResolverProjectsEveryConfiguredSelection(t *testing.
 		},
 	}
 	service := &Service{runtimeAccountProjection: machineExecutionAccountProjectionStub{accountID: "account-1"}}
+	installMachineAIConfigForTest(t, service, "account-1", capabilitydriver.LlamaCapabilityContract, "image.generate")
 	service.SetMachineLocalExecutionResolver(source)
 	if !service.HasMachineExecutionBindingResolver() {
 		t.Fatal("machine execution binding resolver was not installed")
@@ -68,12 +71,11 @@ func TestMachineLocalBindingResolverProjectsEveryConfiguredSelection(t *testing.
 	}
 	text := bindings[capabilitydriver.LlamaCapabilityContract]
 	if text.BindingAlias != "lcc_text" || text.ModelID != "Desktop llama" || text.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL ||
-		text.TargetRef.GetLocalRuntime().GetVersion() != "v2" || text.TargetRef.GetLocalRuntime().GetProfileBindingId() != "lcc_text" ||
-		text.SelectedParams.GetFields()["contextSize"].GetNumberValue() != 4096 {
+		text.TargetRef != nil || text.SelectedParams != nil {
 		t.Fatalf("text binding = %#v", text)
 	}
 	image := bindings["image.generate"]
-	if image.ModelID != "lcc_image" || image.TargetRef.GetLocalRuntime().GetProfileBindingId() != "lcc_image" {
+	if image.ModelID != "lcc_image" || image.TargetRef != nil {
 		t.Fatalf("image binding = %#v", image)
 	}
 	if _, exists := bindings["audio.synthesize"]; exists {
@@ -97,13 +99,18 @@ func TestMachineLocalBindingResolverNeverReturnsPartialOrFallbackBindings(t *tes
 		errors:      map[string]error{"image.generate": errors.New("selected image configuration is incomplete")},
 	}
 	service := &Service{runtimeAccountProjection: machineExecutionAccountProjectionStub{accountID: "account-1"}}
+	installMachineAIConfigForTest(t, service, "account-1", capabilitydriver.LlamaCapabilityContract, "image.generate")
 	service.SetMachineLocalExecutionResolver(source)
 	bindings, err := service.machineExecutionBindings(context.Background(), "account-1")
 	if bindings != nil || err == nil {
 		t.Fatalf("partial resolver result bindings=%#v err=%v", bindings, err)
 	}
 
-	service.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{})
+	selectionErr := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
+	service.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{errors: map[string]error{
+		capabilitydriver.LlamaCapabilityContract: selectionErr,
+		"image.generate":                         selectionErr,
+	}})
 	bindings, err = service.machineExecutionBindings(context.Background(), "account-1")
 	if bindings != nil || err == nil {
 		t.Fatalf("empty selection result bindings=%#v err=%v", bindings, err)
@@ -111,6 +118,24 @@ func TestMachineLocalBindingResolverNeverReturnsPartialOrFallbackBindings(t *tes
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND {
 		t.Fatalf("empty selection reason=%v ok=%v err=%v", reason, ok, err)
 	}
+}
+
+func installMachineAIConfigForTest(t *testing.T, service *Service, accountID string, contracts ...string) {
+	t.Helper()
+	store := aiconfig.NewMemoryStore()
+	capabilities := make([]*runtimev1.AIConfigCapabilityIntent, 0, len(contracts))
+	for _, contract := range contracts {
+		capabilities = append(capabilities, &runtimev1.AIConfigCapabilityIntent{
+			CapabilityContract: contract,
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+		})
+	}
+	if err := store.Overwrite(context.Background(), accountID, &runtimev1.AIConfig{
+		Owner: aiconfig.LocalAgentSubsystemOwner(), Capabilities: capabilities,
+	}); err != nil {
+		t.Fatalf("install shared LocalAgent AIConfig: %v", err)
+	}
+	service.SetAIConfigStore(store)
 }
 
 func machineLocalExecutionProjectionForTest(configurationID, capabilityContract, displayName string, portable *structpb.Struct) *localexecution.SelectedLocalExecution {

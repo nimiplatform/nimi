@@ -82,7 +82,7 @@ func residencyEnginesForModel(model *runtimev1.LocalAssetRecord, mode runtimev1.
 	}
 	engines := make([]string, 0, 2)
 	executionEngine := strings.ToLower(strings.TrimSpace(executionRuntimeEngineForModel(model)))
-	if executionEngine != "" && executionEngine != "runtime" {
+	if executionEngine != "" && executionEngine != "runtime" && !privateExecutionHostEngine(executionEngine) {
 		engines = append(engines, executionEngine)
 	}
 	if isManagedSupervisedImageModel(model, mode) {
@@ -97,7 +97,7 @@ func (s *Service) AcquireLocalAssetLease(ctx context.Context, localAssetID strin
 	if model == nil {
 		return nil
 	}
-	if readyModel, err := s.ensureManagedSupervisedLlamaLeaseReady(ctx, model, reason); err != nil {
+	if readyModel, err := s.rejectLlamaLocalAssetResidency(ctx, model, reason); err != nil {
 		return grpcerr.WrapWithReasonCode(
 			codes.FailedPrecondition,
 			runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,

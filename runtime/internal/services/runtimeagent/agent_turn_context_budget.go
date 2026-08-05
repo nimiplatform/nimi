@@ -77,7 +77,6 @@ func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnCo
 			}
 		}
 	}
-	used := allocated
 	// A model's context capacity is not an interactive latency target. Keep
 	// optional Realm materialization detail within a bounded share of the
 	// resolved input budget so a large World closure cannot consume nearly the
@@ -90,7 +89,7 @@ func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnCo
 	if !ok || retainedTokens > allocated {
 		return agentTurnContextBudgetResult{}, fmt.Errorf("agent turn context optional Realm source token estimate is invalid")
 	}
-	used = retainedTokens
+	used := retainedTokens
 	if used > inputBudget {
 		candidates := collectAgentTurnContextTruncationCandidates(lanes)
 		for _, class := range agentTurnContextTruncationOrder {

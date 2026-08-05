@@ -44,6 +44,9 @@ func (s *Service) ListEngines(_ context.Context, _ *runtimev1.ListEnginesRequest
 	engines := mgr.ListEngines()
 	descriptors := make([]*runtimev1.LocalEngineDescriptor, 0, len(engines))
 	for _, e := range engines {
+		if privateExecutionHostEngine(e.Engine) {
+			continue
+		}
 		descriptors = append(descriptors, engineInfoToProto(e))
 	}
 	return &runtimev1.ListEnginesResponse{Engines: descriptors}, nil
@@ -70,6 +73,9 @@ func (s *Service) StartEngine(ctx context.Context, req *runtimev1.StartEngineReq
 	if engine == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if privateExecutionHostEngine(engine) {
+		return nil, privateExecutionHostEngineError()
+	}
 	mgr, err := s.getEngineManager()
 	if err != nil {
 		return nil, err
@@ -87,6 +93,9 @@ func (s *Service) StopEngine(_ context.Context, req *runtimev1.StopEngineRequest
 	engine := strings.TrimSpace(req.GetEngine())
 	if engine == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if privateExecutionHostEngine(engine) {
+		return nil, privateExecutionHostEngineError()
 	}
 	mgr, err := s.getEngineManager()
 	if err != nil {
@@ -106,6 +115,9 @@ func (s *Service) GetEngineStatus(_ context.Context, req *runtimev1.GetEngineSta
 	if engine == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if privateExecutionHostEngine(engine) {
+		return nil, privateExecutionHostEngineError()
+	}
 	mgr, err := s.getEngineManager()
 	if err != nil {
 		return nil, err
@@ -115,6 +127,16 @@ func (s *Service) GetEngineStatus(_ context.Context, req *runtimev1.GetEngineSta
 		return nil, mapEngineManagerError(engine, "status", err)
 	}
 	return &runtimev1.GetEngineStatusResponse{Engine: engineInfoToProto(info)}, nil
+}
+
+func privateExecutionHostEngine(engine string) bool {
+	return strings.EqualFold(strings.TrimSpace(engine), string(runtimeengine.EngineLlama))
+}
+
+func privateExecutionHostEngineError() error {
+	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED, grpcerr.ReasonOptions{
+		Message: "llama process lifecycle is private to the capability ExecutionHost",
+	})
 }
 
 func mapEngineManagerError(engine string, operation string, err error) error {

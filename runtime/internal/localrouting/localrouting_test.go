@@ -11,7 +11,7 @@ func TestProviderSupportsCapability(t *testing.T) {
 		capability string
 		want       bool
 	}{
-		{provider: "llama", capability: "text.generate", want: true},
+		{provider: "llama", capability: "text.generate", want: false},
 		{provider: "llama", capability: "music.generate", want: false},
 		{provider: "media", capability: "image.generate", want: true},
 		{provider: "media", capability: "text.generate", want: false},
@@ -33,9 +33,9 @@ func TestProviderSupportsCapability(t *testing.T) {
 
 func TestPreferenceOrderHardCutByCapability(t *testing.T) {
 	testCases := map[string][]string{
-		"text.generate":               {"llama"},
-		"text.embed":                  {"llama"},
-		"audio.understand":            {"llama"},
+		"text.generate":               {},
+		"text.embed":                  {},
+		"audio.understand":            {},
 		"image.generate":              {"media"},
 		"video.generate":              {"media"},
 		"audio.transcribe":            {"speech"},
@@ -54,7 +54,7 @@ func TestPreferenceOrderHardCutByCapability(t *testing.T) {
 }
 
 func TestPreferenceOrderNonWindowsFiltersUnsupportedFallbacks(t *testing.T) {
-	if got, want := PreferenceOrder("darwin", "text.generate"), []string{"llama"}; !reflect.DeepEqual(got, want) {
+	if got, want := PreferenceOrder("darwin", "text.generate"), []string{}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("PreferenceOrder(darwin, text.generate): got=%v want=%v", got, want)
 	}
 	if got, want := PreferenceOrder("linux", "image.generate"), []string{"media"}; !reflect.DeepEqual(got, want) {
@@ -84,10 +84,13 @@ func TestNormalizeAndRankingHelpers(t *testing.T) {
 	if IsKnownProvider("custom") {
 		t.Fatal("did not expect custom to be recognized as known provider")
 	}
-	if got := PreferenceRank("linux", "text.generate", "llama"); got != 0 {
+	if IsKnownProvider("llama") {
+		t.Fatal("retired ambient llama provider remained known")
+	}
+	if got := PreferenceRank("linux", "image.generate", "media"); got != 0 {
 		t.Fatalf("PreferenceRank mismatch: %d", got)
 	}
-	if got := PreferenceRank("linux", "text.generate", "media"); got != 1 {
+	if got := PreferenceRank("linux", "image.generate", "sidecar"); got != 1 {
 		t.Fatalf("unexpected fallback rank: %d", got)
 	}
 }

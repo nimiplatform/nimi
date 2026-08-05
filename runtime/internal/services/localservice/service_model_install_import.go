@@ -308,7 +308,7 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			}
 			bundleFiles = discoveredFiles
 		}
-		engineConfig, projectionOverride, augmentErr := augmentManagedLlamaBundleFacts(
+		engineConfig, projectionOverride, augmentErr := augmentManagedGGUFBundleFacts(
 			resolveLocalModelsPath(s.localModelsPath),
 			filepath.Dir(manifestPath),
 			filepath.Dir(manifestPath),

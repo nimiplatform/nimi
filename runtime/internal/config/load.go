@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"net"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -162,23 +160,8 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
-	localBaseURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"))
-	llamaEnabledExplicit := llamaEnabledFromFile != nil || isBoolEnvValueExplicit("NIMI_RUNTIME_ENGINE_LLAMA_ENABLED")
-	llamaPortExplicit := llamaPortFromFile != nil || isIntEnvValueExplicit("NIMI_RUNTIME_ENGINE_LLAMA_PORT")
-
-	if inferredPort, autoManaged := inferLoopbackLocalPort(localBaseURL, 1234); autoManaged && llamaSupervisedPlatformSupported() {
-		if !llamaEnabledExplicit {
-			cfg.EngineLlamaEnabled = true
-			cfg.EngineLlamaAutoManaged = true
-		}
-		if cfg.EngineLlamaEnabled && !llamaPortExplicit {
-			cfg.EngineLlamaPort = inferredPort
-		}
-	}
-
 	if cfg.EngineLlamaEnabled && !llamaSupervisedPlatformSupported() {
 		cfg.EngineLlamaEnabled = false
-		cfg.EngineLlamaAutoManaged = false
 	}
 	if cfg.EngineMediaEnabled && !mediaSupervisedPlatformSupported() && !llamaSupervisedPlatformSupported() {
 		cfg.EngineMediaEnabled = false
@@ -317,57 +300,14 @@ func rejectRemovedModelCatalogRemoteEnv() error {
 	return nil
 }
 
-func inferLoopbackLocalPort(baseURL string, fallbackPort int) (int, bool) {
-	parsed, ok := parseProviderEndpointURL(baseURL)
-	if !ok {
-		return 0, false
-	}
-	host := strings.TrimSpace(strings.ToLower(parsed.Hostname()))
-	if host == "" {
-		return 0, false
-	}
-	if host != "localhost" {
-		ip := net.ParseIP(host)
-		if ip == nil || !ip.IsLoopback() {
-			return 0, false
-		}
-	}
-	if portValue := strings.TrimSpace(parsed.Port()); portValue != "" {
-		if port, err := strconv.Atoi(portValue); err == nil && port > 0 {
-			return port, true
-		}
-	}
-	return fallbackPort, true
-}
-
-func parseProviderEndpointURL(raw string) (*url.URL, bool) {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
-		return nil, false
-	}
-	parsed, err := url.Parse(trimmed)
-	if err != nil {
-		return nil, false
-	}
-	if strings.TrimSpace(parsed.Hostname()) != "" {
-		return parsed, true
-	}
-	if strings.Contains(trimmed, "://") {
-		return nil, false
-	}
-	fallback, err := url.Parse("http://" + trimmed)
-	if err != nil || strings.TrimSpace(fallback.Hostname()) == "" {
-		return nil, false
-	}
-	return fallback, true
-}
-
 func rejectLegacyLocalRuntimeEnv() error {
 	legacyMessages := map[string]string{
-		"NIMI_RUNTIME_LOCAL_AI_BASE_URL":                        "use NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL instead",
-		"NIMI_RUNTIME_LOCAL_AI_API_KEY":                         "use NIMI_RUNTIME_LOCAL_LLAMA_API_KEY instead",
-		"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL":                      "Nexa support was removed; clear this variable and migrate to llama/media providers",
-		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY":                       "Nexa support was removed; clear this variable and migrate to llama/media providers",
+		"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL":                     "ambient llama endpoints are retired; use a selected Local Capability Configuration",
+		"NIMI_RUNTIME_LOCAL_LLAMA_API_KEY":                      "ambient llama endpoints are retired; use a selected Local Capability Configuration",
+		"NIMI_RUNTIME_LOCAL_AI_BASE_URL":                        "ambient local AI endpoints are retired; use a selected Local Capability Configuration",
+		"NIMI_RUNTIME_LOCAL_AI_API_KEY":                         "ambient local AI endpoints are retired; use a selected Local Capability Configuration",
+		"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL":                      "Nexa support was removed; clear this variable and migrate to llama and media providers",
+		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY":                       "Nexa support was removed; clear this variable and migrate to llama and media providers",
 		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL":                "use NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL instead",
 		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY":                 "use NIMI_RUNTIME_LOCAL_MEDIA_API_KEY instead",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED":                   "use NIMI_RUNTIME_ENGINE_LLAMA_ENABLED instead",
