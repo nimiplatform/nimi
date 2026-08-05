@@ -19,13 +19,14 @@ import (
 )
 
 type fakeLlamaExecutionManager struct {
-	mu         sync.Mutex
-	status     EngineStatus
-	endpoint   string
-	starts     int
-	stops      int
-	startBlock chan struct{}
-	started    chan struct{}
+	mu             sync.Mutex
+	status         EngineStatus
+	endpoint       string
+	starts         int
+	stops          int
+	startedConfigs []EngineConfig
+	startBlock     chan struct{}
+	started        chan struct{}
 }
 
 func (m *fakeLlamaExecutionManager) EngineStatus(EngineKind) (SupervisorInfo, error) {
@@ -42,9 +43,10 @@ func (m *fakeLlamaExecutionManager) StopEngine(EngineKind) error {
 	return nil
 }
 
-func (m *fakeLlamaExecutionManager) StartEngine(_ context.Context, _ EngineConfig) error {
+func (m *fakeLlamaExecutionManager) StartEngine(_ context.Context, config EngineConfig) error {
 	m.mu.Lock()
 	m.starts++
+	m.startedConfigs = append(m.startedConfigs, config)
 	started := m.started
 	block := m.startBlock
 	m.mu.Unlock()
@@ -136,6 +138,28 @@ func TestManagerInvocationSubstrateStartsWithoutStoppingAbsentWorker(t *testing.
 	want := []localexecution.TextExecutionProgress{localexecution.TextExecutionProgressLoading, localexecution.TextExecutionProgressReady}
 	if fmt.Sprint(progress) != fmt.Sprint(want) {
 		t.Fatalf("progress = %v, want %v", progress, want)
+	}
+}
+
+func TestManagerInvocationSubstrateUsesExplicitHostConfig(t *testing.T) {
+	manager := &fakeLlamaExecutionManager{status: StatusStopped, endpoint: "http://127.0.0.1:45678"}
+	config := DefaultLlamaConfig()
+	config.Port = 45678
+	config.CommandArgs = []string{"caller-command-args-must-not-run"}
+	substrate := newManagerLlamaInvocationSubstrateWithConfig(nil, config)
+	substrate.manager = manager
+	planArgs := []string{"--model", "/exact/main.gguf"}
+	if _, _, err := substrate.Ensure(context.Background(), "plan-explicit", planArgs, nil); err != nil {
+		t.Fatalf("Ensure: %v", err)
+	}
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	if len(manager.startedConfigs) != 1 {
+		t.Fatalf("started configs = %d, want 1", len(manager.startedConfigs))
+	}
+	started := manager.startedConfigs[0]
+	if started.Port != config.Port || started.Kind != EngineLlama || fmt.Sprint(started.CommandArgs) != fmt.Sprint(planArgs) {
+		t.Fatalf("started config = %+v, want port=%d kind=%s args=%v", started, config.Port, EngineLlama, planArgs)
 	}
 }
 

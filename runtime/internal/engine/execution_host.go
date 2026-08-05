@@ -57,6 +57,31 @@ func NewExecutionHost(manager *Manager, logger *slog.Logger) *ExecutionHost {
 	}
 }
 
+// NewExecutionHostWithLlamaConfig constructs a Host with explicit supervised
+// llama process settings. Driver-owned command arguments still replace
+// CommandArgs for every captured plan; this constructor only configures Host
+// facts such as the loopback port and lifecycle timeouts.
+func NewExecutionHostWithLlamaConfig(manager *Manager, logger *slog.Logger, config EngineConfig) (*ExecutionHost, error) {
+	if manager == nil {
+		return nil, fmt.Errorf("llama execution host manager is required")
+	}
+	if config.Kind != EngineLlama {
+		return nil, fmt.Errorf("llama execution host config kind must be %q", EngineLlama)
+	}
+	if config.Port <= 0 || config.Port > 65535 {
+		return nil, fmt.Errorf("llama execution host port must be between 1 and 65535")
+	}
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &ExecutionHost{
+		logger:    logger,
+		substrate: newManagerLlamaInvocationSubstrateWithConfig(manager, config),
+		client:    &http.Client{},
+		lease:     newExecutionLease(),
+	}, nil
+}
+
 func newExecutionHostWithSubstrate(substrate llamaInvocationSubstrate, client *http.Client) *ExecutionHost {
 	if client == nil {
 		client = &http.Client{}
@@ -251,6 +276,7 @@ type llamaExecutionManager interface {
 type managerLlamaInvocationSubstrate struct {
 	manager  llamaExecutionManager
 	lifetime context.Context
+	config   EngineConfig
 
 	mu         sync.Mutex
 	currentKey string
@@ -266,7 +292,19 @@ type managerLlamaInvocationLoad struct {
 }
 
 func newManagerLlamaInvocationSubstrate(manager *Manager) *managerLlamaInvocationSubstrate {
-	return &managerLlamaInvocationSubstrate{manager: manager, lifetime: context.Background()}
+	return newManagerLlamaInvocationSubstrateWithConfig(manager, DefaultLlamaConfig())
+}
+
+func newManagerLlamaInvocationSubstrateWithConfig(manager *Manager, config EngineConfig) *managerLlamaInvocationSubstrate {
+	config.CommandArgs = append([]string(nil), config.CommandArgs...)
+	if len(config.CommandEnv) > 0 {
+		commandEnv := make(map[string]string, len(config.CommandEnv))
+		for key, value := range config.CommandEnv {
+			commandEnv[key] = value
+		}
+		config.CommandEnv = commandEnv
+	}
+	return &managerLlamaInvocationSubstrate{manager: manager, lifetime: context.Background(), config: config}
 }
 
 func (s *managerLlamaInvocationSubstrate) Ensure(
@@ -336,7 +374,7 @@ func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLo
 			return
 		}
 	}
-	cfg := DefaultLlamaConfig()
+	cfg := s.config
 	cfg.CommandArgs = append([]string(nil), load.args...)
 	if err := s.manager.StartEngine(s.lifetime, cfg); err != nil {
 		s.finishLoad(load, "", err)
