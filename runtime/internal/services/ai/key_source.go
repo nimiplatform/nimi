@@ -125,6 +125,58 @@ func validateKeySource(parsed ParsedKeySource, requestAppID string) error {
 	return nil
 }
 
+// resolveKeySourceToCatalogProvider resolves only the provider identity needed
+// by read-only catalog projections. It never opens a connector secret or
+// constructs an execution target.
+func resolveKeySourceToCatalogProvider(ctx context.Context, parsed ParsedKeySource, connStore *connector.ConnectorStore) (string, bool, error) {
+	isManaged := parsed.KeySource == keySourceManaged || (parsed.KeySource == "" && parsed.ConnectorID != "")
+	if isManaged {
+		if connStore == nil {
+			return "", false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		}
+		record, found, err := connStore.Get(parsed.ConnectorID)
+		if err != nil {
+			return "", false, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+				ActionHint: "retry_or_check_runtime_logs",
+				Message:    "connector record could not be read",
+			})
+		}
+		if !found || connectorViolatesOAuthManagedBoundary(record) {
+			return "", false, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+		}
+		if connector.IsRetiredLocalConnectorKind(record.Kind) {
+			return "", false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED)
+		}
+		if record.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
+			record.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
+			identity := authn.IdentityFromContext(ctx)
+			subjectUserID := ""
+			if identity != nil {
+				subjectUserID = strings.TrimSpace(identity.SubjectUserID)
+			}
+			if subjectUserID == "" || record.OwnerID != subjectUserID {
+				return "", false, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+			}
+		}
+		if record.Status == runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED {
+			return "", false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
+		}
+		provider := strings.TrimSpace(record.Provider)
+		if provider == "" || provider != record.Provider {
+			return "", false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		return provider, true, nil
+	}
+	if parsed.KeySource == keySourceInline {
+		provider := strings.TrimSpace(parsed.ProviderType)
+		if provider == "" || provider != parsed.ProviderType {
+			return "", false, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID)
+		}
+		return provider, true, nil
+	}
+	return "", false, nil
+}
+
 // resolveKeySourceToTarget resolves parsed key-source into a RemoteTarget (K-KEYSRC-004 steps 5-8).
 // Returns nil when no remote catalog target was supplied.
 func resolveKeySourceToTarget(ctx context.Context, parsed ParsedKeySource, connStore *connector.ConnectorStore, allowLoopback bool) (*nimillm.RemoteTarget, error) {

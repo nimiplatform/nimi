@@ -56,7 +56,7 @@ func (s *Service) embedMemoryTextsLocal(context.Context, *runtimev1.MemoryEmbedd
 }
 
 func (s *Service) embedMemoryTextsRemote(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([]*runtimev1.EmbeddingVector, error) {
-	if s.selector == nil || s.selector.cloudProvider == nil {
+	if s.cloudProvider == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	cloudBinding := profile.GetCloudBinding()
@@ -76,7 +76,7 @@ func (s *Service) embedMemoryTextsRemote(ctx context.Context, profile *runtimev1
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 	}
 	applyMemoryEmbeddingCloudBinding(target, cloudBinding)
-	rawVectors, _, err := s.selector.cloudProvider.EmbedWithTarget(ctx, strings.TrimSpace(cloudBinding.GetProviderModelId()), inputs, target)
+	rawVectors, _, err := s.cloudProvider.EmbedWithTarget(ctx, strings.TrimSpace(cloudBinding.GetProviderModelId()), inputs, target)
 	if err != nil {
 		return nil, err
 	}

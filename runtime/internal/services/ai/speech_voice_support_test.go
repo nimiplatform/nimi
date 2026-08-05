@@ -46,7 +46,7 @@ func TestValidateConnectorTTSModelSupportAllowsProviderVoiceRefOutsidePresetCata
 		},
 	)
 
-	if err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, req.GetSpec().GetSpeechSynthesize(), "qwen3-tts-vc", remoteTarget, svc.selector.cloudProvider, svc.speechCatalog); err != nil {
+	if err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, req.GetSpec().GetSpeechSynthesize(), "qwen3-tts-vc", remoteTarget, svc.cloudProvider, svc.speechCatalog); err != nil {
 		t.Fatalf("validateConnectorTTSModelSupport(provider voice ref): %v", err)
 	}
 }
@@ -73,7 +73,7 @@ func TestValidateConnectorTTSModelSupportAllowsVoiceAssetRefAfterRuntimeResoluti
 		},
 	}
 
-	if err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, effectiveSpec, "qwen3-tts-vc", remoteTarget, svc.selector.cloudProvider, svc.speechCatalog); err != nil {
+	if err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, effectiveSpec, "qwen3-tts-vc", remoteTarget, svc.cloudProvider, svc.speechCatalog); err != nil {
 		t.Fatalf("validateConnectorTTSModelSupport(voice asset): %v", err)
 	}
 }
@@ -91,7 +91,7 @@ func TestValidateConnectorTTSModelSupportRejectsUnsupportedPresetVoice(t *testin
 		},
 	)
 
-	err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, req.GetSpec().GetSpeechSynthesize(), "qwen3-tts-vc", remoteTarget, svc.selector.cloudProvider, svc.speechCatalog)
+	err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, req.GetSpec().GetSpeechSynthesize(), "qwen3-tts-vc", remoteTarget, svc.cloudProvider, svc.speechCatalog)
 	if err == nil {
 		t.Fatal("expected unsupported preset voice to fail")
 	}
@@ -122,7 +122,7 @@ func TestValidateConnectorTTSModelSupportRejectsVoiceAssetKindWhenCatalogModelDo
 		},
 	}
 
-	err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, effectiveSpec, "tts-1", remoteTarget, svc.selector.cloudProvider, svc.speechCatalog)
+	err := validateConnectorTTSModelSupport(context.Background(), slog.New(slog.NewTextHandler(io.Discard, nil)), req, effectiveSpec, "tts-1", remoteTarget, svc.cloudProvider, svc.speechCatalog)
 	if err == nil {
 		t.Fatal("expected voice_asset_id on preset-only catalog model to fail")
 	}

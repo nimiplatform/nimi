@@ -10,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
@@ -259,30 +260,37 @@ func (s *Service) describeTextEmbedRouteMetadata(
 		dimensions = localTextEmbedDimensions(selectedModel)
 	} else {
 		providerType := scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_EMBEDDING)
-		if providerType != "" && providerregistry.Contains(providerType) {
-			if s == nil || s.speechCatalog == nil {
-				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
-			}
-			supported, err := s.speechCatalog.SupportsCapabilityForSubject(
-				catalogSubjectUserIDFromContext(ctx),
-				providerType,
-				modelResolved,
-				aicapabilities.TextEmbed,
-			)
-			if err != nil && !errors.Is(err, aicatalog.ErrModelNotFound) {
-				return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-					Message: "text embedding route capability could not be read",
+		if providerType == "" || !providerregistry.Contains(providerType) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
+		if s == nil || s.speechCatalog == nil {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		model, err := s.speechCatalog.ResolveModelEntryForSubject(
+			catalogSubjectUserIDFromContext(ctx),
+			providerType,
+			modelResolved,
+		)
+		if err != nil {
+			if errors.Is(err, aicatalog.ErrModelNotFound) {
+				return nil, grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
+					Message: "text embedding route catalog model could not be resolved",
 				})
 			}
-			if err == nil && !supported {
-				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-			}
+			return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
+				Message: "text embedding route metadata could not be read",
+			})
 		}
+		if model.Embedding == nil || model.Embedding.Dimension <= 0 ||
+			!aicapabilities.HasCatalogCapability(model.Capabilities, aicapabilities.TextEmbed) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
+		dimensions = int(model.Embedding.Dimension)
 	}
 
 	metadataPayload := textEmbedRouteDescribeMetadataPayload{
 		Dimensions:          dimensions,
-		MaxInputsPerRequest: 16,
+		MaxInputsPerRequest: capabilitydriver.CloudEmbedMaxInputsPerRequest,
 		SupportsBatch:       true,
 	}
 	return &runtimeRouteDescribeResultPayload{

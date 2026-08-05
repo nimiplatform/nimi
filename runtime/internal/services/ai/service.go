@@ -53,7 +53,6 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeAiRealtimeServiceServer
 	logger                                 *slog.Logger
 	config                                 Config
-	selector                               *routeSelector
 	audit                                  *auditlog.Store
 	registry                               *modelregistry.Registry
 	scheduler                              *scheduler.Scheduler
@@ -70,9 +69,12 @@ type Service struct {
 	localImageHost                         localexecution.ImageExecutionHost
 	capabilityDrivers                      *capabilitydriver.Registry
 	cloudTextDrivers                       *capabilitydriver.CloudTextRegistry
+	cloudEmbedDrivers                      *capabilitydriver.CloudEmbedRegistry
 	cloudMediaDrivers                      *capabilitydriver.CloudMediaRegistry
+	cloudProvider                          *nimillm.CloudProvider
 	cloudTextProvider                      provider
 	remoteTextHost                         remoteexecution.TextHost
+	remoteEmbedHost                        remoteexecution.EmbedHost
 	remoteMediaHost                        remoteexecution.MediaHost
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
@@ -176,13 +178,13 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 			"sequence", event.GetSequence(),
 		)
 	})
-	selector := newRouteSelectorWithRegistry(cfg, registry, aiHealth)
-	remoteTextConfig := cfg.toCloudConfig()
-	// Remote text execution may receive credentials only from the request-scoped
-	// ConnectorGrant Host resolution below; configured probe credentials are
-	// deliberately absent from its transport instance.
-	remoteTextConfig.Providers = nil
-	remoteTextTransport := nimillm.NewCloudProvider(remoteTextConfig, registry, aiHealth)
+	cloudProvider := nimillm.NewCloudProvider(cfg.toCloudConfig(), registry, aiHealth)
+	remoteCloudConfig := cfg.toCloudConfig()
+	// Remote cloud execution may receive credentials only from request-scoped
+	// ConnectorGrant Host resolution; configured probe credentials are
+	// deliberately absent from the shared transport instance.
+	remoteCloudConfig.Providers = nil
+	remoteCloudTransport := nimillm.NewCloudProvider(remoteCloudConfig, registry, aiHealth)
 	hostAudit := auditStore
 	if hostAudit == nil {
 		// Unit/in-process construction still receives an auditable Host seam;
@@ -192,7 +194,6 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 	svc := &Service{
 		logger:                                 logger,
 		config:                                 cfg,
-		selector:                               selector,
 		audit:                                  auditStore,
 		registry:                               registry,
 		scheduler:                              scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
@@ -203,10 +204,13 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		aiConfigStore:                          aiconfig.NewMemoryStore(),
 		capabilityDrivers:                      capabilitydriver.NewProductionRegistry(),
 		cloudTextDrivers:                       capabilitydriver.NewProductionCloudTextRegistry(),
+		cloudEmbedDrivers:                      capabilitydriver.NewProductionCloudEmbedRegistry(),
 		cloudMediaDrivers:                      capabilitydriver.NewProductionCloudMediaRegistry(),
-		cloudTextProvider:                      remoteTextTransport,
-		remoteTextHost:                         remoteexecution.NewProviderTextHost(connStore, remoteTextTransport, hostAudit, cfg.AllowLoopbackEndpoint),
-		remoteMediaHost:                        remoteexecution.NewProviderMediaHost(connStore, remoteTextTransport, hostAudit, cfg.AllowLoopbackEndpoint),
+		cloudProvider:                          cloudProvider,
+		cloudTextProvider:                      remoteCloudTransport,
+		remoteTextHost:                         remoteexecution.NewProviderTextHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
+		remoteEmbedHost:                        remoteexecution.NewProviderEmbedHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
+		remoteMediaHost:                        remoteexecution.NewProviderMediaHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
 		connStore:                              connStore,
 		allowLoopback:                          cfg.AllowLoopbackEndpoint,
 		streamFirstPacketTimeout:               defaultStreamFirstTimeout,
@@ -251,6 +255,14 @@ func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionH
 func (s *Service) SetRemoteTextExecutionHost(host remoteexecution.TextHost) {
 	if s != nil && host != nil {
 		s.remoteTextHost = host
+	}
+}
+
+// SetRemoteEmbedExecutionHost replaces the Remote Host transport seam. The
+// Host never participates in route, grant, implementation, or target selection.
+func (s *Service) SetRemoteEmbedExecutionHost(host remoteexecution.EmbedHost) {
+	if s != nil && host != nil {
+		s.remoteEmbedHost = host
 	}
 }
 
@@ -327,7 +339,7 @@ func (s *Service) ResolvePublicChatTextBinding(
 	routeHint runtimev1.RoutePolicy,
 	modelID string,
 ) (runtimev1.RoutePolicy, string, error) {
-	if s == nil || s.selector == nil {
+	if s == nil || s.cloudTextProvider == nil {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if routeHint == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
@@ -347,11 +359,17 @@ func (s *Service) ResolvePublicChatTextBinding(
 		}
 		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, resolved, nil
 	}
-	routeDecision, modelResolved, err := s.selector.resolveCommittedBindingRouteModel(routeHint, modelID)
-	if err != nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", err
+	if routeHint == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", missingAIConfigRouteError()
 	}
-	return routeDecision, modelResolved, nil
+	rawModel := strings.TrimSpace(modelID)
+	if rawModel == "" {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	if routeHint != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", missingAIConfigRouteError()
+	}
+	return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, rawModel, nil
 }
 
 type publicChatTextContextMetadataResolution struct {
@@ -464,7 +482,10 @@ func (s *Service) resolvePublicChatTextContextMetadataLease(
 
 // CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).
 func (s *Service) CloudProvider() *nimillm.CloudProvider {
-	return s.selector.cloudProvider
+	if s == nil {
+		return nil
+	}
+	return s.cloudProvider
 }
 
 // SpeechCatalogResolver exposes the runtime speech catalog resolver for other

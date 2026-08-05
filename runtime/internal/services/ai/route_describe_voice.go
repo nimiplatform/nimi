@@ -12,7 +12,6 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -261,10 +260,11 @@ func executeVoiceWorkflowRouteDescribeScenario(
 	if intent.IsLocal() {
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
+	effective, err := s.captureCloudVoiceWorkflowEffectiveInputs(ctx, routeDescribeJobRequest(req))
 	if err != nil {
 		return nil, err
 	}
+	defer effective.release()
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
@@ -274,35 +274,22 @@ func executeVoiceWorkflowRouteDescribeScenario(
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("execute_scenario_voice_workflow_route_describe", req.GetHead().GetAppId(), acquireResult)
 
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
-		ctx,
-		intent.Route,
-		intent.ModelID(),
-		remoteTarget,
-		scenarioModalFromType(req.GetScenarioType()),
-	)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
-		return nil, err
-	}
 	if err := s.writeVoiceWorkflowRouteDescribeHeader(
 		ctx,
 		req.GetScenarioType(),
 		probe,
-		modelResolved,
-		remoteTarget,
-		selectedProvider,
+		effective.modelResolved(),
+		effective.catalogTarget,
+		s.cloudTextProvider,
 	); err != nil {
 		return nil, err
 	}
 
 	return &runtimev1.ExecuteScenarioResponse{
 		FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-		RouteDecision:     routeDecision,
-		ModelResolved:     modelResolved,
-		TraceId:           ulid.Make().String(),
+		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ModelResolved:     effective.modelResolved(),
+		TraceId:           effective.traceID,
 		IgnoredExtensions: ignored,
 	}, nil
 }

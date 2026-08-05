@@ -8,9 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
@@ -132,28 +130,6 @@ func (c Config) toCloudConfig() nimillm.CloudConfig {
 		HTTPTimeout:             c.AIHTTPTimeout,
 		EnforceEndpointSecurity: c.EnforceEndpointSecurity,
 		AllowLoopbackEndpoint:   c.AllowLoopbackEndpoint,
-	}
-}
-
-type routeSelector struct {
-	local         provider
-	cloud         provider
-	cloudProvider *nimillm.CloudProvider
-}
-
-func newRouteSelector(cfg Config) *routeSelector {
-	return newRouteSelectorWithRegistry(cfg, nil, nil)
-}
-
-func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker) *routeSelector {
-	normalized := cfg.normalized()
-
-	cloudProvider := nimillm.NewCloudProvider(normalized.toCloudConfig(), registry, aiHealth)
-
-	return &routeSelector{
-		local:         &localProvider{},
-		cloud:         cloudProvider,
-		cloudProvider: cloudProvider,
 	}
 }
 

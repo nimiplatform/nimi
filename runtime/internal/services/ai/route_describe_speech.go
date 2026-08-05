@@ -12,7 +12,6 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -335,10 +334,16 @@ func executeSpeechRouteDescribeScenario(
 	if intent.IsLocal() {
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
+	effective, err := s.captureCloudMediaEffectiveInputs(
+		ctx,
+		req.GetHead(),
+		routeDescribeJobRequest(req),
+		runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+	)
 	if err != nil {
 		return nil, err
 	}
+	defer effective.release()
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
@@ -348,35 +353,22 @@ func executeSpeechRouteDescribeScenario(
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("execute_scenario_speech_route_describe", req.GetHead().GetAppId(), acquireResult)
 
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
-		ctx,
-		intent.Route,
-		intent.ModelID(),
-		remoteTarget,
-		scenarioModalFromType(req.GetScenarioType()),
-	)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
-		return nil, err
-	}
 	if err := s.writeSpeechRouteDescribeHeader(
 		ctx,
 		req.GetScenarioType(),
 		probe,
-		modelResolved,
-		remoteTarget,
-		selectedProvider,
+		effective.modelResolved(),
+		effective.catalogTarget,
+		s.cloudTextProvider,
 	); err != nil {
 		return nil, err
 	}
 
 	response := &runtimev1.ExecuteScenarioResponse{
 		FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-		RouteDecision:     routeDecision,
-		ModelResolved:     modelResolved,
-		TraceId:           ulid.Make().String(),
+		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ModelResolved:     effective.modelResolved(),
+		TraceId:           effective.traceID,
 		IgnoredExtensions: ignored,
 	}
 	switch req.GetScenarioType() {

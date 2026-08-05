@@ -13,7 +13,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/oklog/ulid/v2"
@@ -26,13 +25,6 @@ import (
 
 const maxListVoiceAssetsPageSize = 200
 const maxVoiceAssetReconciliationSweep = 8
-
-func presetVoiceCatalogProviderType(remoteTarget *nimillm.RemoteTarget) string {
-	if remoteTarget == nil {
-		return ""
-	}
-	return strings.TrimSpace(remoteTarget.ProviderType)
-}
 
 func (s *Service) GetVoiceAsset(ctx context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetVoiceAssetId()) == "" {
@@ -460,30 +452,21 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	if err := validateKeySource(parsed, appID); err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
+	// Catalog projection needs provider identity only; do not retain inline
+	// credential material in the projection composition.
+	parsed.APIKey = ""
+	providerType, remoteCatalog, err := resolveKeySourceToCatalogProvider(ctx, parsed, s.connStore)
 	if err != nil {
 		return nil, err
 	}
-	routePolicy := voiceListRoutePolicyForTarget(effectiveModelID, remoteTarget)
-	if remoteTarget == nil && routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+	if !remoteCatalog {
 		return nil, grpcerr.WithReasonCodeOptions(
 			codes.FailedPrecondition,
 			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
 			grpcerr.ReasonOptions{Message: "ambient local voice model routing is retired"},
 		)
 	}
-
-	_, _, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
-		ctx,
-		routePolicy,
-		effectiveModelID,
-		remoteTarget,
-		runtimev1.Modal_MODAL_TTS,
-	)
-	if err != nil {
-		return nil, err
-	}
-	providerType := presetVoiceCatalogProviderType(remoteTarget)
+	modelResolved := effectiveModelID
 	voices, source, catalogVersion, err := resolveCatalogVoicesForSubject(ctx, modelResolved, providerType, s.speechCatalog)
 	if err != nil {
 		return nil, err
@@ -527,11 +510,4 @@ func parseVoiceAssetPageToken(token string) (int, error) {
 		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	return offset, nil
-}
-
-func voiceListRoutePolicyForTarget(_ string, remoteTarget *nimillm.RemoteTarget) runtimev1.RoutePolicy {
-	if remoteTarget != nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
-	}
-	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 }

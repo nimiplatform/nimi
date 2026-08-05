@@ -73,6 +73,14 @@ func (s *Service) captureScenarioExecutionIntent(
 	)
 }
 
+func missingAIConfigRouteError() error {
+	return grpcerr.WithReasonCodeOptions(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_AI_CONFIG_INVALID,
+		grpcerr.ReasonOptions{Message: "AIConfig capability route is required"},
+	)
+}
+
 func scenarioExecutionIntentFromContext(
 	ctx context.Context,
 	capabilityContract string,

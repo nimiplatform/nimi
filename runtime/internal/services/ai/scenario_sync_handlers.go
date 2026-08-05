@@ -7,9 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1.ExecuteScenarioRequest, ignored []*runtimev1.IgnoredScenarioExtension) (*runtimev1.ExecuteScenarioResponse, error) {
@@ -96,7 +94,6 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	}
-	inputs := spec.GetInputs()
 	intent, err := scenarioExecutionIntentFromContext(ctx, aicapabilities.TextEmbed)
 	if err != nil {
 		return nil, err
@@ -105,10 +102,11 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
+	effective, err := s.captureCloudEmbedEffectiveInputs(ctx, req.GetHead(), req)
 	if err != nil {
 		return nil, err
 	}
+	defer effective.release()
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
@@ -117,94 +115,42 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("execute_scenario_text_embed", req.GetHead().GetAppId(), acquireResult)
-	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
-	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
-		ctx,
-		intent.Route,
-		intent.ModelID(),
-		remoteTarget,
-		runtimev1.Modal_MODAL_EMBEDDING,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
-	}
-	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
-		return nil, err
-	}
 	describeProbe, hasDescribeProbe, err := textEmbedRouteDescribeProbeFromExtensions(req.GetExtensions())
 	if err != nil {
 		return nil, err
 	}
 	if hasDescribeProbe {
-		if err := s.writeTextEmbedRouteDescribeHeader(ctx, req.GetHead(), describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
+		if err := s.writeTextEmbedRouteDescribeHeader(ctx, req.GetHead(), describeProbe, effective.modelResolved(), effective.catalogTarget, s.cloudTextProvider); err != nil {
 			return nil, err
 		}
 		return &runtimev1.ExecuteScenarioResponse{
-			Output: &runtimev1.ScenarioOutput{
-				Output: &runtimev1.ScenarioOutput_TextEmbed{
-					TextEmbed: &runtimev1.TextEmbedOutput{},
-				},
-			},
+			Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextEmbed{
+				TextEmbed: &runtimev1.TextEmbedOutput{},
+			}},
 			FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision:     routeDecision,
-			ModelResolved:     modelResolved,
-			TraceId:           ulid.Make().String(),
+			RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			ModelResolved:     effective.modelResolved(),
+			TraceId:           effective.traceID,
 			IgnoredExtensions: ignored,
 		}, nil
 	}
-	var (
-		vectors []*structpb.ListValue
-		usage   *runtimev1.UsageStats
-	)
-	if remoteTarget == nil {
-		err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	} else if cp := s.selector.cloudProvider; cp != nil {
-		vectors, usage, err = cp.EmbedWithTarget(requestCtx, modelResolved, inputs, remoteTarget)
-	} else {
-		err = grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
+
+	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
+	defer cancel()
+	result, err := s.executeCapturedCloudEmbed(requestCtx, effective)
 	if err != nil {
 		return nil, err
 	}
-	if usage == nil {
-		var inputTokens int64
-		for _, input := range inputs {
-			inputTokens += estimateTokens(strings.TrimSpace(input))
-		}
-		usage = &runtimev1.UsageStats{
-			InputTokens:  inputTokens,
-			OutputTokens: int64(len(inputs) * 4),
-			ComputeMs:    maxInt64(4, int64(len(inputs)*3)),
-		}
-	}
-	vectorPayloads := make([]*runtimev1.EmbeddingVector, 0, len(vectors))
-	for _, vector := range vectors {
-		values := make([]float64, 0, len(vector.GetValues()))
-		for _, value := range vector.GetValues() {
-			values = append(values, value.GetNumberValue())
-		}
-		vectorPayloads = append(vectorPayloads, &runtimev1.EmbeddingVector{
-			Values: values,
-		})
-	}
 	return &runtimev1.ExecuteScenarioResponse{
-		Output: &runtimev1.ScenarioOutput{
-			Output: &runtimev1.ScenarioOutput_TextEmbed{
-				TextEmbed: &runtimev1.TextEmbedOutput{
-					Vectors: vectorPayloads,
-				},
-			},
-		},
+		Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextEmbed{
+			TextEmbed: &runtimev1.TextEmbedOutput{Vectors: result.Vectors},
+		}},
 		FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-		Usage:             usage,
-		RouteDecision:     routeDecision,
-		ModelResolved:     modelResolved,
-		TraceId:           ulid.Make().String(),
+		Usage:             result.Usage,
+		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ModelResolved:     effective.modelResolved(),
+		TraceId:           effective.traceID,
 		IgnoredExtensions: ignored,
 	}, nil
 }

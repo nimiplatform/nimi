@@ -58,6 +58,13 @@ func (input *cloudVoiceWorkflowEffectiveInputs) release() {
 	input.resolution = catalog.ResolveVoiceWorkflowResult{}
 }
 
+func (input *cloudVoiceWorkflowEffectiveInputs) modelResolved() string {
+	if input == nil {
+		return ""
+	}
+	return input.target.ProviderModelID()
+}
+
 func (input *cloudVoiceWorkflowEffectiveInputs) dispatchAudit() remoteexecution.MediaDispatchAudit {
 	if input == nil {
 		return remoteexecution.MediaDispatchAudit{}
