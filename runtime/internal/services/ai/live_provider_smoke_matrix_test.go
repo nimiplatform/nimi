@@ -15,6 +15,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -22,6 +23,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const liveSmokeMatrixAppID = "nimi.live-smoke.matrix"
@@ -40,6 +42,7 @@ type liveSmokeProviderHarness struct {
 	providerID   string
 	routePolicy  runtimev1.RoutePolicy
 	connectorID  string
+	grantID      string
 	modelCatalog map[string]*runtimev1.ConnectorModelDescriptor
 }
 
@@ -62,10 +65,23 @@ func (h liveSmokeProviderHarness) scenarioContext(t *testing.T, scenarioType run
 	if target == nil || target.Cloud == nil || !target.Cloud.Valid() {
 		t.Fatalf("live cloud smoke model %q for provider %s produced an incomplete private target", modelID, h.providerID)
 	}
+	target.Cloud.ConnectorGrantID = h.grantID
+	providerTarget, _ := structpb.NewStruct(map[string]any{
+		"provider":             target.Cloud.Provider,
+		"providerModelId":      target.Cloud.ProviderModelID,
+		"remoteModelCatalogId": target.Cloud.RemoteModelCatalogID,
+	})
 	return executionintent.WithIntent(h.context, executionintent.Intent{
 		CapabilityContract: scenarioTargetCapability(scenarioType),
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		CloudTarget:        target.Cloud,
+		CloudImplementation: &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "cloud." + scenarioTargetCapability(scenarioType) + "." + h.providerID,
+			DriverId:         "nimi.runtime.driver." + h.providerID,
+			DriverDialect:    "provider/text-v1",
+		},
+		ProviderModelTarget: providerTarget,
+		ConnectorGrantID:    h.grantID,
+		CloudTarget:         target.Cloud,
 	})
 }
 
@@ -88,6 +104,7 @@ func TestLiveSmokeCloudScenarioContextUsesManagedCatalogTarget(t *testing.T) {
 	harness := liveSmokeProviderHarness{
 		providerID:   "openai",
 		connectorID:  liveSmokeCloudConnectorID("openai"),
+		grantID:      "grant-openai",
 		routePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		context:      context.Background(),
 		modelCatalog: map[string]*runtimev1.ConnectorModelDescriptor{},
@@ -214,8 +231,8 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 	created, err := store.Create(connector.ConnectorRecord{
 		ConnectorID: connectorID,
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
-		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
-		OwnerID:     "system",
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     liveSmokeMatrixUserID,
 		Provider:    normalizedProviderID,
 		Endpoint:    normalizedBaseURL,
 		Label:       "Cloud " + normalizedProviderID,
@@ -226,6 +243,10 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 		t.Fatalf("create live smoke cloud connector: %v", err)
 	}
 
+	grant, err := store.CreateGrant(liveSmokeMatrixUserID, created.ConnectorID)
+	if err != nil {
+		t.Fatalf("create live smoke connector grant: %v", err)
+	}
 	connectorSvc := connector.New(logger, store, nil)
 	modelCatalog := liveSmokeConnectorModelCatalog(t, connectorSvc, context.Background(), created.ConnectorID)
 	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, Config{
@@ -237,11 +258,15 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 		t.Fatalf("new live smoke cloud ai service: %v", err)
 	}
 	return liveSmokeProviderHarness{
-		service:      svc,
-		context:      metadata.NewIncomingContext(context.Background(), metadata.Pairs(metadataKeySourceKey, keySourceManaged)),
+		service: svc,
+		context: authn.WithIdentity(
+			metadata.NewIncomingContext(context.Background(), metadata.Pairs(metadataKeySourceKey, keySourceManaged)),
+			&authn.Identity{SubjectUserID: liveSmokeMatrixUserID},
+		),
 		providerID:   normalizedProviderID,
 		routePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		connectorID:  created.ConnectorID,
+		grantID:      grant.GrantID,
 		modelCatalog: modelCatalog,
 	}
 }

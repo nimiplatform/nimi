@@ -842,6 +842,19 @@ impl Default for ConnectorAuthKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ConnectorGrantStatus {
+    CONNECTORGRANTSTATUSUNSPECIFIED,
+    CONNECTORGRANTSTATUSACTIVE,
+    CONNECTORGRANTSTATUSREVOKED,
+}
+
+impl Default for ConnectorGrantStatus {
+    fn default() -> Self {
+        Self::CONNECTORGRANTSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ConnectorKind {
     CONNECTORKINDUNSPECIFIED,
     CONNECTORKINDREMOTEMANAGED,
@@ -1930,6 +1943,8 @@ pub enum ReasonCode {
     AICONNECTORLIMITEXCEEDED,
     AICONNECTORIDREQUIRED,
     AILOCALCONNECTORRETIRED,
+    AICONNECTORGRANTSELECTIONREQUIRED,
+    AICONNECTORGRANTREVOKED,
     AIREQUESTCREDENTIALCONFLICT,
     AIAPPIDREQUIRED,
     AIAPPIDCONFLICT,
@@ -7544,6 +7559,46 @@ impl Connector {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorGrant {
+    pub grant_id: Option<String>,
+    pub connector_id: Option<String>,
+    pub account_id: Option<String>,
+    pub status: Option<ConnectorGrantStatus>,
+    pub created_at: Option<String>,
+    pub revoked_at: Option<String>,
+}
+
+impl ConnectorGrant {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.grant_id { pairs.push(format!("grant_id={}", value)); }
+        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
+        if let Some(value) = &self.account_id { pairs.push(format!("account_id={}", value)); }
+        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
+        if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
+        if let Some(value) = &self.revoked_at { pairs.push(format!("revoked_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["status"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.grant_id = pairs.get("grant_id").cloned();
+        out.connector_id = pairs.get("connector_id").cloned();
+        out.account_id = pairs.get("account_id").cloned();
+        out.created_at = pairs.get("created_at").cloned();
+        out.revoked_at = pairs.get("revoked_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ConnectorModelDescriptor {
     pub model_id: Option<String>,
     pub model_label: Option<String>,
@@ -7760,6 +7815,56 @@ impl CreateBankResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["bank"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateConnectorGrantRequest {
+    pub connector_id: Option<String>,
+}
+
+impl CreateConnectorGrantRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.connector_id = pairs.get("connector_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateConnectorGrantResponse {
+    pub grant: Option<Box<ConnectorGrant>>,
+}
+
+impl CreateConnectorGrantResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.grant.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode grant"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["grant"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -14051,6 +14156,58 @@ impl ListCatalogVariantsResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListConnectorGrantsRequest {
+    pub page_size: Option<i32>,
+    pub page_token: Option<String>,
+}
+
+impl ListConnectorGrantsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.page_size { pairs.push(format!("page_size={}", value)); }
+        if let Some(value) = &self.page_token { pairs.push(format!("page_token={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.page_size = pairs.get("page_size").and_then(|value| value.parse().ok());
+        out.page_token = pairs.get("page_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListConnectorGrantsResponse {
+    pub grants: Vec<Box<ConnectorGrant>>,
+    pub next_page_token: Option<String>,
+}
+
+impl ListConnectorGrantsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if !self.grants.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode grants"); }
+        if let Some(value) = &self.next_page_token { pairs.push(format!("next_page_token={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["grants"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.next_page_token = pairs.get("next_page_token").cloned();
         out
     }
 }
@@ -24739,6 +24896,56 @@ impl RetryLocalEnvironmentDependencyJobResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevokeConnectorGrantRequest {
+    pub grant_id: Option<String>,
+}
+
+impl RevokeConnectorGrantRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.grant_id { pairs.push(format!("grant_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.grant_id = pairs.get("grant_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevokeConnectorGrantResponse {
+    pub grant: Option<Box<ConnectorGrant>>,
+}
+
+impl RevokeConnectorGrantResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.grant.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode grant"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["grant"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevokeExternalPrincipalSessionRequest {
     pub external_session_id: Option<String>,
 }
@@ -30712,6 +30919,12 @@ impl From<Vec<u8>> for Connector {
     }
 }
 
+impl From<Vec<u8>> for ConnectorGrant {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ConnectorModelDescriptor {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -30743,6 +30956,18 @@ impl From<Vec<u8>> for CreateBankRequest {
 }
 
 impl From<Vec<u8>> for CreateBankResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for CreateConnectorGrantRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for CreateConnectorGrantResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -31949,6 +32174,18 @@ impl From<Vec<u8>> for ListCatalogVariantsRequest {
 }
 
 impl From<Vec<u8>> for ListCatalogVariantsResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListConnectorGrantsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListConnectorGrantsResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33791,6 +34028,18 @@ impl From<Vec<u8>> for RetryLocalEnvironmentDependencyJobRequest {
 }
 
 impl From<Vec<u8>> for RetryLocalEnvironmentDependencyJobResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RevokeConnectorGrantRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RevokeConnectorGrantResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36311,6 +36560,16 @@ where
         Ok(CreateConnectorResponse::from_transport(&raw))
     }
 
+    pub fn create_connector_grant(&self, request: CreateConnectorGrantRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreateConnectorGrantResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(CreateConnectorGrantResponse::from_transport(&raw))
+    }
+
     pub fn delete_catalog_model_overlay(&self, request: DeleteCatalogModelOverlayRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteCatalogModelOverlayResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay".to_string(),
@@ -36371,6 +36630,16 @@ where
         Ok(ListCatalogProviderModelsResponse::from_transport(&raw))
     }
 
+    pub fn list_connector_grants(&self, request: ListConnectorGrantsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListConnectorGrantsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListConnectorGrantsResponse::from_transport(&raw))
+    }
+
     pub fn list_connector_models(&self, request: ListConnectorModelsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListConnectorModelsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels".to_string(),
@@ -36409,6 +36678,16 @@ where
             timeout,
         })?;
         Ok(ListProviderCatalogResponse::from_transport(&raw))
+    }
+
+    pub fn revoke_connector_grant(&self, request: RevokeConnectorGrantRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeConnectorGrantResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RevokeConnectorGrantResponse::from_transport(&raw))
     }
 
     pub fn test_connector(&self, request: TestConnectorRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TestConnectorResponse, T::Error> {

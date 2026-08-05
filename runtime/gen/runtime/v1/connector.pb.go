@@ -217,6 +217,55 @@ func (ConnectorAuthKind) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{3}
 }
 
+type ConnectorGrantStatus int32
+
+const (
+	ConnectorGrantStatus_CONNECTOR_GRANT_STATUS_UNSPECIFIED ConnectorGrantStatus = 0
+	ConnectorGrantStatus_CONNECTOR_GRANT_STATUS_ACTIVE      ConnectorGrantStatus = 1
+	ConnectorGrantStatus_CONNECTOR_GRANT_STATUS_REVOKED     ConnectorGrantStatus = 2
+)
+
+// Enum value maps for ConnectorGrantStatus.
+var (
+	ConnectorGrantStatus_name = map[int32]string{
+		0: "CONNECTOR_GRANT_STATUS_UNSPECIFIED",
+		1: "CONNECTOR_GRANT_STATUS_ACTIVE",
+		2: "CONNECTOR_GRANT_STATUS_REVOKED",
+	}
+	ConnectorGrantStatus_value = map[string]int32{
+		"CONNECTOR_GRANT_STATUS_UNSPECIFIED": 0,
+		"CONNECTOR_GRANT_STATUS_ACTIVE":      1,
+		"CONNECTOR_GRANT_STATUS_REVOKED":     2,
+	}
+)
+
+func (x ConnectorGrantStatus) Enum() *ConnectorGrantStatus {
+	p := new(ConnectorGrantStatus)
+	*p = x
+	return p
+}
+
+func (x ConnectorGrantStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConnectorGrantStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_connector_proto_enumTypes[4].Descriptor()
+}
+
+func (ConnectorGrantStatus) Type() protoreflect.EnumType {
+	return &file_runtime_v1_connector_proto_enumTypes[4]
+}
+
+func (x ConnectorGrantStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ConnectorGrantStatus.Descriptor instead.
+func (ConnectorGrantStatus) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{4}
+}
+
 type ModelCatalogProviderSource int32
 
 const (
@@ -256,11 +305,11 @@ func (x ModelCatalogProviderSource) String() string {
 }
 
 func (ModelCatalogProviderSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_connector_proto_enumTypes[4].Descriptor()
+	return file_runtime_v1_connector_proto_enumTypes[5].Descriptor()
 }
 
 func (ModelCatalogProviderSource) Type() protoreflect.EnumType {
-	return &file_runtime_v1_connector_proto_enumTypes[4]
+	return &file_runtime_v1_connector_proto_enumTypes[5]
 }
 
 func (x ModelCatalogProviderSource) Number() protoreflect.EnumNumber {
@@ -269,7 +318,7 @@ func (x ModelCatalogProviderSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ModelCatalogProviderSource.Descriptor instead.
 func (ModelCatalogProviderSource) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{5}
 }
 
 type CatalogModelSource int32
@@ -308,11 +357,11 @@ func (x CatalogModelSource) String() string {
 }
 
 func (CatalogModelSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_connector_proto_enumTypes[5].Descriptor()
+	return file_runtime_v1_connector_proto_enumTypes[6].Descriptor()
 }
 
 func (CatalogModelSource) Type() protoreflect.EnumType {
-	return &file_runtime_v1_connector_proto_enumTypes[5]
+	return &file_runtime_v1_connector_proto_enumTypes[6]
 }
 
 func (x CatalogModelSource) Number() protoreflect.EnumNumber {
@@ -321,7 +370,7 @@ func (x CatalogModelSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CatalogModelSource.Descriptor instead.
 func (CatalogModelSource) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{6}
 }
 
 type Connector struct {
@@ -464,6 +513,372 @@ func (x *Connector) GetProviderAuthProfile() string {
 	return ""
 }
 
+// ConnectorGrant is an account authorization binding to Runtime-owned
+// connector credential custody. It never carries provider/model target data.
+type ConnectorGrant struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GrantId       string                 `protobuf:"bytes,1,opt,name=grant_id,json=grantId,proto3" json:"grant_id,omitempty"`
+	ConnectorId   string                 `protobuf:"bytes,2,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	AccountId     string                 `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Status        ConnectorGrantStatus   `protobuf:"varint,4,opt,name=status,proto3,enum=nimi.runtime.v1.ConnectorGrantStatus" json:"status,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	RevokedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConnectorGrant) Reset() {
+	*x = ConnectorGrant{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConnectorGrant) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConnectorGrant) ProtoMessage() {}
+
+func (x *ConnectorGrant) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConnectorGrant.ProtoReflect.Descriptor instead.
+func (*ConnectorGrant) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ConnectorGrant) GetGrantId() string {
+	if x != nil {
+		return x.GrantId
+	}
+	return ""
+}
+
+func (x *ConnectorGrant) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
+}
+
+func (x *ConnectorGrant) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *ConnectorGrant) GetStatus() ConnectorGrantStatus {
+	if x != nil {
+		return x.Status
+	}
+	return ConnectorGrantStatus_CONNECTOR_GRANT_STATUS_UNSPECIFIED
+}
+
+func (x *ConnectorGrant) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ConnectorGrant) GetRevokedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RevokedAt
+	}
+	return nil
+}
+
+type CreateConnectorGrantRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ConnectorId   string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateConnectorGrantRequest) Reset() {
+	*x = CreateConnectorGrantRequest{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateConnectorGrantRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateConnectorGrantRequest) ProtoMessage() {}
+
+func (x *CreateConnectorGrantRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateConnectorGrantRequest.ProtoReflect.Descriptor instead.
+func (*CreateConnectorGrantRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CreateConnectorGrantRequest) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
+}
+
+type CreateConnectorGrantResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Grant         *ConnectorGrant        `protobuf:"bytes,1,opt,name=grant,proto3" json:"grant,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateConnectorGrantResponse) Reset() {
+	*x = CreateConnectorGrantResponse{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateConnectorGrantResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateConnectorGrantResponse) ProtoMessage() {}
+
+func (x *CreateConnectorGrantResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateConnectorGrantResponse.ProtoReflect.Descriptor instead.
+func (*CreateConnectorGrantResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CreateConnectorGrantResponse) GetGrant() *ConnectorGrant {
+	if x != nil {
+		return x.Grant
+	}
+	return nil
+}
+
+type ListConnectorGrantsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListConnectorGrantsRequest) Reset() {
+	*x = ListConnectorGrantsRequest{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListConnectorGrantsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListConnectorGrantsRequest) ProtoMessage() {}
+
+func (x *ListConnectorGrantsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListConnectorGrantsRequest.ProtoReflect.Descriptor instead.
+func (*ListConnectorGrantsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListConnectorGrantsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListConnectorGrantsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListConnectorGrantsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Grants        []*ConnectorGrant      `protobuf:"bytes,1,rep,name=grants,proto3" json:"grants,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListConnectorGrantsResponse) Reset() {
+	*x = ListConnectorGrantsResponse{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListConnectorGrantsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListConnectorGrantsResponse) ProtoMessage() {}
+
+func (x *ListConnectorGrantsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListConnectorGrantsResponse.ProtoReflect.Descriptor instead.
+func (*ListConnectorGrantsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListConnectorGrantsResponse) GetGrants() []*ConnectorGrant {
+	if x != nil {
+		return x.Grants
+	}
+	return nil
+}
+
+func (x *ListConnectorGrantsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type RevokeConnectorGrantRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GrantId       string                 `protobuf:"bytes,1,opt,name=grant_id,json=grantId,proto3" json:"grant_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeConnectorGrantRequest) Reset() {
+	*x = RevokeConnectorGrantRequest{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeConnectorGrantRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeConnectorGrantRequest) ProtoMessage() {}
+
+func (x *RevokeConnectorGrantRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeConnectorGrantRequest.ProtoReflect.Descriptor instead.
+func (*RevokeConnectorGrantRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RevokeConnectorGrantRequest) GetGrantId() string {
+	if x != nil {
+		return x.GrantId
+	}
+	return ""
+}
+
+type RevokeConnectorGrantResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Grant         *ConnectorGrant        `protobuf:"bytes,1,opt,name=grant,proto3" json:"grant,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeConnectorGrantResponse) Reset() {
+	*x = RevokeConnectorGrantResponse{}
+	mi := &file_runtime_v1_connector_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeConnectorGrantResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeConnectorGrantResponse) ProtoMessage() {}
+
+func (x *RevokeConnectorGrantResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_connector_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeConnectorGrantResponse.ProtoReflect.Descriptor instead.
+func (*RevokeConnectorGrantResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RevokeConnectorGrantResponse) GetGrant() *ConnectorGrant {
+	if x != nil {
+		return x.Grant
+	}
+	return nil
+}
+
 type CreateConnectorRequest struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Provider            string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
@@ -479,7 +894,7 @@ type CreateConnectorRequest struct {
 
 func (x *CreateConnectorRequest) Reset() {
 	*x = CreateConnectorRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[1]
+	mi := &file_runtime_v1_connector_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -491,7 +906,7 @@ func (x *CreateConnectorRequest) String() string {
 func (*CreateConnectorRequest) ProtoMessage() {}
 
 func (x *CreateConnectorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[1]
+	mi := &file_runtime_v1_connector_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -504,7 +919,7 @@ func (x *CreateConnectorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateConnectorRequest.ProtoReflect.Descriptor instead.
 func (*CreateConnectorRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateConnectorRequest) GetProvider() string {
@@ -565,7 +980,7 @@ type CreateConnectorResponse struct {
 
 func (x *CreateConnectorResponse) Reset() {
 	*x = CreateConnectorResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[2]
+	mi := &file_runtime_v1_connector_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -577,7 +992,7 @@ func (x *CreateConnectorResponse) String() string {
 func (*CreateConnectorResponse) ProtoMessage() {}
 
 func (x *CreateConnectorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[2]
+	mi := &file_runtime_v1_connector_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -590,7 +1005,7 @@ func (x *CreateConnectorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateConnectorResponse.ProtoReflect.Descriptor instead.
 func (*CreateConnectorResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateConnectorResponse) GetConnector() *Connector {
@@ -609,7 +1024,7 @@ type GetConnectorRequest struct {
 
 func (x *GetConnectorRequest) Reset() {
 	*x = GetConnectorRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[3]
+	mi := &file_runtime_v1_connector_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -621,7 +1036,7 @@ func (x *GetConnectorRequest) String() string {
 func (*GetConnectorRequest) ProtoMessage() {}
 
 func (x *GetConnectorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[3]
+	mi := &file_runtime_v1_connector_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -634,7 +1049,7 @@ func (x *GetConnectorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConnectorRequest.ProtoReflect.Descriptor instead.
 func (*GetConnectorRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetConnectorRequest) GetConnectorId() string {
@@ -653,7 +1068,7 @@ type GetConnectorResponse struct {
 
 func (x *GetConnectorResponse) Reset() {
 	*x = GetConnectorResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[4]
+	mi := &file_runtime_v1_connector_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -665,7 +1080,7 @@ func (x *GetConnectorResponse) String() string {
 func (*GetConnectorResponse) ProtoMessage() {}
 
 func (x *GetConnectorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[4]
+	mi := &file_runtime_v1_connector_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -678,7 +1093,7 @@ func (x *GetConnectorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConnectorResponse.ProtoReflect.Descriptor instead.
 func (*GetConnectorResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetConnectorResponse) GetConnector() *Connector {
@@ -701,7 +1116,7 @@ type ListConnectorsRequest struct {
 
 func (x *ListConnectorsRequest) Reset() {
 	*x = ListConnectorsRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[5]
+	mi := &file_runtime_v1_connector_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -713,7 +1128,7 @@ func (x *ListConnectorsRequest) String() string {
 func (*ListConnectorsRequest) ProtoMessage() {}
 
 func (x *ListConnectorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[5]
+	mi := &file_runtime_v1_connector_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -726,7 +1141,7 @@ func (x *ListConnectorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectorsRequest.ProtoReflect.Descriptor instead.
 func (*ListConnectorsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListConnectorsRequest) GetPageSize() int32 {
@@ -774,7 +1189,7 @@ type ListConnectorsResponse struct {
 
 func (x *ListConnectorsResponse) Reset() {
 	*x = ListConnectorsResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[6]
+	mi := &file_runtime_v1_connector_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -786,7 +1201,7 @@ func (x *ListConnectorsResponse) String() string {
 func (*ListConnectorsResponse) ProtoMessage() {}
 
 func (x *ListConnectorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[6]
+	mi := &file_runtime_v1_connector_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -799,7 +1214,7 @@ func (x *ListConnectorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectorsResponse.ProtoReflect.Descriptor instead.
 func (*ListConnectorsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListConnectorsResponse) GetConnectors() []*Connector {
@@ -833,7 +1248,7 @@ type UpdateConnectorRequest struct {
 
 func (x *UpdateConnectorRequest) Reset() {
 	*x = UpdateConnectorRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[7]
+	mi := &file_runtime_v1_connector_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -845,7 +1260,7 @@ func (x *UpdateConnectorRequest) String() string {
 func (*UpdateConnectorRequest) ProtoMessage() {}
 
 func (x *UpdateConnectorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[7]
+	mi := &file_runtime_v1_connector_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -858,7 +1273,7 @@ func (x *UpdateConnectorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateConnectorRequest.ProtoReflect.Descriptor instead.
 func (*UpdateConnectorRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateConnectorRequest) GetConnectorId() string {
@@ -933,7 +1348,7 @@ type UpdateConnectorResponse struct {
 
 func (x *UpdateConnectorResponse) Reset() {
 	*x = UpdateConnectorResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[8]
+	mi := &file_runtime_v1_connector_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -945,7 +1360,7 @@ func (x *UpdateConnectorResponse) String() string {
 func (*UpdateConnectorResponse) ProtoMessage() {}
 
 func (x *UpdateConnectorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[8]
+	mi := &file_runtime_v1_connector_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -958,7 +1373,7 @@ func (x *UpdateConnectorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateConnectorResponse.ProtoReflect.Descriptor instead.
 func (*UpdateConnectorResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UpdateConnectorResponse) GetConnector() *Connector {
@@ -977,7 +1392,7 @@ type DeleteConnectorRequest struct {
 
 func (x *DeleteConnectorRequest) Reset() {
 	*x = DeleteConnectorRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[9]
+	mi := &file_runtime_v1_connector_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -989,7 +1404,7 @@ func (x *DeleteConnectorRequest) String() string {
 func (*DeleteConnectorRequest) ProtoMessage() {}
 
 func (x *DeleteConnectorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[9]
+	mi := &file_runtime_v1_connector_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1002,7 +1417,7 @@ func (x *DeleteConnectorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConnectorRequest.ProtoReflect.Descriptor instead.
 func (*DeleteConnectorRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeleteConnectorRequest) GetConnectorId() string {
@@ -1021,7 +1436,7 @@ type DeleteConnectorResponse struct {
 
 func (x *DeleteConnectorResponse) Reset() {
 	*x = DeleteConnectorResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[10]
+	mi := &file_runtime_v1_connector_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1033,7 +1448,7 @@ func (x *DeleteConnectorResponse) String() string {
 func (*DeleteConnectorResponse) ProtoMessage() {}
 
 func (x *DeleteConnectorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[10]
+	mi := &file_runtime_v1_connector_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1046,7 +1461,7 @@ func (x *DeleteConnectorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConnectorResponse.ProtoReflect.Descriptor instead.
 func (*DeleteConnectorResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteConnectorResponse) GetAck() *Ack {
@@ -1065,7 +1480,7 @@ type TestConnectorRequest struct {
 
 func (x *TestConnectorRequest) Reset() {
 	*x = TestConnectorRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[11]
+	mi := &file_runtime_v1_connector_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1077,7 +1492,7 @@ func (x *TestConnectorRequest) String() string {
 func (*TestConnectorRequest) ProtoMessage() {}
 
 func (x *TestConnectorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[11]
+	mi := &file_runtime_v1_connector_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1090,7 +1505,7 @@ func (x *TestConnectorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestConnectorRequest.ProtoReflect.Descriptor instead.
 func (*TestConnectorRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *TestConnectorRequest) GetConnectorId() string {
@@ -1109,7 +1524,7 @@ type TestConnectorResponse struct {
 
 func (x *TestConnectorResponse) Reset() {
 	*x = TestConnectorResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[12]
+	mi := &file_runtime_v1_connector_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1121,7 +1536,7 @@ func (x *TestConnectorResponse) String() string {
 func (*TestConnectorResponse) ProtoMessage() {}
 
 func (x *TestConnectorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[12]
+	mi := &file_runtime_v1_connector_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1134,7 +1549,7 @@ func (x *TestConnectorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestConnectorResponse.ProtoReflect.Descriptor instead.
 func (*TestConnectorResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *TestConnectorResponse) GetAck() *Ack {
@@ -1166,7 +1581,7 @@ type ConnectorModelDescriptor struct {
 
 func (x *ConnectorModelDescriptor) Reset() {
 	*x = ConnectorModelDescriptor{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[13]
+	mi := &file_runtime_v1_connector_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1178,7 +1593,7 @@ func (x *ConnectorModelDescriptor) String() string {
 func (*ConnectorModelDescriptor) ProtoMessage() {}
 
 func (x *ConnectorModelDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[13]
+	mi := &file_runtime_v1_connector_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1191,7 +1606,7 @@ func (x *ConnectorModelDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectorModelDescriptor.ProtoReflect.Descriptor instead.
 func (*ConnectorModelDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{20}
 }
 
 // Deprecated: Marked as deprecated in runtime/v1/connector.proto.
@@ -1277,7 +1692,7 @@ type ListConnectorModelsRequest struct {
 
 func (x *ListConnectorModelsRequest) Reset() {
 	*x = ListConnectorModelsRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[14]
+	mi := &file_runtime_v1_connector_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1289,7 +1704,7 @@ func (x *ListConnectorModelsRequest) String() string {
 func (*ListConnectorModelsRequest) ProtoMessage() {}
 
 func (x *ListConnectorModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[14]
+	mi := &file_runtime_v1_connector_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1302,7 +1717,7 @@ func (x *ListConnectorModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectorModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListConnectorModelsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListConnectorModelsRequest) GetConnectorId() string {
@@ -1343,7 +1758,7 @@ type ListConnectorModelsResponse struct {
 
 func (x *ListConnectorModelsResponse) Reset() {
 	*x = ListConnectorModelsResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[15]
+	mi := &file_runtime_v1_connector_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1355,7 +1770,7 @@ func (x *ListConnectorModelsResponse) String() string {
 func (*ListConnectorModelsResponse) ProtoMessage() {}
 
 func (x *ListConnectorModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[15]
+	mi := &file_runtime_v1_connector_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1368,7 +1783,7 @@ func (x *ListConnectorModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectorModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListConnectorModelsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListConnectorModelsResponse) GetModels() []*ConnectorModelDescriptor {
@@ -1401,7 +1816,7 @@ type ProviderCatalogEntry struct {
 
 func (x *ProviderCatalogEntry) Reset() {
 	*x = ProviderCatalogEntry{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[16]
+	mi := &file_runtime_v1_connector_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1413,7 +1828,7 @@ func (x *ProviderCatalogEntry) String() string {
 func (*ProviderCatalogEntry) ProtoMessage() {}
 
 func (x *ProviderCatalogEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[16]
+	mi := &file_runtime_v1_connector_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1426,7 +1841,7 @@ func (x *ProviderCatalogEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderCatalogEntry.ProtoReflect.Descriptor instead.
 func (*ProviderCatalogEntry) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ProviderCatalogEntry) GetProvider() string {
@@ -1493,7 +1908,7 @@ type ListProviderCatalogRequest struct {
 
 func (x *ListProviderCatalogRequest) Reset() {
 	*x = ListProviderCatalogRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[17]
+	mi := &file_runtime_v1_connector_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1505,7 +1920,7 @@ func (x *ListProviderCatalogRequest) String() string {
 func (*ListProviderCatalogRequest) ProtoMessage() {}
 
 func (x *ListProviderCatalogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[17]
+	mi := &file_runtime_v1_connector_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1518,7 +1933,7 @@ func (x *ListProviderCatalogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProviderCatalogRequest.ProtoReflect.Descriptor instead.
 func (*ListProviderCatalogRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{24}
 }
 
 type ListProviderCatalogResponse struct {
@@ -1530,7 +1945,7 @@ type ListProviderCatalogResponse struct {
 
 func (x *ListProviderCatalogResponse) Reset() {
 	*x = ListProviderCatalogResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[18]
+	mi := &file_runtime_v1_connector_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1542,7 +1957,7 @@ func (x *ListProviderCatalogResponse) String() string {
 func (*ListProviderCatalogResponse) ProtoMessage() {}
 
 func (x *ListProviderCatalogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[18]
+	mi := &file_runtime_v1_connector_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +1970,7 @@ func (x *ListProviderCatalogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProviderCatalogResponse.ProtoReflect.Descriptor instead.
 func (*ListProviderCatalogResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListProviderCatalogResponse) GetProviders() []*ProviderCatalogEntry {
@@ -1593,7 +2008,7 @@ type ModelCatalogProviderEntry struct {
 
 func (x *ModelCatalogProviderEntry) Reset() {
 	*x = ModelCatalogProviderEntry{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[19]
+	mi := &file_runtime_v1_connector_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1605,7 +2020,7 @@ func (x *ModelCatalogProviderEntry) String() string {
 func (*ModelCatalogProviderEntry) ProtoMessage() {}
 
 func (x *ModelCatalogProviderEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[19]
+	mi := &file_runtime_v1_connector_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1618,7 +2033,7 @@ func (x *ModelCatalogProviderEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelCatalogProviderEntry.ProtoReflect.Descriptor instead.
 func (*ModelCatalogProviderEntry) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ModelCatalogProviderEntry) GetProvider() string {
@@ -1769,7 +2184,7 @@ type ListModelCatalogProvidersRequest struct {
 
 func (x *ListModelCatalogProvidersRequest) Reset() {
 	*x = ListModelCatalogProvidersRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[20]
+	mi := &file_runtime_v1_connector_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1781,7 +2196,7 @@ func (x *ListModelCatalogProvidersRequest) String() string {
 func (*ListModelCatalogProvidersRequest) ProtoMessage() {}
 
 func (x *ListModelCatalogProvidersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[20]
+	mi := &file_runtime_v1_connector_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1794,7 +2209,7 @@ func (x *ListModelCatalogProvidersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModelCatalogProvidersRequest.ProtoReflect.Descriptor instead.
 func (*ListModelCatalogProvidersRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{27}
 }
 
 type ListModelCatalogProvidersResponse struct {
@@ -1806,7 +2221,7 @@ type ListModelCatalogProvidersResponse struct {
 
 func (x *ListModelCatalogProvidersResponse) Reset() {
 	*x = ListModelCatalogProvidersResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[21]
+	mi := &file_runtime_v1_connector_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1818,7 +2233,7 @@ func (x *ListModelCatalogProvidersResponse) String() string {
 func (*ListModelCatalogProvidersResponse) ProtoMessage() {}
 
 func (x *ListModelCatalogProvidersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[21]
+	mi := &file_runtime_v1_connector_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1831,7 +2246,7 @@ func (x *ListModelCatalogProvidersResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListModelCatalogProvidersResponse.ProtoReflect.Descriptor instead.
 func (*ListModelCatalogProvidersResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListModelCatalogProvidersResponse) GetProviders() []*ModelCatalogProviderEntry {
@@ -1851,7 +2266,7 @@ type UpsertModelCatalogProviderRequest struct {
 
 func (x *UpsertModelCatalogProviderRequest) Reset() {
 	*x = UpsertModelCatalogProviderRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[22]
+	mi := &file_runtime_v1_connector_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1863,7 +2278,7 @@ func (x *UpsertModelCatalogProviderRequest) String() string {
 func (*UpsertModelCatalogProviderRequest) ProtoMessage() {}
 
 func (x *UpsertModelCatalogProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[22]
+	mi := &file_runtime_v1_connector_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1876,7 +2291,7 @@ func (x *UpsertModelCatalogProviderRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use UpsertModelCatalogProviderRequest.ProtoReflect.Descriptor instead.
 func (*UpsertModelCatalogProviderRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *UpsertModelCatalogProviderRequest) GetProvider() string {
@@ -1902,7 +2317,7 @@ type UpsertModelCatalogProviderResponse struct {
 
 func (x *UpsertModelCatalogProviderResponse) Reset() {
 	*x = UpsertModelCatalogProviderResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[23]
+	mi := &file_runtime_v1_connector_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1914,7 +2329,7 @@ func (x *UpsertModelCatalogProviderResponse) String() string {
 func (*UpsertModelCatalogProviderResponse) ProtoMessage() {}
 
 func (x *UpsertModelCatalogProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[23]
+	mi := &file_runtime_v1_connector_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1927,7 +2342,7 @@ func (x *UpsertModelCatalogProviderResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use UpsertModelCatalogProviderResponse.ProtoReflect.Descriptor instead.
 func (*UpsertModelCatalogProviderResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *UpsertModelCatalogProviderResponse) GetProvider() *ModelCatalogProviderEntry {
@@ -1946,7 +2361,7 @@ type DeleteModelCatalogProviderRequest struct {
 
 func (x *DeleteModelCatalogProviderRequest) Reset() {
 	*x = DeleteModelCatalogProviderRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[24]
+	mi := &file_runtime_v1_connector_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1958,7 +2373,7 @@ func (x *DeleteModelCatalogProviderRequest) String() string {
 func (*DeleteModelCatalogProviderRequest) ProtoMessage() {}
 
 func (x *DeleteModelCatalogProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[24]
+	mi := &file_runtime_v1_connector_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1971,7 +2386,7 @@ func (x *DeleteModelCatalogProviderRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use DeleteModelCatalogProviderRequest.ProtoReflect.Descriptor instead.
 func (*DeleteModelCatalogProviderRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *DeleteModelCatalogProviderRequest) GetProvider() string {
@@ -1990,7 +2405,7 @@ type DeleteModelCatalogProviderResponse struct {
 
 func (x *DeleteModelCatalogProviderResponse) Reset() {
 	*x = DeleteModelCatalogProviderResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[25]
+	mi := &file_runtime_v1_connector_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2002,7 +2417,7 @@ func (x *DeleteModelCatalogProviderResponse) String() string {
 func (*DeleteModelCatalogProviderResponse) ProtoMessage() {}
 
 func (x *DeleteModelCatalogProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[25]
+	mi := &file_runtime_v1_connector_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2015,7 +2430,7 @@ func (x *DeleteModelCatalogProviderResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use DeleteModelCatalogProviderResponse.ProtoReflect.Descriptor instead.
 func (*DeleteModelCatalogProviderResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *DeleteModelCatalogProviderResponse) GetAck() *Ack {
@@ -2035,7 +2450,7 @@ type CatalogOverlayWarning struct {
 
 func (x *CatalogOverlayWarning) Reset() {
 	*x = CatalogOverlayWarning{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[26]
+	mi := &file_runtime_v1_connector_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2047,7 +2462,7 @@ func (x *CatalogOverlayWarning) String() string {
 func (*CatalogOverlayWarning) ProtoMessage() {}
 
 func (x *CatalogOverlayWarning) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[26]
+	mi := &file_runtime_v1_connector_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2060,7 +2475,7 @@ func (x *CatalogOverlayWarning) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogOverlayWarning.ProtoReflect.Descriptor instead.
 func (*CatalogOverlayWarning) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *CatalogOverlayWarning) GetCode() string {
@@ -2091,7 +2506,7 @@ type CatalogPricing struct {
 
 func (x *CatalogPricing) Reset() {
 	*x = CatalogPricing{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[27]
+	mi := &file_runtime_v1_connector_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2103,7 +2518,7 @@ func (x *CatalogPricing) String() string {
 func (*CatalogPricing) ProtoMessage() {}
 
 func (x *CatalogPricing) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[27]
+	mi := &file_runtime_v1_connector_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2116,7 +2531,7 @@ func (x *CatalogPricing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogPricing.ProtoReflect.Descriptor instead.
 func (*CatalogPricing) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *CatalogPricing) GetUnit() string {
@@ -2172,7 +2587,7 @@ type CatalogSourceRef struct {
 
 func (x *CatalogSourceRef) Reset() {
 	*x = CatalogSourceRef{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[28]
+	mi := &file_runtime_v1_connector_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2184,7 +2599,7 @@ func (x *CatalogSourceRef) String() string {
 func (*CatalogSourceRef) ProtoMessage() {}
 
 func (x *CatalogSourceRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[28]
+	mi := &file_runtime_v1_connector_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2197,7 +2612,7 @@ func (x *CatalogSourceRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogSourceRef.ProtoReflect.Descriptor instead.
 func (*CatalogSourceRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *CatalogSourceRef) GetUrl() string {
@@ -2231,7 +2646,7 @@ type CatalogStringListEntry struct {
 
 func (x *CatalogStringListEntry) Reset() {
 	*x = CatalogStringListEntry{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[29]
+	mi := &file_runtime_v1_connector_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2243,7 +2658,7 @@ func (x *CatalogStringListEntry) String() string {
 func (*CatalogStringListEntry) ProtoMessage() {}
 
 func (x *CatalogStringListEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[29]
+	mi := &file_runtime_v1_connector_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2256,7 +2671,7 @@ func (x *CatalogStringListEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogStringListEntry.ProtoReflect.Descriptor instead.
 func (*CatalogStringListEntry) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *CatalogStringListEntry) GetKey() string {
@@ -2283,7 +2698,7 @@ type CatalogVideoGenerationOutputs struct {
 
 func (x *CatalogVideoGenerationOutputs) Reset() {
 	*x = CatalogVideoGenerationOutputs{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[30]
+	mi := &file_runtime_v1_connector_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2295,7 +2710,7 @@ func (x *CatalogVideoGenerationOutputs) String() string {
 func (*CatalogVideoGenerationOutputs) ProtoMessage() {}
 
 func (x *CatalogVideoGenerationOutputs) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[30]
+	mi := &file_runtime_v1_connector_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2308,7 +2723,7 @@ func (x *CatalogVideoGenerationOutputs) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogVideoGenerationOutputs.ProtoReflect.Descriptor instead.
 func (*CatalogVideoGenerationOutputs) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CatalogVideoGenerationOutputs) GetVideoUrl() bool {
@@ -2339,7 +2754,7 @@ type CatalogVideoGenerationCapability struct {
 
 func (x *CatalogVideoGenerationCapability) Reset() {
 	*x = CatalogVideoGenerationCapability{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[31]
+	mi := &file_runtime_v1_connector_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2351,7 +2766,7 @@ func (x *CatalogVideoGenerationCapability) String() string {
 func (*CatalogVideoGenerationCapability) ProtoMessage() {}
 
 func (x *CatalogVideoGenerationCapability) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[31]
+	mi := &file_runtime_v1_connector_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2364,7 +2779,7 @@ func (x *CatalogVideoGenerationCapability) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogVideoGenerationCapability.ProtoReflect.Descriptor instead.
 func (*CatalogVideoGenerationCapability) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *CatalogVideoGenerationCapability) GetModes() []string {
@@ -2424,7 +2839,7 @@ type CatalogVoiceEntry struct {
 
 func (x *CatalogVoiceEntry) Reset() {
 	*x = CatalogVoiceEntry{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[32]
+	mi := &file_runtime_v1_connector_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2436,7 +2851,7 @@ func (x *CatalogVoiceEntry) String() string {
 func (*CatalogVoiceEntry) ProtoMessage() {}
 
 func (x *CatalogVoiceEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[32]
+	mi := &file_runtime_v1_connector_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2449,7 +2864,7 @@ func (x *CatalogVoiceEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogVoiceEntry.ProtoReflect.Descriptor instead.
 func (*CatalogVoiceEntry) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *CatalogVoiceEntry) GetVoiceSetId() string {
@@ -2516,7 +2931,7 @@ type CatalogWorkflowModel struct {
 
 func (x *CatalogWorkflowModel) Reset() {
 	*x = CatalogWorkflowModel{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[33]
+	mi := &file_runtime_v1_connector_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2528,7 +2943,7 @@ func (x *CatalogWorkflowModel) String() string {
 func (*CatalogWorkflowModel) ProtoMessage() {}
 
 func (x *CatalogWorkflowModel) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[33]
+	mi := &file_runtime_v1_connector_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2541,7 +2956,7 @@ func (x *CatalogWorkflowModel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogWorkflowModel.ProtoReflect.Descriptor instead.
 func (*CatalogWorkflowModel) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *CatalogWorkflowModel) GetWorkflowModelId() string {
@@ -2604,7 +3019,7 @@ type CatalogModelWorkflowBinding struct {
 
 func (x *CatalogModelWorkflowBinding) Reset() {
 	*x = CatalogModelWorkflowBinding{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[34]
+	mi := &file_runtime_v1_connector_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2616,7 +3031,7 @@ func (x *CatalogModelWorkflowBinding) String() string {
 func (*CatalogModelWorkflowBinding) ProtoMessage() {}
 
 func (x *CatalogModelWorkflowBinding) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[34]
+	mi := &file_runtime_v1_connector_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2629,7 +3044,7 @@ func (x *CatalogModelWorkflowBinding) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogModelWorkflowBinding.ProtoReflect.Descriptor instead.
 func (*CatalogModelWorkflowBinding) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *CatalogModelWorkflowBinding) GetModelId() string {
@@ -2671,7 +3086,7 @@ type CatalogModelSummary struct {
 
 func (x *CatalogModelSummary) Reset() {
 	*x = CatalogModelSummary{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[35]
+	mi := &file_runtime_v1_connector_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2683,7 +3098,7 @@ func (x *CatalogModelSummary) String() string {
 func (*CatalogModelSummary) ProtoMessage() {}
 
 func (x *CatalogModelSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[35]
+	mi := &file_runtime_v1_connector_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2696,7 +3111,7 @@ func (x *CatalogModelSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogModelSummary.ProtoReflect.Descriptor instead.
 func (*CatalogModelSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *CatalogModelSummary) GetProvider() string {
@@ -2794,7 +3209,7 @@ type CatalogModelDetail struct {
 
 func (x *CatalogModelDetail) Reset() {
 	*x = CatalogModelDetail{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[36]
+	mi := &file_runtime_v1_connector_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2806,7 +3221,7 @@ func (x *CatalogModelDetail) String() string {
 func (*CatalogModelDetail) ProtoMessage() {}
 
 func (x *CatalogModelDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[36]
+	mi := &file_runtime_v1_connector_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2819,7 +3234,7 @@ func (x *CatalogModelDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogModelDetail.ProtoReflect.Descriptor instead.
 func (*CatalogModelDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *CatalogModelDetail) GetProvider() string {
@@ -2960,7 +3375,7 @@ type CatalogModelInput struct {
 
 func (x *CatalogModelInput) Reset() {
 	*x = CatalogModelInput{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[37]
+	mi := &file_runtime_v1_connector_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2972,7 +3387,7 @@ func (x *CatalogModelInput) String() string {
 func (*CatalogModelInput) ProtoMessage() {}
 
 func (x *CatalogModelInput) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[37]
+	mi := &file_runtime_v1_connector_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2985,7 +3400,7 @@ func (x *CatalogModelInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogModelInput.ProtoReflect.Descriptor instead.
 func (*CatalogModelInput) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *CatalogModelInput) GetProvider() string {
@@ -3076,7 +3491,7 @@ type ListCatalogProviderModelsRequest struct {
 
 func (x *ListCatalogProviderModelsRequest) Reset() {
 	*x = ListCatalogProviderModelsRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[38]
+	mi := &file_runtime_v1_connector_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3088,7 +3503,7 @@ func (x *ListCatalogProviderModelsRequest) String() string {
 func (*ListCatalogProviderModelsRequest) ProtoMessage() {}
 
 func (x *ListCatalogProviderModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[38]
+	mi := &file_runtime_v1_connector_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3101,7 +3516,7 @@ func (x *ListCatalogProviderModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCatalogProviderModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListCatalogProviderModelsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ListCatalogProviderModelsRequest) GetProvider() string {
@@ -3137,7 +3552,7 @@ type ListCatalogProviderModelsResponse struct {
 
 func (x *ListCatalogProviderModelsResponse) Reset() {
 	*x = ListCatalogProviderModelsResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[39]
+	mi := &file_runtime_v1_connector_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3149,7 +3564,7 @@ func (x *ListCatalogProviderModelsResponse) String() string {
 func (*ListCatalogProviderModelsResponse) ProtoMessage() {}
 
 func (x *ListCatalogProviderModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[39]
+	mi := &file_runtime_v1_connector_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3162,7 +3577,7 @@ func (x *ListCatalogProviderModelsResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListCatalogProviderModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListCatalogProviderModelsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ListCatalogProviderModelsResponse) GetProvider() *ModelCatalogProviderEntry {
@@ -3203,7 +3618,7 @@ type GetCatalogModelDetailRequest struct {
 
 func (x *GetCatalogModelDetailRequest) Reset() {
 	*x = GetCatalogModelDetailRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[40]
+	mi := &file_runtime_v1_connector_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3215,7 +3630,7 @@ func (x *GetCatalogModelDetailRequest) String() string {
 func (*GetCatalogModelDetailRequest) ProtoMessage() {}
 
 func (x *GetCatalogModelDetailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[40]
+	mi := &file_runtime_v1_connector_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3228,7 +3643,7 @@ func (x *GetCatalogModelDetailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCatalogModelDetailRequest.ProtoReflect.Descriptor instead.
 func (*GetCatalogModelDetailRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *GetCatalogModelDetailRequest) GetProvider() string {
@@ -3256,7 +3671,7 @@ type GetCatalogModelDetailResponse struct {
 
 func (x *GetCatalogModelDetailResponse) Reset() {
 	*x = GetCatalogModelDetailResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[41]
+	mi := &file_runtime_v1_connector_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3268,7 +3683,7 @@ func (x *GetCatalogModelDetailResponse) String() string {
 func (*GetCatalogModelDetailResponse) ProtoMessage() {}
 
 func (x *GetCatalogModelDetailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[41]
+	mi := &file_runtime_v1_connector_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3281,7 +3696,7 @@ func (x *GetCatalogModelDetailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCatalogModelDetailResponse.ProtoReflect.Descriptor instead.
 func (*GetCatalogModelDetailResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *GetCatalogModelDetailResponse) GetProvider() *ModelCatalogProviderEntry {
@@ -3318,7 +3733,7 @@ type UpsertCatalogModelOverlayRequest struct {
 
 func (x *UpsertCatalogModelOverlayRequest) Reset() {
 	*x = UpsertCatalogModelOverlayRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[42]
+	mi := &file_runtime_v1_connector_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3330,7 +3745,7 @@ func (x *UpsertCatalogModelOverlayRequest) String() string {
 func (*UpsertCatalogModelOverlayRequest) ProtoMessage() {}
 
 func (x *UpsertCatalogModelOverlayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[42]
+	mi := &file_runtime_v1_connector_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3343,7 +3758,7 @@ func (x *UpsertCatalogModelOverlayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertCatalogModelOverlayRequest.ProtoReflect.Descriptor instead.
 func (*UpsertCatalogModelOverlayRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{42}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *UpsertCatalogModelOverlayRequest) GetProvider() string {
@@ -3392,7 +3807,7 @@ type UpsertCatalogModelOverlayResponse struct {
 
 func (x *UpsertCatalogModelOverlayResponse) Reset() {
 	*x = UpsertCatalogModelOverlayResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[43]
+	mi := &file_runtime_v1_connector_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3404,7 +3819,7 @@ func (x *UpsertCatalogModelOverlayResponse) String() string {
 func (*UpsertCatalogModelOverlayResponse) ProtoMessage() {}
 
 func (x *UpsertCatalogModelOverlayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[43]
+	mi := &file_runtime_v1_connector_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3417,7 +3832,7 @@ func (x *UpsertCatalogModelOverlayResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use UpsertCatalogModelOverlayResponse.ProtoReflect.Descriptor instead.
 func (*UpsertCatalogModelOverlayResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{43}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *UpsertCatalogModelOverlayResponse) GetProvider() *ModelCatalogProviderEntry {
@@ -3451,7 +3866,7 @@ type DeleteCatalogModelOverlayRequest struct {
 
 func (x *DeleteCatalogModelOverlayRequest) Reset() {
 	*x = DeleteCatalogModelOverlayRequest{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[44]
+	mi := &file_runtime_v1_connector_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3463,7 +3878,7 @@ func (x *DeleteCatalogModelOverlayRequest) String() string {
 func (*DeleteCatalogModelOverlayRequest) ProtoMessage() {}
 
 func (x *DeleteCatalogModelOverlayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[44]
+	mi := &file_runtime_v1_connector_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3476,7 +3891,7 @@ func (x *DeleteCatalogModelOverlayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCatalogModelOverlayRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCatalogModelOverlayRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{44}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *DeleteCatalogModelOverlayRequest) GetProvider() string {
@@ -3503,7 +3918,7 @@ type DeleteCatalogModelOverlayResponse struct {
 
 func (x *DeleteCatalogModelOverlayResponse) Reset() {
 	*x = DeleteCatalogModelOverlayResponse{}
-	mi := &file_runtime_v1_connector_proto_msgTypes[45]
+	mi := &file_runtime_v1_connector_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3515,7 +3930,7 @@ func (x *DeleteCatalogModelOverlayResponse) String() string {
 func (*DeleteCatalogModelOverlayResponse) ProtoMessage() {}
 
 func (x *DeleteCatalogModelOverlayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_connector_proto_msgTypes[45]
+	mi := &file_runtime_v1_connector_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3528,7 +3943,7 @@ func (x *DeleteCatalogModelOverlayResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use DeleteCatalogModelOverlayResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCatalogModelOverlayResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{45}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *DeleteCatalogModelOverlayResponse) GetAck() *Ack {
@@ -3568,7 +3983,32 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12?\n" +
 	"\tauth_kind\x18\r \x01(\x0e2\".nimi.runtime.v1.ConnectorAuthKindR\bauthKind\x122\n" +
 	"\x15provider_auth_profile\x18\x0e \x01(\tR\x13providerAuthProfileJ\x04\b\t\x10\n" +
-	"R\x0elocal_category\"\xad\x02\n" +
+	"R\x0elocal_category\"\xa2\x02\n" +
+	"\x0eConnectorGrant\x12\x19\n" +
+	"\bgrant_id\x18\x01 \x01(\tR\agrantId\x12!\n" +
+	"\fconnector_id\x18\x02 \x01(\tR\vconnectorId\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x03 \x01(\tR\taccountId\x12=\n" +
+	"\x06status\x18\x04 \x01(\x0e2%.nimi.runtime.v1.ConnectorGrantStatusR\x06status\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"revoked_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\trevokedAt\"@\n" +
+	"\x1bCreateConnectorGrantRequest\x12!\n" +
+	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\"U\n" +
+	"\x1cCreateConnectorGrantResponse\x125\n" +
+	"\x05grant\x18\x01 \x01(\v2\x1f.nimi.runtime.v1.ConnectorGrantR\x05grant\"X\n" +
+	"\x1aListConnectorGrantsRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\"~\n" +
+	"\x1bListConnectorGrantsResponse\x127\n" +
+	"\x06grants\x18\x01 \x03(\v2\x1f.nimi.runtime.v1.ConnectorGrantR\x06grants\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"8\n" +
+	"\x1bRevokeConnectorGrantRequest\x12\x19\n" +
+	"\bgrant_id\x18\x01 \x01(\tR\agrantId\"U\n" +
+	"\x1cRevokeConnectorGrantResponse\x125\n" +
+	"\x05grant\x18\x01 \x01(\v2\x1f.nimi.runtime.v1.ConnectorGrantR\x05grant\"\xad\x02\n" +
 	"\x16CreateConnectorRequest\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x1a\n" +
 	"\bendpoint\x18\x02 \x01(\tR\bendpoint\x12\x14\n" +
@@ -3852,7 +4292,11 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\x11ConnectorAuthKind\x12#\n" +
 	"\x1fCONNECTOR_AUTH_KIND_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bCONNECTOR_AUTH_KIND_API_KEY\x10\x01\x12%\n" +
-	"!CONNECTOR_AUTH_KIND_OAUTH_MANAGED\x10\x02*\xf8\x01\n" +
+	"!CONNECTOR_AUTH_KIND_OAUTH_MANAGED\x10\x02*\x85\x01\n" +
+	"\x14ConnectorGrantStatus\x12&\n" +
+	"\"CONNECTOR_GRANT_STATUS_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dCONNECTOR_GRANT_STATUS_ACTIVE\x10\x01\x12\"\n" +
+	"\x1eCONNECTOR_GRANT_STATUS_REVOKED\x10\x02*\xf8\x01\n" +
 	"\x1aModelCatalogProviderSource\x12-\n" +
 	")MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED\x10\x00\x12)\n" +
 	"%MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN\x10\x01\x12(\n" +
@@ -3863,13 +4307,16 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	" CATALOG_MODEL_SOURCE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cCATALOG_MODEL_SOURCE_BUILTIN\x10\x01\x12\x1f\n" +
 	"\x1bCATALOG_MODEL_SOURCE_CUSTOM\x10\x02\x12#\n" +
-	"\x1fCATALOG_MODEL_SOURCE_OVERRIDDEN\x10\x032\xeb\r\n" +
+	"\x1fCATALOG_MODEL_SOURCE_OVERRIDDEN\x10\x032\xc7\x10\n" +
 	"\x17RuntimeConnectorService\x12d\n" +
 	"\x0fCreateConnector\x12'.nimi.runtime.v1.CreateConnectorRequest\x1a(.nimi.runtime.v1.CreateConnectorResponse\x12[\n" +
 	"\fGetConnector\x12$.nimi.runtime.v1.GetConnectorRequest\x1a%.nimi.runtime.v1.GetConnectorResponse\x12a\n" +
 	"\x0eListConnectors\x12&.nimi.runtime.v1.ListConnectorsRequest\x1a'.nimi.runtime.v1.ListConnectorsResponse\x12d\n" +
 	"\x0fUpdateConnector\x12'.nimi.runtime.v1.UpdateConnectorRequest\x1a(.nimi.runtime.v1.UpdateConnectorResponse\x12d\n" +
-	"\x0fDeleteConnector\x12'.nimi.runtime.v1.DeleteConnectorRequest\x1a(.nimi.runtime.v1.DeleteConnectorResponse\x12^\n" +
+	"\x0fDeleteConnector\x12'.nimi.runtime.v1.DeleteConnectorRequest\x1a(.nimi.runtime.v1.DeleteConnectorResponse\x12s\n" +
+	"\x14CreateConnectorGrant\x12,.nimi.runtime.v1.CreateConnectorGrantRequest\x1a-.nimi.runtime.v1.CreateConnectorGrantResponse\x12p\n" +
+	"\x13ListConnectorGrants\x12+.nimi.runtime.v1.ListConnectorGrantsRequest\x1a,.nimi.runtime.v1.ListConnectorGrantsResponse\x12s\n" +
+	"\x14RevokeConnectorGrant\x12,.nimi.runtime.v1.RevokeConnectorGrantRequest\x1a-.nimi.runtime.v1.RevokeConnectorGrantResponse\x12^\n" +
 	"\rTestConnector\x12%.nimi.runtime.v1.TestConnectorRequest\x1a&.nimi.runtime.v1.TestConnectorResponse\x12p\n" +
 	"\x13ListConnectorModels\x12+.nimi.runtime.v1.ListConnectorModelsRequest\x1a,.nimi.runtime.v1.ListConnectorModelsResponse\x12p\n" +
 	"\x13ListProviderCatalog\x12+.nimi.runtime.v1.ListProviderCatalogRequest\x1a,.nimi.runtime.v1.ListProviderCatalogResponse\x12\x82\x01\n" +
@@ -3893,159 +4340,179 @@ func file_runtime_v1_connector_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_connector_proto_rawDescData
 }
 
-var file_runtime_v1_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_runtime_v1_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_runtime_v1_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_runtime_v1_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 53)
 var file_runtime_v1_connector_proto_goTypes = []any{
 	(ConnectorKind)(0),                         // 0: nimi.runtime.v1.ConnectorKind
 	(ConnectorOwnerType)(0),                    // 1: nimi.runtime.v1.ConnectorOwnerType
 	(ConnectorStatus)(0),                       // 2: nimi.runtime.v1.ConnectorStatus
 	(ConnectorAuthKind)(0),                     // 3: nimi.runtime.v1.ConnectorAuthKind
-	(ModelCatalogProviderSource)(0),            // 4: nimi.runtime.v1.ModelCatalogProviderSource
-	(CatalogModelSource)(0),                    // 5: nimi.runtime.v1.CatalogModelSource
-	(*Connector)(nil),                          // 6: nimi.runtime.v1.Connector
-	(*CreateConnectorRequest)(nil),             // 7: nimi.runtime.v1.CreateConnectorRequest
-	(*CreateConnectorResponse)(nil),            // 8: nimi.runtime.v1.CreateConnectorResponse
-	(*GetConnectorRequest)(nil),                // 9: nimi.runtime.v1.GetConnectorRequest
-	(*GetConnectorResponse)(nil),               // 10: nimi.runtime.v1.GetConnectorResponse
-	(*ListConnectorsRequest)(nil),              // 11: nimi.runtime.v1.ListConnectorsRequest
-	(*ListConnectorsResponse)(nil),             // 12: nimi.runtime.v1.ListConnectorsResponse
-	(*UpdateConnectorRequest)(nil),             // 13: nimi.runtime.v1.UpdateConnectorRequest
-	(*UpdateConnectorResponse)(nil),            // 14: nimi.runtime.v1.UpdateConnectorResponse
-	(*DeleteConnectorRequest)(nil),             // 15: nimi.runtime.v1.DeleteConnectorRequest
-	(*DeleteConnectorResponse)(nil),            // 16: nimi.runtime.v1.DeleteConnectorResponse
-	(*TestConnectorRequest)(nil),               // 17: nimi.runtime.v1.TestConnectorRequest
-	(*TestConnectorResponse)(nil),              // 18: nimi.runtime.v1.TestConnectorResponse
-	(*ConnectorModelDescriptor)(nil),           // 19: nimi.runtime.v1.ConnectorModelDescriptor
-	(*ListConnectorModelsRequest)(nil),         // 20: nimi.runtime.v1.ListConnectorModelsRequest
-	(*ListConnectorModelsResponse)(nil),        // 21: nimi.runtime.v1.ListConnectorModelsResponse
-	(*ProviderCatalogEntry)(nil),               // 22: nimi.runtime.v1.ProviderCatalogEntry
-	(*ListProviderCatalogRequest)(nil),         // 23: nimi.runtime.v1.ListProviderCatalogRequest
-	(*ListProviderCatalogResponse)(nil),        // 24: nimi.runtime.v1.ListProviderCatalogResponse
-	(*ModelCatalogProviderEntry)(nil),          // 25: nimi.runtime.v1.ModelCatalogProviderEntry
-	(*ListModelCatalogProvidersRequest)(nil),   // 26: nimi.runtime.v1.ListModelCatalogProvidersRequest
-	(*ListModelCatalogProvidersResponse)(nil),  // 27: nimi.runtime.v1.ListModelCatalogProvidersResponse
-	(*UpsertModelCatalogProviderRequest)(nil),  // 28: nimi.runtime.v1.UpsertModelCatalogProviderRequest
-	(*UpsertModelCatalogProviderResponse)(nil), // 29: nimi.runtime.v1.UpsertModelCatalogProviderResponse
-	(*DeleteModelCatalogProviderRequest)(nil),  // 30: nimi.runtime.v1.DeleteModelCatalogProviderRequest
-	(*DeleteModelCatalogProviderResponse)(nil), // 31: nimi.runtime.v1.DeleteModelCatalogProviderResponse
-	(*CatalogOverlayWarning)(nil),              // 32: nimi.runtime.v1.CatalogOverlayWarning
-	(*CatalogPricing)(nil),                     // 33: nimi.runtime.v1.CatalogPricing
-	(*CatalogSourceRef)(nil),                   // 34: nimi.runtime.v1.CatalogSourceRef
-	(*CatalogStringListEntry)(nil),             // 35: nimi.runtime.v1.CatalogStringListEntry
-	(*CatalogVideoGenerationOutputs)(nil),      // 36: nimi.runtime.v1.CatalogVideoGenerationOutputs
-	(*CatalogVideoGenerationCapability)(nil),   // 37: nimi.runtime.v1.CatalogVideoGenerationCapability
-	(*CatalogVoiceEntry)(nil),                  // 38: nimi.runtime.v1.CatalogVoiceEntry
-	(*CatalogWorkflowModel)(nil),               // 39: nimi.runtime.v1.CatalogWorkflowModel
-	(*CatalogModelWorkflowBinding)(nil),        // 40: nimi.runtime.v1.CatalogModelWorkflowBinding
-	(*CatalogModelSummary)(nil),                // 41: nimi.runtime.v1.CatalogModelSummary
-	(*CatalogModelDetail)(nil),                 // 42: nimi.runtime.v1.CatalogModelDetail
-	(*CatalogModelInput)(nil),                  // 43: nimi.runtime.v1.CatalogModelInput
-	(*ListCatalogProviderModelsRequest)(nil),   // 44: nimi.runtime.v1.ListCatalogProviderModelsRequest
-	(*ListCatalogProviderModelsResponse)(nil),  // 45: nimi.runtime.v1.ListCatalogProviderModelsResponse
-	(*GetCatalogModelDetailRequest)(nil),       // 46: nimi.runtime.v1.GetCatalogModelDetailRequest
-	(*GetCatalogModelDetailResponse)(nil),      // 47: nimi.runtime.v1.GetCatalogModelDetailResponse
-	(*UpsertCatalogModelOverlayRequest)(nil),   // 48: nimi.runtime.v1.UpsertCatalogModelOverlayRequest
-	(*UpsertCatalogModelOverlayResponse)(nil),  // 49: nimi.runtime.v1.UpsertCatalogModelOverlayResponse
-	(*DeleteCatalogModelOverlayRequest)(nil),   // 50: nimi.runtime.v1.DeleteCatalogModelOverlayRequest
-	(*DeleteCatalogModelOverlayResponse)(nil),  // 51: nimi.runtime.v1.DeleteCatalogModelOverlayResponse
-	(*timestamppb.Timestamp)(nil),              // 52: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),              // 53: google.protobuf.FieldMask
-	(*Ack)(nil),                                // 54: nimi.runtime.v1.Ack
-	(*structpb.Struct)(nil),                    // 55: google.protobuf.Struct
+	(ConnectorGrantStatus)(0),                  // 4: nimi.runtime.v1.ConnectorGrantStatus
+	(ModelCatalogProviderSource)(0),            // 5: nimi.runtime.v1.ModelCatalogProviderSource
+	(CatalogModelSource)(0),                    // 6: nimi.runtime.v1.CatalogModelSource
+	(*Connector)(nil),                          // 7: nimi.runtime.v1.Connector
+	(*ConnectorGrant)(nil),                     // 8: nimi.runtime.v1.ConnectorGrant
+	(*CreateConnectorGrantRequest)(nil),        // 9: nimi.runtime.v1.CreateConnectorGrantRequest
+	(*CreateConnectorGrantResponse)(nil),       // 10: nimi.runtime.v1.CreateConnectorGrantResponse
+	(*ListConnectorGrantsRequest)(nil),         // 11: nimi.runtime.v1.ListConnectorGrantsRequest
+	(*ListConnectorGrantsResponse)(nil),        // 12: nimi.runtime.v1.ListConnectorGrantsResponse
+	(*RevokeConnectorGrantRequest)(nil),        // 13: nimi.runtime.v1.RevokeConnectorGrantRequest
+	(*RevokeConnectorGrantResponse)(nil),       // 14: nimi.runtime.v1.RevokeConnectorGrantResponse
+	(*CreateConnectorRequest)(nil),             // 15: nimi.runtime.v1.CreateConnectorRequest
+	(*CreateConnectorResponse)(nil),            // 16: nimi.runtime.v1.CreateConnectorResponse
+	(*GetConnectorRequest)(nil),                // 17: nimi.runtime.v1.GetConnectorRequest
+	(*GetConnectorResponse)(nil),               // 18: nimi.runtime.v1.GetConnectorResponse
+	(*ListConnectorsRequest)(nil),              // 19: nimi.runtime.v1.ListConnectorsRequest
+	(*ListConnectorsResponse)(nil),             // 20: nimi.runtime.v1.ListConnectorsResponse
+	(*UpdateConnectorRequest)(nil),             // 21: nimi.runtime.v1.UpdateConnectorRequest
+	(*UpdateConnectorResponse)(nil),            // 22: nimi.runtime.v1.UpdateConnectorResponse
+	(*DeleteConnectorRequest)(nil),             // 23: nimi.runtime.v1.DeleteConnectorRequest
+	(*DeleteConnectorResponse)(nil),            // 24: nimi.runtime.v1.DeleteConnectorResponse
+	(*TestConnectorRequest)(nil),               // 25: nimi.runtime.v1.TestConnectorRequest
+	(*TestConnectorResponse)(nil),              // 26: nimi.runtime.v1.TestConnectorResponse
+	(*ConnectorModelDescriptor)(nil),           // 27: nimi.runtime.v1.ConnectorModelDescriptor
+	(*ListConnectorModelsRequest)(nil),         // 28: nimi.runtime.v1.ListConnectorModelsRequest
+	(*ListConnectorModelsResponse)(nil),        // 29: nimi.runtime.v1.ListConnectorModelsResponse
+	(*ProviderCatalogEntry)(nil),               // 30: nimi.runtime.v1.ProviderCatalogEntry
+	(*ListProviderCatalogRequest)(nil),         // 31: nimi.runtime.v1.ListProviderCatalogRequest
+	(*ListProviderCatalogResponse)(nil),        // 32: nimi.runtime.v1.ListProviderCatalogResponse
+	(*ModelCatalogProviderEntry)(nil),          // 33: nimi.runtime.v1.ModelCatalogProviderEntry
+	(*ListModelCatalogProvidersRequest)(nil),   // 34: nimi.runtime.v1.ListModelCatalogProvidersRequest
+	(*ListModelCatalogProvidersResponse)(nil),  // 35: nimi.runtime.v1.ListModelCatalogProvidersResponse
+	(*UpsertModelCatalogProviderRequest)(nil),  // 36: nimi.runtime.v1.UpsertModelCatalogProviderRequest
+	(*UpsertModelCatalogProviderResponse)(nil), // 37: nimi.runtime.v1.UpsertModelCatalogProviderResponse
+	(*DeleteModelCatalogProviderRequest)(nil),  // 38: nimi.runtime.v1.DeleteModelCatalogProviderRequest
+	(*DeleteModelCatalogProviderResponse)(nil), // 39: nimi.runtime.v1.DeleteModelCatalogProviderResponse
+	(*CatalogOverlayWarning)(nil),              // 40: nimi.runtime.v1.CatalogOverlayWarning
+	(*CatalogPricing)(nil),                     // 41: nimi.runtime.v1.CatalogPricing
+	(*CatalogSourceRef)(nil),                   // 42: nimi.runtime.v1.CatalogSourceRef
+	(*CatalogStringListEntry)(nil),             // 43: nimi.runtime.v1.CatalogStringListEntry
+	(*CatalogVideoGenerationOutputs)(nil),      // 44: nimi.runtime.v1.CatalogVideoGenerationOutputs
+	(*CatalogVideoGenerationCapability)(nil),   // 45: nimi.runtime.v1.CatalogVideoGenerationCapability
+	(*CatalogVoiceEntry)(nil),                  // 46: nimi.runtime.v1.CatalogVoiceEntry
+	(*CatalogWorkflowModel)(nil),               // 47: nimi.runtime.v1.CatalogWorkflowModel
+	(*CatalogModelWorkflowBinding)(nil),        // 48: nimi.runtime.v1.CatalogModelWorkflowBinding
+	(*CatalogModelSummary)(nil),                // 49: nimi.runtime.v1.CatalogModelSummary
+	(*CatalogModelDetail)(nil),                 // 50: nimi.runtime.v1.CatalogModelDetail
+	(*CatalogModelInput)(nil),                  // 51: nimi.runtime.v1.CatalogModelInput
+	(*ListCatalogProviderModelsRequest)(nil),   // 52: nimi.runtime.v1.ListCatalogProviderModelsRequest
+	(*ListCatalogProviderModelsResponse)(nil),  // 53: nimi.runtime.v1.ListCatalogProviderModelsResponse
+	(*GetCatalogModelDetailRequest)(nil),       // 54: nimi.runtime.v1.GetCatalogModelDetailRequest
+	(*GetCatalogModelDetailResponse)(nil),      // 55: nimi.runtime.v1.GetCatalogModelDetailResponse
+	(*UpsertCatalogModelOverlayRequest)(nil),   // 56: nimi.runtime.v1.UpsertCatalogModelOverlayRequest
+	(*UpsertCatalogModelOverlayResponse)(nil),  // 57: nimi.runtime.v1.UpsertCatalogModelOverlayResponse
+	(*DeleteCatalogModelOverlayRequest)(nil),   // 58: nimi.runtime.v1.DeleteCatalogModelOverlayRequest
+	(*DeleteCatalogModelOverlayResponse)(nil),  // 59: nimi.runtime.v1.DeleteCatalogModelOverlayResponse
+	(*timestamppb.Timestamp)(nil),              // 60: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),              // 61: google.protobuf.FieldMask
+	(*Ack)(nil),                                // 62: nimi.runtime.v1.Ack
+	(*structpb.Struct)(nil),                    // 63: google.protobuf.Struct
 }
 var file_runtime_v1_connector_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.Connector.kind:type_name -> nimi.runtime.v1.ConnectorKind
 	1,  // 1: nimi.runtime.v1.Connector.owner_type:type_name -> nimi.runtime.v1.ConnectorOwnerType
 	2,  // 2: nimi.runtime.v1.Connector.status:type_name -> nimi.runtime.v1.ConnectorStatus
-	52, // 3: nimi.runtime.v1.Connector.created_at:type_name -> google.protobuf.Timestamp
-	52, // 4: nimi.runtime.v1.Connector.updated_at:type_name -> google.protobuf.Timestamp
+	60, // 3: nimi.runtime.v1.Connector.created_at:type_name -> google.protobuf.Timestamp
+	60, // 4: nimi.runtime.v1.Connector.updated_at:type_name -> google.protobuf.Timestamp
 	3,  // 5: nimi.runtime.v1.Connector.auth_kind:type_name -> nimi.runtime.v1.ConnectorAuthKind
-	3,  // 6: nimi.runtime.v1.CreateConnectorRequest.auth_kind:type_name -> nimi.runtime.v1.ConnectorAuthKind
-	6,  // 7: nimi.runtime.v1.CreateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	6,  // 8: nimi.runtime.v1.GetConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	0,  // 9: nimi.runtime.v1.ListConnectorsRequest.kind_filter:type_name -> nimi.runtime.v1.ConnectorKind
-	2,  // 10: nimi.runtime.v1.ListConnectorsRequest.status_filter:type_name -> nimi.runtime.v1.ConnectorStatus
-	6,  // 11: nimi.runtime.v1.ListConnectorsResponse.connectors:type_name -> nimi.runtime.v1.Connector
-	2,  // 12: nimi.runtime.v1.UpdateConnectorRequest.status:type_name -> nimi.runtime.v1.ConnectorStatus
-	53, // 13: nimi.runtime.v1.UpdateConnectorRequest.update_mask:type_name -> google.protobuf.FieldMask
-	3,  // 14: nimi.runtime.v1.UpdateConnectorRequest.auth_kind:type_name -> nimi.runtime.v1.ConnectorAuthKind
-	6,  // 15: nimi.runtime.v1.UpdateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	54, // 16: nimi.runtime.v1.DeleteConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
-	54, // 17: nimi.runtime.v1.TestConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
-	19, // 18: nimi.runtime.v1.ListConnectorModelsResponse.models:type_name -> nimi.runtime.v1.ConnectorModelDescriptor
-	22, // 19: nimi.runtime.v1.ListProviderCatalogResponse.providers:type_name -> nimi.runtime.v1.ProviderCatalogEntry
-	4,  // 20: nimi.runtime.v1.ModelCatalogProviderEntry.source:type_name -> nimi.runtime.v1.ModelCatalogProviderSource
-	25, // 21: nimi.runtime.v1.ListModelCatalogProvidersResponse.providers:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	25, // 22: nimi.runtime.v1.UpsertModelCatalogProviderResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	54, // 23: nimi.runtime.v1.DeleteModelCatalogProviderResponse.ack:type_name -> nimi.runtime.v1.Ack
-	35, // 24: nimi.runtime.v1.CatalogVideoGenerationCapability.input_roles:type_name -> nimi.runtime.v1.CatalogStringListEntry
-	55, // 25: nimi.runtime.v1.CatalogVideoGenerationCapability.limits:type_name -> google.protobuf.Struct
-	55, // 26: nimi.runtime.v1.CatalogVideoGenerationCapability.option_constraints:type_name -> google.protobuf.Struct
-	36, // 27: nimi.runtime.v1.CatalogVideoGenerationCapability.outputs:type_name -> nimi.runtime.v1.CatalogVideoGenerationOutputs
-	34, // 28: nimi.runtime.v1.CatalogVoiceEntry.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
-	34, // 29: nimi.runtime.v1.CatalogWorkflowModel.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
-	5,  // 30: nimi.runtime.v1.CatalogModelSummary.source:type_name -> nimi.runtime.v1.CatalogModelSource
-	33, // 31: nimi.runtime.v1.CatalogModelDetail.pricing:type_name -> nimi.runtime.v1.CatalogPricing
-	37, // 32: nimi.runtime.v1.CatalogModelDetail.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
-	34, // 33: nimi.runtime.v1.CatalogModelDetail.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
-	5,  // 34: nimi.runtime.v1.CatalogModelDetail.source:type_name -> nimi.runtime.v1.CatalogModelSource
-	32, // 35: nimi.runtime.v1.CatalogModelDetail.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
-	38, // 36: nimi.runtime.v1.CatalogModelDetail.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
-	39, // 37: nimi.runtime.v1.CatalogModelDetail.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
-	40, // 38: nimi.runtime.v1.CatalogModelDetail.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
-	33, // 39: nimi.runtime.v1.CatalogModelInput.pricing:type_name -> nimi.runtime.v1.CatalogPricing
-	37, // 40: nimi.runtime.v1.CatalogModelInput.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
-	34, // 41: nimi.runtime.v1.CatalogModelInput.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
-	25, // 42: nimi.runtime.v1.ListCatalogProviderModelsResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	41, // 43: nimi.runtime.v1.ListCatalogProviderModelsResponse.models:type_name -> nimi.runtime.v1.CatalogModelSummary
-	32, // 44: nimi.runtime.v1.ListCatalogProviderModelsResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
-	25, // 45: nimi.runtime.v1.GetCatalogModelDetailResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	42, // 46: nimi.runtime.v1.GetCatalogModelDetailResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
-	32, // 47: nimi.runtime.v1.GetCatalogModelDetailResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
-	43, // 48: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model:type_name -> nimi.runtime.v1.CatalogModelInput
-	38, // 49: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
-	39, // 50: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
-	40, // 51: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
-	25, // 52: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	42, // 53: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
-	32, // 54: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
-	54, // 55: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.ack:type_name -> nimi.runtime.v1.Ack
-	25, // 56: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	7,  // 57: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:input_type -> nimi.runtime.v1.CreateConnectorRequest
-	9,  // 58: nimi.runtime.v1.RuntimeConnectorService.GetConnector:input_type -> nimi.runtime.v1.GetConnectorRequest
-	11, // 59: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:input_type -> nimi.runtime.v1.ListConnectorsRequest
-	13, // 60: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:input_type -> nimi.runtime.v1.UpdateConnectorRequest
-	15, // 61: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:input_type -> nimi.runtime.v1.DeleteConnectorRequest
-	17, // 62: nimi.runtime.v1.RuntimeConnectorService.TestConnector:input_type -> nimi.runtime.v1.TestConnectorRequest
-	20, // 63: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:input_type -> nimi.runtime.v1.ListConnectorModelsRequest
-	23, // 64: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:input_type -> nimi.runtime.v1.ListProviderCatalogRequest
-	26, // 65: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:input_type -> nimi.runtime.v1.ListModelCatalogProvidersRequest
-	28, // 66: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:input_type -> nimi.runtime.v1.UpsertModelCatalogProviderRequest
-	30, // 67: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:input_type -> nimi.runtime.v1.DeleteModelCatalogProviderRequest
-	44, // 68: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:input_type -> nimi.runtime.v1.ListCatalogProviderModelsRequest
-	46, // 69: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:input_type -> nimi.runtime.v1.GetCatalogModelDetailRequest
-	48, // 70: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:input_type -> nimi.runtime.v1.UpsertCatalogModelOverlayRequest
-	50, // 71: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:input_type -> nimi.runtime.v1.DeleteCatalogModelOverlayRequest
-	8,  // 72: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:output_type -> nimi.runtime.v1.CreateConnectorResponse
-	10, // 73: nimi.runtime.v1.RuntimeConnectorService.GetConnector:output_type -> nimi.runtime.v1.GetConnectorResponse
-	12, // 74: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:output_type -> nimi.runtime.v1.ListConnectorsResponse
-	14, // 75: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:output_type -> nimi.runtime.v1.UpdateConnectorResponse
-	16, // 76: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:output_type -> nimi.runtime.v1.DeleteConnectorResponse
-	18, // 77: nimi.runtime.v1.RuntimeConnectorService.TestConnector:output_type -> nimi.runtime.v1.TestConnectorResponse
-	21, // 78: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:output_type -> nimi.runtime.v1.ListConnectorModelsResponse
-	24, // 79: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:output_type -> nimi.runtime.v1.ListProviderCatalogResponse
-	27, // 80: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:output_type -> nimi.runtime.v1.ListModelCatalogProvidersResponse
-	29, // 81: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:output_type -> nimi.runtime.v1.UpsertModelCatalogProviderResponse
-	31, // 82: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:output_type -> nimi.runtime.v1.DeleteModelCatalogProviderResponse
-	45, // 83: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:output_type -> nimi.runtime.v1.ListCatalogProviderModelsResponse
-	47, // 84: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:output_type -> nimi.runtime.v1.GetCatalogModelDetailResponse
-	49, // 85: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:output_type -> nimi.runtime.v1.UpsertCatalogModelOverlayResponse
-	51, // 86: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:output_type -> nimi.runtime.v1.DeleteCatalogModelOverlayResponse
-	72, // [72:87] is the sub-list for method output_type
-	57, // [57:72] is the sub-list for method input_type
-	57, // [57:57] is the sub-list for extension type_name
-	57, // [57:57] is the sub-list for extension extendee
-	0,  // [0:57] is the sub-list for field type_name
+	4,  // 6: nimi.runtime.v1.ConnectorGrant.status:type_name -> nimi.runtime.v1.ConnectorGrantStatus
+	60, // 7: nimi.runtime.v1.ConnectorGrant.created_at:type_name -> google.protobuf.Timestamp
+	60, // 8: nimi.runtime.v1.ConnectorGrant.revoked_at:type_name -> google.protobuf.Timestamp
+	8,  // 9: nimi.runtime.v1.CreateConnectorGrantResponse.grant:type_name -> nimi.runtime.v1.ConnectorGrant
+	8,  // 10: nimi.runtime.v1.ListConnectorGrantsResponse.grants:type_name -> nimi.runtime.v1.ConnectorGrant
+	8,  // 11: nimi.runtime.v1.RevokeConnectorGrantResponse.grant:type_name -> nimi.runtime.v1.ConnectorGrant
+	3,  // 12: nimi.runtime.v1.CreateConnectorRequest.auth_kind:type_name -> nimi.runtime.v1.ConnectorAuthKind
+	7,  // 13: nimi.runtime.v1.CreateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	7,  // 14: nimi.runtime.v1.GetConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	0,  // 15: nimi.runtime.v1.ListConnectorsRequest.kind_filter:type_name -> nimi.runtime.v1.ConnectorKind
+	2,  // 16: nimi.runtime.v1.ListConnectorsRequest.status_filter:type_name -> nimi.runtime.v1.ConnectorStatus
+	7,  // 17: nimi.runtime.v1.ListConnectorsResponse.connectors:type_name -> nimi.runtime.v1.Connector
+	2,  // 18: nimi.runtime.v1.UpdateConnectorRequest.status:type_name -> nimi.runtime.v1.ConnectorStatus
+	61, // 19: nimi.runtime.v1.UpdateConnectorRequest.update_mask:type_name -> google.protobuf.FieldMask
+	3,  // 20: nimi.runtime.v1.UpdateConnectorRequest.auth_kind:type_name -> nimi.runtime.v1.ConnectorAuthKind
+	7,  // 21: nimi.runtime.v1.UpdateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	62, // 22: nimi.runtime.v1.DeleteConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
+	62, // 23: nimi.runtime.v1.TestConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
+	27, // 24: nimi.runtime.v1.ListConnectorModelsResponse.models:type_name -> nimi.runtime.v1.ConnectorModelDescriptor
+	30, // 25: nimi.runtime.v1.ListProviderCatalogResponse.providers:type_name -> nimi.runtime.v1.ProviderCatalogEntry
+	5,  // 26: nimi.runtime.v1.ModelCatalogProviderEntry.source:type_name -> nimi.runtime.v1.ModelCatalogProviderSource
+	33, // 27: nimi.runtime.v1.ListModelCatalogProvidersResponse.providers:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	33, // 28: nimi.runtime.v1.UpsertModelCatalogProviderResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	62, // 29: nimi.runtime.v1.DeleteModelCatalogProviderResponse.ack:type_name -> nimi.runtime.v1.Ack
+	43, // 30: nimi.runtime.v1.CatalogVideoGenerationCapability.input_roles:type_name -> nimi.runtime.v1.CatalogStringListEntry
+	63, // 31: nimi.runtime.v1.CatalogVideoGenerationCapability.limits:type_name -> google.protobuf.Struct
+	63, // 32: nimi.runtime.v1.CatalogVideoGenerationCapability.option_constraints:type_name -> google.protobuf.Struct
+	44, // 33: nimi.runtime.v1.CatalogVideoGenerationCapability.outputs:type_name -> nimi.runtime.v1.CatalogVideoGenerationOutputs
+	42, // 34: nimi.runtime.v1.CatalogVoiceEntry.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	42, // 35: nimi.runtime.v1.CatalogWorkflowModel.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	6,  // 36: nimi.runtime.v1.CatalogModelSummary.source:type_name -> nimi.runtime.v1.CatalogModelSource
+	41, // 37: nimi.runtime.v1.CatalogModelDetail.pricing:type_name -> nimi.runtime.v1.CatalogPricing
+	45, // 38: nimi.runtime.v1.CatalogModelDetail.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
+	42, // 39: nimi.runtime.v1.CatalogModelDetail.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	6,  // 40: nimi.runtime.v1.CatalogModelDetail.source:type_name -> nimi.runtime.v1.CatalogModelSource
+	40, // 41: nimi.runtime.v1.CatalogModelDetail.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	46, // 42: nimi.runtime.v1.CatalogModelDetail.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
+	47, // 43: nimi.runtime.v1.CatalogModelDetail.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
+	48, // 44: nimi.runtime.v1.CatalogModelDetail.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
+	41, // 45: nimi.runtime.v1.CatalogModelInput.pricing:type_name -> nimi.runtime.v1.CatalogPricing
+	45, // 46: nimi.runtime.v1.CatalogModelInput.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
+	42, // 47: nimi.runtime.v1.CatalogModelInput.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	33, // 48: nimi.runtime.v1.ListCatalogProviderModelsResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	49, // 49: nimi.runtime.v1.ListCatalogProviderModelsResponse.models:type_name -> nimi.runtime.v1.CatalogModelSummary
+	40, // 50: nimi.runtime.v1.ListCatalogProviderModelsResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	33, // 51: nimi.runtime.v1.GetCatalogModelDetailResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	50, // 52: nimi.runtime.v1.GetCatalogModelDetailResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
+	40, // 53: nimi.runtime.v1.GetCatalogModelDetailResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	51, // 54: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model:type_name -> nimi.runtime.v1.CatalogModelInput
+	46, // 55: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
+	47, // 56: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
+	48, // 57: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
+	33, // 58: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	50, // 59: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
+	40, // 60: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	62, // 61: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.ack:type_name -> nimi.runtime.v1.Ack
+	33, // 62: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	15, // 63: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:input_type -> nimi.runtime.v1.CreateConnectorRequest
+	17, // 64: nimi.runtime.v1.RuntimeConnectorService.GetConnector:input_type -> nimi.runtime.v1.GetConnectorRequest
+	19, // 65: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:input_type -> nimi.runtime.v1.ListConnectorsRequest
+	21, // 66: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:input_type -> nimi.runtime.v1.UpdateConnectorRequest
+	23, // 67: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:input_type -> nimi.runtime.v1.DeleteConnectorRequest
+	9,  // 68: nimi.runtime.v1.RuntimeConnectorService.CreateConnectorGrant:input_type -> nimi.runtime.v1.CreateConnectorGrantRequest
+	11, // 69: nimi.runtime.v1.RuntimeConnectorService.ListConnectorGrants:input_type -> nimi.runtime.v1.ListConnectorGrantsRequest
+	13, // 70: nimi.runtime.v1.RuntimeConnectorService.RevokeConnectorGrant:input_type -> nimi.runtime.v1.RevokeConnectorGrantRequest
+	25, // 71: nimi.runtime.v1.RuntimeConnectorService.TestConnector:input_type -> nimi.runtime.v1.TestConnectorRequest
+	28, // 72: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:input_type -> nimi.runtime.v1.ListConnectorModelsRequest
+	31, // 73: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:input_type -> nimi.runtime.v1.ListProviderCatalogRequest
+	34, // 74: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:input_type -> nimi.runtime.v1.ListModelCatalogProvidersRequest
+	36, // 75: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:input_type -> nimi.runtime.v1.UpsertModelCatalogProviderRequest
+	38, // 76: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:input_type -> nimi.runtime.v1.DeleteModelCatalogProviderRequest
+	52, // 77: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:input_type -> nimi.runtime.v1.ListCatalogProviderModelsRequest
+	54, // 78: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:input_type -> nimi.runtime.v1.GetCatalogModelDetailRequest
+	56, // 79: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:input_type -> nimi.runtime.v1.UpsertCatalogModelOverlayRequest
+	58, // 80: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:input_type -> nimi.runtime.v1.DeleteCatalogModelOverlayRequest
+	16, // 81: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:output_type -> nimi.runtime.v1.CreateConnectorResponse
+	18, // 82: nimi.runtime.v1.RuntimeConnectorService.GetConnector:output_type -> nimi.runtime.v1.GetConnectorResponse
+	20, // 83: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:output_type -> nimi.runtime.v1.ListConnectorsResponse
+	22, // 84: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:output_type -> nimi.runtime.v1.UpdateConnectorResponse
+	24, // 85: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:output_type -> nimi.runtime.v1.DeleteConnectorResponse
+	10, // 86: nimi.runtime.v1.RuntimeConnectorService.CreateConnectorGrant:output_type -> nimi.runtime.v1.CreateConnectorGrantResponse
+	12, // 87: nimi.runtime.v1.RuntimeConnectorService.ListConnectorGrants:output_type -> nimi.runtime.v1.ListConnectorGrantsResponse
+	14, // 88: nimi.runtime.v1.RuntimeConnectorService.RevokeConnectorGrant:output_type -> nimi.runtime.v1.RevokeConnectorGrantResponse
+	26, // 89: nimi.runtime.v1.RuntimeConnectorService.TestConnector:output_type -> nimi.runtime.v1.TestConnectorResponse
+	29, // 90: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:output_type -> nimi.runtime.v1.ListConnectorModelsResponse
+	32, // 91: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:output_type -> nimi.runtime.v1.ListProviderCatalogResponse
+	35, // 92: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:output_type -> nimi.runtime.v1.ListModelCatalogProvidersResponse
+	37, // 93: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:output_type -> nimi.runtime.v1.UpsertModelCatalogProviderResponse
+	39, // 94: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:output_type -> nimi.runtime.v1.DeleteModelCatalogProviderResponse
+	53, // 95: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:output_type -> nimi.runtime.v1.ListCatalogProviderModelsResponse
+	55, // 96: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:output_type -> nimi.runtime.v1.GetCatalogModelDetailResponse
+	57, // 97: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:output_type -> nimi.runtime.v1.UpsertCatalogModelOverlayResponse
+	59, // 98: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:output_type -> nimi.runtime.v1.DeleteCatalogModelOverlayResponse
+	81, // [81:99] is the sub-list for method output_type
+	63, // [63:81] is the sub-list for method input_type
+	63, // [63:63] is the sub-list for extension type_name
+	63, // [63:63] is the sub-list for extension extendee
+	0,  // [0:63] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_connector_proto_init() }
@@ -4054,14 +4521,14 @@ func file_runtime_v1_connector_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
-	file_runtime_v1_connector_proto_msgTypes[7].OneofWrappers = []any{}
+	file_runtime_v1_connector_proto_msgTypes[14].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_connector_proto_rawDesc), len(file_runtime_v1_connector_proto_rawDesc)),
-			NumEnums:      6,
-			NumMessages:   46,
+			NumEnums:      7,
+			NumMessages:   53,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

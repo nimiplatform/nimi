@@ -16,7 +16,10 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-const registryFileName = "connector-registry.json"
+const (
+	registryFileName      = "connector-registry.json"
+	grantRegistryFileName = "connector-grant-registry.json"
+)
 
 var errConnectorLimitExceeded = errors.New("connector limit exceeded")
 
@@ -61,9 +64,10 @@ type ConnectorMutations struct {
 
 // ConnectorStore manages connector records and credentials on disk.
 type ConnectorStore struct {
-	mu           sync.Mutex
-	registryPath string
-	secretStore  SecretStore
+	mu                sync.Mutex
+	registryPath      string
+	grantRegistryPath string
+	secretStore       SecretStore
 }
 
 // NewConnectorStore creates a store rooted at basePath.
@@ -83,8 +87,9 @@ func NewConnectorStoreWithSecretStore(basePath string, secretStore SecretStore) 
 
 func newConnectorStore(basePath string, secretStore SecretStore) *ConnectorStore {
 	return &ConnectorStore{
-		registryPath: filepath.Join(basePath, registryFileName),
-		secretStore:  secretStore,
+		registryPath:      filepath.Join(basePath, registryFileName),
+		grantRegistryPath: filepath.Join(basePath, grantRegistryFileName),
+		secretStore:       secretStore,
 	}
 }
 
@@ -294,10 +299,17 @@ func (s *ConnectorStore) Delete(connectorID string) error {
 		return fmt.Errorf("mark delete_pending: %w", err)
 	}
 
-	// Step 2: delete credential secret (missing = ok)
+	// Step 2: revoke every authorization binding before removing custody.
+	// Existing jobs retain their already-captured non-secret grant snapshot;
+	// future execution observes the revoked grant and fails closed.
+	if err := s.revokeGrantsForConnectorLocked(connectorID, time.Now().UnixMilli()); err != nil {
+		return fmt.Errorf("revoke connector grants: %w", err)
+	}
+
+	// Step 3: delete credential secret (missing = ok)
 	_ = s.deleteSecretPayloadLocked(connectorID)
 
-	// Step 3: remove from registry and persist
+	// Step 4: remove from registry and persist
 	records = append(records[:idx], records[idx+1:]...)
 	if err := s.persistRegistryLocked(records); err != nil {
 		return fmt.Errorf("remove registry entry: %w", err)
@@ -374,6 +386,9 @@ func (s *ConnectorStore) ReconcileStartup() error {
 		if err := s.persistRegistryLocked(records); err != nil {
 			return fmt.Errorf("persist reconciled registry: %w", err)
 		}
+	}
+	if err := s.reconcileGrantRegistryLocked(records, time.Now().UnixMilli()); err != nil {
+		return fmt.Errorf("reconcile connector grants: %w", err)
 	}
 	return nil
 }

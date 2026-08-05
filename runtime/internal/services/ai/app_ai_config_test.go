@@ -4,12 +4,16 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -68,6 +72,64 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 		&runtimev1.GetAppAIConfigRequest{},
 	)
 	assertAppAIConfigError(t, err, codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+}
+
+func TestAppAIConfigGrantBindingValidationIsDeterministicAndDoesNotProbe(t *testing.T) {
+	var providerRequests atomic.Int32
+	provider := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		providerRequests.Add(1)
+	}))
+	defer provider.Close()
+
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	created, err := store.Create(connector.ConnectorRecord{
+		Kind:      runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:   "account-a",
+		Provider:  "openai",
+		Endpoint:  provider.URL,
+		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "credential-must-not-be-opened")
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, err := store.CreateGrant("account-a", created.ConnectorID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, _ := structpb.NewStruct(map[string]any{"provider": "openai", "model": "gpt-4o-mini"})
+	intent := &runtimev1.AIConfigCapabilityIntent{
+		CapabilityContract: "text.generate",
+		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+			Implementation: &runtimev1.CapabilityImplementationIdentity{
+				ImplementationId: "cloud.text.openai", DriverId: "nimi.runtime.driver.openai", DriverDialect: "openai/chat-completions/v1",
+			},
+			ProviderModelTarget: target,
+			ConnectorGrantId:    grant.GrantID,
+		}},
+	}
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.connStore = store
+	writeCtx := localAppAIConfigContext("account-a", "app.example", accountservice.LocalAppOperationAppAIConfigOverwrite)
+	if _, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(intent)}); err != nil {
+		t.Fatalf("OverwriteAppAIConfig(active grant): %v", err)
+	}
+	if providerRequests.Load() != 0 {
+		t.Fatalf("binding commit probed provider %d times", providerRequests.Load())
+	}
+	if _, err := store.RevokeGrant("account-a", grant.GrantID); err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(intent)})
+	assertAppAIConfigError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED)
+	if providerRequests.Load() != 0 {
+		t.Fatalf("rejected binding commit probed provider %d times", providerRequests.Load())
+	}
+
+	intent.GetCloud().ConnectorGrantId = ""
+	if _, err := svc.OverwriteAppAIConfig(writeCtx, &runtimev1.OverwriteAppAIConfigRequest{Config: ownerlessAppAIConfig(intent)}); err != nil {
+		t.Fatalf("grantless Cloud intent must remain saveable: %v", err)
+	}
 }
 
 func TestProtectedLocalAppAIConfigRejectsCallerOwnerAndWrongOperation(t *testing.T) {

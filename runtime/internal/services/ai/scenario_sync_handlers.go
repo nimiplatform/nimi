@@ -7,135 +7,75 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1.ExecuteScenarioRequest, ignored []*runtimev1.IgnoredScenarioExtension) (*runtimev1.ExecuteScenarioResponse, error) {
-	if req == nil || req.GetHead() == nil {
+	if req == nil || req.GetHead() == nil || req.GetSpec().GetTextGenerate() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	spec := req.GetSpec().GetTextGenerate()
-	if spec == nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
 	if len(spec.GetInput()) == 0 && strings.TrimSpace(spec.GetSystemPrompt()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	localCtx, localText, err := s.captureLocalTextRoutingIntent(ctx, req.GetHead())
+	capturedCtx, localText, err := s.captureLocalTextRoutingIntent(ctx, req.GetHead())
 	if err != nil {
 		return nil, err
 	}
 	if localText {
-		return executeLocalTextGenerateScenario(localCtx, s, req, ignored)
+		return executeLocalTextGenerateScenario(capturedCtx, s, req, ignored)
 	}
-	ctx = localCtx
-	intent, err := scenarioExecutionIntentFromContext(ctx, aicapabilities.TextGenerate)
+	effective, err := s.captureCloudTextEffectiveInputs(capturedCtx, req.GetHead(), req, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC)
 	if err != nil {
 		return nil, err
 	}
+	defer effective.release()
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
-	if err != nil {
-		return nil, err
-	}
-
-	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
+	release, acquireResult, acquireErr := s.scheduler.Acquire(capturedCtx, req.GetHead().GetAppId())
 	if acquireErr != nil {
 		return nil, schedulerAcquireError(acquireErr)
 	}
 	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
+	s.attachQueueWaitUnary(capturedCtx, acquireResult)
 	s.logQueueWait("execute_scenario_text_generate", req.GetHead().GetAppId(), acquireResult)
-	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
-	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
-		ctx,
-		intent.Route,
-		intent.ModelID(),
-		remoteTarget,
-		runtimev1.Modal_MODAL_TEXT,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH)
-	}
-	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
-		return nil, err
-	}
 	describeProbe, hasDescribeProbe, err := textGenerateRouteDescribeProbeFromExtensions(req.GetExtensions())
 	if err != nil {
 		return nil, err
 	}
 	if hasDescribeProbe {
-		if err := s.writeTextGenerateRouteDescribeHeader(ctx, req.GetHead(), describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
+		if err := s.writeTextGenerateRouteDescribeHeader(capturedCtx, req.GetHead(), describeProbe, effective.modelResolved(), effective.catalogTarget, s.cloudTextProvider); err != nil {
 			return nil, err
 		}
 		return &runtimev1.ExecuteScenarioResponse{
-			Output: &runtimev1.ScenarioOutput{
-				Output: &runtimev1.ScenarioOutput_TextGenerate{
-					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: "",
-					},
-				},
-			},
+			Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateOutput{Text: ""},
+			}},
 			FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision:     routeDecision,
-			ModelResolved:     modelResolved,
-			TraceId:           ulid.Make().String(),
+			RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			ModelResolved:     effective.modelResolved(),
+			TraceId:           effective.traceID,
 			IgnoredExtensions: ignored,
 		}, nil
 	}
-	if err := validateReasoningRequest(spec, modelResolved, remoteTarget, selectedProvider, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC); err != nil {
-		return nil, err
-	}
-	resolved, err := s.resolveTextGenerateScenario(ctx, req.GetHead(), modelResolved, remoteTarget, selectedProvider, spec)
-	if err != nil {
-		return nil, err
-	}
-	defer resolved.release()
-	if err := s.validateTextGenerateInputParts(ctx, modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
-		return nil, err
-	}
-	traceID := ulid.Make().String()
-	inputText := nimillm.ComposeInputText(resolved.spec.GetSystemPrompt(), resolved.spec.GetInput())
-	providerModelID := s.resolveTextProviderModelID(ctx, req.GetHead(), modelResolved, remoteTarget)
 
-	var (
-		outputText   string
-		toolCalls    []*runtimev1.ToolCall
-		usage        *runtimev1.UsageStats
-		finishReason runtimev1.FinishReason
-	)
-	if remoteTarget == nil {
-		err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	} else if cp := s.selector.cloudProvider; cp != nil {
-		outputText, toolCalls, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, inputText, remoteTarget)
-	} else {
-		err = grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
+	requestCtx, cancel := withTimeout(capturedCtx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
+	defer cancel()
+	result, err := s.executeCapturedCloudText(requestCtx, effective)
 	if err != nil {
 		return nil, err
 	}
 	return &runtimev1.ExecuteScenarioResponse{
-		Output: &runtimev1.ScenarioOutput{
-			Output: &runtimev1.ScenarioOutput_TextGenerate{
-				TextGenerate: &runtimev1.TextGenerateOutput{
-					Text:      outputText,
-					ToolCalls: toolCalls,
-				},
-			},
-		},
-		FinishReason:      finishReason,
-		Usage:             usage,
-		RouteDecision:     routeDecision,
-		ModelResolved:     modelResolved,
-		TraceId:           traceID,
+		Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextGenerate{
+			TextGenerate: &runtimev1.TextGenerateOutput{Text: result.Text, ToolCalls: result.ToolCalls},
+		}},
+		FinishReason:      result.FinishReason,
+		Usage:             result.Usage,
+		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ModelResolved:     effective.modelResolved(),
+		TraceId:           effective.traceID,
 		IgnoredExtensions: ignored,
 	}, nil
 }

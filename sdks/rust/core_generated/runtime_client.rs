@@ -1232,6 +1232,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CreateConnectorResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant",
+        service: "RuntimeConnectorService",
+        method: "CreateConnectorGrant",
+        kind: "unary",
+        request_type: "CreateConnectorGrantRequest",
+        response_type: "CreateConnectorGrantResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
         service: "RuntimeConnectorService",
         method: "DeleteCatalogModelOverlay",
@@ -1280,6 +1288,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListCatalogProviderModelsResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants",
+        service: "RuntimeConnectorService",
+        method: "ListConnectorGrants",
+        kind: "unary",
+        request_type: "ListConnectorGrantsRequest",
+        response_type: "ListConnectorGrantsResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
         service: "RuntimeConnectorService",
         method: "ListConnectorModels",
@@ -1310,6 +1326,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ListProviderCatalogRequest",
         response_type: "ListProviderCatalogResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant",
+        service: "RuntimeConnectorService",
+        method: "RevokeConnectorGrant",
+        kind: "unary",
+        request_type: "RevokeConnectorGrantRequest",
+        response_type: "RevokeConnectorGrantResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",

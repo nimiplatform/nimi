@@ -240,6 +240,12 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeConnectorService/TestConnector":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels":
@@ -452,6 +458,9 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/TestConnector", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetAgentState", Kind: FirstPartyMethodUnary},

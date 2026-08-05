@@ -117,6 +117,9 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/CreateConnector
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpdateConnector
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteConnector
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants
+      - method_id: /nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/TestConnector
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentState

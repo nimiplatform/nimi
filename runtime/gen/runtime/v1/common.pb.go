@@ -73,14 +73,16 @@ const (
 	ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE ReasonCode = 302
 	ReasonCode_AUTH_REVOCATION_UNAVAILABLE ReasonCode = 303
 	// CONNECTOR family (310+)
-	ReasonCode_AI_CONNECTOR_NOT_FOUND          ReasonCode = 310
-	ReasonCode_AI_CONNECTOR_DISABLED           ReasonCode = 311
-	ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING ReasonCode = 312
-	ReasonCode_AI_CONNECTOR_INVALID            ReasonCode = 313
-	ReasonCode_AI_CONNECTOR_IMMUTABLE          ReasonCode = 314
-	ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED     ReasonCode = 315
-	ReasonCode_AI_CONNECTOR_ID_REQUIRED        ReasonCode = 316
-	ReasonCode_AI_LOCAL_CONNECTOR_RETIRED      ReasonCode = 317
+	ReasonCode_AI_CONNECTOR_NOT_FOUND                ReasonCode = 310
+	ReasonCode_AI_CONNECTOR_DISABLED                 ReasonCode = 311
+	ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING       ReasonCode = 312
+	ReasonCode_AI_CONNECTOR_INVALID                  ReasonCode = 313
+	ReasonCode_AI_CONNECTOR_IMMUTABLE                ReasonCode = 314
+	ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED           ReasonCode = 315
+	ReasonCode_AI_CONNECTOR_ID_REQUIRED              ReasonCode = 316
+	ReasonCode_AI_LOCAL_CONNECTOR_RETIRED            ReasonCode = 317
+	ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED ReasonCode = 318
+	ReasonCode_AI_CONNECTOR_GRANT_REVOKED            ReasonCode = 319
 	// REQUEST_CREDENTIAL family (330)
 	ReasonCode_AI_REQUEST_CREDENTIAL_CONFLICT ReasonCode = 330
 	// APP family (340+)
@@ -392,6 +394,8 @@ var (
 		315: "AI_CONNECTOR_LIMIT_EXCEEDED",
 		316: "AI_CONNECTOR_ID_REQUIRED",
 		317: "AI_LOCAL_CONNECTOR_RETIRED",
+		318: "AI_CONNECTOR_GRANT_SELECTION_REQUIRED",
+		319: "AI_CONNECTOR_GRANT_REVOKED",
 		330: "AI_REQUEST_CREDENTIAL_CONFLICT",
 		340: "AI_APP_ID_REQUIRED",
 		341: "AI_APP_ID_CONFLICT",
@@ -645,6 +649,8 @@ var (
 		"AI_CONNECTOR_LIMIT_EXCEEDED":                          315,
 		"AI_CONNECTOR_ID_REQUIRED":                             316,
 		"AI_LOCAL_CONNECTOR_RETIRED":                           317,
+		"AI_CONNECTOR_GRANT_SELECTION_REQUIRED":                318,
+		"AI_CONNECTOR_GRANT_REVOKED":                           319,
 		"AI_REQUEST_CREDENTIAL_CONFLICT":                       330,
 		"AI_APP_ID_REQUIRED":                                   340,
 		"AI_APP_ID_CONFLICT":                                   341,
@@ -1438,7 +1444,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xa6J\n" +
+	"actionHint*\xf3J\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1488,7 +1494,9 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x16AI_CONNECTOR_IMMUTABLE\x10\xba\x02\x12 \n" +
 	"\x1bAI_CONNECTOR_LIMIT_EXCEEDED\x10\xbb\x02\x12\x1d\n" +
 	"\x18AI_CONNECTOR_ID_REQUIRED\x10\xbc\x02\x12\x1f\n" +
-	"\x1aAI_LOCAL_CONNECTOR_RETIRED\x10\xbd\x02\x12#\n" +
+	"\x1aAI_LOCAL_CONNECTOR_RETIRED\x10\xbd\x02\x12*\n" +
+	"%AI_CONNECTOR_GRANT_SELECTION_REQUIRED\x10\xbe\x02\x12\x1f\n" +
+	"\x1aAI_CONNECTOR_GRANT_REVOKED\x10\xbf\x02\x12#\n" +
 	"\x1eAI_REQUEST_CREDENTIAL_CONFLICT\x10\xca\x02\x12\x17\n" +
 	"\x12AI_APP_ID_REQUIRED\x10\xd4\x02\x12\x17\n" +
 	"\x12AI_APP_ID_CONFLICT\x10\xd5\x02\x12\x19\n" +

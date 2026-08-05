@@ -2,12 +2,16 @@ package ai
 
 import (
 	"context"
-	"google.golang.org/grpc/codes"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func validatePromptRequest(appID string, subjectUserID string, modelID string, prompt string, route runtimev1.RoutePolicy) error {
@@ -68,16 +72,79 @@ func (s *Service) prepareScenarioRequestWithExtensions(ctx context.Context, head
 	if scenarioTargetSubjectUserID(capturedCtx, head) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	binding, err := s.normalizeScenarioCloudTarget(capturedCtx, head, intent.CloudTarget)
+	cloudTarget := intent.CloudTarget
+	connectorID := intent.ConnectorID()
+	if intent.IsAIConfigCloud() {
+		grantID := intent.GrantID()
+		accountID := scenarioTargetSubjectUserID(capturedCtx, head)
+		if grantID == "" || accountID == "" || s.connStore == nil {
+			return nil, connectorGrantExecutionError(connector.ErrConnectorGrantSelectionRequired)
+		}
+		grant, grantErr := s.connStore.ValidateGrantBinding(accountID, grantID)
+		if grantErr != nil {
+			return nil, connectorGrantExecutionError(grantErr)
+		}
+		cloudTarget, err = mediaCloudTargetFromAIConfigIntent(intent, grant.Connector.ConnectorID)
+		if err != nil {
+			return nil, err
+		}
+		if cloudTarget.Provider != grant.Connector.Provider {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		connectorID = grant.Connector.ConnectorID
+	}
+	binding, err := s.normalizeScenarioCloudTarget(capturedCtx, head, cloudTarget)
 	if err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveManagedTarget(capturedCtx, intent.ConnectorID(), s.connStore, s.allowLoopback)
+	remoteTarget, err := resolveManagedTarget(capturedCtx, connectorID, s.connStore, s.allowLoopback)
 	if err != nil {
 		return nil, err
 	}
 	applyRemoteModelCatalogBinding(remoteTarget, binding)
 	return remoteTarget, nil
+}
+
+func mediaCloudTargetFromAIConfigIntent(intent executionintent.Intent, connectorID string) (*runtimeidentity.CloudTarget, error) {
+	target := intent.ProviderModelTarget
+	provider, ok := exactScenarioCloudTargetText(target, "provider")
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	providerModelID, providerModelPresent := exactScenarioCloudTargetText(target, "providerModelId")
+	model, modelPresent := exactScenarioCloudTargetText(target, "model")
+	if providerModelPresent && modelPresent && providerModelID != model {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	if !providerModelPresent {
+		providerModelID = model
+	}
+	remoteModelCatalogID, catalogPresent := exactScenarioCloudTargetText(target, "remoteModelCatalogId")
+	if providerModelID == "" || !catalogPresent {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	return &runtimeidentity.CloudTarget{
+		ConnectorID:          connectorID,
+		ConnectorGrantID:     intent.GrantID(),
+		RemoteModelCatalogID: remoteModelCatalogID,
+		ProviderModelID:      providerModelID,
+		Provider:             provider,
+	}, nil
+}
+
+func exactScenarioCloudTargetText(target *structpb.Struct, key string) (string, bool) {
+	if target == nil {
+		return "", false
+	}
+	value, exists := target.GetFields()[key]
+	if !exists || value == nil {
+		return "", false
+	}
+	if _, ok := value.GetKind().(*structpb.Value_StringValue); !ok {
+		return "", false
+	}
+	text := value.GetStringValue()
+	return text, text != "" && text == strings.TrimSpace(text)
 }
 
 func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {

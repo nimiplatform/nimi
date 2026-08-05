@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
@@ -83,6 +84,7 @@ type Service struct {
 	machineExecutionBindingMu                sync.RWMutex
 	machineExecutionBindingResolver          machineExecutionBindingResolver
 	aiConfigStore                            aiconfig.Store
+	connectorStore                           *connector.ConnectorStore
 	auditStore                               *auditlog.Store
 	delegatedMu                              sync.RWMutex
 	delegatedGateway                         delegatedCapabilityGateway

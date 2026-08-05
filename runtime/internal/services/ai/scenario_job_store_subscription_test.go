@@ -41,7 +41,7 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 
 	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
-	ctx := withCloudScenarioTestIntent(scenarioJobContext("nimi.desktop"), "video.generate", fixture.targetRef)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "video.generate", fixture.targetRef)
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -107,7 +107,7 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", "https://example.com", Config{})
 	svc := fixture.service
-	ctx := withCloudScenarioTestIntent(scenarioJobContext("nimi.desktop"), "voice_workflow.voice_design", fixture.targetRef)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice_workflow.voice_design", fixture.targetRef)
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -183,7 +183,7 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
 	svc := fixture.service
-	ctx := withCloudScenarioTestIntent(scenarioJobContext("nimi.desktop"), "voice_workflow.voice_design", fixture.targetRef)
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice_workflow.voice_design", fixture.targetRef)
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -359,8 +359,8 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{}},
 		},
 	})
-	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-		t.Fatalf("expected route unsupported for submit unsupported scenario, got=%v", reason)
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
+		t.Fatalf("expected input validation before cloud text job submission, got=%v", reason)
 	}
 }
 

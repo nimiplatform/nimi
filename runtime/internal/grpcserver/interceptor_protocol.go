@@ -272,6 +272,8 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
+		"/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant",
+		"/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant",
 		"/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
 		"/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider",

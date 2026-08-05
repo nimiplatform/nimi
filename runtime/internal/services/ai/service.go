@@ -23,6 +23,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -68,6 +69,9 @@ type Service struct {
 	localTextHost                          localexecution.TextExecutionHost
 	localImageHost                         localexecution.ImageExecutionHost
 	capabilityDrivers                      *capabilitydriver.Registry
+	cloudTextDrivers                       *capabilitydriver.CloudTextRegistry
+	cloudTextProvider                      provider
+	remoteTextHost                         remoteexecution.TextHost
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
@@ -170,10 +174,23 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 			"sequence", event.GetSequence(),
 		)
 	})
+	selector := newRouteSelectorWithRegistry(cfg, registry, aiHealth)
+	remoteTextConfig := cfg.toCloudConfig()
+	// Remote text execution may receive credentials only from the request-scoped
+	// ConnectorGrant Host resolution below; configured probe credentials are
+	// deliberately absent from its transport instance.
+	remoteTextConfig.Providers = nil
+	remoteTextTransport := nimillm.NewCloudProvider(remoteTextConfig, registry, aiHealth)
+	hostAudit := auditStore
+	if hostAudit == nil {
+		// Unit/in-process construction still receives an auditable Host seam;
+		// production always supplies the unified Runtime audit store.
+		hostAudit = auditlog.New(256, 256)
+	}
 	svc := &Service{
 		logger:                                 logger,
 		config:                                 cfg,
-		selector:                               newRouteSelectorWithRegistry(cfg, registry, aiHealth),
+		selector:                               selector,
 		audit:                                  auditStore,
 		registry:                               registry,
 		scheduler:                              scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
@@ -182,6 +199,9 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		voiceAssets:                            newVoiceAssetStore(),
 		aiConfigStore:                          aiconfig.NewMemoryStore(),
 		capabilityDrivers:                      capabilitydriver.NewProductionRegistry(),
+		cloudTextDrivers:                       capabilitydriver.NewProductionCloudTextRegistry(),
+		cloudTextProvider:                      remoteTextTransport,
+		remoteTextHost:                         remoteexecution.NewProviderTextHost(connStore, remoteTextTransport, hostAudit, cfg.AllowLoopbackEndpoint),
 		connStore:                              connStore,
 		allowLoopback:                          cfg.AllowLoopbackEndpoint,
 		streamFirstPacketTimeout:               defaultStreamFirstTimeout,
@@ -218,6 +238,14 @@ func (s *Service) SetLocalTextExecutionHost(host localexecution.TextExecutionHos
 func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionHost) {
 	if s != nil {
 		s.localImageHost = host
+	}
+}
+
+// SetRemoteTextExecutionHost replaces the Remote Host transport seam. The Host
+// never participates in route, grant, implementation, or target selection.
+func (s *Service) SetRemoteTextExecutionHost(host remoteexecution.TextHost) {
+	if s != nil && host != nil {
+		s.remoteTextHost = host
 	}
 }
 
@@ -451,7 +479,7 @@ func (s *Service) RunVoiceAssetDeleteReconciliationLoop(ctx context.Context) {
 	}
 }
 
-func (s *Service) recordStreamFallbackSimulated(appID string, subjectUserID string, requestedModelID string, resolvedModelID string) {
+func (s *Service) recordStreamSimulation(appID string, subjectUserID string, requestedModelID string, resolvedModelID string) {
 	if s.audit == nil {
 		return
 	}
@@ -464,7 +492,7 @@ func (s *Service) recordStreamFallbackSimulated(appID string, subjectUserID stri
 		AppId:         strings.TrimSpace(appID),
 		SubjectUserId: strings.TrimSpace(subjectUserID),
 		Domain:        "runtime.ai",
-		Operation:     "stream_fallback_simulated",
+		Operation:     "stream_simulated",
 		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
 		TraceId:       ulid.Make().String(),
 		Timestamp:     timestamppb.New(time.Now().UTC()),

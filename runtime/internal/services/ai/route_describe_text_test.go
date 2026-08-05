@@ -140,6 +140,11 @@ func TestExecuteScenarioTextGenerateRouteDescribeDoesNotProjectExecutionBinding(
 	connectorID := created.GetConnector().GetConnectorId()
 	descriptor := connectorModelDescriptorForAITest(t, connectorSvc, ctx, connectorID, "gpt-4o-mini")
 	target := cloudScenarioTargetRefForDescriptor(connectorID, descriptor)
+	grant, err := store.CreateGrant("user-001", connectorID)
+	if err != nil {
+		t.Fatalf("CreateGrant: %v", err)
+	}
+	target.Cloud.ConnectorGrantID = grant.GrantID
 
 	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, Config{}, 8, 2)
 	if err != nil {
@@ -261,6 +266,11 @@ func TestExecuteScenarioTextGenerateCloudTargetRefStaleAfterEndpointChange(t *te
 		t.Fatalf("new service: %v", err)
 	}
 	target := cloudScenarioTargetRefForDescriptor(connectorID, descriptor)
+	grant, grantErr := store.CreateGrant("user-001", connectorID)
+	if grantErr != nil {
+		t.Fatalf("CreateGrant: %v", grantErr)
+	}
+	target.Cloud.ConnectorGrantID = grant.GrantID
 	execCtx := metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-key-source", "managed"))
 	execCtx = withCloudScenarioTestIntent(execCtx, "text.generate", target)
 	_, err = svc.ExecuteScenario(execCtx, &runtimev1.ExecuteScenarioRequest{

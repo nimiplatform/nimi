@@ -9,11 +9,13 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type managedCloudScenarioTestFixture struct {
@@ -48,11 +50,31 @@ func withCloudScenarioTestIntent(ctx context.Context, capabilityContract string,
 	if target != nil {
 		cloud = target.GetCloud().Clone()
 	}
-	return executionintent.WithIntent(ctx, executionintent.Intent{
+	intent := executionintent.Intent{
 		CapabilityContract: capabilityContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		CloudTarget:        cloud,
-	})
+	}
+	if capabilityContract == "text.generate" {
+		providerTarget := &structpb.Struct{}
+		grantID := ""
+		if cloud != nil {
+			providerTarget, _ = structpb.NewStruct(map[string]any{
+				"provider":             cloud.Provider,
+				"providerModelId":      cloud.ProviderModelID,
+				"remoteModelCatalogId": cloud.RemoteModelCatalogID,
+			})
+			grantID = cloud.ConnectorGrantID
+		}
+		intent.CloudImplementation = &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "cloud." + capabilityContract + "." + cloud.GetProvider(),
+			DriverId:         "nimi.runtime.driver." + cloud.GetProvider(),
+			DriverDialect:    "provider/text-v1",
+		}
+		intent.ProviderModelTarget = providerTarget
+		intent.ConnectorGrantID = grantID
+	}
+	return executionintent.WithIntent(ctx, intent)
 }
 
 func withLocalScenarioTestIntent(ctx context.Context, capabilityContract string) context.Context {
@@ -80,8 +102,8 @@ func newManagedCloudScenarioTestFixture(t *testing.T, providerID string, modelID
 	created, err := store.Create(connector.ConnectorRecord{
 		ConnectorID: "connector-" + strings.ReplaceAll(providerID, "_", "-") + "-managed",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
-		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
-		OwnerID:     "machine",
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-001",
 		Provider:    providerID,
 		Endpoint:    endpoint,
 		Label:       providerID + " Managed",
@@ -91,19 +113,28 @@ func newManagedCloudScenarioTestFixture(t *testing.T, providerID string, modelID
 		t.Fatalf("create managed connector: %v", err)
 	}
 	connectorSvc := connector.New(logger, store, nil)
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-key-source", "managed"))
+	ctx := authn.WithIdentity(
+		metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-key-source", "managed")),
+		&authn.Identity{SubjectUserID: "user-001"},
+	)
 	descriptor := connectorModelDescriptorForAITest(t, connectorSvc, ctx, created.ConnectorID, modelID)
 	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, cfg, 8, 2)
 	if err != nil {
 		t.Fatalf("new managed cloud ai service: %v", err)
 	}
+	grant, err := store.CreateGrant("user-001", created.ConnectorID)
+	if err != nil {
+		t.Fatalf("create managed connector grant: %v", err)
+	}
+	targetRef := cloudScenarioTargetRefForDescriptor(created.ConnectorID, descriptor)
+	targetRef.Cloud.ConnectorGrantID = grant.GrantID
 	return managedCloudScenarioTestFixture{
 		service:          svc,
 		connectorService: connectorSvc,
 		context:          ctx,
 		connectorID:      created.ConnectorID,
 		descriptor:       descriptor,
-		targetRef:        cloudScenarioTargetRefForDescriptor(created.ConnectorID, descriptor),
+		targetRef:        targetRef,
 	}
 }
 

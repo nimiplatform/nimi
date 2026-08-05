@@ -15,13 +15,20 @@ import (
 )
 
 // Intent is one immutable capability-scoped AIConfig snapshot. Local carries
-// no execution identity; Cloud carries one exact connector/catalog target.
+// no execution identity. Cloud keeps implementation, Driver-owned target, and
+// ConnectorGrant as separate facts; grant is never recast as connector/target.
 type Intent struct {
-	CapabilityContract string
-	RequiredFeatures   []string
-	Defaults           *structpb.Struct
-	Route              runtimev1.RoutePolicy
-	CloudTarget        *runtimeidentity.CloudTarget
+	CapabilityContract  string
+	RequiredFeatures    []string
+	Defaults            *structpb.Struct
+	Route               runtimev1.RoutePolicy
+	CloudImplementation *runtimev1.CapabilityImplementationIdentity
+	ProviderModelTarget *structpb.Struct
+	ConnectorGrantID    string
+
+	// CloudTarget remains for Runtime-private non-AIConfig callers that already
+	// captured a connector/catalog binding. AIConfig conversion never writes it.
+	CloudTarget *runtimeidentity.CloudTarget
 }
 
 func (i Intent) IsLocal() bool {
@@ -29,10 +36,28 @@ func (i Intent) IsLocal() bool {
 }
 
 func (i Intent) IsCloud() bool {
-	return i.Route == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD && i.CloudTarget != nil && i.CloudTarget.Valid()
+	if i.Route != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		return false
+	}
+	if i.CloudImplementation != nil && len(i.ProviderModelTarget.GetFields()) > 0 {
+		return exactImplementation(i.CloudImplementation)
+	}
+	return i.CloudTarget != nil && i.CloudTarget.Valid()
+}
+
+func (i Intent) IsAIConfigCloud() bool {
+	return i.Route == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD &&
+		i.CloudImplementation != nil && exactImplementation(i.CloudImplementation) &&
+		len(i.ProviderModelTarget.GetFields()) > 0
 }
 
 func (i Intent) ModelID() string {
+	if model, ok := exactTargetText(i.ProviderModelTarget, "providerModelId"); ok {
+		return model
+	}
+	if model, ok := exactTargetText(i.ProviderModelTarget, "model"); ok {
+		return model
+	}
 	if i.CloudTarget == nil {
 		return ""
 	}
@@ -46,15 +71,26 @@ func (i Intent) ConnectorID() string {
 	return strings.TrimSpace(i.CloudTarget.ConnectorID)
 }
 
+func (i Intent) GrantID() string {
+	return strings.TrimSpace(i.ConnectorGrantID)
+}
+
 func Clone(input Intent) Intent {
 	out := Intent{
 		CapabilityContract: strings.TrimSpace(input.CapabilityContract),
 		RequiredFeatures:   append([]string(nil), input.RequiredFeatures...),
 		Route:              input.Route,
+		ConnectorGrantID:   input.ConnectorGrantID,
 		CloudTarget:        input.CloudTarget.Clone(),
 	}
 	if input.Defaults != nil {
 		out.Defaults, _ = proto.Clone(input.Defaults).(*structpb.Struct)
+	}
+	if input.CloudImplementation != nil {
+		out.CloudImplementation, _ = proto.Clone(input.CloudImplementation).(*runtimev1.CapabilityImplementationIdentity)
+	}
+	if input.ProviderModelTarget != nil {
+		out.ProviderModelTarget, _ = proto.Clone(input.ProviderModelTarget).(*structpb.Struct)
 	}
 	return out
 }
@@ -81,41 +117,30 @@ func FromCapability(capability *runtimev1.AIConfigCapabilityIntent) (Intent, err
 		out.Route = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 		return out, nil
 	case *runtimev1.AIConfigCapabilityIntent_Cloud:
-		if route.Cloud == nil {
-			return Intent{}, fmt.Errorf("AIConfig Cloud intent is required")
-		}
-		target := route.Cloud.GetProviderModelTarget()
-		provider, ok := exactTargetText(target, "provider")
-		if !ok {
-			return Intent{}, fmt.Errorf("AIConfig Cloud provider is required")
-		}
-		providerModelID, providerModelPresent := exactTargetText(target, "providerModelId")
-		model, modelPresent := exactTargetText(target, "model")
-		if providerModelPresent && modelPresent && providerModelID != model {
-			return Intent{}, fmt.Errorf("AIConfig Cloud model identities conflict")
-		}
-		if !providerModelPresent {
-			providerModelID = model
-		}
-		remoteModelCatalogID, ok := exactTargetText(target, "remoteModelCatalogId")
-		if !ok || providerModelID == "" {
-			return Intent{}, fmt.Errorf("AIConfig Cloud catalog target is incomplete")
-		}
-		connectorID := strings.TrimSpace(route.Cloud.GetConnectorGrantId())
-		if connectorID == "" || connectorID != route.Cloud.GetConnectorGrantId() {
-			return Intent{}, fmt.Errorf("AIConfig Cloud connector grant is required")
+		if route.Cloud == nil || !exactImplementation(route.Cloud.GetImplementation()) ||
+			route.Cloud.GetProviderModelTarget() == nil || len(route.Cloud.GetProviderModelTarget().GetFields()) == 0 {
+			return Intent{}, fmt.Errorf("AIConfig Cloud implementation and provider-model target are required")
 		}
 		out.Route = runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
-		out.CloudTarget = &runtimeidentity.CloudTarget{
-			ConnectorID:          connectorID,
-			RemoteModelCatalogID: remoteModelCatalogID,
-			ProviderModelID:      providerModelID,
-			Provider:             provider,
-		}
+		out.CloudImplementation, _ = proto.Clone(route.Cloud.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
+		out.ProviderModelTarget, _ = proto.Clone(route.Cloud.GetProviderModelTarget()).(*structpb.Struct)
+		out.ConnectorGrantID = route.Cloud.GetConnectorGrantId()
 		return out, nil
 	default:
 		return Intent{}, fmt.Errorf("AIConfig capability route is required")
 	}
+}
+
+func exactImplementation(value *runtimev1.CapabilityImplementationIdentity) bool {
+	if value == nil {
+		return false
+	}
+	for _, text := range []string{value.GetImplementationId(), value.GetDriverId(), value.GetDriverDialect()} {
+		if text == "" || text != strings.TrimSpace(text) {
+			return false
+		}
+	}
+	return true
 }
 
 func exactTargetText(target *structpb.Struct, key string) (string, bool) {

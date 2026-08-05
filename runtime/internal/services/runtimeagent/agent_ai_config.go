@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -23,6 +24,15 @@ type sharedLocalAgentAIConfigCaller struct {
 func (s *Service) SetAIConfigStore(store aiconfig.Store) {
 	if s != nil && store != nil {
 		s.aiConfigStore = store
+	}
+}
+
+// SetConnectorStore wires deterministic ConnectorGrant validation for shared
+// LocalAgent AIConfig commits. The store is never used here for credentials or
+// provider probes.
+func (s *Service) SetConnectorStore(store *connector.ConnectorStore) {
+	if s != nil {
+		s.connectorStore = store
 	}
 }
 
@@ -113,6 +123,9 @@ func (s *Service) overwriteSharedLocalAgentAIConfig(
 	}
 	if s == nil || s.aiConfigStore == nil {
 		return nil, sharedLocalAgentAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
+	}
+	if err := connector.ValidateAIConfigConnectorGrants(s.connectorStore, accountNamespace, canonical); err != nil {
+		return nil, err
 	}
 	if err := s.aiConfigStore.Overwrite(ctx, accountNamespace, canonical); err != nil {
 		return nil, sharedLocalAgentAIConfigPersistenceError(err)

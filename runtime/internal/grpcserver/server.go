@@ -624,6 +624,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
 	agentSvc.SetAIConfigStore(aiConfigStore)
+	agentSvc.SetConnectorStore(connStore)
 	if cfg.RuntimeID == "" {
 		logger.Warn("source materialization disabled; Runtime identity is not configured")
 	} else if err := agentSvc.SetSourceMaterializationRuntimeIdentity(cfg.RuntimeID); err != nil {

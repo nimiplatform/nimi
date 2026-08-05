@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
@@ -37,6 +38,12 @@ func (s *Service) internalProviderError(operation string, err error) error {
 }
 
 func subjectUserIDFromContext(ctx context.Context) (string, bool) {
+	if principal, ok := protectedprincipal.FromContext(ctx); ok {
+		subject := strings.TrimSpace(principal.AccountID)
+		if subject != "" {
+			return subject, true
+		}
+	}
 	if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
 		subject := strings.TrimSpace(decision.AccountID)
 		if subject != "" {

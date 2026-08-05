@@ -55,9 +55,15 @@ func TestInheritAsyncJobContextPreservesMetadata(t *testing.T) {
 
 func waitScenarioJobTerminal(t *testing.T, svc *Service, jobID string, timeout time.Duration) *runtimev1.ScenarioJob {
 	t.Helper()
+	queryCtx := scenarioJobContext("nimi.desktop")
+	if stored, ok := svc.scenarioJobs.get(jobID); ok && stored.GetHead().GetSubjectUserId() != anonymousScenarioJobOwner {
+		queryCtx = scenarioJobUserContext("nimi.desktop", stored.GetHead().GetSubjectUserId())
+	} else if stored, ok := svc.voiceAssets.getJob(jobID); ok && stored.GetHead().GetSubjectUserId() != anonymousScenarioJobOwner {
+		queryCtx = scenarioJobUserContext("nimi.desktop", stored.GetHead().GetSubjectUserId())
+	}
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		resp, err := svc.GetScenarioJob(scenarioJobContext("nimi.desktop"), &runtimev1.GetScenarioJobRequest{JobId: jobID})
+		resp, err := svc.GetScenarioJob(queryCtx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
 		if err != nil {
 			t.Fatalf("get scenario job: %v", err)
 		}
@@ -70,7 +76,7 @@ func waitScenarioJobTerminal(t *testing.T, svc *Service, jobID string, timeout t
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	resp, err := svc.GetScenarioJob(scenarioJobContext("nimi.desktop"), &runtimev1.GetScenarioJobRequest{JobId: jobID})
+	resp, err := svc.GetScenarioJob(queryCtx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
 	if err != nil {
 		t.Fatalf("get scenario job: %v", err)
 	}

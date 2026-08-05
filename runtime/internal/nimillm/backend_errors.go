@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -288,6 +289,7 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, grpcerr.ReasonOptions{
 			ActionHint: "refresh_provider_api_key_or_reconnect_connector",
 			Message:    genericAuthFailure,
+			Metadata:   providerHTTPStatusMetadata(statusCode),
 		})
 	case http.StatusPaymentRequired:
 		if providerMessage == "" {
@@ -304,11 +306,11 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 			Message:    genericModelNotFound,
 		})
 	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
-		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{Metadata: providerHTTPStatusMetadata(statusCode)})
 	case http.StatusTooManyRequests:
-		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+		return grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, grpcerr.ReasonOptions{Metadata: providerHTTPStatusMetadata(statusCode)})
 	case http.StatusInternalServerError:
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{Metadata: providerHTTPStatusMetadata(statusCode)})
 	case http.StatusBadGateway, http.StatusServiceUnavailable:
 		if providerUnavailablePayloadIsMediaOptionFailure(providerMessage) {
 			return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
@@ -319,16 +321,22 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			ActionHint: "check_provider_endpoint_or_local_runtime_health",
 			Message:    genericProviderFailure,
+			Metadata:   providerHTTPStatusMetadata(statusCode),
 		})
 	default:
 		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			ActionHint: "check_provider_endpoint_or_local_runtime_health",
 			Message:    genericProviderFailure,
+			Metadata:   providerHTTPStatusMetadata(statusCode),
 		})
 	}
 }
 
 // IsContentFilterMessage checks if an error message indicates content filtering.
+func providerHTTPStatusMetadata(statusCode int) map[string]string {
+	return map[string]string{"provider_http_status": strconv.Itoa(statusCode)}
+}
+
 func IsContentFilterMessage(message string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(message))
 	if normalized == "" {

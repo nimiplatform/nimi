@@ -24,6 +24,9 @@ const (
 	RuntimeConnectorService_ListConnectors_FullMethodName             = "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors"
 	RuntimeConnectorService_UpdateConnector_FullMethodName            = "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector"
 	RuntimeConnectorService_DeleteConnector_FullMethodName            = "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector"
+	RuntimeConnectorService_CreateConnectorGrant_FullMethodName       = "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant"
+	RuntimeConnectorService_ListConnectorGrants_FullMethodName        = "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants"
+	RuntimeConnectorService_RevokeConnectorGrant_FullMethodName       = "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant"
 	RuntimeConnectorService_TestConnector_FullMethodName              = "/nimi.runtime.v1.RuntimeConnectorService/TestConnector"
 	RuntimeConnectorService_ListConnectorModels_FullMethodName        = "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels"
 	RuntimeConnectorService_ListProviderCatalog_FullMethodName        = "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog"
@@ -45,6 +48,9 @@ type RuntimeConnectorServiceClient interface {
 	ListConnectors(ctx context.Context, in *ListConnectorsRequest, opts ...grpc.CallOption) (*ListConnectorsResponse, error)
 	UpdateConnector(ctx context.Context, in *UpdateConnectorRequest, opts ...grpc.CallOption) (*UpdateConnectorResponse, error)
 	DeleteConnector(ctx context.Context, in *DeleteConnectorRequest, opts ...grpc.CallOption) (*DeleteConnectorResponse, error)
+	CreateConnectorGrant(ctx context.Context, in *CreateConnectorGrantRequest, opts ...grpc.CallOption) (*CreateConnectorGrantResponse, error)
+	ListConnectorGrants(ctx context.Context, in *ListConnectorGrantsRequest, opts ...grpc.CallOption) (*ListConnectorGrantsResponse, error)
+	RevokeConnectorGrant(ctx context.Context, in *RevokeConnectorGrantRequest, opts ...grpc.CallOption) (*RevokeConnectorGrantResponse, error)
 	TestConnector(ctx context.Context, in *TestConnectorRequest, opts ...grpc.CallOption) (*TestConnectorResponse, error)
 	ListConnectorModels(ctx context.Context, in *ListConnectorModelsRequest, opts ...grpc.CallOption) (*ListConnectorModelsResponse, error)
 	ListProviderCatalog(ctx context.Context, in *ListProviderCatalogRequest, opts ...grpc.CallOption) (*ListProviderCatalogResponse, error)
@@ -109,6 +115,36 @@ func (c *runtimeConnectorServiceClient) DeleteConnector(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeleteConnectorResponse)
 	err := c.cc.Invoke(ctx, RuntimeConnectorService_DeleteConnector_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeConnectorServiceClient) CreateConnectorGrant(ctx context.Context, in *CreateConnectorGrantRequest, opts ...grpc.CallOption) (*CreateConnectorGrantResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateConnectorGrantResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_CreateConnectorGrant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeConnectorServiceClient) ListConnectorGrants(ctx context.Context, in *ListConnectorGrantsRequest, opts ...grpc.CallOption) (*ListConnectorGrantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListConnectorGrantsResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_ListConnectorGrants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeConnectorServiceClient) RevokeConnectorGrant(ctx context.Context, in *RevokeConnectorGrantRequest, opts ...grpc.CallOption) (*RevokeConnectorGrantResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeConnectorGrantResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_RevokeConnectorGrant_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -224,6 +260,9 @@ type RuntimeConnectorServiceServer interface {
 	ListConnectors(context.Context, *ListConnectorsRequest) (*ListConnectorsResponse, error)
 	UpdateConnector(context.Context, *UpdateConnectorRequest) (*UpdateConnectorResponse, error)
 	DeleteConnector(context.Context, *DeleteConnectorRequest) (*DeleteConnectorResponse, error)
+	CreateConnectorGrant(context.Context, *CreateConnectorGrantRequest) (*CreateConnectorGrantResponse, error)
+	ListConnectorGrants(context.Context, *ListConnectorGrantsRequest) (*ListConnectorGrantsResponse, error)
+	RevokeConnectorGrant(context.Context, *RevokeConnectorGrantRequest) (*RevokeConnectorGrantResponse, error)
 	TestConnector(context.Context, *TestConnectorRequest) (*TestConnectorResponse, error)
 	ListConnectorModels(context.Context, *ListConnectorModelsRequest) (*ListConnectorModelsResponse, error)
 	ListProviderCatalog(context.Context, *ListProviderCatalogRequest) (*ListProviderCatalogResponse, error)
@@ -257,6 +296,15 @@ func (UnimplementedRuntimeConnectorServiceServer) UpdateConnector(context.Contex
 }
 func (UnimplementedRuntimeConnectorServiceServer) DeleteConnector(context.Context, *DeleteConnectorRequest) (*DeleteConnectorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteConnector not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) CreateConnectorGrant(context.Context, *CreateConnectorGrantRequest) (*CreateConnectorGrantResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateConnectorGrant not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) ListConnectorGrants(context.Context, *ListConnectorGrantsRequest) (*ListConnectorGrantsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListConnectorGrants not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) RevokeConnectorGrant(context.Context, *RevokeConnectorGrantRequest) (*RevokeConnectorGrantResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevokeConnectorGrant not implemented")
 }
 func (UnimplementedRuntimeConnectorServiceServer) TestConnector(context.Context, *TestConnectorRequest) (*TestConnectorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TestConnector not implemented")
@@ -394,6 +442,60 @@ func _RuntimeConnectorService_DeleteConnector_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeConnectorServiceServer).DeleteConnector(ctx, req.(*DeleteConnectorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeConnectorService_CreateConnectorGrant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateConnectorGrantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).CreateConnectorGrant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_CreateConnectorGrant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).CreateConnectorGrant(ctx, req.(*CreateConnectorGrantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeConnectorService_ListConnectorGrants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListConnectorGrantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).ListConnectorGrants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_ListConnectorGrants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).ListConnectorGrants(ctx, req.(*ListConnectorGrantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeConnectorService_RevokeConnectorGrant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeConnectorGrantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).RevokeConnectorGrant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_RevokeConnectorGrant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).RevokeConnectorGrant(ctx, req.(*RevokeConnectorGrantRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -604,6 +706,18 @@ var RuntimeConnectorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteConnector",
 			Handler:    _RuntimeConnectorService_DeleteConnector_Handler,
+		},
+		{
+			MethodName: "CreateConnectorGrant",
+			Handler:    _RuntimeConnectorService_CreateConnectorGrant_Handler,
+		},
+		{
+			MethodName: "ListConnectorGrants",
+			Handler:    _RuntimeConnectorService_ListConnectorGrants_Handler,
+		},
+		{
+			MethodName: "RevokeConnectorGrant",
+			Handler:    _RuntimeConnectorService_RevokeConnectorGrant_Handler,
 		},
 		{
 			MethodName: "TestConnector",

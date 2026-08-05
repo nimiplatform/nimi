@@ -1231,6 +1231,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CreateConnectorResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant",
+    "service": "RuntimeConnectorService",
+    "method": "CreateConnectorGrant",
+    "kind": "unary",
+    "requestType": "CreateConnectorGrantRequest",
+    "responseType": "CreateConnectorGrantResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
     "service": "RuntimeConnectorService",
     "method": "DeleteCatalogModelOverlay",
@@ -1279,6 +1287,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListCatalogProviderModelsResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorGrants",
+    "service": "RuntimeConnectorService",
+    "method": "ListConnectorGrants",
+    "kind": "unary",
+    "requestType": "ListConnectorGrantsRequest",
+    "responseType": "ListConnectorGrantsResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
     "service": "RuntimeConnectorService",
     "method": "ListConnectorModels",
@@ -1309,6 +1325,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ListProviderCatalogRequest",
     "responseType": "ListProviderCatalogResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/RevokeConnectorGrant",
+    "service": "RuntimeConnectorService",
+    "method": "RevokeConnectorGrant",
+    "kind": "unary",
+    "requestType": "RevokeConnectorGrantRequest",
+    "responseType": "RevokeConnectorGrantResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",

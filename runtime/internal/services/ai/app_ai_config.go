@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
@@ -84,6 +85,9 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	}
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
+	}
+	if err := connector.ValidateAIConfigConnectorGrants(s.connStore, caller.accountNamespace, canonical); err != nil {
+		return nil, err
 	}
 	if err := s.aiConfigStore.Overwrite(ctx, caller.accountNamespace, canonical); err != nil {
 		return nil, appAIConfigPersistenceError(err)

@@ -1,6 +1,8 @@
-// Package capabilitydriver interprets local capability resource intent and
-// validates its verified local-asset bindings. It intentionally has no
-// execution, host, or live-registration dependencies.
+// Package capabilitydriver interprets exact capability implementation
+// dialects. Local Drivers project and validate verified asset bindings; Cloud
+// Drivers separate target/config validation, request mapping, response/stream
+// normalization, and reason normalization. Drivers have no route, grant,
+// execution-host, fallback, or live-registration ownership.
 package capabilitydriver
 
 import (

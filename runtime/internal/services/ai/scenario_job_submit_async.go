@@ -25,16 +25,9 @@ func (s *Service) submitScenarioAsyncJob(
 		return nil, err
 	}
 	requestedModelID := intent.ModelID()
-	scenarioType := req.GetScenarioType()
 	logLocalImageSubmit := false
 	if logLocalImageSubmit {
 		s.logger.Info("submit local image scenario job: start", "requested_model_id", requestedModelID)
-	}
-	// Local text jobs are captured before this legacy Cloud/media dispatcher.
-	// Reaching this path for text therefore means Cloud text async, whose
-	// existing unsupported contract must remain unchanged.
-	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 		return nil, err
