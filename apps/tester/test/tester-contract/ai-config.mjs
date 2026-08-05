@@ -105,6 +105,17 @@ test('tester image Cloud intent preserves whole-object neighbors without hardcod
     'model-from-runtime-catalog',
   );
   assert.equal(next.capabilities[1].route.cloud.connectorGrantId, 'grant-image');
+
+  const selectionRequired = createTesterCloudCapabilityIntent('image.generate', null, {
+    implementationId: 'cloud.image.custom',
+    driverId: 'cloud.driver.custom',
+    driverDialect: 'custom/image/v1',
+    provider: 'provider-from-runtime-catalog',
+    providerModelId: 'model-from-runtime-catalog',
+    remoteModelCatalogId: 'catalog-entry-7',
+    connectorGrantId: '',
+  });
+  assert.equal(selectionRequired.route.cloud.connectorGrantId, '');
 });
 
 test('tester rejects any AIConfig projection not owned by the exact nimi.tester App', async () => {

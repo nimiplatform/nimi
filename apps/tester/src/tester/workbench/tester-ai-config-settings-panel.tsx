@@ -33,6 +33,7 @@ export function TesterAiConfigSettingsPanel({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cloudTargetConfirmed, setCloudTargetConfirmed] = useState(false);
   const [cloudDraft, setCloudDraft] = useState<TesterCloudCapabilityIntentInput>({
     implementationId: '',
     driverId: '',
@@ -76,6 +77,7 @@ export function TesterAiConfigSettingsPanel({
       remoteModelCatalogId: stringField(target.remoteModelCatalogId),
       connectorGrantId: cloud.connectorGrantId,
     });
+    setCloudTargetConfirmed(false);
   }, [intent]);
   const configStatus = loading ? 'Loading' : error ? 'Unavailable' : intentKind === 'local'
     ? 'Local selected'
@@ -194,7 +196,7 @@ export function TesterAiConfigSettingsPanel({
               <fieldset className="mt-2 grid gap-3 border-t border-[var(--nimi-border-subtle)] pt-4" data-testid="tester-image-cloud-intent">
                 <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">Cloud intent</legend>
                 <p className="text-sm text-[var(--nimi-text-muted)]">
-                  Enter the exact Runtime catalog and ConnectorGrant facts. Tester does not choose or recommend a provider or model.
+                  Enter the exact Runtime catalog target, then confirm it explicitly. Account authorization is a separate optional selection; Tester does not choose or recommend a provider or model.
                 </p>
                 <div className="grid gap-3 md:grid-cols-2">
                   {TESTER_CLOUD_INTENT_FIELDS.map(([field, label]) => (
@@ -203,15 +205,31 @@ export function TesterAiConfigSettingsPanel({
                       <TextField
                         value={cloudDraft[field]}
                         disabled={saving}
-                        onChange={(event) => setCloudDraft((current) => ({
-                          ...current,
-                          [field]: event.currentTarget.value,
-                        }))}
+                        onChange={(event) => {
+                          setCloudDraft((current) => ({
+                            ...current,
+                            [field]: event.currentTarget.value,
+                          }));
+                          if (field !== 'connectorGrantId') setCloudTargetConfirmed(false);
+                        }}
                       />
                     </label>
                   ))}
                 </div>
-                <Button type="button" disabled={saving} onClick={() => void selectCloud()}>
+                <label className="flex items-start gap-2 text-sm text-[var(--nimi-text-muted)]">
+                  <input
+                    checked={cloudTargetConfirmed}
+                    onChange={(event) => setCloudTargetConfirmed(event.currentTarget.checked)}
+                    type="checkbox"
+                  />
+                  <span>I confirm this Cloud implementation and provider-model target.</span>
+                </label>
+                {!cloudDraft.connectorGrantId ? (
+                  <p className="rounded-lg border border-[var(--nimi-border-subtle)] p-3 text-sm text-[var(--nimi-text-muted)]">
+                    Account authorization still needs to be selected. This information state may be saved now and authorized later.
+                  </p>
+                ) : null}
+                <Button type="button" disabled={saving || !cloudTargetConfirmed} onClick={() => void selectCloud()}>
                   {intentKind === 'cloud' ? 'Save Cloud intent' : 'Select Cloud'}
                 </Button>
               </fieldset>

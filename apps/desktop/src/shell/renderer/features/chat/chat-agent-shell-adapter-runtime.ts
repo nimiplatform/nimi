@@ -49,6 +49,7 @@ import {
 } from './chat-agent-shell-adapter-runtime-mutations';
 import { createDesktopAgentCenterAutonomyAdapter } from './chat-agent-center-autonomy-adapter.js';
 import { createDesktopAgentCenterAvatarPreviewAdapter } from './chat-agent-center-avatar-preview-adapter.js';
+import { createDesktopCloudAIConfigModule } from './chat-cloud-ai-config-module.js';
 import { createRuntimeAgentPresentationProfileAdapter } from '../../infra/runtime-agent-presentation-profile';
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,
@@ -238,6 +239,7 @@ export function useAgentConversationRuntimeController(
       identity,
       appearance,
       sharedAIConfig: runtimeAgentCenterSharedAIConfig,
+      cloudAIConfig: createDesktopCloudAIConfigModule(bindings.sdk),
       autonomy: createDesktopAgentCenterAutonomyAdapter(runtimeAgentInspect),
       inspect: runtimeAgentInspect,
       async loadSourceContextStatus(identity) {

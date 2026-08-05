@@ -20,6 +20,10 @@ import {
   createNimiMachineLocalAIConfigurationClient,
   type NimiMachineLocalAIConfigurationClient,
 } from './machine-local-ai-configuration.js';
+import {
+  createNimiRuntimeConnectorGrantClient,
+  type NimiRuntimeConnectorGrantClient,
+} from './connector-grants.js';
 import { createNimiError, ReasonCode } from '../types/index.js';
 import {
   createNimiAppAIConfigClient,
@@ -86,6 +90,7 @@ export type NimiDesktopMachineProductRuntimeClient = {
 
 export type NimiDesktopAccountProductRuntimeClient = {
   readonly aiConfig: NimiAppAIConfigClient;
+  readonly connectorGrants: NimiRuntimeConnectorGrantClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
     | 'listAgents'
     | 'getAgent'
@@ -126,6 +131,9 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'createConnector'
     | 'updateConnector'
     | 'deleteConnector'
+    | 'createConnectorGrant'
+    | 'listConnectorGrants'
+    | 'revokeConnectorGrant'
     | 'testConnector'
     | 'listConnectorModels'>;
   readonly appMessages: Pick<DesktopAccountProductRuntimeMethods,
@@ -255,6 +263,13 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     submitDelegatedApprovalDecision: protectedAgent(runtime.agents.submitDelegatedApprovalDecision),
   });
   const agentPurpose: NimiDesktopRuntimeAgentPurposeClient = accountAgents;
+  const connectorGrants = createNimiRuntimeConnectorGrantClient({
+    runtime: {
+      createConnectorGrant: runtime.connectors.createConnectorGrant,
+      listConnectorGrants: runtime.connectors.listConnectorGrants,
+      revokeConnectorGrant: runtime.connectors.revokeConnectorGrant,
+    },
+  });
   const appAIConfig = createNimiAppAIConfigClient({
     appId: input.appId,
     runtime: {
@@ -330,6 +345,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     }),
     accountProduct: Object.freeze({
       aiConfig: appAIConfig,
+      connectorGrants,
       agents: accountAgents,
       connectors: Object.freeze({
         listModelCatalogProviders: runtime.connectors.listModelCatalogProviders,
@@ -343,6 +359,9 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         createConnector: runtime.connectors.createConnector,
         updateConnector: runtime.connectors.updateConnector,
         deleteConnector: runtime.connectors.deleteConnector,
+        createConnectorGrant: runtime.connectors.createConnectorGrant,
+        listConnectorGrants: runtime.connectors.listConnectorGrants,
+        revokeConnectorGrant: runtime.connectors.revokeConnectorGrant,
         testConnector: runtime.connectors.testConnector,
         listConnectorModels: runtime.connectors.listConnectorModels,
       }),

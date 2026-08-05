@@ -7,6 +7,7 @@ import {
   getNimiRuntimeReasonCodeMessage,
   getNimiRuntimeReasonCodeDefaultMessage,
   normalizeNimiRuntimeReasonCode,
+  projectNimiCloudConnectorGrantError,
   projectNimiRuntimeAuditCallerKindName,
   projectNimiRuntimeUsageWindowName,
   runNimiRuntimeScenarioJob,
@@ -42,6 +43,38 @@ test('Runtime reason message projection normalizes generated enum values and SDK
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_STREAM_BROKEN)?.defaultMessage,
     'AI streaming response was interrupted.',
   );
+  assert.deepEqual(
+    projectNimiCloudConnectorGrantError({
+      reasonCode: RuntimeGeneratedReasonCode.AI_CONNECTOR_GRANT_SELECTION_REQUIRED,
+    }),
+    {
+      state: 'selection-required',
+      tone: 'info',
+      message: 'Choose an account authorization before running this Cloud capability.',
+      action: 'configure-account-authorization',
+    },
+  );
+  assert.deepEqual(
+    projectNimiCloudConnectorGrantError({ reasonCode: 'AI_CONNECTOR_GRANT_REVOKED' }),
+    {
+      state: 'revoked',
+      tone: 'warning',
+      message: 'The selected account authorization was revoked. Choose another authorization.',
+      action: 'configure-account-authorization',
+    },
+  );
+  assert.deepEqual(
+    projectNimiCloudConnectorGrantError(new Error('outer failure', {
+      cause: { reasonCode: 'AI_CONNECTOR_GRANT_REVOKED' },
+    })),
+    {
+      state: 'revoked',
+      tone: 'warning',
+      message: 'The selected account authorization was revoked. Choose another authorization.',
+      action: 'configure-account-authorization',
+    },
+  );
+  assert.equal(projectNimiCloudConnectorGrantError(new Error('AI_CONNECTOR_GRANT_REVOKED')), null);
   assert.equal(
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_MEDIA_IDEMPOTENCY_CONFLICT)?.defaultMessage,
     'Media task idempotency conflict occurred.',

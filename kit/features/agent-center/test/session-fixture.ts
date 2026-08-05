@@ -2,6 +2,7 @@ import { createFirstPartyAgentCenterSession } from '../src/session.js';
 import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAutonomyProjection,
+  AgentCenterCloudAIConfigModule,
   AgentCenterSharedAIConfigProjection,
   AgentCenterSession,
   AgentCenterStateInput,
@@ -33,6 +34,7 @@ function defaultAIConfig(): AgentCenterSharedAIConfigProjection {
 export async function sessionFor(
   projection: AgentCenterStateInput = {},
   appearance?: AgentCenterAppearanceAdapter | null,
+  cloudAIConfig?: AgentCenterCloudAIConfigModule,
 ): Promise<AgentCenterSession> {
   let sharedAIConfig = projection.sharedAIConfig || defaultAIConfig();
   const session = createFirstPartyAgentCenterSession({
@@ -56,6 +58,7 @@ export async function sessionFor(
         return sharedAIConfig;
       },
     },
+    cloudAIConfig,
     autonomy: projection.autonomy ? {
       async load() { return projection.autonomy || null; },
       async update(_identity, mutation) {

@@ -69,6 +69,8 @@ autonomy configuration.
 
 ## Manager Session
 
+The optional first-party `cloudAIConfig` seam supplies Runtime-catalog implementation/target choices and account-scoped ConnectorGrant lifecycle operations. The AIConfig section keeps target confirmation and account authorization as two adjacent explicit steps, permits a saved selection-required state, and requires explicit acknowledgement that shared Cloud intent affects every LocalAgent and proactive task. ConnectorGrant never supplies target or routing truth.
+
 Each mounted `AgentCenter` consumes exactly one `AgentCenterSession`. The
 session owns its retryable snapshot, refresh, model/autonomy/appearance
 mutations, mutation write-back, and independent model-settings,

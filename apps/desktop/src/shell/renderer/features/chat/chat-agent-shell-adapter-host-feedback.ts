@@ -1,8 +1,12 @@
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { asNimiError } from '@nimiplatform/sdk/types';
+import { projectNimiCloudConnectorGrantError } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { toErrorMessage } from './chat-agent-shell-core';
+import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 
 export type AgentConversationHostErrorDetails = {
   error: string;
@@ -18,6 +22,9 @@ export type ReportAgentConversationHostError = (
 ) => void;
 
 export function useAgentConversationHostFeedback() {
+  const { t } = useTranslation();
+  const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const buildHostErrorDetails = useCallback((
     error: unknown,
@@ -55,11 +62,33 @@ export function useAgentConversationHostFeedback() {
       message: 'action:host-error',
       details,
     });
+    const grantFailure = projectNimiCloudConnectorGrantError(error);
     setHostFeedback({
-      kind: 'error',
-      message,
+      kind: grantFailure?.tone === 'info'
+        ? 'info'
+        : grantFailure?.tone === 'warning'
+          ? 'warning'
+          : 'error',
+      message: grantFailure
+        ? grantFailure.state === 'selection-required'
+          ? t('BridgeErrors.codes.AI_CONNECTOR_GRANT_SELECTION_REQUIRED', {
+            defaultValue: grantFailure.message,
+          })
+          : t('BridgeErrors.codes.AI_CONNECTOR_GRANT_REVOKED', {
+            defaultValue: grantFailure.message,
+          })
+        : message,
+      ...(grantFailure ? {
+        actionLabel: t('Chat.settingsOpenCloudAuthorization', {
+          defaultValue: 'Open account authorization settings',
+        }),
+        onAction: () => {
+          setActiveTab('runtime');
+          runtimeConfigNavigation.openPage('cloud');
+        },
+      } : {}),
     });
-  }, [buildHostErrorDetails]);
+  }, [buildHostErrorDetails, runtimeConfigNavigation, setActiveTab, t]);
 
   return {
     buildHostErrorDetails,

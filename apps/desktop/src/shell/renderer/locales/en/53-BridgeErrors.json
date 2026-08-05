@@ -53,6 +53,8 @@
     "AI_CONNECTOR_CREDENTIAL_MISSING": "AI connector credentials are missing.",
     "AI_CONNECTOR_DISABLED": "AI connector is disabled.",
     "AI_CONNECTOR_NOT_FOUND": "AI connector was not found.",
+    "AI_CONNECTOR_GRANT_SELECTION_REQUIRED": "Select an active account authorization for this Cloud capability.",
+    "AI_CONNECTOR_GRANT_REVOKED": "The selected account authorization was revoked. Select another active authorization.",
     "AI_CONNECTOR_INVALID": "AI connector configuration is invalid.",
     "AI_CONNECTOR_IMMUTABLE": "AI connector cannot be modified.",
     "AI_CONNECTOR_LIMIT_EXCEEDED": "AI connector limit has been exceeded.",

@@ -68,9 +68,15 @@
 // --- Root facade ------------------------------------------------------------
 export { NimiClient, createNimiClient } from '@nimiplatform/sdk';
 export type { NimiClientConfig } from '@nimiplatform/sdk';
+export {
+  createNimiCloudAIConfigCapabilityIntent,
+  createNimiLocalAIConfigCapabilityIntent,
+  runtimeAIConfigStructToJson,
+} from '@nimiplatform/sdk/ai';
 export type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
+  NimiCloudAIConfigCapabilityInput,
 } from '@nimiplatform/sdk/ai';
 
 // --- Runtime type family ----------------------------------------------------

@@ -56,7 +56,10 @@ export function createDesktopRendererResources(
   const localModelCenterProgress = createLocalModelCenterProgressCache(
     bindings.app.commands.localModelProgress,
   );
-  const runtimeConnectorSdk = createRuntimeConfigConnectorSdkService(bindings.sdk.connectorAdmin);
+  const runtimeConnectorSdk = createRuntimeConfigConnectorSdkService(
+    bindings.sdk.connectorAdmin,
+    () => bindings.sdk.accountProduct().connectorGrants,
+  );
   const realmHumanChatData = createRealmHumanChatData(bindings.sdk);
   const worldFollowStore = createWorldFollowStore(bindings.app.commands.worldFollow);
   const realmGroupChatData = createRealmGroupChatData({ sdk: bindings.sdk });

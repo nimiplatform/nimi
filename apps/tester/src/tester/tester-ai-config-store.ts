@@ -88,7 +88,9 @@ export function createTesterCloudCapabilityIntent(
     input.remoteModelCatalogId,
     'Cloud remote model catalog id',
   );
-  const connectorGrantId = requireExactText(input.connectorGrantId, 'Cloud connector grant id');
+  const connectorGrantId = input.connectorGrantId === ''
+    ? ''
+    : requireExactText(input.connectorGrantId, 'Cloud connector grant id');
   return {
     capabilityContract: contract,
     requiredFeatures: [...(current?.requiredFeatures ?? [])],

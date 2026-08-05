@@ -44,6 +44,7 @@ import {
 } from './chat-nimi-app-ai-config.js';
 import { runDesktopNimiTextCapability } from './chat-nimi-shell-runtime-adapter.js';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
+import { projectNimiCloudConnectorGrantError } from '@nimiplatform/sdk/runtime';
 
 type UseAiConversationModeHostInput = {
   selection: NimiConversationSelection;
@@ -59,6 +60,7 @@ export function useAiConversationModeHost(
   const queryClient = useQueryClient();
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const authUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const appAIConfig = useDesktopNimiAppAIConfig();
   const textIntent = findDesktopNimiTextIntent(appAIConfig.data);
@@ -73,12 +75,26 @@ export function useAiConversationModeHost(
       t('Chat.nimiExecutionFailed', { defaultValue: 'Nimi Chat could not complete this request.' }),
       t,
     );
+    const grantFailure = projectNimiCloudConnectorGrantError(error);
     setHostFeedback({
-      kind: 'error',
+      kind: grantFailure?.tone === 'info'
+        ? 'info'
+        : grantFailure?.tone === 'warning'
+          ? 'warning'
+          : 'error',
       message: userFacing.message,
       technicalDetail: error instanceof Error ? error.message : String(error || ''),
+      ...(grantFailure ? {
+        actionLabel: t('Chat.settingsOpenCloudAuthorization', {
+          defaultValue: 'Open account authorization settings',
+        }),
+        onAction: () => {
+          setActiveTab('runtime');
+          bindings.app.commands.runtimeConfigNavigation.openPage('cloud');
+        },
+      } : {}),
     });
-  }, [t]);
+  }, [bindings.app.commands.runtimeConfigNavigation, setActiveTab, t]);
 
   const setSelection = useCallback((selection: NimiConversationSelection) => {
     if (input.selection.threadId === selection.threadId) {

@@ -63,7 +63,8 @@ export interface NimiCloudAIConfigCapabilityInput {
   readonly defaults?: NimiJsonObject;
   readonly implementation: CapabilityImplementationIdentity;
   readonly providerModelTarget: NimiJsonObject;
-  readonly connectorGrantId?: string;
+  /** Null or omission preserves the explicit selection-required state. */
+  readonly connectorGrantId?: string | null;
 }
 
 export interface NimiAppAIProfilePreview {
@@ -225,7 +226,7 @@ export function createNimiCloudAIConfigCapabilityIntent(
       cloud: {
         implementation: parseAIConfigImplementation(input.implementation, 'Cloud implementation'),
         providerModelTarget: toRuntimeStruct(target),
-        connectorGrantId: normalizeOptionalText(input.connectorGrantId),
+        connectorGrantId: normalizeOptionalConnectorGrantId(input.connectorGrantId),
       },
     },
   };
@@ -471,8 +472,9 @@ function requireExactText(value: unknown, message: string): string {
   return value;
 }
 
-function normalizeOptionalText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
+function normalizeOptionalConnectorGrantId(value: unknown): string {
+  if (value === undefined || value === null || value === '') return '';
+  return requireText(value, 'Cloud connectorGrantId must be exact non-empty text');
 }
 
 function toRuntimeStruct(value: NimiJsonObject): Struct {

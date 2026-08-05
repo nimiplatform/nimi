@@ -37,6 +37,41 @@ test('Desktop machine product carries the typed Machine Local AI Configuration m
   assert.equal(calls[0]?.metadata?.appId, undefined, 'protected host owns caller identity');
 });
 
+test('Desktop account product exposes the profile-admitted typed ConnectorGrant client', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
+      calls.push(request);
+      if (request.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant') {
+        return {
+          grant: {
+            grantId: 'grant-1',
+            connectorId: 'connector-1',
+            accountId: 'account-1',
+            status: 1,
+            createdAt: { seconds: '1785888000', nanos: 0 },
+          },
+        } as Response;
+      }
+      throw new Error(`unexpected Runtime method: ${request.methodId}`);
+    },
+    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
+      throw new Error('unexpected Runtime stream');
+    },
+  };
+  const clients = createNimiDesktopFirstPartyRuntimeClients({
+    appId: 'nimi.desktop',
+    transport,
+  });
+
+  const grant = await clients.accountProduct.connectorGrants.create('connector-1');
+
+  assert.equal(grant.grantId, 'grant-1');
+  assert.equal(grant.status, 'active');
+  assert.equal(calls[0]?.methodId, '/nimi.runtime.v1.RuntimeConnectorService/CreateConnectorGrant');
+  assert.equal(calls[0]?.metadata?.appId, undefined, 'protected host owns caller identity');
+});
+
 test('Desktop account product binds App AIConfig to its exact product owner', async () => {
   const calls: CoreUnaryRequest[] = [];
   const transport: CoreTransport = {

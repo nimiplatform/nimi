@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
   runtimeAIConfigStructToJson,
   type NimiCapabilityAIConfig,
   type NimiCapabilityAIConfigIntent,
+  type NimiCloudAIConfigCapabilityInput,
 } from '@nimiplatform/sdk/ai';
 import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -29,6 +31,11 @@ type DesktopNimiTextIntentFields = {
   readonly defaults?: NimiJsonObject;
 };
 
+export type DesktopNimiCloudTextSelection = Pick<
+  NimiCloudAIConfigCapabilityInput,
+  'implementation' | 'providerModelTarget' | 'connectorGrantId'
+>;
+
 export function createDesktopNimiLocalTextIntent(
   fields: DesktopNimiTextIntentFields = {},
 ): NimiCapabilityAIConfigIntent {
@@ -46,16 +53,15 @@ export function createDesktopNimiLocalTextIntent(
 
 /** Switches canonical consumer intent between Local and Cloud. */
 export function createDesktopNimiCloudTextIntent(
-  fields: DesktopNimiTextIntentFields = {},
+  fields: DesktopNimiTextIntentFields,
+  selection: DesktopNimiCloudTextSelection,
 ): NimiCapabilityAIConfigIntent {
-  const base = createDesktopNimiLocalTextIntent(fields);
-  return {
-    ...base,
-    route: {
-      oneofKind: 'cloud',
-      cloud: { connectorGrantId: '' },
-    },
-  };
+  return createNimiCloudAIConfigCapabilityIntent({
+    capabilityContract: TEXT_GENERATE_CAPABILITY,
+    requiredFeatures: fields.requiredFeatures ?? [],
+    ...(fields.defaults ? { defaults: fields.defaults } : {}),
+    ...selection,
+  });
 }
 
 export function desktopNimiTextIntentDefaults(

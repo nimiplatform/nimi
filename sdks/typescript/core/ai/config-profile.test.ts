@@ -8,6 +8,7 @@ import {
 } from './capability-configuration';
 import {
   createNimiAppAIProfileClient,
+  createNimiCloudAIConfigCapabilityIntent,
   parseNimiPortableAIProfile,
   projectNimiPortableLocalCapabilityConfigurationIntent,
   runtimeAIConfigStructToJson,
@@ -31,6 +32,44 @@ const CLOUD_PROFILE = {
     },
   },
 } as const;
+
+test('Cloud AIConfig constructor normalizes implementation, target, and nullable explicit grant selection', () => {
+  const intent = createNimiCloudAIConfigCapabilityIntent({
+    capabilityContract: 'text.generate',
+    requiredFeatures: ['input.image'],
+    defaults: { temperature: 0.2 },
+    implementation: {
+      implementationId: 'openai',
+      driverId: 'nimillm',
+      driverDialect: 'openai',
+    },
+    providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
+    connectorGrantId: null,
+  });
+
+  assert.equal(intent.route.oneofKind, 'cloud');
+  if (intent.route.oneofKind !== 'cloud') assert.fail('expected Cloud intent');
+  assert.equal(intent.route.cloud.connectorGrantId, '');
+  assert.deepEqual(intent.route.cloud.implementation, {
+    implementationId: 'openai',
+    driverId: 'nimillm',
+    driverDialect: 'openai',
+  });
+  assert.deepEqual(runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget), {
+    provider: 'openai',
+    providerModelId: 'gpt-test',
+  });
+  assert.throws(() => createNimiCloudAIConfigCapabilityIntent({
+    capabilityContract: 'text.generate',
+    implementation: {
+      implementationId: 'openai',
+      driverId: 'nimillm',
+      driverDialect: 'openai',
+    },
+    providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test' },
+    connectorGrantId: ' grant-1 ',
+  }), /connectorGrantId must be exact/u);
+});
 
 test('portable AIProfile rejects account and machine-private authority', () => {
   assert.throws(

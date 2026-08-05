@@ -273,6 +273,9 @@ export function getDesktopConnectorAdminClient() {
     createConnector: clients.accountProduct.connectors.createConnector,
     updateConnector: clients.accountProduct.connectors.updateConnector,
     deleteConnector: clients.accountProduct.connectors.deleteConnector,
+    createConnectorGrant: clients.accountProduct.connectors.createConnectorGrant,
+    listConnectorGrants: clients.accountProduct.connectors.listConnectorGrants,
+    revokeConnectorGrant: clients.accountProduct.connectors.revokeConnectorGrant,
     testConnector: clients.accountProduct.connectors.testConnector,
     listConnectorModels: clients.accountProduct.connectors.listConnectorModels,
   };

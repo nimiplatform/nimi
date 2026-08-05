@@ -53,6 +53,8 @@
     "AI_CONNECTOR_CREDENTIAL_MISSING": "AI 连接器凭证缺失。",
     "AI_CONNECTOR_DISABLED": "AI 连接器已禁用。",
     "AI_CONNECTOR_NOT_FOUND": "未找到 AI 连接器。",
+    "AI_CONNECTOR_GRANT_SELECTION_REQUIRED": "请为此云端能力选择有效的账户授权。",
+    "AI_CONNECTOR_GRANT_REVOKED": "所选账户授权已被吊销，请选择其他有效授权。",
     "AI_CONNECTOR_INVALID": "AI 连接器配置无效。",
     "AI_CONNECTOR_IMMUTABLE": "AI 连接器不可修改。",
     "AI_CONNECTOR_LIMIT_EXCEEDED": "AI 连接器数量已超出上限。",

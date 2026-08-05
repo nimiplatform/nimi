@@ -5,7 +5,11 @@ import {
   type NimiAppAIProfilePreview,
 } from '@nimiplatform/sdk/ai';
 import { Button, InlineAlert, Surface } from '@nimiplatform/kit/ui';
-import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import {
+  useDesktopRendererCommands,
+  useDesktopRendererSdk,
+} from '../../renderer/binding-context.js';
+import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import {
   summarizeDesktopPortableAIProfile,
@@ -21,6 +25,8 @@ type ProfileFeedback = {
 export function ProfileCatalogPage() {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
+  const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const profileClient = useMemo(
     () => createNimiAppAIProfileClient(sdk.accountProduct().aiConfig),
     [sdk],
@@ -29,6 +35,7 @@ export function ProfileCatalogPage() {
   const [summary, setSummary] = useState<DesktopPortableAIProfileSummary | null>(null);
   const [preview, setPreview] = useState<NimiAppAIProfilePreview | null>(null);
   const [busy, setBusy] = useState(false);
+  const [appliedCloudIntentCount, setAppliedCloudIntentCount] = useState(0);
   const [feedback, setFeedback] = useState<ProfileFeedback>({
     tone: 'info',
     message: 'Load a portable AIProfile, preview its App-owned intent, then confirm Apply explicitly.',
@@ -38,6 +45,7 @@ export function ProfileCatalogPage() {
     setSourceText(nextSource);
     setSummary(null);
     setPreview(null);
+    setAppliedCloudIntentCount(0);
   };
 
   const previewSource = async () => {
@@ -72,6 +80,9 @@ export function ProfileCatalogPage() {
     try {
       const config = await profileClient.apply(preview.source);
       setPreview(null);
+      setAppliedCloudIntentCount(config.capabilities.filter(
+        (capability) => capability.route.oneofKind === 'cloud',
+      ).length);
       setFeedback({
         tone: 'success',
         message: `Applied ${summary?.title || 'the portable AIProfile'} to the Nimi Desktop App AIConfig (${config.capabilities.length} intent(s)).`,
@@ -86,6 +97,11 @@ export function ProfileCatalogPage() {
       setBusy(false);
     }
   };
+
+  const previewCloudIntentCount = summary?.capabilities.filter(
+    (capability) => capability.route === 'cloud',
+  ).length ?? 0;
+  const cloudGuidanceCount = Math.max(previewCloudIntentCount, appliedCloudIntentCount);
 
   return (
     <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
@@ -167,6 +183,35 @@ export function ProfileCatalogPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </Surface>
+      ) : null}
+
+      {cloudGuidanceCount > 0 ? (
+        <Surface tone="card" className="space-y-2 p-4" data-testid="runtime-portable-profile-cloud-guidance">
+          <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.profiles.cloudAuthorizationTitle', {
+              defaultValue: 'Cloud account authorization stays separate',
+            })}
+          </div>
+          <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
+            {t('runtimeConfig.profiles.cloudAuthorizationGuidance', {
+              defaultValue: 'Portable AIProfiles never carry connector, account, or ConnectorGrant identity. After Apply, review each Cloud intent and explicitly select an active account authorization. Until then, Runtime reports an informational selection-required state.',
+            })}
+          </p>
+          <div>
+            <Button
+              onClick={() => {
+                setActiveTab('runtime');
+                runtimeConfigNavigation.openPage('cloud');
+              }}
+              size="sm"
+              tone="secondary"
+            >
+              {t('runtimeConfig.profiles.openAccountAuthorization', {
+                defaultValue: 'Open account authorizations',
+              })}
+            </Button>
           </div>
         </Surface>
       ) : null}

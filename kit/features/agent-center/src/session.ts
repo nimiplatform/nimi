@@ -13,6 +13,7 @@ import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
   AgentCenterAutonomyMutationInput,
+  AgentCenterCloudAIConfigModule,
   AgentCenterAutonomyProjection,
   AgentCenterNextStepAction,
   AgentCenterOpaqueHandle,
@@ -143,11 +144,16 @@ function errorMessage(error: unknown): string {
 
 class ManagerSession {
   readonly appearance: AgentCenterSession['appearance'];
+  readonly cloudAIConfig?: AgentCenterCloudAIConfigModule;
   #snapshot: AgentCenterSnapshot;
   #listeners = new Set<() => void>();
   #actionPostureUnsubscribe: (() => void) | null = null;
 
-  constructor(private readonly transport: SessionTransport) {
+  constructor(
+    private readonly transport: SessionTransport,
+    cloudAIConfig?: AgentCenterCloudAIConfigModule,
+  ) {
+    this.cloudAIConfig = cloudAIConfig;
     this.#snapshot = {
       phase: 'loading',
       state: stateWithAvailability({}, allUnavailable('unknown')),
@@ -302,6 +308,7 @@ class ManagerSession {
 
 export interface CreateFirstPartyAgentCenterSessionInput {
   readonly sharedAIConfig: AgentCenterSharedAIConfigModule;
+  readonly cloudAIConfig?: AgentCenterCloudAIConfigModule;
   readonly inspect?: NimiRuntimeAgentInspectSurface | null;
   readonly identity: RuntimeLocalAgentIdentityInput;
   readonly autonomy?: {
@@ -370,7 +377,7 @@ export function createFirstPartyAgentCenterSession(
     async requestPermission() {},
     async openPermissionSettings() {},
   };
-  return new ManagerSession(transport) as unknown as AgentCenterSession;
+  return new ManagerSession(transport, input.cloudAIConfig) as unknown as AgentCenterSession;
 }
 
 export function sealAgentCenterPermissionedSdkSurface(

@@ -14,11 +14,13 @@ Reusable UI, headless state, and typed modality contracts for Nimi generation.
 Kit request types do not accept scoped configuration, binding, model, route,
 connector, target, readiness, ranking, or fallback authority.
 
-The generated Runtime Scenario wire still declares retired target fields as
-required. The handwritten Kit layer does not populate them. Consequently, text,
-embedding, image, video, speech synthesis, and speech transcription helpers
-return a typed `AI_ROUTE_UNSUPPORTED` unavailable result before dispatch. Kit does not infer a target, restore the retired binding layer,
-or fabricate success data.
+`text.generate` dispatches through the SDK owner-driven Runtime AI model with
+App identity and request content only. Runtime composes the canonical AIConfig,
+Cloud ConnectorGrant or machine selection, and exact implementation at request
+time. Kit does not infer a target, restore a retired binding layer, or fabricate
+success data. Unsupported consume capabilities remain typed
+`AI_ROUTE_UNSUPPORTED` before dispatch; modality-specific job helpers retain
+their own typed contracts.
 
 `runRuntimeVoiceCatalog(...)` remains active for owner-scoped `voice_asset_id`
 references. It does not expose preset discovery because the generated preset
