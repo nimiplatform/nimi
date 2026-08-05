@@ -1026,14 +1026,9 @@ units:
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
   - id: rule.nimi.runtime.local-compute.r101
     kind: rule
-    title: Resource occurrences are exact without premature ordering authority
-    modality: must
-    statement: Local Capability Configuration requirement projection creates a distinct required slot for every independently selected, downloaded, bound, or replaced resource occurrence, preserves exact occurrence identity, and commits each exact binding or unresolved slot in that Local configuration rather than AIConfig; an upstream optional file creates no slot unless the exact CapabilityImplementation and Driver declare it required, missing required occurrences fail admission without clearing other valid bindings or poisoning shared LocalAssets, and Runtime admits no generic optional-requirement state machine, sharded-bundle identity, ordered-occurrence contract, or legacy slot-map interpretation before a real vertical slice establishes the needed authority.
-    condition: Whenever a Driver projects, resolves, validates, or invokes local resource occurrences.
-    failure: Preserve unresolved state and fail closed on a missing, ambiguous, skipped, defaulted, invented-optional, prematurely ordered, or legacy-normalized occurrence.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
+    lifecycle: removed
+    title: Retired occurrence rule that deferred ordering and bundle authority
+    reason: Replaced by the media vertical slice occurrence rule that admits ordered occurrences and sharded-bundle identity.
   - id: rule.nimi.runtime.local-compute.r102
     kind: rule
     title: Driver-owned portable configuration excludes bindings and paths
@@ -1100,3 +1095,27 @@ units:
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
       - type: supersedes
         target: rule.nimi.runtime.local-compute.r094
+  - id: rule.nimi.runtime.local-compute.r108
+    kind: rule
+    title: Ordered occurrences and sharded bundles are exact Driver-declared truth
+    modality: must
+    statement: Local Capability Configuration requirement projection creates a distinct required slot for every independently selected, downloaded, bound, or replaced resource occurrence and commits each exact binding or unresolved slot in that Local configuration rather than AIConfig; a Driver may project a role-scoped ordered occurrence sequence whose declared ordinal is exact configuration truth carried with only requirement identity, role, ordinal, and display label as public presentation and never inferred from filename, path, catalog order, or binding time; one LocalAsset may satisfy multiple occurrences with one exact binding per occurrence; a sharded multi-file resource forms one occurrence whose verified content identity is the canonical digest over its ordered per-entry digests and whose entries are never independent slots; an upstream optional file creates no slot unless the exact CapabilityImplementation and Driver declare it required, missing required occurrences fail admission without clearing other valid bindings or poisoning shared LocalAssets, and Runtime still admits no generic optional-requirement state machine or legacy slot-map interpretation.
+    condition: Whenever a Driver projects, resolves, validates, or invokes local resource occurrences.
+    failure: Preserve unresolved state and fail closed on a missing, ambiguous, skipped, defaulted, invented-optional, inferred-order, split-bundle, or legacy-normalized occurrence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
+      - type: supersedes
+        target: rule.nimi.runtime.local-compute.r101
+  - id: rule.nimi.runtime.local-compute.r109
+    kind: rule
+    title: Heavy media jobs hold one serial execution lease and report artifacts exactly
+    modality: must
+    statement: Heavy local media execution holds a single Runtime-private execution lease per engine instance and runs jobs serially in submission order per capability while queued jobs remain observable pending and cancellation is honored both queued and running; a media job may materialize multiple artifacts, each committed and addressable when produced, and its terminal outcome explicitly enumerates the produced artifacts together with the typed failure when generation ends early, never projecting partial production as success; lease occupancy and queue position stay Runtime-private and never become readiness, preference, routing, or selection truth.
+    condition: Whenever a heavy local media job is queued, executed, canceled, or completed.
+    failure: Reject parallel lease acquisition, silent queue reordering, dropped produced artifacts, partial output reported as success, or lease state projected as product truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.local-engine-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane

@@ -1488,16 +1488,23 @@ units:
         target: definition.nimi.platform.core-protocol.connector-grant
   - id: rule.nimi.platform.core-protocol.p-caiex-010
     kind: rule
-    title: P-CAIEX-010 LocalAsset and resource occurrences remain exact
+    lifecycle: removed
+    title: Retired occurrence exactness rule that deferred bundle and ordering semantics
+    reason: Replaced by the successor occurrence rule that admits ordered occurrences and sharded-bundle identity through the media vertical slice.
+  - id: rule.nimi.platform.core-protocol.p-caiex-013
+    kind: rule
+    title: P-CAIEX-013 LocalAsset occurrences remain exact with admitted ordering and bundles
     modality: must
-    statement: LocalAsset always denotes concrete verified content, strict or substitutable is requirement policy rather than an asset category, and each resource occurrence that can be independently selected, downloaded, bound, or replaced forms a distinct required slot; an upstream optional file creates no Nimi requirement unless the exact CapabilityImplementation and Driver declare it required, llama implementations project no mmproj for text-only support and project a required independent mmproj companion slot when declaring text.generate input.image support, and Core defines neither a generic optional-requirement state machine nor sharded-bundle or ordered-occurrence semantics before a real slice admits them.
+    statement: LocalAsset always denotes concrete verified content, strict or substitutable is requirement policy rather than an asset category, and each resource occurrence that can be independently selected, downloaded, bound, or replaced forms a distinct required slot; an upstream optional file creates no Nimi requirement unless the exact CapabilityImplementation and Driver declare it required, llama implementations project no mmproj for text-only support and project a required independent mmproj companion slot when declaring text.generate input.image support, and image or video implementations project a required main slot plus Driver-declared required companion slots such as text encoder, VAE, or an ordered LoRA sequence whose roles and options Core carries opaquely; Core admits a Driver-declared role-scoped occurrence ordinal and a sharded-bundle identity formed as the canonical digest over ordered per-entry digests as opaque exact facts with only requirement identity, role, ordinal, and display label visible, declares image.generate or video.generate standardized features only through Driver-validated support, and still defines no generic optional-requirement state machine.
     condition: Whenever a Driver projects normalized local requirements or a local binding is committed.
-    failure: Reject an abstract asset, invented optional requirement, premature bundle or ordering contract, filename-derived companion, collapsed independently selectable occurrence, missing required mmproj, or mmproj projected for a text-only implementation.
+    failure: Reject an abstract asset, invented optional requirement, inferred ordering, split or Core-interpreted bundle, filename-derived companion, collapsed independently selectable occurrence, missing required companion, or companion projected for an implementation that does not declare it.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.local-capability-configuration
       - type: applies_to
         target: definition.nimi.platform.core-protocol.standardized-capability-feature
+      - type: supersedes
+        target: rule.nimi.platform.core-protocol.p-caiex-010
   - id: rule.nimi.platform.core-protocol.p-caiex-011
     kind: rule
     title: P-CAIEX-011 Jobs capture exact immutable composition
