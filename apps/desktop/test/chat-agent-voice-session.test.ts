@@ -48,7 +48,7 @@ test('agent voice session shell starts idle and failed shell state maps to faile
       status: 'failed',
       mode: 'hands-free',
       conversationAnchorId: 'anchor-1',
-      message: 'route unavailable',
+      message: 'execution unavailable',
     },
     onToggle: () => undefined,
     onCancel: () => undefined,

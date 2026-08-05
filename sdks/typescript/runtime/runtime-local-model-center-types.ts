@@ -90,7 +90,6 @@ export interface NimiRuntimeLocalAssetRecord {
   readonly status: NimiRuntimeLocalAssetStatus;
   readonly installedAt: string;
   readonly updatedAt: string;
-  readonly healthDetail?: string;
   readonly reasonCode?: string;
   readonly capabilities?: readonly string[];
   readonly logicalModelId?: string;
@@ -101,14 +100,6 @@ export interface NimiRuntimeLocalAssetRecord {
   readonly engineConfig?: JsonObject;
   readonly recommendation?: NimiRuntimeLocalCatalogRecommendation;
   readonly metadata?: JsonObject;
-}
-
-export interface NimiRuntimeLocalAssetHealth {
-  readonly localAssetId: string;
-  readonly status: NimiRuntimeLocalAssetStatus;
-  readonly detail: string;
-  readonly endpoint: string;
-  readonly reasonCode?: string;
 }
 
 export interface NimiRuntimeLocalVerifiedAssetDescriptor {
@@ -440,7 +431,6 @@ export interface NimiRuntimeLocalUnregisteredAssetDescriptor {
 
 export interface NimiRuntimeLocalSnapshot {
   readonly assets: readonly NimiRuntimeLocalAssetRecord[];
-  readonly health: readonly NimiRuntimeLocalAssetHealth[];
   readonly generatedAt: string;
 }
 
@@ -521,7 +511,6 @@ export type NimiRuntimeLocalModelCenterRpc = Pick<
   | 'removeLocalAsset'
   | 'startLocalAsset'
   | 'stopLocalAsset'
-  | 'checkLocalAssetHealth'
   | 'listVerifiedAssets'
   | 'searchCatalogModels'
   | 'listCatalogVariants'
@@ -596,7 +585,6 @@ export interface NimiRuntimeLocalModelCenterClient {
   remove(localAssetId: string, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
   start(localAssetId: string, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
   stop(localAssetId: string, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalAssetRecord>;
-  health(localAssetId?: string): Promise<readonly NimiRuntimeLocalAssetHealth[]>;
   listTransfers(): Promise<readonly NimiRuntimeLocalTransferSessionSummary[]>;
   pauseTransfer(installSessionId: string, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalTransferSessionSummary>;

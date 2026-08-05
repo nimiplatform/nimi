@@ -5,7 +5,8 @@ keeping their owners independent.
 
 - Realm owns Character, social, World, economy, and canonical World truth.
 - Runtime owns LocalAgent materialization, AI execution, Conversation,
-  operational Memory and Knowledge, voice, readiness, and App authorization.
+  operational Memory and Knowledge, voice, implementation selection, resource
+  scheduling, and App authorization.
 - SDK is the public typed access boundary for Apps.
 - Kit provides shared UI and host composition only when a concrete product
   consumer needs it.

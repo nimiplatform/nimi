@@ -90,11 +90,6 @@ export function DesktopSection(props: DesktopSectionProps) {
                   <div className="flex flex-col gap-[14px]">
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4ade80]">{chromeLabels.runtime}</p>
 
-                    <div className="relative overflow-hidden rounded-[14px] border border-[#4ade80]/20 bg-[#4ade80]/[0.08] p-4 ring-[0.5px] ring-[#4ade80]/10">
-                      <p className="relative text-[14px] font-bold text-[#4ade80]">{chromeLabels.health}</p>
-                      <p className="relative mt-1 text-[11px] font-medium text-[#4ade80]/80">{chromeLabels.healthDetail}</p>
-                    </div>
-
                     <div className="rounded-[14px] border border-white/5 bg-[#20232b] p-4 transition-colors">
                       <p className="text-[13px] font-bold text-slate-200">{primaryFeature!.title}</p>
                       <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{primaryFeature!.description}</p>
@@ -122,19 +117,19 @@ export function DesktopSection(props: DesktopSectionProps) {
                     </div>
 
                     <div className="flex flex-col gap-[14px]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{chromeLabels.activity}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{chromeLabels.capabilities}</p>
                       <div className="flex flex-col rounded-[14px] border border-white/5 bg-[#20232b] py-2">
                         <div className="flex items-center justify-between px-4 py-2">
-                          <span className="font-mono text-[11px] text-slate-300">local/qwen2.5</span>
-                          <span className="text-[11px] font-semibold text-[#4ade80]">{chromeLabels.ready}</span>
+                          <span className="font-mono text-[11px] text-slate-300">text.generate</span>
+                          <span className="text-[11px] font-semibold text-[#4ade80]">{chromeLabels.localIntent}</span>
                         </div>
                         <div className="flex items-center justify-between border-t border-white/5 px-4 py-2">
-                          <span className="font-mono text-[11px] text-slate-300">gemini</span>
-                          <span className="text-[11px] font-semibold text-[#38bdf8]">{chromeLabels.connected}</span>
+                          <span className="font-mono text-[11px] text-slate-300">image.generate</span>
+                          <span className="text-[11px] font-semibold text-[#38bdf8]">{chromeLabels.cloudIntent}</span>
                         </div>
                         <div className="flex items-center justify-between border-t border-white/5 px-4 py-2">
-                          <span className="font-mono text-[11px] text-slate-300">desktop/agent-chat</span>
-                          <span className="text-[11px] font-semibold text-[#9ca3af]">{chromeLabels.installed}</span>
+                          <span className="font-mono text-[11px] text-slate-300">audio.synthesize</span>
+                          <span className="text-[11px] font-semibold text-[#4ade80]">{chromeLabels.localIntent}</span>
                         </div>
                       </div>
                     </div>

@@ -24,7 +24,7 @@ export function countFor(category: CategoryId): number {
 const fallbackAccessChecks = [
   'Use the exported Kit primitive instead of app-local visual copies.',
   'Preserve caller-owned labels, names, and state instead of hiding them behind local wrappers.',
-  'Do not treat this recipe as Runtime or Realm readiness evidence.',
+  'Do not treat this recipe as Runtime or Realm conformance evidence.',
 ];
 
 function fallbackTokenFootprint(recipe: Recipe): NonNullable<Recipe['tokenFootprint']> {

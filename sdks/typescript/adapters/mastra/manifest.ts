@@ -197,7 +197,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     ragEmbeddings: {
       support: 'supported',
       mode: 'runtime-owned',
-      note: 'createNimiMastraEmbeddingModel exposes an AI SDK EmbeddingModelV3 backed by Nimi Runtime TEXT_EMBED. Mastra RAG/vector/semantic-memory helpers can consume the embedder, while Runtime/Cognition remain owner of embedding route, credentials, canonical Memory/Knowledge banks, and vector substrate readiness.',
+      note: 'createNimiMastraEmbeddingModel exposes an AI SDK EmbeddingModelV3 backed by Nimi Runtime TEXT_EMBED. Mastra RAG/vector/semantic-memory helpers can consume the embedder, while Runtime/Cognition remain owner of implementation selection, credentials, canonical Memory/Knowledge banks, and the vector substrate.',
     },
     voice: {
       support: 'partial',
@@ -220,7 +220,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     modelRouterString: {
       support: 'not-applicable',
       mode: 'out-of-domain',
-      note: 'Mastra provider-registry router strings hit external providers; Nimi routing is Runtime-owned (S-AIP-001), so a model instance is passed instead.',
+      note: 'Mastra provider-registry strings select external implementations; Nimi framework slots carry fixed capability ids and Runtime owns implementation selection (S-AIP-001).',
     },
   },
   unsupportedBehavior: 'throw',

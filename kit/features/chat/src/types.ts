@@ -11,7 +11,7 @@ export type ConversationMessageRole = 'user' | 'assistant' | 'human' | 'agent' |
 export type ConversationSetupAction =
   | {
     kind: 'open-settings';
-    targetId: 'runtime-overview' | 'runtime-local' | 'runtime-cloud';
+    targetId: 'runtime-overview';
     returnToMode?: ConversationMode;
   }
   | {
@@ -19,17 +19,12 @@ export type ConversationSetupAction =
     returnToMode?: ConversationMode;
   };
 export type ConversationSetupIssueCode =
-  | 'ai-route-readiness-unavailable'
-  | 'ai-local-route-unavailable'
-  | 'ai-cloud-route-unavailable'
-  | 'ai-no-chat-route'
-  | 'ai-thread-route-unavailable'
+  | 'ai-capability-intent-required'
   | 'human-auth-required'
   | 'agent-contract-unavailable';
 
 export type ConversationSetupIssue = {
   code: ConversationSetupIssueCode;
-  routeKind?: 'local' | 'cloud';
   detail?: string | null;
 };
 

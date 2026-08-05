@@ -32,8 +32,6 @@ test('Runtime Agent turn payload rejects request authority and unknown keys', ()
     { systemPrompt: 'caller prompt' },
     { worldId: 'world' },
     { executionParams: { 'image.generate': {} } },
-    { executionBindings: { 'text.generate': { route: 'cloud', modelId: 'model' } } },
-    { execution_bindings: { 'text.generate': { route: 'local', modelId: 'model' } } },
     { mediaUrl: 'file:///private.png' },
     { reasoning: { mode: 'visible', privatePrompt: 'do not admit' } },
     { extra: true },
@@ -69,29 +67,6 @@ test('Runtime Agent turn payload rejects non-user, decorated, or multiple messag
       } as unknown as NimiRuntimeAgentTurnRequest),
     );
   }
-});
-
-test('Runtime Agent turn payload rejects request execution bindings rather than dropping them', () => {
-  assert.throws(() => buildNimiRuntimeAgentTurnPayload({
-    ownerUserId: 'owner',
-    runtimeSourceRef: 'agent',
-    localAgentRef: 'local-agent:owner:agent',
-    conversationAnchorId: 'anchor',
-    requestId: 'request',
-    messages: [{ role: 'user', content: 'hello' }],
-    execution_bindings: {
-      'text.generate': {
-        route: 'local',
-        modelId: 'app-local-model',
-      },
-    },
-    executionBindings: {
-      'text.generate': {
-        route: 'cloud',
-        modelId: 'app-local-cloud-model',
-      },
-    },
-  } as unknown as Parameters<typeof buildNimiRuntimeAgentTurnPayload>[0]), /contains unsupported field/);
 });
 
 test('Runtime Agent turn payload projects message attachments as snake_case artifact refs', () => {

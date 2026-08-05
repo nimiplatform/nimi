@@ -2,7 +2,6 @@ import type {
   ListLocalAssetsRequest,
   ListLocalAssetsResponse,
   LocalAssetRecord,
-  RuntimeDurableLocalTargetRef,
   RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError } from '../types';
@@ -15,7 +14,6 @@ import {
   type NimiRuntimeLocalAssetStatusId,
 } from './local-asset-vocabulary';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
-import { normalizeNimiRuntimeReasonCode } from './reason-messages';
 
 export const NIMI_RUNTIME_LOCAL_ASSET_ENTRY_DEFAULT_PAGE_SIZE = 200;
 
@@ -31,27 +29,10 @@ export interface NimiRuntimeLocalAssetEntry {
   readonly family?: string;
   readonly modelFamily?: string;
   readonly artifactRoles?: readonly string[];
-  /** Canonical content identity the caller may echo in an exact binding target. */
+  /** Canonical content identity for import and catalog integrity checks. */
   readonly expectedVerifiedContentId?: string;
-  readonly durableTargetRef?: NimiRuntimeLocalAssetTargetRef;
-  readonly durableTargetStatus?: NimiRuntimeLocalAssetStatusId;
-  readonly durableTargetReasonCode?: string;
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
-
-export type NimiRuntimeLocalAssetTargetRef =
-  | {
-    readonly kind: 'local-runtime';
-    readonly version: 'v2';
-    readonly profileBindingId: string;
-    readonly readinessRef?: never;
-  }
-  | {
-    readonly kind: 'local-runtime';
-    readonly version: 'v2';
-    readonly profileBindingId?: never;
-    readonly readinessRef: string;
-  };
 
 export interface NimiRuntimeLocalAssetListClient {
   readonly local: {
@@ -102,9 +83,6 @@ export function projectNimiRuntimeLocalAssetEntry(
   const sourceFileName = normalizeText(input.sourceFileName);
   const artifactRoles = textListOrUndefined(input.artifactRoles);
   const expectedVerifiedContentId = projectExpectedVerifiedContentId(input);
-  const durableTargetRef = projectLocalAssetTargetRef(input.durableTargetRef);
-  const durableTargetStatus = parseNimiRuntimeLocalAssetStatusId(input.durableTargetStatus);
-  const durableTargetReasonCode = normalizeNimiRuntimeReasonCode(input.durableTargetReasonCode);
   return {
     localAssetId,
     assetId: normalizeText(input.assetId),
@@ -117,9 +95,6 @@ export function projectNimiRuntimeLocalAssetEntry(
     ...(family ? { family, modelFamily: family } : {}),
     ...(artifactRoles ? { artifactRoles } : {}),
     ...(expectedVerifiedContentId ? { expectedVerifiedContentId } : {}),
-    ...(durableTargetRef ? { durableTargetRef } : {}),
-    ...(durableTargetStatus ? { durableTargetStatus } : {}),
-    ...(durableTargetReasonCode ? { durableTargetReasonCode } : {}),
     ...(metadata ? { metadata } : {}),
   };
 }
@@ -177,25 +152,6 @@ function projectExpectedVerifiedContentId(input: LocalAssetRecord): string | und
     .toLowerCase()
     .replace(/^sha256:/u, '');
   return /^[a-f0-9]{64}$/u.test(declared) ? `sha256:${declared}` : undefined;
-}
-
-function projectLocalAssetTargetRef(
-  input: RuntimeDurableLocalTargetRef | undefined,
-): NimiRuntimeLocalAssetTargetRef | undefined {
-  if (!input || normalizeText(input.version) !== 'v2') return undefined;
-  if (input.ref.oneofKind === 'profileBindingId') {
-    const profileBindingId = normalizeText(input.ref.profileBindingId);
-    return profileBindingId
-      ? { kind: 'local-runtime', version: 'v2', profileBindingId }
-      : undefined;
-  }
-  if (input.ref.oneofKind === 'readinessRef') {
-    const readinessRef = normalizeText(input.ref.readinessRef);
-    return readinessRef
-      ? { kind: 'local-runtime', version: 'v2', readinessRef }
-      : undefined;
-  }
-  return undefined;
 }
 
 function localAssetProjectionError(message: string, actionHint: string): Error {

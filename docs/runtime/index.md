@@ -8,8 +8,8 @@ do not import Runtime internals or call providers directly.
 
 Runtime owns:
 
-- Local and Cloud AI consumption, provider and model routing, readiness, Token,
-  Quota, Budget, and credential custody;
+- Local and Cloud AI consumption, implementation selection, resource scheduling,
+  Token, Quota, Budget, and credential custody;
 - LocalAgent materialization and lifecycle from a Realm-issued Character
   Source;
 - LocalAgent Conversation, operational Memory and Knowledge, state, voice,
@@ -21,7 +21,7 @@ Runtime owns:
 These responsibilities stay with Runtime regardless of whether the consumer is
 Nimi Home, Desktop, Avatar, a direct SDK client, or a scaffolded App.
 
-## What Runtime does not own
+## Ownership Boundaries
 
 Realm owns Character identity, Character Source, World Source, canonical World
 data, social truth, and World history. Runtime may consume admitted source
@@ -33,8 +33,8 @@ provider, credential, session, or authorization truth.
 
 General Workflow, MCP, and World Evolution are not Runtime core prerequisites.
 An optional external action capability reports its own unavailable state and
-does not block LocalAgent Conversation, Memory, Knowledge, voice, or ordinary
-readiness.
+does not block LocalAgent Conversation, Memory, Knowledge, voice, or unrelated
+capability execution.
 
 ## Read paths
 

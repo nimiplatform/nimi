@@ -3,7 +3,6 @@ import {
   Headphones,
   Lightbulb,
   Mic,
-  SlidersHorizontal,
   UserRound,
 } from 'lucide-react';
 import type { ZhiyuEvidence } from '../app/evidence';
@@ -108,15 +107,12 @@ export function ComposerModeTools({
   const voicePlaybackDisabled = voicePlayback.violation
     || voicePlayback.playbackAction === 'none'
     || (voicePlayback.playbackAction === 'subscribe_stream' && !voiceStreamCorrelationReady);
-  const voiceCaptureDisabled = evidence.voiceCapture.state === 'transcribing'
-    || (!evidence.voiceCapture.ready && evidence.voiceCapture.state !== 'recording');
+  const voiceCaptureDisabled = evidence.voiceCapture.state === 'transcribing';
   const voiceCaptureLabel = evidence.voiceCapture.state === 'recording'
     ? '停止语音输入'
     : evidence.voiceCapture.state === 'transcribing'
       ? '语音转写中'
-      : evidence.voiceCapture.ready
-        ? '开始语音输入'
-        : '语音输入不可用';
+      : '开始语音输入';
   const voiceLabel = voicePlayback.outputMode
     ? `语音播放：${voicePlayback.outputMode}${voicePlayback.playbackState ? ` / ${voicePlayback.playbackState}` : ''}`
     : '语音播放：等待 Runtime 输出';
@@ -132,10 +128,7 @@ export function ComposerModeTools({
         title={`${voiceCaptureLabel}：${evidence.voiceCapture.reasonCode}`}
         data-zhiyu-composer-tool="voice-capture"
         data-zhiyu-chat-voice-capture-state={evidence.voiceCapture.state}
-        data-zhiyu-chat-voice-capture-ready={String(evidence.voiceCapture.ready)}
         data-zhiyu-chat-voice-capture-reason={evidence.voiceCapture.reasonCode}
-        data-zhiyu-chat-voice-capture-model-id={evidence.voiceCapture.runtimeBindingModelId || 'not_projected'}
-        data-zhiyu-chat-voice-capture-connector-id={evidence.voiceCapture.connectorId || 'not_projected'}
         data-zhiyu-chat-voice-capture-request-id={evidence.voiceCapture.requestId || 'not_projected'}
         data-zhiyu-chat-voice-capture-transcript-length={String(evidence.voiceCapture.transcriptLength)}
         onClick={onVoiceCaptureToggle}
@@ -178,26 +171,6 @@ export function ComposerModeTools({
         <Lightbulb size={16} aria-hidden="true" />
       </button>
     </>
-  );
-}
-
-export function ComposerModelRouteButton({
-  onOpenModelConfig,
-  modelRouteReasonCode,
-}: {
-  readonly onOpenModelConfig: () => void;
-  readonly modelRouteReasonCode?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label="模型路线"
-      title={`模型路线：${modelRouteReasonCode || 'not_projected'}`}
-      data-zhiyu-composer-tool="model"
-      onClick={onOpenModelConfig}
-    >
-      <SlidersHorizontal size={16} aria-hidden="true" />
-    </button>
   );
 }
 

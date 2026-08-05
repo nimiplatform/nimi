@@ -186,11 +186,10 @@ synthesis:
 | --- | --- | --- |
 | `VoiceAsset` | Runtime | Durable (subject to admitted lifecycle) |
 | `VoiceReference` | Runtime | Identifies which voice a synthesis call uses |
-| `provider_voice_ref` | Provider | Provider-native handle (does not become public asset truth) |
+| Provider-native handle | Provider / Runtime Driver | Internal identity that does not become App input or public asset truth |
 
-For the full asset surface — discovery channel split, target model
-binding, tenant isolation, voice handle policy, and the
-`VoiceReference` boundary — see
+For the full asset surface — discovery channel split, tenant isolation,
+voice handle policy, and the `VoiceReference` boundary — see
 [Voice Asset Lifecycle](/runtime/voice-asset-lifecycle).
 
 ## Reader Scenario: An Image Generation Task

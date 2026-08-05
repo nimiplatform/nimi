@@ -35,7 +35,7 @@ export function createDesktopAppOriginProtocol(input: {
             : new Response('preview not found', { status: 404 });
         }
         const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
-        const root = roots[host];
+        const root = await realpath(roots[host]);
         const candidate = path.resolve(root, relative);
         const canonical = await realpath(candidate);
         const boundary = path.relative(root, canonical);

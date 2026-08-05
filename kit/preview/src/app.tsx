@@ -197,9 +197,9 @@ function InputsSection() {
         <TextField placeholder="Project name" aria-label="project name" />
         <SearchField placeholder="Search" aria-label="search" />
         <SelectField
-          aria-label="runtime route"
-          data-testid="select-route"
-          placeholder="Select route"
+          aria-label="capability"
+          data-testid="select-capability"
+          placeholder="Select capability"
           options={[
             { value: 'text.generate', label: 'text.generate' },
             { value: 'image.generate', label: 'image.generate' },
@@ -290,8 +290,8 @@ function OverlaysSection({ forcedOverlay }: { forcedOverlay: PreviewParams['over
               <Button tone="secondary" data-testid="open-popover">Open popover</Button>
             </PopoverTrigger>
             <PopoverContent data-testid="popover-panel" side="bottom">
-              <NimiText role="label">Route detail</NimiText>
-              <NimiText role="helper">Local runtime · text.generate</NimiText>
+              <NimiText role="label">Capability detail</NimiText>
+              <NimiText role="helper">text.generate</NimiText>
             </PopoverContent>
           </Popover>
         </div>

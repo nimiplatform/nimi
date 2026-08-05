@@ -116,7 +116,6 @@ export function createZhiyuProductionBindings(
         runTurn: runZhiyuAgentChatTurn,
         createVoiceCapture(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['createVoiceCapture']>[0]) {
           return createZhiyuVoiceCaptureController({
-            readiness: input.readiness,
             createRecorder: createBrowserVoiceCaptureRecorder,
             transcribe: createElectronVoiceCaptureTranscriber({
               agentId: input.agentId,

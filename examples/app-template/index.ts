@@ -9,18 +9,15 @@ const client = createNimiClient({
     },
   },
 });
-const model = client.ai.createRuntimeModel({
-  model: { modelId: 'default' },
-  routePolicy: 'local',
+const textGeneration = client.ai.createRuntimeModel({
   subjectUserId: 'local-user',
 });
 
-const result = await model.generateText({
-  model: model.model,
+const result = await textGeneration.generateText({
   messages: [{
     role: 'user',
     content: [textPart('What is Nimi in one sentence?')],
   }],
 });
 
-console.log(result.text);
+process.stdout.write(`${result.text}\n`);

@@ -1,7 +1,6 @@
 /**
  * Hello Nimi - generate text with minimal setup.
- * Prerequisites: `nimi start` running and the local default text model available.
- * Tip: run `nimi run "What is Nimi?"` once to prime the local default path.
+ * Prerequisites: `nimi start` and a text.generate capability intent for this App.
  * Run: npx tsx examples/sdk/01-hello.ts
  */
 
@@ -10,8 +9,8 @@ import { createExampleClient, createExampleTextModel, generateExampleText } from
 const client = createExampleClient({
   appId: 'example.sdk.hello',
 });
-const model = createExampleTextModel(client);
+const textGeneration = createExampleTextModel(client);
 
-const result = await generateExampleText(model, 'What is Nimi in one sentence?');
+const result = await generateExampleText(textGeneration, 'What is Nimi in one sentence?');
 
-console.log(result.text);
+process.stdout.write(`${result.text}\n`);

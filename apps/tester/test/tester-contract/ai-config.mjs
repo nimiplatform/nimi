@@ -86,7 +86,7 @@ test('tester keeps an unconfigured capability blocked even when Runtime is conne
     config: null,
   });
   assert.equal(target.status, 'blocked');
-  assert.equal(target.modelLabel, 'Not configured');
+  assert.equal(target.intentLabel, 'Not configured');
   assert.equal(target.canDispatch, false);
 });
 
@@ -102,12 +102,12 @@ test('tester never presents an App AIConfig transport failure as unconfigured', 
     configError: 'AIConfig store unavailable',
   });
   assert.equal(target.status, 'blocked');
-  assert.equal(target.modelLabel, 'AIConfig unavailable');
+  assert.equal(target.intentLabel, 'AIConfig unavailable');
   assert.match(target.detail, /store unavailable/u);
-  assert.notEqual(target.modelLabel, 'Not configured');
+  assert.notEqual(target.intentLabel, 'Not configured');
 });
 
-test('tester presents Local intent as configured and execution-unverified without a model selection', async () => {
+test('tester presents Local intent while leaving implementation selection to Runtime', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const target = createTesterRunTargetSummary({
     capability: {
@@ -118,13 +118,13 @@ test('tester presents Local intent as configured and execution-unverified withou
   });
   assert.equal(target.status, 'configured');
   assert.equal(target.source, 'local');
-  assert.equal(target.modelLabel, 'Local');
+  assert.equal(target.intentLabel, 'Local');
   assert.equal(target.capabilityContract, 'text.generate');
   assert.equal(target.canDispatch, true);
-  assert.match(target.detail, /does not prove execution readiness/u);
+  assert.match(target.detail, /Runtime chooses and validates/u);
 });
 
-test('tester keeps grantless Cloud intent unresolved and exact Grant intent execution-unverified', async () => {
+test('tester requires Cloud authorization intent without selecting an implementation', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const capability = {
     id: 'image.generate', label: 'Image Generate', group: 'media', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
@@ -135,27 +135,20 @@ test('tester keeps grantless Cloud intent unresolved and exact Grant intent exec
     requiredFeatures: [],
     route: {
       oneofKind: 'cloud',
-      cloud: {
-        implementation: {
-          implementationId: 'image.cloud',
-          driverId: 'cloud.driver',
-          driverDialect: 'v1',
-        },
-        connectorGrantId,
-      },
+      cloud: { connectorGrantId },
     },
   });
 
   const unresolved = createTesterRunTargetSummary({ capability, runtime, config: config(cloudIntent('')) });
   assert.equal(unresolved.status, 'blocked');
   assert.equal(unresolved.canDispatch, false);
-  assert.match(unresolved.detail, /no ConnectorGrant/u);
+  assert.match(unresolved.detail, /authorization grant/u);
 
   const configured = createTesterRunTargetSummary({ capability, runtime, config: config(cloudIntent('grant-image')) });
   assert.equal(configured.status, 'configured');
   assert.equal(configured.source, 'cloud');
   assert.equal(configured.canDispatch, true);
-  assert.match(configured.detail, /does not prove provider availability/u);
+  assert.match(configured.detail, /Runtime chooses and validates/u);
 });
 
 test('tester dispatches the standalone World Tour only from a Tauri shell', async () => {
@@ -196,11 +189,10 @@ test('tester Simulator uses the same exact App owner shape without claiming Runt
   assert.equal(target.canDispatch, true);
 });
 
-test('tester run history never exposes opaque Runtime model ids as model titles', async () => {
-  const { getTesterRunModelLabel, getTesterRunModelSource } = await importBehaviorModule('tester/tester-history.js');
-  const opaqueRuntimeModelId = '01KV2PAC69SRGAB30PCZ9ZH8MN';
+test('tester run history presents only the configured capability intent', async () => {
+  const { getTesterRunIntentLabel, getTesterRunIntentSource } = await importBehaviorModule('tester/tester-history.js');
   const record = {
-    id: 'run-opaque-model',
+    id: 'run-local-intent',
     capabilityId: 'text.generate',
     prompt: 'Write a note',
     status: 'failed',
@@ -213,8 +205,8 @@ test('tester run history never exposes opaque Runtime model ids as model titles'
         section: 'text',
         status: 'configured',
         source: 'local',
-        modelLabel: opaqueRuntimeModelId,
-        detail: 'Runtime local configuration',
+        intentLabel: 'Local',
+        detail: 'Runtime-owned implementation selection',
         params: {},
         paramsSummary: [],
         profileOrigin: null,
@@ -222,6 +214,6 @@ test('tester run history never exposes opaque Runtime model ids as model titles'
       promptControls: { contextAttached: false, attachmentCount: 0 },
     },
   };
-  assert.equal(getTesterRunModelSource(record), 'local');
-  assert.equal(getTesterRunModelLabel(record), 'Local runtime model');
+  assert.equal(getTesterRunIntentSource(record), 'local');
+  assert.equal(getTesterRunIntentLabel(record), 'Local');
 });

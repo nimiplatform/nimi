@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { OfflineCoordinator, type OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 import {
-  clearRuntimePlatformProjection,
   getRuntimePlatformProjection,
   type RuntimePlatformLoginRequiredProjection,
   type RuntimePlatformReadyProjection,
@@ -10,8 +9,6 @@ import {
 } from './runtime-platform';
 import { RuntimeLoginPage } from './runtime-login-page';
 import { RuntimeUnavailablePage } from './runtime-unavailable-page';
-
-const runtimeGateOfflineCoordinator = new OfflineCoordinator();
 
 type RuntimePlatformLoginProjection = RuntimePlatformLoginRequiredProjection | RuntimePlatformReadyProjection;
 
@@ -34,51 +31,51 @@ function toMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || '本地服务检查失败');
 }
 
-async function resolveGateState(): Promise<GateState> {
+async function resolveGateState(offlineCoordinator: OfflineCoordinator): Promise<GateState> {
   const projection = await getRuntimePlatformProjection();
   if (projection.status === 'login-required') {
-    runtimeGateOfflineCoordinator.markRuntimeReachability('reachable');
+    offlineCoordinator.markRuntimeReachability('reachable');
     return { kind: 'login-required', projection, message: projection.message };
   }
   if (projection.status !== 'ready') {
-    runtimeGateOfflineCoordinator.markRuntimeReachability('unreachable');
-    return { kind: 'blocked', projection, offlineTier: runtimeGateOfflineCoordinator.getTier() };
+    offlineCoordinator.markRuntimeReachability('unreachable');
+    return { kind: 'blocked', projection, offlineTier: offlineCoordinator.getTier() };
   }
-  runtimeGateOfflineCoordinator.markRuntimeReachability('reachable');
+  offlineCoordinator.markRuntimeReachability('reachable');
 
   return { kind: 'ready', projection };
 }
 
 export function AuthGate({ children }: { readonly children: ReactNode }) {
+  const [offlineCoordinator] = useState(() => new OfflineCoordinator());
   const [state, setState] = useState<GateState>({ kind: 'checking' });
   const [reloadKey, setReloadKey] = useState(0);
 
   const retry = useCallback(() => {
-    clearRuntimePlatformProjection();
     setReloadKey((value) => value + 1);
   }, []);
 
   useEffect(() => {
     let active = true;
     setState({ kind: 'checking' });
-    void resolveGateState()
+    void resolveGateState(offlineCoordinator)
       .then((nextState) => {
         if (active) setState(nextState);
       })
       .catch((error) => {
-        runtimeGateOfflineCoordinator.markRuntimeReachability('unreachable');
+        offlineCoordinator.markRuntimeReachability('unreachable');
         if (active) {
           setState({
             kind: 'blocked',
             message: toMessage(error),
-            offlineTier: runtimeGateOfflineCoordinator.getTier(),
+            offlineTier: offlineCoordinator.getTier(),
           });
         }
       });
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [offlineCoordinator, reloadKey]);
 
   if (state.kind === 'checking') {
     return (

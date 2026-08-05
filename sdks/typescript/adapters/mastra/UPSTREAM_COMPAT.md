@@ -51,7 +51,7 @@ Runtime/Cognition owner surfaces.
   propagation, and the multi-step agent loop; `toolChoice` forwarding
 - `structuredOutput` json-schema response-format forwarding and the validated `.object`
 - Nimi source mapping (Mastra `payload.url` source chunks) and reasoning (`reasoningText`)
-- `createNimiMastraProvider` Runtime-routed model construction accepted by an Agent
+- `createNimiMastraProvider` Runtime-backed model construction accepted by an Agent
 - abort-signal forwarding onto the Nimi request
 - `onFinish` / `onStepFinish` callbacks firing with adapter output
 - `requireToolApproval` suspension before tool execution, plus fail-closed
@@ -122,7 +122,7 @@ are not blurred into the supported set.
 | `requireToolApproval` human-in-the-loop | `toolApproval` (partial) | partial | Model-level tool-approval-request/response parts are mapped in `mappers.ts`; Mastra native `requireToolApproval` suspension before execution is verified. Approve/deny resume requires Mastra snapshot storage (`AGENT_RESUME_NO_SNAPSHOT_FOUND` without it) and is not bound to a current Nimi Runtime-owned lifecycle surface. |
 | tool suspend / resume | `toolSuspendResume` (partial) | partial | Model tool-calls are mapped; Mastra `createTool` suspend/resume orchestration (suspendSchema/resumeSchema pause + resume) is not yet exercised through Nimi. |
 | structured-output repair retry | `structuredOutputRepair` (partial) | partial | No-object failure is verified fail-closed; Mastra's repair retry path (fixing malformed JSON) is not yet exhaustively exercised. |
-| reasoning / providerMetadata / providerOptions / multimodal acceptance | `reasoning`, `providerMetadata`, `providerOptions`, `multimodalInput` (partial) | partial | Mapped by the adapter; end-to-end surfacing/acceptance is Runtime-route-dependent. |
+| reasoning / providerMetadata / providerOptions / multimodal acceptance | `reasoning`, `providerMetadata`, `providerOptions`, `multimodalInput` (partial) | partial | Mapped by the adapter; end-to-end surfacing and acceptance depend on Runtime support. |
 | Memory / durable context | `memory` (partial), `runtimeContext` (supported) | partial | Mastra Memory can inject prior-turn context into the Nimi text-model prompt, but the store remains Mastra-owned. `NimiMastraContextBridge` now supports per-turn Nimi Runtime-owned memory/knowledge context injection through Mastra `context`; remaining gaps are conversation writeback, thread/resource lifecycle, and any Mastra Memory-compatible persistence contract. |
 | Workflows / lifecycle state | `workflows` (partial) | compatibility-only | Mastra Workflow steps can call a Nimi-backed text model, but workflow lifecycle/checkpoint/suspend state remains Mastra-owned. Nimi-owned workflow/localAgent lifecycle must use Runtime owner surfaces. |
 | telemetry / tracing spans | `telemetry` (not-applicable) | out-of-domain | Mastra tracing is framework-owned observability, not a model interface; the adapter emits no Mastra spans. A future decision could add span emission. |
@@ -131,7 +131,7 @@ are not blurred into the supported set.
 | RAG / vector recall | `ragEmbeddings` | supported | `createNimiMastraEmbeddingModel` exposes Runtime `TEXT_EMBED` as AI SDK `EmbeddingModelV3`; vector store persistence and canonical Memory/Knowledge state are still not owned by Mastra. |
 | Voice STT/TTS | `voice` (partial) | partial | `createNimiMastraVoice` supports `speak()`/`listen()`/`getSpeakers()` through Runtime speech and voice catalog surfaces. Runtime Scenario idempotency keys are caller-supplied and fail closed; the adapter never fabricates them. Realtime `connect/send/answer` remains fail-closed until Runtime realtime-session ownership is bridged. |
 | legacy `generateLegacy` / `streamLegacy` | `legacyV1Api` (not-applicable) | out-of-domain | Require `LanguageModelV1`; the adapter targets Mastra's modern V2/V3 model interface backing `generate()`/`stream()`. |
-| model-router strings (`'openai/gpt-4'`) | `modelRouterString` (not-applicable) | out-of-domain | Mastra provider-registry routing hits external providers; Nimi routing is Runtime-owned (S-AIP-001). |
+| provider-registry implementation strings | `modelRouterString` (not-applicable) | out-of-domain | Nimi framework slots carry fixed capability ids; Runtime owns implementation selection (S-AIP-001). |
 
 ## Next Iterations
 

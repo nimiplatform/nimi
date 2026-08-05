@@ -9,8 +9,7 @@ const TEXT_GENERATE_PERMISSION_REASON = 'Nimi Lab needs foreground text generati
 
 export type TesterTrace = {
   traceId?: string;
-  modelResolved?: string;
-  routeDecision?: string;
+  simulated?: boolean;
 };
 
 export type TesterTypedOutput =
@@ -18,7 +17,7 @@ export type TesterTypedOutput =
   | { kind: 'embedding'; vectorCount: number; dimensions: number; sample: number[]; totalTokens?: number }
   | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; firstArtifact?: { artifactId?: string; mimeType?: string; url?: string; displayName?: string } }
   | { kind: 'transcript'; text: string; jobId: string; jobState: string; artifactCount: number }
-  | { kind: 'voice-catalog'; modelResolved: string; voiceCount: number; sample: Array<{ voiceId: string; name: string; lang: string }> };
+  | { kind: 'voice-catalog'; voiceCount: number; sample: Array<{ voiceId: string; name: string; lang: string }> };
 
 export type TesterTypedSuccess = {
   ok: true;
@@ -34,13 +33,11 @@ export type TesterRuntimeInspection =
       status: 'simulated';
       mode: 'simulated';
       detail: string;
-      healthJson?: string;
     }
   | {
       status: 'connected' | 'unavailable';
       mode: string;
       detail: string;
-      healthJson?: string;
     };
 
 export type TesterCapabilityRunInput = {
@@ -57,14 +54,6 @@ export type TesterCapabilityRunInput = {
 
 export type TesterCapabilityRunResult = TesterTypedSuccess | TesterUnavailable;
 
-function compactJson(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2).slice(0, 1600);
-  } catch {
-    return String(value);
-  }
-}
-
 export async function inspectRuntimeConnection(): Promise<TesterRuntimeInspection> {
   const projection = await getRuntimePlatformProjection();
   if (projection.status !== 'ready') {
@@ -78,11 +67,6 @@ export async function inspectRuntimeConnection(): Promise<TesterRuntimeInspectio
     status: 'connected',
     mode: projection.mode,
     detail: 'The protected local-app identity session is bound and Runtime is connected. The App AIConfig selects Local or an exact Cloud implementation; machine selection and execution availability remain Runtime-owned. Current text execution remains typed fail-closed until the canonical Job path is admitted.',
-    healthJson: compactJson({
-      sessionState: projection.localAppSession.state,
-      sessionBound: projection.localAppSession.sessionBound,
-      reasonCode: projection.localAppSession.reasonCode,
-    }),
   };
 }
 
@@ -149,7 +133,7 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
   return capabilityUnavailable(
     capability,
     'sdk-method-unavailable',
-    'The protected local-app carrier exposes no admitted generic AI streaming, embedding, media-job, voice-catalog, or model-routing method for this capability. It remains unavailable by contract.',
+    'The protected local-app carrier exposes no admitted generic AI streaming, embedding, media-job, voice-catalog, or execution method for this capability. It remains unavailable by contract.',
   );
 }
 

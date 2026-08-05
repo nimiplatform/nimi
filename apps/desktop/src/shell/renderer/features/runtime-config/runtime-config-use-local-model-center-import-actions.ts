@@ -17,7 +17,6 @@ import { capabilitiesForAssetKind } from './runtime-config-use-local-model-cente
 import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type UseLocalModelCenterImportActionsInput = {
-  isProfileTargetMode: boolean;
   onPrepareImportedAssetEnvironment?: (asset: NimiRuntimeLocalAssetRecord) => Promise<void>;
   onRefreshUnregisteredAssets: () => Promise<void>;
   onRefreshAssetSections: () => Promise<void>;
@@ -88,7 +87,6 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     onCancelDownload,
     onDismissSession,
   } = useLocalModelCenterDownloads({
-    isProfileTargetMode: input.isProfileTargetMode,
     onDownloadComplete: input.props.onDownloadComplete,
     onProgressSettled: handleSettledDownload,
   });

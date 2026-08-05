@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  requireNimiRuntimeVoiceReferenceForLocalTts,
   toNimiRuntimeVoiceReferenceFromInput,
 } from './index';
 import { isNimiError, ReasonCode } from '../../types';
@@ -51,26 +50,6 @@ test('voice reference parser rejects provider handles and unprefixed strings on 
       assert.equal(error.code, 'SDK_GENERATION_PROVIDER_VOICE_REF_FORBIDDEN');
       assert.equal(error.reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
       assert.equal(error.actionHint, 'bind_runtime_voice_asset');
-      return true;
-    },
-  );
-});
-
-test('local TTS requires an explicit admitted voice reference', () => {
-  assert.deepEqual(
-    requireNimiRuntimeVoiceReferenceForLocalTts({
-      routePolicy: 'local',
-      voiceRef: { kind: 'voice_asset_id', voiceAssetId: 'asset-1' },
-    }),
-    { kind: 'voice_asset_id', voiceAssetId: 'asset-1' },
-  );
-  assert.throws(
-    () => requireNimiRuntimeVoiceReferenceForLocalTts({ routePolicy: 'local', voiceRef: undefined }),
-    (error) => {
-      assert.equal(isNimiError(error), true);
-      assert.equal(error.code, 'SDK_GENERATION_LOCAL_TTS_VOICE_REFERENCE_REQUIRED');
-      assert.equal(error.reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
-      assert.equal(error.actionHint, 'select_admitted_voice_reference');
       return true;
     },
   );

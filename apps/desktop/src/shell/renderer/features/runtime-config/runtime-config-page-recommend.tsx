@@ -13,26 +13,20 @@ import { Card } from './runtime-config-primitives';
 import { SearchIcon } from './runtime-config-local-model-center-icons';
 import {
   RECOMMEND_PAGE_CAPABILITIES,
-  RECOMMEND_SORT_OPTIONS,
   applyFilters,
   collectUniqueLicenses,
   collectUniqueProviders,
-  computeTierCounts,
   emptyFilters,
   normalizeRecommendPageCapability,
   recommendationFeedCacheSummary,
-  sortFeedItems,
   type RecommendFilters,
-  type RecommendGrade,
   type RecommendPageCapability,
-  type RecommendSortKey,
 } from './runtime-config-page-recommend-utils';
 import {
   DeviceProfileBar,
   FilterChip,
   ModelRow,
   SelectChip,
-  TierSummaryBar,
 } from './runtime-config-page-recommend-sections';
 import { RecommendDetailPage } from './runtime-config-page-recommend-detail';
 import { RuntimePageShell } from './runtime-config-page-shell';
@@ -56,7 +50,11 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // ---------------------------------------------------------------------------
   const feedQuery = useQuery<NimiRuntimeLocalRecommendationFeed<NimiRuntimeLocalDeviceProfile>, Error>({
     queryKey: ['recommendation-feed', capability],
-    queryFn: () => runtimeConfigLocalModelCenterClient.getRecommendationFeed({ capability, pageSize: 48 }),
+    queryFn: () => {
+      if (!capability) throw new Error('Recommendation feed capability is not admitted.');
+      return runtimeConfigLocalModelCenterClient.getRecommendationFeed({ capability, pageSize: 48 });
+    },
+    enabled: capability !== null,
     staleTime: (query) => query.state.data?.cacheState === 'fresh' ? 24 * 60 * 60 * 1000 : 0,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
@@ -72,11 +70,10 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   const refreshFeed = useCallback(() => { void feedQuery.refetch(); }, [feedQuery]);
 
   // ---------------------------------------------------------------------------
-  // Filter / sort state
+  // Filter state. Filtering preserves Runtime feed order.
   // ---------------------------------------------------------------------------
   const [filters, setFilters] = useState<RecommendFilters>(emptyFilters);
   const deferredQuery = useDeferredValue(filters.query);
-  const [sortKey, setSortKey] = useState<RecommendSortKey>('score');
 
   // ---------------------------------------------------------------------------
   // Detail view state (internal navigation)
@@ -88,9 +85,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // ---------------------------------------------------------------------------
   const allItems = feed?.items || [];
   const effectiveFilters = useMemo(() => ({ ...filters, query: deferredQuery }), [filters, deferredQuery]);
-  const filteredItems = useMemo(() => applyFilters(allItems, effectiveFilters), [allItems, effectiveFilters]);
-  const sortedItems = useMemo(() => sortFeedItems(filteredItems, sortKey), [filteredItems, sortKey]);
-  const tierCounts = useMemo(() => computeTierCounts(allItems), [allItems]);
+  const visibleItems = useMemo(() => applyFilters(allItems, effectiveFilters), [allItems, effectiveFilters]);
   const uniqueProviders = useMemo(() => collectUniqueProviders(allItems), [allItems]);
   const uniqueLicenses = useMemo(() => collectUniqueLicenses(allItems), [allItems]);
   const cacheState = recommendationFeedCacheSummary(feed);
@@ -100,18 +95,6 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // Filter helpers
   // ---------------------------------------------------------------------------
   const setQuery = useCallback((query: string) => setFilters((prev) => ({ ...prev, query })), []);
-
-  const toggleGrade = useCallback((grade: string) => {
-    setFilters((prev) => {
-      const next = new Set(prev.grades);
-      if (next.has(grade as RecommendGrade)) {
-        next.delete(grade as RecommendGrade);
-      } else {
-        next.add(grade as RecommendGrade);
-      }
-      return { ...prev, grades: next };
-    });
-  }, []);
 
   const toggleProvider = useCallback((provider: string) => {
     setFilters((prev) => {
@@ -132,6 +115,30 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   const setActiveCapability = useCallback((next: RecommendPageCapability) => {
     model.updateState((prev) => ({ ...prev, activeCapability: next }));
   }, [model]);
+
+  if (!capability) {
+    return (
+      <RuntimePageShell className="space-y-4">
+        <Card className="rounded-xl border border-[var(--nimi-status-warning)]/30 bg-white/95 p-6 text-sm text-[var(--nimi-text-secondary)]">
+          {t('runtimeConfig.recommend.unsupportedCapability', {
+            defaultValue: 'This capability has no recommendation feed. Choose Chat, Image, or Video.',
+          })}
+        </Card>
+        <SelectChip
+          label={t('runtimeConfig.recommend.capabilityLabel', { defaultValue: 'Task' })}
+          value=""
+          onChange={(value) => {
+            const next = normalizeRecommendPageCapability(value);
+            if (next) setActiveCapability(next);
+          }}
+          options={RECOMMEND_PAGE_CAPABILITIES.map((value) => ({
+            value,
+            label: value.charAt(0).toUpperCase() + value.slice(1),
+          }))}
+        />
+      </RuntimePageShell>
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // Detail view: if an item is selected, render the detail page
@@ -171,17 +178,6 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
         </div>
       )}
 
-      {/* Tier Summary Bar */}
-      {allItems.length > 0 ? (
-        <TierSummaryBar counts={tierCounts} activeGrades={filters.grades} onToggleGrade={toggleGrade} />
-      ) : loading ? (
-        <div className="flex items-center gap-2">
-          {['S', 'A', 'B', 'C', 'D'].map((label) => (
-            <div key={label} className="h-9 w-16 animate-pulse rounded-lg bg-[var(--nimi-surface-card)]" />
-          ))}
-        </div>
-      ) : null}
-
       {/* Filter Bar — always visible so the page feels instant */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
@@ -201,7 +197,10 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
         <SelectChip
           label={t('runtimeConfig.recommend.capabilityLabel', { defaultValue: 'Task' })}
           value={capability}
-          onChange={(value) => setActiveCapability(normalizeRecommendPageCapability(value))}
+          onChange={(value) => {
+            const next = normalizeRecommendPageCapability(value);
+            if (next) setActiveCapability(next);
+          }}
           contentClassName="w-40 overflow-hidden rounded-xl bg-white p-0"
           options={RECOMMEND_PAGE_CAPABILITIES.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))}
         />
@@ -226,18 +225,10 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           />
         ) : null}
 
-        {/* Sort */}
-        <SelectChip
-          label={t('runtimeConfig.recommend.sortLabel', { defaultValue: 'Sort' })}
-          value={sortKey}
-          onChange={(v) => setSortKey(v as RecommendSortKey)}
-          options={RECOMMEND_SORT_OPTIONS}
-        />
-
         {/* Result count */}
         {!loading ? (
           <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
-            {sortedItems.length}/{allItems.length}
+            {visibleItems.length}/{allItems.length}
           </span>
         ) : null}
       </div>
@@ -260,7 +251,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       ) : null}
 
       {/* Empty state */}
-      {feed && sortedItems.length === 0 && !loading ? (
+      {feed && visibleItems.length === 0 && !loading ? (
         <Card className="rounded-xl border border-dashed border-[var(--nimi-border-subtle)] bg-white/95 p-6 text-sm text-[var(--nimi-text-muted)]">
           {cacheState === 'empty'
             ? t('runtimeConfig.recommend.offlineEmpty', { defaultValue: 'No recommendation snapshot is available yet. Connect the model-index worker, then refresh.' })
@@ -269,20 +260,20 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       ) : null}
 
       {/* Column headers — show during loading too so the page feels populated */}
-      {sortedItems.length > 0 || loading ? (
+      {visibleItems.length > 0 || loading ? (
         <div className="flex items-center gap-3 px-4 text-[10px] font-medium uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
           <span className="min-w-0 flex-1">{t('runtimeConfig.recommend.colModel', { defaultValue: 'Model' })}</span>
           <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colLicense', { defaultValue: 'License' })}</span>
           <span className="hidden w-16 shrink-0 text-right md:block">{t('runtimeConfig.recommend.colSize', { defaultValue: 'Size' })}</span>
           <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colVram', { defaultValue: 'VRAM' })}</span>
-          <span className="w-28 shrink-0 text-right">{t('runtimeConfig.recommend.colGrade', { defaultValue: 'Grade' })}</span>
+          <span className="w-28 shrink-0 text-right">{t('runtimeConfig.recommend.colRecommendation', { defaultValue: 'Recommendation' })}</span>
           <span className="w-4 shrink-0" /> {/* arrow */}
         </div>
       ) : null}
 
       {/* Model rows */}
       <div className="space-y-2">
-        {loading && sortedItems.length === 0 ? (
+        {loading && visibleItems.length === 0 ? (
           Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)]/50 bg-white/95 px-4 py-3">
               <div className="min-w-0 flex-1 space-y-2">
@@ -297,7 +288,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
             </div>
           ))
         ) : null}
-        {sortedItems.map((item) => (
+        {visibleItems.map((item) => (
           <ModelRow
             key={item.itemId}
             item={item}

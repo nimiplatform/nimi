@@ -1,111 +1,64 @@
 # AI 配置文件执行
 
-## 状态：已准入契约；公开调用以 Runtime/Desktop 暴露面为准
+## 状态：Runtime 管理的机器配置
 
-`AIProfile` 执行的运行时合约 (`K-AIEXEC-001..K-AIEXEC-005`) 已在内核级别被准入。从桌面可移植 `AIProfile` 到本地配置描述符的映射作为规范边界提供；探针 + 快照 UI 由暴露它们的 Runtime/Desktop surface 拥有。
-
-## 本页涵盖的内容
-
-`AIProfile` 是 **桌面可移植的 AI 配置包**（见 `D-AIPC-002`）。它并不直接等同于 `LocalProfileDescriptor` (`K-LOCAL-014a`)。本页涵盖了运行时如何执行本地端映射——探针、快照、解析以及 `AIScopeRef` 链接。
+`AIProfile` 是可在 Desktop 间移植的配置包。Runtime 可以把已准入的配置文件投影为机器本地资源和描述符，但 App 不会把执行请求绑定到该配置文件。App 请求只携带调用者身份、场景内容和受支持的操作参数；具体实现由 Runtime 选择。
 
 ## 权责边界
 
 | 职责 | 负责人 |
 | --- | --- |
-| `AIProfile` 可移植模式定义 + 验证 | 桌面内核 (`D-AIPC-002`) |
-| 可移植 → 本地描述符映射 | 范围所有者 / SDK |
-| `LocalProfileDescriptor` 执行 + 安装 | 运行时 (`K-LOCAL-013..015`) |
-| 设备配置文件收集 | 运行时 (`K-DEV-001..009`) |
-| 本地资源解析 + 健康状况 | 运行时 (`K-LOCAL-014a`) |
-| 执行快照证据 | 运行时 (`K-AIEXEC-003`) |
+| 可移植 `AIProfile` 的结构和校验 | Desktop kernel |
+| 配置文件安装及机器本地投影 | Desktop / Runtime 管理面 |
+| 本地资源和设备资源管理 | Runtime |
+| Owner 的能力意图（`AIConfig`） | 对应 App 或 Agent owner |
+| 实现选择和资源调度 | Runtime |
+| 执行诊断与审计证据 | Runtime |
 
-运行时 **不是** 可移植模式验证器。它接受并执行 `LocalProfileDescriptor`；范围所有者 / SDK 的映射将可移植的 `AIProfile` 转换为描述符。
+`LocalProfileDescriptor` 属于机器配置，不是 App 可使用的 model、route、connector、target、fallback policy 或可复用 execution binding。SDK 不会把 App 的能力意图转换成这些请求控制项。
 
-## 探针合约
+## App 调用路径
 
-探针分为三个层级（与 `D-AIPC-012` 匹配）：
+1. 对应 owner 在 `AIConfig` 中保存 Local 或 Cloud 能力意图。
+2. App 携带身份、场景内容和受支持参数调用已准入能力。
+3. Runtime 根据当前机器配置选择已准入的实现。
+4. Runtime 返回强类型结果或失败。Runtime 诊断中包含的实现细节仍然只是输出证据。
 
-| 层级 | 执行位置 | 回答的问题 |
-| --- | --- | --- |
-| 静态模式探针 | 范围所有者 / SDK 本地 | `AIProfile` 可移植模式是否有效？ |
-| 运行时可用性探针 | 运行时通过 `runtime.route.checkHealth` / `runtime.route.describe` | 路由的提供者 / 引擎是否可用？ |
-| 资源可行性探针 | 运行时通过 `CollectDeviceProfile` + `ResolveProfile` + `Peek` | 该设备能否运行此配置文件？ |
+修改 `AIProfile` 可能影响 Runtime 处理后续请求的方式，但不会改写 owner 意图，也不会把实现选择权交给调用者。
 
-静态模式验证不需要运行时 RPC。运行时不参与该循环。运行时可用性探针重用现有的路由健康表面；运行时不引入专用的探针 RPC。资源可行性探针使用现有的调度器和解析器表面；`ResolveProfile` 和 `Peek` 不可互换。
+## 机器诊断
 
-## 执行快照合约
+Runtime 管理面可以报告 daemon 连通性、已安装资源状态、资源压力和配置文件安装失败。内部解析器和调度器探针可以支撑这些诊断，但它们不会成为 App 中按 model 或 route 展示的 readiness 控制。App 也不会通过预检选择执行目标。
 
-对于每个 `ExecuteScenario` / `StreamScenario` / `SubmitScenarioJob`，运行时必须在执行上下文中固定以下证据：
+执行证据是 Runtime 实际行为的不可变审计信息。调用者不得把已解析 model、route decision、connector、endpoint 或 scheduling judgement 作为下一次请求的权威输入。
 
-| 证据 | 来源 |
-| --- | --- |
-| 调用者提供的路由绑定证据 | 提供者 / 模型 / 连接器 / 端点 |
-| 解析的有效能力 | 运行时解析结果 |
-| 设备资源快照 | 调度器占用情况 + 可选的设备配置文件摘要 |
-| 调度预检判断 | 可选；来自 `Peek` (`K-SCHED-002`) 在 `Acquire` 之前 |
+## 范围身份
 
-一旦写入，证据不能被后续的配置更改覆盖。它会写入审计跟踪 (`K-AUDIT-001`)。
+`AIScopeRef` 标识配置或记录所属的 owner 和 surface，不标识执行实现。Scope 可以保留 Runtime 提供的证据，但不能把这些证据转换成 profile binding 或请求 target。
 
-写入快照的 `schedulingJudgement` 必须对应于 **提交特定的** 能力 / 目标。它 **不是** 范围级别的聚合探针结果的替代品。如果调用者只有范围聚合判断而没有提交目标判断，则快照的 `schedulingJudgement` 必须为 `null` —— 运行时不会将范围聚合提升为提交证据。
+身份契约见 [AI 范围身份](/zh/platform/ai-scope-identity)，owner 能力意图见 [AIConfig 表面](/zh/sdk/ai-config-surface)。
 
-## 与桌面 `AISnapshot` 的关系
+## 读者场景：安装本地配置文件
 
-| 表面 | 角色 |
-| --- | --- |
-| 桌面 `AISnapshot.runtimeEvidence` | 使用运行时执行证据 |
-| 桌面 `ConversationExecutionSnapshot` (`D-LLM-019`) | 记录面向应用的执行证据 |
-| `AISnapshot.runtimeEvidence.schedulingJudgement` (`D-AIPC-004`) | 仅提交特定的执行目标判断 |
+1. 机器管理员校验并安装已准入的可移植配置文件。
+2. Runtime 解析所需的本地资源并记录安装状态。
+3. App 只保留 Local 能力意图，不接收 model 或 route selector。
+4. App 下一次发起能力请求时，Runtime 判断已安装配置能否提供已准入实现，并执行或封闭失败。
 
-运行时无法感知桌面的 `AISnapshot` 或 `AIConfig` 模式。它提供执行证据数据；这些数据不会将快照所有权转移给运行时。
+## 读者场景：查看执行证据
 
-对于应用消费者，面向应用的 `AISnapshot` 记录 / 读取所有者仍然是范围所有者。SDK 将执行绑定到规范的应用 `scopeRef`（参见 [AI 范围身份](/platform/ai-scope-identity)），并记录快照投影。运行时无法感知消费者本地的快照模型。
+1. App 发起不含实现控制项的能力请求。
+2. Runtime 选择并执行实现。
+3. Runtime 为本次尝试提供强类型诊断或审计证据。
+4. Owner 可以展示或保存证据，但不能用它固定后续请求。
 
-## 读者场景：应用工作区在 AI 配置文件下执行
+## 公共边界
 
-1. **配置文件应用。** 范围所有者将可移植的 `AIProfile` 转换为此设备的 `LocalProfileDescriptor`。
-2. **范围身份。** 应用工作区的 `AIScopeRef{ kind: 'app', ownerId: <app id>, surfaceId: 'workspace' }` 键控快照。
-3. **执行调用。** `SubmitScenarioJob`（或等效操作）通过解析后的描述符进行。
-4. **执行快照。** 运行时在执行上下文中固定四个证据行。
-5. **审计跟踪。** 证据通过 `K-AUDIT-001` 写入。
-6. **应用 `AISnapshot.runtimeEvidence`。** 范围所有者将其读入面向应用的快照模型。
-
-## 读者场景：资源可行性探针
-
-1. **调用者发起探针。** 想知道当前负载下该设备是否可以运行此配置文件。
-2. **设备配置文件。** 运行时调用 `CollectDeviceProfile`。
-3. **计划 + 警告。** 运行时调用 `ResolveProfile` 获取执行计划 + 警告。
-4. **调度预检。** 运行时调用调度器 `Peek` 获取动态并发 / 调度判断。
-5. **聚合判断。** 调用者收到其实际打算提交的目标的可行性；聚合判断不会提升为提交真相。
-
-## 读者场景：范围 vs 提交判断
-
-调用者有一个范围聚合判断（例如，“此配置文件在此设备上当前调度器负载下是广泛可行的”），但没有提交特定的判断。
-
-1. **调用者提交。** 没有进行提交特定的 `Peek` 调用。
-2. **快照写入。** 运行时设置 `executionSnapshot.schedulingJudgement = null`。
-3. **无提升。** 范围聚合不会在快照中默默地提升为提交目标判断。
-4. **审计反映真相。** 审查者看到“此提交未记录提交特定的判断。”
-
-该合约严格是因为范围与提交混淆会隐藏调度预检实际运行的时间。
-
-## AI 配置文件执行不做的事情
-
-- 它不验证 `AIProfile` 可移植模式（桌面负责）。
-- 它不为运行时可用性引入新的探针 RPC（重用现有健康表面）。
-- 它不允许范围聚合判断替代执行快照中的提交判断。
-- 它不拥有桌面或模块快照模式。
-- 它不会在后续配置更改后默默地覆盖执行证据。
-
-## 边界总结
-
-| 关注点 | 负责人 |
-| --- | --- |
-| `AIProfile` 可移植模式 | 桌面内核 (`D-AIPC-002`) |
-| 可移植 → 本地映射 | 桌面 / SDK |
-| `LocalProfileDescriptor` 执行 | 运行时 (`K-LOCAL-013..015`) |
-| 探针层级 | 混合（静态 = 桌面；可用性 = 运行时路由健康；可行性 = 运行时设备 + 解析器 + 调度器） |
-| 执行快照证据 | 运行时 (`K-AIEXEC-003`) |
-| `AIScopeRef` 身份 | 平台 (`P-AISC-*`) |
+- `AIProfile` 和 `LocalProfileDescriptor` 属于机器配置。
+- `AIConfig` 是 owner 范围内的能力意图，不是执行配置文件。
+- App 请求不包含 provider、model、route、connector、endpoint、target、fallback policy、profile descriptor 或 readiness probe。
+- Runtime 独占实现选择、资源调度和执行证据。
+- Runtime 整体连通不代表某个 model 或 route 已就绪。
 
 ## 来源依据
 

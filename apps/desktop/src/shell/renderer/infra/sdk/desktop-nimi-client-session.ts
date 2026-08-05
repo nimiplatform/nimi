@@ -17,7 +17,6 @@ import {
   type NimiRuntimeAgentLifecycleSurface,
   type NimiRuntimeAgentScopeRunner,
   type NimiRuntimeAgentTurnsRuntime,
-  type NimiRuntimeRouteHostAccessClient,
   type RuntimeAccountModule,
 } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
@@ -293,16 +292,6 @@ export function getDesktopAuditAdminClient(): NimiDesktopMachineProductRuntimeCl
 
 export function getDesktopAiExecutionClient(): { readonly ai: NimiDesktopRuntimeAiScenarioJobClient } {
   return { ai: getDesktopRuntimeRealmSession().runtimeClients.aiScenarioJobs };
-}
-
-export function getDesktopRouteHostAccessClient(): NimiRuntimeRouteHostAccessClient {
-  const session = getDesktopRuntimeRealmSession();
-  return {
-    local: session.runtimeClients.machineProduct.local,
-    connectors: {
-      testConnector: (...args) => session.runtimeClients.accountProduct.connectors.testConnector(...args),
-    },
-  };
 }
 
 export function getDesktopExternalAgentClient(): NimiDesktopMachineProductRuntimeClient['externalAgents'] {

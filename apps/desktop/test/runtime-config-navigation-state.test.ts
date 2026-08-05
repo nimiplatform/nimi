@@ -182,7 +182,7 @@ test('normalizeLocalModelV11: embedding models keep blank endpoint when Runtime 
   assert.equal(embedding.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
 });
 
-test('normalizeConnectorV11: preserves model capability evidence for SDK coverage projection', () => {
+test('normalizeConnectorV11: preserves Runtime model capability evidence', () => {
   const connector = normalizeConnectorV11({
     id: 'conn-image',
     label: 'Image Cloud',

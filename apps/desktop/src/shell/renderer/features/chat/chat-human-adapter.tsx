@@ -159,9 +159,9 @@ export function useHumanConversationModeHost(
       sections={[
         {
           key: 'chat',
-          title: t('Chat.settingsChatModel', { defaultValue: 'Chat Model' }),
-          hint: t('Chat.settingsChatModelHint', {
-            defaultValue: 'AI model used for this conversation. Follows Runtime default unless overridden.',
+          title: t('Chat.settingsConversation', { defaultValue: 'Conversation' }),
+          hint: t('Chat.settingsChatDetailsHint', {
+            defaultValue: 'Runtime resolves conversation execution details when work starts.',
           }),
           summary: getRealmHumanChatTitle(selectedChat, unknownTitle),
           content: (

@@ -17,21 +17,20 @@ import {
 } from '.';
 import type { NimiRunEvent } from '../contracts';
 
-const MODEL = Object.freeze({ providerId: 'fixture', modelId: 'fixture-model' });
-const REQUEST: NimiGenerateTextRequest = Object.freeze({ model: MODEL, messages: [] });
+const REQUEST: NimiGenerateTextRequest = Object.freeze({ messages: [] });
 
 test('testing harness creates the existing NimiAiModel facade with per-instance isolation', async () => {
   const callsA: string[] = [];
   const callsB: string[] = [];
   const modelA: NimiAiModel = createNimiTestingAiModel({
-    model: MODEL,
     harness: createHarness(successPort('A', callsA), 'a'.repeat(64)),
   });
   const modelB: NimiAiModel = createNimiTestingAiModel({
-    model: MODEL,
     harness: createHarness(successPort('B', callsB), 'b'.repeat(64)),
   });
 
+  assert.deepEqual(modelA.model, { modelId: 'text.generate' });
+  assert.deepEqual(modelB.model, { modelId: 'text.generate' });
   assert.equal((await modelA.generateText(REQUEST)).text, 'A');
   assert.equal((await modelB.generateText(REQUEST)).text, 'B');
   assert.deepEqual(callsA, ['nimi.ai.generateText']);
@@ -92,7 +91,6 @@ test('provider rejection and rejected stream completion fail closed without raw 
     },
   };
   const model = createNimiTestingAiModel({
-    model: MODEL,
     harness: createHarness(rejectingPort, 'e'.repeat(64)),
   });
 
@@ -110,7 +108,6 @@ test('provider rejection and rejected stream completion fail closed without raw 
 test('pre-aborted calls never enter the host port', async () => {
   const calls: string[] = [];
   const model = createNimiTestingAiModel({
-    model: MODEL,
     harness: createHarness(successPort('unused', calls), 'f'.repeat(64)),
   });
   const controller = new AbortController();
@@ -296,7 +293,6 @@ test('malformed stream terminal and bounded-buffer overflow become fixed SDK hos
     },
   };
   const model = createNimiTestingAiModel({
-    model: MODEL,
     harness: createHarness(streamPort(overflowSource), '5'.repeat(64)),
   });
   const stream = await model.streamText?.(REQUEST);
@@ -330,7 +326,7 @@ function successPort(
     async openStream(methodId) {
       calls.push(methodId);
       return ok(completedStream([
-        { type: 'start', model: MODEL },
+        { type: 'start', model: { modelId: 'text.generate' } },
         { type: 'text-delta', text: `${label}-stream` },
         { type: 'done', finishReason: 'stop' },
       ]));

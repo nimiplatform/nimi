@@ -8,33 +8,13 @@ import type {
   NimiRuntimeLocalRecommendationFeedCacheStateId,
   NimiRuntimeLocalRecommendationFeedFilters,
   NimiRuntimeLocalRecommendationFeedItemLike,
-  NimiRuntimeLocalRecommendationFeedSections,
-  NimiRuntimeLocalRecommendationFeedSortKey,
   NimiRuntimeLocalRecommendationHostSupportClassId,
-  NimiRuntimeLocalRecommendationRunGradeId,
   NimiRuntimeLocalRecommendationTierId,
 } from './runtime-local-recommendation-types';
 import {
-  nimiRuntimeLocalRecommendationTierToRunGrade,
   parseNimiRuntimeLocalRecommendationFeedCacheStateId,
   parseNimiRuntimeLocalRecommendationTierId,
 } from './runtime-local-recommendation';
-
-const NIMI_RUNTIME_LOCAL_RECOMMENDATION_TIER_RANK: Record<NimiRuntimeLocalRecommendationTierId, number> = {
-  recommended: 0,
-  runnable: 1,
-  tight: 2,
-  not_recommended: 3,
-};
-
-export const NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_SORT_KEYS = Object.freeze([
-  'score',
-  'size',
-  'downloads',
-  'likes',
-  'updated',
-  'name',
-] as const) as readonly NimiRuntimeLocalRecommendationFeedSortKey[];
 
 const NIMI_RUNTIME_LOCAL_RECOMMENDATION_PARAMS_RE = /\b(\d+(?:\.\d+)?)\s*[Bb]\b/;
 const NIMI_RUNTIME_LOCAL_RECOMMENDATION_QUANT_LEVEL_RE =
@@ -234,30 +214,6 @@ export function nimiRuntimeLocalRecommendationFeedMatchesQuery(
   return fields.some((value) => String(value || '').toLowerCase().includes(normalized));
 }
 
-export function formatNimiRuntimeLocalRecommendationRunGradeLabel(
-  grade: NimiRuntimeLocalRecommendationRunGradeId,
-): string {
-  if (grade === 'runs_great') return 'Runs Great';
-  if (grade === 'runs_well') return 'Runs Well';
-  if (grade === 'tight_fit') return 'Tight Fit';
-  return 'Not Recommended';
-}
-
-export function countNimiRuntimeLocalRecommendationRunGrades(
-  items: readonly NimiRuntimeLocalRecommendationFeedItemLike[],
-): Record<NimiRuntimeLocalRecommendationRunGradeId, number> {
-  const counts: Record<NimiRuntimeLocalRecommendationRunGradeId, number> = {
-    runs_great: 0,
-    runs_well: 0,
-    tight_fit: 0,
-    not_recommended: 0,
-  };
-  for (const item of items) {
-    counts[nimiRuntimeLocalRecommendationTierToRunGrade(item.recommendation?.tier)] += 1;
-  }
-  return counts;
-}
-
 export function parseNimiRuntimeLocalRecommendationParamsFromTitle(title: unknown): string {
   const match = NIMI_RUNTIME_LOCAL_RECOMMENDATION_PARAMS_RE.exec(String(title ?? ''));
   return match ? `${match[1]}B` : '';
@@ -299,46 +255,12 @@ export function filterNimiRuntimeLocalRecommendationFeedItems<T extends NimiRunt
   return items.filter((item) => nimiRuntimeLocalRecommendationFeedMatchesQuery(item, query));
 }
 
-export function sortNimiRuntimeLocalRecommendationFeedItems<T extends NimiRuntimeLocalRecommendationFeedItemLike>(
-  items: readonly T[],
-  sortKey: NimiRuntimeLocalRecommendationFeedSortKey,
-): T[] {
-  return [...items].sort((a, b) => {
-    if (sortKey === 'score') {
-      const aTier = parseNimiRuntimeLocalRecommendationTierId(a.recommendation?.tier);
-      const bTier = parseNimiRuntimeLocalRecommendationTierId(b.recommendation?.tier);
-      const at = aTier ? NIMI_RUNTIME_LOCAL_RECOMMENDATION_TIER_RANK[aTier] : 4;
-      const bt = bTier ? NIMI_RUNTIME_LOCAL_RECOMMENDATION_TIER_RANK[bTier] : 4;
-      if (at !== bt) return at - bt;
-      return (b.downloads || 0) - (a.downloads || 0);
-    }
-    if (sortKey === 'size') {
-      return selectNimiRuntimeLocalRecommendationPrimaryEntrySize(a)
-        - selectNimiRuntimeLocalRecommendationPrimaryEntrySize(b);
-    }
-    if (sortKey === 'downloads') {
-      return (b.downloads || 0) - (a.downloads || 0);
-    }
-    if (sortKey === 'likes') {
-      return (b.likes || 0) - (a.likes || 0);
-    }
-    if (sortKey === 'updated') {
-      return String(b.lastModified || '').localeCompare(String(a.lastModified || ''));
-    }
-    return String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' });
-  });
-}
-
 export function applyNimiRuntimeLocalRecommendationFeedFilters<T extends NimiRuntimeLocalRecommendationFeedItemLike>(
   items: readonly T[],
   filters: NimiRuntimeLocalRecommendationFeedFilters,
 ): T[] {
   return items.filter((item) => {
     if (!nimiRuntimeLocalRecommendationFeedMatchesQuery(item, filters.query)) return false;
-    if (filters.grades?.size) {
-      const grade = nimiRuntimeLocalRecommendationTierToRunGrade(item.recommendation?.tier);
-      if (!filters.grades.has(grade)) return false;
-    }
     if (filters.providers?.size) {
       const provider = formatNimiRuntimeLocalRecommendationRepoOwner(item.repo);
       if (!filters.providers.has(provider)) return false;
@@ -401,37 +323,6 @@ export function formatNimiRuntimeLocalRecommendationQuantQualityLabel(bits: numb
 
 export function buildNimiRuntimeLocalRecommendationHuggingFaceUrl(repo: unknown): string {
   return `https://huggingface.co/${String(repo || '').trim()}`;
-}
-
-export function splitNimiRuntimeLocalRecommendationFeedItems<T extends NimiRuntimeLocalRecommendationFeedItemLike>(
-  items: readonly T[],
-): NimiRuntimeLocalRecommendationFeedSections<T> {
-  const topMatches: T[] = [];
-  const worthTrying: T[] = [];
-  const alreadyInstalled: T[] = [];
-  const searchMore: T[] = [];
-  for (const item of items) {
-    if (item.installedState?.installed) {
-      alreadyInstalled.push(item);
-      continue;
-    }
-    const tier = parseNimiRuntimeLocalRecommendationTierId(item.recommendation?.tier);
-    if (tier === 'recommended' || tier === 'runnable') {
-      topMatches.push(item);
-      continue;
-    }
-    if (tier === 'tight') {
-      worthTrying.push(item);
-      continue;
-    }
-    searchMore.push(item);
-  }
-  return {
-    topMatches,
-    worthTrying,
-    alreadyInstalled,
-    searchMore,
-  };
 }
 
 export function formatNimiRuntimeLocalRecommendationHostSupportLabel(

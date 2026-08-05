@@ -1,6 +1,5 @@
 import {
   ExecutionMode,
-  FallbackPolicy,
   FinishReason,
   ReasoningMode,
   ReasoningTraceMode,
@@ -22,13 +21,16 @@ import type {
   NimiFinishReason,
   NimiJsonObject,
   NimiJsonValue,
-  NimiModelRef,
   NimiRunEvent,
   NimiUsage,
 } from '../contracts';
-import type { NimiAIConfigTargetRef } from './config-types';
-import type { NimiAiModel, NimiGenerateTextContent, NimiGenerateTextRequest, NimiGenerateTextResult } from './index';
-import { toRuntimeDurableTargetRef, toRuntimeScenarioTargetIdentity } from './runtime-target-ref';
+import type {
+  NimiAiModel,
+  NimiGenerateTextContent,
+  NimiGenerateTextRequest,
+  NimiGenerateTextResult,
+  NimiTextGenerationCapabilityRef,
+} from './index';
 import {
   toNimiRawChunk,
   toNimiRawChunks,
@@ -45,7 +47,6 @@ import {
   toRuntimeTools,
 } from './runtime-model-text-projection';
 
-export type NimiRuntimeAIRoutePolicy = 'local' | 'cloud' | 'unspecified';
 export type NimiRuntimeAIReasoningMode = 'off' | 'on';
 export type NimiRuntimeAIReasoningTraceMode = 'hide' | 'separate';
 
@@ -62,31 +63,29 @@ export interface NimiRuntimeAIScenarioClient {
 
 export interface NimiRuntimeAIModelOptions {
   readonly runtime: { readonly ai: NimiRuntimeAIScenarioClient } | NimiRuntimeAIScenarioClient;
-  readonly model: NimiModelRef;
   readonly appId: string;
-  readonly routePolicy?: NimiRuntimeAIRoutePolicy;
-  readonly connectorId?: string;
   readonly subjectUserId?: string;
   readonly timeoutMs?: number;
   readonly metadata?: NimiJsonObject;
   readonly reasoning?: NimiRuntimeAIReasoningOptions;
-  readonly targetRef?: NimiAIConfigTargetRef;
 }
+
+const RUNTIME_TEXT_GENERATION_MODEL: NimiTextGenerationCapabilityRef = Object.freeze({
+  modelId: 'text.generate',
+});
 
 export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): NimiAiModel {
   const scenarioClient = getScenarioClient(options.runtime);
-  const model = normalizeModelRef(options.model);
+  const model = RUNTIME_TEXT_GENERATION_MODEL;
   const appId = requireText(options.appId, 'Runtime AI model requires appId', 'provide_runtime_ai_app_id');
   return {
     model,
     async generateText(request) {
       assertRuntimeSupportedTextRequest(request);
-      assertRequestModelMatches(request.model, model);
       const response = await scenarioClient.executeScenario(
         buildRuntimeTextScenarioRequest({
           request,
           options,
-          model,
           appId,
           executionMode: ExecutionMode.SYNC,
         }),
@@ -96,12 +95,10 @@ export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): Ni
     },
     async *streamText(request) {
       assertRuntimeSupportedTextRequest(request);
-      assertRequestModelMatches(request.model, model);
       const stream = scenarioClient.streamScenario(
         buildRuntimeTextScenarioRequest({
           request,
           options,
-          model,
           appId,
           executionMode: ExecutionMode.STREAM,
         }),
@@ -115,15 +112,9 @@ export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): Ni
 export function buildRuntimeTextScenarioRequest(input: {
   readonly request: NimiGenerateTextRequest;
   readonly options: NimiRuntimeAIModelOptions;
-  readonly model: NimiModelRef;
   readonly appId: string;
   readonly executionMode: ExecutionMode.SYNC | ExecutionMode.STREAM;
 }): ExecuteScenarioRequest {
-  const targetIdentity = toRuntimeScenarioTargetIdentity({
-    targetRef: input.options.targetRef,
-    model: input.model,
-    connectorId: input.options.connectorId,
-  });
   const messages = toRuntimeMessages(input.request.messages);
   const systemPrompt = messages
     .filter((message) => message.role === 'system' || message.role === 'developer')
@@ -135,12 +126,7 @@ export function buildRuntimeTextScenarioRequest(input: {
     head: {
       appId: input.appId,
       subjectUserId: normalizeText(input.options.subjectUserId),
-      modelId: targetIdentity.modelId,
-      routePolicy: toRuntimeRoutePolicy(input.options.routePolicy),
-      fallback: FallbackPolicy.DENY,
       timeoutMs: Number(input.options.timeoutMs ?? 0),
-      connectorId: targetIdentity.connectorId,
-      targetRef: toRuntimeDurableTargetRef(input.options.targetRef),
     },
     scenarioType: ScenarioType.TEXT_GENERATE,
     executionMode: input.executionMode,
@@ -173,7 +159,7 @@ export function buildRuntimeTextScenarioRequest(input: {
 
 export async function* runtimeScenarioStreamToNimiEvents(
   stream: AsyncIterable<StreamScenarioEvent>,
-  model: NimiModelRef,
+  model: NimiTextGenerationCapabilityRef,
 ): AsyncIterable<NimiRunEvent> {
   let started = false;
   let usage: NimiUsage | undefined;
@@ -183,10 +169,7 @@ export async function* runtimeScenarioStreamToNimiEvents(
       yield {
         type: 'start',
         traceId: normalizeText(event.traceId) || undefined,
-        model: {
-          ...model,
-          modelId: normalizeText(event.payload.started.modelResolved) || model.modelId,
-        },
+        model,
       };
       continue;
     }
@@ -327,9 +310,14 @@ function toGenerateTextResult(response: ExecuteScenarioResponse): NimiGenerateTe
 }
 
 function assertRuntimeSupportedTextRequest(request: NimiGenerateTextRequest): void {
+  for (const field of ['model', 'modelId', 'route', 'routePolicy', 'connectorId', 'targetRef', 'fallbackPolicy']) {
+    if (Object.hasOwn(request, field)) {
+      unsupportedRuntimeAI(field, 'Runtime owns implementation selection');
+    }
+  }
   const parameters = request.parameters;
   if (parameters?.user !== undefined) {
-    unsupportedRuntimeAI('parameters.user', 'subject identity must be supplied through Runtime AI model options');
+    unsupportedRuntimeAI('parameters.user', 'subject identity must be supplied through Runtime AI client options');
   }
   for (const message of request.messages) {
     for (const part of message.content) {
@@ -405,12 +393,6 @@ function toRuntimeReasoningConfig(reasoning: NimiRuntimeAIReasoningOptions | und
   };
 }
 
-function toRuntimeRoutePolicy(routePolicy: NimiRuntimeAIRoutePolicy | undefined): RoutePolicy {
-  if (routePolicy === 'local') return RoutePolicy.LOCAL;
-  if (routePolicy === 'cloud') return RoutePolicy.CLOUD;
-  return RoutePolicy.UNSPECIFIED;
-}
-
 function toRuntimeCallOptions(
   request: NimiGenerateTextRequest,
   options: NimiRuntimeAIModelOptions,
@@ -478,37 +460,6 @@ function getScenarioClient(
     });
   }
   return candidate;
-}
-
-function normalizeModelRef(model: NimiModelRef): NimiModelRef {
-  const modelId = requireText(model.modelId, 'Runtime AI model requires model.modelId', 'provide_model_id');
-  return {
-    ...model,
-    modelId,
-    providerId: normalizeText(model.providerId) || undefined,
-  };
-}
-
-function assertRequestModelMatches(requestModel: NimiModelRef, boundModel: NimiModelRef): void {
-  if (normalizeText(requestModel.modelId) !== boundModel.modelId) {
-    throw createNimiError({
-      message: 'Runtime-backed Nimi AI request.model must match the bound model',
-      code: ReasonCode.SDK_AI_INPUT_INVALID,
-      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
-      actionHint: 'call_generate_or_stream_with_model_returned_by_createNimiRuntimeAIModel',
-      source: 'sdk',
-    });
-  }
-  const requestProvider = normalizeText(requestModel.providerId);
-  if (requestProvider && boundModel.providerId && requestProvider !== boundModel.providerId) {
-    throw createNimiError({
-      message: 'Runtime-backed Nimi AI request.model providerId must match the bound model providerId',
-      code: ReasonCode.SDK_AI_INPUT_INVALID,
-      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
-      actionHint: 'call_generate_or_stream_with_model_returned_by_createNimiRuntimeAIModel',
-      source: 'sdk',
-    });
-  }
 }
 
 function mergeJsonObjects(

@@ -26,9 +26,8 @@ function readyEvidence() {
   };
 }
 
-test('direct local-app composer readiness is independent of unadmitted AI Config route evidence', () => {
+test('direct local-app composer gate requires an admitted conversation turn', () => {
   const evidence = readyEvidence();
-  assert.equal(evidence.route.ready, false);
   assert.equal(isZhiyuDirectLocalAppSubmitEnabled({
     evidence,
     draft: '发送到 direct localApp conversation',
@@ -46,7 +45,7 @@ test('direct local-app composer readiness is independent of unadmitted AI Config
   }), false);
 });
 
-test('submit preflight refreshes account permission inventory without an AI Config route loader', async () => {
+test('submit preflight refreshes account permission inventory', async () => {
   const evidence = readyEvidence();
   const calls = [];
   const inventory = {

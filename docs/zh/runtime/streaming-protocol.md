@@ -13,7 +13,7 @@ Runtime 拥有多个服务器流式 RPC（文本生成、语音合成、Scenario
 | **A — `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 终端帧** | 最终事件携带 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
 | **B — 终端事件后 gRPC OK 关闭** | 服务器发出终端事件，然后干净地关闭流 | `SubscribeScenarioJobEvents` |
 | **C — `eof=true` 块后 gRPC OK 关闭** | 服务器发出 `eof=true` 块，然后关闭 | `ExportAuditEvents` |
-| **D — 长期订阅流** | 无终端帧；任何一方都可关闭 | `SubscribeRuntimeHealthEvents`, `SubscribeAIProviderHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
+| **D — 长期订阅流** | 无终端帧；任何一方都可关闭 | `SubscribeRuntimeHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
 
 模式 D 流没有终端信号。当守护进程进入 `STOPPING` (`K-DAEMON-003`) 时，它会使用 gRPC `CANCELLED` 关闭所有活动订阅。客户端通过 `runtime.disconnected` (`S-RUNTIME-028`) 或 gRPC 状态检测关闭，并决定是否重建。
 
@@ -23,8 +23,8 @@ Runtime 拥有多个服务器流式 RPC（文本生成、语音合成、Scenario
 
 | 阶段 | 错误流向 |
 | --- | --- |
-| `K-KEYSRC-004` 评估链的第 1-9 步 | 建立前错误 → gRPC 错误 |
-| 第 10 步（路由执行） | 流已建立；后续业务/上游错误 → 携带 reason code 的 `STREAM_EVENT_FAILED` 终端帧 |
+| Protected caller、authorization 和能力准入 | 建立前错误 → gRPC 错误 |
+| Runtime 实现执行 | 流已建立；后续业务或上游错误 → 携带 reason code 的 `STREAM_EVENT_FAILED` 终端帧 |
 
 这种划分是故意的：建立前的错误是连接失败（调用者从未开始流式传输）；建立后的错误是流内的业务结果（调用者已经在流式传输）。
 
@@ -63,7 +63,7 @@ Runtime 拥有多个服务器流式 RPC（文本生成、语音合成、Scenario
 
 应用程序调用 `StreamScenario` 进行文本生成。
 
-1. **建立前验证。** `K-KEYSRC-004` 链的第 1-9 步：解析、JWT、app_id、密钥源、连接器加载、所有者检查、端点安全等。
+1. **建立前验证。** Runtime 校验 protected caller、App authorization、规范能力请求和自身内部配置。
 2. **建立。** 所有建立前检查通过。流开始（第 10 步）。
 3. **`STREAM_EVENT_DELTA` 事件。** 每个事件携带非空 `payload.delta.text.text`。
 4. **终端事件。** Runtime 发出带 completed payload 的 `STREAM_EVENT_COMPLETED`，或带 failed payload 的 `STREAM_EVENT_FAILED`。
@@ -92,7 +92,7 @@ Runtime 拥有多个服务器流式 RPC（文本生成、语音合成、Scenario
 
 如果守护进程首先进入 `STOPPING`，流可能会在终端事件之前以 gRPC `CANCELLED` 关闭——应用程序在下次守护进程可用时重建订阅，并从作业快照中重新推导终端状态。
 
-## 流式协议不做的事情
+## 协议保证
 
 - 它不允许消费者推断关闭行为；每个 RPC 的模式都在表中明确列出。
 - 它不允许在模式 B/C/D 中使用 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 语义。

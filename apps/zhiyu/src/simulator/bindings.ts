@@ -3,7 +3,10 @@ import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import type { ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from '../shell/app/evidence.js';
-import type { ZhiyuVoiceCaptureEvidence } from '../shell/agent-chat/voice-capture-evidence.js';
+import {
+  voiceCaptureEvidence,
+  type ZhiyuVoiceCaptureEvidence,
+} from '../shell/agent-chat/voice-capture-evidence.js';
 import type { ZhiyuSimulatorJsonValue, ZhiyuSimulatorPrepareContext } from './protocol.js';
 
 type JsonRecord = { readonly [key: string]: ZhiyuSimulatorJsonValue };
@@ -220,16 +223,14 @@ async function invoke(
   return { revision: result.value.revision as number };
 }
 
-function simulatedVoiceUnavailable(readiness: ZhiyuVoiceCaptureEvidence): ZhiyuVoiceCaptureEvidence {
-  return {
-    ...readiness,
-    ready: false,
+function simulatedVoiceUnavailable(): ZhiyuVoiceCaptureEvidence {
+  return voiceCaptureEvidence({
     state: 'failed',
     reasonCode: 'runtime-voice-capture-effect-forbidden',
     actionHint: 'use_text_input_in_simulator',
     source: 'simulator',
     message: 'Microphone capture is intentionally unavailable in the Simulator.',
-  };
+  });
 }
 
 function simulatedAgentCenterSession(
@@ -398,7 +399,7 @@ export function createZhiyuSimulatorBindings(
           };
         },
         createVoiceCapture(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['createVoiceCapture']>[0]) {
-          const unavailable = simulatedVoiceUnavailable(input.readiness);
+          const unavailable = simulatedVoiceUnavailable();
           return Object.freeze({
             async start() {
               input.onStateChange(unavailable);

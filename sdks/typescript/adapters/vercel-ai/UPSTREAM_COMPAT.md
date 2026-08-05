@@ -20,9 +20,9 @@ Vercel repository's internal test files as a second source of truth. When an
 upstream test checks an internal helper, translate the externally observable
 contract into an adapter test or classify it out of domain.
 
-The goal is interface coverage, not Runtime route ownership. Tests should expose
-adapter mapping gaps and Nimi protocol gaps. Runtime/provider route gaps should
-fail closed instead of being hidden by adapter shims.
+The goal is interface coverage, not Runtime implementation selection. Tests
+should expose adapter mapping gaps and Nimi protocol gaps. Runtime/provider
+execution failures must fail closed instead of being hidden by adapter shims.
 
 ## Executable Coverage
 

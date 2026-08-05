@@ -5,7 +5,7 @@ export const AGENT_CENTER_SECTIONS: readonly AgentCenterSectionId[] = [
   'overview',
   'appearance',
   'behavior',
-  'model',
+  'ai-config',
   'cognition',
   'advanced',
 ];

@@ -126,17 +126,17 @@ it('keeps the transcript scroll root inside the content column and reserves bott
           setupState={{
             mode: 'ai',
             status: 'setup-required',
-            issues: [{ code: 'ai-no-chat-route', detail: 'no route ready' }],
+            issues: [{ code: 'ai-capability-intent-required', detail: 'capability intent required' }],
             primaryAction: null,
           }}
-          setupDescription="Configure a route first."
+          setupDescription="Configure AI capability intent first."
         />,
       );
       await flush();
     });
 
     expect(container.textContent).toContain('Setup Required');
-    expect(container.textContent).toContain('Configure a route first.');
+    expect(container.textContent).toContain('Configure AI capability intent first.');
     expect(container.querySelector('[data-canonical-target-field="bubble"]')).toBeNull();
   });
 

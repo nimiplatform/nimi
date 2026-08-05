@@ -73,10 +73,8 @@ export type RuntimeVoiceCatalogInput = {
 };
 
 /**
- * Lists owner-scoped voice asset references only. Preset discovery remains
- * unavailable because the current Runtime preset endpoint requires model and
- * connector execution truth. The legacy protobuf filter fields below stay at
- * their empty default and therefore are not serialized onto the wire.
+ * Lists owner-scoped voice asset references only. Legacy execution filters are
+ * omitted so Runtime receives identity and catalog criteria only.
  */
 export async function runRuntimeVoiceCatalog(
   input: RuntimeVoiceCatalogInput,
@@ -119,14 +117,11 @@ export async function runRuntimeVoiceCatalog(
     const response = await listVoiceAssets.call(input.runtime.ai, {
       appId,
       subjectUserId,
-      modelId: '',
-      targetModelId: '',
-      connectorId: '',
       workflowType: input.workflowType ?? VoiceWorkflowType.UNSPECIFIED,
       status: input.status ?? VoiceAssetStatus.UNSPECIFIED,
       pageSize,
       pageToken: input.pageToken ?? '',
-    }, {
+    } as ListVoiceAssetsRequest, {
       ...(input.callOptions ?? {}),
       signal: input.signal ?? input.callOptions?.signal,
     });

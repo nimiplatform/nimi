@@ -90,7 +90,7 @@ test('Zhiyu desktop_open_select_partner keeps host exception details in diagnost
   assert.doesNotMatch(result.message, /Electron|standard shell|command|nimi\.shell/u);
 });
 
-test('Zhiyu desktop-open mapping covers partner, connector, and model gaps', async () => {
+test('Zhiyu desktop-open mapping covers only partner-selection gaps', async () => {
   const module = await importDesktopOpenActionModule();
 
   assert.deepEqual(module.zhiyuDesktopOpenIntentForProductGap({
@@ -106,21 +106,6 @@ test('Zhiyu desktop-open mapping covers partner, connector, and model gaps', asy
     kind: 'open-explore',
     section: 'personas',
     productIntent: 'select-partner',
-  });
-  assert.deepEqual(module.zhiyuDesktopOpenIntentForProductGap({
-    capabilityReasonCode: 'connector_missing',
-  }), {
-    kind: 'open-runtime-config',
-    page: 'cloud',
-    action: 'add-connector',
-  });
-  assert.deepEqual(module.zhiyuDesktopOpenIntentForProductGap({
-    stage: 'route-required',
-    reasonCode: 'model_missing',
-  }), {
-    kind: 'open-runtime-config',
-    page: 'models',
-    action: 'install-model',
   });
 });
 

@@ -19,8 +19,7 @@ test('next adapter exposes a stable OpenAI-compatible JSON chat completion route
   const route = createNimiNextChatCompletionRoute({
     model: {
       model: {
-        providerId: 'test',
-        modelId: 'test-model',
+        modelId: 'text.generate',
       },
       async generateText(request): Promise<NimiGenerateTextResult> {
         requests.push(request);
@@ -40,7 +39,7 @@ test('next adapter exposes a stable OpenAI-compatible JSON chat completion route
   const response = await route.POST(new Request('https://local.test/api/chat', {
     method: 'POST',
     body: JSON.stringify({
-      model: 'test-model',
+      model: 'text.generate',
       messages: [{ role: 'user', content: 'hello' }],
     }),
   }));

@@ -10,7 +10,7 @@ describe('shell bridge Nimi error normalization', () => {
   test('preserves structured runtime bridge payload fields', () => {
     const error = toShellBridgeNimiError(JSON.stringify({
       reasonCode: NIMI_RUNTIME_REASON_CODES.AI_PROVIDER_TIMEOUT,
-      actionHint: 'retry_or_switch_route',
+      actionHint: 'retry_after_runtime_recovery',
       traceId: 'trace-kit-bridge-001',
       retryable: true,
       message: 'provider timeout',
@@ -18,7 +18,7 @@ describe('shell bridge Nimi error normalization', () => {
     }));
 
     expect(error.reasonCode).toBe(NIMI_RUNTIME_REASON_CODES.AI_PROVIDER_TIMEOUT);
-    expect(error.actionHint).toBe('retry_or_switch_route');
+    expect(error.actionHint).toBe('retry_after_runtime_recovery');
     expect(error.traceId).toBe('trace-kit-bridge-001');
     expect(error.retryable).toBe(true);
     expect(error.message).toBe('provider timeout');
@@ -91,7 +91,16 @@ describe('shell bridge Nimi error normalization', () => {
       ),
     ).toEqual({
       key: 'BridgeErrors.codes.LOCAL_AI_MODEL_HASHES_EMPTY',
-      defaultValue: 'The model has not completed integrity verification and cannot be started.',
+      defaultValue: 'The local asset has not completed integrity verification.',
+    });
+
+    expect(
+      getShellBridgeUserMessageProjection(
+        new Error('RUNTIME_ROUTE_CAPABILITY_MISMATCH: retired route detail'),
+      ),
+    ).toEqual({
+      key: 'BridgeErrors.generic',
+      defaultValue: 'Operation failed. Please try again later.',
     });
   });
 });

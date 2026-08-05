@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import type { AgentCenterSnapshot } from '@nimiplatform/kit/features/agent-center';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from './evidence';
 import {
   appendSubmittedUserMessage,
@@ -22,9 +21,7 @@ import type { ZhiyuChatAttachmentRef } from '../agent-chat/turn-attachments';
 import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
-import { projectZhiyuAgentAIConfigRouteEvidence } from '../agent-chat/agent-ai-config';
 import { projectZhiyuCompanionFromRuntimeProjectionEvents } from '../agent-chat/agent-conversation-state';
-import { projectZhiyuVoiceCaptureReadiness } from '../agent-chat/voice-capture-evidence';
 import type { ZhiyuCanonicalRendererBindings, ZhiyuVoiceCaptureControllerPort } from '../../renderer/contract';
 import { sameZhiyuRuntimeAgentInventory } from '../agent/agent-inventory-projection';
 import { projectZhiyuAuthorizedAgentCenterHandle } from '../agent/agent-center-handle';
@@ -32,9 +29,6 @@ import {
   isZhiyuDirectLocalAppSubmitEnabled,
   refreshZhiyuDirectLocalAppSubmitGate,
 } from './direct-local-app-submit-gate';
-
-const subscribeToNoAgentCenter = (): (() => void) => () => undefined;
-const getNoAgentCenterSnapshot = (): AgentCenterSnapshot | null => null;
 
 export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRendererBindings }) {
   const { bindings } = props;
@@ -50,11 +44,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const agentCenterSession = useMemo(
     () => bindings.app.projection.agentCenterSession(agentCenterHandle),
     [bindings, agentCenterHandle],
-  );
-  const agentCenterSnapshot = useSyncExternalStore<AgentCenterSnapshot | null>(
-    agentCenterSession?.subscribe ?? subscribeToNoAgentCenter,
-    agentCenterSession?.getSnapshot ?? getNoAgentCenterSnapshot,
-    agentCenterSession?.getSnapshot ?? getNoAgentCenterSnapshot,
   );
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
     zhiyuRuntimeChatApplyIdentity(evidence.conversation),
@@ -117,17 +106,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       window.removeEventListener('focus', handleWindowFocus);
     };
   }, [bindings]);
-
-  useEffect(() => {
-    const route = projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot);
-    setEvidence((current) => ({
-      ...current,
-      route,
-      voiceCapture: current.voiceCapture.state === 'recording' || current.voiceCapture.state === 'transcribing'
-        ? current.voiceCapture
-        : projectZhiyuVoiceCaptureReadiness(route),
-    }));
-  }, [agentCenterSnapshot]);
 
   useEffect(() => {
     const agentHandle = renderEvidence.conversation.agentHandle;
@@ -535,7 +513,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
           ...current,
           voiceCapture: {
             ...current.voiceCapture,
-            ready: false,
             state: 'failed',
             reasonCode: 'runtime-voice-capture-recorder-missing',
             actionHint: 'start_voice_capture',
@@ -565,9 +542,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       }
       return;
     }
-    const readiness = projectZhiyuVoiceCaptureReadiness(renderEvidence.route);
     const controller = bindings.app.commands.createVoiceCapture({
-      readiness,
       agentId: renderEvidence.conversation.localAgentRef || '',
       ownerUserId: renderEvidence.conversation.ownerUserId || renderEvidence.auth.accountId || '',
       onStateChange: (voiceCapture) => {

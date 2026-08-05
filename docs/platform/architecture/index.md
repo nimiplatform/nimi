@@ -29,8 +29,8 @@ surface becomes a platform owner.
 ## Architecture rules
 
 - Character identity and World truth stay with Realm.
-- LocalAgent, Conversation, Memory, Knowledge, AI route, and App authorization
-  stay with Runtime.
+- LocalAgent, Conversation, Memory, Knowledge, AI implementation selection, and
+  App authorization stay with Runtime.
 - Apps use public SDK operations and own only their product behavior and data.
 - Desktop is a current host, not an irreplaceable cross-platform authority.
 - Platform security is expressed as required outcomes; OS mechanisms remain

@@ -1,36 +1,21 @@
 import { useTranslation } from 'react-i18next';
-import type { NimiRuntimeRouteCapabilityCoverageProjection } from '@nimiplatform/sdk/runtime';
-import { Surface, StatusBadge as KitStatusBadge, cn } from '@nimiplatform/kit/ui';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
-import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import {
-  KeyIcon,
-  IconButton,
-  PlusIcon,
   StatusDot,
   TOKEN_PANEL_CARD,
   TOKEN_TEXT_MUTED,
   TOKEN_TEXT_PRIMARY,
-  TOKEN_TEXT_SECONDARY,
   TONE_STYLES,
-  type RuntimeTone,
 } from './runtime-config-runtime-page-ui';
 
 type RuntimeOverviewTabProps = {
   model: RuntimeConfigPanelControllerModel;
-  capabilitySummary: NimiRuntimeRouteCapabilityCoverageProjection[];
-  availableCapabilityCount: number;
-  onOpenHealth: () => void;
 };
 
-export function RuntimeOverviewTab({
-  model,
-  capabilitySummary,
-  availableCapabilityCount,
-  onOpenHealth,
-}: RuntimeOverviewTabProps) {
+export function RuntimeOverviewTab({ model }: RuntimeOverviewTabProps) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
@@ -135,135 +120,6 @@ export function RuntimeOverviewTab({
         </Surface>
       </div>
 
-      <section className="mt-8">
-        <div className="mb-4 flex items-center justify-between">
-          <SectionTitle>
-            {t('runtimeConfig.runtime.capabilities', { defaultValue: 'Capabilities' })}
-          </SectionTitle>
-          <span className={cn('text-xs', TOKEN_TEXT_MUTED)}>
-            <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>{availableCapabilityCount}</span>
-            <span>{` / ${capabilitySummary.length} `}</span>
-            {t('runtimeConfig.runtime.active', { defaultValue: 'active' })}
-          </span>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {capabilitySummary.map((item) => {
-            const available = item.localAvailable || item.cloudAvailable;
-            const errored = !available && Boolean(item.errorReason);
-            const tone: RuntimeTone = item.localAvailable
-              ? 'success'
-              : item.cloudAvailable
-                ? 'warning'
-                : errored
-                  ? 'danger'
-                  : 'neutral';
-            const toneStyle = TONE_STYLES[tone];
-
-            if (available) {
-              return (
-                <Surface
-                  key={`cap-runtime-${item.capability}`}
-                  tone="card"
-                  className={cn(
-                    TOKEN_PANEL_CARD,
-                    'flex min-h-[92px] flex-col border p-4 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]',
-                    toneStyle.surface,
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <StatusDot tone={item.localAvailable ? 'success' : 'warning'} pulse={item.localAvailable} />
-                      <span className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{item.capability}</span>
-                    </div>
-                    <KitStatusBadge tone={toneStyle.badge}>
-                      {item.localAvailable
-                        ? t('runtimeConfig.runtime.badgeLocal', { defaultValue: 'local' })
-                        : t('runtimeConfig.runtime.badgeCloud', { defaultValue: 'cloud' })}
-                    </KitStatusBadge>
-                  </div>
-                  {item.localProvider ? (
-                    <p className={cn('mt-3 text-xs', TOKEN_TEXT_SECONDARY)}>
-                      <span className={TOKEN_TEXT_MUTED}>
-                        {t('runtimeConfig.runtime.modelLabel', { defaultValue: 'Model' })}
-                        {': '}
-                      </span>
-                      <span className={cn('font-mono', TOKEN_TEXT_PRIMARY)}>{item.localProvider}</span>
-                    </p>
-                  ) : null}
-                </Surface>
-              );
-            }
-
-            if (errored) {
-              return (
-                <Surface
-                  key={`cap-runtime-${item.capability}`}
-                  tone="card"
-                  className={cn(
-                    TOKEN_PANEL_CARD,
-                    'flex min-h-[92px] flex-col border p-4 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:shadow-[0_14px_30px_rgba(220,38,38,0.12)]',
-                    toneStyle.surface,
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <StatusDot tone="danger" pulse />
-                      <span className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{item.capability}</span>
-                    </div>
-                    <KitStatusBadge tone={toneStyle.badge}>
-                      {t('runtimeConfig.runtime.badgeError', { defaultValue: 'error' })}
-                    </KitStatusBadge>
-                  </div>
-                  <p className={cn('mt-2 text-xs', toneStyle.subtleText)}>
-                    {item.errorReason}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={onOpenHealth}
-                    className={cn('mt-auto self-start pt-3 text-xs font-medium underline underline-offset-4 transition-colors hover:no-underline', toneStyle.subtleText)}
-                  >
-                    {t('runtimeConfig.runtime.viewLogs', { defaultValue: 'View logs' })}
-                  </button>
-                </Surface>
-              );
-            }
-
-            return (
-              <Surface
-                key={`cap-runtime-${item.capability}`}
-                tone="card"
-                className={cn(
-                  TOKEN_PANEL_CARD,
-                  'group flex min-h-[92px] flex-col items-center justify-center border border-dashed p-4 text-center transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-solid hover:border-[color-mix(in_srgb,var(--nimi-status-success)_55%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-status-success)_6%,var(--nimi-surface-card))] hover:shadow-[0_12px_26px_rgba(15,23,42,0.06)]',
-                  toneStyle.surface,
-                )}
-              >
-                <p className={cn('text-sm font-medium transition-colors group-hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_SECONDARY)}>
-                  {item.capability}
-                </p>
-                <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>
-                  {t('runtimeConfig.runtime.capabilityNotConfigured', { defaultValue: 'Not configured' })}
-                </p>
-                <div className="mt-3 flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => model.onChangePage('models')}
-                    className={cn('inline-flex items-center gap-1 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color-mix(in_srgb,var(--nimi-status-success)_55%,transparent)] hover:text-[var(--nimi-status-success)]', TOKEN_TEXT_SECONDARY)}
-                  >
-                    <PlusIcon />
-                    {t('runtimeConfig.runtime.installModel', { defaultValue: 'Install Model' })}
-                  </button>
-                  <IconButton
-                    icon={<KeyIcon />}
-                    title={t('runtimeConfig.runtime.addApiKey', { defaultValue: 'Add API Key' })}
-                    onClick={() => model.onChangePage('cloud')}
-                  />
-                </div>
-              </Surface>
-            );
-          })}
-        </div>
-      </section>
     </>
   );
 }

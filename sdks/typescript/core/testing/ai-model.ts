@@ -3,7 +3,7 @@ import type {
   NimiGenerateTextRequest,
   NimiGenerateTextResult,
 } from '../ai/index.js';
-import type { NimiModelRef, NimiRunEvent } from '../contracts/index.js';
+import type { NimiRunEvent } from '../contracts/index.js';
 import { ReasonCode, createNimiError } from '../../types/index.js';
 import type {
   NimiTestingHarness,
@@ -34,16 +34,19 @@ export const NIMI_TESTING_AI_METHODS = Object.freeze([
 ]);
 
 export interface CreateNimiTestingAiModelInput {
-  readonly model: NimiModelRef;
   readonly harness: NimiTestingHarness<NimiTestingAiMethodMap>;
 }
 
+const TESTING_TEXT_GENERATION_CAPABILITY = Object.freeze({
+  modelId: 'text.generate' as const,
+});
+
 export function createNimiTestingAiModel(input: CreateNimiTestingAiModelInput): NimiAiModel {
-  const model = normalizeModelRef(input.model);
+  const model = TESTING_TEXT_GENERATION_CAPABILITY;
   return Object.freeze({
     model,
     async generateText(request: NimiGenerateTextRequest): Promise<NimiGenerateTextResult> {
-      assertRequestModelMatches(request.model, model);
+      assertNoRequestExecutionSelection(request);
       const result = await input.harness.invoke(
         NIMI_TESTING_AI_GENERATE_TEXT_METHOD,
         request,
@@ -56,7 +59,7 @@ export function createNimiTestingAiModel(input: CreateNimiTestingAiModelInput): 
       return result.value;
     },
     async streamText(request: NimiGenerateTextRequest): Promise<AsyncIterable<NimiRunEvent>> {
-      assertRequestModelMatches(request.model, model);
+      assertNoRequestExecutionSelection(request);
       const result = await input.harness.openStream(
         NIMI_TESTING_AI_STREAM_TEXT_METHOD,
         request,
@@ -141,24 +144,11 @@ async function* iterateHostStream(
   }
 }
 
-function normalizeModelRef(model: NimiModelRef): NimiModelRef {
-  const modelId = normalizeText(model.modelId);
-  if (!modelId) throwAiInputError('Testing AI model requires model.modelId');
-  const providerId = normalizeText(model.providerId);
-  return Object.freeze({
-    ...model,
-    modelId,
-    providerId: providerId || undefined,
-  });
-}
-
-function assertRequestModelMatches(requestModel: NimiModelRef, boundModel: NimiModelRef): void {
-  if (normalizeText(requestModel.modelId) !== boundModel.modelId) {
-    throwAiInputError('Testing AI request.model must match the bound model');
-  }
-  const requestProvider = normalizeText(requestModel.providerId);
-  if (requestProvider && boundModel.providerId && requestProvider !== boundModel.providerId) {
-    throwAiInputError('Testing AI request.model providerId must match the bound model providerId');
+function assertNoRequestExecutionSelection(request: NimiGenerateTextRequest): void {
+  for (const field of ['model', 'modelId', 'route', 'routePolicy', 'connectorId', 'targetRef', 'fallbackPolicy']) {
+    if (Object.hasOwn(request, field)) {
+      throwAiInputError(`Testing AI request cannot provide ${field}`);
+    }
   }
 }
 
@@ -172,6 +162,3 @@ function throwAiInputError(message: string): never {
   });
 }
 
-function normalizeText(value: string | undefined): string {
-  return typeof value === 'string' ? value.trim() : '';
-}

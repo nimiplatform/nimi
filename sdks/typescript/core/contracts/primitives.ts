@@ -5,9 +5,7 @@ export type NimiJsonObject = { readonly [key: string]: NimiJsonValue };
 export type NimiMessageRole = 'system' | 'developer' | 'user' | 'assistant' | 'tool';
 
 export interface NimiModelRef {
-  readonly providerId?: string;
-  readonly modelId: string;
-  readonly displayName?: string;
+  readonly modelId: 'text.generate';
 }
 
 export interface NimiTextPart {

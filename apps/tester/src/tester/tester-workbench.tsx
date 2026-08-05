@@ -38,7 +38,7 @@ type TesterHistorySelectionRequest = {
 
 function hasTraceMetadata(result: TesterCapabilityRunResult): boolean {
   if (!result.ok || !result.trace) return false;
-  return Boolean(result.trace.traceId || result.trace.modelResolved || result.trace.routeDecision);
+  return Boolean(result.trace.traceId || result.trace.simulated);
 }
 
 function getResultTraceId(result: TesterCapabilityRunResult): string | undefined {
@@ -202,7 +202,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         prompt,
         status: historyResult.capabilityId === 'world.generate' && historyResult.ok
           ? 'local-fixture'
-          : historyResult.ok && historyResult.trace?.routeDecision === 'simulated-scenario'
+          : historyResult.ok && historyResult.trace?.simulated
             ? 'simulated'
             : historyResult.ok ? 'ready' : 'unavailable',
         message: historyResult.message,

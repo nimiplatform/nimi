@@ -1,42 +1,54 @@
-# AI 配置文件
+# AIConfig 与机器配置文件
 
-## 状态：已准入契约；Desktop 拥有的 surface
+## 状态：Desktop 拥有的配置界面
 
-桌面 AI 配置文件配置合约 (`.nimi/spec/desktop/ai-consumption.authority.yaml`) 已获得准入。面向用户的 Agent 配置界面属于 Desktop 拥有的 surface。
+Desktop 展示两类彼此独立的配置：
 
-## 该界面是什么
+- Agent Center 展示 owner 范围内的 `AIConfig` 能力意图。
+- Runtime 配置界面管理机器 profile、provider、engine 和本地资源。
 
-桌面 AI 配置文件配置界面是用于为每个 Agent 配置 AI 配置文件的**用户界面流程**——选择模型路由、调整提供商偏好、切换已准入的配置文件、将配置文件应用到 AI 范围。
+两者不能混为一体。应用机器配置不会创建 App 或 Agent 可见的 execution binding。
 
-它不允许用户编辑配置文件的**执行语义**。执行语义属于运行时 AI 配置文件执行合约。
+## Agent Center AIConfig
 
-## 边界
+对于准确的 App 或 Agent owner，AIConfig section 展示各项已准入能力及其 Local 或 Cloud 意图。保存操作通过已授权 session，整体替换该 owner 的完整能力列表。
 
-| 拥有 | 不拥有 |
+| AIConfig 拥有 | AIConfig 不拥有 |
 | --- | --- |
-| 用户界面流程，用于配置文件选择和应用 | `AIProfile` 可移植模式（此合约将其固定） |
-| 每个 Agent/每个 App 的配置文件绑定可见性 | `AIScopeRef` 标识（平台） |
-| 应用触发器和用户界面反馈 | `LocalProfileDescriptor` 执行（运行时） |
-| 配置文件偏好用户体验 | 探针语义（运行时/SDK 分割） |
+| 准确的 owner 身份 | provider 或 model 选择 |
+| 已准入能力 | 机器 route 或 connector |
+| Local 或 Cloud 意图 | engine 或资源 binding |
+| 已授权的整体覆盖操作 | readiness、health 或 fallback policy |
 
-用户进行选择；桌面通过 SDK 应用；运行时执行。
-用户不能编辑运行时如何执行。
+Local 和 Cloud 是能力意图，不标识执行请求的 model、provider、connector、endpoint 或机器 route。
 
-## 读者场景：用户为 App 工作区选择一个配置文件
+## Runtime 机器配置文件
 
-用户希望他们的笔记 App 使用不同的 AI 配置文件。
+Desktop 可以为可移植 `AIProfile` 包和机器本地资源提供独立管理界面。该界面可以校验、导入、安装或删除 Runtime 配置。结果归 Runtime 所有，并可能影响 Runtime 对后续请求的实现选择。
 
-1. **用户打开配置文件配置界面。** 看到已准入的配置文件。
-2. **用户选择配置文件。** 桌面调用 SDK 的 `aiConfig.applyProfile(...)` 方法，并传入模块工作区的 `AIScopeRef`。
-3. **配置文件应用。** 复制写入工作区范围的 `AIConfig`。
-4. **在新配置文件下进行后续执行。** 模块的下一个 AI 调用将通过新的配置文件进行路由。
+机器 profile 不会复制到 owner `AIConfig`，不会附着到 `AIScopeRef`，也不会随 App 请求发送。请求到达时，Runtime 从已准入实现中自行选择。
 
-## 该功能不包括的内容
+## 读者场景：设置 Agent 能力意图
 
-- 它不允许用户编辑配置文件的执行语义。
-- 它不允许用户发明新的范围类型。
-- 它不允许用户在已准入的配置文件应用流程之外实例化 `AIConfig`。
-- 它不允许每个 Agent 的用户界面覆盖 `AIScopeRef` 标识规则。
+1. **打开 Agent Center。** Session 加载准确 Agent owner 的完整 `AIConfig`。
+2. **选择意图。** 用户把一项已准入能力设为 Local 或 Cloud。
+3. **保存。** 已授权的整体覆盖操作替换该 owner 的完整能力列表。
+4. **后续调用。** Agent 只提交身份、场景内容和受支持参数，不提交 profile、model、route 或 connector。
+5. **Runtime 执行。** Runtime 结合当前机器配置解释能力意图，并返回强类型结果或失败。
+
+## 读者场景：安装机器配置文件
+
+1. **打开 Runtime 配置。** 用户查看 Runtime 拥有的 profile 和资源。
+2. **安装或更新。** Runtime 校验并应用机器配置。
+3. **Owner 意图保持不变。** App 或 Agent 配置不会被重新绑定。
+4. **后续请求。** Runtime 可以考虑新的机器状态，同时继续独占实现选择权。
+
+## 公共边界
+
+- Agent Center 编辑 owner 能力意图，不编辑执行 profile。
+- Runtime 配置管理机器资源，不提供 App 请求控制项。
+- Desktop 不提供 owner 级 profile binding、model routing、connector 选择、readiness 或 fallback UI。
+- Runtime 执行证据可以用于诊断展示，但不能成为下一次请求的输入。
 
 ## 来源依据
 

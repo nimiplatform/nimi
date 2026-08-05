@@ -24,7 +24,6 @@ export interface NimiMastraModelFixture {
 }
 
 export interface NimiFixtureOptions {
-  readonly modelId?: string;
   // One result per generateText call, for multi-step Mastra agent loops. The last
   // entry is reused if Mastra issues more model calls than scripted results.
   readonly results?: readonly NimiGenerateTextResult[];
@@ -61,7 +60,7 @@ export function createNimiFixtureModel(options: NimiFixtureOptions = {}): NimiMa
   return {
     calls,
     model: {
-      model: { providerId: 'nimi-test', modelId: options.modelId ?? 'mastra-test-model' },
+      model: { modelId: 'text.generate' },
       async generateText(request) {
         calls.push(request);
         return nextResult();
@@ -86,7 +85,7 @@ export function createNimiFixtureModel(options: NimiFixtureOptions = {}): NimiMa
 /** A NimiAiModel that exposes only generateText (no streamText), to test fail-closed streaming. */
 export function createNonStreamingFixtureModel(text = 'no-stream'): NimiAiModel {
   return {
-    model: { providerId: 'nimi-test', modelId: 'no-stream-model' },
+    model: { modelId: 'text.generate' },
     async generateText() {
       return { text, finishReason: 'stop', usage: { ...DEFAULT_USAGE } };
     },

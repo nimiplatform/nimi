@@ -7,7 +7,6 @@ export type ZhiyuDiagnosticItemKey =
   | 'inventory'
   | 'localAgent'
   | 'conversation'
-  | 'route'
   | 'turn'
   | 'composer';
 
@@ -51,7 +50,6 @@ export function projectZhiyuDiagnosticState(evidence: ZhiyuEvidence): ZhiyuDiagn
     diagnosticItem('inventory', 'Agent 清单', evidence.inventory),
     diagnosticItem('localAgent', 'LocalAgent', evidence.localAgent),
     diagnosticItem('conversation', '会话锚点', evidence.conversation),
-    diagnosticItem('route', '模型路由', evidence.route),
     diagnosticItem('turn', '回合通路', evidence.turn),
     diagnosticItem('composer', '输入状态', {
       ready: composerReady(evidence),
@@ -135,7 +133,6 @@ function composerReady(evidence: ZhiyuEvidence): boolean {
   }
   return (
     evidence.conversation.ready
-    && evidence.route.ready
     && (evidence.composer.submitState === 'ready' || evidence.composer.submitState === 'accepted')
   );
 }

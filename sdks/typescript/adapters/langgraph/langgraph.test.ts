@@ -43,7 +43,7 @@ test('langgraph manifest leaves L2/L4 claims unsupported', () => {
 
 function createModel(): NimiAiModel {
   return {
-    model: { providerId: 'test', modelId: 'langgraph-model' },
+    model: { modelId: 'text.generate' },
     async generateText() {
       return { text: 'next', finishReason: 'stop' };
     },

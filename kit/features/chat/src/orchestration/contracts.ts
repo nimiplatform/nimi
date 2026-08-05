@@ -1,7 +1,6 @@
 import type {
   NimiMessagePart,
   NimiRunEvent,
-  NimiRuntimeAIModelOptions,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { ConversationMessageRole } from '../types.js';
 
@@ -70,10 +69,6 @@ export type ConversationRuntimeTextRequest = {
   turnId: string;
   messages: readonly ConversationRuntimeTextMessage[];
   systemPrompt?: string | null;
-  model?: string;
-  route?: 'local' | 'cloud';
-  connectorId?: string;
-  targetRef?: NonNullable<NimiRuntimeAIModelOptions['targetRef']>;
   subjectUserId?: string;
   temperature?: number;
   topP?: number;

@@ -14,7 +14,7 @@ local AI execution.
 | Conversation anchor | Runtime | One explicit LocalAgent Conversation |
 | Operational Memory | Runtime | Authorized LocalAgent recall and retention |
 | Operational Knowledge | Runtime | Authorized LocalAgent ingestion and retrieval |
-| AI route and readiness | Runtime | Provider/model route, Quota, Budget, and readiness |
+| AI capability execution | Runtime | Capability-intent evaluation, implementation selection, quota, budget, and execution diagnostics |
 | Presentation configuration | Runtime | Durable LocalAgent inputs for authorized projections |
 | Transient presentation state | Runtime | Turn, state, activity, emotion, voice, and timing projection |
 | Renderer state | Avatar or consuming App | Ephemeral rendering, playback, and interaction only |

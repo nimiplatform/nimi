@@ -27,24 +27,6 @@ test('agent runtime turn recovers terminal projection from authoritative runtime
     requestId?: string;
   }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
-    local: {
-      listLocalAssets: async () => ({
-        assets: [{
-          localAssetId: 'local-model-1',
-          assetId: 'llama3',
-          engine: 'llama',
-          endpoint: 'http://127.0.0.1:11434/v1',
-          updatedAt: '2026-04-23T00:00:00.000Z',
-          status: 2,
-        }],
-        nextPageToken: '',
-      }),
-      warmLocalAsset: async () => ({
-        asset: {
-          localAssetId: 'local-model-1',
-        },
-      }),
-    },
     agent: {
       turns: {
         subscribe: async () => ({
@@ -159,24 +141,6 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
   }> = [];
   let snapshotCallCount = 0;
   (client as unknown as { runtime: unknown }).runtime = {
-    local: {
-      listLocalAssets: async () => ({
-        assets: [{
-          localAssetId: 'local-model-1',
-          assetId: 'llama3',
-          engine: 'llama',
-          endpoint: 'http://127.0.0.1:11434/v1',
-          updatedAt: '2026-04-23T00:00:00.000Z',
-          status: 2,
-        }],
-        nextPageToken: '',
-      }),
-      warmLocalAsset: async () => ({
-        asset: {
-          localAssetId: 'local-model-1',
-        },
-      }),
-    },
     agent: {
       turns: {
         subscribe: async () => ({
@@ -303,24 +267,6 @@ test('agent runtime turn consumes runtime-owned projection events from anchor ap
     threadId: string;
   }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
-    local: {
-      listLocalAssets: async () => ({
-        assets: [{
-          localAssetId: 'local-model-1',
-          assetId: 'llama3',
-          engine: 'llama',
-          endpoint: 'http://127.0.0.1:11434/v1',
-          updatedAt: '2026-04-23T00:00:00.000Z',
-          status: 2,
-        }],
-        nextPageToken: '',
-      }),
-      warmLocalAsset: async () => ({
-        asset: {
-          localAssetId: 'local-model-1',
-        },
-      }),
-    },
     agent: {
       turns: {
         subscribe: async (request: {

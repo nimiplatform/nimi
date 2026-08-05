@@ -1,5 +1,5 @@
 /**
- * Explicit runtime configuration plus Vercel AI SDK integration.
+ * Explicit Runtime transport configuration plus Vercel AI SDK integration.
  * Run: npx tsx examples/sdk/advanced/custom-runtime.ts
  */
 
@@ -20,14 +20,13 @@ const client = createNimiClient({
 
 const nimi = createNimiVercelProvider({
   client,
-  routePolicy: 'cloud',
   subjectUserId: 'local-user',
   timeoutMs: 120_000,
 });
 
 const { text } = await generateText({
-  model: nimi.languageModel(process.env.NIMI_VERCEL_AI_MODEL || 'gemini/default'),
-  prompt: 'Show the explicit Runtime + provider path in one sentence.',
+  model: nimi.languageModel('text.generate'),
+  prompt: 'Show the explicit Runtime transport path in one sentence.',
 });
 
-console.log(text);
+process.stdout.write(`${text}\n`);

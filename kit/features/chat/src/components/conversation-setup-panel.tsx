@@ -16,12 +16,6 @@ function defaultActionLabel(action: ConversationSetupAction): string {
   if (action.kind === 'sign-in') {
     return 'Sign in';
   }
-  if (action.targetId === 'runtime-local') {
-    return 'Open Local Setup';
-  }
-  if (action.targetId === 'runtime-cloud') {
-    return 'Open Cloud Setup';
-  }
   return 'Open Setup';
 }
 
@@ -58,7 +52,7 @@ export function ConversationSetupPanel({
       {state.issues.length > 0 ? (
         <div className="space-y-2 rounded-xl bg-slate-50/80 p-4 ring-1 ring-slate-200/40">
           {state.issues.map((issue) => (
-            <div key={`${issue.code}:${issue.routeKind || 'none'}`} className="text-sm text-slate-500">
+            <div key={issue.code} className="text-sm text-slate-500">
               <span className="font-medium text-slate-700">{issue.code}</span>
               {issue.detail ? `: ${issue.detail}` : null}
             </div>

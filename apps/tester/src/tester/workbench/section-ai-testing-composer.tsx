@@ -5,7 +5,7 @@ import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/h
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 
-function ModelSummaryChip({
+function IntentSummaryChip({
   label,
   onOpen,
   configurable,
@@ -17,8 +17,8 @@ function ModelSummaryChip({
   if (!configurable) {
     return (
       <span
-        className="studio-model-chip studio-model-chip--static"
-        aria-label="Runtime-selected model route"
+        className="studio-intent-chip studio-intent-chip--static"
+        aria-label="Runtime-owned capability intent"
       >
         <SlidersHorizontal size={15} aria-hidden="true" />
         <span>{label}</span>
@@ -28,12 +28,12 @@ function ModelSummaryChip({
   return (
     <Button
       type="button"
-      className="studio-model-chip"
+      className="studio-intent-chip"
       tone="ghost"
       size="sm"
       leadingIcon={<SlidersHorizontal size={15} aria-hidden="true" />}
       onClick={onOpen}
-      aria-label="Open AI model configuration"
+      aria-label="Open AI intent configuration"
     >
       {label}
     </Button>
@@ -44,35 +44,35 @@ export function TextStudioComposer({
   capability,
   prompt,
   context,
-  modelLabel,
+  intentLabel,
   running,
   attachments,
   onOpenAttachmentPicker,
   onRemoveAttachment,
   canDispatch,
-  canConfigureTarget,
-  modelConfigurable = true,
+  canConfigureIntent,
+  intentConfigurable = true,
   compact = false,
   onPromptChange,
   onContextChange,
-  onOpenModelConfig,
+  onOpenIntentConfig,
   onSubmit,
 }: {
   capability: TesterCapability;
   prompt: string;
   context: string;
-  modelLabel: string;
+  intentLabel: string;
   running: boolean;
   attachments: readonly BrowserDataUrlAttachment[];
   onOpenAttachmentPicker: () => void;
   onRemoveAttachment: (index: number) => void;
   canDispatch: boolean;
-  canConfigureTarget: boolean;
-  modelConfigurable?: boolean;
+  canConfigureIntent: boolean;
+  intentConfigurable?: boolean;
   compact?: boolean;
   onPromptChange: (value: string) => void;
   onContextChange: (value: string) => void;
-  onOpenModelConfig: () => void;
+  onOpenIntentConfig: () => void;
   onSubmit: () => void;
 }) {
   const profile = getCapabilityStudioProfile(capability.id);
@@ -82,12 +82,12 @@ export function TextStudioComposer({
   const contextAttached = Boolean(context.trim());
   const [contextOpen, setContextOpen] = useState(false);
   const promptReady = !requiresPrompt || Boolean(prompt.trim());
-  const targetConfigAction = !canDispatch && canConfigureTarget;
-  const generateDisabled = running || !promptReady || (!canDispatch && !canConfigureTarget);
+  const intentConfigAction = !canDispatch && canConfigureIntent;
+  const generateDisabled = running || !promptReady || (!canDispatch && !canConfigureIntent);
   const generateLabel = running
     ? profile.primaryRunningLabel
-    : targetConfigAction
-      ? 'Configure model target'
+    : intentConfigAction
+      ? 'Configure capability intent'
       : profile.primaryLabel;
   const composerBar = (
     <div className="studio-composer__bar">
@@ -107,10 +107,10 @@ export function TextStudioComposer({
         ) : null}
       </div>
       <div className="studio-composer__actions">
-        <ModelSummaryChip
-          label={modelLabel}
-          onOpen={onOpenModelConfig}
-          configurable={modelConfigurable}
+        <IntentSummaryChip
+          label={intentLabel}
+          onOpen={onOpenIntentConfig}
+          configurable={intentConfigurable}
         />
         {profile.supportsAttachments ? (
           <div className="tester-attach-strip tester-attach-strip--icon">
@@ -152,12 +152,12 @@ export function TextStudioComposer({
         <Tooltip content={generateLabel} placement="top">
           <IconButton
             type="button"
-            className={targetConfigAction ? 'studio-generate-action studio-generate-action--configure' : 'studio-generate-action'}
+            className={intentConfigAction ? 'studio-generate-action studio-generate-action--configure' : 'studio-generate-action'}
             tone="primary"
             size="sm"
             aria-label={generateLabel}
             disabled={generateDisabled}
-            onClick={targetConfigAction ? onOpenModelConfig : onSubmit}
+            onClick={intentConfigAction ? onOpenIntentConfig : onSubmit}
             icon={running ? <RefreshCw size={15} aria-hidden="true" className="studio-spin" /> : <ArrowUp size={16} aria-hidden="true" />}
           />
         </Tooltip>

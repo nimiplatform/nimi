@@ -43,7 +43,7 @@ test('llamaindex manifest does not claim index mutation or tool calling', () => 
 
 function createModel(): NimiAiModel {
   return {
-    model: { providerId: 'test', modelId: 'llamaindex-model' },
+    model: { modelId: 'text.generate' },
     async generateText() {
       return { text: 'answer', finishReason: 'stop' };
     },

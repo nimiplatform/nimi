@@ -187,8 +187,6 @@ export const RUNTIME_LOCAL_METHODS = [
   'removeLocalAsset',
   'startLocalAsset',
   'stopLocalAsset',
-  'checkLocalAssetHealth',
-  'warmLocalAsset',
   'listVerifiedAssets',
   'searchCatalogModels',
   'listCatalogVariants',

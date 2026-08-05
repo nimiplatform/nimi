@@ -16,10 +16,6 @@ type JsonRecord = { readonly [key: string]: TesterSimulatorJsonValue };
 
 interface TesterSimulatorScenarioData extends JsonRecord {
   readonly generatedText: string;
-  readonly textModel: {
-    readonly providerId: string;
-    readonly modelId: string;
-  };
   readonly runtimePlatform: {
     readonly status: 'unavailable';
     readonly mode: 'local-app';
@@ -66,7 +62,6 @@ function text(value: TesterSimulatorJsonValue | undefined, label: string): strin
 
 function scenarioData(value: TesterSimulatorJsonValue): TesterSimulatorScenarioData {
   const input = record(value, 'SCENARIO_DATA');
-  const model = record(input.textModel, 'TEXT_MODEL');
   const runtimePlatform = record(input.runtimePlatform, 'RUNTIME_PLATFORM');
   const aiConfigSummary = record(input.aiConfigSummary, 'AI_CONFIG_SUMMARY');
   const runtimeSummary = record(aiConfigSummary.runtime, 'AI_CONFIG_RUNTIME');
@@ -78,10 +73,6 @@ function scenarioData(value: TesterSimulatorJsonValue): TesterSimulatorScenarioD
   }
   return {
     generatedText: text(input.generatedText, 'GENERATED_TEXT'),
-    textModel: {
-      providerId: text(model.providerId, 'MODEL_PROVIDER'),
-      modelId: text(model.modelId, 'MODEL_ID'),
-    },
     runtimePlatform: {
       status: 'unavailable',
       mode: 'local-app',

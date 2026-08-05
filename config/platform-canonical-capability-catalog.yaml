@@ -34,9 +34,9 @@ capabilities:
       table: provider-capabilities
       capability: text.generate
     i18nKeys:
-      title: ModelConfig.capability.textGenerate.title
-      subtitle: ModelConfig.capability.textGenerate.subtitle
-      detail: ModelConfig.capability.textGenerate.detail
+      title: AIConfig.capability.textGenerate.title
+      subtitle: AIConfig.capability.textGenerate.subtitle
+      detail: AIConfig.capability.textGenerate.detail
     runtimeEvidenceClass: turn
     governance:
       owner: runtime-route
@@ -52,9 +52,9 @@ capabilities:
       table: provider-capabilities
       capability: text.generate.vision
     i18nKeys:
-      title: ModelConfig.capability.textGenerateVision.title
-      subtitle: ModelConfig.capability.textGenerateVision.subtitle
-      detail: ModelConfig.capability.textGenerateVision.detail
+      title: AIConfig.capability.textGenerateVision.title
+      subtitle: AIConfig.capability.textGenerateVision.subtitle
+      detail: AIConfig.capability.textGenerateVision.detail
     runtimeEvidenceClass: turn
     governance:
       owner: runtime-route
@@ -70,9 +70,9 @@ capabilities:
       table: provider-capabilities
       capability: text.embed
     i18nKeys:
-      title: ModelConfig.capability.textEmbed.title
-      subtitle: ModelConfig.capability.textEmbed.subtitle
-      detail: ModelConfig.capability.textEmbed.detail
+      title: AIConfig.capability.textEmbed.title
+      subtitle: AIConfig.capability.textEmbed.subtitle
+      detail: AIConfig.capability.textEmbed.detail
     runtimeEvidenceClass: job
     governance:
       owner: runtime-memory-route
@@ -91,9 +91,9 @@ capabilities:
       - table: local-adapter-routing
         capability: audio.synthesize
     i18nKeys:
-      title: ModelConfig.capability.audioSynthesize.title
-      subtitle: ModelConfig.capability.audioSynthesize.subtitle
-      detail: ModelConfig.capability.audioSynthesize.detail
+      title: AIConfig.capability.audioSynthesize.title
+      subtitle: AIConfig.capability.audioSynthesize.subtitle
+      detail: AIConfig.capability.audioSynthesize.detail
     runtimeEvidenceClass: job
     governance:
       owner: runtime-audio-route
@@ -112,9 +112,9 @@ capabilities:
       - table: local-adapter-routing
         capability: audio.transcribe
     i18nKeys:
-      title: ModelConfig.capability.audioTranscribe.title
-      subtitle: ModelConfig.capability.audioTranscribe.subtitle
-      detail: ModelConfig.capability.audioTranscribe.detail
+      title: AIConfig.capability.audioTranscribe.title
+      subtitle: AIConfig.capability.audioTranscribe.subtitle
+      detail: AIConfig.capability.audioTranscribe.detail
     runtimeEvidenceClass: job
     governance:
       owner: runtime-audio-route
@@ -130,9 +130,9 @@ capabilities:
       table: provider-capabilities
       capability: voice_workflow.voice_clone
     i18nKeys:
-      title: ModelConfig.capability.voiceWorkflowVoiceClone.title
-      subtitle: ModelConfig.capability.voiceWorkflowVoiceClone.subtitle
-      detail: ModelConfig.capability.voiceWorkflowVoiceClone.detail
+      title: AIConfig.capability.voiceWorkflowVoiceClone.title
+      subtitle: AIConfig.capability.voiceWorkflowVoiceClone.subtitle
+      detail: AIConfig.capability.voiceWorkflowVoiceClone.detail
     runtimeEvidenceClass: workflow
     governance:
       owner: runtime-voice-workflow
@@ -148,9 +148,9 @@ capabilities:
       table: provider-capabilities
       capability: voice_workflow.voice_design
     i18nKeys:
-      title: ModelConfig.capability.voiceWorkflowVoiceDesign.title
-      subtitle: ModelConfig.capability.voiceWorkflowVoiceDesign.subtitle
-      detail: ModelConfig.capability.voiceWorkflowVoiceDesign.detail
+      title: AIConfig.capability.voiceWorkflowVoiceDesign.title
+      subtitle: AIConfig.capability.voiceWorkflowVoiceDesign.subtitle
+      detail: AIConfig.capability.voiceWorkflowVoiceDesign.detail
     runtimeEvidenceClass: workflow
     governance:
       owner: runtime-voice-workflow
@@ -169,9 +169,9 @@ capabilities:
       - table: local-adapter-routing
         capability: image.generate
     i18nKeys:
-      title: ModelConfig.capability.imageGenerate.title
-      subtitle: ModelConfig.capability.imageGenerate.subtitle
-      detail: ModelConfig.capability.imageGenerate.detail
+      title: AIConfig.capability.imageGenerate.title
+      subtitle: AIConfig.capability.imageGenerate.subtitle
+      detail: AIConfig.capability.imageGenerate.detail
     runtimeEvidenceClass: job
     governance:
       owner: runtime-media-route
@@ -187,9 +187,9 @@ capabilities:
       table: local-adapter-routing
       capability: image.edit
     i18nKeys:
-      title: ModelConfig.capability.imageEdit.title
-      subtitle: ModelConfig.capability.imageEdit.subtitle
-      detail: ModelConfig.capability.imageEdit.detail
+      title: AIConfig.capability.imageEdit.title
+      subtitle: AIConfig.capability.imageEdit.subtitle
+      detail: AIConfig.capability.imageEdit.detail
     runtimeEvidenceClass: job
     governance:
       owner: runtime-media-route
@@ -208,9 +208,9 @@ capabilities:
       - table: local-adapter-routing
         capability: video.generate
     i18nKeys:
-      title: ModelConfig.capability.videoGenerate.title
-      subtitle: ModelConfig.capability.videoGenerate.subtitle
-      detail: ModelConfig.capability.videoGenerate.detail
+      title: AIConfig.capability.videoGenerate.title
+      subtitle: AIConfig.capability.videoGenerate.subtitle
+      detail: AIConfig.capability.videoGenerate.detail
     runtimeEvidenceClass: job
     governance:
       owner: runtime-media-route
@@ -226,9 +226,9 @@ capabilities:
       table: provider-capabilities
       capability: world.generate
     i18nKeys:
-      title: ModelConfig.capability.worldGenerate.title
-      subtitle: ModelConfig.capability.worldGenerate.subtitle
-      detail: ModelConfig.capability.worldGenerate.detail
+      title: AIConfig.capability.worldGenerate.title
+      subtitle: AIConfig.capability.worldGenerate.subtitle
+      detail: AIConfig.capability.worldGenerate.detail
     runtimeEvidenceClass: job
     governance:
       owner: runtime-world-route

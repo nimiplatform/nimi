@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-import { normalizeNimiRuntimeLocalProfilesDeclaration } from '@nimiplatform/sdk/runtime';
 import {
-  type CapabilityV11,
   type ProviderStatusV11,
   type RuntimeConfigStateV11,
 } from './runtime-config-state-types';
@@ -17,12 +15,6 @@ export type RuntimeConfigPanelDerivedModel = {
   orderedConnectors: RuntimeConfigStateV11['connectors'];
   filteredLocalModels: string[];
   filteredConnectorModels: string[];
-  runtimeProfileTargets: Array<{
-    targetId: string;
-    targetName: string;
-    consumeCapabilities: CapabilityV11[];
-    profiles: ReturnType<typeof normalizeNimiRuntimeLocalProfilesDeclaration>;
-  }>;
   runtimeStatus: ProviderStatusV11 | null;
 };
 
@@ -56,19 +48,11 @@ export function useRuntimeConfigPanelDerived(input: {
     ? (input.state.local.status === 'healthy' ? 'healthy' : (selectedConnector?.status || input.state.local.status))
     : null;
 
-  const runtimeProfileTargets = useMemo<Array<{
-    targetId: string;
-    targetName: string;
-    consumeCapabilities: CapabilityV11[];
-    profiles: ReturnType<typeof normalizeNimiRuntimeLocalProfilesDeclaration>;
-  }>>(() => [], []);
-
   return {
     selectedConnector,
     orderedConnectors,
     filteredLocalModels,
     filteredConnectorModels,
-    runtimeProfileTargets,
     runtimeStatus,
   };
 }

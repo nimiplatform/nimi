@@ -37,7 +37,6 @@ import type {
   NimiRuntimeLocalRecommendationHostSupportClassId,
   NimiRuntimeLocalRecommendationInstallPayload,
   NimiRuntimeLocalRecommendationInstalledState,
-  NimiRuntimeLocalRecommendationRunGradeId,
   NimiRuntimeLocalRecommendationSourceId,
   NimiRuntimeLocalRecommendationSuggestedAsset,
   NimiRuntimeLocalRecommendationTierId,
@@ -122,19 +121,6 @@ const NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_SOURCE_PAIRS = [
   NimiRuntimeLocalRecommendationFeedSourceId,
 ])[];
 
-const NIMI_RUNTIME_LOCAL_RECOMMENDATION_TIER_TO_RUN_GRADE:
-Record<NimiRuntimeLocalRecommendationTierId, NimiRuntimeLocalRecommendationRunGradeId> = {
-  recommended: 'runs_great',
-  runnable: 'runs_well',
-  tight: 'tight_fit',
-  not_recommended: 'not_recommended',
-};
-export const NIMI_RUNTIME_LOCAL_RECOMMENDATION_RUN_GRADE_IDS = Object.freeze([
-  'runs_great',
-  'runs_well',
-  'tight_fit',
-  'not_recommended',
-] as const) as readonly NimiRuntimeLocalRecommendationRunGradeId[];
 export const NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS = Object.freeze(
   NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_PAIRS.map(([, id]) => id),
 ) as readonly NimiRuntimeLocalRecommendationFeedCapabilityId[];
@@ -219,13 +205,6 @@ export function parseNimiRuntimeLocalRecommendationFeedSourceId(
 
 export function toNimiRuntimeLocalRecommendationFeedCapabilityRequestValue(value: unknown): string {
   return parseNimiRuntimeLocalRecommendationFeedCapabilityId(value) ?? normalizeText(value);
-}
-
-export function normalizeNimiRuntimeLocalRecommendationFeedCapabilityId(
-  value: unknown,
-  fallback: NimiRuntimeLocalRecommendationFeedCapabilityId = 'chat',
-): NimiRuntimeLocalRecommendationFeedCapabilityId {
-  return parseNimiRuntimeLocalRecommendationFeedCapabilityId(value) ?? fallback;
 }
 
 export function projectNimiRuntimeLocalCatalogRecommendation(
@@ -367,13 +346,6 @@ export function toNimiRuntimeLocalRecommendationInstallRequestValue(
     endpoint: normalizeText(payload.endpoint),
     engineConfig: payload.engineConfig,
   };
-}
-
-export function nimiRuntimeLocalRecommendationTierToRunGrade(
-  value: unknown,
-): NimiRuntimeLocalRecommendationRunGradeId {
-  const tier = parseNimiRuntimeLocalRecommendationTierId(value);
-  return tier ? NIMI_RUNTIME_LOCAL_RECOMMENDATION_TIER_TO_RUN_GRADE[tier] : 'not_recommended';
 }
 
 function projectNimiRuntimeLocalRecommendationFeedEntry(

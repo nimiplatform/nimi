@@ -77,7 +77,7 @@ function formatRuntimeDetailsExport({
     lines.push(`Reason: ${result.reason}`);
   }
   if (result?.ok && result.trace?.traceId) {
-    lines.push(`Trace: ${result.trace.traceId}${result.trace.modelResolved ? ` / ${result.trace.modelResolved}` : ''}`);
+    lines.push(`Trace: ${result.trace.traceId}`);
   }
   if (result) {
     lines.push('', result.ok ? 'Output:' : 'Diagnostics:', result.ok ? formatTypedOutput(result) : formatUnavailableOutput(result));
@@ -123,7 +123,7 @@ function RuntimeDetails({
         {result?.ok && result.trace?.traceId ? (
           <div>
             <dt>Trace</dt>
-            <dd><code>{result.trace.traceId}</code>{result.trace.modelResolved ? ` / ${result.trace.modelResolved}` : ''}</dd>
+            <dd><code>{result.trace.traceId}</code></dd>
           </div>
         ) : null}
       </dl>
@@ -142,20 +142,10 @@ type StudioResultStat = {
   value: string;
 };
 
-function cleanStudioModelName(value: string): string {
-  const normalized = value.trim();
-  return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
-}
-
-function studioResultModelLabel(result: TesterCapabilityRunResult | null, capability: TesterCapability, preferredLabel?: string): string {
+function studioResultIntentLabel(result: TesterCapabilityRunResult | null, capability: TesterCapability, preferredLabel?: string): string {
   const preferred = preferredLabel?.trim();
-  if (preferred) return cleanStudioModelName(preferred);
-  if (result?.ok) {
-    const traceModel = result.trace?.modelResolved?.trim();
-    if (traceModel) return cleanStudioModelName(traceModel);
-    if (result.output.kind === 'voice-catalog' && result.output.modelResolved.trim()) return cleanStudioModelName(result.output.modelResolved);
-  }
-  if (result && !result.ok) return 'sdk unavailable';
+  if (preferred) return preferred;
+  if (result && !result.ok) return 'SDK unavailable';
   return capability.label;
 }
 
@@ -203,8 +193,8 @@ export function StudioResult({
   capability,
   admission,
   createdAt,
-  modelLabel,
-  modelSettings,
+  intentLabel,
+  requestSettings,
   streamingText,
   verboseConsole,
   onCopy,
@@ -216,8 +206,8 @@ export function StudioResult({
   capability: TesterCapability;
   admission: CapabilityStatus;
   createdAt?: string;
-  modelLabel?: string;
-  modelSettings?: ReactNode;
+  intentLabel?: string;
+  requestSettings?: ReactNode;
   streamingText?: string | null;
   verboseConsole: boolean;
   onCopy: () => void;
@@ -230,10 +220,10 @@ export function StudioResult({
   const blocked = result && !result.ok ? result : null;
   const plainText = ready ? resultPlainText(ready) : '';
   const canExport = Boolean(ready && plainText);
-  const displayModelLabel = studioResultModelLabel(result, capability, modelLabel);
-  const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
-  const hasModelSettings = Boolean(modelSettings);
-  const simulated = ready?.trace?.routeDecision === 'simulated-scenario';
+  const displayIntentLabel = studioResultIntentLabel(result, capability, intentLabel);
+  const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
+  const hasRequestSettings = Boolean(requestSettings);
+  const simulated = ready?.trace?.simulated === true;
   const runTimeLabel = createdAt
     ? formatTesterRunTimestamp(createdAt, new Date(rendererHost.clock.now()))
     : running ? 'Running' : 'Not recorded';
@@ -242,8 +232,8 @@ export function StudioResult({
     : running ? 'Runtime running' : blocked ? 'Runtime blocked' : ready ? 'Runtime result' : 'Runtime waiting';
   const statusTone = blocked ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
-    if (!hasModelSettings) setModelSettingsOpen(false);
-  }, [hasModelSettings]);
+    if (!hasRequestSettings) setRequestSettingsOpen(false);
+  }, [hasRequestSettings]);
 
   let metric = '-';
   if (ready) {
@@ -339,20 +329,20 @@ export function StudioResult({
             </span>
           ))}
         </div>
-        <div className="studio-result__model-pill">
-          <span>Model</span>
-          <div className={hasModelSettings ? 'studio-model-pill__box' : 'studio-model-pill__box studio-model-pill__box--static'}>
-            <Tooltip content={displayModelLabel} placement="top" className="min-w-0">
-              <strong>{displayModelLabel}</strong>
+        <div className="studio-result__intent-pill">
+          <span>Intent</span>
+          <div className={hasRequestSettings ? 'studio-intent-pill__box' : 'studio-intent-pill__box studio-intent-pill__box--static'}>
+            <Tooltip content={displayIntentLabel} placement="top" className="min-w-0">
+              <strong>{displayIntentLabel}</strong>
             </Tooltip>
-            {hasModelSettings ? (
-              <Tooltip content={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'} placement="top">
+            {hasRequestSettings ? (
+              <Tooltip content={requestSettingsOpen ? 'Hide request settings' : 'Show request settings'} placement="top">
                 <IconButton
                   type="button"
-                  className={modelSettingsOpen ? 'studio-model-pill__trigger studio-model-pill__trigger--open' : 'studio-model-pill__trigger'}
-                  aria-label={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'}
-                  aria-expanded={modelSettingsOpen}
-                  onClick={() => setModelSettingsOpen((value) => !value)}
+                  className={requestSettingsOpen ? 'studio-intent-pill__trigger studio-intent-pill__trigger--open' : 'studio-intent-pill__trigger'}
+                  aria-label={requestSettingsOpen ? 'Hide request settings' : 'Show request settings'}
+                  aria-expanded={requestSettingsOpen}
+                  onClick={() => setRequestSettingsOpen((value) => !value)}
                   icon={<ChevronRight size={15} aria-hidden="true" />}
                 />
               </Tooltip>
@@ -360,7 +350,7 @@ export function StudioResult({
           </div>
         </div>
       </div>
-      {modelSettingsOpen && modelSettings ? modelSettings : null}
+      {requestSettingsOpen && requestSettings ? requestSettings : null}
       <div className="studio-result__body">{body}</div>
       <RuntimeDetails capability={capability} result={result} admission={admission} verboseConsole={verboseConsole} />
     </Surface>

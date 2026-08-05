@@ -12,7 +12,6 @@ import {
 import {
   toNimiRuntimeVoiceReference,
   type NimiRuntimeScenarioJobClient,
-  type NimiRuntimeSpeechVoiceReference,
 } from '@nimiplatform/sdk/runtime';
 import type {
   ListPresetVoicesRequest,
@@ -54,12 +53,16 @@ export type NimiMastraVoiceRuntime =
     readonly artifacts?: NimiRuntimeArtifactClient;
   };
 
-export type NimiMastraVoiceSpeakerKind = NimiRuntimeSpeechVoiceReference['kind'];
+export type NimiMastraVoiceReference =
+  | { readonly kind: 'preset_voice_id'; readonly presetVoiceId: string }
+  | { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string };
+
+export type NimiMastraVoiceSpeakerKind = NimiMastraVoiceReference['kind'];
 
 export interface NimiMastraVoiceSpeakOptions {
   readonly speaker?: string;
   readonly speakerKind?: NimiMastraVoiceSpeakerKind;
-  readonly voiceRef?: NimiRuntimeSpeechVoiceReference;
+  readonly voiceRef?: NimiMastraVoiceReference;
   readonly language?: string;
   readonly outputFormat?: string;
   readonly sampleRateHz?: number;
@@ -90,7 +93,6 @@ export interface NimiMastraVoiceCatalogOptions {
   readonly includePresetVoices?: boolean;
   readonly includeVoiceAssets?: boolean;
   readonly pageSize?: number;
-  readonly targetModelId?: string;
   readonly workflowType?: VoiceWorkflowType;
   readonly assetStatus?: VoiceAssetStatus;
 }
@@ -100,7 +102,7 @@ export interface NimiMastraVoiceOptions {
   readonly head: NimiRuntimeGenerationHeadInput;
   readonly artifacts?: NimiRuntimeArtifactClient;
   readonly callOptions?: RuntimeTypedCallOptions;
-  readonly defaultVoice?: NimiRuntimeSpeechVoiceReference;
+  readonly defaultVoice?: NimiMastraVoiceReference;
   readonly speakerKind?: NimiMastraVoiceSpeakerKind;
   readonly audioFormat?: string;
   readonly sampleRateHz?: number;
@@ -115,8 +117,6 @@ export interface NimiMastraVoiceSpeakerMetadata {
   readonly lang?: string;
   readonly supportedLangs?: readonly string[];
   readonly source: 'preset' | 'asset';
-  readonly provider?: string;
-  readonly modelId?: string;
   readonly previewAudioUri?: string;
   readonly labels?: Readonly<Record<string, string>>;
 }
@@ -138,11 +138,10 @@ export class NimiMastraVoice extends MastraVoice<
         'Runtime speech submit idempotency must be caller supplied; the Mastra adapter does not fabricate idempotency keys',
       );
     }
-    const modelId = normalizeText(options.head.modelId);
+    const defaultSpeaker = voiceRefToSpeaker(options.defaultVoice, 'voice.defaultVoice');
     super({
       name: 'nimi-runtime-voice',
-      ...(voiceRefToSpeaker(options.defaultVoice) ? { speaker: voiceRefToSpeaker(options.defaultVoice) } : {}),
-      ...(modelId ? { speechModel: { name: modelId }, listeningModel: { name: modelId } } : {}),
+      ...(defaultSpeaker ? { speaker: defaultSpeaker } : {}),
     });
     this.options = options;
   }
@@ -216,7 +215,7 @@ export class NimiMastraVoice extends MastraVoice<
     }
     const speakers: Array<{ voiceId: string } & NimiMastraVoiceSpeakerMetadata> = [];
     if (catalog.includePresetVoices !== false && ai.listPresetVoices) {
-      const response = await ai.listPresetVoices(buildListPresetVoicesRequest(this.options, catalog), this.options.callOptions);
+      const response = await ai.listPresetVoices(buildListPresetVoicesRequest(this.options), this.options.callOptions);
       speakers.push(...response.voices.map((voice) => ({
         voiceId: voice.voiceId,
         name: normalizeText(voice.name) || undefined,
@@ -232,8 +231,6 @@ export class NimiMastraVoice extends MastraVoice<
       speakers.push(...response.assets.map((asset) => ({
         voiceId: asset.voiceAssetId,
         source: 'asset' as const,
-        provider: normalizeText(asset.provider) || undefined,
-        modelId: normalizeText(asset.modelId) || undefined,
       })));
     }
     return speakers;
@@ -296,38 +293,37 @@ async function resolveAudioArtifactBytes(
 function resolveVoiceRef(
   adapterOptions: NimiMastraVoiceOptions,
   speakOptions: NimiMastraVoiceSpeakOptions,
-): NimiRuntimeSpeechVoiceReference | undefined {
+): NimiMastraVoiceReference | undefined {
   if (speakOptions.voiceRef) {
-    return speakOptions.voiceRef;
+    return normalizeVoiceReference(speakOptions.voiceRef, 'voice.speak.voiceRef');
   }
   const speaker = normalizeText(speakOptions.speaker);
   if (speaker) {
-    return speakerToVoiceRef(speaker, speakOptions.speakerKind ?? adapterOptions.speakerKind ?? 'preset_voice_id');
+    const kind = normalizeSpeakerKind(
+      speakOptions.speakerKind ?? adapterOptions.speakerKind ?? 'preset_voice_id',
+      'voice.speak.speakerKind',
+    );
+    return speakerToVoiceRef(speaker, kind);
   }
-  return adapterOptions.defaultVoice;
+  return adapterOptions.defaultVoice
+    ? normalizeVoiceReference(adapterOptions.defaultVoice, 'voice.defaultVoice')
+    : undefined;
 }
 
-function speakerToVoiceRef(speaker: string, kind: NimiMastraVoiceSpeakerKind): NimiRuntimeSpeechVoiceReference {
+function speakerToVoiceRef(speaker: string, kind: NimiMastraVoiceSpeakerKind): NimiMastraVoiceReference {
   if (kind === 'voice_asset_id') {
     return { kind, voiceAssetId: speaker };
-  }
-  if (kind === 'provider_voice_ref') {
-    return { kind, providerVoiceRef: speaker };
   }
   return { kind: 'preset_voice_id', presetVoiceId: speaker };
 }
 
 function buildListPresetVoicesRequest(
   options: NimiMastraVoiceOptions,
-  catalog: NimiMastraVoiceCatalogOptions,
 ): ListPresetVoicesRequest {
   return {
     appId: options.head.appId,
     subjectUserId: normalizeText(options.head.subjectUserId),
-    modelId: normalizeText(options.head.modelId),
-    targetModelId: normalizeText(catalog.targetModelId),
-    connectorId: normalizeText(options.head.connectorId),
-  };
+  } as ListPresetVoicesRequest;
 }
 
 function buildListVoiceAssetsRequest(
@@ -337,14 +333,11 @@ function buildListVoiceAssetsRequest(
   return {
     appId: options.head.appId,
     subjectUserId: normalizeText(options.head.subjectUserId),
-    modelId: normalizeText(options.head.modelId),
-    targetModelId: normalizeText(catalog.targetModelId),
     workflowType: catalog.workflowType ?? VoiceWorkflowType.UNSPECIFIED,
     status: catalog.assetStatus ?? VoiceAssetStatus.UNSPECIFIED,
     pageSize: Number(catalog.pageSize ?? 100),
     pageToken: '',
-    connectorId: normalizeText(options.head.connectorId),
-  };
+  } as ListVoiceAssetsRequest;
 }
 
 async function toTranscriptionAudioSource(input: NodeJS.ReadableStream | unknown): Promise<NimiRuntimeSpeechTranscriptionAudioSource> {
@@ -431,17 +424,53 @@ function requireIdempotencyKey(
   return idempotencyKey;
 }
 
-function voiceRefToSpeaker(voiceRef: NimiRuntimeSpeechVoiceReference | undefined): string | undefined {
+function voiceRefToSpeaker(
+  voiceRef: NimiMastraVoiceReference | undefined,
+  feature: string,
+): string | undefined {
   if (!voiceRef) {
     return undefined;
   }
-  if (voiceRef.kind === 'voice_asset_id') {
-    return voiceRef.voiceAssetId;
+  const normalized = normalizeVoiceReference(voiceRef, feature);
+  return normalized.kind === 'voice_asset_id' ? normalized.voiceAssetId : normalized.presetVoiceId;
+}
+
+function normalizeVoiceReference(
+  voiceRef: NimiMastraVoiceReference,
+  feature: string,
+): NimiMastraVoiceReference {
+  if (!voiceRef || typeof voiceRef !== 'object' || Array.isArray(voiceRef)) {
+    throw new NimiMastraVoiceUnsupportedFeatureError(feature, 'voice reference must be an object');
   }
-  if (voiceRef.kind === 'provider_voice_ref') {
-    return voiceRef.providerVoiceRef;
+  const keys = Object.keys(voiceRef).sort();
+  if (voiceRef.kind === 'preset_voice_id'
+    && keys.length === 2
+    && keys[0] === 'kind'
+    && keys[1] === 'presetVoiceId') {
+    const presetVoiceId = normalizeText(voiceRef.presetVoiceId);
+    if (presetVoiceId) return { kind: 'preset_voice_id', presetVoiceId };
   }
-  return voiceRef.presetVoiceId;
+  if (voiceRef.kind === 'voice_asset_id'
+    && keys.length === 2
+    && keys[0] === 'kind'
+    && keys[1] === 'voiceAssetId') {
+    const voiceAssetId = normalizeText(voiceRef.voiceAssetId);
+    if (voiceAssetId) return { kind: 'voice_asset_id', voiceAssetId };
+  }
+  throw new NimiMastraVoiceUnsupportedFeatureError(
+    feature,
+    'ordinary voice references must be exactly preset_voice_id or voice_asset_id',
+  );
+}
+
+function normalizeSpeakerKind(value: unknown, feature: string): NimiMastraVoiceSpeakerKind {
+  if (value === 'preset_voice_id' || value === 'voice_asset_id') {
+    return value;
+  }
+  throw new NimiMastraVoiceUnsupportedFeatureError(
+    feature,
+    'speakerKind must be preset_voice_id or voice_asset_id',
+  );
 }
 
 function normalizeText(value: unknown): string {

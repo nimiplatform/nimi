@@ -720,17 +720,14 @@
   overflow-y: auto;
 }
 
-.zhiyu-home__capability-list,
 .zhiyu-home__identity-grid,
 .zhiyu-home__avatar-grid {
   display: grid;
   gap: 8px;
 }
 
-.zhiyu-home__capability-item,
 .zhiyu-home__identity-item,
-.zhiyu-home__avatar-item,
-.zhiyu-home__owner-card {
+.zhiyu-home__avatar-item {
   min-width: 0;
   padding: 10px;
   border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.08));
@@ -738,40 +735,12 @@
   background: color-mix(in srgb, var(--nimi-surface-card, #fff) 68%, transparent);
 }
 
-.zhiyu-home__capability-item {
-  display: grid;
-  gap: 8px;
-}
-
-.zhiyu-home__capability-item-header {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: start;
-}
-
-.zhiyu-home__capability-item-status {
-  min-width: 0;
-  justify-self: end;
-}
-
-.zhiyu-home__capability-governance,
-.zhiyu-home__capability-summary,
 .zhiyu-home__identity-summary,
 .zhiyu-home__avatar-summary {
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.zhiyu-home__capability-governance span {
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--nimi-surface-panel, #f8f9fb) 80%, transparent);
-  color: var(--nimi-text-secondary, #4b5563);
-  font-size: 11px;
 }
 
 @container nimi-ui-module-zhiyu-surface (max-width: 1320px) {

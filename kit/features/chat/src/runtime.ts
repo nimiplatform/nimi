@@ -14,11 +14,9 @@ import {
   type NimiJsonObject,
   type NimiMessage,
   type NimiMessagePart,
-  type NimiModelRef,
   type NimiRunEvent,
   type NimiRuntimeAIModelOptions,
   type NimiRuntimeAIReasoningOptions,
-  type NimiRuntimeAIRoutePolicy,
   type NimiTextError,
   type NimiTextStreamResponseResult,
   type NimiTextTurnEvent,
@@ -45,22 +43,16 @@ export type AppAiChatMessage = Omit<NimiMessage, 'content'> & {
   readonly content: string | readonly NimiMessagePart[];
 };
 export type AppAiChatPrompt = string | readonly AppAiChatMessage[];
-export type AppAiChatRoutePolicy = Exclude<NimiRuntimeAIRoutePolicy, 'unspecified'>;
-export type AppAiChatTargetRef = NonNullable<NimiRuntimeAIModelOptions['targetRef']>;
 export type AppAiChatGenerateResult = NimiGenerateTextResult;
 export type AppAiChatStreamChunk = NimiRunEvent;
 export type AppAiChatRequest = {
-  readonly model: string;
   readonly input: AppAiChatPrompt;
   readonly system?: string;
   readonly subjectUserId?: string;
   readonly temperature?: number;
   readonly topP?: number;
   readonly maxTokens?: number;
-  readonly route?: AppAiChatRoutePolicy;
   readonly timeoutMs?: number;
-  readonly connectorId?: string;
-  readonly targetRef?: AppAiChatTargetRef;
   readonly metadata?: Record<string, string>;
   readonly reasoning?: NimiRuntimeAIReasoningOptions;
   readonly signal?: AbortSignal;
@@ -130,17 +122,13 @@ export type AppAiChatComposerAdapterOptions<TAttachment = never> = {
   runtime?: AppAiChatRuntime;
   appId?: string;
   mode?: 'generate' | 'stream';
-  model?: string;
   input?: AppAiChatPrompt;
   system?: string;
   subjectUserId?: string;
   temperature?: number;
   topP?: number;
   maxTokens?: number;
-  route?: AppAiChatRequest['route'];
   timeoutMs?: number;
-  connectorId?: string;
-  targetRef?: AppAiChatRequest['targetRef'];
   metadata?: AppAiChatRequest['metadata'];
   reasoning?: NimiRuntimeAIReasoningOptions;
   signal?: AbortSignal;
@@ -163,7 +151,7 @@ export function createAppAiChatComposerAdapter<TAttachment = never>(
       const runtime = requireAppAiRuntime(options.runtime);
       const request = resolveAppAiChatRequest(input, options);
       const model = createAppAiChatModel(runtime, request, options.appId);
-      const textRequest = toNimiGenerateTextRequest(request, model.model);
+      const textRequest = toNimiGenerateTextRequest(request);
 
       if (options.mode === 'stream') {
         const result = await streamNimiTextResponse(
@@ -299,7 +287,7 @@ export function useAppAiChatSession({
       });
       const requestWithSignal = withAppAiChatAbortSignal(request, abortController.signal);
       const model = createAppAiChatModel(requireAppAiRuntime(runtime), requestWithSignal, appId);
-      const textRequest = toNimiGenerateTextRequest(requestWithSignal, model.model);
+      const textRequest = toNimiGenerateTextRequest(requestWithSignal);
 
       const result = await streamNimiTextResponse(
         {
@@ -391,19 +379,14 @@ function resolveAppAiChatRequest<TAttachment>(
     throw new Error('app AI chat adapter requires resolveInput or resolveRequest when attachments are present');
   }
 
-  const model = normalizeRequiredAppAiModel(options.model);
   return {
-    model,
     input: options.resolveInput ? options.resolveInput(input) : (options.input ?? input.text),
     system: options.system,
     subjectUserId: options.subjectUserId,
     temperature: options.temperature,
     topP: options.topP,
     maxTokens: options.maxTokens,
-    route: options.route,
     timeoutMs: options.timeoutMs,
-    connectorId: options.connectorId,
-    targetRef: options.targetRef,
     metadata: options.metadata,
     reasoning: options.reasoning,
     signal: options.mode === 'stream' ? options.signal : undefined,
@@ -418,20 +401,15 @@ function createAppAiChatModel(
   return createNimiRuntimeAIModel({
     runtime,
     appId: normalizeRequiredText(appId, 'app AI chat requires an explicit appId'),
-    model: toNimiModelRef(request),
-    routePolicy: toNimiRuntimeRoutePolicy(request.route),
-    connectorId: normalizeNullableText(request.connectorId) || undefined,
     subjectUserId: normalizeNullableText(request.subjectUserId) || undefined,
     timeoutMs: request.timeoutMs,
     metadata: withDefaultAppAiChatMetadata(request.metadata),
-    targetRef: request.targetRef,
     reasoning: request.reasoning,
   });
 }
 
 function toNimiGenerateTextRequest(
   request: AppAiChatRequest,
-  model: NimiModelRef,
 ): NimiGenerateTextRequest {
   const messages: NimiMessage[] = [];
   const system = normalizeNullableText(request.system);
@@ -444,7 +422,6 @@ function toNimiGenerateTextRequest(
     messages.push(...request.input.map(toNimiMessage));
   }
   return {
-    model,
     messages,
     parameters: {
       temperature: request.temperature,
@@ -466,17 +443,6 @@ function toNimiMessage(message: AppAiChatMessage): NimiMessage {
   };
 }
 
-function toNimiModelRef(request: AppAiChatRequest): NimiModelRef {
-  return {
-    modelId: normalizeRequiredAppAiModel(request.model),
-    providerId: normalizeNullableText(request.connectorId) || undefined,
-  };
-}
-
-function toNimiRuntimeRoutePolicy(route: AppAiChatRequest['route']): NimiRuntimeAIRoutePolicy {
-  return route === 'local' || route === 'cloud' ? route : 'unspecified';
-}
-
 function requireAppAiRuntime(runtime: AppAiChatRuntime | undefined): AppAiChatRuntime {
   if (!runtime) {
     throw new Error('app AI chat requires an explicit Runtime AI surface');
@@ -491,17 +457,6 @@ function withDefaultAppAiChatMetadata(
     ...KIT_APP_AI_CHAT_METADATA,
     ...(metadata || {}),
   };
-}
-
-function normalizeRequiredAppAiModel(model: string | undefined): string {
-  const normalized = model?.trim();
-  if (!normalized) {
-    throw new Error('app AI chat adapter requires an explicit model or resolveRequest');
-  }
-  if (normalized === 'auto') {
-    throw new Error('app AI chat adapter requires a concrete Runtime model, not auto');
-  }
-  return normalized;
 }
 
 function normalizeRequiredText(value: unknown, message: string): string {

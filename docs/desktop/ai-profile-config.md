@@ -1,53 +1,73 @@
-# AI Profile Config
+# AIConfig and Machine Profiles
 
-## Status: Admitted Contract; Desktop-Owned Surface
+## Status: Desktop-Owned Configuration Surfaces
 
-The Desktop AI profile config contract
-(`.nimi/spec/desktop/ai-consumption.authority.yaml`) is admitted. The
-user-facing per-agent configuration UI is a Desktop-owned surface, not an
-app-owned SDK API.
+Desktop exposes two distinct configuration concerns:
 
-## What This Surface Is
+- Agent Center presents owner-scoped `AIConfig` capability intent.
+- Runtime configuration manages machine profiles, providers, engines, and local
+  assets.
 
-The Desktop AI Profile Config surface is the **user-facing flow** for
-configuring an AI profile per agent — picking model routing, adjusting
-provider preferences, switching between admitted profiles, applying
-profiles into AI scopes.
+They must remain separate. Applying machine configuration does not create an
+App- or Agent-visible execution binding.
 
-It does not let the user edit profile **execution semantics**. Execution
-semantics belong to the runtime AI profile execution contract.
+## Agent Center AIConfig
 
-## Boundary
+For an exact App or Agent owner, the AIConfig section presents each admitted
+capability and its Local or Cloud intent. Saving replaces that owner's complete
+capability list through the authorized session.
 
-| Owns | Does NOT own |
+| AIConfig owns | AIConfig does not own |
 | --- | --- |
-| User UI flow for profile selection + apply | `AIProfile` portable schema (this contract pins it) |
-| Per-agent / per-app profile binding visibility | `AIScopeRef` identity (Platform) |
-| Apply triggers + UI feedback | `LocalProfileDescriptor` execution (Runtime) |
-| Profile preference UX | Probe semantics (Runtime/SDK split) |
+| Exact owner identity | Provider or model selection |
+| Admitted capability | Machine route or connector |
+| Local or Cloud intent | Engine or asset binding |
+| Authorized overwrite action | Readiness, health, or fallback policy |
 
-The user picks; Desktop applies through the SDK; Runtime executes.
-The user does not edit how runtime executes.
+Local and Cloud are capability intents. They do not identify which model,
+provider, connector, endpoint, or machine route will execute a request.
 
-## Reader Scenario: User Picks A Profile For An App Workspace
+## Runtime Machine Profiles
 
-User wants an app workspace to use a different AI profile.
+Desktop may provide a separate administration UI for portable `AIProfile`
+packages and machine-local resources. That UI can validate, import, install, or
+remove Runtime configuration. The resulting state belongs to Runtime and may
+influence Runtime's future implementation selection.
 
-1. **User opens profile config UI.** Sees admitted profiles.
-2. **User selects profile.** Desktop calls SDK `aiConfig.applyProfile(...)`
-   with the app workspace's `AIScopeRef`.
-3. **Profile applied.** Copy-on-write into the workspace scope's
+A machine profile is not copied into owner `AIConfig`, attached to an
+`AIScopeRef`, or sent with an App request. Runtime chooses among its admitted
+implementations when the request arrives.
+
+## Reader Scenario: Set Agent Capability Intent
+
+1. **Open Agent Center.** The session loads the exact Agent owner's complete
    `AIConfig`.
-4. **Subsequent execution under the new profile.** The app's next AI call
-   routes via the new profile.
+2. **Choose intent.** The user sets an admitted capability to Local or Cloud.
+3. **Save.** The authorized overwrite action replaces the complete capability
+   list for that owner.
+4. **Invoke later.** The Agent submits identity, scenario content, and supported
+   parameters. It does not submit a profile, model, route, or connector.
+5. **Runtime executes.** Runtime interprets the intent against current machine
+   configuration and returns a typed result or failure.
 
-## What This Does Not Do
+## Reader Scenario: Install a Machine Profile
 
-- It does not let the user edit profile execution semantics.
-- It does not let the user invent new scope kinds.
-- It does not let the user materialize an `AIConfig` outside admitted
-  profile apply flow.
-- It does not let per-agent UI override `AIScopeRef` identity rules.
+1. **Open Runtime configuration.** The user inspects Runtime-owned profiles and
+   assets.
+2. **Install or update.** Runtime validates and applies the machine
+   configuration.
+3. **Keep owner intent unchanged.** No App or Agent configuration is rebound.
+4. **Future request.** Runtime can consider the new machine state while retaining
+   sole implementation-selection authority.
+
+## Public Boundary
+
+- Agent Center edits owner capability intent, not execution profiles.
+- Runtime configuration manages machine resources, not App request controls.
+- Desktop does not expose per-owner profile binding, model routing, connector
+  selection, readiness, or fallback UI.
+- Runtime-issued execution evidence may be displayed for diagnostics, but it
+  cannot become the next request's input.
 
 ## Source Basis
 

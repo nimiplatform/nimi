@@ -11,8 +11,9 @@ Runtime owns:
 - LocalAgent materialization, lifecycle, and owner isolation;
 - Conversation anchors, committed turns, recovery, and interruption;
 - operational Memory and Knowledge;
-- AI route, readiness, Quota, Budget, and provider credential custody;
-- validation of model output before it becomes Conversation, state, voice, or
+- AI capability-intent evaluation, implementation selection, Quota, Budget,
+  and provider credential custody;
+- validation of execution output before it becomes Conversation, state, voice, or
   presentation truth;
 - typed projections for authorized consumers.
 

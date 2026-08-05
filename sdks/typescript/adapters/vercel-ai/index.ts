@@ -5,7 +5,6 @@ import type {
 } from '@nimiplatform/sdk';
 import type {
   NimiAiModel,
-  NimiRuntimeAIRoutePolicy,
 } from '@nimiplatform/sdk/ai';
 import {
   type NimiCapabilityManifest,
@@ -34,9 +33,7 @@ export interface NimiVercelLanguageModelOptions {
 }
 
 export type NimiVercelRuntimeModelOptions =
-  Omit<NimiClientRuntimeModelOptions, 'model' | 'routePolicy'> & {
-    readonly routePolicy: NimiRuntimeAIRoutePolicy;
-    readonly providerId?: string;
+  NimiClientRuntimeModelOptions & {
     readonly subjectMode?: 'external-principal';
   };
 
@@ -89,7 +86,7 @@ export function createNimiVercelLanguageModel(options: NimiVercelLanguageModelOp
     supportedUrls: NIMI_VERCEL_SUPPORTED_URLS,
     async doGenerate(callOptions) {
       const result = await options.model.generateText(
-        toNimiGenerateTextRequest(options.model, callOptions, throwUnsupportedVercelAiFeature),
+        toNimiGenerateTextRequest(callOptions, throwUnsupportedVercelAiFeature),
       );
       const providerMetadata = toVercelTopLevelProviderMetadata(result.raw);
       const request = toVercelRequestMetadata(result.raw);
@@ -109,7 +106,7 @@ export function createNimiVercelLanguageModel(options: NimiVercelLanguageModelOp
         throwUnsupportedVercelAiFeature('languageModel.doStream', 'model does not expose Nimi streaming');
       }
       const streamEvents = await options.model.streamText(
-        toNimiGenerateTextRequest(options.model, callOptions, throwUnsupportedVercelAiFeature),
+        toNimiGenerateTextRequest(callOptions, throwUnsupportedVercelAiFeature),
       );
       return {
         stream: toVercelReadableStream(streamEvents),
@@ -128,7 +125,7 @@ export function createNimiVercelProvider(options: NimiVercelProviderOptions): Ni
   return {
     manifest: NIMI_VERCEL_AI_ADAPTER_MANIFEST,
     languageModel(modelId) {
-      const model = resolveProviderModel(options, modelId);
+      const model = resolveProviderModel(options);
       if (modelId !== model.model.modelId) {
         throwUnsupportedVercelAiFeature('provider.languageModel', `unknown model ${modelId}`);
       }
@@ -137,7 +134,7 @@ export function createNimiVercelProvider(options: NimiVercelProviderOptions): Ni
   };
 }
 
-function resolveProviderModel(options: NimiVercelProviderOptions, modelId: string): NimiAiModel {
+function resolveProviderModel(options: NimiVercelProviderOptions): NimiAiModel {
   if (!isRuntimeBackedProviderOptions(options)) {
     return options.model;
   }
@@ -146,14 +143,7 @@ function resolveProviderModel(options: NimiVercelProviderOptions, modelId: strin
   return client.ai.createRuntimeModel({
     appId: options.appId,
     runtime: options.runtime,
-    model: {
-      modelId,
-      ...(options.providerId ? { providerId: options.providerId } : {}),
-    },
-    routePolicy: options.routePolicy,
-    connectorId: options.connectorId,
     subjectUserId: options.subjectUserId,
-    targetRef: options.targetRef,
     timeoutMs: options.timeoutMs,
     metadata: options.metadata,
     reasoning: options.reasoning,
@@ -169,12 +159,6 @@ function isRuntimeBackedProviderOptions(
 function assertRuntimeBackedProviderOptions(
   options: NimiVercelRuntimeModelOptions & { readonly client: NimiClient },
 ): void {
-  if (!options.routePolicy) {
-    throwUnsupportedVercelAiFeature('provider.routePolicy', 'runtime-backed providers require explicit routePolicy');
-  }
-  if (!options.targetRef || options.targetRef.kind === 'profile-slice') {
-    throwUnsupportedVercelAiFeature('provider.targetRef', 'runtime-backed providers require a live v2 targetRef');
-  }
   if (options.subjectUserId && options.subjectMode !== 'external-principal') {
     throwUnsupportedVercelAiFeature('provider.subjectUserId', 'subjectUserId requires subjectMode external-principal');
   }

@@ -1,5 +1,5 @@
 import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from '@nimiplatform/sdk/ai';
-import type { NimiFinishReason, NimiModelRef, NimiRawChunk, NimiRunEvent, NimiToolCall, NimiUsage } from '@nimiplatform/sdk/contracts';
+import type { NimiFinishReason, NimiRawChunk, NimiRunEvent, NimiToolCall, NimiUsage } from '@nimiplatform/sdk/contracts';
 
 export const DEFAULT_USAGE: NimiUsage = { promptTokens: 2, completionTokens: 3, totalTokens: 5 };
 
@@ -19,7 +19,7 @@ export function createUpstreamCompatModel(step: UpstreamStep | readonly Upstream
   readonly calls: NimiGenerateTextRequest[];
 } {
   const steps = Array.isArray(step) ? [...step] : [step];
-  const modelRef: NimiModelRef = { providerId: 'mock', modelId: 'upstream-compat-model' };
+  const modelRef = { modelId: 'text.generate' as const };
   const calls: NimiGenerateTextRequest[] = [];
   let generateIndex = 0;
   let streamIndex = 0;

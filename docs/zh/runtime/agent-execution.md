@@ -11,8 +11,8 @@ Runtime 持有：
 - LocalAgent 物化、生命周期与 owner 隔离；
 - Conversation anchor、committed turn、恢复与中断；
 - 运行态 Memory 与 Knowledge；
-- AI route、readiness、Quota、Budget 与 Provider Credential custody；
-- model output 在成为 Conversation、状态、voice 或 presentation 真相前的校验；
+- AI 能力意图评估、具体实现选择、Quota、Budget 与 Provider Credential custody；
+- 执行输出在成为 Conversation、状态、voice 或 presentation 真相前的校验；
 - 面向已授权 consumer 的强类型投影。
 
 App 通过 SDK 提交强类型 intent。Runtime 从 active session 推导 account、

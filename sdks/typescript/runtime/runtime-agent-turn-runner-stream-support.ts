@@ -176,13 +176,7 @@ export function nimiRuntimeAgentContextDetails(input: {
   readonly requestMessageId?: string;
   readonly runtimeTurnId?: string;
   readonly runtimeStreamId?: string;
-  readonly route?: string;
-  readonly modelId?: string;
-  readonly connectorId?: string;
 }): JsonObject {
-  const route = normalizeText(input.route);
-  const modelId = normalizeText(input.modelId);
-  const connectorId = normalizeText(input.connectorId);
   return {
     localAgentRef: normalizeText(input.request.localAgentRef),
     conversationAnchorId: input.request.conversationAnchorId,
@@ -191,8 +185,5 @@ export function nimiRuntimeAgentContextDetails(input: {
     ...(input.requestMessageId !== undefined ? { requestMessageId: input.requestMessageId } : {}),
     ...(input.runtimeTurnId !== undefined ? { runtimeTurnId: input.runtimeTurnId } : {}),
     ...(input.runtimeStreamId !== undefined ? { runtimeStreamId: input.runtimeStreamId } : {}),
-    ...(route ? { route } : {}),
-    ...(modelId ? { modelId } : {}),
-    ...(connectorId ? { connectorId } : {}),
   };
 }

@@ -20,7 +20,7 @@ of four close modes:
 | **A — completed / failed stream event** | Final event is `STREAM_EVENT_COMPLETED` or `STREAM_EVENT_FAILED` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
 | **B — terminal event then gRPC OK close** | Server emits terminal event, then closes stream cleanly | `SubscribeScenarioJobEvents` |
 | **C — `eof=true` chunk then gRPC OK close** | Server emits `eof=true` chunk, then closes | `ExportAuditEvents` |
-| **D — long-lived subscription stream** | No terminal frame; either side may close | `SubscribeRuntimeHealthEvents`, `SubscribeAIProviderHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
+| **D — long-lived subscription stream** | No terminal frame; either side may close | `SubscribeRuntimeHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
 
 Mode D streams have no terminal signal. When the daemon enters
 `STOPPING` (`K-DAEMON-003`), it closes all active subscriptions with
@@ -33,8 +33,8 @@ For `StreamScenario` (`TEXT_GENERATE` / `SPEECH_SYNTHESIZE`):
 
 | Stage | Where errors flow |
 | --- | --- |
-| Step 1-9 of `K-KEYSRC-004` evaluation chain | Pre-establishment errors → gRPC error |
-| Step 10 (route execution) | Stream is established; subsequent business / upstream errors → terminal `STREAM_EVENT_FAILED` frame with a reason code |
+| Protected caller, authorization, and capability admission | Pre-establishment errors → gRPC error |
+| Runtime implementation execution | Stream is established; subsequent business / upstream errors → terminal `STREAM_EVENT_FAILED` frame with a reason code |
 
 The split is deliberate: pre-establishment errors are connection
 failures (caller never streams); post-establishment errors are
@@ -78,9 +78,9 @@ event-type monotonicity.
 
 App calls `StreamScenario` for text generation.
 
-1. **Pre-establishment validation.** Steps 1-9 of `K-KEYSRC-004`
-   chain: parse, JWT, app_id, key-source, connector load, owner
-   check, endpoint security, …
+1. **Pre-establishment validation.** Runtime validates the protected caller,
+   App authorization, canonical capability request, and its own internal
+   configuration.
 2. **Establishment.** All pre-establishment checks pass. Stream
    begins (step 10).
 3. **Delta events.** Each `STREAM_EVENT_DELTA` text chunk carries
@@ -125,7 +125,7 @@ gRPC `CANCELLED` before the terminal event — the app rebuilds the
 subscription on next daemon availability and re-derives terminal
 state from the job snapshot.
 
-## What Streaming Protocol Does Not Do
+## Protocol Guarantees
 
 - It does not let consumers infer close behavior; every RPC's mode
   is admitted in the table.

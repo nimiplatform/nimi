@@ -84,9 +84,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       }),
     ]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.audioSynthesize.title',
-      subtitle: 'ModelConfig.capability.audioSynthesize.subtitle',
-      detail: 'ModelConfig.capability.audioSynthesize.detail',
+      title: 'AIConfig.capability.audioSynthesize.title',
+      subtitle: 'AIConfig.capability.audioSynthesize.subtitle',
+      detail: 'AIConfig.capability.audioSynthesize.detail',
     }),
     runtimeEvidenceClass: 'job',
     governance: Object.freeze({
@@ -112,9 +112,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       }),
     ]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.audioTranscribe.title',
-      subtitle: 'ModelConfig.capability.audioTranscribe.subtitle',
-      detail: 'ModelConfig.capability.audioTranscribe.detail',
+      title: 'AIConfig.capability.audioTranscribe.title',
+      subtitle: 'AIConfig.capability.audioTranscribe.subtitle',
+      detail: 'AIConfig.capability.audioTranscribe.detail',
     }),
     runtimeEvidenceClass: 'job',
     governance: Object.freeze({
@@ -135,9 +135,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
     additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.imageEdit.title',
-      subtitle: 'ModelConfig.capability.imageEdit.subtitle',
-      detail: 'ModelConfig.capability.imageEdit.detail',
+      title: 'AIConfig.capability.imageEdit.title',
+      subtitle: 'AIConfig.capability.imageEdit.subtitle',
+      detail: 'AIConfig.capability.imageEdit.detail',
     }),
     runtimeEvidenceClass: 'job',
     governance: Object.freeze({
@@ -163,9 +163,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       }),
     ]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.imageGenerate.title',
-      subtitle: 'ModelConfig.capability.imageGenerate.subtitle',
-      detail: 'ModelConfig.capability.imageGenerate.detail',
+      title: 'AIConfig.capability.imageGenerate.title',
+      subtitle: 'AIConfig.capability.imageGenerate.subtitle',
+      detail: 'AIConfig.capability.imageGenerate.detail',
     }),
     runtimeEvidenceClass: 'job',
     governance: Object.freeze({
@@ -186,9 +186,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
     additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.textEmbed.title',
-      subtitle: 'ModelConfig.capability.textEmbed.subtitle',
-      detail: 'ModelConfig.capability.textEmbed.detail',
+      title: 'AIConfig.capability.textEmbed.title',
+      subtitle: 'AIConfig.capability.textEmbed.subtitle',
+      detail: 'AIConfig.capability.textEmbed.detail',
     }),
     runtimeEvidenceClass: 'job',
     governance: Object.freeze({
@@ -209,9 +209,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
     additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.textGenerate.title',
-      subtitle: 'ModelConfig.capability.textGenerate.subtitle',
-      detail: 'ModelConfig.capability.textGenerate.detail',
+      title: 'AIConfig.capability.textGenerate.title',
+      subtitle: 'AIConfig.capability.textGenerate.subtitle',
+      detail: 'AIConfig.capability.textGenerate.detail',
     }),
     runtimeEvidenceClass: 'turn',
     governance: Object.freeze({
@@ -232,9 +232,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
     additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.textGenerateVision.title',
-      subtitle: 'ModelConfig.capability.textGenerateVision.subtitle',
-      detail: 'ModelConfig.capability.textGenerateVision.detail',
+      title: 'AIConfig.capability.textGenerateVision.title',
+      subtitle: 'AIConfig.capability.textGenerateVision.subtitle',
+      detail: 'AIConfig.capability.textGenerateVision.detail',
     }),
     runtimeEvidenceClass: 'turn',
     governance: Object.freeze({
@@ -260,9 +260,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       }),
     ]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.videoGenerate.title',
-      subtitle: 'ModelConfig.capability.videoGenerate.subtitle',
-      detail: 'ModelConfig.capability.videoGenerate.detail',
+      title: 'AIConfig.capability.videoGenerate.title',
+      subtitle: 'AIConfig.capability.videoGenerate.subtitle',
+      detail: 'AIConfig.capability.videoGenerate.detail',
     }),
     runtimeEvidenceClass: 'job',
     governance: Object.freeze({
@@ -283,9 +283,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
     additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.voiceWorkflowVoiceClone.title',
-      subtitle: 'ModelConfig.capability.voiceWorkflowVoiceClone.subtitle',
-      detail: 'ModelConfig.capability.voiceWorkflowVoiceClone.detail',
+      title: 'AIConfig.capability.voiceWorkflowVoiceClone.title',
+      subtitle: 'AIConfig.capability.voiceWorkflowVoiceClone.subtitle',
+      detail: 'AIConfig.capability.voiceWorkflowVoiceClone.detail',
     }),
     runtimeEvidenceClass: 'workflow',
     governance: Object.freeze({
@@ -306,9 +306,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
     additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.voiceWorkflowVoiceDesign.title',
-      subtitle: 'ModelConfig.capability.voiceWorkflowVoiceDesign.subtitle',
-      detail: 'ModelConfig.capability.voiceWorkflowVoiceDesign.detail',
+      title: 'AIConfig.capability.voiceWorkflowVoiceDesign.title',
+      subtitle: 'AIConfig.capability.voiceWorkflowVoiceDesign.subtitle',
+      detail: 'AIConfig.capability.voiceWorkflowVoiceDesign.detail',
     }),
     runtimeEvidenceClass: 'workflow',
     governance: Object.freeze({
@@ -329,9 +329,9 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
     additionalRuntimeTables: Object.freeze([]),
     i18nKeys: Object.freeze({
-      title: 'ModelConfig.capability.worldGenerate.title',
-      subtitle: 'ModelConfig.capability.worldGenerate.subtitle',
-      detail: 'ModelConfig.capability.worldGenerate.detail',
+      title: 'AIConfig.capability.worldGenerate.title',
+      subtitle: 'AIConfig.capability.worldGenerate.subtitle',
+      detail: 'AIConfig.capability.worldGenerate.detail',
     }),
     runtimeEvidenceClass: 'job',
     governance: Object.freeze({

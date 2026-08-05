@@ -43,6 +43,10 @@ type _StreamItemUsesPublicSdkType = Assert<Equal<
   NimiTestingMethodItem<StreamMethod>,
   NimiRunEvent
 >>;
+type _TextFacadeIsCapabilityOnly = Assert<Equal<
+  NimiAiModel['model'],
+  { readonly modelId: 'text.generate' }
+>>;
 
 declare const request: NimiGenerateTextRequest;
 declare const harness: NimiTestingHarness<NimiTestingAiMethodMap>;
@@ -62,7 +66,7 @@ harness.openStream('nimi.ai.generateText', request);
 // @ts-expect-error Undeclared SDK methods are not part of the owner-derived method map.
 harness.invoke('nimi.ai.notDeclared', request);
 // @ts-expect-error Request shapes remain the SDK-owned public request type.
-harness.invoke('nimi.ai.generateText', { model: request.model, messages: 'invalid' });
+harness.invoke('nimi.ai.generateText', { messages: 'invalid' });
 
 const exactHarness = createNimiTestingHarness<NimiTestingAiMethodMap>({
   opaqueTraceSeed: '0'.repeat(64),
@@ -70,10 +74,15 @@ const exactHarness = createNimiTestingHarness<NimiTestingAiMethodMap>({
   port,
 });
 const publicFacade: NimiAiModel = createNimiTestingAiModel({
-  model: request.model,
   harness: exactHarness,
 });
 void publicFacade;
+
+createNimiTestingAiModel({
+  harness: exactHarness,
+  // @ts-expect-error Testing facades expose the fixed text capability and accept no model target.
+  model: { modelId: 'implementation-model' },
+});
 
 createNimiTestingHarness<NimiTestingAiMethodMap>({
   opaqueTraceSeed: '0'.repeat(64),

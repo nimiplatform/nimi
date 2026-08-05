@@ -3,7 +3,7 @@ import type { RuntimePageIdV11 } from './runtime-config-state-types';
 export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; description: string }> = {
   overview: {
     name: 'Overview',
-    description: 'Runtime readiness, capability coverage, readiness reasons, and quick actions.',
+    description: 'Runtime status and quick actions.',
   },
   profiles: {
     name: 'Profiles',
@@ -11,7 +11,7 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
   },
   models: {
     name: 'Models',
-    description: 'Manage Runtime-owned local assets and inspect the provider catalog without selecting an App route.',
+    description: 'Manage Runtime-owned local assets and inspect the provider catalog.',
   },
   cloud: {
     name: 'Cloud Connectors',

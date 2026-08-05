@@ -23,7 +23,7 @@ export type ZhiyuHomeStatusCard = {
 };
 
 export type ZhiyuHomeGatedSurface = {
-  readonly key: 'memory' | 'capability' | 'proposal' | 'delegation' | 'identity' | 'companion' | 'avatar';
+  readonly key: 'memory' | 'proposal' | 'delegation' | 'identity' | 'companion' | 'avatar';
   readonly title: string;
   readonly description: string;
   readonly stateLabel: string;
@@ -58,7 +58,6 @@ export function projectZhiyuHomeProductState(evidence: ZhiyuEvidence): ZhiyuHome
     statusCard('inventory', '伙伴清单', evidence.inventory, '可用伙伴'),
     statusCard('localAgent', '当前伙伴', evidence.localAgent, '本地身份'),
     statusCard('conversation', '会话', evidence.conversation, '对话入口'),
-    statusCard('route', '模型配置', evidence.route, '文字模型'),
     statusCard('turn', '回复', evidence.turn, '消息发送'),
   ] as const;
   const totalCount = statusCards.length;
@@ -193,14 +192,6 @@ function gatedSurfaces(evidence: ZhiyuEvidence): readonly ZhiyuHomeGatedSurface[
       stateLabel: evidence.conversation.ready ? '等待记忆摘要' : '等待当前伙伴会话',
       reasonCode: evidence.conversation.reasonCode,
       actionHint: evidence.conversation.actionHint,
-    },
-    {
-      key: 'capability',
-      title: '能力面板',
-      description: '用于诊断当前可用能力、模型配置和权限边界。',
-      stateLabel: evidence.route.ready ? '能力目录可查看' : '等待模型配置',
-      reasonCode: evidence.route.reasonCode,
-      actionHint: evidence.route.actionHint,
     },
     {
       key: 'proposal',

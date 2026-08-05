@@ -1,122 +1,93 @@
 # 本地模型
 
-Runtime 可以在你这台机器的硬件上跑 AI 能力。本页讲本地引擎、本地模型生命周期、引擎优先的路由模型。云端路由见 [连接器与 provider](/zh/runtime/connectors-and-providers)。
+Runtime 可以通过机器本地引擎和资源提供已准入的 AI 能力。本地引擎、已安装模型 bundle、设备兼容性和实现选择都归 Runtime 所有。App 只表达 Local 能力意图，不选择 model 或 engine。
 
-## 引擎优先路由
+Cloud 机器配置见 [Connector 与 Provider](/zh/runtime/connectors-and-providers)。
 
-Nimi 的本地路由是**引擎优先**。你不用先挑一个模型再期望有东西能跑它；你先挑一个引擎，引擎再把模型解析成可跑的包。
+## Runtime 拥有的选择过程
 
-| 步骤 | 内容 |
+| 步骤 | 归属 |
 | --- | --- |
-| 1. 选引擎 | 比如某种 llama.cpp 引擎、stable-diffusion 引擎或 sidecar 引擎 |
-| 2. 引擎解析模型 | 引擎按能力 + 设备挑出合适的模型包 |
-| 3. 包变可跑 | 量化、运行时上下文、GPU 层全部准入 |
-| 4. 注册路由 | 这条本地路由进入准入的 runtime 路由集 |
+| 安装 engine 和资源 metadata | Runtime 管理面 |
+| 校验 package 完整性和设备兼容性 | Runtime |
+| 判断可用实现 | Runtime |
+| 调度设备资源 | Runtime |
+| 为请求选择实现 | Runtime |
 
-这正好是"模型优先"的反面——那种先挑名字再期望兼容的玩法。引擎优先意味着兼容决定归引擎所有。
+Bundle 的目录身份只是安装事实，不是请求 target。安装或查看 bundle 不会创建 App 可见的 binding，也不保证 Runtime 在下一次请求中使用它。
 
-## 本地引擎目录
+## Engine 与资源目录
 
-准入的引擎类型列在 `runtime/kernel/tables/local-engine-catalog.yaml`。常见的有文本引擎（如 llama.cpp 系）、图像引擎（如 stable-diffusion 系）、音频引擎，以及处理特殊工作的 sidecar 引擎。
+Runtime 目录描述已准入的 engine family、asset kind、package 完整性、能力和兼容约束。Desktop 和 CLI 可以为机器管理呈现这些目录。
 
-每个引擎含：
-
-| 字段 | 用途 |
+| 目录事实 | 用途 |
 | --- | --- |
-| 引擎 id | 稳定身份 |
-| 引擎类型 | 文本 / 图像 / 音频 / sidecar 等 |
-| 运行模式 | 引擎怎么跑（inline、daemon 等） |
-| 配置优先级 | 哪些配置层适用 |
-| 能力面 | 这个引擎能干什么 |
+| Engine family 和 runtime mode | 描述 Runtime 如何托管 engine |
+| Asset kind 和能力 metadata | 描述资源的已准入用途 |
+| 完整性身份 | 校验准确的已安装内容 |
+| 设备要求 | 拒绝不兼容的安装或执行 |
+| Runtime 推荐证据 | 帮助用户选择要安装的资源 |
 
-引擎要先准入。新增引擎类型需通过 kernel 准入。
+客户端保持 Runtime 给出的推荐顺序，不根据 tag 或 metadata 为模型打分、分级或重新排序。
 
-## 设备画像
+## 设备兼容性
 
-Runtime 的设备画像系统描述这台硬件能撑什么。画像由设备探测得出，按兼容性准入或拒收模型包。
+Runtime 检测 CPU、加速器、内存和存储情况，并据此校验安装和调度执行。Package 违反已准入设备约束时，会返回强类型失败原因。
 
-| 字段 | 用途 |
-| --- | --- |
-| GPU 在场 | 是否有独立 GPU |
-| GPU 显存 | 可用 VRAM |
-| CPU 画像 | 核数、架构 |
-| 设备档位 | 准入的兼容档位 |
+设备诊断属于机器管理证据。App 不接收单模型 readiness、warming 或 health 表面，也不能通过设备探针选择执行实现。
 
-需要的 VRAM 超过设备画像准入档的模型包，会在准入阶段 fail-closed。平台不会静默加载一种设备根本跑不了的量化。
+## 安装流程
 
-## 本地适配器路由
+1. **浏览。** Desktop 或 CLI 读取 Runtime 的已准入目录。
+2. **选择要安装的资源。** 该选择只影响机器资源清单。
+3. **下载并校验。** Runtime 校验来源、内容身份和 package 结构。
+4. **注册。** Runtime 记录已安装资源和所需的 engine metadata。
+5. **呈现结果。** 管理界面展示强类型进度或失败。
 
-引擎被准入、模型解析完成后，应用发来的请求经**本地适配器路由**层走。适配器把调用形态规整化，应用看不出这次生成是来自本地引擎还是云端 provider——同一种流式形态、同一种错误模型、同一种元数据。
+任意 URL 和未校验文件不能直接执行。导入和下载路径必须满足 Runtime 的目录、路径准入和完整性规则。
 
-| 路由规则 | 来源 |
-| --- | --- |
-| 能力 → 适配器 | `tables/local-adapter-routing.yaml` |
-| 引擎 → 模型包 | `tables/local-engine-catalog.yaml` |
+## 能力执行
 
-## HuggingFace 目录搜索
+1. 对应 App 或 Agent owner 在 `AIConfig` 中为已准入能力记录 Local 意图。
+2. 调用者只提交身份、场景内容和受支持的操作参数。
+3. Runtime 评估已安装资源、设备状态、策略、预算和当前资源压力。
+4. Runtime 选择已准入实现，或返回强类型失败。
+5. Runtime 诊断可以记录实际执行情况，但调用者不能用它固定下一次请求。
 
-本地模型安装支持 HuggingFace 目录搜索。CLI / 桌面端的 runtime 配置允许搜索准入的模型族，安装与你引擎期望相符的包。
+SDK 规整结果不依赖 Runtime 最终选择 Local 还是 Cloud 实现。
 
-| 步骤 | 内容 |
-| --- | --- |
-| 1. 搜索 | 查询准入的目录源 |
-| 2. 过滤 | 只保留引擎兼容的包 |
-| 3. 安装 | 下载 + 校验 + 在引擎下注册 |
-| 4. 激活 | 标记为该引擎的当前模型 |
+## 读者场景：安装文本生成资源
 
-目录搜索受准入的目录路由约束。随便一个 URL 装不进来，只有准入的目录路由能装模型。
+1. 机器管理员打开本地模型中心。
+2. Runtime 按自身顺序返回目录和推荐证据。
+3. 管理员选择要安装的兼容资源 bundle。
+4. Runtime 下载、校验并注册 bundle，或返回强类型失败原因。
+5. 后续 App 请求不包含 model、engine、route、connector 或 target。
+6. Local 意图和当前机器状态允许执行时，Runtime 可以选择已安装实现。
 
-## 读者场景：装一个本地文本模型
+## 读者场景：设备约束
 
-你想在自己机器上跑一个本地文本模型。
+1. 所选 bundle 需要的资源超过机器能力。
+2. Runtime 以强类型设备证据拒绝安装或执行。
+3. Desktop 或 CLI 展示 Runtime 原因，不宣称模型已就绪。
+4. 管理员可以安装其他兼容资源或修改机器配置。
+5. App 请求契约保持不变。
 
-1. **选引擎。** 选一款准入的文本引擎（比如某个 llama.cpp 引擎），它有清晰的能力面。
-2. **搜索。** 经 CLI 或桌面端 runtime 配置，在准入的目录路由里搜兼容模型。
-3. **过滤。** 搜索结果按引擎可跑、设备可承载收窄。VRAM 不够的包要么直接被过滤，要么标"device-too-small"。
-4. **安装。** 选中的包被下载、校验（checksum），在引擎下注册。
-5. **激活。** 把它设为该引擎的当前模型。本地文本生成能力就绪。
-6. **使用。** 应用经 `@nimiplatform/sdk/runtime` 发文本请求。Runtime 把请求路由到本地引擎，按规整的流式形态把结果回传。
+## 读者场景：多引擎
 
-应用代码在云端路由和本地路由之间没改一行。本地适配器把形态规整了。
+Runtime 可以在同一台机器上管理多个 engine family，并在内部仲裁共享的加速器和内存资源。Text、image、audio 等 App 请求仍然以能力为单位；App 不把请求路由到某个 engine，也不协调 engine 并发。
 
-## 读者场景：安装命中设备约束
+## 依赖装配
 
-你想装一个比 VRAM 还大的模型包。
+部分 engine 需要额外机器依赖。Runtime 通过已准入 materializer 完成下载、校验、安装、取消和清理。Desktop 可以展示强类型操作进度和失败，但不会执行任意 shell 命令，也不会把依赖进度投影成 App execution readiness。
 
-1. **搜索结果里**这个包带 "device-too-small" 标记，或者直接被过滤掉，看你 CLI 过滤怎么设的。
-2. **如果你硬装**，准入阶段 fail-closed。设备画像说放不下。
-3. **审计链路。** 本次失败安装带原因被记下。
-4. **补救。** 你换更小的包（或不同量化），或者换个引擎。
+## 公共边界
 
-平台不会静默加载一份会 OOM 的量化。fail-closed 是契约。
-
-## 读者场景：同机多引擎
-
-你想在本地同时跑文本引擎和图像引擎。
-
-1. **两个引擎都准入。** 各自跑在自己的引擎实例下。
-2. **GPU 仲裁。** Runtime 按准入的 GPU 策略在引擎之间仲裁 GPU 访问，并发生成受 GPU 预算约束。
-3. **能力面。** 应用可以发文本请求路由到文本引擎、图像请求路由到图像引擎，两条都经本地适配器。
-4. **审计。** 每次生成按服务它的那个引擎记账。
-
-多引擎是常态。引擎优先路由正是让多引擎好管的关键——能力解析到引擎，而不是去碰一个全局模型命名空间。
-
-## CUDA 依赖安装
-
-需要 CUDA 的引擎通过基于 materializer 的安装路径，分阶段明确：
-
-| 阶段 | 含义 |
-| --- | --- |
-| `queued` | 已排队 |
-| `downloading` | 下载依赖中 |
-| `verifying` | 校验 / 兼容性核对 |
-| `installing` | 安装到 runtime 受管位置 |
-| `ready_system` / `ready_managed` | 系统模式或受管模式就绪 |
-| `failed` | 失败，原因被记下 |
-| `repair_required` | 需要修复 |
-| `cancelled` | 用户取消 |
-
-整个过程不会直接跑 PowerShell 或 bash，所有动作都过 materializer，配单一确认 UI。
+- 本地 model 和 engine 目录属于 Runtime 机器配置。
+- 安装资源不等于 model activation、warming 或 request binding。
+- App 只携带 Local 能力意图，不携带 model、engine、route、connector、target、readiness、health 或 fallback 控制。
+- 兼容性、调度和实现选择都归 Runtime 所有。
+- 推荐和执行诊断始终是 Runtime 提供的证据。
 
 ## 来源依据
 

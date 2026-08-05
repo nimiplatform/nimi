@@ -28,7 +28,7 @@ test('D-SEC-006: verified empty hash list projects LOCAL_AI_MODEL_HASHES_EMPTY e
   );
   assert.equal(
     String(error.details?.userMessage || ''),
-    'The model has not completed integrity verification and cannot be started.',
+    'The local asset has not completed integrity verification.',
     'userMessage must match the bridge error code map entry for empty hashes',
   );
 });

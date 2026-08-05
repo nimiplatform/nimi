@@ -38,7 +38,6 @@ export function parseNimiRuntimeAgentSessionSnapshot(
     ...(optionalNumber(payload.config_revision ?? payload.configRevision) !== undefined
       ? { configRevision: optionalNumber(payload.config_revision ?? payload.configRevision) }
       : {}),
-    ...(asRecord(payload.execution_bindings ?? payload.executionBindings) ? { executionBindings: asRecord(payload.execution_bindings ?? payload.executionBindings) } : {}),
     ...(activeTurn ? { activeTurn } : {}),
     ...(lastTurn ? { lastTurn } : {}),
     ...(asRecord(payload.pending_follow_up ?? payload.pendingFollowUp) ? { pendingFollowUp: asRecord(payload.pending_follow_up ?? payload.pendingFollowUp) } : {}),

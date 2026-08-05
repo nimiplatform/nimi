@@ -1,146 +1,109 @@
-# Connectors And Providers
+# Connectors and Providers
 
-Runtime treats cloud AI providers as governed runtime data, not as
-marketing copy. A provider name, model capability, health status, or
-routing promise can affect user expectations and integration
-behavior, so each is admitted under contract.
+Connectors and providers are Runtime-managed cloud configuration. They define
+how Runtime can reach admitted cloud implementations; they are not App request
+controls and do not appear in owner `AIConfig`.
 
-This page describes the managed cloud route. For local routing see
-[Local Models](/runtime/local-models).
+For Runtime-managed local assets, see [Local Models](/runtime/local-models).
 
 ## Connectors
 
-A **connector** is a managed identity for a cloud AI provider. It
-holds credentials, validates them, and reports the models that
-identity can route to.
+A connector is a machine-side identity and credential record for an admitted
+cloud provider. Runtime owns its creation, validation, storage, revocation, and
+use.
 
-| Property | Value |
+| Property | Owner |
 | --- | --- |
-| Owner scope | `user` / `machine-global` / `runtime-system` |
-| Credentials | Held under the daemon-config plane |
-| Validation | On admission; periodically thereafter |
-| Model listing | Reported through the connector |
-| Lifecycle | `created → active → degraded → revoked` |
+| Credential custody | Runtime daemon configuration |
+| Provider identity | Runtime catalog |
+| Validation and lifecycle | Runtime |
+| Capability compatibility | Runtime catalog and Driver |
+| Request-time connector selection | Runtime only |
 
-A connector is not a provider. The provider is the abstract route;
-the connector is the particular identity using that route. One
-user can have multiple connectors for the same provider (e.g.,
-personal vs work). Specific provider route ids are governed
-catalog data — see [Compatibility Posture](/reference/compatibility-posture)
-for why the public docs do not list them.
+An App does not create a request-level connector, pass a connector id, inspect a
+connector's model list, or reuse connector diagnostics as routing authority.
+Desktop and CLI may expose connector administration to the machine owner, but
+that surface changes Runtime configuration rather than an App contract.
 
-## Providers
+## Providers and Drivers
 
-A **provider** is a normalized cloud route. Capabilities and
-endpoints come from a static provider catalog plus a capability
-matrix. Runtime doesn't fetch a remote dynamic catalog — provider
-behavior is anchored in admitted catalog data.
+A provider is an admitted cloud implementation family. A Runtime Driver
+translates canonical capability operations into provider-specific calls and
+normalizes results, streams, errors, and evidence.
 
 | Source | Purpose |
 | --- | --- |
-| `provider-catalog.yaml` | The set of admitted provider routes |
-| `provider-capabilities.yaml` | The capability matrix per provider |
-| `provider-extension-registry.yaml` | Admitted provider-specific extensions |
+| `provider-catalog.yaml` | Admitted Runtime provider families |
+| `provider-capabilities.yaml` | Runtime capability compatibility |
+| `provider-extension-registry.yaml` | Admitted Runtime/Driver extensions |
 
-A reader who wants to know which providers are admitted today goes
-to those tables, not to docs prose. The docs do not list provider
-names because that list is governed catalog data.
+Provider and implementation catalogs are Runtime authority. Apps consume the
+canonical capability surface and do not select a catalog row. Adding provider
+support or changing a Driver therefore does not require an App to rewrite its
+request.
 
-## nimiLLM
+## Credential Custody
 
-`nimiLLM` is the unified remote execution path. Provider-specific
-adapters produce normalized streaming results regardless of which
-cloud is behind the call.
+Provider credentials stay in Runtime-owned configuration or an admitted host
+custody mechanism. Ordinary capability requests contain no provider credential,
+credential selector, connector id, provider id, or endpoint. Runtime resolves
+all required credential material after admitting the caller and capability.
 
-| Layer | Role |
-| --- | --- |
-| Provider adapter | Translates Runtime calls into provider-specific shapes |
-| Normalization | Unifies streaming, error, and metadata shape |
-| Audit | Records every call under typed reason codes |
+Credentials and native provider handles must not leak into normalized SDK
+results, logs, or App-owned storage. Missing or invalid credentials produce a
+typed failure; the client does not synthesize a fallback.
 
-The adapter layer is what makes "swap providers without rewriting
-your app" a real claim. An app that uses `@nimiplatform/sdk/runtime` does not
-care which provider is behind the call; the normalized shape is
-what the app sees.
+## Health and Diagnostics
 
-## Provider Health
+Runtime may monitor provider and connector state for machine administration and
+internal implementation selection. `nimi doctor` can identify the affected
+Runtime area without granting Apps provider-health or route-readiness controls.
 
-Provider health is a separate authority from connector health. A
-healthy connector with an unhealthy upstream is still an unhealthy
-route.
+For an App, the supported signals are:
 
-| State | Meaning |
-| --- | --- |
-| `healthy` | Provider is responding and returning expected shapes |
-| `degraded` | Provider is responding but with elevated errors |
-| `unhealthy` | Provider is not responding or returning malformed shapes |
+- Runtime-wide reachability;
+- the typed result or failure of the requested capability; and
+- Runtime-issued execution diagnostics, when the operation contract includes
+  them.
 
-Provider state machine is admitted in
-`runtime/kernel/provider-health-contract.md`. State changes are
-observable through `nimi doctor` and via runtime health streams.
+Those diagnostics explain what Runtime did. They do not authorize an App to pin
+or switch a provider, connector, model, route, or endpoint on the next request.
 
-## Credential Plane Split
+## Reader Scenario: Configure Cloud Capability
 
-Connectors hold credentials in the **daemon-config** plane.
-Per-request credentials (from trusted hosts at request time) come
-through the **request-credential** plane. The two are strictly
-isolated:
+1. **Configure Runtime.** A machine administrator adds admitted provider
+   credentials through Desktop or CLI.
+2. **Validate.** Runtime validates and stores the configuration under its own
+   custody.
+3. **Express owner intent.** An App or Agent owner records Cloud intent for an
+   admitted capability in `AIConfig`; no provider or connector is named.
+4. **Invoke.** The App sends caller identity, scenario content, and supported
+   operation parameters.
+5. **Execute.** Runtime selects an admitted implementation and credential record,
+   then returns a typed result or failure.
 
-| Plane | Source | Lifetime |
-| --- | --- | --- |
-| `daemon-config` | Connector-managed | Persistent |
-| `request-credential` | Trusted host injection | Per request |
+## Reader Scenario: Provider Degradation
 
-A connector's credential never leaks into a request-credential
-slot. A request credential is never persisted into the daemon-config
-plane. This separation is structural, not policy — runtime refuses
-the cross-plane move.
+1. Runtime detects an upstream problem while servicing a request.
+2. Runtime follows its admitted execution policy and either completes the
+   operation or emits a typed terminal failure.
+3. Runtime records provider and connector details as internal diagnostic or
+   audit evidence.
+4. The App displays the operation outcome without presenting a provider switcher
+   or fabricating success.
+5. A machine administrator can inspect and repair Runtime configuration through
+   the administration surface.
 
-## Reader Scenario: Adding A Cloud Provider Route
+## Public Boundary
 
-You want to route some requests through a cloud provider you have
-an account with.
-
-1. **Add connector.** Through the runtime CLI or Desktop's runtime
-   config, you create a connector for the admitted provider.
-2. **Credentials.** The connector holds the credentials in the
-   daemon-config plane.
-3. **Validation.** The connector validates the credentials and
-   reports the models that identity can route to.
-4. **Capability matrix.** Runtime knows which capabilities (text /
-   image / embedding / etc.) this connector offers, anchored in
-   the admitted capability matrix.
-5. **Use.** An app issues a request through `@nimiplatform/sdk/runtime`. Runtime
-   routes the request through the connector. Streaming arrives
-   normalized; errors arrive typed.
-
-What did **not** happen: docs did not list the provider's name as
-a marketing claim. The provider list is admitted catalog data.
-
-## Reader Scenario: A Provider Goes Degraded Mid-Session
-
-A connector's upstream provider starts returning elevated error
-rates while a generation is streaming.
-
-1. **Provider health detects** elevated error rates and moves
-   the provider state to `degraded`.
-2. **Streaming contract** decides whether the in-flight stream
-   can recover or must terminate. Transient transport errors
-   may be retried; contract failures fail closed with a typed
-   terminal frame.
-3. **Health stream emits.** The runtime health subscription
-   surface notifies subscribers of the state change.
-4. **Apps degrade.** Apps that subscribe to provider health
-   surface the change. The user sees "provider X is degraded";
-   the app does not silently fall back to another provider that
-   the user did not configure.
-5. **Audit lineage.** The degradation event, the workflow
-   terminal frame, and any subsequent runtime decisions are
-   recorded.
-
-There is no silent provider fallback. Routing is governed; if a
-provider goes unhealthy, the user (or app) chooses what to do
-next.
+- Connectors, provider catalogs, credentials, endpoints, and Drivers belong to
+  Runtime configuration.
+- `AIConfig` Cloud intent does not select any of them.
+- App requests contain no provider, connector, model, route, target, endpoint,
+  credential, or fallback policy.
+- Provider health and route readiness are not App selection surfaces.
+- Runtime owns implementation choice and emits typed failures when no admitted
+  implementation can execute.
 
 ## Source Basis
 

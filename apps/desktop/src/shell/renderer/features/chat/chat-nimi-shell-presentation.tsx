@@ -43,7 +43,7 @@ type UseAiConversationPresentationInput = {
   onDismissHostFeedback: () => void;
   pendingFirstBeat: boolean;
   renderMessageContent: CanonicalMessageContentSlot;
-  routeSummary: {
+  intentSummary: {
     label: string;
     detail: string | null;
   };
@@ -67,9 +67,9 @@ export function useAiConversationPresentation(
       value={input.t('Chat.settingsRuntimeExecutionOwned', {
         defaultValue: 'Execution checked by Runtime on submit',
       })}
-      detail={input.routeSummary.detail}
+      detail={input.intentSummary.detail}
     />
-  ), [input.routeSummary.detail, input.t]);
+  ), [input.intentSummary.detail, input.t]);
 
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
@@ -98,7 +98,7 @@ export function useAiConversationPresentation(
           : null,
         placeholder: input.setupState.status === 'ready'
           ? input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })
-          : input.t('Chat.nimiComposerSetupPlaceholder', { defaultValue: 'Set up a model to start chatting with Nimi…' }),
+          : input.t('Chat.nimiComposerIntentPlaceholder', { defaultValue: 'Configure text generation intent to start chatting with Nimi…' }),
       }
       : null,
   }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.setupState, input.submittingThreadId, input.t, input.threads]);

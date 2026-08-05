@@ -31,11 +31,6 @@ export const DESKTOP_LOCAL_APP_PERMISSION_I18N_SEGMENTS: Readonly<Record<Desktop
   'agents.delegate': 'agentsDelegate',
 });
 
-const DESKTOP_LOCAL_APP_PERMISSION_ID_SET = new Set<string>(DESKTOP_LOCAL_APP_PERMISSION_IDS);
-const DESKTOP_DEPENDENT_AGENT_PERMISSION_ID_SET = new Set<DesktopLocalAppPermissionId>(
-  DESKTOP_DEPENDENT_AGENT_PERMISSION_IDS,
-);
-
 export type DesktopLocalAppPermissionPosture =
   | 'prompt'
   | 'pending'
@@ -337,13 +332,13 @@ function requireKey(value: unknown, field: string): string {
 }
 
 export function isDesktopLocalAppPermissionId(value: string): value is DesktopLocalAppPermissionId {
-  return DESKTOP_LOCAL_APP_PERMISSION_ID_SET.has(value);
+  return (DESKTOP_LOCAL_APP_PERMISSION_IDS as readonly string[]).includes(value);
 }
 
 export function isDesktopDependentAgentPermission(
   permissionId: DesktopLocalAppPermissionId,
 ): boolean {
-  return DESKTOP_DEPENDENT_AGENT_PERMISSION_ID_SET.has(permissionId);
+  return (DESKTOP_DEPENDENT_AGENT_PERMISSION_IDS as readonly DesktopLocalAppPermissionId[]).includes(permissionId);
 }
 
 function requireLocalAppPermissionId(value: string): DesktopLocalAppPermissionId {

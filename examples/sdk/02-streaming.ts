@@ -1,7 +1,6 @@
 /**
  * Stream a response token by token.
- * Prerequisites: `nimi start` running and the local default text model available.
- * Tip: run `nimi run "Write a haiku about AI runtimes."` once to prime the local default path.
+ * Prerequisites: `nimi start` and a text.generate capability intent for this App.
  * Run: npx tsx examples/sdk/02-streaming.ts
  */
 
@@ -10,8 +9,8 @@ import { createExampleClient, createExampleTextModel, streamExampleText } from '
 const client = createExampleClient({
   appId: 'example.sdk.streaming',
 });
-const model = createExampleTextModel(client);
-const stream = await streamExampleText(model, 'Write a haiku about AI runtimes.');
+const textGeneration = createExampleTextModel(client);
+const stream = await streamExampleText(textGeneration, 'Write a haiku about AI runtimes.');
 
 for await (const event of stream) {
   if (event.type === 'text-delta') {

@@ -85,7 +85,7 @@ test('runtime dependency setup title reserves GPU acceleration copy for CUDA run
     dependencyFamily: 'native-engine-package.stablediffusion-ggml',
     dependencyId: 'stable-diffusion.cpp.package',
     consumerScope: 'stable-diffusion.cpp.metal',
-  }), undefined, t), 'Enable local image generation');
+  }), undefined, t), 'Set up local image Runtime');
 
   assert.equal(runtimeDependencyBannerTitle(dependency('needs_confirmation', {
     dependencyFamily: 'accelerator.cuda.runtime',
@@ -100,12 +100,12 @@ test('unhealthy asset reason codes resolve to localized human copy, never the ra
   // Non-speech reason code resolves through the localized reasonMessages catalog.
   assert.equal(
     localizedAssetUnhealthyReason('AI_LOCAL_MODEL_UNAVAILABLE', i18n.t),
-    'Local AI model is unavailable.',
+    'Runtime local execution is unavailable.',
   );
   // Speech reason codes resolve through the same localized catalog.
   assert.equal(
     localizedAssetUnhealthyReason('AI_LOCAL_SPEECH_BUNDLE_DEGRADED', i18n.t),
-    'The Local Speech bundle is degraded and needs repair.',
+    'The Runtime local speech bundle is unavailable.',
   );
   // An unmapped code yields '' so the caller renders generic copy, never the code.
   assert.equal(localizedAssetUnhealthyReason('SOME_UNMAPPED_INTERNAL_CODE', i18n.t), '');

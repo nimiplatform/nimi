@@ -68,5 +68,5 @@ function runtimeUnavailablePrimaryCopy(reasonCode: string): string {
   if (/permission|forbidden|scope/i.test(reasonCode)) {
     return '当前应用还没有获得本地会话权限，请在诊断中确认授权状态。';
   }
-  return '织羽需要本地运行服务提供账户、模型配置和伙伴投影；连接恢复后会自动回到工作区。';
+  return '织羽需要本地运行服务提供账户和伙伴投影；连接恢复后会自动回到工作区。';
 }

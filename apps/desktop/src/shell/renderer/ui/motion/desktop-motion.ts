@@ -1,32 +1,19 @@
-import { useSyncExternalStore } from 'react';
 import {
   NIMI_MOTION_DURATIONS_MS,
   usePrefersReducedMotion,
 } from '@nimiplatform/kit/ui/motion';
+import {
+  useDesktopAppReducedMotionPreference,
+} from './desktop-motion-context.js';
+
+export {
+  DesktopMotionProvider,
+  useSetDesktopAppReducedMotionPreference,
+} from './desktop-motion-context.js';
 import type { TargetAndTransition, Transition, Variants } from 'motion/react';
 
 const EASE_STANDARD = [0.2, 0, 0, 1] as const;
 const EASE_EMPHASIZED = [0.05, 0.7, 0.1, 1] as const;
-
-/* ------------------------------------------------------------------ */
-/*  App-level reduced-motion preference (Appearance settings)          */
-/* ------------------------------------------------------------------ */
-
-let appReducedMotionPreference = false;
-const appReducedMotionListeners = new Set<() => void>();
-
-export function setDesktopAppReducedMotionPreference(value: boolean): void {
-  if (appReducedMotionPreference === value) return;
-  appReducedMotionPreference = value;
-  for (const listener of appReducedMotionListeners) listener();
-}
-
-function subscribeAppReducedMotion(listener: () => void): () => void {
-  appReducedMotionListeners.add(listener);
-  return () => {
-    appReducedMotionListeners.delete(listener);
-  };
-}
 
 function durationSeconds(durationMs: number, reduced: boolean): number {
   if (reduced) return 0;
@@ -46,11 +33,7 @@ function timedTransition(
 
 export function useDesktopReducedMotion(): boolean {
   const osReducedMotion = usePrefersReducedMotion();
-  const appReducedMotion = useSyncExternalStore(
-    subscribeAppReducedMotion,
-    () => appReducedMotionPreference,
-    () => appReducedMotionPreference,
-  );
+  const appReducedMotion = useDesktopAppReducedMotionPreference();
   return osReducedMotion || appReducedMotion;
 }
 

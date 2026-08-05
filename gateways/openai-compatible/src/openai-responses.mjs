@@ -20,7 +20,7 @@ export function chatCompletionResponse(runtimeResult, normalized) {
     id: normalizeText(runtimeResult?.id) || `chatcmpl-${normalized.requestId}`,
     object: 'chat.completion',
     created: unixSeconds(runtimeResult),
-    model: normalizeText(runtimeResult?.model) || normalized.model.id,
+    model: normalized.model.id,
     choices: [
       {
         index: 0,
@@ -74,7 +74,7 @@ export function responseApiResponse(runtimeResult, normalized) {
     object: 'response',
     created_at: unixSeconds(runtimeResult),
     status: normalizeText(runtimeResult?.status) || 'completed',
-    model: normalizeText(runtimeResult?.model) || normalized.model.id,
+    model: normalized.model.id,
     output: Array.isArray(runtimeResult?.output)
       ? runtimeResult.output
       : [
@@ -101,7 +101,7 @@ export function embeddingResponse(runtimeResult, normalized) {
   }
   return {
     object: 'list',
-    model: normalizeText(runtimeResult?.model) || normalized.model.id,
+    model: normalized.model.id,
     data: embeddings.map((embedding, index) => ({
       object: 'embedding',
       embedding,
@@ -163,14 +163,14 @@ export async function resolveAudioBytes(runtimeResult, config) {
 
 function chatStreamChunk(event, normalized) {
   if (isRecord(event) && Array.isArray(event.choices)) {
-    return event;
+    return { ...event, model: normalized.model.id };
   }
   const delta = isRecord(event?.delta) ? event.delta : {};
   return {
     id: normalizeText(event?.id) || `chatcmpl-${normalized.requestId}`,
     object: 'chat.completion.chunk',
     created: unixSeconds(event),
-    model: normalizeText(event?.model) || normalized.model.id,
+    model: normalized.model.id,
     choices: [
       {
         index: 0,

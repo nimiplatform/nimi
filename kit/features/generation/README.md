@@ -14,15 +14,16 @@ Reusable UI, headless state, and typed modality contracts for Nimi generation.
 Kit request types do not accept scoped configuration, binding, model, route,
 connector, target, readiness, ranking, or fallback authority.
 
-The current Runtime Scenario API still requires a target-bearing request head.
-Consequently, text, embedding, image, video, speech synthesis, and speech
-transcription helpers return a typed `AI_ROUTE_UNSUPPORTED` unavailable result
-before dispatch. Kit does not infer a target, restore the retired binding layer,
+The generated Runtime Scenario wire still declares retired target fields as
+required. The handwritten Kit layer does not populate them. Consequently, text,
+embedding, image, video, speech synthesis, and speech transcription helpers
+return a typed `AI_ROUTE_UNSUPPORTED` unavailable result before dispatch. Kit does not infer a target, restore the retired binding layer,
 or fabricate success data.
 
 `runRuntimeVoiceCatalog(...)` remains active for owner-scoped `voice_asset_id`
-references. It does not expose preset discovery because the current preset API
-still requires model and connector execution truth.
+references. It does not expose preset discovery because the generated preset
+wire still requires retired model and connector fields that handwritten callers
+must omit.
 
 ## What Remains Reusable
 

@@ -79,13 +79,13 @@ test('toBridgeNimiError maps LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN reason code'
 test('toBridgeNimiError preserves structured payload fields and adds userMessage', () => {
   const error = toBridgeNimiError(JSON.stringify({
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-    actionHint: 'retry_or_switch_route',
+    actionHint: 'retry_after_runtime_recovery',
     traceId: 'trace-bridge-001',
     retryable: true,
     message: 'provider timeout',
   }));
   assert.equal(error.reasonCode, ReasonCode.AI_PROVIDER_TIMEOUT);
-  assert.equal(error.actionHint, 'retry_or_switch_route');
+  assert.equal(error.actionHint, 'retry_after_runtime_recovery');
   assert.equal(error.traceId, 'trace-bridge-001');
   assert.equal(error.retryable, true);
   assert.equal(error.message, 'provider timeout');
@@ -182,7 +182,7 @@ test('toBridgeNimiError maps AI_LOCAL_SPEECH_ENV_INIT_FAILED reason code', () =>
   assert.equal(error.reasonCode, ReasonCode.AI_LOCAL_SPEECH_ENV_INIT_FAILED);
   assert.equal(
     String(error.details?.userMessage || ''),
-    'Local Speech environment initialization failed. Retry or repair the local speech setup.',
+    'Runtime local speech environment initialization failed. Inspect Runtime diagnostics.',
   );
 });
 

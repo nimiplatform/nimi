@@ -3,7 +3,6 @@ import type { JsonObject } from '../types';
 import type {
   RuntimeLocalAgentIdentityInput,
 } from './agent-local-identity';
-import type { NimiRuntimeRouteTargetRef } from './route-options';
 import type {
   NimiRuntimeAgentConsumeEvent,
   NimiRuntimeAgentSessionSnapshot,
@@ -35,13 +34,6 @@ export type NimiRuntimeAgentTranscriptMessage = NimiRuntimeAgentMessage & {
   readonly kind: 'text' | 'image' | 'voice' | 'tool' | 'system';
   readonly createdAt: string;
   readonly updatedAt: string;
-};
-
-export type NimiRuntimeAgentExecutionBinding = {
-  readonly route: 'local' | 'cloud';
-  readonly modelId: string;
-  readonly connectorId?: string;
-  readonly targetRef?: NimiRuntimeRouteTargetRef;
 };
 
 export type NimiRuntimeAgentReasoningRequest = {
@@ -313,11 +305,6 @@ export type NimiRuntimeAgentTurnRunnerOptions = {
   readonly subscribe?: NimiRuntimeAgentConsumeRequest;
   readonly signal?: AbortSignal;
   readonly interruptReason?: NimiRuntimeAgentTurnCancellationReason;
-  // Ignored by the runner: execution route/model/provider identity is Runtime
-  // accepted-turn/config projection, not caller-supplied SDK input.
-  readonly route?: string;
-  readonly modelId?: string;
-  readonly connectorId?: string;
   readonly stallRecoveryIntervalMs?: number;
   readonly logEvent?: (event: NimiRuntimeAgentTurnRunnerLogEvent) => void;
   readonly logTiming?: (event: {

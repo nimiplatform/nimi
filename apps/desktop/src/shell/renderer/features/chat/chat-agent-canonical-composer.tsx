@@ -185,7 +185,7 @@ function AgentComposerToolbarControls(props: {
           title={props.thinkingState === 'on'
             ? t('Chat.thinkingTooltipOn', { defaultValue: 'Thinking enabled — click to disable' })
             : props.thinkingState === 'unsupported'
-              ? t('Chat.thinkingTooltipUnsupported', { defaultValue: 'Thinking is not supported by the current route' })
+              ? t('Chat.thinkingTooltipUnavailable', { defaultValue: 'Thinking is not available for this conversation' })
               : t('Chat.thinkingTooltipOff', { defaultValue: 'Thinking disabled — click to enable' })}
           disabled={props.thinkingState === 'unsupported'}
           onClick={props.thinkingState === 'unsupported' ? undefined : props.onThinkingToggle}

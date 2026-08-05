@@ -42,11 +42,11 @@ You want to build an app on Nimi using the SDK.
 1. [Start → Create A Nimi App](/start/create-an-app) — scaffold a developer
    app with app-tools, or map the same ownership rules onto an existing app.
 2. [SDK → First AI Call](/sdk/first-ai-call) — make a Runtime-backed text
-   generation call with AIConfig target resolution.
+   generation call with owner capability intent and Runtime-selected execution.
 3. [SDK → Overview](/sdk/) and [SDK → Boundaries](/sdk/boundaries) — learn the
    public app boundary before importing SDK modules.
 4. [Platform → Use Kit In An App](/platform/kit/use-kit-in-app) — reuse shared
-   UI, shell, auth, telemetry, model configuration, and feature surfaces.
+   UI, shell, auth, telemetry, AIConfig composition, and feature surfaces.
 5. [Start → Use Tester As A Reference App](/start/use-tester-as-reference) —
    study the concrete reference app and app-tools source template.
 6. [Start → Troubleshooting](/start/troubleshooting) — interpret Runtime, SDK,

@@ -294,38 +294,30 @@ test('Mastra surfaces Nimi reasoning from a generate result', async () => {
   assert.equal(result.reasoningText, 'thinking about it');
 });
 
-test('createNimiMastraProvider resolves Runtime-routed models a Mastra Agent accepts', async () => {
-  // Behavior: client/runtime-driven model construction returns a Mastra-usable model.
-  const fixture = createNimiFixtureModel({ modelId: 'gemini/default', result: { text: 'routed', finishReason: 'stop' } });
-  const createdModelIds: string[] = [];
+test('createNimiMastraProvider resolves the Runtime text capability for a Mastra Agent', async () => {
+  const fixture = createNimiFixtureModel({ result: { text: 'runtime-backed', finishReason: 'stop' } });
+  const createdOptions: unknown[] = [];
   const provider = createNimiMastraProvider({
     client: {
       ai: {
-        createRuntimeModel(options: { model: { modelId: string } }) {
-          createdModelIds.push(options.model.modelId);
+        createRuntimeModel(options: unknown) {
+          createdOptions.push(options);
           return fixture.model;
         },
       },
     } as never,
-    routePolicy: 'cloud',
-    targetRef: {
-      kind: 'cloud-connector',
-      connectorId: 'connector-gemini',
-      remoteModelCatalogId: 'remote-catalog:gemini-default',
-      providerModelId: 'gemini/default',
-      provider: 'gemini',
-    },
   });
 
   const agent = createMastraTestAgent({
     name: 'conformance-provider',
-    instructions: 'routed model',
-    model: provider.languageModel('gemini/default'),
+    instructions: 'runtime-backed model',
+    model: provider.languageModel('text.generate'),
   });
-  const result = await agent.generate('route me');
+  const result = await agent.generate('run this');
 
-  assert.deepEqual(createdModelIds, ['gemini/default']);
-  assert.equal(result.text, 'routed');
+  assert.equal(createdOptions.length, 1);
+  assert.equal('model' in (createdOptions[0] as Record<string, unknown>), false);
+  assert.equal(result.text, 'runtime-backed');
 });
 
 test('Mastra abort signal is forwarded onto the Nimi request', async () => {

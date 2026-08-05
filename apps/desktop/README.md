@@ -31,13 +31,13 @@ Mock fixture quick-start (after `pnpm reset`):
 export NIMI_REALM_URL=http://localhost:3002
 export NIMI_WORLD_ID=01JKFANREN00000000000001
 
-# LOCAL route (resolved by runtime-owned local model status)
+# Private agent fixture
 export NIMI_AGENT_ID=01JKDESKTOPAGENTPRIVATE000001
 
-# CLOUD route (public agent)
+# Public agent fixture
 # export NIMI_AGENT_ID=01JKDESKTOPAGENTPUBLIC000001
 
-# ROUTE_DENIED case (private agent owned by others)
+# Inaccessible private agent fixture
 # export NIMI_AGENT_ID=01JKDESKTOPAGENTDENIED000001
 ```
 
@@ -57,11 +57,11 @@ Environment variables:
 - `NIMI_REQUEST_ID`
 - `NIMI_SESSION_ID`
 
-Provider and model selection:
+AI execution configuration:
 
-- Local text readiness and sendability are resolved from the runtime authoritative local model list/status.
-- Host-side local snapshots are display-only; endpoint reachability alone is not route truth.
-- Managed cloud credentials and model selection use Runtime connector routing via Runtime Config and SDK route projection, not `runtime_defaults` env fields.
+- Nimi Desktop stores canonical Local or Cloud capability intent.
+- Runtime exclusively selects and validates the execution implementation when work starts.
+- Machine-local catalog snapshots are display-only and never become request-side execution controls.
 
 ## Scope
 
@@ -76,11 +76,9 @@ V1 runtime core keeps cloud chat on human DIRECT endpoints and desktop agent cha
 
 The Electron Desktop host includes:
 
-- Route badge + route reason panel (CLOUD/LOCAL deterministic result)
 - Agent chat 会话列表、会话切换与会话删除
 - Agent chat 回合诊断（promptTrace / turnAudit）
-- LOCAL route readiness reflects runtime-owned local model records and status.
-- Local runtime health display consumes runtime local model status; it must not infer ready from endpoint reachability alone.
+- Runtime-owned local asset and provider catalog views
 - Renderer local state persistence (connection/session/turn/replay panel) with auto-restore on restart
 - API client retry/backoff for transient network failures and retryable HTTP statuses
 - Status rail feedback for retry lifecycle: `retrying` / `retry_exhausted` / `recovered`

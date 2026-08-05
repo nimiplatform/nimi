@@ -11,7 +11,7 @@ test('upstream-compat/generateText: exposes provider metadata and response metad
   const { model } = createUpstreamCompatModel({
     text: 'metadata ok',
     raw: {
-      providerMetadata: { nimi: { route: 'cloud', cache: 'hit' } },
+      providerMetadata: { nimi: { cache: 'hit' } },
       requestBody: { promptHash: 'abc123' },
       responseId: 'resp-1',
       responseModelId: 'resolved-model',
@@ -26,7 +26,7 @@ test('upstream-compat/generateText: exposes provider metadata and response metad
   });
 
   assert.equal(result.text, 'metadata ok');
-  assert.deepEqual(result.providerMetadata, { nimi: { route: 'cloud', cache: 'hit' } });
+  assert.deepEqual(result.providerMetadata, { nimi: { cache: 'hit' } });
   assert.deepEqual(result.request.body, { promptHash: 'abc123' });
   assert.equal(result.response.id, 'resp-1');
   assert.equal(result.response.modelId, 'resolved-model');

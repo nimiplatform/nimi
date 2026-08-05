@@ -1,16 +1,8 @@
-import type { RuntimeDurableTargetRef } from '../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
 import { createNimiError, ReasonCode } from '../../types';
-import { resolveNimiRuntimeDurableTargetIdentity } from './runtime-target-identity';
-
-export type NimiRuntimeScenarioRoutePolicy = 'local' | 'cloud' | 'unspecified';
 
 export interface NimiRuntimeScenarioJobHeadBuilderInput {
   readonly appId: string;
   readonly subjectUserId?: string;
-  readonly modelId?: string;
-  readonly routePolicy?: NimiRuntimeScenarioRoutePolicy | string;
-  readonly connectorId?: string;
-  readonly targetRef?: RuntimeDurableTargetRef;
   readonly timeoutMs?: number;
 }
 
@@ -24,33 +16,11 @@ export interface NimiRuntimeScenarioJobIdentityInput {
 export function buildNimiRuntimeScenarioJobHead(input: NimiRuntimeScenarioJobHeadBuilderInput): {
   readonly appId: string;
   readonly subjectUserId: string;
-  readonly modelId: string;
-  readonly routePolicy: NimiRuntimeScenarioRoutePolicy;
-  readonly connectorId?: string;
-  readonly targetRef: RuntimeDurableTargetRef;
   readonly timeoutMs: number;
 } {
-  const targetIdentity = resolveNimiRuntimeDurableTargetIdentity({
-    context: 'Runtime scenario job head',
-    targetRef: input.targetRef,
-    modelId: input.modelId,
-    connectorId: input.connectorId,
-    requireTargetRef: true,
-  });
-  if (!targetIdentity.targetRef) {
-    throw runtimeJobBuilderError(
-      'SDK_GENERATION_RUNTIME_TARGET_REF_REQUIRED',
-      'Runtime scenario job head requires Runtime targetRef',
-      'select_runtime_target_ref',
-    );
-  }
   return {
     appId: requireText(input.appId, 'Runtime scenario job head requires appId'),
     subjectUserId: normalizedText(input.subjectUserId),
-    modelId: targetIdentity.modelId,
-    routePolicy: runtimeRoutePolicy(input.routePolicy),
-    ...(targetIdentity.connectorId ? { connectorId: targetIdentity.connectorId } : {}),
-    targetRef: targetIdentity.targetRef,
     timeoutMs: positiveTimeoutMs(input.timeoutMs),
   };
 }
@@ -68,10 +38,6 @@ export function buildNimiRuntimeScenarioJobIdentity(input: NimiRuntimeScenarioJo
     requestId: key,
     idempotencyKey: key,
   };
-}
-
-function runtimeRoutePolicy(policy: unknown): NimiRuntimeScenarioRoutePolicy {
-  return policy === 'local' || policy === 'cloud' ? policy : 'unspecified';
 }
 
 function positiveTimeoutMs(value: unknown): number {

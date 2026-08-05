@@ -40,7 +40,6 @@ export function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true
     return output.text || '(empty transcript)';
   }
   return JSON.stringify({
-    modelResolved: output.modelResolved,
     voiceCount: output.voiceCount,
     sample: output.sample,
   }, null, 2);

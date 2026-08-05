@@ -175,13 +175,6 @@ function evidence(overrides = {}) {
         'expressionState',
       ],
     },
-    route: {
-      ...status('zhiyu-ai-config-route-selection-required'),
-      capability: 'text.generate',
-      selectedTargetRefKind: null,
-      resolvedBindingRef: null,
-      executionBinding: null,
-    },
     turn: {
       ...status('zhiyu-conversation-anchor-required'),
       ownerUserId: null,
@@ -199,7 +192,7 @@ function evidence(overrides = {}) {
       source: 'renderer',
       message: 'Runtime Agent composer has not been used.',
     },
-    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'avatar', 'diagnostics'],
+    productRegions: ['presence', 'conversation', 'memory', 'proposal', 'delegation', 'identity', 'companion', 'avatar', 'diagnostics'],
     ...overrides,
   };
 }
@@ -210,23 +203,22 @@ test('projects no-runtime home stage without inventing success', async () => {
 
   assert.equal(product.stage, 'runtime-unavailable');
   assert.equal(product.readyCount, 0);
-  assert.equal(product.totalCount, 8);
-  assert.equal(product.readinessScore, '0/8');
+  assert.equal(product.totalCount, 7);
+  assert.equal(product.readinessScore, '0/7');
   assert.equal(product.primaryTitle, '需要先连接本地服务');
   assert.equal(product.primaryActionHint, '先确认桌面本地服务已经启动。');
-  assert.equal(product.statusCards.length, 8);
+  assert.equal(product.statusCards.length, 7);
   assert.equal(product.statusCards[0]?.key, 'runtime');
   assert.equal(product.statusCards[0]?.tone, 'danger');
-  assert.equal(product.gatedSurfaces.length, 7);
+  assert.equal(product.gatedSurfaces.length, 6);
   assert.equal(product.gatedSurfaces[0]?.title, '记忆观测');
-  assert.equal(product.gatedSurfaces[1]?.title, '能力面板');
-  assert.equal(product.gatedSurfaces[2]?.title, '能力申请');
+  assert.equal(product.gatedSurfaces[1]?.title, '能力申请');
+  assert.equal(product.gatedSurfaces[1]?.reasonCode, 'not-probed');
+  assert.equal(product.gatedSurfaces[2]?.title, '委托审批');
   assert.equal(product.gatedSurfaces[2]?.reasonCode, 'not-probed');
-  assert.equal(product.gatedSurfaces[3]?.title, '委托审批');
-  assert.equal(product.gatedSurfaces[3]?.reasonCode, 'not-probed');
-  assert.equal(product.gatedSurfaces[4]?.title, '身份安全');
-  assert.equal(product.gatedSurfaces[5]?.title, '相处状态');
-  assert.equal(product.gatedSurfaces[6]?.title, '形象状态');
+  assert.equal(product.gatedSurfaces[3]?.title, '身份安全');
+  assert.equal(product.gatedSurfaces[4]?.title, '相处状态');
+  assert.equal(product.gatedSurfaces[5]?.title, '形象状态');
 });
 
 test('projects ready stage only when Runtime Agent turn is ready', async () => {
@@ -271,16 +263,6 @@ test('projects ready stage only when Runtime Agent turn is ready', async () => {
       localAgentRef: 'local-agent:1',
       conversationAnchorId: 'conversation:1',
     },
-    route: {
-      ...status('runtime-route-ready', true, 'sdk'),
-      capability: 'text.generate',
-      selectedTargetRefKind: 'runtime-target',
-      resolvedBindingRef: 'binding:1',
-      executionBinding: {
-        route: 'local',
-        modelId: 'runtime-model:1',
-      },
-    },
     turn: {
       ...status('runtime-turn-ready', true, 'runtime'),
       ownerUserId: 'user-1',
@@ -294,8 +276,8 @@ test('projects ready stage only when Runtime Agent turn is ready', async () => {
   const product = projectZhiyuHomeProductState(readyEvidence);
 
   assert.equal(product.stage, 'ready');
-  assert.equal(product.readyCount, 8);
-  assert.equal(product.readinessScore, '8/8');
+  assert.equal(product.readyCount, 7);
+  assert.equal(product.readinessScore, '7/7');
   assert.equal(product.primaryTitle, '当前伙伴已准备好');
   assert.equal(product.statusCards.every((card) => card.tone === 'success'), true);
 });

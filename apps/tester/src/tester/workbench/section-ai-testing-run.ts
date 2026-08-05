@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
 import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterCapability } from '../tester-capabilities.js';
-import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
+import { getTesterRunIntentLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
 import { createTesterRunTargetSummary, type TesterRunTargetSummary } from '../tester-run-target.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
@@ -27,27 +27,17 @@ export function textStudioRuntimePrompt(prompt: string, context: string, directi
   ].filter(Boolean).join('\n\n');
 }
 
-function compactStudioModelLabel(value: string): string {
-  const normalized = value.trim();
-  return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
-}
-
-function isOpaqueRuntimeModelId(value: string): boolean {
-  return /^[0-9A-HJKMNP-TV-Z]{20,32}$/u.test(value.trim());
-}
-
-export function textStudioModelSummary(
-  result: TesterCapabilityRunResult | null,
+export function textStudioIntentSummary(
+  _result: TesterCapabilityRunResult | null,
   runTarget: TesterRunTargetSummary,
   record: TesterRunHistoryRecord | null,
 ): string {
-  if (record) return `Model: ${getTesterRunModelLabel(record)}`;
-  const resolved = result?.ok ? result.trace?.modelResolved?.trim() : '';
-  return `Model: ${resolved && !isOpaqueRuntimeModelId(resolved) ? compactStudioModelLabel(resolved) : runTarget.modelLabel}`;
+  if (record) return `Intent: ${getTesterRunIntentLabel(record)}`;
+  return `Intent: ${runTarget.intentLabel}`;
 }
 
-export function textStudioRunTargetModelSummary(runTarget: TesterRunTargetSummary): string {
-  return `Model: ${runTarget.modelLabel}`;
+export function textStudioRunTargetIntentSummary(runTarget: TesterRunTargetSummary): string {
+  return `Intent: ${runTarget.intentLabel}`;
 }
 
 export function canConfigureRunTarget(runTarget: TesterRunTargetSummary): boolean {
@@ -160,7 +150,7 @@ export function createRunConfigSnapshot(input: {
       section: target.section,
       status: target.status,
       source: target.source,
-      modelLabel: target.modelLabel,
+      intentLabel: target.intentLabel,
       detail: target.detail,
       params,
       paramsSummary: [...target.paramsSummary],

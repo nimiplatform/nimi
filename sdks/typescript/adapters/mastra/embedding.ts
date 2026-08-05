@@ -11,21 +11,22 @@ import {
   type NimiRuntimeEmbeddingClientOptions,
   type NimiRuntimeEmbeddingSurface,
 } from '@nimiplatform/sdk/ai';
-import type { NimiJsonObject, NimiJsonValue, NimiModelRef } from '@nimiplatform/sdk/contracts';
+import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
 
 import { throwUnsupportedMastraFeature } from './errors';
 
 export type NimiMastraEmbeddingModel = EmbeddingModelV3;
 
+export interface NimiMastraEmbeddingCapabilityRef {
+  readonly modelId: 'text.embed';
+}
+
 export interface NimiMastraEmbeddingModelOptions {
-  readonly model: NimiModelRef;
+  readonly model: NimiMastraEmbeddingCapabilityRef;
   readonly embedding?: NimiRuntimeEmbeddingSurface;
   readonly runtime?: NimiRuntimeEmbeddingClientOptions['runtime'];
   readonly appId?: string;
-  readonly routePolicy?: NimiRuntimeEmbeddingClientOptions['routePolicy'];
-  readonly connectorId?: string;
   readonly subjectUserId?: string;
-  readonly targetRef?: NimiRuntimeEmbeddingClientOptions['targetRef'];
   readonly timeoutMs?: number;
   readonly metadata?: NimiJsonObject;
   readonly maxEmbeddingsPerCall?: number;
@@ -36,7 +37,7 @@ export function createNimiMastraEmbeddingModel(
   options: NimiMastraEmbeddingModelOptions,
 ): NimiMastraEmbeddingModel {
   const model = normalizeModelRef(options.model);
-  const embedding = resolveEmbeddingSurface(options, model);
+  const embedding = resolveEmbeddingSurface(options);
   return {
     specificationVersion: 'v3',
     provider: 'nimi',
@@ -57,7 +58,6 @@ export function createNimiMastraEmbeddingModel(
 
 function resolveEmbeddingSurface(
   options: NimiMastraEmbeddingModelOptions,
-  model: NimiModelRef,
 ): NimiRuntimeEmbeddingSurface {
   if (options.embedding) {
     return options.embedding;
@@ -67,16 +67,12 @@ function resolveEmbeddingSurface(
   }
   const appId = normalizeText(options.appId);
   if (!appId) {
-    throwUnsupportedMastraFeature('embeddingModel.config', 'appId is required for Runtime-routed embedding');
+    throwUnsupportedMastraFeature('embeddingModel.config', 'appId is required for Runtime-backed embedding');
   }
   return createNimiRuntimeEmbeddingClient({
     runtime: options.runtime,
-    model,
     appId,
-    routePolicy: options.routePolicy,
-    connectorId: options.connectorId,
     subjectUserId: options.subjectUserId,
-    targetRef: options.targetRef,
     timeoutMs: options.timeoutMs,
     metadata: options.metadata,
   });
@@ -120,15 +116,15 @@ function buildEmbeddingMetadata(
   return Object.keys(merged).length > 0 ? merged : undefined;
 }
 
-function normalizeModelRef(model: NimiModelRef): NimiModelRef {
-  const modelId = normalizeText(model?.modelId);
-  if (!modelId) {
-    throwUnsupportedMastraFeature('embeddingModel.config', 'model.modelId is required');
+function normalizeModelRef(model: NimiMastraEmbeddingCapabilityRef): NimiMastraEmbeddingCapabilityRef {
+  if (!model || typeof model !== 'object' || Array.isArray(model)) {
+    throwUnsupportedMastraFeature('embeddingModel.config', 'text.embed capability facade is required');
   }
-  return {
-    modelId,
-    providerId: normalizeText(model?.providerId),
-  };
+  const keys = Object.keys(model);
+  if (keys.length !== 1 || keys[0] !== 'modelId' || model.modelId !== 'text.embed') {
+    throwUnsupportedMastraFeature('embeddingModel.config', 'model must be exactly the text.embed capability facade');
+  }
+  return { modelId: 'text.embed' };
 }
 
 function toNimiJsonObject(value: SharedV3ProviderOptions | Record<string, string> | undefined): NimiJsonObject | undefined {

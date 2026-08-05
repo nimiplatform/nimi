@@ -10,29 +10,21 @@ import {
 const MODELS = [
   {
     id: 'local/text-chat',
-    runtimeModelId: 'local-runtime:text-chat',
-    targetRef: 'local-runtime:text-chat',
     supported: true,
     capabilities: ['text.generate', 'text.stream'],
   },
   {
     id: 'local/z-image-turbo',
-    runtimeModelId: 'local-runtime:image:z-image-turbo',
-    targetRef: 'local-runtime:image:z-image-turbo',
     supported: true,
     capabilities: ['image.generate'],
   },
   {
     id: 'local/speech',
-    runtimeModelId: 'local-runtime:speech',
-    targetRef: 'local-runtime:speech',
     supported: true,
     capabilities: ['audio.synthesize'],
   },
   {
     id: 'local/embedder',
-    runtimeModelId: 'local-runtime:embedder',
-    targetRef: 'local-runtime:embedder',
     supported: true,
     capabilities: ['text.embed'],
   },
@@ -57,7 +49,6 @@ function createRuntime(overrides = {}) {
       return {
         id: 'chatcmpl-runtime',
         createdUnixSeconds: 123,
-        model: request.model.id,
         message: { role: 'assistant', content: 'pong' },
         finishReason: 'stop',
         usage: { promptTokens: 5, completionTokens: 1, totalTokens: 6 },
@@ -75,7 +66,6 @@ function createRuntime(overrides = {}) {
       return {
         id: 'resp-runtime',
         createdUnixSeconds: 123,
-        model: request.model.id,
         outputText: 'pong',
         status: 'completed',
         usage: { inputTokens: 5, outputTokens: 1, totalTokens: 6 },
@@ -84,7 +74,6 @@ function createRuntime(overrides = {}) {
     async runEmbedding(request) {
       overrides.onEmbedding?.(request);
       return {
-        model: request.model.id,
         embeddings: [[0.1, 0.2], [0.3, 0.4]],
         usage: { promptTokens: 3, totalTokens: 3 },
       };
@@ -196,7 +185,7 @@ test('chat completions endpoint maps standard non-stream request and response', 
     ],
     usage: { prompt_tokens: 5, completion_tokens: 1, total_tokens: 6 },
   });
-  assert.equal(submitted[0].model.id, 'local/text-chat');
+  assert.equal('model' in submitted[0], false);
   assert.deepEqual(submitted[0].messages, [{ role: 'user', content: 'ping' }]);
   assert.equal(submitted[0].parameters.temperature, 0.2);
 });

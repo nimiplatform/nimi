@@ -3,23 +3,11 @@ import test from 'node:test';
 
 import {
   ExecutionMode,
-  FallbackPolicy,
   ScenarioJobEventType,
   ScenarioJobStatus,
   ScenarioType,
 } from '../../core-generated/runtime-typed-client';
-import type { RuntimeDurableTargetRef } from '../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
 import { runNimiRuntimeImageGeneration, runNimiRuntimeVideoGeneration } from './index';
-
-const targetRef: RuntimeDurableTargetRef = {
-  target: {
-    oneofKind: 'localRuntime',
-    localRuntime: {
-      version: 'v2',
-      ref: { oneofKind: 'profileBindingId', profileBindingId: 'local-runtime:image:z-image-turbo' },
-    },
-  },
-};
 
 test('runNimiRuntimeImageGeneration submits an image scenario job and returns image artifacts', async () => {
   const submitted: any[] = [];
@@ -81,8 +69,6 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
     head: {
       appId: 'nimi.local-gateway.openai-compatible',
       subjectUserId: 'local-user',
-      routePolicy: 'local',
-      targetRef,
     },
     prompt: 'Song dynasty scholar portrait',
     negativePrompt: 'low quality',
@@ -100,9 +86,11 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
   assert.equal(submitted.length, 1);
   assert.equal(submitted[0].request.scenarioType, ScenarioType.IMAGE_GENERATE);
   assert.equal(submitted[0].request.executionMode, ExecutionMode.ASYNC_JOB);
-  assert.equal(submitted[0].request.head.appId, 'nimi.local-gateway.openai-compatible');
-  assert.equal(submitted[0].request.head.fallback, FallbackPolicy.DENY);
-  assert.deepEqual(submitted[0].request.head.targetRef, targetRef);
+  assert.deepEqual(submitted[0].request.head, {
+    appId: 'nimi.local-gateway.openai-compatible',
+    subjectUserId: 'local-user',
+    timeoutMs: 0,
+  });
   assert.equal(submitted[0].request.spec.spec.oneofKind, 'imageGenerate');
   assert.equal(submitted[0].request.spec.spec.imageGenerate.prompt, 'Song dynasty scholar portrait');
   assert.equal(submitted[0].request.spec.spec.imageGenerate.negativePrompt, 'low quality');
@@ -175,8 +163,6 @@ test('runNimiRuntimeVideoGeneration submits a video scenario job and returns vid
     head: {
       appId: 'nimi.local-gateway.openai-compatible',
       subjectUserId: 'local-user',
-      routePolicy: 'local',
-      targetRef,
       timeoutMs: 123000,
     },
     mode: 't2v',
@@ -203,8 +189,11 @@ test('runNimiRuntimeVideoGeneration submits a video scenario job and returns vid
   assert.equal(submitted.length, 1);
   assert.equal(submitted[0].request.scenarioType, ScenarioType.VIDEO_GENERATE);
   assert.equal(submitted[0].request.executionMode, ExecutionMode.ASYNC_JOB);
-  assert.equal(submitted[0].request.head.timeoutMs, 123000);
-  assert.deepEqual(submitted[0].request.head.targetRef, targetRef);
+  assert.deepEqual(submitted[0].request.head, {
+    appId: 'nimi.local-gateway.openai-compatible',
+    subjectUserId: 'local-user',
+    timeoutMs: 123000,
+  });
   assert.equal(submitted[0].request.spec.spec.oneofKind, 'videoGenerate');
   assert.equal(submitted[0].request.spec.spec.videoGenerate.prompt, 'Generate a moving product shot');
   assert.equal(submitted[0].request.spec.spec.videoGenerate.negativePrompt, 'blur');

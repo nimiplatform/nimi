@@ -233,7 +233,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     orderedConnectors: derived.orderedConnectors,
     filteredLocalModels: derived.filteredLocalModels,
     filteredConnectorModels: derived.filteredConnectorModels,
-    runtimeProfileTargets: derived.runtimeProfileTargets,
     registeredRuntimePackageIds: [],
     runtimeDaemonStatus: daemon.runtimeDaemonStatus,
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,

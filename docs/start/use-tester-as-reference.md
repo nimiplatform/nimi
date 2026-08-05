@@ -2,8 +2,8 @@
 
 `apps/tester/` is Nimi Lab: a developer reference app for generated Nimi App
 repositories. Use it to understand how a real app wires Runtime auth, SDK
-calls, Kit surfaces, app-tools scaffold checks, AIConfig bindings, capability
-lanes, and local acceptance tests.
+calls, Kit surfaces, app-tools scaffold checks, AIConfig capability intent,
+capability lanes, and local acceptance tests.
 
 Do not treat Tester as platform admission truth. It is an app-owned reference
 surface, not the source of Runtime, SDK, Kit, Realm, release, registry, or
@@ -41,10 +41,10 @@ admission.
 | --- | --- |
 | App scaffold scripts and local checks | `apps/tester/package.json` |
 | Runtime-authenticated shell behavior | `apps/tester/README.md` and shell routes |
-| AIConfig storage and app scope | `apps/tester/src/tester/tester-ai-config-store.ts` |
-| Runtime AI dispatch with AIConfig binding | `apps/tester/src/tester/tester-runtime-invokers-core.ts` |
+| AIConfig storage and App owner | `apps/tester/src/tester/tester-ai-config-store.ts` |
+| Runtime AI dispatch from capability intent | `apps/tester/src/tester/tester-runtime.ts` |
 | Fail-closed capability states | `apps/tester/src/tester/tester-unavailable.ts` |
-| Kit model-config integration | `apps/tester/src/shell/ai/` and `apps/tester/src/shell/routes/settings/` |
+| AIConfig intent composition | `apps/tester/src/tester/workbench/tester-ai-config-settings-panel.tsx` |
 | Contract checks | `apps/tester/test/tester-contract/` |
 
 ## What Not To Copy Blindly
@@ -53,8 +53,8 @@ admission.
 - Tester local fixtures and demo data are not production data contracts.
 - Tester acceptance tests are examples of app-owned checks, not a substitute for
   your app's requirements.
-- Runtime route ids, AIConfig target refs, and provider connector ids must come
-  from your app's Runtime/model-config flow.
+- Runtime execution diagnostics are evidence; do not copy implementation,
+  route, connector, or target details into App requests.
 - Developer Mode is local development material, not public app listing
   admission.
 
@@ -62,12 +62,11 @@ admission.
 
 | State | Meaning |
 | --- | --- |
-| `runtime-not-ready` | Runtime is not reachable or ready for the lane. |
-| `ai-config-binding-missing` | No AIConfig target is selected for that capability. |
-| `auth-context-missing` | The route needs a signed-in Runtime account subject. |
-| `principal-unauthorized` | The Runtime account session is expired or unauthorized. |
-| `sdk-method-unavailable` | The current app build does not expose the required SDK method. |
-| `runtime-call-failed` | Runtime returned a typed contract/provider failure. |
+| `runtime-unavailable` | Runtime cannot be reached for the request. |
+| `permission-required` | Text generation permission has not been granted. |
+| `input-invalid` | Required capability input is missing or malformed. |
+| `sdk-method-unavailable` | The current App build does not expose the required SDK method. |
+| `runtime-call-failed` | Runtime returned a typed contract failure. |
 
 The app should surface these states directly. Do not collapse them into a
 single "SDK missing" or "model unavailable" message.
@@ -76,6 +75,6 @@ single "SDK missing" or "model unavailable" message.
 
 - [`apps/tester/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/README.md)
 - [`apps/tester/package.json`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/package.json)
-- [`apps/tester/src/tester/tester-runtime-invokers-core.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-runtime-invokers-core.ts)
+- [`apps/tester/src/tester/tester-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-runtime.ts)
 - [`apps/tester/src/tester/tester-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-ai-config-store.ts)
 - [`apps/tester/src/tester/tester-unavailable.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-unavailable.ts)

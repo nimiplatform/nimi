@@ -1,4 +1,3 @@
-import type { NimiRuntimeGenerationRoutePolicy } from './index';
 import type { NimiRuntimeSpeechVoiceReference } from '../../runtime/speech';
 import { createNimiError, ReasonCode } from '../../types';
 
@@ -24,20 +23,6 @@ export function toNimiRuntimeVoiceReferenceFromInput(input: unknown): NimiRuntim
     throw providerVoiceRefRejectedError();
   }
   throw publicVoiceReferenceError();
-}
-
-export function requireNimiRuntimeVoiceReferenceForLocalTts<TVoiceRef = NimiRuntimeSpeechVoiceReference>(input: {
-  readonly routePolicy?: NimiRuntimeGenerationRoutePolicy | string;
-  readonly voiceRef?: TVoiceRef;
-}): TVoiceRef | undefined {
-  if (input.routePolicy !== 'local' || input.voiceRef) {
-    return input.voiceRef;
-  }
-  throw voiceReferenceError(
-    'SDK_GENERATION_LOCAL_TTS_VOICE_REFERENCE_REQUIRED',
-    'audio.synthesize local model requires an explicit admitted Voice reference (preset_voice_id or voice_asset_id). Select a preset voice or bind a Runtime VoiceAsset before using Default.',
-    'select_admitted_voice_reference',
-  );
 }
 
 function voiceReferenceFromRecord(record: Readonly<Record<string, unknown>>): NimiRuntimeSpeechVoiceReference | undefined {

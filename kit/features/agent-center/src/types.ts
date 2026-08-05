@@ -28,7 +28,7 @@ export type AgentCenterRuntimeAutonomyConfigInput =
 
 export type AgentCenterSectionId =
   | 'overview'
-  | 'model'
+  | 'ai-config'
   | 'behavior'
   | 'cognition'
   | 'appearance'

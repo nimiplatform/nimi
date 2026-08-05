@@ -102,12 +102,12 @@ A library that depended on `@nimiplatform/sdk/runtime` for type information
 would drag the entire transport layer into its consumers. Pulling
 from `@nimiplatform/sdk/types` keeps the dependency graph thin.
 
-## What Is Not In `types`
+## Excluded From `types`
 
 | Excluded | Why |
 | --- | --- |
 | Method functions | Those live in `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`, etc. |
-| Transport details (`connectorId`, gRPC metadata) | Layered, not in `types` |
+| Transport internals (for example, gRPC metadata) | Owned by the transport layer, not App request types |
 | Provider names | Catalog data, not type system |
 | World content (rules, Characters, etc.) | Content, not types |
 

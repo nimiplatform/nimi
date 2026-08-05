@@ -3,9 +3,9 @@
 > Status: Running today. Desktop projects capability availability for the
 > active Runtime-owned conversation anchor.
 
-The projection combines Runtime route and readiness results with bounded
-Desktop controls for the active conversation. It does not define a capability
-set, participation profile, execution route, or durable Conversation truth.
+The projection combines typed Runtime operation results with bounded Desktop
+controls for the active conversation. It does not define a capability set,
+participation profile, implementation selection, or durable Conversation truth.
 
 ## Why Per-Conversation
 
@@ -19,26 +19,26 @@ LocalAgent state.
 | Owns | Does NOT own |
 | --- | --- |
 | Ephemeral controls and availability rendering | Conversation anchor and continuity (Runtime) |
-| Typed unavailable and setup UI | Voice, media, tool, route, Quota, and Budget decisions (Runtime) |
+| Typed unavailable and setup UI | Voice, media, tool, implementation, Quota, and Budget decisions (Runtime) |
 | Attachment selection before submission | Committed attachment and turn truth (Runtime) |
 
 Desktop may cache projection state for rendering, but the cache is not
-Runtime or Realm truth and cannot prove a capability ready.
+Runtime or Realm truth and cannot prove that a future operation will execute.
 
 ## Reader Scenario: User Toggles Voice For A Conversation
 
 1. **User requests voice.** Desktop submits typed intent for the active
    Runtime conversation anchor.
-2. **Runtime evaluates the request.** Current authorization, route, Quota,
-   Budget, and readiness determine the result.
+2. **Runtime evaluates the request.** Current capability intent, authorization,
+   Quota, Budget, and implementation availability determine the result.
 3. **Desktop renders the projection.** Other conversation anchors are
    unaffected.
 
-## What Conversation Capability Does Not Do
+## Runtime Ownership
 
-- It does not become a LocalAgent presentation or participation profile.
-- It does not redefine voice, media, tool, route, or authorization semantics.
-- It does not promote UI or cached state to Conversation or LocalAgent truth.
+The projection remains separate from LocalAgent presentation and participation
+profiles. Voice, media, tool, implementation, and authorization semantics stay
+with Runtime. UI and cached state never become Conversation or LocalAgent truth.
 
 ## Source Basis
 

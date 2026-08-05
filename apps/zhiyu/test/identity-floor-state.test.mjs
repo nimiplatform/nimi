@@ -81,13 +81,6 @@ function evidence(overrides = {}) {
       unsupportedLifecycleFields: ['review', 'redaction', 'forgetIntent'],
       records: [],
     },
-    route: {
-      ...status('zhiyu-ai-config-route-selection-required'),
-      capability: 'text.generate',
-      selectedTargetRefKind: null,
-      resolvedBindingRef: null,
-      executionBinding: null,
-    },
     turn: {
       ...status('zhiyu-conversation-anchor-required'),
       ownerUserId: null,

@@ -6,7 +6,7 @@ import { convertReadableStreamToArray } from 'ai/test';
 import { z } from 'zod/v4';
 
 import type { NimiAiModel } from '@nimiplatform/sdk/ai';
-import type { NimiModelRef, NimiRunEvent } from '@nimiplatform/sdk/contracts';
+import type { NimiRunEvent } from '@nimiplatform/sdk/contracts';
 import { createNimiVercelLanguageModel } from './index';
 import { createUpstreamCompatModel, DEFAULT_USAGE } from './vercel-ai.upstream-compat.fixture';
 
@@ -548,7 +548,7 @@ test('upstream-compat/generateText: multi-step callbacks and total usage follow 
 });
 
 test('upstream-compat/streamText: thrown model stream errors reject textStream consumers', async () => {
-  const modelRef: NimiModelRef = { providerId: 'mock', modelId: 'throwing-stream-model' };
+  const modelRef = { modelId: 'text.generate' as const };
   const model: NimiAiModel = {
     model: modelRef,
     async generateText() {

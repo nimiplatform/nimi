@@ -1,7 +1,7 @@
 import type { TesterCapability } from './tester-capabilities.js';
 
 // App-owned presentation categories for typed SDK/Runtime failures. They never
-// stand in for a successful execution or a configuration/readiness authority.
+// stand in for a successful execution.
 export type TesterUnavailableReason =
   | 'runtime-unavailable'
   | 'permission-required'
@@ -76,7 +76,7 @@ function actionHintForReason(reason: TesterUnavailableReason): string {
     case 'input-invalid':
       return 'Supply a valid request body for this capability, then retry.';
     case 'runtime-call-failed':
-      return 'Runtime returned a typed contract failure. Inspect the verbatim Runtime error; do not infer a fallback route.';
+      return 'Runtime returned a typed contract failure. Inspect the verbatim Runtime error without inferring success.';
     case 'runtime-unavailable':
       return 'Restore the protected Runtime connection, then retry the same request.';
   }

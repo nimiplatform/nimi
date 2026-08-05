@@ -27,9 +27,8 @@ const projection = {
   ecosystemReference: null,
   personaReference: null,
   aiConfig: {
-    scopeRef: { kind: 'app', ownerId: 'nimi.tester', surfaceId: 'app-lab' },
-    capabilities: { targetRefs: {}, selectedParams: {} },
-    profileOrigin: null,
+    owner: {},
+    capabilities: {},
   },
 };
 let rejectedCommandCount = 0;

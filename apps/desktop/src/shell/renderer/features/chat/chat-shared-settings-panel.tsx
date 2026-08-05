@@ -167,9 +167,9 @@ function AiModeSettings(props: {
           </div>
           <StatusBadge tone={routeKind ? 'success' : 'warning'}>
             {routeKind === 'local'
-              ? t('Chat.settingsRouteLocal', { defaultValue: 'Local' })
+              ? t('Chat.settingsIntentLocal', { defaultValue: 'Local' })
               : routeKind === 'cloud'
-                ? t('Chat.settingsRouteCloud', { defaultValue: 'Cloud' })
+                ? t('Chat.settingsIntentCloud', { defaultValue: 'Cloud' })
                 : t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' })}
           </StatusBadge>
         </div>
@@ -183,7 +183,9 @@ function AiModeSettings(props: {
         ) : null}
 
         <div className="space-y-2">
-          <div className="text-xs font-semibold text-[var(--nimi-text-secondary)]">Execution intent</div>
+          <div className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
+            {t('Chat.settingsExecutionIntent', { defaultValue: 'Execution intent' })}
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               tone={routeDraft === 'local' ? 'primary' : 'secondary'}
@@ -197,29 +199,37 @@ function AiModeSettings(props: {
               size="sm"
               onClick={() => setRouteDraft('cloud')}
             >
-              {t('Chat.settingsRouteCloud', { defaultValue: 'Cloud' })}
+              {t('Chat.settingsIntentCloud', { defaultValue: 'Cloud' })}
             </Button>
           </div>
         </div>
 
         <label className="block space-y-1.5 text-xs text-[var(--nimi-text-secondary)]">
-          <span className="font-semibold">Required features</span>
+          <span className="font-semibold">
+            {t('Chat.settingsRequiredFeatures', { defaultValue: 'Required features' })}
+          </span>
           <input
             value={requiredFeaturesDraft}
             onChange={(event) => setRequiredFeaturesDraft(event.currentTarget.value)}
-            placeholder="Comma-separated CapabilityContract features"
+            placeholder={t('Chat.settingsRequiredFeaturesPlaceholder', {
+              defaultValue: 'Comma-separated CapabilityContract features',
+            })}
             className="min-h-9 w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-3 text-sm text-[var(--nimi-text-primary)]"
           />
         </label>
 
         <label className="block space-y-1.5 text-xs text-[var(--nimi-text-secondary)]">
-          <span className="font-semibold">Portable defaults (JSON)</span>
+          <span className="font-semibold">
+            {t('Chat.settingsPortableDefaults', { defaultValue: 'Portable defaults (JSON)' })}
+          </span>
           <textarea
             value={defaultsDraft}
             onChange={(event) => setDefaultsDraft(event.currentTarget.value)}
             rows={4}
             spellCheck={false}
-            placeholder="Optional capability defaults"
+            placeholder={t('Chat.settingsPortableDefaultsPlaceholder', {
+              defaultValue: 'Optional capability defaults',
+            })}
             className="w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)]"
           />
         </label>
@@ -252,7 +262,9 @@ function AiModeSettings(props: {
               })}
             </InlineAlert>
             <details className="rounded-lg border border-[var(--nimi-border-subtle)] p-2 text-xs text-[var(--nimi-text-secondary)]">
-              <summary className="cursor-pointer font-semibold">Technical details</summary>
+              <summary className="cursor-pointer font-semibold">
+                {t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' })}
+              </summary>
               <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[11px]">
                 {overwriteAppAIConfig.error instanceof Error
                   ? overwriteAppAIConfig.error.message

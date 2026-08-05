@@ -5,8 +5,6 @@ import {
   LocalProfileEntryKind,
 } from '../core-generated/runtime-typed-client';
 import { GpuMemoryModel } from '../core-generated/runtime-typed-client';
-import type { NimiRuntimeCanonicalCapability } from './route-options';
-import { normalizeNimiRuntimeRouteCapabilityToken } from './route-options';
 
 export type NimiRuntimeLocalRunnableAssetKindId =
   | 'chat'
@@ -158,9 +156,9 @@ const MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY = {
   tts: 'audio.synthesize',
   stt: 'audio.transcribe',
   music: 'music.generate',
-} as const satisfies Record<string, NimiRuntimeCanonicalCapability>;
+} as const satisfies Record<string, string>;
 const MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY_BY_TOKEN =
-  MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY as Record<string, NimiRuntimeCanonicalCapability | undefined>;
+  MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY as Record<string, string | undefined>;
 
 const CANONICAL_CAPABILITY_TO_ASSET_KIND = {
   'text.generate': 'chat',
@@ -175,7 +173,7 @@ const CANONICAL_CAPABILITY_TO_ASSET_KIND = {
   'audio.transcribe': 'stt',
   'voice_workflow.voice_clone': 'tts',
   'voice_workflow.voice_design': 'tts',
-} as const satisfies Partial<Record<NimiRuntimeCanonicalCapability, NimiRuntimeLocalRunnableAssetKindId>>;
+} as const satisfies Partial<Record<string, NimiRuntimeLocalRunnableAssetKindId>>;
 
 export function parseNimiRuntimeLocalAssetKindId(value: unknown): NimiRuntimeLocalAssetKindId | undefined {
   const raw = normalizeLocalVocabularyText(value);
@@ -450,12 +448,12 @@ export function canImportNimiRuntimeLocalAssetDeclaration(
 
 export function nimiRuntimeCanonicalCapabilityForLocalManifestToken(
   value: unknown,
-): NimiRuntimeCanonicalCapability | null {
-  const normalized = normalizeNimiRuntimeRouteCapabilityToken(value);
+): string | null {
+  const normalized = normalizeLocalVocabularyText(value).toLowerCase();
   return normalized ? (MANIFEST_TOKEN_TO_CANONICAL_CAPABILITY_BY_TOKEN[normalized] || normalized) : null;
 }
 
-export function nimiRuntimeLocalCapabilitiesForAssetKind(kind: NimiRuntimeLocalAssetKindId): NimiRuntimeCanonicalCapability[] {
+export function nimiRuntimeLocalCapabilitiesForAssetKind(kind: NimiRuntimeLocalAssetKindId): string[] {
   const parsed = parseNimiRuntimeLocalAssetKindId(kind);
   if (!parsed || !isNimiRuntimeLocalRunnableAssetKindId(parsed)) {
     return [];

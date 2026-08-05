@@ -10,7 +10,6 @@ import {
 
 type LocalModelCenterImportControlsProps = {
   checkingHealth: boolean;
-  localHealthy: boolean;
   lastCheckedAt?: string | null | undefined;
   discovering: boolean;
   importMenuRef: RefObject<HTMLDivElement | null>;
@@ -44,7 +43,6 @@ export function LocalModelCenterImportControls(props: LocalModelCenterImportCont
     <>
       <LocalModelCenterToolbar
         checkingHealth={props.checkingHealth}
-        localHealthy={props.localHealthy}
         lastCheckedAt={props.lastCheckedAt ?? null}
         discovering={props.discovering}
         importMenuRef={props.importMenuRef}

@@ -1,6 +1,6 @@
 # Nimi Examples
 
-These examples are organized by onboarding slope: start with one file that proves Nimi works, then move into streaming, cloud routing, and deeper runtime capabilities.
+These examples are organized by onboarding slope: start with one file that proves Nimi works, then move into streaming, capability intent, and deeper Runtime features.
 
 ## Before You Run Anything
 
@@ -14,11 +14,10 @@ export PATH="$PWD/dist:$PATH"
 nimi start
 ```
 
-Fastest cloud proof:
+Fastest Runtime proof:
 
 ```bash
 nimi run "What is Nimi?"
-nimi run "What is Nimi?" --provider gemini
 ```
 
 Node.js is only needed when you run the TypeScript example files directly.
@@ -40,7 +39,7 @@ This is the shortest proof that:
 ```bash
 npx tsx examples/sdk/01-hello.ts
 npx tsx examples/sdk/02-streaming.ts
-npx tsx examples/sdk/03-local-vs-cloud.ts
+npx tsx examples/sdk/03-runtime-intent.ts
 npx tsx examples/sdk/04-vercel-ai-sdk.ts
 npx tsx examples/sdk/05-multimodal.ts
 ```
@@ -49,7 +48,7 @@ What each file demonstrates:
 
 - `01-hello.ts`: smallest possible text generation
 - `02-streaming.ts`: stream chunks from the same runtime surface
-- `03-local-vs-cloud.ts`: switch execution plane by adding a provider
+- `03-runtime-intent.ts`: keep the request stable while Runtime follows the App's Local or Cloud intent
 - `04-vercel-ai-sdk.ts`: Nimi as a provider for the Vercel AI SDK
 - `05-multimodal.ts`: image and TTS flows through the runtime
 
@@ -63,21 +62,11 @@ Advanced examples live under `examples/sdk/advanced/`:
 
 - `app-auth.ts`: process-bound session → zero-prompt app-private storage → reserved product permission fails closed
 - `knowledge.ts`: private knowledge bank/page CRUD + keyword search
-- `custom-runtime.ts`: explicit transport + provider wiring
+- `custom-runtime.ts`: explicit Runtime transport configuration
 
-Provider-focused examples remain in `examples/sdk/providers/`.
-
-The onboarding ladder stays on high-level `nimi run` and vNext Runtime AI model
-flows. Fully-qualified explicit model ids remain in lower-level surfaces such as
-`nimi ai text-generate --model-id ...` and
-`client.ai.createRuntimeModel({ model: ... }).generateText(...)`.
-
-For SDK examples that use provider-default cloud targeting, save a reusable default on the runtime machine first:
-
-```bash
-nimi provider set gemini --api-key-env NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --default
-export NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=YOUR_KEY
-```
+The onboarding ladder keeps execution requests limited to App identity, scenario content,
+and supported parameters. Runtime reads the App's capability intent and chooses the
+implementation when execution starts.
 
 ## Compile Gate
 
@@ -90,5 +79,4 @@ pnpm --filter @nimiplatform/examples run check
 - `sdk/`: app-facing SDK examples
 - `app-template/`: app scaffold reference
 - `sdk/advanced/`: deeper runtime features
-- `sdk/providers/`: provider-specific recipes
 - `runtime/`: CLI examples

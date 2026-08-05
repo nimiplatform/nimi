@@ -30,10 +30,6 @@ Nimi 中的语音是一种运行时一流能力。语音创建（克隆 + 设计
 | `app_id` | 所属应用上下文 |
 | `subject_user_id` | 所属用户（租户范围） |
 | `workflow_type` | `voice_clone` / `voice_design` |
-| `provider` | 后端提供商 |
-| `model_id` | 创建时使用的提供商模型 |
-| `target_model_id` | 资产绑定用于合成的模型 |
-| `provider_voice_ref` | 提供商拥有的原生句柄真相 |
 | `persistence` | 逻辑生命周期（`persistence_types`） |
 | `status` | 资产状态（`asset_statuses`） |
 
@@ -49,20 +45,19 @@ Nimi 中的语音是一种运行时一流能力。语音创建（克隆 + 设计
 | --- | --- | --- |
 | `VoiceAsset` | 持久化的运行时拥有的语音资源 | 运行时 (`Runtime`) |
 | `VoiceReference` | 合成调用用于识别要发声的语音的句柄 | 运行时 (`Runtime`) |
-| `provider_voice_ref` | 提供商API内部的原生句柄 | 提供商 (`Provider`) |
+| 提供商原生句柄 | 不会进入普通 App 输入的内部身份 | 提供商 / Runtime Driver |
 | 语音合成 (`Voice synthesis`) | 使用 `VoiceReference` 生成音频的一次性 `tts_synthesize` 调用 | 运行时 (RPC) |
 
-`VoiceAsset` 和 `provider_voice_ref` 必须保持分离。运行时不得将 `provider_voice_ref` 提升为公共主键。提供商不得绕过 `VoiceAsset` 成为运行时的用户资源真相。当提供商返回原生自定义语音句柄时，运行时会将其整合到 `VoiceAsset + VoiceReference` 公共契约中。
+Runtime 不得将提供商原生语音句柄提升为公共主键。提供商返回原生句柄时，Runtime 在内部保留它，只向 App 暴露 Runtime 拥有的 `VoiceAsset` 和已准入的 `VoiceReference`。
 
 ## VoiceReference 边界
 
-合成入口点通过 `VoiceReference`。仅有三种已准入的引用类型：
+普通合成入口只接受两种公共 `VoiceReference`：
 
 | 类型 (`Kind`) | 用途 (`Use`) |
 | --- | --- |
 | `preset_voice_id` | 系统预设语音 |
 | `voice_asset_id` | 用户创建的 `VoiceAsset` |
-| `provider_voice_ref` | 提供商原生句柄（明确准入） |
 
 引用类型枚举定义在 `tables/voice-enums.yaml` (`reference_kinds`) 中。
 
@@ -101,10 +96,6 @@ Nimi 中的语音是一种运行时一流能力。语音创建（克隆 + 设计
 ## 租户隔离
 
 `VoiceAsset` 默认按用户范围划分。跨 `app_id` 或跨 `subject_user_id` 访问将封闭失败。没有隐式的跨租户语音资产复用。
-
-## 目标模型绑定
-
-`VoiceAsset` 在创建时绑定 `target_model_id`。如果 `tts_synthesize` 稍后请求不同的目标模型，运行时将返回 `AI_VOICE_TARGET_MODEL_MISMATCH`。此绑定是契约性的；它不是一个建议性提示。
 
 ## 语音句柄策略
 
@@ -149,11 +140,11 @@ Nimi 中的语音是一种运行时一流能力。语音创建（克隆 + 设计
 2.  **分两部分渲染。** UI 根据 `discovery_mode` 边界将它们显示为独立的部分。
 3.  **无混合 API。** 应用不应寻找单个“列出所有内容”的调用——不存在这样的调用，且通道分离是契约性的。
 
-## 语音资产生命周期不涵盖的范围
+## 生命周期边界
 
 -   它**不是**一次性合成调用。`tts_synthesize` 是瞬态的；`VoiceAsset` 是持久化资源真相。
 -   它不会将预设和用户资产发现混合到一个流中。
--   它不允许提供商进入公共资产层面；`provider_voice_ref` 始终保留在 `VoiceReference` 内部。
+-   它不允许提供商进入公共资产层面；提供商原生句柄只保留在 Runtime 及其 Driver 内部。
 -   它不会静默地跨越租户。用户范围是封闭失败的。
 -   它不允许支持工作流的 TTS 家族替代 STT；`audio.transcribe` 根据 `K-VOICE-016` 家族级边界独立准入。
 
@@ -166,7 +157,6 @@ Nimi 中的语音是一种运行时一流能力。语音创建（克隆 + 设计
 | `VoiceReference` 合成入口 | 运行时 (`K-VOICE-003`) |
 | 提供商原生语音句柄 | 提供商 (`provider_voice_ref`) |
 | 租户隔离 | 运行时 (`K-VOICE-006`) |
-| 目标模型绑定 | 运行时 (`K-VOICE-007`) |
 | 发现通道分离 | 运行时 (`K-VOICE-009`, `K-VOICE-013`) |
 | 语音句柄策略 | 运行时 (`K-VOICE-015`) |
 | 家族级工作流验证边界 | 运行时 (`K-VOICE-016`) |

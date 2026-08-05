@@ -48,7 +48,6 @@ export function createNimiLangGraphAdapter(options: { readonly model: NimiAiMode
     manifest: NIMI_LANGGRAPH_ADAPTER_MANIFEST,
     async node(state) {
       const result = await options.model.generateText({
-        model: options.model.model,
         messages: state.messages,
       });
       return {

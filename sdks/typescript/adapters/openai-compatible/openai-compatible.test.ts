@@ -15,7 +15,7 @@ import {
   type OpenAICompatibleTool,
 } from './index';
 
-test('openai-compatible adapter maps non-streaming chat completions to Nimi generation', async () => {
+test('openai-compatible adapter maps chat content without forwarding the compatibility model alias', async () => {
   const calls: NimiGenerateTextRequest[] = [];
   const model = createFakeModel(calls);
   const client = createNimiOpenAICompatibleAdapter({
@@ -46,7 +46,7 @@ test('openai-compatible adapter maps non-streaming chat completions to Nimi gene
     completion_tokens: 1,
     total_tokens: 4,
   });
-  assert.equal(calls[0]?.model.modelId, 'kimi-nimi');
+  assert.equal(calls[0] && 'model' in calls[0], false);
   assert.equal(calls[0]?.messages[0]?.role, 'developer');
   assert.equal(calls[0]?.parameters?.temperature, 0.2);
   assert.equal(calls[0]?.parameters?.maxTokens, 64);
@@ -288,8 +288,7 @@ function createFakeModel(
 ): NimiAiModel {
   return {
     model: {
-      providerId: 'test',
-      modelId: 'fake-model',
+      modelId: 'text.generate',
     },
     async generateText(request) {
       calls.push(request);

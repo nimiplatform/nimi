@@ -126,7 +126,6 @@ export {
   ExecutionMode,
   ExternalPrincipalType,
   ExternalProofType,
-  FallbackPolicy,
   FinishReason,
   HookAdmissionState,
   HookTriggerFamily,

@@ -1,66 +1,81 @@
 # AI Config Surface
 
-SDK AI Config surface 是 app-owned AI capability binding 的类型边界。它回答开发者的一个问题：这个 capability 应该使用哪个 Runtime target；如果没有 live target，App 应该如何 fail closed。
+SDK AIConfig surface 提供 owner-scoped AI 能力意图的类型边界。App 记录需要的 capability contract、required features、portable defaults，以及 Local 或 Cloud 执行平面意图。机器配置和具体实现选择归 Runtime 管理。
 
-当前代码通过 `@nimiplatform/sdk` 和 `@nimiplatform/sdk/ai` 暴露 AIConfig types、stores、profile helpers、target-ref validation、scheduling helpers 和 runtime-binding helpers。Kit 消费这些 primitives，提供可复用的 model-config UI。
+AIConfig 是一个 owner 当前配置的完整值。更新操作会替换整个 capability 列表；配置中没有 revision history、execution binding、readiness 或 health 状态。
 
 ## 当前公开部分
 
 | 部分 | 公开路径 | 作用 |
 | --- | --- | --- |
-| AIConfig types 和 target refs | `@nimiplatform/sdk` 或 `@nimiplatform/sdk/ai` | `NimiAIConfig`、`NimiAIScopeRef`、`NimiAIConfigTargetRef`、profile 与 snapshot types |
-| Scope helpers | `@nimiplatform/sdk/ai` | 创建和验证 `NimiAIScopeRef` |
-| Config store helpers | `@nimiplatform/sdk/ai` | App-owned AIConfig 与 snapshot storage adapters |
-| Runtime binding resolver | `@nimiplatform/sdk/ai` | 把 `NimiAIConfig` + capability id 转成 model、route policy、target ref、metadata |
-| Kit model-config surface | `@nimiplatform/kit/features/model-config/*` | 选择/应用 model binding 的可复用 UI 与 headless contracts |
+| AIConfig types | `@nimiplatform/sdk` 或 `@nimiplatform/sdk/ai` | 提供 `NimiCapabilityAIConfig` 和 `NimiCapabilityAIConfigIntent` |
+| App owner helper | `@nimiplatform/sdk/ai` | 从 App ID 创建显式 owner assertion |
+| App AIConfig client | `@nimiplatform/sdk/ai` | 读取或整体覆盖 Runtime 管理的 App AIConfig |
+| Agent Center AIConfig section | `@nimiplatform/kit/features/agent-center` | 展示 owner-scoped Local 或 Cloud 能力意图 |
 
-## Target Ref Families
+## 能力意图
 
-| `targetRef.kind` | 含义 | Dispatch 状态 |
-| --- | --- | --- |
-| `profile-slice` | 尚未 materialize 成 live Runtime target 的 profile intent | 不可 dispatch |
-| `local-runtime` | Runtime local target identity v2，携带 `profileBindingId` 或 `readinessRef` | Runtime 可解析时可 dispatch |
-| `cloud-connector` | Runtime cloud provider connector 与 remote model catalog identity | provider connector 配置完成时可 dispatch |
+每个 capability entry 包含：
 
-Runtime-backed `createRuntimeModel` 和 embedding clients 在缺少 `targetRef` 或仍指向 `profile-slice` 时 fail closed。
+| 字段 | 含义 |
+| --- | --- |
+| `capabilityContract` | 所需能力合同，例如 `text.generate` |
+| `requiredFeatures` | Runtime 选择的实现必须支持的功能 |
+| `defaults` | 可跨机器使用的场景默认值，不是机器或 provider 配置 |
+| Local 或 Cloud intent | consumer 期望使用的执行平面 |
+| 获准使用时的 `connectorGrantId` | 授权引用，不包含 provider credential |
+
+Local intent 不包含 implementation identity、machine selection、asset、binding、Driver state、readiness 或 health。App 也应省略 generated wire 中可能尝试指定 Cloud implementation 或 provider-model target 的可选字段。
 
 ## App 集成流程
 
-1. App 创建显式 app scope，通常使用 `createNimiAppAIScopeRef(appId, surfaceId)`。
-2. App 通过 app-owned AIConfig service 存取 `NimiAIConfig`。
-3. App 使用 Kit model-config UI 或其他已准入的 app flow 选择或应用 Runtime target。
-4. Dispatch 前，App 针对要运行的 capability 调用 `resolveNimiAIConfigRuntimeBinding(...)`。
-5. App 把解析出的 `model`、`routePolicy`、`connectorId`、`targetRef` 和 metadata 传给 SDK Runtime AI calls。
+1. 使用准确的 App ID 创建 Nimi client。
+2. 在 `client.runtime` 上创建 typed App AIConfig client。
+3. 读取当前完整配置。
+4. owner 修改意图时，整体覆盖 capability 列表。
+5. 通过常规 SDK feature surface 提交 AI 工作，请求只携带身份、内容和受支持参数。
 
-Dispatch 形状见 [第一次 AI 调用](/zh/sdk/first-ai-call)。
+```ts
+import {
+  createNimiAppAIConfigClient,
+  createNimiClient,
+} from '@nimiplatform/sdk';
 
-## Fail-Closed Binding Resolution
+const client = createNimiClient({ appId: 'example.sdk.hello' });
+const aiConfig = createNimiAppAIConfigClient({
+  appId: 'example.sdk.hello',
+  runtime: client.runtime,
+});
 
-`resolveNimiAIConfigRuntimeBinding(...)` 返回 typed failure，而不是伪造 model：
+await aiConfig.overwrite([{
+  capabilityContract: 'text.generate',
+  requiredFeatures: [],
+  route: {
+    oneofKind: 'local',
+    local: {},
+  },
+}]);
+```
 
-| Reason | 含义 |
-| --- | --- |
-| `binding-capability-missing` | App 没有声明这个 route 由哪个 AIConfig capability 支撑。 |
-| `target-ref-missing` | 该 capability 没有选中 target。 |
-| `profile-slice-unmaterialized` | config 仍指向 profile intent，不是 live Runtime target。 |
-| `runtime-model-missing` | target ref 没有 runtime model id。 |
+请求中的 owner 只用于一致性断言。Runtime 仍从 authenticated transport context 取得 account 和 App 身份。
 
-App 应该把这些状态展示为 model setup 或 account/setup 工作。不要 fallback 到 `auto`、硬编码 provider，或 app-local REST。
+执行调用见[第一次 AI 调用](/zh/sdk/first-ai-call)。AI 请求不会将能力意图解析成 model、route、connector、target reference 或 fallback policy。
 
-## 这个 Surface 不拥有什么
+## Fail-Closed 行为
 
-- 不拥有 Runtime model readiness 或 execution evidence。
-- 不拥有 Realm truth 或 app listing admission。
-- 不允许 App 发明 scope kinds。
-- 不允许 App 通过任意写入 live target id 绕过 profile apply/materialization。
-- 不把 CLI `nimi run` 成功等同于 App AIConfig readiness。
+SDK 会拒绝格式错误的 App ID、owner 不一致、返回配置缺失，以及非数组的 overwrite 输入。Runtime 会在负责该操作的边界通过 typed error 拒绝意图缺失、Cloud 使用未授权、能力要求不受支持或当前无法执行的请求。
+
+App 应保留这些错误。不要替换成 `auto`，不要硬编码 provider 或 model，不要建立本地排名，也不要通过 App-owned REST 绕过 Runtime。
+
+## Runtime 管理的状态
+
+机器配置、已安装 asset、Driver state、readiness、health 和执行诊断都是 Runtime 事实。诊断输出可以解释已经完成或失败的调用，但不会赋予 App 请求侧实现选择权。
 
 ## 来源依据
 
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
-- [`sdks/typescript/core/ai/config-types.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-types.ts)
-- [`sdks/typescript/core/ai/config-scope.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-scope.ts)
-- [`sdks/typescript/core/ai/config-runtime-binding.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-runtime-binding.ts)
-- [`sdks/typescript/core/ai/runtime-target-ref.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-target-ref.ts)
-- [`kit/features/model-config/src`](https://github.com/nimiplatform/nimi/tree/main/kit/features/model-config/src)
-- [`apps/tester/src/tester/tester-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-ai-config-store.ts)
+- [`sdks/typescript/core/ai/capability-configuration.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/capability-configuration.ts)
+- [`sdks/typescript/core/ai/config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config.ts)
+- [`sdks/typescript/core-generated/runtime-protobuf/runtime/v1/capability_configuration.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core-generated/runtime-protobuf/runtime/v1/capability_configuration.ts)
+- [`kit/features/agent-center/src/components/AgentCenterAIConfigSection.tsx`](https://github.com/nimiplatform/nimi/blob/main/kit/features/agent-center/src/components/AgentCenterAIConfigSection.tsx)
+- [`apps/tester/src/tester/tester-run-target.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-run-target.ts)

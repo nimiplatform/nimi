@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import test from 'node:test';
 
 import type { MastraEmbeddingModel } from '@mastra/core/vector';
-import type { NimiClient } from '@nimiplatform/sdk';
+import type { NimiClient, NimiClientEmbeddingOptions } from '@nimiplatform/sdk';
 import {
   RoutePolicy,
   ScenarioJobEventType,
@@ -28,7 +28,7 @@ import { createNimiFixtureModel } from './mastra.fixtures';
 test('Nimi Mastra embedding model maps AI SDK embed calls to Runtime embeddings', async () => {
   const calls: unknown[] = [];
   const model = createNimiMastraEmbeddingModel({
-    model: { providerId: 'runtime', modelId: 'embed-1' },
+    model: { modelId: 'text.embed' },
     embedding: {
       async embedText(request) {
         calls.push(request);
@@ -62,12 +62,41 @@ test('Nimi Mastra embedding model maps AI SDK embed calls to Runtime embeddings'
   );
 });
 
+test('Nimi Mastra embedding model accepts only the text capability facade', () => {
+  const embedding = {
+    async embedText() {
+      return {
+        embeddings: [[1]],
+        raw: {
+          traceId: '',
+          modelResolved: '',
+          routeDecision: '',
+          ignoredExtensions: [],
+        },
+      };
+    },
+  };
+  for (const model of [
+    { modelId: 'implementation-model' },
+    { modelId: 'text.embed', providerId: 'runtime' },
+  ]) {
+    assert.throws(
+      () => createNimiMastraEmbeddingModel({ model: model as never, embedding }),
+      (error: unknown) => {
+        assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
+        assert.equal(error.feature, 'embeddingModel.config');
+        return true;
+      },
+    );
+  }
+});
+
 test('Nimi Mastra provider exposes Runtime-backed embedding model and fails closed without config', async () => {
-  let capturedModelId = '';
+  let capturedAppId = '';
   const client = {
     ai: {
-      createRuntimeEmbeddingClient(options: { readonly model: { readonly modelId: string } }) {
-        capturedModelId = options.model.modelId;
+      createRuntimeEmbeddingClient(options: NimiClientEmbeddingOptions) {
+        capturedAppId = options.appId ?? '';
         return {
           async embedText() {
             return {
@@ -89,24 +118,15 @@ test('Nimi Mastra provider exposes Runtime-backed embedding model and fails clos
     client,
     embedding: {
       appId: 'app-1',
-      providerId: 'runtime',
-      routePolicy: 'cloud',
-      targetRef: {
-        kind: 'cloud-connector',
-        connectorId: 'connector-embedding',
-        remoteModelCatalogId: 'remote-catalog:embed-provider-1',
-        providerModelId: 'embed-provider-1',
-        provider: 'runtime',
-      },
     },
   });
-  const embedded = await provider.embeddingModel('embed-provider-1').doEmbed({ values: ['hello'] });
+  const embedded = await provider.embeddingModel('text.embed').doEmbed({ values: ['hello'] });
 
-  assert.equal(capturedModelId, 'embed-provider-1');
+  assert.equal(capturedAppId, 'app-1');
   assert.deepEqual(embedded.embeddings, [[1, 2, 3]]);
-  assert.equal(provider.textEmbeddingModel('embed-provider-1').modelId, 'embed-provider-1');
+  assert.equal(provider.textEmbeddingModel('text.embed').modelId, 'text.embed');
 
-  const languageOnly = createNimiMastraProvider({ model: createNimiFixtureModel({ modelId: 'text-1' }).model });
+  const languageOnly = createNimiMastraProvider({ model: createNimiFixtureModel().model });
   assert.throws(
     () => languageOnly.embeddingModel('embed-1'),
     (error: unknown) => {
@@ -114,6 +134,34 @@ test('Nimi Mastra provider exposes Runtime-backed embedding model and fails clos
       assert.equal(error.feature, 'provider.embeddingModel');
       return true;
     },
+  );
+});
+
+test('Nimi Mastra voice rejects provider-native references and speaker kinds', async () => {
+  const runtime = {} as never;
+  assert.throws(
+    () => createNimiMastraVoice({
+      runtime,
+      head: { appId: 'app-1' },
+      defaultVoice: { kind: 'provider_voice_ref', providerVoiceRef: 'private' } as never,
+      idempotencyKeyFactory: () => 'idem',
+    }),
+    (error: unknown) => error instanceof NimiMastraVoiceUnsupportedFeatureError
+      && error.feature === 'voice.defaultVoice',
+  );
+
+  const voice = createNimiMastraVoice({
+    runtime,
+    head: { appId: 'app-1' },
+    idempotencyKeyFactory: () => 'idem',
+  });
+  await assert.rejects(
+    () => voice.speak('hello', {
+      speaker: 'private',
+      speakerKind: 'provider_voice_ref' as never,
+    }),
+    (error: unknown) => error instanceof NimiMastraVoiceUnsupportedFeatureError
+      && error.feature === 'voice.speak.speakerKind',
   );
 });
 
@@ -255,7 +303,7 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
         },
       },
     },
-    head: { appId: 'app-1', subjectUserId: 'user-1', modelId: 'voice-model', routePolicy: 'local' },
+    head: { appId: 'app-1', subjectUserId: 'user-1' },
     transcriptionMimeType: 'audio/webm',
     idempotencyKeyFactory: (operation) => `idem-${operation}`,
   });
@@ -282,6 +330,8 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
 
   const speakers = await voice.getSpeakers();
   assert.deepEqual(speakers.map((speaker) => speaker.voiceId), ['preset-1', 'asset-1']);
+  assert.equal('provider' in speakers[1]!, false);
+  assert.equal('modelId' in speakers[1]!, false);
 
   await assert.rejects(
     () => voice.connect(),
@@ -307,7 +357,7 @@ test('Nimi Mastra voice speak and listen use Runtime speech scenarios', async ()
       subscribeScenarioJobEvents: ai.subscribeScenarioJobEvents,
       getScenarioArtifacts: ai.getScenarioArtifacts,
     },
-    head: { appId: 'app-1', subjectUserId: 'user-1', modelId: 'voice-model' },
+    head: { appId: 'app-1', subjectUserId: 'user-1' },
     idempotencyKeyFactory: (operation) => `catalogless-${operation}`,
   });
   assert.deepEqual(await cataloglessVoice.getSpeakers(), []);
@@ -317,7 +367,7 @@ test('Nimi Mastra voice requires caller-supplied idempotency keys', async () => 
   assert.throws(
     () => createNimiMastraVoice({
       runtime: createUnexpectedVoiceRuntime(),
-      head: { appId: 'app-1', subjectUserId: 'user-1', modelId: 'voice-model' },
+      head: { appId: 'app-1', subjectUserId: 'user-1' },
     } as unknown as NimiMastraVoiceOptions),
     (error: unknown) => error instanceof NimiMastraVoiceUnsupportedFeatureError
       && error.feature === 'voice.idempotencyKeyFactory',
@@ -326,7 +376,7 @@ test('Nimi Mastra voice requires caller-supplied idempotency keys', async () => 
   const runtimeCalls: string[] = [];
   const blankVoice = createNimiMastraVoice({
     runtime: createUnexpectedVoiceRuntime(runtimeCalls),
-    head: { appId: 'app-1', subjectUserId: 'user-1', modelId: 'voice-model' },
+    head: { appId: 'app-1', subjectUserId: 'user-1' },
     transcriptionMimeType: 'audio/webm',
     idempotencyKeyFactory: () => ' ',
   });
@@ -344,7 +394,7 @@ test('Nimi Mastra voice requires caller-supplied idempotency keys', async () => 
 
   const longVoice = createNimiMastraVoice({
     runtime: createUnexpectedVoiceRuntime(runtimeCalls),
-    head: { appId: 'app-1', subjectUserId: 'user-1', modelId: 'voice-model' },
+    head: { appId: 'app-1', subjectUserId: 'user-1' },
     idempotencyKeyFactory: () => 'x'.repeat(257),
   });
   await assert.rejects(

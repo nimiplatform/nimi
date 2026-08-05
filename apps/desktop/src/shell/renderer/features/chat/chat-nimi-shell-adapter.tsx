@@ -120,7 +120,7 @@ export function useAiConversationModeHost(
         mode: 'ai' as const,
         status: 'setup-required' as const,
         issues: [{
-          code: 'ai-no-chat-route' as const,
+          code: 'ai-capability-intent-required' as const,
           detail: appAIConfig.isPending
             ? 'Loading Nimi Desktop AI configuration.'
             : 'Choose Local or Cloud capability intent for Nimi Chat.',
@@ -222,11 +222,11 @@ export function useAiConversationModeHost(
     threads,
   });
 
-  const routeSummary = useMemo(() => ({
+  const intentSummary = useMemo(() => ({
     label: textIntent?.route.oneofKind === 'local'
-      ? t('Chat.settingsRouteLocal', { defaultValue: 'Local AI' })
+      ? t('Chat.settingsIntentLocal', { defaultValue: 'Local AI' })
       : textIntent?.route.oneofKind === 'cloud'
-        ? t('Chat.settingsRouteCloud', { defaultValue: 'Cloud AI' })
+        ? t('Chat.settingsIntentCloud', { defaultValue: 'Cloud AI' })
         : t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
     detail: textIntent
       ? t('Chat.settingsRuntimeResolvesOnSubmit', {
@@ -239,7 +239,7 @@ export function useAiConversationModeHost(
     name: t('Chat.nimiAssistantName', { defaultValue: 'Nimi' }),
     avatarUrl: null,
     avatarFallback: 'AI',
-    handle: routeSummary.detail || null,
+    handle: intentSummary.detail || null,
     bio: null,
     interactionState: {
       phase: submittingThreadId ? 'thinking' as const : 'idle' as const,
@@ -253,7 +253,7 @@ export function useAiConversationModeHost(
       border: 'rgba(56,189,248,0.34)',
       text: '#0c4a6e',
     },
-  }), [routeSummary.detail, submittingThreadId, t]);
+  }), [intentSummary.detail, submittingThreadId, t]);
 
   const syntheticTarget = useMemo(() => ({
     id: 'ai:assistant',
@@ -270,7 +270,7 @@ export function useAiConversationModeHost(
     status: 'active' as const,
     isOnline: Boolean(textIntent),
     metadata: {
-      routeLabel: routeSummary.label,
+      intentLabel: intentSummary.label,
     },
   }), [
     activeThreadId,
@@ -278,8 +278,8 @@ export function useAiConversationModeHost(
     aiCharacterData.avatarUrl,
     aiCharacterData.bio,
     aiCharacterData.name,
+    intentSummary.label,
     messages,
-    routeSummary.label,
     selectedThreadRecord,
   ]);
 
@@ -367,7 +367,7 @@ export function useAiConversationModeHost(
     onDismissHostFeedback: () => setHostFeedback(null),
     pendingFirstBeat,
     renderMessageContent,
-    routeSummary,
+    intentSummary,
     setChatThinkingPreference,
     setupState,
     submittingThreadId,

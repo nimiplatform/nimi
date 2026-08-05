@@ -23,10 +23,9 @@ Discipline.
   `./features/model-picker/headless`, `./features/model-picker/ui`, and
   `./features/model-picker/runtime`. Generation modality request types no longer
   accept scoped configuration, binding, model, route, or target inputs. Text,
-  image, video, synthesis, and transcription execution now returns typed
-  `AI_ROUTE_UNSUPPORTED` unavailability before Runtime dispatch while the
-  current Scenario API still requires caller execution truth; owner-scoped
-  voice-asset reference listing remains available.
+  image, video, synthesis, and transcription requests carry only caller identity,
+  scenario content, and supported parameters; Runtime owns implementation
+  selection. Owner-scoped voice-asset reference listing remains available.
 - **Breaking (0.x):** The Local App carrier replaces per-Agent AI configuration,
   readiness, and AIProfile commands with shared LocalAgent-subsystem AIConfig
   get/overwrite and portable-profile preview/apply. The new operations carry no

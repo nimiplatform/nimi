@@ -22,7 +22,7 @@ function statusChipClass(tone: CanonicalRuntimeInspectStatusChip['tone']): strin
 
 function panelLabel(panel: CanonicalRuntimeInspectPanelKey): string {
   if (panel === 'chat') {
-    return 'Chat route';
+    return 'Chat';
   }
   if (panel === 'voice') {
     return 'Voice';
@@ -43,7 +43,7 @@ function DisabledInspectNote(props: { label: string }) {
 
 export function CanonicalRuntimeInspectSidebar({
   title = 'Runtime Inspect',
-  subtitle = 'Route, voice, media, and diagnostics for this conversation.',
+  subtitle = 'Chat, voice, media, and diagnostics for this conversation.',
   statusTitle = 'Conversation runtime',
   statusHint = null,
   statusSummary = null,

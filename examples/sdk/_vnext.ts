@@ -7,8 +7,6 @@ import {
   type CoreMetadata,
   type NimiGenerateTextResult,
   type NimiJsonObject,
-  type NimiModelRef,
-  type NimiRuntimeAIRoutePolicy,
   type NimiRunEvent,
 } from '@nimiplatform/sdk';
 
@@ -19,10 +17,6 @@ export type ExampleClientInput = {
 };
 
 export type ExampleTextModelInput = {
-  modelId?: string;
-  providerId?: string;
-  routePolicy?: NimiRuntimeAIRoutePolicy;
-  connectorId?: string;
   subjectUserId?: string;
   timeoutMs?: number;
   metadata?: NimiJsonObject;
@@ -49,23 +43,15 @@ export function createExampleTextModel(
   client: NimiClient,
   input: ExampleTextModelInput = {},
 ): NimiAiModel {
-  const model: NimiModelRef = {
-    modelId: input.modelId ?? 'default',
-    ...(input.providerId ? { providerId: input.providerId } : {}),
-  };
   return client.ai.createRuntimeModel({
-    model,
-    routePolicy: input.routePolicy ?? 'local',
-    connectorId: input.connectorId,
     subjectUserId: input.subjectUserId ?? 'local-user',
     timeoutMs: input.timeoutMs ?? 120_000,
     metadata: input.metadata,
   });
 }
 
-export function textRequest(model: NimiAiModel, prompt: string) {
+export function textRequest(prompt: string) {
   return {
-    model: model.model,
     messages: [{
       role: 'user' as const,
       content: [textPart(prompt)],
@@ -77,7 +63,7 @@ export async function generateExampleText(
   model: NimiAiModel,
   prompt: string,
 ): Promise<NimiGenerateTextResult> {
-  return await model.generateText(textRequest(model, prompt));
+  return await model.generateText(textRequest(prompt));
 }
 
 export async function streamExampleText(
@@ -85,9 +71,9 @@ export async function streamExampleText(
   prompt: string,
 ): Promise<AsyncIterable<NimiRunEvent>> {
   if (!model.streamText) {
-    throw new Error('Selected Runtime model does not expose streamText.');
+    throw new Error('Runtime text capability does not expose streamText.');
   }
-  return await model.streamText(textRequest(model, prompt));
+  return await model.streamText(textRequest(prompt));
 }
 
 export async function collectExampleTextStream(

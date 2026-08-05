@@ -2,7 +2,7 @@
 
 委派或 external action 是可选的 Runtime capability。它不是 Local AI、
 LocalAgent Conversation、Memory、Knowledge、voice、SDK 使用、Nimi Home、
-Avatar 或普通 App readiness 的前置。
+Avatar 或普通 App 能力执行 的前置。
 
 ## 边界
 

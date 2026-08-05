@@ -4,7 +4,7 @@ Nimi 把持久开放世界身份与本地 AI 执行连接起来，同时保持�
 
 - Realm 持有 Character、social、World、economy 与 canonical World truth。
 - Runtime 持有 LocalAgent 物化、AI 执行、Conversation、运行态 Memory 与
-  Knowledge、voice、readiness 和 App authorization。
+  Knowledge、voice、实现选择、资源调度和 App authorization。
 - SDK 是 App 的公共强类型访问边界。
 - Kit 只在具体产品 consumer 需要时提供共享 UI 与 host composition。
 - Nimi Home 是当前产品 home 与 Desktop host surface，但不会取代 Realm 或

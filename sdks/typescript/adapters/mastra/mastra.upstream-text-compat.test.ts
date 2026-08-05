@@ -78,9 +78,9 @@ test('text: Agent.stream .text promise equals the accumulated textStream', async
 test('text: a thrown Nimi model error fails closed through Mastra', async () => {
   // Upstream: model failures reject rather than returning a fabricated success.
   const failing = {
-    model: { providerId: 'nimi-test', modelId: 'boom' },
+    model: { modelId: 'text.generate' as const },
     async generateText(): Promise<never> {
-      throw new Error('nimi route unavailable');
+      throw new Error('nimi execution unavailable');
     },
   };
   const agent = createMastraTestAgent({

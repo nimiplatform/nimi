@@ -58,7 +58,6 @@ export interface ZhiyuRendererCommandPort {
   allocateTurnRequestId(): Promise<string>;
   runTurn(input: ZhiyuRuntimeAgentChatTurnInput): Promise<ZhiyuRuntimeAgentChatTurnResult>;
   createVoiceCapture(input: {
-    readonly readiness: ZhiyuVoiceCaptureEvidence;
     readonly agentId: string;
     readonly ownerUserId: string;
     readonly onStateChange: (state: ZhiyuVoiceCaptureEvidence) => void;

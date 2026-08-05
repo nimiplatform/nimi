@@ -67,7 +67,6 @@ type LocalModelCenterRuntimeViewProps = {
   loadingVariants: boolean;
   loadingVerifiedAssets: boolean;
   loadingVerifiedModels: boolean;
-  localHealthy: boolean;
   assetImportError: string;
   assetImportSessionByPath: Record<string, string>;
   unregisteredCompatibilityHintByPath: Record<string, string>;
@@ -101,7 +100,6 @@ type LocalModelCenterRuntimeViewProps = {
   onRefreshQuickPicks: () => void;
   onRefreshUnregisteredAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
-  onRepairAsset: (localAssetId: string, endpoint: string) => void;
   onSetupRuntimeDependency: () => void;
   onCancelRuntimeDependencyJob: (jobId: string) => void;
   onRetryRuntimeDependencyJob: (jobId: string) => void;
@@ -148,7 +146,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
         ) : null}
         <LocalModelCenterImportControls
           checkingHealth={props.checkingHealth}
-          localHealthy={props.localHealthy}
           lastCheckedAt={props.lastCheckedAt}
           discovering={props.discovering}
           importMenuRef={props.importMenuRef}
@@ -218,7 +215,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onArtifactKindFilterChange={props.onArtifactKindFilterChange}
           onRefreshAssets={props.onRefreshAssets}
           onRemoveAsset={props.onRemoveAsset}
-          onRepairAsset={props.onRepairAsset}
           onSetupRuntimeDependency={props.onSetupRuntimeDependency}
           onCancelRuntimeDependencyJob={props.onCancelRuntimeDependencyJob}
           onRetryRuntimeDependencyJob={props.onRetryRuntimeDependencyJob}

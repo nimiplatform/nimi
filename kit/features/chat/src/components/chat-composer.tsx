@@ -38,7 +38,7 @@ export type ChatComposerProps<TAttachment = never> = UseChatComposerOptions<TAtt
   toolbarSlot?: ReactNode;
   /** Optional slot rendered in the trailing controls row, directly before the send button (stacked layout). */
   trailingSlot?: ReactNode;
-  modelLabel?: ReactNode;
+  intentLabel?: ReactNode;
   sendHint?: ReactNode;
   sendLabel?: string;
   attachLabel?: string;
@@ -55,7 +55,7 @@ export type ChatComposerProps<TAttachment = never> = UseChatComposerOptions<TAtt
 export function ChatComposer<TAttachment = never>({
   placeholder = 'Type a message...',
   className,
-  modelLabel,
+  intentLabel,
   sendHint,
   sendLabel = 'Send',
   attachLabel = 'Attach',
@@ -162,7 +162,7 @@ export function ChatComposer<TAttachment = never>({
   }, [originalHandleSubmit]);
 
   const hasAttachmentControl = Boolean(options.attachmentAdapter || (mediaActions && mediaActions.length > 0));
-  const hasMeta = Boolean(modelLabel || sendHint);
+  const hasMeta = Boolean(intentLabel || sendHint);
   const isStacked = layout === 'stacked';
 
   const textareaNode = (
@@ -326,7 +326,7 @@ export function ChatComposer<TAttachment = never>({
                     data-chat-composer-toolbar-meta="true"
                     className="flex min-w-[88px] flex-1 items-center gap-2 text-[11px] text-slate-400"
                   >
-                    {modelLabel ? <span className="min-w-0 truncate">{modelLabel}</span> : null}
+                    {intentLabel ? <span className="min-w-0 truncate">{intentLabel}</span> : null}
                     {sendHint ? <span className="min-w-0 truncate">{sendHint}</span> : null}
                   </div>
                 ) : null}
@@ -381,9 +381,9 @@ export function ChatComposer<TAttachment = never>({
               )}
               {sendButtonNode}
             </div>
-            {modelLabel || sendHint ? (
+            {intentLabel || sendHint ? (
               <div className="mt-1.5 flex items-center justify-end gap-3 px-1 text-[11px] text-slate-400">
-                {modelLabel ? <span>{modelLabel}</span> : null}
+                {intentLabel ? <span>{intentLabel}</span> : null}
                 {sendHint ? <span>{sendHint}</span> : null}
               </div>
             ) : null}

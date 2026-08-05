@@ -12,14 +12,12 @@ import {
   formatSpeed,
   localSpeechReasonSummary,
   planBlockingHint,
-  resolveSelectedRuntimeProfileTarget,
   normalizeCapabilityOption,
   HIGHLIGHT_CLEAR_MS,
   parseTimestamp,
   PROGRESS_RETENTION_MS,
   PROGRESS_SESSION_LIMIT,
   pruneProgressSessions,
-  shouldShowRuntimeProfileInstallSection,
   sortProgressSessions,
   statusLabel,
   type ProgressSessionState,
@@ -164,7 +162,7 @@ describe('speech blocking summaries', () => {
     } as unknown as NonNullable<Parameters<typeof planBlockingHint>[0]>;
     assert.equal(
       planBlockingHint(plan),
-      'Local Speech host startup or probe failed.',
+      'Runtime could not start the local speech capability.',
     );
   });
 });
@@ -173,14 +171,14 @@ describe('assetUnhealthyReasonSummary', () => {
   test('prefers the speech-specific summary for a speech reason code', () => {
     assert.equal(
       assetUnhealthyReasonSummary(ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED),
-      'The Local Speech bundle is degraded and needs repair.',
+      'The Runtime local speech bundle is unavailable.',
     );
   });
 
   test('falls back to the canonical reason-code catalog for non-speech codes', () => {
     assert.equal(
       assetUnhealthyReasonSummary(ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE),
-      'Local AI model is unavailable.',
+      'Runtime local execution is unavailable.',
     );
   });
 
@@ -251,34 +249,6 @@ describe('formatDownloadPhaseLabel', () => {
 
   test('unknown phase falls back to normalized text', () => {
     assert.equal(formatDownloadPhaseLabel('queued'), 'queued');
-  });
-});
-
-describe('runtime profile target selection', () => {
-  const targets = [
-    {
-      targetId: 'world.nimi.profile-a',
-      targetName: 'Target A',
-      consumeCapabilities: ['chat'],
-      profiles: [{ id: 'a-default', title: 'A Default', recommended: true, consumeCapabilities: ['chat'], entries: [] }],
-    },
-    {
-      targetId: 'world.nimi.profile-b',
-      targetName: 'Target B',
-      consumeCapabilities: ['image'],
-      profiles: [{ id: 'b-default', title: 'B Default', recommended: true, consumeCapabilities: ['image'], entries: [] }],
-    },
-  ];
-
-  test('returns only the selected profile target', () => {
-    const selected = resolveSelectedRuntimeProfileTarget(targets as never, 'world.nimi.profile-b');
-    assert.equal(selected?.targetId, 'world.nimi.profile-b');
-    assert.equal(selected?.profiles[0]?.id, 'b-default');
-  });
-
-  test('does not fall back when selected profile target is missing', () => {
-    assert.equal(resolveSelectedRuntimeProfileTarget(targets as never, 'world.nimi.missing'), null);
-    assert.equal(shouldShowRuntimeProfileInstallSection(targets as never, 'world.nimi.missing'), false);
   });
 });
 

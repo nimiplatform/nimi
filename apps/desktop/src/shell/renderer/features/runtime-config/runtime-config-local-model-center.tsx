@@ -1,131 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  type NimiRuntimeLocalProfileResolutionPlan,
-} from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
-import {
-  normalizeSelectedProfileCapability,
-  type LocalModelCenterProps,
-  resolveProfileCapabilityOptions,
-  resolveSelectedRuntimeProfileTarget,
-} from './runtime-config-model-center-utils';
-import { LocalModelCenterProfileTargetView } from './runtime-config-local-model-center-sections';
+import { type LocalModelCenterProps } from './runtime-config-model-center-utils';
 import { LocalModelCenterRuntimeView } from './runtime-config-local-model-center-runtime-view';
 import { useLocalModelCenterRuntimeState } from './runtime-config-use-local-model-center-runtime-state';
 
 export function LocalModelCenter(props: LocalModelCenterProps) {
   const commands = useDesktopRendererCommands();
-  const [internalSelectedProfileTargetId, setInternalSelectedProfileTargetId] = useState('');
-  const [selectedProfileId, setSelectedProfileId] = useState('');
-  const [selectedProfileCapability, setSelectedProfileCapability] = useState('');
-  const [profilePlanPreview, setProfilePlanPreview] = useState<NimiRuntimeLocalProfileResolutionPlan | null>(null);
-  const [loadingProfilePlan, setLoadingProfilePlan] = useState(false);
-
-  const displayMode: 'runtime' | 'profile-target' = props.displayMode === 'profile-target' ? 'profile-target' : 'runtime';
-  const isProfileTargetMode = displayMode === 'profile-target';
-  const lockedProfileTargetId = String(props.lockedProfileTargetId || '').trim();
-  const profileSelectionLocked = isProfileTargetMode && Boolean(lockedProfileTargetId);
-  const selectedProfileTargetId = useMemo(
-    () => (
-      lockedProfileTargetId
-      || String(props.selectedProfileTargetId || '').trim()
-      || internalSelectedProfileTargetId
-    ),
-    [internalSelectedProfileTargetId, lockedProfileTargetId, props.selectedProfileTargetId],
-  );
-
-  useEffect(() => {
-    if (selectedProfileTargetId || props.runtimeProfileTargets.length <= 0) {
-      return;
-    }
-    const nextTargetId = String(props.runtimeProfileTargets[0]?.targetId || '').trim();
-    if (nextTargetId) {
-      setInternalSelectedProfileTargetId(nextTargetId);
-      setSelectedProfileId(String(props.runtimeProfileTargets[0]?.profiles[0]?.id || '').trim());
-    }
-  }, [props.runtimeProfileTargets, selectedProfileTargetId]);
-  const selectedProfileTarget = useMemo(
-    () => resolveSelectedRuntimeProfileTarget(props.runtimeProfileTargets, selectedProfileTargetId),
-    [props.runtimeProfileTargets, selectedProfileTargetId],
-  );
-  const selectedProfile = useMemo(() => {
-    if (!selectedProfileTarget) {
-      return null;
-    }
-    return selectedProfileTarget.profiles.find((profile) => profile.id === selectedProfileId)
-      || selectedProfileTarget.profiles[0]
-      || null;
-  }, [selectedProfileId, selectedProfileTarget]);
-
-  useEffect(() => {
-    const nextCapability = normalizeSelectedProfileCapability(selectedProfile, selectedProfileCapability);
-    if (nextCapability !== selectedProfileCapability) {
-      setSelectedProfileCapability(nextCapability);
-    }
-  }, [selectedProfile, selectedProfileCapability]);
-
-  const resolveProfilePlanPreview = useCallback(async () => {
-    const targetId = String(selectedProfileTargetId || '').trim();
-    const profileId = String(selectedProfileId || '').trim() || String(selectedProfileTarget?.profiles[0]?.id || '').trim();
-    const capabilityOptions = resolveProfileCapabilityOptions(selectedProfile);
-    const capability = normalizeSelectedProfileCapability(selectedProfile, selectedProfileCapability);
-    if (!targetId || !profileId) {
-      setProfilePlanPreview(null);
-      return;
-    }
-    if (capabilityOptions.length > 1 && !capability) {
-      setProfilePlanPreview(null);
-      return;
-    }
-    setLoadingProfilePlan(true);
-    try {
-      const plan = await props.onResolveProfile(targetId, profileId, capability || undefined);
-      setProfilePlanPreview(plan);
-    } catch {
-      setProfilePlanPreview(null);
-    } finally {
-      setLoadingProfilePlan(false);
-    }
-  }, [props, selectedProfile, selectedProfileCapability, selectedProfileId, selectedProfileTargetId, selectedProfileTarget]);
-
-  useEffect(() => {
-    setProfilePlanPreview(null);
-  }, [selectedProfileCapability, selectedProfileId, selectedProfileTargetId]);
-  const runtimeState = useLocalModelCenterRuntimeState({ isProfileTargetMode, props });
-
-  if (isProfileTargetMode) {
-    return (
-      <LocalModelCenterProfileTargetView
-        state={props.state}
-        selectedProfileTargetId={selectedProfileTargetId}
-        loadingProfilePlan={loadingProfilePlan}
-        profileSelectionLocked={profileSelectionLocked}
-        selectedProfileId={selectedProfileId}
-        selectedProfileCapability={selectedProfileCapability}
-        profilePlanPreview={profilePlanPreview}
-        runtimeProfileTargets={props.runtimeProfileTargets}
-        onSetSelectedProfileTargetId={(targetId) => {
-          if (!profileSelectionLocked) {
-            setInternalSelectedProfileTargetId(targetId);
-            props.onSelectProfileTargetId?.(targetId);
-            setSelectedProfileId('');
-            setSelectedProfileCapability('');
-          }
-        }}
-        onSetSelectedProfileId={(profileId) => {
-          setSelectedProfileId(profileId);
-          setSelectedProfileCapability('');
-        }}
-        onSetSelectedProfileCapability={setSelectedProfileCapability}
-        onResolveProfilePlanPreview={() => void resolveProfilePlanPreview()}
-        onApplyProfile={props.onApplyProfile}
-        onNavigateToSetup={props.onNavigateToSetup}
-      />
-    );
-  }
-
+  const runtimeState = useLocalModelCenterRuntimeState({ props });
   const hasSearchQuery = runtimeState.searchQuery.trim().length > 0;
-  const localHealthy = props.state.local.status === 'healthy';
 
   return (
     <LocalModelCenterRuntimeView
@@ -163,7 +44,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       loadingVariants={runtimeState.loadingVariants}
       loadingVerifiedAssets={runtimeState.loadingVerifiedAssets}
       loadingVerifiedModels={runtimeState.loadingVerifiedModels}
-      localHealthy={localHealthy}
       assetImportError={runtimeState.assetImportError}
       assetImportSessionByPath={runtimeState.assetImportSessionByPath}
       unregisteredCompatibilityHintByPath={runtimeState.unregisteredCompatibilityHintByPath}
@@ -232,7 +112,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       onRefreshQuickPicks={() => { void runtimeState.refreshVerifiedModels(); }}
       onRefreshUnregisteredAssets={() => { void runtimeState.refreshUnregisteredAssets(); }}
       onRemoveAsset={(localAssetId) => { void runtimeState.removeInstalledAsset(localAssetId); }}
-      onRepairAsset={(localAssetId, endpoint) => { void runtimeState.repairInstalledAsset(localAssetId, endpoint); }}
       onSetupRuntimeDependency={() => { void runtimeState.setupRuntimeDependency(); }}
       onCancelRuntimeDependencyJob={(jobId) => { void runtimeState.cancelRuntimeDependencyJob(jobId); }}
       onRetryRuntimeDependencyJob={(jobId) => { void runtimeState.retryRuntimeDependencyJob(jobId); }}

@@ -147,6 +147,15 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     async status() { return {}; },
     async request() { return {}; },
   },
+  ai: {
+    text: {
+      async generateCandidate() { return {}; },
+    },
+  },
+  aiConfig: {
+    async get() { return {}; },
+    async overwrite() { return {}; },
+  },
   storage: {
     async readJson() { return {}; },
     async writeJson() { return {}; },
@@ -171,11 +180,10 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     async snapshot() { return {}; },
   },
   agentConfigure: {
-    async configurationSnapshot() { return {}; },
-    async updateConfiguration() { return {}; },
-    async readinessSnapshot() { return {}; },
-    async aiProfilePreview() { return {}; },
-    async aiProfileApply() { return {}; },
+    async sharedAgentAIConfigGet() { return {}; },
+    async sharedAgentAIConfigOverwrite() { return {}; },
+    async sharedAgentAIProfilePreview() { return {}; },
+    async sharedAgentAIProfileApply() { return {}; },
     async autonomySnapshot() { return {}; },
     async updateAutonomy() { return {}; },
     async presentationSnapshot() { return {}; },

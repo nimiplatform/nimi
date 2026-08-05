@@ -86,7 +86,6 @@ export async function* streamNimiAiRunner(request: NimiAiRunnerRunRequest): Asyn
     throw new Error(`AI runner ${request.runner.id} model does not support streaming`);
   }
   yield* await request.model.streamText({
-    model: request.model.model,
     messages: request.messages,
     tools: request.runner.tools,
   });

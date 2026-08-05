@@ -47,13 +47,14 @@ describe('Runtime voice reference catalog', () => {
         nextPageToken: 'next',
       },
     });
-    expect(listVoiceAssets).toHaveBeenCalledWith(expect.objectContaining({
+    expect(listVoiceAssets).toHaveBeenCalledWith({
       appId: 'app.test',
       subjectUserId: 'user.test',
-      modelId: '',
-      targetModelId: '',
-      connectorId: '',
-    }), expect.any(Object));
+      workflowType: VoiceWorkflowType.VOICE_CLONE,
+      status: VoiceAssetStatus.ACTIVE,
+      pageSize: 25,
+      pageToken: '',
+    }, expect.any(Object));
   });
 
   it('fails closed before lookup without exact owner identity', async () => {

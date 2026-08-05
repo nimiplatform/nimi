@@ -5,7 +5,7 @@ import {
   DEFAULT_APPEARANCE_PREFERENCES,
   type AppearancePreferences,
 } from './settings-device-preferences.js';
-import { setDesktopAppReducedMotionPreference } from '../../ui/motion/desktop-motion.js';
+import { useSetDesktopAppReducedMotionPreference } from '../../ui/motion/desktop-motion.js';
 
 const DARK_SCHEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
@@ -18,6 +18,7 @@ const DARK_SCHEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 export function AppearanceEffects() {
   const commands = useDesktopRendererCommands();
   const { setScheme } = useNimiTheme();
+  const setAppReducedMotion = useSetDesktopAppReducedMotionPreference();
 
   useEffect(() => {
     let preferences: AppearancePreferences;
@@ -33,7 +34,7 @@ export function AppearanceEffects() {
         ? (media?.matches ? 'dark' : 'light')
         : preferences.theme;
       setScheme(resolvedScheme);
-      setDesktopAppReducedMotionPreference(preferences.reduceMotion);
+      setAppReducedMotion(preferences.reduceMotion);
     };
     apply();
 
@@ -47,7 +48,7 @@ export function AppearanceEffects() {
       unsubscribe();
       media?.removeEventListener?.('change', onMediaChange);
     };
-  }, [commands, setScheme]);
+  }, [commands, setAppReducedMotion, setScheme]);
 
   return null;
 }

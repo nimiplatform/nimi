@@ -1,138 +1,89 @@
 # Local AI
 
-Desktop's Local AI surface — the Local Model Center — is the user
-UI for managing local AI on their machine. All UI is a Runtime-owned
-typed projection. Desktop never reads its own local state for AI
-configuration; it asks Runtime.
+Desktop's Local Model Center is a machine-administration surface for Runtime
+owned local AI assets. It can browse, install, import, remove, and inspect those
+assets, but it does not choose the implementation for an App request.
 
-## What Local AI Surfaces
+## Surface Boundary
 
 | Concept | Meaning |
 | --- | --- |
-| Active | Runtime-validated executable (this model can run right now) |
-| Installed | Registered, must warm-on-demand |
-| Local Model Center | The UI for browsing, installing, activating local models |
-| Engine binding | Which engine is bound to which capability |
+| Local asset catalog | Runtime-issued inventory of installable assets |
+| Installed assets | Resources registered on this machine |
+| Installation progress | Runtime-issued download, verification, and materialization state |
+| Recommendation feed | Runtime-ordered installation suggestions and evidence |
+| Capability intent | An owner's Local or Cloud preference in `AIConfig` |
 
-Active vs Installed is a real distinction. An Installed model is
-registered but not warmed; warming happens on first use. An Active
-model is validated as executable right now.
+The asset catalog is machine configuration. Selecting a bundle in the Local
+Model Center means selecting something to install or remove, not pinning a
+model, engine, or route for later App calls.
 
-## Truth Projection, Not State Owning
+## Runtime Truth Projection
 
-Desktop's Local AI UI **never invents truth**. Every state shown
-on the screen is a projection of Runtime truth.
+Desktop projects Runtime truth and does not reconstruct it locally.
 
 | Concern | Owner |
 | --- | --- |
-| Whether a model is active | Runtime |
-| Whether a model is installed | Runtime |
-| What capability a model serves | Runtime |
-| Which engine is bound | Runtime |
-| Cuda dependency state | Runtime materializer |
+| Catalog and installed-asset inventory | Runtime |
+| Download, verification, and materialization status | Runtime |
+| Recommendation order and evidence | Runtime |
+| Device and dependency diagnostics | Runtime |
+| Implementation selection for each request | Runtime |
 
-If Runtime says a model is unavailable, Desktop shows "unavailable"
-— it does not silently retry or pretend the model is available.
+Desktop preserves Runtime recommendation order. It may present Runtime-issued
+reasons or compatibility evidence, but it does not score, grade, group, or
+rerank models on the client.
 
-## CUDA Dependency Setup
+## Dependency Setup
 
-Engines that require CUDA go through a runtime materializer.
-Desktop UI shows the materializer's typed phases.
+Engines that require system dependencies use a Runtime materializer. Desktop
+shows typed installation progress and failures; it does not execute arbitrary
+PowerShell or shell commands. A user confirmation starts the admitted Runtime
+operation, and Runtime owns download, verification, installation, and cleanup.
 
-| Phase | Meaning |
-| --- | --- |
-| `queued` | Setup queued |
-| `downloading` | Fetching dependencies |
-| `verifying` | Checksum / compatibility verification |
-| `installing` | Installing into runtime-managed location |
-| `ready_system` | Ready under system mode |
-| `ready_managed` | Ready under managed mode |
-| `failed` | Setup failed; reason recorded |
-| `repair_required` | Setup needs repair |
-| `cancelled` | User cancelled |
+Dependency installation status is machine-administration evidence. It is not a
+model-readiness signal that an App can use to select an implementation.
 
-Critically: the setup never runs PowerShell or bash directly.
-**Single confirmation UI**; the materializer handles the actual
-installation under admitted contracts.
+## Reader Scenario: Install a Local Asset
 
-The user clicks "install CUDA dependencies"; the materializer
-walks the phases; Desktop projects the phase to the user. There
-is no opaque shell command stage.
+1. **Open Local Model Center.** Desktop reads the Runtime catalog and installed
+   inventory.
+2. **Browse.** The user reviews Runtime-issued metadata and recommendation
+   evidence.
+3. **Install.** The user selects an asset bundle for installation. Runtime
+   downloads, verifies, and registers it.
+4. **Inspect result.** Desktop projects the typed installation result or failure.
+5. **Use a capability.** An App with Local capability intent submits its ordinary
+   request without a model, route, connector, or target. Runtime decides whether
+   an admitted installed asset can service it.
 
-## Reader Scenario: Installing And Activating A Local Model
+Installation does not create an App-visible binding and does not guarantee that
+a particular implementation will handle the next request.
 
-You want to run a local text model on your machine.
+## Reader Scenario: Local Memory Capability
 
-1. **Open Local Model Center.** Desktop reads from Runtime which
-   models are admitted, available, installed, active.
-2. **Browse / search.** Through admitted catalog routes.
-3. **Install.** You select a model bundle. Runtime downloads,
-   verifies, registers.
-4. **Installed state.** Model appears as Installed.
-5. **Activate / warm.** You ask Runtime to activate the model.
-   Runtime warms the model; engine binds capability.
-6. **Active.** Model is now Active. Apps can route requests to
-   it.
+An owner may express Local intent for an admitted memory or embedding
+capability. The configuration contains the owner identity, capability, and
+Local intent only. Runtime chooses the embedding implementation and owns any
+bank migration or cutover required by machine configuration. Desktop does not
+expose an embedding-model picker or a client-computed readiness state.
 
-Throughout this flow, Desktop UI is reading Runtime state
-projection. If Runtime says "validation failed," Desktop shows
-that exact reason.
+## Realm Connectivity
 
-## Reader Scenario: Memory Embedding Configuration
+Realm connectivity and local Runtime reachability are separate concerns. A
+Realm outage does not by itself disable local AI. Local execution still requires
+the Runtime to be reachable, the owner intent to admit Local use, and Runtime to
+find a valid implementation. Missing prerequisites produce a typed failure; the
+client does not fabricate fallback success.
 
-The user wants to choose which embedding model the memory
-substrate uses.
+## Public Boundary
 
-1. **Runtime Config UI.** Desktop's Runtime Config edits user-
-   selected memory embedding **intent** — what model the user
-   wants.
-2. **Runtime owns resolution.** Once the intent is submitted,
-   Runtime decides bind success, bank identity, migration, and
-   cutover.
-3. **Desktop never decides "memory is ready" on its own.** That
-   is a Runtime-side determination.
-4. **Desktop projects.** UI shows whether the embedding bind
-   succeeded; if it failed, why.
-
-This is the single most important boundary discipline in this
-section: Desktop **expresses intent**; Runtime **owns resolution**.
-
-## Reader Scenario: CUDA Setup Walks Through Phases
-
-A user with a discrete GPU first installs an engine that needs
-CUDA.
-
-1. **CUDA needed.** The engine declares CUDA as a required
-   dependency.
-2. **Materializer offers setup.** Single confirmation UI:
-   "Install CUDA dependencies?"
-3. **User confirms.** The materializer queues.
-4. **Phase progress.** Desktop UI shows phases:
-   `queued → downloading → verifying → installing → ready_managed`.
-5. **Engine ready.** The engine can now run on GPU.
-
-If any phase fails, Desktop shows the typed reason; the user can
-retry, repair, or cancel under admitted state.
-
-## Realm Offline Does Not Block Local AI
-
-| Realm state | Local AI state |
-| --- | --- |
-| Online | Local AI works normally |
-| Offline | Local AI keeps working |
-| Both offline | Degraded read-only |
-
-This is the local-first posture made concrete. Realm being offline
-does not prevent the user from running their local agent.
-
-## What Local AI Does Not Do
-
-| Concern | Why not |
-| --- | --- |
-| Read its own local state for AI configuration | Desktop projects from Runtime |
-| Run shell commands directly | Materializer is the admitted path |
-| Decide memory bind success | Runtime owns that |
-| Provide a fallback when Runtime says unavailable | Fail-closed posture |
+- Local Model Center manages Runtime-owned machine assets.
+- `AIConfig` expresses owner-scoped Local or Cloud capability intent.
+- Apps do not receive model activation, warming, engine binding, route
+  readiness, or per-model health controls.
+- Runtime alone selects the implementation for each request.
+- Runtime diagnostics and recommendation evidence never become request input.
 
 ## Source Basis
 

@@ -42,10 +42,6 @@ type DesktopTestNimiClientSession = DesktopNimiClientSession & {
 
 let currentDesktopTestSession: DesktopTestNimiClientSession | null = null;
 
-function resetRuntimeLocalModelWarmCacheForTests(): void {
-  // Runtime route access is renderer-instance owned; each test gets a fresh instance.
-}
-
 function createDefaultDesktopTestRealm() {
   return {
     generated: {},
@@ -91,13 +87,6 @@ function normalizeTestText(value: unknown): string {
 
 function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentTurnRequest {
   const payload = fromNimiRuntimeProtoStruct(value as Parameters<typeof fromNimiRuntimeProtoStruct>[0]);
-  // Atomic hard cut: the runtime rejects request-level execution_bindings
-  // (K-AGCORE-147), so any payload carrying them is a contract violation.
-  assert.equal(
-    'execution_bindings' in payload,
-    false,
-    'runtime agent turn payload must not carry execution_bindings',
-  );
   const messages = Array.isArray(payload.messages)
     ? payload.messages.map((message) => {
       const record = message && typeof message === 'object' ? message as Record<string, unknown> : {};
@@ -429,7 +418,6 @@ export {
   createNimiError,
   toNimiRuntimeProtoStruct,
   ReasonCode,
-  resetRuntimeLocalModelWarmCacheForTests,
   streamChatAgentRuntimeAgentTurn,
   getDesktopTestRendererSdk,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,

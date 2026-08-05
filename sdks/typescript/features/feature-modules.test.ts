@@ -236,7 +236,7 @@ test('Runtime-bound memory and knowledge context clients project Runtime-owned d
       ],
     },
     model: {
-      model: { modelId: 'context-model' },
+      model: { modelId: 'text.generate' },
       async generateText(request) {
         agentRequests.push(request);
         return { text: 'context ok', finishReason: 'stop' };
@@ -287,7 +287,7 @@ test('Runtime-bound generation client uses Scenario jobs and Runtime artifacts',
     progressTotalSteps: 0,
   };
   const runtime = createNimiRuntimeGenerationClient({
-    head: { appId: 'app-1', modelId: 'image-model', routePolicy: 'local' },
+    head: { appId: 'app-1' },
     runtime: {
       ai: {
         async submitScenarioJob(
@@ -452,7 +452,7 @@ test('Runtime speech transcription helper runs Scenario job and extracts typed t
 
   const result = await runNimiRuntimeSpeechTranscription({
     runtime,
-    head: { appId: 'app-1', modelId: 'whisper-1', routePolicy: 'local' },
+    head: { appId: 'app-1' },
     audio: { type: 'bytes', bytes: new Uint8Array([1, 2, 3]) },
     mimeType: 'audio/webm',
     requestId: 'req-stt',
@@ -546,7 +546,7 @@ test('Runtime speech synthesis helper runs Scenario job and requires typed audio
 
   const result = await runNimiRuntimeSpeechSynthesis({
     runtime,
-    head: { appId: 'app-1', modelId: 'tts-1', routePolicy: 'local' },
+    head: { appId: 'app-1' },
     text: 'hello from tts',
     audioFormat: 'wav',
     requestId: 'req-tts',
@@ -577,7 +577,7 @@ test('Runtime speech synthesis helper runs Scenario job and requires typed audio
   await assert.rejects(
     () => runNimiRuntimeSpeechSynthesis({
       runtime: invalidOutputRuntime,
-      head: { appId: 'app-1', modelId: 'tts-1' },
+      head: { appId: 'app-1' },
       text: 'hello',
       requestId: 'req-invalid',
       idempotencyKey: 'idem-invalid',
@@ -604,7 +604,7 @@ test('Runtime speech synthesis helper runs Scenario job and requires typed audio
   await assert.rejects(
     () => runNimiRuntimeSpeechSynthesis({
       runtime: noAudioRuntime,
-      head: { appId: 'app-1', modelId: 'tts-1' },
+      head: { appId: 'app-1' },
       text: 'hello',
       requestId: 'req-no-audio',
       idempotencyKey: 'idem-no-audio',
@@ -615,7 +615,7 @@ test('Runtime speech synthesis helper runs Scenario job and requires typed audio
 
 test('generation feature builds video speech and transcription Runtime scenarios', () => {
   const video = buildNimiRuntimeGenerationSubmitRequest(
-    { appId: 'app-1', modelId: 'video-model', routePolicy: 'cloud' },
+    { appId: 'app-1' },
     {
       scenario: createNimiVideoGenerationScenario({
         kind: 'video',
@@ -636,7 +636,7 @@ test('generation feature builds video speech and transcription Runtime scenarios
   assert.equal(video.spec.spec.videoGenerate.options?.seed, '42');
 
   const textVideo = buildNimiRuntimeGenerationSubmitRequest(
-    { appId: 'app-1', modelId: 'video-model', routePolicy: 'cloud' },
+    { appId: 'app-1' },
     {
       scenario: createNimiVideoGenerationScenario({
         kind: 'video',
@@ -651,7 +651,7 @@ test('generation feature builds video speech and transcription Runtime scenarios
   assert.equal(textVideo.spec.spec.videoGenerate.content[0]?.text, 'sunrise');
 
   const speech = buildNimiRuntimeGenerationSubmitRequest(
-    { appId: 'app-1', modelId: 'voice-model' },
+    { appId: 'app-1' },
     {
       scenario: createNimiSpeechSynthesisScenario({
         kind: 'speech-synthesize',
@@ -669,7 +669,7 @@ test('generation feature builds video speech and transcription Runtime scenarios
   assert.equal(speech.spec.spec.speechSynthesize.timingMode, 2);
 
   const stt = buildNimiRuntimeGenerationSubmitRequest(
-    { appId: 'app-1', modelId: 'stt-model' },
+    { appId: 'app-1' },
     {
       scenario: createNimiSpeechTranscriptionScenario({
         kind: 'speech-transcribe',
@@ -690,7 +690,7 @@ test('generation feature builds video speech and transcription Runtime scenarios
 
   assert.throws(
     () => buildNimiRuntimeGenerationSubmitRequest(
-      { appId: 'app-1', modelId: 'video-model' },
+      { appId: 'app-1' },
       {
         scenario: createNimiVideoGenerationScenario({
           kind: 'video',

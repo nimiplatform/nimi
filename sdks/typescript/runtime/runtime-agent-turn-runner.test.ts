@@ -167,8 +167,6 @@ test('Runtime Agent turn runner filters backlog and seals committed message', as
       requestId: 'request',
       messages: [{ role: 'user', content: 'hello' }],
     },
-    route: 'runtime-owned',
-    modelId: 'runtime-owned',
   });
 
   const parts = [];
@@ -763,9 +761,6 @@ test('Runtime Agent turn runner omits caller route and model diagnostics', async
       requestId: 'request',
       messages: [{ role: 'user', content: 'hello' }],
     },
-    route: 'app-local-route',
-    modelId: 'app-local-model',
-    connectorId: 'app-local-connector',
     resolveTrace: () => ({
       traceId: 'trace-runtime-1',
       modelResolved: 'app-local-trace-model',

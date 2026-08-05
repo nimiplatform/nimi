@@ -3,19 +3,13 @@ import test from 'node:test';
 
 import {
   asNimiRuntimeCallError,
-  findNimiRuntimeRouteModelProfile,
   formatNimiRuntimeErrorDetail,
   getNimiRuntimeReasonCodeMessage,
   getNimiRuntimeReasonCodeDefaultMessage,
-  listNimiRuntimeRouteOptions,
-  findNimiRuntimeTargetInventoryItem,
-  nimiRuntimeRouteTargetRefsMatch,
   normalizeNimiRuntimeReasonCode,
-  normalizeNimiRuntimeRouteTargetRef,
   projectNimiRuntimeAuditCallerKindName,
   projectNimiRuntimeUsageWindowName,
   runNimiRuntimeScenarioJob,
-  runtimeNimiRouteCapabilitiesMatch,
   toNimiRuntimeUserFacingError,
   toNimiRuntimeVoiceReference,
   type NimiRuntimeScenarioJobClient,
@@ -54,7 +48,7 @@ test('Runtime reason message projection normalizes generated enum values and SDK
   );
   assert.equal(
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_LOCAL_MODEL_UNAVAILABLE)?.defaultMessage,
-    'Local AI model is unavailable.',
+    'Runtime local execution is unavailable.',
   );
   assert.equal(
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED)?.defaultMessage,
@@ -62,14 +56,14 @@ test('Runtime reason message projection normalizes generated enum values and SDK
   );
   assert.equal(
     getNimiRuntimeReasonCodeMessage(RuntimeGeneratedReasonCode.AI_LOCAL_SPEECH_ENV_INIT_FAILED)?.defaultMessage,
-    'Local Speech environment initialization failed. Retry or repair the local speech setup.',
+    'Runtime local speech environment initialization failed. Inspect Runtime diagnostics.',
   );
   assert.equal(
     toNimiRuntimeUserFacingError(
       { reasonCode: ReasonCode.AI_MODEL_NOT_READY, message: 'runtime call failed', actionHint: 'runtime call failed' },
       { fallbackMessage: 'Runtime call failed' },
     ).message,
-    'AI model is not ready.',
+    'Runtime could not prepare an admitted implementation.',
   );
   assert.equal(
     toNimiRuntimeUserFacingError(
@@ -88,7 +82,7 @@ test('Runtime reason message projection normalizes generated enum values and SDK
   );
 });
 
-test('Runtime audit and route helper projections cover local/cloud edge matching', () => {
+test('Runtime audit projections cover generated enum names', () => {
   assert.equal(projectNimiRuntimeAuditCallerKindName(CallerKind.DESKTOP_CORE), 'DESKTOP_CORE');
   assert.equal(projectNimiRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP), 'THIRD_PARTY_APP');
   assert.equal(projectNimiRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_SERVICE), 'THIRD_PARTY_SERVICE');
@@ -97,82 +91,9 @@ test('Runtime audit and route helper projections cover local/cloud edge matching
   assert.equal(projectNimiRuntimeUsageWindowName(UsageWindow.HOUR), 'HOUR');
   assert.equal(projectNimiRuntimeUsageWindowName(UsageWindow.DAY), 'DAY');
   assert.equal(projectNimiRuntimeUsageWindowName('bad'), undefined);
-
-  const localTargetRef = normalizeNimiRuntimeRouteTargetRef({
-    kind: 'local-runtime',
-    version: 'v2',
-    profileBindingId: 'local-runtime:local-1',
-  });
-  const cloudTargetRef = normalizeNimiRuntimeRouteTargetRef({
-    kind: 'cloud-connector',
-    connectorId: 'connector-1',
-    remoteModelCatalogId: 'remote-catalog:gpt-5',
-    providerModelId: 'gpt-5',
-    provider: 'openai',
-  });
-  assert.equal(nimiRuntimeRouteTargetRefsMatch(localTargetRef, {
-    kind: 'local-runtime',
-    version: 'v2',
-    profileBindingId: 'local-runtime:local-1',
-  }), true);
-  const routeOptions = {
-    capability: 'text.generate',
-    selectedTargetRef: cloudTargetRef,
-    inventory: {
-      capability: 'text.generate',
-      targets: [{
-        targetRef: cloudTargetRef,
-        display: { label: 'GPT-5', model: 'gpt-5', provider: 'openai' },
-        readiness: { status: 'ready' },
-        compatibility: { capabilities: ['text.generate'] },
-        evidence: {
-          source: 'cloud-connector' as const,
-          connectorId: 'connector-1',
-          remoteModelCatalogId: 'remote-catalog:gpt-5',
-          providerModelId: 'gpt-5',
-          provider: 'openai',
-        },
-      }],
-    },
-  };
-  assert.equal(findNimiRuntimeTargetInventoryItem(routeOptions.inventory, cloudTargetRef)?.display.label, 'GPT-5');
-  assert.deepEqual(findNimiRuntimeRouteModelProfile(routeOptions, cloudTargetRef), {
-    providerModelId: 'gpt-5',
-  });
-  assert.deepEqual(findNimiRuntimeRouteModelProfile(null, localTargetRef), null);
 });
 
-test('Runtime route options projection requires explicit route client and normalized capability', async () => {
-  assert.equal(runtimeNimiRouteCapabilitiesMatch([' Text.Generate '], 'text.generate'), true);
-  assert.equal(runtimeNimiRouteCapabilitiesMatch(['image.generate'], ''), false);
-
-  await assert.rejects(
-    listNimiRuntimeRouteOptions({ listRuntimeRouteOptions: async () => unreachableRouteOptions() }, { capability: '' }),
-    (error: unknown) => {
-      const shaped = error as { code?: string; actionHint?: string };
-      assert.equal(shaped.code, 'SDK_RUNTIME_ROUTE_INPUT_INVALID');
-      assert.equal(shaped.actionHint, 'provide_runtime_route_capability');
-      return true;
-    },
-  );
-
-  const calls: unknown[] = [];
-  const result = await listNimiRuntimeRouteOptions({
-    listRuntimeRouteOptions(input) {
-      calls.push(input);
-      return {
-        capability: input.capability,
-        selectedTargetRef: null,
-        inventory: { capability: input.capability, targets: [] },
-      };
-    },
-  }, { capability: ' Text.Generate ', targetId: 'chat' });
-
-  assert.equal(result.capability, 'text.generate');
-  assert.deepEqual(calls, [{ capability: 'text.generate', targetId: 'chat', selectedTargetRef: undefined }]);
-});
-
-test('Runtime speech voice projection maps SDK-friendly discriminants to generated oneof refs', () => {
+test('Runtime speech voice projection maps public refs and rejects provider-native handles', () => {
   assert.deepEqual(toNimiRuntimeVoiceReference({
     kind: 'preset_voice_id',
     presetVoiceId: ' alloy ',
@@ -195,16 +116,13 @@ test('Runtime speech voice projection maps SDK-friendly discriminants to generat
     },
   });
 
-  assert.deepEqual(toNimiRuntimeVoiceReference({
-    kind: 'provider_voice_ref',
-    providerVoiceRef: 'provider:voice',
-  }), {
-    kind: VoiceReferenceKind.PROVIDER_VOICE_REF,
-    reference: {
-      oneofKind: 'providerVoiceRef',
+  assert.throws(
+    () => toNimiRuntimeVoiceReference({
+      kind: 'provider_voice_ref',
       providerVoiceRef: 'provider:voice',
-    },
-  });
+    } as never),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_VOICE_REF_KIND_UNSUPPORTED',
+  );
 
   assert.throws(
     () => toNimiRuntimeVoiceReference({ kind: 'preset_voice_id', presetVoiceId: ' ' }),
@@ -260,10 +178,6 @@ test('Runtime scenario job runner fails closed on non-completed terminal job', a
     },
   );
 });
-
-function unreachableRouteOptions(): never {
-  throw new Error('route options should not be called');
-}
 
 function createScenarioJobRequest(): NimiRuntimeScenarioJobSubmitRequest {
   return {

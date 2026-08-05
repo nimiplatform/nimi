@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   createNimiAppAIProfileClient,
   type NimiAppAIProfilePreview,
@@ -18,6 +19,7 @@ type ProfileFeedback = {
 };
 
 export function ProfileCatalogPage() {
+  const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
   const profileClient = useMemo(
     () => createNimiAppAIProfileClient(sdk.accountProduct().aiConfig),
@@ -89,18 +91,22 @@ export function ProfileCatalogPage() {
     <RuntimePageShell maxWidth="full" className="max-w-[78rem] space-y-4 px-6 py-6">
       <Surface tone="card" className="space-y-3 p-4" data-testid="runtime-portable-profile-source">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Portable AIProfile</h3>
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.profiles.portableTitle', { defaultValue: 'Portable AIProfile' })}
+          </h3>
           <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
             Profile source remains separate from mutable App AIConfig. Desktop keeps no profile library or second AIConfig store; Preview is non-committing and Apply writes through Runtime.
           </p>
         </div>
         <textarea
-          aria-label="Portable AIProfile JSON"
+          aria-label={t('runtimeConfig.profiles.portableJsonLabel', { defaultValue: 'Portable AIProfile JSON' })}
           value={sourceText}
           onChange={(event) => clearPreview(event.currentTarget.value)}
           rows={12}
           spellCheck={false}
-          placeholder="Paste a canonical portable AIProfile JSON document"
+          placeholder={t('runtimeConfig.profiles.portableJsonPlaceholder', {
+            defaultValue: 'Paste a canonical portable AIProfile JSON document',
+          })}
           className="w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
         />
         <div className="flex flex-wrap gap-2">
@@ -168,7 +174,9 @@ export function ProfileCatalogPage() {
       <InlineAlert tone={feedback.tone}>{feedback.message}</InlineAlert>
       {feedback.technicalDetail ? (
         <details className="rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-xs text-[var(--nimi-text-secondary)]">
-          <summary className="cursor-pointer font-semibold">Technical details</summary>
+          <summary className="cursor-pointer font-semibold">
+            {t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}
+          </summary>
           <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[11px]">{feedback.technicalDetail}</pre>
         </details>
       ) : null}

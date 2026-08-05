@@ -241,8 +241,8 @@ export function runtimeDependencyBannerTitle(
     });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)) {
-    return t('runtimeConfig.localModelCenter.runtimeRepairRequiredTitle', {
-      defaultValue: 'Local image runtime repair required',
+    return t('runtimeConfig.localModelCenter.runtimeSetupActionRequiredTitle', {
+      defaultValue: 'Local image Runtime setup requires attention',
     });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)) {
@@ -276,7 +276,7 @@ export function runtimeDependencyShortStatusLabel(
     return t('runtimeConfig.localModelCenter.runtimeSetupCancelledBadge', { defaultValue: 'Runtime setup cancelled' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)) {
-    return t('runtimeConfig.localModelCenter.runtimeRepairRequiredBadge', { defaultValue: 'Runtime repair required' });
+    return t('runtimeConfig.localModelCenter.runtimeSetupActionRequiredBadge', { defaultValue: 'Runtime setup action required' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)) {
     return t('runtimeConfig.localModelCenter.runtimeUnsupportedBadge', { defaultValue: 'Runtime unsupported' });
@@ -315,8 +315,8 @@ export function runtimeDependencyStatusDetail(
       defaultValue: 'Before first use, Nimi downloads and installs the required local runtime components once. This runs in the background and only happens the first time.',
     });
   }
-  return t('runtimeConfig.localModelCenter.runtimeDependencyNotReady', {
-    defaultValue: 'Runtime-managed local environment dependencies are not ready.',
+  return t('runtimeConfig.localModelCenter.runtimeDependencyIncomplete', {
+    defaultValue: 'Runtime-managed local environment dependencies are incomplete.',
   });
 }
 
@@ -473,7 +473,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
-              {t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
+              {t('runtimeConfig.localModelCenter.resumeSetup', { defaultValue: 'Run Setup' })}
             </button>
           ) : null}
           {props.canStartRuntimeDependencySetup && props.confirmSetup ? (
@@ -501,7 +501,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
-              {t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Download & Enable' })}
+              {t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up Runtime' })}
             </button>
           ) : null}
         </div>

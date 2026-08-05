@@ -5,7 +5,6 @@ import {
 } from './voice-capture-evidence';
 export {
   createInitialZhiyuVoiceCaptureEvidence,
-  projectZhiyuVoiceCaptureReadiness,
   type ZhiyuVoiceCaptureEvidence,
   type ZhiyuVoiceCaptureState,
 } from './voice-capture-evidence';
@@ -32,7 +31,6 @@ export type ZhiyuVoiceCaptureTranscribeResult = {
 };
 
 export type ZhiyuVoiceCaptureControllerOptions = {
-  readonly readiness: ZhiyuVoiceCaptureEvidence;
   readonly createRecorder: () => Promise<ZhiyuVoiceCaptureRecorder> | ZhiyuVoiceCaptureRecorder;
   readonly transcribe: (input: ZhiyuVoiceCaptureTranscribeInput) => Promise<ZhiyuVoiceCaptureTranscribeResult>;
   readonly onStateChange?: (state: ZhiyuVoiceCaptureEvidence) => void;
@@ -52,58 +50,41 @@ export function createZhiyuVoiceCaptureController(options: ZhiyuVoiceCaptureCont
   };
   return {
     async start() {
-      if (!options.readiness.ready) {
-        return emit({
-          ...options.readiness,
-          ready: false,
-          state: 'failed',
-          reasonCode: 'runtime-voice-capture-route-not-ready',
-          actionHint: 'configure_audio_transcribe_route',
-          message: 'Runtime audio.transcribe route is not ready.',
-        });
-      }
       requestId = normalizeVoiceCaptureText(options.createRequestId?.()) || createVoiceCaptureRequestId();
-      const recording = emit({
-        ...options.readiness,
+      const recording = emit(voiceCaptureEvidence({
         state: 'recording',
         reasonCode: 'runtime-voice-capture-recording',
         actionHint: 'stop_voice_capture',
         message: 'Voice capture is recording microphone audio for Runtime transcription.',
         requestId,
-      });
+      }));
       try {
         recorder = await options.createRecorder();
         await recorder.start();
         return recording;
       } catch (error) {
         recorder = null;
-        return emit(voiceCaptureError(error, {
-          ...options.readiness,
-          requestId,
-        }, 'runtime-voice-capture-recording-failed'));
+        return emit(voiceCaptureError(error, recording, 'runtime-voice-capture-recording-failed'));
       }
     },
     async stop() {
       if (!recorder) {
-        return emit({
-          ...options.readiness,
-          ready: false,
+        return emit(voiceCaptureEvidence({
           state: 'failed',
           reasonCode: 'runtime-voice-capture-recorder-missing',
           actionHint: 'start_voice_capture',
           source: 'renderer',
           message: 'Voice capture stop was requested before recording started.',
           requestId: requestId || null,
-        });
+        }));
       }
-      const transcribing = emit({
-        ...options.readiness,
+      const transcribing = emit(voiceCaptureEvidence({
         state: 'transcribing',
         reasonCode: 'runtime-voice-capture-transcribing',
         actionHint: 'wait_runtime_speech_transcription',
         message: 'Runtime audio.transcribe scenario is transcribing the captured audio.',
         requestId,
-      });
+      }));
       try {
         const activeRecorder = recorder;
         const recorded = await activeRecorder.stop();
@@ -234,7 +215,6 @@ function voiceCaptureError(
     : 'Runtime voice capture failed.';
   return {
     ...current,
-    ready: false,
     state: 'failed',
     reasonCode: normalizeVoiceCaptureText(record.reasonCode) || fallbackReasonCode,
     actionHint: normalizeVoiceCaptureText(record.actionHint) || 'retry_voice_capture',

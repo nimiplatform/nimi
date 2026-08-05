@@ -177,7 +177,6 @@ function toAvatarPresentationProfile(
 
 export function resolveAgentConversationSurfaceState(input: {
   composerReady: boolean;
-  routeDisabledReason?: string | null;
   activeTarget: AgentLocalTargetSnapshot | null;
   submittingThreadId: string | null;
   activeConversationAnchorId: string | null;
@@ -209,8 +208,7 @@ export function resolveAgentConversationSurfaceState(input: {
   };
 }): AgentConversationSurfaceState {
   const isSubmitting = Boolean(input.submittingThreadId);
-  const routeDisabledReason = input.routeDisabledReason?.trim() || null;
-  const composerDisabled = isSubmitting || Boolean(routeDisabledReason);
+  const composerDisabled = isSubmitting;
   const displayName = input.activeTarget?.displayName || input.labels.title;
   const activeVoiceCapture = input.voiceCaptureState?.active
     ? input.voiceCaptureState
@@ -287,7 +285,7 @@ export function resolveAgentConversationSurfaceState(input: {
     composer: input.composerReady
       ? {
         disabled: composerDisabled,
-        disabledReason: isSubmitting ? input.labels.sendingDisabledReason : routeDisabledReason,
+        disabledReason: isSubmitting ? input.labels.sendingDisabledReason : null,
         placeholder: input.activeTarget
           ? input.labels.composerPlaceholderWithTarget
           : input.labels.composerPlaceholderWithoutTarget,

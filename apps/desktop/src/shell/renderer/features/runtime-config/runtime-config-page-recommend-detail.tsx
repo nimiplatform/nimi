@@ -18,13 +18,13 @@ import { RecommendQuantizationTable } from './runtime-config-recommend-quantizat
 import { formatBytes } from './runtime-config-model-center-utils';
 import {
   buildHuggingFaceUrl,
-  gradeColorClass,
-  gradeLabel,
   licenseColorClass,
   parseParamsFromTitle,
   parseLicenseShort,
   formatRepoOwnerFromRepo,
-  tierToGrade,
+  recommendationTier,
+  recommendationTierColorClass,
+  recommendationTierLabel,
 } from './runtime-config-page-recommend-utils';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
@@ -57,7 +57,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
   const params = parseParamsFromTitle(item.title);
   const license = parseLicenseShort(item.installPayload.license);
   const provider = formatRepoOwnerFromRepo(item.repo);
-  const grade = tierToGrade(recommendation?.tier);
+  const tier = recommendationTier(recommendation?.tier);
   const hfUrl = buildHuggingFaceUrl(item.repo);
 
   return (
@@ -120,10 +120,10 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
             </div>
           </div>
 
-          {/* Grade badge (top-right) */}
+          {/* Runtime recommendation (top-right) */}
           <div className="shrink-0">
-            <span className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold ${gradeColorClass(grade)}`}>
-              {gradeLabel(grade)}
+            <span className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold ${recommendationTierColorClass(tier)}`}>
+              {recommendationTierLabel(tier)}
             </span>
           </div>
         </div>

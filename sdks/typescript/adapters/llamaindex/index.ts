@@ -57,7 +57,6 @@ export function createNimiLlamaIndexAdapter(options: { readonly model: NimiAiMod
     async query(request) {
       const contextText = request.context?.map((reference) => reference.text).join('\n') ?? '';
       const result = await options.model.generateText({
-        model: options.model.model,
         messages: [
           {
             role: 'user',

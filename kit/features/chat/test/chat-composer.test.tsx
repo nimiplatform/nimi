@@ -248,7 +248,7 @@ describe('ChatComposer', () => {
           }}
           leadingSlot={<div data-testid="leading-slot">Avatar</div>}
           toolbarSlot={<button type="button" data-testid="custom-tool">Tool</button>}
-          modelLabel="GPT-5.4"
+          intentLabel="Cloud intent"
           sendHint="Enter to send"
         />,
       );
@@ -261,7 +261,7 @@ describe('ChatComposer', () => {
     expect(container.querySelector('[data-chat-composer-toolbar="true"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-toolbar-actions="true"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-toolbar-slot="true"]')).toBeTruthy();
-    expect(container.querySelector('[data-chat-composer-toolbar-meta="true"]')?.textContent).toContain('GPT-5.4');
+    expect(container.querySelector('[data-chat-composer-toolbar-meta="true"]')?.textContent).toContain('Cloud intent');
     expect(container.querySelector('[data-chat-composer-voice="true"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-attach="true"]')).toBeTruthy();
   });
@@ -283,7 +283,7 @@ describe('ChatComposer', () => {
           }}
           leadingSlot={<button type="button" data-testid="avatar-entry">A</button>}
           toolbarSlot={<button type="button" data-testid="custom-tool">Tool</button>}
-          modelLabel="Local model ready"
+          intentLabel="Local intent"
         />,
       );
       await flush();

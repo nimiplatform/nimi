@@ -22,7 +22,6 @@ type DownloadCompleteHandler = (
 ) => void;
 
 type UseLocalModelCenterDownloadsInput = {
-  isProfileTargetMode: boolean;
   onDownloadComplete?: DownloadCompleteHandler;
   onProgressSettled?: (event: NimiRuntimeLocalTransferProgressEvent) => void;
 };
@@ -66,9 +65,6 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   }, [progressBySessionId]);
 
   useEffect(() => {
-    if (input.isProfileTargetMode) {
-      return undefined;
-    }
     let disposed = false;
     let unsubscribe: (() => void) | null = null;
     const effectStartedMs = bindings.clock.now();
@@ -155,7 +151,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         unsubscribe();
       }
     };
-  }, [input.isProfileTargetMode]);
+  }, []);
 
   const mergeSessionSummary = useCallback((
     installSessionId: string,

@@ -2,7 +2,7 @@
 
 外部 action 或 participation 集成不属于当前 LocalAgent 核心。它们缺失时，
 不会阻塞 Local AI、LocalAgent Conversation、Memory、Knowledge、voice、
-SDK 使用、Nimi Home、Avatar 或普通 App readiness。
+SDK 使用、Nimi Home、Avatar 或普通 App 能力执行。
 
 如果未来有外部集成被单独准入，它仍然只是 external security principal 或
 有限 participant projection，不会成为 Character、LocalAgent、Character

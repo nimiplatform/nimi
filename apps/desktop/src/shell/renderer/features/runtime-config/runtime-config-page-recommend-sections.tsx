@@ -9,14 +9,14 @@ import { Button } from './runtime-config-primitives';
 import { formatBytes } from './runtime-config-model-center-utils';
 import {
   computeVramPercentage,
-  gradeColorClass,
-  gradeLabel,
   licenseColorClass,
   parseParamsFromTitle,
   parseLicenseShort,
   formatRepoOwnerFromRepo,
   primaryEntrySize,
-  tierToGrade,
+  recommendationTier,
+  recommendationTierColorClass,
+  recommendationTierLabel,
   vramBarColorClass,
   vramPercentageColorClass,
 } from './runtime-config-page-recommend-utils';
@@ -145,46 +145,6 @@ function HwStat({ label, value, title, muted }: { label: string; value: string; 
     <div className="flex items-baseline gap-1.5" title={title}>
       <span className="text-xs font-medium text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{label}:</span>
       <span className={`font-semibold ${muted ? 'text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]' : 'text-[var(--nimi-text-primary)]'}`}>{value}</span>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// TierSummaryBar — colored tier count chips
-// ---------------------------------------------------------------------------
-
-export type TierSummaryBarProps = {
-  counts: Record<string, number>;
-  activeGrades: Set<string>;
-  onToggleGrade: (grade: string) => void;
-};
-
-const TIER_BAR_ITEMS: { grade: string; label: string; dot: string; bg: string; activeBg: string }[] = [
-  { grade: 'runs_great', label: 'Runs Great', dot: 'bg-[var(--nimi-status-success)]', bg: 'hover:bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]', activeBg: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] ring-1 ring-emerald-300' },
-  { grade: 'runs_well', label: 'Runs Well', dot: 'bg-[var(--nimi-status-success)]', bg: 'hover:bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]', activeBg: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] ring-1 ring-green-300' },
-  { grade: 'tight_fit', label: 'Tight Fit', dot: 'bg-[var(--nimi-status-warning)]', bg: 'hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]', activeBg: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] ring-1 ring-amber-300' },
-  { grade: 'not_recommended', label: 'Not Recommended', dot: 'bg-[var(--nimi-status-danger)]', bg: 'hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)]', activeBg: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] ring-1 ring-rose-300' },
-];
-
-export function TierSummaryBar({ counts, activeGrades, onToggleGrade }: TierSummaryBarProps) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {TIER_BAR_ITEMS.map((item) => {
-        const count = counts[item.grade] || 0;
-        const active = activeGrades.has(item.grade);
-        return (
-          <button
-            key={item.grade}
-            type="button"
-            onClick={() => onToggleGrade(item.grade)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-all ${active ? item.activeBg : item.bg}`}
-          >
-            <span className={`h-2 w-2 rounded-full ${item.dot}`} />
-            <span className="font-bold">{count}</span>
-            <span>{item.label}</span>
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -335,7 +295,7 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const recommendation = item.recommendation;
-  const grade = tierToGrade(recommendation?.tier);
+  const tier = recommendationTier(recommendation?.tier);
   const params = parseParamsFromTitle(item.title);
   const license = parseLicenseShort(item.installPayload.license);
   const sizeBytes = primaryEntrySize(item);
@@ -398,10 +358,10 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
         </div>
       </div>
 
-      {/* Grade badge */}
+      {/* Runtime recommendation */}
       <div className="w-28 shrink-0 text-right">
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${gradeColorClass(grade)}`}>
-          {gradeLabel(grade)}
+        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${recommendationTierColorClass(tier)}`}>
+          {recommendationTierLabel(tier)}
         </span>
       </div>
 

@@ -156,7 +156,6 @@ export type {
   NimiRuntimeAIScenarioClient,
   NimiRuntimeEmbeddingScenarioClient,
   NimiRuntimeAIModelOptions,
-  NimiRuntimeAIRoutePolicy,
   NimiRuntimeAIReasoningOptions,
   NimiTextError,
   NimiTextGenerateInput,

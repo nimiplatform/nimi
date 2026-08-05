@@ -98,15 +98,12 @@ function localAssetRecord(): LocalAssetRecord {
     preferredEngine: 'llama',
     fallbackEngines: [],
     bundleState: 0,
-    warmState: 0,
     localInvokeProfileId: '',
     endpoint: '',
     reasonCode: 0,
     displayName: 'Main model file',
     sourceFileName: 'model.gguf',
     importInstanceId: '',
-    durableTargetStatus: LocalAssetStatus.UNSPECIFIED,
-    durableTargetReasonCode: 0,
   } as LocalAssetRecord;
 }
 

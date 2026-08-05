@@ -29,7 +29,6 @@ import {
   runtimeDependencyStatusDetail,
   runtimeDependencyTone,
   runtimeDependencyToneStyle,
-  type RuntimeDependencyTone,
 } from './runtime-config-local-model-center-runtime-dependency-banner';
 import {
   runtimeDependencyCurrentState,
@@ -43,13 +42,6 @@ export {
   runtimeDependencyStatusDetail,
 } from './runtime-config-local-model-center-runtime-dependency-banner';
 export { runtimeDependencyRequiresAttention } from './runtime-config-local-model-center-runtime-dependency-state';
-
-export function assetNeedsAttachedEndpointRepair(asset: NimiRuntimeLocalAssetRecord): boolean {
-  if (asset.engineRuntimeMode !== 'attached-endpoint') {
-    return false;
-  }
-  return String(asset.reasonCode || '').trim() === 'AI_LOCAL_ENDPOINT_REQUIRED';
-}
 
 export function assetSupportsBundleRescan(asset: NimiRuntimeLocalAssetRecord): boolean {
   return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
@@ -112,35 +104,19 @@ export function runtimeDependencyRepairAllowed(
 }
 
 function assetHasRuntimeDependencyWarning(
-  asset: NimiRuntimeLocalAssetRecord,
   dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
   job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): boolean {
-  const detail = String(asset.healthDetail || '').trim().toLowerCase();
-  return (
-    asset.kind === 'image'
-    && (
-      (
-        asset.status === 'unhealthy'
-        && detail.includes('local environment activation blocked')
-      )
-      || runtimeDependencyRequiresAttention(dependency, job)
-    )
-  );
+  return runtimeDependencyRequiresAttention(dependency, job);
 }
 
 function runtimeDependencyDetail(
-  asset: NimiRuntimeLocalAssetRecord,
   dependency: NimiRuntimeLocalEnvironmentPlanDependency | undefined,
   job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
   t: TFunction,
 ): string {
   if (runtimeDependencyRequiresAttention(dependency, job)) {
     return runtimeDependencyStatusDetail(dependency, job, t);
-  }
-  const healthDetail = String(asset.healthDetail || '').trim();
-  if (healthDetail) {
-    return healthDetail;
   }
   if (!dependency) {
     return '';
@@ -150,25 +126,7 @@ function runtimeDependencyDetail(
   return String(dependency.detail || '').trim();
 }
 
-function assetHasHardRuntimeDependencyError(
-  asset: NimiRuntimeLocalAssetRecord,
-): boolean {
-  const detail = String(asset.healthDetail || '').trim().toLowerCase();
-  return asset.kind === 'image' && asset.status === 'unhealthy' && detail.includes('local environment activation blocked');
-}
-
-function runtimeDependencyRowTone(
-  asset: NimiRuntimeLocalAssetRecord,
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
-): RuntimeDependencyTone {
-  if (assetHasHardRuntimeDependencyError(asset)) {
-    return 'danger';
-  }
-  return runtimeDependencyTone(dependency, job);
-}
-
-function runtimeDependencyReadinessLabel(
+function runtimeDependencyStatusLabel(
   dependency: NimiRuntimeLocalEnvironmentPlanDependency | undefined,
   job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
   t: TFunction,
@@ -185,7 +143,7 @@ function runtimeDependencyReadinessLabel(
     return t('runtimeConfig.localModelCenter.runtimeSetupCancelledBadge', { defaultValue: 'Runtime setup cancelled' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)) {
-    return t('runtimeConfig.localModelCenter.runtimeRepairRequiredBadge', { defaultValue: 'Runtime repair required' });
+    return t('runtimeConfig.localModelCenter.runtimeSetupActionRequiredBadge', { defaultValue: 'Runtime setup action required' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)) {
     return t('runtimeConfig.localModelCenter.runtimeUnsupportedBadge', { defaultValue: 'Runtime unsupported' });
@@ -193,14 +151,14 @@ function runtimeDependencyReadinessLabel(
   if (dependency?.confirmationRequired && isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(state)) {
     return t('runtimeConfig.localModelCenter.runtimeSetupRequiredBadge', { defaultValue: 'Setup needed' });
   }
-  return t('runtimeConfig.localModelCenter.runtimeNotReadyBadge', { defaultValue: 'Runtime not ready' });
+  return t('runtimeConfig.localModelCenter.runtimeSetupIncompleteBadge', { defaultValue: 'Runtime setup incomplete' });
 }
 
 function assetStatusLabel(asset: NimiRuntimeLocalAssetRecord, t: TFunction): string {
-  if (asset.status === 'installed') {
-    return t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' });
+  if (asset.status === 'unhealthy') {
+    return t('runtimeConfig.localModelCenter.assetIssue', { defaultValue: 'Asset issue' });
   }
-  return asset.status;
+  return t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' });
 }
 
 function assetStatusBadgeClass(asset: NimiRuntimeLocalAssetRecord): string {
@@ -218,17 +176,11 @@ type RunnableInstalledAssetRowProps = {
   assetBusy: boolean;
   canStartRuntimeDependencySetup: boolean;
   confirmRemoveAssetId: string;
-  repairAssetId: string;
-  repairEndpoint: string;
   runtimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
   runtimeDependencyJob?: NimiRuntimeLocalEnvironmentDependencyJob;
   onCancelRemove: () => void;
-  onCancelRepair: () => void;
   onConfirmRemove: (localAssetId: string) => void;
-  onRepairAsset: (localAssetId: string, endpoint: string) => void;
-  onRepairEndpointChange: (value: string) => void;
   onRequestRemove: (localAssetId: string) => void;
-  onRequestRepair: (localAssetId: string) => void;
   onSetupRuntimeDependency: () => void;
   onRescanAsset: (localAssetId: string) => void;
 };
@@ -236,24 +188,21 @@ type RunnableInstalledAssetRowProps = {
 export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
-  const needsRepair = assetNeedsAttachedEndpointRepair(props.asset);
   const hasRuntimeDependencyWarning = assetHasRuntimeDependencyWarning(
-    props.asset,
     props.runtimeDependency,
     props.runtimeDependencyJob,
   );
   const dependencyDetail = runtimeDependencyDetail(
-    props.asset,
     props.runtimeDependency,
     props.runtimeDependencyJob,
     t,
   );
   const statusLabel = hasRuntimeDependencyWarning
-    ? runtimeDependencyReadinessLabel(props.runtimeDependency, props.runtimeDependencyJob, t)
+    ? runtimeDependencyStatusLabel(props.runtimeDependency, props.runtimeDependencyJob, t)
     : assetStatusLabel(props.asset, t);
-  const rowTone = runtimeDependencyRowTone(props.asset, props.runtimeDependency, props.runtimeDependencyJob);
-  const rowToneStyle = runtimeDependencyToneStyle(rowTone);
-  const isRepairing = props.repairAssetId === props.asset.localAssetId;
+  const rowToneStyle = runtimeDependencyToneStyle(
+    runtimeDependencyTone(props.runtimeDependency, props.runtimeDependencyJob),
+  );
   const supportsRescan = assetSupportsBundleRescan(props.asset);
   const unhealthyReasonSummary = props.asset.status === 'unhealthy'
     ? localizedAssetUnhealthyReason(props.asset.reasonCode, i18n.t)
@@ -296,8 +245,8 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]"
               title={String(props.asset.reasonCode || '').trim()}
             >
-              {unhealthyReasonSummary || t('runtimeConfig.localModelCenter.assetUnhealthyGeneric', {
-                defaultValue: 'This model is currently unavailable. Try re-scanning its bundle, or remove and re-import it.',
+              {unhealthyReasonSummary || t('runtimeConfig.localModelCenter.assetIssueGeneric', {
+                defaultValue: 'Runtime reported an issue for this local asset. Re-scan its bundle, or remove and re-import it.',
               })}
             </p>
           ) : null}
@@ -325,16 +274,6 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               {t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up' })}
             </button>
           ) : null}
-          {needsRepair ? (
-            <button
-              type="button"
-              onClick={() => props.onRequestRepair(props.asset.localAssetId)}
-              disabled={props.assetBusy}
-              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] disabled:opacity-50"
-            >
-              {t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
-            </button>
-          ) : null}
           {supportsRescan ? (
             <button
               type="button"
@@ -356,41 +295,6 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
           </button>
         </div>
       </div>
-      {isRepairing ? (
-        <div className="mt-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-4 py-3">
-          <p className="text-xs text-[var(--nimi-status-warning)]">
-            {String(props.asset.healthDetail || '').trim() || t('runtimeConfig.localModelCenter.repairAttachedEndpointHint', {
-              defaultValue: 'This asset must be rebound to an external attached endpoint on the current host.',
-            })}
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <input
-              type="text"
-              value={props.repairEndpoint}
-              onChange={(event) => props.onRepairEndpointChange(event.target.value)}
-              placeholder={t('runtimeConfig.localModelCenter.repairEndpointPlaceholder', { defaultValue: 'http://host:port/v1' })}
-              className="h-9 min-w-0 flex-1 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                void Promise.resolve(props.onRepairAsset(props.asset.localAssetId, props.repairEndpoint));
-              }}
-              disabled={props.assetBusy || !String(props.repairEndpoint || '').trim()}
-              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
-            >
-              {t('runtimeConfig.localModelCenter.confirmRepair', { defaultValue: 'Apply' })}
-            </button>
-            <button
-              type="button"
-              onClick={props.onCancelRepair}
-              className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
-            >
-              {t('Common.cancel', { defaultValue: 'Cancel' })}
-            </button>
-          </div>
-        </div>
-      ) : null}
       {props.confirmRemoveAssetId === props.asset.localAssetId ? (
         <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
           <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
@@ -451,18 +355,13 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
         </div>
         <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.asset.localAssetId}</p>
         <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{props.asset.entry}</p>
-        {props.asset.status === 'unhealthy' && String(props.asset.healthDetail || '').trim() ? (
-          <p className="mt-1 line-clamp-3 text-[11px] text-[var(--nimi-status-danger)]">
-            {String(props.asset.healthDetail || '').trim()}
-          </p>
-        ) : null}
         {props.asset.status === 'unhealthy' && String(props.asset.reasonCode || '').trim() ? (
           <p
             className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]"
             title={String(props.asset.reasonCode || '').trim()}
           >
-            {unhealthyReasonSummary || t('runtimeConfig.localModelCenter.assetUnhealthyGeneric', {
-              defaultValue: 'This model is currently unavailable. Try re-scanning its bundle, or remove and re-import it.',
+            {unhealthyReasonSummary || t('runtimeConfig.localModelCenter.assetIssueGeneric', {
+              defaultValue: 'Runtime reported an issue for this local asset. Re-scan its bundle, or remove and re-import it.',
             })}
           </p>
         ) : null}
@@ -471,7 +370,7 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
         <span className={`rounded px-2 py-0.5 text-[10px] ${
           props.asset.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : props.asset.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
         }`}>
-          {props.asset.status}
+          {assetStatusLabel(props.asset, t)}
         </span>
         <button
           type="button"

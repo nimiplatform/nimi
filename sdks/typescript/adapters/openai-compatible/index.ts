@@ -10,7 +10,6 @@ import type {
   NimiJsonValue,
   NimiMessage,
   NimiMessagePart,
-  NimiModelRef,
   NimiRunEvent,
   NimiTool,
   NimiToolCall,
@@ -421,15 +420,9 @@ export function normalizeOpenAICompatibleChatRequest(
     throwUnsupportedOpenAICompatibleFeature('messages', 'at least one message is required');
   }
 
-  const model: NimiModelRef = {
-    providerId: NIMI_OPENAI_COMPATIBLE_ADAPTER_ID,
-    modelId: request.model,
-  };
-
   return {
     modelName: request.model,
     nimiRequest: {
-      model,
       messages: request.messages.map(toNimiMessage),
       tools: request.tools?.map(toNimiTool),
       toolChoice: toNimiToolChoice(request.tool_choice),

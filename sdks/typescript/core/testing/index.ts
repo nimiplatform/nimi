@@ -7,7 +7,6 @@ import {
   type NimiFinishReason,
   type NimiJsonObject,
   type NimiJsonValue,
-  type NimiModelRef,
   type NimiRunEvent,
   type NimiToolCall,
   type NimiUsage,
@@ -49,7 +48,6 @@ export type {
 } from './host-types.js';
 
 export interface NimiMockModelOptions {
-  readonly model?: NimiModelRef;
   readonly text?: string;
   readonly finishReason?: NimiFinishReason;
   readonly usage?: NimiUsage;
@@ -89,7 +87,7 @@ export async function* createNimiStreamSimulator(events: readonly NimiRunEvent[]
 }
 
 export function createNimiMockModel(options: NimiMockModelOptions = {}): NimiAiModel {
-  const model = options.model ?? { providerId: 'test', modelId: 'nimi-mock-model' };
+  const model = Object.freeze({ modelId: 'text.generate' as const });
   const finishReason = options.finishReason ?? (options.toolCalls && options.toolCalls.length > 0 ? 'tool-calls' : 'stop');
 
   return {

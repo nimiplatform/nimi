@@ -48,7 +48,7 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
 | Runtime | [Runtime](/zh/runtime/) | LocalAgent 执行、Conversation、Memory、Knowledge、流式、多模态及 Provider 路由 |
 | SDK | [SDK](/zh/sdk/) 与 [第一次 AI 调用](/zh/sdk/first-ai-call) | 应用开发者的标准化接入边界与第一次 Runtime-backed 文本生成路径 |
 | App Tools | [创建 Nimi App](/zh/start/create-an-app) | App authoring scaffold 命令与本地检查 |
-| Kit | [平台 Kit](/zh/platform/kit/) | 共享 UI、shell、auth、telemetry、model config 与 feature module |
+| Kit | [平台 Kit](/zh/platform/kit/) | 共享 UI、shell、auth、telemetry、AI capability configuration 与 feature module |
 | Tester / Nimi Lab | [把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference) | Reference app scripts、Runtime auth、Kit、AIConfig 与 fail-closed states |
 | 桌面端 | [桌面端](/zh/desktop/) | 第一方原生外壳（Shell） |
 | 网页端 | [Web 模式](/zh/desktop/web-mode) | 受限的浏览器沙盒呈现模式 |

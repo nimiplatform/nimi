@@ -107,7 +107,6 @@ export interface NimiRuntimeAgentSessionSnapshot {
   readonly transcriptMessageCount?: number;
   readonly transcript?: NimiRuntimeAgentSessionTranscriptMessage[];
   readonly configRevision?: number;
-  readonly executionBindings?: JsonObject;
   readonly activeTurn?: NimiRuntimeAgentSessionTurnSnapshot;
   readonly lastTurn?: NimiRuntimeAgentSessionTurnSnapshot;
   readonly pendingFollowUp?: JsonObject;

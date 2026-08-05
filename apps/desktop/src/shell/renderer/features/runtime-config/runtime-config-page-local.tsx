@@ -24,14 +24,10 @@ export function LocalPage({ model, state }: LocalPageProps) {
         state={state}
         discovering={model.discovering}
         checkingHealth={model.checkingHealth}
-        displayMode="runtime"
-        runtimeProfileTargets={model.runtimeProfileTargets}
         localModelQuery={model.localModelQuery}
         filteredLocalModels={model.filteredLocalModels}
         onDiscover={model.discoverLocalModels}
         onHealthCheck={model.runLocalHealthCheck}
-        onResolveProfile={model.resolveRuntimeProfile}
-        onApplyProfile={model.applyRuntimeProfile}
         onInstallCatalogItem={model.installCatalogLocalModel}
         onInstall={model.installLocalModel}
         onInstallVerified={model.installVerifiedLocalModel}
@@ -43,7 +39,6 @@ export function LocalPage({ model, state }: LocalPageProps) {
         onRemove={model.removeLocalModel}
         onRemoveAsset={model.removeLocalAsset}
         onSetLocalModelQuery={model.setLocalModelQuery}
-        onNavigateToSetup={(pageId) => model.onChangePage(pageId)}
         onDownloadComplete={model.onDownloadComplete}
         onRetryInstall={model.retryInstall}
         installSessionMeta={model.installSessionMeta}

@@ -28,13 +28,13 @@ export const DATA_RECIPES: Recipe[] = [
     wide: true,
     stage: (
       <StatisticGroup className="w-full">
-        <Statistic label="Routes ready" value="18" suffix="/ 24" trend="up" tone="success" />
+        <Statistic label="Capabilities admitted" value="18" suffix="/ 24" trend="up" tone="success" />
         <Statistic label="Blocked lanes" value="2" trend="down" tone="warning" />
         <Statistic label="Coverage" value="92" suffix="%" tone="brand" />
       </StatisticGroup>
     ),
     snippet: `<StatisticGroup>
-  <Statistic label="Routes ready" value="18" suffix="/ 24" trend="up" tone="success" />
+  <Statistic label="Capabilities admitted" value="18" suffix="/ 24" trend="up" tone="success" />
   <Statistic label="Blocked lanes" value="2" trend="down" tone="warning" />
   <Statistic label="Coverage" value="92" suffix="%" tone="brand" />
 </StatisticGroup>`,
@@ -56,7 +56,7 @@ export const DATA_RECIPES: Recipe[] = [
       <DataList
         ariaLabel="Capability lane records"
         items={[
-          { id: 'text', title: 'text.generate', meta: 'SDK runtime route', trailing: <StatusBadge tone="success">ready</StatusBadge> },
+          { id: 'text', title: 'text.generate', meta: 'Runtime-owned execution', trailing: <StatusBadge tone="success">admitted</StatusBadge> },
           { id: 'image', title: 'image.generate', meta: 'Runtime admission required', trailing: <StatusBadge tone="warning">review</StatusBadge> },
         ]}
       />
@@ -67,8 +67,8 @@ export const DATA_RECIPES: Recipe[] = [
     {
       id: 'text',
       title: 'text.generate',
-      meta: 'SDK runtime route',
-      trailing: <StatusBadge tone="success">ready</StatusBadge>,
+      meta: 'Runtime-owned execution',
+      trailing: <StatusBadge tone="success">admitted</StatusBadge>,
     },
   ]}
 />`,
@@ -88,7 +88,7 @@ export const DATA_RECIPES: Recipe[] = [
     wide: true,
     stage: (
       <DataTable
-        ariaLabel="Kit route matrix"
+        ariaLabel="Kit capability matrix"
         rows={[
           { id: 'chat', capability: 'chat.stream', owner: 'runtime', status: 'ready' },
           { id: 'embed', capability: 'text.embed', owner: 'runtime', status: 'ready' },
@@ -103,7 +103,7 @@ export const DATA_RECIPES: Recipe[] = [
       />
     ),
     snippet: `<DataTable
-  ariaLabel="Kit route matrix"
+  ariaLabel="Kit capability matrix"
   rows={[{ id: 'chat', capability: 'chat.stream', owner: 'runtime', status: 'ready' }]}
   rowKey={(row) => row.id}
   columns={[
@@ -157,12 +157,12 @@ export const DATA_RECIPES: Recipe[] = [
     stage: (
       <div className="kit-inline-alert-recipe grid w-full min-w-0 gap-6">
         <InlineAlert tone="info">Runtime session is ready for this capability.</InlineAlert>
-        <InlineAlert tone="warning">Bind a model before running this lane.</InlineAlert>
+        <InlineAlert tone="warning">Configure capability intent before running this lane.</InlineAlert>
       </div>
     ),
     snippet: `<div className="kit-inline-alert-recipe grid w-full min-w-0 gap-6">
   <InlineAlert tone="info">Runtime session is ready for this capability.</InlineAlert>
-  <InlineAlert tone="warning">Bind a model before running this lane.</InlineAlert>
+  <InlineAlert tone="warning">Configure capability intent before running this lane.</InlineAlert>
 </div>`,
     props: [
       { name: 'tone', desc: 'neutral | success | warning | danger | info' },
@@ -181,7 +181,7 @@ export const DATA_RECIPES: Recipe[] = [
       <div className="flex w-full min-w-0 flex-wrap items-center gap-3">
         <Button size="sm" tone="secondary" onClick={() => nimiToast.success('Export finished.')}>Success</Button>
         <Button size="sm" tone="secondary" onClick={() => nimiToast.info('Runtime check scheduled.')}>Info</Button>
-        <Button size="sm" tone="secondary" onClick={() => nimiToast.warning('Local model cache is almost full.')}>Warning</Button>
+        <Button size="sm" tone="secondary" onClick={() => nimiToast.warning('Local AI asset cache is almost full.')}>Warning</Button>
         <Button size="sm" tone="secondary" onClick={() => nimiToast.danger('Bridge connection lost.')}>Danger</Button>
         <Button
           size="sm"
@@ -198,7 +198,7 @@ export const DATA_RECIPES: Recipe[] = [
 
 <Button onClick={() => nimiToast.success('Export finished.')}>Success</Button>
 <Button onClick={() => nimiToast.info('Runtime check scheduled.')}>Info</Button>
-<Button onClick={() => nimiToast.warning('Local model cache is almost full.')}>Warning</Button>
+<Button onClick={() => nimiToast.warning('Local AI asset cache is almost full.')}>Warning</Button>
 <Button onClick={() => nimiToast.danger('Bridge connection lost.')}>Danger</Button>
 <Button
   onClick={() =>

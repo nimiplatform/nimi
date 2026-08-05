@@ -37,7 +37,7 @@ const SECTION_ICONS: Record<AgentCenterSectionId, ComponentType<{ className?: st
   overview: Home,
   appearance: Eye,
   behavior: Brain,
-  model: Cpu,
+  'ai-config': Cpu,
   cognition: Lightbulb,
   advanced: Bug,
 };

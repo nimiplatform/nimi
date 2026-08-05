@@ -5,11 +5,11 @@ export type ZhiyuElectronRuntimeUnavailableProjection = {
   readonly source: 'electron';
 };
 
-const ELECTRON_RUNTIME_UNAVAILABLE_REASON_CODES = new Set([
+const ELECTRON_RUNTIME_UNAVAILABLE_REASON_CODES = [
   'electron-runtime-endpoint-unavailable',
   'RUNTIME_GRPC_UNAVAILABLE',
   'RUNTIME_GRPC_DEADLINE_EXCEEDED',
-]);
+] as const;
 
 export function normalizeZhiyuElectronRuntimeUnavailableError(
   error: unknown,
@@ -28,7 +28,7 @@ export function normalizeZhiyuElectronRuntimeUnavailableError(
   }
 
   if (
-    ELECTRON_RUNTIME_UNAVAILABLE_REASON_CODES.has(reasonCode)
+    (ELECTRON_RUNTIME_UNAVAILABLE_REASON_CODES as readonly string[]).includes(reasonCode)
     || grpcCode === 14
     || message.startsWith('14 UNAVAILABLE:')
   ) {

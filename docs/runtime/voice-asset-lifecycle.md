@@ -39,10 +39,6 @@ fields:
 | `app_id` | Owning app context |
 | `subject_user_id` | Owning user (tenant scope) |
 | `workflow_type` | `voice_clone` / `voice_design` |
-| `provider` | Backing provider |
-| `model_id` | Provider model used at creation |
-| `target_model_id` | Model the asset is bound to for synthesis |
-| `provider_voice_ref` | Provider-owned native handle truth |
 | `persistence` | Logical lifecycle (`persistence_types`) |
 | `status` | Asset status (`asset_statuses`) |
 
@@ -62,26 +58,21 @@ This is the most important distinction on this page:
 | --- | --- | --- |
 | `VoiceAsset` | Durable runtime-owned voice resource | Runtime |
 | `VoiceReference` | The handle a synthesis call uses to identify which voice to speak | Runtime |
-| `provider_voice_ref` | The provider's native handle inside its API | Provider |
+| Provider-native handle | Internal provider identity that never enters ordinary App input | Provider / Runtime Driver |
 | Voice synthesis | One-off `tts_synthesize` invocation that uses a `VoiceReference` to produce audio | Runtime (RPC) |
 
-`VoiceAsset` and `provider_voice_ref` must stay separate. Runtime
-must not promote `provider_voice_ref` to a public primary key. The
-provider must not bypass `VoiceAsset` to become the runtime's user
-resource truth. When a provider returns a native custom voice handle,
-the runtime converges it into the `VoiceAsset + VoiceReference`
-public contract.
+Runtime must not promote a provider-native voice handle to a public primary
+key. When a provider returns one, Runtime preserves it internally and exposes
+only the Runtime-owned `VoiceAsset` and admitted `VoiceReference`.
 
 ## VoiceReference Boundary
 
-The synthesis entry point goes through `VoiceReference`. Only three
-admitted reference kinds:
+The ordinary synthesis entry point goes through two public reference kinds:
 
 | Kind | Use |
 | --- | --- |
 | `preset_voice_id` | System-preset voice |
 | `voice_asset_id` | User-created `VoiceAsset` |
-| `provider_voice_ref` | Provider-native handle (admitted explicitly) |
 
 The reference kinds enum lives in `tables/voice-enums.yaml`
 (`reference_kinds`).
@@ -133,13 +124,6 @@ internal steps do not become extra public RPCs.
 `VoiceAsset` is user-scoped by default. Cross-`app_id` or
 cross-`subject_user_id` access fails closed. There is no implicit
 cross-tenant voice asset reuse.
-
-## Target Model Binding
-
-`VoiceAsset` binds `target_model_id` at creation. If `tts_synthesize`
-later requests a different target model, runtime returns
-`AI_VOICE_TARGET_MODEL_MISMATCH`. The binding is contractual; it is
-not an advisory hint.
 
 ## Voice Handle Policy
 
@@ -202,13 +186,13 @@ App wants to surface the user's available voices in a settings UI.
 3. **No mixed API.** App does not look for a single "list everything"
    call — there isn't one, and the channel split is contractual.
 
-## What Voice Asset Lifecycle Does Not Do
+## Lifecycle Boundaries
 
 - It is **not** a one-off synthesis call. `tts_synthesize` is
   transient; `VoiceAsset` is durable resource truth.
 - It does not mix preset and user-asset discovery into one stream.
 - It does not let providers escape into the public asset surface;
-  `provider_voice_ref` stays inside `VoiceReference`.
+  provider-native handles stay inside Runtime and its Driver.
 - It does not silently cross tenants. User scope is fail-closed.
 - It does not let workflow-capable TTS families substitute for STT;
   `audio.transcribe` admits independently per
@@ -223,7 +207,6 @@ App wants to surface the user's available voices in a settings UI.
 | `VoiceReference` synthesis entry | Runtime (`K-VOICE-003`) |
 | Provider-native voice handle | Provider (`provider_voice_ref`) |
 | Tenant isolation | Runtime (`K-VOICE-006`) |
-| Target model binding | Runtime (`K-VOICE-007`) |
 | Discovery channel split | Runtime (`K-VOICE-009`, `K-VOICE-013`) |
 | Voice handle policy | Runtime (`K-VOICE-015`) |
 | Family-level workflow validation boundary | Runtime (`K-VOICE-016`) |

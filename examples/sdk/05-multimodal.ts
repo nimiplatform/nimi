@@ -1,6 +1,6 @@
 /**
  * Generate an image and a TTS clip through Runtime Scenario jobs.
- * Prerequisites: `nimi start` and the referenced local multimodal models installed.
+ * Prerequisites: `nimi start` and image.generate/audio.synthesize intents for this App.
  * Run: npx tsx examples/sdk/05-multimodal.ts
  */
 
@@ -22,12 +22,10 @@ const client = createExampleClient({
   appId: 'example.sdk.multimodal',
 });
 
-function generationClient(modelId: string, timeoutMs: number): NimiRuntimeGenerationSurface {
+function generationClient(timeoutMs: number): NimiRuntimeGenerationSurface {
   return client.features.generation.createRuntimeClient({
     head: {
       subjectUserId: 'local-user',
-      modelId,
-      routePolicy: 'local',
       timeoutMs,
     },
   });
@@ -73,11 +71,11 @@ async function saveFirstArtifact(
   }
   const bytes = await readArtifactBytes(generation, artifact);
   await writeFile(outputPath, Buffer.from(bytes));
-  console.log(`saved ${outputPath} (${artifact.mimeType || 'application/octet-stream'})`);
+  process.stdout.write(`saved ${outputPath} (${artifact.mimeType || 'application/octet-stream'})\n`);
 }
 
 async function saveImage() {
-  const generation = generationClient('local/sd1.5', 120_000);
+  const generation = generationClient(120_000);
   const submitted = await generation.submit({
     scenario: createNimiImageGenerationScenario({
       kind: 'image',
@@ -94,7 +92,7 @@ async function saveImage() {
 }
 
 async function saveSpeech() {
-  const generation = generationClient('local/tts-default', 45_000);
+  const generation = generationClient(45_000);
   const submitted = await generation.submit({
     scenario: createNimiSpeechSynthesisScenario({
       kind: 'speech-synthesize',

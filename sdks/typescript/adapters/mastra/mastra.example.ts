@@ -66,7 +66,7 @@ export function createMastraRuntimeOwnedEmbedder(
   embedding: NimiRuntimeEmbeddingSurface,
 ) {
   return createNimiMastraEmbeddingModel({
-    model: { providerId: 'runtime', modelId: 'runtime-selected-embedding' },
+    model: { modelId: 'text.embed' },
     embedding,
   });
 }

@@ -199,7 +199,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 </p>
                 <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
                   {t('runtimeConfig.cloud.liveInventoryHint', {
-                    defaultValue: 'This provider loads models from the connector endpoint at runtime. Configure an explicit default model or choose a live model in route/chat settings.',
+                    defaultValue: 'This provider loads its catalog from the connector endpoint. Runtime selects an admitted implementation when execution starts.',
                   })}
                 </p>
               </div>

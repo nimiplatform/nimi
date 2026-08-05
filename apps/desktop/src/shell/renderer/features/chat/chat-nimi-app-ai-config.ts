@@ -44,11 +44,7 @@ export function createDesktopNimiLocalTextIntent(
   };
 }
 
-/**
- * Switches only consumer route intent. Desktop never creates, reads, carries,
- * or interprets implementation, provider-model target, Connector, binding, or
- * readiness authority.
- */
+/** Switches canonical consumer intent between Local and Cloud. */
 export function createDesktopNimiCloudTextIntent(
   fields: DesktopNimiTextIntentFields = {},
 ): NimiCapabilityAIConfigIntent {

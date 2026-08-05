@@ -9,29 +9,12 @@ import {
   createNimiRuntimeEmbeddingClient,
 } from './embeddings';
 
-const localRuntimeTargetRef = {
-  kind: 'local-runtime',
-  version: 'v2',
-  profileBindingId: 'local-runtime:embedder-1',
-} as const;
-
-const cloudRuntimeTargetRef = {
-  kind: 'cloud-connector',
-  connectorId: 'connector-openai',
-  remoteModelCatalogId: 'remote-catalog:connector-openai:text-embedding-3-large',
-  providerModelId: 'text-embedding-3-large',
-  provider: 'openai',
-} as const;
-
 test('Runtime-backed embedding client maps text embedding Scenario requests and output', async () => {
   let capturedRequest: ReturnType<typeof buildRuntimeTextEmbeddingRequest> | null = null;
   let capturedOptions: RuntimeTypedCallOptions | undefined;
   const embedding = createNimiRuntimeEmbeddingClient({
     appId: 'app-1',
     subjectUserId: 'user-1',
-    routePolicy: 'local',
-    model: { providerId: 'runtime', modelId: 'embedder-1' },
-    targetRef: localRuntimeTargetRef,
     runtime: {
       ai: {
         async executeScenario(request, options) {
@@ -65,17 +48,10 @@ test('Runtime-backed embedding client maps text embedding Scenario requests and 
 
   assert.equal(capturedRequest?.scenarioType, ScenarioType.TEXT_EMBED);
   assert.equal(capturedRequest?.executionMode, ExecutionMode.SYNC);
-  assert.equal(capturedRequest?.head?.appId, 'app-1');
-  assert.equal(capturedRequest?.head?.subjectUserId, 'user-1');
-  assert.equal(capturedRequest?.head?.modelId, 'embedder-1');
-  assert.deepEqual(capturedRequest?.head?.targetRef, {
-    target: {
-      oneofKind: 'localRuntime',
-      localRuntime: {
-        version: 'v2',
-        ref: { oneofKind: 'profileBindingId', profileBindingId: 'local-runtime:embedder-1' },
-      },
-    },
+  assert.deepEqual(capturedRequest?.head, {
+    appId: 'app-1',
+    subjectUserId: 'user-1',
+    timeoutMs: 0,
   });
   assert.match(capturedOptions?.metadata?.idempotencyKey ?? '', /^runtime-embed-/);
   assert.equal(capturedRequest?.spec.spec.oneofKind, 'textEmbed');
@@ -88,8 +64,6 @@ test('Runtime-backed embedding client maps text embedding Scenario requests and 
 test('Runtime-backed embedding client fails closed for invalid inputs and outputs', async () => {
   const embedding = createNimiRuntimeEmbeddingClient({
     appId: 'app-1',
-    model: { modelId: 'embedder-1' },
-    targetRef: localRuntimeTargetRef,
     runtime: {
       async executeScenario() {
         return {
@@ -112,56 +86,4 @@ test('Runtime-backed embedding client fails closed for invalid inputs and output
     () => embedding.embedText({ values: ['ok'] }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
   );
-});
-
-test('Runtime-backed embedding client fails closed when cloud model diverges from targetRef', async () => {
-  let executed = false;
-  const embedding = createNimiRuntimeEmbeddingClient({
-    appId: 'app-1',
-    routePolicy: 'cloud',
-    model: { providerId: 'openai', modelId: 'legacy-embedding-alias' },
-    targetRef: cloudRuntimeTargetRef,
-    runtime: {
-      async executeScenario() {
-        executed = true;
-        return {
-          output: {
-            output: {
-              oneofKind: 'textEmbed',
-              textEmbed: {
-                vectors: [{ values: [0.1] }],
-              },
-            },
-          },
-          finishReason: 1,
-          routeDecision: RoutePolicy.CLOUD,
-          modelResolved: 'legacy-embedding-alias',
-          traceId: 'trace-embed',
-          ignoredExtensions: [],
-        };
-      },
-    },
-  });
-
-  await assert.rejects(
-    () => embedding.embedText({ values: ['hello'] }),
-    (error: unknown) => {
-      const nimiError = error as {
-        readonly reasonCode?: string;
-        readonly actionHint?: string;
-        readonly details?: {
-          readonly modelId?: string;
-          readonly providerModelId?: string;
-        };
-      };
-      assert.equal(nimiError.reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
-      assert.equal(nimiError.actionHint, 'call_runtime_ai_with_resolved_cloud_provider_model_id');
-      assert.deepEqual(nimiError.details, {
-        modelId: 'legacy-embedding-alias',
-        providerModelId: 'text-embedding-3-large',
-      });
-      return true;
-    },
-  );
-  assert.equal(executed, false);
 });

@@ -26,7 +26,7 @@ pnpm run doctor
 
 如果你只需要验证 SDK 是否能调用 Runtime-backed 文本生成，先读 [第一次 AI 调用](/zh/sdk/first-ai-call)。
 
-如果你要接入共享 UI、auth、shell、telemetry 或 model configuration，先读 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
+如果你要接入共享 UI、auth、shell、telemetry 或 AIConfig composition，先读 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
 
 ## Scaffold 拥有什么
 

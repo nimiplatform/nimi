@@ -28,8 +28,8 @@ Simulator 用于 selected App module 的开发 qualification；两者都不是�
 ## 架构规则
 
 - Character identity 与 World truth 留在 Realm。
-- LocalAgent、Conversation、Memory、Knowledge、AI route 与 App authorization
-  留在 Runtime。
+- LocalAgent、Conversation、Memory、Knowledge、AI implementation selection 与
+  App authorization 留在 Runtime。
 - App 使用公共 SDK operation，只持有自身产品行为与数据。
 - Desktop 是当前 host，不是不可替代的跨平台 authority。
 - Platform security 表达必要结果；除非公共 contract 要求，OS 机制保持为

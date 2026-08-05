@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { projectNimiRuntimeRouteCapabilityCoverageList } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { cn } from '@nimiplatform/kit/ui';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
@@ -28,14 +27,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
   const [nodeMatrixExpanded, setNodeMatrixExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<RuntimeTabKey>('overview');
 
-  const capabilitySummary = useMemo(() => {
-    return projectNimiRuntimeRouteCapabilityCoverageList({
-      localNodes: state.local.nodeMatrix,
-      localModels: state.local.models,
-      connectors: state.connectors,
-    });
-  }, [state]);
-
   const sortedNodeMatrix = useMemo(
     () =>
       [...(state.local.nodeMatrix || [])].sort(
@@ -44,11 +35,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
           String(left.nodeId || '').localeCompare(String(right.nodeId || '')),
       ),
     [state.local.nodeMatrix],
-  );
-
-  const availableCapabilityCount = useMemo(
-    () => capabilitySummary.filter((item) => item.localAvailable || item.cloudAvailable).length,
-    [capabilitySummary],
   );
 
   const unhealthyProviderCount = useMemo(() => {
@@ -111,12 +97,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       </div>
 
       {activeTab === 'overview' ? (
-        <RuntimeOverviewTab
-          model={model}
-          capabilitySummary={capabilitySummary}
-          availableCapabilityCount={availableCapabilityCount}
-          onOpenHealth={() => setActiveTab('health')}
-        />
+        <RuntimeOverviewTab model={model} />
       ) : null}
 
       {activeTab === 'health' ? (

@@ -1,6 +1,5 @@
 import {
   ExecutionMode,
-  FallbackPolicy,
   RoutePolicy,
   ScenarioType,
   type ExecuteScenarioRequest,
@@ -11,11 +10,7 @@ import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
 import type { CoreMetadata } from '../../types';
 import { ReasonCode, createNimiClientId, createNimiError } from '../../types';
-import type { NimiJsonObject, NimiModelRef, NimiUsage } from '../contracts';
-import type { NimiAIConfigTargetRef } from './config-types';
-import { toRuntimeDurableTargetRef, toRuntimeScenarioTargetIdentity } from './runtime-target-ref';
-
-export type NimiRuntimeEmbeddingRoutePolicy = 'local' | 'cloud' | 'unspecified';
+import type { NimiJsonObject, NimiUsage } from '../contracts';
 
 export interface NimiRuntimeEmbeddingScenarioClient {
   executeScenario(request: ExecuteScenarioRequest, options?: RuntimeTypedCallOptions): Promise<ExecuteScenarioResponse>;
@@ -23,14 +18,10 @@ export interface NimiRuntimeEmbeddingScenarioClient {
 
 export interface NimiRuntimeEmbeddingClientOptions {
   readonly runtime: { readonly ai: NimiRuntimeEmbeddingScenarioClient } | NimiRuntimeEmbeddingScenarioClient;
-  readonly model: NimiModelRef;
   readonly appId: string;
-  readonly routePolicy?: NimiRuntimeEmbeddingRoutePolicy;
-  readonly connectorId?: string;
   readonly subjectUserId?: string;
   readonly timeoutMs?: number;
   readonly metadata?: NimiJsonObject;
-  readonly targetRef?: NimiAIConfigTargetRef;
 }
 
 export interface NimiEmbedTextRequest {
@@ -57,13 +48,12 @@ export function createNimiRuntimeEmbeddingClient(
   options: NimiRuntimeEmbeddingClientOptions,
 ): NimiRuntimeEmbeddingSurface {
   const scenarioClient = getScenarioClient(options.runtime);
-  const model = normalizeModelRef(options.model);
   const appId = requireText(options.appId, 'Runtime embedding client requires appId', 'provide_embedding_app_id');
   return {
     async embedText(request) {
       const values = normalizeEmbeddingInputs(request.values);
       const response = await scenarioClient.executeScenario(
-        buildRuntimeTextEmbeddingRequest({ values, options, model, appId }),
+        buildRuntimeTextEmbeddingRequest({ values, options, appId }),
         withNimiRuntimeIdempotencyMetadata({
           metadata: mergeMetadata(options.metadata, request.metadata),
           timeoutMs: Number(options.timeoutMs ?? 0) || undefined,
@@ -77,24 +67,13 @@ export function createNimiRuntimeEmbeddingClient(
 export function buildRuntimeTextEmbeddingRequest(input: {
   readonly values: readonly string[];
   readonly options: NimiRuntimeEmbeddingClientOptions;
-  readonly model: NimiModelRef;
   readonly appId: string;
 }): ExecuteScenarioRequest {
-  const targetIdentity = toRuntimeScenarioTargetIdentity({
-    targetRef: input.options.targetRef,
-    model: input.model,
-    connectorId: input.options.connectorId,
-  });
   return {
     head: {
       appId: input.appId,
       subjectUserId: normalizeText(input.options.subjectUserId),
-      modelId: targetIdentity.modelId,
-      routePolicy: toRuntimeRoutePolicy(input.options.routePolicy),
-      fallback: FallbackPolicy.DENY,
       timeoutMs: Number(input.options.timeoutMs ?? 0),
-      connectorId: targetIdentity.connectorId,
-      targetRef: toRuntimeDurableTargetRef(input.options.targetRef),
     },
     scenarioType: ScenarioType.TEXT_EMBED,
     executionMode: ExecutionMode.SYNC,
@@ -145,13 +124,6 @@ function getScenarioClient(
   return runtime;
 }
 
-function normalizeModelRef(model: NimiModelRef): NimiModelRef {
-  return {
-    providerId: normalizeText(model.providerId),
-    modelId: requireText(model.modelId, 'Runtime embedding client requires model.modelId', 'provide_embedding_model_id'),
-  };
-}
-
 function normalizeEmbeddingInputs(values: readonly string[]): readonly string[] {
   if (!Array.isArray(values) || values.length === 0) {
     throw createNimiError({
@@ -173,12 +145,6 @@ function normalizeEmbeddingInputs(values: readonly string[]): readonly string[] 
     });
   }
   return normalized;
-}
-
-function toRuntimeRoutePolicy(policy: NimiRuntimeEmbeddingRoutePolicy | undefined): RoutePolicy {
-  if (policy === 'local') return RoutePolicy.LOCAL;
-  if (policy === 'cloud') return RoutePolicy.CLOUD;
-  return RoutePolicy.UNSPECIFIED;
 }
 
 function routePolicyName(policy: RoutePolicy): string {

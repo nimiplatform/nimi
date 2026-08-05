@@ -38,7 +38,7 @@ Runtime account custody.
 If you only need to verify SDK access to Runtime-backed text generation, read
 [First AI Call](/sdk/first-ai-call).
 
-If you are wiring shared UI, auth, shell, telemetry, or model configuration,
+If you are wiring shared UI, auth, shell, telemetry, or AIConfig composition,
 read [Use Kit In An App](/platform/kit/use-kit-in-app).
 
 ## What The Scaffold Owns

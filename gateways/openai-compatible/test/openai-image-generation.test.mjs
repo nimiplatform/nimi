@@ -15,8 +15,6 @@ function createRuntime({ models, artifacts, onSubmit, readArtifactBytes } = {}) 
       return models ?? [
         {
           id: 'z-image-turbo-local',
-          runtimeModelId: 'local-runtime:image:z-image-turbo',
-          targetRef: 'local-runtime:image:z-image-turbo',
           supported: true,
           capabilities: ['image.generate'],
         },
@@ -145,11 +143,6 @@ test('image generation endpoint maps OpenAI request into a local Runtime image j
     subjectUserId: 'local-user',
     requestId: 'imgjob-test',
     idempotencyKey: 'openai-compatible:imgjob-test',
-    model: {
-      id: 'z-image-turbo-local',
-      runtimeModelId: 'local-runtime:image:z-image-turbo',
-      targetRef: 'local-runtime:image:z-image-turbo',
-    },
     scenario: {
       kind: 'image',
       prompt: 'Song dynasty scholar, reference portrait style',
@@ -160,7 +153,6 @@ test('image generation endpoint maps OpenAI request into a local Runtime image j
     labels: {
       gateway: 'openai-compatible',
       openaiEndpoint: 'images.generations',
-      openaiModel: 'z-image-turbo-local',
     },
   });
 });
@@ -354,22 +346,16 @@ test('models endpoint projects Runtime-supported OpenAI capability targets', asy
       models: [
         {
           id: 'z-image-turbo-local',
-          runtimeModelId: 'local-runtime:image:z-image-turbo',
-          targetRef: 'local-runtime:image:z-image-turbo',
           supported: true,
           capabilities: ['image.generate'],
         },
         {
           id: 'ideogram4-local',
-          runtimeModelId: 'local-runtime:image:ideogram4',
-          targetRef: 'local-runtime:image:ideogram4',
           supported: false,
           capabilities: ['image.generate'],
         },
         {
           id: 'text-local',
-          runtimeModelId: 'local-runtime:text:llama',
-          targetRef: 'local-runtime:text:llama',
           supported: true,
           capabilities: ['text.generate'],
         },
@@ -406,16 +392,14 @@ test('models endpoint projects Runtime-supported OpenAI capability targets', asy
   });
 });
 
-test('models endpoint rejects malformed object target refs from Runtime projection', async () => {
+test('models endpoint rejects catalog entries without capabilities', async () => {
   const gateway = createGateway({
     runtime: {
       models: [
         {
           id: 'broken-image-model',
-          runtimeModelId: 'broken-image-model',
-          targetRef: {},
           supported: true,
-          capabilities: ['image.generate'],
+          capabilities: [],
         },
       ],
     },
@@ -433,7 +417,7 @@ test('models endpoint rejects malformed object target refs from Runtime projecti
   assert.equal(response.status, 502);
   assert.deepEqual(await response.json(), {
     error: {
-      message: 'Runtime image generation model projection entries require id, runtimeModelId, and targetRef.',
+      message: 'Runtime compatibility model projection entries require id and capabilities.',
       type: 'invalid_request_error',
       code: 'NIMI_GATEWAY_MODEL_CATALOG_INVALID',
     },

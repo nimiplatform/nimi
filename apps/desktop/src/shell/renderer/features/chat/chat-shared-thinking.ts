@@ -4,7 +4,7 @@ export type ChatThinkingPreference = 'off' | 'on';
 
 export type ChatThinkingSupportReason =
   | 'thinking_unsupported'
-  | 'agent_route_unsupported';
+  | 'agent_execution_unsupported';
 
 export type ChatThinkingSupport = {
   supported: boolean;
@@ -18,7 +18,7 @@ export function normalizeChatThinkingPreference(value: unknown): ChatThinkingPre
 export function resolveAgentChatThinkingSupport(): ChatThinkingSupport {
   return {
     supported: false,
-    reason: 'agent_route_unsupported',
+    reason: 'agent_execution_unsupported',
   };
 }
 
@@ -41,9 +41,9 @@ export function resolveChatThinkingConfig(
 export function getChatThinkingUnsupportedCopy(
   reason: ChatThinkingSupportReason | null,
 ): { key: string; defaultValue: string } {
-  if (reason === 'agent_route_unsupported') {
+  if (reason === 'agent_execution_unsupported') {
     return {
-      key: 'Chat.settingsThinkingUnsupportedAgentRoute',
+      key: 'Chat.settingsThinkingUnsupportedAgentExecution',
       defaultValue: 'Agent chat uses Runtime-owned execution, which does not expose thinking controls here.',
     };
   }

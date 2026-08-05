@@ -16,8 +16,7 @@ export type CapabilityStatus = {
   detail: string;
 };
 
-// Scenario presets stay app-local; runtime/model selection remains owned by the
-// shared AI model config surface and the runtime trace.
+// Scenario presets stay app-local; Runtime owns implementation selection.
 const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
   'text.generate': [
     {

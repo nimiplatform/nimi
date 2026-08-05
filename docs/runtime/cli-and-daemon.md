@@ -38,7 +38,7 @@ on its state.
 | `nimi logs` | Read the daemon's log |
 | `nimi doctor` | Diagnose daemon, providers, models, audit volume, replication backlog |
 | `nimi version` | Show CLI and daemon version |
-| `nimi run` / `nimi chat` | Generate text through the default or selected runtime route |
+| `nimi run` / `nimi chat` | Generate text using Runtime-owned implementation selection |
 | `nimi provider` | Configure and test cloud providers |
 | `nimi model` | List, pull, remove, and check local models |
 
@@ -60,19 +60,19 @@ nimi run "What is Nimi?"
 nimi doctor
 ```
 
-For local-first setup, replace the provider step with the relevant
-local model pull and readiness checks:
+For local-first setup, replace the provider step with local asset installation
+and daemon diagnostics:
 
 ```bash
 nimi model list
 nimi model pull --model-ref <admitted-model-ref>
-nimi model health --model-id <installed-model-id>
+nimi doctor
 ```
 
-Both cloud and local paths converge on a daemon that is `READY` with
-at least one admitted route to AI capability. If a required provider
-or local model is missing, the CLI reports the missing route instead
-of silently falling back to another execution path.
+Both cloud and local setup paths converge on a daemon that is `READY` and can
+select an admitted implementation for the requested capability. If required
+configuration or assets are missing, the CLI returns a typed failure instead of
+silently choosing a client-side fallback.
 
 ## Reader Scenario: Going From Install To First Generation
 
@@ -80,20 +80,17 @@ You have just installed Nimi and want to confirm everything works.
 
 1. **Initialize config.** `nimi init` creates the runtime config
    when it is missing.
-2. **Configure a route.** For cloud, `nimi provider set <provider>`
-   writes provider credentials or credential references into runtime
-   config. For local execution, `nimi model pull` installs an
-   admitted local model bundle.
+2. **Configure Runtime.** For Cloud use, `nimi provider set <provider>` writes
+   provider credentials or credential references into Runtime config. For Local
+   use, `nimi model pull` installs an admitted local model bundle.
 3. **Daemon start.** `nimi serve` (or `nimi start` for
    background). The daemon's lifecycle moves through
    `STARTING → READY`.
-4. **Verify.** `nimi doctor` reports daemon `READY`, provider
-   health green, model readiness green, audit volume zero,
-   replication backlog zero.
-5. **First generation.** `nimi run "What is Nimi?"` or an app
-   connecting through the SDK issues a request. Runtime routes the
-   request through the configured cloud or local target and returns a
-   typed result or typed failure.
+4. **Verify.** `nimi doctor` reports daemon `READY`, provider configuration,
+   installed-asset status, audit volume, and replication backlog.
+5. **First generation.** `nimi run "What is Nimi?"` or an App connecting
+   through the SDK issues a request. Runtime selects an admitted implementation
+   and returns a typed result or typed failure.
 
 The CLI surfaces enough to confirm health without exposing
 internal state. If `nimi doctor` reports anything yellow or red,
@@ -107,11 +104,10 @@ mid-session, perhaps replication is backlogged.
 
 1. **`nimi status` reports `DEGRADED`.** The daemon is still
    serving but with reduced capability.
-2. **`nimi doctor`** reports the specific degradation: provider
-   X health red, replication backlog N.
-3. **Action.** You fix the underlying issue (swap to another
-   admitted provider, wait for backlog to drain, restart a stuck
-   sub-component).
+2. **`nimi doctor`** reports the affected Runtime area, such as invalid
+   provider configuration or replication backlog N.
+3. **Action.** You repair the machine configuration, wait for the backlog to
+   drain, or restart a stuck sub-component.
 4. **`nimi status` reports `READY`.** Streams that were live
    during degradation either completed under the contract or
    were terminated with typed failure frames; new streams behave
@@ -121,19 +117,13 @@ The state machine is what makes this recoverable. A binary
 "healthy / unhealthy" report would not tell you what is actually
 wrong; the typed degradation lets the CLI point at the area.
 
-## Credential Plane Split
+## Credential Custody
 
-The CLI manages credentials under a strict isolation boundary:
-
-| Plane | Purpose |
-| --- | --- |
-| `daemon-config` | Config-driven API keys (set once, persistent) |
-| `request-credential` | Request-time injection from trusted hosts |
-
-The two planes are strictly isolated. A `daemon-config` key never
-leaks into a `request-credential` request, and vice versa. This
-matters because the trust boundary differs: daemon config keys are
-admitted at startup; request credentials are admitted per request.
+The CLI writes provider credentials or credential references only to
+Runtime-owned daemon configuration through an admitted administration command.
+Ordinary App capability requests never inject provider credentials or select a
+credential record. Runtime resolves credential material after request admission
+and keeps it out of SDK results, App logs, and App-owned storage.
 
 ## Source Basis
 

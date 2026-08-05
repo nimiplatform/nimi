@@ -11,7 +11,6 @@ import {
   NIMI_RUNTIME_LOCAL_ASSET_KIND_IDS,
   NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS,
   buildNimiRuntimeLocalRecommendationDetailItems,
-  compareNimiRuntimeLocalAssetKindForDisplay,
   formatNimiRuntimeLocalRecommendationBaselineLabel,
   formatNimiRuntimeLocalRecommendationConfidenceLabel,
   formatNimiRuntimeLocalRecommendationHostSupportLabel,
@@ -88,49 +87,6 @@ export function hasDescriptorTag(
 
 export function isRecommendedDescriptor(tags: readonly string[] | undefined | null): boolean {
   return hasDescriptorTag(tags, 'recommended');
-}
-
-function compareDescriptorTitles(
-  leftTitle: string,
-  leftId: string,
-  rightTitle: string,
-  rightId: string,
-): number {
-  const byTitle = leftTitle.localeCompare(rightTitle, undefined, { sensitivity: 'base' });
-  if (byTitle !== 0) {
-    return byTitle;
-  }
-  return leftId.localeCompare(rightId, undefined, { sensitivity: 'base' });
-}
-
-export function sortVerifiedAssetsForDisplay(
-  assets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
-): NimiRuntimeLocalVerifiedAssetDescriptor[] {
-  return [...assets].sort((left, right) => {
-    const leftRecommended = isRecommendedDescriptor(left.tags);
-    const rightRecommended = isRecommendedDescriptor(right.tags);
-    if (leftRecommended !== rightRecommended) {
-      return leftRecommended ? -1 : 1;
-    }
-    return compareDescriptorTitles(left.title, left.templateId, right.title, right.templateId);
-  });
-}
-
-export function sortVerifiedPassiveAssetsForDisplay(
-  assets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
-): NimiRuntimeLocalVerifiedAssetDescriptor[] {
-  return [...assets].sort((left, right) => {
-    const leftRecommended = isRecommendedDescriptor(left.tags);
-    const rightRecommended = isRecommendedDescriptor(right.tags);
-    if (leftRecommended !== rightRecommended) {
-      return leftRecommended ? -1 : 1;
-    }
-    const byKind = compareNimiRuntimeLocalAssetKindForDisplay(left.kind, right.kind);
-    if (byKind !== 0) {
-      return byKind;
-    }
-    return compareDescriptorTitles(left.title, left.templateId, right.title, right.templateId);
-  });
 }
 
 function collectPassiveAssetFamilyHints(asset: NimiRuntimeLocalVerifiedAssetDescriptor): string[] {

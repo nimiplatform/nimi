@@ -17,95 +17,6 @@ test.after(async () => {
   }
 });
 
-test('Zhiyu projects shared AIConfig intent without claiming execution readiness', async () => {
-  const module = await importAgentAIConfigModule();
-  const route = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot());
-
-  assert.equal(route.ready, false);
-  assert.equal(route.capability, 'text.generate');
-  assert.equal(route.configRevision, null);
-  assert.equal(route.readinessRevision, null);
-  assert.equal(route.updatedByAppId, null);
-  assert.equal(route.reasonCode, 'runtime-shared-ai-config-text-intent-configured');
-  assert.equal(route.actionHint, 'submit_runtime_agent_turn_for_derived_admission');
-  assert.equal(route.source, 'runtime');
-  assert.equal(route.executionBinding, null);
-  assert.deepEqual(route.capabilities, {});
-});
-
-test('Zhiyu keeps configured intent distinct from readiness and fails closed when text intent is absent', async () => {
-  const module = await importAgentAIConfigModule();
-
-  const notConfigured = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
-    sharedAIConfig: sharedAIConfigProjection({
-      aiConfig: canonicalSharedAIConfig([]),
-      capabilities: [],
-      intents: [],
-    }),
-  }));
-  assert.equal(notConfigured.ready, false);
-  assert.equal(notConfigured.reasonCode, 'zhiyu-shared-ai-config-text-intent-not-configured');
-  assert.equal(notConfigured.actionHint, 'configure_shared_local_agent_ai_config');
-  assert.equal(notConfigured.executionBinding, null);
-
-  const cloudConfigured = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
-    sharedAIConfig: sharedAIConfigProjection({
-      aiConfig: canonicalSharedAIConfig([capabilityIntent('text.generate', 'cloud')]),
-      capabilities: ['text.generate'],
-      intents: [{ capability: 'text.generate', route: 'cloud', requiredFeatures: [] }],
-    }),
-  }));
-  assert.equal(cloudConfigured.ready, false);
-  assert.equal(cloudConfigured.reasonCode, 'runtime-shared-ai-config-text-intent-configured');
-  assert.deepEqual(cloudConfigured.capabilities, {});
-  assert.equal(cloudConfigured.executionBinding, null);
-});
-
-test('Zhiyu shared AIConfig evidence fails closed without a session and preserves Runtime failure text', async () => {
-  const module = await importAgentAIConfigModule();
-
-  const sessionUnavailable = module.projectZhiyuAgentAIConfigRouteEvidence(null);
-  assert.equal(sessionUnavailable.ready, false);
-  assert.equal(sessionUnavailable.reasonCode, 'zhiyu-shared-ai-config-session-unavailable');
-  assert.equal(sessionUnavailable.actionHint, 'open_authorized_agent_center_session');
-
-  const permissionRequired = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
-    sharedAIConfig: null,
-    availability: {
-      getSharedAIConfig: {
-        state: 'unavailable',
-        reason: 'needs-grant',
-        nextStep: 'requestPermission',
-      },
-    },
-  }));
-  assert.equal(permissionRequired.reasonCode, 'zhiyu-shared-ai-config-permission-required');
-  assert.equal(permissionRequired.actionHint, 'request_agents_configure_permission');
-
-  const unavailable = module.projectZhiyuAgentAIConfigRouteEvidence(agentCenterSnapshot({
-    phase: 'degraded',
-    sharedAIConfig: null,
-    error: 'Runtime shared AIConfig transport is offline.',
-    availability: {
-      getSharedAIConfig: {
-        state: 'unavailable',
-        reason: 'runtime-offline',
-        nextStep: 'retry',
-      },
-    },
-  }));
-  assert.equal(unavailable.ready, false);
-  assert.equal(unavailable.reasonCode, 'zhiyu-shared-ai-config-unavailable');
-  assert.match(unavailable.message, /transport is offline/u);
-  assert.equal(unavailable.executionBinding, null);
-
-  const source = await readFile(path.join(root, 'src/shell/agent-chat/agent-ai-config.ts'), 'utf8');
-  assert.doesNotMatch(
-    source,
-    /subjectUserId|accountId|ownerUserId|runtimeSourceRef|localAgentRef|requireZhiyuLocalAppCapability|@nimiplatform\/sdk\/runtime|state\.aiConfig|routeOptions/u,
-  );
-});
-
 test('Zhiyu turn readiness gates on account permission, covered Agent handle, and conversation anchor', async () => {
   const module = await importTurnReadinessModule();
 
@@ -170,7 +81,7 @@ function inventoryReady() {
   };
 }
 
-test('Zhiyu labels retire model-readiness copy and never append machine codes', async () => {
+test('Zhiyu labels omit model-control copy and never append machine codes', async () => {
   const module = await importLabelsModule();
   assert.equal(module.agentAIConfigReadinessHint, undefined);
   assert.equal(module.chatModelPresentation, undefined);
@@ -197,9 +108,6 @@ test('Zhiyu composer copy surfaces conversation anchor failures instead of indef
       actionHint: 'check_runtime_agent_open_conversation',
       message: 'Runtime conversation anchor is unavailable.',
     },
-    route: {
-      ready: true,
-    },
     chat: {
       state: 'idle',
     },
@@ -218,9 +126,6 @@ test('Zhiyu composer copy distinguishes empty local partner inventory from unsel
     conversation: {
       ready: false,
       reasonCode: 'zhiyu-local-agent-required',
-    },
-    route: {
-      ready: false,
     },
     chat: {
       state: 'idle',
@@ -250,21 +155,20 @@ test('Zhiyu composer copy distinguishes empty local partner inventory from unsel
 });
 
 test('Zhiyu removes the retired model control instead of inventing shared-config UX', async () => {
-  const surface = await readFile(
-    path.join(root, 'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx'),
+  const sources = await Promise.all([
+    'ZhiyuAgentChatSurface.tsx',
+    'ZhiyuAgentChatPieces.tsx',
+  ].map((fileName) => readFile(
+    path.join(root, 'src/shell/agent-chat', fileName),
     'utf8',
-  );
+  )));
+  const source = sources.join('\n');
   assert.doesNotMatch(
-    surface,
+    source,
     /ComposerModelRouteButton|chatModelPresentation|openModelConfig|data-zhiyu-labeled-chip="route"/u,
   );
-  assert.doesNotMatch(surface, /source-not-ready-diagnostic/u);
+  assert.doesNotMatch(source, /source-not-ready-diagnostic/u);
 });
-
-async function importAgentAIConfigModule() {
-  const outputPath = path.join(await buildModules(), 'agent-ai-config.mjs');
-  return import(pathToFileURL(outputPath).href);
-}
 
 async function importTurnReadinessModule() {
   const outputPath = path.join(await buildModules(), 'agent-turn-readiness.mjs');
@@ -279,10 +183,9 @@ async function importLabelsModule() {
 async function buildModules() {
   if (buildDir) return buildDir;
   mkdirSync(path.join(root, '.tmp'), { recursive: true });
-  buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-zhiyu-agent-ai-config-'));
+  buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-zhiyu-agent-turn-gate-'));
   await build({
     entryPoints: [
-      path.join(root, 'src/shell/agent-chat/agent-ai-config.ts'),
       path.join(root, 'src/shell/agent-chat/agent-turn-readiness.ts'),
       path.join(root, 'src/shell/agent-chat/ZhiyuAgentChatLabels.ts'),
     ],
@@ -295,9 +198,8 @@ async function buildModules() {
     sourcemap: false,
     logLevel: 'silent',
     plugins: [workspaceStubPlugin()],
-  }).catch(async (error) => {
-    const text = await readFile(path.join(root, 'src/shell/agent-chat/agent-ai-config.ts'), 'utf8').catch(() => '');
-    throw new Error(`failed to build Zhiyu AI Config modules: ${error.message}\nsource length=${text.length}`);
+  }).catch((error) => {
+    throw new Error(`failed to build Zhiyu turn gate modules: ${error.message}`);
   });
   return buildDir;
 }
@@ -374,72 +276,6 @@ function workspaceStubPlugin() {
         `,
       }));
     },
-  };
-}
-
-function agentCenterSnapshot(overrides = {}) {
-  const sharedAIConfig = Object.hasOwn(overrides, 'sharedAIConfig')
-    ? overrides.sharedAIConfig
-    : sharedAIConfigProjection();
-  return {
-    phase: overrides.phase ?? 'ready',
-    state: {
-      sharedAIConfig,
-    },
-    availability: overrides.availability ?? {
-      getSharedAIConfig: {
-        state: 'available',
-        reason: null,
-        nextStep: null,
-      },
-    },
-    error: overrides.error ?? null,
-  };
-}
-
-function sharedAIConfigProjection(overrides = {}) {
-  const capabilities = [
-    capabilityIntent('text.generate', 'local'),
-    capabilityIntent('image.generate', 'cloud'),
-  ];
-  return {
-    aiConfig: canonicalSharedAIConfig(capabilities),
-    capabilities: capabilities.map((intent) => intent.capabilityContract),
-    intents: capabilities.map((intent) => ({
-      capability: intent.capabilityContract,
-      route: intent.route.oneofKind,
-      requiredFeatures: [...intent.requiredFeatures],
-    })),
-    ...overrides,
-  };
-}
-
-function canonicalSharedAIConfig(capabilities) {
-  return {
-    owner: {
-      owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
-    },
-    capabilities,
-  };
-}
-
-function capabilityIntent(capabilityContract, route) {
-  return {
-    capabilityContract,
-    requiredFeatures: [],
-    route: route === 'local'
-      ? { oneofKind: 'local', local: {} }
-      : {
-        oneofKind: 'cloud',
-        cloud: {
-          implementation: {
-            implementationId: 'runtime-owned',
-            driverId: 'runtime-owned',
-            driverDialect: 'runtime-owned',
-          },
-          connectorGrantId: '',
-        },
-      },
   };
 }
 

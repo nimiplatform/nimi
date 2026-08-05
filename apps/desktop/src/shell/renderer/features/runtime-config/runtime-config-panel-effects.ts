@@ -72,7 +72,6 @@ async function fetchRuntimeConfigLocalSnapshot(
   const assets = await client.listAssets();
   return {
     assets,
-    health: [],
     generatedAt: new Date(now()).toISOString(),
   };
 }

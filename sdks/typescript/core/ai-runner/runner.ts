@@ -63,7 +63,6 @@ export async function buildNimiAiRunnerModelRequest(
 ): Promise<NimiGenerateTextRequest> {
   const contextInput: NimiAiContextProviderInput = { runner, model, messages };
   return {
-    model: model.model,
     messages: [
       ...materializeInstructionMessages(runner),
       ...(await materializeContextMessages(runner, contextInput)),

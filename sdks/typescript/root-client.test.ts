@@ -59,16 +59,9 @@ test('NimiClient composes explicit Runtime-backed root surfaces without singleto
   assert.notEqual(first.runtime, second.runtime);
   assert.equal((await first.runtime.ready()).status, 3);
 
-  const model = first.ai.createRuntimeModel({
-    model: { providerId: 'runtime', modelId: 'model-root' },
-    targetRef: {
-      kind: 'local-runtime',
-      version: 'v2',
-      profileBindingId: 'local-runtime:model-root',
-    },
-  });
+  const model = first.ai.createRuntimeModel({});
+  assert.deepEqual(model.model, { modelId: 'text.generate' });
   const result = await model.generateText({
-    model: model.model,
     messages: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
   });
 

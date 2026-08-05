@@ -6,6 +6,7 @@ import {
   type AgentCenterTranslationKey,
 } from '@nimiplatform/kit/features/agent-center';
 import { Globe2 } from 'lucide-react';
+import { useMemo } from 'react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import {
   agentCenterHeaderStateLabel,
@@ -38,14 +39,13 @@ const ZHIYU_AGENT_CENTER_OVERRIDES = {
   'AgentCenter.chrome.projectionLoadFailed': '织羽智能体中心投影加载失败。',
 } as const satisfies Partial<Record<AgentCenterTranslationKey, string>>;
 
-const ZHIYU_AGENT_CENTER_I18N = createAgentCenterI18n({
-  language: 'zh',
-  t(key) {
-    return ZHIYU_AGENT_CENTER_OVERRIDES[key as keyof typeof ZHIYU_AGENT_CENTER_OVERRIDES] || key;
-  },
-});
-
 export function RightAgentPanel(props: RightAgentPanelProps) {
+  const agentCenterI18n = useMemo(() => createAgentCenterI18n({
+    language: 'zh',
+    t(key) {
+      return ZHIYU_AGENT_CENTER_OVERRIDES[key as keyof typeof ZHIYU_AGENT_CENTER_OVERRIDES] || key;
+    },
+  }), []);
   const agentCenterWorld = agentCenterWorldLabel(props.evidence);
   const moodLabel = agentCenterHeaderStateLabel(props.evidence.companion.currentEmotion);
   const activityLabel = agentCenterHeaderStateLabel(props.evidence.companion.executionState);
@@ -85,7 +85,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
       {props.session ? <AgentCenter
         activeSection={props.activeTab}
         chrome="standalone"
-        i18n={ZHIYU_AGENT_CENTER_I18N}
+        i18n={agentCenterI18n}
         identity={{
           displayName: props.currentPartnerName,
           avatarUrl: currentPartnerAvatarUrl(props.evidence),

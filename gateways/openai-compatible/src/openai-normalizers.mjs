@@ -219,7 +219,6 @@ export async function normalizeChatCompletionRequest(body, config) {
     subjectUserId: config.subjectUserId,
     requestId,
     idempotencyKey: `openai-compatible:${requestId}`,
-    model,
     messages: body.messages,
     parameters: omitUndefined({
       temperature: optionalNumber(body.temperature, 'chat.completions.temperature'),
@@ -242,7 +241,6 @@ export async function normalizeChatCompletionRequest(body, config) {
     labels: {
       gateway: 'openai-compatible',
       openaiEndpoint: 'chat.completions',
-      openaiModel: model.id,
     },
   };
   return { model, requestId, stream, runtimeRequest };
@@ -277,7 +275,6 @@ export async function normalizeResponseRequest(body, config) {
       subjectUserId: config.subjectUserId,
       requestId,
       idempotencyKey: `openai-compatible:${requestId}`,
-      model,
       input: body.input,
       instructions: normalizeOptionalText(body.instructions),
       tools: optionalRecordArray(body.tools, 'responses.tools'),
@@ -301,7 +298,6 @@ export async function normalizeResponseRequest(body, config) {
       labels: {
         gateway: 'openai-compatible',
         openaiEndpoint: 'responses',
-        openaiModel: model.id,
       },
     },
   };
@@ -334,7 +330,6 @@ export async function normalizeEmbeddingRequest(body, config) {
       subjectUserId: config.subjectUserId,
       requestId,
       idempotencyKey: `openai-compatible:${requestId}`,
-      model,
       input,
       encodingFormat,
       dimensions: normalizeOptionalPositiveInteger(body.dimensions, 'embeddings.dimensions'),
@@ -342,7 +337,6 @@ export async function normalizeEmbeddingRequest(body, config) {
       labels: {
         gateway: 'openai-compatible',
         openaiEndpoint: 'embeddings',
-        openaiModel: model.id,
       },
     },
   };
@@ -375,7 +369,6 @@ export async function normalizeSpeechRequest(body, config) {
       subjectUserId: config.subjectUserId,
       requestId,
       idempotencyKey: `openai-compatible:${requestId}`,
-      model,
       input,
       voice: requireBodyText(body.voice, 'audio.speech.voice'),
       responseFormat: normalizeOptionalText(body.response_format) || 'mp3',
@@ -385,7 +378,6 @@ export async function normalizeSpeechRequest(body, config) {
       labels: {
         gateway: 'openai-compatible',
         openaiEndpoint: 'audio.speech',
-        openaiModel: model.id,
       },
     },
   };

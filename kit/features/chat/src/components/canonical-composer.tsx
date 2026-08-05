@@ -24,7 +24,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   toolbarSlot?: ReactNode;
   trailingSlot?: ReactNode;
   sendHint?: ReactNode;
-  modelLabel?: ReactNode;
+  intentLabel?: ReactNode;
   onInputCaptureText?: (text: string) => void;
   onTextChange?: (text: string) => void;
   attachmentAdapter?: AttachmentAdapter<TAttachment>;
@@ -51,7 +51,7 @@ export function CanonicalComposer<TAttachment = never>({
   toolbarSlot,
   trailingSlot,
   sendHint,
-  modelLabel,
+  intentLabel,
   onInputCaptureText,
   onTextChange,
   attachmentAdapter,
@@ -89,7 +89,7 @@ export function CanonicalComposer<TAttachment = never>({
               placeholder={placeholder}
               toolbarSlot={toolbarSlot}
               trailingSlot={trailingSlot}
-              modelLabel={modelLabel}
+              intentLabel={intentLabel}
               sendHint={sendHint}
               attachmentAdapter={attachmentAdapter}
               attachments={attachments}

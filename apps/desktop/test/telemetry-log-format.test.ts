@@ -92,7 +92,7 @@ test('D-TEL-005: Electron invoke emits failed traces with structured bridge erro
     if (command === 'demo_fail') {
       throw JSON.stringify({
         reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-        actionHint: 'retry_or_switch_route',
+        actionHint: 'retry_after_runtime_recovery',
         traceId: 'trace-bridge-001',
         retryable: true,
         message: 'provider timeout',
@@ -116,7 +116,7 @@ test('D-TEL-005: Electron invoke emits failed traces with structured bridge erro
         details?: Record<string, unknown>;
       };
       assert.equal(record.reasonCode, ReasonCode.AI_PROVIDER_TIMEOUT);
-      assert.equal(record.actionHint, 'retry_or_switch_route');
+      assert.equal(record.actionHint, 'retry_after_runtime_recovery');
       assert.equal(record.traceId, 'trace-bridge-001');
       assert.equal(record.retryable, true);
       assert.equal(record.details?.userMessage, 'AI provider request timed out.');
@@ -132,7 +132,7 @@ test('D-TEL-005: Electron invoke emits failed traces with structured bridge erro
   assert.equal(failedLog?.level, 'error');
   assert.equal(startLog?.details?.invokeId, failedLog?.details?.invokeId);
   assert.equal(failedLog?.details?.reasonCode, ReasonCode.AI_PROVIDER_TIMEOUT);
-  assert.equal(failedLog?.details?.actionHint, 'retry_or_switch_route');
+  assert.equal(failedLog?.details?.actionHint, 'retry_after_runtime_recovery');
   assert.equal(failedLog?.details?.traceId, 'trace-bridge-001');
   assert.equal(failedLog?.details?.retryable, true);
   assert.equal(failedLog?.details?.userMessage, 'AI provider request timed out.');

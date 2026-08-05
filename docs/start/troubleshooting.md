@@ -31,13 +31,6 @@ Then verify the zero-config path:
 nimi run "What is Nimi?"
 ```
 
-For a cloud provider route, configure the provider before invoking it:
-
-```sh
-nimi provider set gemini --api-key-env GEMINI_API_KEY
-nimi run "What is Nimi?" --provider gemini
-```
-
 ## SDK Client Configuration
 
 `SDK_CLIENT_APP_ID_REQUIRED` means the SDK operation needs a concrete app id.
@@ -61,28 +54,16 @@ const nimi = createNimiClient({
 The SDK throws this before dispatch. Do not work around it by calling Runtime
 private endpoints from app code.
 
-## Runtime AI Target Resolution
+## Runtime AI Capability Intent
 
-`resolve_runtime_target_ref_before_invocation` means the app attempted a
-Runtime-backed AI call without a live Runtime target reference. Load the app's
-AIConfig, resolve the binding, and pass `binding.targetRef` into the runtime AI
-model or runner.
+`AI_CONFIG_NOT_FOUND` means Runtime has no AIConfig for the exact App owner used
+by the call. Save a Local or Cloud intent for the requested capability through
+the owning AIConfig surface, then retry the same request.
 
-The SDK helper is:
-
-```ts
-import { resolveNimiAIConfigRuntimeBinding } from '@nimiplatform/sdk';
-```
-
-If `resolveNimiAIConfigRuntimeBinding(...)` returns
-`profile-slice-unmaterialized`, the config still points at a profile slice. Use
-the model configuration surface to apply or materialize the profile into a live
-`local-runtime` or `cloud-connector` target before dispatch.
-
-If it returns `target-ref-missing` or Runtime/Tester surfaces show
-`ai-config-binding-missing`, the app has no selected model binding for that
-capability. Choose a model in the Kit model-config UI or write the app AIConfig
-store with a valid `targetRefs[capabilityId]` entry.
+Capability intent does not resolve into a request-side model, route, connector,
+target reference, or fallback. If the actual call returns an authorization,
+feature-support, or execution error, preserve the typed Runtime failure and its
+diagnostics. Do not synthesize another target in App code.
 
 ## Tester Unavailable Reasons
 
@@ -91,16 +72,11 @@ failure as a missing SDK method.
 
 | Reason | What it means | Action |
 | --- | --- | --- |
-| `runtime-not-ready` | Runtime cannot be reached yet. | Start or reconnect Runtime, then retry. |
-| `ai-config-binding-missing` | No model binding exists for the capability. | Choose a model in the model control or apply an AIProfile. |
+| `runtime-unavailable` | Runtime cannot be reached for this request. | Start or reconnect Runtime, then retry. |
+| `permission-required` | Text generation permission has not been granted. | Approve or restore the permission in Nimi Desktop, then retry. |
 | `input-invalid` | Required prompt or capability input is missing or malformed. | Fix the input and run again. |
-| `auth-context-missing` | The route requires a signed-in Nimi account. | Sign in through the Runtime-backed shell or switch the route to a local model binding. |
-| `principal-unauthorized` | The Runtime account session is expired or unauthorized. | Sign in again and retry. |
-| `sdk-method-unavailable` | The current app build does not expose that capability. | Update the app or use an admitted SDK capability. |
-| `local-environment-preparing` | Runtime is preparing local image dependencies. | Keep Runtime running and retry after setup reaches ready. |
-| `local-environment-blocked` | Required local image companion models are missing. | Select the required companion models before retrying. |
-| `runtime-call-failed` | Runtime returned a typed contract failure. | Inspect the verbatim Runtime error and selected model. |
-| `tauri-command-failed` | The desktop shell could not complete the command. | Reopen the shell or retry after shell readiness returns. |
+| `sdk-method-unavailable` | The current App build does not expose that capability. | Update the App or use an admitted SDK capability. |
+| `runtime-call-failed` | Runtime returned a typed contract failure. | Inspect the verbatim Runtime error and diagnostics. |
 
 ## App Scaffold Checks
 
@@ -131,7 +107,7 @@ scaffold-managed files and keep app-owned product code separate.
 
 - [`runtime/cmd/nimi/onboarding_helpers.go`](https://github.com/nimiplatform/nimi/blob/main/runtime/cmd/nimi/onboarding_helpers.go)
 - [`sdks/typescript/root-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/root-client.ts)
-- [`sdks/typescript/core/ai/runtime-target-ref.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-target-ref.ts)
-- [`sdks/typescript/core/ai/config-runtime-binding.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-runtime-binding.ts)
+- [`sdks/typescript/core/ai/capability-configuration.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/capability-configuration.ts)
+- [`sdks/typescript/core/ai/runtime-model.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-model.ts)
 - [`apps/tester/src/tester/tester-unavailable.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-unavailable.ts)
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)

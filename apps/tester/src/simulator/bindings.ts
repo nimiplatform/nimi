@@ -54,7 +54,6 @@ interface TesterProjection extends JsonRecord {
   readonly protocolRevision: 1;
   readonly scenario: {
     readonly generatedText: string;
-    readonly textModel: { readonly providerId: string; readonly modelId: string };
     readonly runtimePlatform: JsonRecord;
     readonly aiConfigSummary: JsonRecord;
   };
@@ -232,8 +231,7 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
     methods: [{ id: NIMI_TESTING_AI_GENERATE_TEXT_METHOD, kind: 'unary' }],
     port,
   });
-  const modelProjection = projection(context).scenario.textModel;
-  const model = createNimiTestingAiModel({ model: modelProjection, harness });
+  const model = createNimiTestingAiModel({ harness });
   const configPort = createAIConfigPort(context);
 
   async function execute(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult> {
@@ -246,7 +244,6 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
       );
     }
     const result = await model.generateText({
-      model: model.model,
       messages: [userTextMessage([input.directive, input.prompt].filter(Boolean).join('\n'))],
     });
     return {
@@ -264,8 +261,7 @@ function createSdkFacade(context: TesterSimulatorPrepareContext) {
         streamed: false,
       },
       trace: {
-        modelResolved: model.model.modelId,
-        routeDecision: 'simulated-scenario',
+        simulated: true,
       },
     };
   }

@@ -54,7 +54,6 @@ const transport = {
   async unary(request) {
     calls.push(request);
     request.responseMetadataObserver?.({ 'x-nimi-runtime-version': '0.6.0' });
-    if (request.methodId.endsWith('/GetRuntimeHealth')) return { status: 3 };
     if (request.methodId.endsWith('/ExecuteScenario')) {
       return {
         output: { output: { oneofKind: 'textGenerate', textGenerate: { text: 'consumer root text' } } },
@@ -72,10 +71,10 @@ const transport = {
 };
 
 const permissionTransport = {
-  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false }; },
-  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
+  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
   subscribe(permissionId, callback) {
-    callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
+    callback({ status: { permissionId, posture: 'unavailable', canRequest: false, agents: [] } });
     return () => {};
   },
 };
@@ -86,21 +85,16 @@ const client = sdk.createNimiClient({
   permissions: permissionTransport,
 });
 assert(client instanceof sdk.NimiClient);
-assert.equal((await client.runtime.ready()).status, 3);
-assert.equal(client.runtime.runtimeVersion(), '0.6.0');
 assert.equal('scopes' in client, false);
 assert.equal((await client.requirePermissions().status('agents.interact')).posture, 'unavailable');
 
-const model = client.ai.createRuntimeModel({
-  model: { providerId: 'runtime', modelId: 'root-model' },
-  targetRef: { kind: 'local-runtime', version: 'v2', readinessRef: 'root-model' },
-});
+const model = client.ai.createRuntimeModel({});
 const generated = await model.generateText({
-  model: model.model,
   messages: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
 });
 assert.equal(generated.text, 'consumer root text');
 assert.equal(calls.some((call) => call.methodId.endsWith('/ExecuteScenario')), true);
+assert.equal(client.runtime.runtimeVersion(), '0.6.0');
 
 assert.throws(
   () => client.requireRealm(),
@@ -113,7 +107,8 @@ assert.throws(
 import {
   NimiClient,
   createNimiClient,
-  type NimiClientConfig,
+  type NimiDirectClientConfig,
+  type PermissionTransport,
 } from '@nimiplatform/sdk';
 import type { CoreTransport } from '@nimiplatform/sdk/runtime';
 
@@ -125,25 +120,23 @@ const transport: CoreTransport = {
     yield { status: 3 } as Response;
   },
 };
-const config: NimiClientConfig = {
-  appId: 'dev.nimi.consumer',
-  runtime: { transport },
-  permissions: {
-    async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false }; },
-    async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false }; },
-    subscribe(permissionId, callback) {
-      callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
-      return () => {};
-    },
+const permissions: PermissionTransport = {
+  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
+  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
+  subscribe(permissionId, callback) {
+    callback({ status: { permissionId, posture: 'unavailable', canRequest: false, agents: [] } });
+    return () => {};
   },
 };
+const config: NimiDirectClientConfig = {
+  appId: 'dev.nimi.consumer',
+  runtime: { transport },
+  permissions,
+};
 const client: NimiClient = createNimiClient(config);
-client.ai.createRuntimeModel({
-  model: { providerId: 'runtime', modelId: 'root-model' },
-  targetRef: { kind: 'local-runtime', version: 'v2', readinessRef: 'root-model' },
-});
+client.ai.createRuntimeModel({});
 client.features.generation.createRuntimeClient({
-  head: { modelId: 'root-model' },
+  head: {},
 });
 client.features.knowledge.createRuntimeContextClient({});
 client.requirePermissions().status('agents.interact');

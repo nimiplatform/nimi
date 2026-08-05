@@ -11,13 +11,13 @@ import { PanelRight } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { useTesterRendererHost } from '../../renderer/context.js';
 import { type TesterCapability } from '../tester-capabilities.js';
-import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
+import { getTesterRunIntentLabel, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, STATUS_PILL_LABEL, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
-import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetModelSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
+import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioShell({
   capability,
@@ -239,18 +239,18 @@ function TextStudioShell({
       capability={capability}
       prompt={prompt}
       context={context}
-      modelLabel={textStudioRunTargetModelSummary(runTarget)}
+      intentLabel={textStudioRunTargetIntentSummary(runTarget)}
       running={running}
       attachments={composerState.attachments}
       onOpenAttachmentPicker={composerState.openAttachmentPicker}
       onRemoveAttachment={composerState.removeAttachment}
       canDispatch={runTarget.canDispatch}
-      canConfigureTarget={canConfigureRunTarget(runTarget)}
-      modelConfigurable={capability.execution === 'runtime-sdk'}
+      canConfigureIntent={canConfigureRunTarget(runTarget)}
+      intentConfigurable={capability.execution === 'runtime-sdk'}
       compact={Boolean(activeRun)}
       onPromptChange={updatePrompt}
       onContextChange={setContext}
-      onOpenModelConfig={onOpenConfig}
+      onOpenIntentConfig={onOpenConfig}
       onSubmit={() => void run()}
     />
   );
@@ -296,7 +296,7 @@ function TextStudioShell({
                 capability={capability}
                 activeRun={activeRun}
                 admission={admission}
-                modelLabel={activeRun.record ? getTesterRunModelLabel(activeRun.record) : runTarget.modelLabel}
+                intentLabel={activeRun.record ? getTesterRunIntentLabel(activeRun.record) : runTarget.intentLabel}
                 running={running}
                 streamingText={streamingText}
                 verboseConsole={verboseConsole}
@@ -370,19 +370,19 @@ export function SectionAITesting({
       <AnimatePresence>
         {configOpen ? (
           <motion.button
-            key="model-config-backdrop"
+            key="intent-config-backdrop"
             type="button"
             className="section-ai-testing__drawer-backdrop"
-            aria-label="Close model configuration"
+            aria-label="Close AI intent configuration"
             onClick={() => setConfigOpen(false)}
             {...backdropMotion}
           />
         ) : null}
         {configOpen ? (
           <motion.aside
-            key="model-config-drawer"
+            key="intent-config-drawer"
             className="section-ai-testing__drawer"
-            aria-label="Configure model"
+            aria-label="Configure AI intent"
             {...drawerMotion}
           >
             <DrawerErrorBoundary onClose={() => setConfigOpen(false)}>

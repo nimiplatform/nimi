@@ -22,7 +22,6 @@ const checks = [
     paths: [
       'sdks/typescript/core/ai/runtime-model.ts',
       'sdks/typescript/features/generation/runtime-scenarios.ts',
-      'sdks/typescript/runtime/route-capability-describe.ts',
       'runtime/internal/nimillm/transcription_chat_compat.go',
       'apps/desktop/src/shell/renderer/bridge/runtime-bridge',
     ],

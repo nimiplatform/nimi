@@ -25,7 +25,7 @@ export type TesterRunTargetSummary = {
   section: string;
   status: TesterRunTargetStatus;
   source: TesterRunTargetSource;
-  modelLabel: string;
+  intentLabel: string;
   detail: string;
   canDispatch: boolean;
   params: TesterRunTargetParamRecord;
@@ -61,7 +61,7 @@ export function createTesterRunTargetSummary(input: {
       ...base,
       status: 'tauri-only',
       source: 'local-fixture',
-      modelLabel: 'Local fixture',
+      intentLabel: 'Local fixture',
       detail: canDispatch
         ? 'This lane opens the standalone Tauri viewer and does not use Runtime AI configuration.'
         : 'This lane requires the standalone Tauri shell; the current shell cannot open its viewer.',
@@ -73,7 +73,7 @@ export function createTesterRunTargetSummary(input: {
       ...base,
       status: 'sdk-gap',
       source: 'unknown',
-      modelLabel: 'Capability unavailable',
+      intentLabel: 'Capability unavailable',
       detail: capability.missingSurface || 'No admitted typed SDK method is available for this capability.',
       canDispatch: false,
     };
@@ -83,7 +83,7 @@ export function createTesterRunTargetSummary(input: {
       ...base,
       status: 'checking',
       source: 'unknown',
-      modelLabel: 'Checking configuration',
+      intentLabel: 'Checking configuration',
       detail: 'Reading the current App AIConfig and Runtime connection.',
       canDispatch: false,
     };
@@ -93,7 +93,7 @@ export function createTesterRunTargetSummary(input: {
       ...base,
       status: 'not-admitted',
       source: 'unknown',
-      modelLabel: 'Runtime unavailable',
+      intentLabel: 'Runtime unavailable',
       detail: runtime.detail,
       canDispatch: false,
     };
@@ -103,7 +103,7 @@ export function createTesterRunTargetSummary(input: {
       ...base,
       status: 'checking',
       source: 'unknown',
-      modelLabel: 'Reading App AIConfig',
+      intentLabel: 'Reading App AIConfig',
       detail: 'Reading the current Runtime-owned App AIConfig.',
       canDispatch: false,
     };
@@ -113,7 +113,7 @@ export function createTesterRunTargetSummary(input: {
       ...base,
       status: 'blocked',
       source: 'unknown',
-      modelLabel: 'AIConfig unavailable',
+      intentLabel: 'AIConfig unavailable',
       detail: input.configError || 'The current App AIConfig could not be read.',
       canDispatch: false,
     };
@@ -125,32 +125,32 @@ export function createTesterRunTargetSummary(input: {
       ...base,
       status: 'blocked',
       source: 'unknown',
-      modelLabel: 'Not configured',
+      intentLabel: 'Not configured',
       detail: 'This App AIConfig has no intent for the capability. Choose Local to save one.',
       canDispatch: false,
     };
   }
-  const route = intent.route;
-  if (route.oneofKind === 'local') {
+  const intentSelection = intent.route;
+  if (intentSelection.oneofKind === 'local') {
     return {
       ...base,
       status: 'configured',
       source: 'local',
-      modelLabel: 'Local',
-      detail: 'The App selected Local. Runtime resolves the current machine selection when execution begins; configuration does not prove execution readiness.',
+      intentLabel: 'Local',
+      detail: 'The App selected Local intent. Runtime chooses and validates the implementation when execution begins.',
       canDispatch: true,
     };
   }
-  if (route.oneofKind === 'cloud' && 'cloud' in route) {
-    const grantSelected = Boolean(route.cloud.connectorGrantId.trim());
+  if (intentSelection.oneofKind === 'cloud' && 'cloud' in intentSelection) {
+    const grantSelected = Boolean(intentSelection.cloud.connectorGrantId.trim());
     return {
       ...base,
       status: grantSelected ? 'configured' : 'blocked',
       source: 'cloud',
-      modelLabel: grantSelected ? 'Cloud' : 'Cloud selection required',
+      intentLabel: grantSelected ? 'Cloud' : 'Cloud authorization required',
       detail: grantSelected
-        ? 'The App selected an exact Cloud implementation and ConnectorGrant. Configuration does not prove provider availability.'
-        : 'The Cloud intent has no ConnectorGrant selection and remains unresolved.',
+        ? 'The App selected Cloud intent with an authorization grant. Runtime chooses and validates the implementation when execution begins.'
+        : 'The Cloud intent requires an authorization grant before execution.',
       canDispatch: grantSelected,
     };
   }
@@ -159,8 +159,8 @@ export function createTesterRunTargetSummary(input: {
     ...base,
     status: 'blocked',
     source: 'unknown',
-    modelLabel: 'Invalid configuration',
-    detail: 'The capability intent has no supported route.',
+    intentLabel: 'Invalid configuration',
+    detail: 'The capability has no supported Local or Cloud intent.',
     canDispatch: false,
   };
 }

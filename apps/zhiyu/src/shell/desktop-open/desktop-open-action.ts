@@ -30,7 +30,6 @@ export type ZhiyuDesktopOpenProductGapInput = {
   readonly stage?: string | null;
   readonly reasonCode?: string | null;
   readonly actionHint?: string | null;
-  readonly capabilityReasonCode?: string | null;
 };
 
 export type ZhiyuDesktopOpenActionResult = {
@@ -51,7 +50,6 @@ export function zhiyuDesktopOpenIntentForProductGap(
   const stage = normalizeText(input.stage);
   const reasonCode = normalizeText(input.reasonCode);
   const actionHint = normalizeText(input.actionHint);
-  const capabilityReasonCode = normalizeText(input.capabilityReasonCode);
   if (
     actionHint === ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION
       || stage === 'source-required'
@@ -62,25 +60,6 @@ export function zhiyuDesktopOpenIntentForProductGap(
       kind: 'open-explore',
       section: 'personas',
       productIntent: 'select-partner',
-    };
-  }
-  if (capabilityReasonCode === 'connector_missing' || reasonCode === 'connector_missing') {
-    return {
-      kind: 'open-runtime-config',
-      page: 'cloud',
-      action: 'add-connector',
-    };
-  }
-  if (
-    stage === 'route-required'
-      || reasonCode === 'model_missing'
-      || reasonCode === 'zhiyu-agent-ai-config-not-configured'
-      || capabilityReasonCode === 'model_missing'
-  ) {
-    return {
-      kind: 'open-runtime-config',
-      page: 'models',
-      action: 'install-model',
     };
   }
   return null;

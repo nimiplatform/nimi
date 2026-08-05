@@ -200,16 +200,10 @@ class OpenAICompatibleGateway {
       subjectUserId: this.#config.subjectUserId,
       requestId,
       idempotencyKey: `openai-compatible:${requestId}`,
-      model: {
-        id: normalized.model.id,
-        runtimeModelId: normalized.model.runtimeModelId,
-        targetRef: normalized.model.targetRef,
-      },
       scenario: normalized.scenario,
       labels: {
         gateway: 'openai-compatible',
         openaiEndpoint: 'images.generations',
-        openaiModel: normalized.model.id,
       },
     });
     return imageGenerationResponse(

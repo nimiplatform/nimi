@@ -1,15 +1,8 @@
-import {
-  useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Surface,
-  StatusBadge as KitStatusBadge,
   cn,
   } from '@nimiplatform/kit/ui';
-import {
-  projectNimiRuntimeRouteCapabilityCoverageList,
-  type NimiRuntimeRouteCapabilityCoverageProjection,
-} from '@nimiplatform/sdk/runtime';
 import {
   type RuntimeConfigStateV11,
 } from './runtime-config-state-types';
@@ -59,14 +52,6 @@ const TONE_STYLES: Record<RuntimeTone, {
     badge: 'danger',
   },
 };
-
-function deriveCapabilityStatuses(state: RuntimeConfigStateV11): NimiRuntimeRouteCapabilityCoverageProjection[] {
-  return projectNimiRuntimeRouteCapabilityCoverageList({
-    localNodes: state.local.nodeMatrix,
-    localModels: state.local.models,
-    connectors: state.connectors,
-  });
-}
 
 function StatTile({
   title,
@@ -136,11 +121,8 @@ function QuickLinkCard({
 export function OverviewPage({ model, state }: OverviewPageProps) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
-  const capabilityStatuses = useMemo(() => deriveCapabilityStatuses(state), [state]);
 
-  const installedModelCount = state.local.models.filter((m) => m.status !== 'removed').length;
-  const activeModelCount = state.local.models.filter((m) => m.status === 'active').length;
-  const healthyConnectorCount = state.connectors.filter((c) => c.status === 'healthy').length;
+  const installedAssetCount = state.local.models.filter((m) => m.status !== 'removed').length;
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const daemonBusy = model.runtimeDaemonBusyAction !== null;
   const daemonIssue = describeRuntimeDaemonIssue({
@@ -156,15 +138,15 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         </SectionTitle>
         <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatTile
-            title={t('runtimeConfig.overview.installedModels', { defaultValue: 'Installed Models' })}
-            value={installedModelCount}
-            subtitle={t('runtimeConfig.overview.activeModelsCount', { count: activeModelCount, defaultValue: '{{count}} active' })}
+            title={t('runtimeConfig.overview.installedAssets', { defaultValue: 'Installed Assets' })}
+            value={installedAssetCount}
+            subtitle={t('runtimeConfig.overview.runtimeManagedInventory', { defaultValue: 'Runtime-managed inventory' })}
             onClick={() => model.onChangePage('models')}
           />
           <StatTile
-            title={t('runtimeConfig.overview.cloudConnectors', { defaultValue: 'Cloud Connectors' })}
+            title={t('runtimeConfig.overview.cloudConfigurations', { defaultValue: 'Cloud Configurations' })}
             value={state.connectors.length}
-            subtitle={t('runtimeConfig.overview.healthyConnectorsCount', { count: healthyConnectorCount, defaultValue: '{{count}} healthy' })}
+            subtitle={t('runtimeConfig.overview.runtimeManagedConfiguration', { defaultValue: 'Runtime-managed configuration' })}
             onClick={() => model.onChangePage('cloud')}
           />
           <StatTile
@@ -176,53 +158,6 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
       </section>
 
       <OverviewLoadUsageSection />
-
-      <section>
-        <SectionTitle>
-          {t('runtimeConfig.overview.capabilityCoverageTitle', { defaultValue: 'Capability Coverage' })}
-        </SectionTitle>
-        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-2 p-4')}>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {capabilityStatuses.map((item) => {
-              const available = item.localAvailable || item.cloudAvailable;
-              const tone: RuntimeTone = item.localAvailable ? 'success' : item.cloudAvailable ? 'warning' : 'neutral';
-              const source = item.localAvailable
-                ? t('runtimeConfig.overview.capabilitySourceLocal', {
-                  providerSuffix: item.localProvider ? ` (${item.localProvider})` : '',
-                  defaultValue: 'local{{providerSuffix}}',
-                })
-                : item.cloudAvailable
-                  ? t('runtimeConfig.overview.capabilitySourceCloudFallback', { defaultValue: 'cloud API fallback' })
-                  : t('runtimeConfig.overview.capabilitySourceUnavailable', { defaultValue: 'unavailable' });
-              const toneStyle = TONE_STYLES[tone];
-
-              return (
-                <Surface
-                  key={`capability-overview-${item.capability}`}
-                  tone="card"
-                  className={cn('flex min-w-0 flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center sm:justify-between', toneStyle.surface)}
-                >
-                  <div className="min-w-0">
-                    <p className={cn('text-sm font-medium break-words [overflow-wrap:anywhere]', TOKEN_TEXT_PRIMARY)}>{item.capability}</p>
-                    <p className={cn('text-xs break-words [overflow-wrap:anywhere]', toneStyle.subtleText)}>{source}</p>
-                  </div>
-                  {available ? (
-                    <KitStatusBadge tone={toneStyle.badge}>
-                      {item.localAvailable
-                        ? t('runtimeConfig.overview.available', { defaultValue: 'Available' })
-                        : t('runtimeConfig.overview.fallback', { defaultValue: 'Fallback' })}
-                    </KitStatusBadge>
-                  ) : (
-                    <Button variant="ghost" size="sm" onClick={() => model.onChangePage('models')}>
-                      {t('runtimeConfig.overview.setup', { defaultValue: 'Setup' })}
-                    </Button>
-                  )}
-                </Surface>
-              );
-            })}
-          </div>
-        </Surface>
-      </section>
 
       <section>
         <SectionTitle>

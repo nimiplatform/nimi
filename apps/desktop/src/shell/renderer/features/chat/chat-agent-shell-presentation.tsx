@@ -75,7 +75,6 @@ export function useAgentConversationPresentation(
   }, [input.runtimeInspect]);
   const surfaceState = useMemo(() => resolveAgentConversationSurfaceState({
     composerReady: input.composerReady,
-    routeDisabledReason: null,
     activeTarget: input.activeTarget,
     activeThreadId: input.activeThreadId,
     activeConversationAnchorId: input.activeConversationAnchorId,

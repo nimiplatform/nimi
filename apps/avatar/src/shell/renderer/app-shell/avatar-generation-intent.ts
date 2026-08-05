@@ -6,8 +6,7 @@ import {
 export const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
 
 /**
- * Builds Avatar speech intent without admitting App-owned provider/model,
- * route target, binding, readiness, or fallback inputs.
+ * Builds Avatar speech intent from request identity and scenario content only.
  */
 export function buildAvatarSpeechTranscriptionSubmitRequest(input: {
   readonly subjectUserId: string;

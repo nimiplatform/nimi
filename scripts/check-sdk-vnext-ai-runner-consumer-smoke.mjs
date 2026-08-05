@@ -83,16 +83,6 @@ import {
   userTextMessage,
 } from '@nimiplatform/sdk/testing';
 
-const localRuntimeTargetRef = (readinessRef) => ({
-  target: {
-    oneofKind: 'localRuntime',
-    localRuntime: {
-      version: 'v2',
-      ref: { oneofKind: 'readinessRef', readinessRef },
-    },
-  },
-});
-
 const structured = await runNimiAiTextGenerate({
   runner: { id: 'runner', name: 'Runner', instructions: 'Return JSON.' },
   runtime: { model: createNimiMockModel({ text: '{"answer":"yes"}', finishReason: 'stop' }) },
@@ -190,16 +180,10 @@ const memory = createNimiRuntimeMemoryContextClient({
         };
       },
       async history() { return { records: [], nextPageToken: '' }; },
-      async inspectMemoryEmbeddingRuntime() {
-        return { bindingIntentPresent: false, bindingSourceKind: '', resolutionState: 'ready', canonicalBankStatus: 'bound', blockedReasonCode: 0, operationReadiness: { bindAllowed: true, cutoverAllowed: false } };
-      },
-      async requestMemoryEmbeddingRuntimeBind() { return { outcome: 'accepted', blockedReasonCode: 0, canonicalBankStatusAfter: 'bound', pendingCutover: false }; },
-      async requestMemoryEmbeddingRuntimeCutover() { return { outcome: 'noop', blockedReasonCode: 0, canonicalBankStatusAfter: 'bound' }; },
     },
   },
 });
 assert.equal((await memory.recall({ query: 'preference' })).snippets[0].text, 'Mira prefers green tea');
-assert.equal((await memory.getEmbeddingRuntimeProjection()).canonicalBankStatus, 'bound');
 
 const knowledge = createNimiRuntimeKnowledgeContextClient({
   context: { appId: 'consumer-app', subjectUserId: 'user' },
@@ -219,9 +203,6 @@ assert.equal((await knowledge.search({ query: 'guide', bankIds: ['kb-1'] })).ref
 const generation = createNimiRuntimeGenerationClient({
   head: {
     appId: 'consumer-app',
-    modelId: 'image-model',
-    routePolicy: 'local',
-    targetRef: localRuntimeTargetRef('image-model'),
   },
   runtime: {
     ai: {
@@ -244,8 +225,6 @@ const generation = createNimiRuntimeGenerationClient({
 const videoScenario = buildNimiRuntimeGenerationSubmitRequest(
   {
     appId: 'consumer-app',
-    modelId: 'video-model',
-    targetRef: localRuntimeTargetRef('video-model'),
   },
   {
     scenario: createNimiVideoGenerationScenario({
@@ -263,8 +242,6 @@ assert.equal(videoScenario.spec.spec.oneofKind, 'videoGenerate');
 const ttsScenario = buildNimiRuntimeGenerationSubmitRequest(
   {
     appId: 'consumer-app',
-    modelId: 'voice-model',
-    targetRef: localRuntimeTargetRef('voice-model'),
   },
   {
     scenario: createNimiSpeechSynthesisScenario({ kind: 'speech-synthesize', text: 'hello' }),
@@ -276,8 +253,6 @@ assert.equal(ttsScenario.scenarioType, 5);
 const sttScenario = buildNimiRuntimeGenerationSubmitRequest(
   {
     appId: 'consumer-app',
-    modelId: 'stt-model',
-    targetRef: localRuntimeTargetRef('stt-model'),
   },
   {
     scenario: createNimiSpeechTranscriptionScenario({
@@ -362,16 +337,6 @@ import {
 } from '@nimiplatform/sdk/features/toolkits';
 import { createNimiMockModel, userTextMessage } from '@nimiplatform/sdk/testing';
 
-const typedLocalRuntimeTargetRef = (readinessRef: string) => ({
-  target: {
-    oneofKind: 'localRuntime',
-    localRuntime: {
-      version: 'v2',
-      ref: { oneofKind: 'readinessRef', readinessRef },
-    },
-  },
-} as const);
-
 const result: Promise<NimiAiTextGenerateResult<{ ok: boolean }>> = runNimiAiTextGenerate({
   runner: { id: 'runner', name: 'Runner' },
   runtime: { model: createNimiMockModel({ text: '{"ok":true}', finishReason: 'stop' }) },
@@ -396,9 +361,6 @@ const memoryClient: NimiRuntimeMemoryContextClient = createNimiRuntimeMemoryCont
     memory: {
       async recall() { throw new Error('typed only'); },
       async history() { throw new Error('typed only'); },
-      async inspectMemoryEmbeddingRuntime() { throw new Error('typed only'); },
-      async requestMemoryEmbeddingRuntimeBind() { throw new Error('typed only'); },
-      async requestMemoryEmbeddingRuntimeCutover() { throw new Error('typed only'); },
     },
   },
 });
@@ -415,7 +377,6 @@ const knowledgeClient: NimiRuntimeKnowledgeContextClient = createNimiRuntimeKnow
 const generationClient: NimiRuntimeGenerationSurface = createNimiRuntimeGenerationClient({
   head: {
     appId: 'typed-app',
-    targetRef: typedLocalRuntimeTargetRef('typed-model'),
   },
   runtime: {
     ai: {
@@ -430,24 +391,18 @@ const generationClient: NimiRuntimeGenerationSurface = createNimiRuntimeGenerati
 const videoRequest = buildNimiRuntimeGenerationSubmitRequest(
   {
     appId: 'typed-app',
-    modelId: 'video-model',
-    targetRef: typedLocalRuntimeTargetRef('video-model'),
   },
   { scenario: createNimiVideoGenerationScenario({ kind: 'video', mode: 't2v', prompt: 'typed' }), requestId: 'typed-video', idempotencyKey: 'typed-video-idem' },
 );
 const speechRequest = buildNimiRuntimeGenerationSubmitRequest(
   {
     appId: 'typed-app',
-    modelId: 'voice-model',
-    targetRef: typedLocalRuntimeTargetRef('voice-model'),
   },
   { scenario: createNimiSpeechSynthesisScenario({ kind: 'speech-synthesize', text: 'typed' }), requestId: 'typed-tts', idempotencyKey: 'typed-tts-idem' },
 );
 const transcriptionRequest = buildNimiRuntimeGenerationSubmitRequest(
   {
     appId: 'typed-app',
-    modelId: 'stt-model',
-    targetRef: typedLocalRuntimeTargetRef('stt-model'),
   },
   { scenario: createNimiSpeechTranscriptionScenario({ kind: 'speech-transcribe', mimeType: 'audio/wav', audio: { type: 'bytes', bytes: new Uint8Array([1]) } }), requestId: 'typed-stt', idempotencyKey: 'typed-stt-idem' },
 );

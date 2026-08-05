@@ -1,118 +1,67 @@
-# 关键源路由
+# 凭据来源解析
 
-> 状态：运行中 (Running). 关键源路由 (`K-KEYSRC-001..K-KEYSRC-004`) 是用于 AI 请求的凭证路由表面。
+> 状态：Runtime 管理的凭据保管。
 
-当 AI 请求到达运行时，运行时将使用的凭证必须来自两个已准入路径之一：**托管连接器**（推荐）或**内联元数据**（逃生舱口）。混合使用这两种方式是被拒绝的；如果两者都缺失，则会回退到运行时配置默认值。
+Runtime 只会在调用者和请求能力通过准入后解析 provider 凭据。普通 App 请求不选择凭据来源，也不携带 connector id、provider id、endpoint、API key 或凭据 metadata。
 
-## 两个已准入路径
+## 保管边界
 
-| 路径 | 凭证保管 | 推荐？ |
-| --- | --- | --- |
-| `connector_id` | `RuntimeConnectorService` (`K-CONN-001`: 保管者，非分发者) | 推荐 |
-| `inline` (`x-nimi-key-source=inline` + 内联元数据) | 调用者（gRPC 元数据直接传递） | 逃生舱口 |
-
-托管连接器路径是生产路径。内联路径仅适用于以下狭窄场景。
-
-## 托管连接器认证形状
-
-托管远程连接器支持两种认证形状：
-
-| 认证形状 | 有效载荷 |
+| 关注点 | 归属 |
 | --- | --- |
-| `API_KEY` | 连接器保管持有 API 密钥 |
-| `OAUTH_MANAGED` | 连接器保管持有提供商定义的密封密钥 + `tables/connector-auth-profiles.yaml` 中的 `provider_auth_profile` |
+| Provider 凭据或凭据引用 | Runtime 配置 |
+| Connector 身份和生命周期 | Runtime |
+| 凭据解密及 Driver 注入 | Runtime |
+| 调用者和能力准入 | Runtime protected session |
+| App 请求内容 | 调用者身份、场景内容、受支持参数 |
 
-这两种形状都将凭证保留在连接器保管下。调用者只提交 `connector_id` —— 永远不提交原始密钥。
+Desktop 和 CLI 可以通过已准入的机器管理命令配置凭据。该管理流程与能力执行相互独立，不会向 renderer 返回 secret，也不会向 App 提供 connector selector。
 
-`OAUTH_MANAGED` 连接器必须保持 **用户所有**。如果运行时发现机器或系统所有的 `OAUTH_MANAGED` 记录，托管路径将因 `NOT_FOUND` 而关闭。
+## Runtime 解析过程
 
-本地连接器在第一阶段不是 AI 消费执行入口；它们仅作为本地类别目录/探针外观 (`K-LOCAL-004`)。
+对于已准入的 Cloud 能力，Runtime 按固定的内部顺序处理：
 
-## 内联路径定位（逃生舱口）
+1. 校验 protected caller identity 和 App authorization。
+2. 校验规范能力请求。
+3. 读取 Runtime 拥有的机器配置和已准入 provider 目录。
+4. 选择可用实现及其凭据记录。
+5. 在 Runtime 内部校验 endpoint 和凭据策略。
+6. 通过内部执行上下文把凭据交给所选 Driver。
+7. 从诊断和审计输出中删除 secret 信息。
 
-内联路径仅适用于以下狭窄场景：
+下游 Driver 只接收 Runtime 选定的凭据。App 和 SDK adapter 不能读取凭据存储，也不能覆盖所选记录。
 
-- **开发/调试：** 开发者使用自己的 API 密钥进行测试，无需预先配置连接器
-- **外部代理直接连接：** 第三方代理通过 SDK 直接连接到运行时，绕过桌面连接器管理 UI
-- **一次性/临时调用：** 不需要持久化凭证的场景
+## 管理输入
 
-桌面 (`D-SEC-009`) 始终使用托管连接器路径；渲染器从不接触原始 API 密钥。内联凭证的安全性由调用者负责 —— 运行时应用审计删除 (`K-AUDIT-005`, `K-AUDIT-017`)，但不对内联凭证提供额外的秘密保护。
+凭据管理命令可以接收 secret，或接收宿主 secret store 的引用。该命令必须经过受保护的管理表面，校验准确 owner，并且只返回不含 secret 的状态。这些输入不会成为 text、embedding、image、video、speech 或 Agent 执行请求的字段。
 
-## 互斥
+Generated transport type 仍可能包含已退休的 connector 或 inline key 字段。手写 SDK 和 App 调用层会省略它们。通过无类型对象传入这些字段时，调用应被拒绝，不能将其当作兼容路径。
 
-`connector_id` 和任何内联凭证字段一起使用是 **被拒绝** 的：
+## 读者场景：配置 Cloud 执行
 
-| 组合 | 结果 |
-| --- | --- |
-| 仅 `connector_id` | 托管路径 |
-| 仅内联元数据 | 内联路径 |
-| 两者都有 | `AI_REQUEST_CREDENTIAL_CONFLICT` |
-| 都没有 | 运行时配置/匿名本地默认路径 |
+1. 机器管理员在 Desktop 或 CLI 中打开 Runtime 配置。
+2. 管理员配置已准入的 provider 凭据。
+3. Runtime 校验凭据并按自身保管边界保存。
+4. App owner 在 `AIConfig` 中记录 Cloud 能力意图，不指定 provider 或 connector。
+5. App 只携带身份、场景内容和受支持参数调用能力。
+6. Runtime 在内部选择实现和凭据，并返回强类型结果或失败。
 
-不存在“使用连接器但内联覆盖密钥”的模式。
+App 不会收到原始 key，也不会获得本次执行使用的 connector 身份。
 
-## 第一阶段元数据键
+## 读者场景：凭据缺失
 
-| 键 | 用途 |
-| --- | --- |
-| `x-nimi-key-source` | `inline` 或 `managed` |
-| `x-nimi-provider-type` | 提供商名称（来自目录的标准名称） |
-| `x-nimi-provider-endpoint` | 端点 URL |
-| `x-nimi-provider-api-key` | 内联 API 密钥（内联路径） |
-| `x-nimi-app-id` | 用于管理 RPC 审计 |
+1. App 发起不含执行控制项的 Cloud 能力请求。
+2. Runtime 找不到可供已准入实现使用的有效凭据记录。
+3. Runtime 返回强类型配置或 authorization failure。
+4. App 保留该失败，不注入 inline key，不选择 connector，也不伪造 Local fallback。
+5. 机器管理员通过独立管理界面修复 Runtime 配置。
 
-## 评估顺序
+## 公共边界
 
-AI 消费请求按固定顺序评估：
-
-1. 解析正文和元数据（空 `connector_id` 规范化为“未提供”）
-2. JWT 验证（如果存在）
-3. `app_id` 非空检查
-4. 密钥源 + 互斥检查
-5. 加载连接器
-6. 所有者/状态/凭证检查
-7. 远程端点安全检查
-8. 内联端点安全检查
-
-步骤 6 解密凭证并将其注入请求范围的执行上下文（例如，`nimillm.RemoteTarget`）。下游执行模块（例如，nimiLLM）从执行上下文中读取凭证；它们 **不** 直接访问凭证存储。
-
-## 读者场景：通过托管连接器的生产调用
-
-1. **应用程序通过桌面的连接器管理 UI 获取 `connector_id`**（该 UI 与 `RuntimeConnectorService` 通信）。
-2. **应用程序调用 AI 消费**，仅使用 `connector_id` —— 不使用 `x-nimi-provider-api-key`。
-3. **运行时评估。** 步骤 4 看到托管路径；步骤 5 加载连接器；步骤 6 将凭证解密到执行上下文中。
-4. **提供商调用。** nimiLLM 从执行上下文中读取凭证，调用提供商，返回响应。
-
-渲染器/应用程序从未看到原始密钥。连接器保管是唯一的拥有者。
-
-## 读者场景：外部代理使用内联
-
-第三方代理通过 SDK 连接到运行时，并希望使用其自己的提供商 API 密钥。
-
-1. **SDK 调用。** 包含 `x-nimi-key-source: inline`、`x-nimi-provider-type: ...`、`x-nimi-provider-endpoint: ...`、`x-nimi-provider-api-key: ...`。
-2. **运行时评估。** 步骤 4 看到内联路径。步骤 8 验证内联端点安全性。
-3. **提供商调用。** 内联凭证仅针对此请求注入执行上下文；不会持久化。
-4. **审计。** 审计日志根据 `K-AUDIT-005` / `K-AUDIT-017` 删除凭证。
-
-第三方代理的凭证安全性由其自己负责。运行时确保凭证不会通过审计泄露，但不提供进一步的秘密保护。
-
-## 读者场景：冲突
-
-调用者同时提交了 `connector_id` 和 `x-nimi-provider-api-key`。
-
-1. **运行时评估。** 步骤 4 检测到互斥。
-2. **拒绝。** `AI_REQUEST_CREDENTIAL_CONFLICT`。
-3. **无静默优先级。** 调用者必须选择一个路径。
-
-## 边界总结
-
-| 关注点 | 拥有者 |
-| --- | --- |
-| 路径选择规则 + 互斥 | `K-KEYSRC-001..K-KEYSRC-002` |
-| 元数据键形状 | `K-KEYSRC-003` |
-| 评估顺序 | `K-KEYSRC-004` |
-| 连接器保管 | `RuntimeConnectorService` (`K-CONN-001`) |
-| 内联凭证安全性 | 调用者 |
+- 普通 App 和 Agent 请求不包含 credential-source metadata。
+- Connector id、provider id、endpoint、API key 和 provider 原生句柄都属于 Runtime 配置。
+- `AIConfig` 的 Cloud 意图不标识凭据或具体实现。
+- 凭据解析和 Driver 注入只由 Runtime 完成。
+- Secret 或凭据相关数据不得进入规整结果、诊断、日志或 App 存储。
 
 ## 来源依据
 

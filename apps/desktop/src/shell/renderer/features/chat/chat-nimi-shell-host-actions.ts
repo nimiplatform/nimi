@@ -158,8 +158,7 @@ export function useAiConversationHostActions(
         });
     input.setSubmittingThreadId(baseThread.id);
     try {
-      // Runtime/Kit owns admission. Desktop performs no readiness, model,
-      // route-target, binding, or fallback check before this call.
+      // Runtime/Kit owns execution admission and implementation selection.
       const result = await input.executeTextCapability(text);
       const persisted = await ensureChatAiThreadRecordPersisted({
         thread: baseThread,

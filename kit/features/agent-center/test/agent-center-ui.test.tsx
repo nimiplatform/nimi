@@ -189,7 +189,7 @@ describe('AgentCenter UI session contract', () => {
       initialReason: 'not_granted',
       onRequest: () => { requests += 1; },
     });
-    let node = render(<AgentCenter activeSection="model" session={needsGrant} />);
+    let node = render(<AgentCenter activeSection="ai-config" session={needsGrant} />);
     await flush();
     const request = node.querySelector('[data-agent-center-next-step-action="requestPermission"]') as HTMLButtonElement;
     expect(request).not.toBeNull();
@@ -201,7 +201,7 @@ describe('AgentCenter UI session contract', () => {
     container?.remove();
     container = null;
     const reserved = permissionedSession({ initialReason: 'reserved_not_admitted' });
-    node = render(<AgentCenter activeSection="model" session={reserved} />);
+    node = render(<AgentCenter activeSection="ai-config" session={reserved} />);
     await flush();
     expect(node.querySelector('[data-agent-center-next-step="wait"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-next-step-action="requestPermission"]')).toBeNull();
@@ -229,7 +229,7 @@ describe('AgentCenter UI session contract', () => {
     expect(requestCalls).toBe(1);
   });
 
-  it('renders model, behavior, and appearance sections through session-owned state', async () => {
+  it('renders AIConfig, behavior, and appearance sections through session-owned state', async () => {
     const session = await sessionFor({
       autonomy: {
         revision: 'a1', enabled: true, mode: 'low', budgetExhausted: false,
@@ -238,7 +238,7 @@ describe('AgentCenter UI session contract', () => {
       },
       appearance: { status: 'not_configured', presentationRevision: 'p1' },
     });
-    for (const section of ['model', 'behavior', 'appearance'] as const) {
+    for (const section of ['ai-config', 'behavior', 'appearance'] as const) {
       const node = render(<AgentCenter activeSection={section} chrome="embedded" session={session} />);
       await flush();
       expect(node.querySelector(`#agent-center-panel-${section}`)).not.toBeNull();
@@ -251,10 +251,10 @@ describe('AgentCenter UI session contract', () => {
 
   it('writes a Local text.generate intent without exposing model targets', async () => {
     const session = await sessionFor();
-    const node = render(<AgentCenter activeSection="model" session={session} />);
+    const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();
     const configure = Array.from(node.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Use Machine Local')) as HTMLButtonElement;
+      .find((button) => button.textContent?.includes('Use Local')) as HTMLButtonElement;
     expect(configure).toBeTruthy();
     await act(async () => { configure.click(); await Promise.resolve(); });
     await flush();

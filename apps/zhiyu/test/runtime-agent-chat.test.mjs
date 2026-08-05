@@ -293,14 +293,14 @@ test('Zhiyu Runtime Agent chat does not synthesize image previews without an adm
   assert.doesNotMatch(JSON.stringify(result.messages), /runtime-preview:|data:image\//u);
 });
 
-test('Zhiyu Runtime Agent chat turn requests never carry model bindings', async () => {
+test('Zhiyu Runtime Agent chat turn requests carry canonical conversation identity and content', async () => {
   const module = await importRuntimeAgentChat();
   const captured = [];
 
   await module.runZhiyuAgentChatTurn({
     conversation: conversationReady(),
     text: 'make an image',
-    requestId: 'zhiyu-turn-test-image-binding',
+    requestId: 'zhiyu-turn-test-canonical-request',
     streamTurn: async (request) => {
       captured.push(request);
       return {
@@ -309,7 +309,7 @@ test('Zhiyu Runtime Agent chat turn requests never carry model bindings', async 
             type: 'message-sealed',
             envelope: {
               message: {
-                messageId: 'runtime-message-image-binding',
+                messageId: 'runtime-message-canonical-request',
                 text: 'image action available',
               },
             },
@@ -320,12 +320,17 @@ test('Zhiyu Runtime Agent chat turn requests never carry model bindings', async 
     },
   });
 
-  // Atomic hard cut: even with local route evidence for text+image, the turn
-  // request never carries model bindings (K-AGCORE-147).
-  assert.equal('executionBindings' in captured[0], false);
+  assert.deepEqual(captured[0], {
+    agentHandle: 'lah_v1_agent_opaque',
+    conversationAnchorId: 'conversation-anchor:opaque',
+    requestId: 'zhiyu-turn-test-canonical-request',
+    threadId: 'runtime-thread:opaque',
+    text: 'make an image',
+    attachments: [],
+  });
 });
 
-test('Zhiyu admitted conversation does not use an unadmitted AI Config projection as an authorization gate', async () => {
+test('Zhiyu admitted conversation is the turn authorization gate', async () => {
   const module = await importRuntimeAgentChat();
   let called = false;
 

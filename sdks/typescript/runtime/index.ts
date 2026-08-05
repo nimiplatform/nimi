@@ -112,9 +112,6 @@ export type {
 } from './runtime-method-modules';
 export type {
   RuntimeTypedCallOptions,
-  RuntimeDurableCloudTargetRef,
-  RuntimeDurableLocalTargetRef,
-  RuntimeDurableTargetRef,
 } from '../core-generated/runtime-typed-client';
 export {
   createRuntimeElectronIpcTransport,
@@ -157,13 +154,6 @@ export * from './product-control-types';
 export * from './product-control-projection';
 export * from './product-control-client';
 export * from './reason-messages';
-export * from './route-capability-runtime';
-export * from './route-capability-projection';
-export * from './route-host-access';
-export * from './route-host-codecs';
-export * from './route-host-options';
-export * from './route-host-projection';
-export * from './route-options';
 export * from './runtime-agent-values';
 export * from './runtime-agent-voice';
 export * from './runtime-agent-client';

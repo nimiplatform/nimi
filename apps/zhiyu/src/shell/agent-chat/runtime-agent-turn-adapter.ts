@@ -190,9 +190,7 @@ export async function runZhiyuAgentChatTurn(
   }
 }
 
-// Turn requests never carry model bindings: the runtime resolves each turn
-// against its committed Runtime Agent AI Config (K-AGCORE-147). The local text
-// binding gate above is route-readiness display evidence only.
+// Turn requests carry identity and content only; Runtime owns execution selection.
 function buildLocalAppTurnRequest(input: {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;

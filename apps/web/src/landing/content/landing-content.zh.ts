@@ -30,7 +30,7 @@ export const landingContentZh: LandingContent = {
     copiedCommandLabel: '已复制',
     previewAlt: 'Nimi runtime 快速上手预览',
     getStartedTitle: '快速上手',
-    getStartedSubtitle: '选择你的接入入口',
+    getStartedSubtitle: '选择接入入口',
     tabs: [
       {
         id: 'start',
@@ -57,17 +57,17 @@ export const landingContentZh: LandingContent = {
     title: '一个平台，多个世界。',
     subtitle: '架构',
     description:
-      'Nimi 提供强类型 SDK，让你构建跨越持续世界的 AI 体验 —— 自主智能体、共享记忆、身份、社交与经济 —— 由可本地或云端运行的 runtime 桥接。',
+      'Nimi 提供强类型 SDK，用于构建跨越持续世界、自主智能体、共享记忆、身份、社交与经济的 AI 体验。Runtime 在 Local 或 Cloud 环境执行能力。',
     devTitle: '面向构建者',
     devText:
-      '通过强类型 SDK 接入。无论运行在笔记本上还是你掌控的云端基础设施，都以同样方式组合源自 Character 的智能体、模型、对话和记忆。',
+      '通过强类型 SDK 组合源自 Character 的智能体、能力、对话和记忆；Local 或 Cloud 实现都由 Runtime 选择。',
     userTitle: '面向产品用户',
     userText:
       'Nimi 是 AI 开放世界平台 —— 智能体跨会话持续存在、跨世界共享状态，并通过边界清楚的 runtime 能力行动。不是聊天框封装，不是单一用途的应用。',
     conclusion: '概念驱动、契约优先、跨平台运行时。',
-    slogan: '你的代码、你的契约、你的世界。',
+    slogan: '代码、契约与世界归创建者。',
     diagram: {
-      appLabel: '你的 AI 应用',
+      appLabel: 'AI 应用',
       realm: 'REALM',
       runtime: 'RUNTIME',
       cloudContextPlane: '云端上下文层',
@@ -83,7 +83,7 @@ export const landingContentZh: LandingContent = {
         { id: 'identity', label: '身份', icon: '\u{1F464}' },
       ],
       runtimeCapabilities: [
-        { id: 'ai-models', label: 'AI 模型', icon: '\u{1F9E0}' },
+        { id: 'ai-models', label: 'AI 能力', icon: '\u{1F9E0}' },
         { id: 'conversations', label: '对话', icon: '\u{26A1}' },
         { id: 'knowledge', label: '知识库', icon: '\u{1F4DA}' },
       ],
@@ -103,38 +103,21 @@ export const landingContentZh: LandingContent = {
     },
   },
   modelCatalog: {
-    kicker: 'Provider 路由',
-    title: '一套 API，路由到任意模型。',
-    subtitle: '通过统一的强类型接入面连接到支持的 provider —— 选模型、接集成。',
+    kicker: 'Runtime 实现目录',
+    title: '一套能力 API，由 Runtime 选择具体实现。',
+    subtitle: '浏览 Runtime 管理的 Cloud 实现和 Local 资源兼容性；App 请求始终以能力为单位。',
     overview: {
-      searchPlaceholder: '搜索 provider、模型与能力',
-      cloudProvidersLabel: '云端 Provider',
-      localModelsLabel: '本地模型',
+      searchPlaceholder: '搜索实现家族与能力',
+      cloudProvidersLabel: 'Cloud 实现',
+      localModelsLabel: 'Local 资源',
       modalitiesLabel: '能力',
       modalitiesDescription: '文本 · Embedding · 图像 · 视频 · 音频 · 音乐 · 语音 · 世界',
-      industryLeadersLabel: '覆盖主流 provider',
       shortcutLabel: '⌘K',
       clearSearchLabel: '清除',
-      matchingProvidersLabel: '个匹配 provider',
-      liveCatalogLabel: '实时目录',
-      supportedByLabel: '由以下平台支持',
+      matchingProvidersLabel: '项匹配目录记录',
+      liveCatalogLabel: 'Runtime 目录',
+      supportedByLabel: '已准入实现家族',
     },
-    liveBadge: '开放目录',
-    featuredProvidersLabel: '主要 provider',
-    stats: {
-      providers: 'provider',
-      models: '默认模型',
-      cloudProviders: '云端 provider',
-      localModels: '本地 provider',
-    },
-    localTitle: '本地执行',
-    localHeadline: '在你自己的机器上跑模型。',
-    localDescription:
-      '本地 provider 路由通过 runtime 在你的硬件上执行 —— 同一套 SDK、同一套能力类型，没有云端往返。',
-    capabilitiesTitle: '能力矩阵',
-    capabilitiesHeadline: '覆盖 12 类受支持能力，横跨各 provider。',
-    capabilitiesDescription:
-      '文本生成、视觉、Embedding、图像与视频生成、语音合成与转写、音乐生成、声音克隆与设计、世界生成 —— 每类能力都展示支持它的 provider。',
     capabilityLabels: {
       'text.generate': '文本生成',
       'text.embed': 'Embedding',
@@ -149,18 +132,9 @@ export const landingContentZh: LandingContent = {
       'voice_workflow.voice_design': '声音设计',
       'world.generate': '世界生成',
     },
-    capabilityCountLabel: '种能力类别',
-    cloudBadge: '云端',
-    matrixTitle: 'Provider 矩阵',
-    matrixHeadline: '选定模型，自动路由到对应 provider。',
-    matrixDescription:
-      '每个 provider 支持一项或多项能力类别。Runtime 根据你的配置选择路由的模型 —— 切换 provider 不必修改调用点。',
     providerDetailSuffix: '项能力',
-    searchResultsTitle: '搜索结果',
-    searchResultsDescription: '按名称、默认模型或受支持能力筛选 provider。',
-    noResultsTitle: '没有匹配的 provider。',
-    noResultsDescription: '换个关键词，或在路由文档查看完整目录。',
-    sourceNote: '阅读路由文档了解完整的 provider 配置与能力细节。',
+    noResultsTitle: '没有匹配的目录记录。',
+    noResultsDescription: '可改用能力或实现家族关键词。',
     providerDisplayNames: {
       anthropic: 'Anthropic',
       aws_polly: 'AWS Polly',
@@ -206,16 +180,16 @@ export const landingContentZh: LandingContent = {
     eyebrow: '一套强类型 SDK',
     title: '一个 SDK，',
     titleAccent: '多种运行 AI 的方式。',
-    subtitle: '通过统一的强类型接入面，组合源自 Character 的智能体、模型、对话和共享环境 —— 本地或云端运行皆可。',
+    subtitle: '通过统一的强类型接入面组合源自 Character 的智能体、能力、对话和共享环境；Runtime 管理 Local 或 Cloud 执行。',
     callout: '查看 SDK 参考',
     primaryCta: '阅读 SDK 文档',
     secondaryCta: '查看源码',
     codeWindowTitle: 'Nimi SDK / 智能体运行时',
-    codeWindowCaption: '用一个强类型接入面连接智能体上下文、运行时任务和本地/云端路由。',
+    codeWindowCaption: '用一个强类型接入面连接智能体上下文、Runtime 任务和 Local 或 Cloud 能力意图。',
     matrixEyebrow: 'SDK 能力矩阵',
     matrixTitle: '详细能力点移动到下一屏。',
     matrixSubtitle: '首屏保持产品叙事；原来的 SDK 能力点保留为可扫描的矩阵，并直接链接到参考文档。',
-    runtimeBadges: ['Type-safe SDK', 'Runtime Ready', 'Local-first', 'Agent Context'],
+    runtimeBadges: ['Type-safe SDK', 'Runtime-backed', 'Local-first', 'Agent Context'],
     heroHighlights: [
       {
         title: 'Realm 与 Runtime 客户端',
@@ -227,7 +201,7 @@ export const landingContentZh: LandingContent = {
       },
       {
         title: '本地 / 云端一体运行',
-        description: '优先连接本地 runtime，再用同一套契约路由到你掌控的云端基础设施。',
+        description: '使用同一份能力契约，由 Runtime 解释 owner 的 Local 或 Cloud 意图。',
       },
     ],
     tabs: [
@@ -248,7 +222,7 @@ export const landingContentZh: LandingContent = {
       {
         id: 'ai-config',
         label: 'AI 配置',
-        description: '一个配置面统管模型选择、能力路由与 provider 偏好。',
+        description: '为各项已准入能力表达 owner 范围内的 Local 或 Cloud 意图；具体实现由 Runtime 选择。',
         docsPath: 'sdk/ai-config-surface',
         previewMediaId: 'sdk',
       },
@@ -287,7 +261,7 @@ export const landingContentZh: LandingContent = {
       },
       {
         title: 'AI 配置',
-        description: '一个配置面统管模型选择、能力路由与 provider 偏好。',
+        description: '为各项已准入能力表达 owner 范围内的 Local 或 Cloud 意图；具体实现由 Runtime 选择。',
         docsPath: 'sdk/ai-config-surface',
       },
       {
@@ -316,27 +290,24 @@ export const landingContentZh: LandingContent = {
   desktop: {
     title: '原生 Desktop，真实的 Web 边界。',
     subtitle:
-      'Desktop 是完整应用 —— 内嵌 runtime、本地 AI、跑在你自己的机器上。Web mode 用同一套外壳加上明确的 web-only adapter。两边都是真实的产品面。',
+      'Desktop 是包含 Runtime、本地 AI 和原生外壳的完整应用。Web mode 使用同一套外壳和明确的 web-only adapter；两者都是正式产品表面。',
     chromeLabels: {
       appName: 'Nimi',
       runtime: 'Runtime',
-      health: '状态正常',
-      healthDetail: 'gRPC 已就绪，本地 runtime 已连接。',
       workspace: '工作区',
-      activity: '活动',
-      ready: '就绪',
-      connected: '已连接',
-      installed: '已安装',
+      capabilities: '能力意图',
+      localIntent: '本地意图',
+      cloudIntent: '云端意图',
     },
     features: [
       {
         icon: 'dashboard',
-        title: 'Runtime 仪表盘',
-        description: '一眼看清模型状态、资源占用和活跃会话。',
+        title: 'Runtime 概览',
+        description: '一眼查看 Runtime 活动、资源占用和活跃会话。',
       },
-      { icon: 'chat', title: '内置聊天', description: '在同一个工作区里对话本地与云端模型。' },
-      { icon: 'models', title: '模型管理', description: '一处安装、更新、切换模型。' },
-      { icon: 'apps', title: '应用启动器', description: '在同一个工作区里打开可用的 Nimi App 与你连接的本地 App。' },
+      { icon: 'chat', title: '内置聊天', description: '同一个对话界面支持本地或云端能力意图。' },
+      { icon: 'models', title: '本地 AI 资源', description: '在一处安装和更新由 Runtime 管理的 AI 资源。' },
+      { icon: 'apps', title: '应用启动器', description: '在同一个工作区打开可用的 Nimi App 与已连接的本地 App。' },
     ],
     downloadCta: '阅读 Desktop 文档',
     availability: {
@@ -365,11 +336,11 @@ export const landingContentZh: LandingContent = {
         label: '开发',
         title: '用 SDK 接入 Nimi',
         description:
-          '开发者可以把自己的功能做成 Nimi App，通过 SDK 调用模型和 Runtime 能力，让应用在 Nimi 的环境里工作。',
+          '开发者可以把产品功能做成 Nimi App，通过 SDK 调用 Runtime 能力，无需选择具体实现。',
       },
       {
         label: '本地',
-        title: '连接你自己的 App',
+        title: '连接本地 App',
         description:
           '本地 App 可以显式连接到 Nimi，适合团队内测、个人工具或尚未公开发布的应用。',
       },
@@ -389,17 +360,17 @@ export const landingContentZh: LandingContent = {
       {
         question: 'Nimi 是什么？',
         answer:
-          '一个面向持续世界与有形智能体的开源 AI 运行时。通过统一的强类型 SDK 组合模型、对话与共享记忆。',
+          '一个面向持续世界与有形智能体的开源 AI 运行时。通过统一的强类型 SDK 组合能力、对话与共享记忆。',
       },
       {
         question: '如何开始接入？',
         answer:
-          '阅读 SDK 文档，安装强类型客户端，连接到本地或你自己的云端 runtime —— 同一套 SDK、同一套契约。',
+          '阅读 SDK 文档并安装强类型客户端，再连接 Local 或 Cloud Runtime；两种环境使用同一套 SDK 和契约。',
       },
       {
-        question: '能本地运行模型吗？',
+        question: 'AI 能力可以在本地执行吗？',
         answer:
-          '可以。Runtime 通过本地 provider 在你的硬件上执行 —— 支持本地路由的路径无需云端往返。',
+          '可以。Owner 表达 Local 能力意图后，Runtime 可以使用机器上的已准入资源执行，App 请求形态保持不变。',
       },
       {
         question: 'Nimi 是开源的吗？',
@@ -442,8 +413,8 @@ export const landingContentZh: LandingContent = {
       },
       {
         label: '目录可信',
-        title: '模型与能力目录来自数据',
-        points: ['Provider、模型与能力信息由规范表生成。', '页面尽量少写空泛承诺，多展示可以追溯的内容。'],
+        title: '能力与实现目录来自数据',
+        points: ['Runtime 实现与能力信息由规范表生成。', '页面尽量少写空泛承诺，多展示可以追溯的内容。'],
       },
     ],
   },
@@ -451,7 +422,7 @@ export const landingContentZh: LandingContent = {
     title: '从头到尾，全部开源。',
     subtitle: '读 runtime、读 SDK、读规范。',
     description:
-      'Nimi 在 runtime、SDK 与应用层全部以宽松许可证发布 —— 建立在你可以阅读、fork、扩展的契约之上。',
+      'Nimi 在 Runtime、SDK 与应用层使用宽松许可证发布，并建立在可阅读、fork 和扩展的契约之上。',
     githubCta: '查看 GitHub',
     docsCta: '阅读文档',
     roadmapCta: '阅读路线图',

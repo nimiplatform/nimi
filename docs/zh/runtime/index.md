@@ -8,8 +8,8 @@ SDK 使用它的公共 capability surface，不能导入 Runtime internal，也�
 
 Runtime 持有：
 
-- Local 与 Cloud AI 消费、Provider 与 Model 路由、readiness、Token、Quota、
-  Budget 及 Credential custody；
+- Local 与 Cloud AI 消费、实现选择、资源调度、Token、Quota、Budget 及
+  Credential custody；
 - 从 Realm 签发的 Character Source 物化 LocalAgent，并管理其生命周期；
 - LocalAgent Conversation、运行态 Memory 与 Knowledge、状态、voice、event
   和 presentation 投影；
@@ -20,7 +20,7 @@ Runtime 持有：
 无论 consumer 是 Nimi Home、Desktop、Avatar、Direct SDK Client 还是
 scaffolded App，这些职责都不会从 Runtime 转移出去。
 
-## Runtime 不持有什么
+## 权责边界
 
 Realm 持有 Character identity、Character Source、World Source、canonical
 World data、social truth 与 World history。Runtime 可以消费已准入的 source
@@ -32,7 +32,7 @@ Conversation、Memory、Knowledge、LocalAgent、Provider、Credential、session
 
 通用 Workflow、MCP 与 World Evolution 都不是 Runtime 核心前置。可选的
 external action capability 应单独报告 unavailable，不得阻塞 LocalAgent
-Conversation、Memory、Knowledge、voice 或普通 readiness。
+Conversation、Memory、Knowledge、voice 或无关的能力执行。
 
 ## 阅读路径
 

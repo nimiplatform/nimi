@@ -2,7 +2,7 @@
 
 Delegated or external action is an optional Runtime capability. It is not a
 prerequisite for Local AI, LocalAgent Conversation, Memory, Knowledge, voice,
-SDK use, Nimi Home, Avatar, or ordinary App readiness.
+SDK use, Nimi Home, Avatar, or ordinary App capability execution.
 
 ## Boundary
 

@@ -5,16 +5,10 @@ import {
   MessagesSquare,
   Route,
   Server,
-  ShieldCheck,
   Sparkles,
   UserRoundCheck,
 } from 'lucide-react';
 import type { ZhiyuEvidence } from './evidence';
-import type {
-  ZhiyuCapabilityRoomItemState,
-  ZhiyuCapabilityRoomOwnerCard,
-  ZhiyuCapabilityRoomState,
-} from './capability-room-state';
 import type {
   ZhiyuDiagnosticItem,
   ZhiyuDiagnosticSeverity,
@@ -75,8 +69,8 @@ export function formatReasonLabel(ready: boolean, reasonCode: string): string {
     return '已就绪';
   }
   if (/missing|required|unavailable|blocked|not[_-]projected|not[_-]admitted/i.test(reasonCode)) {
-    if (/route|model|ai-config/i.test(reasonCode)) {
-      return '需要模型';
+    if (/ai-config|capability[-_]intent/i.test(reasonCode)) {
+      return '需要能力意图';
     }
     if (/local-agent|agent|required|source/i.test(reasonCode)) {
       return '需要伙伴';
@@ -347,182 +341,6 @@ function identityUnsupportedLabel(field: string): string {
   return field.replaceAll('_', ' ');
 }
 
-export function CapabilityRoomSection({ capabilityRoom }: { readonly capabilityRoom: ZhiyuCapabilityRoomState }) {
-  return (
-    <Surface
-      as="section"
-      className="zhiyu-home__gated zhiyu-home__capability-room"
-      data-zhiyu-region="capability"
-      data-zhiyu-gated-surface="capability"
-      data-zhiyu-capability-room="canonical-catalog-projection"
-      data-zhiyu-capability-catalog-count={String(capabilityRoom.catalogCount)}
-      data-zhiyu-capability-deferred-count={String(capabilityRoom.deferredCount)}
-      data-zhiyu-capability-route-state={capabilityRoom.routeReasonCode}
-      data-zhiyu-capability-route-ready={String(capabilityRoom.routeReady)}
-      material="glass-thin"
-      elevation="base"
-      padding="md"
-    >
-      <div className="zhiyu-home__section-heading">
-        <ShieldCheck size={18} aria-hidden="true" />
-        <div>
-          <h2>{capabilityRoom.title}</h2>
-          <p>只读展示已准入能力、模型通路与尚未开放的记忆使用边界。</p>
-        </div>
-      </div>
-      <div className="zhiyu-home__capability-summary">
-        <StatusBadge tone={capabilityRoom.routeReady ? 'success' : 'warning'} shape="dot">
-          {capabilityRoom.routeReady ? '模型已配置' : '等待模型配置'}
-        </StatusBadge>
-        <span>{capabilityRoom.catalogCount} 项能力</span>
-        <span>{capabilityRoom.deferredCount} 项待开放</span>
-        <span>{capabilityRoom.executionBindingLabel}</span>
-      </div>
-      <div className="zhiyu-home__owner-grid" aria-label="能力边界 owner">
-        {capabilityRoom.owners.map((owner) => (
-          <OwnerCard key={owner.key} owner={owner} />
-        ))}
-      </div>
-      <div className="zhiyu-home__capability-list" aria-label="能力目录">
-        {capabilityRoom.items.map((item) => (
-          <div
-            key={item.capabilityId}
-            className="zhiyu-home__capability-item"
-            data-zhiyu-capability-item={item.capabilityId}
-            data-zhiyu-capability-item-state={item.state}
-            data-zhiyu-capability-item-active={String(item.active)}
-            data-zhiyu-capability-current-state={item.matrix.currentState}
-            data-zhiyu-capability-data-movement={item.matrix.dataMovement}
-            data-zhiyu-capability-retention={item.matrix.retention}
-            data-zhiyu-capability-revocation-path={item.matrix.revocationPath}
-            data-zhiyu-capability-audit-source={item.matrix.auditSource}
-            data-zhiyu-capability-audit-ref={item.matrix.auditRef}
-            data-zhiyu-capability-unsupported-reason={item.matrix.unsupportedReason}
-            data-zhiyu-capability-setup-requirement={item.matrix.setupRequirement}
-          >
-            <div className="zhiyu-home__capability-item-header">
-              <div className="zhiyu-home__capability-item-title">
-                <strong>{capabilityDisplayLabel(item.capabilityId)}</strong>
-                <small>{capabilitySectionLabel(item.section)} / {formatCapabilityState(item.state)}</small>
-              </div>
-              <span className="zhiyu-home__capability-item-status" data-zhiyu-capability-status-badge={item.state}>
-                <StatusBadge tone={toneForCapabilityState(item.state)} shape="dot">
-                  {formatCapabilityState(item.state)}
-                </StatusBadge>
-              </span>
-            </div>
-            <div
-              className="zhiyu-home__capability-governance"
-              data-zhiyu-capability-governance-owner={item.governance.owner}
-              data-zhiyu-capability-governance-data-movement={item.governance.dataMovement}
-              data-zhiyu-capability-governance-retention={item.governance.retention}
-              data-zhiyu-capability-governance-revocation={item.governance.revocation}
-              data-zhiyu-capability-governance-audit-source={item.governance.auditSource}
-              data-zhiyu-capability-governance-source={item.governance.source}
-            >
-              <span data-zhiyu-capability-governance-chip="current-state">{formatCapabilityState(item.matrix.currentState)}</span>
-              <span data-zhiyu-capability-governance-chip="owner">{ownerDisplayLabel(item.governance.owner)}</span>
-              <span data-zhiyu-capability-governance-chip="data-movement">{capabilityPolicyLabel(item.governance.dataMovement, '数据使用待投影')}</span>
-              <span data-zhiyu-capability-governance-chip="retention">{capabilityPolicyLabel(item.governance.retention, '留存策略待投影')}</span>
-              <span data-zhiyu-capability-governance-chip="revocation">{capabilityPolicyLabel(item.matrix.revocationPath, '撤回路径待投影')}</span>
-              <span data-zhiyu-capability-governance-chip="audit-source">{capabilityPolicyLabel(item.matrix.auditSource, '审计来源待投影')}</span>
-              <span data-zhiyu-capability-governance-chip="audit-ref">{capabilityPolicyLabel(item.matrix.auditRef, '审计引用待投影')}</span>
-              <span data-zhiyu-capability-governance-chip="unsupported-reason">{capabilityPolicyLabel(item.matrix.unsupportedReason, '可用性已确认')}</span>
-              <span data-zhiyu-capability-governance-chip="setup-requirement">{capabilityPolicyLabel(item.matrix.setupRequirement, '无需设置')}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="zhiyu-home__action-hint">{capabilityRoom.routeActionHint}</p>
-    </Surface>
-  );
-}
-
-function OwnerCard({ owner }: { readonly owner: ZhiyuCapabilityRoomOwnerCard }) {
-  return (
-    <div
-      className="zhiyu-home__owner-card"
-      data-zhiyu-capability-owner={owner.key}
-      data-zhiyu-capability-owner-state={owner.state}
-    >
-      <span>{owner.title}</span>
-      <strong>{ownerDisplayLabel(owner.owner)}</strong>
-      <StatusBadge tone={toneForOwnerState(owner.state)} shape="dot">
-        {ownerStateLabel(owner.state)}
-      </StatusBadge>
-    </div>
-  );
-}
-
-function capabilityDisplayLabel(capabilityId: string): string {
-  if (capabilityId === 'text.generate') return '文本生成';
-  if (capabilityId === 'chat.stream') return '连续回复';
-  if (capabilityId === 'text.embed') return '文本嵌入';
-  if (capabilityId === 'image.generate') return '图片生成';
-  return capabilityId;
-}
-
-function capabilitySectionLabel(section: string): string {
-  if (section === 'chat') return '对话';
-  if (section === 'embed') return '嵌入';
-  if (section === 'image') return '图片';
-  if (section === 'voice') return '声音';
-  if (section === 'video') return '视频';
-  return section;
-}
-
-function capabilityPolicyLabel(value: string, fallback: string): string {
-  if (!value || value === 'not_projected' || value === 'not_evaluated') {
-    return fallback;
-  }
-  if (value === 'not_unsupported') {
-    return '可用性已确认';
-  }
-  if (value === 'none') {
-    return '无需设置';
-  }
-  return value.replaceAll('_', ' ');
-}
-
-function ownerDisplayLabel(owner: string): string {
-  if (owner === 'not_projected') return '等待投影';
-  if (owner === '能力目录') return owner;
-  if (owner === '模型通路') return owner;
-  if (owner === '模型配置') return owner;
-  if (owner === '记忆投影') return owner;
-  if (/Platform capability catalog/i.test(owner)) return '能力目录';
-  if (/Runtime\/SDK route projection|Runtime route projection/i.test(owner)) return '模型通路';
-  if (/AIConfig/i.test(owner)) return '模型配置';
-  if (/Cognition memory projection/i.test(owner)) return '记忆投影';
-  return owner;
-}
-
-function ownerStateLabel(state: ZhiyuCapabilityRoomOwnerCard['state']): string {
-  if (state === 'ready') return '已就绪';
-  if (state === 'not-admitted') return '尚未开放';
-  return '等待就绪';
-}
-
-function formatCapabilityState(state: ZhiyuCapabilityRoomItemState): string {
-  switch (state) {
-    case 'ready':
-      return '已就绪';
-    case 'catalog-only':
-      return '目录内';
-    case 'needs-setup':
-      return '需要设置';
-    case 'denied':
-      return '未授权';
-    case 'revoked':
-      return '已撤回';
-    case 'unsupported':
-      return '不支持';
-    case 'unavailable':
-    default:
-      return '暂不可用';
-  }
-}
-
 export function DiagnosticSurface({ diagnostics }: { readonly diagnostics: ZhiyuDiagnosticState }) {
   const visibleItems = diagnostics.items
     .filter((item) => item.severity !== 'ready')
@@ -544,7 +362,7 @@ export function DiagnosticSurface({ diagnostics }: { readonly diagnostics: Zhiyu
         <Route size={18} aria-hidden="true" />
         <div>
           <h2>诊断</h2>
-          <p>把当前 Runtime、账户、来源、Agent、路由和回合状态整理成可追踪的 fail-closed 修复队列。</p>
+          <p>把当前 Runtime、账户、来源、Agent、会话和回合状态整理成可追踪的 fail-closed 修复队列。</p>
         </div>
       </div>
       <div className="zhiyu-home__diagnostic-summary">
@@ -628,7 +446,6 @@ function iconByStatusKey(key: string) {
       return Server;
     case 'auth':
       return UserRoundCheck;
-    case 'route':
     case 'turn':
       return Route;
     case 'conversation':
@@ -638,36 +455,6 @@ function iconByStatusKey(key: string) {
     case 'localAgent':
     default:
       return Sparkles;
-  }
-}
-
-function toneForCapabilityState(state: ZhiyuCapabilityRoomItemState) {
-  switch (state) {
-    case 'ready':
-      return 'success';
-    case 'denied':
-    case 'revoked':
-      return 'danger';
-    case 'needs-setup':
-    case 'unavailable':
-      return 'warning';
-    case 'unsupported':
-      return 'info';
-    case 'catalog-only':
-    default:
-      return 'neutral';
-  }
-}
-
-function toneForOwnerState(state: ZhiyuCapabilityRoomOwnerCard['state']) {
-  switch (state) {
-    case 'ready':
-      return 'success';
-    case 'not-admitted':
-      return 'info';
-    case 'blocked':
-    default:
-      return 'warning';
   }
 }
 

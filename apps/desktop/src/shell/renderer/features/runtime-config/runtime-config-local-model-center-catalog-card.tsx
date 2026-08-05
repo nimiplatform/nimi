@@ -172,7 +172,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   </div>
                   <span className={`rounded-full px-2 py-1 text-[10px] ${item.installAvailable ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'}`}>
                     {item.installAvailable
-                      ? i18n.t('runtimeConfig.localModelCenter.ready', { defaultValue: 'Ready' })
+                      ? i18n.t('runtimeConfig.localModelCenter.installable', { defaultValue: 'Installable' })
                       : i18n.t('runtimeConfig.localModelCenter.manual', { defaultValue: 'Manual' })}
                   </span>
                   <button

@@ -7,7 +7,6 @@ import type {
 } from '@nimiplatform/sdk';
 import type {
   NimiAiModel,
-  NimiRuntimeAIRoutePolicy,
 } from '@nimiplatform/sdk/ai';
 import type { NimiCapabilityManifest } from '@nimiplatform/sdk/contracts';
 
@@ -34,6 +33,7 @@ import {
 
 export {
   createNimiMastraEmbeddingModel,
+  type NimiMastraEmbeddingCapabilityRef,
   type NimiMastraEmbeddingModel,
   type NimiMastraEmbeddingModelOptions,
 } from './embedding';
@@ -45,6 +45,7 @@ export {
   type NimiMastraVoiceCatalogOptions,
   type NimiMastraVoiceListenOptions,
   type NimiMastraVoiceOptions,
+  type NimiMastraVoiceReference,
   type NimiMastraVoiceRuntime,
   type NimiMastraVoiceScenarioClient,
   type NimiMastraVoiceSpeakOptions,
@@ -124,7 +125,7 @@ export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMast
     supportedUrls: NIMI_MASTRA_SUPPORTED_URLS,
     async doGenerate(callOptions) {
       const result = await model.generateText(
-        toNimiGenerateTextRequest(model, callOptions, throwUnsupportedMastraFeature),
+        toNimiGenerateTextRequest(callOptions, throwUnsupportedMastraFeature),
       );
       const providerMetadata = toV3TopLevelProviderMetadata(result.raw);
       const request = toV3RequestMetadata(result.raw);
@@ -144,7 +145,7 @@ export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMast
         throwUnsupportedMastraFeature('languageModel.doStream', 'model does not expose Nimi streaming');
       }
       const streamEvents = await model.streamText(
-        toNimiGenerateTextRequest(model, callOptions, throwUnsupportedMastraFeature),
+        toNimiGenerateTextRequest(callOptions, throwUnsupportedMastraFeature),
       );
       return {
         stream: toV3ReadableStream(streamEvents),
@@ -154,22 +155,14 @@ export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMast
 }
 
 export type NimiMastraRuntimeModelOptions =
-  Omit<NimiClientRuntimeModelOptions, 'model' | 'routePolicy'> & {
-    readonly routePolicy: NimiRuntimeAIRoutePolicy;
-    readonly providerId?: string;
+  NimiClientRuntimeModelOptions & {
     readonly subjectMode?: 'external-principal';
   };
 
-export type NimiMastraRuntimeModelProviderOptions =
-  Omit<NimiClientRuntimeModelOptions, 'model' | 'routePolicy'> & {
-    readonly routePolicy?: NimiRuntimeAIRoutePolicy;
-    readonly providerId?: string;
-    readonly subjectMode?: 'external-principal';
-  };
+export type NimiMastraRuntimeModelProviderOptions = NimiMastraRuntimeModelOptions;
 
 export type NimiMastraRuntimeEmbeddingOptions =
-  Omit<NimiClientEmbeddingOptions, 'model'> & {
-    readonly providerId?: string;
+  NimiClientEmbeddingOptions & {
     readonly subjectMode?: 'external-principal';
     readonly embedding?: NimiMastraEmbeddingModelOptions['embedding'];
     readonly maxEmbeddingsPerCall?: number;
@@ -203,9 +196,10 @@ export interface NimiMastraLanguageModelProvider {
 
 /**
  * Construct a Mastra model factory from a direct `NimiAiModel` or a `NimiClient`
- * (Runtime-routed model resolution). The returned `languageModel(modelId)` values
- * are accepted by Mastra Agents. Routing/default-model selection stays Runtime- or
- * caller-owned per S-AIP-001; the provider never introduces its own routing table.
+ * (Runtime-backed execution). The returned `languageModel(modelId)` values are
+ * accepted by Mastra Agents. Framework-required model slots carry only the fixed
+ * capability ids (`text.generate` or `text.embed`); Runtime owns execution
+ * selection and the provider has no implementation-selection table.
  * Configuration and unknown-model errors fail closed with a typed
  * `NimiMastraUnsupportedFeatureError`.
  */
@@ -219,7 +213,7 @@ export function createNimiMastraProvider(options: NimiMastraProviderOptions): Ni
   return {
     manifest: NIMI_MASTRA_ADAPTER_MANIFEST,
     languageModel(modelId) {
-      const model = resolveProviderModel(options, modelId);
+      const model = resolveProviderModel(options);
       if (modelId !== model.model.modelId) {
         throwUnsupportedMastraFeature('provider.languageModel', `unknown model ${modelId}`);
       }
@@ -234,7 +228,7 @@ export function createNimiMastraProvider(options: NimiMastraProviderOptions): Ni
   };
 }
 
-function resolveProviderModel(options: NimiMastraProviderOptions, modelId: string): NimiAiModel {
+function resolveProviderModel(options: NimiMastraProviderOptions): NimiAiModel {
   if (options.model) {
     return options.model;
   }
@@ -245,14 +239,7 @@ function resolveProviderModel(options: NimiMastraProviderOptions, modelId: strin
   return options.client.ai.createRuntimeModel({
     appId: options.appId,
     runtime: options.runtime,
-    model: {
-      modelId,
-      ...(options.providerId ? { providerId: options.providerId } : {}),
-    },
-    routePolicy: options.routePolicy,
-    connectorId: options.connectorId,
     subjectUserId: options.subjectUserId,
-    targetRef: options.targetRef,
     timeoutMs: options.timeoutMs,
     metadata: options.metadata,
     reasoning: options.reasoning,
@@ -264,11 +251,11 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
   if (!embedding) {
     throwUnsupportedMastraFeature('provider.embeddingModel', 'embedding configuration is required');
   }
+  if (modelId !== 'text.embed') {
+    throwUnsupportedMastraFeature('provider.embeddingModel', `unknown capability ${modelId}`);
+  }
   assertRuntimeBackedEmbeddingOptions(embedding);
-  const model = {
-    modelId,
-    ...(embedding.providerId ? { providerId: embedding.providerId } : {}),
-  };
+  const model = { modelId: 'text.embed' as const };
   if (embedding.embedding) {
     return createNimiMastraEmbeddingModel({
       model,
@@ -284,11 +271,7 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
       embedding: options.client.ai.createRuntimeEmbeddingClient({
         appId: embedding.appId,
         runtime: embedding.runtime,
-        model,
-        routePolicy: embedding.routePolicy,
-        connectorId: embedding.connectorId,
         subjectUserId: embedding.subjectUserId,
-        targetRef: embedding.targetRef,
         timeoutMs: embedding.timeoutMs,
         metadata: embedding.metadata,
       }),
@@ -301,10 +284,7 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
     model,
     runtime: embedding.runtime,
     appId: embedding.appId,
-    routePolicy: embedding.routePolicy,
-    connectorId: embedding.connectorId,
     subjectUserId: embedding.subjectUserId,
-    targetRef: embedding.targetRef,
     timeoutMs: embedding.timeoutMs,
     metadata: embedding.metadata,
     maxEmbeddingsPerCall: embedding.maxEmbeddingsPerCall,
@@ -318,25 +298,13 @@ function isClientProviderOptions(options: NimiMastraProviderOptions): options is
 
 function assertRuntimeBackedModelOptions(
   options: NimiMastraClientProviderOptions,
-): asserts options is NimiMastraClientProviderOptions & { readonly routePolicy: NimiRuntimeAIRoutePolicy } {
-  if (!options.routePolicy) {
-    throwUnsupportedMastraFeature('provider.routePolicy', 'runtime-backed providers require explicit routePolicy');
-  }
-  if (!options.targetRef || options.targetRef.kind === 'profile-slice') {
-    throwUnsupportedMastraFeature('provider.targetRef', 'runtime-backed providers require a live v2 targetRef');
-  }
+): void {
   if (options.subjectUserId && options.subjectMode !== 'external-principal') {
     throwUnsupportedMastraFeature('provider.subjectUserId', 'subjectUserId requires subjectMode external-principal');
   }
 }
 
 function assertRuntimeBackedEmbeddingOptions(options: NimiMastraRuntimeEmbeddingOptions): void {
-  if (!options.routePolicy) {
-    throwUnsupportedMastraFeature('provider.embedding.routePolicy', 'runtime-backed embedding providers require explicit routePolicy');
-  }
-  if (!options.targetRef || options.targetRef.kind === 'profile-slice') {
-    throwUnsupportedMastraFeature('provider.embedding.targetRef', 'runtime-backed embedding providers require a live v2 targetRef');
-  }
   if (options.subjectUserId && options.subjectMode !== 'external-principal') {
     throwUnsupportedMastraFeature('provider.embedding.subjectUserId', 'embedding subjectUserId requires subjectMode external-principal');
   }

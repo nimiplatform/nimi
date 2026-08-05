@@ -16,7 +16,6 @@ import type {
 export type {
   NimiRuntimeAgentConsumeRequest,
   NimiRuntimeAgentCurrentUserMessage,
-  NimiRuntimeAgentExecutionBinding,
   NimiRuntimeAgentMessage,
   NimiRuntimeAgentProjectionSummary,
   NimiRuntimeAgentReasoningRequest,

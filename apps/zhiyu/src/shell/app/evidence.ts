@@ -8,7 +8,6 @@ import type {
   RuntimeAgentEmotionIntensity,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  NimiRuntimeAgentExecutionBinding,
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentIdentitySafetyProjection,
   NimiRuntimeAgentPresentationProfileProjection,
@@ -99,15 +98,6 @@ export type ZhiyuProactiveInterruptibilityStatus = {
   readonly sourceCadenceId: string | null;
   readonly auditRefs: readonly string[];
   readonly unsupportedFields: readonly string[];
-};
-
-export type ZhiyuAgentAIConfigReadinessState = 'ready' | 'not_configured' | 'unavailable';
-
-export type ZhiyuExecutionCapabilityEvidence = {
-  readonly state: ZhiyuAgentAIConfigReadinessState;
-  readonly reasonCode: string;
-  readonly probedAt: string | null;
-  readonly binding: NimiRuntimeAgentExecutionBinding | null;
 };
 
 export type ZhiyuRuntimeAgentChatStatus = {
@@ -362,26 +352,6 @@ export type ZhiyuEvidence = {
     readonly unsupportedFields: readonly string[];
   };
   readonly chat: ZhiyuRuntimeAgentChatStatus;
-  readonly route: {
-    readonly transport: 'electron-ipc';
-    // Permissioned model-settings display/feature readiness. Chat submit
-    // readiness is owned separately by the LocalApp conversation turn gate.
-    readonly ready: boolean;
-    readonly capability: 'text.generate';
-    // Runtime-owned model-settings projection revision.
-    readonly configRevision: string | null;
-    readonly readinessRevision: string | null;
-    readonly updatedAt: string | null;
-    readonly updatedByAppId: string | null;
-    readonly capabilities: Readonly<Record<string, ZhiyuExecutionCapabilityEvidence>>;
-    // Bounded route + model display projection derived from model settings;
-    // Runtime resolves every turn against its own committed config.
-    readonly executionBinding: NimiRuntimeAgentExecutionBinding | null;
-    readonly reasonCode: string;
-    readonly actionHint: string;
-    readonly source: string;
-    readonly message: string;
-  };
   readonly turn: {
     readonly transport: 'electron-ipc';
     readonly ready: boolean;
@@ -653,21 +623,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       reasoningText: null,
       outputText: null,
       diagnostics: null,
-    },
-    route: {
-      transport: 'electron-ipc',
-      ready: false,
-      capability: 'text.generate',
-      configRevision: null,
-      readinessRevision: null,
-      updatedAt: null,
-      updatedByAppId: null,
-      capabilities: {},
-      executionBinding: null,
-      reasonCode: 'not-probed',
-      actionHint: 'fetch_runtime_agent_ai_config',
-      source: 'renderer',
-      message: 'Runtime Agent AI Config has not been fetched.',
     },
     turn: {
       transport: 'electron-ipc',

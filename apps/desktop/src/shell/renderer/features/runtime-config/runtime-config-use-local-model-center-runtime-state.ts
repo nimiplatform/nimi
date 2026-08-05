@@ -14,12 +14,10 @@ import {
 } from './runtime-config-model-center-utils';
 import {
   relatedPassiveAssetsForRunnable,
-  sortVerifiedAssetsForDisplay,
 } from './runtime-config-local-model-center-helpers';
 import {
   canImportDeclaration,
   isRunnableAssetKind,
-  manifestPathFromSourceRepo,
 } from './runtime-config-use-local-model-center-helpers.js';
 import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
@@ -29,14 +27,13 @@ import { toCanonicalNimiRuntimeLocalAssetLookupKey } from '@nimiplatform/sdk/run
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 import {
   useLocalModelCenterRuntimeDependencies,
-} from './runtime-config-use-local-model-center-runtime-readiness';
+} from './runtime-config-use-local-model-center-runtime-dependencies';
 import { useLocalModelCenterInstalledAssetViews } from './runtime-config-use-local-model-center-installed-assets';
 import { useLocalModelCenterUnregisteredAssets } from './runtime-config-use-local-model-center-unregistered-assets';
 import { useLocalModelCenterAssetTasks } from './runtime-config-use-local-model-center-asset-tasks';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type UseLocalModelCenterRuntimeStateInput = {
-  isProfileTargetMode: boolean;
   props: LocalModelCenterProps;
 };
 
@@ -50,7 +47,7 @@ function runtimeInventoryErrorMessage(error: unknown, fallback: string): string 
   return fallback;
 }
 
-export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: UseLocalModelCenterRuntimeStateInput) {
+export function useLocalModelCenterRuntimeState({ props }: UseLocalModelCenterRuntimeStateInput) {
   const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
   const bindings = useDesktopRendererBindings();
   const [installing, setInstalling] = useState(false);
@@ -195,9 +192,9 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
         return;
       }
-      setVerifiedModels(sortVerifiedAssetsForDisplay(rows.filter((item) => (
+      setVerifiedModels(rows.filter((item) => (
         isRunnableAssetKind(item.kind) && !isRunnableAssetInstalled(item.assetId)
-      ))).slice(0, 5));
+      )).slice(0, 5));
       setRuntimeInventoryError('');
     } catch (error) {
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
@@ -309,13 +306,13 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
         || asset.repo.toLowerCase().includes(query)
       );
     });
-    return sortVerifiedAssetsForDisplay(candidates);
+    return candidates;
   }, [assetKindFilter, deferredSearchQuery, installedAssetsById, verifiedAssets]);
 
   const relatedAssetsByModelTemplate = useMemo(() => {
     const next = new Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>();
     for (const model of verifiedModels) {
-      next.set(model.templateId, sortVerifiedAssetsForDisplay(relatedPassiveAssetsForRunnable(model, verifiedAssets)));
+      next.set(model.templateId, relatedPassiveAssetsForRunnable(model, verifiedAssets));
     }
     return next;
   }, [verifiedAssets, verifiedModels]);
@@ -393,7 +390,6 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   }, [props]);
 
   const importActions = useLocalModelCenterImportActions({
-    isProfileTargetMode,
     onPrepareImportedAssetEnvironment: prepareAssetRuntimeDependencies,
     onRefreshUnregisteredAssets: refreshUnregisteredAssets,
     onRefreshAssetSections: refreshAssetSections,
@@ -444,29 +440,6 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   });
   const canChooseImportDirectory = importFileAssetKind === 'chat';
 
-  const repairInstalledAsset = useCallback(async (localAssetId: string, endpoint: string) => {
-    const asset = installedAssets.find((item) => item.localAssetId === localAssetId) || null;
-    const manifestPath = manifestPathFromSourceRepo(asset?.source.repo);
-    const normalizedEndpoint = String(endpoint || '').trim();
-    if (!asset || !manifestPath) {
-      throw new Error('Runtime manifest unavailable for asset repair');
-    }
-    if (!normalizedEndpoint) {
-      throw new Error('Endpoint is required for asset repair');
-    }
-    setAssetBusy(true);
-    try {
-      await runtimeConfigLocalModelCenterClient.importAssetManifest(manifestPath, {
-        caller: 'core',
-        endpoint: normalizedEndpoint,
-      });
-      await refreshAssetSections();
-      await refreshUnregisteredAssets();
-    } finally {
-      setAssetBusy(false);
-    }
-  }, [installedAssets, refreshAssetSections, refreshUnregisteredAssets]);
-
   const rescanInstalledAsset = useCallback(async (localAssetId: string) => {
     setAssetBusy(true);
     try {
@@ -495,7 +468,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     onCancelDownload: importActions.onCancelDownload, onDismissSession: importActions.onDismissSession,
     onPauseDownload: importActions.onPauseDownload, onResumeDownload: importActions.onResumeDownload,
     refreshAssetSections, refreshUnregisteredAssets, refreshVerifiedModels,
-    repairInstalledAsset, relatedAssetsByModelTemplate, removeInstalledAsset,
+    relatedAssetsByModelTemplate, removeInstalledAsset,
     cancelRuntimeDependencyJob, repairRuntimeDependency, retryRuntimeDependencyJob,
     runtimeDependencyByLocalAssetId, runtimeDependencyError, runtimeInventoryError,
     resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability,

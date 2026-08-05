@@ -55,18 +55,17 @@ install → 首次运行选择
 | Provider 优先 | 你已经有准入的云端 provider 账户，想从云端能力开始 |
 | 本地模型优先 | 你想完全本地起步，安装一个本地引擎和一份模型包 |
 
-两条路最终都汇到一个 `READY` 的 daemon，至少有一条准入的 AI 能力路由。
+两条路最终都汇到一个 `READY` 的 daemon。Runtime 会为请求的 AI 能力选择已准入的实现。
 
 ## 读者场景：从安装到第一次生成
 
 你刚装好 Nimi，想确认一切正常。
 
 1. **初始化配置。** `nimi init` 在配置缺失时创建 Runtime 配置。
-2. **首次选择。** CLI 让你选 provider 优先或本地模型优先。你已经有 provider 账户，选 provider 优先。
-3. **配置连接器。** 你新增一个连接器，作为该 provider 的受管身份。凭据被校验，连接器报告它能路由到的模型集。
-4. **启动 daemon。** `nimi serve`（或后台 `nimi start`）。daemon 通过 `STARTING → READY`。
-5. **核对。** `nimi doctor` 显示 daemon `READY`、provider 健康绿、模型就绪绿、审计量 0、复制积压 0。
-6. **第一次生成。** App 经 gRPC 连入并发起请求。请求转成 `ScenarioJob`，状态通过 `SUBMITTED → RUNNING → COMPLETED`。
+2. **配置 Runtime。** 云端路径写入 provider 凭据或凭据引用；本地路径安装已准入的模型资源。两者都是机器侧配置，不进入 App 请求。
+3. **启动 daemon。** `nimi serve`（或后台 `nimi start`）。daemon 通过 `STARTING → READY`。
+4. **核对。** `nimi doctor` 显示 daemon `READY`、Runtime 配置和已安装资源状态、审计量以及复制积压。
+5. **第一次生成。** App 经 SDK 发起能力请求。Runtime 选择已准入实现，并返回强类型结果或失败。
 
 CLI 暴露的信息够确认健康，但不暴露内部状态。`nimi doctor` 报黄或红时，会指出具体区域并指向相关 kernel 规则上下文。
 
@@ -75,22 +74,15 @@ CLI 暴露的信息够确认健康，但不暴露内部状态。`nimi doctor` �
 daemon 进入 `DEGRADED`：可能某个 provider 中途变不健康，可能复制有积压。
 
 1. **`nimi status` 报 `DEGRADED`。** daemon 还在服务，但能力打了折。
-2. **`nimi doctor`** 指出具体退化点：provider X 健康红、复制积压 N。
-3. **行动。** 你处理底层问题（切到另一个准入的 provider、等积压排空、重启卡住的子组件）。
+2. **`nimi doctor`** 指出具体退化点，例如 Runtime 管理的 provider 配置异常或复制积压 N。
+3. **行动。** 你处理底层配置、等待积压排空，或重启卡住的子组件。
 4. **`nimi status` 回到 `READY`。** 退化期间在跑的流要么按契约完成，要么以强类型失败帧终止；新流恢复正常。
 
 状态机让恢复变得有路可走。如果只给"健康 / 不健康"两态，难以看出问题在哪；强类型退化让 CLI 能直接指向区域。
 
-## 凭据面切分
+## 凭据保管
 
-CLI 在严格隔离边界下管理凭据：
-
-| 面 | 用途 |
-| --- | --- |
-| `daemon-config` | 配置驱动的 API key（一次设置，长期有效） |
-| `request-credential` | 请求时由可信宿主注入 |
-
-两面严格隔离。`daemon-config` 的 key 不会泄到 `request-credential` 请求里，反之亦然。它们的信任边界不同：daemon 配置 key 在启动时准入；请求凭据按请求准入。
+CLI 只能通过已准入的管理命令，把 provider 凭据或凭据引用写入 Runtime 拥有的 daemon 配置。普通 App 能力请求不会注入 provider 凭据，也不会选择凭据记录。Runtime 在请求准入后解析凭据，并确保凭据不会进入 SDK 结果、App 日志或 App 存储。
 
 ## 来源依据
 

@@ -77,12 +77,12 @@ try {
 
 如果一个库为了类型信息去依赖 `@nimiplatform/sdk/runtime`，就会把整个传输层拖进它的使用者。从 `@nimiplatform/sdk/types` 引入，能让依赖图保持轻薄。
 
-## `types` 里没有的内容
+## `types` 的排除项
 
 | 不收录 | 原因 |
 | --- | --- |
 | 方法函数 | 那些在 `@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm` 等子路径 |
-| 传输细节（`connectorId`、gRPC 元数据） | 分层归属，不在 `types` |
+| 传输内部信息（例如 gRPC 元数据） | 归传输层所有，不属于 App 请求类型 |
 | Provider 名 | 是 catalog 数据，不是类型系统 |
 | 世界内容（规则、Character 等） | 是内容，不是类型 |
 

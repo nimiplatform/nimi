@@ -14,10 +14,7 @@ export type DesktopPortableAIProfileSummary = {
   }[];
 };
 
-/**
- * Projects portable consumer intent for App UI. Provider/model targets,
- * bindings, machine selection, and readiness are not interpreted by Desktop.
- */
+/** Projects canonical portable consumer intent for App UI. */
 export function summarizeDesktopPortableAIProfile(
   input: NimiPortableAIProfileInput,
 ): DesktopPortableAIProfileSummary {

@@ -316,8 +316,8 @@ export function useAgentConversationModeHost(
           followUpInstructionLabel={t('Chat.agentDebugFollowUpInstructionLabel', { defaultValue: 'Follow-up instruction' })}
           promptLabel={t('Chat.agentDebugPromptLabel', { defaultValue: 'Prompt' })}
           systemPromptLabel={t('Chat.agentDebugSystemPromptLabel', { defaultValue: 'System Prompt' })}
-          rawOutputLabel={t('Chat.agentDebugRawOutputLabel', { defaultValue: 'Raw Model Output' })}
-          normalizedOutputLabel={t('Chat.agentDebugNormalizedOutputLabel', { defaultValue: 'Normalized Model Output' })}
+          rawOutputLabel={t('Chat.agentDebugRawRuntimeOutputLabel', { defaultValue: 'Raw Runtime Output' })}
+          normalizedOutputLabel={t('Chat.agentDebugNormalizedRuntimeOutputLabel', { defaultValue: 'Normalized Runtime Output' })}
         />
       );
     }

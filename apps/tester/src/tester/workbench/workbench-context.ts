@@ -3,7 +3,7 @@ import type { TesterCapabilityId } from '../tester-capabilities.js';
 // The tester shell is a single-level capability workspace (mirrors the Nimi
 // Desktop tester): the left rail IS the capability matrix grouped by family,
 // plus a UI Recipes entry for the kit component gallery. There is no separate
-// App Lab / Evidence / Settings destination — model config is a right slide-over
+// App Lab / Evidence / Settings destination — App AIConfig is a right slide-over
 // opened by the per-capability settings gear, and run history lives inline under
 // each capability.
 

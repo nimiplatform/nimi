@@ -1,5 +1,4 @@
 import type {
-  LocalAssetHealth as GeneratedLocalAssetHealth,
   LocalAssetRecord as GeneratedLocalAssetRecord,
   LocalCatalogModelDescriptor as GeneratedLocalCatalogModelDescriptor,
   LocalCatalogVariantDescriptor as GeneratedLocalCatalogVariantDescriptor,
@@ -34,7 +33,6 @@ import {
 } from './local-asset-vocabulary';
 import { projectNimiRuntimeLocalCatalogRecommendation } from './runtime-local-recommendation';
 import type {
-  NimiRuntimeLocalAssetHealth,
   NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalCatalogVariantDescriptor,
@@ -165,7 +163,6 @@ export function projectNimiRuntimeLocalAssetRecord(
     status,
     installedAt: normalizeText(value.installedAt),
     updatedAt: normalizeText(value.updatedAt),
-    healthDetail: normalizeText(value.healthDetail) || undefined,
     reasonCode: reasonCode || undefined,
     capabilities: capabilities.length > 0 ? capabilities : undefined,
     logicalModelId: normalizeText(value.logicalModelId) || undefined,
@@ -289,22 +286,6 @@ export function projectNimiRuntimeLocalInstallPlanDescriptor(
     warnings: textList(value.warnings),
     reasonCode: normalizeText(value.reasonCode) || undefined,
     engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
-  };
-}
-
-export function projectNimiRuntimeLocalAssetHealth(
-  value: GeneratedLocalAssetHealth,
-): NimiRuntimeLocalAssetHealth {
-  const status = parseNimiRuntimeLocalAssetStatusId(value.status);
-  if (!status) {
-    throw invalidLocalProjection(`Runtime local asset health has unsupported status ${String(value.status)}`);
-  }
-  return {
-    localAssetId: normalizeText(value.localAssetId),
-    status,
-    detail: normalizeText(value.detail),
-    endpoint: normalizeText(value.endpoint),
-    reasonCode: normalizeNimiRuntimeReasonCode(value.reasonCode) || undefined,
   };
 }
 

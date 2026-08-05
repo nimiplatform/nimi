@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createAppAiChatComposerAdapter,
 } from '../src/runtime.js';
-import { createRuntimeAiTestRuntime, runtimeTestTargetRef } from './runtime-ai-test-helpers.js';
+import { createRuntimeAiTestRuntime } from './runtime-ai-test-helpers.js';
 
 describe('app AI chat helpers', () => {
   it('creates a generate composer adapter with kit metadata defaults', async () => {
@@ -12,9 +12,6 @@ describe('app AI chat helpers', () => {
       runtime: runtimeHarness.runtime,
       appId: 'kit-chat-test-app',
       mode: 'generate',
-      model: 'runtime-selected-chat',
-      route: 'cloud',
-      targetRef: runtimeTestTargetRef,
       onResponse,
     });
 
@@ -26,23 +23,11 @@ describe('app AI chat helpers', () => {
     expect(runtimeHarness.executeScenario).toHaveBeenCalledTimes(1);
     const [request, callOptions] = runtimeHarness.executeScenario.mock.calls[0] ?? [];
     expect(request).toEqual(expect.objectContaining({
-      head: expect.objectContaining({
+      head: {
         appId: 'kit-chat-test-app',
-        modelId: 'runtime-selected-chat',
-        routePolicy: 2,
-        targetRef: {
-          target: {
-            oneofKind: 'cloud',
-            cloud: {
-              version: 'v2',
-              connectorId: 'connector-runtime-test',
-              remoteModelCatalogId: 'remote-catalog:runtime-selected-chat',
-              providerModelId: 'runtime-selected-chat',
-              provider: 'runtime-test',
-            },
-          },
-        },
-      }),
+        subjectUserId: '',
+        timeoutMs: 0,
+      },
       scenarioType: 1,
       executionMode: 1,
     }));
@@ -72,7 +57,7 @@ describe('app AI chat helpers', () => {
   it('creates a streaming composer adapter that resolves request overrides and emits chunk callbacks', async () => {
     const runtimeHarness = createRuntimeAiTestRuntime({
       streamEvents: [
-        { type: 'start', traceId: 'trace-3', model: { modelId: 'runtime-selected-chat' } },
+        { type: 'start', traceId: 'trace-3', model: { modelId: 'text.generate' } },
         { type: 'text-delta', text: 'First ' },
         { type: 'text-delta', text: 'reply' },
         { type: 'done', finishReason: 'stop', usage: { promptTokens: 3, completionTokens: 4, totalTokens: 7 } },
@@ -85,12 +70,9 @@ describe('app AI chat helpers', () => {
       appId: 'kit-chat-test-app',
       mode: 'stream',
       resolveRequest: ({ text }) => ({
-        model: 'runtime-selected-chat',
         input: [
           { role: 'user', content: text },
         ],
-        route: 'cloud',
-        targetRef: runtimeTestTargetRef,
       }),
       onChunk,
       onResponse,
@@ -104,23 +86,11 @@ describe('app AI chat helpers', () => {
     expect(runtimeHarness.streamScenario).toHaveBeenCalledTimes(1);
     const [request, callOptions] = runtimeHarness.streamScenario.mock.calls[0] ?? [];
     expect(request).toEqual(expect.objectContaining({
-      head: expect.objectContaining({
+      head: {
         appId: 'kit-chat-test-app',
-        modelId: 'runtime-selected-chat',
-        routePolicy: 2,
-        targetRef: {
-          target: {
-            oneofKind: 'cloud',
-            cloud: {
-              version: 'v2',
-              connectorId: 'connector-runtime-test',
-              remoteModelCatalogId: 'remote-catalog:runtime-selected-chat',
-              providerModelId: 'runtime-selected-chat',
-              provider: 'runtime-test',
-            },
-          },
-        },
-      }),
+        subjectUserId: '',
+        timeoutMs: 0,
+      },
       scenarioType: 1,
       executionMode: 2,
     }));
@@ -154,8 +124,6 @@ describe('app AI chat helpers', () => {
       runtime: runtimeHarness.runtime,
       appId: 'kit-chat-test-app',
       mode: 'generate',
-      model: 'runtime-selected-chat',
-      route: 'cloud',
     });
 
     await expect(adapter.submit({
@@ -164,36 +132,4 @@ describe('app AI chat helpers', () => {
     })).rejects.toThrow('app AI chat adapter requires resolveInput or resolveRequest when attachments are present');
   });
 
-  it('fails closed when a composer request lacks an explicit model', async () => {
-    const runtimeHarness = createRuntimeAiTestRuntime();
-    const adapter = createAppAiChatComposerAdapter({
-      runtime: runtimeHarness.runtime,
-      appId: 'kit-chat-test-app',
-      mode: 'generate',
-      route: 'cloud',
-    });
-
-    await expect(adapter.submit({
-      text: 'Prompt me',
-      attachments: [],
-    })).rejects.toThrow('app AI chat adapter requires an explicit model or resolveRequest');
-    expect(runtimeHarness.executeScenario).not.toHaveBeenCalled();
-  });
-
-  it('fails closed when a composer request uses auto as a pseudo-model', async () => {
-    const runtimeHarness = createRuntimeAiTestRuntime();
-    const adapter = createAppAiChatComposerAdapter({
-      runtime: runtimeHarness.runtime,
-      appId: 'kit-chat-test-app',
-      mode: 'generate',
-      model: 'auto',
-      route: 'cloud',
-    });
-
-    await expect(adapter.submit({
-      text: 'Prompt me',
-      attachments: [],
-    })).rejects.toThrow('app AI chat adapter requires a concrete Runtime model, not auto');
-    expect(runtimeHarness.executeScenario).not.toHaveBeenCalled();
-  });
 });

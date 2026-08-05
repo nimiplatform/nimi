@@ -11,21 +11,17 @@ import {
   LocalRecommendationFormat,
   LocalRecommendationSource,
   LocalRecommendationTier,
-  ReasonCode as RuntimeGeneratedReasonCode,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import {
   NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
-  NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_SORT_KEYS,
   applyNimiRuntimeLocalRecommendationFeedFilters,
   buildNimiRuntimeLocalImageNativeEnvironmentPlanInput,
   collectNimiRuntimeLocalRecommendationFeedLicenses,
   collectNimiRuntimeLocalRecommendationFeedProviders,
-  countNimiRuntimeLocalRecommendationRunGrades,
   createNimiRuntimeLocalModelCenterClient,
   filterNimiRuntimeLocalRecommendationFeedItems,
   formatNimiRuntimeLocalRecommendationQuantQualityLabel,
-  formatNimiRuntimeLocalRecommendationRunGradeLabel,
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
   isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,
   isNimiRuntimeLocalEnvironmentDependencyJobFailedState,
@@ -36,7 +32,7 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
   isNimiRuntimeLocalEnvironmentDependencyStartableState,
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
-  normalizeNimiRuntimeLocalRecommendationFeedCapabilityId,
+  parseNimiRuntimeLocalRecommendationFeedCapabilityId,
   parseNimiRuntimeLocalRecommendationLicenseShort,
   parseNimiRuntimeLocalRecommendationParamsFromTitle,
   parseNimiRuntimeLocalRecommendationQuantBitsFromEntry,
@@ -47,8 +43,6 @@ import {
   projectNimiRuntimeLocalEnvironmentDependencyJob,
   projectNimiRuntimeLocalRecommendationFeed,
   resolveNimiRuntimeLocalImageNativeEnvironmentPlan,
-  sortNimiRuntimeLocalRecommendationFeedItems,
-  splitNimiRuntimeLocalRecommendationFeedItems,
   type NimiRuntimeLocalRecommendationFeedItem,
   type NimiRuntimeLocalModelCenterRpc,
   type NimiRuntimeLocalProfileDescriptor,
@@ -281,7 +275,7 @@ test('Runtime local recommendation projection normalizes generated numeric enum 
   assert.equal(feed.items[0]?.installPayload.kind, 'image');
 });
 
-test('Runtime local recommendation view helpers keep feed sorting and grouping in SDK', () => {
+test('Runtime local recommendation view helpers preserve feed order while filtering metadata', () => {
   const items = [
     recommendationFeedItem({
       itemId: 'tight',
@@ -319,32 +313,19 @@ test('Runtime local recommendation view helpers keep feed sorting and grouping i
     }),
   ];
 
-  assert.deepEqual(NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_SORT_KEYS, [
-    'score',
-    'size',
-    'downloads',
-    'likes',
-    'updated',
-    'name',
-  ]);
   assert.deepEqual(NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS, ['chat', 'image', 'video']);
-  assert.equal(normalizeNimiRuntimeLocalRecommendationFeedCapabilityId('bad-value'), 'chat');
-  assert.equal(normalizeNimiRuntimeLocalRecommendationFeedCapabilityId('video'), 'video');
-  assert.deepEqual(
-    countNimiRuntimeLocalRecommendationRunGrades(items),
-    { runs_great: 1, runs_well: 1, tight_fit: 1, not_recommended: 0 },
-  );
+  assert.equal(parseNimiRuntimeLocalRecommendationFeedCapabilityId('bad-value'), undefined);
+  assert.equal(parseNimiRuntimeLocalRecommendationFeedCapabilityId('video'), 'video');
   assert.deepEqual(
     filterNimiRuntimeLocalRecommendationFeedItems(items, 'Q4').map((item) => item.itemId),
     ['tight'],
   );
   assert.deepEqual(
-    sortNimiRuntimeLocalRecommendationFeedItems(items, 'score').map((item) => item.itemId),
-    ['recommended', 'installed', 'tight'],
+    applyNimiRuntimeLocalRecommendationFeedFilters(items, {}).map((item) => item.itemId),
+    ['tight', 'recommended', 'installed'],
   );
   assert.deepEqual(
     applyNimiRuntimeLocalRecommendationFeedFilters(items, {
-      grades: new Set(['tight_fit']),
       providers: new Set(['Stability Ai']),
       licenses: new Set(['CreativeML']),
     }).map((item) => item.itemId),
@@ -352,16 +333,6 @@ test('Runtime local recommendation view helpers keep feed sorting and grouping i
   );
   assert.deepEqual(collectNimiRuntimeLocalRecommendationFeedProviders(items), ['Nimi Platform', 'Stability Ai']);
   assert.deepEqual(collectNimiRuntimeLocalRecommendationFeedLicenses(items), ['Apache 2.0', 'CreativeML', 'MIT']);
-  assert.deepEqual(
-    splitNimiRuntimeLocalRecommendationFeedItems(items),
-    {
-      topMatches: [items[1]],
-      worthTrying: [items[0]],
-      alreadyInstalled: [items[2]],
-      searchMore: [],
-    },
-  );
-  assert.equal(formatNimiRuntimeLocalRecommendationRunGradeLabel('runs_well'), 'Runs Well');
   assert.equal(parseNimiRuntimeLocalRecommendationParamsFromTitle('Image 7B Q4'), '7B');
   assert.equal(parseNimiRuntimeLocalRecommendationLicenseShort('Apache-2.0 license'), 'Apache 2.0');
   assert.equal(parseNimiRuntimeLocalRecommendationQuantLevelFromEntry('image.Q4_K_M.gguf'), 'Q4_K_M');
@@ -631,18 +602,6 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
       calls.push({ method: 'stopLocalAsset', request, options });
       return { asset };
     },
-    async checkLocalAssetHealth(request: unknown, options?: unknown) {
-      calls.push({ method: 'checkLocalAssetHealth', request, options });
-      return {
-        assets: [{
-          localAssetId: 'local-image',
-          status: LocalAssetStatus.ACTIVE,
-          detail: 'ready',
-          endpoint: 'http://127.0.0.1:7860',
-          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        }],
-      };
-    },
     async listLocalTransfers(request: unknown, options?: unknown) {
       calls.push({ method: 'listLocalTransfers', request, options });
       return { transfers: [transfer] };
@@ -753,7 +712,6 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
   assert.equal((await client.remove('local-image', writeOptions)).status, 'active');
   assert.equal((await client.start('local-image', writeOptions)).status, 'active');
   assert.equal((await client.stop('local-image', writeOptions)).status, 'active');
-  assert.equal((await client.health('local-image'))[0]?.reasonCode, 'ACTION_EXECUTED');
   assert.equal((await client.listTransfers())[0]?.bytesReceived, 1024);
   assert.equal((await client.pauseTransfer('transfer-1', writeOptions)).state, 'paused');
   assert.equal((await client.resumeTransfer('transfer-1', writeOptions)).state, 'running');
@@ -1145,7 +1103,6 @@ function generatedAsset(input: Partial<Parameters<typeof projectNimiRuntimeLocal
     preferredEngine: '',
     fallbackEngines: [],
     bundleState: 0,
-    warmState: 0,
     localInvokeProfileId: '',
     endpoint: input.endpoint ?? '',
     reasonCode: 0,
@@ -1164,7 +1121,6 @@ function emptyLocalRpc(): NimiRuntimeLocalModelCenterRpc {
     removeLocalAsset: missing,
     startLocalAsset: missing,
     stopLocalAsset: missing,
-    checkLocalAssetHealth: missing,
     listVerifiedAssets: missing,
     searchCatalogModels: missing,
     listCatalogVariants: missing,

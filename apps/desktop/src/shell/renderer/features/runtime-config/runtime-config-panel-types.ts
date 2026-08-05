@@ -15,13 +15,6 @@ import type {
   NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 
-export type RuntimeProfileTargetDescriptor = {
-  targetId: string;
-  targetName: string;
-  consumeCapabilities: CapabilityV11[];
-  profiles: NimiRuntimeLocalProfileDescriptor[];
-};
-
 export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
   hydrated: boolean;
@@ -39,7 +32,6 @@ export type RuntimeConfigPanelControllerModel = {
   orderedConnectors: RuntimeConfigStateV11['connectors'];
   filteredLocalModels: string[];
   filteredConnectorModels: string[];
-  runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   registeredRuntimePackageIds: string[];
   runtimeDaemonStatus: RuntimeBridgeDaemonStatus | null;
   runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;

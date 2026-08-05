@@ -1,80 +1,81 @@
 # AI Config Surface
 
-The SDK AI Config surface is the typed boundary for app-owned AI capability
-bindings. It answers one app developer question: "which Runtime target should
-this capability use, and what happens if no live target is selected?"
+The SDK AIConfig surface is the typed boundary for owner-scoped AI capability intent. An App records which capability contract it needs, required features, portable defaults, and a Local or Cloud execution-plane intent. Runtime owns machine configuration and implementation selection.
 
-Current code exposes AIConfig types, stores, profile helpers, target-ref
-validation, scheduling helpers, and runtime-binding helpers through
-`@nimiplatform/sdk` and `@nimiplatform/sdk/ai`. Kit consumes those primitives to
-build reusable model-config UI.
+AIConfig is a complete current value for exactly one owner. Updates replace the whole capability list; the contract carries no revision history, execution binding, readiness, or health state.
 
 ## Current Public Pieces
 
 | Piece | Public path | What it does |
 | --- | --- | --- |
-| AIConfig types and target refs | `@nimiplatform/sdk` or `@nimiplatform/sdk/ai` | `NimiAIConfig`, `NimiAIScopeRef`, `NimiAIConfigTargetRef`, profile and snapshot types |
-| Scope helpers | `@nimiplatform/sdk/ai` | Create and validate `NimiAIScopeRef` values |
-| Config store helpers | `@nimiplatform/sdk/ai` | App-owned storage adapters for AIConfig and snapshots |
-| Runtime binding resolver | `@nimiplatform/sdk/ai` | Convert `NimiAIConfig` + capability id into model, route policy, target ref, metadata |
-| Kit model-config surface | `@nimiplatform/kit/features/model-config/*` | Reusable UI and headless contracts for selecting/applying model bindings |
+| AIConfig types | `@nimiplatform/sdk` or `@nimiplatform/sdk/ai` | Exposes `NimiCapabilityAIConfig` and `NimiCapabilityAIConfigIntent` |
+| App owner helper | `@nimiplatform/sdk/ai` | Creates the explicit App owner assertion from an App ID |
+| App AIConfig client | `@nimiplatform/sdk/ai` | Reads or overwrites the complete Runtime-owned App AIConfig |
+| Agent Center AIConfig section | `@nimiplatform/kit/features/agent-center` | Presents owner-scoped Local or Cloud capability intent |
 
-## Target Ref Families
+## Capability Intent
 
-| `targetRef.kind` | Meaning | Dispatch status |
-| --- | --- | --- |
-| `profile-slice` | A profile intent that has not been materialized into a live Runtime target | Not dispatchable |
-| `local-runtime` | Runtime local target identity v2 with `profileBindingId` or `readinessRef` | Dispatchable when Runtime can resolve it |
-| `cloud-connector` | Runtime cloud provider connector and remote model catalog identity | Dispatchable when provider connector is configured |
+Each capability entry contains:
 
-Runtime-backed `createRuntimeModel` and embedding clients fail closed when
-`targetRef` is missing or still points to `profile-slice`.
+| Field | Meaning |
+| --- | --- |
+| `capabilityContract` | The requested capability contract, such as `text.generate` |
+| `requiredFeatures` | Features the selected Runtime implementation must support |
+| `defaults` | Portable scenario defaults, not machine or provider configuration |
+| Local or Cloud intent | The consumer's intended execution plane |
+| `connectorGrantId` when admitted | An authorization reference, never provider credentials |
+
+Local intent contains no implementation identity, machine selection, asset, binding, Driver state, readiness, or health. Apps also omit optional generated wire fields that would attempt to select a Cloud implementation or provider-model target.
 
 ## App Integration Flow
 
-1. The app creates an explicit app scope, usually with
-   `createNimiAppAIScopeRef(appId, surfaceId)`.
-2. The app stores and loads `NimiAIConfig` through an app-owned AIConfig
-   service.
-3. The app uses Kit model-config UI or another admitted app flow to select or
-   apply a Runtime target.
-4. Before dispatch, the app calls `resolveNimiAIConfigRuntimeBinding(...)` for
-   the capability it wants to run.
-5. The app passes the resolved `model`, `routePolicy`, `connectorId`,
-   `targetRef`, and metadata into SDK Runtime AI calls.
+1. Create a Nimi client with the exact App ID.
+2. Create the typed App AIConfig client over `client.runtime`.
+3. Read the current whole-object config.
+4. Overwrite the complete capability list when the owner changes intent.
+5. Submit AI work through the normal SDK feature surface using identity, content, and supported parameters.
 
-See [First AI Call](/sdk/first-ai-call) for the dispatch shape.
+```ts
+import {
+  createNimiAppAIConfigClient,
+  createNimiClient,
+} from '@nimiplatform/sdk';
 
-## Fail-Closed Binding Resolution
+const client = createNimiClient({ appId: 'example.sdk.hello' });
+const aiConfig = createNimiAppAIConfigClient({
+  appId: 'example.sdk.hello',
+  runtime: client.runtime,
+});
 
-`resolveNimiAIConfigRuntimeBinding(...)` returns a typed failure instead of
-fabricating a model:
+await aiConfig.overwrite([{
+  capabilityContract: 'text.generate',
+  requiredFeatures: [],
+  route: {
+    oneofKind: 'local',
+    local: {},
+  },
+}]);
+```
 
-| Reason | Meaning |
-| --- | --- |
-| `binding-capability-missing` | The app did not declare which AIConfig capability backs this route. |
-| `target-ref-missing` | The capability has no selected target. |
-| `profile-slice-unmaterialized` | The config still points to profile intent, not a live Runtime target. |
-| `runtime-model-missing` | The target ref does not contain a runtime model id. |
+The owner in the request is a consistency assertion. Runtime still derives authenticated account and App identity from transport context.
 
-Apps should surface these states as model setup or account/setup work. They
-should not fall back to `auto`, a hardcoded provider, or app-local REST.
+See [First AI Call](/sdk/first-ai-call) for the execution shape. AI requests do not resolve capability intent into a model, route, connector, target reference, or fallback policy.
 
-## What This Surface Does Not Own
+## Fail-Closed Behavior
 
-- It does not own Runtime model readiness or execution evidence.
-- It does not own Realm truth or app listing admission.
-- It does not let apps invent scope kinds.
-- It does not let apps bypass profile apply/materialization by writing
-  arbitrary live target ids.
-- It does not make CLI `nimi run` success equivalent to app AIConfig readiness.
+The SDK rejects malformed App IDs, owner mismatches, missing returned config, and non-array overwrite input. Runtime rejects missing intent, unauthorized Cloud use, unsupported capability requirements, and unavailable execution through typed errors at the owning operation.
+
+Apps should preserve those errors. They must not substitute `auto`, hardcode a provider or model, build a local ranking, or bypass Runtime through App-owned REST.
+
+## Runtime Ownership
+
+Machine configuration, installed assets, Driver state, readiness, health, and execution diagnostics remain Runtime facts. Diagnostic output can explain a completed or failed call, but it does not grant the App request-side implementation control.
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
-- [`sdks/typescript/core/ai/config-types.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-types.ts)
-- [`sdks/typescript/core/ai/config-scope.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-scope.ts)
-- [`sdks/typescript/core/ai/config-runtime-binding.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config-runtime-binding.ts)
-- [`sdks/typescript/core/ai/runtime-target-ref.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-target-ref.ts)
-- [`kit/features/model-config/src`](https://github.com/nimiplatform/nimi/tree/main/kit/features/model-config/src)
-- [`apps/tester/src/tester/tester-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-ai-config-store.ts)
+- [`sdks/typescript/core/ai/capability-configuration.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/capability-configuration.ts)
+- [`sdks/typescript/core/ai/config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config.ts)
+- [`sdks/typescript/core-generated/runtime-protobuf/runtime/v1/capability_configuration.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core-generated/runtime-protobuf/runtime/v1/capability_configuration.ts)
+- [`kit/features/agent-center/src/components/AgentCenterAIConfigSection.tsx`](https://github.com/nimiplatform/nimi/blob/main/kit/features/agent-center/src/components/AgentCenterAIConfigSection.tsx)
+- [`apps/tester/src/tester/tester-run-target.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/tester/src/tester/tester-run-target.ts)

@@ -131,7 +131,7 @@ export function PopoverDemo() {
       </PopoverTrigger>
       <PopoverContent>
         <div className="kit-pop">
-          <strong>Route detail</strong>
+          <strong>Capability detail</strong>
           <span>Local runtime · text.generate</span>
         </div>
       </PopoverContent>

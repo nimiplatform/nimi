@@ -26,7 +26,6 @@ import type {
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import type {
-  NimiAiModel,
   NimiGenerateTextRequest,
   NimiGenerateTextResult,
   NimiResponseFormat,
@@ -62,13 +61,11 @@ const VERCEL_AI_METADATA_KEY = 'x-nimi-vercel-ai-metadata';
 // ---------------------------------------------------------------------------
 
 export function toNimiGenerateTextRequest(
-  model: NimiAiModel,
   options: LanguageModelV3CallOptions,
   throwUnsupported: NimiVercelUnsupportedFeatureThrower,
 ): NimiGenerateTextRequest {
   assertSupportedCallOptions(options, throwUnsupported);
   return {
-    model: model.model,
     messages: toNimiMessages(options.prompt, throwUnsupported),
     tools: options.tools?.map((tool) => toNimiTool(tool, throwUnsupported)),
     toolChoice: toNimiToolChoice(options.toolChoice, throwUnsupported),

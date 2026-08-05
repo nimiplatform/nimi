@@ -2,7 +2,7 @@
 
 External action or participation integrations are not part of the current
 LocalAgent core. Their absence does not block Local AI, LocalAgent Conversation,
-Memory, Knowledge, voice, SDK use, Nimi Home, Avatar, or ordinary App readiness.
+Memory, Knowledge, voice, SDK use, Nimi Home, Avatar, or ordinary App capability execution.
 
 If an external integration is separately admitted in the future, it remains an
 external security principal or bounded participant projection. It does not

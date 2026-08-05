@@ -122,16 +122,6 @@ function ChatModeUnavailable({ mode }: { mode: string }) {
   );
 }
 
-function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'open-settings' }>['targetId']) {
-  if (targetId === 'runtime-local') {
-    return 'models' as const;
-  }
-  if (targetId === 'runtime-cloud') {
-    return 'cloud' as const;
-  }
-  return 'overview' as const;
-}
-
 export function ChatPage() {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const navigate = useNavigate();
@@ -224,7 +214,7 @@ export function ChatPage() {
     }
     setChatMode(action.returnToMode || chatMode);
     setActiveTab('runtime');
-    runtimeConfigNavigation.openPage(toRuntimePageId(action.targetId));
+    runtimeConfigNavigation.openPage('overview');
   }, [chatMode, navigate, runtimeConfigNavigation, setActiveTab, setChatMode]);
 
   const handleSelectTarget = useCallback((targetId: string) => {

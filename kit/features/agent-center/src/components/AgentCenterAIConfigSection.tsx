@@ -16,30 +16,30 @@ import {
 } from './AgentCenterPrimitives.js';
 import { AgentCenterProductActionNotice } from './AgentCenterProductActionNotice.js';
 
-export interface AgentCenterModelSectionProps {
+export interface AgentCenterAIConfigSectionProps {
   readonly session: AgentCenterSession;
   readonly snapshot: AgentCenterSnapshot;
   readonly i18n?: AgentCenterI18n;
 }
 
-export function AgentCenterModelSection({ session, snapshot, i18n }: AgentCenterModelSectionProps) {
+export function AgentCenterAIConfigSection({ session, snapshot, i18n }: AgentCenterAIConfigSectionProps) {
   const projection = snapshot.state.sharedAIConfig;
   const availability = snapshot.availability.overwriteSharedAIConfig;
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
   const labels = useMemo(() => ({
-    title: translateAgentCenter(i18n, 'AgentCenter.model.sectionTitle', 'AI configuration'),
+    title: translateAgentCenter(i18n, 'AgentCenter.aiConfig.sectionTitle', 'AI configuration'),
     description: translateAgentCenter(
       i18n,
-      'AgentCenter.model.capabilityConfigurationDescription',
-      'Local execution uses the explicit Machine selection. Agent identity never selects a model target.',
+      'AgentCenter.aiConfig.capabilityConfigurationDescription',
+      'Choose Local or Cloud capability intent. Runtime selects the implementation when execution starts.',
     ),
-    local: translateAgentCenter(i18n, 'AgentCenter.model.localRouteLabel', 'Machine Local'),
-    cloud: translateAgentCenter(i18n, 'AgentCenter.model.cloudRouteLabel', 'Cloud'),
-    configureLocal: translateAgentCenter(i18n, 'AgentCenter.model.configureLocalAction', 'Use Machine Local'),
-    notConfigured: translateAgentCenter(i18n, 'AgentCenter.model.notConfiguredLabel', 'Not configured'),
-    saved: translateAgentCenter(i18n, 'AgentCenter.model.savedLabel', 'Configuration saved'),
-    failed: translateAgentCenter(i18n, 'AgentCenter.model.saveFailedLabel', 'Configuration update failed'),
+    local: translateAgentCenter(i18n, 'AgentCenter.aiConfig.localIntentLabel', 'Local'),
+    cloud: translateAgentCenter(i18n, 'AgentCenter.aiConfig.cloudIntentLabel', 'Cloud'),
+    configureLocal: translateAgentCenter(i18n, 'AgentCenter.aiConfig.configureLocalAction', 'Use Local'),
+    notConfigured: translateAgentCenter(i18n, 'AgentCenter.aiConfig.notConfiguredLabel', 'Not configured'),
+    saved: translateAgentCenter(i18n, 'AgentCenter.aiConfig.savedLabel', 'Configuration saved'),
+    failed: translateAgentCenter(i18n, 'AgentCenter.aiConfig.saveFailedLabel', 'Configuration update failed'),
   }), [i18n]);
 
   const configureLocalText = async () => {
@@ -70,8 +70,8 @@ export function AgentCenterModelSection({ session, snapshot, i18n }: AgentCenter
 
   if (availability.state === 'unavailable') {
     return (
-      <SectionShell labelledBy="agent-center-model-title">
-        <SectionHeader id="agent-center-model-title" title={labels.title} description={labels.description} />
+      <SectionShell labelledBy="agent-center-ai-config-title">
+        <SectionHeader id="agent-center-ai-config-title" title={labels.title} description={labels.description} />
         <AgentCenterProductActionNotice
           action="overwriteSharedAIConfig"
           availability={availability}
@@ -83,9 +83,9 @@ export function AgentCenterModelSection({ session, snapshot, i18n }: AgentCenter
   }
 
   return (
-    <SectionShell labelledBy="agent-center-model-title">
+    <SectionShell labelledBy="agent-center-ai-config-title">
       <SectionHeader
-        id="agent-center-model-title"
+        id="agent-center-ai-config-title"
         title={labels.title}
         description={labels.description}
         right={(

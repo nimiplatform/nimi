@@ -58,10 +58,10 @@ export const landingContentEn: LandingContent = {
     title: 'One platform, many worlds.',
     subtitle: 'Architecture',
     description:
-      'Nimi gives you a typed SDK to build AI experiences that span persistent worlds, autonomous agents, shared memory, identity, social, and economy — bridged by a runtime you can run locally or in the cloud.',
+      'Nimi provides a typed SDK for AI experiences across persistent worlds, autonomous agents, shared memory, identity, social systems, and economy. Runtime executes capabilities locally or in the cloud.',
     devTitle: 'For builders',
     devText:
-      'Integrate through the typed SDK. Compose character-backed agents, models, conversations, and memory the same way whether they run on a laptop or in cloud infrastructure you control.',
+      'Integrate through the typed SDK. Compose character-backed agents, capabilities, conversations, and memory while Runtime owns Local or Cloud implementation selection.',
     userTitle: 'For product readers',
     userText:
       'Nimi is an AI open world platform — agents persist across sessions, share state across worlds, and act through runtime capabilities with clear limits. Not a chat wrapper, not a single-purpose app.',
@@ -84,7 +84,7 @@ export const landingContentEn: LandingContent = {
         { id: 'identity', label: 'Identity', icon: '\u{1F464}' },
       ],
       runtimeCapabilities: [
-        { id: 'ai-models', label: 'AI Models', icon: '\u{1F9E0}' },
+        { id: 'ai-models', label: 'AI Capabilities', icon: '\u{1F9E0}' },
         { id: 'conversations', label: 'Conversations', icon: '\u{26A1}' },
         { id: 'knowledge', label: 'Knowledge', icon: '\u{1F4DA}' },
       ],
@@ -104,39 +104,22 @@ export const landingContentEn: LandingContent = {
     },
   },
   modelCatalog: {
-    kicker: 'Provider routing',
-    title: 'Route any model. Through one normalized API.',
+    kicker: 'Runtime implementation catalog',
+    title: 'One capability API. Runtime selects the implementation.',
     subtitle:
-      'Connect supported providers through one typed surface — pick the model, ship the integration.',
+      'Explore Runtime-managed Cloud implementations and Local asset compatibility. App requests stay capability-shaped.',
     overview: {
-      searchPlaceholder: 'Search providers, models, and capabilities',
-      cloudProvidersLabel: 'Cloud Providers',
-      localModelsLabel: 'Local Models',
+      searchPlaceholder: 'Search implementation families and capabilities',
+      cloudProvidersLabel: 'Cloud Implementations',
+      localModelsLabel: 'Local Assets',
       modalitiesLabel: 'Capabilities',
       modalitiesDescription: 'Text · Embeddings · Image · Video · Audio · Music · Voice · World',
-      industryLeadersLabel: 'Across major providers',
       shortcutLabel: '⌘K',
       clearSearchLabel: 'Clear',
-      matchingProvidersLabel: 'matching providers',
-      liveCatalogLabel: 'Live catalog',
-      supportedByLabel: 'Supported by',
+      matchingProvidersLabel: 'matching catalog entries',
+      liveCatalogLabel: 'Runtime catalog',
+      supportedByLabel: 'Admitted implementation families',
     },
-    liveBadge: 'Open catalog',
-    featuredProvidersLabel: 'Featured providers',
-    stats: {
-      providers: 'providers',
-      models: 'default models',
-      cloudProviders: 'cloud providers',
-      localModels: 'local providers',
-    },
-    localTitle: 'Local execution',
-    localHeadline: 'Run models on your own machine.',
-    localDescription:
-      'Local provider routes execute through the runtime on your hardware — same SDK, same capability typing, no cloud round-trip.',
-    capabilitiesTitle: 'Capability matrix',
-    capabilitiesHeadline: 'Twelve supported capability categories across providers.',
-    capabilitiesDescription:
-      'Text generation, vision, embeddings, image and video generation, speech synthesis and transcription, music generation, voice cloning and design, and world generation — each category shows the providers that support it.',
     capabilityLabels: {
       'text.generate': 'Text generation',
       'text.embed': 'Embeddings',
@@ -151,19 +134,10 @@ export const landingContentEn: LandingContent = {
       'voice_workflow.voice_design': 'Voice design',
       'world.generate': 'World generation',
     },
-    capabilityCountLabel: 'capability categories',
-    cloudBadge: 'cloud',
-    matrixTitle: 'Provider matrix',
-    matrixHeadline: 'Pick a model, route to the matching provider.',
-    matrixDescription:
-      'Each provider supports one or more capability categories. The runtime selects the routed model based on your config — switch providers without touching call sites.',
     providerDetailSuffix: 'capabilities',
-    searchResultsTitle: 'Search results',
-    searchResultsDescription: 'Filter providers by name, default model, or supported capability.',
-    noResultsTitle: 'No providers match.',
+    noResultsTitle: 'No catalog entries match.',
     noResultsDescription:
-      'Try a different keyword, or browse the full catalog in the routing docs.',
-    sourceNote: 'Read the routing docs for full provider configuration and capability details.',
+      'Try a capability or implementation-family keyword.',
     providerDisplayNames: {
       anthropic: 'Anthropic',
       aws_polly: 'AWS Polly',
@@ -210,17 +184,17 @@ export const landingContentEn: LandingContent = {
     title: 'One SDK.',
     titleAccent: 'Multiple ways to run AI.',
     subtitle:
-      'Compose character-backed agents, models, conversations, and shared environments through one typed integration surface — locally or in the cloud.',
+      'Compose character-backed agents, capabilities, conversations, and shared environments through one typed integration surface. Runtime owns Local or Cloud execution.',
     callout: 'Explore the SDK reference',
     primaryCta: 'Read SDK Docs',
     secondaryCta: 'View Source',
     codeWindowTitle: 'Nimi SDK / agent runtime',
-    codeWindowCaption: 'One typed call surface for agent context, runtime tasks, and local/cloud routes.',
+    codeWindowCaption: 'One typed call surface for agent context, Runtime tasks, and Local or Cloud capability intent.',
     matrixEyebrow: 'SDK capability matrix',
     matrixTitle: 'The detailed SDK surface moves below the hero.',
     matrixSubtitle:
       'The hero stays focused; the original capability points remain available as a scannable matrix with direct reference links.',
-    runtimeBadges: ['Type-safe SDK', 'Runtime Ready', 'Local-first', 'Agent Context'],
+    runtimeBadges: ['Type-safe SDK', 'Runtime-backed', 'Local-first', 'Agent Context'],
     heroHighlights: [
       {
         title: 'Realm and Runtime clients',
@@ -235,7 +209,7 @@ export const landingContentEn: LandingContent = {
       {
         title: 'Local / cloud runtime',
         description:
-          'Run against the local runtime first, then route the same contracts to cloud infrastructure.',
+          'Use the same capability contract while Runtime interprets Local or Cloud owner intent.',
       },
     ],
     tabs: [
@@ -259,7 +233,7 @@ export const landingContentEn: LandingContent = {
         id: 'ai-config',
         label: 'AI Config',
         description:
-          'One config surface for model selection, capability routing, and provider preferences.',
+          'Owner-scoped Local or Cloud intent for each admitted capability; Runtime selects the implementation.',
         docsPath: 'sdk/ai-config-surface',
         previewMediaId: 'sdk',
       },
@@ -303,7 +277,7 @@ export const landingContentEn: LandingContent = {
       {
         title: 'AI Config',
         description:
-          'One config surface for model selection, capability routing, and provider preferences.',
+          'Owner-scoped Local or Cloud intent for each admitted capability; Runtime selects the implementation.',
         docsPath: 'sdk/ai-config-surface',
       },
       {
@@ -338,29 +312,26 @@ export const landingContentEn: LandingContent = {
     chromeLabels: {
       appName: 'Nimi',
       runtime: 'Runtime',
-      health: 'Health: OK',
-      healthDetail: 'gRPC ready. Local runtime connected.',
       workspace: 'Workspace',
-      activity: 'Activity',
-      ready: 'Ready',
-      connected: 'Connected',
-      installed: 'Installed',
+      capabilities: 'Capability intent',
+      localIntent: 'Local intent',
+      cloudIntent: 'Cloud intent',
     },
     features: [
       {
         icon: 'dashboard',
-        title: 'Runtime Dashboard',
-        description: 'See model health, resource usage, and active sessions at a glance.',
+        title: 'Runtime Overview',
+        description: 'Review Runtime activity, resource usage, and active sessions at a glance.',
       },
       {
         icon: 'chat',
         title: 'Built-in Chat',
-        description: 'Talk to local and cloud models from the same workspace.',
+        description: 'Use the same conversation surface with Local or Cloud capability intent.',
       },
       {
         icon: 'models',
-        title: 'Model Management',
-        description: 'Install, update, and switch models from one place.',
+        title: 'Local AI Assets',
+        description: 'Install and update Runtime-managed AI assets from one place.'
       },
       {
         icon: 'apps',
@@ -395,7 +366,7 @@ export const landingContentEn: LandingContent = {
         label: 'Build',
         title: 'Build with the SDK',
         description:
-          'Developers can turn their own product ideas into Nimi Apps, connect models and Runtime capabilities through the SDK, and let the app work inside Nimi.',
+          'Developers can turn product ideas into Nimi Apps and invoke Runtime capabilities through the SDK without choosing an implementation.',
       },
       {
         label: 'Local',
@@ -420,7 +391,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'What is Nimi?',
         answer:
-          'An open-source AI runtime built around persistent worlds and embodied agents. Compose models, conversations, and shared memory through one typed SDK.',
+          'An open-source AI runtime built around persistent worlds and embodied agents. Compose capabilities, conversations, and shared memory through one typed SDK.',
       },
       {
         question: 'How do I start integrating?',
@@ -428,9 +399,9 @@ export const landingContentEn: LandingContent = {
           'Read the SDK docs, install the typed client, and connect to the runtime locally or in your own cloud — same SDK, same contracts.',
       },
       {
-        question: 'Can I run models locally?',
+        question: 'Can AI capabilities run locally?',
         answer:
-          'Yes. The runtime executes through supported local providers on your hardware — no cloud round-trip required for routes that support it.',
+          'Yes. An owner can express Local capability intent, and Runtime can execute with admitted assets on the machine without changing the App request shape.',
       },
       {
         question: 'Is Nimi open source?',
@@ -473,9 +444,9 @@ export const landingContentEn: LandingContent = {
       },
       {
         label: 'Trusted catalog',
-        title: 'Model and capability data comes from source',
+        title: 'Capability and implementation data comes from source',
         points: [
-          'Provider, model, and capability information is generated from source tables.',
+          'Runtime implementation and capability information is generated from source tables.',
           'The page favors traceable facts over broad marketing promises.',
         ],
       },

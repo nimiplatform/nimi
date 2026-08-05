@@ -14,7 +14,7 @@ export type {
   ScenarioPreset,
 } from './section-ai-testing-admission.js';
 export { CapabilityRunHistory } from './section-ai-testing-history.js';
-export { DrawerErrorBoundary, TesterAiConfigSettingsPanel } from './section-ai-testing-model-config.js';
+export { DrawerErrorBoundary, TesterAiConfigSettingsPanel } from './section-ai-testing-ai-config.js';
 export {
   ArtifactMediaPreview,
   RuntimeDiagnosticsActions,

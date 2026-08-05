@@ -87,11 +87,9 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
     return CATALOG.filter((p) => p.runtimePlane === 'remote')
       .filter((p) => {
         const formatted = getDisplayName(p.provider, displayNames).toLowerCase();
-        const defaultModel = (p.defaultTextModel ?? '').toLowerCase();
         return (
           p.provider.toLowerCase().includes(normalizedQuery) ||
           formatted.includes(normalizedQuery) ||
-          defaultModel.includes(normalizedQuery) ||
           p.capabilities.some((capability) => capability.toLowerCase().includes(normalizedQuery))
         );
       })

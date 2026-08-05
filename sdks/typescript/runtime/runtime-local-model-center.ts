@@ -18,7 +18,6 @@ import {
 } from './runtime-local-recommendation';
 import type { NimiRuntimeLocalProfileEntryOverride } from './runtime-local-profile-manifest';
 import {
-  projectNimiRuntimeLocalAssetHealth,
   projectNimiRuntimeLocalAssetRecord,
   projectNimiRuntimeLocalCatalogItemDescriptor,
   projectNimiRuntimeLocalCatalogVariantDescriptor,
@@ -80,7 +79,6 @@ export {
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
   isNimiRuntimeLocalEnvironmentDependencyStartableState,
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
-  projectNimiRuntimeLocalAssetHealth,
   projectNimiRuntimeLocalAssetRecord,
   projectNimiRuntimeLocalCatalogItemDescriptor,
   projectNimiRuntimeLocalCatalogVariantDescriptor,
@@ -153,8 +151,7 @@ export function createNimiRuntimeLocalModelCenterClient(
     },
     async snapshot(input = {}) {
       const assets = await this.listAssets(input);
-      const health = await this.health();
-      return { assets, health, generatedAt: new Date().toISOString() };
+      return { assets, generatedAt: new Date().toISOString() };
     },
     async searchCatalog(input = {}) {
       const response = await resolveLocal().searchCatalogModels({
@@ -333,12 +330,6 @@ export function createNimiRuntimeLocalModelCenterClient(
         'Runtime local asset stop response is missing asset',
         'check_runtime_local_stop_response',
       );
-    },
-    async health(localAssetId) {
-      const response = await resolveLocal().checkLocalAssetHealth({
-        localAssetId: normalizeText(localAssetId),
-      }, defaultCallOptions);
-      return response.assets.map(projectNimiRuntimeLocalAssetHealth);
     },
     async listTransfers() {
       const response = await resolveLocal().listLocalTransfers({}, defaultCallOptions);

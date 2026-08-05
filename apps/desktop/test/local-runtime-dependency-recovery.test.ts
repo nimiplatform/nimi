@@ -10,7 +10,7 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-dependency-recovery';
 import {
   localModelCenterDependencyBlocksSetup,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-readiness';
+} from '../src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-dependencies';
 
 function dependency(
   state: string,

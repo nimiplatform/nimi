@@ -8,6 +8,7 @@ import type { DesktopCanonicalRendererBindings } from './contract.js';
 import { DesktopRendererContent } from './content.js';
 import { createDesktopRendererResources } from './resources.js';
 import { DesktopRendererBindingProvider } from './binding-context.js';
+import { DesktopMotionProvider } from '../ui/motion/desktop-motion.js';
 
 function DesktopMainSurface(props: {
   readonly bindings: DesktopCanonicalRendererBindings;
@@ -27,46 +28,48 @@ function DesktopMainSurface(props: {
 
   return (
     <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light" defaultDensity="compact">
-      <div
-        className="nimi-ui-module--desktop"
-        data-nimi-semantic-id="desktop-main-root"
-        id={props.bindings.scope.domId('main-root')}
-        role="region"
-        aria-label="Nimi"
-      >
-        {localizationReady ? (
-          <DesktopRendererBindingProvider bindings={props.bindings}>
-            <AppearanceEffects />
-            <AppProviders
-            agentVisibleProjections={props.resources.agentVisibleProjections}
-            anchorBindings={props.resources.anchorBindings}
-            attention={props.resources.attention}
-            chatUploadPlaceholders={props.resources.chatUploadPlaceholders}
-            i18n={props.resources.i18n}
-            localModelCenterProgress={props.resources.localModelCenterProgress}
-            queryClient={props.resources.queryClient}
-            realmGroupChatData={props.resources.realmGroupChatData}
-            realmHumanChatData={props.resources.realmHumanChatData}
-            realmSocialData={props.resources.realmSocialData}
-            runtimeConnectorSdk={props.resources.runtimeConnectorSdk}
-            Router={props.resources.Router}
-            scenarioJobController={props.resources.scenarioJobController}
-            store={props.resources.store}
-            streamController={props.resources.streamController}
-            worldFollowStore={props.resources.worldFollowStore}
-          >
-            <AppErrorBoundary>
-              <div
-                data-nimi-semantic-id="desktop-main-content"
-                className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+      <DesktopMotionProvider>
+        <div
+          className="nimi-ui-module--desktop"
+          data-nimi-semantic-id="desktop-main-root"
+          id={props.bindings.scope.domId('main-root')}
+          role="region"
+          aria-label="Nimi"
+        >
+          {localizationReady ? (
+            <DesktopRendererBindingProvider bindings={props.bindings}>
+              <AppearanceEffects />
+              <AppProviders
+                agentVisibleProjections={props.resources.agentVisibleProjections}
+                anchorBindings={props.resources.anchorBindings}
+                attention={props.resources.attention}
+                chatUploadPlaceholders={props.resources.chatUploadPlaceholders}
+                i18n={props.resources.i18n}
+                localModelCenterProgress={props.resources.localModelCenterProgress}
+                queryClient={props.resources.queryClient}
+                realmGroupChatData={props.resources.realmGroupChatData}
+                realmHumanChatData={props.resources.realmHumanChatData}
+                realmSocialData={props.resources.realmSocialData}
+                runtimeConnectorSdk={props.resources.runtimeConnectorSdk}
+                Router={props.resources.Router}
+                scenarioJobController={props.resources.scenarioJobController}
+                store={props.resources.store}
+                streamController={props.resources.streamController}
+                worldFollowStore={props.resources.worldFollowStore}
               >
-                <DesktopRendererContent />
-              </div>
-            </AppErrorBoundary>
-            </AppProviders>
-          </DesktopRendererBindingProvider>
-        ) : null}
-      </div>
+                <AppErrorBoundary>
+                  <div
+                    data-nimi-semantic-id="desktop-main-content"
+                    className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+                  >
+                    <DesktopRendererContent />
+                  </div>
+                </AppErrorBoundary>
+              </AppProviders>
+            </DesktopRendererBindingProvider>
+          ) : null}
+        </div>
+      </DesktopMotionProvider>
     </NimiThemeProvider>
   );
 }

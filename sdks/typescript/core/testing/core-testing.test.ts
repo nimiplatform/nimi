@@ -22,7 +22,6 @@ test('mock model generates deterministic text and records request shape through 
   });
 
   const result = await model.generateText({
-    model: model.model,
     messages: [userTextMessage('say hello')],
   });
 
@@ -50,7 +49,6 @@ test('stream simulator preserves run event ordering and collection semantics', a
 
   const model = createNimiMockModel({ streamEvents: events });
   const result = await collectMockModelStream(model, {
-    model: model.model,
     messages: [userTextMessage('use a tool')],
   });
   assert.equal(result.text, 'hi');

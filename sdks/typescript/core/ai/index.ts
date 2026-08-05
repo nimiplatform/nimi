@@ -3,7 +3,6 @@ import type {
   NimiJsonObject,
   NimiJsonValue,
   NimiMessage,
-  NimiModelRef,
   NimiRawChunk,
   NimiRunEvent,
   NimiSource,
@@ -47,7 +46,6 @@ export interface NimiResponseFormat {
 }
 
 export interface NimiGenerateTextRequest {
-  readonly model: NimiModelRef;
   readonly messages: readonly NimiMessage[];
   readonly tools?: readonly NimiTool[];
   readonly toolChoice?: 'none' | 'auto' | 'required' | { readonly type: 'tool'; readonly name: string };
@@ -70,8 +68,12 @@ export interface NimiGenerateTextResult {
   readonly raw?: NimiJsonValue;
 }
 
+export interface NimiTextGenerationCapabilityRef {
+  readonly modelId: 'text.generate';
+}
+
 export interface NimiAiModel {
-  readonly model: NimiModelRef;
+  readonly model: NimiTextGenerationCapabilityRef;
   generateText(request: NimiGenerateTextRequest): Promise<NimiGenerateTextResult>;
   streamText?(request: NimiGenerateTextRequest): AsyncIterable<NimiRunEvent> | Promise<AsyncIterable<NimiRunEvent>>;
 }

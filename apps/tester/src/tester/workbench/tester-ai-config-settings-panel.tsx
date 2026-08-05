@@ -47,10 +47,10 @@ export function TesterAiConfigSettingsPanel({
   }, [refresh]);
 
   const intent = findTesterCapabilityIntent(config, capabilityId);
-  const route = intent?.route.oneofKind ?? null;
-  const configStatus = loading ? 'Loading' : error ? 'Unavailable' : route === 'local'
+  const intentKind = intent?.route.oneofKind ?? null;
+  const configStatus = loading ? 'Loading' : error ? 'Unavailable' : intentKind === 'local'
     ? 'Local selected'
-    : route === 'cloud' ? 'Cloud selected' : 'Not configured';
+    : intentKind === 'cloud' ? 'Cloud selected' : 'Not configured';
 
   async function selectLocal() {
     setSaving(true);
@@ -109,7 +109,7 @@ export function TesterAiConfigSettingsPanel({
           <StatusBadge tone={runtime?.status === 'connected' ? 'neutral' : 'warning'} shape="dot">
             {runtimeLabel}
           </StatusBadge>
-          <StatusBadge tone={!loading && !error && route ? 'success' : 'warning'} shape="dot">
+          <StatusBadge tone={!loading && !error && intentKind ? 'success' : 'warning'} shape="dot">
             {configStatus}
           </StatusBadge>
         </div>
@@ -124,18 +124,18 @@ export function TesterAiConfigSettingsPanel({
           </div>
         ) : (
           <div className="grid gap-3 rounded-lg border border-[var(--nimi-border-subtle)] p-4">
-            <strong className="text-sm text-[var(--nimi-text-primary)]">Capability route</strong>
+            <strong className="text-sm text-[var(--nimi-text-primary)]">Capability intent</strong>
             <p className="text-sm text-[var(--nimi-text-muted)]">
-              Selecting Local stores only consumer intent. The machine model, exact asset bindings, and execution availability remain Runtime-owned and are resolved when the request executes.
+              Selecting Local stores only consumer intent. Runtime chooses and validates the implementation when execution begins.
             </p>
-            {route === 'cloud' ? (
+            {intentKind === 'cloud' ? (
               <p className="text-sm text-[var(--nimi-text-muted)]">
-                This capability currently has an exact Cloud intent. Tester preserves it until you explicitly replace or remove it.
+                This capability currently has Cloud intent. Tester preserves it until you explicitly replace or remove it.
               </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" disabled={saving || route === 'local'} onClick={() => void selectLocal()}>
-                {route === 'local' ? 'Local selected' : 'Select Local'}
+              <Button type="button" disabled={saving || intentKind === 'local'} onClick={() => void selectLocal()}>
+                {intentKind === 'local' ? 'Local selected' : 'Select Local'}
               </Button>
               {intent ? (
                 <Button type="button" tone="secondary" disabled={saving} onClick={() => void removeIntent()}>
@@ -147,7 +147,7 @@ export function TesterAiConfigSettingsPanel({
         )}
 
         <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
-          Configured does not mean execution-ready. Tester performs no probe, readiness poll, model ranking, or fallback selection; execution returns the typed Runtime result.
+          Runtime owns machine selection and returns the typed execution result when a request begins.
         </p>
       </div>
     </section>

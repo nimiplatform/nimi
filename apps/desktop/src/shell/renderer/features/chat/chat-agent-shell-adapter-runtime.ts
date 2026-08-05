@@ -118,7 +118,7 @@ function projectAgentCenterAIConfig(
   const intents = snapshot.aiConfig.capabilities.map((intent) => {
     const route = intent.route.oneofKind;
     if (route !== 'local' && route !== 'cloud') {
-      throw new Error(`Shared LocalAgent AIConfig capability ${intent.capabilityContract} has no route.`);
+      throw new Error(`Shared LocalAgent AIConfig capability ${intent.capabilityContract} has no Local or Cloud intent.`);
     }
     return {
       capability: intent.capabilityContract,

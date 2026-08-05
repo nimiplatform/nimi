@@ -29,9 +29,9 @@
 如果您计划使用 Nimi SDK 构建应用：
 
 1. [Start → 创建 Nimi App](/zh/start/create-an-app)：用 app-tools scaffold 一个开发者 App，或把同样的所有权规则映射到已有 App。
-2. [SDK → 第一次 AI 调用](/zh/sdk/first-ai-call)：通过 AIConfig target resolution 发起 Runtime-backed 文本生成。
+2. [SDK → 第一次 AI 调用](/zh/sdk/first-ai-call)：使用 owner 能力意图发起 Runtime-backed 文本生成，具体执行实现由 Runtime 选择。
 3. [SDK → 概览](/zh/sdk/) 与 [SDK → 边界](/zh/sdk/boundaries)：在导入 SDK module 前理解公开 App 边界。
-4. [平台 → 在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)：复用共享 UI、shell、auth、telemetry、model configuration 与 feature surfaces。
+4. [平台 → 在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)：复用共享 UI、shell、auth、telemetry、AIConfig composition 与 feature surfaces。
 5. [Start → 把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference)：研究具体 reference app 与 app-tools source template。
 6. [Start → 故障排查](/zh/start/troubleshooting)：理解 Runtime、SDK、Tester 与 scaffold 失败。
 

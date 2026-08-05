@@ -19,7 +19,6 @@ test('Nimi text generate preserves structured output success and required failur
   const success = await runNimiTextGenerate<{ answer: string }>({
     runtime: { model },
     request: {
-      model: model.model,
       messages: [userTextMessage('answer')],
     },
     structuredOutput: {
@@ -39,7 +38,6 @@ test('Nimi text generate preserves structured output success and required failur
   const failure = await runNimiTextGenerate({
     runtime: { model: createNimiMockModel({ text: 'not-json', finishReason: 'stop' }) },
     request: {
-      model: model.model,
       messages: [userTextMessage('answer')],
     },
     structuredOutput: { expect: 'object' },
@@ -68,7 +66,6 @@ test('Nimi text turn preserves stream events and terminal snapshots', async () =
   for await (const event of runNimiTextTurn<{ ok: boolean }>({
     runtime: { model },
     request: {
-      model: model.model,
       messages: [{ role: 'user', content: [textPart('stream')] }],
     },
     structuredOutput: { expect: 'object' },
@@ -107,7 +104,6 @@ test('Nimi text response reports stream failures without pseudo-success', async 
     () => streamNimiTextResponse({
       runtime: { model },
       request: {
-        model: model.model,
         messages: [userTextMessage('stream')],
       },
     }),

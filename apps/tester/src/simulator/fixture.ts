@@ -90,10 +90,6 @@ export const simulatorConformanceFixture = {
     eventSchemas: {},
     moduleData: {
       generatedText: 'Nimi connects apps through one shared, simulated ecosystem state.',
-      textModel: {
-        providerId: 'simulated-provider',
-        modelId: 'simulated-text-model',
-      },
       runtimePlatform: {
         status: 'unavailable',
         mode: 'local-app',

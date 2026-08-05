@@ -22,7 +22,7 @@ import type {
 import { AgentCenterAppearanceSection } from './AgentCenterAppearanceSection.js';
 import { AgentCenterBehaviorSection } from './AgentCenterBehaviorSection.js';
 import { AgentCenterCognitionSection } from './AgentCenterCognitionSection.js';
-import { AgentCenterModelSection } from './AgentCenterModelSection.js';
+import { AgentCenterAIConfigSection } from './AgentCenterAIConfigSection.js';
 import {
   AgentButton,
   Card,
@@ -169,10 +169,10 @@ function AgentCenterOverview({
       pill: appearanceReady ? copy.readyPill : copy.needsSetupPill,
     },
     {
-      section: 'model' as const,
+      section: 'ai-config' as const,
       done: setup.requiredCapabilitiesConfigured,
       attention: !setup.requiredCapabilitiesConfigured,
-      title: sectionLabels.model,
+      title: sectionLabels['ai-config'],
       description: setup.requiredCapabilitiesConfigured
         ? copy.capabilitiesConfiguredDescription
         : copy.capabilitiesNotConfiguredDescription,
@@ -342,8 +342,8 @@ function renderSection(
   i18n: AgentCenterProps['i18n'],
 ) {
   switch (section) {
-    case 'model':
-      return <AgentCenterModelSection i18n={i18n} session={session} snapshot={snapshot} />;
+    case 'ai-config':
+      return <AgentCenterAIConfigSection i18n={i18n} session={session} snapshot={snapshot} />;
     case 'behavior':
       return <AgentCenterBehaviorSection i18n={i18n} session={session} snapshot={snapshot} />;
     case 'cognition':

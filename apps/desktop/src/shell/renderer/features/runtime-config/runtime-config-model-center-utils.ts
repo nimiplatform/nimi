@@ -7,10 +7,7 @@ import type {
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeLocalInstallPayload,
   NimiRuntimeLocalInstallPlanDescriptor,
-  NimiRuntimeLocalProfileDescriptor,
   NimiRuntimeLocalProfileEntryDescriptor,
-  NimiRuntimeLocalProfileApplyResult,
-  NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -21,24 +18,16 @@ import {
   type NimiRuntimeLocalEngineId,
   type NimiRuntimeLocalRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
-import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
-import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from './runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export type LocalModelCenterProps = {
   state: RuntimeConfigStateV11;
   discovering: boolean;
   checkingHealth: boolean;
-  displayMode?: 'runtime' | 'profile-target';
-  lockedProfileTargetId?: string;
-  runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
-  selectedProfileTargetId?: string;
-  onSelectProfileTargetId?: (targetId: string) => void;
   localModelQuery: string;
   filteredLocalModels: string[];
   onDiscover: () => Promise<void>;
   onHealthCheck: () => Promise<void>;
-  onResolveProfile: (targetId: string, profileId: string, capability?: string) => Promise<NimiRuntimeLocalProfileResolutionPlan>;
-  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<NimiRuntimeLocalProfileApplyResult>;
   onInstallCatalogItem: (
     item: NimiRuntimeLocalCatalogItemDescriptor,
     options?: {
@@ -58,7 +47,6 @@ export type LocalModelCenterProps = {
   onRemove: (localModelId: string) => Promise<void>;
   onRemoveAsset: (localAssetId: string) => Promise<void>;
   onSetLocalModelQuery: (value: string) => void;
-  onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
   onDownloadComplete?: (
     installSessionId: string,
     success: boolean,
@@ -227,17 +215,17 @@ export function planInstallAvailable(plan: NimiRuntimeLocalInstallPlanDescriptor
 export function localSpeechReasonSummary(reasonCode: string | undefined): string {
   switch (String(reasonCode || '').trim()) {
     case ReasonCode.AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED:
-      return 'Local Speech preflight is blocked on this host.';
+      return 'Runtime could not start the local speech capability on this host.';
     case ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED:
       return 'Explicit download confirmation is required before Local Speech setup can continue.';
     case ReasonCode.AI_LOCAL_SPEECH_ENV_INIT_FAILED:
-      return 'Local Speech environment initialization failed.';
+      return 'Runtime local speech environment initialization failed.';
     case ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED:
-      return 'Local Speech host startup or probe failed.';
+      return 'Runtime could not start the local speech capability.';
     case ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED:
-      return 'The required Local Speech capability is missing and must be downloaded.';
+      return 'A required Runtime local speech asset is missing.';
     case ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED:
-      return 'The Local Speech bundle is degraded and needs repair.';
+      return 'The Runtime local speech bundle is unavailable.';
     default:
       return '';
   }
@@ -245,7 +233,7 @@ export function localSpeechReasonSummary(reasonCode: string | undefined): string
 
 // Human-readable summary for an unhealthy asset's reason code. Prefers the
 // speech-specific copy, then falls back to the canonical Runtime reason-code
-// message catalog (covers provider / route / model / auth families). Returns ''
+// message catalog. Returns ''
 // for an unmapped code so callers render a generic message instead of leaking
 // the raw machine identifier to the user.
 export function assetUnhealthyReasonSummary(reasonCode: string | undefined): string {
@@ -319,56 +307,6 @@ export function pruneProgressSessions(
     next[sessionId] = state;
   }
   return changed ? next : sessions;
-}
-
-export function resolveSelectedRuntimeProfileTarget(
-  runtimeProfileTargets: RuntimeProfileTargetDescriptor[],
-  selectedProfileTargetId: string | undefined,
-): RuntimeProfileTargetDescriptor | null {
-  const targetId = String(selectedProfileTargetId || '').trim();
-  if (!targetId) {
-    return null;
-  }
-  return runtimeProfileTargets.find((target) => target.targetId === targetId) || null;
-}
-
-export function resolveProfileCapabilityOptions(
-  profile: NimiRuntimeLocalProfileDescriptor | null | undefined,
-): string[] {
-  if (!profile) {
-    return [];
-  }
-  const consumeCapabilities = Array.isArray(profile.consumeCapabilities)
-    ? profile.consumeCapabilities
-    : [];
-  const entryCapabilities = Array.isArray(profile.entries)
-    ? profile.entries.map((entry) => entry.capability)
-    : [];
-  return Array.from(new Set(
-    [...consumeCapabilities, ...entryCapabilities]
-      .map((value) => String(value || '').trim())
-      .filter(Boolean),
-  ));
-}
-
-export function normalizeSelectedProfileCapability(
-  profile: NimiRuntimeLocalProfileDescriptor | null | undefined,
-  selectedCapability: string | undefined,
-): string {
-  const capabilityOptions = resolveProfileCapabilityOptions(profile);
-  if (capabilityOptions.length === 1) {
-    return capabilityOptions[0] || '';
-  }
-  const normalized = String(selectedCapability || '').trim();
-  return capabilityOptions.includes(normalized) ? normalized : '';
-}
-
-export function shouldShowRuntimeProfileInstallSection(
-  runtimeProfileTargets: RuntimeProfileTargetDescriptor[],
-  selectedProfileTargetId: string | undefined,
-): boolean {
-  const target = resolveSelectedRuntimeProfileTarget(runtimeProfileTargets, selectedProfileTargetId);
-  return Boolean(target && target.profiles.length > 0);
 }
 
 function isInteractiveDownloadState(state: NimiRuntimeLocalDownloadState): boolean {

@@ -24,7 +24,6 @@ const diagnosticOrder = [
   'inventory',
   'localAgent',
   'conversation',
-  'route',
   'turn',
   'composer',
 ];
@@ -38,8 +37,8 @@ test('projects no-runtime evidence into an ordered fail-closed diagnostic state'
   assert.equal(diagnostics.readyCount, 0);
   assert.equal(diagnostics.pendingCount, 1);
   assert.equal(diagnostics.errorCount, 2);
-  assert.equal(diagnostics.blockedCount, 6);
-  assert.equal(diagnostics.items.length, 9);
+  assert.equal(diagnostics.blockedCount, 5);
+  assert.equal(diagnostics.items.length, 8);
   assert.deepEqual(diagnostics.items.map((item) => item.key), diagnosticOrder);
   assert.equal(diagnostics.primaryBlocker?.key, 'runtime');
   assert.equal(diagnostics.primaryBlocker?.reasonCode, 'electron-runtime-endpoint-unavailable');
@@ -92,18 +91,6 @@ test('projects all ready evidence without a primary blocker', async () => {
       localAgentRef: 'local-agent:1',
       conversationAnchorId: 'conversation:1',
     },
-    route: {
-      ...routeBlocked(),
-      ready: true,
-      reasonCode: 'runtime-route-ready',
-      actionHint: 'send_runtime_agent_turn',
-      selectedTargetRefKind: 'runtime-target',
-      resolvedBindingRef: 'binding:1',
-      executionBinding: {
-        route: 'local',
-        modelId: 'runtime-model:1',
-      },
-    },
     turn: {
       ...status('runtime-turn-ready', true, 'runtime', 'none'),
       ownerUserId: 'user-1',
@@ -125,7 +112,7 @@ test('projects all ready evidence without a primary blocker', async () => {
 
   assert.equal(diagnostics.mode, 'ready');
   assert.equal(diagnostics.primaryBlocker, null);
-  assert.equal(diagnostics.readyCount, 8);
+  assert.equal(diagnostics.readyCount, 7);
   assert.equal(diagnostics.pendingCount, 1);
   assert.equal(diagnostics.blockedCount, 0);
   assert.equal(diagnostics.errorCount, 0);
@@ -170,7 +157,6 @@ function evidence(overrides = {}) {
       localAgentRef: null,
       conversationAnchorId: null,
     },
-    route: routeBlocked(),
     turn: {
       ...status('zhiyu-conversation-anchor-required'),
       ownerUserId: null,
@@ -188,23 +174,8 @@ function evidence(overrides = {}) {
       source: 'renderer',
       message: 'Runtime Agent composer has not been used.',
     },
-    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'avatar', 'diagnostics'],
+    productRegions: ['presence', 'conversation', 'memory', 'proposal', 'delegation', 'identity', 'companion', 'avatar', 'diagnostics'],
     ...overrides,
-  };
-}
-
-function routeBlocked() {
-  return {
-    transport: 'electron-ipc',
-    ready: false,
-    capability: 'text.generate',
-    reasonCode: 'zhiyu-ai-config-route-selection-required',
-    actionHint: 'select_runtime_agent_route',
-    source: 'sdk',
-    message: 'Zhiyu requires an admitted AIConfig route selection before sending Runtime Agent turns.',
-    selectedTargetRefKind: null,
-    resolvedBindingRef: null,
-    executionBinding: null,
   };
 }
 

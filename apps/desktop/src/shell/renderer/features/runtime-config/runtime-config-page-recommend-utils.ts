@@ -4,32 +4,25 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import {
   NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
-  NIMI_RUNTIME_LOCAL_RECOMMENDATION_RUN_GRADE_IDS,
   applyNimiRuntimeLocalRecommendationFeedFilters,
   buildNimiRuntimeLocalRecommendationHuggingFaceUrl,
   collectNimiRuntimeLocalRecommendationFeedLicenses,
   collectNimiRuntimeLocalRecommendationFeedProviders,
   computeNimiRuntimeLocalRecommendationVramPercentage,
-  countNimiRuntimeLocalRecommendationRunGrades,
   filterNimiRuntimeLocalRecommendationFeedItems as filterSdkRecommendationFeedItems,
   formatNimiRuntimeLocalRecommendationQuantQualityLabel,
   formatNimiRuntimeLocalRecommendationRepoOwner,
-  formatNimiRuntimeLocalRecommendationRunGradeLabel,
   nimiRuntimeLocalRecommendationFeedMatchesQuery,
-  nimiRuntimeLocalRecommendationTierToRunGrade,
-  normalizeNimiRuntimeLocalRecommendationFeedCapabilityId,
+  parseNimiRuntimeLocalRecommendationFeedCapabilityId,
   parseNimiRuntimeLocalRecommendationLicenseShort,
   parseNimiRuntimeLocalRecommendationParamsFromTitle,
   parseNimiRuntimeLocalRecommendationQuantBitsFromEntry,
   parseNimiRuntimeLocalRecommendationQuantLevelFromEntry,
+  parseNimiRuntimeLocalRecommendationTierId,
   selectNimiRuntimeLocalRecommendationPrimaryEntrySize,
-  sortNimiRuntimeLocalRecommendationFeedItems,
-  splitNimiRuntimeLocalRecommendationFeedItems as splitSdkRecommendationFeedItems,
   summarizeNimiRuntimeLocalRecommendationFeedCacheState,
   type NimiRuntimeLocalRecommendationFeedCapabilityId,
-  type NimiRuntimeLocalRecommendationFeedSections as SdkRecommendationFeedSections,
-  type NimiRuntimeLocalRecommendationFeedSortKey,
-  type NimiRuntimeLocalRecommendationRunGradeId,
+  type NimiRuntimeLocalRecommendationTierId,
 } from '@nimiplatform/sdk/runtime';
 import type { CapabilityV11 } from './runtime-config-state-types';
 
@@ -37,46 +30,31 @@ export const RECOMMEND_PAGE_CAPABILITIES = NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEE
 
 export type RecommendPageCapability = NimiRuntimeLocalRecommendationFeedCapabilityId;
 
-export type RecommendationFeedSections = SdkRecommendationFeedSections<NimiRuntimeLocalRecommendationFeedItem>;
+export type RecommendTier = NimiRuntimeLocalRecommendationTierId | null;
 
-// ---------------------------------------------------------------------------
-// Grade (display tier) — maps internal tiers to CanIRun-style labels
-// ---------------------------------------------------------------------------
-
-export type RecommendGrade = NimiRuntimeLocalRecommendationRunGradeId;
-
-export const RECOMMEND_GRADES: readonly RecommendGrade[] = NIMI_RUNTIME_LOCAL_RECOMMENDATION_RUN_GRADE_IDS;
-
-export function tierToGrade(tier?: unknown): RecommendGrade {
-  return nimiRuntimeLocalRecommendationTierToRunGrade(tier);
+export function recommendationTier(value?: unknown): RecommendTier {
+  return parseNimiRuntimeLocalRecommendationTierId(value) ?? null;
 }
 
-export function gradeLabel(grade: RecommendGrade): string {
-  return formatNimiRuntimeLocalRecommendationRunGradeLabel(grade);
+export function recommendationTierLabel(tier: RecommendTier): string {
+  if (tier === 'recommended') return 'Recommended';
+  if (tier === 'runnable') return 'Runnable';
+  if (tier === 'tight') return 'Tight';
+  if (tier === 'not_recommended') return 'Not Recommended';
+  return 'Unscored';
 }
 
-export function gradeColorClass(grade: RecommendGrade): string {
-  if (grade === 'runs_great') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]';
-  if (grade === 'runs_well') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]';
-  if (grade === 'tight_fit') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]';
-  return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]';
-}
-
-export function gradeDotClass(grade: RecommendGrade): string {
-  if (grade === 'runs_great') return 'bg-[var(--nimi-status-success)]';
-  if (grade === 'runs_well') return 'bg-[var(--nimi-status-success)]';
-  if (grade === 'tight_fit') return 'bg-[var(--nimi-status-warning)]';
-  return 'bg-[var(--nimi-status-danger)]';
-}
-
-// ---------------------------------------------------------------------------
-// Tier counts (summary bar)
-// ---------------------------------------------------------------------------
-
-export type TierCounts = Record<RecommendGrade, number>;
-
-export function computeTierCounts(items: readonly NimiRuntimeLocalRecommendationFeedItem[]): TierCounts {
-  return countNimiRuntimeLocalRecommendationRunGrades(items);
+export function recommendationTierColorClass(tier: RecommendTier): string {
+  if (tier === 'recommended' || tier === 'runnable') {
+    return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]';
+  }
+  if (tier === 'tight') {
+    return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]';
+  }
+  if (tier === 'not_recommended') {
+    return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]';
+  }
+  return 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]';
 }
 
 // ---------------------------------------------------------------------------
@@ -135,40 +113,17 @@ export function vramBarColorClass(pct: number | null): string {
 }
 
 // ---------------------------------------------------------------------------
-// Sort
-// ---------------------------------------------------------------------------
-
-export type RecommendSortKey = NimiRuntimeLocalRecommendationFeedSortKey;
-
-export const RECOMMEND_SORT_OPTIONS: { value: RecommendSortKey; label: string }[] = [
-  { value: 'score', label: 'Score' },
-  { value: 'size', label: 'Size' },
-  { value: 'downloads', label: 'Downloads' },
-  { value: 'likes', label: 'Likes' },
-  { value: 'updated', label: 'Last Updated' },
-  { value: 'name', label: 'Name' },
-];
-
-export function sortFeedItems(
-  items: readonly NimiRuntimeLocalRecommendationFeedItem[],
-  sortKey: RecommendSortKey,
-): NimiRuntimeLocalRecommendationFeedItem[] {
-  return sortNimiRuntimeLocalRecommendationFeedItems(items, sortKey);
-}
-
-// ---------------------------------------------------------------------------
 // Multi-filter
 // ---------------------------------------------------------------------------
 
 export type RecommendFilters = {
   query: string;
-  grades: Set<RecommendGrade>;
   providers: Set<string>;
   licenses: Set<string>;
 };
 
 export function emptyFilters(): RecommendFilters {
-  return { query: '', grades: new Set(), providers: new Set(), licenses: new Set() };
+  return { query: '', providers: new Set(), licenses: new Set() };
 }
 
 export function applyFilters(
@@ -216,8 +171,10 @@ export function buildHuggingFaceUrl(repo: string): string {
   return buildNimiRuntimeLocalRecommendationHuggingFaceUrl(repo);
 }
 
-export function normalizeRecommendPageCapability(value: CapabilityV11 | string | undefined): RecommendPageCapability {
-  return normalizeNimiRuntimeLocalRecommendationFeedCapabilityId(value);
+export function normalizeRecommendPageCapability(
+  value: CapabilityV11 | string | undefined,
+): RecommendPageCapability | null {
+  return parseNimiRuntimeLocalRecommendationFeedCapabilityId(value) ?? null;
 }
 
 export function recommendationFeedMatchesQuery(
@@ -232,12 +189,6 @@ export function filterRecommendationFeedItems(
   query: string,
 ): NimiRuntimeLocalRecommendationFeedItem[] {
   return filterSdkRecommendationFeedItems(items, query);
-}
-
-export function splitRecommendationFeedItems(
-  items: readonly NimiRuntimeLocalRecommendationFeedItem[],
-): RecommendationFeedSections {
-  return splitSdkRecommendationFeedItems(items);
 }
 
 export function recommendationFeedCacheSummary(

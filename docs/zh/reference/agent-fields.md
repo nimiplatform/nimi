@@ -13,7 +13,7 @@ Nimi 为持久 Character 真相与本地 AI 执行使用不同的 identifier 与
 | Conversation anchor | Runtime | 一条显式 LocalAgent Conversation |
 | 运行态 Memory | Runtime | 已授权的 LocalAgent recall 与 retention |
 | 运行态 Knowledge | Runtime | 已授权的 LocalAgent ingestion 与 retrieval |
-| AI route 与 readiness | Runtime | Provider/Model route、Quota、Budget 与 readiness |
+| AI capability execution | Runtime | 能力意图评估、具体实现选择、quota、budget 与执行诊断 |
 | Presentation configuration | Runtime | 面向已授权投影的持久 LocalAgent 输入 |
 | 短暂 presentation state | Runtime | Turn、状态、activity、emotion、voice 与 timing 投影 |
 | Renderer state | Avatar 或 consuming App | 仅短暂渲染、playback 与 interaction |

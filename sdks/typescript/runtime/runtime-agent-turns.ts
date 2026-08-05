@@ -269,9 +269,6 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
   const identity = projectRuntimeLocalAgentIdentity(request);
   const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
   const message = normalizeCurrentUserMessage(request.messages);
-  // Turn requests never carry execution bindings: the runtime resolves the
-  // turn against the committed Runtime Agent AI Config (K-AGCORE-147) and
-  // rejects any request-level execution_bindings as InvalidArgument.
   const maxOutputTokens = optionalNumber(request.maxOutputTokens);
   if (maxOutputTokens !== undefined && maxOutputTokens < 0) {
     runtimeAgentInputError('runtime agent turn request maxOutputTokens must be non-negative', 'provide_non_negative_max_output_tokens');

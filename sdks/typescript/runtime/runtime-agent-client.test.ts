@@ -18,7 +18,6 @@ import {
   AgentLocalSourceCoverageSection,
   AgentLocalSourceCoverageState,
 } from '../core-generated/runtime-typed-client';
-import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]) {
   const sourceSections = [
@@ -196,12 +195,6 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   assert.equal((calls[2]?.request as SendAppMessageRequest).toAppId, 'runtime.agent');
   assert.equal((calls[2]?.request as SendAppMessageRequest).messageType, 'runtime.agent.turn.request');
   assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.turn.write');
-  // Atomic hard cut: turn requests never carry execution_bindings; the
-  // runtime resolves the committed Runtime Agent AI Config (K-AGCORE-147).
-  assert.equal(
-    'execution_bindings' in fromNimiRuntimeProtoStruct((calls[2]?.request as SendAppMessageRequest).payload),
-    false,
-  );
   assert.equal((calls[3]?.request as QueryAgentMemoryRequest).agentId, identity.localAgentRef);
   assert.equal(calls[3]?.options?.metadata?.scopes, 'runtime.agent.read');
 });

@@ -26,7 +26,6 @@ import type {
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import type {
-  NimiAiModel,
   NimiGenerateTextRequest,
   NimiGenerateTextResult,
   NimiResponseFormat,
@@ -69,12 +68,10 @@ const MASTRA_METADATA_KEY = 'x-nimi-mastra-metadata';
 // ---------------------------------------------------------------------------
 
 export function toNimiGenerateTextRequest(
-  model: NimiAiModel,
   options: LanguageModelV3CallOptions,
   throwUnsupported: NimiMastraUnsupportedFeatureThrower,
 ): NimiGenerateTextRequest {
   return {
-    model: model.model,
     messages: toNimiMessages(options.prompt, throwUnsupported),
     tools: options.tools?.map((tool) => toNimiTool(tool, throwUnsupported)),
     toolChoice: toNimiToolChoice(options.toolChoice, throwUnsupported),

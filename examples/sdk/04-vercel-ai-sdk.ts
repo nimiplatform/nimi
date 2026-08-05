@@ -1,6 +1,6 @@
 /**
  * Use Nimi through the Vercel AI SDK.
- * Prerequisites: `nimi start` and provider availability for `gemini/default`.
+ * Prerequisites: `nimi start` and a text.generate capability intent for this App.
  * Run: npx tsx examples/sdk/04-vercel-ai-sdk.ts
  */
 
@@ -16,14 +16,13 @@ const client = createExampleClient({
 
 const nimi = createNimiVercelProvider({
   client,
-  routePolicy: 'cloud',
   subjectUserId: 'local-user',
   timeoutMs: 120_000,
 });
 
 const { text } = await generateText({
-  model: nimi.languageModel(process.env.NIMI_VERCEL_AI_MODEL || 'gemini/default'),
+  model: nimi.languageModel('text.generate'),
   prompt: 'Hello from Vercel AI SDK + Nimi',
 });
 
-console.log(text);
+process.stdout.write(`${text}\n`);

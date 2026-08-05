@@ -154,7 +154,7 @@ describe('conversation shell ui', () => {
           state={{
             mode: 'ai',
             status: 'setup-required',
-            issues: [{ code: 'ai-no-chat-route', detail: 'no ready route' }],
+            issues: [{ code: 'ai-capability-intent-required', detail: 'capability intent required' }],
             primaryAction: {
               kind: 'open-settings',
               targetId: 'runtime-overview',
@@ -196,7 +196,7 @@ describe('conversation shell ui', () => {
             setupState: {
               mode: 'ai',
               status: 'setup-required',
-              issues: [{ code: 'ai-no-chat-route', detail: 'no route ready' }],
+              issues: [{ code: 'ai-capability-intent-required', detail: 'capability intent required' }],
               primaryAction: null,
             },
             threads: [],
@@ -205,14 +205,14 @@ describe('conversation shell ui', () => {
             canCompose: false,
             composerPlaceholder: null,
           }}
-          renderSetupDescription={() => 'Configure a route first.'}
+          renderSetupDescription={() => 'Configure AI capability intent first.'}
         />,
       );
       await flush();
     });
 
     expect(container.textContent).toContain('Setup Required');
-    expect(container.textContent).toContain('Configure a route first.');
+    expect(container.textContent).toContain('Configure AI capability intent first.');
   });
 
   it('renders the canonical runtime inspect sidebar with shared panel controls', async () => {
@@ -226,7 +226,7 @@ describe('conversation shell ui', () => {
       root?.render(
         <CanonicalRuntimeInspectSidebar
           statusTitle="AI Assistant"
-          statusSummary="Local route ready"
+          statusSummary="Local capability intent"
           statusChips={[{ label: 'Local', tone: 'success' }]}
           openPanel="chat"
           onOpenPanel={onOpenPanel}
@@ -234,9 +234,9 @@ describe('conversation shell ui', () => {
           sections={[
             {
               key: 'chat',
-              title: 'Chat Model',
-              summary: 'nimi/local',
-              content: <div>Route body</div>,
+              title: 'Conversation',
+              summary: 'Local capability intent',
+              content: <div>Conversation settings</div>,
             },
             {
               key: 'voice',
@@ -250,7 +250,7 @@ describe('conversation shell ui', () => {
     });
 
     expect(container.textContent).toContain('AI Assistant');
-    expect(container.textContent).toContain('Route body');
+    expect(container.textContent).toContain('Conversation settings');
     expect(container.textContent).toContain('Voice');
   });
 

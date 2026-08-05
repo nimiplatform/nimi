@@ -69,7 +69,7 @@ running.
 
 For a concrete reference app, read
 [Use Tester As A Reference App](/start/use-tester-as-reference). For shared UI,
-auth, shell, telemetry, and model configuration, read
+auth, shell, telemetry, and AIConfig composition, read
 [Use Kit In An App](/platform/kit/use-kit-in-app).
 
 For a failing local run, SDK call, or app-tools scaffold check, read
@@ -109,7 +109,7 @@ first walkthrough:
 4. Read [Create A Nimi App](/start/create-an-app),
     [Use Tester As A Reference App](/start/use-tester-as-reference), and
     [Use Kit In An App](/platform/kit/use-kit-in-app) before writing app-local
-    shell, model config, or shared UI code.
+    shell, AI capability configuration, or shared UI code.
 5. Keep [Troubleshooting](/start/troubleshooting) open while wiring Runtime,
    SDK, AIConfig, and scaffold checks.
 6. Read [Desktop](/desktop/) and [Web Mode](/desktop/web-mode) to

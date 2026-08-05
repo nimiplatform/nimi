@@ -43,7 +43,6 @@ type InstalledAssetsSectionProps = {
   onArtifactKindFilterChange: (value: 'all' | NimiRuntimeLocalAssetKind) => void;
   onRefreshAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
-  onRepairAsset: (localAssetId: string, endpoint: string) => void;
   onSetupRuntimeDependency: () => void;
   onCancelRuntimeDependencyJob: (jobId: string) => void;
   onRetryRuntimeDependencyJob: (jobId: string) => void;
@@ -54,8 +53,6 @@ type InstalledAssetsSectionProps = {
 export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSectionProps) {
   const i18n = useDesktopI18nResource().instance;
   const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
-  const [repairAssetId, setRepairAssetId] = useState('');
-  const [repairEndpoint, setRepairEndpoint] = useState('');
   const [confirmSharedRuntimeDependencySetup, setConfirmSharedRuntimeDependencySetup] = useState(false);
 
   const runnableCount = props.filteredInstalledRunnableAssets.length;
@@ -168,33 +165,14 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                   assetBusy={props.assetBusy}
                   canStartRuntimeDependencySetup={canStartAssetRuntimeDependencySetup}
                   confirmRemoveAssetId={confirmRemoveAssetId}
-                  repairAssetId={repairAssetId}
-                  repairEndpoint={repairEndpoint}
                   runtimeDependency={runtimeDependency}
                   runtimeDependencyJob={runtimeDependencyJob}
                   onCancelRemove={() => setConfirmRemoveAssetId('')}
-                  onCancelRepair={() => {
-                    setRepairAssetId('');
-                    setRepairEndpoint('');
-                  }}
                   onConfirmRemove={(localAssetId) => {
                     setConfirmRemoveAssetId('');
-                    setRepairAssetId('');
                     props.onRemoveAsset(localAssetId);
                   }}
-                  onRepairAsset={(localAssetId, endpoint) => {
-                    void Promise.resolve(props.onRepairAsset(localAssetId, endpoint)).then(() => {
-                      setRepairAssetId('');
-                      setRepairEndpoint('');
-                    });
-                  }}
-                  onRepairEndpointChange={setRepairEndpoint}
                   onRequestRemove={(localAssetId) => setConfirmRemoveAssetId(localAssetId)}
-                  onRequestRepair={(localAssetId) => {
-                    setConfirmRemoveAssetId('');
-                    setRepairAssetId(localAssetId);
-                    setRepairEndpoint('');
-                  }}
                   onSetupRuntimeDependency={props.onSetupRuntimeDependency}
                   onRescanAsset={props.onRescanAsset}
                 />

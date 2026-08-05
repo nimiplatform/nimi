@@ -13,12 +13,6 @@ export type NimiRuntimeLocalRecommendationBaselineId = 'image-default-v1' | 'vid
 export type NimiRuntimeLocalRecommendationFeedCacheStateId = 'fresh' | 'stale' | 'empty';
 export type NimiRuntimeLocalRecommendationFeedCapabilityId = 'chat' | 'image' | 'video';
 export type NimiRuntimeLocalRecommendationFeedSourceId = 'model-index';
-export type NimiRuntimeLocalRecommendationRunGradeId =
-  | 'runs_great'
-  | 'runs_well'
-  | 'tight_fit'
-  | 'not_recommended';
-
 export interface NimiRuntimeLocalRecommendationSuggestedAsset {
   readonly templateId?: string;
   readonly assetId?: string;
@@ -156,20 +150,8 @@ export interface NimiRuntimeLocalRecommendationDetailOptions
   readonly includeNote?: boolean;
 }
 
-export interface NimiRuntimeLocalRecommendationFeedSections<
-  T extends NimiRuntimeLocalRecommendationFeedItemLike = NimiRuntimeLocalRecommendationFeedItem,
-> {
-  readonly topMatches: readonly T[];
-  readonly worthTrying: readonly T[];
-  readonly alreadyInstalled: readonly T[];
-  readonly searchMore: readonly T[];
-}
-
-export type NimiRuntimeLocalRecommendationFeedSortKey = 'score' | 'size' | 'downloads' | 'likes' | 'updated' | 'name';
-
 export interface NimiRuntimeLocalRecommendationFeedFilters {
   readonly query?: unknown;
-  readonly grades?: ReadonlySet<NimiRuntimeLocalRecommendationRunGradeId>;
   readonly providers?: ReadonlySet<string>;
   readonly licenses?: ReadonlySet<string>;
 }

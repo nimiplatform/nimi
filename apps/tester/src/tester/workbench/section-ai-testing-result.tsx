@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import type { TesterCapability } from '../tester-capabilities.js';
-import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunModelLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
+import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunIntentLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
 import { ArtifactMediaPreview, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, hasPreviewableArtifact, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
@@ -53,7 +53,7 @@ function groupParamRows(rows: readonly TesterRunConfigParamRow[]): Array<{ group
   return groups;
 }
 
-function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord }) {
+function TextStudioRequestSettings({ record }: { record: TesterRunHistoryRecord }) {
   const runConfig = record.runConfig;
   if (!runConfig) {
     return null;
@@ -67,10 +67,10 @@ function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord })
   const paramGroups = groupParamRows(paramRows);
 
   return (
-    <section className="studio-history-settings" aria-label="Model settings">
+    <section className="studio-history-settings" aria-label="Request settings">
       <div className="studio-history-settings__head">
         <SlidersHorizontal size={14} aria-hidden="true" />
-        <strong>Model settings</strong>
+        <strong>Request settings</strong>
       </div>
       {paramGroups.map((group) => (
         <div key={group.group} className="studio-history-settings__group">
@@ -89,7 +89,7 @@ function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord })
   );
 }
 
-function hasTextStudioModelSettings(record: TesterRunHistoryRecord): boolean {
+function hasTextStudioRequestSettings(record: TesterRunHistoryRecord): boolean {
   const runConfig = record.runConfig;
   if (!runConfig) return false;
   return getTesterRunConfigParamRows(runConfig).length > 0 || Boolean(runConfig.target.paramsSummary.join(' / '));
@@ -140,13 +140,13 @@ function TextStudioHistoryRecordResult({
   const rendererHost = useTesterRendererHost();
   const snapshot = record.result;
   const tags = getTesterRunResultTags(record);
-  const modelLabel = getTesterRunModelLabel(record);
+  const intentLabel = getTesterRunIntentLabel(record);
   const toneClass = historyResultToneClass(record);
   const exportText = historyRecordPlainText(record);
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
   const canExport = !blocked && Boolean(exportText.trim() || historyRecordArtifact(record));
-  const hasModelSettings = hasTextStudioModelSettings(record);
-  const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
+  const hasRequestSettings = hasTextStudioRequestSettings(record);
+  const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   function handleCopy() {
     if (!exportText.trim()) return;
     try {
@@ -229,20 +229,20 @@ function TextStudioHistoryRecordResult({
         <div className="studio-history-result__tags">
           {tags.map((tag, index) => <span key={tag} className={index === 0 ? `studio-history-result__tag--${toneClass}` : undefined}>{tag}</span>)}
         </div>
-        <div className="studio-history-result__model">
-          <span>Model</span>
-          <div className={hasModelSettings ? 'studio-model-pill__box' : 'studio-model-pill__box studio-model-pill__box--static'}>
-            <Tooltip content={modelLabel} placement="top" className="min-w-0">
-              <strong>{modelLabel}</strong>
+        <div className="studio-history-result__intent">
+          <span>Intent</span>
+          <div className={hasRequestSettings ? 'studio-intent-pill__box' : 'studio-intent-pill__box studio-intent-pill__box--static'}>
+            <Tooltip content={intentLabel} placement="top" className="min-w-0">
+              <strong>{intentLabel}</strong>
             </Tooltip>
-            {hasModelSettings ? (
-              <Tooltip content={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'} placement="top">
+            {hasRequestSettings ? (
+              <Tooltip content={requestSettingsOpen ? 'Hide request settings' : 'Show request settings'} placement="top">
                 <IconButton
                   type="button"
-                  className={modelSettingsOpen ? 'studio-model-pill__trigger studio-model-pill__trigger--open' : 'studio-model-pill__trigger'}
-                  aria-label={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'}
-                  aria-expanded={modelSettingsOpen}
-                  onClick={() => setModelSettingsOpen((value) => !value)}
+                  className={requestSettingsOpen ? 'studio-intent-pill__trigger studio-intent-pill__trigger--open' : 'studio-intent-pill__trigger'}
+                  aria-label={requestSettingsOpen ? 'Hide request settings' : 'Show request settings'}
+                  aria-expanded={requestSettingsOpen}
+                  onClick={() => setRequestSettingsOpen((value) => !value)}
                   icon={<ChevronRight size={15} aria-hidden="true" />}
                 />
               </Tooltip>
@@ -250,7 +250,7 @@ function TextStudioHistoryRecordResult({
           </div>
         </div>
       </div>
-      {modelSettingsOpen && hasModelSettings ? <TextStudioModelSettings record={record} /> : null}
+      {requestSettingsOpen && hasRequestSettings ? <TextStudioRequestSettings record={record} /> : null}
       {body}
     </div>
   );
@@ -313,7 +313,7 @@ export function TextStudioResultState({
   capability,
   activeRun,
   admission,
-  modelLabel,
+  intentLabel,
   running,
   streamingText,
   verboseConsole,
@@ -325,7 +325,7 @@ export function TextStudioResultState({
   capability: TesterCapability;
   activeRun: TextStudioActiveRun;
   admission: ReturnType<typeof statusForCapability>;
-  modelLabel: string;
+  intentLabel: string;
   running: boolean;
   streamingText: string | null;
   verboseConsole: boolean;
@@ -360,8 +360,8 @@ export function TextStudioResultState({
                 capability={capability}
                 admission={admission}
                 createdAt={activeRun.createdAt}
-                modelLabel={modelLabel}
-                modelSettings={activeRun.record && hasTextStudioModelSettings(activeRun.record) ? <TextStudioModelSettings record={activeRun.record} /> : null}
+                intentLabel={intentLabel}
+                requestSettings={activeRun.record && hasTextStudioRequestSettings(activeRun.record) ? <TextStudioRequestSettings record={activeRun.record} /> : null}
                 streamingText={streamingText}
                 verboseConsole={verboseConsole}
                 onCopy={onCopy}

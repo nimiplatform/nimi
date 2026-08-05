@@ -166,7 +166,7 @@ export const RECIPES: Recipe[] = [
           <CompactAction tone="danger">Reset</CompactAction>
           <IconToggleAction aria-label="Pin panel" icon={<Check size={14} />} active />
         </div>
-        <FieldTrigger className="mt-3">Runtime route - text.generate</FieldTrigger>
+        <FieldTrigger className="mt-3">Capability · text.generate</FieldTrigger>
       </AppCardSurface>
     ),
     snippet: `<AppCardSurface kind="promoted-glass" className="kit-surface-sample">
@@ -175,7 +175,7 @@ export const RECIPES: Recipe[] = [
     <CompactAction tone="danger">Reset</CompactAction>
     <IconToggleAction aria-label="Pin panel" icon={<Check size={14} />} active />
   </div>
-  <FieldTrigger className="mt-3">Runtime route - text.generate</FieldTrigger>
+  <FieldTrigger className="mt-3">Capability · text.generate</FieldTrigger>
 </AppCardSurface>`,
     props: [
       { name: 'kind', desc: 'promoted-glass | operational-solid app surface recipe' },
@@ -185,7 +185,7 @@ export const RECIPES: Recipe[] = [
     accessChecks: [
       'CompactAction follows Button keyboard and focus semantics.',
       'IconToggleAction needs aria-label because the icon is decorative.',
-      'FieldTrigger text must identify the consumer-owned field or route.',
+      'FieldTrigger text must identify the consumer-owned field or capability.',
     ],
     tokenFootprint: [
       { token: '--nimi-material-glass-thin-bg', role: 'promoted app surface material', source: 'tables/nimi-ui-themes.yaml' },
@@ -208,7 +208,7 @@ export const RECIPES: Recipe[] = [
         <FieldShell label="App identity">
           <TextField defaultValue="nimi.tester" leading={<Search size={14} />} />
         </FieldShell>
-        <FieldShell label="Capability route">
+        <FieldShell label="Capability">
           <SelectField
             defaultValue="text.generate"
             options={[
@@ -216,7 +216,7 @@ export const RECIPES: Recipe[] = [
               { value: 'chat.stream', label: 'Chat stream' },
               { value: 'image.generate', label: 'Image generation' },
             ]}
-            aria-label="Capability route"
+            aria-label="Capability"
           />
         </FieldShell>
       </div>
@@ -225,7 +225,7 @@ export const RECIPES: Recipe[] = [
   <FieldShell label="App identity">
     <TextField defaultValue="nimi.tester" leading={<Search size={14} />} />
   </FieldShell>
-  <FieldShell label="Capability route">
+  <FieldShell label="Capability">
     <SelectField
       defaultValue="text.generate"
       options={[
@@ -233,7 +233,7 @@ export const RECIPES: Recipe[] = [
         { value: 'chat.stream', label: 'Chat stream' },
         { value: 'image.generate', label: 'Image generation' },
       ]}
-      aria-label="Capability route"
+      aria-label="Capability"
     />
   </FieldShell>
 </div>`,
@@ -440,7 +440,7 @@ export const RECIPES: Recipe[] = [
   </PopoverTrigger>
   <PopoverContent>
     <div className="kit-pop">
-      <strong>Route detail</strong>
+      <strong>Capability detail</strong>
       <span>Local runtime - text.generate</span>
     </div>
   </PopoverContent>

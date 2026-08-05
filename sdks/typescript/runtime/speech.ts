@@ -6,8 +6,7 @@ import { createNimiError } from '../types';
 
 export type NimiRuntimeSpeechVoiceReference =
   | { readonly kind: 'preset_voice_id'; readonly presetVoiceId: string }
-  | { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string }
-  | { readonly kind: 'provider_voice_ref'; readonly providerVoiceRef: string };
+  | { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string };
 
 export function toNimiRuntimeVoiceReference(
   input: NimiRuntimeSpeechVoiceReference | undefined,
@@ -33,13 +32,12 @@ export function toNimiRuntimeVoiceReference(
       },
     };
   }
-  return {
-    kind: VoiceReferenceKind.PROVIDER_VOICE_REF,
-    reference: {
-      oneofKind: 'providerVoiceRef',
-      providerVoiceRef: requireVoiceRefText(input.providerVoiceRef, 'provider_voice_ref'),
-    },
-  };
+  throw createNimiError({
+    message: 'Ordinary Runtime voice references must use preset_voice_id or voice_asset_id',
+    reasonCode: 'SDK_RUNTIME_VOICE_REF_KIND_UNSUPPORTED',
+    actionHint: 'use_preset_or_voice_asset_reference',
+    source: 'sdk',
+  });
 }
 
 function requireVoiceRefText(value: unknown, field: string): string {

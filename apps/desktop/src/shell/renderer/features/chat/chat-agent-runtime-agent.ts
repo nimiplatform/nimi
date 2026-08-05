@@ -72,7 +72,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     reasoning: (() => {
       const resolved = resolveChatThinkingConfig(
         request.reasoningPreference,
-        { supported: false, reason: 'agent_route_unsupported' },
+        { supported: false, reason: 'agent_execution_unsupported' },
       );
       if (!resolved) {
         return undefined;

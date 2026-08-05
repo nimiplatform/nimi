@@ -1,12 +1,9 @@
 import type { JsonObject } from '../types';
 import {
-  NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
   isNimiRuntimeLocalRunnableAssetKindId,
-  nimiRuntimeLocalCapabilitiesForAssetKind,
   parseNimiRuntimeLocalRunnableAssetKindId,
   type NimiRuntimeLocalRunnableAssetKindId,
 } from './local-asset-vocabulary';
-import { normalizeNimiRuntimeRouteCapabilityToken } from './route-options';
 
 export const NIMI_RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT = '';
 export const NIMI_RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT = NIMI_RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT;
@@ -103,39 +100,6 @@ export interface NimiRuntimeConfigLocalNodeMatrixEntryProjection {
   readonly providerHints?: NimiRuntimeConfigLocalProviderHints;
 }
 
-export type NimiRuntimeRouteCapabilityCoverageLocalNodeInput = {
-  readonly capability?: unknown;
-  readonly available?: unknown;
-  readonly provider?: unknown;
-  readonly reasonCode?: unknown;
-};
-
-export type NimiRuntimeRouteCapabilityCoverageLocalModelInput = {
-  readonly status?: unknown;
-  readonly capabilities?: readonly unknown[];
-};
-
-export type NimiRuntimeRouteCapabilityCoverageConnectorInput = {
-  readonly status?: unknown;
-  readonly models?: readonly unknown[];
-  readonly modelCapabilities?: Record<string, readonly unknown[] | undefined>;
-};
-
-export type NimiRuntimeRouteCapabilityCoverageProjectionInput = {
-  readonly capability: NimiRuntimeLocalRunnableAssetKindId;
-  readonly localNodes?: readonly NimiRuntimeRouteCapabilityCoverageLocalNodeInput[];
-  readonly localModels?: readonly NimiRuntimeRouteCapabilityCoverageLocalModelInput[];
-  readonly connectors?: readonly NimiRuntimeRouteCapabilityCoverageConnectorInput[];
-};
-
-export type NimiRuntimeRouteCapabilityCoverageProjection = {
-  readonly capability: NimiRuntimeLocalRunnableAssetKindId;
-  readonly localAvailable: boolean;
-  readonly cloudAvailable: boolean;
-  readonly localProvider?: string;
-  readonly errorReason?: string;
-};
-
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -189,57 +153,6 @@ function normalizeNimiRuntimeConfigLocalProviderHints(
     return undefined;
   }
   return value as NimiRuntimeConfigLocalProviderHints;
-}
-
-function nimiRuntimeConfigLocalModelSupportsCapability(
-  model: NimiRuntimeConfigLocalModelProjection,
-  capability: NimiRuntimeLocalRunnableAssetKindId,
-): boolean {
-  return model.capabilities.includes(capability);
-}
-
-function nimiRuntimeConfigEvidenceSupportsRunnableAssetKind(
-  capabilities: readonly unknown[] | undefined,
-  capability: NimiRuntimeLocalRunnableAssetKindId,
-): boolean {
-  const canonicalCapabilities = nimiRuntimeLocalCapabilitiesForAssetKind(capability)
-    .map((item) => normalizeNimiRuntimeRouteCapabilityToken(item))
-    .filter((item): item is string => Boolean(item));
-  return (capabilities || []).some((item) => {
-    const raw = normalizeText(item).toLowerCase();
-    if (raw === capability) {
-      return true;
-    }
-    const normalized = normalizeNimiRuntimeRouteCapabilityToken(raw);
-    return Boolean(normalized && canonicalCapabilities.includes(normalized));
-  });
-}
-
-function nimiRuntimeConfigConnectorSupportsRunnableAssetKind(
-  connector: NimiRuntimeRouteCapabilityCoverageConnectorInput,
-  capability: NimiRuntimeLocalRunnableAssetKindId,
-): boolean {
-  if (normalizeText(connector.status).toLowerCase() !== 'healthy') {
-    return false;
-  }
-  const models = (connector.models || [])
-    .map((item) => normalizeText(item))
-    .filter(Boolean);
-  if (models.length === 0) {
-    return false;
-  }
-  const modelCapabilities = connector.modelCapabilities || {};
-  return models.some((modelId) => nimiRuntimeConfigEvidenceSupportsRunnableAssetKind(
-    modelCapabilities[modelId],
-    capability,
-  ));
-}
-
-function nimiRuntimeConfigLocalModelStatusRank(status: NimiRuntimeConfigLocalModelStatus): number {
-  if (status === 'active') return 0;
-  if (status === 'installed') return 1;
-  if (status === 'unhealthy') return 2;
-  return 3;
 }
 
 export function normalizeNimiRuntimeConfigEndpoint(
@@ -411,70 +324,4 @@ export function normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection(
     policyGate: normalizeText(raw.policyGate) || undefined,
     providerHints: normalizeNimiRuntimeConfigLocalProviderHints(raw.providerHints),
   };
-}
-
-export function pickPreferredNimiRuntimeConfigLocalModel(input: {
-  readonly models: readonly NimiRuntimeConfigLocalModelProjection[];
-  readonly capability?: NimiRuntimeLocalRunnableAssetKindId;
-}): NimiRuntimeConfigLocalModelProjection | null {
-  const capability = input.capability || 'chat';
-  const models = input.models
-    .filter((model) => model.status !== 'removed' && nimiRuntimeConfigLocalModelSupportsCapability(model, capability))
-    .sort((left, right) => {
-      const rankDelta = nimiRuntimeConfigLocalModelStatusRank(left.status)
-        - nimiRuntimeConfigLocalModelStatusRank(right.status);
-      if (rankDelta !== 0) {
-        return rankDelta;
-      }
-      return left.model.localeCompare(right.model);
-    });
-  return models[0] || null;
-}
-
-export function projectNimiRuntimeRouteCapabilityCoverage(
-  input: NimiRuntimeRouteCapabilityCoverageProjectionInput,
-): NimiRuntimeRouteCapabilityCoverageProjection {
-  const capability = input.capability;
-  const localNode = (input.localNodes || []).find((node) => (
-    normalizeText(node.capability).toLowerCase() === capability
-    && Boolean(node.available)
-  )) || null;
-  const hasLocalModel = (input.localModels || []).some((model) => (
-    normalizeText(model.status).toLowerCase() === 'active'
-    && nimiRuntimeConfigEvidenceSupportsRunnableAssetKind(model.capabilities, capability)
-  ));
-  const localAvailable = Boolean(localNode) || hasLocalModel;
-  const cloudAvailable = (input.connectors || []).some((connector) => (
-    nimiRuntimeConfigConnectorSupportsRunnableAssetKind(connector, capability)
-  ));
-  const errorNode = !localAvailable && !cloudAvailable
-    ? (input.localNodes || []).find((node) => (
-      normalizeText(node.capability).toLowerCase() === capability
-      && !Boolean(node.available)
-      && normalizeText(node.reasonCode)
-    )) || null
-    : null;
-  return {
-    capability,
-    localAvailable,
-    cloudAvailable,
-    localProvider: localNode ? normalizeText(localNode.provider) || undefined : undefined,
-    errorReason: errorNode ? normalizeText(errorNode.reasonCode) || undefined : undefined,
-  };
-}
-
-export function projectNimiRuntimeRouteCapabilityCoverageList(input: {
-  readonly capabilities?: readonly NimiRuntimeLocalRunnableAssetKindId[];
-  readonly localNodes?: readonly NimiRuntimeRouteCapabilityCoverageLocalNodeInput[];
-  readonly localModels?: readonly NimiRuntimeRouteCapabilityCoverageLocalModelInput[];
-  readonly connectors?: readonly NimiRuntimeRouteCapabilityCoverageConnectorInput[];
-}): NimiRuntimeRouteCapabilityCoverageProjection[] {
-  return [...(input.capabilities || NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS)].map((capability) => (
-    projectNimiRuntimeRouteCapabilityCoverage({
-      capability,
-      localNodes: input.localNodes,
-      localModels: input.localModels,
-      connectors: input.connectors,
-    })
-  ));
 }

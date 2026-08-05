@@ -182,7 +182,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                   <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--nimi-border-strong)] border-t-transparent" />
                   {model.discovering
                     ? t('runtimeConfig.panel.discovering', { defaultValue: 'Discovering...' })
-                    : t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking...' })}
+                    : t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking Runtime...' })}
                 </span>
               )}
               <RuntimeHealthBadge daemonRunning={daemonRunning} providerStatus={runtimeStatus} />

@@ -12,7 +12,7 @@ import test from 'node:test';
 import { generateObject, generateText, jsonSchema, stepCountIs, streamObject, streamText, tool } from 'ai';
 
 import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from '@nimiplatform/sdk/ai';
-import type { NimiFinishReason, NimiModelRef, NimiRunEvent, NimiToolCall, NimiUsage } from '@nimiplatform/sdk/contracts';
+import type { NimiFinishReason, NimiRunEvent, NimiToolCall, NimiUsage } from '@nimiplatform/sdk/contracts';
 import { createNimiVercelLanguageModel, createNimiVercelProvider } from './index';
 
 const VERCEL_AI_METADATA_KEY = 'x-nimi-vercel-ai-metadata';
@@ -57,9 +57,9 @@ function stepFinishReason(step: MockStep): NimiFinishReason {
   return step.finishReason ?? (step.toolCalls && step.toolCalls.length > 0 ? 'tool-calls' : 'stop');
 }
 
-function mockNimiModel(steps: MockStep | readonly MockStep[], modelId = 'mock-model'): MockNimiModel {
+function mockNimiModel(steps: MockStep | readonly MockStep[]): MockNimiModel {
   const script = Array.isArray(steps) ? [...(steps as readonly MockStep[])] : [steps as MockStep];
-  const modelRef: NimiModelRef = { providerId: 'mock', modelId };
+  const modelRef = { modelId: 'text.generate' as const };
   const calls: NimiGenerateTextRequest[] = [];
   let generateIndex = 0;
   let streamIndex = 0;
@@ -261,12 +261,12 @@ test('conformance/generateText: projects providerOptions into request metadata',
   await generateText({
     model: createNimiVercelLanguageModel({ model }),
     prompt: 'hi',
-    providerOptions: { nimi: { route: 'cloud' } },
+    providerOptions: { nimi: { correlation: 'upstream-test' } },
   });
 
   const encodedMetadata = calls[0]?.parameters?.metadata?.[VERCEL_AI_METADATA_KEY];
   const metadata = JSON.parse(String(encodedMetadata ?? '{}')) as { providerOptions?: unknown; headers?: unknown };
-  assert.deepEqual(metadata.providerOptions, { nimi: { route: 'cloud' } });
+  assert.deepEqual(metadata.providerOptions, { nimi: { correlation: 'upstream-test' } });
   if (metadata.headers !== undefined) {
     assert.equal(typeof metadata.headers, 'object');
   }
@@ -456,7 +456,7 @@ test('conformance/generateText: maps multiple file parts including a URL-sourced
 });
 
 test('conformance/streamText: surfaces a model error run event through the framework stream', async () => {
-  const modelRef: NimiModelRef = { providerId: 'mock', modelId: 'error-model' };
+  const modelRef = { modelId: 'text.generate' as const };
   const model: NimiAiModel = {
     model: modelRef,
     async generateText(): Promise<NimiGenerateTextResult> {
@@ -506,10 +506,10 @@ test('conformance/generateText: projects top-k sampling into Nimi request parame
   assert.equal(calls[0]?.parameters?.topK, 5);
 });
 
-test('conformance/provider: Runtime-style provider drives generateText through languageModel(id)', async () => {
-  const { model } = mockNimiModel({ text: 'from provider' }, 'gpt-style');
+test('conformance/provider: Runtime-style provider drives generateText through the text capability facade', async () => {
+  const { model } = mockNimiModel({ text: 'from provider' });
   const provider = createNimiVercelProvider({ model });
-  const result = await generateText({ model: provider.languageModel('gpt-style'), prompt: 'hi' });
+  const result = await generateText({ model: provider.languageModel('text.generate'), prompt: 'hi' });
 
   assert.equal(result.text, 'from provider');
 });

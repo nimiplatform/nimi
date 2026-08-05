@@ -4,7 +4,7 @@ import test from 'node:test';
 import { Agent } from '@mastra/core/agent';
 import type { MastraModelConfig } from '@mastra/core/llm';
 
-import type { NimiClient } from '@nimiplatform/sdk';
+import type { NimiClient, NimiClientRuntimeModelOptions } from '@nimiplatform/sdk';
 import { isNimiError } from '@nimiplatform/sdk';
 import type { NimiGenerateTextRequest } from '@nimiplatform/sdk/ai';
 import {
@@ -24,12 +24,12 @@ import './mastra.embedding-voice.test';
 test('mastra adapter produces a LanguageModelV3 Mastra accepts as a model config', () => {
   // The wrapped Nimi model is a v3 provider model assignable to MastraModelConfig
   // and accepted by the Agent constructor — the core migration guarantee.
-  const fixture = createNimiFixtureModel({ modelId: 'mastra-model' });
+  const fixture = createNimiFixtureModel();
   const model = createNimiMastraModel({ model: fixture.model });
 
   assert.equal(model.specificationVersion, 'v3');
   assert.equal(model.provider, 'nimi');
-  assert.equal(model.modelId, 'mastra-model');
+  assert.equal(model.modelId, 'text.generate');
 
   const asMastraConfig: MastraModelConfig = model;
   const agent = new Agent({ id: 'shape', name: 'shape', instructions: 'shape check', model: asMastraConfig });
@@ -179,10 +179,10 @@ test('mastra provider fails closed on invalid configuration with a typed error',
   assertConfigError(() => createNimiMastraProvider({ model: createNimiFixtureModel().model, client: {} as NimiClient } as never));
 });
 
-test('mastra provider fails closed on an unknown model id with a typed error', () => {
-  const provider = createNimiMastraProvider({ model: createNimiFixtureModel({ modelId: 'known-model' }).model });
+test('mastra provider fails closed on anything except the text capability id', () => {
+  const provider = createNimiMastraProvider({ model: createNimiFixtureModel().model });
 
-  assert.equal(provider.languageModel('known-model').modelId, 'known-model');
+  assert.equal(provider.languageModel('text.generate').modelId, 'text.generate');
   assert.throws(
     () => provider.languageModel('unknown-model'),
     (error: unknown) => {
@@ -194,17 +194,10 @@ test('mastra provider fails closed on an unknown model id with a typed error', (
   );
 });
 
-test('mastra runtime-backed provider requires route policy and explicit subject mode', () => {
-  const cloudTargetRef = {
-    kind: 'cloud-connector',
-    connectorId: 'connector-test',
-    remoteModelCatalogId: 'remote-catalog:model-1',
-    providerModelId: 'model-1',
-    provider: 'runtime',
-  } as const;
+test('mastra runtime-backed provider requires explicit external subject mode', () => {
   const client = {
     ai: {
-      createRuntimeModel() {
+      createRuntimeModel(_options: NimiClientRuntimeModelOptions) {
         return createNimiFixtureModel().model;
       },
       createRuntimeEmbeddingClient() {
@@ -218,19 +211,9 @@ test('mastra runtime-backed provider requires route policy and explicit subject 
   } as unknown as NimiClient;
 
   assert.throws(
-    () => createNimiMastraProvider({ client } as never).languageModel('model-1'),
-    (error: unknown) => {
-      assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
-      assert.equal(error.feature, 'provider.routePolicy');
-      return true;
-    },
-  );
-  assert.throws(
     () => createNimiMastraProvider({
       client,
-      routePolicy: 'cloud',
       subjectUserId: 'user-1',
-      targetRef: cloudTargetRef,
     }).languageModel('model-1'),
     (error: unknown) => {
       assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
@@ -239,45 +222,16 @@ test('mastra runtime-backed provider requires route policy and explicit subject 
     },
   );
   assert.throws(
-    () => createNimiMastraProvider({ client, routePolicy: 'cloud' }).languageModel('model-1'),
-    (error: unknown) => {
-      assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
-      assert.equal(error.feature, 'provider.targetRef');
-      return true;
-    },
-  );
-  assert.throws(
-    () => createNimiMastraProvider({ client, embedding: { appId: 'app-1', subjectUserId: 'user-1' } }).embeddingModel('embed-1'),
-    (error: unknown) => {
-      assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
-      assert.equal(error.feature, 'provider.embedding.routePolicy');
-      return true;
-    },
-  );
-  assert.throws(
     () => createNimiMastraProvider({
       client,
       embedding: {
         appId: 'app-1',
-        routePolicy: 'cloud',
         subjectUserId: 'user-1',
-        targetRef: cloudTargetRef,
       },
-    }).embeddingModel('embed-1'),
+    }).embeddingModel('text.embed'),
     (error: unknown) => {
       assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
       assert.equal(error.feature, 'provider.embedding.subjectUserId');
-      return true;
-    },
-  );
-  assert.throws(
-    () => createNimiMastraProvider({
-      client,
-      embedding: { appId: 'app-1', routePolicy: 'cloud' },
-    }).embeddingModel('embed-1'),
-    (error: unknown) => {
-      assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
-      assert.equal(error.feature, 'provider.embedding.targetRef');
       return true;
     },
   );

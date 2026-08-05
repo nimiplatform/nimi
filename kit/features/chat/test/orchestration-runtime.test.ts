@@ -116,37 +116,24 @@ describe('chat orchestration primitives', () => {
     expect(result.trimmedCount).toBe(1);
   });
 
-  it('fails closed before Runtime execution when sdk adapter request lacks an explicit model', async () => {
+  it('dispatches the sdk adapter without caller-owned model selection', async () => {
     const runtimeHarness = createRuntimeAiTestRuntime();
     const adapter = createSdkConversationRuntimeAdapter({
       runtime: runtimeHarness.runtime,
       appId: 'kit-chat-test-app',
     });
 
-    await expect(adapter.streamText({
+    const stream = await adapter.streamText({
       modeId: 'simple-ai',
       threadId: 'thread-1',
       turnId: 'turn-1',
       messages: [{ role: 'user', text: 'Hello' }],
-    })).rejects.toThrow('conversation runtime request requires an explicit model');
-    expect(runtimeHarness.streamScenario).not.toHaveBeenCalled();
-  });
-
-  it('fails closed before Runtime execution when sdk adapter request uses auto as a pseudo-model', async () => {
-    const runtimeHarness = createRuntimeAiTestRuntime();
-    const adapter = createSdkConversationRuntimeAdapter({
-      runtime: runtimeHarness.runtime,
-      appId: 'kit-chat-test-app',
     });
-
-    await expect(adapter.streamText({
-      modeId: 'simple-ai',
-      threadId: 'thread-1',
-      turnId: 'turn-1',
-      model: 'auto',
-      messages: [{ role: 'user', text: 'Hello' }],
-    })).rejects.toThrow('conversation runtime request requires a concrete Runtime model, not auto');
-    expect(runtimeHarness.streamScenario).not.toHaveBeenCalled();
+    for await (const _event of stream) {
+      // Consume the lazy Runtime stream.
+    }
+    expect(runtimeHarness.streamScenario).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(runtimeHarness.streamScenario.mock.calls[0]?.[0])).not.toMatch(/model|route|connector|target/iu);
   });
 });
 
@@ -172,8 +159,6 @@ describe('simple-ai conversation provider', () => {
       runtimeAdapter,
       resolveSystemPrompt: () => 'desktop-app-preset',
       resolveRuntimeRequest: () => ({
-        model: 'runtime-selected-chat',
-        route: 'cloud',
         reasoning: {
           mode: 'on',
           traceMode: 'separate',
@@ -248,9 +233,6 @@ describe('simple-ai conversation provider', () => {
         ],
         name: null,
       }),
-      resolveRuntimeRequest: () => ({
-        model: 'runtime-selected-chat',
-      }),
     });
 
     const events = await collectEvents(provider.runTurn(createTurnInput({
@@ -294,12 +276,7 @@ describe('simple-ai conversation provider', () => {
         throw error;
       }),
     };
-    const provider = createSimpleAiConversationProvider({
-      runtimeAdapter,
-      resolveRuntimeRequest: () => ({
-        model: 'runtime-selected-chat',
-      }),
-    });
+    const provider = createSimpleAiConversationProvider({ runtimeAdapter });
 
     const events = await collectEvents(provider.runTurn(createTurnInput()));
 
@@ -330,12 +307,7 @@ describe('simple-ai conversation provider', () => {
         }),
       ])),
     };
-    const provider = createSimpleAiConversationProvider({
-      runtimeAdapter,
-      resolveRuntimeRequest: () => ({
-        model: 'runtime-selected-chat',
-      }),
-    });
+    const provider = createSimpleAiConversationProvider({ runtimeAdapter });
 
     const events = await collectEvents(provider.runTurn(createTurnInput()));
 

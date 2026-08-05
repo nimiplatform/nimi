@@ -6,9 +6,6 @@ import {
   normalizeNimiRuntimeConfigConnectorProjection,
   normalizeNimiRuntimeConfigLocalModelProjection,
   normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection,
-  pickPreferredNimiRuntimeConfigLocalModel,
-  projectNimiRuntimeRouteCapabilityCoverage,
-  projectNimiRuntimeRouteCapabilityCoverageList,
   runtimeConnectorProjectionToNimiRuntimeConfigConnector,
 } from './index';
 
@@ -53,7 +50,7 @@ test('Runtime config connector projection normalizes draft and connector evidenc
   assert.equal(normalized.status, 'healthy');
 });
 
-test('Runtime local config projection selects the active supported local model', () => {
+test('Runtime local config projection normalizes local models and nodes without ranking', () => {
   const models = [
     normalizeNimiRuntimeConfigLocalModelProjection({
       localModelId: 'removed',
@@ -78,113 +75,8 @@ test('Runtime local config projection selects the active supported local model',
     adapter: 'media_native_adapter',
     available: true,
   });
-  const preferred = pickPreferredNimiRuntimeConfigLocalModel({ models, capability: 'chat' });
-
   assert.equal(models[1]?.endpoint, 'http://127.0.0.1:11434/v1');
-  assert.equal(preferred?.localModelId, 'active');
   assert.equal(node.provider, 'runtime-local');
   assert.equal(node.adapter, 'media_native_adapter');
   assert.equal(node.available, true);
-});
-
-test('Runtime route capability coverage projects local and cloud availability', () => {
-  const imageCoverage = projectNimiRuntimeRouteCapabilityCoverage({
-    capability: 'image',
-    localNodes: [
-      {
-        capability: 'image',
-        provider: 'runtime-local',
-        available: true,
-      },
-    ],
-    localModels: [
-      {
-        status: 'installed',
-        capabilities: ['image.generate'],
-      },
-    ],
-    connectors: [
-      {
-        status: 'healthy',
-        models: ['cloud-image'],
-        modelCapabilities: {
-          'cloud-image': ['image.generate'],
-        },
-      },
-    ],
-  });
-
-  assert.deepEqual(imageCoverage, {
-    capability: 'image',
-    localAvailable: true,
-    cloudAvailable: true,
-    localProvider: 'runtime-local',
-    errorReason: undefined,
-  });
-
-  const embeddingCoverage = projectNimiRuntimeRouteCapabilityCoverage({
-    capability: 'embedding',
-    localModels: [
-      {
-        status: 'active',
-        capabilities: ['text.embed'],
-      },
-    ],
-    connectors: [
-      {
-        status: 'unreachable',
-        models: ['embedder'],
-        modelCapabilities: {
-          embedder: ['text.embed'],
-        },
-      },
-    ],
-  });
-
-  assert.equal(embeddingCoverage.localAvailable, true);
-  assert.equal(embeddingCoverage.cloudAvailable, false);
-});
-
-test('Runtime route capability coverage preserves local error reason when no route exists', () => {
-  const coverage = projectNimiRuntimeRouteCapabilityCoverage({
-    capability: 'stt',
-    localNodes: [
-      {
-        capability: 'stt',
-        available: false,
-        reasonCode: 'LOCAL_SPEECH_ATTACHED_ENDPOINT_REQUIRED',
-      },
-    ],
-    localModels: [],
-    connectors: [],
-  });
-
-  assert.deepEqual(coverage, {
-    capability: 'stt',
-    localAvailable: false,
-    cloudAvailable: false,
-    localProvider: undefined,
-    errorReason: 'LOCAL_SPEECH_ATTACHED_ENDPOINT_REQUIRED',
-  });
-});
-
-test('Runtime route capability coverage list defaults to runnable local asset kinds', () => {
-  const coverage = projectNimiRuntimeRouteCapabilityCoverageList({
-    localModels: [
-      {
-        status: 'active',
-        capabilities: ['chat'],
-      },
-    ],
-  });
-
-  assert.deepEqual(coverage.map((item) => item.capability), [
-    'chat',
-    'image',
-    'video',
-    'tts',
-    'stt',
-    'embedding',
-  ]);
-  assert.equal(coverage.find((item) => item.capability === 'chat')?.localAvailable, true);
 });

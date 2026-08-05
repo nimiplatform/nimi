@@ -11,7 +11,7 @@ export type TesterRunConfigSnapshot = {
     | 'section'
     | 'status'
     | 'source'
-    | 'modelLabel'
+    | 'intentLabel'
     | 'detail'
     | 'params'
     | 'paramsSummary'
@@ -42,8 +42,7 @@ export type TesterRunHistoryResultSnapshot =
       outputTokens?: number;
       totalTokens?: number;
       traceId?: string;
-      modelResolved?: string;
-      routeDecision?: string;
+      simulated?: boolean;
     }
   | {
       ok: true;
@@ -54,8 +53,7 @@ export type TesterRunHistoryResultSnapshot =
       sample: number[];
       totalTokens?: number;
       traceId?: string;
-      modelResolved?: string;
-      routeDecision?: string;
+      simulated?: boolean;
     }
   | {
       ok: true;
@@ -71,8 +69,7 @@ export type TesterRunHistoryResultSnapshot =
         displayName?: string;
       };
       traceId?: string;
-      modelResolved?: string;
-      routeDecision?: string;
+      simulated?: boolean;
     }
   | {
       ok: true;
@@ -84,18 +81,16 @@ export type TesterRunHistoryResultSnapshot =
       jobState: string;
       artifactCount: number;
       traceId?: string;
-      modelResolved?: string;
-      routeDecision?: string;
+      simulated?: boolean;
     }
   | {
       ok: true;
       kind: 'voice-catalog';
       summary: string;
-      modelResolved: string;
       voiceCount: number;
       sample: Array<{ voiceId: string; name: string; lang: string }>;
       traceId?: string;
-      routeDecision?: string;
+      simulated?: boolean;
     }
   | {
       ok: false;
@@ -125,7 +120,7 @@ export type TesterFlatRunRecord = TesterRunHistoryRecord & {
 };
 
 export type TesterRunStatusTone = 'success' | 'warning' | 'danger' | 'info';
-export type TesterRunModelSource = 'local' | 'cloud' | 'unknown';
+export type TesterRunIntentSource = 'local' | 'cloud' | 'unknown';
 type TesterUnavailableRunResult = Extract<TesterCapabilityRunResult, { ok: false }>;
 type TesterUnavailableHistorySnapshot = Extract<TesterRunHistoryResultSnapshot, { ok: false }>;
 export type TesterRunPromptControlFact = {
@@ -233,12 +228,11 @@ function compactBodySummary(value: string): string {
   return normalized.length > 180 ? `${normalized.slice(0, 177)}...` : normalized;
 }
 
-function traceFields(result: TesterCapabilityRunResult): Pick<Extract<TesterRunHistoryResultSnapshot, { ok: true }>, 'traceId' | 'modelResolved' | 'routeDecision'> {
+function traceFields(result: TesterCapabilityRunResult): Pick<Extract<TesterRunHistoryResultSnapshot, { ok: true }>, 'traceId' | 'simulated'> {
   if (isTesterUnavailableRunResult(result)) return {};
   return {
     traceId: result.trace?.traceId,
-    modelResolved: result.trace?.modelResolved,
-    routeDecision: result.trace?.routeDecision,
+    simulated: result.trace?.simulated,
   };
 }
 
@@ -334,11 +328,10 @@ export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRun
     ok: true,
     kind: 'voice-catalog',
     summary: `${output.voiceCount} voice${output.voiceCount === 1 ? '' : 's'}${output.sample.length ? ` / ${output.sample.map((voice) => voice.name || voice.voiceId).filter(Boolean).join(', ')}` : ''}`,
-    modelResolved: output.modelResolved,
     voiceCount: output.voiceCount,
     sample: output.sample,
     traceId: result.trace?.traceId,
-    routeDecision: result.trace?.routeDecision,
+    simulated: result.trace?.simulated,
   };
 }
 
@@ -355,21 +348,6 @@ function formatTesterTokenUsage(inputTokens?: number, outputTokens?: number, tot
   const resolvedTotal = totalTokens ?? (inputTokens !== undefined && outputTokens !== undefined ? inputTokens + outputTokens : undefined);
   if (resolvedTotal !== undefined) return `${resolvedTotal} tokens`;
   return '';
-}
-
-function cleanTesterRunModelName(value: string): string {
-  const normalized = value.trim();
-  return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
-}
-
-function isOpaqueRuntimeModelId(value: string): boolean {
-  return /^[0-9A-HJKMNP-TV-Z]{20,32}$/u.test(value.trim());
-}
-
-function genericTesterRunModelLabel(source: TesterRunModelSource): string {
-  if (source === 'local') return 'Local runtime model';
-  if (source === 'cloud') return 'Cloud model';
-  return 'Runtime model';
 }
 
 function compactSettingValue(value: string, maxLength = 220): string {
@@ -425,7 +403,7 @@ const PARAM_GROUP_LABELS = {
   advanced: 'Advanced settings',
 } as const;
 
-const TEXT_MODEL_PARAM_ORDER: ReadonlyArray<{ key: string; label: string; group: string }> = [
+const TEXT_REQUEST_PARAM_ORDER: ReadonlyArray<{ key: string; label: string; group: string }> = [
   { key: 'tone', label: 'Tone', group: PARAM_GROUP_LABELS.prompt },
   { key: 'length', label: 'Length', group: PARAM_GROUP_LABELS.prompt },
   { key: 'temperature', label: 'Temperature', group: PARAM_GROUP_LABELS.generation },
@@ -438,7 +416,7 @@ const TEXT_MODEL_PARAM_ORDER: ReadonlyArray<{ key: string; label: string; group:
   { key: 'frequencyPenalty', label: 'Frequency Penalty', group: PARAM_GROUP_LABELS.advanced },
 ];
 
-const HIDDEN_MODEL_PARAM_KEYS = Object.freeze([
+const HIDDEN_REQUEST_PARAM_KEYS = Object.freeze([
   'companionSlots',
   'profileEntries',
   'profile_entries',
@@ -456,11 +434,11 @@ function hasRunConfigParam(value: unknown): boolean {
 
 function runConfigParamDefinitions(runConfig: TesterRunConfigSnapshot): ReadonlyArray<{ key: string; label: string; group: string }> {
   if (runConfig.target.capabilityId === 'text.generate' || runConfig.target.capabilityId === 'chat.stream') {
-    return TEXT_MODEL_PARAM_ORDER;
+    return TEXT_REQUEST_PARAM_ORDER;
   }
   return Object.keys(runConfig.target.params)
-    .filter((key) => !HIDDEN_MODEL_PARAM_KEYS.includes(key as (typeof HIDDEN_MODEL_PARAM_KEYS)[number]))
-    .map((key) => ({ key, label: key, group: 'Model parameters' }));
+    .filter((key) => !HIDDEN_REQUEST_PARAM_KEYS.includes(key as (typeof HIDDEN_REQUEST_PARAM_KEYS)[number]))
+    .map((key) => ({ key, label: key, group: 'Request parameters' }));
 }
 
 export function getTesterRunConfigParamRows(runConfig: TesterRunConfigSnapshot): TesterRunConfigParamRow[] {
@@ -480,54 +458,18 @@ export function getTesterRunConfigParamRows(runConfig: TesterRunConfigSnapshot):
   });
 }
 
-function routeDecisionModelSource(value: string | undefined): TesterRunModelSource {
-  const normalized = (value || '').trim().toLowerCase();
-  if (normalized === 'local' || normalized === '1' || normalized === 'route_policy_local') return 'local';
-  if (normalized === 'cloud' || normalized === '2' || normalized === 'route_policy_cloud') return 'cloud';
-  return 'unknown';
-}
-
-function modelNameSource(value: string | undefined): TesterRunModelSource {
-  const normalized = (value || '').trim().toLowerCase();
-  if (/^(local-import|local)\//.test(normalized)) return 'local';
-  if (/^cloud\//.test(normalized)) return 'cloud';
-  return 'unknown';
-}
-
-export function getTesterRunModelLabel(record: TesterRunHistoryRecord): string {
-  if (record.runConfig?.target.modelLabel) {
-    const modelLabel = cleanTesterRunModelName(record.runConfig.target.modelLabel);
-    if (isOpaqueRuntimeModelId(modelLabel)) {
-      return genericTesterRunModelLabel(getTesterRunModelSource(record));
-    }
-    return modelLabel;
-  }
-  const result = record.result;
-  if (result?.ok) {
-    const modelResolved = 'modelResolved' in result ? result.modelResolved?.trim() : '';
-    if (modelResolved) {
-      const modelLabel = cleanTesterRunModelName(modelResolved);
-      return isOpaqueRuntimeModelId(modelLabel)
-        ? genericTesterRunModelLabel(getTesterRunModelSource(record))
-        : modelLabel;
-    }
-  }
-  if (record.status === 'local-fixture') return 'local fixture';
-  if (!result) return 'model not captured';
+export function getTesterRunIntentLabel(record: TesterRunHistoryRecord): string {
+  const label = record.runConfig?.target.intentLabel?.trim();
+  if (label) return label;
+  if (record.status === 'local-fixture') return 'Local fixture';
   return getTesterRunStatusLabel(record.status);
 }
 
-export function getTesterRunModelSource(record: TesterRunHistoryRecord): TesterRunModelSource {
+export function getTesterRunIntentSource(record: TesterRunHistoryRecord): TesterRunIntentSource {
   const targetSource = record.runConfig?.target.source;
   if (targetSource === 'local' || targetSource === 'local-fixture') return 'local';
   if (targetSource === 'cloud') return 'cloud';
-  const result = record.result;
-  if (!result?.ok) return record.status === 'local-fixture' ? 'local' : 'unknown';
-  const routeDecision = 'routeDecision' in result ? result.routeDecision : undefined;
-  const fromRoute = routeDecisionModelSource(routeDecision);
-  if (fromRoute !== 'unknown') return fromRoute;
-  const modelResolved = 'modelResolved' in result ? result.modelResolved : undefined;
-  return modelNameSource(modelResolved);
+  return record.status === 'local-fixture' ? 'local' : 'unknown';
 }
 
 export function getTesterRunMetricSummary(record: TesterRunHistoryRecord): string {
@@ -566,5 +508,5 @@ export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[]
   if (result.kind === 'embedding') return ['Embedding ready'];
   if (result.kind === 'artifacts') return ['Ready'];
   if (result.kind === 'transcript') return ['Ready'];
-  return [`${result.voiceCount} voices`, result.modelResolved].filter(Boolean);
+  return [`${result.voiceCount} voices`];
 }

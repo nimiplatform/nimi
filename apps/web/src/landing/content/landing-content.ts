@@ -70,39 +70,16 @@ export type LandingContent = {
       localModelsLabel: string;
       modalitiesLabel: string;
       modalitiesDescription: string;
-      industryLeadersLabel: string;
       shortcutLabel: string;
       clearSearchLabel: string;
       matchingProvidersLabel: string;
       liveCatalogLabel: string;
       supportedByLabel: string;
     };
-    liveBadge: string;
-    featuredProvidersLabel: string;
-    stats: {
-      providers: string;
-      models: string;
-      cloudProviders: string;
-      localModels: string;
-    };
-    localTitle: string;
-    localHeadline: string;
-    localDescription: string;
-    capabilitiesTitle: string;
-    capabilitiesHeadline: string;
-    capabilitiesDescription: string;
     capabilityLabels: Record<AdmittedCapability, string>;
-    capabilityCountLabel: string;
-    cloudBadge: string;
-    matrixTitle: string;
-    matrixHeadline: string;
-    matrixDescription: string;
     providerDetailSuffix: string;
-    searchResultsTitle: string;
-    searchResultsDescription: string;
     noResultsTitle: string;
     noResultsDescription: string;
-    sourceNote: string;
     providerDisplayNames: Readonly<Record<string, string>>;
     marqueeProviderOrder: ReadonlyArray<string>;
   };
@@ -149,13 +126,10 @@ export type LandingContent = {
     chromeLabels: {
       appName: string;
       runtime: string;
-      health: string;
-      healthDetail: string;
       workspace: string;
-      activity: string;
-      ready: string;
-      connected: string;
-      installed: string;
+      capabilities: string;
+      localIntent: string;
+      cloudIntent: string;
     };
     features: ReadonlyArray<{
       icon: string;

@@ -31,11 +31,9 @@ export {
   LocalModelCenterQuickPicksSection,
   LocalModelCenterVerifiedAssetsSection,
 } from './runtime-config-local-model-center-catalog-sections';
-export { LocalModelCenterProfileTargetView } from './runtime-config-local-model-center-profile-target-view';
 
 type ToolbarProps = {
   checkingHealth: boolean;
-  localHealthy: boolean;
   lastCheckedAt: string | null;
   discovering: boolean;
   importMenuRef: RefObject<HTMLDivElement | null>;
@@ -64,9 +62,9 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           onClick={props.onHealthCheck}
           disabled={props.checkingHealth}
           title={props.checkingHealth
-            ? i18n.t('runtimeConfig.localModelCenter.checking', { defaultValue: 'Checking...' })
-            : `${i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}${healthTooltip ? ` \u00b7 ${healthTooltip}` : ''}`}
-          aria-label={i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}
+            ? i18n.t('runtimeConfig.localModelCenter.checking', { defaultValue: 'Checking Runtime...' })
+            : `${i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Check Runtime' })}${healthTooltip ? ` \u00b7 ${healthTooltip}` : ''}`}
+          aria-label={i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Check Runtime' })}
           className={iconBtnClass}
         >
           <HeartPulseIcon className={cn('h-4 w-4', props.checkingHealth ? 'animate-pulse' : undefined)} />
@@ -264,7 +262,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
       {props.canChooseFolder === false ? (
         <p className="mt-2 text-[11px] text-[var(--nimi-text-muted)]">
           {i18n.t('runtimeConfig.localModelCenter.bundleImportChatOnlyHint', {
-            defaultValue: 'Bundle folder import currently targets chat model bundles.',
+            defaultValue: 'Bundle folder import currently targets text-generation asset bundles.',
           })}
         </p>
       ) : null}

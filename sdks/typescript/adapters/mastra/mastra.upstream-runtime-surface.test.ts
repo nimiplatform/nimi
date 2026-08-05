@@ -350,7 +350,7 @@ test('upstream: Nimi voice can be passed directly to Agent.voice', async () => {
   };
   const voice = createNimiMastraVoice({
     runtime: ai,
-    head: { appId: 'app-1', subjectUserId: 'user-1', modelId: 'voice-model', routePolicy: 'local' },
+    head: { appId: 'app-1', subjectUserId: 'user-1' },
     transcriptionMimeType: 'audio/wav',
     requestIdFactory: (operation) => `agent-voice-req-${operation}`,
     idempotencyKeyFactory: (operation) => `agent-voice-idem-${operation}`,
@@ -378,7 +378,7 @@ test('upstream: SemanticRecall accepts the Nimi Runtime-backed embedder contract
   const queryCalls: unknown[] = [];
   const storageCalls: unknown[] = [];
   const embedder = createNimiMastraEmbeddingModel({
-    model: { modelId: 'runtime-embed-semantic' },
+    model: { modelId: 'text.embed' },
     embedding: {
       async embedText(request) {
         embedCalls.push(request);

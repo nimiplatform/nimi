@@ -3,10 +3,8 @@ import test from 'node:test';
 
 import {
   buildHuggingFaceUrl,
-  computeTierCounts,
   computeVramPercentage,
   filterRecommendationFeedItems,
-  gradeLabel,
   normalizeRecommendPageCapability,
   parseLicenseShort,
   parseParamsFromTitle,
@@ -14,12 +12,12 @@ import {
   parseQuantBitsFromEntry,
   parseQuantLevelFromEntry,
   quantQualityLabel,
-  splitRecommendationFeedItems,
-  tierToGrade,
+  recommendationTier,
+  recommendationTierLabel,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend-utils.js';
 
-test('normalizeRecommendPageCapability fails closed to chat for unsupported runtime pages', () => {
-  assert.equal(normalizeRecommendPageCapability('tts'), 'chat');
+test('normalizeRecommendPageCapability fails closed for unsupported runtime pages', () => {
+  assert.equal(normalizeRecommendPageCapability('tts'), null);
   assert.equal(normalizeRecommendPageCapability('video'), 'video');
 });
 
@@ -43,61 +41,20 @@ test('filterRecommendationFeedItems matches title repo and recommended entry', (
   assert.equal(filterRecommendationFeedItems(rows as never[], 'image').length, 0);
 });
 
-test('splitRecommendationFeedItems preserves order while grouping by installed state and tier', () => {
-  const rows = [
-    {
-      itemId: 'recommended-1',
-      installedState: { installed: false },
-      recommendation: { tier: 'recommended' },
-    },
-    {
-      itemId: 'installed-1',
-      installedState: { installed: true },
-      recommendation: { tier: 'recommended' },
-    },
-    {
-      itemId: 'tight-1',
-      installedState: { installed: false },
-      recommendation: { tier: 'tight' },
-    },
-    {
-      itemId: 'other-1',
-      installedState: { installed: false },
-      recommendation: { tier: 'not_recommended' },
-    },
-    {
-      itemId: 'runnable-1',
-      installedState: { installed: false },
-      recommendation: { tier: 'runnable' },
-    },
-  ];
-
-  const grouped = splitRecommendationFeedItems(rows as never[]);
-
-  assert.deepEqual(grouped.topMatches.map((item) => item.itemId), ['recommended-1', 'runnable-1']);
-  assert.deepEqual(grouped.worthTrying.map((item) => item.itemId), ['tight-1']);
-  assert.deepEqual(grouped.alreadyInstalled.map((item) => item.itemId), ['installed-1']);
-  assert.deepEqual(grouped.searchMore.map((item) => item.itemId), ['other-1']);
+test('recommendation tier presentation reflects only Runtime-issued tiers', () => {
+  assert.equal(recommendationTier('recommended'), 'recommended');
+  assert.equal(recommendationTier('runnable'), 'runnable');
+  assert.equal(recommendationTier('tight'), 'tight');
+  assert.equal(recommendationTier('not_recommended'), 'not_recommended');
+  assert.equal(recommendationTier(undefined), null);
+  assert.equal(recommendationTier('invented'), null);
+  assert.equal(recommendationTierLabel('recommended'), 'Recommended');
+  assert.equal(recommendationTierLabel(null), 'Unscored');
 });
 
 // ---------------------------------------------------------------------------
 // New utility tests
 // ---------------------------------------------------------------------------
-
-test('tierToGrade maps internal tiers to display grades', () => {
-  assert.equal(tierToGrade('recommended'), 'runs_great');
-  assert.equal(tierToGrade('runnable'), 'runs_well');
-  assert.equal(tierToGrade('tight'), 'tight_fit');
-  assert.equal(tierToGrade('not_recommended'), 'not_recommended');
-  assert.equal(tierToGrade(undefined), 'not_recommended');
-});
-
-test('gradeLabel returns human-readable grade labels', () => {
-  assert.equal(gradeLabel('runs_great'), 'Runs Great');
-  assert.equal(gradeLabel('runs_well'), 'Runs Well');
-  assert.equal(gradeLabel('tight_fit'), 'Tight Fit');
-  assert.equal(gradeLabel('not_recommended'), 'Not Recommended');
-});
 
 test('parseParamsFromTitle extracts parameter count from model title', () => {
   assert.equal(parseParamsFromTitle('Llama 3.1 8B'), '8B');
@@ -170,20 +127,4 @@ test('quantQualityLabel returns text labels based on bit depth', () => {
 test('buildHuggingFaceUrl constructs URL from repo', () => {
   assert.equal(buildHuggingFaceUrl('meta-llama/Llama-3-8B-GGUF'), 'https://huggingface.co/meta-llama/Llama-3-8B-GGUF');
   assert.equal(buildHuggingFaceUrl('bartowski/model-GGUF'), 'https://huggingface.co/bartowski/model-GGUF');
-});
-
-test('computeTierCounts aggregates items by grade', () => {
-  const items = [
-    { recommendation: { tier: 'recommended' } },
-    { recommendation: { tier: 'recommended' } },
-    { recommendation: { tier: 'runnable' } },
-    { recommendation: { tier: 'tight' } },
-    { recommendation: { tier: 'not_recommended' } },
-    { recommendation: {} },
-  ];
-  const counts = computeTierCounts(items as never[]);
-  assert.equal(counts.runs_great, 2);
-  assert.equal(counts.runs_well, 1);
-  assert.equal(counts.tight_fit, 1);
-  assert.equal(counts.not_recommended, 2);
 });

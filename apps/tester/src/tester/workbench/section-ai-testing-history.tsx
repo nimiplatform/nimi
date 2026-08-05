@@ -6,8 +6,8 @@ import {
   flattenTesterRunHistory,
   formatTesterRunHistoryTimestamp,
   getTesterRunMetricSummary,
-  getTesterRunModelLabel,
-  getTesterRunModelSource,
+  getTesterRunIntentLabel,
+  getTesterRunIntentSource,
   getTesterRunPromptSummary,
   getTesterRunResultSummary,
   getTesterRunStatusTone,
@@ -79,12 +79,12 @@ function historyTitleForRun(record: TesterRunHistoryRecord): string {
   return prompt || getTesterRunResultSummary(record);
 }
 
-function historyModelTitleForRun(record: TesterRunHistoryRecord): string {
-  return getTesterRunModelLabel(record);
+function historyIntentTitleForRun(record: TesterRunHistoryRecord): string {
+  return getTesterRunIntentLabel(record);
 }
 
 function historySourceLabelForRun(record: TesterRunHistoryRecord): string {
-  const source = getTesterRunModelSource(record);
+  const source = getTesterRunIntentSource(record);
   if (source === 'local') return 'Local';
   if (source === 'cloud') return 'Cloud';
   return 'Unknown';
@@ -108,10 +108,10 @@ function historySubtitleForRun(record: TesterRunHistoryRecord): string {
 
 function historyLabelForRun(record: TesterFlatRunRecord, now: Date): string {
   const prompt = historyTitleForRun(record);
-  const model = getTesterRunModelLabel(record);
-  const source = getTesterRunModelSource(record);
+  const intent = getTesterRunIntentLabel(record);
+  const source = getTesterRunIntentSource(record);
   const metrics = getTesterRunMetricSummary(record);
-  return [source === 'unknown' ? model : `${source} model: ${model}`, record.capabilityLabel, formatTesterRunHistoryTimestamp(record.createdAt, now), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
+  return [source === 'unknown' ? intent : `${source} intent: ${intent}`, record.capabilityLabel, formatTesterRunHistoryTimestamp(record.createdAt, now), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
 }
 
 function optionLabel<T extends string>(options: ReadonlyArray<{ id: T; label: string }>, id: T): string {
@@ -147,11 +147,10 @@ function matchesHistoryStatus(record: TesterRunHistoryRecord, status: HistorySta
 
 function matchesHistoryEnvironment(record: TesterRunHistoryRecord, environment: HistoryEnvironmentFilter): boolean {
   if (environment === 'all') return true;
-  const source = getTesterRunModelSource(record);
+  const source = getTesterRunIntentSource(record);
   if (environment === 'local' || environment === 'cloud') return source === environment;
   const targetSource = String(record.runConfig?.target.source || '').toLowerCase();
-  const routeDecision = record.result?.ok && 'routeDecision' in record.result ? String(record.result.routeDecision || '').toLowerCase() : '';
-  return targetSource.includes('remote') || routeDecision.includes('remote');
+  return targetSource.includes('remote');
 }
 
 function matchesHistoryActivity(record: TesterRunHistoryRecord, activity: HistoryActivityFilter, now: Date): boolean {
@@ -420,8 +419,8 @@ export function CapabilityRunHistory({
                           <span className="studio-recent__copy">
                             <span className="studio-recent__summary">
                               <span className="studio-recent__title">
-                                <Tooltip content={historyModelTitleForRun(record)} placement="top" className="studio-recent__model-tooltip">
-                                  <span className="studio-recent__model-name">{historyModelTitleForRun(record)}</span>
+                                <Tooltip content={historyIntentTitleForRun(record)} placement="top" className="studio-recent__intent-tooltip">
+                                  <span className="studio-recent__intent-name">{historyIntentTitleForRun(record)}</span>
                                 </Tooltip>
                                 <time dateTime={record.createdAt}>{formatTesterRunHistoryTimestamp(record.createdAt, now)}</time>
                               </span>

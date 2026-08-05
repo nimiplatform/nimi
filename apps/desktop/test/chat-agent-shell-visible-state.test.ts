@@ -160,7 +160,6 @@ function createSubmitSession() {
 
 function resolveSurfaceState(input: {
   composerReady: boolean;
-  routeDisabledReason?: string | null;
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId?: string | null;
   submittingThreadId: string | null;
@@ -198,7 +197,6 @@ function resolveSurfaceState(input: {
     runtimeCommittedStatus: input.runtimeCommittedStatus ?? null,
     voiceCaptureState: input.voiceCaptureState ?? null,
     voicePlaybackState: input.voicePlaybackState ?? null,
-    routeDisabledReason: input.routeDisabledReason ?? null,
     voiceSessionState: input.voiceSessionState || {
       status: 'idle',
       mode: 'push-to-talk',
@@ -238,23 +236,6 @@ test('agent visible state disables composer and marks character thinking while s
   });
   assert.equal(surfaceState.footer.shouldRender, true);
   assert.equal(surfaceState.footer.pendingFirstBeat, true);
-});
-
-test('agent visible state disables composer when runtime route is not ready', () => {
-  const surfaceState = resolveSurfaceState({
-    composerReady: true,
-    routeDisabledReason: 'Route unhealthy',
-    activeTarget: sampleTarget(),
-    submittingThreadId: null,
-    footerViewState: {
-      displayState: 'hidden',
-      pendingFirstBeat: false,
-    },
-  });
-
-  assert.equal(surfaceState.composer?.disabled, true);
-  assert.equal(surfaceState.composer?.disabledReason, 'Route unhealthy');
-  assert.match(surfaceState.composer?.placeholder || '', /Talk to Companion/);
 });
 
 test('agent visible state falls back to targetless placeholder and idle character when not submitting', () => {

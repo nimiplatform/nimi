@@ -1,6 +1,6 @@
 # 在 App 中使用 Kit
 
-当 App 需要共享 Nimi UI、auth、shell glue、telemetry、model configuration 或可复用 feature surface 时，使用 `@nimiplatform/kit`。App 代码应该通过 `kit/package.json` 里的公开 subpath 导入 Kit；不要导入 `kit/**/src`，也不要在 App 本地复制 Kit 已经拥有的能力。
+当 App 需要共享 Nimi UI、auth、shell glue、telemetry、AI capability configuration 或可复用 feature surface 时，使用 `@nimiplatform/kit`。App 代码应该通过 `kit/package.json` 里的公开 subpath 导入 Kit；不要导入 `kit/**/src`，也不要在 App 本地复制 Kit 已经拥有的能力。
 
 ## 安装
 
@@ -22,7 +22,7 @@ Kit 要求 React 19。`react-dom`、`react-i18next` 和 `electron` 是特定 sub
 | 标准 shell renderer bridge | `@nimiplatform/kit/shell/renderer/bridge`、`@nimiplatform/kit/shell/renderer/bootstrap` |
 | Electron host bridge | `@nimiplatform/kit/shell/electron/main`、`@nimiplatform/kit/shell/electron/preload` |
 | Telemetry 与 error boundary | `@nimiplatform/kit/telemetry`、`@nimiplatform/kit/telemetry/error-boundary` |
-| Chat、avatar、model picker、model config、generation、commerce | 已枚举的 `@nimiplatform/kit/features/...` subpaths |
+| Agent Center、chat、avatar、generation、commerce | 已枚举的 `@nimiplatform/kit/features/...` subpaths |
 
 Kit 不发布 wildcard subpaths。完整公开导入清单以 `kit/package.json` 的 `exports` 对象为准。
 
@@ -60,21 +60,23 @@ import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electr
 
 不要从 renderer app code 导入 Electron host modules。不要在 shell code 里调用 Runtime private API；shell bridge 保持 SDK 和 standard capability boundary。
 
-## AI Model Configuration
+## AI Capability Configuration
 
-模型选择和 AIConfig 编辑从 Kit model-config feature 开始：
+Agent Center 通过公开 feature 展示 owner-scoped AIConfig intent：
 
 ```ts
-import { ModelConfigAiModelHub } from '@nimiplatform/kit/features/model-config/ui';
-import { useModelConfigProfileController } from '@nimiplatform/kit/features/model-config/headless';
-import { createNimiAIConfigStore, createNimiAppAIScopeRef } from '@nimiplatform/sdk/ai';
+import {
+  AgentCenter,
+  AgentCenterAIConfigSection,
+} from '@nimiplatform/kit/features/agent-center/ui';
+import { createNimiAppAIConfigClient } from '@nimiplatform/sdk/ai';
 ```
 
-App 拥有 `AppModelConfigSurface`：scope ref、AIConfig service、provider resolver、projection resolver、local asset source、user profile source 和 i18n。SDK 拥有 AIConfig store 与 scope ref。Kit 拥有可复用 UI、headless contracts 和 profile controller helpers。Runtime 拥有 readiness 与 execution evidence。
+负责配置的 session 提供当前完整 AIConfig 和 overwrite action。这个 section 让 owner 表达 Local 或 Cloud capability intent，不选择 model、machine route、connector 或 execution binding。具体实现选择、readiness 和 execution evidence 归 Runtime 管理。
 
 ## 复用规则
 
-- 写 App 本地 UI primitives、auth flows、shell glue、telemetry、model config、chat shell、avatar stage、generation panels 或 commerce surfaces 前，先检查 Kit。
+- 写 App 本地 UI primitives、auth flows、shell glue、telemetry、AI capability configuration、chat shell、avatar stage、generation panels 或 commerce surfaces 前，先检查 Kit。
 - 只使用公开 subpath exports。如果需要的共享行为只存在于 `kit/**/src`，先给 Kit 增加公开 export，再让 App 消费。
 - App-specific layout 和 product workflow 留在 App。
 - Runtime execution semantics 留在 Runtime 和 SDK 调用里。

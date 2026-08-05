@@ -15,9 +15,7 @@ const vnextRoot = path.join(repoRoot, 'sdks', 'typescript');
 let tempRoot = '';
 
 function cleanup() {
-  if (tempRoot) {
-    rmSync(tempRoot, { recursive: true, force: true });
-  }
+  if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
 }
 
 function run(label, command, args, options = {}) {
@@ -39,28 +37,16 @@ function writeConsumerFiles() {
   const packageDir = path.join(tempRoot, 'node_modules', '@nimiplatform');
   mkdirSync(packageDir, { recursive: true });
   linkWorkspacePackage(vnextRoot, path.join(packageDir, 'sdk'));
-
-  writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
-    private: true,
-    type: 'module',
-  }, null, 2));
+  writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({ private: true, type: 'module' }, null, 2));
 
   writeFileSync(path.join(tempRoot, 'consumer.mjs'), `
 import assert from 'node:assert/strict';
-import {
-  createNimiAIConfigStore,
-  createNimiAIHostSurface,
-  createNimiAISnapshotRecord,
-  createNimiAISnapshotStore,
-} from '@nimiplatform/sdk/ai';
 import {
   NimiAppClient,
   PermissionClient,
   createAppScopeRef,
   createNimiAppClient,
   createPermissionClient,
-  isAdmittedNimiFirstRunLocalBaseline,
-  selectNimiAppFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/app';
 
 function entryFor(appId = 'nimi.example-app') {
@@ -89,12 +75,8 @@ const appClient = createNimiAppClient({
 assert(appClient instanceof NimiAppClient);
 assert.equal((await appClient.list())[0].appId, 'nimi.example-app');
 assert.equal((await appClient.status('nimi.example-app')).launchReadiness, 'ready');
-for (const retired of ['install', 'update', 'uninstall', 'launch', 'healthRepair', 'subscribe']) {
-  assert.equal(typeof appClient[retired], 'undefined');
-}
 
 const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
-const launchScopeRef = createAppScopeRef({ appId: 'tester.app' });
 const permission = createPermissionClient({
   async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
   async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
@@ -109,88 +91,10 @@ await assert.rejects(
   permission.request({ permissionId: 'agents.voice', reason: 'consumer smoke' }),
   (error) => error?.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED',
 );
-assert.equal(scopeRef.ownerId, launchScopeRef.ownerId);
-
-const appProfile = {
-  profileId: 'tester-app-profile',
-  title: 'Tester App Profile',
-  capabilities: {
-    'text.generate': {
-      logicalModelId: 'local/tester-app-text',
-      targetRef: {
-        kind: 'local-runtime',
-        version: 'v2',
-        readinessRef: 'tester-app-local-text',
-      },
-    },
-  },
-};
-const hostAI = createNimiAIHostSurface({
-  profiles: [appProfile],
-  configStore: createNimiAIConfigStore({ enableEphemeralStore: true }),
-  snapshotStore: createNimiAISnapshotStore({ enableEphemeralStore: true }),
-  now: () => '2026-06-06T00:00:00.000Z',
-});
-const appRequirementDeclarations = [{
-  requirementId: 'tester.app.ai.requirements',
-  scopeRef: launchScopeRef,
-  requiredSlices: [{
-    requirementSliceId: 'tester.app.text.generate',
-    capability: 'text.generate',
-    profileSliceRef: 'capabilities.text.generate',
-    readinessPolicy: 'required',
-  }],
-  setupProjectionPolicy: 'setup-required',
-}];
-const applyResult = await hostAI.aiProfile.apply(launchScopeRef, appProfile.profileId, {
-  requirementDeclarations: appRequirementDeclarations,
-});
-assert.equal(applyResult.success, true);
-const appConfig = hostAI.aiConfig.get(launchScopeRef);
-assert.equal(appConfig.scopeRef.kind, 'app');
-assert.equal(appConfig.scopeRef.ownerId, 'tester.app');
-assert.equal(appConfig.profileOrigin?.profileId, appProfile.profileId);
-assert.equal(appConfig.capabilities.targetRefs['text.generate']?.kind, 'local-runtime');
-const appSnapshot = createNimiAISnapshotRecord({
-  executionId: 'app-consumer-text-generate-1',
-  config: appConfig,
-  capability: 'text.generate',
-  selectedTargetRef: appConfig.capabilities.targetRefs['text.generate'] ?? null,
-  metadata: { consumer: 'sdk-vnext-app-consumer-smoke' },
-  createdAt: '2026-06-06T00:00:01.000Z',
-});
-hostAI.aiSnapshot.record(launchScopeRef, appSnapshot);
-assert.equal(hostAI.aiSnapshot.getLatest(launchScopeRef)?.configEvidence.profileOrigin?.profileId, appProfile.profileId);
-assert.equal(hostAI.aiSnapshot.get('app-consumer-text-generate-1')?.scopeRef.ownerId, 'tester.app');
-
-const localProfile = {
-  alias: 'local-small',
-  privacyPosture: 'local-preferred',
-  applicableScopes: ['first-run'],
-  firstRunInstallLevels: ['minimal'],
-  computePosture: 'local-required',
-  routingPolicy: 'local-first',
-  capabilitySet: ['text.generate'],
-  hostCapabilityProfileRefs: [],
-  localComputePackRefs: ['qwen-small'],
-  dependencyFamilyRefs: ['ollama'],
-  materializationConfirmationRequired: true,
-  sourceRule: 'consumer-smoke',
-};
-assert.equal(isAdmittedNimiFirstRunLocalBaseline(localProfile), true);
-assert.equal(selectNimiAppFactoryAIProfileForFirstRun([localProfile])?.alias, 'local-small');
+assert.equal(scopeRef.ownerId, 'tester.app');
 `);
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
-import {
-  createNimiAIConfigStore,
-  createNimiAIHostSurface,
-  createNimiAISnapshotRecord,
-  createNimiAISnapshotStore,
-  type NimiAICapabilityRequirementDeclaration,
-  type NimiAIHostSurface,
-  type NimiAIProfile,
-} from '@nimiplatform/sdk/ai';
 import {
   NimiAppClient,
   PermissionClient,
@@ -200,7 +104,6 @@ import {
   type NimiAppInventoryEntry,
   type NimiAppScopeRef,
   type NimiAppStatus,
-  type NimiAppAIProfileFactoryRow,
 } from '@nimiplatform/sdk/app';
 
 const entry: NimiAppInventoryEntry = {
@@ -228,7 +131,6 @@ const appClient: NimiAppClient = createNimiAppClient({
   async status() { return status; },
 });
 const scopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
-const launchScopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app' });
 const permissionClient: PermissionClient = createPermissionClient({
   async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
   async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
@@ -237,64 +139,9 @@ const permissionClient: PermissionClient = createPermissionClient({
     return () => {};
   },
 });
-const profile: NimiAppAIProfileFactoryRow = {
-  alias: 'local-small',
-  privacyPosture: 'local-preferred',
-  applicableScopes: ['first-run'],
-  firstRunInstallLevels: ['minimal'],
-  computePosture: 'local-required',
-  routingPolicy: 'local-first',
-  capabilitySet: ['text.generate'],
-  hostCapabilityProfileRefs: [],
-  localComputePackRefs: ['qwen-small'],
-  dependencyFamilyRefs: ['ollama'],
-  materializationConfirmationRequired: true,
-  sourceRule: 'consumer-smoke',
-};
-const appProfile: NimiAIProfile = {
-  profileId: 'tester-app-profile',
-  title: 'Tester App Profile',
-  capabilities: {
-    'text.generate': {
-      logicalModelId: 'local/tester-app-text',
-      targetRef: {
-        kind: 'local-runtime',
-        version: 'v2',
-        readinessRef: 'tester-app-local-text',
-      },
-    },
-  },
-};
-const hostAI: NimiAIHostSurface = createNimiAIHostSurface({
-  profiles: [appProfile],
-  configStore: createNimiAIConfigStore({ enableEphemeralStore: true }),
-  snapshotStore: createNimiAISnapshotStore({ enableEphemeralStore: true }),
-});
-const appRequirements: NimiAICapabilityRequirementDeclaration[] = [{
-  requirementId: 'tester.app.ai.requirements',
-  scopeRef: launchScopeRef,
-  requiredSlices: [{
-    requirementSliceId: 'tester.app.text.generate',
-    capability: 'text.generate',
-    profileSliceRef: 'capabilities.text.generate',
-    readinessPolicy: 'required',
-  }],
-  setupProjectionPolicy: 'setup-required',
-}];
-const appConfig = hostAI.aiConfig.get(launchScopeRef);
-const snapshot = createNimiAISnapshotRecord({
-  config: appConfig,
-  capability: 'text.generate',
-  selectedTargetRef: appConfig.capabilities.targetRefs['text.generate'] ?? null,
-});
-
 void appClient;
-void permissionClient;
 void scopeRef;
-void profile;
-void hostAI;
-void appRequirements;
-void snapshot;
+void permissionClient;
 `);
 
   writeFileSync(path.join(tempRoot, 'tsconfig.json'), JSON.stringify({
@@ -318,12 +165,7 @@ function main() {
   writeConsumerFiles();
   run('running package export consumer', 'node', [path.join(tempRoot, 'consumer.mjs')], { cwd: tempRoot });
   run('typechecking package export consumer', PNPM_BIN, [
-    '--dir',
-    vnextRoot,
-    'exec',
-    'tsc',
-    '-p',
-    path.join(tempRoot, 'tsconfig.json'),
+    '--dir', vnextRoot, 'exec', 'tsc', '-p', path.join(tempRoot, 'tsconfig.json'),
   ]);
   process.stdout.write('SDK vNext App consumer smoke passed\n');
 }

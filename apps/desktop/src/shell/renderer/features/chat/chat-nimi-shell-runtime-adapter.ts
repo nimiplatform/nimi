@@ -33,10 +33,7 @@ export function buildDesktopNimiTextCapabilityRequest(
   };
 }
 
-/**
- * Executes only a CapabilityContract request. No App-owned model, route target,
- * binding, readiness, llama parameter, or fallback input is admitted.
- */
+/** Executes a CapabilityContract request with Runtime-owned implementation selection. */
 export async function runDesktopNimiTextCapability(
   input: DesktopNimiTextCapabilityInput,
 ): Promise<DesktopNimiTextCapabilityResult> {

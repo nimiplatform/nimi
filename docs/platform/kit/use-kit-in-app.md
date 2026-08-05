@@ -1,7 +1,7 @@
 # Use Kit In An App
 
 Use `@nimiplatform/kit` when an app needs shared Nimi UI, auth, shell glue,
-telemetry, model configuration, or reusable feature surfaces. App code should
+telemetry, AI capability configuration, or reusable feature surfaces. App code should
 import Kit through public subpaths from `kit/package.json`; it should not import
 from `kit/**/src` or duplicate a Kit-owned capability locally.
 
@@ -27,7 +27,7 @@ dependencies used by specific subpaths.
 | Standard shell renderer bridge | `@nimiplatform/kit/shell/renderer/bridge`, `@nimiplatform/kit/shell/renderer/bootstrap` |
 | Electron host bridge | `@nimiplatform/kit/shell/electron/main`, `@nimiplatform/kit/shell/electron/preload` |
 | Telemetry and error boundaries | `@nimiplatform/kit/telemetry`, `@nimiplatform/kit/telemetry/error-boundary` |
-| Chat, avatar, model picker, model config, generation, commerce | Enumerated `@nimiplatform/kit/features/...` subpaths |
+| Agent Center, chat, avatar, generation, commerce | Enumerated `@nimiplatform/kit/features/...` subpaths |
 
 Kit does not publish wildcard subpaths. The complete public import list is the
 `exports` object in `kit/package.json`.
@@ -69,27 +69,28 @@ Do not import Electron host modules from renderer app code. Do not call Runtime
 private APIs from shell code; the shell bridge preserves the SDK and standard
 capability boundary.
 
-## AI Model Configuration
+## AI Capability Configuration
 
-For model selection and AIConfig editing, start with the Kit model-config
-feature:
+Agent Center presents owner-scoped AIConfig intent through its public feature:
 
 ```ts
-import { ModelConfigAiModelHub } from '@nimiplatform/kit/features/model-config/ui';
-import { useModelConfigProfileController } from '@nimiplatform/kit/features/model-config/headless';
-import { createNimiAIConfigStore, createNimiAppAIScopeRef } from '@nimiplatform/sdk/ai';
+import {
+  AgentCenter,
+  AgentCenterAIConfigSection,
+} from '@nimiplatform/kit/features/agent-center/ui';
+import { createNimiAppAIConfigClient } from '@nimiplatform/sdk/ai';
 ```
 
-The app owns the `AppModelConfigSurface`: scope ref, AIConfig service,
-provider resolver, projection resolver, local asset source, user profile
-source, and i18n. The SDK owns AIConfig stores and scope refs. Kit owns the
-reusable UI, headless contracts, and profile controller helpers. Runtime owns
-readiness and execution evidence.
+The owning session supplies the current whole-object AIConfig projection and
+its overwrite action. The section lets the owner express Local or Cloud
+capability intent. It does not select a model, machine route, connector, or
+execution binding. Runtime owns implementation selection, readiness, and
+execution evidence.
 
 ## Reuse Rules
 
 - Check Kit before writing app-local UI primitives, auth flows, shell glue,
-  telemetry, model config, chat shell, avatar stage, generation panels, or
+  telemetry, AI capability configuration, chat shell, avatar stage, generation panels, or
   commerce surfaces.
 - Use only public subpath exports. If a required shared behavior exists only in
   `kit/**/src`, it needs a Kit export before apps consume it.

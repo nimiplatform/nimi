@@ -37,8 +37,6 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'repairLocalEnvironmentDependency'
     | 'listLocalAssets'
     | 'listNodeCatalog'
-    | 'checkLocalAssetHealth'
-    | 'warmLocalAsset'
     | 'removeLocalAsset'
     | 'startLocalAsset'
     | 'stopLocalAsset'
@@ -278,8 +276,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         repairLocalEnvironmentDependency: runtime.local.repairLocalEnvironmentDependency,
         listLocalAssets: runtime.local.listLocalAssets,
         listNodeCatalog: runtime.local.listNodeCatalog,
-        checkLocalAssetHealth: runtime.local.checkLocalAssetHealth,
-        warmLocalAsset: runtime.local.warmLocalAsset,
         removeLocalAsset: runtime.local.removeLocalAsset,
         startLocalAsset: runtime.local.startLocalAsset,
         stopLocalAsset: runtime.local.stopLocalAsset,

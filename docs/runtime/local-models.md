@@ -1,172 +1,126 @@
 # Local Models
 
-Runtime can run AI capability on your hardware. This page covers
-local engines, local model lifecycle, and the engine-first routing
-model. For cloud routing see
-[Connectors And Providers](/runtime/connectors-and-providers).
+Runtime can service admitted AI capabilities with machine-local engines and
+assets. Local engines, installed model bundles, device compatibility, and
+implementation selection all belong to Runtime. Apps express Local capability
+intent; they do not select a model or engine.
 
-## Engine-First Routing
+For Cloud machine configuration, see
+[Connectors and Providers](/runtime/connectors-and-providers).
 
-Nimi's local routing is **engine-first**. You do not pick a model
-and hope something can run it; you pick an engine, and the engine
-resolves a model into a runnable bundle.
+## Runtime-Owned Selection
 
-| Step | What happens |
+| Step | Owner action |
 | --- | --- |
-| 1. Choose engine | E.g., a llama.cpp engine, a stable-diffusion engine, a sidecar engine |
-| 2. Engine resolves model | The engine picks the right model bundle based on capability + device |
-| 3. Bundle becomes runnable | Quantization, runtime context, GPU layers all admitted |
-| 4. Route registered | The local route is now an admitted runtime route |
+| Install engine and asset metadata | Runtime administration |
+| Validate package integrity and device compatibility | Runtime |
+| Determine eligible implementations | Runtime |
+| Schedule device resources | Runtime |
+| Select an implementation for a request | Runtime |
 
-This is opposite to "model-first" routing where you pick a model
-name and hope for compatibility. Engine-first means the engine
-owns the compatibility decision.
+A bundle's catalog identity is an installation fact, not a request target.
+Installing or inspecting a bundle does not create an App-visible binding and
+does not guarantee that Runtime will use it for the next request.
 
-## Local Engine Catalog
+## Engine and Asset Catalogs
 
-Admitted engine types live in
-`runtime/kernel/tables/local-engine-catalog.yaml`. Common engine
-types include text engines (e.g., llama.cpp variants), image
-engines (e.g., stable-diffusion variants), audio engines, and
-sidecar engines for specialized work.
+Runtime catalogs describe admitted engine families, asset kinds, package
+integrity, capabilities, and compatibility constraints. Desktop and CLI may
+project these catalogs for machine administration.
 
-Each engine has:
-
-| Field | Purpose |
+| Catalog fact | Purpose |
 | --- | --- |
-| Engine id | Stable identity |
-| Engine type | Text / image / audio / sidecar / etc. |
-| Runtime mode | How the engine runs (inline, daemon, etc.) |
-| Configuration priority | Which config layers apply |
-| Capability surface | What this engine can do |
+| Engine family and runtime mode | Describe how Runtime can host the engine |
+| Asset kind and capability metadata | Describe the asset's admitted use |
+| Integrity identity | Verify exact installed content |
+| Device requirements | Reject incompatible installation or execution |
+| Runtime recommendation evidence | Help a user choose assets to install |
 
-Engines are admitted; new engine types require kernel admission.
+The client preserves Runtime recommendation order. It does not assign grades,
+calculate scores, or rerank models from tags and metadata.
 
-## Device Profile
+## Device Compatibility
 
-Runtime's device profile system describes what your hardware can
-support. The profile is generated from device detection and admits
-or refuses model bundles based on compatibility.
+Runtime detects CPU, accelerator, memory, and storage facts. It uses those facts
+to validate installation and to schedule execution. A package that violates an
+admitted device constraint fails closed with a typed reason.
 
-| Field | Purpose |
-| --- | --- |
-| GPU presence | Whether a discrete GPU is available |
-| GPU memory | Available VRAM |
-| CPU profile | Cores, architecture |
-| Device tier | Admitted compatibility tier |
+Device diagnostics are machine-management evidence. Apps do not receive a
+per-model readiness, warming, or health surface and cannot use device probes to
+pick an execution implementation.
 
-A model bundle that requires more VRAM than the device profile
-admits fails closed at admission. The platform does not silently
-load a quantization the device cannot run.
+## Installation Flow
 
-## Local Adapter Routing
+1. **Browse.** Desktop or CLI reads Runtime's admitted catalog.
+2. **Select an asset to install.** The selection affects machine inventory only.
+3. **Download and verify.** Runtime validates source, content identity, and
+   package shape.
+4. **Register.** Runtime records the installed asset and any required engine
+   metadata.
+5. **Report result.** The administration surface projects typed progress or
+   failure.
 
-Once an engine is admitted and a model is resolved, requests from
-apps route through the **local adapter routing** layer. The
-adapter normalizes the call shape so an app cannot tell whether a
-generation came from a local engine or a cloud provider — same
-streaming shape, same error model, same metadata.
+Random URLs and unverified files are not executable. Import and download paths
+must satisfy Runtime's catalog, path-admission, and integrity rules.
 
-| Routing rule | Source |
-| --- | --- |
-| Capability → adapter | `tables/local-adapter-routing.yaml` |
-| Engine → model bundle | `tables/local-engine-catalog.yaml` |
+## Capability Execution
 
-## HuggingFace Catalog Search
+1. The exact App or Agent owner records Local intent for an admitted capability
+   in `AIConfig`.
+2. The caller submits identity, scenario content, and supported operation
+   parameters.
+3. Runtime evaluates installed assets, device state, policy, budget, and current
+   resource pressure.
+4. Runtime selects an admitted implementation or returns a typed failure.
+5. Runtime-issued diagnostics can record what happened, but the caller cannot
+   reuse them to pin the next request.
 
-Local model installation supports HuggingFace catalog search. The
-CLI / Desktop runtime config lets you search admitted model
-families and install a bundle that matches your engine's
-expectations.
+The normalized SDK result does not depend on whether Runtime chose a Local or
+Cloud implementation.
 
-| Step | What happens |
-| --- | --- |
-| 1. Search | Query an admitted catalog source |
-| 2. Filter | Engine-compatible bundles only |
-| 3. Install | Download + verify + register under engine |
-| 4. Activate | Mark the model as active for this engine |
+## Reader Scenario: Install a Text-Generation Asset
 
-The catalog search is gated by admitted catalog routes. Random
-URLs are not loadable; only admitted catalog routes can install
-models.
+1. A machine administrator opens the Local Model Center.
+2. Runtime returns its catalog and recommendation evidence in Runtime order.
+3. The administrator chooses a compatible asset bundle to install.
+4. Runtime downloads, verifies, and registers the bundle, or fails closed with a
+   typed reason.
+5. A later App request contains no model, engine, route, connector, or target.
+6. If Local intent and current machine state admit execution, Runtime may choose
+   an installed implementation.
 
-## Reader Scenario: Installing A Local Text Model
+## Reader Scenario: Device Constraint
 
-You want to run a local text model on your machine.
+1. A selected bundle requires resources that the machine cannot provide.
+2. Runtime rejects installation or execution with typed device evidence.
+3. Desktop or CLI displays the Runtime reason without claiming model readiness.
+4. The administrator can install a different compatible asset or change machine
+   configuration.
+5. The App request contract remains unchanged.
 
-1. **Pick an engine.** You select an admitted text engine (e.g.,
-   a llama.cpp engine). The engine has a known capability
-   surface.
-2. **Search.** Through CLI or Desktop runtime config, you search
-   admitted catalog routes for a compatible model.
-3. **Filter.** The search filters to bundles your engine can run
-   on your device. Bundles that exceed your VRAM profile are
-   either filtered out or shown as "device-too-small."
-4. **Install.** The selected bundle is downloaded, verified
-   (checksum), and registered under the engine.
-5. **Activate.** The model becomes the active model for this
-   engine. Local capability for text generation is now
-   available.
-6. **Use.** An app issues a text request through `@nimiplatform/sdk/runtime`.
-   Runtime routes the request to the local engine and streams
-   the result back through the normalized streaming shape.
+## Reader Scenario: Multiple Engines
 
-The app code did not change between cloud routing and local
-routing. The local adapter normalized the shape.
+Runtime can manage several engine families on one machine. It arbitrates shared
+accelerator and memory resources internally. Text, image, audio, and other App
+requests remain capability-shaped; Apps neither route requests to an engine nor
+coordinate engine concurrency.
 
-## Reader Scenario: A Model Install That Hits A Device Constraint
+## Dependency Materialization
 
-You attempt to install a model bundle larger than your VRAM.
+Some engines require additional machine dependencies. Runtime performs download,
+verification, installation, cancellation, and cleanup through an admitted
+materializer. Desktop can display typed operation progress and failure, but does
+not run arbitrary shell commands or project dependency progress as App execution
+readiness.
 
-1. **Search returns the bundle** with a "device-too-small"
-   marker, OR the bundle is filtered out depending on your CLI
-   filter.
-2. **If you proceed anyway**, install fails closed at admission.
-   The device profile says the bundle does not fit.
-3. **Audit lineage.** The failed install is recorded with reason.
-4. **Remediation.** You pick a smaller bundle (or a different
-   quantization), or a different engine.
+## Public Boundary
 
-The platform does not silently load a quantization that will OOM.
-Fail-closed is the contract.
-
-## Reader Scenario: Multi-Engine On The Same Machine
-
-You want both a text engine and an image engine running locally.
-
-1. **Both engines admitted.** Each runs under its own engine
-   instance.
-2. **GPU arbitration.** Runtime arbitrates GPU access between
-   engines under admitted GPU policy. Concurrent generation is
-   subject to GPU budget.
-3. **Capability surface.** Apps can issue text requests routed
-   to the text engine and image requests routed to the image
-   engine. Each routes through the local adapter.
-4. **Audit.** Each generation is recorded under the engine that
-   served it.
-
-Multi-engine is the normal case. The engine-first routing is
-exactly what makes this manageable — capabilities resolve to
-engines, not to a global model namespace.
-
-## Cuda Dependency Setup
-
-For engines that need CUDA, Runtime provides a materializer-based
-setup with explicit phases:
-
-| Phase | Meaning |
-| --- | --- |
-| `queued` | Setup queued |
-| `downloading` | Fetching dependencies |
-| `verifying` | Checksum / compatibility verification |
-| `installing` | Installing into runtime-managed location |
-| `ready_system` / `ready_managed` | Ready under system or managed mode |
-| `failed` | Setup failed; reason recorded |
-| `repair_required` | Setup needs repair |
-| `cancelled` | User cancelled |
-
-The setup never runs PowerShell or bash directly; everything goes
-through the materializer with a single confirmation UI.
+- Local model and engine catalogs are Runtime machine configuration.
+- Asset installation is not model activation, warming, or request binding.
+- Apps carry Local capability intent, not model, engine, route, connector,
+  target, readiness, health, or fallback controls.
+- Runtime owns compatibility, scheduling, and implementation selection.
+- Recommendation and execution diagnostics remain Runtime-issued evidence.
 
 ## Source Basis
 

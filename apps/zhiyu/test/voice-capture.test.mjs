@@ -16,18 +16,6 @@ test.after(async () => {
   }
 });
 
-test('Zhiyu voice capture derives readiness from Runtime audio.transcribe AI Config binding', async () => {
-  const module = await importVoiceCapture();
-  const route = routeWithTranscription();
-  const readiness = module.projectZhiyuVoiceCaptureReadiness(route);
-
-  assert.equal(readiness.ready, true);
-  assert.equal(readiness.state, 'idle');
-  assert.equal(readiness.reasonCode, 'runtime-voice-capture-ready');
-  assert.equal(readiness.runtimeBindingModelId, 'runtime-stt-model');
-  assert.equal(readiness.connectorId, 'connector-stt');
-});
-
 test('Zhiyu voice transcription fails closed while the local-app capability is not admitted', async () => {
   const module = await importVoiceCapture();
   const transcribe = module.createElectronVoiceCaptureTranscriber({
@@ -56,7 +44,6 @@ test('Zhiyu voice capture records bytes, calls Runtime STT, and returns transcri
   const module = await importVoiceCapture();
   const states = [];
   const controller = module.createZhiyuVoiceCaptureController({
-    readiness: module.projectZhiyuVoiceCaptureReadiness(routeWithTranscription()),
     createRecorder: async () => ({
       mimeType: 'audio/webm',
       async start() {
@@ -93,22 +80,13 @@ test('Zhiyu voice capture records bytes, calls Runtime STT, and returns transcri
   ]);
 });
 
-test('Zhiyu voice capture fails closed before recording without Runtime STT binding', async () => {
+test('Zhiyu voice capture fails closed when microphone recording cannot start', async () => {
   const module = await importVoiceCapture();
   let recorderCreated = false;
   const controller = module.createZhiyuVoiceCaptureController({
-    readiness: module.projectZhiyuVoiceCaptureReadiness({
-      capabilities: {
-        'audio.transcribe': {
-          state: 'not_configured',
-          reasonCode: '',
-          binding: null,
-        },
-      },
-    }),
     createRecorder: async () => {
       recorderCreated = true;
-      throw new Error('must not record');
+      throw new Error('microphone unavailable');
     },
     transcribe: async () => {
       throw new Error('must not transcribe');
@@ -117,14 +95,13 @@ test('Zhiyu voice capture fails closed before recording without Runtime STT bind
 
   const result = await controller.start();
   assert.equal(result.state, 'failed');
-  assert.equal(result.reasonCode, 'runtime-voice-capture-route-not-ready');
-  assert.equal(recorderCreated, false);
+  assert.equal(result.reasonCode, 'runtime-voice-capture-recording-failed');
+  assert.equal(recorderCreated, true);
 });
 
 test('Zhiyu voice capture surfaces transcription failure without pseudo transcript', async () => {
   const module = await importVoiceCapture();
   const controller = module.createZhiyuVoiceCaptureController({
-    readiness: module.projectZhiyuVoiceCaptureReadiness(routeWithTranscription()),
     createRecorder: async () => ({
       mimeType: 'audio/webm',
       async start() {},
@@ -147,29 +124,6 @@ test('Zhiyu voice capture surfaces transcription failure without pseudo transcri
   assert.equal(result.reasonCode, 'RUNTIME_SCENARIO_FAILED');
   assert.equal(result.transcriptText, '');
 });
-
-function routeWithTranscription() {
-  return {
-    capabilities: {
-      'audio.transcribe': {
-        state: 'ready',
-        reasonCode: '',
-        binding: {
-          route: 'cloud',
-          modelId: 'runtime-stt-model',
-          connectorId: 'connector-stt',
-          targetRef: {
-            kind: 'cloud-connector',
-            connectorId: 'connector-stt',
-            remoteModelCatalogId: 'remote-model:stt',
-            providerModelId: 'runtime-stt-model',
-            provider: 'openai',
-          },
-        },
-      },
-    },
-  };
-}
 
 async function importVoiceCapture() {
   const outputPath = path.join(await buildVoiceCapture(), 'voice-capture.mjs');
