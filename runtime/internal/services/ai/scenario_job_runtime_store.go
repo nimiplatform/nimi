@@ -228,6 +228,48 @@ func (s *scenarioJobStore) updateProgress(jobID string, currentStep int32, total
 	return job, true
 }
 
+func (s *scenarioJobStore) commitArtifact(
+	jobID string,
+	artifact *runtimev1.ScenarioArtifact,
+	currentStep int32,
+	totalSteps int32,
+	progressPercent int32,
+) (*runtimev1.ScenarioJob, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" || artifact == nil {
+		return nil, false
+	}
+	artifactID := strings.TrimSpace(artifact.GetArtifactId())
+	if artifactID == "" {
+		return nil, false
+	}
+	s.mu.Lock()
+	record, ok := s.jobs[id]
+	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		s.mu.Unlock()
+		return nil, false
+	}
+	for _, existing := range record.job.GetArtifacts() {
+		if strings.TrimSpace(existing.GetArtifactId()) == artifactID {
+			s.mu.Unlock()
+			return nil, false
+		}
+	}
+	record.job.Artifacts = append(record.job.Artifacts, cloneScenarioArtifact(artifact))
+	record.job.ProgressCurrentStep = clampProgressStep(currentStep)
+	record.job.ProgressTotalSteps = clampProgressStep(totalSteps)
+	record.job.ProgressPercent = clampProgressPercent(progressPercent)
+	s.syncArtifactIndexLocked(id, record)
+	nowTime := time.Now().UTC()
+	record.updatedAt = nowTime
+	record.job.UpdatedAt = timestamppb.New(nowTime)
+	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING)
+	s.pruneLocked(nowTime)
+	job := cloneScenarioJob(record.job)
+	s.mu.Unlock()
+	return job, true
+}
+
 func (s *scenarioJobStore) cancel(jobID string) bool {
 	id := strings.TrimSpace(jobID)
 	if id == "" {

@@ -1,0 +1,482 @@
+package engine
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/protobuf/types/known/structpb"
+)
+
+type fakeImageInvocationSubstrate struct {
+	mu            sync.Mutex
+	healthy       bool
+	ensureCalls   int
+	generateOrder []string
+	active        int
+	maxActive     int
+	stopCalls     int
+	ensureFn      func(context.Context, *capabilitydriver.ImageInvocationPlan, func() error, localexecution.ImageProgressFunc) (bool, error)
+	generateFn    func(context.Context, *capabilitydriver.ImageInvocationPlan, int32) (localexecution.ImageArtifact, error)
+}
+
+func (f *fakeImageInvocationSubstrate) Ensure(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, validate func() error, progress localexecution.ImageProgressFunc) (bool, error) {
+	f.mu.Lock()
+	f.ensureCalls++
+	f.mu.Unlock()
+	if f.ensureFn != nil {
+		return f.ensureFn(ctx, plan, validate, progress)
+	}
+	if err := validate(); err != nil {
+		return false, err
+	}
+	if progress != nil {
+		progress(localexecution.ImageExecutionProgress{Stage: localexecution.ImageExecutionStageLoading, ArtifactCount: int32(plan.ImageCount())})
+	}
+	return false, nil
+}
+
+func (f *fakeImageInvocationSubstrate) GenerateImage(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32, _ localexecution.ImageProgressFunc) (localexecution.ImageArtifact, error) {
+	f.mu.Lock()
+	f.generateOrder = append(f.generateOrder, fmt.Sprintf("%s:%d", plan.Prompt(), index))
+	f.active++
+	if f.active > f.maxActive {
+		f.maxActive = f.active
+	}
+	f.mu.Unlock()
+	defer func() {
+		f.mu.Lock()
+		f.active--
+		f.mu.Unlock()
+	}()
+	if f.generateFn != nil {
+		return f.generateFn(ctx, plan, index)
+	}
+	return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes()}, nil
+}
+
+func (f *fakeImageInvocationSubstrate) Healthy() bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.healthy
+}
+
+func (f *fakeImageInvocationSubstrate) Stop() error {
+	f.mu.Lock()
+	f.stopCalls++
+	f.healthy = false
+	f.mu.Unlock()
+	return nil
+}
+
+func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
+	firstStarted := make(chan struct{})
+	releaseFirst := make(chan struct{})
+	var firstOnce sync.Once
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	substrate.generateFn = func(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32) (localexecution.ImageArtifact, error) {
+		if plan.Prompt() == "first" {
+			firstOnce.Do(func() { close(firstStarted) })
+			select {
+			case <-releaseFirst:
+			case <-ctx.Done():
+				return localexecution.ImageArtifact{}, ctx.Err()
+			}
+		}
+		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes()}, nil
+	}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+
+	firstDone := make(chan error, 1)
+	go func() {
+		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "first", 1), nil, nil)
+		firstDone <- err
+	}()
+	select {
+	case <-firstStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first request did not acquire the image lease")
+	}
+
+	secondCtx, cancelSecond := context.WithCancel(context.Background())
+	secondProgress := make(chan localexecution.ImageExecutionProgress, 1)
+	secondDone := make(chan error, 1)
+	go func() {
+		_, err := host.ExecuteImage(secondCtx, imagePlanForHostTest(t, "second", 1), nil, func(value localexecution.ImageExecutionProgress) {
+			secondProgress <- value
+		})
+		secondDone <- err
+	}()
+	waitForImageHostQueueLength(t, host, 1)
+	thirdDone := make(chan error, 1)
+	go func() {
+		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "third", 1), nil, nil)
+		thirdDone <- err
+	}()
+	waitForImageHostQueueLength(t, host, 2)
+	cancelSecond()
+	select {
+	case err := <-secondDone:
+		if localexecution.FailureKindOf(err) != localexecution.FailureCanceled {
+			t.Fatalf("queued cancel error = %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("queued cancellation was not honored")
+	}
+	select {
+	case progress := <-secondProgress:
+		t.Fatalf("queued request emitted Host work progress: %+v", progress)
+	default:
+	}
+	close(releaseFirst)
+	if err := <-firstDone; err != nil {
+		t.Fatalf("first ExecuteImage: %v", err)
+	}
+	if err := <-thirdDone; err != nil {
+		t.Fatalf("third ExecuteImage: %v", err)
+	}
+
+	substrate.mu.Lock()
+	order := append([]string(nil), substrate.generateOrder...)
+	maxActive := substrate.maxActive
+	substrate.mu.Unlock()
+	if !reflect.DeepEqual(order, []string{"first:1", "third:1"}) {
+		t.Fatalf("generation order = %#v", order)
+	}
+	if maxActive != 1 {
+		t.Fatalf("maximum concurrent image generations = %d", maxActive)
+	}
+}
+
+func TestImageExecutionHostStopCancelsActiveAndQueuedRequests(t *testing.T) {
+	started := make(chan struct{})
+	var once sync.Once
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	substrate.generateFn = func(ctx context.Context, _ *capabilitydriver.ImageInvocationPlan, _ int32) (localexecution.ImageArtifact, error) {
+		once.Do(func() { close(started) })
+		<-ctx.Done()
+		return localexecution.ImageArtifact{}, ctx.Err()
+	}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	activeDone := make(chan error, 1)
+	go func() {
+		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "active-stop", 1), nil, nil)
+		activeDone <- err
+	}()
+	<-started
+	queuedDone := make(chan error, 1)
+	go func() {
+		_, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "queued-stop", 1), nil, nil)
+		queuedDone <- err
+	}()
+	waitForImageHostQueueLength(t, host, 1)
+	if err := host.Stop(); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	for label, done := range map[string]<-chan error{"active": activeDone, "queued": queuedDone} {
+		select {
+		case err := <-done:
+			if localexecution.FailureKindOf(err) != localexecution.FailureCanceled {
+				t.Fatalf("%s stop error = %v", label, err)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatalf("%s request did not stop", label)
+		}
+	}
+}
+
+func TestImageExecutionHostRunningCancellationStopsSubstrate(t *testing.T) {
+	started := make(chan struct{})
+	var once sync.Once
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	substrate.generateFn = func(ctx context.Context, _ *capabilitydriver.ImageInvocationPlan, _ int32) (localexecution.ImageArtifact, error) {
+		once.Do(func() { close(started) })
+		<-ctx.Done()
+		return localexecution.ImageArtifact{}, ctx.Err()
+	}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := host.ExecuteImage(ctx, imagePlanForHostTest(t, "cancel", 1), nil, nil)
+		done <- err
+	}()
+	<-started
+	cancel()
+	if err := <-done; localexecution.FailureKindOf(err) != localexecution.FailureCanceled {
+		t.Fatalf("running cancel error = %v", err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		substrate.mu.Lock()
+		stops := substrate.stopCalls
+		substrate.mu.Unlock()
+		if stops > 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("running cancellation did not stop the attributed substrate")
+}
+
+func TestImageExecutionHostRehashesEveryModelFileBeforeLoad(t *testing.T) {
+	plan := imagePlanForHostTest(t, "mismatch", 1)
+	files := plan.ModelFiles()
+	if err := os.WriteFile(files[1].AbsolutePath, []byte("drifted"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+	_, err := host.ExecuteImage(context.Background(), plan, nil, nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureContentMismatch {
+		t.Fatalf("content mismatch error = %v", err)
+	}
+	substrate.mu.Lock()
+	generations := len(substrate.generateOrder)
+	substrate.mu.Unlock()
+	if generations != 0 {
+		t.Fatalf("content mismatch reached inference %d times", generations)
+	}
+}
+
+func TestImageExecutionHostAttributesProcessCrashAndRecoversOnNextRequest(t *testing.T) {
+	crashed := false
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	substrate.ensureFn = func(_ context.Context, plan *capabilitydriver.ImageInvocationPlan, validate func() error, progress localexecution.ImageProgressFunc) (bool, error) {
+		if err := validate(); err != nil {
+			return false, err
+		}
+		substrate.mu.Lock()
+		substrate.healthy = true
+		substrate.mu.Unlock()
+		if progress != nil {
+			progress(localexecution.ImageExecutionProgress{Stage: localexecution.ImageExecutionStageLoading, ArtifactCount: int32(plan.ImageCount())})
+		}
+		return false, nil
+	}
+	substrate.generateFn = func(_ context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32) (localexecution.ImageArtifact, error) {
+		if plan.Prompt() == "crash" && !crashed {
+			crashed = true
+			substrate.mu.Lock()
+			substrate.healthy = false
+			substrate.mu.Unlock()
+			return localexecution.ImageArtifact{}, errors.New("process exited")
+		}
+		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes()}, nil
+	}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+	if _, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "crash", 1), nil, nil); localexecution.FailureKindOf(err) != localexecution.FailureProcessCrash {
+		t.Fatalf("process crash error = %v", err)
+	}
+	result, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "recover", 1), nil, nil)
+	if err != nil || len(result.Artifacts) != 1 {
+		t.Fatalf("post-crash local recovery = %+v error=%v", result, err)
+	}
+}
+
+func TestImageExecutionHostPreservesProducedArtifactsOnInferenceFailure(t *testing.T) {
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	substrate.generateFn = func(_ context.Context, _ *capabilitydriver.ImageInvocationPlan, index int32) (localexecution.ImageArtifact, error) {
+		if index == 2 {
+			return localexecution.ImageArtifact{}, errors.New("sampler failed")
+		}
+		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes()}, nil
+	}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+	var committed []int32
+	result, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "partial", 2), func(artifact localexecution.ImageArtifact) error {
+		committed = append(committed, artifact.Index)
+		return nil
+	}, nil)
+	if localexecution.FailureKindOf(err) != localexecution.FailureInference {
+		t.Fatalf("partial inference error = %v", err)
+	}
+	if !reflect.DeepEqual(committed, []int32{1}) || len(result.Artifacts) != 1 || result.Artifacts[0].Index != 1 {
+		t.Fatalf("partial result = %+v committed=%v", result, committed)
+	}
+}
+
+func TestImageInvocationTransportPreservesDriverOrderedComponentsAndOptions(t *testing.T) {
+	plan := imagePlanWithLoRAsForHostTest(t)
+	request, err := imageLoadRequest("127.0.0.1:43210", plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(request.Components) != 4 || request.Components[0].OccurrenceID != capabilitydriver.StableDiffusionTextEncoderRequirementID ||
+		request.Components[1].OccurrenceID != capabilitydriver.StableDiffusionVAERequirementID ||
+		request.Components[2].OccurrenceID != capabilitydriver.StableDiffusionLoRARequirementID(1) || request.Components[2].Order != 1 ||
+		request.Components[3].OccurrenceID != capabilitydriver.StableDiffusionLoRARequirementID(2) || request.Components[3].Order != 2 {
+		t.Fatalf("ordered component transport = %+v", request.Components)
+	}
+	options := imageInvocationLoadOptions(plan)
+	joinedOptions := strings.Join(options, "\n")
+	for _, wanted := range []string{"diffusion_model", "llm_path:" + plan.TextEncoderPath(), "vae_path:" + plan.VAEPath(), "sampler:euler_a", "scheduler:karras", "lora_dir:"} {
+		if !strings.Contains(joinedOptions, wanted) {
+			t.Fatalf("load options %q missing %q", joinedOptions, wanted)
+		}
+	}
+	prompt := imageInvocationPrompt(plan)
+	loras := plan.LoRAs()
+	if strings.Index(prompt, loras[0].AbsolutePath) < 0 || strings.Index(prompt, loras[1].AbsolutePath) <= strings.Index(prompt, loras[0].AbsolutePath) {
+		t.Fatalf("ordered LoRA prompt = %q", prompt)
+	}
+}
+
+func TestImageExecutionEngineConfigUsesExplicitSDLibraryAndLoopbackAddress(t *testing.T) {
+	directory := t.TempDir()
+	executable := filepath.Join(directory, "stablediffusion-ggml")
+	library := filepath.Join(directory, "selected-gosd.so")
+	if err := os.WriteFile(executable, []byte("binary"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(library, []byte("library"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	firstAddress, err := reserveImageExecutionAddress()
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondAddress, err := reserveImageExecutionAddress()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstAddress == "127.0.0.1:50052" || secondAddress == "127.0.0.1:50052" ||
+		!strings.HasPrefix(firstAddress, "127.0.0.1:") || !strings.HasPrefix(secondAddress, "127.0.0.1:") {
+		t.Fatalf("addresses were not ephemeral and private: %q %q", firstAddress, secondAddress)
+	}
+	config, err := imageExecutionEngineConfigFromDirectory(directory, firstAddress, ImageExecutionHostConfig{LibraryPath: library})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolvedExecutable, _ := filepath.EvalSymlinks(executable)
+	resolvedLibrary, _ := filepath.EvalSymlinks(library)
+	if config.Kind != engineImageExecutionHost || config.Address != firstAddress || config.CommandEnv["SD_LIBRARY"] != resolvedLibrary ||
+		!reflect.DeepEqual(config.CommandArgs, []string{"--addr", firstAddress}) || config.BinaryPath != resolvedExecutable {
+		t.Fatalf("image engine config = %+v", config)
+	}
+}
+
+func imagePlanForHostTest(t *testing.T, prompt string, count int32) *capabilitydriver.ImageInvocationPlan {
+	t.Helper()
+	root := t.TempDir()
+	bindings := make([]capabilitydriver.InvocationExactBinding, 0, 3)
+	for index, requirementID := range []string{
+		capabilitydriver.StableDiffusionMainRequirementID,
+		capabilitydriver.StableDiffusionTextEncoderRequirementID,
+		capabilitydriver.StableDiffusionVAERequirementID,
+	} {
+		path := filepath.Join(root, fmt.Sprintf("model-%d.bin", index))
+		payload := []byte(fmt.Sprintf("model-content-%d", index))
+		if err := os.WriteFile(path, payload, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		digestBytes := sha256.Sum256(payload)
+		digest := hex.EncodeToString(digestBytes[:])
+		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
+			RequirementID: requirementID, LocalAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path,
+			VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
+		})
+	}
+	portable, err := structpb.NewStruct(map[string]any{
+		"modelFamily": "z-image",
+		"executionOptions": map[string]any{
+			"steps": 2, "cfgScale": 1, "width": 64, "height": 64, "seed": 7, "threads": 1,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
+		PortableConfig: portable,
+		ExactBindings:  bindings,
+		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: count, Size: "64x64", Seed: 7},
+	})
+	if err != nil {
+		t.Fatalf("PlanImageInvocation: %v", err)
+	}
+	return plan
+}
+
+func imagePlanWithLoRAsForHostTest(t *testing.T) *capabilitydriver.ImageInvocationPlan {
+	t.Helper()
+	root := t.TempDir()
+	requirementIDs := []string{
+		capabilitydriver.StableDiffusionMainRequirementID,
+		capabilitydriver.StableDiffusionTextEncoderRequirementID,
+		capabilitydriver.StableDiffusionVAERequirementID,
+		capabilitydriver.StableDiffusionLoRARequirementID(1),
+		capabilitydriver.StableDiffusionLoRARequirementID(2),
+	}
+	bindings := make([]capabilitydriver.InvocationExactBinding, 0, len(requirementIDs))
+	for index, requirementID := range requirementIDs {
+		path := filepath.Join(root, fmt.Sprintf("component-%d.safetensors", index))
+		payload := []byte(requirementID)
+		if err := os.WriteFile(path, payload, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		digestBytes := sha256.Sum256(payload)
+		digest := hex.EncodeToString(digestBytes[:])
+		bindings = append(bindings, capabilitydriver.InvocationExactBinding{
+			RequirementID: requirementID, LocalAssetID: fmt.Sprintf("asset-%d", index), AbsolutePath: path,
+			VerifiedContentID: "sha256:" + digest, EntrySHA256: digest,
+		})
+	}
+	portable, err := structpb.NewStruct(map[string]any{
+		"modelFamily": "z-image",
+		"loras": []any{
+			map[string]any{"displayLabel": "first", "weight": 0.5},
+			map[string]any{"displayLabel": "second", "weight": 1.25},
+		},
+		"executionOptions": map[string]any{
+			"steps": 4, "cfgScale": 2, "width": 64, "height": 64, "seed": 8, "threads": 2,
+			"sampler": "euler_a", "scheduler": "karras",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
+		PortableConfig: portable, ExactBindings: bindings,
+		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "ordered", N: 1, Size: "64x64", Seed: 8},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return plan
+}
+
+func waitForImageHostQueueLength(t *testing.T, host *ImageExecutionHost, wanted int) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		host.mu.Lock()
+		length := len(host.queue)
+		host.mu.Unlock()
+		if length == wanted {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("image Host queue did not reach length %d", wanted)
+}
+
+func testPNGBytes() []byte {
+	return []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0, 0, 0, 0, 'I', 'H', 'D', 'R'}
+}

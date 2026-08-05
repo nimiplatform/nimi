@@ -244,6 +244,45 @@ func TestStableDiffusionPlanPreservesDeclaredLoRAOrderAndNormalizesRequest(t *te
 	}
 }
 
+func TestStableDiffusionProcessKeyCoversEveryLoadTimeInstruction(t *testing.T) {
+	root := t.TempDir()
+	bindings := []InvocationExactBinding{
+		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
+		stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
+	}
+	plan := func(cfgScale float64, sampler, scheduler, prompt string) *ImageInvocationPlan {
+		portable := stableDiffusionPortableForTest(t, map[string]any{
+			"modelFamily": "z-image",
+			"executionOptions": map[string]any{
+				"steps": 9, "cfgScale": cfgScale, "width": 512, "height": 512, "seed": 7,
+				"threads": 4, "sampler": sampler, "scheduler": scheduler,
+			},
+		})
+		planned, err := (StableDiffusionImageDriver{}).PlanImageInvocation(ImageInvocationInput{
+			PortableConfig: portable, ExactBindings: bindings,
+			Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: 1, Size: "512x512", Seed: 7},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return planned
+	}
+	baseline := plan(1, "euler", "discrete", "first prompt")
+	if baseline.ProcessKey() != plan(1, "euler", "discrete", "different request prompt").ProcessKey() {
+		t.Fatal("request-only prompt changed the resident process key")
+	}
+	for _, changed := range []*ImageInvocationPlan{
+		plan(2, "euler", "discrete", "first prompt"),
+		plan(1, "euler_a", "discrete", "first prompt"),
+		plan(1, "euler", "karras", "first prompt"),
+	} {
+		if baseline.ProcessKey() == changed.ProcessKey() {
+			t.Fatal("load-time instruction was omitted from the resident process key")
+		}
+	}
+}
+
 func TestStableDiffusionPlanInputImageRequiresDeclaredFeature(t *testing.T) {
 	root := t.TempDir()
 	bindings := []InvocationExactBinding{

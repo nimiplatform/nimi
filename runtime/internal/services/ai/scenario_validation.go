@@ -32,8 +32,12 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 		return []runtimev1.ExecutionMode{
 			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return []runtimev1.ExecutionMode{
+			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,

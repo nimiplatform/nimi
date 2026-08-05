@@ -175,21 +175,44 @@ func (h *ExecutionHost) execute(
 }
 
 func validateInvocationModelContent(files []capabilitydriver.InvocationExactBinding) error {
+	return validateInvocationModelContentContext(context.Background(), files)
+}
+
+func validateInvocationModelContentContext(ctx context.Context, files []capabilitydriver.InvocationExactBinding) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if len(files) == 0 {
-		return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured llama invocation has no model files"))
+		return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured local invocation has no model files"))
 	}
 	for _, file := range files {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		opened, err := os.Open(file.AbsolutePath)
 		if err != nil {
 			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model content: %w", err))
 		}
 		hash := sha256.New()
-		_, copyErr := io.Copy(hash, opened)
-		closeErr := opened.Close()
-		if copyErr != nil {
-			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("hash captured model content: %w", copyErr))
+		buffer := make([]byte, 4*1024*1024)
+		for {
+			if err := ctx.Err(); err != nil {
+				_ = opened.Close()
+				return err
+			}
+			read, readErr := opened.Read(buffer)
+			if read > 0 {
+				_, _ = hash.Write(buffer[:read])
+			}
+			if readErr == io.EOF {
+				break
+			}
+			if readErr != nil {
+				_ = opened.Close()
+				return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("hash captured model content: %w", readErr))
+			}
 		}
-		if closeErr != nil {
+		if closeErr := opened.Close(); closeErr != nil {
 			return executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("close captured model content: %w", closeErr))
 		}
 		actual := hex.EncodeToString(hash.Sum(nil))

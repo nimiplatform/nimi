@@ -66,6 +66,7 @@ type Service struct {
 	localImageProfile                      localImageProfileResolver
 	localExecution                         localexecution.Resolver
 	localTextHost                          localexecution.TextExecutionHost
+	localImageHost                         localexecution.ImageExecutionHost
 	capabilityDrivers                      *capabilitydriver.Registry
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
@@ -209,6 +210,14 @@ func (s *Service) SetLocalExecutionResolver(resolver localexecution.Resolver) {
 func (s *Service) SetLocalTextExecutionHost(host localexecution.TextExecutionHost) {
 	if s != nil {
 		s.localTextHost = host
+	}
+}
+
+// SetLocalImageExecutionHost wires the Runtime-private serial image substrate
+// executor. The Host never participates in route, selection, or binding truth.
+func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionHost) {
+	if s != nil {
+		s.localImageHost = host
 	}
 }
 

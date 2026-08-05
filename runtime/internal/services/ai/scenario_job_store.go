@@ -38,6 +38,7 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		return nil, intentErr
 	}
 	localText := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE && intent.IsLocal()
+	localImage := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && intent.IsLocal()
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE && mode == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB && !localText {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -65,8 +66,13 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
 		return s.submitVoiceWorkflowJob(ctx, req, ignored)
 
-	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		if localImage {
+			return s.submitLocalImageScenarioJob(ctx, req, mode, ignored)
+		}
+		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)
+
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,

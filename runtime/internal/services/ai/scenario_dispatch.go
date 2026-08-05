@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -61,6 +62,9 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		return executeTextEmbedScenario(ctx, s, req, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		if intent, ok := executionintent.FromContext(ctx); ok && intent.IsLocal() {
+			return executeLocalImageGenerateScenario(ctx, s, req, ignored)
+		}
 		if !hasImageDescribeProbe {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 		}

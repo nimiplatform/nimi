@@ -308,15 +308,12 @@ func TestSelectedLocalTextContextMetadataHasNoResidentOrDurableTarget(t *testing
 	}
 }
 
-func TestUnsupportedLocalMediaFailsClosedWithoutLlamaInference(t *testing.T) {
+func TestUnsupportedLocalSpeechFailsClosedWithoutLlamaInference(t *testing.T) {
 	tests := []struct {
 		name         string
 		scenarioType runtimev1.ScenarioType
 		spec         *runtimev1.ScenarioSpec
 	}{
-		{name: "image", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cat", N: 1, Size: "1024x1024"}},
-		}},
 		{name: "speech", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello"}},
 		}},

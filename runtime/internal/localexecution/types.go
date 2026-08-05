@@ -79,6 +79,49 @@ type TextExecutionHost interface {
 	StreamText(context.Context, *capabilitydriver.TextInvocationPlan, func(TextDelta) error, TextProgressFunc) (TextResult, error)
 }
 
+// ImageExecutionStage reports factual private Host work after a queued request
+// acquires the engine lease. Queue position and lease occupancy never enter
+// this carrier.
+type ImageExecutionStage string
+
+const (
+	ImageExecutionStageLoading    ImageExecutionStage = "loading"
+	ImageExecutionStageReady      ImageExecutionStage = "ready"
+	ImageExecutionStageReused     ImageExecutionStage = "reused"
+	ImageExecutionStageGenerating ImageExecutionStage = "generating"
+	ImageExecutionStageProduced   ImageExecutionStage = "produced"
+)
+
+type ImageExecutionProgress struct {
+	Stage         ImageExecutionStage
+	ArtifactIndex int32
+	ArtifactCount int32
+}
+
+type ImageProgressFunc func(ImageExecutionProgress)
+
+// ImageArtifact is one Host-produced image. Index is one-based and follows the
+// captured Driver plan's requested artifact count.
+type ImageArtifact struct {
+	Index     int32
+	Bytes     []byte
+	ComputeMS int64
+}
+
+type ImageResult struct {
+	Artifacts []ImageArtifact
+	ComputeMS int64
+}
+
+type ImageArtifactFunc func(ImageArtifact) error
+
+// ImageExecutionHost executes only the exact substrate instructions already
+// formed by an image Driver. It owns the private serial media lease and emits
+// each artifact at its production boundary.
+type ImageExecutionHost interface {
+	ExecuteImage(context.Context, *capabilitydriver.ImageInvocationPlan, ImageArtifactFunc, ImageProgressFunc) (ImageResult, error)
+}
+
 type FailureKind string
 
 const (

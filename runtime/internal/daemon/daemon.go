@@ -41,6 +41,7 @@ type Daemon struct {
 	aiHealth                  *providerhealth.Tracker
 	auditStore                *auditlog.Store
 	engineMgr                 *engine.Manager
+	imageExecutionHost        *engine.ImageExecutionHost
 	newEngineManager          func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
 	startEngineFn             func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
 	probeAIProviderFn         func(ctx context.Context, client *http.Client, target aiProviderTarget) error
@@ -513,6 +514,11 @@ func (d *Daemon) stopSupervisedEngines(reason string) {
 		if stopFn := d.stopSupervisedFn; stopFn != nil {
 			stopFn()
 		}
+		if d.imageExecutionHost != nil {
+			if err := d.imageExecutionHost.Stop(); err != nil {
+				d.logger.Warn("stop image execution host failed", "error", err)
+			}
+		}
 		if d.engineMgr != nil {
 			d.engineMgr.StopAll()
 		}
@@ -653,11 +659,15 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		return
 	}
 	d.engineMgr = mgr
-	if aiSvc := d.grpc.AIService(); aiSvc != nil {
-		aiSvc.SetLocalTextExecutionHost(engine.NewExecutionHost(mgr, d.logger))
-	}
 	if localStatePath := strings.TrimSpace(d.cfg.LocalStatePath); filepath.IsAbs(localStatePath) {
 		mgr.SetRuntimeWorkRoot(filepath.Join(filepath.Dir(localStatePath), "engine-work"))
+	}
+	if aiSvc := d.grpc.AIService(); aiSvc != nil {
+		aiSvc.SetLocalTextExecutionHost(engine.NewExecutionHost(mgr, d.logger))
+		d.imageExecutionHost = engine.NewImageExecutionHost(mgr, d.logger, engine.ImageExecutionHostConfig{
+			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
+		})
+		aiSvc.SetLocalImageExecutionHost(d.imageExecutionHost)
 	}
 	if svc != nil {
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))

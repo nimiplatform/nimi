@@ -509,6 +509,9 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 	for _, value := range []string{
 		portable.family.name,
 		strconv.Itoa(portable.execution.threads),
+		strconv.FormatFloat(portable.execution.cfgScale, 'g', -1, 64),
+		portable.execution.sampler,
+		portable.execution.scheduler,
 		strconv.FormatBool(portable.execution.diffusionFlashAttention),
 		strconv.FormatBool(portable.execution.offloadParamsToCPU),
 	} {

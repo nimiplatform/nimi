@@ -397,6 +397,10 @@ func localTextInvocationError(err error) error {
 }
 
 func localTextExecutionError(err error) error {
+	return localExecutionError(err)
+}
+
+func localExecutionError(err error) error {
 	if err == nil {
 		return nil
 	}
