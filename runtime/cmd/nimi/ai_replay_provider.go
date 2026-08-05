@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
@@ -134,7 +135,11 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 		if resolveErr != nil {
 			return withReplayFailure(payload, resolveErr), nil
 		}
-		result, err := nimillm.ExecuteVoiceWorkflow(ctx, nimillm.VoiceWorkflowRequest{
+		adapter := capabilitydriver.ResolveCloudMediaAdapter(fixture.Provider, fixture.Capability)
+		if adapter == "" {
+			return withReplayFailure(payload, fmt.Errorf("no admitted voice workflow Driver dialect")), nil
+		}
+		result, err := nimillm.ExecuteVoiceWorkflowAdapter(ctx, adapter, nimillm.VoiceWorkflowRequest{
 			Provider:        strings.TrimSpace(fixture.Provider),
 			WorkflowType:    workflowType,
 			WorkflowModelID: workflowModelID,

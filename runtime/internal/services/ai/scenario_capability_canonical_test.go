@@ -5,7 +5,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
-	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 )
 
 func TestScenarioRequiredCapabilitiesUseCanonicalTokens(t *testing.T) {
@@ -35,31 +35,14 @@ func TestScenarioRequiredCapabilitiesUseCanonicalTokens(t *testing.T) {
 	}
 }
 
-func TestMediaScenarioSupportedByProviderRecordForWorld(t *testing.T) {
-	record := providerregistry.ProviderRecord{ID: "worldlabs"}
-	if !mediaScenarioSupportedByProviderRecord(record, runtimev1.Modal_MODAL_WORLD) {
-		t.Fatalf("expected worldlabs record to support world modal")
+func TestCloudMediaDriverOwnsProviderCapabilityAndDialectResolution(t *testing.T) {
+	if got := capabilitydriver.ResolveCloudMediaAdapter("worldlabs", "world.generate"); got != capabilitydriver.CloudMediaAdapterWorldLabsNative {
+		t.Fatalf("worldlabs world Driver adapter=%q", got)
 	}
-}
-
-func TestMediaScenarioSupportedByProviderRecord(t *testing.T) {
-	record := providerregistry.ProviderRecord{
-		SupportsImage: true,
-		SupportsVideo: true,
-		SupportsTTS:   true,
-		SupportsSTT:   false,
+	if got := capabilitydriver.ResolveCloudMediaAdapter("dashscope", "audio.synthesize"); got != capabilitydriver.CloudMediaAdapterAlibabaNative {
+		t.Fatalf("dashscope TTS Driver adapter=%q", got)
 	}
-
-	if !mediaScenarioSupportedByProviderRecord(record, runtimev1.Modal_MODAL_IMAGE) {
-		t.Fatalf("expected image support")
-	}
-	if !mediaScenarioSupportedByProviderRecord(record, runtimev1.Modal_MODAL_VIDEO) {
-		t.Fatalf("expected video support")
-	}
-	if !mediaScenarioSupportedByProviderRecord(record, runtimev1.Modal_MODAL_TTS) {
-		t.Fatalf("expected tts support")
-	}
-	if mediaScenarioSupportedByProviderRecord(record, runtimev1.Modal_MODAL_STT) {
-		t.Fatalf("expected stt to be unsupported")
+	if got := capabilitydriver.ResolveCloudMediaAdapter("anthropic", "image.generate"); got != "" {
+		t.Fatalf("unsupported media capability gained adapter=%q", got)
 	}
 }

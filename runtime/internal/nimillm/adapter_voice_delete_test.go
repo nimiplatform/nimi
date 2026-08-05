@@ -21,7 +21,7 @@ func TestDeleteProviderVoice_ElevenLabs(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	err := DeleteProviderVoice(context.Background(), "elevenlabs", "voice_123", MediaAdapterConfig{
+	err := DeleteProviderVoiceAdapter(context.Background(), "elevenlabs_voice_delete_adapter", "elevenlabs", "voice_123", MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "test-key",
@@ -48,7 +48,7 @@ func TestDeleteProviderVoice_ElevenLabsNotFoundIsIgnored(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	err := DeleteProviderVoice(context.Background(), "elevenlabs", "voice_missing", MediaAdapterConfig{
+	err := DeleteProviderVoiceAdapter(context.Background(), "elevenlabs_voice_delete_adapter", "elevenlabs", "voice_missing", MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "test-key",
@@ -72,7 +72,7 @@ func TestDeleteProviderVoice_FishAudio(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	err := DeleteProviderVoice(context.Background(), "fish_audio", "model_123", MediaAdapterConfig{
+	err := DeleteProviderVoiceAdapter(context.Background(), "fish_audio_voice_delete_adapter", "fish_audio", "model_123", MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "test-key",
@@ -99,7 +99,7 @@ func TestDeleteProviderVoice_FishAudioNotFoundIsIgnored(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	err := DeleteProviderVoice(context.Background(), "fish_audio", "model_missing", MediaAdapterConfig{
+	err := DeleteProviderVoiceAdapter(context.Background(), "fish_audio_voice_delete_adapter", "fish_audio", "model_missing", MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "test-key",

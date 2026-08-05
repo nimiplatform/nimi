@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -291,6 +292,12 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		}
 		resolvedTargetRef = nil
 	}
+	if textBinding.ExecutionIntent.IsAIConfigCloud() &&
+		(resolved.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD ||
+			strings.TrimSpace(resolved.ModelID) != textBinding.ExecutionIntent.ModelID() ||
+			!runtimeidentity.Equal(resolvedTargetRef, textBinding.TargetRef)) {
+		return fail(status.Error(codes.FailedPrecondition, "Cloud AIConfig intent changed during catalog context resolution"))
+	}
 	targetMissing := resolvedTargetRef == nil || resolvedTargetRef.GetTarget() == nil
 	if strings.TrimSpace(resolved.ModelID) == "" || resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED ||
 		(!textBinding.LocalAIConfigIntent && targetMissing) || resolved.ContextWindowTokens == 0 ||
@@ -305,6 +312,7 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		RoutePolicy:         resolved.RoutePolicy,
 		ConnectorID:         strings.TrimSpace(resolved.ConnectorID),
 		TargetRef:           clonePublicChatTargetRef(resolvedTargetRef),
+		ExecutionIntent:     executionintent.Clone(textBinding.ExecutionIntent),
 		SelectedParams:      clonePublicChatSelectedParams(textBinding.SelectedParams),
 		CapabilityContract:  textBinding.CapabilityContract,
 		RequiredFeatures:    append([]string(nil), textBinding.RequiredFeatures...),
@@ -363,6 +371,7 @@ func clonePublicChatExecutionBindings(input publicChatExecutionBindings) publicC
 			RoutePolicy:         binding.RoutePolicy,
 			ConnectorID:         strings.TrimSpace(binding.ConnectorID),
 			TargetRef:           clonePublicChatTargetRef(binding.TargetRef),
+			ExecutionIntent:     executionintent.Clone(binding.ExecutionIntent),
 			SelectedParams:      clonePublicChatSelectedParams(binding.SelectedParams),
 			CapabilityContract:  strings.TrimSpace(binding.CapabilityContract),
 			RequiredFeatures:    append([]string(nil), binding.RequiredFeatures...),

@@ -66,21 +66,22 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 	}
 	jobID := submitResp.GetJob().GetJobId()
 
-	// Wait for polling to start (providerJobId populated).
+	// Wait for Runtime's public job to enter RUNNING. Provider task identity
+	// and poll timing remain private to Remote ExecutionHost.
 	waitDeadline := time.Now().Add(3 * time.Second)
 	for {
 		job, ok := svc.scenarioJobs.get(jobID)
-		if ok && strings.TrimSpace(job.GetProviderJobId()) != "" {
+		if ok && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
 			break
 		}
 		if time.Now().After(waitDeadline) {
-			t.Fatal("expected provider job id before query check")
+			t.Fatal("expected Runtime job to enter RUNNING before query check")
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
 
 	// Perform multiple delayed attach/query calls. All must succeed and
-	// return a non-terminal job with correct provider job id.
+	// expose only Runtime job state while provider polling remains private.
 	for i := 0; i < 3; i++ {
 		time.Sleep(200 * time.Millisecond)
 		getResp, getErr := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
@@ -95,8 +96,8 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 			t.Fatalf("job must remain non-terminal during long poll, iteration %d got status=%s",
 				i, job.GetStatus().String())
 		}
-		if job.GetProviderJobId() != "task-attach-1" {
-			t.Fatalf("expected stable provider job id, got=%q", job.GetProviderJobId())
+		if strings.TrimSpace(job.GetProviderJobId()) != "" || job.GetNextPollAt() != nil || job.GetRetryCount() != 0 {
+			t.Fatalf("provider polling state escaped Remote Host: provider_job_id=%q next_poll_at=%v retry_count=%d", job.GetProviderJobId(), job.GetNextPollAt(), job.GetRetryCount())
 		}
 	}
 
@@ -312,7 +313,7 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 		t.Fatalf("submit second voice design scenario job")
 	}
 	completedJobID := completedJob.GetJobId()
-	if ok := svc.voiceAssets.completeJob(completedJobID, "provider-job", "voice-ref", nil, nil); !ok {
+	if ok := svc.voiceAssets.completeJob(completedJobID, "voice-ref", nil, nil); !ok {
 		t.Fatalf("expected voice completion path to succeed")
 	}
 

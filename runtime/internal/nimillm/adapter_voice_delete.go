@@ -13,36 +13,34 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-// SupportsProviderVoiceDelete reports whether nimillm can delete a
-// provider-persistent voice asset for the provider.
-func SupportsProviderVoiceDelete(provider string) bool {
-	switch strings.TrimSpace(strings.ToLower(provider)) {
-	case "elevenlabs":
-		return true
-	case "fish_audio":
-		return true
-	default:
-		return false
-	}
-}
-
-// DeleteProviderVoice deletes a provider-persistent voice reference when the
-// provider offers a native delete API.
-func DeleteProviderVoice(ctx context.Context, provider string, providerVoiceRef string, cfg MediaAdapterConfig) error {
+// DeleteProviderVoiceAdapter dispatches one exact Driver-selected delete
+// dialect. Provider is retained only as a consistency check.
+func DeleteProviderVoiceAdapter(ctx context.Context, adapter string, provider string, providerVoiceRef string, cfg MediaAdapterConfig) error {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	normalizedProvider := strings.TrimSpace(strings.ToLower(provider))
 	normalizedVoiceRef := strings.TrimSpace(providerVoiceRef)
-	if normalizedProvider == "" || normalizedVoiceRef == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	expectedProvider := voiceDeleteProviderForAdapter(adapter)
+	if normalizedProvider == "" || normalizedProvider != expectedProvider || normalizedVoiceRef == "" {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-
-	switch normalizedProvider {
-	case "elevenlabs":
+	switch strings.TrimSpace(adapter) {
+	case "elevenlabs_voice_delete_adapter":
 		return deleteElevenLabsVoice(ctx, normalizedVoiceRef, cfg)
-	case "fish_audio":
+	case "fish_audio_voice_delete_adapter":
 		return deleteFishAudioVoiceModel(ctx, normalizedVoiceRef, cfg)
 	default:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+}
+
+func voiceDeleteProviderForAdapter(adapter string) string {
+	switch strings.TrimSpace(adapter) {
+	case "elevenlabs_voice_delete_adapter":
+		return "elevenlabs"
+	case "fish_audio_voice_delete_adapter":
+		return "fish_audio"
+	default:
+		return ""
 	}
 }
 

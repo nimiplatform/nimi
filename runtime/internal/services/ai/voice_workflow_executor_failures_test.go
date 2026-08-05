@@ -3,14 +3,15 @@ package ai
 import (
 	"context"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -109,45 +110,27 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	req := voiceCloneRequest()
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "dashscope", "qwen3-tts-vc", "voice_clone")
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext(req.GetHead().GetAppId(), "user-001"), "voice_workflow.voice_clone", fixture.targetRef)
+	submitted, err := svc.SubmitScenarioJob(ctx, req)
 	if err != nil {
-		t.Fatalf("resolveVoiceWorkflow: %v", err)
+		t.Fatalf("SubmitScenarioJob: %v", err)
 	}
-	job, asset := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
-		Head:              req.GetHead(),
-		ScenarioType:      req.GetScenarioType(),
-		Spec:              req.GetSpec(),
-		ModelResolved:     "qwen3-tts-vc",
-		Provider:          "dashscope",
-		WorkflowModelID:   resolution.WorkflowModelID,
-		OutputPersistence: resolution.OutputPersistence,
-	})
-	if job == nil || asset == nil {
-		t.Fatalf("submit should create workflow job and asset")
+	job := submitted.GetJob()
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		job, _ = svc.voiceAssets.getJob(submitted.GetJob().GetJobId())
+		if isTerminalScenarioJobStatus(job.GetStatus()) {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
-
-	svc.executeVoiceWorkflowJob(
-		context.Background(),
-		job.GetJobId(),
-		asset.GetVoiceAssetId(),
-		resolution,
-		req,
-		svc.resolveNativeAdapterConfig("dashscope", &nimillm.RemoteTarget{
-			ProviderType:    "dashscope",
-			Endpoint:        server.URL,
-			APIKey:          "test-key",
-			ProviderModelID: "qwen3-tts-vc",
-			AllowLoopback:   true,
-		}),
-	)
-
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("voice workflow status=%s reason=%s detail=%s", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
+	}
+	asset := submitted.GetAsset()
 	stored, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
 	if !ok {
 		t.Fatalf("expected stored asset")
@@ -262,7 +245,7 @@ func TestVoiceWorkflowRejectsOversizedReferenceAudio(t *testing.T) {
 
 func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 	// local voice workflow must fail-close since there is no real local engine.
-	if nimillm.SupportsVoiceWorkflowProvider("local") {
+	if capabilitydriver.ResolveCloudMediaAdapter("local", "voice_workflow.voice_clone") != "" {
 		t.Fatalf("local should NOT have a voice workflow adapter; local must fail-close")
 	}
 

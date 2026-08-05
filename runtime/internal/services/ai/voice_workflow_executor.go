@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -114,136 +113,36 @@ func voiceWorkflowCatalogProviderType(modelResolved string, remoteTarget *nimill
 	return scenarioProviderTypeFromTarget(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_TTS)
 }
 
-func (s *Service) executeVoiceWorkflowJob(
+func (s *Service) executeCapturedVoiceWorkflowJob(
 	ctx context.Context,
 	jobID string,
 	voiceAssetID string,
-	resolution catalog.ResolveVoiceWorkflowResult,
-	req *runtimev1.SubmitScenarioJobRequest,
-	cfg nimillm.MediaAdapterConfig,
+	effective *cloudVoiceWorkflowEffectiveInputs,
 ) {
-	if s == nil || s.voiceAssets == nil {
+	if s == nil || s.voiceAssets == nil || effective == nil {
 		return
 	}
-	if !s.voiceAssets.queueJob(jobID) {
+	if !s.voiceAssets.queueJob(jobID) || !s.voiceAssets.runJob(jobID) {
 		return
 	}
-	if !s.voiceAssets.runJob(jobID) {
-		return
-	}
-
-	provider := strings.TrimSpace(strings.ToLower(resolution.Provider))
-
-	if provider == "local" {
-		localCfg := s.resolveLocalVoiceWorkflowAdapterConfig(req, resolution)
-		if strings.TrimSpace(localCfg.BaseURL) != "" && strings.EqualFold(strings.TrimSpace(resolution.WorkflowFamily), "qwen3_tts") {
-			result, err := executeVoiceWorkflowViaLocalSpeechHost(ctx, req, resolution, localCfg)
-			if err == nil {
-				if result.Metadata == nil {
-					result.Metadata = map[string]any{}
-				}
-				result.Metadata["voice_asset_id"] = voiceAssetID
-				result.Metadata["workflow_model_id"] = resolution.WorkflowModelID
-				result.Metadata["workflow_type"] = resolution.WorkflowType
-				result.Metadata["workflow_family"] = strings.TrimSpace(resolution.WorkflowFamily)
-				if strings.TrimSpace(resolution.HandlePolicyID) != "" {
-					result.Metadata["voice_handle_policy_id"] = strings.TrimSpace(resolution.HandlePolicyID)
-				}
-				if strings.TrimSpace(resolution.HandlePolicyPersistence) != "" {
-					result.Metadata["voice_handle_policy_persistence"] = strings.TrimSpace(resolution.HandlePolicyPersistence)
-				}
-				if strings.TrimSpace(resolution.HandlePolicyScope) != "" {
-					result.Metadata["voice_handle_policy_scope"] = strings.TrimSpace(resolution.HandlePolicyScope)
-				}
-				if strings.TrimSpace(resolution.HandlePolicyDefaultTTL) != "" {
-					result.Metadata["voice_handle_policy_default_ttl"] = strings.TrimSpace(resolution.HandlePolicyDefaultTTL)
-				}
-				if strings.TrimSpace(resolution.HandlePolicyDeleteSemantics) != "" {
-					result.Metadata["voice_handle_policy_delete_semantics"] = strings.TrimSpace(resolution.HandlePolicyDeleteSemantics)
-				}
-				if resolution.RuntimeReconciliationRequired {
-					result.Metadata["voice_handle_policy_runtime_reconciliation_required"] = true
-				}
-				s.voiceAssets.completeJob(jobID, result.ProviderJobID, result.ProviderVoiceRef, result.Metadata, result.Usage)
-				return
-			}
-			reasonCode := reasonCodeFromMediaError(err)
-			if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-				reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
-			}
-			s.voiceAssets.failJob(
-				jobID,
-				reasonCode,
-				sanitizeScenarioJobReasonDetail(err, reasonCode),
-				voiceWorkflowFailureMetadata(err, reasonCode, nil),
-			)
-			return
-		}
-		s.voiceAssets.failJob(
-			jobID,
-			runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED,
-			stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED),
-			voiceWorkflowFailureMetadata(nil, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, map[string]any{
-				"workflow_family": strings.TrimSpace(resolution.WorkflowFamily),
-			}),
-		)
-		return
-	}
-
-	if !nimillm.SupportsVoiceWorkflowProvider(provider) {
-		s.voiceAssets.failJob(
-			jobID,
-			runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED,
-			stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED),
-			voiceWorkflowFailureMetadata(nil, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, map[string]any{
-				"provider": provider,
-			}),
-		)
-		return
-	}
-
-	// Build the nimillm request from the scenario request.
-	result, err := executeVoiceWorkflowViaNimillm(ctx, provider, req, resolution, cfg)
+	result, err := s.executeCapturedCloudVoiceWorkflow(ctx, effective)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			s.voiceAssets.timeoutJob(
-				jobID,
-				runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
-				stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT),
-				voiceWorkflowFailureMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, nil),
-			)
+			s.voiceAssets.timeoutJob(jobID, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT), voiceWorkflowFailureMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, nil))
 			return
 		}
 		if errors.Is(err, context.Canceled) {
-			s.voiceAssets.failJob(
-				jobID,
-				runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
-				stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_PROVIDER_INTERNAL),
-				voiceWorkflowFailureMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, nil),
-			)
+			// Explicit cancellation already committed the public terminal state.
 			return
 		}
 		reasonCode := reasonCodeFromMediaError(err)
 		if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 			reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
 		}
-		s.voiceAssets.failJob(
-			jobID,
-			reasonCode,
-			sanitizeScenarioJobReasonDetail(err, reasonCode),
-			voiceWorkflowFailureMetadata(err, reasonCode, nil),
-		)
+		s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode), voiceWorkflowFailureMetadata(err, reasonCode, nil))
 		return
 	}
-	if strings.TrimSpace(result.ProviderVoiceRef) == "" {
-		s.voiceAssets.failJob(
-			jobID,
-			runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-			stableScenarioJobReasonDetail(runtimev1.ReasonCode_AI_OUTPUT_INVALID),
-			voiceWorkflowFailureMetadata(nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID, nil),
-		)
-		return
-	}
+	resolution := effective.resolution
 	if result.Metadata == nil {
 		result.Metadata = map[string]any{}
 	}
@@ -271,127 +170,9 @@ func (s *Service) executeVoiceWorkflowJob(
 	if resolution.RuntimeReconciliationRequired {
 		result.Metadata["voice_handle_policy_runtime_reconciliation_required"] = true
 	}
-
-	s.voiceAssets.completeJob(jobID, result.ProviderJobID, result.ProviderVoiceRef, result.Metadata, result.Usage)
-}
-
-func (*Service) resolveLocalVoiceWorkflowAdapterConfig(*runtimev1.SubmitScenarioJobRequest, catalog.ResolveVoiceWorkflowResult) nimillm.MediaAdapterConfig {
-	return nimillm.MediaAdapterConfig{}
-}
-
-func executeVoiceWorkflowViaLocalSpeechHost(
-	ctx context.Context,
-	req *runtimev1.SubmitScenarioJobRequest,
-	resolution catalog.ResolveVoiceWorkflowResult,
-	cfg nimillm.MediaAdapterConfig,
-) (voiceWorkflowExecutionResult, error) {
-	if req == nil || req.GetSpec() == nil {
-		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
-	}
-	if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-	if err := validateVoiceWorkflowRequestAgainstMetadata(req, resolution); err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-	ctx = nimillm.WithMediaAdapterEndpointPolicy(ctx, cfg)
-	baseURL := strings.TrimSpace(cfg.BaseURL)
-	if baseURL == "" {
-		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	path := ""
-	switch strings.TrimSpace(resolution.WorkflowType) {
-	case "voice_clone":
-		path = "/v1/voice/clone"
-	case "voice_design":
-		path = "/v1/voice/design"
-	default:
-		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
-	}
-	extPayload, err := resolveVoiceWorkflowExtensionPayload(req, "local")
-	if err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-	payload := buildVoiceWorkflowPayload(req, resolution, extPayload)
-	response := map[string]any{}
-	if err := nimillm.DoJSONRequestWithHeaders(ctx, http.MethodPost, nimillm.JoinURL(baseURL, path), "", payload, &response, nil); err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-	providerVoiceRef := strings.TrimSpace(nimillm.FirstNonEmpty(
-		nimillm.ValueAsString(response["voice_ref"]),
-		nimillm.ValueAsString(response["voice_id"]),
-	))
-	if providerVoiceRef == "" {
-		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-	metadata := map[string]any{
-		"provider":          "local",
-		"workflow_type":     strings.TrimSpace(resolution.WorkflowType),
-		"workflow_model_id": strings.TrimSpace(resolution.WorkflowModelID),
-		"adapter":           "local_speech_workflow_host",
-		"endpoint":          strings.TrimSpace(path),
-	}
-	if hostMeta, ok := response["metadata"].(map[string]any); ok {
-		for key, value := range hostMeta {
-			metadata[key] = value
-		}
-	}
-	return voiceWorkflowExecutionResult{
-		ProviderJobID:    strings.TrimSpace(nimillm.ValueAsString(response["job_id"])),
-		ProviderVoiceRef: providerVoiceRef,
-		Metadata:         metadata,
-		Usage:            estimateVoiceWorkflowUsage(req),
-	}, nil
-}
-
-// executeVoiceWorkflowViaNimillm builds the nimillm voice workflow request
-// from the scenario proto and delegates to nimillm.ExecuteVoiceWorkflow.
-func executeVoiceWorkflowViaNimillm(
-	ctx context.Context,
-	provider string,
-	req *runtimev1.SubmitScenarioJobRequest,
-	resolution catalog.ResolveVoiceWorkflowResult,
-	cfg nimillm.MediaAdapterConfig,
-) (voiceWorkflowExecutionResult, error) {
-	if req == nil || req.GetSpec() == nil {
-		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
-	}
-	if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-	if err := validateVoiceWorkflowRequestAgainstMetadata(req, resolution); err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-	if err := ctx.Err(); err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-
-	extPayload, err := resolveVoiceWorkflowExtensionPayload(req, provider)
-	if err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-	payload := buildVoiceWorkflowPayload(req, resolution, extPayload)
-
-	nimillmReq := nimillm.VoiceWorkflowRequest{
-		Provider:        provider,
-		WorkflowType:    strings.TrimSpace(resolution.WorkflowType),
-		WorkflowModelID: strings.TrimSpace(resolution.WorkflowModelID),
-		ModelID:         strings.TrimSpace(resolution.ModelID),
-		Payload:         payload,
-		ExtPayload:      extPayload,
-	}
-
-	nimillmResult, err := nimillm.ExecuteVoiceWorkflow(ctx, nimillmReq, cfg)
-	if err != nil {
-		return voiceWorkflowExecutionResult{}, err
-	}
-
-	return voiceWorkflowExecutionResult{
-		ProviderJobID:    nimillmResult.ProviderJobID,
-		ProviderVoiceRef: nimillmResult.ProviderVoiceRef,
-		Metadata:         nimillmResult.Metadata,
-		Usage:            estimateVoiceWorkflowUsage(req),
-	}, nil
+	// Provider polling identities remain private to Remote Host. The public
+	// workflow state machine is keyed only by the Runtime voice job id.
+	s.voiceAssets.completeJob(jobID, result.ProviderVoiceRef, result.Metadata, result.Usage)
 }
 
 // buildVoiceWorkflowPayload builds a provider-agnostic payload from the scenario request.

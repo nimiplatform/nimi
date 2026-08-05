@@ -12,7 +12,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -80,10 +79,7 @@ func (h *ProviderTextHost) ExecuteText(
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
 	// Remove all reachable credential references as soon as transport returns.
-	defer func() {
-		remoteTarget.APIKey = ""
-		remoteTarget.Headers = nil
-	}()
+	defer clearRequestScopedProviderTarget(remoteTarget)
 	if h.transport == nil || request == nil {
 		err = grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
@@ -122,10 +118,7 @@ func (h *ProviderTextHost) StreamText(
 	if err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
-	defer func() {
-		remoteTarget.APIKey = ""
-		remoteTarget.Headers = nil
-	}()
+	defer clearRequestScopedProviderTarget(remoteTarget)
 	if h.transport == nil || request == nil || !request.Stream() || onDelta == nil {
 		err = grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
@@ -150,47 +143,10 @@ func (h *ProviderTextHost) StreamText(
 // connector records are immutable snapshots; only the sealed payload is read
 // at dispatch time, and it is never returned outside the transport carrier.
 func (h *ProviderTextHost) requestScopedTarget(ctx context.Context, grant connector.ConnectorGrantSnapshot, target capabilitydriver.CloudTextTarget) (*nimillm.RemoteTarget, error) {
-	if h == nil || h.connectors == nil {
+	if h == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	grantRecord := grant.Grant
-	connectorRecord := grant.Connector
-	ownerConsistent := connectorRecord.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER && connectorRecord.OwnerID == grantRecord.AccountID
-	if grantRecord.GrantID == "" || grantRecord.AccountID == "" || grantRecord.ConnectorID == "" ||
-		grantRecord.ConnectorID != connectorRecord.ConnectorID || !ownerConsistent ||
-		connectorRecord.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
-		connectorRecord.Provider != target.Provider() {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED)
-	}
-	secretPayload, err := h.connectors.LoadSecretPayload(connectorRecord.ConnectorID)
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "connector credential custody is unavailable"})
-	}
-	credential := connector.ResolveCredential(connectorRecord, secretPayload)
-	// Drop the sealed representation before any transport object is formed.
-	secretPayload = ""
-	if credential.APIKey == "" {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
-	}
-	endpoint := strings.TrimSpace(connectorRecord.Endpoint)
-	if endpoint == "" {
-		endpoint = connector.ResolveEndpoint(connectorRecord.Provider, "")
-	}
-	if err := endpointsec.ValidateEndpoint(ctx, endpoint, h.allowLoopback); err != nil {
-		credential.APIKey = ""
-		credential.Headers = nil
-		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{Message: "connector endpoint is not allowed"})
-	}
-	return &nimillm.RemoteTarget{
-		ProviderType:         target.Provider(),
-		ProviderModelID:      target.ProviderModelID(),
-		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ConnectorID:          connectorRecord.ConnectorID,
-		Endpoint:             endpoint,
-		APIKey:               credential.APIKey,
-		Headers:              credential.Headers,
-		AllowLoopback:        h.allowLoopback,
-	}, nil
+	return requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, grant, target)
 }
 
 func (h *ProviderTextHost) recordDispatch(audit TextDispatchAudit, phase string, reason runtimev1.ReasonCode, providerStopGuaranteed bool) error {

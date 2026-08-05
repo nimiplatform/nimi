@@ -2,13 +2,18 @@ package runtimeagent
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type selectedLocalMachineExecutionBindingResolver struct {
@@ -67,7 +72,18 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 	bindings := make(publicChatExecutionBindings, len(config.GetCapabilities()))
 	for _, intent := range config.GetCapabilities() {
 		capabilityContract := strings.TrimSpace(intent.GetCapabilityContract())
-		if capabilityContract == "" || intent.GetLocal() == nil {
+		if capabilityContract == "" {
+			continue
+		}
+		if intent.GetCloud() != nil {
+			binding, err := r.resolveCloudMachineExecutionBinding(accountNamespace, intent)
+			if err != nil {
+				return nil, err
+			}
+			bindings[capabilityContract] = binding
+			continue
+		}
+		if intent.GetLocal() == nil {
 			continue
 		}
 		selected, err := r.source.ResolveSelectedLocalExecution(capabilityContract)
@@ -87,11 +103,15 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 			modelID = configurationID
 		}
 		bindings[capabilityContract] = publicChatExecutionBinding{
-			BindingAlias:        configurationID,
-			ModelID:             modelID,
-			RoutePolicy:         runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			CapabilityContract:  capabilityContract,
-			RequiredFeatures:    append([]string(nil), intent.GetRequiredFeatures()...),
+			BindingAlias:       configurationID,
+			ModelID:            modelID,
+			RoutePolicy:        runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			CapabilityContract: capabilityContract,
+			RequiredFeatures:   append([]string(nil), intent.GetRequiredFeatures()...),
+			ExecutionIntent: executionintent.Intent{
+				CapabilityContract: capabilityContract, RequiredFeatures: append([]string(nil), intent.GetRequiredFeatures()...),
+				Defaults: clonePublicChatSelectedParams(intent.GetDefaults()), Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			},
 			LocalAIConfigIntent: true,
 			SelectedParams:      clonePublicChatSelectedParams(intent.GetDefaults()),
 		}
@@ -99,11 +119,75 @@ func (r *selectedLocalMachineExecutionBindingResolver) ResolveMachineExecutionBi
 	if len(bindings) == 0 {
 		return nil, machineExecutionProjectionError(
 			runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH,
-			"shared LocalAgent AIConfig has no Local capability intent",
+			"shared LocalAgent AIConfig has no executable capability intent",
 			nil,
 		)
 	}
 	return bindings, nil
+}
+
+func (r *selectedLocalMachineExecutionBindingResolver) resolveCloudMachineExecutionBinding(
+	accountNamespace string,
+	capability *runtimev1.AIConfigCapabilityIntent,
+) (publicChatExecutionBinding, error) {
+	intent, err := executionintent.FromCapability(capability)
+	if err != nil || !intent.IsAIConfigCloud() {
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig execution intent is invalid", nil)
+	}
+	grantID := intent.GrantID()
+	if grantID == "" || grantID != intent.ConnectorGrantID || r.owner.connectorStore == nil {
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED, "Cloud AIConfig connector grant is unavailable", nil)
+	}
+	grant, err := r.owner.connectorStore.ValidateGrantBinding(accountNamespace, grantID)
+	if err != nil {
+		reason := runtimev1.ReasonCode_AI_CONNECTOR_GRANT_SELECTION_REQUIRED
+		if errors.Is(err, connector.ErrConnectorGrantRevoked) {
+			reason = runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED
+		}
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(reason, "Cloud AIConfig connector grant is not executable", nil)
+	}
+	provider, providerOK := machineCloudTargetText(intent.ProviderModelTarget, "provider")
+	providerModelID, providerModelPresent := machineCloudTargetText(intent.ProviderModelTarget, "providerModelId")
+	legacyModelID, legacyModelPresent := machineCloudTargetText(intent.ProviderModelTarget, "model")
+	if providerModelPresent && legacyModelPresent && providerModelID != legacyModelID {
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig provider model identities conflict", nil)
+	}
+	modelOK := providerModelPresent || legacyModelPresent
+	if !providerModelPresent {
+		providerModelID = legacyModelID
+	}
+	remoteCatalogID, catalogOK := machineCloudTargetText(intent.ProviderModelTarget, "remoteModelCatalogId")
+	if !providerOK || !modelOK || !catalogOK || strings.TrimSpace(grant.Connector.Provider) != provider {
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig target does not match its ConnectorGrant", nil)
+	}
+	target := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+		ConnectorID: grant.Connector.ConnectorID, ConnectorGrantID: grantID, RemoteModelCatalogID: remoteCatalogID,
+		ProviderModelID: providerModelID, Provider: provider,
+	}}
+	if !target.Valid() {
+		return publicChatExecutionBinding{}, machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "Cloud AIConfig target is incomplete", nil)
+	}
+	return publicChatExecutionBinding{
+		BindingAlias: strings.TrimSpace(intent.CloudImplementation.GetImplementationId()), ModelID: providerModelID,
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, ConnectorID: grant.Connector.ConnectorID, TargetRef: target,
+		ExecutionIntent: executionintent.Clone(intent), SelectedParams: clonePublicChatSelectedParams(intent.Defaults),
+		CapabilityContract: intent.CapabilityContract, RequiredFeatures: append([]string(nil), intent.RequiredFeatures...),
+	}, nil
+}
+
+func machineCloudTargetText(target *structpb.Struct, key string) (string, bool) {
+	if target == nil {
+		return "", false
+	}
+	value := target.GetFields()[key]
+	if value == nil {
+		return "", false
+	}
+	if _, ok := value.GetKind().(*structpb.Value_StringValue); !ok {
+		return "", false
+	}
+	text := strings.TrimSpace(value.GetStringValue())
+	return text, text != "" && text == value.GetStringValue()
 }
 
 func validSelectedLocalExecutionProjection(selected *localexecution.SelectedLocalExecution, capabilityContract string) bool {

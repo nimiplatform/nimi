@@ -260,6 +260,10 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "video-bytes" {
 		t.Fatalf("unexpected artifacts: %#v", artifacts)
 	}
+	metadata := artifacts[0].GetMetadata().AsMap()
+	if metadata["adapter"] != AdapterBytedanceARKTask || metadata["response"] != nil || metadata["submit_endpoint"] != nil || metadata["query_endpoint"] != nil || metadata["uri"] != nil {
+		t.Fatalf("provider polling transport state escaped artifact metadata: %#v", metadata)
+	}
 	if usage == nil || usage.GetComputeMs() <= 0 {
 		t.Fatalf("expected usage stats, got=%v", usage)
 	}

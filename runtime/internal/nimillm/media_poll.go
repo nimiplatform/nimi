@@ -302,7 +302,7 @@ func PollProviderTaskForArtifact(
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
 			return nil, nil, providerJobID, providerTaskFailedError(statusText, pollResp)
 		}
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(ctx, pollResp)
+		artifactBytes, mimeType, _ := ExtractTaskArtifactBytesAndMIME(ctx, pollResp)
 		if len(artifactBytes) == 0 {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -316,17 +316,12 @@ func PollProviderTaskForArtifact(
 		if mimeType == "" {
 			mimeType = "application/octet-stream"
 		}
-		artifactMeta := map[string]any{
-			"adapter":         adapter,
-			"submit_endpoint": submitPath,
-			"query_endpoint":  queryPathTemplate,
-			"response":        pollResp,
-		}
+		// Polling identities, endpoints, provider URLs, and raw terminal
+		// envelopes remain call-local Host transport state. Only safe adapter
+		// metadata can cross into Driver response normalization.
+		artifactMeta := map[string]any{"adapter": adapter}
 		for key, value := range extraArtifactMeta {
 			artifactMeta[key] = value
-		}
-		if artifactURI != "" {
-			artifactMeta["uri"] = artifactURI
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		if applyMetadata != nil {

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -54,6 +56,15 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 	if err != nil {
 		return voiceLipsyncSynthesisOutput{}, false, err
 	}
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		intent := input.SpeechExecutionIntent
+		cloudTarget := input.SpeechTargetRef.GetCloud()
+		if !intent.IsAIConfigCloud() || intent.CapabilityContract != "audio.synthesize" || cloudTarget == nil ||
+			intent.ModelID() != strings.TrimSpace(cloudTarget.GetProviderModelId()) ||
+			intent.GrantID() != strings.TrimSpace(cloudTarget.GetConnectorGrantId()) {
+			return voiceLipsyncSynthesisOutput{}, false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+	}
 
 	ctx := input.Context
 	if ctx == nil {
@@ -69,10 +80,11 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
 	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
 	ctx = withPublicChatExecutionIntent(ctx, publicChatExecutionBinding{
-		ModelID:     modelID,
-		RoutePolicy: routePolicy,
-		ConnectorID: strings.TrimSpace(input.SpeechConnectorID),
-		TargetRef:   cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
+		ModelID:         modelID,
+		RoutePolicy:     routePolicy,
+		ConnectorID:     strings.TrimSpace(input.SpeechConnectorID),
+		TargetRef:       cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
+		ExecutionIntent: executionintent.Clone(input.SpeechExecutionIntent),
 	}, "audio.synthesize")
 
 	req := &runtimev1.StreamScenarioRequest{

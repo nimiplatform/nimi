@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
@@ -133,28 +134,7 @@ func scenarioJobTimeoutDuration(
 }
 
 func scenarioJobUsesDetachedPolling(scenarioType runtimev1.ScenarioType, adapterName string) bool {
-	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
-		switch strings.TrimSpace(adapterName) {
-		case adapterBytedanceARKTask,
-			adapterAlibabaNative,
-			adapterGeminiOperation,
-			adapterMiniMaxTask,
-			adapterGLMTask,
-			adapterKlingTask,
-			adapterLumaTask,
-			adapterPikaTask,
-			adapterRunwayTask,
-			adapterGoogleVeoOperation:
-			return true
-		default:
-			return false
-		}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
-		return strings.TrimSpace(adapterName) == adapterWorldLabsNative
-	default:
-		return false
-	}
+	return capabilitydriver.CloudMediaUsesDetachedPolling(scenarioType, strings.TrimSpace(adapterName))
 }
 
 func clampTimeoutDuration(duration time.Duration) time.Duration {

@@ -27,39 +27,45 @@ type VoiceWorkflowResult struct {
 	Metadata         map[string]any
 }
 
-// SupportsVoiceWorkflowProvider reports whether nimillm has a real provider-native
-// voice workflow adapter for the provider.
-func SupportsVoiceWorkflowProvider(provider string) bool {
-	p := strings.TrimSpace(strings.ToLower(provider))
-	return p == "dashscope" || p == "elevenlabs" || p == "fish_audio" || p == "mimo" || p == "stepfun"
-}
-
-// ExecuteVoiceWorkflow dispatches a voice workflow request to the appropriate
-// provider adapter in nimillm. This is the single entry point called by the
-// AI layer orchestrator.
-func ExecuteVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
+// ExecuteVoiceWorkflowAdapter dispatches one exact Driver-selected voice
+// dialect. The provider in the mapped request is only a consistency check.
+func ExecuteVoiceWorkflowAdapter(ctx context.Context, adapter string, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	provider := strings.TrimSpace(strings.ToLower(req.Provider))
-	if provider == "" {
-		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+	expectedProvider := voiceWorkflowProviderForAdapter(adapter)
+	if provider == "" || expectedProvider == "" || provider != expectedProvider {
+		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-	if !SupportsVoiceWorkflowProvider(provider) {
-		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
-	}
-
-	switch provider {
-	case "dashscope":
+	switch strings.TrimSpace(adapter) {
+	case "dashscope_voice_workflow_adapter":
 		return executeDashScopeVoiceWorkflow(ctx, req, cfg)
-	case "elevenlabs":
+	case "elevenlabs_voice_workflow_adapter":
 		return executeElevenLabsVoiceWorkflow(ctx, req, cfg)
-	case "fish_audio":
+	case "fish_audio_voice_workflow_adapter":
 		return executeFishAudioVoiceWorkflow(ctx, req, cfg)
-	case "mimo":
+	case "mimo_voice_workflow_adapter":
 		return executeMimoVoiceWorkflow(ctx, req, cfg)
-	case "stepfun":
+	case "stepfun_voice_workflow_adapter":
 		return executeStepFunVoiceWorkflow(ctx, req, cfg)
 	default:
-		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+}
+
+func voiceWorkflowProviderForAdapter(adapter string) string {
+	switch strings.TrimSpace(adapter) {
+	case "dashscope_voice_workflow_adapter":
+		return "dashscope"
+	case "elevenlabs_voice_workflow_adapter":
+		return "elevenlabs"
+	case "fish_audio_voice_workflow_adapter":
+		return "fish_audio"
+	case "mimo_voice_workflow_adapter":
+		return "mimo"
+	case "stepfun_voice_workflow_adapter":
+		return "stepfun"
+	default:
+		return ""
 	}
 }
 

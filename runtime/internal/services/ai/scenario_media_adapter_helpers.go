@@ -9,190 +9,12 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
-	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
-
-const (
-	adapterOpenAICompat        = "openai_compat_adapter"
-	adapterMediaNative         = "media_native_adapter"
-	adapterSpeechNative        = "speech_native_adapter"
-	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
-	adapterBytedanceARKTask    = "bytedance_ark_task_adapter"
-	adapterAlibabaNative       = "alibaba_native_adapter"
-	adapterGeminiOperation     = "gemini_operation_adapter"
-	adapterGeminiChatSTT       = "gemini_chat_transcribe_adapter"
-	adapterDashScopeChatSTT    = "dashscope_chat_transcribe_adapter"
-	adapterMimoChatTTS         = "mimo_chat_synthesize_adapter"
-	adapterMimoChatSTT         = "mimo_chat_transcribe_adapter"
-	adapterMiniMaxTask         = "minimax_task_adapter"
-	adapterGLMTask             = "glm_task_adapter"
-	adapterGLMNative           = "glm_native_adapter"
-	adapterKimiChatMultimodal  = "kimi_chat_multimodal_adapter"
-	adapterElevenLabsNative    = "elevenlabs_native_adapter"
-	adapterFishAudioNative     = "fish_audio_native_adapter"
-	adapterAWSPollyNative      = "aws_polly_native_adapter"
-	adapterAzureSpeechNative   = "azure_speech_native_adapter"
-	adapterGoogleCloudTTS      = "google_cloud_tts_adapter"
-	adapterFluxNative          = "flux_native_adapter"
-	adapterIdeogramNative      = "ideogram_native_adapter"
-	adapterStabilityNative     = "stability_native_adapter"
-	adapterKlingTask           = "kling_task_adapter"
-	adapterLumaTask            = "luma_task_adapter"
-	adapterPikaTask            = "pika_task_adapter"
-	adapterRunwayTask          = "runway_task_adapter"
-	adapterGoogleVeoOperation  = "google_veo_operation_adapter"
-	adapterStepFunNative       = "stepfun_native_adapter"
-	adapterStabilityMusic      = "stability_music_adapter"
-	adapterSoundverseMusic     = "soundverse_music_adapter"
-	adapterMubertMusic         = "mubert_music_adapter"
-	adapterLoudlyMusic         = "loudly_music_adapter"
-	adapterWorldLabsNative     = "worldlabs_world_adapter"
-)
-
-type mediaAdapterStrategy struct {
-	Image string
-	Video string
-	TTS   string
-	STT   string
-	Music string
-	World string
-}
-
-func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
-	switch modal {
-	case runtimev1.Modal_MODAL_IMAGE:
-		return strings.TrimSpace(s.Image)
-	case runtimev1.Modal_MODAL_VIDEO:
-		return strings.TrimSpace(s.Video)
-	case runtimev1.Modal_MODAL_TTS:
-		return strings.TrimSpace(s.TTS)
-	case runtimev1.Modal_MODAL_STT:
-		return strings.TrimSpace(s.STT)
-	case runtimev1.Modal_MODAL_MUSIC:
-		return strings.TrimSpace(s.Music)
-	case runtimev1.Modal_MODAL_WORLD:
-		return strings.TrimSpace(s.World)
-	default:
-		return ""
-	}
-}
-
-var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
-	"media": {
-		Image: adapterMediaNative,
-		Video: adapterMediaNative,
-	},
-	"speech": {
-		TTS: adapterSpeechNative,
-		STT: adapterSpeechNative,
-	},
-	"volcengine_openspeech": {
-		TTS: adapterBytedanceOpenSpeech,
-		STT: adapterBytedanceOpenSpeech,
-	},
-	"volcengine": {
-		Image: adapterBytedanceARKTask,
-		Video: adapterBytedanceARKTask,
-	},
-	"dashscope": {
-		Image: adapterAlibabaNative,
-		Video: adapterAlibabaNative,
-		TTS:   adapterAlibabaNative,
-		STT:   adapterDashScopeChatSTT,
-	},
-	"gemini": {
-		Image: adapterGeminiOperation,
-		Video: adapterGeminiOperation,
-		TTS:   adapterGeminiOperation,
-		STT:   adapterGeminiChatSTT,
-	},
-	"mimo": {
-		TTS: adapterMimoChatTTS,
-		STT: adapterMimoChatSTT,
-	},
-	"minimax": {
-		Image: adapterMiniMaxTask,
-		Video: adapterMiniMaxTask,
-		TTS:   adapterMiniMaxTask,
-		STT:   adapterMiniMaxTask,
-	},
-	"glm": {
-		Image: adapterGLMNative,
-		Video: adapterGLMTask,
-		TTS:   adapterGLMNative,
-		STT:   adapterGLMNative,
-	},
-	"kimi": {
-		Image: adapterKimiChatMultimodal,
-	},
-	"elevenlabs": {
-		TTS: adapterElevenLabsNative,
-	},
-	"fish_audio": {
-		TTS: adapterFishAudioNative,
-	},
-	"aws_polly": {
-		TTS: adapterAWSPollyNative,
-	},
-	"azure_speech": {
-		TTS: adapterAzureSpeechNative,
-	},
-	"google_cloud_tts": {
-		TTS: adapterGoogleCloudTTS,
-	},
-	"flux": {
-		Image: adapterFluxNative,
-	},
-	"ideogram": {
-		Image: adapterIdeogramNative,
-	},
-	"stability": {
-		Image: adapterStabilityNative,
-		Music: adapterStabilityMusic,
-	},
-	"kling": {
-		Image: adapterKlingTask,
-		Video: adapterKlingTask,
-	},
-	"luma": {
-		Video: adapterLumaTask,
-	},
-	"pika": {
-		Video: adapterPikaTask,
-	},
-	"runway": {
-		Video: adapterRunwayTask,
-	},
-	"google_veo": {
-		Video: adapterGoogleVeoOperation,
-	},
-	"stepfun": {
-		Image: adapterStepFunNative,
-		TTS:   adapterStepFunNative,
-	},
-	"soundverse": {
-		Music: adapterSoundverseMusic,
-	},
-	"mubert": {
-		Music: adapterMubertMusic,
-	},
-	"loudly": {
-		Music: adapterLoudlyMusic,
-	},
-	"worldlabs": {
-		World: adapterWorldLabsNative,
-	},
-}
 
 func isRetiredAmbientLocalProvider(providerID string) bool {
 	switch strings.TrimSpace(strings.ToLower(providerID)) {
@@ -224,129 +46,6 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 		return runtimev1.Modal_MODAL_WORLD
 	default:
 		return runtimev1.Modal_MODAL_UNSPECIFIED
-	}
-}
-
-func findProbeModelID(models []nimillm.ProbeModel, targetModelID string) (string, bool) {
-	target := strings.TrimSpace(targetModelID)
-	if target == "" || target != targetModelID {
-		return "", false
-	}
-	for _, model := range models {
-		if id := strings.TrimSpace(model.ModelID); id == target && id == model.ModelID {
-			return id, true
-		}
-	}
-	return "", false
-}
-
-func resolveConnectorTTSModelID(
-	models []nimillm.ProbeModel,
-	targetModelID string,
-	providerType string,
-	voiceCatalog *catalog.Resolver,
-) (string, bool) {
-	if resolved, ok := findProbeModelID(models, targetModelID); ok {
-		return resolved, true
-	}
-	target := strings.TrimSpace(targetModelID)
-	if target == "" || voiceCatalog == nil {
-		return "", false
-	}
-	if _, err := voiceCatalog.ResolveModelEntry(strings.TrimSpace(providerType), target); err == nil {
-		return target, true
-	}
-	return "", false
-}
-
-func supportsTTSCapability(capabilities []string) bool {
-	for _, capability := range capabilities {
-		normalized, err := aicapabilities.NormalizeCatalogCapability(capability)
-		if err != nil {
-			continue
-		}
-		if normalized == aicapabilities.AudioSynthesize {
-			return true
-		}
-	}
-	return false
-}
-
-func resolveMediaAdapterName(_ string, _ string, modal runtimev1.Modal, providerType string) string {
-	providerLower := strings.ToLower(strings.TrimSpace(providerType))
-	if providerLower == "" || isRetiredAmbientLocalProvider(providerLower) {
-		return ""
-	}
-	if strategy, ok := mediaAdapterStrategiesByProvider[providerLower]; ok {
-		return strategy.forModal(modal)
-	}
-	if record, ok := providerregistry.Lookup(providerLower); ok && mediaScenarioSupportedByProviderRecord(record, modal) {
-		return adapterOpenAICompat
-	}
-	return ""
-}
-
-func mediaScenarioSupportedByProviderRecord(record providerregistry.ProviderRecord, modal runtimev1.Modal) bool {
-	switch modal {
-	case runtimev1.Modal_MODAL_IMAGE:
-		return record.SupportsImage
-	case runtimev1.Modal_MODAL_VIDEO:
-		return record.SupportsVideo
-	case runtimev1.Modal_MODAL_TTS:
-		return record.SupportsTTS
-	case runtimev1.Modal_MODAL_STT:
-		return record.SupportsSTT
-	case runtimev1.Modal_MODAL_MUSIC:
-		return record.SupportsMusic
-	case runtimev1.Modal_MODAL_WORLD:
-		return strings.TrimSpace(record.ID) == "worldlabs"
-	default:
-		return false
-	}
-}
-
-func stringSliceToAny(values []string) []any {
-	if len(values) == 0 {
-		return nil
-	}
-	output := make([]any, 0, len(values))
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed == "" {
-			continue
-		}
-		output = append(output, trimmed)
-	}
-	if len(output) == 0 {
-		return nil
-	}
-	return output
-}
-
-// resolveNativeAdapterConfig uses the exact connector target whenever one was
-// captured. A target with anonymous authentication must not fall through to a
-// configured provider credential or endpoint.
-func (s *Service) resolveNativeAdapterConfig(_ string, remoteTarget *nimillm.RemoteTarget) nimillm.MediaAdapterConfig {
-	if remoteTarget == nil {
-		return nimillm.MediaAdapterConfig{}
-	}
-	allowLoopback := s != nil && s.allowLoopback
-	return nimillm.MediaAdapterConfig{
-		BaseURL:               remoteTarget.Endpoint,
-		APIKey:                remoteTarget.APIKey,
-		Headers:               remoteTarget.Headers,
-		AllowLoopbackEndpoint: allowLoopback || remoteTarget.AllowLoopback,
-	}
-}
-
-func (s *Service) resolveConfiguredProbeAdapterConfig(configKey string) nimillm.MediaAdapterConfig {
-	allowLoopback := s != nil && s.allowLoopback
-	creds := s.config.CloudProviders[configKey]
-	return nimillm.MediaAdapterConfig{
-		BaseURL:               creds.BaseURL,
-		APIKey:                creds.APIKey,
-		Headers:               creds.Headers,
-		AllowLoopbackEndpoint: allowLoopback,
 	}
 }
 
@@ -529,10 +228,10 @@ func resolveScenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) strin
 	}
 }
 
-func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
+func (s *Service) resolveSynthesizeSpeechSpecVoiceRefForTarget(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
-	_ string,
+	requestTarget *runtimeidentity.Target,
 	spec *runtimev1.SpeechSynthesizeScenarioSpec,
 ) (*runtimev1.SpeechSynthesizeScenarioSpec, error) {
 	if spec == nil || spec.GetVoiceRef() == nil {
@@ -569,9 +268,7 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
 		callerAppID != strings.TrimSpace(asset.GetAppId()) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
 	}
-	intent, ok := executionintent.FromContext(ctx)
-	requestTarget := &runtimeidentity.Target{Cloud: intent.CloudTarget.Clone()}
-	if !ok || !runtimeidentity.Equal(requestTarget, assetTarget) {
+	if requestTarget == nil || !runtimeidentity.Equal(requestTarget, assetTarget) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}
 	providerVoiceRef := strings.TrimSpace(asset.GetProviderVoiceRef())
@@ -589,26 +286,4 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
 		},
 	}
 	return cloned, nil
-}
-
-func (s *Service) UpdatePollState(
-	jobID string,
-	providerJobID string,
-	retryCount int32,
-	nextPollAt *timestamppb.Timestamp,
-	lastError string,
-) {
-	if _, ok := s.scenarioJobs.transition(
-		jobID,
-		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED,
-		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED,
-		func(job *runtimev1.ScenarioJob) {
-			job.ProviderJobId = strings.TrimSpace(providerJobID)
-			job.RetryCount = retryCount
-			job.NextPollAt = nextPollAt
-			job.ReasonDetail = strings.TrimSpace(lastError)
-		},
-	); !ok {
-		s.logger.Warn("scenario job poll state update failed", "job_id", jobID)
-	}
 }

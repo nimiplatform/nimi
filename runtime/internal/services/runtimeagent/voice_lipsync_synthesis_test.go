@@ -310,9 +310,13 @@ func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) 
 		SpeechModelID:         "speech/anchor",
 		SpeechRoutePolicy:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		SpeechTargetRef: &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-			ConnectorID: "connector-anchor", RemoteModelCatalogID: "catalog-anchor",
+			ConnectorID: "connector-anchor", ConnectorGrantID: "grant-test", RemoteModelCatalogID: "catalog-anchor",
 			ProviderModelID: "speech/anchor", Provider: "provider-anchor",
 		}},
+		SpeechExecutionIntent: testVoiceAssetExecutionIntent(&runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
+			ConnectorID: "connector-anchor", ConnectorGrantID: "grant-test", RemoteModelCatalogID: "catalog-anchor",
+			ProviderModelID: "speech/anchor", Provider: "provider-anchor",
+		}}),
 	})
 	if err != nil {
 		t.Fatalf("synthesize anchor provider: %v", err)
@@ -321,7 +325,7 @@ func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) 
 		t.Fatalf("expected provider submit with anchor speech model")
 	}
 	intent, ok := executionintent.FromContext(ai.submitCtx)
-	if !ok || !intent.IsCloud() || intent.CloudTarget.ProviderModelID != "speech/anchor" {
+	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil || intent.ModelID() != "speech/anchor" {
 		t.Fatalf("anchor private Cloud intent = %+v, ok=%v", intent, ok)
 	}
 	if out.VoiceRouteBinding == nil || out.VoiceRouteBinding.ModelID != "speech/anchor" {

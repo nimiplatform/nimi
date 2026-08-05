@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -124,6 +125,9 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 	s.jobs[jobID] = record
 	s.assets[assetID] = cloneVoiceAsset(asset)
 	s.targets[assetID] = input.ExecutionTarget.Clone()
+	if input.CloudBinding != nil {
+		s.cloudBindings[assetID] = input.CloudBinding.Clone()
+	}
 	s.pruneLocked(now.AsTime())
 	s.mu.Unlock()
 	return cloneScenarioJob(job), cloneVoiceAsset(asset)
@@ -143,6 +147,22 @@ func (s *voiceAssetStore) getJob(jobID string) (*runtimev1.ScenarioJob, bool) {
 	job := cloneScenarioJob(record.job)
 	s.mu.RUnlock()
 	return job, true
+}
+
+func (s *voiceAssetStore) setJobCancel(jobID string, cancel context.CancelFunc) bool {
+	id := strings.TrimSpace(jobID)
+	if id == "" || cancel == nil {
+		return false
+	}
+	s.mu.Lock()
+	record, ok := s.jobs[id]
+	if !ok || isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		s.mu.Unlock()
+		return false
+	}
+	record.cancel = cancel
+	s.mu.Unlock()
+	return true
 }
 
 func (s *voiceAssetStore) cancelJob(jobID string, reason string) (*runtimev1.ScenarioJob, bool) {
@@ -174,8 +194,13 @@ func (s *voiceAssetStore) cancelJob(jobID string, reason string) (*runtimev1.Sce
 	}
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
 	s.pruneLocked(nowTime)
+	cancel := record.cancel
+	record.cancel = nil
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 	return job, true
 }
 
@@ -187,9 +212,10 @@ func (s *voiceAssetStore) runJob(jobID string) bool {
 	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil)
 }
 
-func (s *voiceAssetStore) completeJob(jobID string, providerJobID string, providerVoiceRef string, metadata map[string]any, usage *runtimev1.UsageStats) bool {
+func (s *voiceAssetStore) completeJob(jobID string, providerVoiceRef string, metadata map[string]any, usage *runtimev1.UsageStats) bool {
 	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(record *voiceScenarioJobRecord) {
-		record.job.ProviderJobId = strings.TrimSpace(providerJobID)
+		// Provider task identities never enter the public Runtime voice job.
+		record.job.ProviderJobId = ""
 		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 		record.job.ReasonDetail = ""
 		record.job.ReasonMetadata = nil
@@ -257,6 +283,7 @@ func (s *voiceAssetStore) transitionJob(
 	record.updatedAt = nowTime
 	if isTerminalScenarioJobStatus(status) {
 		record.terminalAt = nowTime
+		record.cancel = nil
 	}
 	record.job.UpdatedAt = timestamppb.New(nowTime)
 	if mutate != nil {

@@ -87,14 +87,14 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 		connectorID    = "connector-dashscope-owner"
 	)
 	targetRef := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID: connectorID, RemoteModelCatalogID: "dashscope/cosyvoice-v3-flash",
+		ConnectorID: connectorID, ConnectorGrantID: "grant-dashscope-owner", RemoteModelCatalogID: "dashscope/cosyvoice-v3-flash",
 		ProviderModelID: "cosyvoice-v3-flash", Provider: "dashscope",
 	}}
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	upsertPublicChatTestAgentAIConfig(t, svc, publicChatExecutionBinding{
 		ModelID: "dashscope/cosyvoice-v3-flash", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		ConnectorID: connectorID, TargetRef: targetRef.Clone(),
+		ConnectorID: connectorID, TargetRef: targetRef.Clone(), ExecutionIntent: testVoiceAssetExecutionIntent(targetRef),
 	})
 	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, requestedID string) (*runtimev1.VoiceAsset, error) {
 		asset := &runtimev1.VoiceAsset{
@@ -239,9 +239,8 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 		t.Fatalf("voice execution owner = %q/%q, want %q/%q", head.GetAppId(), head.GetSubjectUserId(), voiceDemoAppID, ownerUserID)
 	}
 	intent, ok := executionintent.FromContext(voiceAI.streamContext)
-	if !ok || intent.CloudTarget == nil || intent.CloudTarget.ConnectorID != connectorID ||
-		!runtimeidentity.Equal(&runtimeidentity.Target{Cloud: intent.CloudTarget}, targetRef) {
-		t.Fatalf("voice execution lost private connector/target intent: %+v, ok=%v", intent, ok)
+	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil || intent.ModelID() != "cosyvoice-v3-flash" || intent.GrantID() != "grant-dashscope-owner" {
+		t.Fatalf("voice execution lost private AIConfig intent: %+v, ok=%v", intent, ok)
 	}
 	voiceRef := voiceAI.streamReq.GetSpec().GetSpeechSynthesize().GetVoiceRef()
 	if voiceRef.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET ||

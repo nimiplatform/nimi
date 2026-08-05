@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
-	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -135,21 +133,7 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	intent := executionintent.Intent{
-		CapabilityContract: req.Binding.CapabilityContract,
-		RequiredFeatures:   append([]string(nil), req.Binding.RequiredFeatures...),
-		Defaults:           clonePublicChatSelectedParams(req.Binding.SelectedParams),
-		Route:              req.Binding.RoutePolicy,
-	}
-	if cloud := req.Binding.TargetRef.GetCloud(); cloud != nil {
-		intent.CloudTarget = &runtimeidentity.CloudTarget{
-			ConnectorID:          cloud.GetConnectorId(),
-			RemoteModelCatalogID: cloud.GetRemoteModelCatalogId(),
-			ProviderModelID:      cloud.GetProviderModelId(),
-			Provider:             cloud.GetProvider(),
-		}
-	}
-	ctx = executionintent.WithIntent(ctx, intent)
+	ctx = withPublicChatExecutionIntent(ctx, req.Binding, req.Binding.CapabilityContract)
 	streamReq := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         firstNonEmpty(strings.TrimSpace(req.AppID), publicChatRuntimeAppID),

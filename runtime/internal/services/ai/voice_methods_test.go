@@ -13,8 +13,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
@@ -45,12 +45,17 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 	if svc.connStore == nil {
 		svc.connStore = connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	}
+	asset, ok := svc.voiceAssets.getAsset(assetID)
+	ownerID := "user-001"
+	if ok && strings.TrimSpace(asset.GetSubjectUserId()) != "" {
+		ownerID = strings.TrimSpace(asset.GetSubjectUserId())
+	}
 	connectorID := "voice-delete-" + assetID
 	_, err := svc.connStore.Create(connector.ConnectorRecord{
 		ConnectorID: connectorID,
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
-		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
-		OwnerID:     "system",
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     ownerID,
 		Provider:    provider,
 		Endpoint:    endpoint,
 		Label:       "Voice delete test",
@@ -59,13 +64,29 @@ func bindVoiceAssetDeleteTarget(t *testing.T, svc *Service, assetID string, prov
 	if err != nil {
 		t.Fatalf("create voice delete connector: %v", err)
 	}
+	grant, err := svc.connStore.CreateGrant(ownerID, connectorID)
+	if err != nil {
+		t.Fatalf("create voice delete connector grant: %v", err)
+	}
+	transport := nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}, nil, nil)
+	svc.remoteMediaHost = remoteexecution.NewProviderMediaHost(svc.connStore, transport, auditlog.New(32, 32), true)
 	svc.voiceAssets.mu.Lock()
+	remoteCatalogID := "voice-delete-catalog-" + assetID
+	providerModelID := "voice-delete-model-" + assetID
 	svc.voiceAssets.targets[assetID] = &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID:          connectorID,
-		RemoteModelCatalogID: "voice-delete-catalog-" + assetID,
-		ProviderModelID:      "voice-delete-model-" + assetID,
-		Provider:             provider,
+		ConnectorID: connectorID, ConnectorGrantID: grant.GrantID, RemoteModelCatalogID: remoteCatalogID,
+		ProviderModelID: providerModelID, Provider: provider,
 	}}
+	rawTarget, _ := structpb.NewStruct(map[string]any{
+		"provider": provider, "providerModelId": providerModelID, "remoteModelCatalogId": remoteCatalogID,
+	})
+	svc.voiceAssets.cloudBindings[assetID] = &voiceAssetCloudBinding{
+		CapabilityContract: "voice_workflow.voice_clone",
+		Implementation: &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "cloud.voice.delete." + provider, DriverId: "nimi.runtime.driver." + provider, DriverDialect: "provider/voice-delete/v1",
+		},
+		ProviderModelTarget: rawTarget, ConnectorGrantID: grant.GrantID,
+	}
 	svc.voiceAssets.mu.Unlock()
 }
 
@@ -73,12 +94,7 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc", "https://example.com", Config{})
 	svc := fixture.service
 
-	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
-	ctx = executionintent.WithIntent(ctx, executionintent.Intent{
-		CapabilityContract: "voice_workflow.voice_clone",
-		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		CloudTarget:        fixture.targetRef.GetCloud().Clone(),
-	})
+	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "voice_workflow.voice_clone", fixture.targetRef)
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
@@ -485,8 +501,8 @@ func TestDeleteVoiceAssetProviderFailureMarksPendingReconciliationAndRetryClears
 	if err != nil {
 		t.Fatalf("ListEvents(delete retries): %v", err)
 	}
-	if len(events.GetEvents()) != 2 {
-		t.Fatalf("expected 2 delete audit events, got %d", len(events.GetEvents()))
+	if len(events.GetEvents()) != 4 {
+		t.Fatalf("expected 2 composition and 2 terminal delete audit events, got %d", len(events.GetEvents()))
 	}
 	var failedEvent *runtimev1.AuditEventRecord
 	var successEvent *runtimev1.AuditEventRecord

@@ -53,27 +53,30 @@ func withCloudScenarioTestIntent(ctx context.Context, capabilityContract string,
 	intent := executionintent.Intent{
 		CapabilityContract: capabilityContract,
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		CloudTarget:        cloud,
 	}
+	providerTarget := &structpb.Struct{}
+	grantID := ""
+	providerID := "missing"
+	if cloud != nil {
+		providerTarget, _ = structpb.NewStruct(map[string]any{
+			"provider":             cloud.Provider,
+			"providerModelId":      cloud.ProviderModelID,
+			"remoteModelCatalogId": cloud.RemoteModelCatalogID,
+		})
+		grantID = cloud.ConnectorGrantID
+		providerID = cloud.Provider
+	}
+	dialect := "provider/media-v1"
 	if capabilityContract == "text.generate" {
-		providerTarget := &structpb.Struct{}
-		grantID := ""
-		if cloud != nil {
-			providerTarget, _ = structpb.NewStruct(map[string]any{
-				"provider":             cloud.Provider,
-				"providerModelId":      cloud.ProviderModelID,
-				"remoteModelCatalogId": cloud.RemoteModelCatalogID,
-			})
-			grantID = cloud.ConnectorGrantID
-		}
-		intent.CloudImplementation = &runtimev1.CapabilityImplementationIdentity{
-			ImplementationId: "cloud." + capabilityContract + "." + cloud.GetProvider(),
-			DriverId:         "nimi.runtime.driver." + cloud.GetProvider(),
-			DriverDialect:    "provider/text-v1",
-		}
-		intent.ProviderModelTarget = providerTarget
-		intent.ConnectorGrantID = grantID
+		dialect = "provider/text-v1"
 	}
+	intent.CloudImplementation = &runtimev1.CapabilityImplementationIdentity{
+		ImplementationId: "cloud." + capabilityContract + "." + providerID,
+		DriverId:         "nimi.runtime.driver." + providerID,
+		DriverDialect:    dialect,
+	}
+	intent.ProviderModelTarget = providerTarget
+	intent.ConnectorGrantID = grantID
 	return executionintent.WithIntent(ctx, intent)
 }
 

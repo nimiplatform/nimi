@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -33,6 +34,7 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 		SpeechRoutePolicy:     policy.SpeechRoutePolicy,
 		SpeechConnectorID:     policy.SpeechConnectorID,
 		SpeechTargetRef:       clonePublicChatTargetRef(policy.SpeechTargetRef),
+		SpeechExecutionIntent: executionintent.Clone(policy.SpeechExecutionIntent),
 		SpeechAppID:           policy.SpeechAppID,
 		OwnerUserID:           policy.OwnerUserID,
 		AgentID:               session.AgentID,

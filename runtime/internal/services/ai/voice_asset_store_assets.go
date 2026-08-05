@@ -43,6 +43,24 @@ func (s *voiceAssetStore) getAssetBinding(voiceAssetID string) (*runtimev1.Voice
 	return out, outTarget, true
 }
 
+func (s *voiceAssetStore) getAssetCloudBinding(voiceAssetID string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, *voiceAssetCloudBinding, bool) {
+	id := strings.TrimSpace(voiceAssetID)
+	if id == "" {
+		return nil, nil, nil, false
+	}
+	s.mu.RLock()
+	asset := s.assets[id]
+	target := s.targets[id]
+	binding := s.cloudBindings[id]
+	if asset == nil || target == nil || !target.Valid() {
+		s.mu.RUnlock()
+		return nil, nil, nil, false
+	}
+	out, outTarget, outBinding := cloneVoiceAsset(asset), target.Clone(), binding.Clone()
+	s.mu.RUnlock()
+	return out, outTarget, outBinding, true
+}
+
 func (s *voiceAssetStore) listAssets(req *runtimev1.ListVoiceAssetsRequest) []*runtimev1.VoiceAsset {
 	if req == nil {
 		return nil

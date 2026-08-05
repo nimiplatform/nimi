@@ -55,7 +55,7 @@ func (s *Service) submitCloudTextScenarioJob(
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
 
-	jobCtx := context.Background()
+	jobCtx := newDetachedAsyncJobContext(ctx)
 	timeout := scenarioJobTimeoutDuration(req, defaultGenerateTimeout, false)
 	var cancel context.CancelFunc
 	if timeout > 0 {
@@ -64,7 +64,7 @@ func (s *Service) submitCloudTextScenarioJob(
 		jobCtx, cancel = context.WithCancel(jobCtx)
 	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
-		jobCtx = authn.WithIdentity(jobCtx, identity)
+		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
 
 	jobID := ulid.Make().String()

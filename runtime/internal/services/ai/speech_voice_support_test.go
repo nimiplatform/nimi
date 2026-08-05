@@ -95,8 +95,8 @@ func TestValidateConnectorTTSModelSupportRejectsUnsupportedPresetVoice(t *testin
 	if err == nil {
 		t.Fatal("expected unsupported preset voice to fail")
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
-		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got err=%v reason=%v ok=%v", err, reason, ok)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH {
+		t.Fatalf("expected AI_VOICE_TARGET_MODEL_MISMATCH, got err=%v reason=%v ok=%v", err, reason, ok)
 	}
 }
 

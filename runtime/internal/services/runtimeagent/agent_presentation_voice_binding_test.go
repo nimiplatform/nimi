@@ -8,12 +8,14 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -29,6 +31,23 @@ func (resolve testVoiceAssetResolver) ResolveVoiceAsset(ctx context.Context, voi
 	target, _ := testVoiceAssetTargets.Load(asset)
 	resolvedTarget, _ := target.(*runtimeidentity.Target)
 	return &resolvedVoiceAsset{Asset: asset, Target: resolvedTarget.Clone()}, nil
+}
+
+func testVoiceAssetExecutionIntent(target *runtimeidentity.Target) executionintent.Intent {
+	if target == nil || target.GetCloud() == nil {
+		return executionintent.Intent{}
+	}
+	cloud := target.GetCloud()
+	rawTarget, _ := structpb.NewStruct(map[string]any{
+		"provider": cloud.Provider, "providerModelId": cloud.ProviderModelID, "remoteModelCatalogId": cloud.RemoteModelCatalogID,
+	})
+	return executionintent.Intent{
+		CapabilityContract: "audio.synthesize", Route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		CloudImplementation: &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "cloud.audio.test", DriverId: "driver." + cloud.Provider, DriverDialect: "provider/audio/v1",
+		},
+		ProviderModelTarget: rawTarget, ConnectorGrantID: firstNonEmpty(cloud.ConnectorGrantID, "grant-test"),
+	}
 }
 
 type testRuntimeAIVoiceAssetService struct {
@@ -47,6 +66,7 @@ func (service testRuntimeAIVoiceAssetService) ResolveRuntimeAgentVoiceAsset(ctx 
 func durableVoiceAssetTargetRef() *runtimeidentity.Target {
 	return &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
 		ConnectorID:          "connector-1",
+		ConnectorGrantID:     "grant-test",
 		RemoteModelCatalogID: "remote-catalog-1",
 		ProviderModelID:      "provider-model-1",
 		Provider:             "provider-1",

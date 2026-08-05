@@ -34,6 +34,7 @@ type diskArtifactRecord struct {
 	ArtifactID     string                          `json:"artifact_id"`
 	PayloadFile    string                          `json:"payload_file"`
 	MimeType       string                          `json:"mime_type"`
+	ProducerJobID  string                          `json:"producer_job_id,omitempty"`
 	SizeBytes      int64                           `json:"size_bytes"`
 	ContentSHA256  string                          `json:"content_sha256"`
 	MimeInferred   bool                            `json:"mime_inferred"`
@@ -110,6 +111,7 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 		ArtifactID:     artifactID,
 		PayloadFile:    payloadFile,
 		MimeType:       normalized.MimeType,
+		ProducerJobID:  normalized.ProducerJobID,
 		SizeBytes:      normalized.SizeBytes,
 		ContentSHA256:  normalized.ContentSHA256,
 		MimeInferred:   normalized.MimeInferred,
@@ -144,6 +146,7 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 			ArtifactID:     artifactID,
 			PayloadFile:    existingDisk.PayloadFile,
 			MimeType:       merged.MimeType,
+			ProducerJobID:  merged.ProducerJobID,
 			SizeBytes:      merged.SizeBytes,
 			ContentSHA256:  merged.ContentSHA256,
 			MimeInferred:   merged.MimeInferred,
@@ -197,6 +200,7 @@ func (s *DiskStore) artifactFromDiskRecordLocked(diskRecord diskArtifactRecord) 
 	record, err := normalizeArtifactRecord(ArtifactRecord{
 		Bytes:          payload,
 		MimeType:       diskRecord.MimeType,
+		ProducerJobID:  diskRecord.ProducerJobID,
 		SizeBytes:      diskRecord.SizeBytes,
 		ContentSHA256:  diskRecord.ContentSHA256,
 		MimeInferred:   diskRecord.MimeInferred,

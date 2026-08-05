@@ -364,8 +364,8 @@ test('tester-reference scaffold keeps the full reference app explicit', () => {
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
     const testerRuntime = generated.read('src/tester/tester-runtime.ts');
     assert.match(testerRuntime, /protected local-app identity session is bound/);
-    assert.match(testerRuntime, /foreground ai\.text\.generate/);
-    assert.match(testerRuntime, /app-private JSON storage is a base entitlement/);
+    assert.match(testerRuntime, /foreground text generation/);
+    assert.match(testerRuntime, /canonical Runtime execution path/);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     const localAppPlatform = generated.read('src/shell/local-app-runtime-platform.ts');
     const permissionLab = generated.read('src/tester/local-app-permission-lab.tsx');
@@ -378,7 +378,7 @@ test('tester-reference scaffold keeps the full reference app explicit', () => {
     assert.doesNotMatch(permissionLab, /testerLocalAppClient/);
     assert.match(productionBindings, /testerLocalAppClient\.storage\.writeJson/);
     assert.doesNotMatch(runtimePlatform, /testerInstalledAppBootstrap|bootstrapArtifactId/);
-    assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
+    assert.match(generated.read('src/tester/workbench/tester-ai-config-settings-panel.tsx'), /TesterAiConfigSettingsPanel/);
     assert.match(generated.read('src-tauri/src/main.rs'), /world_tour/);
     assert.match(generated.read('src-electron/main.ts'), /APP_ID = 'acme\.widget'/);
     assertGeneratedPathExists(generated, 'src/tester/tester-standard-storage.ts');
@@ -868,7 +868,7 @@ test('scaffold omissions are explicit tester-reference input and do not shrink t
   const generated = cliScaffold('tester-reference');
   try {
     assert.match(generated.read('src/shell/routes/settings-route.tsx'), /Settings/);
-    assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
+    assert.match(generated.read('src/tester/workbench/tester-ai-config-settings-panel.tsx'), /TesterAiConfigSettingsPanel/);
 
     const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
     const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 )
 
@@ -113,6 +114,7 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		SpeechRoutePolicy:     policy.SpeechRoutePolicy,
 		SpeechConnectorID:     policy.SpeechConnectorID,
 		SpeechTargetRef:       clonePublicChatTargetRef(policy.SpeechTargetRef),
+		SpeechExecutionIntent: executionintent.Clone(policy.SpeechExecutionIntent),
 		SpeechAppID:           policy.SpeechAppID,
 		OwnerUserID:           policy.OwnerUserID,
 		AgentID:               session.AgentID,
@@ -396,6 +398,7 @@ type agentVoiceOutputPolicy struct {
 	SpeechRoutePolicy     runtimev1.RoutePolicy
 	SpeechConnectorID     string
 	SpeechTargetRef       *runtimeidentity.Target
+	SpeechExecutionIntent executionintent.Intent
 	SpeechAppID           string
 	OwnerUserID           string
 }
@@ -419,9 +422,14 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context,
 		audioBinding.TargetRef == nil || audioBinding.TargetRef.GetTarget() == nil {
 		return agentVoiceOutputPolicy{}, false
 	}
-	if cloud := audioBinding.TargetRef.GetCloud(); cloud != nil &&
-		strings.TrimSpace(audioBinding.ConnectorID) != strings.TrimSpace(cloud.GetConnectorId()) {
-		return agentVoiceOutputPolicy{}, false
+	if cloud := audioBinding.TargetRef.GetCloud(); cloud != nil {
+		if strings.TrimSpace(audioBinding.ConnectorID) != strings.TrimSpace(cloud.GetConnectorId()) ||
+			!audioBinding.ExecutionIntent.IsAIConfigCloud() ||
+			audioBinding.ExecutionIntent.CapabilityContract != runtimeAgentAIConfigCapabilityAudioSynthesize ||
+			audioBinding.ExecutionIntent.ModelID() != strings.TrimSpace(cloud.GetProviderModelId()) ||
+			audioBinding.ExecutionIntent.GrantID() != strings.TrimSpace(cloud.GetConnectorGrantId()) {
+			return agentVoiceOutputPolicy{}, false
+		}
 	}
 	ownerUserID := strings.TrimSpace(session.OwnerUserID)
 	speechAppID, err := resolveRuntimeAgentVoiceAssetExecutionApp(
@@ -434,6 +442,7 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context,
 	if err != nil || speechAppID == "" || ownerUserID == "" {
 		return agentVoiceOutputPolicy{}, false
 	}
+	speechIntent := executionintent.Clone(audioBinding.ExecutionIntent)
 	return agentVoiceOutputPolicy{
 		AvatarAutoplay:        profile.GetAvatarAutoplay(),
 		DefaultVoiceReference: voiceRef,
@@ -441,6 +450,7 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context,
 		SpeechRoutePolicy:     routePolicy,
 		SpeechConnectorID:     audioBinding.ConnectorID,
 		SpeechTargetRef:       clonePublicChatTargetRef(audioBinding.TargetRef),
+		SpeechExecutionIntent: executionintent.Clone(speechIntent),
 		SpeechAppID:           speechAppID,
 		OwnerUserID:           ownerUserID,
 	}, true

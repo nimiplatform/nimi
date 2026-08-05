@@ -70,8 +70,10 @@ type Service struct {
 	localImageHost                         localexecution.ImageExecutionHost
 	capabilityDrivers                      *capabilitydriver.Registry
 	cloudTextDrivers                       *capabilitydriver.CloudTextRegistry
+	cloudMediaDrivers                      *capabilitydriver.CloudMediaRegistry
 	cloudTextProvider                      provider
 	remoteTextHost                         remoteexecution.TextHost
+	remoteMediaHost                        remoteexecution.MediaHost
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
@@ -197,11 +199,14 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		scenarioJobs:                           newScenarioJobStore(),
 		realtimeSessions:                       realtimeSessions,
 		voiceAssets:                            newVoiceAssetStore(),
+		runtimeArtifacts:                       runtimeartifact.NewMemoryStore(),
 		aiConfigStore:                          aiconfig.NewMemoryStore(),
 		capabilityDrivers:                      capabilitydriver.NewProductionRegistry(),
 		cloudTextDrivers:                       capabilitydriver.NewProductionCloudTextRegistry(),
+		cloudMediaDrivers:                      capabilitydriver.NewProductionCloudMediaRegistry(),
 		cloudTextProvider:                      remoteTextTransport,
 		remoteTextHost:                         remoteexecution.NewProviderTextHost(connStore, remoteTextTransport, hostAudit, cfg.AllowLoopbackEndpoint),
+		remoteMediaHost:                        remoteexecution.NewProviderMediaHost(connStore, remoteTextTransport, hostAudit, cfg.AllowLoopbackEndpoint),
 		connStore:                              connStore,
 		allowLoopback:                          cfg.AllowLoopbackEndpoint,
 		streamFirstPacketTimeout:               defaultStreamFirstTimeout,
@@ -246,6 +251,15 @@ func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionH
 func (s *Service) SetRemoteTextExecutionHost(host remoteexecution.TextHost) {
 	if s != nil && host != nil {
 		s.remoteTextHost = host
+	}
+}
+
+// SetRemoteMediaExecutionHost replaces the Remote Host transport seam. The
+// Host never participates in route, grant, implementation, target, or dialect
+// selection.
+func (s *Service) SetRemoteMediaExecutionHost(host remoteexecution.MediaHost) {
+	if s != nil && host != nil {
+		s.remoteMediaHost = host
 	}
 }
 

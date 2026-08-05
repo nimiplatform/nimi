@@ -275,7 +275,7 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	const genericAuthFailure = "provider authentication failed"
 	const genericModelNotFound = "requested model is unavailable"
 	switch statusCode {
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnprocessableEntity:
 		grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
 		message := genericProviderFailure
 		if reasonCode == runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
@@ -284,6 +284,7 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
 			ActionHint: actionHint,
 			Message:    message,
+			Metadata:   providerHTTPStatusMetadata(statusCode),
 		})
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, grpcerr.ReasonOptions{
@@ -299,11 +300,13 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
 			ActionHint: actionHint,
 			Message:    genericProviderFailure,
+			Metadata:   providerHTTPStatusMetadata(statusCode),
 		})
 	case http.StatusNotFound:
 		return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
 			ActionHint: "switch_model_or_refresh_connector_models",
 			Message:    genericModelNotFound,
+			Metadata:   providerHTTPStatusMetadata(statusCode),
 		})
 	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
 		return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{Metadata: providerHTTPStatusMetadata(statusCode)})
@@ -316,6 +319,7 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 			return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
 				ActionHint: "adjust_tts_voice_or_audio_options",
 				Message:    genericProviderFailure,
+				Metadata:   providerHTTPStatusMetadata(statusCode),
 			})
 		}
 		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{

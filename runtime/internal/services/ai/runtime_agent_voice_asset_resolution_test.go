@@ -8,17 +8,18 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func runtimeAgentVoiceAssetTestTarget(connectorID string) *runtimeidentity.Target {
 	return &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
 		ConnectorID:          connectorID,
+		ConnectorGrantID:     "grant-" + connectorID,
 		RemoteModelCatalogID: "dashscope/cosyvoice-v3-flash",
 		ProviderModelID:      "cosyvoice-v3-flash",
 		Provider:             "dashscope",
@@ -91,12 +92,7 @@ func TestResolveSynthesizeSpeechVoiceAssetKeepsAppSubjectAndPrivateTargetScope(t
 			if ctx == nil {
 				ctx = context.Background()
 			}
-			ctx = executionintent.WithIntent(ctx, executionintent.Intent{
-				CapabilityContract: "audio.synthesize",
-				Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-				CloudTarget:        tc.target.GetCloud().Clone(),
-			})
-			effective, err := svc.resolveSynthesizeSpeechSpecVoiceRef(ctx, tc.head, "dashscope/cosyvoice-v3-flash", runtimeAgentVoiceAssetTestSpec(assetID))
+			effective, err := svc.resolveSynthesizeSpeechSpecVoiceRefForTarget(ctx, tc.head, tc.target, runtimeAgentVoiceAssetTestSpec(assetID))
 			if status.Code(err) != tc.wantCode {
 				t.Fatalf("code=%s want=%s err=%v", status.Code(err), tc.wantCode, err)
 			}
@@ -117,7 +113,16 @@ func TestResolveRuntimeAgentVoiceAssetIsSubjectBoundWithoutWideningPublicAppRead
 	const assetID = "voice-asset-song-lian-private-resolution"
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{VoiceAssetId: assetID, AppId: "nimi.voice-demo", SubjectUserId: "user-1"}
-	svc.voiceAssets.targets[assetID] = runtimeAgentVoiceAssetTestTarget("connector-owner")
+	targetRef := runtimeAgentVoiceAssetTestTarget("connector-owner")
+	svc.voiceAssets.targets[assetID] = targetRef
+	rawTarget, _ := structpb.NewStruct(map[string]any{
+		"provider": "dashscope", "providerModelId": "cosyvoice-v3-flash", "remoteModelCatalogId": "dashscope/cosyvoice-v3-flash",
+	})
+	svc.voiceAssets.cloudBindings[assetID] = &voiceAssetCloudBinding{
+		CapabilityContract:  "voice_workflow.voice_clone",
+		Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.voice.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/voice/v1"},
+		ProviderModelTarget: rawTarget, ConnectorGrantID: targetRef.Cloud.ConnectorGrantID,
+	}
 
 	asset, target, err := svc.ResolveRuntimeAgentVoiceAsset(nil, assetID, "user-1")
 	if err != nil || asset.GetAppId() != "nimi.voice-demo" || target == nil {

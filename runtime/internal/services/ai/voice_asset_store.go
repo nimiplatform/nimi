@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"sync"
@@ -31,6 +32,37 @@ type voiceScenarioJobRecord struct {
 	createdAt   time.Time
 	updatedAt   time.Time
 	terminalAt  time.Time
+	cancel      context.CancelFunc
+}
+
+type voiceAssetCloudBinding struct {
+	CapabilityContract  string
+	Implementation      *runtimev1.CapabilityImplementationIdentity
+	ProviderModelTarget *structpb.Struct
+	ConnectorGrantID    string
+}
+
+func (b *voiceAssetCloudBinding) Clone() *voiceAssetCloudBinding {
+	if b == nil {
+		return nil
+	}
+	implementation, _ := proto.Clone(b.Implementation).(*runtimev1.CapabilityImplementationIdentity)
+	target, _ := proto.Clone(b.ProviderModelTarget).(*structpb.Struct)
+	return &voiceAssetCloudBinding{
+		CapabilityContract: strings.TrimSpace(b.CapabilityContract), Implementation: implementation,
+		ProviderModelTarget: target, ConnectorGrantID: strings.TrimSpace(b.ConnectorGrantID),
+	}
+}
+
+func (b *voiceAssetCloudBinding) Valid() bool {
+	return b != nil &&
+		(b.CapabilityContract == "voice_workflow.voice_clone" || b.CapabilityContract == "voice_workflow.voice_design") &&
+		b.Implementation != nil &&
+		strings.TrimSpace(b.Implementation.GetImplementationId()) != "" &&
+		strings.TrimSpace(b.Implementation.GetDriverId()) != "" &&
+		strings.TrimSpace(b.Implementation.GetDriverDialect()) != "" &&
+		b.ProviderModelTarget != nil && len(b.ProviderModelTarget.GetFields()) > 0 &&
+		strings.TrimSpace(b.ConnectorGrantID) != ""
 }
 
 type voiceWorkflowSubmitInput struct {
@@ -51,15 +83,17 @@ type voiceWorkflowSubmitInput struct {
 	HandleDeleteSem   string
 	RuntimeReconcile  bool
 	ExecutionTarget   *runtimeidentity.Target
+	CloudBinding      *voiceAssetCloudBinding
 	IgnoredExtensions []*runtimev1.IgnoredScenarioExtension
 }
 
 type voiceAssetStore struct {
-	mu          sync.RWMutex
-	jobs        map[string]*voiceScenarioJobRecord
-	assets      map[string]*runtimev1.VoiceAsset
-	targets     map[string]*runtimeidentity.Target
-	durablePath string
+	mu            sync.RWMutex
+	jobs          map[string]*voiceScenarioJobRecord
+	assets        map[string]*runtimev1.VoiceAsset
+	targets       map[string]*runtimeidentity.Target
+	cloudBindings map[string]*voiceAssetCloudBinding
+	durablePath   string
 }
 
 type voiceAssetDeleteResult struct {
@@ -77,9 +111,10 @@ type voiceAssetDeleteResult struct {
 
 func newVoiceAssetStore() *voiceAssetStore {
 	return &voiceAssetStore{
-		jobs:    make(map[string]*voiceScenarioJobRecord),
-		assets:  make(map[string]*runtimev1.VoiceAsset),
-		targets: make(map[string]*runtimeidentity.Target),
+		jobs:          make(map[string]*voiceScenarioJobRecord),
+		assets:        make(map[string]*runtimev1.VoiceAsset),
+		targets:       make(map[string]*runtimeidentity.Target),
+		cloudBindings: make(map[string]*voiceAssetCloudBinding),
 	}
 }
 
@@ -143,9 +178,15 @@ func (s *voiceAssetStore) deleteJobLocked(jobID string) {
 	if record == nil {
 		return
 	}
+	if record.cancel != nil {
+		record.cancel()
+		record.cancel = nil
+	}
 	if strings.TrimSpace(record.assetID) != "" {
 		if asset := s.assets[record.assetID]; asset == nil || asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
 			delete(s.assets, record.assetID)
+			delete(s.targets, record.assetID)
+			delete(s.cloudBindings, record.assetID)
 		}
 	}
 	for subID, ch := range record.subscribers {

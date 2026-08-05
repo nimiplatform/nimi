@@ -11,7 +11,9 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
@@ -61,6 +63,7 @@ type voiceLipsyncSynthesisInput struct {
 	SpeechRoutePolicy     runtimev1.RoutePolicy
 	SpeechConnectorID     string
 	SpeechTargetRef       *runtimeidentity.Target
+	SpeechExecutionIntent executionintent.Intent
 	SpeechAppID           string
 	OwnerUserID           string
 	AgentID               string
@@ -225,8 +228,14 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 	ownerUserID := runtimeAgentVoiceSynthesisOwnerForInput(input)
 	ctx = runtimeAgentVoiceSynthesisContext(ctx, speechAppID, ownerUserID)
 	intent := executionintent.Intent{CapabilityContract: "audio.synthesize", Route: routePolicy}
-	if input.SpeechTargetRef != nil {
-		intent.CloudTarget = input.SpeechTargetRef.GetCloud().Clone()
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		intent = executionintent.Clone(input.SpeechExecutionIntent)
+		cloudTarget := input.SpeechTargetRef.GetCloud()
+		if !intent.IsAIConfigCloud() || intent.CapabilityContract != "audio.synthesize" || cloudTarget == nil ||
+			intent.ModelID() != strings.TrimSpace(cloudTarget.GetProviderModelId()) ||
+			intent.GrantID() != strings.TrimSpace(cloudTarget.GetConnectorGrantId()) {
+			return voiceLipsyncSynthesisOutput{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
 	}
 	ctx = executionintent.WithIntent(ctx, intent)
 	submitResp, err := s.ai.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{

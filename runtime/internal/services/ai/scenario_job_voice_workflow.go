@@ -2,15 +2,10 @@ package ai
 
 import (
 	"context"
-	"errors"
-	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 )
 
@@ -32,11 +27,18 @@ func (s *Service) submitVoiceWorkflowJob(
 	if intent.IsLocal() {
 		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
 	}
-
-	remoteTarget, err := s.prepareScenarioRequestWithExtensions(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
+	effective, err := s.captureCloudVoiceWorkflowEffectiveInputs(ctx, req)
 	if err != nil {
 		return nil, err
 	}
+	releaseEffective := true
+	defer func() {
+		if releaseEffective {
+			effective.release()
+		}
+	}()
+	req = effective.request
+	resolution := effective.resolution
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
 	if acquireErr != nil {
@@ -46,76 +48,38 @@ func (s *Service) submitVoiceWorkflowJob(
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("submit_voice_workflow_job", req.GetHead().GetAppId(), acquireResult)
 
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
-		ctx,
-		intent.Route,
-		intent.ModelID(),
-		remoteTarget,
-		scenarioModalFromType(req.GetScenarioType()),
-	)
-	if err != nil {
-		return nil, err
-	}
-	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return nil, localExactMediaUnsupportedError(req.GetScenarioType())
-	}
-	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
-		return nil, err
-	}
-	providerType := voiceWorkflowCatalogProviderType(modelResolved, remoteTarget, selectedProvider)
-	if err := s.validateCatalogAwareScenarioSupport(ctx, req.GetScenarioType(), providerType, modelResolved, req.GetSpec()); err != nil {
-		return nil, err
-	}
-	workflowType := workflowTypeFromScenarioType(req.GetScenarioType())
-	workflowResolution, err := s.resolveVoiceWorkflow(ctx, providerType, modelResolved, workflowType)
-	if err != nil {
-		if errors.Is(err, catalog.ErrModelNotFound) {
-			return nil, grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, err, grpcerr.ReasonOptions{
-				Message: "voice workflow catalog model could not be resolved",
-			})
-		}
-		if errors.Is(err, catalog.ErrVoiceWorkflowUnsupported) {
-			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, err, grpcerr.ReasonOptions{
-				Message: "voice workflow is not supported",
-			})
-		}
-		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-			Message: "voice workflow catalog metadata could not be read",
-		})
-	}
-	if _, err := resolveVoiceWorkflowExtensionPayload(req, workflowResolution.Provider); err != nil {
-		return nil, err
-	}
-	req = s.normalizeVoiceWorkflowRequestTargetModelID(ctx, req, workflowResolution)
-
-	traceID := ulid.Make().String()
 	job, asset := s.voiceAssets.submit(&voiceWorkflowSubmitInput{
 		Head:              req.GetHead(),
 		ScenarioType:      req.GetScenarioType(),
 		Spec:              req.GetSpec(),
-		TraceID:           traceID,
-		RouteDecision:     routeDecision,
-		ModelResolved:     modelResolved,
-		Provider:          workflowResolution.Provider,
-		WorkflowModelID:   workflowResolution.WorkflowModelID,
-		WorkflowFamily:    workflowResolution.WorkflowFamily,
-		OutputPersistence: workflowResolution.OutputPersistence,
-		HandlePolicyID:    workflowResolution.HandlePolicyID,
-		HandlePersistence: workflowResolution.HandlePolicyPersistence,
-		HandleScope:       workflowResolution.HandlePolicyScope,
-		HandleDefaultTTL:  workflowResolution.HandlePolicyDefaultTTL,
-		HandleDeleteSem:   workflowResolution.HandlePolicyDeleteSemantics,
-		RuntimeReconcile:  workflowResolution.RuntimeReconciliationRequired,
-		ExecutionTarget:   &runtimeidentity.Target{Cloud: intent.CloudTarget.Clone()},
+		TraceID:           effective.traceID,
+		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ModelResolved:     effective.target.ProviderModelID(),
+		Provider:          resolution.Provider,
+		WorkflowModelID:   resolution.WorkflowModelID,
+		WorkflowFamily:    resolution.WorkflowFamily,
+		OutputPersistence: resolution.OutputPersistence,
+		HandlePolicyID:    resolution.HandlePolicyID,
+		HandlePersistence: resolution.HandlePolicyPersistence,
+		HandleScope:       resolution.HandlePolicyScope,
+		HandleDefaultTTL:  resolution.HandlePolicyDefaultTTL,
+		HandleDeleteSem:   resolution.HandlePolicyDeleteSemantics,
+		RuntimeReconcile:  resolution.RuntimeReconciliationRequired,
+		ExecutionTarget:   effective.voiceTarget.Clone(),
+		CloudBinding: &voiceAssetCloudBinding{
+			CapabilityContract: effective.target.CapabilityContract(), Implementation: effective.implementation,
+			ProviderModelTarget: effective.rawTarget, ConnectorGrantID: effective.grant.Grant.GrantID,
+		},
 		IgnoredExtensions: ignored,
 	})
 	if job == nil || asset == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
-	adapterCfg := s.resolveNativeAdapterConfig(workflowResolution.Provider, remoteTarget)
 
 	timeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
-	jobCtx := inheritAsyncJobContext(ctx)
+	// Keep caller metadata and credentials out of the detached job. The typed
+	// identity below is the only request ownership value retained.
+	jobCtx := newDetachedAsyncJobContext(ctx)
 	var cancel context.CancelFunc
 	if timeout > 0 {
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
@@ -123,70 +87,18 @@ func (s *Service) submitVoiceWorkflowJob(
 		jobCtx, cancel = context.WithCancel(jobCtx)
 	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
-		jobCtx = authn.WithIdentity(jobCtx, identity)
+		jobCtx = authn.WithIdentity(jobCtx, &authn.Identity{SubjectUserID: identity.SubjectUserID})
 	}
+	if !s.voiceAssets.setJobCancel(job.GetJobId(), cancel) {
+		cancel()
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	releaseEffective = false
 	go func() {
 		defer cancel()
-		s.executeVoiceWorkflowJob(jobCtx, job.GetJobId(), asset.GetVoiceAssetId(), workflowResolution, cloneSubmitScenarioJobRequest(req), adapterCfg)
+		defer effective.release()
+		s.executeCapturedVoiceWorkflowJob(jobCtx, job.GetJobId(), asset.GetVoiceAssetId(), effective)
 	}()
 
-	return &runtimev1.SubmitScenarioJobResponse{
-		Job:   job,
-		Asset: asset,
-	}, nil
-}
-
-func (s *Service) normalizeVoiceWorkflowRequestTargetModelID(
-	ctx context.Context,
-	req *runtimev1.SubmitScenarioJobRequest,
-	resolution catalog.ResolveVoiceWorkflowResult,
-) *runtimev1.SubmitScenarioJobRequest {
-	if s == nil || s.speechCatalog == nil || req == nil || req.GetSpec() == nil {
-		return req
-	}
-	provider := strings.TrimSpace(resolution.Provider)
-	if provider == "" {
-		return req
-	}
-	subjectUserID := scenarioTargetSubjectUserID(ctx, req.GetHead())
-	normalize := func(value string) string {
-		trimmed := strings.TrimSpace(value)
-		if trimmed == "" {
-			return ""
-		}
-		resolved := strings.TrimSpace(s.speechCatalog.ResolveAPIModelIDForSubject(subjectUserID, provider, trimmed))
-		if resolved == "" {
-			return trimmed
-		}
-		return resolved
-	}
-
-	switch req.GetScenarioType() {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		current := strings.TrimSpace(req.GetSpec().GetVoiceClone().GetTargetModelId())
-		normalized := normalize(current)
-		if normalized == "" || normalized == current {
-			return req
-		}
-		cloned := cloneSubmitScenarioJobRequest(req)
-		if cloned == nil || cloned.GetSpec() == nil || cloned.GetSpec().GetVoiceClone() == nil {
-			return req
-		}
-		cloned.GetSpec().GetVoiceClone().TargetModelId = normalized
-		return cloned
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		current := strings.TrimSpace(req.GetSpec().GetVoiceDesign().GetTargetModelId())
-		normalized := normalize(current)
-		if normalized == "" || normalized == current {
-			return req
-		}
-		cloned := cloneSubmitScenarioJobRequest(req)
-		if cloned == nil || cloned.GetSpec() == nil || cloned.GetSpec().GetVoiceDesign() == nil {
-			return req
-		}
-		cloned.GetSpec().GetVoiceDesign().TargetModelId = normalized
-		return cloned
-	default:
-		return req
-	}
+	return &runtimev1.SubmitScenarioJobResponse{Job: job, Asset: asset}, nil
 }

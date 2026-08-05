@@ -66,7 +66,7 @@ export async function inspectRuntimeConnection(): Promise<TesterRuntimeInspectio
   return {
     status: 'connected',
     mode: projection.mode,
-    detail: 'The protected local-app identity session is bound and Runtime is connected. The App AIConfig selects Local or an exact Cloud implementation; machine selection and execution availability remain Runtime-owned. Current text execution remains typed fail-closed until the canonical Job path is admitted.',
+    detail: 'The protected local-app identity session is bound and Runtime is connected. The App AIConfig selects Local or an exact Cloud implementation; machine selection and execution availability remain Runtime-owned. Text requests run through the canonical Runtime execution path and fail closed with typed reasons when the composed route is not executable.',
   };
 }
 

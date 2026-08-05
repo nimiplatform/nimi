@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -88,6 +89,60 @@ func TestMachineLocalBindingResolverProjectsEveryConfiguredSelection(t *testing.
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
 		t.Fatalf("account mismatch reason=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestMachineBindingResolverCarriesCloudAIConfigIntentPrivately(t *testing.T) {
+	const accountID = "account-1"
+	service := &Service{runtimeAccountProjection: machineExecutionAccountProjectionStub{accountID: accountID}}
+	connectorStore := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	record, err := connectorStore.Create(connector.ConnectorRecord{
+		Kind: runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED, OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID: accountID, Provider: "dashscope", Endpoint: "https://dashscope.aliyuncs.com", Status: runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "test-key")
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, err := connectorStore.CreateGrant(accountID, record.ConnectorID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerTarget, _ := structpb.NewStruct(map[string]any{
+		"provider": "dashscope", "providerModelId": "qwen3-tts-vc", "remoteModelCatalogId": "catalog-qwen3-tts-vc",
+	})
+	store := aiconfig.NewMemoryStore()
+	if err := store.Overwrite(context.Background(), accountID, &runtimev1.AIConfig{
+		Owner: aiconfig.LocalAgentSubsystemOwner(),
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
+			CapabilityContract: "audio.synthesize",
+			Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
+				Implementation:      &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.audio.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/audio/v1"},
+				ProviderModelTarget: providerTarget, ConnectorGrantId: grant.GrantID,
+			}},
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	service.SetAIConfigStore(store)
+	service.SetConnectorStore(connectorStore)
+	service.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{})
+
+	bindings, err := service.machineExecutionBindings(context.Background(), accountID)
+	if err != nil {
+		t.Fatalf("machineExecutionBindings: %v", err)
+	}
+	binding := bindings["audio.synthesize"]
+	if !binding.ExecutionIntent.IsAIConfigCloud() || binding.ExecutionIntent.GrantID() != grant.GrantID || binding.ModelID != "qwen3-tts-vc" ||
+		binding.TargetRef.GetCloud().GetConnectorId() != record.ConnectorID || binding.TargetRef.GetCloud().GetConnectorGrantId() != grant.GrantID {
+		t.Fatalf("Cloud machine binding=%+v intent=%+v", binding, binding.ExecutionIntent)
+	}
+	if _, err := connectorStore.RevokeGrant(accountID, grant.GrantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.machineExecutionBindings(context.Background(), accountID); err == nil {
+		t.Fatal("revoked Cloud grant remained executable")
+	} else if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONNECTOR_GRANT_REVOKED {
+		t.Fatalf("revoked Cloud binding reason=%v ok=%v err=%v", reason, ok, err)
 	}
 }
 

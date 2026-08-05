@@ -18,38 +18,27 @@ func scenarioJobUserContext(appID string, subjectUserID string) context.Context 
 	return authn.WithIdentity(scenarioJobContext(appID), &authn.Identity{SubjectUserID: subjectUserID})
 }
 
-func TestInheritAsyncJobContextPreservesMetadata(t *testing.T) {
-	parent := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+func TestDetachedAsyncJobContextDropsRequestMetadataAndCredentials(t *testing.T) {
+	parent, cancel := context.WithCancel(metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"authorization", "Bearer request-secret",
 		"x-nimi-app-id", "nimi.desktop",
 		"x-nimi-trace-id", "trace-123",
-	))
+	)))
 	parent = metadata.NewOutgoingContext(parent, metadata.Pairs(
-		"x-nimi-trace-id", "trace-123",
+		"authorization", "Bearer request-secret",
 		"x-nimi-participant-id", "nimi.desktop.test",
 	))
 
-	child := inheritAsyncJobContext(parent)
-
-	incoming, ok := metadata.FromIncomingContext(child)
-	if !ok {
-		t.Fatal("expected incoming metadata on child context")
+	child := newDetachedAsyncJobContext(parent)
+	cancel()
+	if _, ok := metadata.FromIncomingContext(child); ok {
+		t.Fatal("detached job retained incoming request metadata")
 	}
-	if got := incoming.Get("x-nimi-trace-id"); len(got) != 1 || got[0] != "trace-123" {
-		t.Fatalf("incoming trace metadata mismatch: %v", got)
+	if _, ok := metadata.FromOutgoingContext(child); ok {
+		t.Fatal("detached job retained outgoing request metadata")
 	}
-	if got := incoming.Get("x-nimi-app-id"); len(got) != 1 || got[0] != "nimi.desktop" {
-		t.Fatalf("incoming app metadata mismatch: %v", got)
-	}
-
-	outgoing, ok := metadata.FromOutgoingContext(child)
-	if !ok {
-		t.Fatal("expected outgoing metadata on child context")
-	}
-	if got := outgoing.Get("x-nimi-trace-id"); len(got) != 1 || got[0] != "trace-123" {
-		t.Fatalf("outgoing trace metadata mismatch: %v", got)
-	}
-	if got := outgoing.Get("x-nimi-participant-id"); len(got) != 1 || got[0] != "nimi.desktop.test" {
-		t.Fatalf("outgoing participant metadata mismatch: %v", got)
+	if err := child.Err(); err != nil {
+		t.Fatalf("detached job inherited parent cancellation: %v", err)
 	}
 }
 

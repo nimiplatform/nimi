@@ -76,6 +76,7 @@ func TestExecuteScenarioSpeechSynthesizeRouteDescribeProjectsCatalogNativeStream
 	fixture.connectorService.SetModelCatalogResolver(nativeStreamCatalog)
 	descriptor := connectorModelDescriptorForAITest(t, fixture.connectorService, fixture.context, fixture.connectorID, "gpt-audio")
 	targetRef := cloudScenarioTargetRefForDescriptor(fixture.connectorID, descriptor)
+	targetRef.Cloud.ConnectorGrantID = fixture.targetRef.Cloud.ConnectorGrantID
 
 	transport := &routeDescribeTransportStream{}
 	ctx := withCloudScenarioTestIntent(fixture.context, "audio.synthesize", targetRef)

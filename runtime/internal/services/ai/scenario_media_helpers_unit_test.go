@@ -10,13 +10,11 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
-	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func baseScenarioJobRequest() *runtimev1.SubmitScenarioJobRequest {
@@ -367,37 +365,9 @@ func TestMediaRoutingHelpers(t *testing.T) {
 			"gemini": {BaseURL: "https://example.test/v1", APIKey: "k"},
 		},
 	})
-	cfg := svc.resolveNativeAdapterConfig("gemini", nil)
-	if cfg.BaseURL != "" || cfg.APIKey != "" {
-		t.Fatalf("execution adapter config must reject a missing exact target: %#v", cfg)
-	}
-	cfg = svc.resolveConfiguredProbeAdapterConfig("gemini")
+	cfg := svc.resolveConfiguredProbeAdapterConfig("gemini")
 	if cfg.BaseURL == "" {
 		t.Fatalf("probe adapter config should use configured base url")
-	}
-	cfg = svc.resolveNativeAdapterConfig("gemini", &nimillm.RemoteTarget{Endpoint: "https://remote.test/v1", APIKey: "remote-key"})
-	if cfg.BaseURL != "https://remote.test/v1" || cfg.APIKey != "remote-key" {
-		t.Fatalf("resolveNativeAdapterConfig should prefer remote target: %#v", cfg)
-	}
-
-	jobID := "poll-state-job"
-	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
-		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
-		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
-		CreatedAt:    timestamppb.Now(),
-		UpdatedAt:    timestamppb.Now(),
-		TraceId:      "trace-poll",
-	}, func() {})
-	next := timestamppb.Now()
-	svc.UpdatePollState(jobID, "provider-job", 3, next, "last-error")
-	updated, ok := svc.scenarioJobs.get(jobID)
-	if !ok {
-		t.Fatalf("expected poll-updated scenario job")
-	}
-	if updated.GetProviderJobId() != "provider-job" || updated.GetRetryCount() != 3 || updated.GetReasonDetail() != "last-error" {
-		t.Fatalf("unexpected poll state update: %#v", updated)
 	}
 
 	req := baseScenarioJobRequest()
@@ -479,16 +449,12 @@ func TestResolveSynthesizeSpeechSpecVoiceRefRejectsExpiredVoiceAsset(t *testing.
 	}
 	target := runtimeAgentVoiceAssetTestTarget("connector-expired")
 	svc.voiceAssets.targets[assetID] = target
-	ctx := executionintent.WithIntent(context.Background(), executionintent.Intent{
-		CapabilityContract: "audio.synthesize",
-		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-		CloudTarget:        target.GetCloud().Clone(),
-	})
+	ctx := context.Background()
 
-	_, err := svc.resolveSynthesizeSpeechSpecVoiceRef(ctx, &runtimev1.ScenarioRequestHead{
+	_, err := svc.resolveSynthesizeSpeechSpecVoiceRefForTarget(ctx, &runtimev1.ScenarioRequestHead{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-1",
-	}, "dashscope/qwen3-tts-vc", &runtimev1.SpeechSynthesizeScenarioSpec{
+	}, target, &runtimev1.SpeechSynthesizeScenarioSpec{
 		Text: "should not synthesize with expired voice asset",
 		VoiceRef: &runtimev1.VoiceReference{
 			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,

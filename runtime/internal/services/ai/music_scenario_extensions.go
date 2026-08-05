@@ -56,7 +56,7 @@ func validateMusicGenerateIterationSupport(
 			Message: "failed to read AI catalog model capabilities",
 		})
 	}
-	if !supported || !nimillm.SupportsMusicGenerationIterationStrategy(providerType) {
+	if !supported {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	return nil

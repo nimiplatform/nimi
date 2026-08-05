@@ -2,26 +2,21 @@ package ai
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const (
-	defaultSpeechStreamChunkSize = 32 * 1024 // 32 KB per speech chunk
-)
+const defaultSpeechStreamChunkSize = 32 * 1024
 
 func speechStreamVoiceOutputMode(nativeRequired bool) (runtimev1.VoiceOutputMode, error) {
 	if nativeRequired {
@@ -29,28 +24,6 @@ func speechStreamVoiceOutputMode(nativeRequired bool) (runtimev1.VoiceOutputMode
 			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	return runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_SIMULATED_STREAM, nil
-}
-
-func (s *Service) speechSynthesizeRouteSupportsNativeStreamTTS(
-	ctx context.Context,
-	modelResolved string,
-	remoteTarget *nimillm.RemoteTarget,
-	selected provider,
-) (bool, error) {
-	if s == nil || s.speechCatalog == nil {
-		return false, nil
-	}
-	providerType := speechCatalogProviderType(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, modelResolved, remoteTarget, selected)
-	model, err := s.speechCatalog.ResolveModelEntryForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved)
-	if err != nil {
-		if errors.Is(err, catalog.ErrModelNotFound) {
-			return false, nil
-		}
-		return false, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{
-			Message: "speech streaming route catalog metadata could not be read",
-		})
-	}
-	return model.VoiceRequestOptions != nil && model.VoiceRequestOptions.SupportsNativeStreamTTS, nil
 }
 
 func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
@@ -69,10 +42,18 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		return localExactMediaUnsupportedError(req.GetScenarioType())
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead(), req.GetScenarioType())
+	capturedRequest := &runtimev1.SubmitScenarioJobRequest{
+		Head:          cloneScenarioHead(req.GetHead()),
+		ScenarioType:  req.GetScenarioType(),
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec:          req.GetSpec(),
+		Extensions:    req.GetExtensions(),
+	}
+	effective, err := s.captureCloudMediaEffectiveInputs(stream.Context(), req.GetHead(), capturedRequest, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM)
 	if err != nil {
 		return err
 	}
+	defer effective.release()
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetHead().GetAppId())
 	if acquireErr != nil {
@@ -108,23 +89,8 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		defer firstPacketTimer.Stop()
 	}
 
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
-		stream.Context(),
-		intent.Route,
-		intent.ModelID(),
-		remoteTarget,
-		runtimev1.Modal_MODAL_TTS,
-	)
-	if err != nil {
-		return err
-	}
-	if routeDecision == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return localExactMediaUnsupportedError(req.GetScenarioType())
-	}
-	if err := s.validateScenarioCapability(stream.Context(), req, modelResolved, remoteTarget, selectedProvider); err != nil {
-		return err
-	}
-	traceID := ulid.Make().String()
+	traceID := effective.traceID
+	modelResolved := effective.modelResolved()
 	var seq atomic.Uint64
 	send := func(event *runtimev1.StreamScenarioEvent) error {
 		event.Sequence = seq.Add(1)
@@ -149,175 +115,98 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		}
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
-			Payload: &runtimev1.StreamScenarioEvent_Failed{
-				Failed: &runtimev1.ScenarioStreamFailed{
-					ReasonCode: reasonCodeFromStreamError(cause),
-					ActionHint: actionHintFromStreamError(cause),
-				},
-			},
+			Payload: &runtimev1.StreamScenarioEvent_Failed{Failed: &runtimev1.ScenarioStreamFailed{
+				ReasonCode: reasonCodeFromStreamError(cause),
+				ActionHint: actionHintFromStreamError(cause),
+			}},
 		})
 	}
 
-	nativeStreamSupported, err := s.speechSynthesizeRouteSupportsNativeStreamTTS(stream.Context(), modelResolved, remoteTarget, selectedProvider)
-	if err != nil {
-		return err
-	}
 	voiceOutputMode := runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_SIMULATED_STREAM
-	if nativeStreamSupported {
+	if effective.streamMode() == capabilitydriver.CloudMediaStreamNative {
 		voiceOutputMode = runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM
 	}
 	if err := send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
-		Payload: &runtimev1.StreamScenarioEvent_Started{
-			Started: &runtimev1.ScenarioStreamStarted{
-				ModelResolved:   modelResolved,
-				RouteDecision:   routeDecision,
-				VoiceOutputMode: voiceOutputMode,
-			},
-		},
+		Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
+			ModelResolved:   modelResolved,
+			RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			VoiceOutputMode: voiceOutputMode,
+		}},
 	}); err != nil {
 		return err
 	}
 
-	if remoteTarget == nil {
-		return failAndStop(localExactMediaUnsupportedError(req.GetScenarioType()))
-	}
-	if s.selector.cloudProvider == nil {
-		return failAndStop(grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE))
-	}
-	backend, backendModelID := s.selector.cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
-	if backend == nil {
-		return failAndStop(grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE))
-	}
-	if backendModelID == "" {
-		backendModelID = modelResolved
-	}
-
-	speechSpec := &runtimev1.SpeechSynthesizeScenarioSpec{
-		Text:             spec.GetText(),
-		Language:         spec.GetLanguage(),
-		AudioFormat:      spec.GetAudioFormat(),
-		SampleRateHz:     spec.GetSampleRateHz(),
-		Speed:            spec.GetSpeed(),
-		Pitch:            spec.GetPitch(),
-		Volume:           spec.GetVolume(),
-		Emotion:          spec.GetEmotion(),
-		VoiceRef:         spec.GetVoiceRef(),
-		TimingMode:       spec.GetTimingMode(),
-		VoiceRenderHints: spec.GetVoiceRenderHints(),
-	}
-	effectiveSpeechSpec, err := s.resolveSynthesizeSpeechSpecVoiceRef(requestCtx, req.GetHead(), modelResolved, speechSpec)
+	result, err := s.streamCapturedCloudSpeech(requestCtx, effective, func(chunk capabilitydriver.CloudMediaStreamChunk) error {
+		firstPacketSeen.Store(true)
+		mimeType := strings.TrimSpace(chunk.MIMEType)
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+		return send(&runtimev1.StreamScenarioEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+			Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+				Delta: &runtimev1.ScenarioStreamDelta_Artifact{Artifact: &runtimev1.ArtifactStreamDelta{
+					Chunk:    append([]byte(nil), chunk.Bytes...),
+					MimeType: mimeType,
+				}},
+			}},
+		})
+	})
 	if err != nil {
 		return failAndStop(err)
 	}
-	validationReq := &runtimev1.SubmitScenarioJobRequest{
-		Head:          req.GetHead(),
-		ScenarioType:  req.GetScenarioType(),
-		ExecutionMode: req.GetExecutionMode(),
-		Spec:          req.GetSpec(),
-		Extensions:    req.GetExtensions(),
+
+	if effective.streamMode() == capabilitydriver.CloudMediaStreamNative && !firstPacketSeen.Load() {
+		return failAndStop(grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
 	}
-	if err := validateConnectorTTSModelSupport(requestCtx, s.logger, validationReq, effectiveSpeechSpec, backendModelID, remoteTarget, s.selector.cloudProvider, s.speechCatalog); err != nil {
-		return failAndStop(err)
-	}
-	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if voiceOutputMode == runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM {
-		usage, finishReason, streamErr := backend.StreamSynthesizeSpeech(requestCtx, backendModelID, effectiveSpeechSpec, scenarioExtensions, func(chunk scenarioSpeechStreamChunk) error {
-			if chunk.FailureReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-				return grpcerr.WithReasonCode(codes.Internal, chunk.FailureReason)
-			}
-			if len(chunk.Bytes) == 0 {
-				return nil
+	if effective.streamMode() == capabilitydriver.CloudMediaStreamSimulated {
+		if len(result.Artifacts) == 0 || result.Artifacts[0] == nil {
+			return failAndStop(grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+		}
+		artifact := result.Artifacts[0]
+		payload := artifact.GetBytes()
+		mimeType := strings.TrimSpace(artifact.GetMimeType())
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+		for offset := 0; offset < len(payload); offset += defaultSpeechStreamChunkSize {
+			end := offset + defaultSpeechStreamChunkSize
+			if end > len(payload) {
+				end = len(payload)
 			}
 			firstPacketSeen.Store(true)
-			mimeType := strings.TrimSpace(chunk.MIMEType)
-			if mimeType == "" {
-				mimeType = nimillm.ResolveSpeechArtifactMIME(speechSpec, chunk.Bytes)
-			}
-			return send(&runtimev1.StreamScenarioEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Artifact{
-							Artifact: &runtimev1.ArtifactStreamDelta{
-								Chunk:    append([]byte(nil), chunk.Bytes...),
-								MimeType: mimeType,
-							},
-						},
-					},
-				},
-			})
-		})
-		if streamErr != nil {
-			return failAndStop(streamErr)
-		}
-		if usage != nil {
 			if err := send(&runtimev1.StreamScenarioEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE,
-				Payload:   &runtimev1.StreamScenarioEvent_Usage{Usage: usage},
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Artifact{Artifact: &runtimev1.ArtifactStreamDelta{
+						Chunk:    append([]byte(nil), payload[offset:end]...),
+						MimeType: mimeType,
+					}},
+				}},
 			}); err != nil {
 				return err
 			}
 		}
-		if finishReason == runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
-			finishReason = runtimev1.FinishReason_FINISH_REASON_STOP
-		}
-		return send(&runtimev1.StreamScenarioEvent{
-			EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-			Payload: &runtimev1.StreamScenarioEvent_Completed{
-				Completed: &runtimev1.ScenarioStreamCompleted{
-					FinishReason:    finishReason,
-					Usage:           usage,
-					StreamSimulated: false,
-				},
-			},
-		})
 	}
-	payload, usage, synthErr := backend.SynthesizeSpeech(requestCtx, backendModelID, effectiveSpeechSpec, scenarioExtensions)
-	if synthErr != nil {
-		return failAndStop(synthErr)
-	}
-
-	mimeType := nimillm.ResolveSpeechArtifactMIME(speechSpec, payload)
-	for offset := 0; offset < len(payload); offset += defaultSpeechStreamChunkSize {
-		end := offset + defaultSpeechStreamChunkSize
-		if end > len(payload) {
-			end = len(payload)
-		}
-		firstPacketSeen.Store(true)
-		if err := send(&runtimev1.StreamScenarioEvent{
-			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload: &runtimev1.StreamScenarioEvent_Delta{
-				Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Artifact{
-						Artifact: &runtimev1.ArtifactStreamDelta{
-							Chunk:    payload[offset:end],
-							MimeType: mimeType,
-						},
-					},
-				},
-			},
-		}); err != nil {
-			return err
-		}
-	}
-
-	if usage != nil {
+	if result.Usage != nil {
 		if err := send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE,
-			Payload:   &runtimev1.StreamScenarioEvent_Usage{Usage: usage},
+			Payload:   &runtimev1.StreamScenarioEvent_Usage{Usage: result.Usage},
 		}); err != nil {
 			return err
 		}
+	}
+	finish := result.FinishReason
+	if finish == runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
+		finish = runtimev1.FinishReason_FINISH_REASON_STOP
 	}
 	return send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-		Payload: &runtimev1.StreamScenarioEvent_Completed{
-			Completed: &runtimev1.ScenarioStreamCompleted{
-				FinishReason:    runtimev1.FinishReason_FINISH_REASON_STOP,
-				Usage:           usage,
-				StreamSimulated: voiceOutputMode == runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_SIMULATED_STREAM,
-			},
-		},
+		Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
+			FinishReason:    finish,
+			Usage:           result.Usage,
+			StreamSimulated: effective.streamMode() == capabilitydriver.CloudMediaStreamSimulated,
+		}},
 	})
 }

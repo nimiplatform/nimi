@@ -10,8 +10,11 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -124,8 +127,8 @@ func (s *Service) reconcilePendingVoiceAssetDeletes(ctx context.Context, appID s
 		if asset == nil {
 			continue
 		}
-		_, target, _ := s.voiceAssets.getAssetBinding(asset.GetVoiceAssetId())
-		result := s.deleteProviderPersistentVoiceAsset(ctx, asset, target)
+		_, target, binding, _ := s.voiceAssets.getAssetCloudBinding(asset.GetVoiceAssetId())
+		result := s.deleteProviderPersistentVoiceAsset(ctx, asset, target, binding)
 		if !result.Attempted {
 			continue
 		}
@@ -145,8 +148,8 @@ func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoi
 	if err := authorizeVoiceAssetOwner(ctx, asset); err != nil {
 		return nil, err
 	}
-	_, target, _ := s.voiceAssets.getAssetBinding(req.GetVoiceAssetId())
-	deleteResult := s.deleteProviderPersistentVoiceAsset(ctx, asset, target)
+	_, target, binding, _ := s.voiceAssets.getAssetCloudBinding(req.GetVoiceAssetId())
+	deleteResult := s.deleteProviderPersistentVoiceAsset(ctx, asset, target, binding)
 	if deleteResult.Attempted && !deleteResult.Succeeded {
 		s.voiceAssets.updateAssetDeleteResult(req.GetVoiceAssetId(), deleteResult)
 		s.recordVoiceAssetDeleteAudit(asset, "voice_asset.delete_failed", deleteResult)
@@ -238,7 +241,7 @@ func (s *Service) recordVoiceAssetDeleteAudit(asset *runtimev1.VoiceAsset, opera
 	})
 }
 
-func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset *runtimev1.VoiceAsset, target *runtimeidentity.Target) voiceAssetDeleteResult {
+func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset *runtimev1.VoiceAsset, target *runtimeidentity.Target, binding *voiceAssetCloudBinding) voiceAssetDeleteResult {
 	result := voiceAssetDeleteResult{}
 	if asset != nil && asset.GetMetadata() != nil {
 		result.DeleteSemantics = strings.TrimSpace(asset.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue())
@@ -263,55 +266,78 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 		}
 		return result
 	}
-	result.RetryAttemptCount = nextVoiceAssetDeleteRetryAttempt(asset)
-	result.Attempted = true
-	result.LastAttemptAt = time.Now().UTC()
 	if result.DeleteSemantics == "" {
 		result.DeleteSemantics = "best_effort_provider_delete"
 	}
-	fail := func(err error) voiceAssetDeleteResult {
-		result.Succeeded = false
-		if result.ReconciliationRequired || result.DeleteSemantics == "best_effort_provider_delete" {
-			result.PendingReconciliation = true
-		}
-		if result.RetryAttemptCount >= maxVoiceAssetDeleteRetryAttempts {
-			result.PendingReconciliation = false
-			result.Exhausted = true
-		} else if result.PendingReconciliation {
-			result.NextRetryAfter = nextVoiceAssetDeleteRetryAt(result.LastAttemptAt, result.RetryAttemptCount)
-		}
-		result.LastError = summarizeVoiceDeleteError(err)
-		return result
-	}
-	if target == nil || target.Cloud == nil || !target.Cloud.Valid() {
-		return fail(fmt.Errorf("voice asset private cloud target is unavailable"))
+	if target == nil || target.Cloud == nil || !target.Cloud.Valid() || assetProvider != target.Cloud.Provider {
+		result.Attempted = true
+		result.RetryAttemptCount = nextVoiceAssetDeleteRetryAttempt(asset)
+		result.LastAttemptAt = time.Now().UTC()
+		return voiceAssetDeleteFailure(result, fmt.Errorf("voice asset private cloud target is unavailable or inconsistent"))
 	}
 	provider := target.Cloud.Provider
-	if assetProvider != provider {
-		return fail(fmt.Errorf("voice asset provider metadata does not match its private target"))
-	}
-	if !nimillm.SupportsProviderVoiceDelete(provider) {
-		result.Attempted = false
-		result.RetryAttemptCount = 0
-		result.LastAttemptAt = time.Time{}
+	if !capabilitydriver.CloudVoiceDeleteSupported(provider) {
 		return result
 	}
-	remoteTarget, err := resolveManagedTarget(ctx, target.Cloud.ConnectorID, s.connStore, s.allowLoopback)
+	result.RetryAttemptCount = nextVoiceAssetDeleteRetryAttempt(asset)
+	result.Attempted = true
+	result.LastAttemptAt = time.Now().UTC()
+	fail := func(err error) voiceAssetDeleteResult { return voiceAssetDeleteFailure(result, err) }
+	if binding == nil || !binding.Valid() || s.cloudMediaDrivers == nil || s.connStore == nil || s.remoteMediaHost == nil {
+		return fail(fmt.Errorf("voice asset AIConfig execution binding is unavailable"))
+	}
+	privateIntent := executionintent.Intent{
+		CapabilityContract:  binding.CapabilityContract,
+		Route:               runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		CloudImplementation: binding.Implementation,
+		ProviderModelTarget: binding.ProviderModelTarget,
+		ConnectorGrantID:    binding.ConnectorGrantID,
+	}
+	if !privateIntent.IsAIConfigCloud() || privateIntent.GrantID() != target.Cloud.ConnectorGrantID {
+		return fail(fmt.Errorf("voice asset AIConfig execution binding is invalid"))
+	}
+	driver, driverTarget, err := s.cloudMediaDrivers.Resolve(
+		capabilitydriver.IdentityFromProto(privateIntent.CloudImplementation), privateIntent.ProviderModelTarget, privateIntent.CapabilityContract,
+	)
+	if err != nil {
+		return fail(cloudMediaDriverError(privateIntent.CapabilityContract, err))
+	}
+	if driverTarget.Provider() != target.Cloud.Provider || driverTarget.ProviderModelID() != target.Cloud.ProviderModelID ||
+		driverTarget.RemoteModelCatalogID() != target.Cloud.RemoteModelCatalogID {
+		return fail(fmt.Errorf("voice asset Driver target does not match its captured execution target"))
+	}
+	grantID := privateIntent.GrantID()
+	grant, err := s.connStore.ValidateGrantBinding(strings.TrimSpace(asset.GetSubjectUserId()), grantID)
 	if err != nil {
 		return fail(err)
 	}
-	if strings.TrimSpace(remoteTarget.ProviderType) != target.Cloud.Provider {
+	if grant.Connector.ConnectorID != target.Cloud.ConnectorID || strings.TrimSpace(grant.Connector.Provider) != driverTarget.Provider() {
 		return fail(fmt.Errorf("voice asset connector provider no longer matches its private target"))
 	}
-	cfg := s.resolveNativeAdapterConfig(provider, remoteTarget)
-	if err := nimillm.DeleteProviderVoice(ctx, provider, providerVoiceRef, cfg); err != nil {
-		result = fail(err)
+	mapped, err := driver.MapVoiceDeleteRequest(driverTarget, providerVoiceRef)
+	if err != nil {
+		return fail(cloudMediaDriverError(privateIntent.CapabilityContract, err))
+	}
+	traceID := ulid.Make().String()
+	dispatchAudit := remoteexecution.MediaDispatchAudit{
+		AppID: asset.GetAppId(), AccountID: asset.GetSubjectUserId(), TraceID: traceID,
+		CapabilityContract: "voice_asset.delete",
+		ImplementationID:   privateIntent.CloudImplementation.GetImplementationId(),
+		DriverID:           privateIntent.CloudImplementation.GetDriverId(), DriverDialect: privateIntent.CloudImplementation.GetDriverDialect(),
+		ConnectorGrantID: grantID, Provider: driverTarget.Provider(), ProviderModelID: driverTarget.ProviderModelID(),
+		RemoteModelCatalogID: driverTarget.RemoteModelCatalogID(), Region: driverTarget.Region(),
+	}
+	if err := s.auditCloudVoiceDeleteCapture(asset, privateIntent, driverTarget, mapped, traceID); err != nil {
+		return fail(err)
+	}
+	if err := s.remoteMediaHost.DeleteVoiceAsset(ctx, grant, driverTarget, mapped, dispatchAudit); err != nil {
+		normalized := driver.NormalizeVoiceDeleteReason(driverTarget, err)
+		result = fail(normalized)
 		if s.logger != nil {
 			s.logger.Warn("provider voice delete failed; local asset delete continues",
 				"provider", provider,
 				"voice_asset_id", strings.TrimSpace(asset.GetVoiceAssetId()),
-				"provider_voice_ref", providerVoiceRef,
-				"error", err,
+				"error", normalized,
 			)
 		}
 		return result
@@ -320,6 +346,54 @@ func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset 
 	result.PendingReconciliation = false
 	result.Exhausted = false
 	return result
+}
+
+func voiceAssetDeleteFailure(result voiceAssetDeleteResult, err error) voiceAssetDeleteResult {
+	result.Succeeded = false
+	if result.ReconciliationRequired || result.DeleteSemantics == "best_effort_provider_delete" {
+		result.PendingReconciliation = true
+	}
+	if result.RetryAttemptCount >= maxVoiceAssetDeleteRetryAttempts {
+		result.PendingReconciliation = false
+		result.Exhausted = true
+	} else if result.PendingReconciliation {
+		result.NextRetryAfter = nextVoiceAssetDeleteRetryAt(result.LastAttemptAt, result.RetryAttemptCount)
+	}
+	result.LastError = summarizeVoiceDeleteError(err)
+	return result
+}
+
+func (s *Service) auditCloudVoiceDeleteCapture(
+	asset *runtimev1.VoiceAsset,
+	intent executionintent.Intent,
+	target capabilitydriver.CloudMediaTarget,
+	mapped *capabilitydriver.CloudVoiceDeleteMappedRequest,
+	traceID string,
+) error {
+	if s == nil || s.audit == nil || asset == nil || mapped == nil {
+		return nil
+	}
+	payload, err := structpb.NewStruct(map[string]any{
+		"ai_config_route": "cloud", "capability_contract": "voice_asset.delete",
+		"ai_config_source_capability_contract": intent.CapabilityContract,
+		"implementation_id":                    intent.CloudImplementation.GetImplementationId(), "driver_id": intent.CloudImplementation.GetDriverId(),
+		"driver_dialect": intent.CloudImplementation.GetDriverDialect(), "provider_model_target": intent.ProviderModelTarget.AsMap(),
+		"connector_grant_id": intent.GrantID(), "provider": target.Provider(), "provider_model_id": target.ProviderModelID(),
+		"remote_model_catalog_id": target.RemoteModelCatalogID(), "provider_region": target.Region(), "transport_adapter": mapped.Adapter(),
+		"voice_asset_id": strings.TrimSpace(asset.GetVoiceAssetId()), "remote_execution_host": remoteexecution.ProviderHTTPMediaHostID,
+		"remote_dispatch_state": "captured", "provider_voice_ref": "private", "secret_material": "absent",
+	})
+	if err != nil {
+		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{})
+	}
+	if err := s.audit.AppendEventChecked(&runtimev1.AuditEventRecord{
+		AppId: asset.GetAppId(), SubjectUserId: asset.GetSubjectUserId(), Domain: "runtime.ai",
+		Operation: "cloud.voice_asset.delete.composition.capture", ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId: traceID, Timestamp: timestamppb.New(time.Now().UTC()), Payload: payload,
+	}); err != nil {
+		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, fmt.Errorf("write cloud voice delete composition audit: %w", err), grpcerr.ReasonOptions{})
+	}
+	return nil
 }
 
 func nextVoiceAssetDeleteRetryAttempt(asset *runtimev1.VoiceAsset) int {

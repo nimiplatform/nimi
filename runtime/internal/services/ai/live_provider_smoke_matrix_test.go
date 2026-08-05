@@ -16,6 +16,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -71,17 +72,24 @@ func (h liveSmokeProviderHarness) scenarioContext(t *testing.T, scenarioType run
 		"providerModelId":      target.Cloud.ProviderModelID,
 		"remoteModelCatalogId": target.Cloud.RemoteModelCatalogID,
 	})
+	capabilityContract := scenarioTargetCapability(scenarioType)
+	driverDialect := "provider/text-v1"
+	if !strings.HasPrefix(capabilityContract, "text.") {
+		driverDialect = capabilitydriver.ResolveCloudMediaAdapter(h.providerID, capabilityContract)
+		if driverDialect == "" {
+			t.Fatalf("live cloud smoke has no admitted Driver dialect for %s/%s", h.providerID, capabilityContract)
+		}
+	}
 	return executionintent.WithIntent(h.context, executionintent.Intent{
 		CapabilityContract: scenarioTargetCapability(scenarioType),
 		Route:              runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		CloudImplementation: &runtimev1.CapabilityImplementationIdentity{
 			ImplementationId: "cloud." + scenarioTargetCapability(scenarioType) + "." + h.providerID,
 			DriverId:         "nimi.runtime.driver." + h.providerID,
-			DriverDialect:    "provider/text-v1",
+			DriverDialect:    driverDialect,
 		},
 		ProviderModelTarget: providerTarget,
 		ConnectorGrantID:    h.grantID,
-		CloudTarget:         target.Cloud,
 	})
 }
 
@@ -119,21 +127,15 @@ func TestLiveSmokeCloudScenarioContextUsesManagedCatalogTarget(t *testing.T) {
 
 	ctx := harness.scenarioContext(t, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, "gpt-4o-mini")
 	intent, ok := executionintent.FromContext(ctx)
-	if !ok || intent.CloudTarget == nil {
-		t.Fatalf("expected private cloud AIConfig intent")
+	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil {
+		t.Fatalf("expected exact private AIConfig intent without legacy CloudTarget: %+v", intent)
 	}
-	cloud := intent.CloudTarget
-	if cloud.GetConnectorId() != liveSmokeCloudConnectorID("openai") {
-		t.Fatalf("private target connector_id = %q", cloud.GetConnectorId())
+	if intent.GrantID() != "grant-openai" || intent.ModelID() != "gpt-4o-mini" {
+		t.Fatalf("private intent grant/model = %q/%q", intent.GrantID(), intent.ModelID())
 	}
-	if cloud.GetRemoteModelCatalogId() != "remote-catalog-openai-gpt-4o-mini" {
-		t.Fatalf("remote_model_catalog_id = %q", cloud.GetRemoteModelCatalogId())
-	}
-	if cloud.GetProviderModelId() != "gpt-4o-mini" {
-		t.Fatalf("provider_model_id = %q", cloud.GetProviderModelId())
-	}
-	if cloud.GetProvider() != "openai" {
-		t.Fatalf("provider = %q", cloud.GetProvider())
+	fields := intent.ProviderModelTarget.GetFields()
+	if fields["remoteModelCatalogId"].GetStringValue() != "remote-catalog-openai-gpt-4o-mini" || fields["provider"].GetStringValue() != "openai" {
+		t.Fatalf("private provider target = %+v", intent.ProviderModelTarget.AsMap())
 	}
 }
 
@@ -151,37 +153,37 @@ func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 			if record.SupportsEmbed {
 				t.Run("embed", func(t *testing.T) { runLiveSmokeEmbedForProvider(t, providerID, record) })
 			}
-			if record.SupportsImage {
+			if record.SupportsImage && capabilitydriver.ResolveCloudMediaAdapter(providerID, "image.generate") != "" {
 				t.Run("image", func(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE)
 				})
 			}
-			if record.SupportsVideo {
+			if record.SupportsVideo && capabilitydriver.ResolveCloudMediaAdapter(providerID, "video.generate") != "" {
 				t.Run("video", func(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE)
 				})
 			}
-			if record.SupportsTTS {
+			if record.SupportsTTS && capabilitydriver.ResolveCloudMediaAdapter(providerID, "audio.synthesize") != "" {
 				t.Run("tts", func(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE)
 				})
 			}
-			if record.SupportsSTT {
+			if record.SupportsSTT && capabilitydriver.ResolveCloudMediaAdapter(providerID, "audio.transcribe") != "" {
 				t.Run("stt", func(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE)
 				})
 			}
-			if record.SupportsMusic {
+			if record.SupportsMusic && capabilitydriver.ResolveCloudMediaAdapter(providerID, "music.generate") != "" {
 				t.Run("music", func(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE)
 				})
 			}
-			if record.SupportsVoiceClone && providerID != "local" {
+			if record.SupportsVoiceClone && providerID != "local" && capabilitydriver.ResolveCloudMediaAdapter(providerID, "voice_workflow.voice_clone") != "" {
 				t.Run("voice_clone", func(t *testing.T) {
 					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
 				})
 			}
-			if record.SupportsVoiceDesign && providerID != "local" {
+			if record.SupportsVoiceDesign && providerID != "local" && capabilitydriver.ResolveCloudMediaAdapter(providerID, "voice_workflow.voice_design") != "" {
 				t.Run("voice_design", func(t *testing.T) {
 					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN)
 				})

@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
@@ -34,7 +35,7 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 		t.Fatalf("submit should create voice job and asset")
 	}
 
-	if !store.completeJob(job.GetJobId(), "provider-job-1", "voice-ref-1", map[string]any{"quality": "high"}, &runtimev1.UsageStats{InputTokens: 1}) {
+	if !store.completeJob(job.GetJobId(), "voice-ref-1", map[string]any{"quality": "high"}, &runtimev1.UsageStats{InputTokens: 1}) {
 		t.Fatalf("completeJob should succeed")
 	}
 
@@ -42,8 +43,8 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 	if !ok || completedJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("expected completed job, got ok=%v job=%#v", ok, completedJob)
 	}
-	if completedJob.GetProviderJobId() != "provider-job-1" {
-		t.Fatalf("expected provider job id to be recorded, got %q", completedJob.GetProviderJobId())
+	if completedJob.GetProviderJobId() != "" {
+		t.Fatalf("provider-private job id escaped, got %q", completedJob.GetProviderJobId())
 	}
 	if completedJob.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("expected ACTION_EXECUTED reason code, got %v", completedJob.GetReasonCode())
@@ -127,7 +128,7 @@ func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 	if job == nil || asset == nil {
 		t.Fatalf("expected submitted voice workflow")
 	}
-	if !store.completeJob(job.GetJobId(), "provider-job", "voice-ref", nil, nil) {
+	if !store.completeJob(job.GetJobId(), "voice-ref", nil, nil) {
 		t.Fatalf("expected completed voice workflow")
 	}
 
@@ -188,7 +189,7 @@ func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *te
 	if job == nil || asset == nil {
 		t.Fatalf("expected submitted provider-persistent voice workflow")
 	}
-	if !store.completeJob(job.GetJobId(), "provider-job", "dashscope-provider-voice-ref", nil, nil) {
+	if !store.completeJob(job.GetJobId(), "dashscope-provider-voice-ref", nil, nil) {
 		t.Fatalf("expected completed voice workflow")
 	}
 
@@ -269,9 +270,20 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 		t.Fatalf("newVoiceAssetStoreForLocalStatePath: %v", err)
 	}
 	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
+	targetRef.Cloud.ConnectorGrantID = "grant-dashscope"
+	providerTarget, _ := structpb.NewStruct(map[string]any{
+		"provider": "dashscope", "providerModelId": "qwen3-tts-vc", "remoteModelCatalogId": "remote-catalog-dashscope-vc",
+	})
 	job, asset := store.submit(&voiceWorkflowSubmitInput{
 		RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		ExecutionTarget: targetRef,
+		CloudBinding: &voiceAssetCloudBinding{
+			CapabilityContract: "voice_workflow.voice_clone",
+			Implementation: &runtimev1.CapabilityImplementationIdentity{
+				ImplementationId: "cloud.voice.dashscope", DriverId: "driver.dashscope", DriverDialect: "dashscope/voice/v1",
+			},
+			ProviderModelTarget: providerTarget, ConnectorGrantID: targetRef.Cloud.ConnectorGrantID,
+		},
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
@@ -291,7 +303,7 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 	if job == nil || asset == nil {
 		t.Fatalf("submit should create voice workflow and asset")
 	}
-	if !store.completeJob(job.GetJobId(), "provider-job", "dashscope-provider-voice-ref", nil, nil) {
+	if !store.completeJob(job.GetJobId(), "dashscope-provider-voice-ref", nil, nil) {
 		t.Fatalf("completeJob should succeed")
 	}
 
@@ -308,6 +320,10 @@ func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T)
 	}
 	if !runtimeidentity.Equal(storedTarget, targetRef) {
 		t.Fatalf("private target after reopen mismatch: got=%#v want=%#v", storedTarget, targetRef)
+	}
+	_, _, storedBinding, ok := reopened.getAssetCloudBinding(asset.GetVoiceAssetId())
+	if !ok || !storedBinding.Valid() || storedBinding.ConnectorGrantID != targetRef.Cloud.ConnectorGrantID || storedBinding.Implementation.GetDriverDialect() != "dashscope/voice/v1" {
+		t.Fatalf("private AIConfig binding after reopen=%+v", storedBinding)
 	}
 }
 
@@ -337,7 +353,7 @@ func TestVoiceAssetStoreCompleteFailsClosedWhenProviderPersistentSnapshotCannotP
 		t.Fatalf("submit should create provider-persistent voice workflow")
 	}
 
-	if store.completeJob(job.GetJobId(), "provider-job", "dashscope-provider-voice-ref", nil, nil) {
+	if store.completeJob(job.GetJobId(), "dashscope-provider-voice-ref", nil, nil) {
 		t.Fatalf("provider-persistent completion must fail closed when durable snapshot cannot persist")
 	}
 	completedAsset, ok := store.getAsset(asset.GetVoiceAssetId())

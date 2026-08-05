@@ -31,6 +31,7 @@ const MaxInlineBytes = 32 * 1024 * 1024
 type ArtifactRecord struct {
 	Bytes          []byte
 	MimeType       string
+	ProducerJobID  string
 	SizeBytes      int64
 	ContentSHA256  string
 	MimeInferred   bool
@@ -210,6 +211,7 @@ func (s *MemoryStore) Len() int {
 }
 
 func normalizeArtifactRecord(record ArtifactRecord) (ArtifactRecord, error) {
+	record.ProducerJobID = strings.TrimSpace(record.ProducerJobID)
 	if record.SizeBytes < 0 {
 		return ArtifactRecord{}, ErrInvalidArtifactRecord
 	}
@@ -325,7 +327,7 @@ func artifactRecordIntegrityValid(record ArtifactRecord) bool {
 }
 
 func mergeArtifactRecords(existing, incoming ArtifactRecord) (ArtifactRecord, bool, bool) {
-	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || !artifactAudiencesEqual(existing.Audience, incoming.Audience) || !artifactOwnersEqual(existing.Owner, incoming.Owner) {
+	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || existing.ProducerJobID != incoming.ProducerJobID || !artifactAudiencesEqual(existing.Audience, incoming.Audience) || !artifactOwnersEqual(existing.Owner, incoming.Owner) {
 		return ArtifactRecord{}, false, false
 	}
 	merged := cloneArtifactRecord(existing)

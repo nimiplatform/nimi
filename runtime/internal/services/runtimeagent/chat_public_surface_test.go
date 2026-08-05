@@ -51,9 +51,12 @@ func TestAIBackedPublicChatTurnExecutorPassesCloudIntentPrivately(t *testing.T) 
 	streamer := &targetRefCapturePublicChatScenarioStreamer{}
 	executor := NewAIBackedPublicChatTurnExecutor(streamer)
 	targetRef := &runtimeidentity.Target{Cloud: &runtimeidentity.CloudTarget{
-		ConnectorID: "connector-1", RemoteModelCatalogID: "catalog-1",
+		ConnectorID: "connector-1", ConnectorGrantID: "grant-1", RemoteModelCatalogID: "catalog-1",
 		ProviderModelID: "provider-model-1", Provider: "openai",
 	}}
+	rawTarget, _ := structpb.NewStruct(map[string]any{
+		"provider": "openai", "providerModelId": "provider-model-1", "remoteModelCatalogId": "catalog-1",
+	})
 	err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
 		AppID:         "nimi.zhiyu",
 		SubjectUserID: "user-1",
@@ -65,13 +68,19 @@ func TestAIBackedPublicChatTurnExecutorPassesCloudIntentPrivately(t *testing.T) 
 			ModelID:     "provider-model-1",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			TargetRef:   targetRef,
+			ExecutionIntent: executionintent.Intent{
+				CapabilityContract: "text.generate", Route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+				CloudImplementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.text.openai", DriverId: "driver.openai", DriverDialect: "openai/chat/v1"},
+				ProviderModelTarget: rawTarget, ConnectorGrantID: "grant-1",
+			},
+			CapabilityContract: "text.generate",
 		},
 	}, nil)
 	if err != nil {
 		t.Fatalf("StreamChatTurn: %v", err)
 	}
 	intent, ok := executionintent.FromContext(streamer.ctx)
-	if !ok || intent.CloudTarget == nil || intent.CloudTarget.ProviderModelID != "provider-model-1" {
+	if !ok || !intent.IsAIConfigCloud() || intent.CloudTarget != nil || intent.ModelID() != "provider-model-1" || intent.GrantID() != "grant-1" {
 		t.Fatalf("expected private Cloud intent, got %+v, ok=%v", intent, ok)
 	}
 }

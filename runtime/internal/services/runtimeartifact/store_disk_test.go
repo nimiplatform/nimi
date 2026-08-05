@@ -14,10 +14,11 @@ func TestDiskStorePersistsGeneratedVoiceArtifactsAcrossReopen(t *testing.T) {
 	}
 	payload := []byte("durable voice payload")
 	if err := store.Put("artifact/voice:1", ArtifactRecord{
-		Bytes:     payload,
-		MimeType:  "Audio/Wav",
-		CreatedAt: artifactTestNow,
-		Audience:  artifactTestAudience(),
+		Bytes:         payload,
+		MimeType:      "Audio/Wav",
+		ProducerJobID: "runtime-job-durable",
+		CreatedAt:     artifactTestNow,
+		Audience:      artifactTestAudience(),
 		GeneratedVoice: &GeneratedVoiceArtifactMetadata{
 			AgentID:              "agent-durable",
 			ConversationAnchorID: "anchor-durable",
@@ -49,8 +50,8 @@ func TestDiskStorePersistsGeneratedVoiceArtifactsAcrossReopen(t *testing.T) {
 	if record.GeneratedVoice == nil || record.GeneratedVoice.ByteDigest == "" {
 		t.Fatalf("generated voice metadata was not persisted: %#v", record.GeneratedVoice)
 	}
-	if record.Audience == nil || record.Audience.AppID != "world.nimi.app" || record.ContentSHA256 == "" {
-		t.Fatalf("artifact audience/hash was not persisted: audience=%#v hash=%q", record.Audience, record.ContentSHA256)
+	if record.Audience == nil || record.Audience.AppID != "world.nimi.app" || record.ContentSHA256 == "" || record.ProducerJobID != "runtime-job-durable" {
+		t.Fatalf("artifact custody/audience/hash was not persisted: producer_job_id=%q audience=%#v hash=%q", record.ProducerJobID, record.Audience, record.ContentSHA256)
 	}
 
 	deleted, err := reopened.CleanupGeneratedVoiceArtifacts(GeneratedVoiceArtifactSelector{
