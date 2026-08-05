@@ -90,6 +90,9 @@ message ImportLocalAssetBundleRequest {
   repeated string capabilities = 3;
   string engine         = 4;
   string endpoint       = 5;
+  // Explicit one-based content order for a sharded resource. Empty retains
+  // the existing single-entry digest semantics even when sidecar files exist.
+  repeated string ordered_bundle_entries = 6;
 }
 
 message ImportLocalAssetBundleResponse {

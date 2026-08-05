@@ -16,6 +16,9 @@ import (
 // AbsolutePath is resolved beneath Runtime's owned models root.
 type ExactBinding struct {
 	RequirementID     string
+	RequirementRole   runtimev1.LocalCapabilityRequirementRole
+	OccurrenceOrdinal uint32
+	DisplayLabel      string
 	LocalAssetID      string
 	AbsolutePath      string
 	VerifiedContentID string

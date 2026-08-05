@@ -245,19 +245,6 @@ type localCapabilityAssetMatch struct {
 	binding    *runtimev1.LocalAssetExactBinding
 }
 
-func exactDeclaredEntrySHA256(asset *runtimev1.LocalAssetRecord) string {
-	if asset == nil {
-		return ""
-	}
-	entry := strings.TrimSpace(asset.GetEntry())
-	if entry == "" {
-		return ""
-	}
-	// The digest must be declared for the exact entry. A sole hash or sole file
-	// is not enough to infer that relationship for an older or malformed record.
-	return normalizeExactSHA256Hex(asset.GetHashes()[entry])
-}
-
 // selectEquivalentLocalCapabilityAssetMatch collapses duplicate installed
 // records only when their verified bytes are identical. Different content is
 // never ranked or guessed.
@@ -401,13 +388,35 @@ func validateStoredLocalCapabilityConfiguration(stored *storedLocalCapabilityCon
 		return fmt.Errorf("complete implementation identity is required")
 	}
 	requirementIDs := make(map[string]struct{}, len(configuration.GetProjectedRequirements()))
+	orderedOccurrenceNext := make(map[string]uint32)
 	for _, requirement := range configuration.GetProjectedRequirements() {
+		if requirement == nil {
+			return fmt.Errorf("projected requirement is required")
+		}
 		id := strings.TrimSpace(requirement.GetRequirementId())
-		if id == "" {
-			return fmt.Errorf("projected requirement id is required")
+		if id == "" || id != requirement.GetRequirementId() {
+			return fmt.Errorf("projected requirement id is required and canonical")
 		}
 		if _, exists := requirementIDs[id]; exists {
 			return fmt.Errorf("duplicate projected requirement id %q", id)
+		}
+		if label := requirement.GetDisplayLabel(); strings.TrimSpace(label) == "" || strings.TrimSpace(label) != label {
+			return fmt.Errorf("projected requirement %q has a non-canonical display label", id)
+		}
+		ordinal := requirement.GetOccurrenceOrdinal()
+		if requirement.GetRole() == runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN && ordinal != 0 {
+			return fmt.Errorf("projected main requirement %q cannot declare an ordered ordinal", id)
+		}
+		if ordinal > 0 {
+			if requirement.GetRole() != runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION {
+				return fmt.Errorf("projected ordered requirement %q must be a companion", id)
+			}
+			scope := requirement.GetRole().String() + "\x00" + requirement.GetResourceKind()
+			expected := orderedOccurrenceNext[scope] + 1
+			if ordinal != expected {
+				return fmt.Errorf("projected ordered requirement %q has ordinal %d, want %d", id, ordinal, expected)
+			}
+			orderedOccurrenceNext[scope] = ordinal
 		}
 		if preferred := requirement.GetPreferredVerifiedContentId(); preferred != "" && normalizeVerifiedContentID(preferred) != preferred {
 			return fmt.Errorf("projected requirement %q has non-canonical verified content identity", id)
@@ -543,5 +552,6 @@ func cloneLocalAssetExactBinding(input *runtimev1.LocalAssetExactBinding) *runti
 
 func cloneCapabilityDriverAssetDescriptor(input capabilitydriver.AssetDescriptor) capabilitydriver.AssetDescriptor {
 	input.ArtifactRoles = append([]string(nil), input.ArtifactRoles...)
+	input.BundleEntries = append([]capabilitydriver.BundleEntryDescriptor(nil), input.BundleEntries...)
 	return input
 }

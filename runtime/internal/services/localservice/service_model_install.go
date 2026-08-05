@@ -351,6 +351,8 @@ func (s *Service) installLocalAssetRecord(
 				cloned.Capabilities = append([]string(nil), record.GetCapabilities()...)
 				cloned.Engine = record.GetEngine()
 				cloned.Entry = record.GetEntry()
+				cloned.Files = append([]string(nil), record.GetFiles()...)
+				cloned.BundleEntries = cloneLocalBundleEntryDigests(record.GetBundleEntries())
 				cloned.License = record.GetLicense()
 				if record.GetSource() != nil {
 					cloned.Source = &runtimev1.LocalAssetSource{

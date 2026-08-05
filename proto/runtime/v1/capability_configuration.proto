@@ -60,11 +60,18 @@ message LocalCapabilityRequirement {
   LocalCapabilityRequirementPolicy policy = 4;
   string preferred_verified_content_id = 5;
   google.protobuf.Struct compatibility_constraints = 6;
+  // Zero denotes an unordered or singleton role occurrence. Positive values
+  // are one-based and carry only an order explicitly declared by the Driver.
+  uint32 occurrence_ordinal = 7;
+  string display_label = 8;
 }
 
 message LocalAssetExactBinding {
   string requirement_id = 1;
   string local_asset_id = 2;
+  // For a single-file occurrence these identify the verified entry bytes. For
+  // an explicitly sharded bundle they identify the canonical SHA-256 over its
+  // ordered LocalBundleEntryDigest values.
   string verified_content_id = 3;
   string entry_sha256 = 4;
 }

@@ -51,6 +51,29 @@ export interface LocalHostRequirements {
      */
     requiredBackends: string[];
 }
+/**
+ * LocalBundleEntryDigest is the LocalAsset-owned manifest for one explicitly
+ * sharded resource. Ordinals are one-based, contiguous, and retained in the
+ * declared order; sha256 is the lowercase hexadecimal per-entry digest. The
+ * canonical bundle SHA-256 hashes the concatenated decoded 32-byte digests in
+ * this exact order.
+ *
+ * @generated from protobuf message nimi.runtime.v1.LocalBundleEntryDigest
+ */
+export interface LocalBundleEntryDigest {
+    /**
+     * @generated from protobuf field: uint32 ordinal = 1
+     */
+    ordinal: number;
+    /**
+     * @generated from protobuf field: string relative_path = 2
+     */
+    relativePath: string;
+    /**
+     * @generated from protobuf field: string sha256 = 3
+     */
+    sha256: string;
+}
 // === Unified Asset Record ===
 
 /**
@@ -182,6 +205,13 @@ export interface LocalAssetRecord {
      * @generated from protobuf field: string import_instance_id = 43
      */
     importInstanceId: string;
+    /**
+     * Empty preserves single-file entry identity. A non-empty list declares one
+     * sharded occurrence whose content identity covers every ordered entry.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalBundleEntryDigest bundle_entries = 47
+     */
+    bundleEntries: LocalBundleEntryDigest[];
 }
 // === Verified Asset Descriptor (unified from Model + Artifact) ===
 
@@ -951,6 +981,69 @@ class LocalHostRequirements$Type extends MessageType<LocalHostRequirements> {
  */
 export const LocalHostRequirements = new LocalHostRequirements$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalBundleEntryDigest$Type extends MessageType<LocalBundleEntryDigest> {
+    constructor() {
+        super("nimi.runtime.v1.LocalBundleEntryDigest", [
+            { no: 1, name: "ordinal", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalBundleEntryDigest>): LocalBundleEntryDigest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.ordinal = 0;
+        message.relativePath = "";
+        message.sha256 = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalBundleEntryDigest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalBundleEntryDigest): LocalBundleEntryDigest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 ordinal */ 1:
+                    message.ordinal = reader.uint32();
+                    break;
+                case /* string relative_path */ 2:
+                    message.relativePath = reader.string();
+                    break;
+                case /* string sha256 */ 3:
+                    message.sha256 = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalBundleEntryDigest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 ordinal = 1; */
+        if (message.ordinal !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.ordinal);
+        /* string relative_path = 2; */
+        if (message.relativePath !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.relativePath);
+        /* string sha256 = 3; */
+        if (message.sha256 !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.sha256);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalBundleEntryDigest
+ */
+export const LocalBundleEntryDigest = new LocalBundleEntryDigest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
     constructor() {
         super("nimi.runtime.v1.LocalAssetRecord", [
@@ -982,7 +1075,8 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
             { no: 40, name: "metadata", kind: "message", T: () => Struct },
             { no: 41, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 42, name: "source_file_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 43, name: "import_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 43, name: "import_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 47, name: "bundle_entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalBundleEntryDigest }
         ]);
     }
     create(value?: PartialMessage<LocalAssetRecord>): LocalAssetRecord {
@@ -1012,6 +1106,7 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         message.displayName = "";
         message.sourceFileName = "";
         message.importInstanceId = "";
+        message.bundleEntries = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAssetRecord>(this, message, value);
         return message;
@@ -1107,6 +1202,9 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
                     break;
                 case /* string import_instance_id */ 43:
                     message.importInstanceId = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalBundleEntryDigest bundle_entries */ 47:
+                    message.bundleEntries.push(LocalBundleEntryDigest.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1223,6 +1321,9 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         /* string import_instance_id = 43; */
         if (message.importInstanceId !== "")
             writer.tag(43, WireType.LengthDelimited).string(message.importInstanceId);
+        /* repeated nimi.runtime.v1.LocalBundleEntryDigest bundle_entries = 47; */
+        for (let i = 0; i < message.bundleEntries.length; i++)
+            LocalBundleEntryDigest.internalBinaryWrite(message.bundleEntries[i], writer.tag(47, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

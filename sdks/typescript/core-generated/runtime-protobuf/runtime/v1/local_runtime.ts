@@ -283,6 +283,13 @@ export interface ImportLocalAssetBundleRequest {
      * @generated from protobuf field: string endpoint = 5
      */
     endpoint: string;
+    /**
+     * Explicit one-based content order for a sharded resource. Empty retains
+     * the existing single-entry digest semantics even when sidecar files exist.
+     *
+     * @generated from protobuf field: repeated string ordered_bundle_entries = 6
+     */
+    orderedBundleEntries: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ImportLocalAssetBundleResponse
@@ -2475,7 +2482,8 @@ class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBun
             { no: 2, name: "model_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "ordered_bundle_entries", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ImportLocalAssetBundleRequest>): ImportLocalAssetBundleRequest {
@@ -2485,6 +2493,7 @@ class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBun
         message.capabilities = [];
         message.engine = "";
         message.endpoint = "";
+        message.orderedBundleEntries = [];
         if (value !== undefined)
             reflectionMergePartial<ImportLocalAssetBundleRequest>(this, message, value);
         return message;
@@ -2508,6 +2517,9 @@ class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBun
                     break;
                 case /* string endpoint */ 5:
                     message.endpoint = reader.string();
+                    break;
+                case /* repeated string ordered_bundle_entries */ 6:
+                    message.orderedBundleEntries.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2536,6 +2548,9 @@ class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBun
         /* string endpoint = 5; */
         if (message.endpoint !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.endpoint);
+        /* repeated string ordered_bundle_entries = 6; */
+        for (let i = 0; i < message.orderedBundleEntries.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.orderedBundleEntries[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

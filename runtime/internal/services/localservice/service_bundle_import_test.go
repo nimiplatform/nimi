@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 )
 
 func TestImportLocalAssetBundleInvalidSourcePreservesCauseWithoutLeakingPath(t *testing.T) {
@@ -64,6 +65,9 @@ func TestImportLocalAssetBundleScaffoldsManagedManifest(t *testing.T) {
 	if got := asset.GetEntry(); got != "Qwen3-4B-Q4_K_M.gguf" {
 		t.Fatalf("entry mismatch: got=%q", got)
 	}
+	if len(asset.GetBundleEntries()) != 0 {
+		t.Fatalf("ordinary llama bundle must preserve single-entry content identity: %#v", asset.GetBundleEntries())
+	}
 
 	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), asset.GetLogicalModelId())
 	raw, err := os.ReadFile(manifestPath)
@@ -86,6 +90,76 @@ func TestImportLocalAssetBundleScaffoldsManagedManifest(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(sourceDir, "Qwen3-4B-Q4_K_M.gguf")); err != nil {
 		t.Fatalf("bundle import must not remove source files: %v", err)
+	}
+}
+
+func TestImportLocalAssetBundleFormsCanonicalOrderedDigestAndRejectsEntryDrift(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := t.TempDir()
+	mainName := "Qwen3-Sharded-Q4_K_M.gguf"
+	shardName := "weights-00002.data"
+	if err := os.WriteFile(filepath.Join(sourceDir, mainName), validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write main bundle entry: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, shardName), []byte("second-shard"), 0o644); err != nil {
+		t.Fatalf("write second bundle entry: %v", err)
+	}
+
+	asset, err := svc.importLocalAssetBundleSync(context.Background(), "", &runtimev1.ImportLocalAssetBundleRequest{
+		DirectoryPath:        sourceDir,
+		ModelName:            "Qwen3 Sharded",
+		Capabilities:         []string{"chat"},
+		Engine:               "llama",
+		OrderedBundleEntries: []string{mainName, shardName},
+	})
+	if err != nil {
+		t.Fatalf("import sharded bundle: %v", err)
+	}
+	entries := asset.GetBundleEntries()
+	if len(entries) != 2 || entries[0].GetOrdinal() != 1 || entries[0].GetRelativePath() != mainName ||
+		entries[1].GetOrdinal() != 2 || entries[1].GetRelativePath() != shardName {
+		t.Fatalf("ordered bundle entries = %#v", entries)
+	}
+	descriptors := []capabilitydriver.BundleEntryDescriptor{
+		{Ordinal: entries[0].GetOrdinal(), SHA256: entries[0].GetSha256()},
+		{Ordinal: entries[1].GetOrdinal(), SHA256: entries[1].GetSha256()},
+	}
+	digest, err := capabilitydriver.CanonicalBundleSHA256(descriptors)
+	if err != nil {
+		t.Fatalf("canonical bundle digest: %v", err)
+	}
+	if got := exactDeclaredContentSHA256(asset); got != digest {
+		t.Fatalf("declared bundle digest = %q, want %q", got, digest)
+	}
+	descriptor, reason, candidate := svc.verifyLocalCapabilityAssetContent(asset, resolveLocalModelsPath(svc.localModelsPath), "sha256:"+digest)
+	if !candidate || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || descriptor.EntrySHA256 != digest || len(descriptor.BundleEntries) != 2 {
+		t.Fatalf("verified bundle = candidate=%t reason=%s descriptor=%#v", candidate, reason, descriptor)
+	}
+	svc.mu.Lock()
+	svc.persistStateLocked()
+	statePath := svc.stateStorePath
+	svc.mu.Unlock()
+	snapshot, err := loadLocalStateSnapshot(statePath)
+	if err != nil {
+		t.Fatalf("load persisted LocalAsset bundle manifest: %v", err)
+	}
+	persistedEntries := 0
+	for _, row := range snapshot.Assets {
+		if row.LocalAssetID == asset.GetLocalAssetId() {
+			persistedEntries = len(row.BundleEntries)
+		}
+	}
+	if persistedEntries != 2 {
+		t.Fatalf("persisted bundle entries = %d, want 2", persistedEntries)
+	}
+
+	bundleDir := runtimeManagedBundleDir(resolveLocalModelsPath(svc.localModelsPath), asset)
+	if err := os.WriteFile(filepath.Join(bundleDir, shardName), []byte("drifted-shard"), 0o644); err != nil {
+		t.Fatalf("drift second bundle entry: %v", err)
+	}
+	_, reason, candidate = svc.verifyLocalCapabilityAssetContent(asset, resolveLocalModelsPath(svc.localModelsPath), "sha256:"+digest)
+	if !candidate || reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH {
+		t.Fatalf("drifted bundle = candidate=%t reason=%s", candidate, reason)
 	}
 }
 

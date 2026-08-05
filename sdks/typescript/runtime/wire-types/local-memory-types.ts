@@ -216,6 +216,7 @@ export type {
 import type {
   LocalAssetRecord,
   LocalAssetSource,
+  LocalBundleEntryDigest,
   LocalCatalogModelDescriptor,
   LocalHostRequirements,
   LocalInstallPlanDescriptor,
@@ -230,6 +231,7 @@ import type {
 export type {
   LocalAssetRecord,
   LocalAssetSource,
+  LocalBundleEntryDigest,
   LocalCatalogModelDescriptor,
   LocalHostRequirements,
   LocalInstallPlanDescriptor,

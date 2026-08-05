@@ -364,8 +364,12 @@ type LocalCapabilityRequirement struct {
 	Policy                     LocalCapabilityRequirementPolicy `protobuf:"varint,4,opt,name=policy,proto3,enum=nimi.runtime.v1.LocalCapabilityRequirementPolicy" json:"policy,omitempty"`
 	PreferredVerifiedContentId string                           `protobuf:"bytes,5,opt,name=preferred_verified_content_id,json=preferredVerifiedContentId,proto3" json:"preferred_verified_content_id,omitempty"`
 	CompatibilityConstraints   *structpb.Struct                 `protobuf:"bytes,6,opt,name=compatibility_constraints,json=compatibilityConstraints,proto3" json:"compatibility_constraints,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	// Zero denotes an unordered or singleton role occurrence. Positive values
+	// are one-based and carry only an order explicitly declared by the Driver.
+	OccurrenceOrdinal uint32 `protobuf:"varint,7,opt,name=occurrence_ordinal,json=occurrenceOrdinal,proto3" json:"occurrence_ordinal,omitempty"`
+	DisplayLabel      string `protobuf:"bytes,8,opt,name=display_label,json=displayLabel,proto3" json:"display_label,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *LocalCapabilityRequirement) Reset() {
@@ -440,12 +444,29 @@ func (x *LocalCapabilityRequirement) GetCompatibilityConstraints() *structpb.Str
 	return nil
 }
 
+func (x *LocalCapabilityRequirement) GetOccurrenceOrdinal() uint32 {
+	if x != nil {
+		return x.OccurrenceOrdinal
+	}
+	return 0
+}
+
+func (x *LocalCapabilityRequirement) GetDisplayLabel() string {
+	if x != nil {
+		return x.DisplayLabel
+	}
+	return ""
+}
+
 type LocalAssetExactBinding struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	RequirementId     string                 `protobuf:"bytes,1,opt,name=requirement_id,json=requirementId,proto3" json:"requirement_id,omitempty"`
-	LocalAssetId      string                 `protobuf:"bytes,2,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
-	VerifiedContentId string                 `protobuf:"bytes,3,opt,name=verified_content_id,json=verifiedContentId,proto3" json:"verified_content_id,omitempty"`
-	EntrySha256       string                 `protobuf:"bytes,4,opt,name=entry_sha256,json=entrySha256,proto3" json:"entry_sha256,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RequirementId string                 `protobuf:"bytes,1,opt,name=requirement_id,json=requirementId,proto3" json:"requirement_id,omitempty"`
+	LocalAssetId  string                 `protobuf:"bytes,2,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
+	// For a single-file occurrence these identify the verified entry bytes. For
+	// an explicitly sharded bundle they identify the canonical SHA-256 over its
+	// ordered LocalBundleEntryDigest values.
+	VerifiedContentId string `protobuf:"bytes,3,opt,name=verified_content_id,json=verifiedContentId,proto3" json:"verified_content_id,omitempty"`
+	EntrySha256       string `protobuf:"bytes,4,opt,name=entry_sha256,json=entrySha256,proto3" json:"entry_sha256,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -2374,14 +2395,16 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	" CapabilityImplementationIdentity\x12+\n" +
 	"\x11implementation_id\x18\x01 \x01(\tR\x10implementationId\x12\x1b\n" +
 	"\tdriver_id\x18\x02 \x01(\tR\bdriverId\x12%\n" +
-	"\x0edriver_dialect\x18\x03 \x01(\tR\rdriverDialect\"\x91\x03\n" +
+	"\x0edriver_dialect\x18\x03 \x01(\tR\rdriverDialect\"\xe5\x03\n" +
 	"\x1aLocalCapabilityRequirement\x12%\n" +
 	"\x0erequirement_id\x18\x01 \x01(\tR\rrequirementId\x12C\n" +
 	"\x04role\x18\x02 \x01(\x0e2/.nimi.runtime.v1.LocalCapabilityRequirementRoleR\x04role\x12#\n" +
 	"\rresource_kind\x18\x03 \x01(\tR\fresourceKind\x12I\n" +
 	"\x06policy\x18\x04 \x01(\x0e21.nimi.runtime.v1.LocalCapabilityRequirementPolicyR\x06policy\x12A\n" +
 	"\x1dpreferred_verified_content_id\x18\x05 \x01(\tR\x1apreferredVerifiedContentId\x12T\n" +
-	"\x19compatibility_constraints\x18\x06 \x01(\v2\x17.google.protobuf.StructR\x18compatibilityConstraints\"\xb8\x01\n" +
+	"\x19compatibility_constraints\x18\x06 \x01(\v2\x17.google.protobuf.StructR\x18compatibilityConstraints\x12-\n" +
+	"\x12occurrence_ordinal\x18\a \x01(\rR\x11occurrenceOrdinal\x12#\n" +
+	"\rdisplay_label\x18\b \x01(\tR\fdisplayLabel\"\xb8\x01\n" +
 	"\x16LocalAssetExactBinding\x12%\n" +
 	"\x0erequirement_id\x18\x01 \x01(\tR\rrequirementId\x12$\n" +
 	"\x0elocal_asset_id\x18\x02 \x01(\tR\flocalAssetId\x12.\n" +

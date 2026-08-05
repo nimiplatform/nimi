@@ -30,22 +30,24 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 		return nil, reason
 	}
 
-	requirements := []*runtimev1.LocalCapabilityRequirement{requirement(
+	requirements := []*runtimev1.LocalCapabilityRequirement{llamaRequirement(
 		MainGGUFRequirementID,
 		runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
 		"gguf",
 		portable.mainPolicy,
 		portable.mainVerifiedContentID,
 		"llm",
+		"Main model",
 	)}
 	if contains(features, inputImageFeature) {
-		requirements = append(requirements, requirement(
+		requirements = append(requirements, llamaRequirement(
 			CompanionMMProjRequirementID,
 			runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
 			"mmproj",
 			portable.mmprojPolicy,
 			portable.mmprojVerifiedContentID,
 			"mmproj",
+			"Vision projector",
 		))
 	}
 	return requirements, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -95,8 +97,6 @@ func (driver LlamaTextDriver) ValidateCombination(requirements []*runtimev1.Loca
 		byRequirement[requirement.GetRequirementId()] = struct{}{}
 	}
 	byBinding := make(map[string]int, len(bindings))
-	localAssets := make(map[string]struct{}, len(bindings))
-	verifiedContents := make(map[string]struct{}, len(bindings))
 	for index, binding := range bindings {
 		if binding == nil || binding.GetRequirementId() == "" {
 			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
@@ -106,18 +106,6 @@ func (driver LlamaTextDriver) ValidateCombination(requirements []*runtimev1.Loca
 		}
 		if _, exists := byBinding[binding.GetRequirementId()]; exists {
 			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
-		}
-		if localAssetID := binding.GetLocalAssetId(); localAssetID != "" {
-			if _, exists := localAssets[localAssetID]; exists {
-				return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
-			}
-			localAssets[localAssetID] = struct{}{}
-		}
-		if verifiedContentID := binding.GetVerifiedContentId(); verifiedContentID != "" {
-			if _, exists := verifiedContents[verifiedContentID]; exists {
-				return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
-			}
-			verifiedContents[verifiedContentID] = struct{}{}
 		}
 		byBinding[binding.GetRequirementId()] = index
 	}
@@ -637,9 +625,18 @@ func normalizedFeatures(features []string) ([]string, runtimev1.LocalCapabilityR
 	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func requirement(id string, role runtimev1.LocalCapabilityRequirementRole, resourceKind string, policy runtimev1.LocalCapabilityRequirementPolicy, preferredID, artifactRole string) *runtimev1.LocalCapabilityRequirement {
+func llamaRequirement(id string, role runtimev1.LocalCapabilityRequirementRole, resourceKind string, policy runtimev1.LocalCapabilityRequirementPolicy, preferredID, artifactRole, displayLabel string) *runtimev1.LocalCapabilityRequirement {
 	constraints, _ := structpb.NewStruct(map[string]any{"engine": "llama", "artifact_role": artifactRole})
-	return &runtimev1.LocalCapabilityRequirement{RequirementId: id, Role: role, ResourceKind: resourceKind, Policy: policy, PreferredVerifiedContentId: preferredID, CompatibilityConstraints: constraints}
+	return &runtimev1.LocalCapabilityRequirement{
+		RequirementId:              id,
+		Role:                       role,
+		ResourceKind:               resourceKind,
+		Policy:                     policy,
+		PreferredVerifiedContentId: preferredID,
+		CompatibilityConstraints:   constraints,
+		OccurrenceOrdinal:          0,
+		DisplayLabel:               displayLabel,
+	}
 }
 
 func llamaCompatible(requirement *runtimev1.LocalCapabilityRequirement, asset AssetDescriptor) bool {

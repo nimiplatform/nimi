@@ -285,6 +285,15 @@ func canonicalizeStoredConfiguration(configuration *runtimev1.LocalCapabilityCon
 	if configuration == nil {
 		return
 	}
+	// Proto3 decodes fields added by the occurrence cutover to zero values.
+	// Ordinal zero is the exact unordered/singleton default. Legacy rows without
+	// a label retain their stable requirement identity as the display fallback;
+	// no filename, path, inventory order, or binding time participates.
+	for _, requirement := range configuration.GetProjectedRequirements() {
+		if requirement != nil && requirement.GetDisplayLabel() == "" {
+			requirement.DisplayLabel = requirement.GetRequirementId()
+		}
+	}
 	configuration.Interpretability = runtimev1.LocalCapabilityInterpretability_LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED
 	configuration.RequirementResolution = runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED
 	configuration.Reasons = nil

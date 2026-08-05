@@ -12308,6 +12308,7 @@ pub struct ImportLocalAssetBundleRequest {
     pub capabilities: Vec<String>,
     pub engine: Option<String>,
     pub endpoint: Option<String>,
+    pub ordered_bundle_entries: Vec<String>,
 }
 
 impl ImportLocalAssetBundleRequest {
@@ -12318,6 +12319,7 @@ impl ImportLocalAssetBundleRequest {
         for value in &self.capabilities { pairs.push(format!("capabilities={}", value)); }
         if let Some(value) = &self.engine { pairs.push(format!("engine={}", value)); }
         if let Some(value) = &self.endpoint { pairs.push(format!("endpoint={}", value)); }
+        for value in &self.ordered_bundle_entries { pairs.push(format!("ordered_bundle_entries={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -12330,6 +12332,7 @@ impl ImportLocalAssetBundleRequest {
         out.capabilities = parse_repeated_string(raw, "capabilities");
         out.engine = pairs.get("engine").cloned();
         out.endpoint = pairs.get("endpoint").cloned();
+        out.ordered_bundle_entries = parse_repeated_string(raw, "ordered_bundle_entries");
         out
     }
 }
@@ -16605,6 +16608,7 @@ pub struct LocalAssetRecord {
     pub display_name: Option<String>,
     pub source_file_name: Option<String>,
     pub import_instance_id: Option<String>,
+    pub bundle_entries: Vec<Box<LocalBundleEntryDigest>>,
 }
 
 impl LocalAssetRecord {
@@ -16639,13 +16643,14 @@ impl LocalAssetRecord {
         if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
         if let Some(value) = &self.source_file_name { pairs.push(format!("source_file_name={}", value)); }
         if let Some(value) = &self.import_instance_id { pairs.push(format!("import_instance_id={}", value)); }
+        if !self.bundle_entries.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bundle_entries"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["kind", "source", "hashes", "status", "bundle_state", "host_requirements", "engine_config", "reason_code", "metadata"] {
+        for key in ["kind", "source", "hashes", "status", "bundle_state", "host_requirements", "engine_config", "reason_code", "metadata", "bundle_entries"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -16791,6 +16796,33 @@ impl LocalAuditTimeRange {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalBundleEntryDigest {
+    pub ordinal: Option<u32>,
+    pub relative_path: Option<String>,
+    pub sha256: Option<String>,
+}
+
+impl LocalBundleEntryDigest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.ordinal { pairs.push(format!("ordinal={}", value)); }
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        if let Some(value) = &self.sha256 { pairs.push(format!("sha256={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.ordinal = pairs.get("ordinal").and_then(|value| value.parse().ok());
+        out.relative_path = pairs.get("relative_path").cloned();
+        out.sha256 = pairs.get("sha256").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalCapabilityConfiguration {
     pub configuration_id: Option<String>,
     pub capability_contract: Option<String>,
@@ -16849,6 +16881,8 @@ pub struct LocalCapabilityRequirement {
     pub policy: Option<LocalCapabilityRequirementPolicy>,
     pub preferred_verified_content_id: Option<String>,
     pub compatibility_constraints: Option<BTreeMap<String, String>>,
+    pub occurrence_ordinal: Option<u32>,
+    pub display_label: Option<String>,
 }
 
 impl LocalCapabilityRequirement {
@@ -16860,6 +16894,8 @@ impl LocalCapabilityRequirement {
         if let Some(value) = &self.policy { pairs.push(format!("policy={:?}", value)); }
         if let Some(value) = &self.preferred_verified_content_id { pairs.push(format!("preferred_verified_content_id={}", value)); }
         if self.compatibility_constraints.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode compatibility_constraints"); }
+        if let Some(value) = &self.occurrence_ordinal { pairs.push(format!("occurrence_ordinal={}", value)); }
+        if let Some(value) = &self.display_label { pairs.push(format!("display_label={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -16875,6 +16911,8 @@ impl LocalCapabilityRequirement {
         out.requirement_id = pairs.get("requirement_id").cloned();
         out.resource_kind = pairs.get("resource_kind").cloned();
         out.preferred_verified_content_id = pairs.get("preferred_verified_content_id").cloned();
+        out.occurrence_ordinal = pairs.get("occurrence_ordinal").and_then(|value| value.parse().ok());
+        out.display_label = pairs.get("display_label").cloned();
         out
     }
 }
@@ -32415,6 +32453,12 @@ impl From<Vec<u8>> for LocalAuditEvent {
 }
 
 impl From<Vec<u8>> for LocalAuditTimeRange {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalBundleEntryDigest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }

@@ -93,6 +93,17 @@ message LocalHostRequirements {
   repeated string required_backends   = 4;
 }
 
+// LocalBundleEntryDigest is the LocalAsset-owned manifest for one explicitly
+// sharded resource. Ordinals are one-based, contiguous, and retained in the
+// declared order; sha256 is the lowercase hexadecimal per-entry digest. The
+// canonical bundle SHA-256 hashes the concatenated decoded 32-byte digests in
+// this exact order.
+message LocalBundleEntryDigest {
+  uint32 ordinal = 1;
+  string relative_path = 2;
+  string sha256 = 3;
+}
+
 // === Unified Asset Record ===
 
 message LocalAssetRecord {
@@ -137,6 +148,10 @@ message LocalAssetRecord {
 
   reserved 44, 45, 46;
   reserved "durable_target_ref", "durable_target_status", "durable_target_reason_code";
+
+  // Empty preserves single-file entry identity. A non-empty list declares one
+  // sharded occurrence whose content identity covers every ordered entry.
+  repeated LocalBundleEntryDigest bundle_entries = 47;
 }
 
 // === Verified Asset Descriptor (unified from Model + Artifact) ===

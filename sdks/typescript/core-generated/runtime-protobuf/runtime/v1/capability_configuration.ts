@@ -60,6 +60,17 @@ export interface LocalCapabilityRequirement {
      * @generated from protobuf field: google.protobuf.Struct compatibility_constraints = 6
      */
     compatibilityConstraints?: Struct;
+    /**
+     * Zero denotes an unordered or singleton role occurrence. Positive values
+     * are one-based and carry only an order explicitly declared by the Driver.
+     *
+     * @generated from protobuf field: uint32 occurrence_ordinal = 7
+     */
+    occurrenceOrdinal: number;
+    /**
+     * @generated from protobuf field: string display_label = 8
+     */
+    displayLabel: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAssetExactBinding
@@ -74,6 +85,10 @@ export interface LocalAssetExactBinding {
      */
     localAssetId: string;
     /**
+     * For a single-file occurrence these identify the verified entry bytes. For
+     * an explicitly sharded bundle they identify the canonical SHA-256 over its
+     * ordered LocalBundleEntryDigest values.
+     *
      * @generated from protobuf field: string verified_content_id = 3
      */
     verifiedContentId: string;
@@ -755,7 +770,9 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
             { no: 3, name: "resource_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "policy", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityRequirementPolicy", LocalCapabilityRequirementPolicy, "LOCAL_CAPABILITY_REQUIREMENT_POLICY_"] },
             { no: 5, name: "preferred_verified_content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "compatibility_constraints", kind: "message", T: () => Struct }
+            { no: 6, name: "compatibility_constraints", kind: "message", T: () => Struct },
+            { no: 7, name: "occurrence_ordinal", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 8, name: "display_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalCapabilityRequirement>): LocalCapabilityRequirement {
@@ -765,6 +782,8 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
         message.resourceKind = "";
         message.policy = 0;
         message.preferredVerifiedContentId = "";
+        message.occurrenceOrdinal = 0;
+        message.displayLabel = "";
         if (value !== undefined)
             reflectionMergePartial<LocalCapabilityRequirement>(this, message, value);
         return message;
@@ -791,6 +810,12 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
                     break;
                 case /* google.protobuf.Struct compatibility_constraints */ 6:
                     message.compatibilityConstraints = Struct.internalBinaryRead(reader, reader.uint32(), options, message.compatibilityConstraints);
+                    break;
+                case /* uint32 occurrence_ordinal */ 7:
+                    message.occurrenceOrdinal = reader.uint32();
+                    break;
+                case /* string display_label */ 8:
+                    message.displayLabel = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -822,6 +847,12 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
         /* google.protobuf.Struct compatibility_constraints = 6; */
         if (message.compatibilityConstraints)
             Struct.internalBinaryWrite(message.compatibilityConstraints, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* uint32 occurrence_ordinal = 7; */
+        if (message.occurrenceOrdinal !== 0)
+            writer.tag(7, WireType.Varint).uint32(message.occurrenceOrdinal);
+        /* string display_label = 8; */
+        if (message.displayLabel !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.displayLabel);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

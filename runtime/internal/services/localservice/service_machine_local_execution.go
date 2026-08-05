@@ -111,15 +111,15 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 	boundAssetIDs := make([]string, 0, len(bindings))
 	for _, binding := range bindings {
 		asset := inventory.exactAsset(binding.GetLocalAssetId())
-		if asset == nil {
+		if asset == nil || asset.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			return nil, selectedLocalExecutionReasonError(runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND, metadata)
 		}
 		descriptor, reason, candidate := s.verifyLocalCapabilityAssetContent(asset, inventory.modelsRoot, binding.GetVerifiedContentId())
-		if !candidate {
-			return nil, selectedLocalExecutionReasonError(runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND, metadata)
-		}
 		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 			return nil, selectedLocalExecutionReasonError(reason, metadata)
+		}
+		if !candidate {
+			return nil, selectedLocalExecutionReasonError(runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH, metadata)
 		}
 		if descriptor.LocalAssetID != binding.GetLocalAssetId() ||
 			descriptor.VerifiedContentID != binding.GetVerifiedContentId() ||
@@ -135,8 +135,15 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 			return nil, selectedLocalExecutionReasonError(runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED, metadata)
 		}
 		descriptors = append(descriptors, cloneCapabilityDriverAssetDescriptor(descriptor))
+		requirement := findProjectedLocalCapabilityRequirement(configuration.GetProjectedRequirements(), binding.GetRequirementId())
+		if requirement == nil {
+			return nil, selectedLocalExecutionReasonError(runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS, metadata)
+		}
 		resolvedBindings = append(resolvedBindings, localexecution.ExactBinding{
 			RequirementID:     binding.GetRequirementId(),
+			RequirementRole:   requirement.GetRole(),
+			OccurrenceOrdinal: requirement.GetOccurrenceOrdinal(),
+			DisplayLabel:      requirement.GetDisplayLabel(),
 			LocalAssetID:      binding.GetLocalAssetId(),
 			AbsolutePath:      absolutePath,
 			VerifiedContentID: binding.GetVerifiedContentId(),

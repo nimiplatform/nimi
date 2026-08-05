@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -97,6 +98,8 @@ func scanBundleDirectory(root string) (bundleDirectoryScan, error) {
 	if err != nil {
 		return bundleDirectoryScan{}, err
 	}
+	sort.Strings(scan.files)
+	sort.Strings(scan.entryCandidates)
 	return scan, nil
 }
 
@@ -245,6 +248,166 @@ func bundleFileHashes(sourceDir string, scan bundleDirectoryScan) (map[string]st
 	return hashes, nil
 }
 
+func applyOrderedBundleEntriesToManifest(manifest map[string]any, requested []string) error {
+	if manifest == nil {
+		return fmt.Errorf("bundle manifest is required")
+	}
+	existing, err := orderedBundleEntryPathsFromManifest(manifest)
+	if err != nil {
+		return err
+	}
+	declared := make([]string, 0, len(requested))
+	seen := make(map[string]struct{}, len(requested))
+	for _, raw := range requested {
+		relativePath, err := normalizeLocalBundleRelativePath(raw)
+		if err != nil {
+			return err
+		}
+		if _, exists := seen[relativePath]; exists {
+			return fmt.Errorf("bundle entry path %q is duplicated", relativePath)
+		}
+		seen[relativePath] = struct{}{}
+		declared = append(declared, relativePath)
+	}
+	if len(declared) > 0 && len(existing) > 0 && !stringSlicesEqual(declared, existing) {
+		return fmt.Errorf("request bundle entry order conflicts with the manifest")
+	}
+	if len(declared) == 0 {
+		declared = existing
+	}
+	if len(declared) == 0 {
+		delete(manifest, "bundle_entries")
+		return nil
+	}
+	if len(declared) < 2 {
+		return fmt.Errorf("sharded bundle requires at least two ordered entries")
+	}
+	hashes, err := bundleManifestHashes(manifest)
+	if err != nil {
+		return err
+	}
+	files := valueAsStringSlice(manifest["files"])
+	fileSet := make(map[string]struct{}, len(files))
+	for _, file := range files {
+		fileSet[filepath.ToSlash(strings.TrimSpace(file))] = struct{}{}
+	}
+	mainEntry := filepath.ToSlash(strings.TrimSpace(manifestStringDefault(manifest, "entry")))
+	containsMain := false
+	entries := make([]any, 0, len(declared))
+	for index, relativePath := range declared {
+		if _, exists := fileSet[relativePath]; !exists {
+			return fmt.Errorf("bundle entry %q is not declared in files", relativePath)
+		}
+		digest := normalizeExactSHA256Hex(hashes[relativePath])
+		if digest == "" {
+			return fmt.Errorf("bundle entry %q has no canonical sha256", relativePath)
+		}
+		if relativePath == mainEntry {
+			containsMain = true
+		}
+		entries = append(entries, map[string]any{
+			"ordinal":       index + 1,
+			"relative_path": relativePath,
+			"sha256":        digest,
+		})
+	}
+	if !containsMain {
+		return fmt.Errorf("ordered bundle entries do not include the manifest entry")
+	}
+	manifest["bundle_entries"] = entries
+	return nil
+}
+
+func bundleManifestHashes(manifest map[string]any) (map[string]string, error) {
+	if typed, ok := manifest["hashes"].(map[string]string); ok {
+		return cloneStringMap(typed), nil
+	}
+	return manifestStringMap(manifest, "hashes")
+}
+
+func orderedBundleEntryPathsFromManifest(manifest map[string]any) ([]string, error) {
+	raw, exists := manifest["bundle_entries"]
+	if !exists {
+		return nil, nil
+	}
+	items, ok := raw.([]any)
+	if !ok || len(items) == 0 {
+		return nil, fmt.Errorf("bundle_entries must be a non-empty array")
+	}
+	result := make([]string, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
+	for index, item := range items {
+		entry, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("bundle entry %d must be an object", index)
+		}
+		for key := range entry {
+			switch key {
+			case "ordinal", "relative_path", "sha256":
+			default:
+				return nil, fmt.Errorf("bundle entry %d contains unknown field %q", index, key)
+			}
+		}
+		ordinal, ok := entry["ordinal"].(float64)
+		if !ok {
+			if integer, integerOK := entry["ordinal"].(int); integerOK {
+				ordinal = float64(integer)
+				ok = true
+			}
+		}
+		if !ok || ordinal != float64(index+1) {
+			return nil, fmt.Errorf("bundle entry %d has a non-contiguous ordinal", index)
+		}
+		relativePath, ok := entry["relative_path"].(string)
+		if !ok {
+			return nil, fmt.Errorf("bundle entry %d relative_path is required", index)
+		}
+		relativePath, err := normalizeLocalBundleRelativePath(relativePath)
+		if err != nil {
+			return nil, err
+		}
+		if _, exists := seen[relativePath]; exists {
+			return nil, fmt.Errorf("bundle entry path %q is duplicated", relativePath)
+		}
+		seen[relativePath] = struct{}{}
+		digest, ok := entry["sha256"].(string)
+		if !ok || normalizeExactSHA256Hex(digest) == "" || normalizeExactSHA256Hex(digest) != digest {
+			return nil, fmt.Errorf("bundle entry %d sha256 must be lowercase hexadecimal without a prefix", index)
+		}
+		result = append(result, relativePath)
+	}
+	return result, nil
+}
+
+func localBundleEntriesFromManifest(manifest map[string]any, hashes map[string]string) ([]*runtimev1.LocalBundleEntryDigest, error) {
+	paths, err := orderedBundleEntryPathsFromManifest(manifest)
+	if err != nil || len(paths) == 0 {
+		return nil, err
+	}
+	items := manifest["bundle_entries"].([]any)
+	result := make([]*runtimev1.LocalBundleEntryDigest, 0, len(paths))
+	for index, relativePath := range paths {
+		entry := items[index].(map[string]any)
+		digest := normalizeExactSHA256Hex(entry["sha256"].(string))
+		if digest == "" || normalizeExactSHA256Hex(hashes[relativePath]) != digest {
+			return nil, fmt.Errorf("bundle entry %q digest does not match hashes", relativePath)
+		}
+		result = append(result, &runtimev1.LocalBundleEntryDigest{
+			Ordinal:      uint32(index + 1),
+			RelativePath: relativePath,
+			Sha256:       digest,
+		})
+	}
+	if _, err := localCapabilityBundleEntryDescriptors(&runtimev1.LocalAssetRecord{
+		Entry:         manifestStringDefault(manifest, "entry"),
+		Hashes:        cloneStringMap(hashes),
+		BundleEntries: cloneLocalBundleEntryDigests(result),
+	}); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func writeBundleManifest(path string, manifest map[string]any) error {
 	raw, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
@@ -312,11 +475,12 @@ func (s *Service) ImportLocalAssetBundle(_ context.Context, req *runtimev1.Impor
 		Retryable:    false,
 	})
 	reqCopy := &runtimev1.ImportLocalAssetBundleRequest{
-		DirectoryPath: strings.TrimSpace(req.GetDirectoryPath()),
-		ModelName:     strings.TrimSpace(req.GetModelName()),
-		Capabilities:  append([]string(nil), req.GetCapabilities()...),
-		Engine:        strings.TrimSpace(req.GetEngine()),
-		Endpoint:      strings.TrimSpace(req.GetEndpoint()),
+		DirectoryPath:        strings.TrimSpace(req.GetDirectoryPath()),
+		ModelName:            strings.TrimSpace(req.GetModelName()),
+		Capabilities:         append([]string(nil), req.GetCapabilities()...),
+		Engine:               strings.TrimSpace(req.GetEngine()),
+		Endpoint:             strings.TrimSpace(req.GetEndpoint()),
+		OrderedBundleEntries: append([]string(nil), req.GetOrderedBundleEntries()...),
 	}
 	go s.runImportLocalAssetBundle(s.jobLifetimeCtx, transfer.GetInstallSessionId(), reqCopy)
 	return &runtimev1.ImportLocalAssetBundleResponse{Transfer: transfer}, nil
@@ -409,6 +573,14 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 				grpcerr.ReasonOptions{Message: "bundle manifest could not be prepared"},
 			)
 		}
+	}
+	if err := applyOrderedBundleEntriesToManifest(manifest, req.GetOrderedBundleEntries()); err != nil {
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "bundle content entry declaration is invalid"},
+		)
 	}
 
 	s.updateTransferProgress(transferID, "copy", 0, 1, "staging bundle directory")
@@ -550,6 +722,14 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
 			err,
 			grpcerr.ReasonOptions{Message: "managed bundle manifest could not be refreshed"},
+		)
+	}
+	if err := applyOrderedBundleEntriesToManifest(manifest, nil); err != nil {
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
+			err,
+			grpcerr.ReasonOptions{Message: "managed bundle content entry declaration is invalid"},
 		)
 	}
 	s.updateTransferProgress(transferID, "manifest", 1, 1, "refreshing bundle manifest")

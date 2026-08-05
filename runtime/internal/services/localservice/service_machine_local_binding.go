@@ -180,11 +180,11 @@ func (s *Service) verifyManualLocalCapabilityBindingTarget(
 	if asset == nil || asset.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return nil, capabilitydriver.AssetDescriptor{}, localCapabilityBindingError(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_ASSET_NOT_FOUND, "local asset was not found", map[string]string{"requirement_id": requirementID, "local_asset_id": localAssetID})
 	}
-	declaredEntrySHA256 := exactDeclaredEntrySHA256(asset)
-	if declaredEntrySHA256 == "" {
+	declaredContentSHA256 := exactDeclaredContentSHA256(asset)
+	if declaredContentSHA256 == "" {
 		return nil, capabilitydriver.AssetDescriptor{}, localCapabilityBindingError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_CONTENT_UNVERIFIED, "local asset content is not verified", map[string]string{"requirement_id": requirementID, "local_asset_id": localAssetID})
 	}
-	if declaredContentID := normalizeVerifiedContentID("sha256:" + declaredEntrySHA256); declaredContentID != expectedContentID {
+	if declaredContentID := normalizeVerifiedContentID("sha256:" + declaredContentSHA256); declaredContentID != expectedContentID {
 		return nil, capabilitydriver.AssetDescriptor{}, localCapabilityBindingError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_CONTENT_MISMATCH, "local asset content does not match the expected identity", map[string]string{"requirement_id": requirementID, "local_asset_id": localAssetID})
 	}
 	descriptor, reason, candidate := s.verifyLocalCapabilityAssetContent(asset, inventory.modelsRoot, expectedContentID)

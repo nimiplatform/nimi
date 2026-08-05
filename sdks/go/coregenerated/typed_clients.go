@@ -3855,6 +3855,7 @@ type ImportLocalAssetBundleRequest struct {
 	Capabilities []string `json:"capabilities,omitempty"`
 	Engine string `json:"engine,omitempty"`
 	Endpoint string `json:"endpoint,omitempty"`
+	OrderedBundleEntries []string `json:"ordered_bundle_entries,omitempty"`
 }
 
 type ImportLocalAssetBundleResponse struct {
@@ -4747,6 +4748,7 @@ type LocalAssetRecord struct {
 	DisplayName string `json:"display_name,omitempty"`
 	SourceFileName string `json:"source_file_name,omitempty"`
 	ImportInstanceId string `json:"import_instance_id,omitempty"`
+	BundleEntries []LocalBundleEntryDigest `json:"bundle_entries,omitempty"`
 }
 
 type LocalAssetSource struct {
@@ -4777,6 +4779,12 @@ type LocalAuditTimeRange struct {
 	To string `json:"to,omitempty"`
 }
 
+type LocalBundleEntryDigest struct {
+	Ordinal uint32 `json:"ordinal,omitempty"`
+	RelativePath string `json:"relative_path,omitempty"`
+	Sha256 string `json:"sha256,omitempty"`
+}
+
 type LocalCapabilityConfiguration struct {
 	ConfigurationId string `json:"configuration_id,omitempty"`
 	CapabilityContract string `json:"capability_contract,omitempty"`
@@ -4799,6 +4807,8 @@ type LocalCapabilityRequirement struct {
 	Policy LocalCapabilityRequirementPolicy `json:"policy,omitempty"`
 	PreferredVerifiedContentId string `json:"preferred_verified_content_id,omitempty"`
 	CompatibilityConstraints map[string]any `json:"compatibility_constraints,omitempty"`
+	OccurrenceOrdinal uint32 `json:"occurrence_ordinal,omitempty"`
+	DisplayLabel string `json:"display_label,omitempty"`
 }
 
 type LocalCapabilitySelection struct {

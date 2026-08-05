@@ -32,28 +32,35 @@ type localStateSnapshot struct {
 	ManagedImageProfileMaterializations []localStateManagedImageProfileMaterializationState `json:"managedImageProfileMaterializations,omitempty"`
 }
 
+type localStateBundleEntryState struct {
+	Ordinal      uint32 `json:"ordinal"`
+	RelativePath string `json:"relativePath"`
+	SHA256       string `json:"sha256"`
+}
+
 // localStateAssetState is the unified persistence row for all asset kinds.
 type localStateAssetState struct {
-	LocalAssetID      string            `json:"localAssetId"`
-	AssetID           string            `json:"assetId"`
-	DisplayName       string            `json:"displayName,omitempty"`
-	SourceFileName    string            `json:"sourceFileName,omitempty"`
-	ImportInstanceID  string            `json:"importInstanceId,omitempty"`
-	Kind              int32             `json:"kind"`
-	Engine            string            `json:"engine"`
-	Entry             string            `json:"entry"`
-	Files             []string          `json:"files,omitempty"`
-	License           string            `json:"license"`
-	SourceRepo        string            `json:"sourceRepo"`
-	SourceRev         string            `json:"sourceRevision"`
-	Hashes            map[string]string `json:"hashes"`
-	Status            int32             `json:"status"`
-	InstalledAt       string            `json:"installedAt"`
-	UpdatedAt         string            `json:"updatedAt"`
-	HealthDetail      string            `json:"healthDetail"`
-	ReasonCode        string            `json:"reasonCode,omitempty"`
-	EngineRuntimeMode int32             `json:"engineRuntimeMode,omitempty"`
-	Endpoint          string            `json:"endpoint,omitempty"`
+	LocalAssetID      string                       `json:"localAssetId"`
+	AssetID           string                       `json:"assetId"`
+	DisplayName       string                       `json:"displayName,omitempty"`
+	SourceFileName    string                       `json:"sourceFileName,omitempty"`
+	ImportInstanceID  string                       `json:"importInstanceId,omitempty"`
+	Kind              int32                        `json:"kind"`
+	Engine            string                       `json:"engine"`
+	Entry             string                       `json:"entry"`
+	Files             []string                     `json:"files,omitempty"`
+	BundleEntries     []localStateBundleEntryState `json:"bundleEntries,omitempty"`
+	License           string                       `json:"license"`
+	SourceRepo        string                       `json:"sourceRepo"`
+	SourceRev         string                       `json:"sourceRevision"`
+	Hashes            map[string]string            `json:"hashes"`
+	Status            int32                        `json:"status"`
+	InstalledAt       string                       `json:"installedAt"`
+	UpdatedAt         string                       `json:"updatedAt"`
+	HealthDetail      string                       `json:"healthDetail"`
+	ReasonCode        string                       `json:"reasonCode,omitempty"`
+	EngineRuntimeMode int32                        `json:"engineRuntimeMode,omitempty"`
+	Endpoint          string                       `json:"endpoint,omitempty"`
 	// Runnable-only fields
 	Capabilities         []string       `json:"capabilities,omitempty"`
 	LogicalModelID       string         `json:"logicalModelId,omitempty"`
@@ -204,6 +211,7 @@ func (s *Service) restoreState() error {
 			PreferredEngine:      item.PreferredEngine,
 			FallbackEngines:      normalizeStringSlice(item.FallbackEngines),
 			BundleState:          runtimev1.LocalBundleState(item.BundleState),
+			BundleEntries:        localBundleEntriesFromState(item.BundleEntries),
 			HostRequirements:     hostRequirementsFromMap(item.HostRequirements),
 			LocalInvokeProfileId: item.LocalInvokeProfileID,
 			EngineConfig:         toStruct(item.EngineConfig),
@@ -431,6 +439,7 @@ func (s *Service) persistStateLocked() {
 			PreferredEngine:      asset.GetPreferredEngine(),
 			FallbackEngines:      append([]string(nil), asset.GetFallbackEngines()...),
 			BundleState:          int32(asset.GetBundleState()),
+			BundleEntries:        localBundleEntriesToState(asset.GetBundleEntries()),
 			HostRequirements:     hostRequirementsToMap(asset.GetHostRequirements()),
 			LocalInvokeProfileID: asset.GetLocalInvokeProfileId(),
 			EngineConfig:         structToMap(asset.GetEngineConfig()),

@@ -21,6 +21,14 @@ func TestProductionRegistryReturnsContractScopedResolveReasons(t *testing.T) {
 	if _, reason := registry.Resolve("image.generate", identity); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED {
 		t.Fatalf("wrong contract reason = %v", reason)
 	}
+	stableDiffusionIdentity := Identity{
+		ImplementationID: StableDiffusionImplementationID,
+		DriverID:         StableDiffusionDriverID,
+		DriverDialect:    StableDiffusionDriverDialect,
+	}
+	if driver, reason := registry.Resolve(StableDiffusionCapabilityContract, stableDiffusionIdentity); reason != success || driver == nil {
+		t.Fatalf("exact stable-diffusion identity = driver=%T reason=%v", driver, reason)
+	}
 	wrongDriver := identity
 	wrongDriver.DriverID = "nimi.runtime.driver.other"
 	if _, reason := registry.Resolve(LlamaCapabilityContract, wrongDriver); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND {
@@ -46,7 +54,8 @@ func TestLlamaInterpretTextProjectsOneStableMainRequirement(t *testing.T) {
 	if len(requirements) != 1 || requirements[0].GetRequirementId() != MainGGUFRequirementID || requirements[0].GetRole() != runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN {
 		t.Fatalf("requirements = %#v", requirements)
 	}
-	if requirements[0].GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE || requirements[0].GetPreferredVerifiedContentId() != "" {
+	if requirements[0].GetPolicy() != runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE ||
+		requirements[0].GetPreferredVerifiedContentId() != "" || requirements[0].GetOccurrenceOrdinal() != 0 || requirements[0].GetDisplayLabel() != "Main model" {
 		t.Fatalf("main defaults = %#v", requirements[0])
 	}
 	constraints := requirements[0].GetCompatibilityConstraints().AsMap()
@@ -65,6 +74,9 @@ func TestLlamaInterpretImageProjectsDeterministicMainThenCompanion(t *testing.T)
 	}
 	if len(requirements) != 2 || requirements[0].GetRequirementId() != MainGGUFRequirementID || requirements[1].GetRequirementId() != CompanionMMProjRequirementID {
 		t.Fatalf("ordered requirements = %#v", requirements)
+	}
+	if requirements[1].GetOccurrenceOrdinal() != 0 || requirements[1].GetDisplayLabel() != "Vision projector" {
+		t.Fatalf("mmproj occurrence presentation = %#v", requirements[1])
 	}
 	constraints := requirements[1].GetCompatibilityConstraints().AsMap()
 	if constraints["engine"] != "llama" || constraints["artifact_role"] != "mmproj" {
@@ -195,7 +207,7 @@ func TestLlamaValidateCombinationMatchesBindingsByStableID(t *testing.T) {
 	}
 }
 
-func TestLlamaValidateCombinationRejectsReusedOccurrenceIdentity(t *testing.T) {
+func TestLlamaValidateCombinationAllowsOneAssetToSatisfyDistinctOccurrences(t *testing.T) {
 	driver := LlamaTextDriver{}
 	requirements, reason := driver.Interpret(InterpretInput{SupportedFeatures: []string{inputImageFeature}})
 	if reason != success {
@@ -230,8 +242,8 @@ func TestLlamaValidateCombinationRejectsReusedOccurrenceIdentity(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			if reason := driver.ValidateCombination(requirements, test.bindings, test.assets); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS {
-				t.Fatalf("reason = %v, want binding ambiguous", reason)
+			if reason := driver.ValidateCombination(requirements, test.bindings, test.assets); reason != success {
+				t.Fatalf("reason = %v, want success", reason)
 			}
 		})
 	}

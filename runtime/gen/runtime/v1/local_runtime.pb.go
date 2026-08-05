@@ -725,8 +725,11 @@ type ImportLocalAssetBundleRequest struct {
 	Capabilities  []string               `protobuf:"bytes,3,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
 	Engine        string                 `protobuf:"bytes,4,opt,name=engine,proto3" json:"engine,omitempty"`
 	Endpoint      string                 `protobuf:"bytes,5,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Explicit one-based content order for a sharded resource. Empty retains
+	// the existing single-entry digest semantics even when sidecar files exist.
+	OrderedBundleEntries []string `protobuf:"bytes,6,rep,name=ordered_bundle_entries,json=orderedBundleEntries,proto3" json:"ordered_bundle_entries,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ImportLocalAssetBundleRequest) Reset() {
@@ -792,6 +795,13 @@ func (x *ImportLocalAssetBundleRequest) GetEndpoint() string {
 		return x.Endpoint
 	}
 	return ""
+}
+
+func (x *ImportLocalAssetBundleRequest) GetOrderedBundleEntries() []string {
+	if x != nil {
+		return x.OrderedBundleEntries
+	}
+	return nil
 }
 
 type ImportLocalAssetBundleResponse struct {
@@ -6030,14 +6040,15 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\fcapabilities\x18\x04 \x03(\tR\fcapabilities\x12\x1a\n" +
 	"\bendpoint\x18\x05 \x01(\tR\bendpoint\"V\n" +
 	"\x1bScaffoldOrphanAssetResponse\x127\n" +
-	"\x05asset\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalAssetRecordR\x05asset\"\xbd\x01\n" +
+	"\x05asset\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalAssetRecordR\x05asset\"\xf3\x01\n" +
 	"\x1dImportLocalAssetBundleRequest\x12%\n" +
 	"\x0edirectory_path\x18\x01 \x01(\tR\rdirectoryPath\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x02 \x01(\tR\tmodelName\x12\"\n" +
 	"\fcapabilities\x18\x03 \x03(\tR\fcapabilities\x12\x16\n" +
 	"\x06engine\x18\x04 \x01(\tR\x06engine\x12\x1a\n" +
-	"\bendpoint\x18\x05 \x01(\tR\bendpoint\"j\n" +
+	"\bendpoint\x18\x05 \x01(\tR\bendpoint\x124\n" +
+	"\x16ordered_bundle_entries\x18\x06 \x03(\tR\x14orderedBundleEntries\"j\n" +
 	"\x1eImportLocalAssetBundleResponse\x12H\n" +
 	"\btransfer\x18\x01 \x01(\v2,.nimi.runtime.v1.LocalTransferSessionSummaryR\btransfer\"E\n" +
 	"\x1dRescanLocalAssetBundleRequest\x12$\n" +

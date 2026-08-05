@@ -2314,6 +2314,7 @@ class ImportLocalAssetBundleRequest:
     capabilities: tuple[str, ...] = field(default_factory=tuple)
     engine: str | None = None
     endpoint: str | None = None
+    ordered_bundle_entries: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ImportLocalAssetBundleResponse:
@@ -3206,6 +3207,7 @@ class LocalAssetRecord:
     display_name: str | None = None
     source_file_name: str | None = None
     import_instance_id: str | None = None
+    bundle_entries: tuple[LocalBundleEntryDigest, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LocalAssetSource:
@@ -3236,6 +3238,12 @@ class LocalAuditTimeRange:
     to: str | None = None
 
 @dataclass(frozen=True)
+class LocalBundleEntryDigest:
+    ordinal: int | None = None
+    relative_path: str | None = None
+    sha256: str | None = None
+
+@dataclass(frozen=True)
 class LocalCapabilityConfiguration:
     configuration_id: str | None = None
     capability_contract: str | None = None
@@ -3258,6 +3266,8 @@ class LocalCapabilityRequirement:
     policy: LocalCapabilityRequirementPolicy | None = None
     preferred_verified_content_id: str | None = None
     compatibility_constraints: Mapping[str, object] | None = None
+    occurrence_ordinal: int | None = None
+    display_label: str | None = None
 
 @dataclass(frozen=True)
 class LocalCapabilitySelection:

@@ -176,6 +176,16 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			grpcerr.ReasonOptions{Message: "local asset manifest hashes are invalid"},
 		)
 	}
+	manifestFiles := valueAsStringSlice(manifest["files"])
+	bundleEntries, bundleEntriesErr := localBundleEntriesFromManifest(manifest, hashes)
+	if bundleEntriesErr != nil {
+		return nil, grpcerr.WrapWithReasonCode(
+			codes.InvalidArgument,
+			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID,
+			bundleEntriesErr,
+			grpcerr.ReasonOptions{Message: "local asset bundle entry manifest is invalid"},
+		)
+	}
 	engine := defaultLocalEngine(manifestStringDefault(manifest, "engine"), capabilities)
 	preferredEngine := manifestStringDefault(manifest, "preferred_engine", "preferredEngine")
 	if preferredEngine == "" && !isRunnableKind(kind) {
@@ -356,6 +366,7 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			return nil, err
 		}
 		record = s.applyLocalAssetImportFacts(record, importFacts)
+		record = applyLocalAssetBundleManifest(s, record, manifestFiles, bundleEntries)
 		record, err = s.finalizeImportedCanonicalImageRecord(record, importCompatibilityDetail)
 		if err != nil {
 			return nil, err
@@ -391,6 +402,7 @@ func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		return nil, err
 	}
 	record = s.applyLocalAssetImportFacts(record, importFacts)
+	record = applyLocalAssetBundleManifest(s, record, manifestFiles, bundleEntries)
 	record, err = s.finalizeImportedCanonicalImageRecord(record, importCompatibilityDetail)
 	if err != nil {
 		return nil, err
