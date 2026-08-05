@@ -275,6 +275,7 @@ export function createNimiRuntimeLocalModelCenterClient(
         capabilities: textList(input.capabilities),
         engine: normalizeText(input.engine),
         endpoint: normalizeText(input.endpoint),
+        orderedBundleEntries: textList(input.orderedBundleEntries),
       }, callOptions(writeOptions));
       return projectRequiredLocal(
         response.transfer,

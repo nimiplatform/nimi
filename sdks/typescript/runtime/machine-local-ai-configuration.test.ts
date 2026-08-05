@@ -9,6 +9,7 @@ import {
   LocalCapabilityRequirementPolicy,
   LocalCapabilityRequirementResolution,
   LocalCapabilityRequirementRole,
+  type AIConfig,
   type LocalAssetExactBinding,
   type LocalAssetRecord,
   type LocalCapabilityConfiguration,
@@ -16,12 +17,18 @@ import {
 } from '../core-generated/runtime-typed-client.js';
 import { ReasonCode } from '../types/index.js';
 import {
+  NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
   NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE,
   NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION,
+  NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalAIConfigurationClient,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
+  createNimiMachineLocalStableDiffusionImageConfigurationInput,
+  deriveNimiMachineLocalAIConfigurationImpact,
   fromNimiRuntimeProtoStruct,
+  loadNimiMachineLocalAIConfigurationImpact,
+  projectNimiMachineLocalCapabilityConfiguration,
   toNimiRuntimeProtoStruct,
   type NimiMachineLocalAIConfigurationRpcClient,
 } from './index.js';
@@ -63,6 +70,8 @@ function rawConfiguration(input: {
         engine: 'llama',
         artifact_role: 'llm',
       }),
+      occurrenceOrdinal: 0,
+      displayLabel: 'Main model',
     }],
     exactBindings: input.bindings ?? [],
     supportedFeatures: [],
@@ -184,6 +193,8 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
 
   const aggregate = await client.get();
   assert.equal(aggregate.configurations[0]?.requirementResolution, 'unresolved');
+  assert.equal(aggregate.configurations[0]?.projectedRequirements[0]?.occurrenceOrdinal, 0);
+  assert.equal(aggregate.configurations[0]?.projectedRequirements[0]?.displayLabel, 'Main model');
   assert.deepEqual(aggregate.selections, [{
     capabilityContract: 'text.generate',
     configurationId: 'lcc_test',
@@ -268,6 +279,211 @@ test('Machine Local AI Configuration typed client maps every admitted RPC throug
   for (const call of calls.filter((item) => !['get', 'getConfiguration', 'listLocalAssets'].includes(item.method))) {
     assert.match(String(call.options?.metadata?.idempotencyKey), /^machine-local-ai-/u);
   }
+});
+
+test('stable-diffusion image configuration constructor emits only Driver portable fields in ordered form', () => {
+  const strictContentId = `sha256:${'c'.repeat(64)}`;
+  const loraContentId = `sha256:${'d'.repeat(64)}`;
+  const input = createNimiMachineLocalStableDiffusionImageConfigurationInput({
+    displayName: 'Local image studio',
+    modelFamily: 'ideogram4',
+    enableInputImage: true,
+    mainRequirementPolicy: 'strict',
+    mainVerifiedContentId: strictContentId,
+    textEncoderRequirementPolicy: 'substitutable',
+    vaeRequirementPolicy: 'substitutable',
+    uncondDiffusionRequirementPolicy: 'substitutable',
+    loras: [
+      {
+        displayLabel: 'Portrait detail',
+        requirementPolicy: 'substitutable',
+        weight: 0.75,
+      },
+      {
+        displayLabel: 'Line work',
+        requirementPolicy: 'strict',
+        verifiedContentId: loraContentId,
+        weight: -0.5,
+      },
+    ],
+    executionOptions: {
+      steps: 30,
+      cfgScale: 6.5,
+      width: 1024,
+      height: 768,
+      seed: -1,
+      sampler: 'euler_a',
+      scheduler: 'karras',
+      threads: 8,
+      diffusionFlashAttention: true,
+      offloadParamsToCPU: false,
+    },
+  });
+
+  assert.equal(input.capabilityContract, NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT);
+  assert.deepEqual(input.implementation, NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION);
+  assert.deepEqual(input.supportedFeatures, [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE]);
+  assert.deepEqual(input.portableConfig, {
+    modelFamily: 'ideogram4',
+    enableInputImage: true,
+    mainRequirementPolicy: 'strict',
+    mainVerifiedContentId: strictContentId,
+    textEncoderRequirementPolicy: 'substitutable',
+    vaeRequirementPolicy: 'substitutable',
+    uncondDiffusionRequirementPolicy: 'substitutable',
+    loras: [
+      {
+        displayLabel: 'Portrait detail',
+        requirementPolicy: 'substitutable',
+        weight: 0.75,
+      },
+      {
+        displayLabel: 'Line work',
+        requirementPolicy: 'strict',
+        verifiedContentId: loraContentId,
+        weight: -0.5,
+      },
+    ],
+    executionOptions: {
+      steps: 30,
+      cfgScale: 6.5,
+      width: 1024,
+      height: 768,
+      seed: -1,
+      sampler: 'euler_a',
+      scheduler: 'karras',
+      threads: 8,
+      diffusionFlashAttention: true,
+      offloadParamsToCPU: false,
+    },
+  });
+
+  assert.throws(
+    () => createNimiMachineLocalStableDiffusionImageConfigurationInput({
+      displayName: 'Invalid strict slot',
+      modelFamily: 'z-image',
+      mainRequirementPolicy: 'strict',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AI_INPUT_INVALID);
+      return true;
+    },
+  );
+  assert.throws(
+    () => createNimiMachineLocalStableDiffusionImageConfigurationInput({
+      displayName: 'Invalid dimensions',
+      modelFamily: 'z-image',
+      executionOptions: { width: 1025 },
+    }),
+    /multiple of eight/u,
+  );
+  assert.throws(
+    () => createNimiMachineLocalStableDiffusionImageConfigurationInput({
+      displayName: 'Injected portable key',
+      modelFamily: 'z-image',
+      provider: 'not-a-driver-field',
+    } as never),
+    /unsupported fields/u,
+  );
+});
+
+function impactAIConfig(input: {
+  readonly owner: 'app' | 'shared';
+  readonly ownerId?: string;
+  readonly route: 'local' | 'cloud';
+  readonly requiredFeatures?: string[];
+}): AIConfig {
+  return {
+    owner: input.owner === 'app'
+      ? { owner: { oneofKind: 'app', app: { appId: input.ownerId ?? 'app.test' } } }
+      : { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+    capabilities: [{
+      capabilityContract: NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+      requiredFeatures: input.requiredFeatures ?? [],
+      defaults: toNimiRuntimeProtoStruct({ steps: 24 }),
+      route: input.route === 'local'
+        ? { oneofKind: 'local', local: {} }
+        : {
+          oneofKind: 'cloud',
+          cloud: {
+            implementation: { implementationId: 'cloud.image', driverId: 'cloud.driver', driverDialect: 'v1' },
+            providerModelTarget: toNimiRuntimeProtoStruct({ provider: 'cloud', model: 'image' }),
+            connectorGrantId: 'grant-image',
+          },
+        },
+    }],
+  };
+}
+
+test('Machine Local AI Configuration impact is derived ephemerally from Local feature-subset owners', async () => {
+  const projected = projectNimiMachineLocalCapabilityConfiguration({
+    ...rawConfiguration(),
+    configurationId: 'lcc_image',
+    capabilityContract: NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION },
+    supportedFeatures: [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE],
+  });
+  const machine = {
+    configurations: [projected],
+    selections: [{
+      capabilityContract: NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+      configurationId: 'lcc_image',
+    }],
+  };
+  const matchingApp = impactAIConfig({
+    owner: 'app',
+    ownerId: 'app.image-editor',
+    route: 'local',
+    requiredFeatures: [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE],
+  });
+  const matchingSharedAgent = impactAIConfig({ owner: 'shared', route: 'local' });
+  const cloudApp = impactAIConfig({ owner: 'app', ownerId: 'app.cloud', route: 'cloud' });
+  const featureMismatch = impactAIConfig({
+    owner: 'app',
+    ownerId: 'app.future-feature',
+    route: 'local',
+    requiredFeatures: ['future.feature'],
+  });
+
+  const impact = deriveNimiMachineLocalAIConfigurationImpact({
+    operation: 'delete',
+    capabilityContract: NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+    configurationId: 'lcc_image',
+    machine,
+    aiConfigs: [matchingSharedAgent, cloudApp, matchingApp, featureMismatch],
+  });
+  assert.deepEqual(impact.affectedOwners, [
+    {
+      kind: 'app',
+      ownerId: 'app.image-editor',
+      requiredFeatures: [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE],
+    },
+    { kind: 'shared-local-agent', ownerId: 'shared-local-agent', requiredFeatures: [] },
+  ]);
+  assert.equal('ownerIndex' in impact, false);
+
+  let machineReads = 0;
+  const loaded = await loadNimiMachineLocalAIConfigurationImpact({
+    operation: 'select',
+    capabilityContract: NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+    configurationId: 'lcc_image',
+    machine: {
+      async get() {
+        machineReads += 1;
+        return machine;
+      },
+    },
+    aiConfigs: [
+      { async get() { return matchingApp; } },
+      { async get() { throw { reasonCode: 'AI_CONFIG_NOT_FOUND' }; } },
+      { async get() { return matchingSharedAgent; } },
+    ],
+  });
+  assert.equal(machineReads, 1);
+  assert.deepEqual(loaded.affectedOwners.map((owner) => owner.kind), [
+    'app',
+    'shared-local-agent',
+  ]);
 });
 
 test('Machine Local AI Configuration client fails closed on injected input before transport', async () => {

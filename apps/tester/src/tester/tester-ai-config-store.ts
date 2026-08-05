@@ -2,11 +2,12 @@ import type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
+import { toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
 
 import { appId } from '../shell/auth/app-identity.js';
 
 type TesterAIConfigClient = {
-  get(): Promise<NimiCapabilityAIConfig>;
+  get(): Promise<NimiCapabilityAIConfig | null>;
   overwrite(
     capabilities: readonly NimiCapabilityAIConfigIntent[],
   ): Promise<NimiCapabilityAIConfig>;
@@ -18,7 +19,8 @@ export async function loadTesterAIConfig(
   client: Pick<TesterAIConfigClient, 'get'>,
 ): Promise<TesterAIConfigProjection> {
   try {
-    return requireTesterAIConfigOwner(await client.get());
+    const config = await client.get();
+    return config ? requireTesterAIConfigOwner(config) : null;
   } catch (error) {
     if (isAIConfigNotFound(error)) return null;
     throw error;
@@ -61,6 +63,51 @@ export function createTesterLocalCapabilityIntent(
   };
 }
 
+export type TesterCloudCapabilityIntentInput = {
+  readonly implementationId: string;
+  readonly driverId: string;
+  readonly driverDialect: string;
+  readonly provider: string;
+  readonly providerModelId: string;
+  readonly remoteModelCatalogId: string;
+  readonly connectorGrantId: string;
+};
+
+export function createTesterCloudCapabilityIntent(
+  capabilityContract: string,
+  current: NimiCapabilityAIConfigIntent | null | undefined,
+  input: TesterCloudCapabilityIntentInput,
+): NimiCapabilityAIConfigIntent {
+  const contract = requireExactText(capabilityContract, 'Tester capability contract');
+  const implementationId = requireExactText(input.implementationId, 'Cloud implementation id');
+  const driverId = requireExactText(input.driverId, 'Cloud driver id');
+  const driverDialect = requireExactText(input.driverDialect, 'Cloud driver dialect');
+  const provider = requireExactText(input.provider, 'Cloud provider');
+  const providerModelId = requireExactText(input.providerModelId, 'Cloud provider model id');
+  const remoteModelCatalogId = requireExactText(
+    input.remoteModelCatalogId,
+    'Cloud remote model catalog id',
+  );
+  const connectorGrantId = requireExactText(input.connectorGrantId, 'Cloud connector grant id');
+  return {
+    capabilityContract: contract,
+    requiredFeatures: [...(current?.requiredFeatures ?? [])],
+    ...(current?.defaults ? { defaults: current.defaults } : {}),
+    route: {
+      oneofKind: 'cloud',
+      cloud: {
+        implementation: { implementationId, driverId, driverDialect },
+        providerModelTarget: toNimiRuntimeProtoStruct({
+          provider,
+          providerModelId,
+          remoteModelCatalogId,
+        }),
+        connectorGrantId,
+      },
+    },
+  };
+}
+
 export function findTesterCapabilityIntent(
   config: TesterAIConfigProjection,
   capabilityContract: string,
@@ -78,6 +125,13 @@ export function requireTesterAIConfigOwner(
     throw new Error('Tester AIConfig owner must be the exact nimi.tester App.');
   }
   return config;
+}
+
+function requireExactText(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !value || value.trim() !== value) {
+    throw new Error(`${field} must be exact non-empty text.`);
+  }
+  return value;
 }
 
 function replaceCapabilityIntent(

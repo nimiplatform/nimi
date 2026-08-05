@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { NimiCapabilityAIConfig } from '@nimiplatform/sdk/ai';
-import { Button, StatusBadge } from '@nimiplatform/kit/ui';
+import { fromNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
+import { Button, StatusBadge, TextField } from '@nimiplatform/kit/ui';
 
 import { useTesterRendererHost } from '../../renderer/context.js';
 import type { TesterRuntimeInspection } from '../tester-runtime.js';
 import {
+  createTesterCloudCapabilityIntent,
   createTesterLocalCapabilityIntent,
   findTesterCapabilityIntent,
+  loadTesterAIConfig,
   overwriteTesterCapabilityIntent,
   removeTesterCapabilityIntent,
+  type TesterCloudCapabilityIntentInput,
 } from '../tester-ai-config-store.js';
 
 type TesterAiConfigSettingsPanelProps = {
@@ -29,12 +33,21 @@ export function TesterAiConfigSettingsPanel({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cloudDraft, setCloudDraft] = useState<TesterCloudCapabilityIntentInput>({
+    implementationId: '',
+    driverId: '',
+    driverDialect: '',
+    provider: '',
+    providerModelId: '',
+    remoteModelCatalogId: '',
+    connectorGrantId: '',
+  });
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setConfig(await rendererHost.sdk.aiConfig.get());
+      setConfig(await loadTesterAIConfig(rendererHost.sdk.aiConfig));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig load failed.'));
     } finally {
@@ -48,6 +61,22 @@ export function TesterAiConfigSettingsPanel({
 
   const intent = findTesterCapabilityIntent(config, capabilityId);
   const intentKind = intent?.route.oneofKind ?? null;
+  const cloudAvailable = capabilityId === 'image.generate';
+
+  useEffect(() => {
+    if (intent?.route.oneofKind !== 'cloud' || !('cloud' in intent.route)) return;
+    const cloud = intent.route.cloud;
+    const target = fromNimiRuntimeProtoStruct(cloud.providerModelTarget);
+    setCloudDraft({
+      implementationId: cloud.implementation?.implementationId ?? '',
+      driverId: cloud.implementation?.driverId ?? '',
+      driverDialect: cloud.implementation?.driverDialect ?? '',
+      provider: stringField(target.provider),
+      providerModelId: stringField(target.providerModelId) || stringField(target.model),
+      remoteModelCatalogId: stringField(target.remoteModelCatalogId),
+      connectorGrantId: cloud.connectorGrantId,
+    });
+  }, [intent]);
   const configStatus = loading ? 'Loading' : error ? 'Unavailable' : intentKind === 'local'
     ? 'Local selected'
     : intentKind === 'cloud' ? 'Cloud selected' : 'Not configured';
@@ -60,6 +89,24 @@ export function TesterAiConfigSettingsPanel({
         rendererHost.sdk.aiConfig,
         config,
         createTesterLocalCapabilityIntent(capabilityId, intent),
+      );
+      setConfig(next);
+      onConfigChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause || 'App AIConfig update failed.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function selectCloud() {
+    setSaving(true);
+    setError(null);
+    try {
+      const next = await overwriteTesterCapabilityIntent(
+        rendererHost.sdk.aiConfig,
+        config,
+        createTesterCloudCapabilityIntent(capabilityId, intent, cloudDraft),
       );
       setConfig(next);
       onConfigChanged();
@@ -143,6 +190,32 @@ export function TesterAiConfigSettingsPanel({
                 </Button>
               ) : null}
             </div>
+            {cloudAvailable ? (
+              <fieldset className="mt-2 grid gap-3 border-t border-[var(--nimi-border-subtle)] pt-4" data-testid="tester-image-cloud-intent">
+                <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">Cloud intent</legend>
+                <p className="text-sm text-[var(--nimi-text-muted)]">
+                  Enter the exact Runtime catalog and ConnectorGrant facts. Tester does not choose or recommend a provider or model.
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {TESTER_CLOUD_INTENT_FIELDS.map(([field, label]) => (
+                    <label key={field} className="grid gap-1 text-xs font-medium text-[var(--nimi-text-muted)]">
+                      <span>{label}</span>
+                      <TextField
+                        value={cloudDraft[field]}
+                        disabled={saving}
+                        onChange={(event) => setCloudDraft((current) => ({
+                          ...current,
+                          [field]: event.currentTarget.value,
+                        }))}
+                      />
+                    </label>
+                  ))}
+                </div>
+                <Button type="button" disabled={saving} onClick={() => void selectCloud()}>
+                  {intentKind === 'cloud' ? 'Save Cloud intent' : 'Select Cloud'}
+                </Button>
+              </fieldset>
+            ) : null}
           </div>
         )}
 
@@ -152,4 +225,18 @@ export function TesterAiConfigSettingsPanel({
       </div>
     </section>
   );
+}
+
+const TESTER_CLOUD_INTENT_FIELDS = [
+  ['implementationId', 'Implementation ID'],
+  ['driverId', 'Driver ID'],
+  ['driverDialect', 'Driver dialect'],
+  ['provider', 'Provider'],
+  ['providerModelId', 'Provider model ID'],
+  ['remoteModelCatalogId', 'Remote model catalog ID'],
+  ['connectorGrantId', 'Connector grant ID'],
+] as const satisfies readonly (readonly [keyof TesterCloudCapabilityIntentInput, string])[];
+
+function stringField(value: unknown): string {
+  return typeof value === 'string' ? value : '';
 }

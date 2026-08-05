@@ -4,6 +4,7 @@ import {
   LocalCapabilityRequirementPolicy,
   LocalCapabilityRequirementResolution,
   LocalCapabilityRequirementRole,
+  type AIConfig,
   type CapabilityImplementationIdentity,
   type LocalAssetExactBinding,
   type LocalCapabilityConfiguration,
@@ -33,6 +34,7 @@ import {
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs.js';
 
 export const NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT = 'text.generate';
+export const NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT = 'image.generate';
 export const NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE = 'input.image';
 
 export const NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION = Object.freeze({
@@ -40,6 +42,64 @@ export const NIMI_MACHINE_LOCAL_LLAMA_CPP_TEXT_IMPLEMENTATION = Object.freeze({
   driverId: 'nimi.runtime.driver.llama-cpp',
   driverDialect: 'llama.cpp/text-generate/v1',
 }) satisfies Readonly<CapabilityImplementationIdentity>;
+
+export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION = Object.freeze({
+  implementationId: 'local.image.generate.stable-diffusion-cpp',
+  driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
+  driverDialect: 'stable-diffusion.cpp/image-generate/v1',
+}) satisfies Readonly<CapabilityImplementationIdentity>;
+
+export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES = Object.freeze([
+  'z-image',
+  'z-image-turbo',
+  'ideogram4',
+] as const);
+
+export type NimiMachineLocalStableDiffusionModelFamily =
+  typeof NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES[number];
+
+export type NimiMachineLocalStableDiffusionSlotId =
+  | 'main'
+  | 'textEncoder'
+  | 'vae'
+  | 'uncondDiffusion';
+
+export interface NimiMachineLocalStableDiffusionSlotDescriptor {
+  readonly slotId: NimiMachineLocalStableDiffusionSlotId;
+  readonly role: NimiMachineLocalCapabilityRequirementRole;
+  readonly occurrenceOrdinal: number;
+  readonly displayLabel: string;
+  readonly requiredModelFamilies?: readonly NimiMachineLocalStableDiffusionModelFamily[];
+}
+
+/** Driver-projected singleton slot labels; Desktop renders these without interpreting them. */
+export const NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_SLOT_DESCRIPTORS = Object.freeze([
+  Object.freeze({
+    slotId: 'main',
+    role: 'main',
+    occurrenceOrdinal: 0,
+    displayLabel: 'Diffusion model',
+  }),
+  Object.freeze({
+    slotId: 'textEncoder',
+    role: 'companion',
+    occurrenceOrdinal: 0,
+    displayLabel: 'Text encoder',
+  }),
+  Object.freeze({
+    slotId: 'vae',
+    role: 'companion',
+    occurrenceOrdinal: 0,
+    displayLabel: 'VAE',
+  }),
+  Object.freeze({
+    slotId: 'uncondDiffusion',
+    role: 'companion',
+    occurrenceOrdinal: 0,
+    displayLabel: 'Unconditional diffusion model',
+    requiredModelFamilies: Object.freeze(['ideogram4'] as const),
+  }),
+] as const satisfies readonly NimiMachineLocalStableDiffusionSlotDescriptor[]);
 
 export type NimiMachineLocalCapabilityInterpretability =
   | 'interpretable'
@@ -78,6 +138,9 @@ export interface NimiMachineLocalCapabilityRequirement {
   readonly policy: NimiMachineLocalCapabilityRequirementPolicy;
   readonly preferredVerifiedContentId?: string;
   readonly compatibilityConstraints?: Readonly<JsonObject>;
+  /** Zero is the Driver-declared unordered/singleton occurrence fact. */
+  readonly occurrenceOrdinal: number;
+  readonly displayLabel: string;
 }
 
 export interface NimiMachineLocalAssetExactBinding {
@@ -141,6 +204,61 @@ export interface NimiMachineLocalAIConfigurationUnbindInput {
   readonly configurationId: string;
   readonly requirementId: string;
   readonly expectedCurrentBinding: NimiMachineLocalAssetExactBinding;
+}
+
+export interface NimiMachineLocalStableDiffusionLoRAInput {
+  readonly displayLabel?: string;
+  readonly requirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly verifiedContentId?: string;
+  readonly weight?: number;
+}
+
+export interface NimiMachineLocalStableDiffusionExecutionOptionsInput {
+  readonly steps?: number;
+  readonly cfgScale?: number;
+  readonly width?: number;
+  readonly height?: number;
+  readonly seed?: number;
+  readonly sampler?: string;
+  readonly scheduler?: string;
+  readonly threads?: number;
+  readonly diffusionFlashAttention?: boolean;
+  readonly offloadParamsToCPU?: boolean;
+}
+
+export interface NimiMachineLocalStableDiffusionImageConfigurationInput {
+  readonly displayName: string;
+  readonly modelFamily: NimiMachineLocalStableDiffusionModelFamily;
+  readonly enableInputImage?: boolean;
+  readonly mainRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly mainVerifiedContentId?: string;
+  readonly textEncoderRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly textEncoderVerifiedContentId?: string;
+  readonly vaeRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly vaeVerifiedContentId?: string;
+  readonly uncondDiffusionRequirementPolicy?: NimiMachineLocalCapabilityRequirementPolicy;
+  readonly uncondDiffusionVerifiedContentId?: string;
+  readonly loras?: readonly NimiMachineLocalStableDiffusionLoRAInput[];
+  readonly executionOptions?: NimiMachineLocalStableDiffusionExecutionOptionsInput;
+}
+
+export type NimiMachineLocalAIConfigurationImpactOperation = 'select' | 'update' | 'delete';
+
+export interface NimiMachineLocalAIConfigurationImpactOwner {
+  readonly kind: 'app' | 'shared-local-agent';
+  readonly ownerId: string;
+  readonly requiredFeatures: readonly string[];
+}
+
+export interface NimiMachineLocalAIConfigurationImpact {
+  readonly operation: NimiMachineLocalAIConfigurationImpactOperation;
+  readonly capabilityContract: string;
+  readonly configurationId: string;
+  readonly affectedOwners: readonly NimiMachineLocalAIConfigurationImpactOwner[];
+}
+
+export interface NimiMachineLocalAIConfigurationImpactAIConfigReader {
+  get(options?: RuntimeTypedCallOptions): Promise<AIConfig>;
 }
 
 export type NimiMachineLocalAIConfigurationRpcClient = Pick<
@@ -226,6 +344,184 @@ export function createNimiMachineLocalLlamaCppTextConfigurationInput(input: {
       : [],
     displayName,
   };
+}
+
+/**
+ * Builds the stable-diffusion.cpp image.generate portable configuration.
+ * Every emitted portable key is accepted by parseStableDiffusionPortableConfig;
+ * unknown constructor fields and out-of-range Driver values fail before transport.
+ */
+export function createNimiMachineLocalStableDiffusionImageConfigurationInput(
+  input: NimiMachineLocalStableDiffusionImageConfigurationInput,
+): NimiMachineLocalAIConfigurationAddInput {
+  assertExactRecord(input, new Set([
+    'displayName',
+    'modelFamily',
+    'enableInputImage',
+    'mainRequirementPolicy',
+    'mainVerifiedContentId',
+    'textEncoderRequirementPolicy',
+    'textEncoderVerifiedContentId',
+    'vaeRequirementPolicy',
+    'vaeVerifiedContentId',
+    'uncondDiffusionRequirementPolicy',
+    'uncondDiffusionVerifiedContentId',
+    'loras',
+    'executionOptions',
+  ]), 'stable-diffusion configuration input');
+  const displayName = requireInputText(input.displayName, 'displayName');
+  const modelFamily = requireStableDiffusionModelFamily(input.modelFamily);
+  if (input.enableInputImage !== undefined && typeof input.enableInputImage !== 'boolean') {
+    return inputError('enableInputImage must be a boolean when provided');
+  }
+
+  const portableConfig: JsonObject = {
+    modelFamily,
+    enableInputImage: input.enableInputImage === true,
+  };
+  appendStableDiffusionRequirementIntent(
+    portableConfig,
+    'mainRequirementPolicy',
+    'mainVerifiedContentId',
+    input.mainRequirementPolicy,
+    input.mainVerifiedContentId,
+  );
+  appendStableDiffusionRequirementIntent(
+    portableConfig,
+    'textEncoderRequirementPolicy',
+    'textEncoderVerifiedContentId',
+    input.textEncoderRequirementPolicy,
+    input.textEncoderVerifiedContentId,
+  );
+  appendStableDiffusionRequirementIntent(
+    portableConfig,
+    'vaeRequirementPolicy',
+    'vaeVerifiedContentId',
+    input.vaeRequirementPolicy,
+    input.vaeVerifiedContentId,
+  );
+  if (modelFamily === 'ideogram4') {
+    appendStableDiffusionRequirementIntent(
+      portableConfig,
+      'uncondDiffusionRequirementPolicy',
+      'uncondDiffusionVerifiedContentId',
+      input.uncondDiffusionRequirementPolicy,
+      input.uncondDiffusionVerifiedContentId,
+    );
+  } else if (
+    input.uncondDiffusionRequirementPolicy !== undefined
+    || input.uncondDiffusionVerifiedContentId !== undefined
+  ) {
+    return inputError('uncondDiffusion fields are supported only for the ideogram4 model family');
+  }
+
+  if (input.loras !== undefined) {
+    portableConfig.loras = buildStableDiffusionLoRAs(input.loras);
+  }
+  if (input.executionOptions !== undefined) {
+    portableConfig.executionOptions = buildStableDiffusionExecutionOptions(input.executionOptions);
+  }
+
+  return {
+    capabilityContract: NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+    implementation: { ...NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_IMAGE_IMPLEMENTATION },
+    portableConfig,
+    supportedFeatures: input.enableInputImage === true
+      ? [NIMI_MACHINE_LOCAL_INPUT_IMAGE_FEATURE]
+      : [],
+    displayName,
+  };
+}
+
+export function deriveNimiMachineLocalAIConfigurationImpact(input: {
+  readonly operation: NimiMachineLocalAIConfigurationImpactOperation;
+  readonly capabilityContract: string;
+  readonly configurationId: string;
+  readonly machine: NimiMachineLocalAIConfiguration;
+  readonly aiConfigs: readonly AIConfig[];
+}): NimiMachineLocalAIConfigurationImpact {
+  assertExactRecord(input, new Set([
+    'operation',
+    'capabilityContract',
+    'configurationId',
+    'machine',
+    'aiConfigs',
+  ]), 'Machine Local AI Configuration impact input');
+  const operation = requireImpactOperation(input.operation);
+  const capabilityContract = requireInputText(input.capabilityContract, 'capabilityContract');
+  const configurationId = requireInputText(input.configurationId, 'configurationId');
+  const configuration = input.machine.configurations.find(
+    (item) => item.configurationId === configurationId,
+  );
+  if (!configuration || configuration.capabilityContract !== capabilityContract) {
+    return responseError('Machine Local AI Configuration impact target is missing or mismatched');
+  }
+  if (!Array.isArray(input.aiConfigs)) {
+    return inputError('Machine Local AI Configuration impact aiConfigs must be an array');
+  }
+  const affectedOwners = input.aiConfigs
+    .map((config) => projectMatchingLocalAIConfigOwner(
+      config,
+      capabilityContract,
+      configuration.supportedFeatures,
+    ))
+    .filter((owner): owner is NimiMachineLocalAIConfigurationImpactOwner => owner !== null);
+  const uniqueOwners = new Map<string, NimiMachineLocalAIConfigurationImpactOwner>();
+  for (const owner of affectedOwners) {
+    const key = `${owner.kind}\u0000${owner.ownerId}`;
+    if (uniqueOwners.has(key)) {
+      return responseError('Machine Local AI Configuration impact contains a duplicate AIConfig owner');
+    }
+    uniqueOwners.set(key, owner);
+  }
+  return Object.freeze({
+    operation,
+    capabilityContract,
+    configurationId,
+    affectedOwners: Object.freeze([...uniqueOwners.values()].sort(compareImpactOwners)),
+  });
+}
+
+/**
+ * Reads current machine and canonical owner AIConfigs for one ephemeral impact
+ * derivation. AI_CONFIG_NOT_FOUND is canonical absence; no result is persisted.
+ */
+export async function loadNimiMachineLocalAIConfigurationImpact(input: {
+  readonly operation: NimiMachineLocalAIConfigurationImpactOperation;
+  readonly capabilityContract: string;
+  readonly configurationId: string;
+  readonly machine: Pick<NimiMachineLocalAIConfigurationClient, 'get'>;
+  readonly aiConfigs: readonly NimiMachineLocalAIConfigurationImpactAIConfigReader[];
+  readonly callOptions?: RuntimeTypedCallOptions;
+}): Promise<NimiMachineLocalAIConfigurationImpact> {
+  assertExactRecord(input, new Set([
+    'operation',
+    'capabilityContract',
+    'configurationId',
+    'machine',
+    'aiConfigs',
+    'callOptions',
+  ]), 'Machine Local AI Configuration impact readers');
+  if (!input.machine || typeof input.machine.get !== 'function' || !Array.isArray(input.aiConfigs)) {
+    return inputError('Machine Local AI Configuration impact requires canonical readers');
+  }
+  if (input.aiConfigs.some((reader) => !reader || typeof reader.get !== 'function')) {
+    return inputError('Machine Local AI Configuration impact contains an invalid AIConfig reader');
+  }
+  const [machine, configs] = await Promise.all([
+    input.machine.get(input.callOptions),
+    Promise.all(input.aiConfigs.map((reader) => readOptionalImpactAIConfig(
+      reader,
+      input.callOptions,
+    ))),
+  ]);
+  return deriveNimiMachineLocalAIConfigurationImpact({
+    operation: input.operation,
+    capabilityContract: input.capabilityContract,
+    configurationId: input.configurationId,
+    machine,
+    aiConfigs: configs.filter((config): config is AIConfig => config !== null),
+  });
 }
 
 export function createNimiMachineLocalAIConfigurationClient(input: {
@@ -490,6 +786,294 @@ export function projectNimiMachineLocalCapabilityConfiguration(
   };
 }
 
+function appendStableDiffusionRequirementIntent(
+  output: JsonObject,
+  policyKey: string,
+  contentKey: string,
+  policy: NimiMachineLocalCapabilityRequirementPolicy | undefined,
+  verifiedContentId: string | undefined,
+): void {
+  if (policy !== undefined) {
+    output[policyKey] = requireStableDiffusionRequirementPolicy(policy, policyKey);
+  }
+  if (verifiedContentId !== undefined) {
+    output[contentKey] = requireCanonicalVerifiedContentId(
+      verifiedContentId,
+      contentKey,
+      inputError,
+    );
+  }
+  if (policy === 'strict' && verifiedContentId === undefined) {
+    inputError(`${contentKey} is required when ${policyKey} is strict`);
+  }
+}
+
+function buildStableDiffusionLoRAs(
+  value: readonly NimiMachineLocalStableDiffusionLoRAInput[],
+): JsonObject[] {
+  if (!Array.isArray(value) || value.length > 32) {
+    return inputError('loras must be an array with at most 32 entries');
+  }
+  return value.map((item, index) => {
+    assertExactRecord(
+      item,
+      new Set(['displayLabel', 'requirementPolicy', 'verifiedContentId', 'weight']),
+      `loras[${index}]`,
+    );
+    const result: JsonObject = {};
+    if (item.displayLabel !== undefined) {
+      result.displayLabel = requireInputText(item.displayLabel, `loras[${index}].displayLabel`);
+    }
+    if (item.requirementPolicy !== undefined) {
+      result.requirementPolicy = requireStableDiffusionRequirementPolicy(
+        item.requirementPolicy,
+        `loras[${index}].requirementPolicy`,
+      );
+    }
+    if (item.verifiedContentId !== undefined) {
+      result.verifiedContentId = requireCanonicalVerifiedContentId(
+        item.verifiedContentId,
+        `loras[${index}].verifiedContentId`,
+        inputError,
+      );
+    }
+    if (item.requirementPolicy === 'strict' && item.verifiedContentId === undefined) {
+      inputError(`loras[${index}].verifiedContentId is required for strict policy`);
+    }
+    if (item.weight !== undefined) {
+      result.weight = requireFiniteNumberInRange(
+        item.weight,
+        -4,
+        4,
+        `loras[${index}].weight`,
+      );
+    }
+    return result;
+  });
+}
+
+function buildStableDiffusionExecutionOptions(
+  value: NimiMachineLocalStableDiffusionExecutionOptionsInput,
+): JsonObject {
+  assertExactRecord(value, new Set([
+    'steps',
+    'cfgScale',
+    'width',
+    'height',
+    'seed',
+    'sampler',
+    'scheduler',
+    'threads',
+    'diffusionFlashAttention',
+    'offloadParamsToCPU',
+  ]), 'executionOptions');
+  const output: JsonObject = {};
+  if (value.steps !== undefined) {
+    output.steps = requireIntegerInRange(value.steps, 1, 150, 'executionOptions.steps');
+  }
+  if (value.cfgScale !== undefined) {
+    output.cfgScale = requireFiniteNumberInRange(
+      value.cfgScale,
+      0,
+      30,
+      'executionOptions.cfgScale',
+    );
+  }
+  for (const [key, fieldValue] of [
+    ['width', value.width],
+    ['height', value.height],
+  ] as const) {
+    if (fieldValue === undefined) continue;
+    const dimension = requireIntegerInRange(
+      fieldValue,
+      64,
+      4096,
+      `executionOptions.${key}`,
+    );
+    if (dimension % 8 !== 0) {
+      inputError(`executionOptions.${key} must be a multiple of eight`);
+    }
+    output[key] = dimension;
+  }
+  if (value.seed !== undefined) {
+    output.seed = requireIntegerInRange(
+      value.seed,
+      Number.MIN_SAFE_INTEGER,
+      Number.MAX_SAFE_INTEGER,
+      'executionOptions.seed',
+    );
+  }
+  for (const [key, fieldValue] of [
+    ['sampler', value.sampler],
+    ['scheduler', value.scheduler],
+  ] as const) {
+    if (fieldValue === undefined) continue;
+    const token = requireInputText(fieldValue, `executionOptions.${key}`);
+    if (token.length > 64 || !/^[A-Za-z0-9+_.-]+$/u.test(token)) {
+      inputError(`executionOptions.${key} must be a Driver option token`);
+    }
+    output[key] = token;
+  }
+  if (value.threads !== undefined) {
+    output.threads = requireIntegerInRange(
+      value.threads,
+      1,
+      1024,
+      'executionOptions.threads',
+    );
+  }
+  for (const [key, fieldValue] of [
+    ['diffusionFlashAttention', value.diffusionFlashAttention],
+    ['offloadParamsToCPU', value.offloadParamsToCPU],
+  ] as const) {
+    if (fieldValue === undefined) continue;
+    if (typeof fieldValue !== 'boolean') {
+      inputError(`executionOptions.${key} must be a boolean`);
+    }
+    output[key] = fieldValue;
+  }
+  return output;
+}
+
+function requireStableDiffusionModelFamily(
+  value: unknown,
+): NimiMachineLocalStableDiffusionModelFamily {
+  if (!NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES.includes(
+    value as NimiMachineLocalStableDiffusionModelFamily,
+  )) {
+    return inputError('modelFamily is not supported by the stable-diffusion Driver');
+  }
+  return value as NimiMachineLocalStableDiffusionModelFamily;
+}
+
+function requireStableDiffusionRequirementPolicy(
+  value: unknown,
+  field: string,
+): NimiMachineLocalCapabilityRequirementPolicy {
+  if (value !== 'strict' && value !== 'substitutable') {
+    return inputError(`${field} must be strict or substitutable`);
+  }
+  return value;
+}
+
+function requireFiniteNumberInRange(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+  field: string,
+): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
+    return inputError(`${field} must be a finite number from ${minimum} through ${maximum}`);
+  }
+  return value;
+}
+
+function requireIntegerInRange(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+  field: string,
+): number {
+  const number = requireFiniteNumberInRange(value, minimum, maximum, field);
+  if (!Number.isInteger(number)) {
+    return inputError(`${field} must be an integer`);
+  }
+  return number;
+}
+
+function requireImpactOperation(
+  value: unknown,
+): NimiMachineLocalAIConfigurationImpactOperation {
+  if (value !== 'select' && value !== 'update' && value !== 'delete') {
+    return inputError('impact operation must be select, update, or delete');
+  }
+  return value;
+}
+
+async function readOptionalImpactAIConfig(
+  reader: NimiMachineLocalAIConfigurationImpactAIConfigReader,
+  options?: RuntimeTypedCallOptions,
+): Promise<AIConfig | null> {
+  try {
+    return await reader.get(options);
+  } catch (error) {
+    if (isAIConfigNotFound(error)) return null;
+    throw error;
+  }
+}
+
+function isAIConfigNotFound(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const value = error as { readonly reasonCode?: unknown; readonly code?: unknown };
+  const reason = typeof value.reasonCode === 'string'
+    ? value.reasonCode
+    : typeof value.code === 'string'
+      ? value.code
+      : '';
+  return reason.trim().toUpperCase().replaceAll('-', '_') === 'AI_CONFIG_NOT_FOUND';
+}
+
+function projectMatchingLocalAIConfigOwner(
+  config: AIConfig,
+  capabilityContract: string,
+  supportedFeatures: readonly string[],
+): NimiMachineLocalAIConfigurationImpactOwner | null {
+  if (!config || !Array.isArray(config.capabilities)) {
+    return responseError('Machine Local AI Configuration impact received an invalid AIConfig');
+  }
+  const owner = projectImpactOwnerIdentity(config);
+  const intents = config.capabilities.filter(
+    (intent) => intent?.capabilityContract === capabilityContract,
+  );
+  if (intents.length > 1) {
+    return responseError('Machine Local AI Configuration impact received duplicate capability intent');
+  }
+  const intent = intents[0];
+  if (!intent) return null;
+  if (!Array.isArray(intent.requiredFeatures)) {
+    return responseError('Machine Local AI Configuration impact received invalid required features');
+  }
+  const requiredFeatures = intent.requiredFeatures.map((feature) => (
+    requireResponseText(feature, 'AIConfig requiredFeature')
+  ));
+  assertUniqueResponseValues(requiredFeatures, 'AIConfig required features');
+  // Defaults remain opaque owner intent. Impact matching reads no model,
+  // implementation, asset, binding, health, or readiness facts from them.
+  void intent.defaults;
+  if (intent.route?.oneofKind !== 'local') return null;
+  const supported = new Set(supportedFeatures);
+  if (requiredFeatures.some((feature) => !supported.has(feature))) return null;
+  return Object.freeze({
+    ...owner,
+    requiredFeatures: Object.freeze([...requiredFeatures]),
+  });
+}
+
+function projectImpactOwnerIdentity(
+  config: AIConfig,
+): Pick<NimiMachineLocalAIConfigurationImpactOwner, 'kind' | 'ownerId'> {
+  const owner = config.owner?.owner;
+  if (owner?.oneofKind === 'app') {
+    return {
+      kind: 'app',
+      ownerId: requireResponseText(owner.app.appId, 'AIConfig app owner'),
+    };
+  }
+  if (owner?.oneofKind === 'runtimeLocalAgentSubsystem') {
+    return { kind: 'shared-local-agent', ownerId: 'shared-local-agent' };
+  }
+  return responseError('Machine Local AI Configuration impact received an invalid AIConfig owner');
+}
+
+function compareImpactOwners(
+  left: NimiMachineLocalAIConfigurationImpactOwner,
+  right: NimiMachineLocalAIConfigurationImpactOwner,
+): number {
+  const leftKey = `${left.kind}\u0000${left.ownerId}`;
+  const rightKey = `${right.kind}\u0000${right.ownerId}`;
+  return leftKey.localeCompare(rightKey);
+}
+
 function buildAddRequest(value: NimiMachineLocalAIConfigurationAddInput) {
   assertExactRecord(
     value,
@@ -638,6 +1222,11 @@ function projectRequirement(
     ...(value.compatibilityConstraints
       ? { compatibilityConstraints: fromNimiRuntimeProtoStruct(value.compatibilityConstraints) }
       : {}),
+    occurrenceOrdinal: requireResponseOrdinal(
+      value.occurrenceOrdinal,
+      'occurrenceOrdinal',
+    ),
+    displayLabel: requireResponseText(value.displayLabel, 'displayLabel'),
   };
 }
 
@@ -886,6 +1475,18 @@ function requireInputText(value: unknown, field: string): string {
 function requireResponseText(value: unknown, field: string, allowEmpty = false): string {
   if (typeof value !== 'string' || value.trim() !== value || (!allowEmpty && !value)) {
     return responseError(`${field} is not a canonical string`);
+  }
+  return value;
+}
+
+function requireResponseOrdinal(value: unknown, field: string): number {
+  if (
+    typeof value !== 'number'
+    || !Number.isInteger(value)
+    || value < 0
+    || value > 0xffff_ffff
+  ) {
+    return responseError(`${field} is not a canonical uint32 ordinal`);
   }
   return value;
 }

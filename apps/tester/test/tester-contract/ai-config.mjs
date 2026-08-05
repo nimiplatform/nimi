@@ -68,6 +68,45 @@ test('tester Local selection preserves unrelated intents and carries no model or
   assert.equal(calls.length, 1);
 });
 
+test('tester image Cloud intent preserves whole-object neighbors without hardcoded provider or model choices', async () => {
+  const {
+    createTesterCloudCapabilityIntent,
+    overwriteTesterCapabilityIntent,
+  } = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const current = config(localIntent('text.generate'));
+  const cloud = createTesterCloudCapabilityIntent('image.generate', null, {
+    implementationId: 'cloud.image.custom',
+    driverId: 'cloud.driver.custom',
+    driverDialect: 'custom/image/v1',
+    provider: 'provider-from-runtime-catalog',
+    providerModelId: 'model-from-runtime-catalog',
+    remoteModelCatalogId: 'catalog-entry-7',
+    connectorGrantId: 'grant-image',
+  });
+  const next = await overwriteTesterCapabilityIntent({
+    async overwrite(capabilities) {
+      return config(...capabilities);
+    },
+  }, current, cloud);
+
+  assert.equal(next.capabilities[0].capabilityContract, 'text.generate');
+  assert.equal(next.capabilities[1].route.oneofKind, 'cloud');
+  assert.deepEqual(next.capabilities[1].route.cloud.implementation, {
+    implementationId: 'cloud.image.custom',
+    driverId: 'cloud.driver.custom',
+    driverDialect: 'custom/image/v1',
+  });
+  assert.equal(
+    next.capabilities[1].route.cloud.providerModelTarget.fields.provider.kind.stringValue,
+    'provider-from-runtime-catalog',
+  );
+  assert.equal(
+    next.capabilities[1].route.cloud.providerModelTarget.fields.providerModelId.kind.stringValue,
+    'model-from-runtime-catalog',
+  );
+  assert.equal(next.capabilities[1].route.cloud.connectorGrantId, 'grant-image');
+});
+
 test('tester rejects any AIConfig projection not owned by the exact nimi.tester App', async () => {
   const { requireTesterAIConfigOwner } = await importBehaviorModule('tester/tester-ai-config-store.js');
   assert.throws(() => requireTesterAIConfigOwner({
@@ -122,6 +161,17 @@ test('tester presents Local intent while leaving implementation selection to Run
   assert.equal(target.capabilityContract, 'text.generate');
   assert.equal(target.canDispatch, true);
   assert.match(target.detail, /Runtime chooses and validates/u);
+
+  const imageTarget = createTesterRunTargetSummary({
+    capability: {
+      id: 'image.generate', label: 'Image Generate', group: 'media', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract: 'image.generate',
+    },
+    runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
+    config: config(localIntent('image.generate')),
+  });
+  assert.equal(imageTarget.status, 'configured');
+  assert.equal(imageTarget.source, 'local');
+  assert.equal(imageTarget.canDispatch, true);
 });
 
 test('tester requires Cloud authorization intent without selecting an implementation', async () => {
@@ -135,7 +185,21 @@ test('tester requires Cloud authorization intent without selecting an implementa
     requiredFeatures: [],
     route: {
       oneofKind: 'cloud',
-      cloud: { connectorGrantId },
+      cloud: {
+        implementation: {
+          implementationId: 'cloud.image.test',
+          driverId: 'cloud.driver.test',
+          driverDialect: 'test/image/v1',
+        },
+        providerModelTarget: {
+          fields: {
+            provider: { kind: { oneofKind: 'stringValue', stringValue: 'provider-test' } },
+            providerModelId: { kind: { oneofKind: 'stringValue', stringValue: 'model-test' } },
+            remoteModelCatalogId: { kind: { oneofKind: 'stringValue', stringValue: 'catalog-test' } },
+          },
+        },
+        connectorGrantId,
+      },
     },
   });
 
@@ -148,7 +212,7 @@ test('tester requires Cloud authorization intent without selecting an implementa
   assert.equal(configured.status, 'configured');
   assert.equal(configured.source, 'cloud');
   assert.equal(configured.canDispatch, true);
-  assert.match(configured.detail, /Runtime chooses and validates/u);
+  assert.match(configured.detail, /Runtime validates that configured target/u);
 });
 
 test('tester dispatches the standalone World Tour only from a Tauri shell', async () => {

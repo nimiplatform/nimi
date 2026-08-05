@@ -126,7 +126,7 @@ export function createTesterRunTargetSummary(input: {
       status: 'blocked',
       source: 'unknown',
       intentLabel: 'Not configured',
-      detail: 'This App AIConfig has no intent for the capability. Choose Local to save one.',
+      detail: 'This App AIConfig has no intent for the capability. Save a Local or Cloud intent to configure it.',
       canDispatch: false,
     };
   }
@@ -149,7 +149,7 @@ export function createTesterRunTargetSummary(input: {
       source: 'cloud',
       intentLabel: grantSelected ? 'Cloud' : 'Cloud authorization required',
       detail: grantSelected
-        ? 'The App selected Cloud intent with an authorization grant. Runtime chooses and validates the implementation when execution begins.'
+        ? 'The App selected an exact Cloud intent with an authorization grant. Runtime validates that configured target when execution begins.'
         : 'The Cloud intent requires an authorization grant before execution.',
       canDispatch: grantSelected,
     };

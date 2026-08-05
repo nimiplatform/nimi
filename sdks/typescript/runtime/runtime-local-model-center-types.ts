@@ -579,6 +579,8 @@ export interface NimiRuntimeLocalModelCenterClient {
     readonly capabilities?: readonly string[];
     readonly engine?: string;
     readonly endpoint?: string;
+    /** Explicit ordered sharded-resource entries; empty keeps single-entry identity. */
+    readonly orderedBundleEntries?: readonly string[];
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalTransferAccepted>;
   rescanBundle(input: { readonly localAssetId: string }, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalTransferAccepted>;

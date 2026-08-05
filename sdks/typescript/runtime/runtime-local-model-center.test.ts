@@ -707,7 +707,11 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
     declaration: { assetKind: 'image', engine: 'media' },
   }, writeOptions)).asset.kind, 'image');
   assert.equal((await client.importFile({ filePath: '/models/model.gguf', assetName: 'Image', kind: 'image' }, writeOptions)).localAssetId, 'local-image');
-  assert.equal((await client.importBundle({ directoryPath: '/models/image', modelName: 'Image' }, writeOptions)).installSessionId, 'transfer-1');
+  assert.equal((await client.importBundle({
+    directoryPath: '/models/image',
+    modelName: 'Image',
+    orderedBundleEntries: ['model-00001.gguf', 'model-00002.gguf'],
+  }, writeOptions)).installSessionId, 'transfer-1');
   assert.equal((await client.rescanBundle({ localAssetId: 'local-image' }, writeOptions)).localAssetId, 'local-image');
   assert.equal((await client.remove('local-image', writeOptions)).status, 'active');
   assert.equal((await client.start('local-image', writeOptions)).status, 'active');
@@ -759,6 +763,14 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
 
   assert.equal(calls.some((call) => call.method === 'installModelFromPlan' && call.options === writeOptions.callOptions), true);
   assert.deepEqual(calls.find((call) => call.method === 'collectDeviceProfile')?.request, { extraPorts: [3000, 3000] });
+  assert.deepEqual(calls.find((call) => call.method === 'importLocalAssetBundle')?.request, {
+    directoryPath: '/models/image',
+    modelName: 'Image',
+    capabilities: [],
+    engine: '',
+    endpoint: '',
+    orderedBundleEntries: ['model-00001.gguf', 'model-00002.gguf'],
+  });
   assert.deepEqual(calls.find((call) => call.method === 'repairLocalEnvironmentDependency')?.request, {
     environmentKey: 'env-1',
     dependencyFamily: 'image-native',

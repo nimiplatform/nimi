@@ -14,8 +14,11 @@ import {
 import {
   INITIAL_RUNTIME_CONFIG_MACHINE_LOCAL_AI_STATE,
   compatibleMachineLocalAssets,
+  createRuntimeConfigMachineLocalAIAddDraft,
   machineLocalConfigurationFileState,
+  moveRuntimeConfigMachineLocalAILoRA,
   reduceRuntimeConfigMachineLocalAIState,
+  runtimeConfigMachineLocalAIImpactCommitAllowed,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-machine-local-ai-state.js';
 import type {
   NimiMachineLocalAIConfiguration,
@@ -51,6 +54,8 @@ function configuration(
       resourceKind: 'gguf',
       policy: 'substitutable',
       compatibilityConstraints: { engine: 'llama', artifact_role: 'llm' },
+      occurrenceOrdinal: 0,
+      displayLabel: 'Main model',
     }],
     exactBindings: resolution === 'configured' ? [binding] : [],
     supportedFeatures: [],
@@ -73,15 +78,14 @@ function baseProps(
     busyAction: '',
     feedback: null,
     showAddForm: false,
-    addDisplayName: '',
-    addAcceptsImageInput: false,
+    addDraft: createRuntimeConfigMachineLocalAIAddDraft(),
+    impactConfirmation: null,
     deleteConfirmationId: '',
     assetChoiceByRequirement: {},
     onRefresh: noop,
     onShowAddForm: noop,
     onHideAddForm: noop,
-    onAddDisplayNameChange: noop,
-    onAddAcceptsImageInputChange: noop,
+    onAddDraftChange: noop,
     onAdd: noop,
     onSelect: noop,
     onClearSelection: noop,
@@ -92,6 +96,8 @@ function baseProps(
     onRequestDelete: noop,
     onCancelDelete: noop,
     onConfirmDelete: noop,
+    onConfirmImpact: noop,
+    onCancelImpact: noop,
     ...overrides,
   };
 }
@@ -165,6 +171,145 @@ test('Local AI Configurations shows the current selection independently for ever
   assert.match(markup, /text\.generate/u);
   assert.match(markup, /Local writing model/u);
   assert.equal((markup.match(/>Selected</gu) ?? []).length, 2);
+});
+
+test('Local AI Configurations impact state requires a separate explicit confirmation before commit', () => {
+  const request = {
+    requestId: 'impact-1',
+    operation: 'select' as const,
+    capabilityContract: 'image.generate',
+    configurationId: 'lcc_image',
+  };
+  let state = reduceRuntimeConfigMachineLocalAIState(
+    INITIAL_RUNTIME_CONFIG_MACHINE_LOCAL_AI_STATE,
+    { type: 'impact-confirmation-requested', request },
+  );
+  state = reduceRuntimeConfigMachineLocalAIState(state, {
+    type: 'impact-load-succeeded',
+    requestId: request.requestId,
+    impact: {
+      operation: 'select',
+      capabilityContract: 'image.generate',
+      configurationId: 'lcc_image',
+      affectedOwners: [{
+        kind: 'app',
+        ownerId: 'nimi.desktop',
+        requiredFeatures: [],
+      }],
+    },
+  });
+
+  assert.equal(runtimeConfigMachineLocalAIImpactCommitAllowed(state, request.requestId), false);
+  assert.equal(state.impactConfirmation?.explicitlyConfirmed, false);
+  state = reduceRuntimeConfigMachineLocalAIState(state, {
+    type: 'impact-explicitly-confirmed',
+    requestId: request.requestId,
+  });
+  assert.equal(runtimeConfigMachineLocalAIImpactCommitAllowed(state, request.requestId), true);
+});
+
+test('Local AI Configurations renders the image form, ordered LoRA controls, and a bundle as one file choice', () => {
+  const initial = createRuntimeConfigMachineLocalAIAddDraft();
+  const loras = moveRuntimeConfigMachineLocalAILoRA([
+    {
+      draftId: 'lora-a',
+      displayLabel: 'First style',
+      requirementPolicy: 'substitutable',
+      localAssetId: '',
+      weight: '1',
+    },
+    {
+      draftId: 'lora-b',
+      displayLabel: 'Second style',
+      requirementPolicy: 'substitutable',
+      localAssetId: '',
+      weight: '0.5',
+    },
+  ], 1, -1);
+  assert.deepEqual(loras.map((lora) => lora.displayLabel), ['Second style', 'First style']);
+  const bundleEntries = [
+    { ordinal: 1, relativePath: 'shard-1.gguf', sha256: 'a'.repeat(64) },
+    { ordinal: 2, relativePath: 'shard-2.gguf', sha256: 'b'.repeat(64) },
+  ];
+  const bundle: NimiRuntimeLocalAssetEntry = {
+    localAssetId: 'bundle-image',
+    assetId: 'bundle-image',
+    displayName: 'Image model bundle',
+    kind: 'image',
+    engine: 'stable-diffusion',
+    status: 'installed',
+    expectedVerifiedContentId: `sha256:${'c'.repeat(64)}`,
+    exactContent: {
+      kind: 'sharded-bundle',
+      verifiedContentId: `sha256:${'c'.repeat(64)}`,
+      entrySha256: 'c'.repeat(64),
+      bundleEntries,
+    },
+    bundleEntries,
+  };
+  const draft = {
+    ...initial,
+    capabilityContract: 'image.generate' as const,
+    displayName: 'Image studio',
+    slots: {
+      ...initial.slots,
+      main: { requirementPolicy: 'strict' as const, localAssetId: bundle.localAssetId },
+    },
+    loras,
+  };
+  const markup = renderView(baseProps(
+    { configurations: [], selections: [] },
+    { showAddForm: true, addDraft: draft, assets: [bundle] },
+  ));
+
+  assert.match(markup, /data-testid="machine-local-ai-image-fields"/u);
+  assert.match(markup, /Diffusion model/u);
+  assert.match(markup, /Text encoder/u);
+  assert.match(markup, /data-testid="machine-local-ai-lora:1"[^>]*data-occurrence-ordinal="1"/u);
+  assert.ok(markup.indexOf('Second style') < markup.indexOf('First style'));
+  assert.equal((markup.match(/Image model bundle · File bundle/gu) ?? []).length, 1);
+  assert.doesNotMatch(markup, /shard-1\.gguf|shard-2\.gguf/u);
+});
+
+test('Local AI Configurations renders future image impact separately from explicit confirmation', () => {
+  const imageConfiguration = {
+    ...configuration('configured'),
+    configurationId: 'lcc_image',
+    capabilityContract: 'image.generate',
+    displayName: 'Local image model',
+  };
+  const markup = renderView(baseProps({
+    configurations: [imageConfiguration],
+    selections: [{ capabilityContract: 'image.generate', configurationId: 'lcc_image' }],
+  }, {
+    impactConfirmation: {
+      request: {
+        requestId: 'impact-delete-image',
+        operation: 'delete',
+        capabilityContract: 'image.generate',
+        configurationId: 'lcc_image',
+      },
+      status: 'ready',
+      impact: {
+        operation: 'delete',
+        capabilityContract: 'image.generate',
+        configurationId: 'lcc_image',
+        affectedOwners: [
+          { kind: 'app', ownerId: 'nimi.desktop', requiredFeatures: [] },
+          { kind: 'shared-local-agent', ownerId: 'shared-local-agent', requiredFeatures: [] },
+        ],
+      },
+      technicalError: '',
+      explicitlyConfirmed: false,
+    },
+  }));
+
+  assert.match(markup, /data-testid="machine-local-ai-impact-confirmation"/u);
+  assert.match(markup, /future image generation/u);
+  assert.match(markup, /Nimi Desktop App/u);
+  assert.match(markup, /Shared LocalAgent/u);
+  assert.match(markup, /Reviewing this impact does not confirm the change/u);
+  assert.match(markup, /data-testid="machine-local-ai-impact-confirm"/u);
 });
 
 test('Local AI Configurations derives compatible exact-binding choices from projected constraints', () => {

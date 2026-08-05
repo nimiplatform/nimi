@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 
 import {
@@ -212,12 +213,50 @@ test('Runtime local asset projection exposes only the exact entry integrity fact
     },
   }));
   assert.equal(projected.expectedVerifiedContentId, `sha256:${'a'.repeat(64)}`);
+  assert.deepEqual(projected.exactContent, {
+    kind: 'single-file',
+    verifiedContentId: `sha256:${'a'.repeat(64)}`,
+    entrySha256: 'a'.repeat(64),
+  });
 
   const missingExactEntryHash = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
     entry: 'model.gguf',
     hashes: { 'other.gguf': `sha256:${'b'.repeat(64)}` },
   }));
   assert.equal(missingExactEntryHash.expectedVerifiedContentId, undefined);
+});
+
+test('Runtime local asset projection preserves one canonical exact-binding fact for an ordered bundle', () => {
+  const first = 'a'.repeat(64);
+  const second = 'b'.repeat(64);
+  const canonicalBundleDigest = createHash('sha256')
+    .update(Buffer.concat([Buffer.from(first, 'hex'), Buffer.from(second, 'hex')]))
+    .digest('hex');
+  const projected = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
+    localAssetId: 'local-sharded-image',
+    entry: 'model-00001-of-00002.gguf',
+    files: ['model-00001-of-00002.gguf', 'model-00002-of-00002.gguf'],
+    hashes: {
+      'model-00001-of-00002.gguf': first,
+      'model-00002-of-00002.gguf': second,
+    },
+    bundleEntries: [
+      { ordinal: 1, relativePath: 'model-00001-of-00002.gguf', sha256: first },
+      { ordinal: 2, relativePath: 'model-00002-of-00002.gguf', sha256: second },
+    ],
+  }));
+
+  assert.equal(projected.expectedVerifiedContentId, `sha256:${canonicalBundleDigest}`);
+  assert.deepEqual(projected.exactContent, {
+    kind: 'sharded-bundle',
+    verifiedContentId: `sha256:${canonicalBundleDigest}`,
+    entrySha256: canonicalBundleDigest,
+    bundleEntries: [
+      { ordinal: 1, relativePath: 'model-00001-of-00002.gguf', sha256: first },
+      { ordinal: 2, relativePath: 'model-00002-of-00002.gguf', sha256: second },
+    ],
+  });
+  assert.equal(projected.bundleEntries?.length, 2);
 });
 
 test('Runtime local asset projection preserves public display identity without execution bindings', () => {

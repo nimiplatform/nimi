@@ -4,6 +4,7 @@ import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunIntentLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
 import { useTesterRendererHost } from '../../renderer/context.js';
+import { loadTesterAIConfig } from '../tester-ai-config-store.js';
 import { createTesterRunTargetSummary, type TesterRunTargetSummary } from '../tester-run-target.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { composeStudioDirective, DEFAULT_LENGTH_VALUE, DEFAULT_TONE_VALUE, getCapabilityStudioProfile, LENGTH_OPTIONS, TONE_OPTIONS } from './capability-studio-profiles.js';
@@ -63,7 +64,7 @@ export function useTesterRunTargetSummary(
   useEffect(() => {
     let cancelled = false;
     setConfigProjection({ state: 'loading', config: null, error: null });
-    void rendererHost.sdk.aiConfig.get()
+    void loadTesterAIConfig(rendererHost.sdk.aiConfig)
       .then((next) => {
         if (!cancelled) setConfigProjection({ state: 'loaded', config: next, error: null });
       })
