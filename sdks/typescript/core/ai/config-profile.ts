@@ -404,10 +404,11 @@ function normalizeJsonValue(value: unknown, label: string): NimiJsonValue {
 }
 
 const FORBIDDEN_PORTABLE_KEYS = new Set([
-  'connectorgrantid', 'connectorgrant', 'grantid', 'connectorid', 'connector', 'accountid', 'account', 'subjectuserid', 'owneruserid',
-  'localassetid', 'localassetpath', 'binding', 'bindings', 'exactbinding', 'exactbindings',
-  'path', 'filepath', 'secret', 'secrets', 'credential', 'credentials', 'credentialpayload', 'apikey',
-  'accesstoken', 'refreshtoken', 'oauthtoken', 'endpoint', 'endpointurl', 'baseurl',
+  'connectorgrantid', 'connectorgrant', 'grant', 'grantid', 'connectorid', 'connector',
+  'accountid', 'account', 'subjectuserid', 'owneruserid', 'machine', 'machineid', 'deviceid', 'hostid',
+  'assetid', 'artifactid', 'localassetid', 'localassetpath', 'binding', 'bindings', 'exactbinding', 'exactbindings',
+  'path', 'filepath', 'secret', 'secrets', 'credential', 'credentials', 'credentialpayload', 'apikey', 'password', 'privatekey',
+  'token', 'accesstoken', 'refreshtoken', 'oauthtoken', 'endpoint', 'endpointurl', 'baseurl',
   'runtimeprocessid', 'jobid',
 ]);
 
@@ -435,6 +436,9 @@ function assertPortableValue(value: unknown, label: string): void {
         || normalized.includes('connectorgrant')
         || normalized.endsWith('connectorid')
         || normalized.endsWith('accountid')
+        || normalized.startsWith('machine')
+        || normalized.endsWith('assetid')
+        || normalized.endsWith('artifactid')
         || normalized.includes('localasset')) {
         profileError(`${label}.${key} is forbidden in portable AIProfile`);
       }
@@ -447,7 +451,7 @@ function assertPortableValue(value: unknown, label: string): void {
 
 function isPortablePath(value: string): boolean {
   const trimmed = value.trim();
-  return trimmed.startsWith('/') || trimmed.startsWith('~/') || trimmed.toLowerCase().startsWith('file://') || /^[A-Za-z]:[\\/]/u.test(trimmed);
+  return trimmed.startsWith('/') || trimmed.startsWith('\\\\') || trimmed.startsWith('~/') || trimmed.toLowerCase().startsWith('file://') || /^[A-Za-z]:[\\/]/u.test(trimmed);
 }
 
 function requireObject(value: unknown, message: string): Record<string, unknown> {
