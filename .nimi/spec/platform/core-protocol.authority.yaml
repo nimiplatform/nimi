@@ -20,16 +20,30 @@ units:
     meaning: The L0 request envelope carries protocol version, participant protocol version, participant identity, domain, optional app identity, trace identity, idempotency identity, and world and primitive identity for world-primitive requests through gRPC metadata while the business payload remains in the proto body.
   - id: definition.nimi.platform.core-protocol.protected-app-authorization
     kind: definition
-    title: Protected app authorization decision
-    meaning: A protected app authorization decision combines platform permission vocabulary, a Runtime local principal and record, exact account-and-principal grant truth, protected process and session truth, and domain-owner policy into one immutable per-call decision.
+    lifecycle: removed
+    title: Retired protected App permission authorization decision
+    reason: Removed because protected App ingress now uses one exact App operation contract and a fresh Effective App Access Snapshot derived from registration and declaration, with no permission or grant decision.
+  - id: definition.nimi.platform.core-protocol.app-operation-contract
+    kind: definition
+    title: Canonical App operation contract
+    meaning: The closed initial App operation contract contains exactly fourteen mappings—runtime.app-storage.json.read as Base, runtime.app-storage.json.write as Base, runtime.app-storage.json.remove as Base, runtime.ai.app-config.get as Base, runtime.ai.app-config.overwrite as Base, realm.world-core.list as AppAccess realm.data, realm.world-core.create as AppAccess realm.data, runtime.ai.text-candidate.generate as AppAccess runtime.consume, runtime.agent.reference.list as AppAccess agent.local, runtime.agent.conversation.open as AppAccess agent.local, runtime.agent.conversation.turn.send as AppAccess agent.local, runtime.agent.conversation.turn.interrupt as AppAccess agent.local, runtime.agent.conversation.events.subscribe as AppAccess agent.local, and runtime.agent.conversation.snapshot.get as AppAccess agent.local; each AppOperationId is a stable callable identity derived by Runtime from the typed protected ingress rather than caller-supplied classification, authority, exact handler identity, implementation detail, or an extensible public catalog.
+    relations:
+      - type: supersedes
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+    kind: definition
+    title: Effective App Access Snapshot
+    meaning: An Effective App Access Snapshot is the immutable session-scoped Runtime result derived from one registered App subject, exact source and declaration generations, current account context generation, and only the supported declared AppAccess domain coverage; Base operation classification and invariants remain outside the snapshot in the canonical App operation contract, and the snapshot is neither persistent configuration, catalog or review truth, a service, a PermissionGrant, nor a durable authorization posture.
   - id: definition.nimi.platform.core-protocol.world-app-binding
     kind: definition
-    title: World and extension-app binding
-    meaning: A world and extension-app binding is uniquely identified by worldId and extensionAppId, has active, suspended, or revoked status, permits new-to-active, active-to-suspended, active-to-revoked, suspended-to-active, and suspended-to-revoked transitions, and treats revoked as terminal.
+    lifecycle: removed
+    title: Retired world and extension-app binding
+    reason: Removed because supported App Realm access is only the Runtime-mediated realm.data typed operation path and no render-app or extension-app world binding authorizes a direct Realm primitive operation.
   - id: definition.nimi.platform.core-protocol.app-mode
     kind: definition
-    title: App mode access boundary
-    meaning: Render-app mode permits read-only world-primitive access and app-auth access without a world binding, while extension-app mode permits read-write world-primitive access and app-auth access only with an active world binding.
+    lifecycle: removed
+    title: Retired render-app and extension-app access mode
+    reason: Removed because supported App access uses Base plus the closed declaration domains and exact operation mapping, with no mode-based direct world access matrix.
   - id: definition.nimi.platform.core-protocol.action-plane
     kind: definition
     title: Isolated external action capability plane
@@ -112,7 +126,7 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-config
     kind: definition
     title: AIConfig
-    meaning: An AIConfig is the directly editable current capability intent for exactly one canonical AIConfig owner and stores per CapabilityContract a Local or Cloud route intent, required standardized features, defaults, and, only for Cloud, the CapabilityImplementation, Driver-owned provider-model target intent, and an optional explicitly selected ConnectorGrant binding.
+    meaning: An AIConfig is the directly editable current capability intent for exactly one canonical AIConfig owner and stores per CapabilityContract a Local or Cloud route intent, required standardized features, defaults, and, only for Cloud, the CapabilityImplementation, Driver-owned provider-model target intent, and an optional ConnectorGrant binding written only by a Nimi-owned explicit-user-selection flow rather than portable or Third-party App input.
     relations:
       - type: supersedes
         target: definition.nimi.platform.core-protocol.materialized-ai-config
@@ -138,7 +152,7 @@ units:
   - id: definition.nimi.platform.core-protocol.connector-grant
     kind: definition
     title: ConnectorGrant
-    meaning: A ConnectorGrant is the explicit account-authorization binding and Runtime secret-custody reference selected for one AIConfig Cloud route; it is not a CapabilityImplementation, provider-model target, route selector, capability router, or portable profile field.
+    meaning: A ConnectorGrant is the independent current-account credential-custody and authorization reference selected by a Nimi-owned explicit-user flow for one AIConfig Cloud route; it is not an App PermissionGrant, CapabilityImplementation, provider-model target, route selector, capability router, portable profile field, or Third-party App input or output.
   - id: definition.nimi.platform.core-protocol.capability-job-effective-inputs
     kind: definition
     title: Capability job effective inputs
@@ -225,14 +239,16 @@ units:
         target: definition.nimi.platform.core-protocol.l0-envelope
   - id: rule.nimi.platform.core-protocol.p-proto-010b
     kind: rule
-    title: P-PROTO-010 protected local app authority
+    title: P-PROTO-010 no caller-supplied protected App context
     modality: must_not
-    statement: A non-Realm participant writes through the world-primitive domain, or x-nimi-domain, appId metadata, or the request body supplies protected local-app authority.
-    condition: Whenever a local app request or world-primitive write is authorized.
-    failure: Reject the operation and derive local-app authority only from protected transport and body-independent Runtime context.
+    statement: App request metadata, environment, argv, renderer state, SDK fields, Host fields, or request body supplies the registered subject, account, session, Effective App Access Snapshot, AppOperationId, AppAccessDomainId, classification, owner identity, credential, or other protected access truth.
+    condition: Whenever a supported App request is admitted or mapped from a typed protected ingress.
+    failure: Reject caller-supplied protected context and derive identity, account, session, snapshot coverage, and stable callable operation only from the protected Runtime ingress and canonical operation contract.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-011
     kind: rule
     title: P-PROTO-011 gRPC envelope mapping
@@ -245,44 +261,48 @@ units:
         target: definition.nimi.platform.core-protocol.l0-envelope
   - id: rule.nimi.platform.core-protocol.p-proto-020
     kind: rule
-    title: P-PROTO-020 app authorization ownership boundaries
+    title: P-PROTO-020 App access ownership boundaries
     modality: must
-    statement: Each protected app call uses the platform permission vocabulary, Runtime local principal and record, exact account-and-principal grant truth, protected process and session truth, domain-owner policy, and transport-only SDK and Kit projections without minting an app-held access token.
-    condition: Whenever a protected app call is authorized or projected.
-    failure: Reject any decision that omits an owner input, moves authority into a projection, or issues an app-held token.
+    statement: Runtime protected App ingress is the sole App access admission owner and admits each call only after verifying the exact Desktop-launched Host peer and process, a fresh protected session bound to the registered subject and current source generation, declaration generation, and account context generation, the exact canonical AppOperationId classification, and either the classified Base-row invariants or fresh Effective App Access Snapshot coverage for the mapped AppAccess domain; only then may Runtime dispatch to the owner service, which independently applies its resource and business policy and returns an operation-specific typed result, while SDK, Kit, Host, Desktop, marketplace, and listing projections transport or display only and mint no App-held token or access state.
+    condition: Whenever a protected App call is admitted or projected.
+    failure: Deny the exact operation before dispatch when any required admission input is absent; admission success never implies owner success, and an owner rejection remains an owner-specific typed result; reject direct Realm or Runtime fallback, projection-owned admission, or an App-held credential.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-021
     kind: rule
-    title: P-PROTO-021 canonical operation authority
+    title: P-PROTO-021 canonical fourteen-operation mapping
     modality: must_not
-    statement: A local app publishes a free-form scope extension or an app_id namespace, manifest, or SDK catalog adds or widens authority.
-    condition: Whenever an app operation is admitted or described.
-    failure: Reject the extension and resolve the operation from its canonical capability or resource fingerprint and owner policy.
+    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical fourteen-row contract.
+    condition: Whenever an App operation is declared, admitted, mapped, or described.
+    failure: Reject the unknown, aliased, duplicated, or mismapped operation and use only the stable callable identity selected by the typed protected ingress and its canonical mapping.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.app-operation-contract
   - id: rule.nimi.platform.core-protocol.p-proto-030
     kind: rule
     title: P-PROTO-030 removed public app credentials
     modality: must_not
-    statement: A public app authorization, preset, token issuance, credential grant, request-body consent, custom scope, resource selector, app identity, external-principal session, parent token, or bearer authorizes an operation or mints a protected credential.
+    statement: A public App permission, grant, request, approval, denial, revocation, settings row, preset, token issuance, credential grant, request-body consent, custom scope, resource selector, self-reported identity, external-principal session, parent token, or bearer admits an operation or mints a protected credential.
     condition: Whenever a protected app operation is evaluated.
-    failure: Reject the operation, keep former wire identities reserved and absent from proto, generated, SDK, handler, and persistence surfaces, and return no reusable credential.
+    failure: Reject the operation, keep former permission and credential identities only as removed authority history and absent from active proto, generated, SDK, handler, and persistence surfaces, and return no reusable credential.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-030b
     kind: rule
     title: P-PROTO-030 exact private operation evaluation
     modality: must
-    statement: Runtime-private operation evaluation requires an exact protected origin and exact operation policy.
+    statement: Runtime-private operation admission requires the verified exact Desktop-launched Host peer and process, an exact fresh protected session bound to the registered subject and current source generation, declaration generation, and account context generation, canonical classification of the stable callable operation, and the Base invariants when the row is Base or fresh Effective App Access Snapshot coverage for the mapped domain when the row is AppAccess; only after every admission input passes may Runtime dispatch to the owner service, which independently evaluates its resource and business policy and returns an owner-specific typed result.
     condition: Whenever Runtime evaluates a protected app operation.
-    failure: Fail closed without issuing a credential when either exact input is unavailable.
+    failure: Deny the exact operation before dispatch without issuing a credential when any required admission input or coverage is unavailable; do not report admission success as operation success when the owner rejects or cannot complete the request.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-035
     kind: rule
     title: P-PROTO-035 public delegation removed
@@ -292,57 +312,102 @@ units:
     failure: Reject delegation and retain former fields only as removal inventory.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+  - id: rule.nimi.platform.core-protocol.p-proto-041
+    kind: rule
+    title: P-PROTO-041 Effective App Access Snapshot lifecycle
+    modality: must
+    statement: Runtime creates a fresh Effective App Access Snapshot only after the exact Desktop-launched Host binds a protected session, includes only currently supported declared AppAccess domains for the exact source and declaration generations, and invalidates the session and snapshot on account or context change, source or declaration generation change, Runtime restart, or session end while allowing the same exact running Host to bind a new session; all five Base rows remain outside the snapshot and are evaluated from their canonical operation classification and Base invariants on each call.
+    condition: Whenever an App session or its declaration, account, Runtime, or Host context changes.
+    failure: Deny further protected operations under the stale session or snapshot without deleting registration or rotating the registered subject; require Host restart or replacement only when a security-relevant exact Host executable, entrypoint, or launch input changes, the exact process identity or start marker no longer matches, the supervised process lifetime ends, or the process exits, and do not require it for ordinary source, asset, or HMR changes alone.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+  - id: rule.nimi.platform.core-protocol.p-proto-042
+    kind: rule
+    title: P-PROTO-042 owner execution and positive App projection
+    modality: must
+    statement: After exact Runtime admission, an internal owner executor may enforce its canonical resource and business rules and returns only the operation-specific typed positive projection; supported App API, SDK, Host, environment, argv, renderer, generic forwarding, and raw Realm response surfaces expose no Realm token, refresh token, Provider Credential, ConnectorGrant custody material, equivalent portable authority, raw owner response, or caller-selectable generic protected executor.
+    condition: Whenever an admitted App operation executes or returns data to the App.
+    failure: Deny or sanitize the exact result before the App boundary when owner execution fails, projection is absent, or forbidden authority material would cross the supported surface, without treating an optional scanner as the admission proof.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+  - id: rule.nimi.platform.core-protocol.p-proto-043
+    kind: rule
+    title: P-PROTO-043 protected-operation failure is bounded
+    modality: must
+    statement: Missing session, stale snapshot, missing domain coverage, unknown or unsupported operation, unavailable Runtime, or owner-domain rejection makes only the affected Nimi access or exact protected operation unavailable and does not by itself require Host termination or restart, registration deletion, registered-subject rotation, a durable security posture, a new authorization flow, or global Runtime unavailability.
+    condition: Whenever App access admission or owner execution cannot complete.
+    failure: Return the exact typed unavailable, unsupported, validation, conflict, or owner failure and never report protected success or use direct Realm, Runtime, generic-forwarding, or compatibility fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+  - id: rule.nimi.platform.core-protocol.p-proto-044
+    kind: rule
+    title: P-PROTO-044 Realm App operations remain owner-mediated
+    modality: must
+    statement: realm.world-core.list and realm.world-core.create enter only through Runtime protected App ingress under realm.data coverage, derive the current account and App context from the protected session, invoke the typed Realm WorldCore owner adapter, preserve every Realm resource and business rule, and return only the operation-specific positive App projection rather than a Realm token, direct endpoint, generic request, or raw Realm response.
+    condition: Whenever either admitted realm.data App operation is invoked.
+    failure: Deny the exact operation on missing coverage, Runtime mediation, owner admission, business-rule rejection, or positive projection and expose no direct Realm fallback or credential.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+  - id: rule.nimi.platform.core-protocol.p-proto-045
+    kind: rule
+    title: P-PROTO-045 foreground text candidate App operation
+    modality: must
+    statement: runtime.ai.text-candidate.generate is one synchronous foreground runtime.consume operation that consumes the calling App owner's committed AIConfig without caller-selected route, provider, model, target, connector, credential, tool, media, stream, Job, background authority, or fallback and returns only the typed candidate result and trace correlation.
+    condition: Whenever runtime.ai.text-candidate.generate is invoked.
+    failure: Deny the exact operation on missing runtime.consume coverage, invalid bounded input, owner AIConfig composition failure, metering failure, missing Cloud ConnectorGrant, or execution failure, returning selection-required for a Cloud route without a binding and never changing the committed route.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+  - id: rule.nimi.platform.core-protocol.p-proto-046
+    kind: rule
+    title: P-PROTO-046 Base App operations remain bounded
+    modality: must
+    statement: The three Base JSON storage operations address only the registered subject's current-account private partition, runtime.ai.app-config.get returns only the calling App owner's portable AIConfig intent, and runtime.ai.app-config.overwrite atomically writes one complete portable intent without merge or ConnectorGrant input and applies the canonical binding-clearing behavior; no Base operation exposes internal identity, account, session, snapshot, credential, owner inventory, or generic Runtime access.
+    condition: Whenever one of the five Base App operations is invoked.
+    failure: Deny the exact operation on missing session, owner, partition, path, quota, schema, or positive projection and never manufacture AppAccess coverage or preserve a Cloud binding through App overwrite.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
   - id: rule.nimi.platform.core-protocol.p-proto-040
     kind: rule
-    title: P-PROTO-040 current permission decisions
-    modality: must
-    statement: After public-permission admission, the canonical owner atomically increments decision revision on request, approval, denial, revocation, and expiry, and every operation resolves the current decision and exact selector without rotating the identity session.
-    condition: Whenever an admitted public permission changes or protects an operation.
-    failure: Reject stale or snapshot authorization and ensure the next operation observes the mutation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+    lifecycle: removed
+    title: Retired P-PROTO-040 current permission decisions
+    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
   - id: rule.nimi.platform.core-protocol.p-proto-040b
     kind: rule
-    title: P-PROTO-040 no pre-admission positive store
-    modality: must_not
-    statement: A positive decision store or permission mutation path exists before the public permission is fully admitted.
-    condition: Before public-permission admission.
-    failure: Remove the positive store or mutation path and deny positive authorization.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+    lifecycle: removed
+    title: Retired P-PROTO-040 no pre-admission positive store
+    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
   - id: rule.nimi.platform.core-protocol.p-proto-050
     kind: rule
-    title: P-PROTO-050 world-app write admission
-    modality: must
-    statement: A render-app world write is rejected, and an extension-app world write requires an active worldId and extensionAppId binding.
-    condition: Whenever an app requests a world write.
-    failure: Reject the write before primitive execution.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-app-binding
+    lifecycle: removed
+    title: Retired P-PROTO-050 world-app write admission
+    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
   - id: rule.nimi.platform.core-protocol.p-proto-050b
     kind: rule
-    title: P-PROTO-050 unique binding state machine
-    modality: must
-    statement: Each world has at most one active extension-app binding, replacement first suspends or revokes the active binding, and binding transitions follow the defined state machine with revoked terminal.
-    condition: Whenever a world-app binding is created or changes state.
-    failure: Reject a second active binding, an illegal transition, or reactivation of a revoked binding.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-app-binding
+    lifecycle: removed
+    title: Retired P-PROTO-050 unique binding state machine
+    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
   - id: rule.nimi.platform.core-protocol.p-proto-060
     kind: rule
-    title: P-PROTO-060 app mode boundary
-    modality: must
-    statement: App domain access follows the declared mode and the render-app or extension-app access matrix.
-    condition: Whenever an app accesses a protocol domain.
-    failure: Reject a mode, domain, scope, or world-relation mismatch with the mode-violation reasonCode and its canonical actionHint.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.app-mode
+    lifecycle: removed
+    title: Retired P-PROTO-060 app mode boundary
+    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
   - id: rule.nimi.platform.core-protocol.p-proto-070
     kind: rule
     title: P-PROTO-070 cross-primitive consistency
@@ -712,15 +777,15 @@ units:
   - id: definition.nimi.platform.core-protocol.protocol-error-category
     kind: definition
     title: protocol-error-codes error category
-    meaning: A protocol error category is exactly one of version, capability_profile, protocol_envelope, local_app, app_auth, app_mode, world_app_binding, admission, state_machine, consistency, or permission.
+    meaning: A protocol error category is exactly one of version, capability_profile, protocol_envelope, local_app, app_access, admission, state_machine, or consistency; permission, app_mode, and world_app_binding remain retired and have no active compatibility alias.
   - id: definition.nimi.platform.core-protocol.protocol-audit-event
     kind: definition
     title: audit-events protocol audit event
-    meaning: A protocol audit event is a member of the closed platform audit-event vocabulary with one protocol, ai_last_mile, primitive, app_auth, scope, app_mode, app_resource, or world_app_binding group and the fields required by its base schema, group, and event type.
+    meaning: A protocol audit event is a member of the closed platform audit-event vocabulary with one protocol, ai_last_mile, primitive, app_access, or app_resource group and the fields required by its base schema, group, and event type; audit records observe owner truth and never become App access state.
   - id: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
     kind: definition
     title: compliance-test-matrix product compatibility boundary
-    meaning: The protocol compatibility matrix is the product obligation set that keeps envelope, profile, app authorization, world binding, primitive, action-plane, and architecture semantics mutually compatible without defining test topology, runners, or evidence accounting.
+    meaning: The protocol compatibility matrix is the product obligation set that keeps envelope, profile, exact App operation and snapshot admission, primitive, action-plane, and architecture semantics mutually compatible without defining test topology, runners, evidence accounting, or product runtime shape.
   - id: rule.nimi.platform.core-protocol.p-proto-error-001
     kind: rule
     title: protocol-error-codes P-PROTO closed error vocabulary
@@ -807,7 +872,7 @@ units:
     kind: rule
     title: participant-profiles P-PROTO-002 closed profile definitions
     modality: must
-    statement: The closed fixed-participant profile set contains realm at realm.core-profile.v1.0.0 as a reference to Realm-owned provider capability for all six primitives and runtime_local at runtime.access-profile.v1.0.0 as provider of app-auth, while SDK remains a bridge without a participant profile.
+    statement: The closed fixed-participant profile set contains realm at realm.core-profile.v1.0.0 as a reference to Realm-owned provider capability for all six primitives and runtime_local at runtime.access-profile.v1.0.0 as provider of protected App access, while SDK remains a bridge without a participant profile.
     condition: Whenever a fixed participant profile is published, resolved, or negotiated.
     failure: Reject an unknown profile, mismatched reference, incomplete declared capability set, SDK profile, or platform claim of Realm semantic ownership.
     relations:
@@ -879,44 +944,39 @@ units:
         target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
   - id: rule.nimi.platform.core-protocol.p-ctm-l1
     kind: rule
-    title: compliance-test-matrix L1 P-PROTO-002 P-PROTO-003 P-PROTO-020 P-PROTO-040 compatibility
+    title: compliance-test-matrix L1 participant and App access compatibility
     modality: must
-    statement: L1 compatibility preserves Realm and Runtime profile correspondence, all six Realm profile references, admitted capability modes, rejection of non-Realm primitive providers, scopeCatalogVersion consistency, and separation of ExternalPrincipal proof from protected local-app authorization without an app-held token.
-    condition: Whenever participant-profile or protected app-authorization semantics change.
-    failure: Reject the change when profiles, modes, provider sovereignty, catalog versions, principal proof, or local-app authorization become inconsistent across participants.
+    statement: L1 compatibility preserves Realm and Runtime profile correspondence, all six Realm profile references, rejection of non-Realm primitive providers, and agreement on the canonical App operation contract, declaration-domain coverage, fresh Effective App Access Snapshot, owner boundaries, and absence of an App-held token.
+    condition: Whenever participant-profile or protected App access semantics change.
+    failure: Reject the change when profiles, provider sovereignty, exact operation mapping, snapshot semantics, or Runtime and owner admission become inconsistent across participants.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.participant-profile
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.participant-profile
       - type: applies_to
         target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
   - id: rule.nimi.platform.core-protocol.p-ctm-l1-app-auth
     kind: rule
-    title: compliance-test-matrix L1_app_auth P-PROTO-030 P-PROTO-035 compatibility
+    title: compliance-test-matrix L1 App access compatibility
     modality: must
-    statement: Local-app authorization compatibility preserves request-empty opening of a process-bound zero-permission session without credentials or owner identifiers and exposes through SDK, Kit, and Desktop only session posture, public permission status and request, base entitlements, and exact app-owned commands without a bearer, generic Runtime forwarder, or retired grant family.
-    condition: Whenever the local-app session or its consumer projection changes.
-    failure: Reject the change when session opening gains caller-supplied authority or a consumer gains credential, owner, generic-forwarding, or retired-grant authority.
+    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly five Base rows plus nine AppAccess rows across three declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
+    condition: Whenever the local App session, operation contract, or consumer projection changes.
+    failure: Reject the change when session opening gains caller-supplied access truth, the fourteen-row mapping diverges, or a consumer gains credential, owner, generic-forwarding, or durable access state.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
   - id: rule.nimi.platform.core-protocol.p-ctm-l1-world-app
     kind: rule
-    title: compliance-test-matrix L1_world_app P-PROTO-050 P-PROTO-060 compatibility
-    modality: must
-    statement: World-app compatibility preserves render-app read-only access and write rejection, exact extension-app worldId and appId binding admission and unbound rejection, the bindingStatus state machine, immediate effect of creator binding changes, and the app-mode domain access matrix.
-    condition: Whenever world-app binding, app mode, or a consuming surface changes.
-    failure: Reject the change when any producer or consumer admits a stale binding, illegal state, render write, unbound extension write, or mode-domain mismatch.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.app-mode
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
-      - type: applies_to
-        target: definition.nimi.platform.core-protocol.world-app-binding
+    lifecycle: removed
+    title: Retired compliance-test-matrix L1_world_app P-PROTO-050 P-PROTO-060 compatibility
+    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
   - id: rule.nimi.platform.core-protocol.p-ctm-l2
     kind: rule
     title: compliance-test-matrix L2 P-PROTO-070 P-PROTO-100 through P-PROTO-105 compatibility
@@ -952,7 +1012,7 @@ units:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.action-plane
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.protocol-audit-event
       - type: applies_to
@@ -1476,12 +1536,14 @@ units:
     kind: rule
     title: P-CAIEX-009 Cloud intent and account authorization remain separate
     modality: must
-    statement: Cloud AIConfig intent owns one CapabilityImplementation and Driver-owned provider-model target and may be saved without a ConnectorGrant; only explicit user grant selection binds account authorization, missing grant derives selection-required admission failure, changing account normally changes only the grant, and a provider API or capability-semantic change replaces the implementation while target or region change within one implementation remains Driver configuration.
-    condition: Whenever Cloud intent, target, grant, or execution admission is committed or evaluated.
-    failure: Reject a connector as router, Profile account binding, implicit grant, connection-test prerequisite, route inference from grant, or Cloud configuration list.
+    statement: Cloud AIConfig intent owns one CapabilityImplementation and Driver-owned provider-model target and may be saved without a ConnectorGrant; only a Nimi-owned explicit-user-selection flow writes the current-account ConnectorGrant binding, while runtime.ai.app-config.overwrite accepts one complete portable App AIConfig intent without a binding field and atomically removes any existing binding from the overwritten App AIConfig so its Cloud route derives selection-required until that Nimi-owned flow selects a new binding; account change never permits App-supplied rebinding, and provider API or capability-semantic change replaces the implementation while target or region change within one implementation remains Driver configuration.
+    condition: Whenever Cloud intent, App AIConfig whole-object overwrite, target, ConnectorGrant binding, or execution admission is committed or evaluated.
+    failure: Reject a connector as router, App or Profile account binding, implicit or preserved binding after App overwrite, connection-test prerequisite, route inference from a grant, or Cloud configuration list, and return selection-required when the committed Cloud route lacks a binding.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.capability-implementation-driver
       - type: applies_to
@@ -1558,7 +1620,7 @@ units:
   - id: definition.nimi.platform.core-protocol.desktop-home-shell
     kind: definition
     title: P-ARCH Desktop-hosted Nimi Home shell
-    meaning: Desktop is the current replaceable host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the local-development and authorization unit; public App distribution and ordinary-user App installation remain deferred until separate lifecycle authority activates them.
+    meaning: Desktop is the current replaceable host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the local-development, registration, declaration, and Runtime access unit; public App distribution and ordinary-user App installation remain deferred until separate lifecycle authority activates them.
   - id: definition.nimi.platform.core-protocol.world-domain-facade
     kind: definition
     title: P-ARCH sdk world facade
@@ -1587,7 +1649,7 @@ units:
     kind: rule
     title: P-ARCH-001 public product and layer framing
     modality: must
-    statement: Public architecture identifies Nimi as the installable long-term user product, Nimi Home as its currently Desktop-hosted replaceable entry shell, Nimi App as the current local-development and authorization unit, public App distribution and ordinary-user App installation as deferred, and the canonical public authority entry as nimi/.nimi/spec/**.
+    statement: Public architecture identifies Nimi as the installable long-term user product, Nimi Home as its currently Desktop-hosted replaceable entry shell, Nimi App as the current local-development, registration, declaration, and Runtime access unit, public App distribution and ordinary-user App installation as deferred, and the canonical public authority entry as nimi/.nimi/spec/**.
     condition: Whenever the public top-layer architecture is described.
     failure: Reject a product, shell, app-unit, lifecycle-stage, or canonical-entry description that changes this layer framing.
     relations:
@@ -1641,7 +1703,7 @@ units:
     kind: rule
     title: P-ARCH-004 Runtime responsibility allocation
     modality: must
-    statement: Runtime remains an independent local service owning deterministic consumption, admission, composition, and execution of each canonical AIConfig owner's committed Local or Cloud route intent, process and model management, local Text, STT and TTS, Token, Quota and Budget, Credential custody, LocalAgent materialization and lifecycle, Conversation, operational Memory and Knowledge, LocalAgent state, voice and events, local audit, App authorization, and bounded bridges to independent Realm and Cognition authority without owning another Local or Cloud route choice.
+    statement: Runtime remains an independent local service owning deterministic consumption, admission, composition, and execution of each canonical AIConfig owner's committed Local or Cloud route intent, process and model management, local Text, STT and TTS, Token, Quota and Budget, Credential custody, LocalAgent materialization and lifecycle, Conversation, operational Memory and Knowledge, LocalAgent state, voice and events, local audit, protected App access admission, and bounded bridges to independent Realm and Cognition authority without owning another Local or Cloud route choice.
     condition: Whenever Platform architecture allocates Runtime responsibilities.
     failure: Reject an allocation that removes these core responsibilities from Runtime, gives Runtime an additional route-choice authority beyond consuming canonical AIConfig owner intent, makes Runtime dependent on an App layer, or promotes Workflow, MCP, or World Evolution into a Runtime core prerequisite.
     relations:
@@ -1673,12 +1735,14 @@ units:
     kind: rule
     title: P-ARCH-011 isolated production credential plane
     modality: must_not
-    statement: Production accepts apiKeyEnv, inline request credentials, Desktop, SDK, or renderer credential injection, user-session vault credentials, app-owned secret providers, or synthetic probe credentials in place of Runtime resolution of an opaque connectorId or credentialRef inside its isolated service principal.
+    statement: Production accepts apiKeyEnv, inline request credentials, Desktop, SDK, Host, renderer, or App credential injection, App-owned secret providers, user-session vault credentials, or synthetic probe credentials in place of Runtime resolution of the canonical current-account ConnectorGrant inside its independently admitted isolated production credential-custody service principal; production service topology, signed deployment, installer privilege, update, and custody authority remain independent from and never substitute for the per-user non-elevated App ingress boundary.
     condition: Whenever a production credential is resolved or product behavior is claimed from a probe.
-    failure: Deny the operation, preserve Runtime custody, and withhold product evidence from non-product probe credentials.
+    failure: Deny the operation, preserve the independent production Runtime custody boundary, and expose no credential or portable authority through the supported App surface.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.connector-grant
   - id: rule.nimi.platform.core-protocol.p-arch-020
     kind: rule
     title: P-ARCH-020 sole SDK developer entry
@@ -1835,9 +1899,9 @@ units:
     kind: rule
     title: P-DOPEN-007 source host has provenance only
     modality: must_not
-    statement: desktop-electron-local-app-host supplies principal, grant, session, package, or authorization truth rather than routing provenance only.
+    statement: desktop-electron-local-app-host supplies registered subject, account, declaration generation, protected session, Effective App Access Snapshot, package, or access truth rather than routing provenance only.
     condition: Whenever local-app sourceHost is interpreted.
-    failure: Deny the authority claim and use independently verified authorization inputs.
+    failure: Deny the access claim and use independently verified Runtime session and snapshot inputs.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.desktop-open-envelope
@@ -1894,4 +1958,4 @@ units:
     failure: Reject an unsigned or product credential and withhold the probe from product evidence.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+        target: definition.nimi.platform.core-protocol.connector-grant

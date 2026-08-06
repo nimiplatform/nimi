@@ -1072,9 +1072,15 @@ units:
     kind: rule
     title: Local App foreground text candidates consume App AIConfig
     modality: must
-    statement: The ai.text.generate Local App slice accepts only a bounded synchronous foreground request containing plain-text system and user messages plus bounded temperature, top-p, and output-token controls; Runtime derives the current account, App identity, permission decision, and the calling App owner's committed AIConfig route, then deterministically composes Local with the current machine-selected text Local Capability Configuration or Cloud with the AIConfig-owned CapabilityImplementation, Driver target, and explicitly selected ConnectorGrant, returning selection-required when Cloud intent lacks a grant. The permission authorizes the call but never chooses Local or Cloud, overrides AIConfig, or creates fallback, and the response exposes only candidate text, finish reason, and trace correlation; request and response contain no account, principal, Agent, provider, model, route, target, connector, credential, tool, media, artifact, source, raw-chunk, reasoning-trace, stream, job, or background-execution field.
+    statement: The runtime.ai.text-candidate.generate Local App operation accepts only a bounded synchronous foreground request containing plain-text system and user messages plus bounded temperature, top-p, and output-token controls; Runtime admits the exact operation only for a current protected App session whose Effective App Access Snapshot covers runtime.consume, derives the current account and App identity from that session and the operation classification from the typed protected ingress, and deterministically composes Local with the current machine-selected text Local Capability Configuration or Cloud with the calling App owner's committed AIConfig-owned CapabilityImplementation, Driver target, and explicitly selected ConnectorGrant, returning selection-required when Cloud intent lacks a grant. Admission never chooses Local or Cloud, overrides AIConfig, or creates fallback, and the response exposes only candidate text, finish reason, and trace correlation; request and response contain no account, principal, Agent, provider, model, route, target, connector, credential, tool, media, artifact, source, raw-chunk, reasoning-trace, stream, job, or background-execution field.
     condition: Whenever a third-party Local App generates owner-reviewable text candidate material.
-    failure: Reject unbounded or non-plain-text input, absent or revoked ai.text.generate permission, absent or inadmissible owner AIConfig composition, and every caller-selected route or generic AI payload without forcing Local, changing the committed route, fallback, or synthesized output.
+    failure: Reject a missing or non-current protected App session, missing runtime.consume coverage, unbounded or non-plain-text input, absent or inadmissible owner AIConfig composition, and every caller-selected route or generic AI payload without forcing Local, changing the committed route, fallback, or synthesized output.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

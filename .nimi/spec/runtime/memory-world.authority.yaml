@@ -102,20 +102,24 @@ units:
     kind: rule
     title: Memory and Knowledge access is session authorized
     modality: must
-    statement: Runtime derives current account, App identity, authorization, target LocalAgent or admitted scope, and requested operation from the active session before projecting or mutating Memory or Knowledge.
-    condition: Whenever an App accesses Runtime Memory or Knowledge.
+    statement: Runtime derives the current account, authorized first-party or internal consumer identity, target LocalAgent or admitted scope, and requested operation from the active session before projecting or mutating Memory or Knowledge for a separately admitted first-party or internal consumer; this rule creates no Memory or Knowledge operation for a protected Third-party Local App outside the canonical App Operation Contract.
+    condition: Whenever a separately admitted first-party or internal consumer accesses Runtime Memory or Knowledge.
     failure: Fail closed when identity, authorization, scope, or owner policy is unavailable.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r009
     kind: rule
     title: Private content stays bounded
     modality: must
-    statement: Memory and Knowledge projections expose only the content and metadata admitted for the current account, App, LocalAgent, scope, and operation, with private prompt, credential, provider, and internal substrate data remaining hidden.
-    condition: Whenever Memory or Knowledge leaves Runtime.
+    statement: Memory and Knowledge projections expose to a separately admitted first-party or internal consumer only the content and metadata admitted for its current account, LocalAgent, scope, and operation, with private prompt, credential, provider, and internal substrate data remaining hidden; this projection rule does not make Memory or Knowledge available to a protected Third-party Local App outside the canonical App Operation Contract.
+    condition: Whenever Memory or Knowledge leaves Runtime for a separately admitted first-party or internal consumer.
     failure: Reject over-broad disclosure and preserve information hiding.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.memory-world.memory-service-plane
   - id: rule.nimi.runtime.memory-world.r010
@@ -152,10 +156,12 @@ units:
     kind: rule
     title: Consumers express intent only
     modality: must
-    statement: SDK, Kit, Desktop, or App may submit supported Memory or Knowledge intent and display Runtime results but never selects a provider credential, private bank, internal route, migration strategy, or execution binding.
-    condition: Whenever a consumer configures or requests Memory or Knowledge.
+    statement: A Nimi-owned SDK, Kit, or Desktop surface or another separately admitted first-party or internal consumer may submit supported Memory or Knowledge intent and display Runtime results but never selects a provider credential, private bank, internal route, migration strategy, or execution binding; this rule adds no Memory or Knowledge operation for a protected Third-party Local App outside the canonical App Operation Contract.
+    condition: Whenever a separately admitted first-party or internal consumer configures or requests Memory or Knowledge.
     failure: Reject consumer-owned Runtime execution facts.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r014

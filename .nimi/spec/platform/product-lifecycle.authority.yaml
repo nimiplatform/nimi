@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.nimi-data-root
     kind: definition
     title: User-selected nimi_data root
-    meaning: The nimi_data root is the one user-selected writable large-data-plane directory recorded by the canonical product-control record; it cannot be a filesystem or volume root, and its managed content remains partitioned by the applicable Runtime, account, and local-app-principal owners.
+    meaning: The nimi_data root is the one user-selected writable large-data-plane directory recorded by the canonical product-control record; it cannot be a filesystem or volume root, and its managed content remains partitioned by the applicable Runtime, account, and registered App subject owners without making any physical App partition layout product authority.
   - id: definition.nimi.platform.product-lifecycle.first-run-lifecycle
     kind: definition
     title: First-run product lifecycle
@@ -38,11 +38,11 @@ units:
   - id: definition.nimi.platform.product-lifecycle.nimi-data-ownership
     kind: definition
     title: nimi_data ownership and cleanup boundary
-    meaning: Each first-level nimi_data directory has one canonical owner and cleanup rule, with Runtime management paths owning models, dependencies, and environments, Runtime-private principals partitioning app data, and explicit user, export, or deletion policy protecting durable account and app data.
+    meaning: Each first-level nimi_data directory has one canonical owner and cleanup rule, with Runtime management paths owning models, dependencies, and environments, Runtime-private Registered-App-Subject-scoped logical partitions isolating App data without a canonical physical layout, and explicit user, export, or deletion policy protecting durable account and App data.
   - id: definition.nimi.platform.product-lifecycle.home-surface
     kind: definition
     title: Nimi Home surface
-    meaning: Nimi Home is the core product entry and control contract for account state, permissions, Runtime health and repair, canonical AIConfig editing and separately owned Machine Local AI Configuration management, current local-development Apps, Realm World and Character browsing, Avatar and Voice entry, and Support; for LocalAgent creation Home first consumes the Realm-owned public PersonaCharacter creation seam and resulting Character Source, then requests Runtime-owned materialization as a separate step; Desktop is the current replaceable host implementation and owns none of the underlying Realm, Runtime, LocalAgent, App, machine-local, permission, or credential truth.
+    meaning: Nimi Home is the core product entry and control contract for account state, Runtime health and repair, canonical AIConfig editing and separately owned Machine Local AI Configuration management, current local-development Apps, Realm World and Character browsing, Avatar and Voice entry, and Support; for LocalAgent creation Home first consumes the Realm-owned public PersonaCharacter creation seam and resulting Character Source, then requests Runtime-owned materialization as a separate step; Desktop is the current replaceable host implementation and owns none of the underlying Realm, Runtime, LocalAgent, App, machine-local, protected-access, or credential truth.
   - id: definition.nimi.platform.product-lifecycle.home-placement
     kind: definition
     title: Nimi Home placement set
@@ -186,12 +186,14 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-cold-010c
     kind: rule
-    title: P-COLD-010 principal-partitioned app storage
+    title: P-COLD-010 subject-scoped app storage
     modality: must_not
     statement: An app id becomes a positive storage key, a non-Runtime surface controls an app storage partition, or the displayed nimi_data skeleton admits immutable app release materialization before the source-defined 0P milestone.
     condition: When app storage beneath nimi_data is addressed or projected.
-    failure: Reject the path and require the Runtime-private local-app-principal partition.
+    failure: Reject the path or selector and require a Runtime-private Registered-App-Subject-scoped logical partition whose physical layout remains implementation detail.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-cold-011a
@@ -383,7 +385,7 @@ units:
     kind: rule
     title: P-COLD upstream authority remains fail closed
     modality: must_not
-    statement: Home predicts or defaults any required upstream account, Runtime service, current local-development App identity or admission, permission, or first-party integration authority to available before that owner projects its state, or adds AIProfile, AIConfig, machine selection, grant, or capability admission as a required upstream Product Control authority.
+    statement: Home predicts or defaults any required upstream account, Runtime service, current local-development App identity or admission, or first-party integration authority to available before that owner projects its state, or adds AIProfile, AIConfig, machine selection, grant, or capability admission as a required upstream Product Control authority.
     condition: When a required upstream authority is not ready.
     failure: Project the corresponding precise non-ready state.
     relations:
@@ -533,7 +535,7 @@ units:
     kind: rule
     title: P-MIG-006 protected durable directory semantics
     modality: must
-    statement: Models, dependencies, and environments change only through Runtime management or job paths; app principal data remains delete-only after record removal or tombstone until explicit user deletion; and durable account data requires explicit user, export, or delete policy.
+    statement: Models, dependencies, and environments change only through Runtime management or job paths; registered-App-subject-scoped data remains delete-only after record removal or tombstone until explicit user deletion; and durable account data requires explicit user, export, or delete policy.
     condition: When protected nimi_data content changes or its owning record is removed.
     failure: Deny an ownerless, implicit, or unconfirmed durable-data mutation.
     relations:

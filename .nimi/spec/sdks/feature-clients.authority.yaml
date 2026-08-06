@@ -13,11 +13,12 @@ units:
   - id: definition.nimi.sdks.feature-clients.app-client-plane
     kind: definition
     title: SDK app client plane
-    meaning: The SDK app client plane owns the typed consumer surface over the current Runtime local-development record projection and final host-injected local-app carrier, covering the sole admitted access path, fixed read-only operation set, launch and installer non-ownership, typed fail-closed projection state, future catalog non-activation, storage and permission declaration boundaries, generated-app auth composition, bootstrap custody, Desktop Open Intent data surfaces, and the protected local-app selected voice client; ordinary catalog, release review, account inventory, package readiness, install, update, repair, and lifecycle event surfaces are deferred and physically absent.
+    meaning: The SDK app client plane is the sole supported typed consumer surface over a Desktop-verified exact Host connection and fresh Runtime protected App session; it projects access availability, purpose-specific typed methods governed internally by the Runtime-owned Effective App Access Snapshot and central App Operation Contract, bounded App-private storage and App AIConfig operations, the minimal current-user display projection, exact owner-domain results, and typed failures without exposing the snapshot or contract as App data and without owning admission, declaration mapping, account truth, credentials, Host lifecycle, or marketplace truth.
   - id: definition.nimi.sdks.feature-clients.permission-plane
     kind: definition
+    lifecycle: removed
     title: SDK permission plane
-    meaning: The SDK permission plane owns the sole app-facing typed projection of the Platform product-facing public permission catalog for third-party apps, covering posture reads, user-comprehensible requests, posture subscriptions, the closed catalog, public versus internal enforcement separation, one-shot and cross-app non-admission, app-private authority exclusion, and the separation of review evidence from permission.
+    reason: Removed because third-party App access derives from declaration and Runtime admission with no public permission catalog, status, request, subscription, grant, revoke, or permission-settings product surface.
   - id: definition.nimi.sdks.feature-clients.proposal-plane
     kind: definition
     title: SDK proposal plane
@@ -233,17 +234,21 @@ units:
     kind: rule
     title: The app client is the sole admitted access path
     modality: must
-    statement: The SDK Nimi App client surface is the only admitted typed path for apps, developers, and the Desktop hosted shell to consume current Runtime local-development record status and the host-injected local-app carrier, retained Platform catalog rows and release descriptors remain future-only read-only metadata that do not enter the current Apps listing, account inventory and package readiness SDK surfaces are physically absent, and apps, developers, and shells never bypass the SDK to read or write Platform catalog configuration directly, call Runtime private registration methods directly, privately implement installer, package-manager, or source-selector logic, or select principal, launch, account, grant, or session through an app id, path, manifest, renderer metadata, or SDK argument.
-    condition: Whenever current local-development record or carrier data is consumed or future Platform catalog metadata is inspected.
-    failure: Reject bypass paths and caller-side authority selection.
+    statement: The host-injected SDK App client is the only supported App-facing path to Runtime protected App operations; installed, local-import, and developer sources, when each is separately admitted by lifecycle authority and runnable, reuse the owner registration, declaration, verified Host, protected session, and Runtime admission path, while Desktop inventory and marketplace or review projections remain display and tooling concerns that cannot create, enlarge, or replace App access; SDK callers never select account, subject, launch witness, session, snapshot, domain, operation identity, or classification and never bypass through Runtime private APIs, Realm bearer transport, bridge implementation details, local files, or catalog metadata.
+    condition: Whenever an App client, Desktop inventory projection, or host-injected carrier is constructed or consumed.
+    failure: Reject bypass paths, metadata-derived admission, and caller-selected authority.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r020
     kind: rule
     title: The inventory operation set is fixed and read-only
     modality: must
-    statement: The current SDK exposes only app.list, app.get, and app.status over an explicitly injected read-only local-development record projection, exposes no current Platform ordinary-catalog listing, authenticated account inventory, package-readiness accessor, lifecycle event subscription, app.install, app.update, app.uninstall, app.launch, app.healthRepair, import, promotion, or package-job operation, and local-development launch is native-host initiated and never an SDK app-id call.
+    statement: The current Desktop tooling SDK may expose only app.list, app.get, and app.status over an explicitly injected read-only Runtime registration projection; those inventory reads are outside the App Operation Contract and cannot admit or launch an App, while app.install, app.update, app.uninstall, app.launch, app.healthRepair, import, promotion, package-job, account-inventory, package-readiness, and lifecycle subscription operations remain absent and local-development launch is Desktop initiated rather than an SDK app-id call.
     condition: Whenever the current app read-projection operation set is defined or consumed.
     failure: Reject ordinary catalog activation, deferred projections, mutation operations, subscriptions, and inferred sources.
     relations:
@@ -253,7 +258,7 @@ units:
     kind: rule
     title: The SDK exposes no launch selector
     modality: must
-    statement: Local-development launch is executed only by the verified native local_app_control supervisor performing PrepareLocalAppLaunch, process bind, and request-empty session open, SDK and app code only consume the already injected carrier, and the SDK never exposes an app-id, path, scope, package, or host selector to create or recover a local-app session and never infers launch authority from active chat, renderer state, a default scope, or a manifest.
+    statement: Local-development launch and connection binding are performed only by Desktop's verified native Host supervisor, SDK and App code consume only the already injected App client, and the SDK never exposes an app-id, path, scope, package, or Host selector to create or recover a protected App session and never infers launch authority from active chat, renderer state, a default scope, or a manifest; exact supervisor methods, request encoding, service membership, and carrier transport remain implementation details.
     condition: Whenever local-app launch or session creation is approached.
     failure: Reject SDK launch selectors and inferred launch authority.
     relations:
@@ -263,9 +268,9 @@ units:
     kind: rule
     title: The app client owns no installer or marketplace truth
     modality: must_not
-    statement: The SDK Nimi App client surface owns installer, package-manager, PATH, or source-selector logic, marketplace, economy, review, or kill-switch truth, Nimi App admission decisions belonging to the Platform admission authority, runtime registration, sandbox, or process supervision truth belonging to Runtime, or GitHub, npm, or source workspace discovery truth.
+    statement: The SDK Nimi App client surface owns installer, package-manager, PATH, source-selector, marketplace, economy, review, kill-switch, Platform catalog or release admission, Runtime registration or protected App access admission, Desktop exact Host launch or process supervision, or GitHub, npm, or source-workspace discovery truth; conflates Platform catalog or release admission with Runtime protected App access admission; attributes Desktop exact Host launch or process supervision to Runtime; or treats sandbox as a Runtime truth.
     condition: Whenever app client ownership boundaries are evaluated.
-    failure: Reject ownership claims over installer, marketplace, admission, supervision, or discovery truth.
+    failure: Reject ownership, conflation, or attribution claims over installer, marketplace, catalog or release admission, Runtime access admission, Desktop launch or supervision, sandbox, or discovery truth.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
@@ -326,29 +331,35 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r029
     kind: rule
-    title: Private storage is principal-keyed and rootless
+    title: Private storage is subject-scoped and rootless
     modality: must
-    statement: Runtime private storage is partitioned by the inherited local_app_principal_id and never by app id, the local-app SDK carrier exposes no absolute root or root accessor, its only admitted storage surface is the exact JSON operation set of the app storage partition projection with all other storage and file operations remaining typed unavailable, the SDK never constructs or returns nimi-data apps app-id paths, accepts a principal selector, inspects Runtime config, or infers storage from filesystem existence, and tombstoned data is delete-only owner state that the SDK cannot rebind.
+    statement: Runtime private storage uses a Runtime-resolved Registered-App-Subject-scoped logical partition and never an app id, while the SDK exposes no physical layout, absolute root, root accessor, subject or partition identifier, or selector; its only admitted storage surface is the exact JSON operation set of the App storage projection with all other storage and file operations typed unavailable, and tombstoned data remains delete-only owner state that the SDK cannot inspect or rebind.
     condition: Whenever local-app private storage is accessed or projected.
-    failure: Reject root accessors, principal selectors, and tombstone rebinds.
+    failure: Reject physical-layout exposure, root accessors, subject or partition selectors, and tombstone rebinds.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r030
     kind: rule
-    title: Manifest permissions declare eligibility only
+    title: App declarations determine access eligibility only
     modality: must
-    statement: The developer-authored local-development manifest may carry only a permissions list of id and reason entries using admitted rows from the Platform public permission catalog, declaration is request eligibility and transparency and never authority, retained future registry or release metadata never enters the current SDK app projection, the runtime app client exposes no legacy scope or qualifier carriers and never derives live permission posture from a manifest, descriptor, registry row, or review record, live status and requests use only the host-injected permissions.status by permission id and permissions.request with permission id and reason surface, current posture comes from the row's single decision owner and an app declaration, trust tier, review result, app id, or prior success cannot manufacture granted, the SDK rejects unknown, reserved, or non-admitted permission ids before a positive request and never exposes AIScopeRef, scopeFamily, scopeName, qualifier, internal operationId or resourceRef, selector fingerprints, or owner grant identifiers, and base entitlements and app-owned authority are forbidden from manifest permission declarations and remain usable without a permission request.
-    condition: Whenever manifest permission declarations or live posture are consumed.
-    failure: Reject manufactured grants, legacy carriers, and internal identity exposure.
+    statement: A registered App source carries only admitted App Access Domain declarations; declaration is eligibility input to Runtime's closed domain-to-operation mapping and never a user-mediated access workflow or durable authorization record, unknown domains remain inert for the same declaration generation, and the SDK never exposes or accepts scope, qualifier, internal resource identity, snapshot identity, classification, account, subject, session, AppOperationId, selector fingerprint, durable authorization identifier, marketplace review, or trust metadata as an authority input.
+    condition: Whenever an App declaration or effective access projection is authored, validated, or consumed.
+    failure: Reject unknown authority carriers, manufactured access, and declaration-derived success outside Runtime admission.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-access-domain
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r031
     kind: rule
     title: Destructive local-app data deletion is unadmitted
     modality: must
-    statement: 0K admits no immutable uninstall and no SDK delete-data prompt or action, a local-app principal tombstone leaves retained durable data as Runtime-owned delete-only state that reinstall, reauthorization, the same app id, the same project, or SDK inventory composition cannot rebind, the SDK never exposes app.uninstall, force-delete, a retain-or-delete choice, an absolute data path, a size-derived deletion decision, direct filesystem mutation, or pseudo-success cleanup, and a future deletion surface requires its own Runtime owner operation, fresh presence, impact preview, principal-bound target, and positive and negative evidence without reshaping the 0K principal and record seam.
+    statement: 0K admits no immutable uninstall and no SDK delete-data prompt or action, a Registered App Subject tombstone leaves retained durable data as Runtime-owned delete-only state that reinstall, reauthorization, the same app id, the same project, or SDK inventory composition cannot rebind, and the SDK never exposes app.uninstall, force-delete, a retain-or-delete choice, an absolute data path, a size-derived deletion decision, direct filesystem mutation, or pseudo-success cleanup.
     condition: Whenever local-app data deletion is approached.
     failure: Reject deletion surfaces, rebinds, and pseudo-success cleanup.
     relations:
@@ -358,7 +369,7 @@ units:
     kind: rule
     title: No callable file-API client exists
     modality: must
-    statement: The SDK Nimi App client surface admits no callable file-API client in the current public SDK, the consumer-side operations file.read, file.write, file.list, file.delete, and file.move are explicitly non-admitted and never exposed as active SDK APIs, the former app-local-drafts, file.read.scoped, and file.write.scoped permission vocabulary is retired, no generic Runtime-mediated file API is admitted, the three exact JSON storage operations are not a file client because they accept no bytes, directory, move, raw delete, mode, range, root, or absolute-path input, the SDK never maps retired file-scope grants to hidden Runtime methods, Desktop bridge helpers, Realm REST calls, generic HTTP proxy calls, or direct filesystem paths, missing file client support is a fail-closed non-admission state and never a fallback to another transport, the SDK exposes no legacy file-scope declaration or grant projection, and future external-file access can be admitted only through the files.open and files.save one-shot picker rows and their owner-issued handles.
+    statement: The SDK App client exposes no callable generic file API; file read, write, list, delete, move, arbitrary bytes, directories, ranges, roots, and absolute paths are absent, the bounded App-private JSON storage operations do not form a file client, and unsupported file access never falls back to hidden Runtime methods, Desktop helpers, Realm calls, generic HTTP, or direct filesystem paths.
     condition: Whenever file-API access is requested from the app client.
     failure: Fail closed on non-admission and reject hidden mappings and legacy projections.
     relations:
@@ -373,17 +384,23 @@ units:
     kind: rule
     title: Generated-app auth composition is closed
     modality: must
-    statement: The SDK admits the root createNimiClient composition path for generated Nimi app auth and client construction, the local-app branch returns only the bounded local-app surface and admits exactly the public names createNimiClient, NimiClientConfig, NimiClientLocalAppConfig, NimiLocalAppClient, NimiLocalAppStandardShell, NimiAppAuthMode, NimiAppAuthProjection, NimiAppAuthUnavailable, and NimiAppLocalSessionProjection, NimiAppAuthMode is the closed mode set local-first-party-app and local-app, local-first-party-app is available only to the retained bundled first-party composition and cannot be selected by a third-party app, project, manifest, fixture, or mode string or inferred from Desktop launch with shipped Zhiyu and Avatar remaining bundled and an isolated Zhiyu integration build using local-app instead, local-app maps only to the Runtime LOCAL_APP caller where the SDK receives a host-injected typed standard-shell carrier and projects session status, public permission posture and request, app-private JSON storage, and the exact realm.worldCore.list and realm.worldCore.create operations backed only by Runtime WorldCoreController_listWorldCores and WorldCoreController_createWorldCore mediation while never receiving principal, record, or permission-decision identifiers, launch material, process proof, endpoint, bearer, authorization metadata, Runtime caller identity, or method selection, a valid session projects as session-bound independently of every permission so base entitlements may work while protected permissions remain unavailable, NimiAppAuthProjection distinguishes session-bound, action-required, revoked, project-changed, process-replaced, account-changed, Runtime-restarted, and unavailable states with permission posture exposed only through the separate product permission client and never changing session state, NimiAppAuthUnavailable is the typed fail-closed branch for an absent carrier, failed principal or record resolution, unavailable custody, or an unavailable operation owner, no mode accepts app-owned access tokens, refresh tokens, session stores, subject providers, direct Realm login credentials, refresh-token providers, raw JWTs, decoded subject fields, or any app-controlled token custody as input, generated third-party and developer auth never calls the Realm auth login or refresh routes, SDK Realm login routes, or direct Realm token exchange as app auth truth, every other later-admitted Realm data access requires another exact Runtime-owned protected operation with no mode holding a short-lived token exception, and local-app never uses mock auth, disabled gates, anonymous subject fallback, fixture-mode success, direct daemon access, or first-party self-declaration and never becomes local-first-party-app by setting a mode string, app id, app instance id, workspace profile, package metadata, or Desktop launch metadata.
+    statement: The generated third-party App branch accepts only the verified host-injected carrier, binds a fresh Runtime protected session to the Runtime-resolved Registered App Subject and Effective App Access Snapshot, and exposes only purpose-specific typed methods whose exact membership comes from the central App Operation Contract; App AIConfig overwrite accepts portable intent only, atomically removes any prior ConnectorGrant binding from the overwritten configuration, and leaves Cloud execution selection-required until a Nimi-owned explicit-user flow attaches a current-account ConnectorGrant; the branch exposes access available or unavailable independently of App process and tooling state and never accepts or returns account authority, subject, registration, declaration generation, snapshot, AppOperationId, AppAccessDomainId, classification, launch witness, process proof, endpoint, bearer, refresh token, authorization metadata, Runtime caller identity, method selector, user-mediated access API, durable access record, or generic forwarding, and it never uses direct Runtime or Realm fallback, mock success, anonymous identity, first-party self-declaration, or carrier reconstruction.
     condition: Whenever generated-app auth or client composition is constructed.
     failure: Fail closed on absent carriers and reject app-owned tokens, Realm bypasses, and pseudo-success.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r035
     kind: rule
     title: App storage projection is an exact JSON set
     modality: must
-    statement: A Local App may use bounded typed App-private JSON storage as a base entitlement under the current Runtime-derived principal, session, and account partition, while SDK receives no storage root, absolute path, principal identifier, quota authority, generic file operation, binary storage, directory access, or authority-bearing selector; Runtime enforces canonical relative paths, resource bounds, filesystem safety, atomic writes, and idempotent removal according to the owning implementation contract.
+    statement: A Local App may use the bounded typed App-private JSON storage operations admitted by the central App Operation Contract under the current Runtime-derived subject, session, and account partition without a user-mediated access workflow, while SDK receives no storage root, absolute path, subject or partition identifier, quota authority, generic file operation, binary storage, directory access, or authority-bearing selector; Runtime enforces canonical relative paths, resource bounds, filesystem safety, atomic writes, and idempotent removal according to the owning implementation contract.
     condition: Whenever app-private storage operations are exposed or invoked.
     failure: Reject root and selector inputs and keep non-admitted operations typed unavailable.
     relations:
@@ -413,7 +430,7 @@ units:
     kind: rule
     title: Local records project without identity leakage
     modality: must
-    statement: The SDK exposes read-only typed status for the current host-injected local-app carrier covering local_development trust class, record state, session state, public permission posture, and typed reason, the projection omits local_app_principal_id, lineage, SID partition, launch, process, and session identifiers, permission-decision identifiers and revisions, digests, and provenance-attestation refs, the SDK exposes no workspace-adoption, install, import, promote, package-readiness, account-inventory, or repair accessor, and SDK, Desktop, and apps never scan workspaces or infer a record from a manifest, path, app id, or file existence.
+    statement: The SDK exposes read-only typed status for the current host-injected App carrier covering source class, registration state, protected-session availability, tooling activity, and typed reason; it omits account authority, subject, lineage, partition, launch, process, session, declaration-generation, snapshot, operation, decision, digest, fingerprint, and attestation identities, and SDK, Desktop, and Apps never scan workspaces or infer registration or access from a manifest, path, app id, file existence, marketplace row, or prior success.
     condition: Whenever local app records are projected.
     failure: Reject identity leakage and inferred records.
     relations:
@@ -423,10 +440,16 @@ units:
     kind: rule
     title: Local-app bootstrap custody is bounded
     modality: must
-    statement: The Local App SDK bootstrap accepts only the verified host-injected shell integration and exposes typed session posture, product permission posture and request, App-private storage, and admitted business operations; it exposes no account, principal, authorization decision, credential, Realm JWT, Provider Credential, Runtime proof, endpoint, generic method forwarding, or host security material, and App-native data and product commands remain App-owned.
+    statement: The Local App SDK bootstrap accepts only the verified host-injected carrier and exposes typed access availability, purpose-specific typed methods from the central App Operation Contract whose calls Runtime evaluates against its internal Effective App Access Snapshot, and the minimal current-user display projection containing exactly handle, displayName, and nullable avatarUrl under its safe-display constraint; it exposes no account id or generation, subject, authorization decision, credential, Realm JWT, Provider Credential, Runtime proof, endpoint, snapshot, generic method forwarding, or host security material, and App-native data and commands remain App-owned.
     condition: Whenever the local-app bootstrap surface is constructed or consumed.
     failure: Fail closed on missing carriers and reject authority material in input or output.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.current-user-display-projection
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r041
@@ -441,114 +464,59 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r042
     kind: rule
+    lifecycle: removed
     title: Local App voice consumption stays Runtime owned
-    modality: must
-    statement: When separately admitted for a Local App, voice input or output is a typed Runtime LocalAgent projection preserving LocalAgent and Conversation continuity; SDK and Kit never select provider, model, route, machine configuration, fallback, prompt, identity, credential, or Avatar control, never create durable voice truth, and fail closed when authorization, exact composition admission, correlation, or Runtime stream truth is unavailable.
-    condition: Whenever the local-app selected voice client is exposed or invoked.
-    failure: Fail closed with the typed error envelope and reject forbidden fields and constructed calls.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.app-client-plane
+    reason: Removed because voice operations are not in the current central App Operation Contract and no shadow or conditional third-party App voice surface is admitted.
   - id: rule.nimi.sdks.feature-clients.r043
     kind: rule
+    lifecycle: removed
     title: The permission client is the sole public path
-    modality: must
-    statement: When a public permission slice is completely admitted, the SDK permission client is the only public path for an app to query its own posture, initiate a user-comprehensible request, and subscribe to its own posture changes, the transport is injected by Kit or the native host and derives app, account, principal, and OS-user identity from the protected carrier, and apps never directly call Realm grant REST, Runtime private grant RPCs, or Cognition private endpoints and never read or write the grant ledger through bridge implementation details.
-    condition: Whenever public permission posture is queried, requested, or subscribed.
-    failure: Reject direct grant paths and bridge ledger access.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed because the product has no third-party App permission client, posture, request, subscription, or grant ledger.
   - id: rule.nimi.sdks.feature-clients.r044
     kind: rule
+    lifecycle: removed
     title: The permission operation set is minimal
-    modality: must
-    statement: The SDK permission logical surface is fixed to permission.status returning one public posture of the calling app for a public id, permission.request initiating one public permission request with permission id and reason where an owner-owned picker takes over when a selector is needed, and permission.subscribe subscribing to posture changes of the calling app for that id, the ordinary app surface exposes no scope-wide list, get by grant id, revoke by grant id, grant history, raw lifecycle, or other-app rows, user revocation and audit management belong to Desktop Settings, and a future app-initiated release is admitted only as an independent public semantic operation without reusing raw grant ids.
-    condition: Whenever the permission client surface is defined or consumed.
-    failure: Reject grant lifecycle operations and raw grant id reuse.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed because permission status, request, subscribe, revoke, history, and settings operations are not product surfaces.
   - id: rule.nimi.sdks.feature-clients.r045
     kind: rule
+    lifecycle: removed
     title: Request input is permission id plus reason
-    modality: must
-    statement: Permission request input is exactly a permissionId plus a reason where the reason is a bounded user-facing explanation and never authority, app, account, principal, session, and OS-user anchors derive from the protected carrier, selectors and selector digests derive from the catalog-designated owner picker, and public SDK inputs, types, and exports never contain AIScopeRef, scopeFamily, scopeName, qualifier, operationId, resourceRef, grantId, raw account, principal, or session identity, tokens, or credentials.
-    condition: Whenever a permission request is composed.
-    failure: Reject authority-bearing inputs and forbidden identity fields.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed because App access has no permission request input or user-facing reason carrier.
   - id: rule.nimi.sdks.feature-clients.r046
     kind: rule
+    lifecycle: removed
     title: The permission catalog is closed
-    modality: must
-    statement: PermissionID contains only stable product ids admitted by the Platform public permission authority, reserved or future ids remain typed unavailable, the current LocalAgent interaction permission allows only owner-selected LocalAgent Conversation operations without account-wide LocalAgent inventory or caller-built selectors, and ai.text.generate allows only the exact foreground plain-text candidate operation without principal substitution, direct Avatar control, embedded rendering, generic AI forwarding, caller-selected routing, or authority over App launch, private storage, host commands, or App-owned UI.
-    condition: Whenever permission ids are validated for status or request.
-    failure: Fail closed before transport on reserved or unadmitted ids.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed because exact App operations are owned by the central App Operation Contract rather than a public permission catalog.
   - id: rule.nimi.sdks.feature-clients.r047
     kind: rule
+    lifecycle: removed
     title: Posture is public and never grant lifecycle
-    modality: must
-    statement: The app-facing posture closed set is prompt, pending, granted, denied, and unavailable returning at least permissionId, posture, and canRequest, the SDK fails closed when the transport returns unknown values, mismatched ids, positive posture for reserved ids, or missing fields, the owner lifecycle values expired, revoked, and superseded plus revision, fingerprint, and transition history never become ordinary app API, and the SDK never projects a missing record, transport error, or reserved id as granted.
-    condition: Whenever permission posture is projected.
-    failure: Fail closed on unknown or mismatched values and reject granted fabrication.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed because prompt, pending, granted, denied, revoked, and permission posture are not third-party App product states.
   - id: rule.nimi.sdks.feature-clients.r048
     kind: rule
+    lifecycle: removed
     title: No fallback and no parallel ledger
-    modality: must
-    statement: Permission failures return typed actionable errors, and the SDK never provides a fallback allow parameter, a default scope, an implicit current app, a client-side optimistic grant, an offline allow, a merged Realm and Runtime double ledger, or a treatment of publish or review trust as permission.
-    condition: Always.
-    failure: Reject fallback grants and parallel ledgers.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed with the permission plane; no permission or grant ledger exists, and the surviving no-fallback rule is carried by the App client and Runtime admission contract.
   - id: rule.nimi.sdks.feature-clients.r049
     kind: rule
+    lifecycle: removed
     title: Public and internal enforcement stay separate
-    modality: must
-    statement: One public permission may be mapped by its owner to multiple exact operations, resource checks, quotas, budgets, rates, presence, and audit events with those mappings remaining in the owner backend, and the SDK and renderer see only the public id, reason, public posture, and owner-hosted picker flow and never request item by item per method, anchor, turn, stream, or app-private file.
-    condition: Whenever permission enforcement mappings are consumed.
-    failure: Reject internal mapping exposure and per-item requests.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed because declaration domains map directly to the central App Operation Contract and there is no public permission or item-request layer.
   - id: rule.nimi.sdks.feature-clients.r050
     kind: rule
+    lifecycle: removed
     title: One-shot and cross-app rows stay reserved
-    modality: must
-    statement: The files.open, files.save, artifacts.open, and shared_resources.open rows are currently reserved one-shot rows, and until the owner picker, non-forgeable handle, consume semantics, and audit are atomically admitted the SDK exposes no callable file or cross-app shortcut, target app id, path, or generic durable grant.
-    condition: Whenever one-shot or cross-app permission rows are approached.
-    failure: Reject shortcuts and durable grants before atomic admission.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed because future one-shot and cross-App permission rows do not belong in the current App access contract.
   - id: rule.nimi.sdks.feature-clients.r051
     kind: rule
+    lifecycle: removed
     title: App-private authority is not permission
-    modality: must
-    statement: Nimi-mediated private JSON storage is the app.private_storage base entitlement, app-built SQLite, media, settings, cache, routes, and exact native commands are app_owned_authority, ordinary filesystem, network, process, and device authority is an os_right, none of the three enters PermissionID, manifest permission requests, the grant ledger, or user approval UI, and SDK storage and host-command helpers still depend on the live protected carrier, opaque principal and account partition, and path, quota, symlink, origin, and payload checks because not being a user permission does not mean having no security boundary.
-    condition: Whenever app-private authority classes are classified or consumed.
-    failure: Reject permission-catalog entry of excluded classes and unchecked helper access.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed with the permission plane; the surviving App-private storage boundary is owned by the active App client storage rule.
   - id: rule.nimi.sdks.feature-clients.r052
     kind: rule
+    lifecycle: removed
     title: Deferred release review never enters permission
-    modality: must
-    statement: Retained Platform release review metadata is future-only configuration and never appears in the current SDK app client, permission posture, permission requests, subscriptions, or owner grant lifecycle, review metadata and public permission posture vocabularies remain mutually exclusive, and a review result never seeds or enlarges a grant.
-    condition: Whenever review evidence meets permission surfaces.
-    failure: Reject review-driven grants and vocabulary mixing.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+    reason: Removed with the permission plane; the active App client path directly states that marketplace and review metadata never create or enlarge Runtime access.
   - id: rule.nimi.sdks.feature-clients.r053
     kind: rule
     title: Proposal intake goes through the SDK only
@@ -841,23 +809,20 @@ units:
         target: definition.nimi.sdks.feature-clients.package-plane
   - id: rule.nimi.sdks.feature-clients.r100
     kind: rule
+    lifecycle: removed
     title: Local App conversation attachments stay bounded
-    modality: must
-    statement: The local-app standard shell admits conversation turn submission carrying at most one Runtime artifact reference per turn together with bounded image artifact upload and readback limited to the calling app's own artifacts; attachment bytes never cross app-local storage, the artifact id never authorizes reference or read, and a turn requires text or one attachment at minimum one.
-    condition: Whenever a local app submits or renders a conversation turn carrying an attachment.
-    failure: Reject excess attachments, cross-owner reference or read, and app-local attachment bytes with a typed failure.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.app-client-plane
+    reason: Removed because attachment upload, readback, and artifact-reference operations are absent from the current central App Operation Contract.
   - id: rule.nimi.sdks.feature-clients.r101
     kind: rule
     title: Local App text candidate generation is one bounded typed operation
     modality: must
-    statement: The host-injected Local App client exposes ai.text.generateCandidate only after the complete ai.text.generate permission slice is admitted, accepts only bounded plain-text system and user messages plus temperature, topP, and maxTokens, returns only text, finishReason, and traceId, and never exposes ExecuteScenario, a Runtime client, method names, protobuf bytes, model or provider selection, route or target refs, tools, media, streams, jobs, credentials, account identity, or generic forwarding; the SDK supplies no route selector because Runtime consumes the calling App owner's committed AIConfig and may execute its Local or Cloud composition without permission or SDK override and without fallback.
+    statement: The host-injected App client exposes the bounded typed runtime.ai.text-candidate.generate method while the central App Operation Contract maps that operation to runtime.consume and Runtime alone admits a call when its internal Effective App Access Snapshot covers runtime.consume; the method accepts only bounded plain-text system and user messages plus temperature, topP, and maxTokens, returns only text, finishReason, and traceId, and never exposes the snapshot, ExecuteScenario, a Runtime client, method names, protobuf bytes, model or provider selection, route or target refs, tools, media, streams, jobs, credentials, account authority, or generic forwarding; Runtime consumes the calling App owner's committed AIConfig without SDK override or fallback.
     condition: Whenever a Local App requests foreground AI-generated candidate text.
-    failure: Fail closed before transport on invalid input or absent host carrier and preserve permission and Runtime typed failures without fabricating candidate text.
+    failure: Fail closed before transport on invalid input or absent host carrier and preserve Runtime admission and execution failures without fabricating candidate text.
     relations:
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.app-client-plane
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
-        target: definition.nimi.sdks.feature-clients.permission-plane
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane

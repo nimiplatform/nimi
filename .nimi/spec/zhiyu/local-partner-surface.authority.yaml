@@ -82,7 +82,7 @@ units:
     kind: rule
     title: Runtime state remains typed
     modality: must
-    statement: Zhiyu renders Runtime message, activity, emotion, voice, permission, cancellation, request-time derived-admission, and exact Job-failure projections without inventing fallback values, aggregate AI readiness, or converting unknown state into success.
+    statement: Zhiyu renders Runtime message, activity, emotion, voice, operation-specific owner decision, cancellation, request-time derived-admission, and exact Job-failure projections without inventing fallback values, aggregate AI readiness, or converting unknown state into success.
     condition: Whenever Zhiyu consumes Runtime state.
     failure: Preserve the typed unavailable or failure state.
     relations:

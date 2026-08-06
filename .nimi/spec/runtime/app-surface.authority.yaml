@@ -5,28 +5,36 @@ units:
   - id: definition.nimi.runtime.app-surface.app-lifecycle-plane
     kind: definition
     title: Runtime app lifecycle plane
-    meaning: The Runtime app lifecycle plane currently owns only the Desktop-hosted local-development lifecycle over PC-local development principals and records, protected local-app launch preparation and process binding, the Runtime-mediated file API non-admission boundary, and the protected local-app control protocol; ordinary install, update, repair, inventory, package-readiness, and public-distribution lifecycle behavior is deferred and physically absent from the current wire, SDK, and Runtime.
+    meaning: The Runtime app lifecycle plane owns the common per-user canonical registration record, declaration generations, stable Registered App Subject, and protected-session seam used by installed, local-import, and development Apps; Desktop owns the registration workflow, source and declaration evaluation, exact Host launch, and process supervision, while Runtime protected ingress consumes the resulting exact launch witness and owns post-launch peer, current-account, session, snapshot, and operation-admission binding; production package format, installer, update, distribution, marketplace, and review remain outside App access semantics and retain their separate authority.
   - id: definition.nimi.runtime.app-surface.app-messaging-plane
     kind: definition
-    title: Runtime app messaging plane
-    meaning: The Runtime app messaging plane owns the current RuntimeAppService method set, app-to-app message send and subscribe semantics, protected local-app JSON storage, protected local-development launch and process binding, the app message event vocabulary, the messaging security baseline, the single admitted runtime-owned messaging path, cross-domain consumption contracts, delivery, retention, and backpressure semantics, the reserved runtime.agent reactive chat target, the companion multi-app interaction boundary, and the Avatar runtime boundary.
+    title: Runtime internal Agent carrier plane
+    meaning: The Runtime internal Agent carrier plane owns only the fixed first-party Runtime Agent ingress and projection subtypes needed by Runtime-owned Agent execution and Avatar projection; no generic Third-party App message send, subscription, bus, SDK mapping, cross-App routing, or durable messaging product surface is admitted.
   - id: definition.nimi.runtime.app-surface.app-projection-plane
     kind: definition
     title: Runtime app projection plane
     meaning: The Runtime app projection plane owns current app-private storage truth, protected local-app JSON storage operations, and the retired local adoption boundary; ordinary app health, response-state, support next-action, package-readiness, and account app-inventory projections are deferred and physically absent.
   - id: definition.nimi.runtime.app-surface.local-app-principal-record-plane
     kind: definition
-    title: Runtime local-app principal and record plane
-    meaning: The Runtime local-app principal and record plane owns the PC-local development LocalAppPrincipal and LocalAppRecord lifecycle seam, including the local OS-user partition, the stable local security principal, the development lifecycle record, and owner separation with immutable per-operation resolution; no ordinary package principal or package record seam is admitted in the current product.
+    lifecycle: removed
+    title: Retired Runtime local-app principal and record plane
+    reason: Removed because Registered App Subject is the sole current App security-subject term and physical record or storage identity remains Runtime implementation without a principal alias.
+  - id: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
+    kind: definition
+    title: Runtime Registered App Subject and record plane
+    meaning: The Runtime Registered App Subject and record plane owns one per-user registered App subject and record seam shared by installed, local-import, and development sources, including source class, source generation, declaration generation, stable non-reused opaque subject, security-relevant Host launch facts, lifecycle state, and immutable per-operation resolution without permission or marketplace state; physical record and storage layout remains Runtime implementation.
+    relations:
+      - type: supersedes
+        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
   - id: definition.nimi.runtime.app-surface.auth-service-plane
     kind: definition
     title: Runtime auth service plane
-    meaning: The Runtime auth service plane owns authenticated Runtime session lifecycle and process-bound Local App identity, derives current account and App identity inside Runtime, validates any separately admitted external principal, revokes stale access, and never turns registration, a manifest, or caller-supplied identity into product authority.
+    meaning: The Runtime auth service plane owns authenticated Runtime session lifecycle and process-bound Local App identity, derives the current account context and Effective App Access Snapshot from the verified Host, registered subject, source generation, and declaration generation, validates any separately admitted external principal, and never accepts caller-supplied identity, snapshot, operation, domain, or classification truth.
   - id: rule.nimi.runtime.app-surface.r001
     kind: rule
     title: K-APP ownership boundary is fixed
     modality: must
-    statement: Runtime K-APP owns the current PC-local development principal and record lifecycle and does not own Platform package format, ordinary package distribution, K-GRANT grant state, K-PLOCAL process and session facts, account custody, or operation-domain policy.
+    statement: Runtime K-APP owns the common installed, local-import, and development registered-subject and record lifecycle and does not own Platform package format or distribution, protected process and session facts, account custody, the canonical App operation contract, or owner-domain business policy.
     condition: Whenever app lifecycle authority ownership is interpreted.
     failure: Reject lifecycle semantics owned outside Runtime K-APP and K-APP claims over the excluded authorities.
     relations:
@@ -36,7 +44,7 @@ units:
     kind: rule
     title: Lifecycle mutations require the protected control carrier
     modality: must
-    statement: All admitted K-APP development lifecycle mutations require Runtime-derived local_app_control on the current protected Desktop connection, and public TCP, app id, caller enum, renderer metadata, request confirmation, endpoint, environment, or portable bearer is denied before target parsing.
+    statement: All admitted K-APP development lifecycle mutations require the current protected Desktop control connection, and public TCP, app id, caller enum, renderer metadata, request confirmation, endpoint, environment, or portable bearer is denied before target parsing.
     condition: Whenever a lifecycle mutation request arrives.
     failure: Deny the request before target parsing.
     relations:
@@ -44,14 +52,9 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r003
     kind: rule
-    title: Ordinary package admission is deferred and physically absent
-    modality: must
-    statement: Ordinary package install and import are deferred, their RPCs, messages, enums, generated clients, SDK facades, Runtime handlers, placeholder errors, and restoration inputs are physically absent, and no catalog download, local adoption, source directory, unsigned package path, ignored field, compatibility decoder, or alternate method may create an ordinary package principal or runnable record; any future admission requires new canonical authority and a new wire design without reusing the removed placeholder contract.
-    condition: Whenever ordinary package install or import is requested, shaped, generated, or restored.
-    failure: Reject the request or restoration attempt without creating principals or records and without reintroducing a placeholder surface.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-lifecycle-plane
+    lifecycle: removed
+    title: Retired ordinary package principal non-admission
+    reason: Removed because installed and local-import Apps now use the same Runtime registration, declaration, verified launch, and protected-session model as development Apps while installer and distribution details remain separately owned.
   - id: rule.nimi.runtime.app-surface.r004
     kind: rule
     title: Ordinary lifecycle job projections are deferred
@@ -74,11 +77,11 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r006
     kind: rule
-    title: Development revoke and tombstone lifecycle is transactional
+    title: Development removal and tombstone lifecycle is transactional
     modality: must
-    statement: Revoking a development authorization transactionally revokes its leases and sessions and permanently tombstones the principal, retained durable data remains keyed to the tombstone and is delete-only after fresh presence, re-authorization allocates a new non-reused principal and inherits no permission decision, storage, app-scoped audience, session, or audit subject, and ordinary remove and uninstall are deferred and physically absent rather than represented by unavailable placeholders.
-    condition: Whenever a development authorization is revoked.
-    failure: Reject non-transactional removal, tombstone reuse, and inherited authority.
+    statement: Explicit removal of a development registration transactionally invalidates its live launch correlations, process bindings, sessions, Effective App Access Snapshots, Agent handles, and streams and permanently tombstones the subject; account, declaration-generation, and Runtime changes invalidate only affected ephemeral access and never implicitly delete registration or rotate the stable subject, while a source-generation change re-evaluates exact Host launch inputs and requires a new verified launch only when the executable, entrypoint, another security-relevant launch input, or the process fact changed.
+    condition: Whenever a development registration is explicitly removed or a session, declaration, Runtime, or source fact changes.
+    failure: Reject non-transactional explicit removal, tombstone reuse, implicit registration deletion, and stale ephemeral access.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
@@ -86,7 +89,7 @@ units:
     kind: rule
     title: Ordinary update and promotion are deferred
     modality: must
-    statement: Ordinary update and imported-to-verified promotion are deferred, and their RPCs, messages, generated clients, SDK facades, Runtime handlers, tests, and configuration restoration inputs are physically absent; no current principal or record contract reserves their future semantics, and future admission requires new canonical authority.
+    statement: Ordinary update and imported-to-verified promotion are deferred, and their RPCs, messages, generated clients, SDK facades, Runtime handlers, tests, and configuration restoration inputs are physically absent; no current Registered App Subject or record contract reserves their future semantics, and future admission requires new canonical authority.
     condition: Whenever ordinary update or promotion is requested, shaped, generated, or restored.
     failure: Reject the request or restoration attempt without a placeholder, compatibility path, or inferred future contract.
     relations:
@@ -96,7 +99,7 @@ units:
     kind: rule
     title: Ordinary repair and reinstall are deferred
     modality: must
-    statement: Ordinary repair and reinstall are deferred, and their RPCs, messages, generated clients, SDK facades, Runtime handlers, tests, and configuration restoration inputs are physically absent; development recovery uses supervised rebuild and restart plus a new K-PLOCAL lease and session and never aliases an ordinary repair or reinstall operation.
+    statement: Ordinary repair and reinstall are deferred, and their RPCs, messages, generated clients, SDK facades, Runtime handlers, tests, and configuration restoration inputs are physically absent; development recovery uses supervised rebuild and restart plus a fresh verified launch and session and never aliases an ordinary repair or reinstall operation.
     condition: Whenever ordinary repair, reinstall, or development recovery is requested or restored.
     failure: Reject ordinary repair or reinstall without a placeholder or side effect and keep development recovery on the supervised path.
     relations:
@@ -104,21 +107,21 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r009
     kind: rule
-    title: PrepareLocalAppLaunch is the sole launch preparation RPC
+    title: Runtime consumes one exact Desktop launch witness after launch
     modality: must
-    statement: PrepareLocalAppLaunch is the sole local-app launch preparation RPC, it is callable only by Runtime-derived local_app_control and selects one active record by opaque local_app_record_id, Runtime resolves the OS-user anchor, principal, provenance revision, release-or-project generation, capability fingerprint, execution profile, host and payload digest slots, current account, and boot epoch, and success creates one short-lived K-PLOCAL launch lease and returns only an opaque host-private local_app_bootstrap plus expiry without launching a raw executable, creating a session or grant, or returning principal, account, or provenance details.
-    condition: Whenever local-app launch preparation is requested.
-    failure: Reject launch preparation outside this RPC and responses exceeding the bootstrap-plus-expiry shape.
+    statement: After Desktop launches one exact Host, Runtime protected ingress consumes one fresh host-private launch witness from the current protected Desktop control connection and binds it to one active Registered App Subject, the current source and declaration generations, the declared security-relevant Host launch inputs, and that exact Host process; the witness creates no App session or operation authority, attests neither binary nor mutable project integrity, and returns no subject, account, credential, or declaration authority material.
+    condition: Whenever post-launch Local App peer binding is attempted.
+    failure: Reject missing, alternate, stale, portable, or mismatched launch witnesses and any witness result carrying authority material.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r010
     kind: rule
-    title: The positive launch profile is supervised local development
+    title: App source classes share one protected launch path
     modality: must
-    statement: BindLocalAppProcess and request-empty OpenLocalAppSession complete the protected process and session path under K-PLOCAL-008, the only positive current profile is an approved supervised local_development record, ordinary package execution profiles are deferred and physically absent, and a shortcut invokes the verified Nimi or Desktop launcher with a record selector and never points to app code.
-    condition: Whenever the protected launch path completes or a shortcut is created.
-    failure: Reject non-supervised positive profiles, active immutable profiles, and shortcuts pointing at app code.
+    statement: When separately admitted by their lifecycle owner, installed, local-import, and development records use the same Desktop-verified exact Host launch, fresh protected Local App session, declaration interpretation, and Runtime admission path, with only source registration and lifecycle provenance differing; installer, distribution, update, and marketplace facts do not alter App access semantics.
+    condition: Whenever an App from any admitted source class completes protected launch and session binding.
+    failure: Reject a source-specific access path, direct Runtime fallback, or marketplace-derived authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
@@ -126,7 +129,7 @@ units:
     kind: rule
     title: No generic local-app file API is admitted
     modality: must
-    statement: No generic local-app file API is admitted by 0K, principal-keyed private storage exists as an owner seam that apps cannot convert into raw filesystem or path authority, any future typed file operation must resolve the current principal and grant and must not expose another principal's root, and the exact JSON storage operations are not a generic file API because they do not admit raw bytes, roots, absolute paths, directory listing, range reads, move, mode, or arbitrary delete and therefore do not weaken this prohibition.
+    statement: No generic local-app file API is admitted, registered-subject-keyed private storage exists as an owner seam that Apps cannot convert into raw filesystem or path authority, and each typed storage operation resolves the current subject, classifies its exact AppOperationId as Base, enforces the Base-row invariants with the Runtime-private current snapshot context, and never exposes another subject's root; the JSON operations admit no raw bytes, roots, absolute paths, directory listing, range reads, move, mode, or arbitrary delete.
     condition: Whenever local-app file or storage access is designed or requested.
     failure: Reject generic file APIs and conversions of private storage into path authority.
     relations:
@@ -134,31 +137,31 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r012
     kind: rule
-    title: Protected control mutations are one transaction
+    title: Canonical registration mutations are one Runtime transaction
     modality: must
-    statement: Development mutations consume the live protected Desktop connection, local_app_control, current OS-user anchor, account, and boot epoch, exact target generation, and any presence challenge required by the Nimi-owned operation being requested in one service-owned transaction, the zero-permission local-project run decision is completed by the foreground verified Desktop confirmation UX itself and must not add a second Windows Hello, OS credential, or Realm reauthentication challenge, and returned evaluation and bootstrap ids are correlation only.
+    statement: Development registration mutations consume the live protected Desktop control connection, the Runtime-verified current local OS-user logical scope, and Desktop-evaluated source and declaration input in one Runtime K-APP-owned canonical record transaction that owns the Registered App Subject and current source and declaration generations; Desktop workflow and launch intent create no App access, consent, permission flow, or reusable authority state, while any returned evaluation or launch identifier remains correlation only.
     condition: Whenever a protected development mutation executes.
-    failure: Reject mutations outside the service-owned transaction and added second challenges.
+    failure: Reject registration mutations outside the Runtime-owned canonical record transaction, caller-authored generation truth, and added second challenges.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r013
     kind: rule
-    title: The local-app control role does not generalize
+    title: Protected Desktop control does not generalize
     modality: must
-    statement: The local_app_control logical role covers current local-development UX coordination, future permission UX, protected launch, and development supervision, it does not expose deferred ordinary lifecycle operations, does not generalize OpenDesktopSession account control, and creates no portable controller credential; a future controller requires a separate transport and identity admission while consuming the same logical role.
-    condition: Whenever the local-app control role is consumed or extended.
+    statement: Protected Desktop control covers local-development UX coordination, verified launch, and development supervision, does not own App access decisions, does not expose separately owned installer or distribution operations, does not generalize account control, and creates no portable controller credential.
+    condition: Whenever protected Desktop control is consumed or extended.
     failure: Reject account-control generalization and portable controller credentials.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r014
     kind: rule
-    title: Developer Mode is the sole positive lifecycle
+    title: Developer Mode governs only the development source lifecycle
     modality: must
-    statement: Production Developer Mode is the sole positive local-development lifecycle, enabling the global mode grants nothing, project evaluation resolves the declared App and executable identity without creating authority, the foreground verified host records each run or project decision, and manifest capability declarations are only request eligibility; the resulting isolated Local App receives no account, Runtime, Realm, LocalAgent, or permission authority until the current Runtime session and admitted product authorization allow an operation.
+    statement: Developer Mode enables only development-source registration, evaluation, launch, and supervision, grants no App operation by itself, and has no effect on installed or local-import access semantics; declaration domains become effective only through the current verified Host session and Runtime-derived Effective App Access Snapshot.
     condition: Whenever local development is enabled, evaluated, or decided.
-    failure: Reject authority creation outside the decide path and manifest-derived grants.
+    failure: Reject App access derived from Developer Mode, project evaluation, or launch intent instead of the current verified session and declaration-derived snapshot.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
@@ -166,139 +169,91 @@ units:
     kind: rule
     title: Development supervision rotates technical state only
     modality: must
-    statement: Every supervised host process uses PrepareLocalAppLaunch, a new process bind, and a new common local-app session, controlled HMR, rebuild, restart, and Runtime restart may preserve the durable authorization while rotating technical state, mode off, account switch or logout, supervisor end, and Runtime replacement revoke live leases, process bindings, and sessions without expiring an unchanged allow_project consent, explicit revoke, copied or changed project, capability expansion, shell, entry, or origin mismatch, or uncontrolled output invalidates that consent and requires fresh approval, preserved consent never auto-runs a host, when a run_once supervisor run reaches any terminal condition Runtime tombstones that principal and marks its record removed with another run requiring a fresh decision and a new non-reused principal and record, and an allow_project consent does not transfer across account switch because its live carrier is revoked and it remains bound to the original account, while returning to that account may reuse the unchanged consent without a new project decision or credential challenge while still creating new technical carriers.
-    condition: Whenever supervised development hosts run or development consent state changes.
-    failure: Reject consent transfer, auto-run, and technical-state reuse beyond the declared preservation.
+    statement: Every supervised development Host uses a fresh exact-launch correlation, process binding, Local App session, Effective App Access Snapshot, and Agent handles; account, declaration-generation, or Runtime changes invalidate only affected ephemeral access and allow the same exact Host to bind fresh, while a source-generation change re-evaluates launch inputs and Developer Mode off, explicit stop, ended supervision, or a changed executable, entrypoint, another security-relevant launch input, or process fact requires a new verified launch.
+    condition: Whenever a supervised development Host runs or a session, declaration, Runtime, source, or launch fact changes.
+    failure: Reject stale technical carriers, implicit Host termination for access-only changes, and relaunch bypass after an actual Host fact changes.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r016
     kind: rule
-    title: Development principals get no elevated account material
+    title: Development subjects get no elevated account material
     modality: must
-    statement: The development principal may use a controlled production account only through the common K-GRANT, K-ACCSVC, and owner-operation envelope, and it receives no credential, portable proof, stronger permission, or persistent Nimi-managed autostart.
-    condition: Whenever a development principal touches a production account.
+    statement: A development registered subject may use the current account only through the common protected session, Effective App Access Snapshot, and owner-operation path and receives no credential, portable proof, elevated access, or persistent Nimi-managed autostart.
+    condition: Whenever a development Registered App Subject touches a production account.
     failure: Reject credential issuance, portable proof, elevated permission, and managed autostart.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r017
     kind: rule
-    title: The RuntimeAppService method set is fixed
+    title: The Third-party App surface is purpose specific
     modality: must
-    statement: The current RuntimeAppService method set is fixed to SendAppMessage and SubscribeAppMessages for app-to-app messaging, GetAppStorage for trusted host-side app-private storage-root projection, ReadLocalAppStorageJson, WriteLocalAppStorageJson, and RemoveLocalAppStorageJson for process-bound local-app private JSON storage, PrepareLocalAppLaunch for the single-use protected local-development launch lease, and BindLocalAppProcess for binding the exact native process to that lease; ordinary lifecycle intent, install, uninstall, account inventory, package readiness, job, update, repair, reinstall, and public-distribution methods are deferred and physically absent, and messaging, storage, and launch methods remain semantically independent.
-    condition: Whenever the RuntimeAppService method surface is defined or consumed.
-    failure: Reject undeclared methods and cross-carried semantics.
+    statement: The Third-party App-facing surface exposes only canonical purpose-specific typed operations after protected Runtime admission, while trusted host control owns launch preparation and exact Host process binding; generic messaging, generic streams, cross-App routing, account inventory, package readiness, lifecycle jobs, update, repair, reinstall, and public-distribution behavior are not App-callable and have no Third-party SDK mapping.
+    condition: Whenever the Third-party App-facing surface is defined or consumed.
+    failure: Reject behavior outside the canonical App operation contract, generic forwarding, and cross-carried semantics.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+        target: definition.nimi.runtime.app-surface.app-lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r018
     kind: rule
-    title: App messaging is typed and session authorized
-    modality: must
-    statement: Runtime app messaging carries an explicit sender, recipient, message type, payload, and typed result, while Runtime derives the current account, App identity, and authorization from the active session; caller-supplied subject or relationship fields never create authority.
-    condition: Whenever an app-to-app message is sent.
-    failure: Reject malformed or unauthorized messages without synthesizing delivery.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic App message send
+    reason: Removed because generic Third-party App-to-App messaging is outside the canonical App operation contract and no generic send surface remains.
   - id: rule.nimi.runtime.app-surface.r019
     kind: rule
-    title: App message subscriptions preserve owner truth
-    modality: must
-    statement: App message subscriptions expose typed Runtime-owned delivery state and preserve explicit sender, recipient, ordering, failure, and trace relations without allowing a subscriber to infer account, App, LocalAgent, or Conversation authority from message traffic.
-    condition: Whenever app messages are subscribed or events are emitted.
-    failure: Reject malformed or unauthorized subscriptions and events.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic App message subscription
+    reason: Removed because generic Third-party App subscriptions and delivery-state projection are outside the canonical App operation contract.
   - id: rule.nimi.runtime.app-surface.r020
     kind: rule
-    title: The app message event type enum is closed
-    modality: must
-    statement: AppMessageEventType admits only RECEIVED for a received message, ACKED for a confirmed message, and FAILED for delivery failure.
-    condition: Whenever an app message event type is emitted.
-    failure: Reject undeclared event types.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic App message event enum
+    reason: Removed with the generic App message surface.
   - id: rule.nimi.runtime.app-surface.r021
     kind: rule
-    title: App message senders derive from authenticated connections
-    modality: must
-    statement: SendAppMessage derives the sending principal from the current authenticated connection, ordinary and external callers use their separately admitted sessions, LOCAL_APP uses only the host-injected local_app_session, Runtime derives from_app_id from the principal record and rejects inconsistent self-reported requests, LOCAL_APP holds no token, bearer, or portable credential, and unauthenticated or mismatched requests return UNAUTHENTICATED, preventing arbitrary processes from impersonating registered apps and keeping local-app principal and session authority unleaked.
-    condition: Whenever an app message sender identity is established.
-    failure: Return UNAUTHENTICATED for unauthenticated or mismatched requests.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic App message sender identity
+    reason: Removed with SendAppMessage; protected App identity is now used only for operations in the canonical App operation contract.
   - id: rule.nimi.runtime.app-surface.r022
     kind: rule
-    title: App message payloads are bounded
-    modality: must
-    statement: A serialized app-message payload Struct never exceeds 64 KB, and an oversized payload returns INVALID_ARGUMENT with APP_MESSAGE_PAYLOAD_TOO_LARGE so a single message cannot exhaust Runtime memory.
-    condition: Whenever an app message payload is validated.
-    failure: Return INVALID_ARGUMENT with APP_MESSAGE_PAYLOAD_TOO_LARGE.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic App message payload bound
+    reason: Removed with the generic App message payload contract; each supported operation owns its own typed bounds.
   - id: rule.nimi.runtime.app-surface.r023
     kind: rule
-    title: App message sending is rate limited per principal
-    modality: must
-    statement: Ordinary callers are rate limited per authenticated sender identity and LOCAL_APP is rate limited per local_os_user_anchor plus local_app_principal_id at 100 messages per second over a sliding window, app ID remains a routing label that cannot merge the budgets of two principals, and exceeding the limit returns RESOURCE_EXHAUSTED with APP_MESSAGE_RATE_LIMITED, preventing message storms, DoS, and same-app-id principal budget crosstalk.
-    condition: Whenever app message send rates are evaluated.
-    failure: Return RESOURCE_EXHAUSTED with APP_MESSAGE_RATE_LIMITED.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic App message rate limit
+    reason: Removed with generic App message sending; owner operations retain their own resource bounds.
   - id: rule.nimi.runtime.app-surface.r024
     kind: rule
-    title: Message loops trip a pair circuit breaker
-    modality: must
-    statement: Runtime detects A-to-B-to-A loops so that twenty direction switches within one second on the same unordered app pair automatically break that pair's subsequent messages for sixty seconds returning FAILED_PRECONDITION with APP_MESSAGE_LOOP_DETECTED, multiple same-direction streaming or presentation projections after a single request form only one direction switch and are never miscounted as a loop by projection count, and both apps may keep messaging other apps during the breaker window, preventing infinite ping-pong loops while preserving legitimate one-to-many streaming projection.
-    condition: Whenever app pair message direction switching is evaluated.
-    failure: Return FAILED_PRECONDITION with APP_MESSAGE_LOOP_DETECTED for the tripped pair only.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired App-pair message circuit breaker
+    reason: Removed with the generic cross-App message bus.
   - id: rule.nimi.runtime.app-surface.r025
     kind: rule
-    title: No Desktop-local alternate message bus exists
-    modality: must_not
-    statement: The Desktop renderer creates a parallel local message bus replacing the runtime auth, rate-limit, loop-detection, durable event ordering, or audit posture of RuntimeAppService.SendAppMessage, which is the only admitted runtime-owned app-to-app messaging product path.
-    condition: Whenever Desktop app-to-app messaging is designed or implemented.
-    failure: Reject the parallel bus and route messaging through the runtime-owned path.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic message-bus exclusivity
+    reason: Removed because no generic Runtime or Desktop App-to-App message bus is admitted.
   - id: rule.nimi.runtime.app-surface.r026
     kind: rule
-    title: Cross-domain messaging consumption stays aligned
-    modality: must
-    statement: SDK method projection keeps the SendAppMessage and SubscribeAppMessages gRPC-to-SDK parameter mapping and error projection aligned with the runtime public surface, and Desktop has no default K-APP UI consumption right so direct Desktop use of the K-APP path for cross-process or audit scenarios requires a corresponding Desktop UI spec first, with the existing SDK projection of the K-APP gRPC path never making it the Desktop shell's default UI messaging surface.
-    condition: Whenever SDK or Desktop consumes the app messaging surface.
-    failure: Reject drifted SDK projection and specless Desktop UI consumption.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic messaging SDK projection
+    reason: Removed because SendAppMessage and SubscribeAppMessages have no Third-party SDK mapping.
   - id: rule.nimi.runtime.app-surface.r027
     kind: rule
-    title: App message delivery is process-local live delivery
-    modality: must
-    statement: Admitted delivery semantics for SendAppMessage and SubscribeAppMessages are process-local live delivery in which Runtime does not persist app-message events, does not replay events to subscribers not connected at publication, sequence is monotonic only within one Runtime process lifetime and resets after restart, a non-empty SubscribeAppMessagesRequest.cursor fails closed with INVALID_ARGUMENT and PROTOCOL_ENVELOPE_INVALID because replay and durable resume are not admitted on this surface, a subscriber stream owns a bounded relay buffer of 32 events and three consecutive drops observed by the relay for a too-slow consumer close that subscriber with RESOURCE_EXHAUSTED, SendAppMessage success is never interpreted as durable delivery to that subscriber, and the bus is suitable for live app-to-app notifications and the reserved runtime.agent reactive consume seam while never serving as a durable inbox, durable event log, cross-restart replay stream, audit log, or product message-history authority whose durable records must be committed through their owning Runtime, Realm, Cognition, or app surface.
-    condition: Whenever app message delivery, retention, or backpressure is handled.
-    failure: Fail closed on cursors, close slow subscribers, and reject durability claims.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired generic App message delivery contract
+    reason: Removed with the generic send and subscribe surface; supported typed streams use their owner-specific delivery contract.
   - id: rule.nimi.runtime.app-surface.r028
     kind: rule
-    title: The runtime.agent target admits closed families
+    title: Internal Runtime Agent carrier admits fixed subtypes
     modality: must
-    statement: runtime.agent is the reserved runtime-owned app target for the RuntimeAgentService app-facing reactive chat consume seam and is not a generic app-bus target with only admitted message families transported, admitted ingress families are exactly runtime.agent.turn.request and runtime.agent.turn.interrupt, admitted projection families are exactly runtime.agent.turn.accepted, runtime.agent.turn.started, runtime.agent.turn.reasoning_delta, runtime.agent.turn.text_delta, runtime.agent.turn.structured, runtime.agent.turn.message_committed, runtime.agent.turn.post_turn, runtime.agent.turn.completed, runtime.agent.turn.failed, runtime.agent.turn.interrupted, and runtime.agent.turn.interrupt_ack, public chat session snapshot is a query surface through RuntimeAgentService.GetPublicChatSessionSnapshot and is not admitted as RuntimeAppService request and reply traffic, semantic ownership of these families remains on RuntimeAgentService even when the transport owner is RuntimeAppService, first-party consumers may use SendAppMessage and SubscribeAppMessages against runtime.agent for this seam without reinterpreting that transport path as proof of a generic cross-app chat bus, and runtime.agent.* RPC projection remains separate covering lifecycle, state, memory, admin, and read rather than reactive chat transport.
-    condition: Whenever the reserved runtime.agent app target is used or extended.
-    failure: Reject unadmitted families, snapshot request-reply traffic, and generic-bus reinterpretation.
+    statement: Runtime may transport only the internal first-party ingress subtypes runtime.agent.turn.request and runtime.agent.turn.interrupt and projection subtypes runtime.agent.turn.accepted, runtime.agent.turn.started, runtime.agent.turn.reasoning_delta, runtime.agent.turn.text_delta, runtime.agent.turn.structured, runtime.agent.turn.message_committed, runtime.agent.turn.post_turn, runtime.agent.turn.completed, runtime.agent.turn.failed, runtime.agent.turn.interrupted, and runtime.agent.turn.interrupt_ack through a private process-local carrier; that carrier is not a Third-party App-facing generic messaging surface, is absent from Third-party SDK and declaration mapping, creates no generic sender or recipient routing, and leaves snapshot queries and semantic ownership with the Runtime Agent owner.
+    condition: Whenever the private Runtime Agent carrier is built, consumed, or extended.
+    failure: Reject Third-party access, generic routing, unadmitted subtypes, durable-bus semantics, and snapshot request-reply traffic on the carrier.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-messaging-plane
@@ -306,22 +261,21 @@ units:
     kind: rule
     title: LocalAgent access has one session-derived authorization seam
     modality: must
-    statement: A Desktop-hosted Local App reaches LocalAgent Conversation only through standard typed SDK calls to Runtime Agent Service after Runtime derives the current account, App identity, product authorization, explicit localAgentId, and requested operation from the active session; app messaging, caller-supplied subject, App id, or a relationship token cannot create a second authorization path.
+    statement: A Desktop-hosted Local App reaches LocalAgent Conversation only through canonical typed Runtime Agent Service operations after Runtime derives the current account, App subject, Effective App Access Snapshot, exact AppOperationId, and a session-scoped opaque Agent handle from the active session; the handle is a non-secret selector rather than a grant, bearer, durable identity, or reusable relationship, and internal Agent transport cannot create a second admission path.
     condition: Whenever a Local App requests a LocalAgent operation.
-    failure: Fail closed when session-derived account, App identity, authorization, LocalAgent access, or operation admission is unavailable.
+    failure: Fail the affected operation closed when the current account, App subject, snapshot, Agent-handle resolution, exact operation admission, or owner policy is unavailable.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-messaging-plane
   - id: rule.nimi.runtime.app-surface.r030
     kind: rule
-    title: Multi-app projection remains non-owning
-    modality: must
-    statement: Multi-app interaction uses explicit Runtime-owned messages and LocalAgent projections without creating a platform event broker or App-owned Conversation truth; Runtime preserves LocalAgent and Conversation continuity, each App owns only its presentation semantics, Avatar consumes its independent projection, and no third-party App gains a direct Avatar driver or embedded renderer.
-    condition: Whenever companion multi-app interaction is designed or transported.
-    failure: Fail closed on malformed or unauthorized traffic and reject any App-owned LocalAgent, Conversation, or Avatar-control truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.app-messaging-plane
+    lifecycle: removed
+    title: Retired companion multi-App message projection
+    reason: Removed because generic multi-App messaging and projection are outside the canonical Third-party App operation contract.
   - id: rule.nimi.runtime.app-surface.r031
     kind: rule
     title: The Avatar runtime boundary is fixed
@@ -374,11 +328,11 @@ units:
     reason: Removed with the deferred ordinary AppHealth, AppResponseState, and support next-action projections; no mapping table remains current.
   - id: rule.nimi.runtime.app-surface.r040
     kind: rule
-    title: App storage roots are principal-scoped Runtime truth
+    title: App storage partitions are Registered-App-Subject-scoped Runtime truth
     modality: must
-    statement: App-private storage is Runtime-owned principal-scoped truth, a local-app session resolves its opaque development principal internally with the request accepting no app_id or principal override, Runtime derives the roots <nimi_data>/apps/<local-app-principal-id>/data, <nimi_data>/apps/<local-app-principal-id>/cache, and <nimi_data>/apps/<local-app-principal-id>/tmp, no immutable release root or future package slot is reserved in the current contract, an active development principal may receive data, cache, and tmp roots, same-app-id principals remain isolated, and tombstoned data is not rebound to a new authorization and is delete-only after fresh presence.
+    statement: App-private storage is Runtime-owned registered-subject-scoped truth, a Local App session resolves its opaque subject internally with the request accepting no app_id or subject override, Runtime derives the per-subject data, cache, and temporary roots for trusted host use, installed, local-import, and development subjects use the same partition semantics, same-app-id subjects remain isolated, and tombstoned data is never rebound to another registration.
     condition: Whenever app storage roots are derived or resolved.
-    failure: Reject caller-supplied principals, cross-principal roots, and tombstone rebinding.
+    failure: Reject caller-supplied subjects, cross-subject partitions, and tombstone rebinding.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
@@ -386,7 +340,7 @@ units:
     kind: rule
     title: No alternate storage authority exists
     modality: must
-    statement: Third-party apps, renderers, and SDK clients never receive the canonical product-control record, raw data-root selection, protected Runtime configuration, or an alternate storage locator; trusted product and verification owners resolve Product Control only through the shared resolver, app storage remains available only through Runtime typed APIs and principal-scoped roots, and invalid canonical or derived storage state fails closed with a typed state and reason; physical path validation remains Runtime implementation.
+    statement: Third-party apps, renderers, and SDK clients never receive the canonical product-control record, raw data-root selection, protected Runtime configuration, or an alternate storage locator; trusted product and verification owners resolve Product Control only through the shared resolver, app storage remains available only through Runtime typed APIs and Registered-App-Subject-scoped logical partitions, and invalid canonical or derived storage state fails closed with a typed state and reason; physical path selection and validation remain Runtime implementation.
     condition: Whenever storage authority is resolved or storage prerequisites fail.
     failure: Fail closed with typed storage state and reason, reject alternate authorities and raw-root disclosure, and route canonical-to-derived root disagreement to repair.
     relations:
@@ -394,19 +348,23 @@ units:
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r042
     kind: rule
-    title: Local-app JSON storage methods are exactly three
+    title: Local-app JSON storage operations are exactly three
     modality: must
-    statement: RuntimeAppService owns exactly the three local-app storage methods ReadLocalAppStorageJson, WriteLocalAppStorageJson, and RemoveLocalAppStorageJson, admitted only on local_app_host after the current process-bound session, principal, and account partition are revalidated, they form the app.private_storage base entitlement creating no permission decision, user prompt, selector, or grant row, and the request carries only relative_path plus one JSON value for write and carries no app id, principal id, account id, root, absolute path, quota, permission id, decision id, credential, endpoint, or method selector.
+    statement: The canonical App operation contract admits exactly runtime.app-storage.json.read, runtime.app-storage.json.write, and runtime.app-storage.json.remove for App-private JSON storage; Runtime revalidates the current exact Host-bound session, Registered App Subject, account partition, Runtime-private snapshot context, exact Base classification, and Base-row invariants, while each purpose-specific typed request accepts only its relative JSON path and, for write, its JSON value and accepts no app id, subject id, account id, root, absolute path, quota, permission id, decision id, credential, endpoint, or caller-selected operation or method.
     condition: Whenever local-app JSON storage operations are admitted.
-    failure: Reject operations off local_app_host and requests carrying excluded fields.
+    failure: Reject operations outside the current exact Host-bound session and requests carrying excluded fields.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r043
     kind: rule
     title: JSON storage paths and quotas are enforced
     modality: must
-    statement: Runtime resolves App-private JSON storage only from the current session-derived Local App principal and account partition, accepts canonical relative JSON paths, enforces owner-defined document and partition resource bounds plus filesystem safety, writes atomically, and treats removal of an absent record as idempotent.
+    statement: Runtime resolves App-private JSON storage only from the current session-derived Registered App Subject and account partition, accepts canonical relative JSON paths, enforces owner-defined document and partition resource bounds plus filesystem safety, writes atomically, and treats removal of an absent record as idempotent.
     condition: Whenever a local-app JSON storage path or write is validated.
     failure: Reject invalid paths, oversize documents, and quota violations.
     relations:
@@ -456,7 +414,7 @@ units:
     kind: rule
     title: The local adoption family stays retired
     modality: must
-    statement: The predecessor local-adoption family is retired and removed from Proto, generated clients, Runtime handlers and stores, SDK and Kit exports, Desktop UX, tests, and inventory states in the atomic public wire epoch with no active success behavior and no alias, mutable source enters through Developer Mode and creates a fresh isolated development principal and record only after Runtime presence and approval, ordinary package bytes and lifecycle surfaces are deferred and physically absent, and package-manager roots, workspace and source scanning, app-local manifests, app id, file presence, process liveness, and inventory-like records cannot create runnable truth.
+    statement: The predecessor local-adoption family remains retired with no alias or compatibility decoder; a current local-import source enters only through the common explicit registration, declaration, registered-subject, verified Desktop launch, and protected-session path, while workspace scanning, app id, file presence, process liveness, and inventory-like records cannot create runnable or access truth.
     condition: Whenever local adoption or runnable truth creation is attempted.
     failure: Reject retired-family revival and runnable truth outside the admitted paths.
     relations:
@@ -464,121 +422,116 @@ units:
         target: definition.nimi.runtime.app-surface.app-projection-plane
   - id: rule.nimi.runtime.app-surface.r049
     kind: rule
-    title: The principal-record seam owns only its stores
+    title: The Registered App Subject record seam owns only its stores
     modality: must
-    statement: The local-app principal and record contract owns only the PC-local LocalAppPrincipal and LocalAppRecord lifecycle seam, while protected launch, process, and session facts remain K-PLOCAL authority, future Runtime-owned permission decisions follow K-GRANT authority, account and credential custody remains K-ACCSVC authority, and operation and resource semantics remain with their existing owners.
-    condition: Whenever principal-record ownership boundaries are interpreted.
+    statement: The local-app subject and record contract owns only the per-user registered-subject and lifecycle-record seam, while protected launch, process, session, and Effective App Access Snapshot facts remain Runtime protected-session authority, account and credential custody remains Account Service authority, the canonical App operation contract remains Platform truth, and operation and resource semantics remain with their existing owners.
+    condition: Whenever Registered App Subject record ownership boundaries are interpreted.
     failure: Reject seam claims over launch, grant, custody, or operation authority.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r050
     kind: rule
-    title: The OS-user anchor derives from one source
+    title: Registration uses one verified per-user logical scope
     modality: must
-    statement: Every principal and record is partitioned by one Runtime-derived local_os_user_anchor obtained from the verified current OS account scope; the anchor is never accepted from a request, environment variable, project, package, Desktop, SDK, or app, and platform-specific derivation mechanisms remain protected-local implementation rather than cross-layer product semantics.
-    condition: Whenever the local OS-user anchor is derived.
-    failure: Reject caller-supplied, unverifiable, stale, or cross-account anchors.
+    statement: Every Registered App Subject and lifecycle record is partitioned by one Runtime-verified current local OS-user logical scope; that scope is never accepted from a request, environment variable, project, package, Desktop, SDK, or App, and platform-specific derivation mechanisms remain protected-local implementation rather than cross-layer product semantics.
+    condition: Whenever the per-user registration scope is resolved.
+    failure: Reject caller-supplied, unverifiable, stale, or cross-user registration scope.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r051
     kind: rule
-    title: One active anchor partitions one data root
+    title: One active OS-user scope partitions Runtime App state
     modality: must
-    statement: One Runtime data root admits exactly one active local OS account scope; a different account scope fails closed before principal, record, private storage, permission, autostart, launch, session, or audit state can be read or mutated, an account switch invalidates prior access, and this single-PC partition creates no device enrollment, cross-PC recovery, or cloud truth.
-    condition: Whenever anchor identity is checked against the Runtime data root.
+    statement: Runtime admits exactly one active local OS-user scope for each per-user logical Registered App Subject and record boundary; a different scope fails closed before subject, record, private storage, launch, session, snapshot, or audit state can be read or mutated, an account switch invalidates prior account-bound ephemeral access without deleting registration, and this logical partition creates no device enrollment, cross-PC recovery, cloud truth, or product-authoritative physical path.
+    condition: Whenever the OS-user anchor is checked against Runtime-owned App state.
     failure: Fail closed before any partitioned state is read or mutated.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r052
     kind: rule
-    title: The principal id is the security subject
+    title: Runtime allocates the Registered App Subject
     modality: must
-    statement: Runtime allocates a random non-reused opaque local_app_principal_id for each admission instance, and that identifier rather than app_id or provenance is the security subject for app-private storage, app-scoped audience and access, grants, sessions, and audit.
+    statement: Runtime allocates one random non-reused opaque Registered App Subject for each registration, and that subject rather than app_id, provenance, a caller field, or a physical storage key is the stable security subject for private storage, App-scoped audience, sessions, Effective App Access Snapshots, and audit.
     condition: Whenever a local-app security subject is established.
-    failure: Reject app_id- or provenance-based subjects and reused principal ids.
+    failure: Reject app_id- or provenance-based subjects, caller-selected subjects, and subject reuse.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r053
     kind: rule
-    title: Development principals have one owner anchor
+    title: Registered App subjects have one source anchor
     modality: must
-    statement: A current development principal carries exactly one Runtime-owned development_authorization_id together with canonical project-root file identity and the declared app_id; ordinary immutable lineage and package anchors are deferred and physically absent from the current principal schema.
-    condition: Whenever a principal-kind anchor is created or populated.
-    failure: Reject principals with zero or multiple kind anchors and unfrozen field reshaping.
+    statement: A registered App subject has exactly one installed, local-import, or development source anchor plus its stable declared app_id, source generation, and declaration generation; source-specific installer, import, project, signature, and distribution details remain with their lifecycle owner and do not change App access semantics.
+    condition: Whenever a registered App subject source anchor is created or updated.
+    failure: Reject zero or multiple source anchors, caller-authored generations, and source-specific access semantics.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r054
     kind: rule
-    title: Development principals die on revoke
+    title: Development subjects die on explicit removal
     modality: must
-    statement: Project-authorization revoke tombstones the development principal permanently, any re-authorization including the same project or app id allocates a new principal and inherits no permission decision, storage, audience, session, or audit identity, retained tombstoned data is delete-only after fresh presence with rebind and migration not admitted, app_id remains a display and routing identifier, and ordinary update, uninstall, reinstall, promotion, signer, and immutable-lineage behavior is deferred and physically absent.
-    condition: Whenever development principal lifecycle transitions or app-id collisions occur.
-    failure: Reject tombstone revival, inherited identity, and app-id-based principal merging.
+    statement: Explicit development-registration removal tombstones the registered subject permanently, later registration including the same project or app id allocates a new subject and inherits no storage, audience, session, snapshot, Agent handle, or audit identity, while account, declaration-generation, and Runtime changes only invalidate affected ephemeral access and never imply removal; a source-generation change re-evaluates exact Host launch inputs and requires relaunch only when the executable, entrypoint, another security-relevant launch input, or the process fact changed, and app_id remains a display and routing identifier.
+    condition: Whenever development registration lifecycle, session, declaration, Runtime, source, launch inputs, or app-id collisions change.
+    failure: Reject tombstone revival, inherited identity, and app-id-based subject merging.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r055
     kind: rule
-    title: The lifecycle record binds one principal
+    title: The semantic lifecycle record seam binds one Registered App Subject
     modality: must
-    statement: The current LocalAppRecord binds one development principal to current project provenance and lifecycle and contains only the local_development trust class, project generation, active capability fingerprint, opaque execution_profile_ref, host executable digest, payload-root digest, and lifecycle state required by supervised local development, and it contains no ordinary verified or imported trust class, package attestation, install state, grant boolean, permission result, account owner, session proof, or operation-policy decision.
+    statement: The Runtime-owned semantic lifecycle record seam binds one Registered App Subject to the current source and declaration generations and only the lifecycle and security-relevant Host launch facts needed to support Desktop launch and protected-session resolution, while physical type, field shape, serialization, and storage layout remain implementation; it contains no mutable-project integrity claim, binary attestation, payload fingerprint, account owner, credential, permission result, durable App access decision, session proof, Effective App Access Snapshot, Agent handle, or operation-owner policy.
     condition: Whenever a lifecycle record is created or read.
-    failure: Reject records missing the closed shape or embedding excluded authority.
+    failure: Reject lifecycle-record use when a required semantic relation cannot be resolved, excluded authority is embedded, or the record is treated as direct App access admission.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r056
     kind: rule
-    title: The ordinary package seam is not admitted
-    modality: must
-    statement: Ordinary package install, update, promotion, repair, reinstall, and public distribution are deferred, no package seam or frozen future package fields exist in the current principal and record schema, and no wire, generated client, Runtime handler, SDK facade, config input, fixture, compatibility loader, or dormant implementation may reserve or repopulate them; future admission requires new canonical authority and must not reinterpret development provenance.
-    condition: Whenever an ordinary package seam or provenance class is proposed, populated, generated, or restored.
-    failure: Reject restoration, compatibility paths, and reinterpretation of development provenance.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+    lifecycle: removed
+    title: Retired ordinary package subject non-admission
+    reason: Removed because installed and local-import Apps now receive registered subjects through the common Runtime seam without moving installer, update, distribution, or marketplace semantics into App access.
   - id: rule.nimi.runtime.app-surface.r057
     kind: rule
     title: Owner stores stay separate behind a resolver
     modality: must
-    statement: The principal store and lifecycle-record store are separate from the account-grant store and protected launch and session store, and a resolver may join them into an immutable per-operation context but cannot mutate another owner's store or cache an authorization result.
+    statement: The durable Registered App Subject and lifecycle-record stores remain separate from ephemeral exact-launch correlation, process binding, session, Effective App Access Snapshot, and Agent-handle state, and a per-operation resolver may join current facts into an immutable context but cannot mutate another owner's store, persist a permission decision, or cache owner authorization.
     condition: Whenever owner stores are joined for an operation.
     failure: Reject cross-owner mutation and cached authorization results.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r058
     kind: rule
     title: Private preparation cannot become a second store
     modality: must
-    statement: Private preparation is permitted before public cutover only when unreachable from production, unregistered as a public RPC or export, and not an active second store, and dual read, dual write, app-id positive fallback, and record-embedded grant state are forbidden.
+    statement: Private preparation is permitted before public cutover only when unreachable from production, unregistered as a public RPC or export, and not an active second store, while dual read, dual write, app-id positive fallback, record-embedded App access state, and permission state are forbidden.
     condition: Whenever pre-cutover preparation exists.
     failure: Reject reachable preparation, dual paths, and embedded grant state.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r059
     kind: rule
     title: Account-scoped data keys are fixed
     modality: must
-    statement: Account-scoped App-private data remains partitioned from machine-local App identity, while canonical LocalAgent, Conversation, transcript, presentation, Memory, and Knowledge truth remains with Runtime owners and is never repartitioned or owned by the App principal.
+    statement: Account-scoped App-private data remains partitioned from machine-local App identity, while canonical LocalAgent, Conversation, transcript, presentation, Memory, and Knowledge truth remains with Runtime owners and is never repartitioned or owned by the Registered App Subject.
     condition: Whenever account-scoped app data or canonical identity is keyed.
-    failure: Reject alternate keying and app-principal ownership of canonical identity.
+    failure: Reject alternate keying and Registered-App-Subject ownership of canonical identity.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r078
     kind: rule
     title: RuntimeAuthService responsibility is fixed
     modality: must
-    statement: RuntimeAuthService owns authenticated Runtime session lifecycle and the common process-bound Local App identity session, while protected operation decisions remain Runtime-private and require the verified origin, current session-derived identity and authorization, and the operation owner's policy.
+    statement: RuntimeAuthService owns authenticated Runtime session lifecycle and the common process-bound Local App identity session, while protected App operation admission remains Runtime-private and requires the verified exact Host origin, current session-derived App subject, fresh Runtime-private snapshot, exact AppOperationId classification, and the classified Base invariants or AppAccess-domain coverage before dispatch; after successful admission, the operation owner separately applies current resource and business policy and returns an owner-specific typed result, and admission success never implies owner success.
     condition: Whenever RuntimeAuthService responsibility is interpreted.
-    failure: Reject grant-family revival and non-private protected operation decisions.
+    failure: Reject permission or grant-family revival, deny before dispatch when any required Runtime admission input is missing or stale, and preserve owner rejection as an owner-specific typed failure rather than access success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
@@ -594,41 +547,43 @@ units:
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r080
     kind: rule
-    title: The RuntimeAuthService method set is fixed
+    title: Session families preserve their owner boundaries
     modality: must
-    statement: The RuntimeAuthService method set is fixed to RegisterApp, OpenSession, RefreshSession, RevokeSession, RegisterExternalPrincipal, OpenExternalPrincipalSession, RevokeExternalPrincipalSession, OpenDesktopSession on desktop_control only, request-empty OpenLocalAppSession only for a local_app_bootstrap connection already bound to launch lease, process, and record, and request-empty RenewLocalAppSession only for the current exact local_app_host and local_app_session.
-    condition: Whenever the RuntimeAuthService method surface is defined or consumed.
-    failure: Reject undeclared methods and out-of-carrier protected session calls.
+    statement: Desktop account-control, Local App, ordinary authenticated, and separately admitted external-principal session families retain their existing owners and cannot confer origin or authority on one another; a Local App session exists only on the current exact Host connection after current launch correlation, process binding, Registered App Subject, and record validation, and concrete service or method membership remains implementation detail.
+    condition: Whenever Runtime session responsibilities are defined or consumed.
+    failure: Reject cross-family authority, Local App session creation outside the verified bound connection, and transport membership used as product authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r081
     kind: rule
-    title: Protected session opens are request-empty
+    title: Protected session requests carry no caller authority
     modality: must
-    statement: Both protected session-open requests are empty, OpenDesktopSession keeps Desktop account-control semantics while OpenLocalAppSession is the single third-party app session path, neither accepts app id, caller class, source host, principal, trust, lease, process, account, grant, or portable proof override and neither returns a portable authorization bearer, and RenewLocalAppSession is not another open path because it atomically replaces only the current Runtime-private short-lived technical session on the same verified host connection after complete revalidation, never changes origin role, reconsumes a lease, or repeats durable consent, and returns only the same sanitized session posture projection.
+    statement: A protected Desktop or Local App session request accepts no app id, caller class, source host, subject, trust, launch correlation, process, account, snapshot, domain, operation, classification, or portable proof override and returns no portable authorization bearer; Local App renewal atomically replaces only the current short-lived session and Effective App Access Snapshot on the same verified exact Host connection after complete revalidation and does not repeat launch or create durable consent.
     condition: Whenever a protected session is opened or renewed.
-    failure: Reject non-empty requests, overrides, portable bearers, and renew-as-open.
+    failure: Reject caller authority fields, portable bearers, and renewal used as a new launch or origin path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r082
     kind: rule
-    title: App registration grants no product authority
+    title: App registration and declaration create no operation authority
     modality: must
-    statement: App registration validates the declared App identity and mode, but registration, a manifest, source-host metadata, or an ordinary session creates no account, Realm, Runtime, LocalAgent, AI, Artifact, media, lifecycle, or launch authority; each operation still requires current session-derived identity and owner authorization.
-    condition: Whenever an app registers or opens an ordinary session.
-    failure: Reject empty app ids, unknown enum passthrough, and authority production.
+    statement: Registration and declaration mutation establish only the stable Registered App Subject and current source and declaration generations and create neither a session, an Effective App Access Snapshot, nor operation authority; after Desktop verified launch, only a fresh exact Host session lets Runtime protected ingress derive the Runtime-private snapshot, and every protected operation still requires exact AppOperationId classification and the classified Base invariants or AppAccess-domain coverage before dispatch, followed by the operation owner's separate resource and business decision without a user grant or marketplace fact.
+    condition: Whenever an App registers, updates its declaration, or opens a protected session.
+    failure: Reject treating registration or declaration as admission, missing or stale generations, caller-authored snapshot facts, and operation execution without current Runtime admission and the owner's separate decision.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r083
     kind: rule
-    title: Session TTLs are server-bounded
+    title: Local App session lifetime is Runtime selected
     modality: must
-    statement: ttl_seconds must fall inside the server-configured interval from sessionTtlMinSeconds to sessionTtlMaxSeconds defaulting to 60 through 86400 seconds and configurable through daemon configuration, out-of-interval values fail closed with INVALID_ARGUMENT, RefreshSession applies only to a still-valid session_id, and these TTL bounds apply only to non-privileged binding and external-principal sessions whose renewal never upgrades origin role or creates portable protected privilege.
-    condition: Whenever a session TTL is requested or refreshed.
-    failure: Fail closed with INVALID_ARGUMENT on out-of-interval TTLs.
+    statement: Runtime selects a short-lived Local App technical session lifetime that the App cannot request, extend, or turn into durable authority; renewal requires a still-current session and complete current exact Host, account, generation, snapshot, and owner-independent admission revalidation and never upgrades origin or creates portable protected privilege.
+    condition: Whenever a Local App technical session lifetime is established or renewed.
+    failure: Reject caller-selected lifetime, stale-session renewal, origin upgrade, and durable or portable privilege.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
@@ -674,19 +629,14 @@ units:
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r088
     kind: rule
-    title: AppMode is a ceiling not authorization
-    modality: must
-    statement: AppMode is not an authorization source but only the static upper bound of a future separately admitted non-binding session, all BINDING_ONLY registrations and sessions have empty effective domains and empty effective scopes unaffected by LITE, CORE_ONLY, FULL, manifest, project-local flags, or grant rows, mode and manifest validation never upgrades protected origin, caller role, transport class, account posture, or token custody, ordinary OpenSession has no broker, AI, artifact, realtime, media, lifecycle, or local-app launch authority, and the mode table remains a ceiling rather than blanket effective rights in which LITE allows at most realm, CORE_ONLY allows at most runtime, and FULL allows at most both domain classes with each still requiring independent session, origin, and grant admission and none equaling granted permission.
-    condition: Whenever AppMode or manifest state is evaluated for authority.
-    failure: Reject mode-derived authority and ceiling-derived upgrades.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.auth-service-plane
+    lifecycle: removed
+    title: Retired AppMode and grant ceiling
+    reason: Removed because current Third-party App access derives from declaration domains and the canonical App operation contract without LITE, CORE_ONLY, FULL, scope ceilings, or grant admission.
   - id: rule.nimi.runtime.app-surface.r089
     kind: rule
-    title: Local-app sessions promote one connection
+    title: Local App sessions stay bound to the exact connection
     modality: must
-    statement: Local-app sessions are created only by request-empty OpenLocalAppSession on a verified local_app_bootstrap connection already bound to the current lease, process, principal, and record, success atomically promotes that same connection to local_app_host, and its short-lived technical session may be renewed only by request-empty RenewLocalAppSession on that same verified local_app_host connection and current session.
+    statement: A Local App session is created only on the verified connection already correlated with Desktop's current exact Host launch and bound to the current process, Registered App Subject, and record; the resulting short-lived technical session stays on that same connection and may be renewed only there after complete current revalidation.
     condition: Whenever a local-app session is created or renewed.
     failure: Reject creation or renewal outside the verified bound connection.
     relations:
@@ -694,31 +644,28 @@ units:
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r090
     kind: rule
-    title: The auth evaluation order is fixed
-    modality: must
-    statement: Evaluation first resolves BINDING_ONLY whose effective set is directly empty, then verifies protected origin and the independently admitted session, then applies the AppMode ceiling, and finally applies the base-entitlement boundary per authority class or the current owner decision, selector, and operation-owner policy of an admitted public permission, domain ceiling violations return APP_MODE_DOMAIN_FORBIDDEN and scope ceiling violations return APP_MODE_SCOPE_FORBIDDEN only after non-binding session, protected origin, and the concrete operation or grant have been independently admitted by their canonical owners, and any failed precondition fails closed without reverse upgrade through later ceilings or grants.
-    condition: Whenever auth evaluation ordering runs.
-    failure: Fail closed on failed preconditions without reverse upgrade.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.app-surface.auth-service-plane
+    lifecycle: removed
+    title: Retired AppMode and permission evaluation order
+    reason: Removed because Runtime now evaluates verified exact Host origin, fresh protected session, declaration-derived snapshot coverage, and owner policy without a mode ceiling or permission decision.
   - id: rule.nimi.runtime.app-surface.r091
     kind: rule
-    title: Manifest world-relation combinations validate
+    title: World relation is separate from App access
     modality: must
-    statement: AppModeManifest declares mode and world_relation, the WorldRelation enum admits NONE for no world association, RENDER for render permission, and EXTENSION for extension permission, illegal combinations return APP_MODE_MANIFEST_INVALID, and LITE mode does not allow world_relation EXTENSION because extension requires runtime capability.
-    condition: Whenever a mode manifest combination is validated.
-    failure: Return APP_MODE_MANIFEST_INVALID on illegal combinations.
+    statement: Any declared World relation is Realm or product relationship metadata owned outside Runtime App access and cannot create, widen, classify, or substitute for declaration-domain coverage, an AppOperationId, an Effective App Access Snapshot, or Realm owner business authorization.
+    condition: Whenever Runtime encounters World relation metadata while deriving or enforcing App access.
+    failure: Ignore it for App access derivation and reject any operation that depends on treating it as authorization.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r092
     kind: rule
-    title: TTL resolution has fixed defaults
+    title: Non-App session expiry remains server bounded
     modality: must
-    statement: The default session TTL is 3600 seconds, a client-requested ttl_seconds must fall within the server-configured interval, the lower bound sessionTtlMinSeconds defaults to 60 seconds and the upper bound sessionTtlMaxSeconds defaults to 86400 seconds with both set through the daemon configuration file or environment variables, and a missing ttl_seconds uses the default value.
-    condition: Whenever a session TTL is resolved.
-    failure: Reject TTLs outside the configured interval.
+    statement: A separately admitted ordinary or external-principal session may request a duration only within the owning server policy, uses the owner-defined duration when no request is supplied, and never upgrades its origin or becomes portable protected privilege; exact numeric bounds and configuration carriers remain owner implementation and configuration rather than App-access product authority.
+    condition: Whenever a non-App session expiry is resolved.
+    failure: Reject a duration outside current server policy and any expiry rule that upgrades origin.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
@@ -726,7 +673,7 @@ units:
     kind: rule
     title: Stale App sessions cannot restore authority
     modality: must
-    statement: Reconnect or refresh cannot restore prior product authority by itself, separately admitted external principals never become the local account or protected process origin, and all App and external-principal sessions become invalid after Runtime restart so clients must establish a fresh authenticated session and authorization state.
+    statement: Reconnect or refresh cannot restore a prior Effective App Access Snapshot by itself, separately admitted external principals never become the local account or verified Host origin, and all App and external-principal sessions become invalid after Runtime restart so clients must establish a fresh authenticated session and current snapshot or authorization state.
     condition: Whenever app or external-principal sessions are stored or restored.
     failure: Reject privilege restoration and cross-restart session revival.
     relations:
@@ -736,9 +683,9 @@ units:
     kind: rule
     title: Account custody split stays with the account service
     modality: must
-    statement: Local machine account sessions owned by RuntimeAccountService use daemon-owned secure Runtime custody selected only by the protected-local platform implementation, with callers, Desktop, and apps never owning durable account token custody; daemon restart attempts recovery from secure custody yielding authenticated on success, unavailable when custody is unavailable, expired on expiry, and reauth_required on inconsistency; and the OpenSession and OpenExternalPrincipalSession paths are never a local machine account truth entry with caller-supplied subject_user_id never used for the local first-party account.
+    statement: RuntimeAccountService owns local machine account sessions, per-user custody, and restart recovery, with callers, Desktop, and Apps never receiving durable account token custody; the physical custody path and platform mechanism remain implementation, recovery yields only current Account-owner truth without claiming resistance to same-user memory or file attacks, and ordinary or external-principal sessions never create local machine account truth from caller-supplied identity.
     condition: Whenever account session custody or restart recovery runs.
-    failure: Reject caller custody, a runtime-selected or portable custody fallback, non-custody recovery, and account truth entry through app sessions.
+    failure: Reject caller custody, portable custody fallback, non-owner recovery truth, and account truth entry through App or external-principal sessions.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
@@ -746,9 +693,9 @@ units:
     kind: rule
     title: Restart recovery differs per consumer
     modality: must
-    statement: Desktop does not use OpenSession because its token comes from the Realm Backend so daemon restart requires re-running RegisterApp per the Desktop bootstrap contract while the Realm token is unaffected and Desktop re-executes the bootstrap sequence after detecting runtime.disconnected, external agents and independent SDK consumers use the auth session paths so restart invalidates their sessions and all authenticated RPCs return UNAUTHENTICATED until the application layer re-runs RegisterExternalPrincipal plus OpenExternalPrincipalSession or re-opens sessions, the SDK runtime.disconnected event detects disconnection without distinguishing network failure from restart-invalidated sessions because both recover by rebuilding the connection and the session, and SDK consumers should unconditionally reconnect and re-open sessions in the disconnected handler without distinguishing the cause and retry with backoff on failure.
+    statement: Runtime restart invalidates Desktop, Local App, and external-principal technical sessions, Effective App Access Snapshots, Agent handles, and streams but preserves current registered App subjects and records; Desktop and Local Apps rebuild the connection and bind fresh sessions against current launch, account, source-generation, and declaration-generation facts, while separately admitted external consumers re-open their own sessions without gaining local account or protected Host origin.
     condition: Whenever consumers recover from daemon restart.
-    failure: Reject recovery flows that bypass re-registration or re-open paths.
+    failure: Reject recovery flows that reuse stale carriers or bypass fresh connection, exact Host binding, session open, and current snapshot derivation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
@@ -776,9 +723,9 @@ units:
     kind: rule
     title: Developer registration stays physically absent
     modality: must
-    statement: The predecessor RegisterAppRequest.developer_registration gate is retired and physically absent from the public wire, field number 7 and the field name developer_registration are both reserved and cannot be reused, no ignored field, alias, compatibility decoder, or alternate request intent may preserve the predecessor shape, and RegisterApp cannot create a local principal, project authorization, account caller, grant, launch lease, or local-app session.
-    condition: Whenever the RegisterApp wire shape or its capabilities evolve.
-    failure: Reject predecessor shape revival and RegisterApp authority creation.
+    statement: The predecessor developer-registration request gate is retired and physically absent from every supported interface, no ignored field, alias, compatibility decoder, or alternate request intent may preserve its semantics, and ordinary App registration cannot by itself create a development project decision, account caller, verified launch correlation, Local App session, Effective App Access Snapshot, or operation success; concrete field reservation remains protocol implementation rather than App-access product authority.
+    condition: Whenever App registration shape or capabilities evolve.
+    failure: Reject predecessor semantics revival and registration-only authority creation.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
@@ -786,9 +733,29 @@ units:
     kind: rule
     title: Local development has no compatibility entry
     modality: must
-    statement: Local development enters only through Runtime-owned Developer Mode project authorization, K-APP principal and record creation, K-PLOCAL protected launch, and the common request-empty local-app session, auth.developerRegistration and its environment, CLI, and config projections, request intent, RegisterApp, app id, manifest, ordinary app session, metadata, and temporary bearers do not exist as compatibility paths, unknown predecessor config keys fail schema validation, and the service never decodes or special-cases predecessor wire payloads.
+    statement: Local development enters only through the Desktop-owned Developer Mode workflow and source and declaration evaluation, the Runtime K-APP-owned canonical registration record, Registered App Subject, and source and declaration generations, Desktop-owned exact Host launch and process supervision, and a fresh protected Runtime App session; predecessor registration flags, environment, CLI, configuration, registration alone, app id, declaration alone, ordinary App session, metadata, and temporary bearers do not exist as compatibility access paths, and predecessor shapes are not decoded.
     condition: Whenever local development entry paths are evaluated.
     failure: Fail schema validation and reject compatibility decoding.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
+  - id: rule.nimi.runtime.app-surface.r100
+    kind: rule
+    title: Installed local-import and development Apps share one access seam
+    modality: must
+    statement: Installed, local-import, and development Apps, when separately admitted and made runnable by their owning lifecycle entry, create or update a Registered App Subject, source generation, and declaration generation and then use the same verified Desktop exact Host launch, fresh protected session, Effective App Access Snapshot derivation, canonical App operation contract, and owner-execution path; source-specific installer, import, update, distribution, and marketplace behavior remains outside this seam.
+    condition: Whenever a separately admitted App source becomes runnable or requests protected Nimi access.
+    failure: Reject source-specific access semantics, direct Runtime or Realm fallback, and installer or marketplace facts used as operation authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.auth-service-plane
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
+      - type: supersedes
+        target: rule.nimi.runtime.app-surface.r003

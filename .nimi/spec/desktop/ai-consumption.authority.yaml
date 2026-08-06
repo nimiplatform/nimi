@@ -616,8 +616,8 @@ units:
     kind: rule
     title: Operational status and explicit diagnostics stay non-authoritative
     modality: must
-    statement: Desktop may consume Runtime bridge operational status and a user-explicit bounded Test Connector diagnostic while SubscribeAppMessages remains unavailable; no local LLM health, provider readiness, periodic probe, warm state, or diagnostic result establishes a binding, machine selection, route, admission, or execution prerequisite.
-    condition: Whenever Desktop presents operational status, connector diagnostics, or app-message projection.
+    statement: Desktop may consume Runtime bridge operational status and a user-explicit bounded Test Connector diagnostic while private or broad App message streams remain unavailable; no local LLM health, provider readiness, periodic probe, warm state, or diagnostic result establishes a binding, machine selection, route, admission, or execution prerequisite.
+    condition: Whenever Desktop presents operational status, connector diagnostics, or a stream projection.
     failure: Reject a private or broad stream, public capability health lifecycle, and diagnostic-as-readiness or binding truth.
     relations:
       - type: applies_to

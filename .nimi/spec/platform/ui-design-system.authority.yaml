@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.agent-center-surface
     kind: definition
     title: LocalAgent Center surface
-    meaning: Agent Center is the reusable public Kit surface for first-party Apps and permissioned Third-party Local Apps to present and edit admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and shared LocalAgent AIConfig projections without owning execution, lifecycle, Machine Local AI Configuration, Local Capability Configuration, machine selection, ConnectorGrant, configuration persistence, or semantic presentation truth.
+    meaning: Agent Center is the reusable Nimi-owned first-party Kit surface for presenting and editing admitted Runtime LocalAgent personality, appearance, behavior, Memory, Conversation-presentation, and shared LocalAgent AIConfig projections without owning execution, lifecycle, Machine Local AI Configuration, Local Capability Configuration, machine selection, ConnectorGrant, configuration persistence, or semantic presentation truth; it is not a third-party App access surface.
   - id: definition.nimi.platform.ui-design-system.runtime-projection
     kind: definition
     title: Runtime-owned UI projection
@@ -460,10 +460,12 @@ units:
     kind: rule
     title: P-AGENT-CENTER-001 public Kit surface ownership
     modality: must
-    statement: Kit owns the public AgentCenter component's shared layout, typed controls, loading, failure, disabled, and responsive behavior for first-party Apps and permissioned Third-party Local Apps while combining Runtime-owned LocalAgent projections with bounded Kit Shell asset custody.
+    statement: Kit owns the first-party AgentCenter component's shared layout, typed controls, loading, failure, disabled, and responsive behavior for Nimi-owned first-party consumers while combining Runtime-owned LocalAgent projections with bounded Kit Shell asset custody; third-party Apps receive only their central App Operation Contract surface and never the AgentCenter manager surface.
     condition: Whenever AgentCenter is rendered or integrated.
-    failure: Reject an app fork of shared behavior, a first-party-only contraction, or ownership transfer of Runtime LocalAgent truth.
+    failure: Reject an app fork of shared behavior, third-party manager exposure, or ownership transfer of Runtime LocalAgent truth.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
       - type: applies_to
@@ -480,11 +482,11 @@ units:
         target: definition.nimi.platform.ui-design-system.runtime-projection
   - id: rule.nimi.platform.ui-design-system.p-agent-center-001c
     kind: rule
-    title: P-AGENT-CENTER-001 bounded app integration
+    title: P-AGENT-CENTER-001 bounded first-party integration
     modality: must
-    statement: First-party Apps and permissioned Third-party Local Apps may place AgentCenter and supply presentation-tier inputs for standalone or embedded chrome, layout, density, and active semantic area plus admitted typed adapters, copy, navigation, and placement callbacks, while permission facts, arbitrary feature panels, private bridges, raw context, prompts, Memory or Knowledge content, proof, provider, credential, and tool payloads remain outside component props.
-    condition: Whenever an App integrates AgentCenter.
-    failure: Reject a permission-bearing prop, untyped or App-authoritative input, raw data, or speculative integration.
+    statement: Nimi-owned first-party consumers may place AgentCenter and supply presentation-tier inputs for standalone or embedded chrome, layout, density, and active semantic area plus admitted typed adapters, copy, navigation, and placement callbacks, while access facts, arbitrary feature panels, private bridges, raw context, prompts, Memory or Knowledge content, proof, provider, credential, and tool payloads remain outside component props; no third-party App integration or factory is admitted.
+    condition: Whenever a first-party consumer integrates AgentCenter.
+    failure: Reject third-party integration, an authority-bearing prop, untyped or App-authoritative input, raw data, or speculative integration.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
@@ -529,7 +531,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-004 Runtime-owned voice split
     modality: must
-    statement: AgentCenter reads and commits the default voice reference through the Runtime presentation-profile path, configures the audio.transcribe route only in the one shared LocalAgent subsystem AIConfig, and invokes neither voice generation nor transcription execution because those Runtime-owned operations require agents.voice; it never chooses a machine Local Capability Configuration.
+    statement: First-party AgentCenter reads and commits the default voice reference through the Runtime presentation-profile path, configures the audio.transcribe route only in the one shared LocalAgent subsystem AIConfig, and invokes neither voice generation nor transcription execution because those operations require a separately admitted first-party Runtime surface; it never chooses a machine Local Capability Configuration and creates no third-party App voice operation.
     condition: Whenever LocalAgent voice, transcription, or audio configuration is read, changed, generated, or executed.
     failure: Reject an AI-config-owned default voice, app-local audio truth, direct execution, or pseudo artifact and retain the applicable Runtime owner path.
     relations:
@@ -564,7 +566,7 @@ units:
     kind: rule
     title: P-AGENT-CENTER-006 single Manager Session and transport-only factories
     modality: must
-    statement: Each mounted AgentCenter has exactly one Manager Session that owns its snapshot, refresh, mutation, typed action-availability subscription, commit, and one section model; sealed first-party and permissioned factories construct transport only and own no state logic; React props are limited to UI and UX inputs for chrome, layout, density, active section, locale, and placement callbacks; and the pre-1.0 hard cut admits no legacy seed-authority, per-adapter props, compatibility copy objects, caller-owned authority, per-Agent AIConfig, or parallel state path.
+    statement: Each mounted first-party AgentCenter has exactly one Manager Session that owns its snapshot, refresh, mutation, typed action-availability subscription, commit, and one section model; sealed Nimi-owned first-party factories construct transport only and own no state logic; React props are limited to UI and UX inputs for chrome, layout, density, active section, locale, and placement callbacks; and the pre-1.0 hard cut admits no third-party factory, legacy seed-authority, per-adapter props, compatibility copy objects, caller-owned authority, per-Agent AIConfig, or parallel state path.
     condition: Whenever AgentCenter state, sections, sessions, transports, factories, or React props are constructed.
     failure: Reject a missing or second Manager Session, divergent store, stateful factory, authority-bearing prop, caller-assembled authority, legacy compatibility input, or carrier distinction implemented inside presentation state.
     relations:
@@ -586,9 +588,9 @@ units:
     kind: rule
     title: P-AGENT-CENTER-007 closed product-action availability projection
     modality: must
-    statement: The single Manager Session materializes from Runtime or SDK truth the only authority projection AgentCenter consumes, consisting of a closed product-action availability projection for read shared LocalAgent AIConfig, overwrite shared LocalAgent AIConfig, apply Profile to shared LocalAgent AIConfig, read autonomy, update autonomy, read Memory summary, replace appearance, restore previous appearance, and request permission or open permission-settings navigation; each action is available, or unavailable with exactly one typed reason from needs-grant, request-pending, denied, revoked, runtime-offline, reserved-not-admitted, and unknown, and carries an admitted next-step action. AgentCenter never receives machine-selection actions, Local Capability Configuration mutation actions, permission ids, operation ids, grant scope, posture objects, carrier discriminators, or raw Agent identity through props or state; permission scope is explained to humans only in owner consent and settings surfaces; and callers cannot assemble or override availability.
-    condition: Whenever AgentCenter action availability, degraded state, permission recovery, props, or state are materialized.
-    failure: Fail closed and reject caller-supplied authority facts, an action outside the closed projection, an untyped or collapsed unavailable reason, a non-admitted next step, leaked authority material or identity, or a misleading enabled state.
+    statement: The single first-party Manager Session materializes from Runtime or SDK truth the only action-availability projection AgentCenter consumes, covering first-party reads and mutations for shared LocalAgent AIConfig, Profile Apply, autonomy, bounded Memory summary, and presentation selection; each action is available or unavailable with one typed owner reason such as runtime-offline, owner-rejected, selection-required, unsupported, reserved-not-admitted, or unknown and an admitted next step, while AgentCenter receives no machine-selection action, Local Capability Configuration mutation, AppOperationId, Effective App Access Snapshot, carrier discriminator, credential, or raw Agent identity through props or state and callers cannot assemble or override availability.
+    condition: Whenever first-party AgentCenter action availability, degraded state, props, or state are materialized.
+    failure: Fail closed and reject caller-supplied authority facts, third-party exposure, an action outside the closed projection, an untyped or collapsed unavailable reason, a non-admitted next step, leaked authority material or identity, or a misleading enabled state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
@@ -739,7 +741,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.model-config-surface
     kind: definition
     title: Public Kit model-config surface
-    meaning: Model-config is the public Kit feature module for typed composition of canonical AIConfig editing and separately authorized Machine Local AI Configuration editing without app-owned, feature-local, or per-Agent model truth; every mount declares one owner context and never merges the two authority surfaces.
+    meaning: Model-config is the public Kit feature module for typed composition of canonical AIConfig editing and separately authorized Machine Local AI Configuration editing without app-owned, feature-local, or per-Agent model truth; every mount declares one owner and consumer context, and public reuse never gives a third-party App access to Nimi-owned ConnectorGrant binding or machine-owner actions.
   - id: definition.nimi.platform.ui-design-system.model-picker-surface
     kind: definition
     title: Public Kit model-picker surface
@@ -752,9 +754,9 @@ units:
     kind: rule
     title: P-MODEL-CONFIG-001 public shared configuration surface
     modality: must
-    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, consumes the Kit-core code-generated canonical CapabilityContract and standardized-feature catalog, and mounts in exactly one declared owner mode where an App or shared LocalAgent AIConfig mode may edit route intent, required features, defaults, Cloud implementation-target intent and an explicit ConnectorGrant binding, while a Machine Local AI Configuration mode may edit saved Local Capability Configurations and machine selection; Apply Profile to AIConfig is overwrite-only and neither mode renders a public readiness, probe, warm, install-as-apply, fallback, stub, or unsupported parameter.
+    statement: Model-config follows the Kit public-module, dependency, and portable-feature rules, consumes the canonical CapabilityContract and standardized-feature catalog, and mounts in exactly one declared owner and consumer mode; a third-party App context may edit only portable intent for its own App AIConfig through the admitted protected overwrite operation, carries no ConnectorGrant selector or binding, atomically removes any prior binding on whole-object overwrite, and presents Cloud as selection-required, while only a Nimi-owned explicit-user App AIConfig surface may attach a current-account ConnectorGrant and shared LocalAgent AIConfig and Machine Local AI Configuration modes remain first-party owner surfaces; no mode renders public readiness, probe, warm, install-as-apply, fallback, stub, or unsupported parameter.
     condition: Whenever model-config is published, integrated, or rendered.
-    failure: Reject a private or parallel model-config surface, per-Agent model truth, mixed owner mode, catalog shadow, fabricated config, direct app seam, unsupported control, or Profile apply that mutates machine-owned truth.
+    failure: Reject a private or parallel model-config surface, per-Agent model truth, mixed owner or consumer mode, third-party binding control, preserved stale binding after App overwrite, catalog shadow, fabricated config, unsupported control, or Profile apply that mutates machine-owned truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
@@ -872,9 +874,9 @@ units:
     kind: rule
     title: P-KIT-041 protected carrier and Tauri boundaries
     modality: must
-    statement: Protected-local carries only typed protected verification, empty-session bootstrap, and fixed-service status, start, and restart while Runtime and the operating system retain security and lifecycle truth; its host-only carrier never reaches renderer; the app-agnostic Tauri host neither manages or executes Runtime nor owns credentials, OAuth, Realm, protected RPC, renderer, app, menu, Runtime, or Realm truth; shared defaults contain only non-security hints and have no app-local duplicate; platform catalogs are read-only projections that neither replace catalog truth nor write app admission; identity is parameterized; static assets use admitted build inputs; IPC semantics retain their external owner; and generated commands retain one external owner.
+    statement: Protected-local carries only typed exact-Host correlation, fresh protected-session bootstrap, and fixed-service status, start, and restart while Runtime and the operating system retain admission, security, and lifecycle truth; its host-only carrier never reaches renderer and neither proves binary or project-payload integrity nor creates an operating-system sandbox or long-lived authorization lineage; host adapters do not own credentials, OAuth, Realm, Runtime, App, snapshot, operation, or business truth, shared defaults remain non-security hints, platform catalogs are read-only display projections, and IPC semantics and generated commands retain their external owner.
     condition: Whenever Kit carries protected local or Tauri shell behavior.
-    failure: Reject renderer exposure, product stop, selectors, generic configuration or RPC, foreign truth, hardcoded branding, cross-layer app inclusion, or parallel command truth.
+    failure: Reject renderer exposure, product stop, caller selectors, generic configuration or RPC, foreign truth, hardcoded branding, cross-layer app inclusion, duplicate App access catalogs, or parallel command truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
@@ -894,7 +896,7 @@ units:
     kind: rule
     title: P-KIT-041C host-owned JSON storage
     modality: must
-    statement: Standard storage resolves canonical relative JSON paths beneath a host-owned principal-derived app-data root, never accepts an absolute root or app selector, admits only read and write results containing value and byte size plus idempotent remove, keeps full-host remove results limited to path and removed while the protected projection returns removed only, enforces 256-KiB document and 16-MiB partition quotas on every call, and grants app-private storage without a permission prompt or generic file authority.
+    statement: Standard storage resolves canonical relative JSON paths within the Runtime-private Registered-App-Subject-scoped logical partition without exposing its physical layout, never accepts an absolute root, App selector, subject identifier, or partition selector, admits only read and write results containing value and byte size plus idempotent remove, keeps full-host remove results limited to path and removed while the protected projection returns removed only, enforces 256-KiB document and 16-MiB partition quotas on every call, and provides App-private storage without a user-mediated access workflow or generic file authority.
     condition: Whenever a standard host processes app storage.
     failure: Fail closed on an absolute or escaping path, oversized data, foreign partition, path disclosure, or implied generic file access.
     relations:
@@ -934,20 +936,30 @@ units:
     kind: rule
     title: P-KIT-041E bounded restart recovery
     modality: must
-    statement: Runtime restart invalidates host registration and protected sessions, requires the verified host and Runtime to establish fresh session-derived identity and authorization, preserves owner handling for registration, revocation, and expiry, and never retries endpoint, business, unrelated permission, or unclassified failures indefinitely.
-    condition: Whenever an Electron-carried Runtime call encounters restart or authorization failure.
+    statement: Runtime restart invalidates affected protected App sessions, Effective App Access Snapshots, and streams but does not delete registration, rotate the stable Registered App Subject, or require an otherwise unchanged exact App Host to restart; the same exact Host may establish a fresh Runtime bind, and recovery never retries endpoint, owner-business, unsupported-operation, or unclassified failures indefinitely.
+    condition: Whenever an Electron-carried Runtime call encounters Runtime restart or protected-session invalidation.
     failure: Close stale state and reject protected metadata reconstruction, misclassification, or unbounded retry.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-044
     kind: rule
     title: P-KIT-044 exact local-app carrier boundary
     modality: must
-    statement: Kit never creates or accepts account, principal, provenance, permission decision, launch, process, session, endpoint, proof, or security truth; Electron and Tauri share one verified Runtime-bound client exposing bounded session posture, permission posture, App-private storage, owner-admitted LocalAgent operations, and only the exact WorldCore list and create operations fixed by the Runtime-owned protected policy, while every other reserved request is unavailable and no generic Realm or Runtime proxy, renderer-supplied operation identity, filesystem fallback, internal selector, account-wide LocalAgent inventory, caller-built authorization, credential, direct Avatar control, embedded rendering, or private Runtime Agent Service surface exists; App-native data and commands remain App-owned and protected identity material remains host-private.
+    statement: Kit never creates or accepts account authority, registered App subject, provenance, declaration generation, snapshot, AppOperationId, AppAccessDomainId, classification, launch witness, process proof, session identity, endpoint, or security truth; qualified Hosts share one typed Runtime-bound App client exposing only purpose-specific methods from the central App Operation Contract, while Runtime alone evaluates each call against its current private Effective App Access Snapshot; the client projects the current-user display fields handle, displayName, and avatarUrl and may project current-account active Agent references as non-secret session-scoped opaque selectors that are revalidated by the owner on every operation and never act as a bearer, durable identity, or authorization record; no generic Realm or Runtime proxy, renderer-supplied operation identity, filesystem fallback, caller-built authorization, credential, direct Avatar control, embedded rendering, private Runtime Agent Service, voice, attachment, autonomy, presentation-mutation, or shared LocalAgent AIConfig third-party surface exists, while App-native data and commands remain App-owned and protected identity material remains host-private.
     condition: Whenever a local-app host opens, exposes, or uses its native session.
-    failure: Reject caller-supplied authority, unadmitted operations, root disclosure, generic forwarding, filesystem substitution, or protected-material projection.
+    failure: Reject caller-supplied authority, stale or foreign Agent selectors, root disclosure, generic forwarding, filesystem substitution, or protected-material projection before transport, preserve Runtime's typed rejection of missing snapshot coverage and unknown or unsupported operations before owner execution, and never decide App access locally.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.current-user-display-projection
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
       - type: applies_to
@@ -956,10 +968,12 @@ units:
     kind: rule
     title: P-KIT-044 fail-closed local-app recovery
     modality: must
-    statement: Missing or untrusted service or carrier, process mismatch, revocation, account switch, Runtime restart, and unsupported platform or profile return typed failure through the admitted recovery flow, with no ordinary RPC, external daemon, manually started host, inherited principal, permission effect from provenance, or pseudo-success fallback.
+    statement: Missing or untrusted service or carrier, exact Host process mismatch, account or declaration-generation change, Runtime restart, and unsupported platform or profile return typed access or operation failure with no ordinary RPC, external daemon, manually started Host, caller-supplied or inherited registered App subject, provenance-derived access, or pseudo-success fallback; account, declaration, or Runtime changes close only stale sessions, snapshots, and streams and allow the same exact Host to bind fresh, while a security-relevant executable, entrypoint, or process-start mismatch requires a new verified Host launch.
     condition: Whenever a local-app carrier cannot maintain verified state.
-    failure: Close the invalid carrier and surface typed failure without fallback.
+    failure: Close only the invalid access state or mismatched Host carrier, preserve unaffected App and tooling state, and surface typed failure without fallback.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-045
@@ -976,10 +990,12 @@ units:
     kind: rule
     title: P-KIT-046 local-development bootstrap boundary
     modality: must
-    statement: Local-development bootstrap uses the common verified carrier, accepts no app-provided security or process selectors, serializes host-only renewal against business calls, reopens after controlled replacement or restart, unregisters renderer commands before one no-argument close callback on failure, and projects identical Electron and Tauri states limited to authorizing, ready, denied, runtime-unavailable, revoked, and project-changed with reason and retryability plus only session posture, permission posture or request, and app-private JSON storage.
+    statement: Local-development bootstrap uses the common exact-Host-correlated carrier, accepts no App-provided security, identity, process, domain, operation, or snapshot selector, serializes fresh protected-session binding against business calls, and projects the same three independent facts across supported per-user non-elevated hosts consisting of App running or stopped, Nimi access available or unavailable with typed reason and retryability, and official tooling active or inactive; access failure removes only protected commands and streams while an exact Host mismatch or explicit stop closes the Host carrier, and the renderer receives only the admitted typed App client surface.
     condition: Whenever a local-development host bootstraps, renews, replaces, closes, or projects its carrier.
-    failure: Reject app authority, stale concurrent use, a live failed bridge, unknown state, protected disclosure, generic forwarding, ordinary-RPC fallback, or inherited identity.
+    failure: Reject App authority, stale concurrent use, collapsed lifecycle facts, protected disclosure, generic forwarding, ordinary-RPC fallback, inherited identity, or automatic Host termination for an access-only failure.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-047
@@ -1066,7 +1082,7 @@ units:
     kind: rule
     title: P-KIT-072 Avatar ownership hardcut
     modality: must_not
-    statement: Avatar owns Runtime-persistent presentation, App-transient interaction, LocalAgent identity, Memory, Knowledge, Conversation, voice truth, App permission, placement or orchestration truth, imports App stores, private host bridges, or Runtime internals, or invents fallback assets, voices, or pseudo-success when required projection inputs are unresolved.
+    statement: Avatar owns Runtime-persistent presentation, App-transient interaction, LocalAgent identity, Memory, Knowledge, Conversation, voice truth, App access, placement or orchestration truth, imports App stores, private host bridges, or Runtime internals, or invents fallback assets, voices, or pseudo-success when required projection inputs are unresolved.
     condition: Whenever Avatar consumes presentation or interaction state.
     failure: Keep truth with its owner and fail closed on unresolved required presentation fields.
     relations:
@@ -1116,27 +1132,35 @@ units:
     kind: rule
     title: standard-shell-capabilities catalog closure
     modality: must
-    statement: A standard shell host exposes only cataloged commands, permits an operation only when its resolved capability set explicitly allows it, denies every forbidden or uncataloged operation, and treats every planned operation as denied until separate admission moves it into the allowed set.
+    statement: A standard shell host exposes only its cataloged ordinary host commands, permits one only when the resolved shell capability set allows it, and denies every forbidden, planned, or uncataloged shell command; this shell catalog is transport and host-feature closure only and never supplies, duplicates, filters, enlarges, or replaces the Runtime-owned central App Operation Contract or Effective App Access Snapshot.
     condition: Whenever a host resolves or enforces a standard shell capability set.
     failure: Deny dispatch before owner invocation and return the cataloged typed failure for unavailable or forbidden capability.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-public-surface
   - id: rule.nimi.platform.ui-design-system.standard-shell-capabilities-profile-schema
     kind: rule
     title: standard-shell-capabilities profile schema
     modality: must
-    statement: Every standard shell capability profile declares a stable set identity, host class, app package kind, verified launch resolution, authentication binding, authority status, disjoint allowed, planned, and forbidden operation sets, and an explicit deny-until-admission disposition for planned operations.
+    statement: Every ordinary standard-shell capability profile declares a stable set identity, host class, package kind, verified host resolution, and disjoint allowed, planned, and forbidden shell-command sets with deny-until-available disposition for planned commands; the profile carries no Runtime App authority status, declaration mapping, Registered App Subject, Effective App Access Snapshot, or protected App-operation allowlist.
     condition: Whenever a standard shell capability profile is registered or resolved.
     failure: Reject an incomplete, overlapping, selector-derived, or permissive profile.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.standard-shell-capabilities-family-security
     kind: rule
     title: standard-shell-capabilities family security boundaries
     modality: must
-    statement: Each standard shell command family remains bound to its declared host contract and payload, result, and ownership constraints; renderer input cannot supply protected identity, authorization, endpoint, process, session, account, permission-decision, storage-root, or absolute-path authority; and the host verifies the invoking profile before dispatch without transferring domain ownership.
+    statement: Each standard shell command family remains bound to its declared host contract and payload, result, and ownership constraints; renderer input cannot supply protected identity, authorization, endpoint, process, session, account, declaration, snapshot, operation, storage-root, or absolute-path authority; and the host verifies the invoking shell profile before dispatch without transferring domain or Runtime App-access ownership.
     condition: Whenever a renderer or host crosses a standard shell command-family boundary.
     failure: Fail closed before dispatch on forbidden authority input, wrong host contract, profile mismatch, path disclosure, or ownership transfer.
     relations:

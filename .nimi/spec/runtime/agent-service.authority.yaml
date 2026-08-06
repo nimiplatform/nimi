@@ -118,22 +118,21 @@ units:
     kind: rule
     title: Local App access is session-derived and bounded
     modality: must
-    statement: A Desktop-hosted Local App accesses an explicit localAgentId only when Runtime derives the current account, current App identity, current authorization, requested operation, and LocalAgent ownership or access from the active session; the App receives no Realm JWT, Provider Credential, account-wide LocalAgent inventory authority, caller-maintained Runtime proof, or reusable relationship authority.
+    statement: Runtime may project the calling protected Local App a bounded reference catalog covering all current-account active LocalAgents and a session-scoped opaque handle for each entry only when the canonical App Operation Contract maps runtime.agent.reference.list to agent.local and the current Effective App Access Snapshot covers agent.local; each handle is a non-secret selector rather than a grant, bearer, durable identity, relationship authority, or raw localAgentId, and every later operation resolves and revalidates the handle against the current account, active LocalAgent, App subject, agent.local snapshot coverage, and exact canonical AppOperationId mapping.
     condition: Whenever a scaffolded Third-party Local App invokes a LocalAgent operation.
-    failure: Reject missing or caller-declared authorization and expose no broader LocalAgent state.
+    failure: Reject missing, stale, caller-authored, cross-account, inactive-Agent, or unsupported-operation access and expose no broader LocalAgent, credential, configuration, or inventory truth.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane
   - id: rule.nimi.runtime.agent-service.r034
     kind: rule
-    title: Conversation listing is scoped and read-only
-    modality: must
-    statement: Runtime may list only the calling App's authorized LocalAgent conversation summaries, and such summaries remain read-only projections rather than local transcript or ownership authority.
-    condition: Whenever an App requests available LocalAgent conversations.
-    failure: Reject cross-App, cross-account, or unauthorized LocalAgent listing.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.agent-service.agent-service-plane
+    lifecycle: removed
+    title: Retired Third-party App conversation listing
+    reason: Removed because conversation listing is not in the initial canonical App operation contract; reference listing and the admitted typed Conversation operations do not imply a shadow history or conversation-inventory API.
   - id: rule.nimi.runtime.agent-service.r038
     kind: rule
     title: LocalAgent Conversation is not generic App history
@@ -186,20 +185,15 @@ units:
         target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
   - id: rule.nimi.runtime.agent-service.r045
     kind: rule
-    title: Scaffolded App source access stays Runtime-mediated
-    modality: must
-    statement: For a Desktop-hosted scaffolded App, Runtime mediates the Realm source access required for LocalAgent materialization and keeps Realm authentication and proof custody outside the App.
-    condition: Whenever a scaffolded App requests LocalAgent materialization.
-    failure: Reject App-held Realm JWT, App-built Runtime proof, or direct App materialization bypass.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+    lifecycle: removed
+    title: Retired scaffolded App LocalAgent materialization
+    reason: Removed because Third-party App LocalAgent materialization is not in the canonical App operation contract and no direct or hidden materialization path is admitted.
   - id: rule.nimi.runtime.agent-service.r046
     kind: rule
-    title: Materialization is not a Third-party App permission
+    title: App interaction access creates no materialization authority
     modality: must
-    statement: Third-party App authorization to interact with a LocalAgent never grants authority to create, rematerialize, replace, or take ownership of a LocalAgent.
-    condition: Whenever App permissions or LocalAgent lifecycle operations are evaluated.
+    statement: Declaration-derived Third-party App access to reference or interact with an existing LocalAgent never creates authority to create, materialize, rematerialize, replace, terminate, or take ownership of a LocalAgent.
+    condition: Whenever Third-party App access or LocalAgent lifecycle operations are evaluated.
     failure: Reject lifecycle authority inferred from interaction access.
     relations:
       - type: applies_to

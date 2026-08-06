@@ -25,7 +25,7 @@ units:
   - id: definition.nimi.runtime.service-operations.daemon-plane
     kind: definition
     title: Runtime daemon operations plane
-    meaning: The Runtime daemon operations plane owns boot identity, protected state, health, listener admission, interceptors, idempotency, scheduling, timeouts, configuration, shutdown, restart invalidation, and operational health projection.
+    meaning: The Runtime daemon operations plane owns protected process state, health, listener admission, request processing, scheduling, timeouts, configuration, shutdown, restart invalidation, and operational health projection while owner-specific retry or idempotency remains with the exact operation owner.
   - id: definition.nimi.runtime.service-operations.cli-plane
     kind: definition
     title: Runtime CLI operations plane
@@ -224,9 +224,9 @@ units:
     kind: rule
     title: Externally readable artifacts have complete durable audience metadata
     modality: must
-    statement: Every externally readable artifact binds producer job, applicable owner account, initiating local_app_principal_id for third-party work, immutable_lineage_id or development authorization plus canonical project identity, host and payload digest slots, producing session, account generation, allowed use, observed size, content SHA-256, and expiry, while app_id remains display or routing metadata only.
-    condition: Whenever an artifact record becomes externally readable.
-    failure: Keep the record internal and deny retrieval when any required audience or integrity field is absent.
+    statement: Every artifact made readable through a separately admitted non-Third-party surface binds only the owner-defined audience, producer, current account context where applicable, allowed use, observed size, content integrity, and expiry needed by that surface; the canonical Third-party App operation contract currently admits no generic artifact read, write, audience, attachment, media, Host-digest, payload-digest, or artifact-inventory operation.
+    condition: Whenever an artifact record is proposed for external readability.
+    failure: Keep the record internal and deny Third-party App retrieval or any separately admitted retrieval whose required owner audience is absent.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -334,7 +334,7 @@ units:
     kind: rule
     title: Artifact reads revalidate live caller and durable audience
     modality: must
-    statement: Before lookup Runtime revalidates live process, account generation, and durable local-app session, then matches account, principal, exact principal-lineage branch, session, generation, allowed use, and expiry; unbound history, direct local gRPC, wrong audience, revoked or expired records, and guessed ids fail closed.
+    statement: Before an artifact lookup on a separately admitted non-Third-party surface Runtime revalidates the current caller and owner-defined durable audience, allowed use, and expiry; the canonical Third-party App operation contract maps no artifact read operation, and unbound history, direct local gRPC, wrong audience, expired records, and guessed ids fail closed.
     condition: Whenever ReadArtifactBytes authorizes a read.
     failure: Return ARTIFACT_FORBIDDEN without exposing whether the id exists or which audience field mismatched.
     relations:
@@ -342,14 +342,9 @@ units:
         target: definition.nimi.runtime.service-operations.artifact-plane
   - id: rule.nimi.runtime.service-operations.r032
     kind: rule
-    title: Artifact reads require current owner permission and selector
-    modality: must
-    statement: ReadArtifactBytes requires the current Account-owned local-app operation decision and data.scope.read qualified by runtime.artifacts, and the coordinator revalidates local record, permission decision and selector, process-bound session, artifact-owner policy, and durable audience on every read while provenance slots remain opaque before 0P/P.
-    condition: Whenever a third-party local app requests artifact bytes.
-    failure: Deny the read when any current decision, selector, session, owner policy, or audience proof is absent or stale.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.service-operations.artifact-plane
+    lifecycle: removed
+    title: Retired Third-party App artifact permission and selector
+    reason: Removed because generic artifact reads are absent from the canonical Third-party App operation contract and no permission, selector, or hidden compatibility path remains.
   - id: rule.nimi.runtime.service-operations.r033
     kind: rule
     title: Artifact retrieval is a hard cut with distinct typed surfaces
@@ -546,30 +541,30 @@ units:
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: rule.nimi.runtime.service-operations.r053
     kind: rule
-    title: Protected state and boot epoch precede every listener
+    title: Protected state validation precedes protected listeners
     modality: must
-    statement: Before any protected listener accepts traffic, Runtime validates its service-owned protected state and custody boundary, verifies endpoint ownership, creates a fresh unpredictable boot identity, and invalidates all authority from prior Runtime processes.
-    condition: Whenever a Runtime production service boots.
-    failure: Disable protected features on protected-state corruption, service-owned custody-boundary failure, endpoint ownership failure, or a missing required OS primitive without public-TCP or portable-session fallback.
+    statement: Before any protected local endpoint accepts traffic, Runtime validates the configuration, custody, and endpoint ownership required by its current admitted topology and invalidates every prior-process exact-launch correlation, process binding, session, Effective App Access Snapshot, Agent handle, and stream; production uses its admitted service boundary while D2 local development uses its per-user non-elevated boundary, with the concrete restart marker and platform primitive remaining implementation and neither topology becoming the other's prerequisite.
+    condition: Whenever a production or D2 local-development Runtime process boots.
+    failure: Keep protected App access unavailable on invalid required state, endpoint ownership failure, or a missing topology-specific platform primitive without public-TCP, portable-session, or cross-topology fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: rule.nimi.runtime.service-operations.r054
     kind: rule
-    title: Production Runtime starts only from signed service identity
+    title: Production Runtime starts only from admitted service identity
     modality: must
-    statement: A production Runtime validates the exact service principal, signed service definition, current platform code identity, and service-owned immutable configuration and custody before opening protected access, and Desktop start or restart invokes only the typed OS service-control gateway.
-    condition: Whenever production Runtime starts or restarts.
-    failure: Reject Desktop-spawned same-user processes, command-line serve, generic user-session keyrings, environment-selected endpoints, user-writable configuration or custody, and Desktop-selected executable paths as production service identity.
+    statement: A production or deployment Runtime validates its admitted service principal, signed service definition, current platform code identity, and service-owned immutable configuration and custody before opening production protected access, and Desktop production start or restart uses only the typed service-control gateway; these facts are not D2 local-development trust facts or prerequisites.
+    condition: Whenever the production or deployment Runtime service starts or restarts.
+    failure: Reject production protected access outside the admitted service identity without blocking or upgrading the separately admitted D2 per-user local-development topology.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: rule.nimi.runtime.service-operations.r055
     kind: rule
-    title: Daemon startup stages are ordered
+    title: Production daemon startup preserves operational truth
     modality: must
-    statement: Runtime startup verifies service identity and production or test isolation, loads and validates admitted daemon configuration, validates protected custody, creates a fresh unpredictable boot identity and invalidates prior-process authority in memory, opens only admitted listeners, starts configured private supervised services, changes daemon STARTING to operational READY with matching gRPC transport health, and starts bounded in-memory resource sampling; daemon status is service-operational truth only and no periodic AI provider or capability probe starts.
-    condition: Whenever the daemon starts.
+    statement: Production or deployment Runtime startup establishes its admitted service topology and endpoint, loads and validates its supported configuration and custody inputs, invalidates prior-process ephemeral access, opens only admitted listeners, starts configured private supervised services, projects matching operational health, and starts admitted resource sampling; daemon status remains process-operational truth and proves no App access, owner operation, or AI capability, and these production mechanics are not D2 requirements.
+    condition: Whenever a production or deployment Runtime daemon starts.
     failure: Stop before the dependent stage or mark the daemon operationally DEGRADED where explicitly admitted rather than reorder stages or fabricate service health or capability admission.
     relations:
       - type: applies_to
@@ -618,29 +613,33 @@ units:
     kind: rule
     title: Protected origin is derived before request interpretation
     modality: must
-    statement: On protected transports immutable protected-origin derivation runs before version, protocol, authn, authz, business parsing, token access, or network I/O, binds verified connection and process facts, and assigns public TCP only an explicit non-protected origin that metadata cannot upgrade.
-    condition: Whenever a gRPC call enters Runtime.
+    statement: On protected Third-party App ingress Runtime derives immutable origin before interpreting caller authority fields and binds the connected peer only to Desktop's current exact Host launch and process relation; the proof establishes no binary integrity, mutable-project integrity, OS sandbox, machine identity, complete process attestation, same-user resistance, or long-lived authorization lineage, and public TCP remains explicitly non-protected.
+    condition: Whenever a protected Third-party App request enters Runtime.
     failure: Reject transport or role mismatch before parsing authority-bearing request material.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: rule.nimi.runtime.service-operations.r061
     kind: rule
-    title: Unary and stream interceptors use one exact order
+    title: Protected App request semantics use one order
     modality: must
-    statement: "Runtime registers unary and stream interceptors in this order: protected-origin derives immutable origin, version injects x-nimi-runtime-version, lifecycle rejects non-read-only work in STOPPING or STOPPED, activity tracks active calls and shutdown disposition, protocol parses envelopes and metadata with unary-only idempotency, authn validates authorization metadata, authz protects admitted operations and applies on streams only to ExportAuditEvents, credential-scrub removes sensitive metadata from handler context, and audit records request, response, and usage."
-    condition: Whenever a Runtime gRPC server builds its interceptor chains.
-    failure: Reject server startup when an interceptor is missing, reordered, or applied beyond its admitted unary or stream role.
+    statement: Protected Third-party App operations derive the verified exact Host peer, validate the fresh session and Runtime-private snapshot, classify the exact AppOperationId through the canonical contract, enforce the classified Base invariants or AppAccess-domain snapshot coverage, dispatch to the owning service, and project the owner-defined typed result in that semantic order; interceptor count, names, composition, framing, and language-specific registration remain implementation details.
+    condition: Whenever Runtime handles a protected Third-party App operation.
+    failure: Reject the affected operation before owner execution when an ordered prerequisite is absent and never replace the failure with global Runtime unavailability or a fallback path.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: rule.nimi.runtime.service-operations.r062
     kind: rule
     title: Interceptor responsibilities remain separated
     modality: must
-    statement: StreamScenario authorization exceptions remain in request evaluation rather than stream authz and never extend to provider health probes, protected-origin consumes only OS and transport facts, activity tracks method, recent activity, and shutdown disposition without replacing lifecycle gating, and credential-scrub runs after authz but before audit to remove raw credential metadata from handler context.
+    statement: Protected-origin consumes only the bounded platform peer and Desktop launch facts, lifecycle and activity tracking do not replace App operation admission, owner authorization remains with the owning service, and credential scrubbing or scanning may remove sensitive material before projection or audit only as defense in depth rather than as identity proof, admission proof, or typed-result correctness proof.
     condition: Whenever Runtime processes a request through the interceptor chain.
-    failure: Reject metadata-derived protected origin, duplicated lifecycle authority, misplaced StreamScenario authz, or raw credential propagation into handlers or audit.
+    failure: Reject metadata-derived protected origin, duplicated admission authority, scanner-dependent success, and raw credential propagation into App-facing results or audit.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
@@ -656,11 +655,11 @@ units:
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: rule.nimi.runtime.service-operations.r064
     kind: rule
-    title: Unary idempotency is bounded and restart-local
+    title: Protected App admission precedes owner idempotency
     modality: must
-    statement: Unary RPC idempotency uses AppID plus IdempotencyKey, returns the cached response without reexecution on a hit, performs no deduplication when the key is absent, expires after 24 hours, stores only in process memory across no restart, and caps at 10000 entries with least-recently-used eviction; streaming RPCs never use this check.
-    condition: Whenever Runtime processes an RPC with optional idempotency metadata.
-    failure: Reject cross-app deduplication, stream deduplication, execution on a live hit, persistence across restart, or unbounded storage.
+    statement: Every protected Third-party App operation revalidates the current exact Host peer, fresh session, Runtime-private snapshot, exact AppOperationId classification, required Base invariants or AppAccess-domain coverage, and current owner policy before any prior result may be reused; only the exact operation owner may define request-bound idempotency or deduplication after that admission, and no generic pre-admission cache or AppID-plus-key replay can return an earlier success.
+    condition: Whenever Runtime processes a protected Third-party App operation that may be retried or deduplicated.
+    failure: Reject cached success before current admission, cross-subject or cross-operation reuse, and idempotency that bypasses current owner policy.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
@@ -688,7 +687,7 @@ units:
     kind: rule
     title: Production configuration has disjoint boot and mutable classes
     modality: must
-    statement: Service principal, service definition, listener identity, active release, Realm account endpoints, custody root, and production or test posture come only from signed service and release projections and are Runtime-immutable, while admitted Connector custody metadata and Runtime-private local or remote ExecutionHost operational configuration live in service-principal-owned state and change only through typed protected Desktop control after authorization and closed-schema validation; this state stores no AIConfig route, provider-model target choice, default model or provider, Local Capability Configuration identity or binding, or machine selection.
+    statement: Production service principal, service definition, listener identity, active release, Realm account endpoints, custody root, and production or test posture come only from signed service and release projections and are Runtime-immutable, while admitted Connector custody metadata and Runtime-private Local or Remote ExecutionHost operational configuration live in service-principal-owned state and change only through typed protected Desktop control after authorization and closed-schema validation; this production configuration stores no App declaration, Effective App Access Snapshot, AIConfig route, provider-model target choice, Local Capability Configuration identity, binding, or machine selection and is not a D2 local-development prerequisite.
     condition: Whenever production Runtime loads, reads, or changes configuration.
     failure: Reject mutation of boot security fields and any mutable product change lacking protected authorization or schema admission.
     relations:
@@ -698,7 +697,7 @@ units:
     kind: rule
     title: Production configuration rejects alternate authority
     modality: must
-    statement: Production ignores and rejects NIMI_RUNTIME variables, argv-selected endpoints, user-writable files, user-home runtime config, app or renderer metadata, unknown fields, and pre-release legacy import; addresses must be valid host and port values, ShutdownTimeout must be positive, physical paths remain hidden, and reads return only redacted typed projection.
+    statement: Production ignores and rejects NIMI_RUNTIME variables, argv-selected endpoints, user-writable files, user-home Runtime config, App or renderer metadata, unknown fields, and pre-release legacy import; addresses and timeouts validate, physical paths stay hidden, reads return only redacted typed projection, and these production service configuration constraints are not prerequisites or trust facts for the D2 per-user local-development slice.
     condition: Whenever production Runtime parses or projects configuration.
     failure: Fail configuration closed on an alternate source, unknown field, invalid address, nonpositive timeout, path disclosure, or attempted legacy import.
     relations:
@@ -738,9 +737,9 @@ units:
     kind: rule
     title: Restart preserves durable stores but invalidates ephemeral authority
     modality: must
-    statement: A normal fixed-service restart preserves service-owned local-app principal, local record, permission, audit, and admitted Runtime-owned LocalAgent conversation and record stores, advances the boot epoch, and invalidates all launch leases, process bindings, sessions, challenges, and presence proofs before a protected listener becomes ready; durable permission records authorize nothing until a new session and fresh per-operation resolution.
-    condition: Whenever production Runtime restarts.
-    failure: Deny reuse of every pre-restart process carrier while preserving admitted durable conversation and record continuity.
+    statement: A normal Runtime restart in either admitted topology preserves Registered App Subjects and records, audit, canonical AIConfig, and admitted Runtime-owned LocalAgent Conversation and record stores and invalidates every prior-process exact-launch correlation, process binding, session, Effective App Access Snapshot, Agent handle, challenge, and stream before a protected listener becomes ready; the concrete restart marker remains implementation and no durable App permission or authorization record exists.
+    condition: Whenever Runtime restarts in either admitted topology.
+    failure: Deny reuse of every pre-restart ephemeral carrier while preserving admitted owner-owned durable truth and allowing a still-valid exact Host to follow the fresh launch or bind path required by current process facts.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
@@ -748,7 +747,7 @@ units:
     kind: rule
     title: Restart integrity failures make protected access unavailable
     modality: must
-    statement: Protected-state corruption, account or session mismatch, service-owned root mismatch, or custody-boundary failure makes protected local-app access unavailable.
+    statement: Invalid topology-specific Runtime state, account or session mismatch, current data-root mismatch, or custody failure makes the affected protected App access unavailable without stopping unrelated process, support, diagnostic, authoring, or owner functionality or substituting the other topology as fallback.
     condition: Whenever Runtime validates protected state during restart.
     failure: Fail closed without direct-daemon, environment-selected-root, portable-session, app-id lookup, or old-process-channel recovery.
     relations:
@@ -894,3 +893,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r090
+    kind: rule
+    title: D2 local-development Runtime is per-user and non-elevated
+    modality: must
+    statement: The Windows and macOS D2 local-development Runtime runs for the current OS user without elevation, LocalSystem, service SID, root, sudo, system account, LaunchDaemon, or another machine-wide privileged identity and uses only thin native local-endpoint, peer-identity, and process-observation adapters; D2 App security comes from Desktop's exact Host launch relation and Runtime operation admission, not an OS sandbox, same-user attack resistance, or the separately owned production service topology.
+    condition: Whenever D2 local-development Runtime topology or protected local IPC is launched or evaluated.
+    failure: Keep D2 protected App access unavailable when the required per-user local endpoint or exact Host peer relation cannot be established and do not substitute the production service topology as a D2 prerequisite.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane

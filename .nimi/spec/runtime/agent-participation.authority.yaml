@@ -40,8 +40,8 @@ units:
     meaning: Runtime owns LocalAgent autonomy configuration as one independently revisioned state with atomic compare-and-swap mutation semantics.
   - id: definition.nimi.runtime.agent-participation.app-consume-plane
     kind: definition
-    title: Runtime LocalAgent App consume plane
-    meaning: Authorized Apps consume explicit LocalAgent operations and projections through the standard Runtime SDK seam using session-derived identity and authorization without receiving Runtime proof, Realm JWT, Provider Credentials, or a product binding entity.
+    title: Runtime protected Third-party Local App consume plane
+    meaning: A protected Third-party Local App consumes only the canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing plus its five Conversation operations—through the standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle for later calls, never raw localAgentId, rich state, voice, presentation, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, or a product binding entity.
   - id: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
     kind: definition
     title: Runtime LocalAgent wake and voice plane
@@ -72,20 +72,24 @@ units:
     kind: rule
     title: No platform default LocalAgent
     modality: must_not
-    statement: Runtime, Desktop, Avatar, Home, or an App infers a platform-level current or default LocalAgent.
+    statement: Runtime, Desktop, Avatar, Home, or an App infers a platform-level current or default LocalAgent, or accepts raw localAgentId from a protected Third-party Local App.
     condition: Whenever a surface selects a LocalAgent or attaches to its conversation.
-    failure: Require an explicit authorized localAgentId.
+    failure: Require the caller class's explicit authorized selector—raw localAgentId only for a separately admitted first-party or internal consumer, and a current session-scoped agentHandle for a protected Third-party Local App.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
   - id: rule.nimi.runtime.agent-participation.r005
     kind: rule
     title: Conversation open and recovery are explicit and convergent
     modality: must
-    statement: A caller supplies an explicit authorized localAgentId, Runtime resolves that LocalAgent's single conversation by creating it on first open and returning the same committed continuity to every later authorized caller, and callers never select, partition, or duplicate conversation identity by App, principal, surface, or disposition.
+    statement: A separately admitted first-party or internal caller supplies an explicit authorized localAgentId, while a protected Third-party Local App supplies only a current session-scoped opaque agentHandle returned by the canonical reference-list operation; Runtime resolves that LocalAgent's single conversation by creating it on first open and returning the same committed continuity to every later authorized caller, and callers never select, partition, or duplicate conversation identity by App, principal, surface, or disposition.
     condition: Whenever a LocalAgent Conversation is opened or recovered.
     failure: Reject shadow or parallel transcripts, caller-selected conversation partitioning, App-local history as recovery truth, and an unauthorized LocalAgent target.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
   - id: rule.nimi.runtime.agent-participation.r007
@@ -132,10 +136,12 @@ units:
     kind: rule
     title: Presentation consumers remain projection-only
     modality: must
-    statement: Nimi Home, Desktop, Avatar, Zhiyu, SDK consumers, and Third-party Apps consume presentation configuration only as authorized Runtime LocalAgent projection and never use it to execute a LocalAgent or write Conversation, Memory, Knowledge, state, or voice truth.
+    statement: Nimi Home, Desktop, Avatar, Zhiyu, and separately admitted first-party or internal SDK consumers consume presentation configuration only as authorized Runtime LocalAgent projection and never use it to execute a LocalAgent or write Conversation, Memory, Knowledge, state, or voice truth; the canonical App Operation Contract provides no presentation-configuration operation to a protected Third-party Local App.
     condition: Whenever a consumer reads or adapts LocalAgent presentation configuration.
     failure: Reject consumer-owned LocalAgent truth or full-blob writeback from UI state.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.presentation-profile-plane
   - id: rule.nimi.runtime.agent-participation.r031
@@ -152,10 +158,12 @@ units:
     kind: rule
     title: Projection access is session-derived
     modality: must
-    statement: Runtime admits a consumer projection using the current account, current App identity, current authorization, explicit localAgentId, and requested operation from the active session; an App-declared scope, proof, selector object, or reusable relationship reference never grants access.
+    statement: Runtime admits a rich LocalAgent projection for a separately admitted first-party or internal consumer using its current account, current authorization, explicit localAgentId, and requested operation; a protected Third-party Local App receives only operation-specific typed results from the canonical agent.local subset after Runtime resolves and revalidates its current session-scoped agentHandle, and an App-declared scope, proof, caller-authored selector, or reusable relationship reference never grants access.
     condition: Whenever a consumer subscribes to or reads LocalAgent projections.
     failure: Reject missing or caller-controlled authorization and return no projection data.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.presentation-stream-plane
   - id: rule.nimi.runtime.agent-participation.r039
@@ -230,22 +238,26 @@ units:
         target: definition.nimi.runtime.agent-participation.ai-config-plane
   - id: rule.nimi.runtime.agent-participation.r093
     kind: rule
-    title: Apps use the standard LocalAgent consume seam
+    title: Third-party Apps use the canonical LocalAgent consume seam
     modality: must
-    statement: Apps submit typed user intent and consume bounded LocalAgent Conversation, state, voice, and presentation projections only through the standard SDK and Runtime operations, never through raw local IPC, provider APIs, parser events, or App-local orchestration.
-    condition: Whenever an App interacts with a LocalAgent.
+    statement: A protected Third-party Local App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation and its five Conversation operations through the standard SDK and Runtime seam, never rich LocalAgent state, voice, presentation, Memory, Knowledge, raw local IPC, provider APIs, parser events, or App-local orchestration.
+    condition: Whenever a protected Third-party Local App interacts with a LocalAgent.
     failure: Reject a bypass and keep the operation unavailable.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.app-consume-plane
   - id: rule.nimi.runtime.agent-participation.r095
     kind: rule
     title: Scaffolded App LocalAgent access is transparent and bounded
     modality: must
-    statement: A Desktop-hosted scaffolded App supplies an explicit localAgentId and typed operation while Runtime derives account, App identity, authorization, and ownership or access from the active session; the App receives no Realm JWT, Provider Credential, Runtime proof, or account-wide LocalAgent inventory.
-    condition: Whenever a scaffolded Third-party Local App invokes or subscribes to a LocalAgent capability.
-    failure: Reject caller-controlled authorization, missing access, or broader inventory disclosure.
+    statement: A Desktop-hosted scaffolded Third-party Local App may request the canonical bounded reference catalog for all current-account active LocalAgents and receives a session-scoped opaque agentHandle for each entry; every later canonical Conversation operation supplies only that handle while Runtime derives and revalidates the current account, App subject, active LocalAgent, agent.local coverage, and exact AppOperationId, and the App receives no raw localAgentId, Realm JWT, Provider Credential, Runtime proof, configuration, or broader inventory truth.
+    condition: Whenever a scaffolded Third-party Local App invokes one canonical agent.local operation.
+    failure: Reject missing, stale, caller-authored, cross-account, inactive-Agent, unsupported-operation, or caller-controlled authorization access and expose no broader LocalAgent truth.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.app-consume-plane
   - id: rule.nimi.runtime.agent-participation.r150

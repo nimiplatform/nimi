@@ -158,7 +158,7 @@ units:
     kind: rule
     title: Streams close on stale authority
     modality: must
-    statement: Process replacement, protected connection loss, account switch, logout, Runtime restart, permission revoke, target-access loss, or owner cancellation closes affected streams before later data is accepted.
+    statement: Process replacement, protected connection loss, account switch, logout, Runtime restart, owner-authorization loss, target-access loss, or owner cancellation closes affected streams before later data is accepted.
     condition: Whenever a stream's authority dependency changes.
     failure: Close the stream with typed cancellation, unauthenticated, permission, or unavailable state.
     relations:

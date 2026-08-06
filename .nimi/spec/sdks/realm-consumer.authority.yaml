@@ -50,7 +50,7 @@ units:
     kind: rule
     title: Source materialization shapes are generated-only
     modality: must
-    statement: Source materialization uses only the generated current Realm Packet v3 and CharacterSourceRefV3 transport shapes, the generated operation families own the authenticated first-party challenge, packet, ordered closure-set segment, component, hash-graph, current-JWKS, and detached-proof shapes, source materialization has no app permission or grant carrier, and SDK and apps never introduce a handwritten materialization DTO, anonymous source payload, fixed audience, raw bundle DTO, or parallel packet decoder.
+    statement: Source materialization uses only the generated current Realm Packet v3 and CharacterSourceRefV3 transport shapes, the generated operation families own the authenticated first-party challenge, packet, ordered closure-set segment, component, hash-graph, current-JWKS, and detached-proof shapes, source materialization has no App access or durable authorization carrier, and SDK and apps never introduce a handwritten materialization DTO, anonymous source payload, fixed audience, raw bundle DTO, or parallel packet decoder.
     condition: Whenever source materialization shapes are authored or consumed.
     failure: Reject handwritten materialization DTOs and parallel packet decoders.
     relations:
@@ -80,7 +80,7 @@ units:
     kind: rule
     title: Local projections never become Realm truth
     modality: must
-    statement: Runtime and Desktop consume Realm projections through SDK-owned typed facades while local Runtime or Desktop state never becomes Realm canonical truth, a local projection that cannot be reconciled with Realm API output fails closed or exposes an explicit unavailable or error projection rather than synthesizing Realm success, Desktop, Kit, and Web submit only CharacterSourceRefV3 and requestId to the high-level authenticated Runtime MaterializeRealmSource operation, Runtime internally resolves the current account, canonical Realm base, bearer, fresh challenge, Packet v3 response, and current JWKS, Realm applies its first-party source visibility and readiness policy directly with no app grant, and no app-facing facade receives or persists packet, proof, segment, or component bytes, chooses an audience, decodes closure truth into app-owned records, or accepts an unknown schema, field, enum, segment kind, limit, or hash branch as local success.
+    statement: Runtime and Desktop consume Realm projections through SDK-owned typed facades while local Runtime or Desktop state never becomes Realm canonical truth, a local projection that cannot be reconciled with Realm API output fails closed or exposes an explicit unavailable or error projection rather than synthesizing Realm success, Desktop, Kit, and Web submit only CharacterSourceRefV3 and requestId to the high-level authenticated Runtime MaterializeRealmSource operation, Runtime internally resolves the current account, canonical Realm base, bearer, fresh challenge, Packet v3 response, and current JWKS, Realm applies its first-party source visibility and readiness policy directly without an App-specific authorization carrier, and no app-facing facade receives or persists packet, proof, segment, or component bytes, chooses an audience, decodes closure truth into app-owned records, or accepts an unknown schema, field, enum, segment kind, limit, or hash branch as local success.
     condition: Whenever Realm projections are consumed by Runtime, Desktop, Kit, or Web.
     failure: Fail closed on unreconciled projections and reject synthesized Realm success.
     relations:
@@ -110,7 +110,7 @@ units:
     kind: rule
     title: The facade fails closed and exposes no packets
     modality: must
-    statement: A handwritten TypeScript Realm facade over generated Realm core fails closed on malformed operation boundaries, never restores global OpenAPI singleton configuration, may validate, route, retry, and correlate current small Realm reads, never exposes packet issuance, challenge, bearer, grant selection, raw packet, proof, segment, or component bytes, or Packet v3 decoding to SDK, Kit, Desktop, or Web callers because those callers submit only CharacterSourceRefV3 and requestId through the authenticated Runtime MaterializeRealmSource facade with Runtime alone acquiring and verifying the generated Packet v3 transport, generated language manifests prove schema and operation shape convergence without proving that every language exposes or can execute every operation, Runtime-private operations are never projected as public SDK methods, and language behavior claims require an executable conformance path that returns normally or a typed error and never panics, traps, or aborts the process.
+    statement: A handwritten TypeScript Realm facade over generated Realm core fails closed on malformed operation boundaries, never restores global OpenAPI singleton configuration, may validate, route, retry, and correlate current small Realm reads, never exposes packet issuance, challenge, bearer, authorization selection, raw packet, proof, segment, or component bytes, or Packet v3 decoding to SDK, Kit, Desktop, or Web callers because those callers submit only CharacterSourceRefV3 and requestId through the authenticated Runtime MaterializeRealmSource facade with Runtime alone acquiring and verifying the generated Packet v3 transport, generated language manifests prove schema and operation shape convergence without proving that every language exposes or can execute every operation, Runtime-private operations are never projected as public SDK methods, and language behavior claims require an executable conformance path that returns normally or a typed error and never panics, traps, or aborts the process.
     condition: Whenever the Realm facade or language conformance claims are evaluated.
     failure: Fail closed on malformed boundaries and reject packet exposure and panic paths.
     relations:
@@ -128,12 +128,16 @@ units:
         target: definition.nimi.sdks.realm-consumer.facade-plane
   - id: rule.nimi.sdks.realm-consumer.r011
     kind: rule
-    title: Runtime owns the authenticated data plane
+    title: Runtime mediates the authenticated Realm App data plane
     modality: must
-    statement: The SDK owns typed Realm APIs and trusted carriers only while Runtime remains the sole owner of every authenticated Realm data plane including bearer injection, private refresh, unary mediation, realtime connection authority, and media credential exchange, SDK and app inputs never turn an app id, endpoint, token callback, event name, or generated descriptor into authorization or canonical data-plane truth, createRuntimeAccountMediatedRealmTransport stays a reserved typed constructor rather than a generic data-path admission and returns protected-unavailable for every app composition except the Desktop-supervised local-app WorldCoreController_listWorldCores and WorldCoreController_createWorldCore operations admitted by the exact Runtime operation policy and verified local-app carrier, those admitted operations send only their fixed typed operation identities on that carrier and never accept or expose accessToken, refreshToken, authorization headers, Realm base truth, session persistence, refresh callbacks, public grants, caller identity, method selection, or caller-selected origin, installed, developer, and first-party facades never export token wrappers or createRealmWithRuntimeAccountToken, and SDK media helpers remain carrier-only until Runtime admits exact media states, limits, credential custody, and failure behavior.
-    condition: Whenever authenticated Realm data-plane composition or the reserved transport constructor is evaluated.
-    failure: Return protected-unavailable for unadmitted compositions and reject token custody exposure.
+    statement: The SDK owns typed Realm APIs and trusted internal carriers, Runtime owns Realm credential custody, bearer injection, private refresh, protected App ingress mediation, and operation-specific App-facing positive and failure projection, and the Realm owner retains resource and business admission, rules, and execution; a protected App may reach only the Realm operations that the central App Operation Contract maps to realm.data and only while its current Effective App Access Snapshot covers realm.data, each admitted call uses a fixed typed request and returns a complete operation-specific bounded positive result or typed failure, and no App-facing result or error carries a raw Realm response, response header, access token, refresh token, authorization metadata, Realm base truth, session persistence, refresh callback, credential, caller identity, method selector, caller-selected origin, or generic transport; direct and first-party SDK facades do not create a fallback for a protected App call.
+    condition: Whenever authenticated Realm data-plane composition for a protected App is evaluated.
+    failure: Return protected-unavailable for an unadmitted composition or Realm-owner rejection and reject token custody or raw Realm response exposure.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.facade-plane
   - id: rule.nimi.sdks.realm-consumer.r012

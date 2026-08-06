@@ -16,8 +16,9 @@ units:
     meaning: The Runtime endpoint security plane validates every remote endpoint materialized from exact Runtime-private ExecutionHost configuration at execution time, consumes the selected ConnectorGrant only for authorization and request-scoped credential custody, rejects unsafe address classes after DNS resolution, and pins validated dial targets without accepting Driver, Grant, caller, AIConfig, Catalog, or environment endpoint authority or changing TLS or HTTP authority.
   - id: definition.nimi.runtime.security-core.grant-service-plane
     kind: definition
-    title: Runtime permission decision plane
-    meaning: The Runtime permission decision plane is the owner-internal lifecycle boundary for atomically admitted public App user permissions; it is a different authority class from ConnectorGrant, which binds an AIConfig Cloud target to account authorization and credential custody, and neither identity may substitute for or be inferred from the other.
+    lifecycle: removed
+    title: Retired Runtime permission decision plane
+    reason: Removed because Third-party App access is derived from the current declaration and protected session without per-capability grants, user decisions, requests, revocation, or a durable permission lifecycle.
   - id: definition.nimi.runtime.security-core.key-routing-plane
     kind: definition
     lifecycle: removed
@@ -404,112 +405,67 @@ units:
     kind: rule
     title: Public portable grant credentials stay removed
     modality: must_not
-    statement: Runtime protocol, generated clients, SDK exports, service registration, persistence, or a renamed surface recreates the former portable generic credential-grant family, its reserved wire identities, portable tokens, bearers, scope lists, resource fingerprints, operation identifiers, delegation chains, or App-selected endpoints; the admitted ConnectorGrant is instead a non-portable account authorization binding with no secret or generic operation-resource delegation semantics.
-    condition: Whenever a public grant or permission surface is defined or shipped.
-    failure: Remove the portable credential surface and reject every operation that depends on it.
+    statement: Runtime protocol, generated clients, SDK exports, service registration, persistence, or a renamed surface recreates a portable generic credential-grant family, portable tokens, bearers, scope lists, resource fingerprints, delegation chains, App-selected endpoints, or reusable App authority; an Effective App Access Snapshot is instead Runtime-derived and session-bound, while ConnectorGrant remains a distinct non-portable account authorization and credential-custody reference.
+    condition: Whenever Third-party App access or a public grant surface is defined or shipped.
+    failure: Remove the portable authority surface and reject every operation that depends on it.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.runtime.security-core.r038
     kind: rule
-    title: Apps receive permission posture but no decision authority
-    modality: must
-    statement: The app-facing permission surface exposes only product-level status and request while approval, decision, revoke, minting, truth, and endpoint enforcement remain with Runtime or the canonical remote owner and Desktop is at most a future decision UI.
-    condition: Whenever an app, SDK, Desktop, or Runtime surface handles a public permission.
-    failure: Deny app-carried or Desktop-owned authority and keep enforcement with the canonical owner.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired App permission posture surface
+    reason: Removed because Third-party Apps receive declaration-derived access rather than permission status, request, approval, revoke, or decision surfaces.
   - id: rule.nimi.runtime.security-core.r039
     kind: rule
-    title: Every local-app action has one authority class
-    modality: must
-    statement: Runtime classifies each local-app action as exactly one of base_entitlement, user_permission, one_shot_consent, app_owned_authority, or os_right.
-    condition: Whenever Runtime authorizes a local-app action.
-    failure: Return typed unavailable or deny when the action lacks one exact authority class.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired local-app permission authority classes
+    reason: Removed because App access uses the closed App operation contract, declaration coverage, and owner policy without a parallel permission-class taxonomy.
   - id: rule.nimi.runtime.security-core.r040
     kind: rule
-    title: Only user permissions create durable decision rows
-    modality: must
-    statement: Only user_permission may use an owner-internal durable decision lifecycle, while base entitlements, app-owned authority, one-shot handles, and OS rights create no Runtime permission row.
-    condition: Whenever Runtime considers permission persistence.
-    failure: Reject persistence for every non-user-permission authority class.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired durable App permission decision rows
+    reason: Removed because the current product admits no per-capability permission decision, grant, request, revoke, or persistence lifecycle.
   - id: rule.nimi.runtime.security-core.r041
     kind: rule
-    title: Non-permission product state cannot synthesize permission truth
-    modality: must_not
-    statement: Launch approval, publisher review, Developer Mode, login, session existence, product-route availability, AI routing, or metering creates or substitutes for permission truth.
-    condition: Whenever Runtime derives public permission status or enforcement.
-    failure: Return unavailable or deny until a current canonical owner decision exists.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired permission truth synthesis prohibition
+    reason: Removed with permission truth; App access now derives directly from verified launch, current registration and declaration generations, protected session facts, and exact owner policy.
   - id: rule.nimi.runtime.security-core.r042
     kind: rule
-    title: Public permission identity comes only from the Platform catalog
-    modality: must
-    statement: Public permission ids come only from the Platform Nimi app permission catalog, while internal operation and resource identities remain owner implementation details excluded from manifests, permission requests, ordinary SDK or Kit surfaces, approval UI, and app-readable diagnostics.
-    condition: Whenever a permission or internal enforcement identity crosses a public surface.
-    failure: Reject unknown public ids and remove internal operation or resource identities from the public projection.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired public permission catalog identity
+    reason: Removed because the stable App operation contract and declaration domains replace the permission catalog and no approval or permission-request identity remains.
   - id: rule.nimi.runtime.security-core.r043
     kind: rule
     title: Generic operation and resource grant engines are forbidden
     modality: must_not
-    statement: Runtime persists or evaluates a generic capability_scope plus resource_scope grant.
-    condition: Whenever Runtime models a public permission or protected endpoint decision.
-    failure: Reject the generic grant and use the exact admitted owner permission or another exact authority class.
+    statement: Runtime persists or evaluates a generic capability scope plus resource scope grant, an App PermissionGrant, or an owner-independent policy engine for Third-party App access.
+    condition: Whenever Runtime derives or enforces an Effective App Access Snapshot or protected App operation.
+    failure: Reject the generic grant and use the canonical operation classification, the classified Base invariants or declaration-derived AppAccess-domain snapshot coverage, and the operation owner's policy.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.runtime.security-core.r044
     kind: rule
-    title: Permission admission is atomic
-    modality: must
-    statement: A public permission becomes admitted only when decision owner, selector, lifecycle, endpoint mapping, audit, revoke, SDK and Kit projection, product UI, and positive evidence arrive atomically; a catalog row alone grants nothing.
-    condition: Whenever a public permission is proposed or evaluated for admission.
-    failure: Return typed unavailable for status and request and deny every mapped operation until the complete slice is admitted.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired atomic permission admission slice
+    reason: Removed because App access has no permission admission workflow, decision UI, revoke path, positive-evidence gate, or permission-specific SDK projection.
   - id: rule.nimi.runtime.security-core.r045
     kind: rule
-    title: Current public permission admission is bounded
-    modality: must
-    statement: The currently admitted third-party permissions keep agents.interact bounded to its closed Conversation operation family over opaque LocalAgent handles and agents.configure bounded to its admitted non-AI per-Agent autonomy and presentation settings plus, only when explicitly authorized as a shared-subsystem action, read, atomic overwrite, or Apply Profile for the one shared LocalAgent AIConfig without AIConfig revision or readiness; ai.text.generate is bounded to one synchronous foreground plain-text candidate-generation family over an owner-granted App-and-account scope with no resource selector or Agent-handle materialization, and permission only authorizes the call while Runtime consumes that App owner's committed AIConfig route. An Agent handle never creates per-Agent AIConfig, model override, route option, inventory selector, Machine Local AI Configuration action, Local Capability Configuration action, ConnectorGrant selection, or raw Agent, endpoint, credential, LocalAsset, catalog, Profile, source, Job, or media-resource disclosure. Runtime owns every durable revocable permission-decision lifecycle and endpoint enforcement, pre-grant and zero-permission sessions enumerate neither LocalAgents nor AI configuration choices and cannot generate a text candidate, and the declared history, projection, event, delegation-read, Avatar-handoff, derived-image, voice, background-AI, and delegation-decision extensions remain unavailable until each complete atomic slice is admitted.
-    condition: Whenever a third-party public permission, decision, selector, or protected operation is evaluated.
-    failure: Admit agents.interact and agents.configure only as complete permission slices and ai.text.generate only as the single-operation foreground plain-text slice, reject per-Agent or machine-local AI authority, disclose none of the prohibited raw identifiers, and return permission-id-preserving typed unavailable for incomplete, denied, expired, revoked, mismatched, cross-account, foreign-Conversation, inactive-turn, or out-of-subset access.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired initial public permission operation set
+    reason: Removed because the canonical App operation contract now owns the declaration-derived operation union without agents.interact, agents.configure, ai.text.generate, or any permission lifecycle.
   - id: rule.nimi.runtime.security-core.r046
     kind: rule
-    title: Runtime-owned permission identity is owner-bound
-    modality: must
-    statement: Every Runtime-owned public permission lifecycle binds local_os_user_anchor, account_id, local_app_principal_id, permission_id, and owner_selector_digest; the canonical owner may issue an account scope covering all current and future LocalAgents, Runtime dynamically materializes that scope into opaque handle projections, ai.text.generate uses the App-and-account owner selector digest directly without Agent-handle materialization and never uses the permission selector as Local-or-Cloud route authority, dependent permissions evaluate only their intersection with effective agents.interact and become ineffective when it is revoked, and every admitted shared LocalAgent AIConfig action resolves the singular subsystem owner rather than an Agent handle. Permissioned Local Apps never treat display metadata as authorization or receive raw route endpoint, Provider Credential, ConnectorGrant custody material, LocalAsset identity, machine configuration, catalog, Profile, source, Job, or inventory fields.
-    condition: Whenever a Runtime-owned public permission is atomically admitted.
-    failure: Deny creation, use, or configuration projection when any owner binding, current-account filter, or effective interact dependency is missing, mismatched, revoked, stale, or App-authored, and expose no per-Agent AIConfig, machine-selection, raw identity, endpoint, credential, custody, source, Profile, Job, media-resource, or inventory field.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired durable permission owner-selector identity
+    reason: Removed because an Effective App Access Snapshot is derived from current session and declaration facts and contains no durable permission identity or owner-selector grant.
   - id: rule.nimi.runtime.security-core.r047
     kind: rule
-    title: Permission decisions are fresh revocable and audited
-    modality: must
-    statement: Every admitted permission lifecycle has monotonic revision, explicit user decision evidence, account and principal isolation, revoke semantics, fresh reads at every protected endpoint, and complete audit, and fails closed on account switch, principal tombstone, or owner-policy change without accepting app_id, publisher tier, provenance, catalog presence, or session validity as a substitute.
-    condition: Whenever an admitted public permission is stored, read, enforced, or revoked.
-    failure: Deny the protected operation when current owner decision evidence is absent, stale, transferred, or substituted.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired revocable App permission decision lifecycle
+    reason: Removed because current App access has no durable grant, explicit user decision evidence, revision, revoke, or permission audit lifecycle.
   - id: rule.nimi.runtime.security-core.r048
     kind: rule
     title: Cloud target grant and Local selection identities are separate
@@ -597,9 +553,9 @@ units:
     kind: rule
     title: Cloud intent and ConnectorGrant binding are independently valid
     modality: must
-    statement: AIConfig may save a valid Cloud CapabilityImplementation and Driver-owned provider-model target intent without a ConnectorGrant, but execution requires exactly one explicit valid grant and accepts no inline provider, endpoint, or credential fields; absence or invalidity of the grant never invalidates the saved Cloud intent, changes the route, or selects another account or provider.
-    condition: Whenever Runtime validates Cloud configuration or execution authorization.
-    failure: Save valid target intent independently, and at execution return selection-required or the typed grant failure without automatic correction.
+    statement: AIConfig may save valid portable Cloud CapabilityImplementation and Driver-owned provider-model target intent without a ConnectorGrant, while a Third-party App whole-object overwrite accepts no ConnectorGrant or custody field and atomically clears any prior ConnectorGrant binding on that App AIConfig; only a separate Nimi-owned explicit-user-selection flow may attach a new current-account ConnectorGrant, and execution without one returns selection-required without changing the saved intent or route.
+    condition: Whenever Runtime validates, overwrites, binds, or executes a Cloud App AIConfig.
+    failure: Reject App-supplied binding material, clear the prior binding on an admitted App overwrite, and return selection-required at execution until the Nimi-owned flow attaches a valid grant.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.connector-grant-plane
@@ -689,24 +645,19 @@ units:
         target: definition.nimi.runtime.security-core.connector-grant-plane
   - id: rule.nimi.runtime.security-core.r082
     kind: rule
-    title: Local-app authority classes keep exact meanings
-    modality: must
-    statement: base_entitlement means the caller principal's bounded Nimi-private partition, user_permission means durable access through one admitted public permission id, one_shot_consent means one owner-selected resource represented by a bounded non-forgeable handle, app_owned_authority means the app host's own SQLite, media, settings, cache, routes, and product commands, and os_right means authority actually granted to the native process by the operating system.
-    condition: Whenever Runtime classifies a local-app action.
-    failure: Deny the action when its claimed authority does not match the exact selected class meaning.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+    lifecycle: removed
+    title: Retired local-app authority class meanings
+    reason: Removed with the permission-class taxonomy; Runtime now evaluates exact App operation coverage and owner policy without base_entitlement, user_permission, or one_shot_consent classes.
   - id: rule.nimi.runtime.security-core.r083
     kind: rule
-    title: Pre-admission permission storage stays absent
+    title: App permission storage stays absent
     modality: must
-    statement: The pre-admission permission schema retains store_identity absent_pre_admission and positive mutation absent, and neither value changes through a standalone schema, persistence, or CRUD change outside the full atomic permission admission slice.
-    condition: Until a Runtime-owned public permission is atomically admitted.
-    failure: Reject any permission store or mutation path introduced independently of the complete admission slice.
+    statement: Runtime maintains no App PermissionGrant, per-capability decision, approve, request, revoke, JIT prompt, permission settings, permission ledger, or positive permission mutation; current access is represented only by a fresh Effective App Access Snapshot derived from registration, declaration, protected session, and owner facts.
+    condition: Whenever Third-party App access state or persistence is designed or evaluated.
+    failure: Reject the permission store or workflow and derive a fresh snapshot instead.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.security-core.grant-service-plane
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.runtime.security-core.r084
     kind: rule
     title: Route implementation grant and custody identities stay distinct
@@ -729,3 +680,81 @@ units:
         target: definition.nimi.runtime.security-core.connector-grant-plane
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
+  - id: rule.nimi.runtime.security-core.r086
+    kind: rule
+    title: Third-party App access is declaration derived
+    modality: must
+    statement: Runtime derives each Effective App Access Snapshot from the current registered App subject, source generation, declaration generation, protected session, and account context with only the supported declared AppAccess domains; Runtime separately consumes the canonical App operation contract to classify each stable callable operation as Base or map it to one AppAccess domain, without user grants, approval, request, revoke, JIT, permission settings, or marketplace review semantics.
+    condition: Whenever a protected Third-party App session is opened, rebound, or evaluated.
+    failure: Keep Nimi access unavailable when any required current fact is missing or inconsistent and never create a permission workflow or fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: supersedes
+        target: rule.nimi.runtime.security-core.r038
+  - id: rule.nimi.runtime.security-core.r087
+    kind: rule
+    title: Runtime consumes one canonical App operation contract
+    modality: must
+    statement: Runtime consumes the canonical App operation contract as the sole stable declaration-domain and AppOperationId mapping and maintains no second permission catalog, hand-maintained authorization union, generated authority ledger, or caller-selectable generic forwarding surface.
+    condition: Whenever a Third-party App declaration is translated or a protected App operation is dispatched.
+    failure: Reject unknown, unsupported, unmapped, or duplicate operation identity before owner execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: supersedes
+        target: rule.nimi.runtime.security-core.r045
+  - id: rule.nimi.runtime.security-core.r088
+    kind: rule
+    title: Effective App access facts are Runtime derived
+    modality: must
+    statement: Runtime derives the App subject, account context, protected session, source generation, declaration generation, Effective App Access Snapshot, declaration-domain coverage, AppOperationId, and operation classification from the verified connection and canonical contract; the snapshot and its identity remain Runtime-private, SDK and Host receive neither its contents nor a snapshot identifier, and the App cannot submit or override any authority fact.
+    condition: Whenever Runtime admits a protected Third-party App call or stream.
+    failure: Reject caller-authored authority facts and fail closed when the current Runtime-private snapshot or the required classified Base or AppAccess admission fact is absent or stale.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: supersedes
+        target: rule.nimi.runtime.security-core.r046
+  - id: rule.nimi.runtime.security-core.r089
+    kind: rule
+    title: Runtime protected App ingress is the sole admission owner
+    modality: must
+    statement: Every supported Third-party App operation follows current session and Runtime-private snapshot validation, exact canonical AppOperationId classification, Base-row invariants or AppAccess-domain snapshot coverage according to that classification, operation-owner execution, and an App-facing typed result through Runtime protected ingress; SDK, Host, renderer, direct Realm, direct Runtime, public TCP, or generic internal forwarding cannot bypass or replace that admission or receive the snapshot.
+    condition: Whenever a supported Third-party App operation is attempted.
+    failure: Return the typed operation failure before owner mutation and provide no direct or compatibility fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: supersedes
+        target: rule.nimi.runtime.security-core.r044
+  - id: rule.nimi.runtime.security-core.r090
+    kind: rule
+    title: App operation results expose no portable authority material
+    modality: must_not
+    statement: A supported App operation result, error, event, SDK projection, Host projection, environment, argv, renderer payload, log, generic forwarding response, or raw Realm response exposes Realm tokens, refresh tokens, Provider Credentials, connector credentials, ConnectorGrant custody material, session proof, or equivalent portable authority material.
+    condition: Whenever Runtime returns or projects a Third-party App operation outcome.
+    failure: Stop the projection and return the operation's typed failure without treating a credential scanner as the admission or correctness owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+  - id: rule.nimi.runtime.security-core.r091
+    kind: rule
+    title: Unknown declaration domains remain inert
+    modality: must
+    statement: An unknown or currently unsupported declaration domain contributes no Effective App Access Snapshot coverage for its current declaration generation, and later Runtime support does not activate that declaration until the App supplies a new declaration generation that explicitly includes the supported domain.
+    condition: Whenever Runtime encounters an unknown declaration domain or gains support for a previously unknown domain.
+    failure: Keep the domain inert and reject every operation that would depend on implicit reinterpretation or automatic activation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: supersedes
+        target: rule.nimi.runtime.security-core.r042

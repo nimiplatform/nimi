@@ -109,21 +109,17 @@ scopes:
   - scope: desktop.ai-consumption
     bindings:
       - kind: path_glob
-        value: "apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-*.ts"
-      - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/chat/**/*"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/runtime-config/**/*"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/infra/runtime-agent-ai-config.ts"
       - kind: path_glob
-        value: "apps/desktop/src/shell/renderer/renderer/ai-config-port.ts"
+        value: "apps/desktop/src/shell/renderer/renderer/sdk-port.ts"
       - kind: path_glob
-        value: "apps/desktop/src/simulator/ai-config-port.ts"
+        value: "apps/desktop/src/shell/renderer/renderer/production-bindings.ts"
       - kind: path_glob
         value: "kit/features/generation/src/**/*"
-      - kind: path_glob
-        value: "kit/features/model-config/src/**/*"
   - scope: runtime.security-core
     bindings:
       - kind: path_glob
@@ -141,7 +137,7 @@ scopes:
       - kind: path_glob
         value: "runtime/internal/services/ai/key_source*.go"
       - kind: path_glob
-        value: "runtime/internal/services/ai/runtime_resolved_binding.go"
+        value: "runtime/internal/services/ai/cloud_*_execution.go"
       - kind: path_glob
         value: "runtime/internal/services/cognition/*authoriz*.go"
       - kind: path_glob
@@ -162,8 +158,6 @@ scopes:
         value: "runtime/internal/services/audit/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/ai/route_describe*.go"
-      - kind: path_glob
-        value: "runtime/internal/services/ai/runtime_*binding*.go"
       - kind: path_glob
         value: "runtime/internal/services/ai/runtime_target*.go"
       - kind: path_glob
@@ -238,8 +232,6 @@ scopes:
         value: "runtime/internal/engine/**/*.go"
       - kind: path_glob
         value: "runtime/internal/managedimagebackend/**/*.go"
-      - kind: path_glob
-        value: "runtime/internal/localrouting/**/*.go"
       - kind: path_glob
         value: "runtime/internal/hostcapability/**/*.go"
       - kind: path_glob

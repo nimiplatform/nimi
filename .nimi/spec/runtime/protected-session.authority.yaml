@@ -5,27 +5,29 @@ units:
   - id: definition.nimi.runtime.protected-session.protected-local-session-plane
     kind: definition
     title: Runtime protected local session plane
-    meaning: The Runtime protected local session plane admits a native local connection through the current platform's direct operating-system peer check and derives current App, account, and operation authorization without trusting localhost, caller fields, renderer metadata, same-user assumptions, portable bearers, synthetic carrier records, or implementation-specific transport names.
+    meaning: The Runtime protected local session plane admits a native local connection only when the platform peer facts bind the connected peer to Desktop's current exact Host launch, then derives the current App subject, account context, declaration generations, Effective App Access Snapshot, and requested operation without trusting localhost, caller fields, renderer metadata, portable bearers, or a same-user security claim.
   - id: definition.nimi.runtime.protected-session.account-session-plane
     kind: definition
     title: Runtime account session plane
-    meaning: The Runtime account session plane owns the current local Runtime account projection, Realm App-path token custody, Provider Credential custody, session-derived App authorization, revocation, and Runtime-mediated Realm access for Desktop-hosted Local Apps.
+    meaning: The Runtime account session plane consumes Account Service current-account truth, holds the session-derived account context and protected App-path credential custody, exposes only the Account-owned minimal current-user display projection, and mediates typed Realm access for Desktop-hosted Local Apps without transferring account ownership or credential material.
   - id: definition.nimi.runtime.protected-session.config-plane
     kind: definition
     title: Protected host and service plane
-    meaning: The protected host and service plane owns trusted installation, Runtime service identity, sensitive OS operations, service control, protected configuration and data-root access, while Nimi Home capabilities belong to a replaceable Home Host Contract rather than Desktop identity.
+    meaning: The protected host and service plane owns the boundary between the independently admitted production or deployment Runtime topology and the D2 local-development per-user non-elevated Runtime slice plus the replaceable Nimi Home Host Contract; production service identity, storage, update, and process topology do not become D2 prerequisites, D2 platform adapters remain thin implementation, and D2 claims no OS sandbox, binary or mutable-project integrity, or resistance to same-user file, memory, injection, debugging, or handle attacks.
   - id: definition.nimi.runtime.protected-session.rpc-plane
     kind: definition
     title: Protected Runtime operation plane
-    meaning: The protected Runtime operation plane exposes typed owner operations only after native peer admission and the current operation owner admit them; concrete transport, method membership, framing, and operating-system mechanisms remain implementation details.
+    meaning: The protected Runtime operation plane admits only canonical stable App operations after verifying the exact Desktop-launched Host peer and process, a fresh protected session bound to the registered subject and current source generation, declaration generation, and account context generation, exact AppOperationId classification, and the classified Base-row invariants or AppAccess-domain snapshot coverage; successful admission permits only dispatch and never implies operation success, because the owner service independently applies its resource and business policy and returns an owner-specific typed result, while concrete RPC membership, framing, transport names, platform calls, and handler composition remain implementation details.
   - id: rule.nimi.runtime.protected-session.r001
     kind: rule
     title: Runtime owns protected session truth
     modality: must
-    statement: Runtime is the sole owner of protected local session truth, current account projection, App identity resolution, and operation authorization; SDK, Kit, Nimi Home, Desktop, Avatar, and Apps consume typed projections and never restate those facts.
+    statement: Runtime is the sole owner of protected local session truth, App identity resolution, Effective App Access Snapshot derivation, and protected App operation admission, while Account Service and each operation owner retain their own account, resource, and business truth; the snapshot remains Runtime-private, and SDK, Kit, Nimi Home, Desktop, Avatar, and Apps receive only operation-specific typed projections and never restate those facts.
     condition: Whenever protected local session authority is interpreted.
     failure: Reject consumer-owned session, account, App, or authorization truth.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
   - id: rule.nimi.runtime.protected-session.r002
@@ -40,21 +42,21 @@ units:
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
   - id: rule.nimi.runtime.protected-session.r003
     kind: rule
-    title: Runtime protected custody is isolated
+    title: Production Runtime protected custody is service isolated
     modality: must
-    statement: Production Runtime runs under an isolated non-interactive service identity with protected memory, credential custody, configuration, and data unavailable to ordinary interactive users, renderers, and Apps.
-    condition: Whenever production Runtime loads protected state or opens protected access.
-    failure: Fail closed before loading credentials or accepting protected operations when isolation is unavailable.
+    statement: A production or deployment Runtime may run under its admitted isolated service identity with service-owned credential custody, configuration, and data unavailable through ordinary supported App and renderer surfaces; this topology and its stronger OS boundary are not prerequisites or trust facts for the D2 local-development per-user journey.
+    condition: Whenever the production or deployment Runtime topology loads protected state or opens protected access.
+    failure: Keep production protected features unavailable when the admitted production service or custody boundary is unavailable without blocking the separate D2 local-development topology.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
   - id: rule.nimi.runtime.protected-session.r004
     kind: rule
-    title: Platform order is explicit
+    title: Windows and macOS D2 share one required product boundary
     modality: must
-    statement: Windows is the current product-closure platform, macOS follows with the same public product semantics through independently suitable native security, and Linux remains deferred and non-blocking.
-    condition: Whenever platform readiness or protected-local support is planned.
-    failure: Reject Linux or complete macOS implementation as a prerequisite for the current Windows closure.
+    statement: Windows and macOS D2 local development both implement the same per-user non-elevated protected-App product semantics through thin platform-native peer, IPC, and process adapters, while Linux remains deferred and non-blocking; this D2 rule neither retires nor constrains independently admitted production or deployment topology.
+    condition: Whenever the D2 protected-local product boundary is interpreted.
+    failure: Reject a platform-specific App access ontology or production privileged-service topology used as a D2 prerequisite; platform support evidence remains implementation acceptance rather than product authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -62,7 +64,7 @@ units:
     kind: rule
     title: Native mechanisms do not change product semantics
     modality: must
-    statement: Each supported operating system may use different native identity, transport, custody, installation, and service-control mechanisms, but those mechanisms do not alter SDK, Kit, App, Nimi Home, LocalAgent, or permission semantics.
+    statement: Each supported operating system may use different peer identity, transport, custody, installation, and process-control primitives, but those primitives do not alter SDK, Kit, App, Nimi Home, LocalAgent, declaration-domain, snapshot, or operation semantics.
     condition: Whenever a platform-specific protected-local implementation is selected.
     failure: Reject a platform-specific product ontology or public API.
     relations:
@@ -70,11 +72,11 @@ units:
         target: definition.nimi.runtime.protected-session.config-plane
   - id: rule.nimi.runtime.protected-session.r006
     kind: rule
-    title: Trusted installation owns Runtime service lifecycle
+    title: Production deployment owns Runtime service lifecycle
     modality: must
-    statement: Trusted installation and update authority owns Runtime service identity, installation, replacement, and uninstall; the current Home host may request typed status or restart through the protected host boundary but does not select the Runtime executable, directly own the service, or couple Runtime lifetime to Desktop lifetime.
-    condition: Whenever Runtime installation, update, restart, or service status is requested.
-    failure: Reject App or renderer service control and Desktop ownership of Runtime lifetime.
+    statement: Production deployment and update authority owns any production Runtime service identity, installation, replacement, and uninstall, while the current Home host may request typed service status or restart through the protected production boundary; none of those service mechanics is a prerequisite, trust fact, or alternate access path for the D2 local-development per-user Runtime slice.
+    condition: Whenever production Runtime installation, update, restart, or service status is requested.
+    failure: Reject App or renderer production service control, Desktop ownership of production service identity, and production topology used to block D2 local-development acceptance.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -82,8 +84,8 @@ units:
     kind: rule
     title: Service control reports platform lifecycle truth
     modality: must
-    statement: Service control reports only the current platform's observed Runtime lifecycle state or the exact operation failure; the fixed macOS local-development path uses installed, running, stopped, or absent and never reports healthy, product readiness, protected-session success, or other product success from installation, launch, process presence, or a command acknowledgement.
-    condition: Whenever service start, restart, repair, or status is projected.
+    statement: D2 local-development Runtime process control reports only the current platform's observed per-user process availability or the exact operation failure and never reports product readiness, protected-session success, App access, or owner-operation success from launch, process presence, or a command acknowledgement; production service lifecycle uses its separately owned projection.
+    condition: Whenever D2 per-user Runtime start, restart, repair, or status is projected.
     failure: Return the observed lifecycle state or exact failure rather than synthesize product success.
     relations:
       - type: applies_to
@@ -92,7 +94,7 @@ units:
     kind: rule
     title: Desktop is a replaceable Home host
     modality: must
-    statement: Desktop is the current implementation of the replaceable Nimi Home Host Contract and receives no immutable authority over Realm, Runtime, LocalAgent, App, permission, credential, installation, or service truth merely because it is first party.
+    statement: Desktop is the current implementation of the replaceable Nimi Home Host Contract and receives no immutable authority over Realm, Runtime, LocalAgent, App access, credentials, installation, or process truth merely because it is first party.
     condition: Whenever Desktop or another Home host requests protected capability.
     failure: Reject Desktop-identity privilege and require the verified host role and operation owner decision.
     relations:
@@ -122,9 +124,9 @@ units:
     kind: rule
     title: Scaffolded Realm access is mediated
     modality: must
-    statement: A Desktop-hosted App Tools scaffolded Local App uses the standard SDK and Runtime-mediated Realm access without receiving, reading, storing, or refreshing a Realm JWT or maintaining native peer or internal authorization material.
-    condition: Whenever a scaffolded Local App requests Realm data.
-    failure: Fail closed when the current Runtime account, App session, authorization, or Realm access is unavailable.
+    statement: A Desktop-hosted App uses the standard typed SDK and Runtime-mediated Realm path for each admitted Realm operation; Runtime invokes the Realm owner with internal credential custody and returns only that operation's complete owner-defined sanitized result, never a raw Realm response, generic caller-selected forwarding result, Realm JWT, refresh token, native peer material, or internal admission state.
+    condition: Whenever a Desktop-hosted App requests an admitted Realm operation.
+    failure: Fail only that operation closed when the current account, App session, classified Base invariants or AppAccess-domain coverage, Realm owner policy, or sanitized projection is unavailable, with no direct Realm or Runtime fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.account-session-plane
@@ -142,17 +144,21 @@ units:
     kind: rule
     title: Caller identity is Runtime derived
     modality: must
-    statement: Runtime derives the current account, App identity, and authorization state for the native-admitted connection; an App cannot declare accountId, subject, App privilege, grant, permission state, or trusted host identity through an ordinary request.
+    statement: Runtime derives the current account context, App subject, protected session, source generation, declaration generation, Effective App Access Snapshot, declaration-domain coverage, AppOperationId, operation classification, and trusted Host relation for the native-admitted connection; an App cannot declare or override any of those facts through a request.
     condition: Whenever Runtime authorizes a protected App operation.
     failure: Reject caller-supplied identity or authorization as non-authoritative.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.protected-session.account-session-plane
   - id: rule.nimi.runtime.protected-session.r014
     kind: rule
     title: LocalAgent access uses current session decisions
     modality: must
-    statement: A Local App LocalAgent operation uses the active session-derived account, App identity and authorization, explicit localAgentId, and requested operation, and Runtime verifies account ownership or access before execution.
+    statement: A Local App LocalAgent operation uses the active session-derived account, App subject, Effective App Access Snapshot, exact requested operation, and a Runtime-issued session-scoped opaque Agent handle; the handle is a non-secret selector rather than a grant, bearer, durable identity, or owner decision, and Runtime resolves and revalidates the current-account active LocalAgent before every execution.
     condition: Whenever a Local App requests a LocalAgent operation.
     failure: Fail closed when any session-derived input or ownership decision is missing.
     relations:
@@ -162,9 +168,9 @@ units:
     kind: rule
     title: Stale access is revoked
     modality: must
-    statement: Process exit, caller replacement, protected connection loss, account switch, logout, Runtime restart, App removal, permission revoke, authorization expiry, or trust loss invalidates old protected access before a later operation or event is accepted.
-    condition: Whenever a protected session dependency changes.
-    failure: Reject stale calls and close stale streams without anonymous or cached fallback.
+    statement: Process exit, caller replacement, protected connection loss, account switch, logout, Runtime restart, App removal, source-generation change, declaration-generation change, or verified Host-relation loss invalidates the affected session, Effective App Access Snapshot, Agent handles, calls, and streams before later use; account or declaration changes alone do not terminate the still-running exact Host, delete registration, rotate its stable subject, or create durable security posture.
+    condition: Whenever a protected session or snapshot dependency changes.
+    failure: Reject stale calls and close stale streams without cached fallback while keeping unrelated Host and product availability truthful.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
@@ -172,7 +178,7 @@ units:
     kind: rule
     title: Reconnection does not restore prior authority
     modality: must
-    statement: Reconnection repeats current native peer admission and current owner authorization; it never copies, revives, or infers prior account, App, permission, LocalAgent, or operation authority.
+    statement: Reconnection or rebinding repeats current exact Host peer admission and derives a fresh session, Effective App Access Snapshot, Agent handles, and owner decisions; the same still-verified Host may bind again after account or declaration changes without relaunch, while a changed executable, entrypoint, another security-relevant launch input, or process fact, Developer Mode off, explicit stop, or ended supervision requires a new verified launch.
     condition: Whenever a caller reconnects after invalidation.
     failure: Reject restored authority based only on previous success or cached session state.
     relations:
@@ -182,27 +188,33 @@ units:
     kind: rule
     title: Protected operations are owner bounded
     modality: must
-    statement: Native peer admission is necessary but not sufficient for a protected operation; the current App authorization, target ownership or access, and owning product policy must also admit the operation.
+    statement: Native peer admission is necessary but not sufficient for a protected operation; Runtime classifies the exact AppOperationId through the canonical contract, enforces either the classified Base-row invariants or AppAccess-domain coverage from the current Runtime-private snapshot, and then requires the owning service to admit current target ownership, access, and business policy.
     condition: Whenever Runtime dispatches a protected operation.
-    failure: Return typed unavailable or permission failure before owner mutation.
+    failure: Return the typed access or owner failure before owner mutation.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.protected-session.rpc-plane
   - id: rule.nimi.runtime.protected-session.r019
     kind: rule
     title: No fixed RPC membership is product authority
     modality: must_not
-    statement: Cross-layer product authority is defined by a concrete RPC membership list, transport class name, framing length, caller enum, operating-system object, or language-specific method matrix.
-    condition: Whenever protected product semantics are documented.
-    failure: Keep the product security outcome here and leave implementation membership to the owning Runtime contract and code.
+    statement: Cross-layer product authority is defined by a concrete RPC membership list, transport class name, framing length, caller enum, operating-system object, or language-specific method matrix; the canonical stable AppOperationId and declaration-domain union remain product contract rather than transport detail.
+    condition: Whenever protected App product semantics or implementation membership is documented.
+    failure: Use the canonical App operation contract for product identity and leave RPC, transport, and handler membership to implementation.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.protected-session.rpc-plane
   - id: rule.nimi.runtime.protected-session.r020
     kind: rule
     title: Missing protected access fails closed
     modality: must
-    statement: Unavailable verification, account state, App identity, authorization, credential custody, owner policy, or protected host capability yields a typed unavailable or permission failure with no public TCP, direct Realm, shared token, anonymous, fixture, renderer, or mock-success fallback.
+    statement: Unavailable peer verification, account context, App subject, Runtime-private snapshot, required classified Base invariant or AppAccess-domain coverage, credential custody, owner policy, or Host capability makes the affected protected operation unavailable with no public TCP, direct Realm, direct Runtime, shared token, anonymous, fixture, renderer, or mock-success fallback; it does not by itself stop unrelated App, Host, Runtime, authoring, diagnostic, or support functionality.
     condition: Whenever a protected prerequisite is missing.
     failure: Return the typed failure without executing the operation.
     relations:
@@ -222,9 +234,9 @@ units:
     kind: rule
     title: Protected configuration stays service owned
     modality: must
-    statement: Runtime protected configuration and secrets use service-owned storage, least-privilege access, atomic validated updates, and fail-closed loading; Apps and renderers receive typed projections rather than raw paths or secret values.
+    statement: Production Runtime protected configuration and secrets use the admitted service-owned storage boundary, while D2 local development keeps configuration and custody within its per-user non-elevated Runtime boundary without fixing a physical path, store, or platform mechanism and with no same-user file or memory resistance claim; each owner keeps atomic validated updates and fail-closed loading for its admitted configuration, and Apps and renderers receive typed projections rather than raw paths or secret values.
     condition: Whenever protected Runtime configuration is read or changed.
-    failure: Reject user-writable production truth, partial updates, raw-path disclosure, and secret projection.
+    failure: Reject unsupported or malformed configuration, partial updates, raw-path disclosure, and secret projection.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.config-plane
@@ -258,3 +270,23 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.protected-local-session-plane
+  - id: rule.nimi.runtime.protected-session.r026
+    kind: rule
+    title: D2 local-development Runtime is per-user and non-elevated
+    modality: must
+    statement: The Windows and macOS D2 local-development journey runs Runtime for the current OS user without elevation, LocalSystem, service SID, root, sudo, system account, LaunchDaemon, or another privileged machine-wide identity, and supported App protection relies on the exact Desktop Host launch relation plus Runtime admission rather than an OS sandbox; this rule does not retire or redefine separately owned production deployment topology.
+    condition: Whenever the D2 local-development Runtime process and local endpoint are launched or connected.
+    failure: Keep D2 protected App access unavailable when the per-user endpoint or exact Host relation cannot be established and do not substitute the production service topology as a D2 prerequisite.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.config-plane
+  - id: rule.nimi.runtime.protected-session.r027
+    kind: rule
+    title: D2 per-user Runtime lifecycle uses thin platform adapters
+    modality: must
+    statement: Desktop coordinates the D2 local-development per-user Runtime process through bounded platform-native launch, process observation, local IPC, and peer-identity adapters, while App access semantics, registration, declaration, session, and owner execution remain common and no adapter becomes long-lived authorization lineage or redefines the separate production service topology.
+    condition: Whenever Windows or macOS implements the D2 local-development Runtime lifecycle or protected local IPC.
+    failure: Reject a platform-specific D2 security architecture, production-service prerequisite, or adapter-owned App authorization state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.config-plane

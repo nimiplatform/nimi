@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.desktop.bridge-ipc.protected-account-carrier
     kind: definition
     title: Protected Home host carrier
-    meaning: The protected Home host carrier is a native-host-private connection admitted by the platform's direct operating-system peer check; Runtime derives the current App, account, and operation authorization rather than accepting renderer claims or synthetic carrier records.
+    meaning: The protected Home host carrier is a native-host-private connection whose minimal platform peer evidence correlates the connected peer with Desktop's current exact Host launch; Runtime derives the Registered App Subject, current account context, Effective App Access Snapshot, and exact operation admission without treating the peer check as binary or mutable-project integrity, an operating-system sandbox, root resistance, complete process attestation, or long-lived authorization lineage.
   - id: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
     kind: definition
     title: Runtime service-control projection
@@ -56,12 +56,18 @@ units:
     kind: rule
     title: Renderer input never establishes authority
     modality: must_not
-    statement: App id, accountId, subject, caller kind, host role, endpoint, session, permission, grant, executable path, renderer metadata, or a request field establishes protected origin or owner authorization.
+    statement: App id, accountId, subject, caller kind, host role, endpoint, session, declaration generation, snapshot, AppOperationId, AppAccessDomainId, classification, durable access state, executable path, renderer metadata, or any renderer request field establishes protected origin or owner authorization.
     condition: Whenever the native host receives renderer input.
-    failure: Derive protected identity and authorization from the native-admitted host connection and current Runtime state or reject the request.
+    failure: Derive the exact Host launch correlation and all protected identity and admission facts from Desktop and current Runtime state or reject the request before owner dispatch.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.desktop.bridge-ipc.r003
     kind: rule
     title: The bridge exposes no generic product proxy
@@ -86,7 +92,7 @@ units:
     kind: rule
     title: Account UX consumes Runtime projection
     modality: must
-    statement: Desktop account UX sends typed user intent and renders Runtime-owned status, login, logout, switch, permission, presence, and failure projection without storing or reconstructing account or authorization truth.
+    statement: Desktop first-party account UX sends typed user intent and renders Account and Runtime owner projections for status, login, logout, switch, presence, minimal display, and failure without storing or reconstructing account or App-access truth.
     condition: Whenever account UX uses the bridge.
     failure: Reject renderer-owned account state and raw credential handling.
     relations:
@@ -94,14 +100,20 @@ units:
         target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
   - id: rule.nimi.desktop.bridge-ipc.r006
     kind: rule
-    title: Scaffolded Local Apps use host-injected SDK access
+    title: Verified App Hosts use host-injected SDK access
     modality: must
-    statement: A Desktop-hosted App Tools scaffolded Local App receives standard SDK access through its native-admitted host connection and never obtains Realm JWT, Provider Credential, native peer or internal authorization material, account identity, or generic bridge access.
+    statement: A Desktop-verified App Host receives the standard typed SDK App surface through its exact-launch-correlated native connection and may receive only the current-user display projection containing handle, displayName, and avatarUrl; it never obtains account id or generation, Realm JWT, refresh token, Provider Credential, native peer or launch-correlation material, subject, principal, session, snapshot, internal authorization material, caller-selected operation identity, or generic bridge access.
     condition: Whenever the Desktop host launches or serves a scaffolded Local App.
-    failure: Fail closed when native peer admission, current App identity, or owner authorization is unavailable.
+    failure: Return typed access unavailable or operation failure when exact Host correlation, current Registered App Subject, snapshot coverage, or owner admission is unavailable without inferring an App Host lifecycle decision; Desktop evaluates any objective Host mismatch separately.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.current-user-display-projection
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.desktop.bridge-ipc.r007
     kind: rule
     title: Direct SDK authentication stays outside the bridge
@@ -116,17 +128,19 @@ units:
     kind: rule
     title: Product logic stays on SDK and Kit
     modality: must
-    statement: Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, App, and permission product logic uses standard SDK and demand-driven Kit surfaces; the bridge supplies only native carriage required by the current host.
+    statement: Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, App, and declaration-derived App access product logic uses standard SDK and demand-driven Kit surfaces; the bridge supplies only native carriage required by the current host and never owns declaration mapping, snapshot construction, operation classification, or admission.
     condition: Whenever Desktop product logic needs an owner capability.
     failure: Reject a Desktop-only product API or bridge-owned domain behavior.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.sdk-typed-runtime-path
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.desktop.bridge-ipc.r009
     kind: rule
     title: Service control reports platform lifecycle truth
     modality: must
-    statement: Runtime status, start, restart, repair, and update intent use the bounded native host boundary, and UI reports only the current platform's observed lifecycle state or the exact operation failure; the fixed macOS local-development path uses installed, running, stopped, or absent and never reports healthy, product readiness, or protected-operation success.
+    statement: Runtime status and owner-admitted lifecycle intent use the bounded native host boundary, and UI reports only the current platform's observed production service or D2 per-user process availability and exact operation failure; concrete platform lifecycle enums and service-manager mechanisms remain implementation, and no observed process state reports product readiness or protected-operation success.
     condition: Whenever Desktop requests or presents Runtime service state.
     failure: Reject renderer service control, direct stop, executable selection, acknowledgement-only success, and lifecycle-to-product-readiness inference.
     relations:
@@ -146,7 +160,7 @@ units:
     kind: rule
     title: Host events are projections only
     modality: must
-    statement: Bridge events preserve typed source, ordering, lifecycle, cancellation, and failure state but never become account, App, Runtime, Realm, LocalAgent, Conversation, update, or permission truth.
+    statement: Bridge events preserve typed source, ordering, lifecycle, cancellation, and failure state but never become account, App, Runtime, Realm, LocalAgent, Conversation, update, or App-access truth.
     condition: Whenever the host emits or the renderer consumes an event.
     failure: Re-read the owning state before an authoritative decision.
     relations:
@@ -156,7 +170,7 @@ units:
     kind: rule
     title: Stale streams close
     modality: must
-    statement: Process replacement, account switch, Runtime restart, authorization revoke, host disconnect, or owner cancellation closes affected bridge streams and requires fresh owner state.
+    statement: Exact Host process replacement, account or declaration-generation change, Runtime restart, host disconnect, or owner cancellation closes only the affected protected session and streams and requires fresh Runtime owner state; an account, declaration, snapshot, or Runtime change does not by itself terminate the App Host, delete registration, rotate stable subject identity, or require Host relaunch.
     condition: Whenever a stream dependency changes.
     failure: Reject events from the stale stream and do not synthesize replay.
     relations:
@@ -166,7 +180,7 @@ units:
     kind: rule
     title: Shell defaults are non-security hints
     modality: must
-    statement: Shell defaults may influence presentation only and never select Runtime, Realm, endpoint, route, model, account, credential, service, trust, permission, or executable authority.
+    statement: Shell defaults may influence presentation only and never select Runtime, Realm, endpoint, route, model, account, credential, service, trust, App access, or executable authority.
     condition: Whenever shell defaults are parsed or applied.
     failure: Ignore the hint as authority and require owner projection.
     relations:
@@ -206,7 +220,7 @@ units:
     kind: rule
     title: Missing native capability fails closed
     modality: must
-    statement: A missing host capability, protected carrier, Runtime owner operation, authorization, or valid result produces typed unavailable or failure rather than a silent skip, empty success, fixture, or browser fallback.
+    statement: A missing host capability, protected carrier, Runtime owner operation, snapshot coverage, owner admission, or valid result produces typed unavailable or failure for the affected access path or operation rather than a silent skip, empty success, fixture, browser fallback, global Runtime outage, registration deletion, or automatic App Host termination.
     condition: Whenever a bridge dependency is missing.
     failure: Return the typed failure before product mutation.
     relations:

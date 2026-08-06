@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.desktop.shell-runtime.state-plane
     kind: definition
     title: Nimi Home presentation state plane
-    meaning: The presentation state plane owns navigation, transient view models, user input, and non-authoritative UI cache without owning Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, permission, AI route, or App truth.
+    meaning: The presentation state plane owns navigation, transient view models, user input, and non-authoritative UI cache without owning Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, owner authorization, AI route, or App truth.
   - id: definition.nimi.desktop.shell-runtime.sync-plane
     kind: definition
     title: Desktop data ownership boundary
@@ -39,7 +39,7 @@ units:
     kind: rule
     title: Desktop is the current replaceable Home host
     modality: must
-    statement: Desktop implements the current Nimi Home Host Contract but gains no permanent authority over Realm, Runtime, LocalAgent, Apps, permissions, credentials, installation, or service lifecycle from being first party.
+    statement: Desktop implements the current Nimi Home Host Contract but gains no permanent authority over Realm, Runtime, LocalAgent, Apps, owner authorization, credentials, installation, or service lifecycle from being first party.
     condition: Whenever Desktop responsibility or privilege is interpreted.
     failure: Reject Desktop-only product authority and retain the owning Realm, Runtime, Platform, or protected host decision.
     relations:
@@ -69,8 +69,8 @@ units:
     kind: rule
     title: Account truth remains Runtime owned
     modality: must
-    statement: Desktop renders Runtime account status and sends typed login, logout, switch, permission, and presence intent through the verified host but never stores or reconstructs canonical account, authorization, or session truth.
-    condition: Whenever Nimi Home presents account or permission UX.
+    statement: Desktop renders Runtime account status and sends typed login, logout, switch, and presence intent through the verified host but never stores or reconstructs canonical account, authorization, or session truth.
+    condition: Whenever Nimi Home presents account UX.
     failure: Reject Desktop-owned account truth and display the typed Runtime state.
     relations:
       - type: applies_to
@@ -89,7 +89,7 @@ units:
     kind: rule
     title: Ordinary product capability uses SDK and Kit
     modality: must
-    statement: Nimi Home consumes ordinary Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, App, and permission capabilities through standard SDK and demand-driven Kit composition.
+    statement: Nimi Home consumes ordinary Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, and App capabilities through standard SDK and demand-driven Kit composition while each owner retains its authorization semantics.
     condition: Whenever a Nimi Home product surface accesses owner capability.
     failure: Reject App-local REST, private Runtime imports, generic bridge forwarding, or a Desktop-only parallel API.
     relations:
@@ -109,7 +109,7 @@ units:
     kind: rule
     title: Renderer state is non-authoritative
     modality: must_not
-    statement: Navigation, selected rows, current tabs, draft input, local stores, query cache, optimistic state, or recent-item state becomes account, Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, permission, route, model, or App truth.
+    statement: Navigation, selected rows, current tabs, draft input, local stores, query cache, optimistic state, or recent-item state becomes account, Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, owner-authorization, route, model, or App truth.
     condition: Whenever Desktop renderer state is stored or restored.
     failure: Re-read the owner projection and present unresolved state honestly.
     relations:
@@ -129,7 +129,7 @@ units:
     kind: rule
     title: Cached data never proves a write
     modality: must_not
-    statement: Cached, optimistic, queued, or offline UI state is reported as a committed Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, permission, or App mutation.
+    statement: Cached, optimistic, queued, or offline UI state is reported as a committed Realm, Runtime, LocalAgent, Conversation, Memory, Knowledge, owner-authorization, or App mutation.
     condition: Whenever an owner service is unavailable or a write is pending.
     failure: Show pending, stale, unavailable, or failed state and require owner confirmation.
     relations:
@@ -141,7 +141,7 @@ units:
     modality: must
     statement: After Runtime restart, account switch, authorization revoke, host replacement, or connectivity loss, Desktop discards stale authority and rebuilds projections through fresh verified owner sessions.
     condition: Whenever Nimi Home reconnects.
-    failure: Reject replay of cached credentials, sessions, permissions, or owner success.
+    failure: Reject replay of cached credentials, sessions, authorization results, or owner success.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.degradation-plane

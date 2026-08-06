@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.platform.simulator.product
     kind: definition
     title: Independent Simulator product
-    meaning: Simulator is the lower-priority public Nimi ecosystem website and browser preview product for selected App experiences using clearly disclosed Mock or Deterministic Data with no real Realm, Runtime, account, permission, credential, or LocalAgent side effects.
+    meaning: Simulator is the lower-priority public Nimi ecosystem website and browser preview product for selected App experiences using clearly disclosed Mock or Deterministic Data with no real Realm, Runtime, account, owner-authorization, credential, or LocalAgent side effects.
   - id: definition.nimi.platform.simulator.selected-source-protocol
     kind: definition
     title: Selected App preview boundary
@@ -25,11 +25,11 @@ units:
   - id: definition.nimi.platform.simulator.session-projection
     kind: definition
     title: Simulated session projection
-    meaning: A simulated session is clearly labeled deterministic presentation state and never a real or inferred Nimi account, Runtime session, App permission, or persistent identity.
+    meaning: A simulated session is clearly labeled deterministic presentation state and never a real or inferred Nimi account, Runtime session, protected App access state, or persistent identity.
   - id: definition.nimi.platform.simulator.interaction-protocol
     kind: definition
     title: Simulated presentation interaction
-    meaning: Simulated interactions coordinate selected preview instances through typed presentation-only intent and events without creating real App-to-App, Runtime, Realm, permission, or messaging authority.
+    meaning: Simulated interactions coordinate selected preview instances through typed presentation-only intent and events without creating real App-to-App, Runtime, Realm, owner-authorization, or messaging authority.
   - id: definition.nimi.platform.simulator.effect-boundary
     kind: definition
     title: Simulator effect boundary
@@ -56,7 +56,7 @@ units:
     kind: rule
     title: Simulation is always disclosed
     modality: must
-    statement: Every Simulator preview clearly and accessibly discloses that displayed identity, account, permission, data, LocalAgent, Conversation, and product state is simulated or deterministic.
+    statement: Every Simulator preview clearly and accessibly discloses that displayed identity, account, access availability, data, LocalAgent, Conversation, and product state is simulated or deterministic.
     condition: Whenever a Simulator preview is visible.
     failure: Treat an undisclosed preview as invalid.
     relations:
@@ -76,7 +76,7 @@ units:
     kind: rule
     title: Simulator creates no real side effects
     modality: must_not
-    statement: Simulator creates, changes, deletes, or authorizes a real Realm record, Runtime resource, account, permission, credential, LocalAgent, Conversation, Memory, Knowledge, App installation, Avatar state, provider job, or host operation.
+    statement: Simulator creates, changes, deletes, or authorizes a real Realm record, Runtime resource, account, owner-authorization decision, credential, LocalAgent, Conversation, Memory, Knowledge, App installation, Avatar state, provider job, or host operation.
     condition: Whenever a preview interaction is executed.
     failure: Keep the effect in deterministic session-local presentation state.
     relations:
@@ -156,7 +156,7 @@ units:
     kind: rule
     title: Simulated sessions never become identity
     modality: must_not
-    statement: A simulated persona, account label, App session, permission posture, LocalAgent selector, or route is accepted as real identity or authorization by any product owner.
+    statement: A simulated persona, account label, App session, protected-App access posture, LocalAgent selector, or route is accepted as real identity or authorization by any product owner.
     condition: Whenever simulated session data crosses a preview boundary.
     failure: Keep the data inside the Simulator presentation session.
     relations:
@@ -198,7 +198,7 @@ units:
     kind: rule
     title: Product owners remain authoritative
     modality: must
-    statement: Simulator projections of Realm, Runtime, LocalAgent, Avatar, App, permission, AI, SDK, and Kit concepts follow their public semantics but never claim current owner state or implementation acceptance.
+    statement: Simulator projections of Realm, Runtime, LocalAgent, Avatar, App, owner authorization, AI, SDK, and Kit concepts follow their public semantics but never claim current owner state or implementation acceptance.
     condition: Whenever Simulator presents a Nimi domain concept.
     failure: Label the projection simulated and reject owner claims.
     relations:
@@ -228,7 +228,7 @@ units:
     kind: rule
     title: Simulator checks do not prove product connectivity
     modality: must_not
-    statement: A deterministic preview, visual check, fixture test, build, source registry, or replay is reported as successful Realm, Runtime, LocalAgent, Avatar, account, permission, or Third-party App product connectivity.
+    statement: A deterministic preview, visual check, fixture test, build, source registry, or replay is reported as successful Realm, Runtime, LocalAgent, Avatar, account, owner-authorization, or Third-party App product connectivity.
     condition: Whenever Simulator acceptance is summarized.
     failure: Report only preview behavior and classify real connectivity as not verified.
     relations:

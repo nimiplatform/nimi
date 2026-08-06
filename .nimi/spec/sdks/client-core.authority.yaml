@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.sdks.client-core.transport-plane
     kind: definition
     title: SDK consumer access plane
-    meaning: The SDK consumer access plane separates Desktop-hosted App Tools scaffolded Apps from direct SDK consumers by authentication and token custody while preserving the same Realm, Runtime, Character, LocalAgent, error, and permission domain semantics.
+    meaning: The SDK consumer access plane separates Desktop-hosted App Tools scaffolded Apps from direct SDK consumers by authentication, token custody, and protected-App admission while preserving shared owner-domain operation, result, and error semantics without creating a common permission plane.
   - id: definition.nimi.sdks.client-core.error-projection-plane
     kind: definition
     title: SDK error projection plane
@@ -100,7 +100,7 @@ units:
     kind: rule
     title: Additional languages preserve domain semantics
     modality: must
-    statement: Python, Rust, and Go preserve the same Realm, Runtime, Character, LocalAgent, error, and permission concepts but need not provide the complete TypeScript App, Kit, UI, or host surface in the current phase.
+    statement: Python, Rust, and Go preserve the same Realm, Runtime, Character, LocalAgent, owner-authorization, and typed-error semantics but need not provide the complete TypeScript App, Kit, UI, or host surface in the current phase.
     condition: Whenever an additional language SDK is designed or evaluated.
     failure: Reject domain-semantic drift while allowing explicitly incomplete support.
     relations:
@@ -160,10 +160,12 @@ units:
     kind: rule
     title: LocalAgent access is session derived
     modality: must
-    statement: A scaffolded Local App supplies an explicit localAgentId and typed operation while Runtime derives the current account, App identity, authorization, and LocalAgent ownership or access from the active session.
-    condition: Whenever a scaffolded Local App requests a LocalAgent operation.
-    failure: Fail closed when any derived authorization input or LocalAgent access decision is unavailable.
+    statement: A scaffolded protected Third-party Local App uses the standard SDK to request the canonical agent.local reference listing and supplies only a returned session-scoped opaque agentHandle with a later canonical Conversation operation; Runtime derives and revalidates the current account, App subject, active LocalAgent, agent.local coverage, and exact AppOperationId, and the SDK never accepts raw localAgentId or exposes rich LocalAgent state, voice, presentation, Memory, Knowledge, authorization proof, or credential material on this path.
+    condition: Whenever a scaffolded protected Third-party Local App requests a LocalAgent operation.
+    failure: Fail closed when the handle or any derived admission or owner input is missing, stale, caller-authored, cross-account, inactive-Agent, or unsupported.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.sdks.client-core.runtime-client-plane
   - id: rule.nimi.sdks.client-core.r016
@@ -300,7 +302,7 @@ units:
     kind: rule
     title: Direct and scaffolded consumers share domain semantics
     modality: must
-    statement: Direct SDK consumers and scaffolded Local Apps use consistent Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, error, and permission concepts even though authentication and token custody differ.
+    statement: Direct SDK consumers and scaffolded Local Apps use consistent Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, operation, result, and typed-error semantics even though authentication, token custody, and protected-App admission differ.
     condition: Whenever the two consumer contexts expose the same product domain.
     failure: Reject a second ontology or behavior profile created only by transport choice.
     relations:
