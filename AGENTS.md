@@ -9,7 +9,7 @@
 - Before changing a shared Nimi UI primitive or contract, read `DESIGN.md` and `kit/DESIGN.md`; they are generated projections, not authority. App-local composition starts with its consumer and nearest guidance.
 - Fail closed on contract violations. No legacy shims, pseudo-success, app-level REST bypass, provider/model hardcoding, file collisions, or forwarding shells outside `index.ts`.
 - Desktop/Web must not import `runtime/internal/**`; SDK must not cross Realm/Runtime private boundaries; Runtime must not import `sdks/**` or `apps/**`.
-- The external AI host owns workflow state. Use only guarded package scripts in `package.json`; Nimi-coding must not own or mutate host task lifecycle.
+- The external AI host owns workflow state. Use guarded package scripts in `package.json` for host workflows. Invoke Nimi-coding operations from this repository root through the pinned project-local `pnpm exec nimicoding ...`, including where the installed managed block shows bare `nimicoding ...`; never probe or rely on a global `nimicoding` in `PATH`. Nimi-coding must not own or mutate host task lifecycle.
 - For Image2/provider work under `nimi2d/**`, read `nimi2d/AGENTS.md`.
 ## Execution Priority
 - Treat explicit user direction and completed phase decisions as fixed unless the real path or direct authority contradicts them.
