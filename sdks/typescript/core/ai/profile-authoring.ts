@@ -120,7 +120,17 @@ export const NIMI_AI_PROFILE_LOCAL_EQUIVALENCE_DIGEST_FIELDS = Object.freeze([
 ] as const);
 
 export type NimiAIProfileRequirementPolicy = 'strict' | 'substitutable';
-export type NimiAIProfileLlamaCacheType = 'f32' | 'f16' | 'bf16' | 'q8_0' | 'q4_0';
+
+export const NIMI_AI_PROFILE_LLAMA_CACHE_TYPES = Object.freeze([
+  'f32',
+  'f16',
+  'bf16',
+  'q8_0',
+  'q4_0',
+] as const);
+
+export type NimiAIProfileLlamaCacheType =
+  typeof NIMI_AI_PROFILE_LLAMA_CACHE_TYPES[number];
 
 export interface NimiAIProfileLlamaPortableConfigInput {
   readonly mainRequirementPolicy?: NimiAIProfileRequirementPolicy;
@@ -134,10 +144,14 @@ export interface NimiAIProfileLlamaPortableConfigInput {
   readonly gpuLayers?: number;
 }
 
+export const NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES = Object.freeze([
+  'z-image',
+  'z-image-turbo',
+  'ideogram4',
+] as const);
+
 export type NimiAIProfileStableDiffusionModelFamily =
-  | 'z-image'
-  | 'z-image-turbo'
-  | 'ideogram4';
+  typeof NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES[number];
 
 export interface NimiAIProfileStableDiffusionLoRAInput {
   readonly displayLabel?: string;
@@ -1065,18 +1079,12 @@ const STABLE_DIFFUSION_LORA_FIELDS = new Set<string>(
 const STABLE_DIFFUSION_EXECUTION_FIELDS = new Set<string>(
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
 );
-const LLAMA_CACHE_TYPES = new Set<NimiAIProfileLlamaCacheType>([
-  'f32',
-  'f16',
-  'bf16',
-  'q8_0',
-  'q4_0',
-]);
-const STABLE_DIFFUSION_FAMILIES = new Set<NimiAIProfileStableDiffusionModelFamily>([
-  'z-image',
-  'z-image-turbo',
-  'ideogram4',
-]);
+const LLAMA_CACHE_TYPES = new Set<NimiAIProfileLlamaCacheType>(
+  NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
+);
+const STABLE_DIFFUSION_FAMILIES = new Set<NimiAIProfileStableDiffusionModelFamily>(
+  NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
+);
 
 function normalizeLocalImplementationInput(
   input: NimiAIProfileLocalImplementationAuthoringInput,

@@ -11,6 +11,7 @@ import {
 } from '../../renderer/binding-context.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
+import { AIProfileAuthoringPage } from './runtime-config-page-profile-authoring.js';
 import {
   summarizeDesktopPortableAIProfile,
   type DesktopPortableAIProfileSummary,
@@ -23,6 +24,40 @@ type ProfileFeedback = {
 };
 
 export function ProfileCatalogPage() {
+  const { t } = useTranslation();
+  const [section, setSection] = useState<'portable' | 'author'>('portable');
+  return (
+    <>
+      <div className="px-6 pt-6" data-testid="runtime-profiles-subnavigation">
+        <div className="inline-flex rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-1">
+          <button
+            type="button"
+            aria-pressed={section === 'portable'}
+            onClick={() => setSection('portable')}
+            className={section === 'portable'
+              ? 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-fg)]'
+              : 'rounded-lg px-3 py-2 text-xs font-semibold text-[var(--nimi-text-secondary)]'}
+          >
+            {t('runtimeConfig.profiles.useProfileTab')}
+          </button>
+          <button
+            type="button"
+            aria-pressed={section === 'author'}
+            onClick={() => setSection('author')}
+            className={section === 'author'
+              ? 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-fg)]'
+              : 'rounded-lg px-3 py-2 text-xs font-semibold text-[var(--nimi-text-secondary)]'}
+          >
+            {t('runtimeConfig.profiles.authorProfileTab')}
+          </button>
+        </div>
+      </div>
+      {section === 'author' ? <AIProfileAuthoringPage /> : <PortableProfileApplyPage />}
+    </>
+  );
+}
+
+function PortableProfileApplyPage() {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;

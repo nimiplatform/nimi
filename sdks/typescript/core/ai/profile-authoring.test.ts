@@ -3,10 +3,12 @@ import test from 'node:test';
 
 import {
   NIMI_AI_PROFILE_CLOUD_RECOMMENDATION_FIELDS,
+  NIMI_AI_PROFILE_LLAMA_CACHE_TYPES,
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_EXECUTION_OPTION_FIELDS,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_LORA_FIELDS,
+  NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_PORTABLE_CONFIG_FIELDS,
   createNimiAIProfileAuthoringBuilder,
   createNimiAIProfileLlamaLocalImplementation,
@@ -460,6 +462,18 @@ test('stable-diffusion authoring projection preserves Driver-declared occurrence
 });
 
 test('authoring Driver field inventories stay exact with Runtime parsers', () => {
+  assert.deepEqual(NIMI_AI_PROFILE_LLAMA_CACHE_TYPES, [
+    'f32',
+    'f16',
+    'bf16',
+    'q8_0',
+    'q4_0',
+  ]);
+  assert.deepEqual(NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES, [
+    'z-image',
+    'z-image-turbo',
+    'ideogram4',
+  ]);
   // runtime/internal/capabilitydriver/llama.go:464-465
   assert.deepEqual(NIMI_AI_PROFILE_LLAMA_PORTABLE_CONFIG_FIELDS, [
     'mainRequirementPolicy',
