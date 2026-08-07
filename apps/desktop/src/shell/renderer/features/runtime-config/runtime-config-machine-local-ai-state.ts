@@ -35,7 +35,26 @@ export type RuntimeConfigMachineLocalAIState = {
   readonly impactConfirmation: RuntimeConfigMachineLocalAIImpactConfirmation | null;
 };
 
-export type RuntimeConfigMachineLocalAICapabilityContract = 'text.generate' | 'image.generate';
+export type RuntimeConfigMachineLocalAICapabilityContract =
+  | 'text.generate'
+  | 'image.generate'
+  | 'video.generate';
+
+/**
+ * MiniMax-H3 video.generate Add-form slots. The five ids are the portable-key
+ * prefixes admitted by the SDK video configuration constructor; projected
+ * requirement id/role/label truth stays Runtime-owned.
+ */
+export const RUNTIME_CONFIG_MACHINE_LOCAL_VIDEO_SLOT_IDS = Object.freeze([
+  'fl2va',
+  'ref2va',
+  'encoder',
+  'videoVAE',
+  'audioVAE',
+] as const);
+
+export type RuntimeConfigMachineLocalAIVideoSlotId =
+  typeof RUNTIME_CONFIG_MACHINE_LOCAL_VIDEO_SLOT_IDS[number];
 
 export type RuntimeConfigMachineLocalAIImageSlotDraft = {
   readonly requirementPolicy: NimiMachineLocalCapabilityRequirementPolicy;
@@ -58,6 +77,10 @@ export type RuntimeConfigMachineLocalAIAddDraft = {
   readonly enableInputImage: boolean;
   readonly slots: Readonly<Record<
     NimiMachineLocalStableDiffusionSlotId,
+    RuntimeConfigMachineLocalAIImageSlotDraft
+  >>;
+  readonly videoSlots: Readonly<Record<
+    RuntimeConfigMachineLocalAIVideoSlotId,
     RuntimeConfigMachineLocalAIImageSlotDraft
   >>;
   readonly loras: readonly RuntimeConfigMachineLocalAILoRADraft[];
@@ -135,6 +158,13 @@ export function createRuntimeConfigMachineLocalAIAddDraft(): RuntimeConfigMachin
       textEncoder: slot(),
       vae: slot(),
       uncondDiffusion: slot(),
+    },
+    videoSlots: {
+      fl2va: slot(),
+      ref2va: slot(),
+      encoder: slot(),
+      videoVAE: slot(),
+      audioVAE: slot(),
     },
     loras: [],
     executionOptions: {

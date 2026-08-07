@@ -13,6 +13,7 @@ import {
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
+  NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   type NimiAIProfileApplyPreview,
   type NimiAIProfileAuthoringProjectedRequirement,
   type NimiAIProfileFeatureSubsetResult,
@@ -542,21 +543,15 @@ function LocalImplementationFields(props: {
           <div className="grid gap-3 md:grid-cols-3" data-testid="ai-profile-authoring-local-identity">
             <ReadOnlyAuthoringField
               label={props.t('runtimeConfig.profiles.authoring.implementationId')}
-              value={(capability.local.driverKind === 'llama'
-                ? NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION
-                : NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION).implementationId}
+              value={localDriverImplementation(capability.local.driverKind).implementationId}
             />
             <ReadOnlyAuthoringField
               label={props.t('runtimeConfig.profiles.authoring.driverId')}
-              value={(capability.local.driverKind === 'llama'
-                ? NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION
-                : NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION).driverId}
+              value={localDriverImplementation(capability.local.driverKind).driverId}
             />
             <ReadOnlyAuthoringField
               label={props.t('runtimeConfig.profiles.authoring.driverDialect')}
-              value={(capability.local.driverKind === 'llama'
-                ? NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION
-                : NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION).driverDialect}
+              value={localDriverImplementation(capability.local.driverKind).driverDialect}
             />
           </div>
           <AuthoringTextField
@@ -569,6 +564,12 @@ function LocalImplementationFields(props: {
           />
           {capability.local.driverKind === 'llama' ? (
             <LlamaAuthoringFields capability={capability} updateLocal={updateLocal} t={props.t} />
+          ) : capability.local.driverKind === 'stable-diffusion-video' ? (
+            <StableDiffusionVideoAuthoringFields
+              capability={capability}
+              updateLocal={updateLocal}
+              t={props.t}
+            />
           ) : (
             <StableDiffusionAuthoringFields
               capability={capability}
@@ -580,6 +581,16 @@ function LocalImplementationFields(props: {
       ) : null}
     </div>
   );
+}
+
+function localDriverImplementation(
+  driverKind: RuntimeConfigAIProfileCapabilityDraft['local']['driverKind'],
+) {
+  if (driverKind === 'llama') return NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION;
+  if (driverKind === 'stable-diffusion-video') {
+    return NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION;
+  }
+  return NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION;
 }
 
 function LlamaAuthoringFields(props: {
@@ -738,6 +749,31 @@ function StableDiffusionAuthoringFields(props: {
           <OptionalBooleanSelect label={props.t('runtimeConfig.profiles.authoring.execution.diffusionFlashAttention')} value={stable.execution.diffusionFlashAttention} field="sd-diffusion-flash-attention" onChange={(diffusionFlashAttention) => updateExecution({ diffusionFlashAttention })} t={props.t} />
           <OptionalBooleanSelect label={props.t('runtimeConfig.profiles.authoring.execution.offloadParamsToCPU')} value={stable.execution.offloadParamsToCPU} field="sd-offload-params" onChange={(offloadParamsToCPU) => updateExecution({ offloadParamsToCPU })} t={props.t} />
         </div>
+      </div>
+    </fieldset>
+  );
+}
+
+function StableDiffusionVideoAuthoringFields(props: {
+  readonly capability: RuntimeConfigAIProfileCapabilityDraft;
+  readonly updateLocal: (next: Partial<RuntimeConfigAIProfileCapabilityDraft['local']>) => void;
+  readonly t: TFunction;
+}) {
+  const video = props.capability.local.stableDiffusionVideo;
+  const update = (next: Partial<typeof video>) => props.updateLocal({
+    stableDiffusionVideo: { ...video, ...next },
+  });
+  return (
+    <fieldset className="space-y-4" data-testid="ai-profile-authoring-stable-diffusion-video-fields">
+      <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+        {props.t('runtimeConfig.profiles.authoring.driverPortableConfig')}
+      </legend>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoFl2va')} value={video.fl2va} onChange={(fl2va) => update({ fl2va })} t={props.t} />
+        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoRef2va')} value={video.ref2va} onChange={(ref2va) => update({ ref2va })} t={props.t} />
+        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoEncoder')} value={video.encoder} onChange={(encoder) => update({ encoder })} t={props.t} />
+        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoVideoVae')} value={video.videoVAE} onChange={(videoVAE) => update({ videoVAE })} t={props.t} />
+        <RequirementAuthoringFields title={props.t('runtimeConfig.profiles.authoring.sdVideoAudioVae')} value={video.audioVAE} onChange={(audioVAE) => update({ audioVAE })} t={props.t} />
       </div>
     </fieldset>
   );

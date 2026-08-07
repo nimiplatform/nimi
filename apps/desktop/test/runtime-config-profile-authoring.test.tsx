@@ -267,6 +267,78 @@ test('AIProfile authoring renders stable-diffusion typed fields and ordered LoRA
   assert.match(markup, /data-testid="ai-profile-authoring-sd-execution-options"/u);
 });
 
+test('AIProfile authoring renders the stable-diffusion video section and round-trips its portable config', () => {
+  let draft = validTextDraft();
+  draft = changeRuntimeConfigAIProfileCapabilityContract(
+    draft,
+    draft.capabilities[0]!.draftId,
+    'video.generate',
+  );
+  const capability = draft.capabilities[0]!;
+  assert.equal(capability.local.driverKind, 'stable-diffusion-video');
+  assert.equal(capability.local.includeImplementation, true);
+  draft = {
+    ...draft,
+    capabilities: [{
+      ...capability,
+      local: {
+        ...capability.local,
+        supportedFeaturesText: 'input.image',
+        stableDiffusionVideo: {
+          ...capability.local.stableDiffusionVideo,
+          fl2va: { policy: 'strict', verifiedContentId: `sha256:${'e'.repeat(64)}` },
+        },
+      },
+    }],
+  };
+  const projection: RuntimeConfigAIProfileAuthoringCurrentProjection = {
+    ...currentProjection(),
+    machine: { configurations: [], selections: [] },
+  };
+  const inspection = inspectRuntimeConfigAIProfileAuthoring(draft, projection);
+  assert.equal(inspection.status, 'valid');
+  if (inspection.status !== 'valid') assert.fail('expected valid authoring inspection');
+  assert.equal(inspection.model.journey?.localConfigurationPreviews[0]?.decision.kind, 'add-new');
+  assert.deepEqual(
+    inspection.model.requirements[0]?.projection.requirements.map((requirement) => [
+      requirement.requirementId,
+      requirement.role,
+      requirement.displayLabel,
+      requirement.resourceKind,
+      requirement.policy,
+    ]),
+    [
+      ['diffusion.fl2va', 'main', 'MiniMax-H3 FL2VA transformer', 'video', 'strict'],
+      ['diffusion.ref2va', 'companion', 'MiniMax-H3 Ref2VA transformer', 'video', 'substitutable'],
+      ['encoder.h3-combined', 'companion', 'MiniMax-H3 combined Qwen3-VL encoder', 'chat', 'substitutable'],
+      ['vae.video', 'companion', 'MiniMax-H3 video VAE', 'vae', 'substitutable'],
+      ['vae.audio', 'companion', 'MiniMax-H3 audio VAE', 'vae', 'substitutable'],
+    ],
+  );
+
+  const markup = renderAuthoring(stateWithDraft(draft), projection);
+  assert.match(markup, /data-testid="ai-profile-authoring-capability:video\.generate"/u);
+  assert.match(markup, /data-testid="ai-profile-authoring-stable-diffusion-video-fields"/u);
+  assert.match(markup, /Main video model \(FL2VA\) requirement/u);
+  assert.match(markup, /stable-diffusion\.cpp\/minimax-h3-video-generate\/v1/u);
+  assert.match(markup, /MiniMax-H3 FL2VA transformer/u);
+  assert.doesNotMatch(markup, /data-testid="ai-profile-authoring-stable-diffusion-fields"/u);
+
+  const exported = exportRuntimeConfigAIProfileAuthoring(draft);
+  const importedDraft = importRuntimeConfigAIProfileAuthoring(exported.artifactJson);
+  assert.equal(importedDraft.capabilities[0]!.capabilityContract, 'video.generate');
+  assert.equal(importedDraft.capabilities[0]!.local.driverKind, 'stable-diffusion-video');
+  assert.deepEqual(
+    importedDraft.capabilities[0]!.local.stableDiffusionVideo,
+    draft.capabilities[0]!.local.stableDiffusionVideo,
+  );
+  const reexported = exportRuntimeConfigAIProfileAuthoring(importedDraft);
+  assert.deepEqual(
+    parseNimiPortableAIProfile(reexported.artifactJson),
+    parseNimiPortableAIProfile(exported.artifactJson),
+  );
+});
+
 test('AIProfile Cloud recommendation form has implementation and target fields but no account or grant inputs', () => {
   const draft = validTextDraft();
   const capability = draft.capabilities[0]!;

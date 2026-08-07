@@ -3,9 +3,11 @@ import {
   NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION,
   NIMI_AI_PROFILE_STABLE_DIFFUSION_MODEL_FAMILIES,
+  NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION,
   createNimiAIProfileAuthoringBuilder,
   createNimiAIProfileLlamaLocalImplementation,
   createNimiAIProfileStableDiffusionLocalImplementation,
+  createNimiAIProfileStableDiffusionVideoLocalImplementation,
   deriveNimiAIProfileApplyPreview,
   deriveNimiAIProfileImportPreview,
   deriveNimiAIProfileLocalConfigurationPreview,
@@ -29,6 +31,7 @@ import type { NimiMachineLocalAIConfiguration } from '@nimiplatform/sdk/runtime'
 export const RUNTIME_CONFIG_AI_PROFILE_CAPABILITY_CONTRACTS = Object.freeze([
   'text.generate',
   'image.generate',
+  'video.generate',
   'text.embed',
   'audio.synthesize',
   'audio.transcribe',
@@ -86,12 +89,26 @@ export type RuntimeConfigAIProfileStableDiffusionDraft = {
   readonly execution: RuntimeConfigAIProfileStableDiffusionExecutionDraft;
 };
 
+/**
+ * MiniMax-H3 video.generate authoring draft. The five slots mirror the ten
+ * portable keys of the SDK video section; input.image intent is declared
+ * through the shared supported-features field, not a portable key.
+ */
+export type RuntimeConfigAIProfileStableDiffusionVideoDraft = {
+  readonly fl2va: RuntimeConfigAIProfileRequirementDraft;
+  readonly ref2va: RuntimeConfigAIProfileRequirementDraft;
+  readonly encoder: RuntimeConfigAIProfileRequirementDraft;
+  readonly videoVAE: RuntimeConfigAIProfileRequirementDraft;
+  readonly audioVAE: RuntimeConfigAIProfileRequirementDraft;
+};
+
 export type RuntimeConfigAIProfileLocalDraft = {
   readonly includeImplementation: boolean;
-  readonly driverKind: 'none' | 'llama' | 'stable-diffusion';
+  readonly driverKind: 'none' | 'llama' | 'stable-diffusion' | 'stable-diffusion-video';
   readonly supportedFeaturesText: string;
   readonly llama: RuntimeConfigAIProfileLlamaDraft;
   readonly stableDiffusion: RuntimeConfigAIProfileStableDiffusionDraft;
+  readonly stableDiffusionVideo: RuntimeConfigAIProfileStableDiffusionVideoDraft;
 };
 
 export type RuntimeConfigAIProfileCloudDraft = {
@@ -528,6 +545,13 @@ function createCapabilityDraft(
           offloadParamsToCPU: '',
         },
       },
+      stableDiffusionVideo: {
+        fl2va: requirementDraft(),
+        ref2va: requirementDraft(),
+        encoder: requirementDraft(),
+        videoVAE: requirementDraft(),
+        audioVAE: requirementDraft(),
+      },
     },
     cloud: {
       implementationId: '',
@@ -548,6 +572,7 @@ function localDriverKind(
 ): RuntimeConfigAIProfileLocalDraft['driverKind'] {
   if (capabilityContract === 'text.generate') return 'llama';
   if (capabilityContract === 'image.generate') return 'stable-diffusion';
+  if (capabilityContract === 'video.generate') return 'stable-diffusion-video';
   return 'none';
 }
 
@@ -621,6 +646,19 @@ function localImplementationFromDraft(capability: RuntimeConfigAIProfileCapabili
       },
     });
   }
+  if (capability.local.driverKind === 'stable-diffusion-video') {
+    const video = capability.local.stableDiffusionVideo;
+    return createNimiAIProfileStableDiffusionVideoLocalImplementation({
+      supportedFeatures,
+      portableConfig: {
+        ...requirementInput('fl2va', video.fl2va),
+        ...requirementInput('ref2va', video.ref2va),
+        ...requirementInput('encoder', video.encoder),
+        ...requirementInput('videoVAE', video.videoVAE),
+        ...requirementInput('audioVAE', video.audioVAE),
+      },
+    });
+  }
   if (capability.local.driverKind !== 'stable-diffusion') {
     throw new Error(`${capability.capabilityContract} has no typed Local Driver authoring section`);
   }
@@ -665,7 +703,17 @@ function localImplementationFromDraft(capability: RuntimeConfigAIProfileCapabili
 }
 
 function requirementInput(
-  prefix: 'main' | 'mmproj' | 'textEncoder' | 'vae' | 'uncondDiffusion',
+  prefix:
+    | 'main'
+    | 'mmproj'
+    | 'textEncoder'
+    | 'vae'
+    | 'uncondDiffusion'
+    | 'fl2va'
+    | 'ref2va'
+    | 'encoder'
+    | 'videoVAE'
+    | 'audioVAE',
   requirement: RuntimeConfigAIProfileRequirementDraft,
 ): Record<string, string> {
   return {
@@ -769,6 +817,9 @@ function draftFromProfile(profile: NimiPortableAIProfile): RuntimeConfigAIProfil
         stableDiffusion: driverKind === 'stable-diffusion'
           ? stableDiffusionDraftFromConfig(config)
           : draft.local.stableDiffusion,
+        stableDiffusionVideo: driverKind === 'stable-diffusion-video'
+          ? stableDiffusionVideoDraftFromConfig(config)
+          : draft.local.stableDiffusionVideo,
       },
     };
   });
@@ -795,6 +846,9 @@ function implementationDriverKind(
   if (sameImplementation(implementation, NIMI_AI_PROFILE_LLAMA_CPP_IMPLEMENTATION)) return 'llama';
   if (sameImplementation(implementation, NIMI_AI_PROFILE_STABLE_DIFFUSION_IMPLEMENTATION)) {
     return 'stable-diffusion';
+  }
+  if (sameImplementation(implementation, NIMI_AI_PROFILE_STABLE_DIFFUSION_VIDEO_IMPLEMENTATION)) {
+    return 'stable-diffusion-video';
   }
   throw new Error('Imported Local implementation has no typed Desktop authoring section');
 }
@@ -857,9 +911,31 @@ function stableDiffusionDraftFromConfig(
   } satisfies RuntimeConfigAIProfileStableDiffusionDraft;
 }
 
+function stableDiffusionVideoDraftFromConfig(
+  config: NimiJsonObject,
+): RuntimeConfigAIProfileStableDiffusionVideoDraft {
+  return {
+    fl2va: requirementDraftFromConfig(config, 'fl2va'),
+    ref2va: requirementDraftFromConfig(config, 'ref2va'),
+    encoder: requirementDraftFromConfig(config, 'encoder'),
+    videoVAE: requirementDraftFromConfig(config, 'videoVAE'),
+    audioVAE: requirementDraftFromConfig(config, 'audioVAE'),
+  };
+}
+
 function requirementDraftFromConfig(
   config: NimiJsonObject,
-  prefix: 'main' | 'mmproj' | 'textEncoder' | 'vae' | 'uncondDiffusion',
+  prefix:
+    | 'main'
+    | 'mmproj'
+    | 'textEncoder'
+    | 'vae'
+    | 'uncondDiffusion'
+    | 'fl2va'
+    | 'ref2va'
+    | 'encoder'
+    | 'videoVAE'
+    | 'audioVAE',
 ): RuntimeConfigAIProfileRequirementDraft {
   return {
     policy: optionalPolicy(config[`${prefix}RequirementPolicy`]),

@@ -9,6 +9,7 @@ import {
 } from '../src/shell/renderer/i18n/index.js';
 import {
   MachineLocalAIConfigurationsView,
+  createVideoConfigurationInput,
   type MachineLocalAIConfigurationsViewProps,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-machine-local-ai.js';
 import {
@@ -310,6 +311,101 @@ test('Local AI Configurations renders future image impact separately from explic
   assert.match(markup, /Shared LocalAgent/u);
   assert.match(markup, /Reviewing this impact does not confirm the change/u);
   assert.match(markup, /data-testid="machine-local-ai-impact-confirm"/u);
+});
+
+test('Local AI Configurations renders the video form and builds the video add input', () => {
+  const initial = createRuntimeConfigMachineLocalAIAddDraft();
+  const asset: NimiRuntimeLocalAssetEntry = {
+    localAssetId: 'video-main',
+    assetId: 'video-main',
+    displayName: 'FL2VA transformer',
+    kind: 'video',
+    engine: 'stable-diffusion',
+    status: 'installed',
+    expectedVerifiedContentId: `sha256:${'d'.repeat(64)}`,
+  };
+  const draft = {
+    ...initial,
+    capabilityContract: 'video.generate' as const,
+    displayName: 'Video studio',
+    enableInputImage: true,
+    videoSlots: {
+      ...initial.videoSlots,
+      fl2va: { requirementPolicy: 'strict' as const, localAssetId: asset.localAssetId },
+    },
+  };
+  const markup = renderView(baseProps(
+    { configurations: [], selections: [] },
+    { showAddForm: true, addDraft: draft, assets: [asset] },
+  ));
+
+  assert.match(markup, />video\.generate</u);
+  assert.match(markup, /data-testid="machine-local-ai-video-fields"/u);
+  assert.match(markup, /data-testid="machine-local-ai-video-slot:fl2va"/u);
+  assert.match(markup, /data-testid="machine-local-ai-video-slot:ref2va"/u);
+  assert.match(markup, /data-testid="machine-local-ai-video-slot:encoder"/u);
+  assert.match(markup, /data-testid="machine-local-ai-video-slot:videoVAE"/u);
+  assert.match(markup, /data-testid="machine-local-ai-video-slot:audioVAE"/u);
+  assert.match(markup, /Main video model \(FL2VA\)/u);
+  assert.match(markup, /FL2VA transformer/u);
+  assert.doesNotMatch(markup, /data-testid="machine-local-ai-image-fields"/u);
+
+  const input = createVideoConfigurationInput(draft, [asset], 'Video studio');
+  assert.equal(input.capabilityContract, 'video.generate');
+  assert.equal(input.displayName, 'Video studio');
+  assert.equal(
+    input.implementation.driverDialect,
+    'stable-diffusion.cpp/minimax-h3-video-generate/v1',
+  );
+  assert.deepEqual(input.supportedFeatures, ['input.image']);
+  assert.deepEqual(input.portableConfig, {
+    fl2vaRequirementPolicy: 'strict',
+    fl2vaVerifiedContentId: `sha256:${'d'.repeat(64)}`,
+    ref2vaRequirementPolicy: 'substitutable',
+    encoderRequirementPolicy: 'substitutable',
+    videoVAERequirementPolicy: 'substitutable',
+    audioVAERequirementPolicy: 'substitutable',
+  });
+
+  assert.throws(
+    () => createVideoConfigurationInput({
+      ...draft,
+      enableInputImage: false,
+      videoSlots: {
+        ...draft.videoSlots,
+        ref2va: { requirementPolicy: 'strict' as const, localAssetId: '' },
+      },
+    }, [asset], 'Video studio'),
+    /preferred local file is required for ref2va/iu,
+  );
+});
+
+test('Local AI Configurations keeps video configuration management available when execution is unavailable', () => {
+  const videoConfiguration: NimiMachineLocalCapabilityConfiguration = {
+    ...configuration('unresolved'),
+    configurationId: 'lcc_video',
+    capabilityContract: 'video.generate',
+    implementation: {
+      implementationId: 'local.image.generate.stable-diffusion-cpp',
+      driverId: 'nimi.runtime.driver.stable-diffusion-cpp',
+      driverDialect: 'stable-diffusion.cpp/minimax-h3-video-generate/v1',
+    },
+    interpretability: 'unavailable',
+    displayName: 'Local video model',
+  };
+  const markup = renderView(baseProps({
+    configurations: [videoConfiguration],
+    selections: [],
+  }));
+
+  assert.match(markup, /video\.generate/u);
+  assert.match(markup, /Local video model/u);
+  assert.match(markup, /stable-diffusion\.cpp/u);
+  assert.match(markup, /cannot currently be interpreted/u);
+  assert.match(markup, /data-file-state="files-needed"/u);
+  assert.match(markup, />Select configuration</u);
+  assert.match(markup, /Refresh file requirements/u);
+  assert.match(markup, /<details[\s\S]*Technical details/u);
 });
 
 test('Local AI Configurations derives compatible exact-binding choices from projected constraints', () => {

@@ -14,8 +14,10 @@ import {
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_MODEL_FAMILIES,
   NIMI_MACHINE_LOCAL_STABLE_DIFFUSION_SLOT_DESCRIPTORS,
   NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
+  NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
   createNimiMachineLocalLlamaCppTextConfigurationInput,
   createNimiMachineLocalStableDiffusionImageConfigurationInput,
+  createNimiMachineLocalStableDiffusionVideoConfigurationInput,
   loadNimiMachineLocalAIConfigurationImpact,
   type NimiMachineLocalAIConfiguration,
   type NimiMachineLocalAssetExactBinding,
@@ -36,6 +38,7 @@ import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import {
   INITIAL_RUNTIME_CONFIG_MACHINE_LOCAL_AI_STATE,
+  RUNTIME_CONFIG_MACHINE_LOCAL_VIDEO_SLOT_IDS,
   compatibleMachineLocalAssets,
   createRuntimeConfigMachineLocalAIAddDraft,
   groupMachineLocalCapabilityRequirements,
@@ -46,6 +49,7 @@ import {
   type RuntimeConfigMachineLocalAIAddDraft,
   type RuntimeConfigMachineLocalAIImpactConfirmation,
   type RuntimeConfigMachineLocalAIImpactRequest,
+  type RuntimeConfigMachineLocalAIVideoSlotId,
 } from './runtime-config-machine-local-ai-state.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 
@@ -190,7 +194,9 @@ export function MachineLocalAIConfigurationsPage() {
           displayName,
           acceptsImageInput: addDraft.acceptsImageInput,
         })
-        : createImageConfigurationInput(addDraft, state.assets, displayName);
+        : addDraft.capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT
+          ? createVideoConfigurationInput(addDraft, state.assets, displayName)
+          : createImageConfigurationInput(addDraft, state.assets, displayName);
       void runMutation({
         key: 'add',
         operation: () => client.addConfiguration(input),
@@ -205,7 +211,9 @@ export function MachineLocalAIConfigurationsPage() {
     } catch (error) {
       setFeedback({
         tone: 'danger',
-        message: t('runtimeConfig.machineLocalAIConfigurations.imageFormInvalid'),
+        message: t(addDraft.capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT
+          ? 'runtimeConfig.machineLocalAIConfigurations.videoFormInvalid'
+          : 'runtimeConfig.machineLocalAIConfigurations.imageFormInvalid'),
         technicalDetail: technicalErrorDetail(error),
       });
     }
@@ -486,6 +494,7 @@ export function MachineLocalAIConfigurationsView(
   const capabilityContracts = [...new Set([
     NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT,
     NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT,
+    NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT,
     ...configurations.map((configuration) => configuration.capabilityContract),
     ...(props.aggregate?.selections ?? []).map((selection) => selection.capabilityContract),
   ])].sort((left, right) => left.localeCompare(right));
@@ -697,6 +706,7 @@ function MachineLocalAIAddForm(props: {
         >
           <option value={NIMI_MACHINE_LOCAL_TEXT_GENERATE_CAPABILITY_CONTRACT}>text.generate</option>
           <option value={NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT}>image.generate</option>
+          <option value={NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT}>video.generate</option>
         </select>
       </label>
 
@@ -733,6 +743,13 @@ function MachineLocalAIAddForm(props: {
             </label>
           </fieldset>
         </>
+      ) : draft.capabilityContract === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT ? (
+        <MachineLocalAIVideoAddFields
+          draft={draft}
+          assets={props.assets}
+          busy={props.busy}
+          onChange={props.onChange}
+        />
       ) : (
         <MachineLocalAIImageAddFields
           draft={draft}
@@ -1039,6 +1056,126 @@ function MachineLocalAIImageAddFields(props: {
             />
           </label>
         ))}
+      </fieldset>
+    </div>
+  );
+}
+
+const MACHINE_LOCAL_VIDEO_SLOTS: ReadonlyArray<{
+  readonly slotId: RuntimeConfigMachineLocalAIVideoSlotId;
+  readonly role: NimiMachineLocalCapabilityRequirement['role'];
+  readonly labelKey: string;
+}> = [
+  { slotId: 'fl2va', role: 'main', labelKey: 'videoSlotFl2va' },
+  { slotId: 'ref2va', role: 'companion', labelKey: 'videoSlotRef2va' },
+  { slotId: 'encoder', role: 'companion', labelKey: 'videoSlotEncoder' },
+  { slotId: 'videoVAE', role: 'companion', labelKey: 'videoSlotVideoVae' },
+  { slotId: 'audioVAE', role: 'companion', labelKey: 'videoSlotAudioVae' },
+];
+
+function MachineLocalAIVideoAddFields(props: {
+  readonly draft: RuntimeConfigMachineLocalAIAddDraft;
+  readonly assets: readonly NimiRuntimeLocalAssetEntry[];
+  readonly busy: boolean;
+  readonly onChange: (value: RuntimeConfigMachineLocalAIAddDraft) => void;
+}) {
+  const { t } = useTranslation();
+  const { draft } = props;
+  const verifiedAssets = props.assets.filter((asset) => (
+    asset.status !== 'removed' && Boolean(asset.expectedVerifiedContentId)
+  ));
+  const updateSlot = (
+    slotId: RuntimeConfigMachineLocalAIVideoSlotId,
+    patch: Partial<RuntimeConfigMachineLocalAIAddDraft['videoSlots'][RuntimeConfigMachineLocalAIVideoSlotId]>,
+  ) => props.onChange({
+    ...draft,
+    videoSlots: {
+      ...draft.videoSlots,
+      [slotId]: { ...draft.videoSlots[slotId], ...patch },
+    },
+  });
+
+  return (
+    <div className="grid gap-4 md:col-span-2" data-testid="machine-local-ai-video-fields">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-1.5 text-sm font-medium text-[var(--nimi-text-secondary)]">
+          <span>{t('runtimeConfig.machineLocalAIConfigurations.engine')}</span>
+          <div className={machineLocalReadOnlyFieldClassName}>stable-diffusion.cpp</div>
+        </div>
+      </div>
+
+      <label className="flex items-start gap-2 rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-sm">
+        <input
+          type="checkbox"
+          checked={draft.enableInputImage}
+          disabled={props.busy}
+          onChange={(event) => props.onChange({
+            ...draft,
+            enableInputImage: event.currentTarget.checked,
+          })}
+          className="mt-0.5"
+        />
+        <span>
+          <span className="block font-medium text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.machineLocalAIConfigurations.imageInputFeature')}
+          </span>
+          <span className="mt-0.5 block text-xs text-[var(--nimi-text-muted)]">
+            {t('runtimeConfig.machineLocalAIConfigurations.imageInputFeatureBody')}
+          </span>
+        </span>
+      </label>
+
+      <fieldset className="grid gap-3">
+        <legend className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+          {t('runtimeConfig.machineLocalAIConfigurations.videoSlotsTitle')}
+        </legend>
+        {MACHINE_LOCAL_VIDEO_SLOTS.map((slot) => {
+          const slotDraft = draft.videoSlots[slot.slotId];
+          return (
+            <div
+              key={slot.slotId}
+              className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,0.8fr)_minmax(220px,1.2fr)]"
+              data-testid={`machine-local-ai-video-slot:${slot.slotId}`}
+            >
+              <div>
+                <div className="text-xs font-semibold text-[var(--nimi-text-muted)]">
+                  {requirementGroupDisplay(slot.role, 0, t)}
+                </div>
+                <div className="mt-1 text-sm font-medium text-[var(--nimi-text-primary)]">
+                  {t(`runtimeConfig.machineLocalAIConfigurations.${slot.labelKey}`)}
+                </div>
+              </div>
+              <label className="space-y-1 text-xs font-medium text-[var(--nimi-text-secondary)]">
+                <span>{t('runtimeConfig.machineLocalAIConfigurations.requirementPolicy')}</span>
+                <select
+                  value={slotDraft.requirementPolicy}
+                  disabled={props.busy}
+                  onChange={(event) => updateSlot(slot.slotId, {
+                    requirementPolicy: event.currentTarget.value as typeof slotDraft.requirementPolicy,
+                    localAssetId: event.currentTarget.value === 'strict' ? slotDraft.localAssetId : '',
+                  })}
+                  className={machineLocalSelectClassName}
+                >
+                  <option value="substitutable">{t('runtimeConfig.machineLocalAIConfigurations.policySubstitutable')}</option>
+                  <option value="strict">{t('runtimeConfig.machineLocalAIConfigurations.policyStrict')}</option>
+                </select>
+              </label>
+              {slotDraft.requirementPolicy === 'strict' ? (
+                <ExactAssetSelect
+                  value={slotDraft.localAssetId}
+                  assets={verifiedAssets}
+                  busy={props.busy}
+                  label={t('runtimeConfig.machineLocalAIConfigurations.preferredFile')}
+                  onChange={(localAssetId) => updateSlot(slot.slotId, { localAssetId })}
+                />
+              ) : (
+                <p className="self-end text-xs text-[var(--nimi-text-muted)]">
+                  {t('runtimeConfig.machineLocalAIConfigurations.policySubstitutableBody')}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </fieldset>
     </div>
   );
@@ -1358,8 +1495,13 @@ function MachineLocalAIImpactPanel(props: {
   const { confirmation } = props;
   const requestId = confirmation.request.requestId;
   const impact = confirmation.impact;
-  const image = confirmation.request.capabilityContract
-    === NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT;
+  const impactBodyKey = confirmation.request.capabilityContract
+    === NIMI_MACHINE_LOCAL_IMAGE_GENERATE_CAPABILITY_CONTRACT
+    ? 'impactImageBody'
+    : confirmation.request.capabilityContract
+      === NIMI_MACHINE_LOCAL_VIDEO_GENERATE_CAPABILITY_CONTRACT
+      ? 'impactVideoBody'
+      : 'impactTextBody';
   return (
     <div
       className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-card))] p-4"
@@ -1383,9 +1525,7 @@ function MachineLocalAIImpactPanel(props: {
       ) : impact ? (
         <>
           <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
-            {t(image
-              ? 'runtimeConfig.machineLocalAIConfigurations.impactImageBody'
-              : 'runtimeConfig.machineLocalAIConfigurations.impactTextBody')}
+            {t(`runtimeConfig.machineLocalAIConfigurations.${impactBodyKey}`)}
           </p>
           {impact.affectedOwners.length > 0 ? (
             <ul className="mt-3 grid gap-2" data-testid="machine-local-ai-impact-owner-list">
@@ -1553,6 +1693,40 @@ function createImageConfigurationInput(
       height: parseDraftNumber(draft.executionOptions.height, 'height'),
       seed: parseDraftNumber(draft.executionOptions.seed, 'seed'),
     },
+  });
+}
+
+export function createVideoConfigurationInput(
+  draft: RuntimeConfigMachineLocalAIAddDraft,
+  assets: readonly NimiRuntimeLocalAssetEntry[],
+  displayName: string,
+) {
+  const preferredContentId = (slotId: RuntimeConfigMachineLocalAIVideoSlotId): string | undefined => {
+    const slot = draft.videoSlots[slotId];
+    if (slot.requirementPolicy !== 'strict') return undefined;
+    const contentId = assets.find((asset) => asset.localAssetId === slot.localAssetId)
+      ?.expectedVerifiedContentId;
+    if (!contentId) throw new Error(`A preferred local file is required for ${slotId}.`);
+    return contentId;
+  };
+  const fl2vaVerifiedContentId = preferredContentId('fl2va');
+  const ref2vaVerifiedContentId = preferredContentId('ref2va');
+  const encoderVerifiedContentId = preferredContentId('encoder');
+  const videoVAEVerifiedContentId = preferredContentId('videoVAE');
+  const audioVAEVerifiedContentId = preferredContentId('audioVAE');
+  return createNimiMachineLocalStableDiffusionVideoConfigurationInput({
+    displayName,
+    enableInputImage: draft.enableInputImage,
+    fl2vaRequirementPolicy: draft.videoSlots.fl2va.requirementPolicy,
+    ...(fl2vaVerifiedContentId ? { fl2vaVerifiedContentId } : {}),
+    ref2vaRequirementPolicy: draft.videoSlots.ref2va.requirementPolicy,
+    ...(ref2vaVerifiedContentId ? { ref2vaVerifiedContentId } : {}),
+    encoderRequirementPolicy: draft.videoSlots.encoder.requirementPolicy,
+    ...(encoderVerifiedContentId ? { encoderVerifiedContentId } : {}),
+    videoVAERequirementPolicy: draft.videoSlots.videoVAE.requirementPolicy,
+    ...(videoVAEVerifiedContentId ? { videoVAEVerifiedContentId } : {}),
+    audioVAERequirementPolicy: draft.videoSlots.audioVAE.requirementPolicy,
+    ...(audioVAEVerifiedContentId ? { audioVAEVerifiedContentId } : {}),
   });
 }
 
