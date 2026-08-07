@@ -26,8 +26,18 @@ const windowsProductControlBroadMutationAccess = windows.FILE_WRITE_DATA |
 	windows.GENERIC_WRITE |
 	windows.GENERIC_ALL
 
-func validateProductControlRootPlatform(string, ProductControlDataRootSecurityBinding) error {
-	return nil
+func validateProductControlRootPlatform(root string, security ProductControlDataRootSecurityBinding) error {
+	if !security.PerUserRuntime {
+		return nil
+	}
+	interactiveUserSID := strings.TrimSpace(security.InteractiveUserSID)
+	if interactiveUserSID == "" || !strings.EqualFold(interactiveUserSID, strings.TrimSpace(security.RuntimeServiceSID)) {
+		return fmt.Errorf("per-user Product Control requires one current-user SID")
+	}
+	if err := validateWindowsDirectDirectoryChain(root); err != nil {
+		return err
+	}
+	return validateWindowsPerUserDirectoryACL(root, interactiveUserSID)
 }
 
 // validateProductControlDataRootPlatform rejects reparse traversal before a
@@ -65,6 +75,12 @@ func validateProductControlDataRootPlatform(root string, security ProductControl
 	}
 	interactiveUserSID := strings.TrimSpace(security.InteractiveUserSID)
 	runtimeServiceSID := strings.TrimSpace(security.RuntimeServiceSID)
+	if security.PerUserRuntime {
+		if interactiveUserSID == "" || !strings.EqualFold(interactiveUserSID, runtimeServiceSID) {
+			return fmt.Errorf("per-user data root requires one current-user SID")
+		}
+		return validateWindowsPerUserDirectoryACL(root, interactiveUserSID)
+	}
 	if interactiveUserSID == "" && runtimeServiceSID == "" {
 		return nil
 	}
@@ -135,6 +151,61 @@ func validateWindowsProductControlDataRootACL(root string, interactiveUserSID st
 	}
 	if matchingServiceEntries != 1 || !exactServiceEntry {
 		return fmt.Errorf("data root DACL lacks the one exact inheritable fixed Runtime service SID entry")
+	}
+	return nil
+}
+
+func validateWindowsDirectDirectoryChain(root string) error {
+	volumeRoot := filepath.VolumeName(root) + string(filepath.Separator)
+	if volumeRoot == string(filepath.Separator) || !strings.HasPrefix(root, volumeRoot) {
+		return fmt.Errorf("directory volume is invalid")
+	}
+	current := volumeRoot
+	for _, component := range strings.Split(strings.TrimPrefix(root, volumeRoot), string(filepath.Separator)) {
+		if component != "" {
+			current = filepath.Join(current, component)
+		}
+		encoded, err := windows.UTF16PtrFromString(current)
+		if err != nil {
+			return err
+		}
+		attributes, err := windows.GetFileAttributes(encoded)
+		if err != nil || attributes&windows.FILE_ATTRIBUTE_DIRECTORY == 0 || attributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+			return fmt.Errorf("directory component is not direct")
+		}
+	}
+	return nil
+}
+
+func validateWindowsPerUserDirectoryACL(root string, currentUserSID string) error {
+	expectedOwner, err := windows.StringToSid(currentUserSID)
+	if err != nil {
+		return fmt.Errorf("parse current-user SID: %w", err)
+	}
+	descriptor, err := windows.GetNamedSecurityInfo(root, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION)
+	if err != nil || descriptor == nil {
+		return fmt.Errorf("read per-user directory security: %w", err)
+	}
+	owner, _, err := descriptor.Owner()
+	if err != nil || owner == nil || !windows.EqualSid(owner, expectedOwner) {
+		return fmt.Errorf("per-user directory owner mismatch")
+	}
+	dacl, _, err := descriptor.DACL()
+	if err != nil || dacl == nil {
+		return fmt.Errorf("read per-user directory DACL: %w", err)
+	}
+	for index := uint32(0); index < uint32(dacl.AceCount); index++ {
+		var ace *windows.ACCESS_ALLOWED_ACE
+		if err := windows.GetAce(dacl, index, &ace); err != nil || ace == nil {
+			return fmt.Errorf("read per-user directory DACL entry %d: %w", index, err)
+		}
+		if ace.Header.AceType != windows.ACCESS_ALLOWED_ACE_TYPE {
+			continue
+		}
+		entrySID := (*windows.SID)(unsafe.Pointer(&ace.SidStart))
+		if isWindowsProductControlBroadPrincipal(entrySID) && uint32(ace.Mask)&windowsProductControlBroadMutationAccess != 0 {
+			return fmt.Errorf("per-user directory grants write authority to a broad principal")
+		}
 	}
 	return nil
 }

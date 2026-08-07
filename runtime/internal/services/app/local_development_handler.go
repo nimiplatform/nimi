@@ -170,7 +170,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 	var revoke func()
 	if s.directLocalAppLaunches != nil {
 		desktopPeer, direct := desktopConnection.DirectDesktopPeer()
-		if !direct || desktopPeer.OS != protectedlocal.OSMacOS {
+		if !direct {
 			return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
 		}
 		prepared, prepareErr := s.directLocalAppLaunches.Prepare(handle, runID, registration.SourceGeneration, registration.DeclarationGeneration, desktopPeer.PID, desktopPeer.UID, hostExecutable, s.now().UTC().Add(localDevelopmentLaunchTTL))
@@ -221,10 +221,10 @@ func (s *Service) BindLocalAppProcess(ctx context.Context, req *runtimev1.BindLo
 	}
 	if s.directLocalAppLaunches != nil {
 		desktopPeer, direct := desktopConnection.DirectDesktopPeer()
-		if !direct || desktopPeer.OS != protectedlocal.OSMacOS {
+		if !direct {
 			return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "bind-supervisor")
 		}
-		deadline, err := protectedlocal.BindMacOSDirectLocalAppLaunch(s.directLocalAppLaunches, launchID, req.GetChildProcessId(), desktopPeer.PID, desktopPeer.UID, s.now().UTC().Add(localDevelopmentProcessBindTTL))
+		deadline, err := protectedlocal.BindPlatformDirectLocalAppLaunch(s.directLocalAppLaunches, launchID, req.GetChildProcessId(), desktopPeer, s.now().UTC().Add(localDevelopmentProcessBindTTL))
 		if err != nil {
 			return nil, localDevelopmentFailureAtStageFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "bind-direct-peer", err)
 		}
@@ -278,15 +278,14 @@ func (s *Service) RebindLocalAppProcess(ctx context.Context, req *runtimev1.Rebi
 		return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "rebind-supervisor")
 	}
 	desktopPeer, direct := desktopConnection.DirectDesktopPeer()
-	if !direct || desktopPeer.OS != protectedlocal.OSMacOS {
+	if !direct {
 		return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "rebind-supervisor")
 	}
-	deadline, err := protectedlocal.RebindMacOSDirectLocalAppLaunch(
+	deadline, err := protectedlocal.RebindPlatformDirectLocalAppLaunch(
 		s.directLocalAppLaunches,
 		launchID,
 		req.GetChildProcessId(),
-		desktopPeer.PID,
-		desktopPeer.UID,
+		desktopPeer,
 		s.now().UTC().Add(localDevelopmentProcessBindTTL),
 	)
 	if err != nil {

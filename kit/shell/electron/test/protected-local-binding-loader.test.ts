@@ -7,6 +7,7 @@ import { test } from 'vitest';
 import { resolveNimiElectronProtectedLocalPackageSpecifier } from '../src/main/protected-local-binding-loader';
 
 const darwinPackage = '@nimiplatform/kit-protected-local-darwin-arm64';
+const windowsPackage = '@nimiplatform/kit-protected-local-win32-x64';
 
 test('packaged macOS Electron resolves only its sealed native carrier resource', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-native-carrier-'));
@@ -37,6 +38,7 @@ test('packaged macOS Electron resolves only its sealed native carrier resource',
 });
 
 const macOSTest = process.platform === 'darwin' ? test : test.skip;
+const windowsTest = process.platform === 'win32' ? test : test.skip;
 
 macOSTest('source macOS D2 requires an explicit default-App carrier path', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-native-source-'));
@@ -66,6 +68,41 @@ macOSTest('source macOS D2 requires an explicit default-App carrier path', async
       platform: 'darwin',
       sourceDefaultApp: false,
       sourceSourceLocalDevelopment: '1',
+      sourceEntry: entry,
+    }), /protected-carrier-required/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+windowsTest('source Windows D2 requires the explicit workspace carrier path', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-native-windows-source-'));
+  try {
+    const canonicalRoot = await realpath(root);
+    const carrier = path.join(
+      canonicalRoot,
+      'kit',
+      'shell',
+      'protected-local-node',
+      'npm',
+      'win32-x64',
+    );
+    await mkdir(carrier, { recursive: true });
+    const entry = path.join(carrier, 'index.cjs');
+    await writeFile(entry, 'module.exports = {};\n');
+    await writeFile(path.join(carrier, 'nimi_shell_protected_local.node'), 'fixture');
+    assert.equal(resolveNimiElectronProtectedLocalPackageSpecifier(windowsPackage, {
+      architecture: 'x64',
+      platform: 'win32',
+      sourceDefaultApp: true,
+      sourceSourceLocalDevelopment: '1',
+      sourceEntry: entry,
+    }), entry);
+    assert.throws(() => resolveNimiElectronProtectedLocalPackageSpecifier(windowsPackage, {
+      architecture: 'x64',
+      platform: 'win32',
+      sourceDefaultApp: true,
+      sourceSourceLocalDevelopment: '0',
       sourceEntry: entry,
     }), /protected-carrier-required/u);
   } finally {

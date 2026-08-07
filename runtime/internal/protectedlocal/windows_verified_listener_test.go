@@ -1,4 +1,4 @@
-//go:build windows
+//go:build windows && !nimi_windows_source_local_development
 
 package protectedlocal
 

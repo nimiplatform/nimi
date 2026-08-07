@@ -84,10 +84,12 @@ const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUIL
   && __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__;
 const ELECTRON_DEVELOPMENT_BUILD = typeof __NIMI_ELECTRON_DEVELOPMENT_BUILD__ !== 'undefined'
   && __NIMI_ELECTRON_DEVELOPMENT_BUILD__;
-const MACOS_PER_USER_RUNTIME_D2 = process.platform === 'darwin'
-  && ELECTRON_DEVELOPMENT_BUILD
+const SOURCE_PER_USER_RUNTIME_D2 = ELECTRON_DEVELOPMENT_BUILD
   && !MACOS_LOCAL_DEVELOPMENT_BUILD
-  && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1';
+  && (
+    (process.platform === 'darwin' && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1')
+    || (process.platform === 'win32' && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1')
+  );
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -145,7 +147,7 @@ let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
-if (MACOS_PER_USER_RUNTIME_D2) {
+if (SOURCE_PER_USER_RUNTIME_D2) {
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.once(signal, () => app.quit());
   }
@@ -177,7 +179,7 @@ if (!ownsDesktopInstanceLock) {
 async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
-    if (MACOS_PER_USER_RUNTIME_D2) {
+    if (SOURCE_PER_USER_RUNTIME_D2) {
       localDevelopmentRuntime = await startDesktopLocalDevelopmentRuntime({
         homeDirectory: app.getPath('home'),
         hostExecutable: process.execPath,
@@ -341,9 +343,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     process.stderr.write(`[desktop-bootstrap] ${failureCode}\n`);
     dialog.showErrorBox(
       'Nimi could not start safely',
-      MACOS_LOCAL_DEVELOPMENT_BUILD
-        ? `Nimi Dev bootstrap failed (${failureCode}). Start it with "pnpm dev:runtime -- --desktop" and inspect the terminal output.`
-        : 'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
+      SOURCE_PER_USER_RUNTIME_D2
+        ? `Source local development bootstrap failed (${failureCode}). Inspect the guarded pnpm dev terminal output.`
+        : MACOS_LOCAL_DEVELOPMENT_BUILD
+          ? `Nimi Dev bootstrap failed (${failureCode}). Start it with "pnpm dev:runtime -- --desktop" and inspect the terminal output.`
+          : 'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
     );
     app.exit(1);
   }

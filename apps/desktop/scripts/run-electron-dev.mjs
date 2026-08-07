@@ -4,15 +4,10 @@ import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  requireWindowsDevSignedFiles,
-  requireWindowsDevSigningIdentity,
-} from '../../../scripts/lib/windows-dev-signing.mjs';
 import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   resolveDesktopDevLaunchOptions,
   resolvePersistentDesktopDevProfile,
-  resolveSignedDesktopDevCarrier,
   resolveWorkspaceElectronDevCarrier,
 } from './lib/electron-dev-carrier.mjs';
 import { acquireDesktopDevSessionLock } from './lib/electron-dev-session-lock.mjs';
@@ -23,6 +18,7 @@ const appRoot = path.resolve(currentDir, '..');
 const avatarRoot = path.resolve(appRoot, '../avatar');
 const workspaceRoot = path.resolve(appRoot, '../..');
 const macOSSourceLocalDevelopmentRuntime = path.join(workspaceRoot, '.nimi', 'local', 'imp3', 'runtime-local-development', 'nimi-runtime');
+const windowsSourceLocalDevelopmentRuntime = path.join(workspaceRoot, '.nimi', 'local', 'imp6', 'runtime-local-development', 'nimi.exe');
 const macOSSourceLocalDevelopmentNativeEntry = path.join(
   workspaceRoot,
   'kit',
@@ -32,8 +28,17 @@ const macOSSourceLocalDevelopmentNativeEntry = path.join(
   'darwin-arm64',
   'index.cjs',
 );
-const macOSSourceLocalDevelopmentRealmUrl = process.platform === 'darwin'
-  ? resolveMacOSSourceLocalDevelopmentRealmUrl(workspaceRoot)
+const windowsSourceLocalDevelopmentNativeEntry = path.join(
+  workspaceRoot,
+  'kit',
+  'shell',
+  'protected-local-node',
+  'npm',
+  'win32-x64',
+  'index.cjs',
+);
+const sourceLocalDevelopmentRealmUrl = ['darwin', 'win32'].includes(process.platform)
+  ? resolveSourceLocalDevelopmentRealmUrl(workspaceRoot)
   : '';
 const rendererUrl = process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL || 'http://127.0.0.1:1420';
 const bundledAvatarRendererUrl = process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL
@@ -42,7 +47,6 @@ const {
   avatarOnly,
   observationArguments: desktopDevObservationArguments,
 } = resolveDesktopDevLaunchOptions(process.argv.slice(2));
-const electronVersion = String(require('electron/package.json').version || '').trim();
 const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
 let desktopDevSession;
 if (process.platform === 'win32') {
@@ -74,17 +78,24 @@ if (process.platform === 'darwin') {
 
 async function runWindowsDesktopDev() {
   try {
+    process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT = '1';
+    buildWindowsSourceLocalDevelopmentRuntime();
     await buildElectronHostForDesktopDev();
-    const electronBin = resolveSignedDesktopDevCarrier({
+    const electronBin = resolveWorkspaceElectronDevCarrier({
       platform: process.platform,
       architecture: process.arch,
-      electronVersion,
-      workspaceRoot,
+      electronExecutable: require('electron'),
       existsSync,
     });
-    const signingIdentity = requireWindowsDevSigningIdentity({ cwd: workspaceRoot });
-    requireWindowsDevSignedFiles([electronBin], signingIdentity.certificateSha256, { cwd: workspaceRoot });
     mkdirSync(localAssetRoot, { recursive: true });
+    process.stdout.write(`${JSON.stringify({
+      status: 'starting',
+      carrier: electronBin,
+      hostBundle: 'workspace-electron',
+      rendererUrl,
+      mainIteration: 'workspace_build',
+      protectedRuntime: 'source-local-development',
+    })}\n`);
     if (!avatarOnly) {
       spawnRenderer();
       await waitForUrl(rendererUrl, 45_000);
@@ -113,6 +124,11 @@ async function runWindowsDesktopDev() {
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID:
           process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID || '',
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,
+        NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT: '1',
+        NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE: windowsSourceLocalDevelopmentRuntime,
+        NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_DESKTOP_EXECUTABLE: electronBin,
+        NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY: windowsSourceLocalDevelopmentNativeEntry,
+        NIMI_REALM_URL: sourceLocalDevelopmentRealmUrl,
       },
     });
     const exitCode = await waitForExit(electron);
@@ -120,7 +136,15 @@ async function runWindowsDesktopDev() {
     process.exit(exitCode ?? 0);
   } catch (error) {
     await requestAllChildrenShutdown('SIGTERM');
-    console.error(error instanceof Error ? error.message : String(error || 'Desktop Electron dev failed'));
+    const reasonCode = error && typeof error === 'object' && 'reasonCode' in error
+      ? String(error.reasonCode)
+      : 'desktop-dev-launch-failed';
+    process.stderr.write(`${JSON.stringify({
+      status: 'failed',
+      reasonCode,
+      actionHint: error && typeof error === 'object' && 'actionHint' in error ? String(error.actionHint) : 'inspect_desktop_dev_launch',
+      message: error instanceof Error ? error.message : String(error || 'Desktop Electron dev failed'),
+    })}\n`);
     process.exit(1);
   }
 }
@@ -172,7 +196,7 @@ async function runMacOSDesktopDev() {
         NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE: macOSSourceLocalDevelopmentRuntime,
         NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE: electronBin,
         NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY: macOSSourceLocalDevelopmentNativeEntry,
-        NIMI_REALM_URL: macOSSourceLocalDevelopmentRealmUrl,
+        NIMI_REALM_URL: sourceLocalDevelopmentRealmUrl,
       },
     });
     const exitCode = await waitForExit(electron);
@@ -193,7 +217,7 @@ async function runMacOSDesktopDev() {
   }
 }
 
-function resolveMacOSSourceLocalDevelopmentRealmUrl(root) {
+function resolveSourceLocalDevelopmentRealmUrl(root) {
   const fallback = 'http://127.0.0.1:3002';
   const sourcePath = path.join(root, '.env');
   let raw = '';
@@ -231,6 +255,26 @@ function resolveMacOSSourceLocalDevelopmentRealmUrl(root) {
     });
   }
   return fallback;
+}
+
+function buildWindowsSourceLocalDevelopmentRuntime() {
+  const runtimeRoot = path.join(workspaceRoot, 'runtime');
+  mkdirSync(path.dirname(windowsSourceLocalDevelopmentRuntime), { recursive: true });
+  const build = spawnSync('go', [
+    'build',
+    '-tags',
+    'nimi_windows_source_local_development',
+    '-o',
+    windowsSourceLocalDevelopmentRuntime,
+    './cmd/nimi',
+  ], {
+    cwd: runtimeRoot,
+    env: { ...process.env, CGO_ENABLED: '0' },
+    stdio: 'inherit',
+  });
+  if (build.status !== 0) {
+    throw new Error(`source local development Runtime build failed with status ${build.status ?? 'unknown'}`);
+  }
 }
 
 function buildMacOSSourceLocalDevelopmentRuntime() {

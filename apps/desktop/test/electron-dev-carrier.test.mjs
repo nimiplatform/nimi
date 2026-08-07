@@ -129,6 +129,14 @@ test('Desktop dev resolves workspace Electron for ordinary macOS host iteration'
     electronExecutable: executable,
     existsSync: () => false,
   }), (error) => error.reasonCode === 'desktop-dev-workspace-carrier-missing');
+
+  const windowsExecutable = path.join(workspaceRoot, 'node_modules', 'electron', 'dist', 'electron.exe');
+  assert.equal(resolveWorkspaceElectronDevCarrier({
+    platform: 'win32',
+    architecture: 'x64',
+    electronExecutable: windowsExecutable,
+    existsSync: () => true,
+  }), windowsExecutable);
 });
 
 test('Desktop dev CDP observation is explicit, loopback-only, and fail-closed', () => {

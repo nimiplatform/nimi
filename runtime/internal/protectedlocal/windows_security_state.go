@@ -11,16 +11,21 @@ import (
 // exist before the protected Desktop transport starts accepting connections.
 // Its capabilities are intentionally opaque outside this package.
 type WindowsRuntimeSecurityState struct {
-	root             WindowsProtectedStateRoot
-	principal        WindowsServicePrincipal
-	process          WindowsRuntimeProcess
-	secrets          BinarySecretStore
-	ledger           *Ledger
-	bootEpoch        Identifier
-	desktopSessions  *DesktopSessionManager
-	localAppLaunches *LocalAppLaunchRegistry
-	desktopPipe      *WindowsDesktopPipeInstance
-	desktopIdentity  WindowsDesktopIdentity
+	root                   WindowsProtectedStateRoot
+	principal              WindowsServicePrincipal
+	process                WindowsRuntimeProcess
+	secrets                BinarySecretStore
+	ledger                 *Ledger
+	bootEpoch              Identifier
+	desktopSessions        *DesktopSessionManager
+	localAppLaunches       *LocalAppLaunchRegistry
+	directLocalAppLaunches *DirectLocalAppLaunches
+	desktopPipe            *WindowsDesktopPipeInstance
+	desktopIdentity        WindowsDesktopIdentity
+
+	sourceLocalDevelopment bool
+	ownerProcess           DesktopProcessLiveness
+	ownerIdentity          windowsSourceProcessIdentity
 
 	transportMu       sync.Mutex
 	desktopTransport  interface{ Close() error }
@@ -29,6 +34,15 @@ type WindowsRuntimeSecurityState struct {
 
 	closeOnce sync.Once
 	closeErr  error
+}
+
+type windowsSourceProcessIdentity struct {
+	pid            uint32
+	parentPID      uint32
+	userSID        string
+	sessionID      uint32
+	creationMarker string
+	executablePath string
 }
 
 type WindowsSecurityStateFailureStage uint32
@@ -109,10 +123,34 @@ func (state *WindowsRuntimeSecurityState) ServiceStatePath() string {
 // RuntimeServiceSID returns the exact service SID already validated into this
 // opaque security-state capability.
 func (state *WindowsRuntimeSecurityState) RuntimeServiceSID() string {
-	if state == nil {
+	if state == nil || state.sourceLocalDevelopment {
 		return ""
 	}
 	return state.principal.ServiceSID()
+}
+
+func (state *WindowsRuntimeSecurityState) RuntimeUserSID() string {
+	if state == nil || !state.sourceLocalDevelopment {
+		return ""
+	}
+	return state.principal.tokenUserSID
+}
+
+func (state *WindowsRuntimeSecurityState) SourceLocalDevelopment() bool {
+	return state != nil && state.sourceLocalDevelopment
+}
+
+func (state *WindowsRuntimeSecurityState) StartOwnerMonitor(ctx context.Context, cancel context.CancelFunc) {
+	if state == nil || !state.sourceLocalDevelopment || state.ownerProcess == nil || cancel == nil {
+		return
+	}
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-state.ownerProcess.Revoked():
+			cancel()
+		}
+	}()
 }
 
 func (state *WindowsRuntimeSecurityState) RuntimeProcess() WindowsRuntimeProcess {
@@ -157,6 +195,13 @@ func (state *WindowsRuntimeSecurityState) LocalAppLaunches() *LocalAppLaunchRegi
 	return state.localAppLaunches
 }
 
+func (state *WindowsRuntimeSecurityState) DirectLocalAppLaunches() *DirectLocalAppLaunches {
+	if state == nil {
+		return nil
+	}
+	return state.directLocalAppLaunches
+}
+
 func (state *WindowsRuntimeSecurityState) DesktopPipe() *WindowsDesktopPipeInstance {
 	if state == nil {
 		return nil
@@ -184,7 +229,7 @@ func (state *WindowsRuntimeSecurityState) Close() error {
 		localAppTransport := state.localAppTransport
 		pipe := state.desktopPipe
 		state.transportMu.Unlock()
-		var pipeErr, localAppErr, ledgerErr error
+		var pipeErr, localAppErr, ownerErr, ledgerErr error
 		if transport != nil {
 			pipeErr = transport.Close()
 		} else if pipe != nil {
@@ -193,10 +238,13 @@ func (state *WindowsRuntimeSecurityState) Close() error {
 		if localAppTransport != nil {
 			localAppErr = localAppTransport.Close()
 		}
+		if state.ownerProcess != nil {
+			ownerErr = state.ownerProcess.Close()
+		}
 		if state.ledger != nil {
 			ledgerErr = state.ledger.Close()
 		}
-		state.closeErr = errors.Join(pipeErr, localAppErr, ledgerErr)
+		state.closeErr = errors.Join(pipeErr, localAppErr, ownerErr, ledgerErr)
 	})
 	return state.closeErr
 }

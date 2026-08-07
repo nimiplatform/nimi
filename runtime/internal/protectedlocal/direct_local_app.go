@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// DirectLocalAppPeer is the minimal native identity retained for a macOS
-// local-app connection after the Unix peer has been checked.
+// DirectLocalAppPeer is the minimal native identity retained after a per-user
+// local endpoint peer has been checked.
 type DirectLocalAppPeer struct {
 	OS  OperatingSystem
 	PID uint32
@@ -18,7 +18,7 @@ type DirectLocalAppPeer struct {
 }
 
 func (peer DirectLocalAppPeer) valid() bool {
-	return peer.OS == OSMacOS && peer.PID != 0 && peer.UID != 0
+	return (peer.OS == OSMacOS || peer.OS == OSWindows) && peer.PID != 0 && peer.UID != 0
 }
 
 // DirectLocalAppProcessWitness is captured from the kernel while the exact
@@ -41,7 +41,8 @@ func (witness DirectLocalAppProcessWitness) valid() bool {
 }
 
 // DirectLocalAppLaunch is the one-time Runtime-owned association needed to
-// join a Desktop-prepared launch to a Unix socket peer. It is in-memory only.
+// join a Desktop-prepared launch to a native local-endpoint peer. It is
+// in-memory only.
 type DirectLocalAppLaunch struct {
 	LaunchID              Identifier
 	RegistrationHandle    Identifier
@@ -71,9 +72,9 @@ func (launch DirectLocalAppLaunch) valid() bool {
 		!launch.ExpiresAt.IsZero()
 }
 
-// DirectLocalAppLaunches owns the single in-memory prepared-launch map used by
-// the macOS direct peer path. It creates no durable launch, process, session,
-// boot-epoch, or proof record.
+// DirectLocalAppLaunches owns the single common in-memory prepared-launch map
+// used by per-user native peer adapters. It creates no durable launch, process,
+// session, boot-epoch, or proof record.
 type DirectLocalAppLaunches struct {
 	mu       sync.Mutex
 	now      func() time.Time
@@ -188,6 +189,22 @@ func (launches *DirectLocalAppLaunches) Bind(
 	pending.BindDeadline = bindDeadline
 	launches.byPID[process.PID] = pending
 	return bindDeadline, nil
+}
+
+func (launches *DirectLocalAppLaunches) Bound(childPID uint32, uid uint32) (DirectLocalAppLaunch, bool) {
+	if launches == nil || childPID == 0 || uid == 0 {
+		return DirectLocalAppLaunch{}, false
+	}
+	now := launches.now().UTC()
+	launches.mu.Lock()
+	defer launches.mu.Unlock()
+	launches.removeExpiredLocked(now)
+	pending := launches.byPID[childPID]
+	if pending == nil || pending.Process.PID != childPID || pending.ExpectedUID != uid ||
+		pending.BindDeadline.IsZero() || !now.Before(pending.BindDeadline) || !pending.valid() {
+		return DirectLocalAppLaunch{}, false
+	}
+	return *pending, true
 }
 
 func (launches *DirectLocalAppLaunches) Consume(childPID uint32, uid uint32) (DirectLocalAppLaunch, error) {

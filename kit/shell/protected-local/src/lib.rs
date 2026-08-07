@@ -30,6 +30,7 @@ mod macos_service_control;
 mod macos_supervised_process;
 mod reason;
 mod service;
+mod windows_source_policy;
 #[allow(
     dead_code,
     clippy::doc_lazy_continuation,
@@ -42,11 +43,18 @@ mod service;
 ))]
 compile_error!("macos-local-development and macos-source-local-development are mutually exclusive");
 
+#[cfg(all(feature = "windows-source-local-development", not(target_os = "windows")))]
+compile_error!("windows-source-local-development requires a Windows target");
+
 mod generated {
     tonic::include_proto!("nimi.runtime.v1");
 }
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
 #[allow(unsafe_code)]
+mod windows_data_root;
+#[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+#[allow(unsafe_code)]
+#[path = "windows_data_root_source_local_development.rs"]
 mod windows_data_root;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod windows_desktop_account;
@@ -57,8 +65,12 @@ mod windows_local_app;
 #[allow(unsafe_code)]
 mod windows_local_development;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
 #[allow(unsafe_code)]
+mod windows_peer_trust;
+#[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+#[allow(unsafe_code)]
+#[path = "windows_peer_trust_source_local_development.rs"]
 mod windows_peer_trust;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]

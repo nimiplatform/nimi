@@ -14,6 +14,7 @@ path = "src/lib.rs"
 default = []
 macos-local-development = []
 macos-source-local-development = []
+windows-source-local-development = []
 
 [dependencies]
 base64 = "0.22"
@@ -34,7 +35,7 @@ url = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.8.1"
-windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Security_Cryptography", "Win32_Security_Cryptography_Catalog", "Win32_Security_Cryptography_Sip", "Win32_Security_WinTrust", "Win32_Storage_FileSystem", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_UI_Shell"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Security_Cryptography", "Win32_Security_Cryptography_Catalog", "Win32_Security_Cryptography_Sip", "Win32_Security_WinTrust", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_ToolHelp", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_UI_Shell"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 libc = "0.2"

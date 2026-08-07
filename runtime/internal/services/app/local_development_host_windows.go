@@ -28,6 +28,12 @@ func localDevelopmentProjectHostAliasPath(projectRoot string, shellKind runtimev
 	return filepath.Join(projectRoot, "node_modules", "electron", "dist", "electron.exe")
 }
 
+func pathWithinLocalDevelopmentRoot(root string, candidate string) bool {
+	relative, err := filepath.Rel(filepath.Clean(root), filepath.Clean(candidate))
+	return err == nil && relative != ".." && !filepath.IsAbs(relative) &&
+		!strings.HasPrefix(relative, ".."+string(filepath.Separator))
+}
+
 func validLocalDevelopmentHostPath(projectRoot string, hostExecutable string, shellKind runtimev1.LocalDevelopmentShellKind) bool {
 	root := filepath.Clean(strings.TrimSpace(projectRoot))
 	host := filepath.Clean(strings.TrimSpace(hostExecutable))

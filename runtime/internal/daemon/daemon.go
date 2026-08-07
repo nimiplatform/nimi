@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -142,6 +143,9 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if state == nil {
 		return nil, fmt.Errorf("verified Windows Runtime security state is required")
 	}
+	if state.SourceLocalDevelopment() {
+		return newProtectedFromWindowsSourceLocalDevelopmentState(cfg, logger, version, state, requestRestart)
+	}
 	fail := func(err error) (*Daemon, error) {
 		if closeErr := state.Close(); closeErr != nil {
 			return nil, errors.Join(err, fmt.Errorf("close Windows Runtime security state after binding failure: %w", closeErr))
@@ -205,6 +209,67 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 			LocalAppLaunches:                  state.LocalAppLaunches(),
 			LocalDevelopmentVerifier:          localDevelopmentVerifier,
 			RuntimeRestartRequester:           requestRestart,
+		},
+		Close: state.Close,
+	})
+}
+
+func newProtectedFromWindowsSourceLocalDevelopmentState(cfg config.Config, logger *slog.Logger, version string, state *protectedlocal.WindowsRuntimeSecurityState, requestRestart func() bool) (*Daemon, error) {
+	fail := func(err error) (*Daemon, error) {
+		if closeErr := state.Close(); closeErr != nil {
+			return nil, errors.Join(err, fmt.Errorf("close Windows source Runtime security state after binding failure: %w", closeErr))
+		}
+		return nil, err
+	}
+	stateRoot := strings.TrimSpace(state.ServiceStatePath())
+	secrets := state.BinarySecrets()
+	sessions := state.DesktopSessions()
+	directLaunches := state.DirectLocalAppLaunches()
+	userSID := strings.TrimSpace(state.RuntimeUserSID())
+	if stateRoot == "" || state.Ledger() == nil || secrets == nil || sessions == nil || !sessions.Direct() ||
+		directLaunches == nil || userSID == "" || requestRestart == nil {
+		return fail(fmt.Errorf("complete current-user Windows Runtime security state is required"))
+	}
+	serviceDataRoot, err := resolveProtectedServiceDataRoot(stateRoot, cfg.LocalStatePath)
+	if err != nil {
+		return fail(err)
+	}
+	accountPartition := strings.TrimSpace(state.DesktopIdentity().AccountPartition())
+	if accountPartition == "" {
+		return fail(fmt.Errorf("verified Windows Desktop account partition is required"))
+	}
+	localOSUserIdentity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID(userSID)
+	if err != nil {
+		return fail(fmt.Errorf("validate Windows current-user identity: %w", err))
+	}
+	productControlRoot := filepath.Join(stateRoot, ".nimi")
+	if err := os.MkdirAll(productControlRoot, 0o700); err != nil {
+		return fail(fmt.Errorf("create current-user Windows Product Control root: %w", err))
+	}
+	accountCustody, err := accountservice.NewProtectedBinaryCustody(secrets)
+	if err != nil {
+		return fail(fmt.Errorf("adapt Windows current-user account custody: %w", err))
+	}
+	connectorSecrets, err := connectorservice.NewProtectedBinarySecretStore(secrets)
+	if err != nil {
+		return fail(fmt.Errorf("adapt Windows current-user connector custody: %w", err))
+	}
+	platformAppIdentityProjectionPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
+	if err != nil {
+		return fail(fmt.Errorf("resolve Windows source Platform app resources: %w", err))
+	}
+	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
+		Bindings: grpcserver.ProtectedServiceBindings{
+			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot,
+			LocalDevelopmentConsentStorePath:  filepath.Join(serviceDataRoot, "runtime", "local-development.db"),
+			PlatformAppIdentityProjectionPath: platformAppIdentityProjectionPath,
+			PlatformBundledAppsRoot:           platformBundledAppsRoot,
+			AccountCustody:                    accountCustody, AccountPartition: accountPartition,
+			AccountRealmBaseURL: cfg.AccountRealmBaseURL, AccountAuthorizationURL: cfg.AccountAuthorizationURL,
+			AccountTokenURL: cfg.AccountTokenURL, LocalOSUserIdentity: localOSUserIdentity,
+			ConnectorSecrets: connectorSecrets, DesktopSessions: sessions,
+			DirectLocalAppLaunches: directLaunches, PerUserRuntime: true,
+			RuntimeRestartRequester: requestRestart,
 		},
 		Close: state.Close,
 	})

@@ -15,6 +15,7 @@ path = "src/lib.rs"
 default = []
 macos-local-development = ["nimi-shell-protected-local/macos-local-development"]
 macos-source-local-development = ["nimi-shell-protected-local/macos-source-local-development"]
+windows-source-local-development = ["nimi-shell-protected-local/windows-source-local-development"]
 
 [dependencies]
 base64 = "0.22"

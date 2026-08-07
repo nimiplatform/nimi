@@ -7,8 +7,37 @@ import (
 	"time"
 )
 
-// BindDirectLocalAppLaunch snapshots and verifies the exact start-suspended
-// Desktop child before any App code can run.
+// BindPlatformDirectLocalAppLaunch snapshots and verifies the exact
+// start-suspended Desktop child before any App code can run.
+func BindPlatformDirectLocalAppLaunch(
+	launches *DirectLocalAppLaunches,
+	launchID Identifier,
+	childPID uint32,
+	desktopPeer DesktopPeerIdentity,
+	bindDeadline time.Time,
+) (time.Time, error) {
+	if desktopPeer.OS != OSMacOS {
+		return time.Time{}, fmt.Errorf("direct local-app Desktop peer platform mismatch")
+	}
+	return BindMacOSDirectLocalAppLaunch(launches, launchID, childPID, desktopPeer.PID, desktopPeer.UID, bindDeadline)
+}
+
+// RebindPlatformDirectLocalAppLaunch captures a fresh PID-reuse-safe witness
+// for an already-running exact Desktop child after per-user Runtime loss.
+func RebindPlatformDirectLocalAppLaunch(
+	launches *DirectLocalAppLaunches,
+	launchID Identifier,
+	childPID uint32,
+	desktopPeer DesktopPeerIdentity,
+	bindDeadline time.Time,
+) (time.Time, error) {
+	if desktopPeer.OS != OSMacOS {
+		return time.Time{}, fmt.Errorf("direct local-app Desktop peer platform mismatch")
+	}
+	return RebindMacOSDirectLocalAppLaunch(launches, launchID, childPID, desktopPeer.PID, desktopPeer.UID, bindDeadline)
+}
+
+// BindMacOSDirectLocalAppLaunch is the macOS native implementation.
 func BindMacOSDirectLocalAppLaunch(
 	launches *DirectLocalAppLaunches,
 	launchID Identifier,

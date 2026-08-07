@@ -194,8 +194,8 @@ type Connection struct {
 }
 
 func newDirectDesktopConnection(peer DesktopPeerIdentity) (*Connection, error) {
-	if peer.OS != OSMacOS || peer.PID == 0 || peer.UID == 0 || peer.AuditSession == 0 {
-		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", fmt.Errorf("verified macOS Desktop peer is incomplete"))
+	if (peer.OS != OSMacOS && peer.OS != OSWindows) || peer.PID == 0 || peer.UID == 0 || peer.AuditSession == 0 {
+		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", fmt.Errorf("verified direct Desktop peer is incomplete"))
 	}
 	connection := &Connection{
 		origin:      OriginContext{TransportClass: TransportDesktopControl},
@@ -314,10 +314,11 @@ func (connection *Connection) ClientProcess() (ProcessTuple, bool) {
 	return connection.client, connection.client.validate() == nil
 }
 
-// DirectDesktopPeer returns only the minimal identity retained by the macOS
-// direct socket path. Windows continues to use ClientProcess.
+// DirectDesktopPeer returns only the minimal identity retained by a per-user
+// native peer path. Production Windows continues to use ClientProcess.
 func (connection *Connection) DirectDesktopPeer() (DesktopPeerIdentity, bool) {
-	if connection == nil || !connection.live.Load() || connection.directPeer.OS != OSMacOS ||
+	if connection == nil || !connection.live.Load() ||
+		(connection.directPeer.OS != OSMacOS && connection.directPeer.OS != OSWindows) ||
 		connection.directPeer.PID == 0 || connection.directPeer.UID == 0 ||
 		connection.directPeer.AuditSession == 0 {
 		return DesktopPeerIdentity{}, false
@@ -326,8 +327,8 @@ func (connection *Connection) DirectDesktopPeer() (DesktopPeerIdentity, bool) {
 }
 
 // VerifiedDesktopTransport reports authority created by a native verified
-// listener. Windows keeps its existing role-bearing session path; macOS is
-// authorized directly from the connected socket peer.
+// listener. Production Windows keeps its role-bearing session path; per-user
+// adapters are authorized directly from the connected OS peer.
 func (connection *Connection) VerifiedDesktopTransport() bool {
 	if connection == nil || !connection.live.Load() ||
 		connection.origin.TransportClass != TransportDesktopControl {

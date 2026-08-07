@@ -20,8 +20,12 @@ use crate::grpc_status::local_app_error_from_status;
 use crate::macos_service_control::open_verified_local_app_runtime_channel;
 #[cfg(target_os = "windows")]
 use crate::windows_peer_trust::VerifiedRuntimePeer;
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
 use crate::windows_service_control::open_verified_runtime_channel;
+#[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+use crate::windows_service_control::{
+    open_verified_runtime_channel, SOURCE_LOCAL_APP_PIPE_REF,
+};
 use crate::{
     LocalAppAIConfigOverwriteRequest, LocalAppAgentReference, LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
@@ -37,8 +41,10 @@ use crate::{
     NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
 const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-local-app-v1";
+#[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+const RUNTIME_LOCAL_APP_PIPE_NAME: &str = SOURCE_LOCAL_APP_PIPE_REF;
 
 const ACTION_EXECUTED: i32 = 1;
 const LOCAL_APP_SESSION_READY: i32 = 1;

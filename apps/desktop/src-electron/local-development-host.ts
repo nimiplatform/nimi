@@ -456,8 +456,13 @@ export class ElectronLocalDevelopmentHost {
         rendererOrigin: run.plan.rendererOrigin,
         userDataArguments,
         cdpPort: run.cdpPort,
-        sourceLocalDevelopment: process.platform === 'darwin'
-          && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1',
+        sourceLocalDevelopment: (
+          process.platform === 'darwin'
+          && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1'
+        ) || (
+          process.platform === 'win32'
+          && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
+        ),
       }),
       workingDirectory: run.plan.projectRoot,
     });

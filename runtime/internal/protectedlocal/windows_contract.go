@@ -56,9 +56,10 @@ func (principal WindowsServicePrincipal) ServiceSID() string { return principal.
 // path must originate in signed service configuration; this type validates the
 // boundary but does not select it from env, argv, or a user profile.
 type WindowsProtectedStateRoot struct {
-	path       string
-	serviceSID string
-	identity   windowsFileIdentity
+	path                   string
+	serviceSID             string
+	identity               windowsFileIdentity
+	sourceLocalDevelopment bool
 }
 
 func (root WindowsProtectedStateRoot) Path() string { return root.path }
@@ -69,6 +70,12 @@ type windowsFileIdentity struct {
 }
 
 func WindowsProtectedLedgerPath(root WindowsProtectedStateRoot) (string, error) {
+	if root.sourceLocalDevelopment {
+		if root.path == "" || !validWindowsSourceUserSID(root.serviceSID) || !filepath.IsAbs(root.path) {
+			return "", fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "restart_runtime", fmt.Errorf("resolve Windows source protected-local ledger path: invalid state-root capability"))
+		}
+		return filepath.Join(root.path, LedgerFilename), nil
+	}
 	profile := mustActiveWindowsRuntimeProfile()
 	if root.path == "" || root.serviceSID != profile.serviceSID || !filepath.IsAbs(root.path) {
 		return "", fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("resolve Windows protected-local ledger path: invalid state-root capability"))

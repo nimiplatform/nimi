@@ -33,11 +33,13 @@ export function resolveSignedDesktopDevCarrier(input) {
 export function resolveWorkspaceElectronDevCarrier(input) {
   const platform = input.platform ?? process.platform;
   const architecture = input.architecture ?? process.arch;
-  if (platform !== 'darwin' || architecture !== 'arm64') {
+  const admitted = (platform === 'darwin' && architecture === 'arm64')
+    || (platform === 'win32' && architecture === 'x64');
+  if (!admitted) {
     throw carrierError(
       `Workspace Electron development is not admitted for ${platform}/${architecture}.`,
       'desktop-dev-workspace-carrier-platform-unsupported',
-      'use_native_apple_silicon_macos',
+      'use_admitted_workspace_electron',
     );
   }
   const executablePath = path.resolve(requiredText(input.electronExecutable, 'electronExecutable'));

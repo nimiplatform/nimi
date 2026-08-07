@@ -94,7 +94,14 @@ export function registerNimiElectronAppBridge(
 }
 
 function startSourceLocalDevelopmentParentMonitor(): void {
-  if (process.platform !== 'darwin' || process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT !== '1') return;
+  const sourceProfile = (
+    process.platform === 'darwin'
+    && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1'
+  ) || (
+    process.platform === 'win32'
+    && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
+  );
+  if (!sourceProfile) return;
   const sourceProcess = process as NodeJS.Process & { readonly defaultApp?: boolean };
   const desktopPid = process.ppid;
   if (sourceProcess.defaultApp !== true || !Number.isSafeInteger(desktopPid) || desktopPid <= 1) {

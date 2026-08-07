@@ -192,7 +192,10 @@ pub(crate) async fn launch_host(
     ))
 }
 
-#[cfg(all(target_os = "macos", feature = "macos-source-local-development"))]
+#[cfg(any(
+    all(target_os = "macos", feature = "macos-source-local-development"),
+    all(target_os = "windows", feature = "windows-source-local-development")
+))]
 pub(crate) async fn rebind_host(
     channel: Channel,
     request: LocalDevelopmentLaunchRequest,

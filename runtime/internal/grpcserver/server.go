@@ -287,6 +287,16 @@ func protectedProductControlDataRootSecurityBinding(bindings ProtectedServiceBin
 		return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("protected Windows Product Control requires the verified interactive-user SID")
 	}
 	runtimeServiceSID := strings.TrimSpace(bindings.RuntimeServiceSID)
+	if bindings.PerUserRuntime {
+		if runtimeServiceSID != "" {
+			return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("per-user Windows Product Control cannot carry a distinct Runtime service SID")
+		}
+		return localservice.ProductControlDataRootSecurityBinding{
+			InteractiveUserSID: interactiveUserSID,
+			RuntimeServiceSID:  interactiveUserSID,
+			PerUserRuntime:     true,
+		}, nil
+	}
 	if !strings.HasPrefix(runtimeServiceSID, "S-1-5-80-") {
 		return localservice.ProductControlDataRootSecurityBinding{}, fmt.Errorf("protected Windows Product Control requires the verified Runtime service SID")
 	}

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+#[cfg(not(feature = "windows-source-local-development"))]
 use std::fs::{File, OpenOptions};
 use std::future::Future;
 use std::io;
@@ -11,14 +12,18 @@ use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 use tokio::sync::Mutex as AsyncMutex;
 use tonic::transport::{Channel, Endpoint};
 use tower::service_fn;
+#[cfg(not(feature = "windows-source-local-development"))]
 use windows_service::service::{ServiceAccess, ServiceState};
+#[cfg(not(feature = "windows-source-local-development"))]
 use windows_service::service_manager::{ServiceManager, ServiceManagerAccess};
 use windows_sys::Win32::Foundation::HANDLE;
 use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
 
 use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::OpenDesktopSessionRequest;
-use crate::windows_peer_trust::{verify_runtime_peer_code_signing, VerifiedRuntimePeer};
+use crate::windows_peer_trust::{verify_runtime_peer, VerifiedRuntimePeer};
+#[cfg(feature = "windows-source-local-development")]
+use crate::windows_source_policy::{source_pipe_name, WindowsSourcePipeRole};
 use crate::{
     BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
     BundledAvatarRuntimeStreamReceiver, DesktopAccountActionRequest,
@@ -37,24 +42,44 @@ use crate::{
     RuntimeServiceStatus,
 };
 
+#[cfg(not(feature = "windows-source-local-development"))]
 #[path = "windows_service_projection.rs"]
 mod projection;
+#[cfg(not(feature = "windows-source-local-development"))]
 use projection::{project_start_outcome, project_status};
 
+#[cfg(not(feature = "windows-source-local-development"))]
 const RUNTIME_SERVICE_NAME: &str = "NimiRuntime";
+#[cfg(not(feature = "windows-source-local-development"))]
 const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-protected-v1";
+#[cfg(feature = "windows-source-local-development")]
+const RUNTIME_PROTECTED_PIPE_NAME: &str = "source-current-user-desktop";
+#[cfg(feature = "windows-source-local-development")]
+pub(crate) const SOURCE_LOCAL_APP_PIPE_REF: &str = "source-current-user-local-app";
 
+#[cfg(not(feature = "windows-source-local-development"))]
 #[path = "windows_service_lifecycle.rs"]
+mod lifecycle;
+#[cfg(feature = "windows-source-local-development")]
+#[path = "windows_service_lifecycle_source_local_development.rs"]
 mod lifecycle;
 use lifecycle::request_verified_runtime_restart_on_channel;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WindowsNamedPipeCarrier;
 
+struct SupervisedDevelopmentEntry {
+    process: crate::windows_supervised_process::SupervisedDevelopmentProcess,
+    #[cfg(feature = "windows-source-local-development")]
+    request: LocalDevelopmentLaunchRequest,
+}
+
+type SupervisedDevelopmentRegistry =
+    Arc<Mutex<HashMap<[u8; 32], SupervisedDevelopmentEntry>>>;
+
 struct WindowsDesktopControl {
     session: Arc<VerifiedDesktopRuntimeSession>,
-    development_processes:
-        Mutex<HashMap<[u8; 32], crate::windows_supervised_process::SupervisedDevelopmentProcess>>,
+    development_processes: SupervisedDevelopmentRegistry,
 }
 
 struct VerifiedDesktopRuntimeSession {
@@ -70,6 +95,18 @@ static DESKTOP_RUNTIME_SESSION: OnceLock<AsyncMutex<Option<Arc<VerifiedDesktopRu
 fn desktop_runtime_session_cache() -> &'static AsyncMutex<Option<Arc<VerifiedDesktopRuntimeSession>>>
 {
     DESKTOP_RUNTIME_SESSION.get_or_init(|| AsyncMutex::new(None))
+}
+
+fn development_process_registry() -> SupervisedDevelopmentRegistry {
+    #[cfg(feature = "windows-source-local-development")]
+    {
+        static REGISTRY: OnceLock<SupervisedDevelopmentRegistry> = OnceLock::new();
+        return REGISTRY
+            .get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
+            .clone();
+    }
+    #[cfg(not(feature = "windows-source-local-development"))]
+    Arc::new(Mutex::new(HashMap::new()))
 }
 
 impl WindowsDesktopControl {
@@ -358,12 +395,27 @@ impl NimiDesktopControl for WindowsDesktopControl {
     > {
         Box::pin(async move {
             let run_id = request.supervisor_run_id;
+            #[cfg(feature = "windows-source-local-development")]
+            let retained_request = request.clone();
             let (outcome, process) =
                 crate::windows_local_development::launch_host(self.channel(), request).await?;
             let mut processes = self.development_processes.lock().map_err(|_| {
                 NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
             })?;
-            processes.insert(run_id, process);
+            if let Some(replaced) = processes.insert(
+                run_id,
+                SupervisedDevelopmentEntry {
+                    process,
+                    #[cfg(feature = "windows-source-local-development")]
+                    request: retained_request,
+                },
+            ) {
+                drop(replaced);
+                return Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::RuntimeServiceUntrusted,
+                    false,
+                ));
+            }
             Ok(outcome)
         })
     }
@@ -398,7 +450,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
         })?;
         let running = processes
             .get(&supervisor_run_id)
-            .is_some_and(|process| process.running());
+            .is_some_and(|entry| entry.process.running());
         Ok(running)
     }
 
@@ -415,8 +467,8 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let mut processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
-        if let Some(process) = processes.get_mut(&supervisor_run_id) {
-            process.terminate()?;
+        if let Some(entry) = processes.get_mut(&supervisor_run_id) {
+            entry.process.terminate()?;
         }
         processes.remove(&supervisor_run_id);
         Ok(())
@@ -439,45 +491,135 @@ impl NimiProtectedLocalHostCarrier for WindowsNamedPipeCarrier {
 
 async fn open_verified_desktop_control(
 ) -> Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError> {
-    tokio::task::spawn_blocking(
-        crate::windows_data_root::prepare_fixed_runtime_product_control_root,
-    )
-    .await
-    .map_err(|_| repair_required())?
-    .map_err(|_| repair_required())?;
+    #[cfg(not(feature = "windows-source-local-development"))]
+    {
+        tokio::task::spawn_blocking(
+            crate::windows_data_root::prepare_fixed_runtime_product_control_root,
+        )
+        .await
+        .map_err(|_| repair_required())?
+        .map_err(|_| repair_required())?;
+    }
     let session = shared_verified_desktop_runtime_session().await?;
+    let development_processes = development_process_registry();
+    #[cfg(feature = "windows-source-local-development")]
+    {
+        rebind_supervised_development_processes(
+            session.channel.clone(),
+            development_processes.clone(),
+        )
+        .await?;
+        verify_source_local_development_runtime_readiness(session.channel.clone()).await?;
+    }
     Ok(Box::new(WindowsDesktopControl {
         session,
-        development_processes: Mutex::new(HashMap::new()),
+        development_processes,
     }))
+}
+
+#[cfg(feature = "windows-source-local-development")]
+async fn rebind_supervised_development_processes(
+    channel: Channel,
+    registry: SupervisedDevelopmentRegistry,
+) -> Result<(), ProtectedCarrierError> {
+    let running = {
+        let mut entries = registry.lock().map_err(|_| untrusted())?;
+        entries.retain(|_, entry| entry.process.running());
+        entries
+            .values()
+            .map(|entry| (entry.request.clone(), entry.process.id()))
+            .collect::<Vec<_>>()
+    };
+    for (request, process_id) in running {
+        crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
+            .await
+            .map_err(|error| {
+                if error.retryable() {
+                    unavailable()
+                } else {
+                    untrusted()
+                }
+            })?;
+    }
+    Ok(())
+}
+
+#[cfg(feature = "windows-source-local-development")]
+async fn verify_source_local_development_runtime_readiness(
+    channel: Channel,
+) -> Result<(), ProtectedCarrierError> {
+    crate::windows_local_development::get_developer_mode_status(channel)
+        .await
+        .map(|_| ())
+        .map_err(|error| {
+            if error.retryable() {
+                unavailable()
+            } else {
+                untrusted()
+            }
+        })
 }
 
 pub(crate) async fn open_verified_runtime_channel(
     pipe_name: &'static str,
 ) -> Result<(Channel, VerifiedRuntimePeer), ProtectedCarrierError> {
-    let before = query_service_status()?;
-    let expected_pid = running_service_pid(&before)?;
-    diagnose_desktop_session("service-running");
+    #[cfg(not(feature = "windows-source-local-development"))]
+    let resolved_pipe_name = pipe_name.to_string();
+    #[cfg(feature = "windows-source-local-development")]
+    let resolved_pipe_name = {
+        let role = match pipe_name {
+            RUNTIME_PROTECTED_PIPE_NAME => WindowsSourcePipeRole::Desktop,
+            SOURCE_LOCAL_APP_PIPE_REF => WindowsSourcePipeRole::LocalApp,
+            _ => return Err(untrusted()),
+        };
+        let user_sid = crate::windows_peer_trust::current_user_sid()?;
+        source_pipe_name(&user_sid, role).map_err(|_| untrusted())?
+    };
+
+    #[cfg(not(feature = "windows-source-local-development"))]
+    let expected_pid = {
+        let before = query_service_status()?;
+        let pid = running_service_pid(&before)?;
+        diagnose_desktop_session("service-running");
+        pid
+    };
+    #[cfg(not(feature = "windows-source-local-development"))]
     let pipe = ClientOptions::new()
-        .open(pipe_name)
+        .open(&resolved_pipe_name)
         .map_err(|_| unavailable())?;
+    #[cfg(feature = "windows-source-local-development")]
+    let pipe = open_source_runtime_pipe(&resolved_pipe_name).await?;
     diagnose_desktop_session("pipe-opened");
     let pipe_server_pid = named_pipe_server_pid_from_handle(pipe.as_raw_handle() as HANDLE)?;
-    let after = query_service_status()?;
-    let observed_pid = running_service_pid(&after)?;
-    validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)?;
-    diagnose_desktop_session("pipe-scm-binding-verified");
-    let runtime_peer = verify_runtime_peer_code_signing(pipe_server_pid)?;
+    #[cfg(not(feature = "windows-source-local-development"))]
+    {
+        let after = query_service_status()?;
+        let observed_pid = running_service_pid(&after)?;
+        validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)?;
+        diagnose_desktop_session("pipe-service-binding-verified");
+    }
+    let runtime_peer = verify_runtime_peer(pipe_server_pid)?;
     diagnose_desktop_session("runtime-peer-verified");
     let channel = channel_from_verified_pipe(pipe).await.map_err(|_| {
-        // SCM PID stability and Authenticode identity are already verified.
-        // A transport handshake that then fails is an availability race, not
-        // evidence that an unverified Runtime gained authority.
         diagnose_desktop_session("grpc-channel-open-failed");
         unavailable()
     })?;
     diagnose_desktop_session("grpc-channel-opened");
     Ok((channel, runtime_peer))
+}
+
+#[cfg(feature = "windows-source-local-development")]
+async fn open_source_runtime_pipe(name: &str) -> Result<NamedPipeClient, ProtectedCarrierError> {
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(20);
+    loop {
+        match ClientOptions::new().open(name) {
+            Ok(pipe) => return Ok(pipe),
+            Err(_) if tokio::time::Instant::now() < deadline => {
+                tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+            }
+            Err(_) => return Err(unavailable()),
+        }
+    }
 }
 
 async fn shared_verified_desktop_runtime_session(
@@ -576,11 +718,13 @@ async fn channel_from_verified_pipe(
         .map_err(|_| untrusted())
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn service_manager() -> Result<ServiceManager, ProtectedCarrierError> {
     ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
         .map_err(|_| unavailable())
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn query_service_state(access: ServiceAccess) -> Result<ServiceState, ProtectedCarrierError> {
     let manager = service_manager()?;
     let service = manager
@@ -607,6 +751,7 @@ fn repair_required() -> ProtectedCarrierError {
     )
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn verify_fixed_pipe_scm_binding() -> Result<(), ProtectedCarrierError> {
     let before = query_service_status()?;
     let expected_pid = running_service_pid(&before)?;
@@ -615,9 +760,10 @@ fn verify_fixed_pipe_scm_binding() -> Result<(), ProtectedCarrierError> {
     let after = query_service_status()?;
     let observed_pid = running_service_pid(&after)?;
     validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)?;
-    verify_runtime_peer_code_signing(pipe_server_pid).map(|_| ())
+    verify_runtime_peer(pipe_server_pid).map(|_| ())
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn query_service_status() -> Result<windows_service::service::ServiceStatus, ProtectedCarrierError>
 {
     let manager = service_manager()?;
@@ -627,6 +773,7 @@ fn query_service_status() -> Result<windows_service::service::ServiceStatus, Pro
     service.query_status().map_err(|_| unavailable())
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn running_service_pid(
     status: &windows_service::service::ServiceStatus,
 ) -> Result<u32, ProtectedCarrierError> {
@@ -639,6 +786,7 @@ fn running_service_pid(
         .ok_or_else(untrusted)
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn open_fixed_runtime_pipe() -> Result<File, ProtectedCarrierError> {
     OpenOptions::new()
         .read(true)
@@ -647,6 +795,7 @@ fn open_fixed_runtime_pipe() -> Result<File, ProtectedCarrierError> {
         .map_err(|_| unavailable())
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn named_pipe_server_pid(pipe: &File) -> Result<u32, ProtectedCarrierError> {
     named_pipe_server_pid_from_handle(pipe.as_raw_handle() as HANDLE)
 }
@@ -665,6 +814,7 @@ fn named_pipe_server_pid_from_handle(handle: HANDLE) -> Result<u32, ProtectedCar
     Ok(pid)
 }
 
+#[cfg(not(feature = "windows-source-local-development"))]
 fn validate_stable_server_binding(
     before_pid: u32,
     after_pid: u32,

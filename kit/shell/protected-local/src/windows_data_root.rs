@@ -518,18 +518,27 @@ where
     grant(path)
 }
 
-/// Prepares a user-selected Windows data-plane root for the fixed Runtime
-/// service. The caller remains the owner; only an inheritable ACE for the
-/// exact production service SID is added or replaced. Runtime still owns the
-/// subsequent layout validation and service-state mutation.
+/// Prepares a user-selected Windows data-plane root for the fixed production
+/// Runtime service. Source D2 instead requires a direct current-user-owned
+/// directory and performs no privileged or cross-principal ACL mutation.
+#[cfg(not(feature = "windows-source-local-development"))]
 pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
     prepare_fixed_runtime_data_root_with(path, grant_fixed_runtime_service_acl)
+}
+
+#[cfg(feature = "windows-source-local-development")]
+pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
+    with_current_process_user_sid(|expected_owner| {
+        validate_selected_root(path)?;
+        validate_selected_root_owner(path, expected_owner)
+    })
 }
 
 /// Prepares the fixed interactive-user `~/.nimi` control directory for atomic
 /// Runtime-owned `nimi.json` writes. The exact production service SID receives
 /// Modify on the directory and its immediate files only; the ACE does not
 /// propagate into Desktop-owned subdirectories.
+#[cfg(not(feature = "windows-source-local-development"))]
 pub(crate) fn prepare_fixed_runtime_product_control_root() -> Result<(), FixedRuntimeDataRootError>
 {
     let root = current_process_profile_root()?.join(".nimi");

@@ -2,8 +2,10 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { lstatSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 
-const RUNTIME_EXECUTABLE_ENVIRONMENT = 'NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE';
-const HOST_EXECUTABLE_ENVIRONMENT = 'NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE';
+const MACOS_RUNTIME_EXECUTABLE_ENVIRONMENT = 'NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE';
+const MACOS_DESKTOP_EXECUTABLE_ENVIRONMENT = 'NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE';
+const WINDOWS_RUNTIME_EXECUTABLE_ENVIRONMENT = 'NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE';
+const WINDOWS_DESKTOP_EXECUTABLE_ENVIRONMENT = 'NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_DESKTOP_EXECUTABLE';
 const DESKTOP_SOCKET_FILENAME = 'runtime-desktop.sock';
 const SOCKET_WAIT_TIMEOUT_MS = 20_000;
 const SOCKET_WAIT_INTERVAL_MS = 25;
@@ -17,18 +19,27 @@ export async function startDesktopLocalDevelopmentRuntime(input: {
   readonly homeDirectory: string;
   readonly hostExecutable: string;
 }): Promise<DesktopLocalDevelopmentRuntimeCoordinator> {
-  if (process.platform !== 'darwin' || process.geteuid?.() === 0) {
+  if (process.platform !== 'darwin' && process.platform !== 'win32') {
+    throw new Error('source-local-development-runtime-platform-invalid');
+  }
+  if (process.platform === 'darwin' && process.geteuid?.() === 0) {
     throw new Error('source-local-development-runtime-principal-invalid');
   }
+  const runtimeEnvironment = process.platform === 'darwin'
+    ? MACOS_RUNTIME_EXECUTABLE_ENVIRONMENT
+    : WINDOWS_RUNTIME_EXECUTABLE_ENVIRONMENT;
+  const desktopEnvironment = process.platform === 'darwin'
+    ? MACOS_DESKTOP_EXECUTABLE_ENVIRONMENT
+    : WINDOWS_DESKTOP_EXECUTABLE_ENVIRONMENT;
   const runtimeExecutable = requireCurrentUserExecutable(
-    process.env[RUNTIME_EXECUTABLE_ENVIRONMENT],
+    process.env[runtimeEnvironment],
     'source-local-development-runtime-executable-invalid',
   );
   const hostExecutable = requireCurrentUserExecutable(
     input.hostExecutable,
     'source-local-development-runtime-host-invalid',
   );
-  if (process.env[HOST_EXECUTABLE_ENVIRONMENT] !== hostExecutable) {
+  if (!sameCanonicalPath(process.env[desktopEnvironment], hostExecutable)) {
     throw new Error('source-local-development-runtime-host-invalid');
   }
   const homeDirectory = requireCanonicalDirectory(input.homeDirectory);
@@ -36,15 +47,17 @@ export async function startDesktopLocalDevelopmentRuntime(input: {
   if (realmUrl !== 'http://127.0.0.1:3002') {
     throw new Error('source-local-development-realm-url-invalid');
   }
-  const socketPath = path.join(
-    homeDirectory,
-    'Library',
-    'Application Support',
-    'Nimi',
-    'RuntimeLocalDevelopment',
-    'run',
-    DESKTOP_SOCKET_FILENAME,
-  );
+  const socketPath = process.platform === 'darwin'
+    ? path.join(
+      homeDirectory,
+      'Library',
+      'Application Support',
+      'Nimi',
+      'RuntimeLocalDevelopment',
+      'run',
+      DESKTOP_SOCKET_FILENAME,
+    )
+    : '';
   let child: ChildProcess | undefined;
   let stopped = false;
   let restartTimer: NodeJS.Timeout | undefined;
@@ -56,15 +69,16 @@ export async function startDesktopLocalDevelopmentRuntime(input: {
     const launchedGeneration = generation;
     const launched = spawn(runtimeExecutable, ['serve'], {
       cwd: path.dirname(runtimeExecutable),
-      env: {
-        HOME: homeDirectory,
-        LANG: process.env.LANG || 'en_US.UTF-8',
-        PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
-        TMPDIR: process.env.TMPDIR || '/private/tmp',
-        [HOST_EXECUTABLE_ENVIRONMENT]: hostExecutable,
-        NIMI_REALM_URL: realmUrl,
-      },
+      env: runtimeChildEnvironment({
+        desktopEnvironment,
+        homeDirectory,
+        hostExecutable,
+        realmUrl,
+        runtimeEnvironment,
+        runtimeExecutable,
+      }),
       stdio: ['ignore', 'inherit', 'inherit'],
+      windowsHide: false,
     });
     child = launched;
     launched.once('exit', () => {
@@ -86,9 +100,15 @@ export async function startDesktopLocalDevelopmentRuntime(input: {
   process.once('exit', terminateOnProcessExit);
   const initial = launch();
   try {
-    await waitForOwnerSocket(socketPath, initial);
+    if (process.platform === 'darwin') {
+      await waitForOwnerSocket(socketPath, initial);
+    } else {
+      await waitForInitialProcessStability(initial);
+    }
   } catch (error) {
     process.removeListener('exit', terminateOnProcessExit);
+    stopped = true;
+    initial.kill('SIGKILL');
     throw error;
   }
 
@@ -123,29 +143,93 @@ export async function startDesktopLocalDevelopmentRuntime(input: {
   };
 }
 
+function runtimeChildEnvironment(input: {
+  readonly desktopEnvironment: string;
+  readonly homeDirectory: string;
+  readonly hostExecutable: string;
+  readonly realmUrl: string;
+  readonly runtimeEnvironment: string;
+  readonly runtimeExecutable: string;
+}): NodeJS.ProcessEnv {
+  if (process.platform === 'darwin') {
+    return {
+      HOME: input.homeDirectory,
+      LANG: process.env.LANG || 'en_US.UTF-8',
+      PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
+      TMPDIR: process.env.TMPDIR || '/private/tmp',
+      [input.desktopEnvironment]: input.hostExecutable,
+      [input.runtimeEnvironment]: input.runtimeExecutable,
+      NIMI_REALM_URL: input.realmUrl,
+    };
+  }
+  const systemRoot = requiredWindowsEnvironment('SystemRoot');
+  const localAppData = requiredWindowsEnvironment('LOCALAPPDATA');
+  return {
+    LOCALAPPDATA: localAppData,
+    USERPROFILE: input.homeDirectory,
+    SystemRoot: systemRoot,
+    TEMP: process.env.TEMP || path.join(localAppData, 'Temp'),
+    TMP: process.env.TMP || process.env.TEMP || path.join(localAppData, 'Temp'),
+    PATH: process.env.PATH || path.join(systemRoot, 'System32'),
+    [input.desktopEnvironment]: input.hostExecutable,
+    [input.runtimeEnvironment]: input.runtimeExecutable,
+    NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT: '1',
+    NIMI_REALM_URL: input.realmUrl,
+  };
+}
+
+function requiredWindowsEnvironment(name: 'LOCALAPPDATA' | 'SystemRoot'): string {
+  const value = process.env[name];
+  if (typeof value !== 'string' || !path.isAbsolute(value) || value.trim() !== value) {
+    throw new Error('source-local-development-runtime-environment-invalid');
+  }
+  return value;
+}
+
 function requireCurrentUserExecutable(value: unknown, reason: string): string {
   if (typeof value !== 'string' || !path.isAbsolute(value) || value.trim() !== value) {
     throw new Error(reason);
   }
   const canonical = realpathSync(value);
   const metadata = lstatSync(value);
-  const uid = process.geteuid?.();
-  if (canonical !== value || !metadata.isFile() || metadata.isSymbolicLink()
-    || uid === undefined || uid === 0 || metadata.uid !== uid || (metadata.mode & 0o022) !== 0) {
+  if (!sameCanonicalPath(canonical, value) || !metadata.isFile() || metadata.isSymbolicLink()) {
+    throw new Error(reason);
+  }
+  if (process.platform === 'darwin') {
+    const uid = process.geteuid?.();
+    if (uid === undefined || uid === 0 || metadata.uid !== uid || (metadata.mode & 0o022) !== 0) {
+      throw new Error(reason);
+    }
+  } else if (path.extname(canonical).toLowerCase() !== '.exe') {
     throw new Error(reason);
   }
   return canonical;
 }
 
 function requireCanonicalDirectory(value: string): string {
-  if (!path.isAbsolute(value) || value.trim() !== value || realpathSync(value) !== value) {
+  if (!path.isAbsolute(value) || value.trim() !== value) {
     throw new Error('source-local-development-runtime-home-invalid');
   }
+  const canonical = realpathSync(value);
   const metadata = lstatSync(value);
-  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+  if (!sameCanonicalPath(canonical, value) || !metadata.isDirectory() || metadata.isSymbolicLink()) {
     throw new Error('source-local-development-runtime-home-invalid');
   }
-  return value;
+  return canonical;
+}
+
+function sameCanonicalPath(left: unknown, right: string): boolean {
+  if (typeof left !== 'string') return false;
+  return process.platform === 'win32'
+    ? path.normalize(left).toLowerCase() === path.normalize(right).toLowerCase()
+    : left === right;
+}
+
+async function waitForInitialProcessStability(child: ChildProcess): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  if (child.exitCode !== null || child.signalCode !== null) {
+    throw new Error('source-local-development-runtime-exited-before-ready');
+  }
 }
 
 async function waitForOwnerSocket(socketPath: string, child: ChildProcess): Promise<void> {

@@ -29,7 +29,7 @@ pub(super) struct VerifiedRuntimePeer {
     _executable: File,
 }
 
-pub(super) fn verify_runtime_peer_code_signing(
+pub(super) fn verify_runtime_peer(
     process_id: u32,
 ) -> Result<VerifiedRuntimePeer, ProtectedCarrierError> {
     let expected = EXPECTED_SIGNER_CERT_SHA256
