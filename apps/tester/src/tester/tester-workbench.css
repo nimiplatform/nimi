@@ -319,6 +319,53 @@
 .ai-result-preview-modal__close{ position: absolute; top: 12px; right: 12px; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; background: rgba(15, 23, 42, 0.68); color: #ffffff; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.26); cursor: pointer;}
 .ai-result-preview-modal__close:hover{ background: rgba(15, 23, 42, 0.82);}
 .ai-result-preview-modal__image{ display: block; max-width: calc(100cqw - 48px); max-height: calc(100cqh - 48px); border-radius: var(--nimi-radius-lg); object-fit: contain; box-shadow: 0 28px 70px rgba(15, 23, 42, 0.34);}
+.app-access{ min-width: 0; min-height: 0; height: 100%; overflow: auto; overscroll-behavior: contain; padding: 20px 22px 28px;}
+.app-access__head{ display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; max-width: 1080px;}
+.app-access__head-text{ display: grid; gap: 4px; min-width: 0;}
+.app-access__eyebrow{ margin: 0; color: var(--nimi-text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;}
+.app-access__title{ margin: 0; color: var(--nimi-text-primary); font-size: 22px; font-weight: 760; line-height: 1.2; letter-spacing: -0.01em;}
+.app-access__blurb{ margin: 0; max-width: 720px; color: var(--nimi-text-secondary); font-size: 13px; line-height: 1.5;}
+.app-access__head-actions{ display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex: 0 0 auto;}
+.app-access__banner{ max-width: 1080px; margin-top: 12px;}
+.app-access-session{ display: grid; gap: 10px; max-width: 1080px; margin-top: 18px;}
+.app-access-session__head{ display: grid; gap: 2px;}
+.app-access-session__grid{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;}
+.app-access-fact{ display: grid; align-content: start; gap: 4px; min-width: 0; border: 1px solid var(--nimi-border-subtle); border-radius: var(--nimi-radius-md); background: color-mix(in srgb, var(--nimi-surface-panel) 72%, transparent); padding: 10px 12px;}
+.app-access-fact__label{ color: var(--nimi-text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;}
+.app-access-fact__detail{ color: var(--nimi-text-secondary); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere;}
+.app-access-fact[data-state="ready"] .app-access-fact__detail{ color: var(--nimi-text-primary);}
+.app-access-group{ display: grid; gap: 10px; max-width: 1080px; margin-top: 20px;}
+.app-access-group__head{ display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;}
+.app-access-group__head-text{ display: grid; gap: 2px; min-width: 0;}
+.app-access-group__title{ margin: 0; color: var(--nimi-text-primary); font-size: 15px; font-weight: 700; line-height: 1.3;}
+.app-access-group__blurb{ margin: 0; color: var(--nimi-text-muted); font-size: 12px; line-height: 1.4;}
+.app-access-group__cards{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; align-items: start;}
+.app-access-probe-card{ display: grid; gap: 8px; min-width: 0;}
+.app-access-probe-card__head{ display: flex; align-items: center; gap: 8px; min-width: 0;}
+.app-access-probe-card__title{ margin: 0; min-width: 0; overflow: hidden; color: var(--nimi-text-primary); font-size: 14px; font-weight: 700; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap;}
+.app-access-probe-card__run{ margin-left: auto; flex: 0 0 auto;}
+.app-access-probe-card__proves{ margin: 0; color: var(--nimi-text-secondary); font-size: 12px; line-height: 1.45;}
+.app-access-probe-card__requires{ margin: 0; color: var(--nimi-text-muted); font-size: 11px; font-weight: 650;}
+.app-access-probe-card__result{ display: grid; gap: 6px; min-width: 0; border-top: 1px solid var(--nimi-border-subtle); padding-top: 8px;}
+.app-access-probe-card__guidance{ margin: 0; color: var(--nimi-status-info-soft-text); font-size: 12px; line-height: 1.45;}
+.app-access-probe-card__headline{ margin: 0; color: var(--nimi-text-secondary); font-size: 12px; line-height: 1.45;}
+.app-access-probe-card[data-state="passed"] .app-access-probe-card__headline{ color: var(--nimi-text-primary); font-weight: 650;}
+.app-access-probe-card__facts{ display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; color: var(--nimi-text-muted); font-size: 12px; line-height: 1.4;}
+.app-access-probe-card__facts li{ overflow-wrap: anywhere;}
+.app-access-probe-card__failure{ margin: 0; color: var(--nimi-status-danger); font-size: 12px; font-weight: 650; line-height: 1.45;}
+.app-access-diag > summary{ display: inline-flex; align-items: center; gap: 5px; cursor: pointer; list-style: none; color: var(--nimi-text-secondary); font-size: 11px; font-weight: 700;}
+.app-access-diag > summary::-webkit-details-marker{ display: none;}
+.app-access-diag > summary::before{ content: ">"; color: var(--nimi-text-secondary); font-size: 10px; line-height: 1;}
+.app-access-diag[open] > summary::before{ content: "v";}
+.app-access-diag__grid{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 8px 0 0;}
+.app-access-diag__grid div{ display: grid; gap: 2px; min-width: 0;}
+.app-access-diag dt{ color: var(--nimi-text-muted); font-size: 11px;}
+.app-access-diag dd{ min-width: 0; margin: 0; color: var(--nimi-text-secondary); font-size: 12px; overflow-wrap: anywhere; word-break: break-word;}
+.app-access-diag code{ font-family: var(--nimi-font-mono); font-size: 11px; white-space: normal; overflow-wrap: anywhere; word-break: break-word;}
+.app-access-diag__note{ margin: 8px 0 0; color: var(--nimi-text-muted); font-size: 11px; overflow-wrap: anywhere;}
+.app-access-cloud-form{ display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;}
+.app-access-cloud-form__field{ min-width: 0;}
+.app-access-agent-picker{ min-width: 0; max-width: 320px;}
 @keyframes nimi-ui-module-tester-studio-spin{ to{ transform: rotate(360deg);}}
 @keyframes nimi-ui-module-tester-studio-caret{ 50%{ opacity: 0;}}
 @media (prefers-reduced-motion: reduce){ .studio-spin, .studio-result__text--stream::after{ animation: none;}}

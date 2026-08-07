@@ -35,6 +35,10 @@ function buildBehaviorModules() {
     'src/tester/tester-run-target.ts',
     'src/tester/tester-history.ts',
     'src/tester/workbench/section-ai-testing-admission.ts',
+    'src/tester/app-access/app-access-catalog.ts',
+    'src/tester/app-access/app-access-probes.ts',
+    'src/tester/app-access/app-access-state.ts',
+    'src/tester/app-access/app-access-mapping.ts',
   ], {
     cwd: root,
     stdio: 'pipe',

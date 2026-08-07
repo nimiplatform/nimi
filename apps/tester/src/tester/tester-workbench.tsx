@@ -13,7 +13,7 @@ import {
 import type { TesterAIConfigSummary } from './tester-ai-config.js';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
 import type { TesterPreferences } from './tester-preferences.js';
-import { Imp4AppAccessPanel } from './imp4-app-access-panel.js';
+import { AppAccessPanel } from './app-access/app-access-panel.js';
 import { testerTestIds } from './tester-test-ids.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
 import { SectionAITesting } from './workbench/section-ai-testing.js';
@@ -208,17 +208,19 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           view={view}
           onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
           onSelectRecipes={() => setView({ kind: 'ui-recipes' })}
+          onSelectAppAccess={() => setView({ kind: 'app-access' })}
           accountSlot={(
             <NimiLabAccountMenu onOpenSettings={() => setView({ kind: 'settings' })} />
           )}
         />
         <div className="workbench__main">
-          <Imp4AppAccessPanel />
           <div className="workbench__content">
             {view.kind === 'settings' ? (
               <Suspense fallback={null}>
                 <SettingsRoute />
               </Suspense>
+            ) : view.kind === 'app-access' ? (
+              <AppAccessPanel />
             ) : view.kind === 'ui-recipes' ? (
               <Suspense fallback={null}>
                 <KitComponentGallery

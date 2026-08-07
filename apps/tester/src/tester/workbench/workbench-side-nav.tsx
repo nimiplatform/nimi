@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   Boxes,
+  Cable,
   Compass,
 } from 'lucide-react';
 import { Button, Tooltip } from '@nimiplatform/kit/ui';
@@ -12,6 +13,7 @@ type WorkbenchSideNavProps = {
   view: WorkbenchView;
   onSelectCapability: (id: TesterCapabilityId) => void;
   onSelectRecipes: () => void;
+  onSelectAppAccess: () => void;
   accountSlot?: ReactNode;
 };
 
@@ -19,6 +21,7 @@ export function WorkbenchSideNav({
   view,
   onSelectCapability,
   onSelectRecipes,
+  onSelectAppAccess,
   accountSlot,
 }: WorkbenchSideNavProps) {
   const activeCapabilityId = view.kind === 'capability' ? view.capabilityId : null;
@@ -90,6 +93,27 @@ export function WorkbenchSideNav({
         </div>
         <div className="workbench-side-nav__group" data-nav-placement="bottom">
           <ul>
+            <li>
+              <Tooltip
+                content="App Access"
+                placement="right"
+                className="w-full"
+              >
+                <Button
+                  type="button"
+                  tone="ghost"
+                  size="sm"
+                  data-workbench-rail-item=""
+                  className={view.kind === 'app-access' ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
+                  onClick={onSelectAppAccess}
+                  aria-label="App Access"
+                  aria-current={view.kind === 'app-access' ? 'page' : undefined}
+                >
+                  <Cable size={18} strokeWidth={1.9} aria-hidden="true" />
+                  <span className="workbench-side-nav__item-label" data-workbench-rail-label="">App Access</span>
+                </Button>
+              </Tooltip>
+            </li>
             <li>
               <Tooltip
                 content="UI Recipes"

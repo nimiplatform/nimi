@@ -10,6 +10,7 @@ import type { TesterCapabilityId } from '../tester-capabilities.js';
 export type WorkbenchView =
   | { kind: 'capability'; capabilityId: TesterCapabilityId }
   | { kind: 'ui-recipes' }
+  | { kind: 'app-access' }
   | { kind: 'settings' };
 
 export type WorkbenchNavGroup = {
