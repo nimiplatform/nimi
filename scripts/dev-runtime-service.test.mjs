@@ -46,6 +46,7 @@ const healthyStatus = {
     duplicateGroups: 0,
     reactivatedAnchors: 0,
     rewrittenAnchorRefs: 0,
+    rewrittenTargetRefs: 0,
     originalVersion: 176,
     repairedVersion: 176,
     backupPath: null,

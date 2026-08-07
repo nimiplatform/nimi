@@ -75,10 +75,12 @@ export function assertRuntimeOfflineRepair(repair) {
   const duplicateGroups = repair?.duplicateGroups;
   const reactivatedAnchors = repair?.reactivatedAnchors;
   const rewrittenAnchorRefs = repair?.rewrittenAnchorRefs;
+  const rewrittenTargetRefs = repair?.rewrittenTargetRefs;
   const changeCount = Number.isInteger(duplicateGroups)
     && Number.isInteger(reactivatedAnchors)
     && Number.isInteger(rewrittenAnchorRefs)
-    ? duplicateGroups + reactivatedAnchors + rewrittenAnchorRefs
+    && Number.isInteger(rewrittenTargetRefs)
+    ? duplicateGroups + reactivatedAnchors + rewrittenAnchorRefs + rewrittenTargetRefs
     : -1;
   const valid = repair
     && (

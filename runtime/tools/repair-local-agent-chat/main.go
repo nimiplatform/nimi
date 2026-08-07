@@ -89,6 +89,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			OriginalVersion     uint64 `json:"originalVersion"`
 			RepairedVersion     uint64 `json:"repairedVersion"`
 			RewrittenAnchorRefs int    `json:"rewrittenAnchorRefs"`
+			RewrittenTargetRefs int    `json:"rewrittenTargetRefs"`
 			RewrittenFollowUps  int    `json:"rewrittenFollowUpRefs"`
 			RewrittenAvatarRefs int    `json:"rewrittenAvatarRefs"`
 			BackupPath          string `json:"backupPath,omitempty"`
@@ -101,6 +102,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			OriginalVersion:     result.OriginalVersion,
 			RepairedVersion:     result.RepairedVersion,
 			RewrittenAnchorRefs: result.RewrittenAnchorRefs,
+			RewrittenTargetRefs: result.RewrittenTargetRefs,
 			RewrittenFollowUps:  result.RewrittenFollowUpRefs,
 			RewrittenAvatarRefs: result.RewrittenAvatarRefs,
 			BackupPath:          result.BackupPath,
@@ -119,11 +121,12 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	_, _ = fmt.Fprintf(
 		stdout,
-		"%s: duplicate_groups=%d reactivated_anchors=%d anchor_refs=%d version=%d->%d followup_refs=%d avatar_refs=%d\n",
+		"%s: duplicate_groups=%d reactivated_anchors=%d anchor_refs=%d target_refs=%d version=%d->%d followup_refs=%d avatar_refs=%d\n",
 		mode,
 		len(result.DuplicateGroups),
 		len(result.ReactivatedAnchorIDs),
 		result.RewrittenAnchorRefs,
+		result.RewrittenTargetRefs,
 		result.OriginalVersion,
 		result.RepairedVersion,
 		result.RewrittenFollowUpRefs,

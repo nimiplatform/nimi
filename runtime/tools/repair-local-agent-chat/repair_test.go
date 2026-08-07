@@ -200,6 +200,153 @@ func TestBuildRepairPlanRepairsStaleProjectionReferenceAfterDuplicatesWereRemove
 	assertNestedAnchorReference(t, anchors[0]["lastTurnSnapshot"], "anchor-first")
 }
 
+func TestBuildRepairPlanRewritesLegacyExecutionTargetRefs(t *testing.T) {
+	now := time.Date(2026, 8, 7, 0, 0, 0, 0, time.UTC)
+	anchor := testAnchor(
+		"anchor-only",
+		"2026-08-01T09:00:00Z",
+		"2026-08-01T10:00:00Z",
+		"desktop.app",
+		nil,
+		nil,
+	)
+	anchor["binding"] = map[string]any{
+		"TargetRef": map[string]any{
+			"local_runtime": map[string]any{
+				"version":            "v2",
+				"profile_binding_id": "profile-binding-1",
+			},
+		},
+	}
+	anchor["bindings"] = map[string]any{
+		"image": map[string]any{
+			"target_ref": map[string]any{
+				"cloud": map[string]any{
+					"version":                 "v2",
+					"connector_id":            "connector-1",
+					"remote_model_catalog_id": "catalog-model-1",
+					"provider_model_id":       "provider-model-1",
+					"provider":                "provider-1",
+				},
+			},
+		},
+		"text": map[string]any{
+			"target_ref": map[string]any{
+				"local": map[string]any{
+					"readinessRef": "readiness-1",
+				},
+			},
+		},
+	}
+	raw := marshalTestState(t, map[string]any{
+		"version":             12,
+		"anchors":             []any{anchor},
+		"followUps":           []any{},
+		"avatarLiveInstances": []any{},
+	})
+
+	plan, err := buildRepairPlan(raw, 12, now)
+	if err != nil {
+		t.Fatalf("buildRepairPlan: %v", err)
+	}
+	if plan.rewrittenTargetRefs != 2 || !plan.hasChanges() {
+		t.Fatalf("legacy target refs were not planned: %+v", plan)
+	}
+	if plan.originalVersion != 12 || plan.repairedVersion != 13 {
+		t.Fatalf("versions: %d -> %d", plan.originalVersion, plan.repairedVersion)
+	}
+	root, err := decodeJSONObject(plan.raw, "repaired state")
+	if err != nil {
+		t.Fatalf("decode repaired state: %v", err)
+	}
+	anchors, err := decodeObjectArray(root["anchors"], "anchors")
+	if err != nil || len(anchors) != 1 {
+		t.Fatalf("decode repaired anchors: count=%d err=%v", len(anchors), err)
+	}
+	binding, err := decodeJSONObject(anchors[0]["binding"], "binding")
+	if err != nil {
+		t.Fatalf("decode binding: %v", err)
+	}
+	localTarget, err := decodeJSONObject(binding["TargetRef"], "local target")
+	if err != nil {
+		t.Fatalf("decode local target: %v", err)
+	}
+	if _, legacy := localTarget["local_runtime"]; legacy {
+		t.Fatal("legacy local_runtime target was preserved")
+	}
+	local, err := decodeJSONObject(localTarget["local"], "canonical local target")
+	if err != nil {
+		t.Fatalf("decode canonical local target: %v", err)
+	}
+	if profileBindingID, err := requiredString(local, "profileBindingId"); err != nil || profileBindingID != "profile-binding-1" {
+		t.Fatalf("canonical profile binding=%q err=%v", profileBindingID, err)
+	}
+	bindings, err := decodeJSONObject(anchors[0]["bindings"], "bindings")
+	if err != nil {
+		t.Fatalf("decode bindings: %v", err)
+	}
+	imageBinding, err := decodeJSONObject(bindings["image"], "image binding")
+	if err != nil {
+		t.Fatalf("decode image binding: %v", err)
+	}
+	cloudTarget, err := decodeJSONObject(imageBinding["target_ref"], "cloud target")
+	if err != nil {
+		t.Fatalf("decode cloud target: %v", err)
+	}
+	cloud, err := decodeJSONObject(cloudTarget["cloud"], "canonical cloud target")
+	if err != nil {
+		t.Fatalf("decode canonical cloud target: %v", err)
+	}
+	if connectorID, err := requiredString(cloud, "connectorId"); err != nil || connectorID != "connector-1" {
+		t.Fatalf("canonical connector=%q err=%v", connectorID, err)
+	}
+	textBinding, err := decodeJSONObject(bindings["text"], "text binding")
+	if err != nil {
+		t.Fatalf("decode text binding: %v", err)
+	}
+	canonicalTarget, err := decodeJSONObject(textBinding["target_ref"], "current target")
+	if err != nil {
+		t.Fatalf("decode current target: %v", err)
+	}
+	canonicalLocal, err := decodeJSONObject(canonicalTarget["local"], "current local target")
+	if err != nil {
+		t.Fatalf("decode current local target: %v", err)
+	}
+	if readinessRef, err := requiredString(canonicalLocal, "readinessRef"); err != nil || readinessRef != "readiness-1" {
+		t.Fatalf("current readiness ref=%q err=%v", readinessRef, err)
+	}
+}
+
+func TestBuildRepairPlanRejectsUnsupportedLegacyExecutionTargetRef(t *testing.T) {
+	anchor := testAnchor(
+		"anchor-only",
+		"2026-08-01T09:00:00Z",
+		"2026-08-01T10:00:00Z",
+		"desktop.app",
+		nil,
+		nil,
+	)
+	anchor["binding"] = map[string]any{
+		"target_ref": map[string]any{
+			"local_runtime": map[string]any{
+				"profile_binding_id": "profile-binding-1",
+				"unexpected":         true,
+			},
+		},
+	}
+	raw := marshalTestState(t, map[string]any{
+		"version":             1,
+		"anchors":             []any{anchor},
+		"followUps":           []any{},
+		"avatarLiveInstances": []any{},
+	})
+
+	_, err := buildRepairPlan(raw, 1, time.Now().UTC())
+	if err == nil || !strings.Contains(err.Error(), `unsupported field "unexpected"`) {
+		t.Fatalf("unsupported legacy target_ref must fail closed, got %v", err)
+	}
+}
+
 func TestBuildRepairPlanRejectsConflictingTurnIDContent(t *testing.T) {
 	raw := marshalTestState(t, map[string]any{
 		"version": 1,

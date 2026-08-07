@@ -149,7 +149,7 @@ test('offline repair invokes only the fixed installed helper once in idempotent 
       `$InstalledLocalAgentChatRepairHelper = '${escapedInstalledHelper}'`,
       `$calls = [System.Collections.Generic.List[string]]::new()`,
       `function Assert-LocalAgentChatRepairHelper { param([string] $Path, [string] $ExpectedSignerCertificateSha256); if ($Path -ne $InstalledLocalAgentChatRepairHelper) { throw 'unexpected helper path' } }`,
-      `function Invoke-NativeCommand { param([string] $FilePath, [string[]] $Arguments); $calls.Add($FilePath + ' ' + ($Arguments -join ' ')); [pscustomobject]@{ ExitCode = 0; StdOut = '{"schemaVersion":1,"status":"no-change","duplicateGroups":0,"reactivatedAnchors":0,"rewrittenAnchorRefs":0,"originalVersion":176,"repairedVersion":176,"rewrittenFollowUpRefs":0,"rewrittenAvatarRefs":0}'; StdErr = '' } }`,
+      `function Invoke-NativeCommand { param([string] $FilePath, [string[]] $Arguments); $calls.Add($FilePath + ' ' + ($Arguments -join ' ')); [pscustomobject]@{ ExitCode = 0; StdOut = '{"schemaVersion":1,"status":"no-change","duplicateGroups":0,"reactivatedAnchors":0,"rewrittenAnchorRefs":0,"rewrittenTargetRefs":0,"originalVersion":176,"repairedVersion":176,"rewrittenFollowUpRefs":0,"rewrittenAvatarRefs":0}'; StdErr = '' } }`,
       `$repair = Invoke-LocalAgentChatOfflineRepair -ExpectedSignerCertificateSha256 ('aa' * 32) -BackupPath '${escapedBackupPath}'`,
       `[ordered]@{ repair = $repair; calls = $calls } | ConvertTo-Json -Depth 4 -Compress`,
     ].join('; ');
@@ -164,6 +164,7 @@ test('offline repair invokes only the fixed installed helper once in idempotent 
         duplicateGroups: 0,
         reactivatedAnchors: 0,
         rewrittenAnchorRefs: 0,
+        rewrittenTargetRefs: 0,
         originalVersion: 176,
         repairedVersion: 176,
         backupPath: null,
@@ -197,7 +198,7 @@ test('offline repair accepts only its verified same-directory backup for an appl
       `$RuntimeDatabase = '${escapedDatabasePath}'`,
       `$InstalledLocalAgentChatRepairHelper = 'C:\\Program Files\\Nimi\\Runtime\\versions\\fixed\\resources\\repair-local-agent-chat.exe'`,
       `function Assert-LocalAgentChatRepairHelper { }`,
-      `function Invoke-NativeCommand { [pscustomobject]@{ ExitCode = 0; StdOut = ('{"schemaVersion":1,"status":"applied","duplicateGroups":2,"reactivatedAnchors":0,"rewrittenAnchorRefs":0,"originalVersion":175,"repairedVersion":176,"rewrittenFollowUpRefs":0,"rewrittenAvatarRefs":0,"backupPath":"' + '${escapedBackupPath}'.Replace('\\', '\\\\') + '"}'); StdErr = '' } }`,
+      `function Invoke-NativeCommand { [pscustomobject]@{ ExitCode = 0; StdOut = ('{"schemaVersion":1,"status":"applied","duplicateGroups":0,"reactivatedAnchors":0,"rewrittenAnchorRefs":0,"rewrittenTargetRefs":2,"originalVersion":175,"repairedVersion":176,"rewrittenFollowUpRefs":0,"rewrittenAvatarRefs":0,"backupPath":"' + '${escapedBackupPath}'.Replace('\\', '\\\\') + '"}'); StdErr = '' } }`,
       `Invoke-LocalAgentChatOfflineRepair -ExpectedSignerCertificateSha256 ('aa' * 32) -BackupPath '${escapedBackupPath}' | ConvertTo-Json -Compress`,
     ].join('; ');
     const result = spawnSync(resolveWindowsPowerShell7(), [
@@ -207,9 +208,10 @@ test('offline repair accepts only its verified same-directory backup for an appl
     assert.deepEqual(JSON.parse(result.stdout.trim()), {
       status: 'applied',
       skipReason: null,
-      duplicateGroups: 2,
+      duplicateGroups: 0,
       reactivatedAnchors: 0,
       rewrittenAnchorRefs: 0,
+      rewrittenTargetRefs: 2,
       originalVersion: 175,
       repairedVersion: 176,
       backupPath,

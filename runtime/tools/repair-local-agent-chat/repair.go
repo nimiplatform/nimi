@@ -71,6 +71,7 @@ type repairResult struct {
 	DuplicateGroups          []duplicateGroupResult
 	ReactivatedAnchorIDs     []string
 	RewrittenAnchorRefs      int
+	RewrittenTargetRefs      int
 	RewrittenFollowUpRefs    int
 	RewrittenAvatarRefs      int
 	RemovedAnchorMetadataKey []string
@@ -91,6 +92,7 @@ type repairPlan struct {
 	groups                   []duplicateGroupResult
 	reactivatedAnchorIDs     []string
 	rewrittenAnchorRefs      int
+	rewrittenTargetRefs      int
 	rewrittenFollowUpRefs    int
 	rewrittenAvatarRefs      int
 	removedAnchorMetadataKey []string
@@ -184,6 +186,7 @@ func resultFromPlan(plan repairPlan) repairResult {
 		DuplicateGroups:          append([]duplicateGroupResult(nil), plan.groups...),
 		ReactivatedAnchorIDs:     append([]string(nil), plan.reactivatedAnchorIDs...),
 		RewrittenAnchorRefs:      plan.rewrittenAnchorRefs,
+		RewrittenTargetRefs:      plan.rewrittenTargetRefs,
 		RewrittenFollowUpRefs:    plan.rewrittenFollowUpRefs,
 		RewrittenAvatarRefs:      plan.rewrittenAvatarRefs,
 		RemovedAnchorMetadataKey: append([]string(nil), plan.removedAnchorMetadataKey...),
@@ -191,7 +194,8 @@ func resultFromPlan(plan repairPlan) repairResult {
 }
 
 func (p repairPlan) hasChanges() bool {
-	return len(p.groups) != 0 || len(p.reactivatedAnchorIDs) != 0 || p.rewrittenAnchorRefs != 0
+	return len(p.groups) != 0 || len(p.reactivatedAnchorIDs) != 0 ||
+		p.rewrittenAnchorRefs != 0 || p.rewrittenTargetRefs != 0
 }
 
 func validateDatabasePath(input string) (string, error) {
@@ -408,6 +412,10 @@ func buildRepairPlan(raw []byte, persistedVersion uint64, now time.Time) (repair
 	if err != nil {
 		return repairPlan{}, err
 	}
+	rewrittenTargetRefs, err := rewriteLegacyExecutionTargetRefs(root)
+	if err != nil {
+		return repairPlan{}, err
+	}
 	stateVersion, err := decodeOptionalUint64(root["version"], "public-chat state version")
 	if err != nil {
 		return repairPlan{}, err
@@ -491,7 +499,7 @@ func buildRepairPlan(raw []byte, persistedVersion uint64, now time.Time) (repair
 		repairedAnchors = append(repairedAnchors, anchor.fields)
 	}
 	sort.Strings(reactivatedAnchorIDs)
-	if len(groupKeys) == 0 && len(reactivatedAnchorIDs) == 0 && rewrittenAnchorRefs == 0 {
+	if len(groupKeys) == 0 && len(reactivatedAnchorIDs) == 0 && rewrittenAnchorRefs == 0 && rewrittenTargetRefs == 0 {
 		return repairPlan{raw: append([]byte(nil), raw...), originalVersion: originalVersion, repairedVersion: originalVersion}, nil
 	}
 	root["anchors"], err = json.Marshal(repairedAnchors)
@@ -547,10 +555,188 @@ func buildRepairPlan(raw []byte, persistedVersion uint64, now time.Time) (repair
 		groups:                   groupResults,
 		reactivatedAnchorIDs:     reactivatedAnchorIDs,
 		rewrittenAnchorRefs:      rewrittenAnchorRefs,
+		rewrittenTargetRefs:      rewrittenTargetRefs,
 		rewrittenFollowUpRefs:    rewrittenFollowUpRefs,
 		rewrittenAvatarRefs:      rewrittenAvatarRefs,
 		removedAnchorMetadataKey: metadataKeys,
 	}, nil
+}
+
+func rewriteLegacyExecutionTargetRefs(root map[string]json.RawMessage) (int, error) {
+	count := 0
+	for key, value := range root {
+		rewritten, rewrittenCount, err := rewriteLegacyExecutionTargetRefsJSON(value)
+		if err != nil {
+			return 0, fmt.Errorf("rewrite legacy execution target refs in %s: %w", key, err)
+		}
+		root[key] = rewritten
+		count += rewrittenCount
+	}
+	return count, nil
+}
+
+func rewriteLegacyExecutionTargetRefsJSON(raw json.RawMessage) (json.RawMessage, int, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 {
+		return append(json.RawMessage(nil), raw...), 0, nil
+	}
+	switch trimmed[0] {
+	case '{':
+		fields, err := decodeJSONObject(trimmed, "execution target-ref container")
+		if err != nil {
+			return nil, 0, err
+		}
+		count := 0
+		for key, value := range fields {
+			if key == "TargetRef" || key == "targetRef" || key == "target_ref" {
+				rewritten, changed, rewriteErr := rewriteLegacyExecutionTargetRef(value)
+				if rewriteErr != nil {
+					return nil, 0, fmt.Errorf("%s: %w", key, rewriteErr)
+				}
+				fields[key] = rewritten
+				if changed {
+					count++
+				}
+				continue
+			}
+			rewritten, rewrittenCount, rewriteErr := rewriteLegacyExecutionTargetRefsJSON(value)
+			if rewriteErr != nil {
+				return nil, 0, rewriteErr
+			}
+			fields[key] = rewritten
+			count += rewrittenCount
+		}
+		out, err := json.Marshal(fields)
+		return out, count, err
+	case '[':
+		var items []json.RawMessage
+		if err := decodeJSON(trimmed, &items, "execution target-ref container array"); err != nil {
+			return nil, 0, err
+		}
+		count := 0
+		for index, item := range items {
+			rewritten, rewrittenCount, err := rewriteLegacyExecutionTargetRefsJSON(item)
+			if err != nil {
+				return nil, 0, err
+			}
+			items[index] = rewritten
+			count += rewrittenCount
+		}
+		out, err := json.Marshal(items)
+		return out, count, err
+	default:
+		return append(json.RawMessage(nil), raw...), 0, nil
+	}
+}
+
+func rewriteLegacyExecutionTargetRef(raw json.RawMessage) (json.RawMessage, bool, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return append(json.RawMessage(nil), raw...), false, nil
+	}
+	fields, err := decodeJSONObject(trimmed, "execution target_ref")
+	if err != nil {
+		return nil, false, err
+	}
+	if localRaw, exists := fields["local_runtime"]; exists {
+		if len(fields) != 1 {
+			return nil, false, fmt.Errorf("legacy local_runtime target_ref must contain exactly one target")
+		}
+		local, err := decodeJSONObject(localRaw, "legacy local_runtime target_ref")
+		if err != nil {
+			return nil, false, err
+		}
+		if err := requireOnlyFields(local, "version", "profile_binding_id", "readiness_ref"); err != nil {
+			return nil, false, err
+		}
+		profileBindingID, err := optionalTrimmedString(local, "profile_binding_id")
+		if err != nil {
+			return nil, false, err
+		}
+		readinessRef, err := optionalTrimmedString(local, "readiness_ref")
+		if err != nil {
+			return nil, false, err
+		}
+		if (profileBindingID != "") == (readinessRef != "") {
+			return nil, false, fmt.Errorf("legacy local_runtime target_ref must contain exactly one binding reference")
+		}
+		canonical := map[string]any{}
+		if profileBindingID != "" {
+			canonical["profileBindingId"] = profileBindingID
+		} else {
+			canonical["readinessRef"] = readinessRef
+		}
+		out, err := json.Marshal(map[string]any{"local": canonical})
+		return out, true, err
+	}
+	cloudRaw, exists := fields["cloud"]
+	if !exists {
+		return append(json.RawMessage(nil), raw...), false, nil
+	}
+	cloud, err := decodeJSONObject(cloudRaw, "execution cloud target_ref")
+	if err != nil {
+		return nil, false, err
+	}
+	if _, legacy := cloud["connector_id"]; !legacy {
+		return append(json.RawMessage(nil), raw...), false, nil
+	}
+	if len(fields) != 1 {
+		return nil, false, fmt.Errorf("legacy cloud target_ref must contain exactly one target")
+	}
+	if err := requireOnlyFields(cloud, "version", "connector_id", "remote_model_catalog_id", "provider_model_id", "provider"); err != nil {
+		return nil, false, err
+	}
+	connectorID, err := requiredString(cloud, "connector_id")
+	if err != nil {
+		return nil, false, err
+	}
+	remoteModelCatalogID, err := requiredString(cloud, "remote_model_catalog_id")
+	if err != nil {
+		return nil, false, err
+	}
+	providerModelID, err := requiredString(cloud, "provider_model_id")
+	if err != nil {
+		return nil, false, err
+	}
+	provider, err := requiredString(cloud, "provider")
+	if err != nil {
+		return nil, false, err
+	}
+	out, err := json.Marshal(map[string]any{"cloud": map[string]any{
+		"connectorId":          connectorID,
+		"remoteModelCatalogId": remoteModelCatalogID,
+		"providerModelId":      providerModelID,
+		"provider":             provider,
+	}})
+	return out, true, err
+}
+
+func requireOnlyFields(fields map[string]json.RawMessage, allowed ...string) error {
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, key := range allowed {
+		allowedSet[key] = struct{}{}
+	}
+	for key := range fields {
+		if _, ok := allowedSet[key]; !ok {
+			return fmt.Errorf("legacy target_ref contains unsupported field %q", key)
+		}
+	}
+	return nil
+}
+
+func optionalTrimmedString(fields map[string]json.RawMessage, key string) (string, error) {
+	raw, exists := fields[key]
+	if !exists || len(bytes.TrimSpace(raw)) == 0 || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+		return "", nil
+	}
+	var value string
+	if err := decodeJSON(raw, &value, key); err != nil {
+		return "", err
+	}
+	if value != strings.TrimSpace(value) {
+		return "", fmt.Errorf("%s must be trimmed", key)
+	}
+	return value, nil
 }
 
 func parseAnchorDocument(fields map[string]json.RawMessage) (*anchorDocument, error) {
