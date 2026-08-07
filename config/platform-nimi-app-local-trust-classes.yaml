@@ -5,7 +5,7 @@ version: 1
 table_family: owner_matrix
 owner: platform
 matrix_id: nimi_app_local_trust_classes
-description: Closed third-party local-app provenance taxonomy and its relationship to Runtime-owned local principals.
+description: Closed third-party local-app provenance taxonomy and its relationship to Runtime-owned Registered App Subjects.
 source_rule: P-NAPP-036
 scope:
   applies_to: desktop_hosted_third_party_local_development
@@ -17,32 +17,33 @@ scope:
 closed_trust_classes: &nimi_app_local_trust_class_rows
   - trust_class: local_development
     mutability: mutable_supervised_project
-    provenance_owner: runtime_local_development_authorization
-    runtime_positive_posture: admitted_after_shared_kernel_and_fixed_service
-    nimi_api_permission_effect: none
+    provenance_owner: runtime_registered_app_kernel
+    runtime_positive_posture: registered_and_process_bound
+    nimi_api_access_effect: none
 principal_relationship:
-  security_subject: local_app_principal_id
+  security_subject: registered_app_subject
   app_id_role: display_and_routing_only
   trust_class_role: provenance_only
-  account_role: grant_partition_only
+  account_role: independent_optional_context
   development_anchor:
-    - development_authorization_id
-    - canonical_project_file_id
+    - registration_handle
+    - canonical_project_source_ref
     - declared_app_id
-revocation:
-  security_revoke_fallback: forbidden
-  delist_changes_local_execution_authority: false
-  project_revoke_tombstones_principal: true
-  reauthorization_reuses_principal: false
+  registration_handle_role: non_secret_management_selector
+removal:
+  registration_tombstones_subject: true
+  later_registration_reuses_subject: false
   automatic_state_inheritance: forbidden
 bundled_component_disposition:
   avatar: bundled_owner_admitted_caller_preserved
   zhiyu_shipped: bundled_owner_admitted_caller_preserved
-  zhiyu_integration_build: isolated_local_development_principal
+  zhiyu_integration_build: isolated_local_development_registered_app_subject
   desktop: protected_control_and_account_shell_not_a_third_party_class
 hard_constraints:
   - caller_or_request_cannot_select_trust_class
-  - provenance_cannot_grant_or_deny_a_nimi_api_operation
+  - registration_cannot_grant_or_deny_a_protected_app_operation
+  - source_generation_and_declaration_generation_are_independent
+  - registration_session_account_and_access_availability_are_independent
   - ordinary_package_lifecycle_and_distribution_are_deferred_and_physically_absent
   - future_package_or_attestation_authority_requires_new_canonical_admission
   - no_second_current_third_party_trust_class

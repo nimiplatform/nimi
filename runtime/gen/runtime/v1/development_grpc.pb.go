@@ -19,31 +19,26 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeDevelopmentService_GetDeveloperModeStatus_FullMethodName              = "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus"
-	RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_FullMethodName = "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary"
-	RuntimeDevelopmentService_SetDeveloperMode_FullMethodName                    = "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode"
-	RuntimeDevelopmentService_EvaluateLocalDevelopmentProject_FullMethodName     = "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject"
-	RuntimeDevelopmentService_DecideLocalDevelopmentProject_FullMethodName       = "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject"
-	RuntimeDevelopmentService_ListLocalDevelopmentAuthorizations_FullMethodName  = "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations"
-	RuntimeDevelopmentService_RevokeLocalDevelopmentAuthorization_FullMethodName = "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization"
-	RuntimeDevelopmentService_EndLocalDevelopmentRun_FullMethodName              = "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun"
+	RuntimeDevelopmentService_GetDeveloperModeStatus_FullMethodName             = "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus"
+	RuntimeDevelopmentService_SetDeveloperMode_FullMethodName                   = "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode"
+	RuntimeDevelopmentService_RegisterLocalDevelopmentProject_FullMethodName    = "/nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject"
+	RuntimeDevelopmentService_ListLocalDevelopmentRegistrations_FullMethodName  = "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations"
+	RuntimeDevelopmentService_RemoveLocalDevelopmentRegistration_FullMethodName = "/nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration"
+	RuntimeDevelopmentService_EndLocalDevelopmentRun_FullMethodName             = "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun"
 )
 
 // RuntimeDevelopmentServiceClient is the client API for RuntimeDevelopmentService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// RuntimeDevelopmentService is registered only on protected Desktop control
-// and verified native app-host transports. The ordinary TCP transport blocks
-// every method in this service before handler dispatch.
+// Registered only on protected Desktop control. Registration is per verified
+// local OS-user scope and does not require or persist an account decision.
 type RuntimeDevelopmentServiceClient interface {
 	GetDeveloperModeStatus(ctx context.Context, in *GetDeveloperModeStatusRequest, opts ...grpc.CallOption) (*GetDeveloperModeStatusResponse, error)
-	GetLocalDevelopmentAuthoritySummary(ctx context.Context, in *GetLocalDevelopmentAuthoritySummaryRequest, opts ...grpc.CallOption) (*GetLocalDevelopmentAuthoritySummaryResponse, error)
 	SetDeveloperMode(ctx context.Context, in *SetDeveloperModeRequest, opts ...grpc.CallOption) (*SetDeveloperModeResponse, error)
-	EvaluateLocalDevelopmentProject(ctx context.Context, in *EvaluateLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*EvaluateLocalDevelopmentProjectResponse, error)
-	DecideLocalDevelopmentProject(ctx context.Context, in *DecideLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*DecideLocalDevelopmentProjectResponse, error)
-	ListLocalDevelopmentAuthorizations(ctx context.Context, in *ListLocalDevelopmentAuthorizationsRequest, opts ...grpc.CallOption) (*ListLocalDevelopmentAuthorizationsResponse, error)
-	RevokeLocalDevelopmentAuthorization(ctx context.Context, in *RevokeLocalDevelopmentAuthorizationRequest, opts ...grpc.CallOption) (*RevokeLocalDevelopmentAuthorizationResponse, error)
+	RegisterLocalDevelopmentProject(ctx context.Context, in *RegisterLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*RegisterLocalDevelopmentProjectResponse, error)
+	ListLocalDevelopmentRegistrations(ctx context.Context, in *ListLocalDevelopmentRegistrationsRequest, opts ...grpc.CallOption) (*ListLocalDevelopmentRegistrationsResponse, error)
+	RemoveLocalDevelopmentRegistration(ctx context.Context, in *RemoveLocalDevelopmentRegistrationRequest, opts ...grpc.CallOption) (*RemoveLocalDevelopmentRegistrationResponse, error)
 	EndLocalDevelopmentRun(ctx context.Context, in *EndLocalDevelopmentRunRequest, opts ...grpc.CallOption) (*EndLocalDevelopmentRunResponse, error)
 }
 
@@ -65,16 +60,6 @@ func (c *runtimeDevelopmentServiceClient) GetDeveloperModeStatus(ctx context.Con
 	return out, nil
 }
 
-func (c *runtimeDevelopmentServiceClient) GetLocalDevelopmentAuthoritySummary(ctx context.Context, in *GetLocalDevelopmentAuthoritySummaryRequest, opts ...grpc.CallOption) (*GetLocalDevelopmentAuthoritySummaryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetLocalDevelopmentAuthoritySummaryResponse)
-	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeDevelopmentServiceClient) SetDeveloperMode(ctx context.Context, in *SetDeveloperModeRequest, opts ...grpc.CallOption) (*SetDeveloperModeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetDeveloperModeResponse)
@@ -85,40 +70,30 @@ func (c *runtimeDevelopmentServiceClient) SetDeveloperMode(ctx context.Context, 
 	return out, nil
 }
 
-func (c *runtimeDevelopmentServiceClient) EvaluateLocalDevelopmentProject(ctx context.Context, in *EvaluateLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*EvaluateLocalDevelopmentProjectResponse, error) {
+func (c *runtimeDevelopmentServiceClient) RegisterLocalDevelopmentProject(ctx context.Context, in *RegisterLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*RegisterLocalDevelopmentProjectResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(EvaluateLocalDevelopmentProjectResponse)
-	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_EvaluateLocalDevelopmentProject_FullMethodName, in, out, cOpts...)
+	out := new(RegisterLocalDevelopmentProjectResponse)
+	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_RegisterLocalDevelopmentProject_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeDevelopmentServiceClient) DecideLocalDevelopmentProject(ctx context.Context, in *DecideLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*DecideLocalDevelopmentProjectResponse, error) {
+func (c *runtimeDevelopmentServiceClient) ListLocalDevelopmentRegistrations(ctx context.Context, in *ListLocalDevelopmentRegistrationsRequest, opts ...grpc.CallOption) (*ListLocalDevelopmentRegistrationsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DecideLocalDevelopmentProjectResponse)
-	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_DecideLocalDevelopmentProject_FullMethodName, in, out, cOpts...)
+	out := new(ListLocalDevelopmentRegistrationsResponse)
+	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_ListLocalDevelopmentRegistrations_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeDevelopmentServiceClient) ListLocalDevelopmentAuthorizations(ctx context.Context, in *ListLocalDevelopmentAuthorizationsRequest, opts ...grpc.CallOption) (*ListLocalDevelopmentAuthorizationsResponse, error) {
+func (c *runtimeDevelopmentServiceClient) RemoveLocalDevelopmentRegistration(ctx context.Context, in *RemoveLocalDevelopmentRegistrationRequest, opts ...grpc.CallOption) (*RemoveLocalDevelopmentRegistrationResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListLocalDevelopmentAuthorizationsResponse)
-	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_ListLocalDevelopmentAuthorizations_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeDevelopmentServiceClient) RevokeLocalDevelopmentAuthorization(ctx context.Context, in *RevokeLocalDevelopmentAuthorizationRequest, opts ...grpc.CallOption) (*RevokeLocalDevelopmentAuthorizationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RevokeLocalDevelopmentAuthorizationResponse)
-	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_RevokeLocalDevelopmentAuthorization_FullMethodName, in, out, cOpts...)
+	out := new(RemoveLocalDevelopmentRegistrationResponse)
+	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_RemoveLocalDevelopmentRegistration_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,17 +114,14 @@ func (c *runtimeDevelopmentServiceClient) EndLocalDevelopmentRun(ctx context.Con
 // All implementations should embed UnimplementedRuntimeDevelopmentServiceServer
 // for forward compatibility.
 //
-// RuntimeDevelopmentService is registered only on protected Desktop control
-// and verified native app-host transports. The ordinary TCP transport blocks
-// every method in this service before handler dispatch.
+// Registered only on protected Desktop control. Registration is per verified
+// local OS-user scope and does not require or persist an account decision.
 type RuntimeDevelopmentServiceServer interface {
 	GetDeveloperModeStatus(context.Context, *GetDeveloperModeStatusRequest) (*GetDeveloperModeStatusResponse, error)
-	GetLocalDevelopmentAuthoritySummary(context.Context, *GetLocalDevelopmentAuthoritySummaryRequest) (*GetLocalDevelopmentAuthoritySummaryResponse, error)
 	SetDeveloperMode(context.Context, *SetDeveloperModeRequest) (*SetDeveloperModeResponse, error)
-	EvaluateLocalDevelopmentProject(context.Context, *EvaluateLocalDevelopmentProjectRequest) (*EvaluateLocalDevelopmentProjectResponse, error)
-	DecideLocalDevelopmentProject(context.Context, *DecideLocalDevelopmentProjectRequest) (*DecideLocalDevelopmentProjectResponse, error)
-	ListLocalDevelopmentAuthorizations(context.Context, *ListLocalDevelopmentAuthorizationsRequest) (*ListLocalDevelopmentAuthorizationsResponse, error)
-	RevokeLocalDevelopmentAuthorization(context.Context, *RevokeLocalDevelopmentAuthorizationRequest) (*RevokeLocalDevelopmentAuthorizationResponse, error)
+	RegisterLocalDevelopmentProject(context.Context, *RegisterLocalDevelopmentProjectRequest) (*RegisterLocalDevelopmentProjectResponse, error)
+	ListLocalDevelopmentRegistrations(context.Context, *ListLocalDevelopmentRegistrationsRequest) (*ListLocalDevelopmentRegistrationsResponse, error)
+	RemoveLocalDevelopmentRegistration(context.Context, *RemoveLocalDevelopmentRegistrationRequest) (*RemoveLocalDevelopmentRegistrationResponse, error)
 	EndLocalDevelopmentRun(context.Context, *EndLocalDevelopmentRunRequest) (*EndLocalDevelopmentRunResponse, error)
 }
 
@@ -163,23 +135,17 @@ type UnimplementedRuntimeDevelopmentServiceServer struct{}
 func (UnimplementedRuntimeDevelopmentServiceServer) GetDeveloperModeStatus(context.Context, *GetDeveloperModeStatusRequest) (*GetDeveloperModeStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDeveloperModeStatus not implemented")
 }
-func (UnimplementedRuntimeDevelopmentServiceServer) GetLocalDevelopmentAuthoritySummary(context.Context, *GetLocalDevelopmentAuthoritySummaryRequest) (*GetLocalDevelopmentAuthoritySummaryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetLocalDevelopmentAuthoritySummary not implemented")
-}
 func (UnimplementedRuntimeDevelopmentServiceServer) SetDeveloperMode(context.Context, *SetDeveloperModeRequest) (*SetDeveloperModeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetDeveloperMode not implemented")
 }
-func (UnimplementedRuntimeDevelopmentServiceServer) EvaluateLocalDevelopmentProject(context.Context, *EvaluateLocalDevelopmentProjectRequest) (*EvaluateLocalDevelopmentProjectResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method EvaluateLocalDevelopmentProject not implemented")
+func (UnimplementedRuntimeDevelopmentServiceServer) RegisterLocalDevelopmentProject(context.Context, *RegisterLocalDevelopmentProjectRequest) (*RegisterLocalDevelopmentProjectResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterLocalDevelopmentProject not implemented")
 }
-func (UnimplementedRuntimeDevelopmentServiceServer) DecideLocalDevelopmentProject(context.Context, *DecideLocalDevelopmentProjectRequest) (*DecideLocalDevelopmentProjectResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method DecideLocalDevelopmentProject not implemented")
+func (UnimplementedRuntimeDevelopmentServiceServer) ListLocalDevelopmentRegistrations(context.Context, *ListLocalDevelopmentRegistrationsRequest) (*ListLocalDevelopmentRegistrationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalDevelopmentRegistrations not implemented")
 }
-func (UnimplementedRuntimeDevelopmentServiceServer) ListLocalDevelopmentAuthorizations(context.Context, *ListLocalDevelopmentAuthorizationsRequest) (*ListLocalDevelopmentAuthorizationsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListLocalDevelopmentAuthorizations not implemented")
-}
-func (UnimplementedRuntimeDevelopmentServiceServer) RevokeLocalDevelopmentAuthorization(context.Context, *RevokeLocalDevelopmentAuthorizationRequest) (*RevokeLocalDevelopmentAuthorizationResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RevokeLocalDevelopmentAuthorization not implemented")
+func (UnimplementedRuntimeDevelopmentServiceServer) RemoveLocalDevelopmentRegistration(context.Context, *RemoveLocalDevelopmentRegistrationRequest) (*RemoveLocalDevelopmentRegistrationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveLocalDevelopmentRegistration not implemented")
 }
 func (UnimplementedRuntimeDevelopmentServiceServer) EndLocalDevelopmentRun(context.Context, *EndLocalDevelopmentRunRequest) (*EndLocalDevelopmentRunResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method EndLocalDevelopmentRun not implemented")
@@ -222,24 +188,6 @@ func _RuntimeDevelopmentService_GetDeveloperModeStatus_Handler(srv interface{}, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetLocalDevelopmentAuthoritySummaryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeDevelopmentServiceServer).GetLocalDevelopmentAuthoritySummary(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeDevelopmentServiceServer).GetLocalDevelopmentAuthoritySummary(ctx, req.(*GetLocalDevelopmentAuthoritySummaryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeDevelopmentService_SetDeveloperMode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetDeveloperModeRequest)
 	if err := dec(in); err != nil {
@@ -258,74 +206,56 @@ func _RuntimeDevelopmentService_SetDeveloperMode_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeDevelopmentService_EvaluateLocalDevelopmentProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EvaluateLocalDevelopmentProjectRequest)
+func _RuntimeDevelopmentService_RegisterLocalDevelopmentProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterLocalDevelopmentProjectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeDevelopmentServiceServer).EvaluateLocalDevelopmentProject(ctx, in)
+		return srv.(RuntimeDevelopmentServiceServer).RegisterLocalDevelopmentProject(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeDevelopmentService_EvaluateLocalDevelopmentProject_FullMethodName,
+		FullMethod: RuntimeDevelopmentService_RegisterLocalDevelopmentProject_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeDevelopmentServiceServer).EvaluateLocalDevelopmentProject(ctx, req.(*EvaluateLocalDevelopmentProjectRequest))
+		return srv.(RuntimeDevelopmentServiceServer).RegisterLocalDevelopmentProject(ctx, req.(*RegisterLocalDevelopmentProjectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeDevelopmentService_DecideLocalDevelopmentProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DecideLocalDevelopmentProjectRequest)
+func _RuntimeDevelopmentService_ListLocalDevelopmentRegistrations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalDevelopmentRegistrationsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeDevelopmentServiceServer).DecideLocalDevelopmentProject(ctx, in)
+		return srv.(RuntimeDevelopmentServiceServer).ListLocalDevelopmentRegistrations(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeDevelopmentService_DecideLocalDevelopmentProject_FullMethodName,
+		FullMethod: RuntimeDevelopmentService_ListLocalDevelopmentRegistrations_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeDevelopmentServiceServer).DecideLocalDevelopmentProject(ctx, req.(*DecideLocalDevelopmentProjectRequest))
+		return srv.(RuntimeDevelopmentServiceServer).ListLocalDevelopmentRegistrations(ctx, req.(*ListLocalDevelopmentRegistrationsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeDevelopmentService_ListLocalDevelopmentAuthorizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListLocalDevelopmentAuthorizationsRequest)
+func _RuntimeDevelopmentService_RemoveLocalDevelopmentRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveLocalDevelopmentRegistrationRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeDevelopmentServiceServer).ListLocalDevelopmentAuthorizations(ctx, in)
+		return srv.(RuntimeDevelopmentServiceServer).RemoveLocalDevelopmentRegistration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeDevelopmentService_ListLocalDevelopmentAuthorizations_FullMethodName,
+		FullMethod: RuntimeDevelopmentService_RemoveLocalDevelopmentRegistration_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeDevelopmentServiceServer).ListLocalDevelopmentAuthorizations(ctx, req.(*ListLocalDevelopmentAuthorizationsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeDevelopmentService_RevokeLocalDevelopmentAuthorization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RevokeLocalDevelopmentAuthorizationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeDevelopmentServiceServer).RevokeLocalDevelopmentAuthorization(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeDevelopmentService_RevokeLocalDevelopmentAuthorization_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeDevelopmentServiceServer).RevokeLocalDevelopmentAuthorization(ctx, req.(*RevokeLocalDevelopmentAuthorizationRequest))
+		return srv.(RuntimeDevelopmentServiceServer).RemoveLocalDevelopmentRegistration(ctx, req.(*RemoveLocalDevelopmentRegistrationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -360,28 +290,20 @@ var RuntimeDevelopmentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeDevelopmentService_GetDeveloperModeStatus_Handler,
 		},
 		{
-			MethodName: "GetLocalDevelopmentAuthoritySummary",
-			Handler:    _RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_Handler,
-		},
-		{
 			MethodName: "SetDeveloperMode",
 			Handler:    _RuntimeDevelopmentService_SetDeveloperMode_Handler,
 		},
 		{
-			MethodName: "EvaluateLocalDevelopmentProject",
-			Handler:    _RuntimeDevelopmentService_EvaluateLocalDevelopmentProject_Handler,
+			MethodName: "RegisterLocalDevelopmentProject",
+			Handler:    _RuntimeDevelopmentService_RegisterLocalDevelopmentProject_Handler,
 		},
 		{
-			MethodName: "DecideLocalDevelopmentProject",
-			Handler:    _RuntimeDevelopmentService_DecideLocalDevelopmentProject_Handler,
+			MethodName: "ListLocalDevelopmentRegistrations",
+			Handler:    _RuntimeDevelopmentService_ListLocalDevelopmentRegistrations_Handler,
 		},
 		{
-			MethodName: "ListLocalDevelopmentAuthorizations",
-			Handler:    _RuntimeDevelopmentService_ListLocalDevelopmentAuthorizations_Handler,
-		},
-		{
-			MethodName: "RevokeLocalDevelopmentAuthorization",
-			Handler:    _RuntimeDevelopmentService_RevokeLocalDevelopmentAuthorization_Handler,
+			MethodName: "RemoveLocalDevelopmentRegistration",
+			Handler:    _RuntimeDevelopmentService_RemoveLocalDevelopmentRegistration_Handler,
 		},
 		{
 			MethodName: "EndLocalDevelopmentRun",

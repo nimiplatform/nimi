@@ -2,7 +2,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { readAppSourceFile, resolveAppSource } from '../scripts/sync-app-source.mjs';
 import { loadDefaultStarterSource, readDefaultStarterSourceFile } from './app-scaffold-default-source.mjs';
-import { normalizePermissionRequirements } from './app-manifest-permissions.mjs';
+import { normalizeAppAccessItems } from './app-access-declaration.mjs';
 import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
   buildDefaultStarterFiles,
@@ -11,7 +11,7 @@ import {
 export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
-export const SCAFFOLD_VERSION = '2026-07-29.electron-local-development-v2';
+export const SCAFFOLD_VERSION = '2026-08-03.app-access-declaration-v1';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
@@ -202,7 +202,7 @@ function deriveScaffoldDevPort(appId) {
   return 1430 + hash;
 }
 
-function buildAppIdentity(profile, appId, appTitle, packageName, author = '', accentPack = 'nimi-accent', permissionRequirements = undefined, scaffoldOmissions = undefined) {
+function buildAppIdentity(profile, appId, appTitle, packageName, author = '', accentPack = 'nimi-accent', appAccessItems = undefined, scaffoldOmissions = undefined) {
   const resolvedPackageName = packageName || packageSafeName(appId);
   return {
     appId,
@@ -214,7 +214,7 @@ function buildAppIdentity(profile, appId, appTitle, packageName, author = '', ac
     appSlug: appSlugFromAppId(appId),
     rendererEntryId: `${appSlugFromAppId(appId)}-app`,
     accentPack: String(accentPack || '').trim() || 'nimi-accent',
-    permissionRequirements: normalizePermissionRequirements(permissionRequirements),
+    appAccessItems: normalizeAppAccessItems(appAccessItems),
     scaffoldOmissions: normalizeScaffoldOmissions(scaffoldOmissions),
     devPort: deriveScaffoldDevPort(appId),
     author: String(author || '').trim(),
@@ -329,25 +329,20 @@ function applyIdentityReplacement(content, manifest, target) {
   return rendered;
 }
 
-function renderPermissionRequirements(requirements) {
-  const lines = [];
-  for (const requirement of requirements) {
-    lines.push(`  - id: ${JSON.stringify(requirement.id)}`);
-    lines.push(`    reason: ${JSON.stringify(requirement.reason)}`);
-  }
-  return lines;
+function renderAppAccessItems(items) {
+  return items.map((item) => `  - ${JSON.stringify(item)}`);
 }
 
 function buildNimiAppManifest(identity) {
-  const permissionLines = identity.permissionRequirements.length === 0
-    ? ['permissions: []']
-    : ['permissions:', ...renderPermissionRequirements(identity.permissionRequirements)];
+  const declarationLines = identity.appAccessItems.length === 0
+    ? ['app_access: []']
+    : ['app_access:', ...renderAppAccessItems(identity.appAccessItems)];
   return [
     `app_id: ${identity.appId}`,
     `display_name: ${identity.appTitle}`,
     `profile: ${identity.profile}`,
     'manifest_role: submitted-input',
-    ...permissionLines,
+    ...declarationLines,
     'local_development:',
     '  electron:',
     `    renderer_origin: http://127.0.0.1:${identity.devPort}`,
@@ -451,7 +446,7 @@ function buildScaffoldIntent(identity, versions) {
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
     accentPack: identity.accentPack,
-    permissionRequirements: identity.permissionRequirements,
+    appAccessItems: identity.appAccessItems,
     scaffoldOmissions: identity.scaffoldOmissions,
     devPort: identity.devPort,
     dependencyMatrix: buildDependencyMatrix(identity.profile, versions),
@@ -566,7 +561,7 @@ function buildScaffoldLock(identity, versions, files) {
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
     accentPack: identity.accentPack,
-    permissionRequirements: identity.permissionRequirements,
+    appAccessItems: identity.appAccessItems,
     scaffoldOmissions: identity.scaffoldOmissions,
     appIdentity: {
       appId: identity.appId,
@@ -576,7 +571,7 @@ function buildScaffoldLock(identity, versions, files) {
       cargoPackageName: identity.cargoPackageName,
       tauriIdentifier: identity.tauriIdentifier,
       accentPack: identity.accentPack,
-      permissionRequirements: identity.permissionRequirements,
+      appAccessItems: identity.appAccessItems,
       scaffoldOmissions: identity.scaffoldOmissions,
       identityRole: 'scaffold-generated-authoring-input',
     },
@@ -600,8 +595,8 @@ function buildScaffoldLock(identity, versions, files) {
   };
 }
 
-export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author, accentPack, permissionRequirements, scaffoldOmissions }) {
-  const identity = buildAppIdentity(profile, appId, appTitle, packageName, author, accentPack, permissionRequirements, scaffoldOmissions);
+export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author, accentPack, appAccessItems, scaffoldOmissions }) {
+  const identity = buildAppIdentity(profile, appId, appTitle, packageName, author, accentPack, appAccessItems, scaffoldOmissions);
   const createFiles = [
     ...buildScaffoldFiles(identity, versions),
     buildScaffoldIntentFile(identity, versions),
@@ -654,7 +649,7 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions }) {
     packageName: intent.packageName,
     author: intent.packageAuthor || '',
     accentPack: intent.accentPack || 'nimi-accent',
-    permissionRequirements: intent.permissionRequirements || intent.appIdentity?.permissionRequirements,
+    appAccessItems: intent.appAccessItems || intent.appIdentity?.appAccessItems,
     scaffoldOmissions: intent.scaffoldOmissions || intent.appIdentity?.scaffoldOmissions,
   });
 }

@@ -24,7 +24,9 @@ function input(
 
 describe('runtime AI consume contract', () => {
   it('dispatches text.generate without caller execution truth', async () => {
-    const executeScenario = vi.fn(async () => ({
+    const executeScenario = vi.fn(async (
+      _request: Parameters<RuntimeAIConsumeRuntime['ai']['executeScenario']>[0],
+    ) => ({
       output: {
         output: {
           oneofKind: 'textGenerate',

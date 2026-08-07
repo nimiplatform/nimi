@@ -422,9 +422,6 @@ export function createZhiyuSimulatorBindings(
             message: 'Audio playback is intentionally unavailable in the Simulator.',
           };
         },
-        async requestAgentInteractionPermission(): ReturnType<ZhiyuCanonicalRendererBindings['app']['commands']['requestAgentInteractionPermission']> {
-          return (latestProjection ?? simulatedHome(context, null)).inventory;
-        },
         async openDesktopAgentConfig(): Promise<void> {
           return undefined;
         },

@@ -27,17 +27,11 @@ values:
   - LOCAL_APP_LAUNCH_LEASE_REPLAY
   - LOCAL_APP_PROCESS_MISMATCH
   - LOCAL_APP_SESSION_REVOKED
-  - LOCAL_APP_PERMISSION_REQUIRED
-  - LOCAL_APP_PERMISSION_DENIED
-  - LOCAL_APP_PERMISSION_REVOKED
-  - LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED
-  - LOCAL_APP_PERMISSION_UNKNOWN
   - LOCAL_APP_ACCOUNT_CHANGED
   - LOCAL_APP_OPERATION_UNAVAILABLE
   - LOCAL_APP_PRESENCE_REQUIRED
   - LOCAL_APP_PRESENCE_EXPIRED
   - LOCAL_APP_DEVELOPER_MODE_DISABLED
-  - LOCAL_APP_RISK_DISCLOSURE_REQUIRED
   - EXTERNAL_PRINCIPAL_PROOF_MISSING
   - EXTERNAL_PRINCIPAL_PROOF_INVALID
   - APP_MODE_DOMAIN_FORBIDDEN
@@ -109,17 +103,11 @@ codes:
   - { name: LOCAL_APP_LAUNCH_LEASE_REPLAY, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_PROCESS_MISMATCH, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_SESSION_REVOKED, group: local_app, source_rule: P-PROTO-020 }
-  - { name: LOCAL_APP_PERMISSION_REQUIRED, group: local_app, source_rule: P-PROTO-040 }
-  - { name: LOCAL_APP_PERMISSION_DENIED, group: local_app, source_rule: P-PROTO-040 }
-  - { name: LOCAL_APP_PERMISSION_REVOKED, group: local_app, source_rule: P-PROTO-040 }
-  - { name: LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED, group: local_app, source_rule: P-PROTO-040 }
-  - { name: LOCAL_APP_PERMISSION_UNKNOWN, group: local_app, source_rule: P-PROTO-040 }
   - { name: LOCAL_APP_ACCOUNT_CHANGED, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_OPERATION_UNAVAILABLE, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_PRESENCE_REQUIRED, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_PRESENCE_EXPIRED, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_DEVELOPER_MODE_DISABLED, group: local_app, source_rule: P-PROTO-020 }
-  - { name: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, group: local_app, source_rule: P-PROTO-020 }
   - name: EXTERNAL_PRINCIPAL_PROOF_MISSING
     group: app_auth
     source_rule: P-PROTO-020

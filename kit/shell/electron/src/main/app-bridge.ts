@@ -23,15 +23,15 @@ export type RegisterNimiElectronAppBridgeInput = {
   /**
    * Closes the current Electron host after Kit has revoked its renderer bridge
    * because protected session bootstrap or renewal failed. Desktop's retained
-   * supervisor may then reopen a fresh lease/session without repeating durable
-   * project approval. No protected reason or authority is passed to app code.
+   * supervisor may then reopen a fresh lease/session without changing the
+   * project registration. No protected reason or authority is passed to App code.
    */
   readonly onProtectedSessionFailure: () => void;
   /**
    * Exact commands implemented by this app's own native host. These commands
    * are app-owned authority: they receive the same renderer origin checks as
-   * the local-app carrier, but they do not become Nimi permissions and cannot
-   * occupy the reserved `nimi.shell.*` namespace.
+   * the local-app carrier, but they do not become protected App Access and
+   * cannot occupy the reserved `nimi.shell.*` namespace.
    */
   readonly appCommandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
 };

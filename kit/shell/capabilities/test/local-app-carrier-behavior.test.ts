@@ -7,8 +7,6 @@ import {
 
 const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.sessionStatus',
-  'local-app.permissionStatus',
-  'local-app.permissionRequest',
   'local-app.aiConfigGet',
   'local-app.aiConfigOverwrite',
   'local-app.textGenerateCandidate',
@@ -36,7 +34,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
 ] as const;
 
 describe('local-app public capability behavior', () => {
-  it('projects the exact base-entitlement and product-permission shell set', () => {
+  it('projects the exact App Access declaration shell set', () => {
     const set = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (entry) => entry.setId === 'local-app-standard-shell-v1',
     );
@@ -44,7 +42,7 @@ describe('local-app public capability behavior', () => {
     expect(set).toMatchObject({
       hostClass: 'protected-local-app-host',
       authBinding: 'runtime_owned_request_empty_local_app_session',
-      authorityStatus: 'permission_model_v1_with_exact_admitted_operation_families',
+      authorityStatus: 'app_access_declarations_with_protected_operations_unavailable_until_admission',
       allowedOperations: FINAL_LOCAL_APP_OPERATIONS,
     });
     expect(set?.allowedCommands).toEqual(FINAL_LOCAL_APP_OPERATIONS.map(

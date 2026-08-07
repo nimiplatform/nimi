@@ -241,7 +241,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		cloned.SubjectUserId = localDecision.AccountID
 		payload, payloadOK := proto.Clone(cloned.GetPayload()).(*structpb.Struct)
 		if !payloadOK || strings.TrimSpace(localDecision.LocalAgentID) == "" {
-			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 		}
 		if localDecision.Operation == accountservice.LocalAppOperationSendConversationTurn {
 			payload.Fields["local_agent_ref"] = structpb.NewStringValue(localDecision.LocalAgentID)
@@ -493,7 +493,11 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 					grpcerr.ReasonOptions{Message: "local app subscription authorization is no longer valid"},
 				)
 			}
-			if current.LocalAppPrincipalID != localDecision.LocalAppPrincipalID || current.LocalAppRecordID != localDecision.LocalAppRecordID || current.AccountID != localDecision.AccountID {
+			if current.RegisteredAppSubject != localDecision.RegisteredAppSubject ||
+				current.RegistrationHandle != localDecision.RegistrationHandle ||
+				current.SourceGeneration != localDecision.SourceGeneration ||
+				current.DeclarationGeneration != localDecision.DeclarationGeneration ||
+				current.AccountID != localDecision.AccountID {
 				return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 			}
 		}

@@ -31,36 +31,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CompleteLoginResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
-    "service": "RuntimeAccountService",
-    "method": "DecideLocalAppPermission",
-    "kind": "unary",
-    "requestType": "DecideLocalAppPermissionRequest",
-    "responseType": "DecideLocalAppPermissionResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "service": "RuntimeAccountService",
     "method": "GetAccountSessionStatus",
     "kind": "unary",
     "requestType": "GetAccountSessionStatusRequest",
     "responseType": "GetAccountSessionStatusResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
-    "service": "RuntimeAccountService",
-    "method": "GetLocalAppPermissionOwnerProjection",
-    "kind": "unary",
-    "requestType": "GetLocalAppPermissionOwnerProjectionRequest",
-    "responseType": "GetLocalAppPermissionOwnerProjectionResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
-    "service": "RuntimeAccountService",
-    "method": "GetLocalAppPermissionStatus",
-    "kind": "unary",
-    "requestType": "GetLocalAppPermissionStatusRequest",
-    "responseType": "GetLocalAppPermissionStatusResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
@@ -79,22 +55,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "IssueWorkspaceBindingResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
-    "service": "RuntimeAccountService",
-    "method": "ListLocalAppPermissionOwnerProjections",
-    "kind": "unary",
-    "requestType": "ListLocalAppPermissionOwnerProjectionsRequest",
-    "responseType": "ListLocalAppPermissionOwnerProjectionsResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
-    "service": "RuntimeAccountService",
-    "method": "ListLocalAppPermissionRequests",
-    "kind": "unary",
-    "requestType": "ListLocalAppPermissionRequestsRequest",
-    "responseType": "ListLocalAppPermissionRequestsResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/Logout",
     "service": "RuntimeAccountService",
     "method": "Logout",
@@ -103,28 +63,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "LogoutResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
-    "service": "RuntimeAccountService",
-    "method": "RequestLocalAppPermission",
-    "kind": "unary",
-    "requestType": "RequestLocalAppPermissionRequest",
-    "responseType": "RequestLocalAppPermissionResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
     "service": "RuntimeAccountService",
     "method": "RequestPresenceVerification",
     "kind": "unary",
     "requestType": "RequestPresenceVerificationRequest",
     "responseType": "RequestPresenceVerificationResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
-    "service": "RuntimeAccountService",
-    "method": "RevokeLocalAppPermission",
-    "kind": "unary",
-    "requestType": "RevokeLocalAppPermissionRequest",
-    "responseType": "RevokeLocalAppPermissionResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
@@ -141,14 +85,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "server_stream",
     "requestType": "SubscribeAccountSessionEventsRequest",
     "responseType": "AccountSessionEvent"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
-    "service": "RuntimeAccountService",
-    "method": "SubscribeLocalAppPermissionRequests",
-    "kind": "server_stream",
-    "requestType": "SubscribeLocalAppPermissionRequestsRequest",
-    "responseType": "LocalAppPermissionInboxEvent"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
@@ -1367,28 +1303,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpsertModelCatalogProviderResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
-    "service": "RuntimeDevelopmentService",
-    "method": "DecideLocalDevelopmentProject",
-    "kind": "unary",
-    "requestType": "DecideLocalDevelopmentProjectRequest",
-    "responseType": "DecideLocalDevelopmentProjectResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
     "service": "RuntimeDevelopmentService",
     "method": "EndLocalDevelopmentRun",
     "kind": "unary",
     "requestType": "EndLocalDevelopmentRunRequest",
     "responseType": "EndLocalDevelopmentRunResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
-    "service": "RuntimeDevelopmentService",
-    "method": "EvaluateLocalDevelopmentProject",
-    "kind": "unary",
-    "requestType": "EvaluateLocalDevelopmentProjectRequest",
-    "responseType": "EvaluateLocalDevelopmentProjectResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
@@ -1399,28 +1319,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetDeveloperModeStatusResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary",
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations",
     "service": "RuntimeDevelopmentService",
-    "method": "GetLocalDevelopmentAuthoritySummary",
+    "method": "ListLocalDevelopmentRegistrations",
     "kind": "unary",
-    "requestType": "GetLocalDevelopmentAuthoritySummaryRequest",
-    "responseType": "GetLocalDevelopmentAuthoritySummaryResponse"
+    "requestType": "ListLocalDevelopmentRegistrationsRequest",
+    "responseType": "ListLocalDevelopmentRegistrationsResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject",
     "service": "RuntimeDevelopmentService",
-    "method": "ListLocalDevelopmentAuthorizations",
+    "method": "RegisterLocalDevelopmentProject",
     "kind": "unary",
-    "requestType": "ListLocalDevelopmentAuthorizationsRequest",
-    "responseType": "ListLocalDevelopmentAuthorizationsResponse"
+    "requestType": "RegisterLocalDevelopmentProjectRequest",
+    "responseType": "RegisterLocalDevelopmentProjectResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration",
     "service": "RuntimeDevelopmentService",
-    "method": "RevokeLocalDevelopmentAuthorization",
+    "method": "RemoveLocalDevelopmentRegistration",
     "kind": "unary",
-    "requestType": "RevokeLocalDevelopmentAuthorizationRequest",
-    "responseType": "RevokeLocalDevelopmentAuthorizationResponse"
+    "requestType": "RemoveLocalDevelopmentRegistrationRequest",
+    "responseType": "RemoveLocalDevelopmentRegistrationResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",

@@ -12,7 +12,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 )
 
 var (
@@ -186,57 +185,44 @@ type subscriber struct {
 	ch chan *runtimev1.AccountSessionEvent
 }
 
-type permissionInboxSubscriber struct {
-	id uint64
-	ch chan *runtimev1.LocalAppPermissionInboxEvent
-}
-
 type Service struct {
 	runtimev1.UnimplementedRuntimeAccountServiceServer
 
 	logger *slog.Logger
 	now    func() time.Time
 
-	custody                 Custody
-	exchanger               LoginExchanger
-	refresher               Refresher
-	registry                *appregistry.Registry
-	realmHTTP               *http.Client
-	realmBaseURL            string
-	presenceVerifier        PresenceVerifier
-	appSessionValidator     AppSessionValidator
-	localAppSessions        LocalAppSessionResolver
-	accountAuthorityRevoker AccountAuthorityRevoker
-	localAgentOwnership     LocalAgentOwnershipResolver
-	permissionAdmitted      func(string) bool
-	localAppKernel          *localappkernel.Kernel
-	auditStore              *auditlog.Store
+	custody             Custody
+	exchanger           LoginExchanger
+	refresher           Refresher
+	registry            *appregistry.Registry
+	realmHTTP           *http.Client
+	realmBaseURL        string
+	presenceVerifier    PresenceVerifier
+	appSessionValidator AppSessionValidator
+	localAppSessions    LocalAppSessionResolver
+	localAgentOwnership LocalAgentOwnershipResolver
+	auditStore          *auditlog.Store
 
 	partition                string
 	productionActivated      bool
 	nonProductionHarnessMode bool
 	eventRetention           int
 
-	identityMutationMu              sync.Mutex
-	mu                              sync.RWMutex
-	state                           runtimev1.AccountSessionState
-	stateReason                     runtimev1.AccountReasonCode
-	projection                      *runtimev1.AccountProjection
-	material                        AccountMaterial
-	accountGeneration               uint64
-	accountGenerationInvalidated    chan struct{}
-	authenticatedRuntimeIdentity    bool
-	loginAttempts                   map[string]loginAttemptRecord
-	workspaceBindings               map[string]workspaceBindingRecord
-	nextSequence                    uint64
-	events                          []*runtimev1.AccountSessionEvent
-	nextSubscriberID                uint64
-	subscribers                     map[uint64]subscriber
-	permissionRequestMu             sync.Mutex
-	permissionInboxMu               sync.Mutex
-	permissionInboxSequence         uint64
-	nextPermissionInboxSubscriberID uint64
-	permissionInboxSubscribers      map[uint64]permissionInboxSubscriber
-	refreshTimer                    *time.Timer
-	refreshRetryAttempt             uint8
+	identityMutationMu           sync.Mutex
+	mu                           sync.RWMutex
+	state                        runtimev1.AccountSessionState
+	stateReason                  runtimev1.AccountReasonCode
+	projection                   *runtimev1.AccountProjection
+	material                     AccountMaterial
+	accountGeneration            uint64
+	accountGenerationInvalidated chan struct{}
+	authenticatedRuntimeIdentity bool
+	loginAttempts                map[string]loginAttemptRecord
+	workspaceBindings            map[string]workspaceBindingRecord
+	nextSequence                 uint64
+	events                       []*runtimev1.AccountSessionEvent
+	nextSubscriberID             uint64
+	subscribers                  map[uint64]subscriber
+	refreshTimer                 *time.Timer
+	refreshRetryAttempt          uint8
 }

@@ -26,10 +26,11 @@ func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudience(t *testing.T) {
 	store := NewMemoryStore()
 	projectRoot := "/Users/nimi/Projects/artifact-app"
 	decision := artifactTestDecision()
-	decision.AuthorizationID = artifactTestIdentifier(0x81)
-	decision.AuthorizationGeneration = 4
+	decision.RegistrationHandle = artifactTestIdentifier(0x81)
+	decision.RegisteredAppSubject = "ras_artifact_development"
+	decision.SourceGeneration = 4
+	decision.DeclarationGeneration = 5
 	decision.ProjectRoot = projectRoot
-	decision.CapabilityFingerprint = artifactTestIdentifier(0x82)
 	decision.RuntimeBootEpoch = protectedlocal.Identifier{}
 	decision.Process = protectedlocal.ProcessTuple{}
 	decision.DirectPeer = protectedlocal.DirectLocalAppPeer{OS: protectedlocal.OSMacOS, PID: 4201, UID: 501}
@@ -38,9 +39,9 @@ func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudience(t *testing.T) {
 		ProducerJobID: "runtime.local-development.bootstrap", OwnerAccountID: decision.AccountID, AppID: decision.AppID,
 		ReleaseDigest: decision.HostExecutableDigest, SessionID: decision.SessionID, AccountGeneration: decision.AccountGeneration,
 		AllowedUse: ArtifactUseReadBytes, ExpiresAt: artifactTestNow.Add(time.Hour),
-		TrustClass: "local_development", AuthorizationID: decision.AuthorizationID,
-		AuthorizationGeneration: decision.AuthorizationGeneration, ProjectRoot: decision.ProjectRoot,
-		CapabilityFingerprint: decision.CapabilityFingerprint,
+		TrustClass: "local_development", RegistrationHandle: decision.RegistrationHandle,
+		RegisteredAppSubject: decision.RegisteredAppSubject, SourceGeneration: decision.SourceGeneration,
+		DeclarationGeneration: decision.DeclarationGeneration, ProjectRoot: decision.ProjectRoot,
 	}
 	if err := store.Put("artifact-development", ArtifactRecord{Bytes: []byte("development"), MimeType: "text/plain", CreatedAt: artifactTestNow, Audience: audience}); err != nil {
 		t.Fatal(err)
@@ -52,11 +53,11 @@ func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudience(t *testing.T) {
 		t.Fatalf("read exact local-development artifact = (%+v, %v)", response, err)
 	}
 
-	decision.AuthorizationGeneration++
+	decision.SourceGeneration++
 	mismatch := New(store, slog.New(slog.NewTextHandler(io.Discard, nil)), WithLocalAppOperationAuthorizer(staticLocalAppCallerAuthorizer{decision: decision}))
 	mismatch.now = func() time.Time { return artifactTestNow }
 	if _, err := mismatch.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-development"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
-		t.Fatalf("changed development authorization generation must fail closed, got %v", err)
+		t.Fatalf("changed development source generation must fail closed, got %v", err)
 	}
 }
 
@@ -79,21 +80,22 @@ func artifactTestDecision() accountservice.LocalAppCallerDecision {
 	release := artifactTestIdentifier(0x31)
 	projectRoot := `C:\artifact-project`
 	return accountservice.LocalAppCallerDecision{
-		SessionID:               artifactTestIdentifier(0x21),
-		AppID:                   "world.nimi.app",
-		HostExecutableDigest:    release,
-		AccountID:               "account-1",
-		RealmEnvironmentID:      "realm-1",
-		AccountGeneration:       7,
-		RuntimeBootEpoch:        artifactTestIdentifier(0x41),
-		Operation:               accountservice.LocalAppOperationReadArtifactBytes,
-		AuthorityClass:          localappop.AuthorityClassUserPermission,
-		OperationCapability:     "data.scope.read#runtime.artifacts",
-		TrustClass:              accountservice.LocalAppTrustClassDevelopment,
-		AuthorizationID:         artifactTestIdentifier(0x42),
-		AuthorizationGeneration: 1,
-		ProjectRoot:             projectRoot,
-		CapabilityFingerprint:   artifactTestIdentifier(0x43),
+		SessionID:             artifactTestIdentifier(0x21),
+		AppID:                 "world.nimi.app",
+		HostExecutableDigest:  release,
+		AccountID:             "account-1",
+		RealmEnvironmentID:    "realm-1",
+		AccountGeneration:     7,
+		RuntimeBootEpoch:      artifactTestIdentifier(0x41),
+		Operation:             accountservice.LocalAppOperationReadArtifactBytes,
+		AuthorityClass:        localappop.AuthorityClassAppAccess,
+		OperationCapability:   "data.scope.read#runtime.artifacts",
+		TrustClass:            accountservice.LocalAppTrustClassDevelopment,
+		RegistrationHandle:    artifactTestIdentifier(0x42),
+		RegisteredAppSubject:  "ras_artifact_test",
+		SourceGeneration:      1,
+		DeclarationGeneration: 1,
+		ProjectRoot:           projectRoot,
 		Process: protectedlocal.ProcessTuple{
 			OS: protectedlocal.OSWindows, PID: 4201, CreationMarker: "artifact-process-1",
 			OSLoginSession: "login-1", SecurityPrincipal: "user-1",
@@ -107,19 +109,20 @@ func artifactTestDecision() accountservice.LocalAppCallerDecision {
 func artifactTestAudience() *ArtifactAudience {
 	decision := artifactTestDecision()
 	return &ArtifactAudience{
-		ProducerJobID:           "job-1",
-		OwnerAccountID:          decision.AccountID,
-		AppID:                   decision.AppID,
-		ReleaseDigest:           decision.HostExecutableDigest,
-		TrustClass:              "local_development",
-		AuthorizationID:         decision.AuthorizationID,
-		AuthorizationGeneration: decision.AuthorizationGeneration,
-		ProjectRoot:             decision.ProjectRoot,
-		CapabilityFingerprint:   decision.CapabilityFingerprint,
-		SessionID:               decision.SessionID,
-		AccountGeneration:       decision.AccountGeneration,
-		AllowedUse:              ArtifactUseReadBytes,
-		ExpiresAt:               artifactTestNow.Add(30 * time.Minute),
+		ProducerJobID:         "job-1",
+		OwnerAccountID:        decision.AccountID,
+		AppID:                 decision.AppID,
+		ReleaseDigest:         decision.HostExecutableDigest,
+		TrustClass:            "local_development",
+		RegistrationHandle:    decision.RegistrationHandle,
+		RegisteredAppSubject:  decision.RegisteredAppSubject,
+		SourceGeneration:      decision.SourceGeneration,
+		DeclarationGeneration: decision.DeclarationGeneration,
+		ProjectRoot:           decision.ProjectRoot,
+		SessionID:             decision.SessionID,
+		AccountGeneration:     decision.AccountGeneration,
+		AllowedUse:            ArtifactUseReadBytes,
+		ExpiresAt:             artifactTestNow.Add(30 * time.Minute),
 	}
 }
 
@@ -246,7 +249,7 @@ func TestReadArtifactBytesRequiresCurrentMatchingAudience(t *testing.T) {
 	authorized := New(store, logger, WithLocalAppOperationAuthorizer(staticLocalAppCallerAuthorizer{decision: artifactTestDecision()}))
 	authorized.now = func() time.Time { return artifactTestNow }
 	incompletePolicy := artifactTestDecision()
-	incompletePolicy.AuthorizationGeneration = 0
+	incompletePolicy.SourceGeneration = 0
 	incomplete := New(store, logger, WithLocalAppOperationAuthorizer(staticLocalAppCallerAuthorizer{decision: incompletePolicy}))
 	incomplete.now = func() time.Time { return artifactTestNow }
 	if _, err := incomplete.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-bound"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {

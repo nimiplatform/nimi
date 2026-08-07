@@ -2,19 +2,19 @@
 //
 // Public catalog distribution and ordinary-user lifecycle are deferred.
 // The current Apps surface consumes only Runtime-mediated local-development
-// authorizations through the standard protected shell bridge.
+// registrations through the standard protected shell bridge.
 
 import {
-  listLocalDevelopmentAuthorizations,
-  type LocalDevelopmentAuthorization,
+  listLocalDevelopmentRegistrations,
+  type LocalDevelopmentRegistration,
 } from '../local-development/local-development-bridge.js';
 
 export interface DesktopAppsLiveBridge {
-  listAuthorizations(): Promise<readonly LocalDevelopmentAuthorization[]>;
+  listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
 }
 
 export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
   return {
-    listAuthorizations: listLocalDevelopmentAuthorizations,
+    listRegistrations: listLocalDevelopmentRegistrations,
   };
 }

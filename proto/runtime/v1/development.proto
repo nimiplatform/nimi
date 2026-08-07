@@ -7,31 +7,10 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/common.proto";
 
-// Local-development trust is a mutable-project, non-production trust class.
-// None of these enums or messages can be converted into an installed release,
-// store listing, portable grant, credential, or caller-selected session proof.
 enum LocalDevelopmentShellKind {
   LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED = 0;
   LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON = 1;
   LOCAL_DEVELOPMENT_SHELL_KIND_TAURI = 2;
-}
-
-enum LocalDevelopmentDecision {
-  LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED = 0;
-  LOCAL_DEVELOPMENT_DECISION_DENY = 1;
-  LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE = 2;
-  LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT = 3;
-}
-
-enum LocalDevelopmentAuthorizationState {
-  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_UNSPECIFIED = 0;
-  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED = 1;
-  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE = 2;
-  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED = 3;
-  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED = 4;
-  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED = 5;
-  reserved 6;
-  reserved "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT";
 }
 
 enum DeveloperModeState {
@@ -46,42 +25,9 @@ message GetDeveloperModeStatusRequest {}
 message GetDeveloperModeStatusResponse {
   DeveloperModeState state = 1;
   uint64 revision = 2;
-  uint64 account_generation = 3;
-  ReasonCode reason_code = 4;
-}
-
-enum LocalDevelopmentSummaryAvailability {
-  LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNSPECIFIED = 0;
-  LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_AVAILABLE = 1;
-  LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNAVAILABLE = 2;
-}
-
-message LocalDevelopmentDeveloperModeSummary {
-  LocalDevelopmentSummaryAvailability availability = 1;
-  DeveloperModeState state = 2;
-  ReasonCode reason_code = 3;
-}
-
-message LocalDevelopmentProjectAuthorizationSummary {
-  LocalDevelopmentSummaryAvailability availability = 1;
-  uint64 active_count = 2;
   reserved 3;
-  reserved "dormant_count";
-  uint64 denied_count = 4;
-  uint64 revoked_count = 5;
-  ReasonCode reason_code = 6;
-}
-
-message GetLocalDevelopmentAuthoritySummaryRequest {}
-
-// Exact bounded diagnostic projection. These sections never contain an
-// account, project, principal, authorization, request, path, credential,
-// session, or boot-epoch identifier. Product permission lifecycle is not a
-// local-development authority dimension and is intentionally absent.
-message GetLocalDevelopmentAuthoritySummaryResponse {
-  LocalDevelopmentDeveloperModeSummary developer_mode = 1;
-  LocalDevelopmentProjectAuthorizationSummary project_authorization = 2;
-  ReasonCode reason_code = 3;
+  reserved "account_generation";
+  ReasonCode reason_code = 4;
 }
 
 message SetDeveloperModeRequest {
@@ -91,88 +37,70 @@ message SetDeveloperModeRequest {
 message SetDeveloperModeResponse {
   DeveloperModeState state = 1;
   uint64 revision = 2;
-  uint64 account_generation = 3;
+  reserved 3;
+  reserved "account_generation";
   ReasonCode reason_code = 4;
 }
 
-message LocalDevelopmentPermissionRequirement {
-  string permission_id = 1;
-  string reason = 2;
-}
-
+// Desktop-evaluated development source and declaration input. app_access keeps
+// the raw declaration for transparency; Runtime activates only supported
+// domains when it commits the current declaration generation.
 message LocalDevelopmentProjectProjection {
   string app_id = 1;
   string display_name = 2;
   string canonical_project_root = 3;
   string canonical_manifest_path = 4;
   LocalDevelopmentShellKind shell_kind = 5;
-  string account_id = 6;
-  repeated LocalDevelopmentPermissionRequirement permission_requirements = 7;
-  bytes permission_requirement_fingerprint = 8;
+  reserved 6;
+  reserved "account_id";
+  repeated string app_access = 7;
+  reserved 8;
+  reserved "permission_requirement_fingerprint";
   string trust_class = 9;
+  uint64 source_generation = 10;
+  uint64 declaration_generation = 11;
 }
 
-message LocalDevelopmentAuthorizationProjection {
-  // Non-secret management selector. It is not sufficient to open, bind, or
-  // use a technical session and is safe for Desktop management UI.
-  bytes authorization_id = 1;
+// registration_handle is a non-secret management selector. It is not the
+// Registered App Subject and grants no launch, session, or operation access.
+message LocalDevelopmentRegistrationProjection {
+  bytes registration_handle = 1;
   LocalDevelopmentProjectProjection project = 2;
-  LocalDevelopmentAuthorizationState state = 3;
-  LocalDevelopmentDecision persistence = 4;
-  uint64 authorization_generation = 5;
-  google.protobuf.Timestamp approved_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
-  ReasonCode reason_code = 8;
+  google.protobuf.Timestamp registered_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+  ReasonCode reason_code = 5;
 }
 
-message EvaluateLocalDevelopmentProjectRequest {
+message RegisterLocalDevelopmentProjectRequest {
   string expected_app_id = 1;
   string project_root = 2;
   LocalDevelopmentShellKind shell_kind = 3;
-  // Runtime treats this as a correlation selector only. It is generated and
-  // retained by the Desktop-owned supervisor and never grants authority.
+  // Desktop-owned run correlation only; never registration or access truth.
   bytes supervisor_run_id = 4;
 }
 
-message EvaluateLocalDevelopmentProjectResponse {
-  bytes evaluation_id = 1;
-  LocalDevelopmentProjectProjection project = 2;
-  LocalDevelopmentAuthorizationState state = 3;
-  bool confirmation_required = 4;
-  LocalDevelopmentAuthorizationProjection authorization = 5;
-  google.protobuf.Timestamp evaluation_expires_at = 6;
-  ReasonCode reason_code = 7;
-}
-
-message DecideLocalDevelopmentProjectRequest {
-  bytes evaluation_id = 1;
-  LocalDevelopmentDecision decision = 2;
-  bool risk_disclosure_acknowledged = 3;
-}
-
-message DecideLocalDevelopmentProjectResponse {
-  LocalDevelopmentAuthorizationProjection authorization = 1;
+message RegisterLocalDevelopmentProjectResponse {
+  LocalDevelopmentRegistrationProjection registration = 1;
   ReasonCode reason_code = 2;
 }
 
-message ListLocalDevelopmentAuthorizationsRequest {}
+message ListLocalDevelopmentRegistrationsRequest {}
 
-message ListLocalDevelopmentAuthorizationsResponse {
-  repeated LocalDevelopmentAuthorizationProjection authorizations = 1;
+message ListLocalDevelopmentRegistrationsResponse {
+  repeated LocalDevelopmentRegistrationProjection registrations = 1;
   ReasonCode reason_code = 2;
 }
 
-message RevokeLocalDevelopmentAuthorizationRequest {
-  bytes authorization_id = 1;
+message RemoveLocalDevelopmentRegistrationRequest {
+  bytes registration_handle = 1;
 }
 
-message RevokeLocalDevelopmentAuthorizationResponse {
-  LocalDevelopmentAuthorizationProjection authorization = 1;
-  ReasonCode reason_code = 2;
+message RemoveLocalDevelopmentRegistrationResponse {
+  ReasonCode reason_code = 1;
 }
 
 message EndLocalDevelopmentRunRequest {
-  bytes authorization_id = 1;
+  bytes registration_handle = 1;
   bytes supervisor_run_id = 2;
 }
 
@@ -180,16 +108,13 @@ message EndLocalDevelopmentRunResponse {
   ReasonCode reason_code = 1;
 }
 
-// RuntimeDevelopmentService is registered only on protected Desktop control
-// and verified native app-host transports. The ordinary TCP transport blocks
-// every method in this service before handler dispatch.
+// Registered only on protected Desktop control. Registration is per verified
+// local OS-user scope and does not require or persist an account decision.
 service RuntimeDevelopmentService {
   rpc GetDeveloperModeStatus(GetDeveloperModeStatusRequest) returns (GetDeveloperModeStatusResponse);
-  rpc GetLocalDevelopmentAuthoritySummary(GetLocalDevelopmentAuthoritySummaryRequest) returns (GetLocalDevelopmentAuthoritySummaryResponse);
   rpc SetDeveloperMode(SetDeveloperModeRequest) returns (SetDeveloperModeResponse);
-  rpc EvaluateLocalDevelopmentProject(EvaluateLocalDevelopmentProjectRequest) returns (EvaluateLocalDevelopmentProjectResponse);
-  rpc DecideLocalDevelopmentProject(DecideLocalDevelopmentProjectRequest) returns (DecideLocalDevelopmentProjectResponse);
-  rpc ListLocalDevelopmentAuthorizations(ListLocalDevelopmentAuthorizationsRequest) returns (ListLocalDevelopmentAuthorizationsResponse);
-  rpc RevokeLocalDevelopmentAuthorization(RevokeLocalDevelopmentAuthorizationRequest) returns (RevokeLocalDevelopmentAuthorizationResponse);
+  rpc RegisterLocalDevelopmentProject(RegisterLocalDevelopmentProjectRequest) returns (RegisterLocalDevelopmentProjectResponse);
+  rpc ListLocalDevelopmentRegistrations(ListLocalDevelopmentRegistrationsRequest) returns (ListLocalDevelopmentRegistrationsResponse);
+  rpc RemoveLocalDevelopmentRegistration(RemoveLocalDevelopmentRegistrationRequest) returns (RemoveLocalDevelopmentRegistrationResponse);
   rpc EndLocalDevelopmentRun(EndLocalDevelopmentRunRequest) returns (EndLocalDevelopmentRunResponse);
 }

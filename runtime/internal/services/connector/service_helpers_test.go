@@ -9,11 +9,10 @@ import (
 
 func TestSubjectUserIDFromContextUsesAuthorizedLocalAppAccount(t *testing.T) {
 	ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
-		LocalAppPrincipalID: "principal-local-app",
-		LocalAppRecordID:    "record-local-app",
-		AccountID:           "account-local-app",
-		Operation:           accountservice.LocalAppOperationSharedAIConfigGet,
-		OperationCapability: "agents.configure",
+		RegisteredAppSubject: "principal-local-app",
+		AccountID:            "account-local-app",
+		Operation:            accountservice.LocalAppOperationSharedAIConfigGet,
+		OperationCapability:  "agents.configure",
 	})
 	subjectUserID, ok := subjectUserIDFromContext(ctx)
 	if !ok || subjectUserID != "account-local-app" {

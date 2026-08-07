@@ -7,8 +7,8 @@
  * mounted only when admitted Developer Mode is on — the renderer enforces that
  * gate before this panel is ever reached (`main-layout-view.tsx`).
  *
- * The host presents local-development authorization posture and activity
- * (`LocalDevelopmentAuthorizations`) and routes technical diagnostics to the
+ * The host presents local-development registrations and activity
+ * (`LocalDevelopmentRegistrations`) and routes technical diagnostics to the
  * Support surface instead of duplicating it. It hosts no ordinary-user
  * product functionality.
  */
@@ -33,7 +33,7 @@ import {
   loadStoredDeveloperToolsSection,
   persistStoredDeveloperToolsSection,
 } from './developer-tools-storage.js';
-import { LocalDevelopmentAuthorizations } from '../local-development/local-development-authorizations.js';
+import { LocalDevelopmentRegistrations } from '../local-development/local-development-registrations.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 
 function DeveloperToolsDiagnosticsRoute({ onOpenSupport }: { onOpenSupport: () => void }) {
@@ -63,9 +63,8 @@ function DeveloperToolsDiagnosticsRoute({ onOpenSupport }: { onOpenSupport: () =
 function renderDeveloperToolsSection(section: DeveloperToolsSectionId, onOpenSupport: () => void) {
   switch (section) {
     case 'local-development':
-      // D-DEV-003 local-development posture — authorization activity and
-      // management, relocated from Settings > Security to the developer surface.
-      return <LocalDevelopmentAuthorizations />;
+      // D-DEV-003 local-development registration activity and management.
+      return <LocalDevelopmentRegistrations />;
     case 'diagnostics':
       // D-DEV-003 technical diagnostics stay single-homed in Support; the
       // developer surface routes there instead of re-rendering a copy.

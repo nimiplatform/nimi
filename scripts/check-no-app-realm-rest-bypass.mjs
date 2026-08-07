@@ -58,12 +58,12 @@ const CHECKS = [
   {
     label: 'direct Realm permission grant method',
     pattern: /\b(?:listMyAppPermissionGrants|getMyAppPermissionGrant(?:Status|Projection)?|requestMyAppPermissionGrant|revokeMyAppPermissionGrant)\s*\(/g,
-    message: 'app production code must use the SDK PermissionClient instead of direct Realm permission grant methods',
+    message: 'app production code must not call retired Realm App grant methods; use admitted SDK App Access operations',
   },
   {
     label: 'direct Realm permission grant module',
     pattern: /\.permissionGrants\./g,
-    message: 'app production code must use the SDK PermissionClient instead of Realm permissionGrants module access',
+    message: 'app production code must not access the retired Realm App grant module; use admitted SDK App Access operations',
   },
 ];
 

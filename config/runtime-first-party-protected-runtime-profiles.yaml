@@ -78,12 +78,6 @@ profiles:
     methods:
       - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
-      - method_id: /nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests
-      - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests
-      - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection
-      - method_id: /nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections
-      - method_id: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission
-      - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission
       - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent

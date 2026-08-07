@@ -29,14 +29,12 @@ use crate::{
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
     DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
-    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest,
-    DesktopPermissionOwnerUnaryRequest, DesktopPermissionOwnerUnaryResponse, DeveloperModeStatus,
-    LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
-    NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
-    RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
+    LocalDevelopmentRegistration, LocalDevelopmentRegistrationRequest, NimiDesktopControl,
+    NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceState,
+    RuntimeServiceStatus,
 };
 
 #[path = "windows_service_projection.rs"]
@@ -230,21 +228,6 @@ impl NimiDesktopControl for WindowsDesktopControl {
         ))
     }
 
-    fn invoke_permission_owner_unary(
-        &self,
-        request: DesktopPermissionOwnerUnaryRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<DesktopPermissionOwnerUnaryResponse, NimiHostError>>
-                + Send
-                + '_,
-        >,
-    > {
-        Box::pin(
-            crate::windows_desktop_account::invoke_permission_owner_unary(self.channel(), request),
-        )
-    }
-
     fn begin_account_login(
         &self,
         request: DesktopAccountBeginLoginRequest,
@@ -321,22 +304,6 @@ impl NimiDesktopControl for WindowsDesktopControl {
         ))
     }
 
-    fn get_local_development_authority_summary(
-        &self,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalDevelopmentAuthoritySummary, NimiHostError>>
-                + Send
-                + '_,
-        >,
-    > {
-        Box::pin(
-            crate::windows_local_development_authority_summary::get_authority_summary(
-                self.channel(),
-            ),
-        )
-    }
-
     fn set_developer_mode(
         &self,
         enabled: bool,
@@ -347,52 +314,39 @@ impl NimiDesktopControl for WindowsDesktopControl {
         ))
     }
 
-    fn evaluate_local_development_project(
+    fn register_local_development_project(
         &self,
-        request: LocalDevelopmentEvaluationRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalDevelopmentEvaluation, NimiHostError>> + Send + '_>>
-    {
-        Box::pin(crate::windows_local_development::evaluate_project(
-            self.channel(),
-            request,
-        ))
-    }
-
-    fn decide_local_development_project(
-        &self,
-        request: LocalDevelopmentDecisionRequest,
+        request: LocalDevelopmentRegistrationRequest,
     ) -> Pin<
-        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
+        Box<dyn Future<Output = Result<LocalDevelopmentRegistration, NimiHostError>> + Send + '_>,
     > {
-        Box::pin(crate::windows_local_development::decide_project(
+        Box::pin(crate::windows_local_development::register_project(
             self.channel(),
             request,
         ))
     }
 
-    fn list_local_development_authorizations(
+    fn list_local_development_registrations(
         &self,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<Vec<LocalDevelopmentAuthorization>, NimiHostError>>
+            dyn Future<Output = Result<Vec<LocalDevelopmentRegistration>, NimiHostError>>
                 + Send
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_local_development::list_authorizations(
+        Box::pin(crate::windows_local_development::list_registrations(
             self.channel(),
         ))
     }
 
-    fn revoke_local_development_authorization(
+    fn remove_local_development_registration(
         &self,
-        authorization_id: [u8; 32],
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
-    > {
-        Box::pin(crate::windows_local_development::revoke_authorization(
+        registration_handle: [u8; 32],
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
+        Box::pin(crate::windows_local_development::remove_registration(
             self.channel(),
-            authorization_id,
+            registration_handle,
         ))
     }
 

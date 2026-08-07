@@ -87,15 +87,13 @@ test('NimiClient fail-closes optional composition surfaces until configured', ()
     () => client.requireApp(),
     (error) => isNimiError(error) && error.reasonCode === 'SDK_CLIENT_APP_REQUIRED',
   );
-  assert.throws(
-    () => client.requirePermissions(),
-    (error) => isNimiError(error) && error.reasonCode === 'SDK_CLIENT_PERMISSIONS_REQUIRED',
-  );
+  assert.equal('permissions' in client, false);
+  assert.equal('requirePermissions' in client, false);
   assert.equal('scopes' in client, false);
   assert.equal('requireScopes' in client, false);
 });
 
-test('NimiClient never treats Realm grants as local permission truth', () => {
+test('NimiClient carries no third-party access workflow surface', () => {
   const runtimeTransport: CoreTransport = {
     async unary() {
       return {};
@@ -112,10 +110,8 @@ test('NimiClient never treats Realm grants as local permission truth', () => {
     realm: { transport: realmTransport },
   });
 
-  assert.throws(
-    () => client.requirePermissions(),
-    (error) => isNimiError(error) && error.reasonCode === 'SDK_CLIENT_PERMISSIONS_REQUIRED',
-  );
+  assert.equal('permissions' in client, false);
+  assert.equal('requirePermissions' in client, false);
 });
 
 test('NimiClient hard-cuts generic agent surface from root client', () => {

@@ -17,12 +17,11 @@ use nimi_shell_protected_local::{
     DesktopFirstPartyProductStreamReceiver, DesktopMachineProductStreamMethod,
     DesktopMachineProductStreamRequest, DesktopMachineProductUnaryMethod,
     DesktopMachineProductUnaryRequest, DeveloperModeStatus, FixedRuntimeServiceControl,
-    LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
-    NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
-    RuntimeServiceAction, RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
+    LocalDevelopmentRegistration, LocalDevelopmentRegistrationRequest, NimiDesktopControl,
+    NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
+    RuntimeServiceState, RuntimeServiceStatus,
 };
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
@@ -434,12 +433,12 @@ fn should_reconnect_reason(reason_code: &str) -> bool {
     )
 }
 
-pub(super) async fn evaluate_local_development_project(
-    request: LocalDevelopmentEvaluationRequest,
-) -> Result<LocalDevelopmentEvaluation, NimiHostError> {
+pub(super) async fn register_local_development_project(
+    request: LocalDevelopmentRegistrationRequest,
+) -> Result<LocalDevelopmentRegistration, NimiHostError> {
     let control = control_for_call().await?;
     let first_attempt = control
-        .evaluate_local_development_project(request.clone())
+        .register_local_development_project(request.clone())
         .await;
     match first_attempt {
         Ok(value) => Ok(value),
@@ -448,7 +447,7 @@ pub(super) async fn evaluate_local_development_project(
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
-                .evaluate_local_development_project(request)
+                .register_local_development_project(request)
                 .await
         }
     }
@@ -461,22 +460,6 @@ pub(super) async fn get_developer_mode_status() -> Result<DeveloperModeStatus, N
         Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call().await?.get_developer_mode_status().await
-        }
-        Err(error) => Err(error),
-    }
-}
-
-pub(super) async fn get_local_development_authority_summary(
-) -> Result<LocalDevelopmentAuthoritySummary, NimiHostError> {
-    let control = control_for_call().await?;
-    match control.get_local_development_authority_summary().await {
-        Ok(value) => Ok(value),
-        Err(error) if should_reconnect(&error) => {
-            clear_desktop_control_if_same(control).await;
-            control_for_call()
-                .await?
-                .get_local_development_authority_summary()
-                .await
         }
         Err(error) => Err(error),
     }
@@ -496,56 +479,36 @@ pub(super) async fn set_developer_mode(
     }
 }
 
-pub(super) async fn decide_local_development_project(
-    request: LocalDevelopmentDecisionRequest,
-) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
+pub(super) async fn list_local_development_registrations(
+) -> Result<Vec<LocalDevelopmentRegistration>, NimiHostError> {
     let control = control_for_call().await?;
-    match control
-        .decide_local_development_project(request.clone())
-        .await
-    {
+    match control.list_local_development_registrations().await {
         Ok(value) => Ok(value),
         Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
-                .decide_local_development_project(request)
+                .list_local_development_registrations()
                 .await
         }
         Err(error) => Err(error),
     }
 }
 
-pub(super) async fn list_local_development_authorizations(
-) -> Result<Vec<LocalDevelopmentAuthorization>, NimiHostError> {
-    let control = control_for_call().await?;
-    match control.list_local_development_authorizations().await {
-        Ok(value) => Ok(value),
-        Err(error) if should_reconnect(&error) => {
-            clear_desktop_control_if_same(control).await;
-            control_for_call()
-                .await?
-                .list_local_development_authorizations()
-                .await
-        }
-        Err(error) => Err(error),
-    }
-}
-
-pub(super) async fn revoke_local_development_authorization(
-    authorization_id: [u8; 32],
-) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
+pub(super) async fn remove_local_development_registration(
+    registration_handle: [u8; 32],
+) -> Result<(), NimiHostError> {
     let control = control_for_call().await?;
     match control
-        .revoke_local_development_authorization(authorization_id)
+        .remove_local_development_registration(registration_handle)
         .await
     {
-        Ok(value) => Ok(value),
+        Ok(()) => Ok(()),
         Err(error) if should_reconnect(&error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await?
-                .revoke_local_development_authorization(authorization_id)
+                .remove_local_development_registration(registration_handle)
                 .await
         }
         Err(error) => Err(error),

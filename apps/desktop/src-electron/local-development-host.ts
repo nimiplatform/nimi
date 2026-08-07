@@ -6,14 +6,13 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 
 import {
   createNimiElectronLocalDevelopmentControl,
-  type NimiElectronLocalDevelopmentAuthorization,
   type NimiElectronLocalDevelopmentControl,
-  type NimiElectronLocalDevelopmentEvaluation,
+  type NimiElectronLocalDevelopmentRegistration,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
-  createDesktopElectronLocalDevelopmentProjectionPublisher,
-  type DesktopElectronLocalDevelopmentProjectionPublisher,
-} from './local-development-authority-summary.js';
+  createDesktopElectronLocalDevelopmentPresencePublisher,
+  type DesktopElectronLocalDevelopmentPresencePublisher,
+} from './local-development-presence.js';
 import {
   canonicalElectronMain,
   ElectronLocalDevelopmentPlanError,
@@ -35,7 +34,6 @@ import {
   exactLocalDevelopmentObject as exact,
   exactNestedLocalDevelopmentPayload as exactNestedPayload,
   localDevelopmentCdpPort as cdpPort,
-  localDevelopmentDecision as localDecision,
   localDevelopmentSelector as selector,
   localDevelopmentText as text,
   readLocalDevelopmentJsonBody as readJsonBody,
@@ -43,20 +41,17 @@ import {
 } from './local-development-host-protocol.js';
 
 const COMMANDS = new Set([
-  'local_development_pending_approvals',
-  'local_development_decide',
-  'local_development_authorizations_list',
+  'local_development_registrations_list',
   'local_development_runs_list',
-  'local_development_authorization_revoke',
+  'local_development_registration_remove',
 ]);
 const HEALTH_MS = 2_000;
 const REBUILD_DEBOUNCE_MS = 450;
 const RESTARTABLE_RUN_STATES = new Set([
-  'authorization-required',
-  'denied',
   'failed',
   'project-changed',
-  'revoked',
+  'registration-unavailable',
+  'registration-removed',
   'stopped',
 ]);
 
@@ -82,8 +77,8 @@ type RunContext = {
   readonly plan: ElectronLocalDevelopmentPlan;
   readonly cdpPort?: number;
   readonly supervisorRunId: string;
-  authorizationId?: string;
-  pendingEndRunAuthorizationId?: string;
+  registrationHandle?: string;
+  pendingEndRunRegistrationHandle?: string;
   buildChild?: ChildProcessWithoutNullStreams;
   renderer?: ChildProcessWithoutNullStreams;
   watcher?: FSWatcher;
@@ -96,34 +91,16 @@ type RunContext = {
   rebuildRequested: boolean;
 };
 
-type PendingApproval = {
-  readonly evaluationId: string;
-  readonly evaluationExpiresAtUnixMs: number;
-  readonly run: RunContext;
-  readonly projection: RendererApproval;
-};
-
-type RendererApproval = {
-  readonly requestId: string;
-  readonly appId: string;
-  readonly displayName: string;
-  readonly canonicalProjectRoot: string;
-  readonly shell: 'electron';
-  readonly accountId: string;
-  readonly permissionRequirements: readonly { readonly permissionId: string; readonly reason: string }[];
-  readonly approvalState: string;
-};
-
-type RendererAuthorization = {
+type RendererRegistration = {
   readonly selector: string;
   readonly appId: string;
   readonly displayName: string;
   readonly canonicalProjectRoot: string;
   readonly shell: 'electron';
-  readonly accountId: string;
-  readonly permissionRequirements: readonly { readonly permissionId: string; readonly reason: string }[];
-  readonly persistence: string;
-  readonly state: string;
+  readonly appAccess: readonly string[];
+  readonly sourceGeneration: number;
+  readonly declarationGeneration: number;
+  readonly registeredAtUnixMs: number;
   readonly updatedAtUnixMs: number;
 };
 
@@ -137,13 +114,11 @@ export type DesktopElectronLocalDevelopmentHost = {
 
 export async function createDesktopElectronLocalDevelopmentHost(input: {
   readonly homeDirectory: string;
-  readonly focusMainWindow: () => Promise<void>;
   readonly control?: NimiElectronLocalDevelopmentControl;
 }): Promise<DesktopElectronLocalDevelopmentHost> {
   const host = new ElectronLocalDevelopmentHost(
     input.control ?? createNimiElectronLocalDevelopmentControl(),
     path.resolve(input.homeDirectory),
-    input.focusMainWindow,
   );
   await host.start();
   return {
@@ -159,23 +134,18 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
 
 export class ElectronLocalDevelopmentHost {
   private readonly runs = new Map<string, RunContext>();
-  private readonly pending = new Map<string, PendingApproval>();
-  private readonly authorizationSelectors = new Map<string, string>();
+  private readonly registrationSelectors = new Map<string, string>();
   private server: Server | undefined;
   private endpoint = '';
   private shutdownPromise: Promise<void> | undefined;
   private shutdownComplete = false;
-  private readonly projectionPublisher: DesktopElectronLocalDevelopmentProjectionPublisher;
+  private readonly presencePublisher: DesktopElectronLocalDevelopmentPresencePublisher;
 
   constructor(
     private readonly control: NimiElectronLocalDevelopmentControl,
     private readonly homeDirectory: string,
-    private readonly focusMainWindow: () => Promise<void>,
   ) {
-    this.projectionPublisher = createDesktopElectronLocalDevelopmentProjectionPublisher({
-      homeDirectory,
-      control,
-    });
+    this.presencePublisher = createDesktopElectronLocalDevelopmentPresencePublisher({ homeDirectory });
   }
 
   async start(): Promise<void> {
@@ -188,7 +158,7 @@ export class ElectronLocalDevelopmentHost {
     if (!address || typeof address === 'string') throw new Error('local-development-supervisor-required');
     this.endpoint = `http://127.0.0.1:${address.port}`;
     try {
-      await this.projectionPublisher.start(this.endpoint);
+      await this.presencePublisher.start(this.endpoint);
     } catch (error) {
       const server = this.server;
       this.server = undefined;
@@ -200,16 +170,11 @@ export class ElectronLocalDevelopmentHost {
 
   async invoke(command: string, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
     if (!COMMANDS.has(command)) throw new Error('local-development-command-unavailable');
-    if (command === 'local_development_pending_approvals') {
-      return [...this.pending.values()].map((row) => row.projection);
-    }
     if (command === 'local_development_runs_list') {
       return [...this.runs.values()].map((run) => projectRun(run.status));
     }
-    if (command === 'local_development_authorizations_list') return this.listAuthorizations();
-    const nested = exactNestedPayload(payload);
-    if (command === 'local_development_decide') return this.decide(nested);
-    return this.revoke(nested);
+    if (command === 'local_development_registrations_list') return this.listRegistrations();
+    return this.removeRegistration(exactNestedPayload(payload));
   }
 
   shutdown(): Promise<void> {
@@ -241,7 +206,7 @@ export class ElectronLocalDevelopmentHost {
     }
     this.server = undefined;
     try {
-      await this.projectionPublisher.shutdown();
+      await this.presencePublisher.shutdown();
     } catch (error) {
       failures.push(error);
     }
@@ -350,15 +315,15 @@ export class ElectronLocalDevelopmentHost {
       },
     };
     this.runs.set(runId, run);
-    await this.resolveAuthority(run);
+    await this.resolveRegistration(run);
     return run.status;
   }
 
-  private async resolveAuthority(run: RunContext): Promise<void> {
+  private async resolveRegistration(run: RunContext): Promise<void> {
     if (run.stopped) return;
-    let evaluation: NimiElectronLocalDevelopmentEvaluation;
+    let registration: NimiElectronLocalDevelopmentRegistration;
     try {
-      evaluation = await this.control.evaluate({
+      registration = await this.control.register({
         expectedAppId: run.plan.appId,
         projectRoot: run.plan.projectRoot,
         shell: 'electron',
@@ -366,133 +331,47 @@ export class ElectronLocalDevelopmentHost {
       });
     } catch (error) {
       const code = reason(error);
-      setRunState(run, resolveLocalDevelopmentAuthorityFailureState(code), code, code, true);
+      setRunState(run, resolveLocalDevelopmentRegistrationFailureState(code), code, code, true);
       this.ensureHealthTimer(run);
       return;
     }
-    if (!sameLocalDevelopmentProject(evaluation, run.plan)) {
+    if (!sameLocalDevelopmentProject(registration, run.plan)) {
       setRunState(run, 'project-changed', 'local-development-project-changed', 'local-development-project-changed', false);
       return;
     }
-    if (evaluation.confirmationRequired) {
-      await this.queueApproval(run, evaluation);
-      return;
-    }
-    const authorization = evaluation.authorization;
-    if (!authorization || authorization.state !== 'active') {
-      setRunState(run, 'authorization-required', 'local-development-authorization-required', 'local-development-authorization-required', false);
-      return;
-    }
-    run.authorizationId = authorization.authorizationId;
+    run.registrationHandle = registration.registrationHandle;
     this.startSupervisor(run);
   }
 
-  private async queueApproval(run: RunContext, evaluation: NimiElectronLocalDevelopmentEvaluation): Promise<void> {
-    if (!evaluation.evaluationId
-      || !Number.isSafeInteger(evaluation.evaluationExpiresAtUnixMs)
-      || evaluation.evaluationExpiresAtUnixMs === null
-      || evaluation.evaluationExpiresAtUnixMs <= 0) {
-      throw new Error('runtime-service-untrusted');
+  private async listRegistrations(): Promise<RendererRegistration[]> {
+    const rows = (await this.control.listRegistrations())
+      .filter((registration) => registration.project.shell === 'electron');
+    const currentHandles = new Set(rows.map((registration) => registration.registrationHandle));
+    for (const [selectorValue, handle] of this.registrationSelectors) {
+      if (!currentHandles.has(handle)) this.registrationSelectors.delete(selectorValue);
     }
-    for (const [requestId, row] of this.pending) {
-      if (row.run === run) this.pending.delete(requestId);
-    }
-    const requestId = randomSelector('dev-approval');
-    this.pending.set(requestId, {
-      evaluationId: evaluation.evaluationId,
-      evaluationExpiresAtUnixMs: evaluation.evaluationExpiresAtUnixMs,
-      run,
-      projection: {
-        requestId,
-        appId: evaluation.project.appId,
-        displayName: evaluation.project.displayName,
-        canonicalProjectRoot: evaluation.project.canonicalProjectRoot,
-        shell: 'electron',
-        accountId: evaluation.project.accountId,
-        permissionRequirements: evaluation.project.permissionRequirements.map((requirement) => ({ ...requirement })),
-        approvalState: evaluation.state,
-      },
-    });
-    setRunState(run, 'pending-approval', 'Waiting for approval in Nimi', undefined, false);
-    await this.focusMainWindow();
-  }
-
-  private async decide(payload: Readonly<Record<string, unknown>>): Promise<RunStatus> {
-    if (Object.keys(payload).sort().join('|') !== 'decision|requestId|riskDisclosureAcknowledged'
-      || typeof payload.riskDisclosureAcknowledged !== 'boolean') {
-      throw new Error('local-development-approval-decision-invalid');
-    }
-    const requestId = selector(payload.requestId, 'dev-approval');
-    const selected = this.pending.get(requestId);
-    if (!selected) throw new Error('local-development-approval-request-not-found');
-    const decision = localDecision(payload.decision);
-    this.pending.delete(requestId);
-    if (Date.now() >= selected.evaluationExpiresAtUnixMs) {
-      await this.resolveAuthority(selected.run);
-      return selected.run.status;
-    }
-    let authorization: NimiElectronLocalDevelopmentAuthorization;
-    try {
-      authorization = await this.control.decide({
-        evaluationId: selected.evaluationId,
-        decision,
-        riskDisclosureAcknowledged: payload.riskDisclosureAcknowledged,
-      });
-    } catch (error) {
-      const code = reason(error);
-      if (requiresFreshLocalDevelopmentEvaluation(code)) {
-        await this.resolveAuthority(selected.run);
-        return selected.run.status;
-      }
-      const state = resolveLocalDevelopmentAuthorityFailureState(code);
-      setRunState(selected.run, state, code, code, state === 'runtime-unavailable');
-      if (state === 'runtime-unavailable') this.ensureHealthTimer(selected.run);
-      return selected.run.status;
-    }
-    if (decision === 'deny') {
-      setRunState(selected.run, 'denied', 'Development access was denied', 'local-development-approval-denied', false);
-      return selected.run.status;
-    }
-    if (authorization.state !== 'active') {
-      setRunState(selected.run, 'authorization-required', 'local-development-authorization-required', 'local-development-authorization-required', false);
-      return selected.run.status;
-    }
-    selected.run.authorizationId = authorization.authorizationId;
-    this.startSupervisor(selected.run);
-    return selected.run.status;
-  }
-
-  private async listAuthorizations(): Promise<RendererAuthorization[]> {
-    const rows = currentLocalDevelopmentAuthorizations(
-      (await this.control.listAuthorizations())
-        .filter((authorization) => authorization.project.shell === 'electron'),
-    );
-    const currentIds = new Set(rows.map((authorization) => authorization.authorizationId));
-    for (const [selectorValue, authorizationId] of this.authorizationSelectors) {
-      if (!currentIds.has(authorizationId)) this.authorizationSelectors.delete(selectorValue);
-    }
-    return rows.map((authorization) => {
-      let selectorValue = [...this.authorizationSelectors].find(([, id]) => id === authorization.authorizationId)?.[0];
+    return rows.map((registration) => {
+      let selectorValue = [...this.registrationSelectors]
+        .find(([, handle]) => handle === registration.registrationHandle)?.[0];
       selectorValue ??= randomSelector('dev-project');
-      this.authorizationSelectors.set(selectorValue, authorization.authorizationId);
-      return projectAuthorization(selectorValue, authorization);
+      this.registrationSelectors.set(selectorValue, registration.registrationHandle);
+      return projectRegistration(selectorValue, registration);
     });
   }
 
-  private async revoke(payload: Readonly<Record<string, unknown>>): Promise<RendererAuthorization> {
-    if (Object.keys(payload).join('|') !== 'selector') throw new Error('local-development-authorization-not-found');
+  private async removeRegistration(payload: Readonly<Record<string, unknown>>): Promise<{ readonly selector: string; readonly removed: true }> {
+    if (Object.keys(payload).join('|') !== 'selector') throw new Error('local-development-registration-not-found');
     const selectorValue = selector(payload.selector, 'dev-project');
-    const authorizationId = this.authorizationSelectors.get(selectorValue);
-    if (!authorizationId) throw new Error('local-development-authorization-not-found');
-    const authorization = await this.control.revokeAuthorization(authorizationId);
+    const registrationHandle = this.registrationSelectors.get(selectorValue);
+    if (!registrationHandle) throw new Error('local-development-registration-not-found');
     for (const run of this.runs.values()) {
-      if (run.authorizationId === authorizationId) {
-        run.stopped = true;
-        setRunState(run, 'revoked', 'Development authorization was revoked', 'local-development-session-revoked', false);
-        await this.stopRunProcesses(run);
+      if (run.registrationHandle === registrationHandle && !run.stopped) {
+        await this.stopRun(run, 'registration-removed');
       }
     }
-    return projectAuthorization(selectorValue, authorization);
+    await this.control.removeRegistration(registrationHandle);
+    this.registrationSelectors.delete(selectorValue);
+    return { selector: selectorValue, removed: true };
   }
 
   private startSupervisor(run: RunContext): void {
@@ -559,15 +438,15 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private async launchHost(run: RunContext): Promise<void> {
-    if (!run.authorizationId) throw new Error('local-development-authorization-required');
+    if (!run.registrationHandle) throw new Error('local-development-registration-not-found');
     const mainEntry = await canonicalElectronMain(run.plan);
     const userDataArguments = await resolveLocalAppUserDataArguments({
-      authorizationId: run.authorizationId,
+      registrationHandle: run.registrationHandle,
       homeDirectory: this.homeDirectory,
     });
     setRunState(run, 'starting', 'Starting the supervised Electron host', undefined, false);
     const outcome = await this.control.launch({
-      authorizationId: run.authorizationId,
+      registrationHandle: run.registrationHandle,
       supervisorRunId: run.supervisorRunId,
       shell: 'electron',
       hostExecutablePath: run.plan.electronExecutable,
@@ -591,47 +470,54 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private ensureHealthTimer(run: RunContext): void {
-    run.healthTimer ??= setInterval(() => void this.refreshAuthority(run), HEALTH_MS);
+    run.healthTimer ??= setInterval(() => void this.refreshRegistration(run), HEALTH_MS);
   }
 
-  private async refreshAuthority(run: RunContext): Promise<void> {
-    if (run.stopped || run.tearingDown || run.rebuilding || run.status.state === 'pending-approval') return;
+  private async refreshRegistration(run: RunContext): Promise<void> {
+    if (run.stopped || run.tearingDown || run.rebuilding) return;
+    if (!run.registrationHandle) {
+      await this.resolveRegistration(run);
+      return;
+    }
     try {
-      const evaluation = await this.control.evaluate({
-        expectedAppId: run.plan.appId,
-        projectRoot: run.plan.projectRoot,
-        shell: 'electron',
-        supervisorRunId: run.supervisorRunId,
-      });
-      if (evaluation.confirmationRequired) {
-        run.tearingDown = true;
-        try {
-          await this.stopRunProcesses(run);
-          run.authorizationId = undefined;
-          await this.queueApproval(run, evaluation);
-        } finally {
-          run.tearingDown = false;
-        }
+      const registrations = await this.control.listRegistrations();
+      const registration = registrations.find((candidate) => (
+        candidate.registrationHandle === run.registrationHandle
+      ));
+      if (!registration) {
+        await this.failClosedRun(run, {
+          state: 'registration-removed',
+          message: 'local-development-registration-not-found',
+          reasonCode: 'local-development-registration-not-found',
+          retryable: false,
+          endRun: false,
+          resumeRegistrationRefresh: false,
+        });
         return;
       }
-      if (!evaluation.authorization || evaluation.authorization.state !== 'active') {
-        await this.control.terminateHost(run.supervisorRunId);
-        setRunState(run, 'authorization-required', 'local-development-authorization-required', 'local-development-authorization-required', true);
+      if (!sameLocalDevelopmentProject(registration, run.plan)) {
+        await this.failClosedRun(run, {
+          state: 'project-changed',
+          message: 'local-development-project-changed',
+          reasonCode: 'local-development-project-changed',
+          retryable: false,
+          endRun: true,
+          resumeRegistrationRefresh: false,
+        });
         return;
       }
-      run.authorizationId = evaluation.authorization.authorizationId;
       const running = await this.control.hostRunning(run.supervisorRunId);
       if (!running && run.status.hostGeneration > 0) await this.replaceHost(run);
       if (!run.supervising && !run.renderer) this.startSupervisor(run);
     } catch (error) {
       const code = reason(error);
       await this.failClosedRun(run, {
-        state: resolveLocalDevelopmentAuthorityFailureState(code),
+        state: resolveLocalDevelopmentRegistrationFailureState(code),
         message: code,
         reasonCode: code,
         retryable: true,
-        endAuthorization: false,
-        resumeAuthorityRefresh: true,
+        endRun: false,
+        resumeRegistrationRefresh: true,
       });
     }
   }
@@ -642,8 +528,8 @@ export class ElectronLocalDevelopmentHost {
       message: `local-development-dev-server-exited-${code ?? -1}`,
       reasonCode: 'local-development-dev-server-uncontrolled',
       retryable: false,
-      endAuthorization: true,
-      resumeAuthorityRefresh: false,
+      endRun: true,
+      resumeRegistrationRefresh: false,
     });
   }
 
@@ -652,21 +538,21 @@ export class ElectronLocalDevelopmentHost {
     readonly message: string;
     readonly reasonCode: string;
     readonly retryable: boolean;
-    readonly endAuthorization: boolean;
-    readonly resumeAuthorityRefresh: boolean;
+    readonly endRun: boolean;
+    readonly resumeRegistrationRefresh: boolean;
   }): Promise<void> {
     if (run.stopped || run.tearingDown) return;
     run.tearingDown = true;
-    if (!outcome.resumeAuthorityRefresh) run.stopped = true;
+    if (!outcome.resumeRegistrationRefresh) run.stopped = true;
     try {
-      await this.teardownRun(run, outcome.endAuthorization);
+      await this.teardownRun(run, outcome.endRun);
       setRunState(run, outcome.state, outcome.message, outcome.reasonCode, outcome.retryable);
     } catch {
       run.stopped = true;
       setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
     } finally {
       run.tearingDown = false;
-      if (outcome.resumeAuthorityRefresh && !run.stopped) this.ensureHealthTimer(run);
+      if (outcome.resumeRegistrationRefresh && !run.stopped) this.ensureHealthTimer(run);
     }
   }
 
@@ -714,26 +600,23 @@ export class ElectronLocalDevelopmentHost {
     setRunState(run, state, 'Development run stopped', undefined, false);
   }
 
-  private async teardownRun(run: RunContext, endAuthorization: boolean): Promise<void> {
-    for (const [requestId, row] of this.pending) {
-      if (row.run === run) this.pending.delete(requestId);
+  private async teardownRun(run: RunContext, endRun: boolean): Promise<void> {
+    if (endRun && run.registrationHandle) {
+      run.pendingEndRunRegistrationHandle ??= run.registrationHandle;
+      run.registrationHandle = undefined;
     }
-    if (endAuthorization && run.authorizationId) {
-      run.pendingEndRunAuthorizationId ??= run.authorizationId;
-    }
-    run.authorizationId = undefined;
     const failures: unknown[] = [];
     try {
       await this.stopRunProcesses(run);
     } catch (error) {
       failures.push(error);
     }
-    const pendingEndRunAuthorizationId = run.pendingEndRunAuthorizationId;
-    if (pendingEndRunAuthorizationId) {
+    const pendingEndRunRegistrationHandle = run.pendingEndRunRegistrationHandle;
+    if (pendingEndRunRegistrationHandle) {
       try {
-        await this.control.endRun(pendingEndRunAuthorizationId, run.supervisorRunId);
-        if (run.pendingEndRunAuthorizationId === pendingEndRunAuthorizationId) {
-          run.pendingEndRunAuthorizationId = undefined;
+        await this.control.endRun(pendingEndRunRegistrationHandle, run.supervisorRunId);
+        if (run.pendingEndRunRegistrationHandle === pendingEndRunRegistrationHandle) {
+          run.pendingEndRunRegistrationHandle = undefined;
         }
       } catch (error) {
         failures.push(error);
@@ -818,53 +701,25 @@ function projectRun(status: RunStatus) {
   };
 }
 
-function projectAuthorization(selectorValue: string, authorization: NimiElectronLocalDevelopmentAuthorization): RendererAuthorization {
-  if (authorization.project.shell !== 'electron') {
-    throw new Error('local-development-authority-shell-unsupported');
+function projectRegistration(
+  selectorValue: string,
+  registration: NimiElectronLocalDevelopmentRegistration,
+): RendererRegistration {
+  if (registration.project.shell !== 'electron') {
+    throw new Error('local-development-registration-shell-unsupported');
   }
   return {
     selector: selectorValue,
-    appId: authorization.project.appId,
-    displayName: authorization.project.displayName,
-    canonicalProjectRoot: authorization.project.canonicalProjectRoot,
-    shell: authorization.project.shell,
-    accountId: authorization.project.accountId,
-    permissionRequirements: authorization.project.permissionRequirements.map((requirement) => ({ ...requirement })),
-    persistence: authorization.persistence,
-    state: authorization.state,
-    updatedAtUnixMs: authorization.updatedAtUnixMs,
+    appId: registration.project.appId,
+    displayName: registration.project.displayName,
+    canonicalProjectRoot: registration.project.canonicalProjectRoot,
+    shell: registration.project.shell,
+    appAccess: [...registration.project.appAccess],
+    sourceGeneration: registration.project.sourceGeneration,
+    declarationGeneration: registration.project.declarationGeneration,
+    registeredAtUnixMs: registration.registeredAtUnixMs,
+    updatedAtUnixMs: registration.updatedAtUnixMs,
   };
-}
-
-function currentLocalDevelopmentAuthorizations(
-  rows: readonly NimiElectronLocalDevelopmentAuthorization[],
-): NimiElectronLocalDevelopmentAuthorization[] {
-  const current: NimiElectronLocalDevelopmentAuthorization[] = [];
-  for (const candidate of rows) {
-    const index = current.findIndex((authorization) => (
-      authorization.project.accountId === candidate.project.accountId
-      && (
-        authorization.project.appId === candidate.project.appId
-        || comparableCanonicalProjectPath(authorization.project.canonicalProjectRoot)
-          === comparableCanonicalProjectPath(candidate.project.canonicalProjectRoot)
-      )
-    ));
-    if (index < 0) {
-      current.push(candidate);
-      continue;
-    }
-    const selected = current[index]!;
-    const candidateIsActive = candidate.state === 'active';
-    const selectedIsActive = selected.state === 'active';
-    if (
-      (candidateIsActive && !selectedIsActive)
-      || (candidateIsActive === selectedIsActive
-        && candidate.updatedAtUnixMs > selected.updatedAtUnixMs)
-    ) {
-      current[index] = candidate;
-    }
-  }
-  return current;
 }
 
 function sameLocalDevelopmentPlan(
@@ -880,13 +735,13 @@ function sameLocalDevelopmentPlan(
 }
 
 export function sameLocalDevelopmentProject(
-  evaluation: NimiElectronLocalDevelopmentEvaluation,
+  registration: NimiElectronLocalDevelopmentRegistration,
   plan: ElectronLocalDevelopmentPlan,
 ): boolean {
-  return evaluation.project.appId === plan.appId
-    && comparableCanonicalProjectPath(evaluation.project.canonicalProjectRoot)
+  return registration.project.appId === plan.appId
+    && comparableCanonicalProjectPath(registration.project.canonicalProjectRoot)
       === comparableCanonicalProjectPath(plan.projectRoot)
-    && evaluation.project.shell === 'electron';
+    && registration.project.shell === 'electron';
 }
 
 function comparableCanonicalProjectPath(value: string): string {
@@ -944,9 +799,9 @@ function reason(error: unknown): string {
   if (error instanceof Error && /^[A-Za-z][A-Za-z0-9_-]{0,127}$/u.test(error.message)) return error.message;
   return 'local-development-supervisor-required';
 }
-export function resolveLocalDevelopmentAuthorityFailureState(
+export function resolveLocalDevelopmentRegistrationFailureState(
   reasonCode: string,
-): 'runtime-unavailable' | 'authorization-required' {
+): 'runtime-unavailable' | 'registration-unavailable' {
   return [
     'process-replaced',
     'runtime-restarted',
@@ -955,10 +810,5 @@ export function resolveLocalDevelopmentAuthorityFailureState(
     'runtime-service-untrusted',
   ].includes(reasonCode)
     ? 'runtime-unavailable'
-    : 'authorization-required';
-}
-
-function requiresFreshLocalDevelopmentEvaluation(reasonCode: string): boolean {
-  return reasonCode === 'local-development-authorization-required'
-    || reasonCode === 'local-development-reapproval-required';
+    : 'registration-unavailable';
 }

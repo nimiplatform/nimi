@@ -34,15 +34,18 @@ export type NimiLocalAppAIConfigClient = {
  * binding; renderer callers submit capability intent only.
  */
 export function createNimiLocalAppAIConfigClient(
-  shell: NimiLocalAppAIConfigShell,
+  _shell: NimiLocalAppAIConfigShell,
 ): NimiLocalAppAIConfigClient {
-  return Object.freeze({
-    get: async () => projectAppAIConfig(await shell.get()),
-    overwrite: async (capabilities: readonly NimiCapabilityAIConfigIntent[]) => {
-      validateCapabilityIntents(capabilities);
-      return projectAppAIConfig(await shell.overwrite(capabilities));
-    },
-  });
+  const unavailable = async (): Promise<never> => protectedAppAccessUnavailable();
+  return Object.freeze({ get: unavailable, overwrite: unavailable });
+}
+
+function protectedAppAccessUnavailable(): never {
+  return localAppError(
+    'Protected App operations are unavailable until Runtime establishes a fresh App Access session.',
+    'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
+    'retry_after_protected_session_establishment',
+  );
 }
 
 function validateCapabilityIntents(

@@ -49,7 +49,6 @@ mod windows_local_app;
 #[allow(unsafe_code)]
 mod windows_local_development;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-mod windows_local_development_authority_summary;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_peer_trust;
@@ -71,22 +70,20 @@ pub use bundled_avatar::{
 };
 pub use carrier::{
     DesktopControlFuture, LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
-    LocalAppAgentHandle, LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppArtifactPutRequest, LocalAppArtifactPutResult, LocalAppArtifactReadRequest,
-    LocalAppArtifactReadResult, LocalAppConversationEvent, LocalAppConversationInterruptRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppArtifactPutRequest,
+    LocalAppArtifactPutResult, LocalAppArtifactReadRequest, LocalAppArtifactReadResult,
+    LocalAppConversationEvent, LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshotRequest,
     LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
-    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionState,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
-    LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus,
-    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppSharedAgentAIProfileRequest,
-    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
-    LocalAppTextCandidateRequest, LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest,
-    LocalAppWorldCoreListRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
-    NimiProtectedLocalHostCarrier,
+    LocalAppOperationError, LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState,
+    LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppSharedAgentAIProfileRequest, LocalAppStorageDocument, LocalAppStorageReadRequest,
+    LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
+    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
+    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, NimiDesktopControl,
+    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
@@ -95,8 +92,6 @@ pub use desktop_account::{
     DesktopAccountSessionDeliveryKind, DesktopAccountSessionEvent,
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
-    DesktopPermissionOwnerUnaryMethod, DesktopPermissionOwnerUnaryRequest,
-    DesktopPermissionOwnerUnaryResponse,
 };
 pub use first_party_product::{
     DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
@@ -112,15 +107,10 @@ pub use first_party_profiles_generated::{
     DESKTOP_MACHINE_PRODUCT_STREAM_METHODS, DESKTOP_MACHINE_PRODUCT_UNARY_METHODS,
 };
 pub use local_development::{
-    DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthoritySummary,
-    LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentDeveloperModeSummary,
-    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
-    LocalDevelopmentPermissionRequirement, LocalDevelopmentProject,
-    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentShellKind,
-    LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
-    LOCAL_DEVELOPMENT_TRUST_CLASS,
+    DeveloperModeState, DeveloperModeStatus, LocalDevelopmentEndRunRequest,
+    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
+    LocalDevelopmentRegistration, LocalDevelopmentRegistrationRequest, LocalDevelopmentShellKind,
+    NimiHostError, NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 #[cfg(target_os = "macos")]
 pub use macos_data_root::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};

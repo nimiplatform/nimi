@@ -861,10 +861,6 @@ export enum ReasonCode {
      */
     APP_OPEN_APP_DATA_INVALID = 609,
     /**
-     * @generated from protobuf enum value: APP_OPEN_PERMISSION_NOT_GRANTED = 610;
-     */
-    APP_OPEN_PERMISSION_NOT_GRANTED = 610,
-    /**
      * @generated from protobuf enum value: APP_OPEN_AICONFIG_UNRESOLVED = 611;
      */
     APP_OPEN_AICONFIG_UNRESOLVED = 611,
@@ -1015,18 +1011,6 @@ export enum ReasonCode {
      */
     LOCAL_APP_SESSION_REVOKED = 650,
     /**
-     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_REQUIRED = 651;
-     */
-    LOCAL_APP_PERMISSION_REQUIRED = 651,
-    /**
-     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_DENIED = 652;
-     */
-    LOCAL_APP_PERMISSION_DENIED = 652,
-    /**
-     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_REVOKED = 653;
-     */
-    LOCAL_APP_PERMISSION_REVOKED = 653,
-    /**
      * @generated from protobuf enum value: LOCAL_APP_ACCOUNT_CHANGED = 654;
      */
     LOCAL_APP_ACCOUNT_CHANGED = 654,
@@ -1046,10 +1030,6 @@ export enum ReasonCode {
      * @generated from protobuf enum value: LOCAL_APP_DEVELOPER_MODE_DISABLED = 658;
      */
     LOCAL_APP_DEVELOPER_MODE_DISABLED = 658,
-    /**
-     * @generated from protobuf enum value: LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660;
-     */
-    LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660,
     /**
      * Realm broker (661-667): account-owned Realm transport/application results.
      *
@@ -1080,18 +1060,6 @@ export enum ReasonCode {
      * @generated from protobuf enum value: REALM_OPERATION_FAILED = 667;
      */
     REALM_OPERATION_FAILED = 667,
-    /**
-     * Permission admission precision and agents.configure optimistic
-     * concurrency. These values preserve reserved/unknown distinction across
-     * protected-local carriers without exposing owner-internal records.
-     *
-     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED = 668;
-     */
-    LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED = 668,
-    /**
-     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_UNKNOWN = 669;
-     */
-    LOCAL_APP_PERMISSION_UNKNOWN = 669,
     /**
      * @generated from protobuf enum value: AGENT_AI_CONFIG_REVISION_CONFLICT = 670;
      */

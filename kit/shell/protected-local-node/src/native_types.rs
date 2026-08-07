@@ -101,7 +101,7 @@ pub struct NativeDeveloperModeSetInput {
 }
 
 #[napi(object)]
-pub struct NativeLocalDevelopmentEvaluateInput {
+pub struct NativeLocalDevelopmentRegisterInput {
     pub expected_app_id: String,
     pub project_root: String,
     pub shell: String,
@@ -109,20 +109,13 @@ pub struct NativeLocalDevelopmentEvaluateInput {
 }
 
 #[napi(object)]
-pub struct NativeLocalDevelopmentDecisionInput {
-    pub evaluation_id: String,
-    pub decision: String,
-    pub risk_disclosure_acknowledged: bool,
-}
-
-#[napi(object)]
-pub struct NativeLocalDevelopmentAuthorizationInput {
-    pub authorization_id: String,
+pub struct NativeLocalDevelopmentRegistrationInput {
+    pub registration_handle: String,
 }
 
 #[napi(object)]
 pub struct NativeLocalDevelopmentLaunchInput {
-    pub authorization_id: String,
+    pub registration_handle: String,
     pub supervisor_run_id: String,
     pub shell: String,
     pub host_executable_path: String,
@@ -138,20 +131,8 @@ pub struct NativeLocalDevelopmentRunInput {
 
 #[napi(object)]
 pub struct NativeLocalDevelopmentEndRunInput {
-    pub authorization_id: String,
+    pub registration_handle: String,
     pub supervisor_run_id: String,
-}
-
-#[napi(object)]
-pub struct NativePermissionStatusInput {
-    pub permission_id: String,
-}
-
-#[napi(object)]
-pub struct NativePermissionRequestInput {
-    pub permission_id: String,
-    pub reason: String,
-    pub request_id: String,
 }
 
 #[napi(object)]

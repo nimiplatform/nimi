@@ -64,29 +64,29 @@ directories:
     source_rule: P-MIG-006
 
   - directory_id: apps_releases
-    path: "<nimi_data>/apps/<local_app_principal_id>/releases/"
+    path: "<nimi_data>/apps/<registered_app_subject>/releases/"
     owner: runtime_local_app_storage
-    product_meaning: Principal-keyed immutable release payload slot; positive package materialization is unavailable before 0P/P.
-    cleanup_rule: Runtime owner action only after package authority exists; never rebind across principals.
+    product_meaning: Registered-App-subject-keyed immutable release payload slot; positive package materialization is unavailable before 0P/P.
+    cleanup_rule: Runtime owner action only after package authority exists; never rebind across Registered App Subjects.
     source_rule: P-MIG-006
 
   - directory_id: apps_data
-    path: "<nimi_data>/apps/<local_app_principal_id>/data/"
-    owner: runtime_enforced_local_app_principal
+    path: "<nimi_data>/apps/<registered_app_subject>/data/"
+    owner: runtime_enforced_registered_app_subject
     product_meaning: App-owned durable local data.
     cleanup_rule: Kept by default on package uninstall; explicit user delete required.
     source_rule: P-MIG-006
 
   - directory_id: apps_cache
-    path: "<nimi_data>/apps/<local_app_principal_id>/cache/"
-    owner: runtime_enforced_local_app_principal
+    path: "<nimi_data>/apps/<registered_app_subject>/cache/"
+    owner: runtime_enforced_registered_app_subject
     product_meaning: App-owned cache.
     cleanup_rule: Clearable through app or Support cleanup.
     source_rule: P-MIG-006
 
   - directory_id: apps_tmp
-    path: "<nimi_data>/apps/<local_app_principal_id>/tmp/"
-    owner: runtime_enforced_local_app_principal
+    path: "<nimi_data>/apps/<registered_app_subject>/tmp/"
+    owner: runtime_enforced_registered_app_subject
     product_meaning: App temporary files.
     cleanup_rule: Safe to clean when the app is stopped.
     source_rule: P-MIG-006

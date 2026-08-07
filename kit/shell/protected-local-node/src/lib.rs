@@ -8,25 +8,21 @@ use nimi_shell_protected_local::{
     DesktopAccountProductUnaryRequest, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
     DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
     DesktopAccountSessionStatusRequest, DesktopMachineProductUnaryMethod,
-    DesktopMachineProductUnaryRequest, DesktopPermissionOwnerUnaryMethod,
-    DesktopPermissionOwnerUnaryRequest, FixedRuntimeServiceControl,
+    DesktopMachineProductUnaryRequest, FixedRuntimeServiceControl,
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppArtifactPutRequest,
     LocalAppArtifactReadRequest, LocalAppConversationEvent, LocalAppConversationInterruptRequest,
     LocalAppConversationOpenRequest, LocalAppConversationSendRequest,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppReasonCode,
     LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppSharedAgentAIProfileRequest, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageWriteRequest, LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
-    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, LocalDevelopmentAuthoritySummary,
-    LocalDevelopmentAuthorization, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
-    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability,
-    NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode, NimiLocalAppCarrier,
-    NimiLocalAppSession, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
-    RuntimeServiceActionOutcome,
+    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, LocalDevelopmentEndRunRequest,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentRegistration,
+    LocalDevelopmentRegistrationRequest, LocalDevelopmentShellKind, NimiDesktopControl,
+    NimiHostError, NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
+    ProtectedCarrierError, RuntimeServiceActionOutcome,
 };
 #[cfg(target_os = "macos")]
 use nimi_shell_protected_local::{MacOsLocalAppCarrier, MacOsUnixSocketCarrier};
@@ -228,39 +224,6 @@ pub async fn desktop_account_session_status() -> NativeJsonOutcome {
     }
 }
 
-#[napi(js_name = "desktopPermissionOwnerUnary")]
-pub async fn desktop_permission_owner_unary(
-    input: NativeFirstPartyProductInput,
-) -> NativeBytesOutcome {
-    let Some(method) = DesktopPermissionOwnerUnaryMethod::from_method_id(input.method_id.trim())
-    else {
-        return NativeBytesOutcome::error("runtime-service-untrusted", false);
-    };
-    if input
-        .timeout_ms
-        .is_some_and(|value| value == 0 || value > 30_000)
-    {
-        return NativeBytesOutcome::error("runtime-service-untrusted", false);
-    }
-    let control = match current_or_open_desktop_control().await {
-        Ok(control) => control,
-        Err(error) => return NativeBytesOutcome::host_error(error),
-    };
-    match control
-        .invoke_permission_owner_unary(DesktopPermissionOwnerUnaryRequest {
-            method,
-            request_bytes: input.request_bytes.to_vec(),
-        })
-        .await
-    {
-        Ok(response) => NativeBytesOutcome::success(response.response_bytes),
-        Err(error) => {
-            clear_desktop_control_on_host_failure(&control, &error).await;
-            NativeBytesOutcome::host_error(error)
-        }
-    }
-}
-
 #[napi(js_name = "desktopAccountBeginLogin")]
 pub async fn desktop_account_begin_login(
     input: NativeDesktopAccountBeginLoginInput,
@@ -427,20 +390,9 @@ pub async fn desktop_developer_mode_set(input: NativeDeveloperModeSetInput) -> N
     .await
 }
 
-#[napi(js_name = "desktopGetLocalDevelopmentAuthoritySummary")]
-pub async fn desktop_get_local_development_authority_summary() -> NativeJsonOutcome {
-    invoke_desktop_json(|control| async move {
-        control
-            .get_local_development_authority_summary()
-            .await
-            .map(project_local_development_authority_summary)
-    })
-    .await
-}
-
-#[napi(js_name = "desktopEvaluateLocalDevelopmentProject")]
-pub async fn desktop_evaluate_local_development_project(
-    input: NativeLocalDevelopmentEvaluateInput,
+#[napi(js_name = "desktopRegisterLocalDevelopmentProject")]
+pub async fn desktop_register_local_development_project(
+    input: NativeLocalDevelopmentRegisterInput,
 ) -> NativeJsonOutcome {
     let supervisor_run_id = match decode_identifier(&input.supervisor_run_id) {
         Some(value) => value,
@@ -452,53 +404,28 @@ pub async fn desktop_evaluate_local_development_project(
     };
     invoke_desktop_json(|control| async move {
         control
-            .evaluate_local_development_project(LocalDevelopmentEvaluationRequest {
+            .register_local_development_project(LocalDevelopmentRegistrationRequest {
                 expected_app_id: input.expected_app_id,
                 project_root: PathBuf::from(input.project_root),
                 shell_kind,
                 supervisor_run_id,
             })
             .await
-            .map(project_local_development_evaluation)
+            .map(project_local_development_registration)
     })
     .await
 }
 
-#[napi(js_name = "desktopDecideLocalDevelopmentProject")]
-pub async fn desktop_decide_local_development_project(
-    input: NativeLocalDevelopmentDecisionInput,
-) -> NativeJsonOutcome {
-    let evaluation_id = match decode_identifier(&input.evaluation_id) {
-        Some(value) => value,
-        None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
-    };
-    let decision = match local_development_decision(&input.decision) {
-        Some(value) => value,
-        None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
-    };
+#[napi(js_name = "desktopListLocalDevelopmentRegistrations")]
+pub async fn desktop_list_local_development_registrations() -> NativeJsonOutcome {
     invoke_desktop_json(|control| async move {
         control
-            .decide_local_development_project(LocalDevelopmentDecisionRequest {
-                evaluation_id,
-                decision,
-                risk_disclosure_acknowledged: input.risk_disclosure_acknowledged,
-            })
-            .await
-            .map(project_local_development_authorization)
-    })
-    .await
-}
-
-#[napi(js_name = "desktopListLocalDevelopmentAuthorizations")]
-pub async fn desktop_list_local_development_authorizations() -> NativeJsonOutcome {
-    invoke_desktop_json(|control| async move {
-        control
-            .list_local_development_authorizations()
+            .list_local_development_registrations()
             .await
             .map(|rows| {
                 JsonValue::Array(
                     rows.into_iter()
-                        .map(project_local_development_authorization)
+                        .map(project_local_development_registration)
                         .collect(),
                 )
             })
@@ -506,19 +433,19 @@ pub async fn desktop_list_local_development_authorizations() -> NativeJsonOutcom
     .await
 }
 
-#[napi(js_name = "desktopRevokeLocalDevelopmentAuthorization")]
-pub async fn desktop_revoke_local_development_authorization(
-    input: NativeLocalDevelopmentAuthorizationInput,
+#[napi(js_name = "desktopRemoveLocalDevelopmentRegistration")]
+pub async fn desktop_remove_local_development_registration(
+    input: NativeLocalDevelopmentRegistrationInput,
 ) -> NativeJsonOutcome {
-    let authorization_id = match decode_identifier(&input.authorization_id) {
+    let registration_handle = match decode_identifier(&input.registration_handle) {
         Some(value) => value,
         None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
     };
     invoke_desktop_json(|control| async move {
         control
-            .revoke_local_development_authorization(authorization_id)
+            .remove_local_development_registration(registration_handle)
             .await
-            .map(project_local_development_authorization)
+            .map(|()| json!({ "removed": true }))
     })
     .await
 }
@@ -527,7 +454,7 @@ pub async fn desktop_revoke_local_development_authorization(
 pub async fn desktop_launch_local_development_host(
     input: NativeLocalDevelopmentLaunchInput,
 ) -> NativeJsonOutcome {
-    let authorization_id = match decode_identifier(&input.authorization_id) {
+    let registration_handle = match decode_identifier(&input.registration_handle) {
         Some(value) => value,
         None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
     };
@@ -542,7 +469,7 @@ pub async fn desktop_launch_local_development_host(
     invoke_desktop_json(|control| async move {
         control
             .launch_local_development_host(LocalDevelopmentLaunchRequest {
-                authorization_id,
+                registration_handle,
                 supervisor_run_id,
                 shell_kind,
                 host_executable_path: PathBuf::from(input.host_executable_path),
@@ -604,7 +531,7 @@ pub async fn desktop_terminate_local_development_host(
 pub async fn desktop_end_local_development_run(
     input: NativeLocalDevelopmentEndRunInput,
 ) -> NativeJsonOutcome {
-    let authorization_id = match decode_identifier(&input.authorization_id) {
+    let registration_handle = match decode_identifier(&input.registration_handle) {
         Some(value) => value,
         None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
     };
@@ -615,7 +542,7 @@ pub async fn desktop_end_local_development_run(
     invoke_desktop_json(|control| async move {
         control
             .end_local_development_run(LocalDevelopmentEndRunRequest {
-                authorization_id,
+                registration_handle,
                 supervisor_run_id,
             })
             .await
@@ -731,18 +658,14 @@ mod desktop_transport_invalidation_tests {
     }
 
     #[test]
-    fn account_permission_and_local_development_results_never_poison_the_verified_channel() {
+    fn account_and_local_development_results_never_poison_the_verified_channel() {
         for reason in [
             "principal-unauthorized",
-            "local-development-authorization-required",
-            "local-development-reapproval-required",
+            "account-changed",
             "local-development-project-changed",
             "local-development-supervisor-required",
             "local-development-session-revoked",
             "local-app-developer-mode-disabled",
-            "local-app-permission-required",
-            "local-app-permission-denied",
-            "local-app-permission-revoked",
             "local-app-presence-required",
             "local-app-presence-expired",
             "local-app-operation-unavailable",

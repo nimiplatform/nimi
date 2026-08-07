@@ -9,10 +9,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 )
 
 func New(logger *slog.Logger, opts ...Option) *Service {
@@ -36,9 +34,7 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		loginAttempts:                make(map[string]loginAttemptRecord),
 		workspaceBindings:            make(map[string]workspaceBindingRecord),
 		subscribers:                  make(map[uint64]subscriber),
-		permissionInboxSubscribers:   make(map[uint64]permissionInboxSubscriber),
 		accountGenerationInvalidated: make(chan struct{}),
-		permissionAdmitted:           apppermission.IsAdmitted,
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -49,27 +45,11 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 	return s
 }
 
-// WithLocalAppKernel injects the sole Runtime-owned local-app principal and
-// lifecycle record store. The account service never opens a parallel store.
-func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
-	return func(s *Service) {
-		s.localAppKernel = kernel
-	}
-}
-
 // WithAuditStore binds Account-owned security events to the sole Runtime audit
 // store. The account service never opens a parallel audit log.
 func WithAuditStore(store *auditlog.Store) Option {
 	return func(s *Service) {
 		s.auditStore = store
-	}
-}
-
-func WithLocalAppPermissionAdmissionResolver(resolver func(string) bool) Option {
-	return func(s *Service) {
-		if resolver != nil {
-			s.permissionAdmitted = resolver
-		}
 	}
 }
 

@@ -47,7 +47,6 @@ import section58 from './59-Appearance.json';
 import section60 from './61-DeveloperTools.json';
 import section61 from './62-Agents.json';
 import section62 from './63-LocalDevelopment.json';
-import section63 from './64-AppPermissions.json';
 import { agentCenterLocaleResources } from '@nimiplatform/kit/features/agent-center/headless';
 
 const section64 = agentCenterLocaleResources.zh;
@@ -102,7 +101,6 @@ const messages = {
   "DeveloperTools": section60,
   "Agents": section61,
   "LocalDevelopment": section62,
-  "AppPermissions": section63,
   "AgentCenter": section64,
 };
 

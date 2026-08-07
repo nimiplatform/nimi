@@ -143,7 +143,7 @@ func (verifier windowsLocalDevelopmentExecutableVerifier) VerifyWindowsExecutabl
 	}
 	observed = filepath.Clean(observed)
 	if !sameWindowsLocalDevelopmentHostFile(observed, verifier.hostPath) {
-		return "", fmt.Errorf("local-development executable escaped the approved project or expected host path")
+		return "", fmt.Errorf("local-development executable escaped the registered project or expected host path")
 	}
 	return WindowsLocalDevelopmentTrustSetID, nil
 }

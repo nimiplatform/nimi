@@ -4,7 +4,6 @@ import type { TesterCapability } from './tester-capabilities.js';
 // stand in for a successful execution.
 export type TesterUnavailableReason =
   | 'runtime-unavailable'
-  | 'permission-required'
   | 'input-invalid'
   | 'sdk-method-unavailable'
   | 'runtime-call-failed';
@@ -22,8 +21,6 @@ export function unavailableReasonTitle(reason: TesterUnavailableReason): string 
   switch (reason) {
     case 'runtime-unavailable':
       return 'Runtime unavailable';
-    case 'permission-required':
-      return 'Permission required';
     case 'input-invalid':
       return 'Invalid request input';
     case 'sdk-method-unavailable':
@@ -37,8 +34,6 @@ export function unavailableReasonUserMessage(reason: string): string {
   switch (reason) {
     case 'runtime-unavailable':
       return 'Runtime is unavailable for this request.';
-    case 'permission-required':
-      return 'Text generation requires approval in Nimi Desktop.';
     case 'input-invalid':
       return 'The request needs a valid prompt or required input before it can run.';
     case 'sdk-method-unavailable':
@@ -54,8 +49,6 @@ export function unavailableReasonUserAction(reason: string): string {
   switch (reason) {
     case 'runtime-unavailable':
       return 'Start or reconnect Runtime, then try again.';
-    case 'permission-required':
-      return 'Approve or restore the text generation permission in Nimi Desktop, then retry.';
     case 'input-invalid':
       return 'Review the prompt and required fields, then run it again.';
     case 'sdk-method-unavailable':
@@ -69,8 +62,6 @@ export function unavailableReasonUserAction(reason: string): string {
 
 function actionHintForReason(reason: TesterUnavailableReason): string {
   switch (reason) {
-    case 'permission-required':
-      return 'Approve or restore ai.text.generate in Nimi Desktop, then retry the same request.';
     case 'sdk-method-unavailable':
       return 'Add an admitted SDK Nimi App execution method. Do not bypass Runtime with app-local REST.';
     case 'input-invalid':

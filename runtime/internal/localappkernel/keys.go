@@ -9,33 +9,28 @@ import (
 	"hash"
 )
 
-type KeyDeriver struct {
-	kernel *Kernel
-}
+type KeyDeriver struct{ kernel *Kernel }
 
-// Derive returns opaque keys rooted only in the Runtime-derived OS-user
-// partition, account, and random principal. app_id is deliberately absent.
-func (deriver *KeyDeriver) Derive(ctx context.Context, accountID string, principalID string) (SecurityKeys, error) {
+// Derive roots account-scoped keys in the random Registered App Subject. The
+// display App id and registration management handle are deliberately absent.
+func (deriver *KeyDeriver) Derive(ctx context.Context, accountID, registeredAppSubject string) (SecurityKeys, error) {
 	if deriver == nil || deriver.kernel == nil {
 		return SecurityKeys{}, fmt.Errorf("%w: security key deriver", ErrInvalidArgument)
 	}
 	if err := requireExactText("account_id", accountID); err != nil {
 		return SecurityKeys{}, err
 	}
-	if err := requireExactText("local_app_principal_id", principalID); err != nil {
-		return SecurityKeys{}, err
-	}
-	principal, err := deriver.kernel.principals.Get(ctx, principalID)
+	registration, err := deriver.kernel.registrations.GetBySubject(ctx, registeredAppSubject)
 	if err != nil {
 		return SecurityKeys{}, err
 	}
-	if principal.State != PrincipalStateActive {
-		return SecurityKeys{}, ErrPrincipalTombstoned
+	if registration.State != RegistrationStateActive {
+		return SecurityKeys{}, ErrRegistrationTombstoned
 	}
 	return SecurityKeys{
-		StoragePartitionKey: opaqueKey("lap-storage-v1", deriver.kernel.anchor, accountID, principalID),
-		AudienceKey:         opaqueKey("lap-audience-v1", deriver.kernel.anchor, accountID, principalID),
-		AuditSubjectKey:     opaqueKey("lap-audit-v1", deriver.kernel.anchor, principalID),
+		StoragePartitionKey: opaqueKey("ras-storage-v1", deriver.kernel.anchor, accountID, registeredAppSubject),
+		AudienceKey:         opaqueKey("ras-audience-v1", deriver.kernel.anchor, accountID, registeredAppSubject),
+		AuditSubjectKey:     opaqueKey("ras-audit-v1", deriver.kernel.anchor, registeredAppSubject),
 	}, nil
 }
 

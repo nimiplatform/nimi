@@ -168,8 +168,6 @@ describe('standard shell capabilities', () => {
     expect(localAppSet?.forbiddenOperations).toEqual(readCapabilitySetList('forbidden_operations', catalog));
     expect(localAppSet?.allowedOperations).toEqual([
       'local-app.sessionStatus',
-      'local-app.permissionStatus',
-      'local-app.permissionRequest',
       'local-app.aiConfigGet',
       'local-app.aiConfigOverwrite',
       'local-app.textGenerateCandidate',
@@ -195,7 +193,7 @@ describe('standard shell capabilities', () => {
       'storage.removeJson',
       'desktop-open.openIntent',
     ]);
-    expect(localAppSet?.authorityStatus).toBe('permission_model_v1_with_exact_admitted_operation_families');
+    expect(localAppSet?.authorityStatus).toBe('app_access_declarations_with_protected_operations_unavailable_until_admission');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');
     expect(readCapabilitySetList('planned_operations', catalog)).toEqual(expect.arrayContaining([
       'data.pathResolve',
@@ -228,8 +226,7 @@ describe('standard shell capabilities', () => {
 
     expect(family).toContain('command: local-app.textGenerateCandidate');
     expect(family).toContain('operation_id: runtime.ai.text_candidate.generate');
-    expect(family).toContain('authority_class: user_permission');
-    expect(family).toContain('permission_id: ai.text.generate');
+    expect(family).not.toMatch(/authority_class|permission_id/u);
     expect(family).toContain('transport_boundary: unary');
     expect(family).toContain('effect_boundary: foreground_compute');
     expect(family).toContain('owner: runtime_ai_service');

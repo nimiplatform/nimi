@@ -43,57 +43,25 @@ export type NimiLocalAppArtifactsShell = {
   }) => Promise<unknown>;
 };
 
-export type NimiLocalAppArtifactsClient = ReturnType<typeof createNimiLocalAppArtifactsClient>;
+export type NimiLocalAppArtifactsClient = {
+  readonly putArtifact: (input: NimiLocalAppArtifactPutInput) => Promise<NimiLocalAppArtifactPutResult>;
+  readonly readArtifactBytes: (input: NimiLocalAppArtifactReadInput) => Promise<NimiLocalAppArtifactBytes>;
+};
 
-export function createNimiLocalAppArtifactsClient(shell: NimiLocalAppArtifactsShell) {
+export function createNimiLocalAppArtifactsClient(
+  _shell: NimiLocalAppArtifactsShell,
+): NimiLocalAppArtifactsClient {
+  const unavailable = async (): Promise<never> => protectedAppAccessUnavailable();
   return Object.freeze({
-    putArtifact: async (input: NimiLocalAppArtifactPutInput): Promise<NimiLocalAppArtifactPutResult> => {
-      assertExactKeys(input, ['mimeType', 'displayName', 'data'], 'local-app artifact put input');
-      assertNoAuthorityMaterial(input);
-      const mimeType = requireText(input.mimeType, 'mimeType');
-      if (typeof input.displayName !== 'string'
-        || input.displayName.trim() !== input.displayName
-        || new TextEncoder().encode(input.displayName).byteLength > MAX_ARTIFACT_DISPLAY_NAME_BYTES) {
-        return localAppError(
-          'Local-app artifact displayName is invalid.',
-          'SDK_LOCAL_APP_INPUT_INVALID',
-          'provide_artifact_display_name',
-        );
-      }
-      if (!(input.data instanceof Uint8Array)
-        || input.data.byteLength === 0
-        || input.data.byteLength > MAX_ARTIFACT_DATA_BYTES) {
-        return localAppError(
-          'Local-app artifact data must be 1 to 4194304 bytes.',
-          'SDK_LOCAL_APP_INPUT_INVALID',
-          'provide_artifact_data_within_bound',
-        );
-      }
-      const value = await shell.put({
-        mimeType,
-        displayName: input.displayName,
-        data: input.data,
-      });
-      const record = asRecord(value);
-      assertExactProjectionKeys(record, ['artifactId'], 'artifact put');
-      return Object.freeze({ artifactId: projectionText(record.artifactId, 'artifactId') });
-    },
-    readArtifactBytes: async (input: NimiLocalAppArtifactReadInput): Promise<NimiLocalAppArtifactBytes> => {
-      assertExactKeys(input, ['artifactId'], 'local-app artifact read input');
-      assertNoAuthorityMaterial(input);
-      const artifactId = requireText(input.artifactId, 'artifactId');
-      const value = await shell.readBytes({ artifactId });
-      const record = asRecord(value);
-      assertExactProjectionKeys(record, ['bytes', 'mimeType'], 'artifact read bytes');
-      if (!(record.bytes instanceof Uint8Array)
-        || record.bytes.byteLength === 0
-        || record.bytes.byteLength > MAX_ARTIFACT_READ_BYTES) {
-        return localAppProjectionError('artifact bytes');
-      }
-      return Object.freeze({
-        bytes: record.bytes,
-        mimeType: projectionText(record.mimeType, 'mimeType'),
-      });
-    },
+    putArtifact: unavailable,
+    readArtifactBytes: unavailable,
   });
+}
+
+function protectedAppAccessUnavailable(): never {
+  return localAppError(
+    'Protected App operations are unavailable until Runtime establishes a fresh App Access session.',
+    'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
+    'retry_after_protected_session_establishment',
+  );
 }

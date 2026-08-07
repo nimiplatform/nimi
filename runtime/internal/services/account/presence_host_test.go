@@ -138,7 +138,7 @@ func TestHostPresenceVerifierCarriesRequestScopedBrowserLauncher(t *testing.T) {
 
 	_, err := verifier.RequestPresenceVerification(ctx, PresenceVerificationRequest{
 		Account:      PresenceVerificationAccountContext{AccountID: "acct-1"},
-		Purpose:      "local-app.developer-project.approve",
+		Purpose:      "account.profile.update",
 		RequestedTTL: time.Minute,
 		Now:          time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC),
 	})

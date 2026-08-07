@@ -1005,9 +1005,9 @@ func (x *RemoveLocalAppStorageJsonResponse) GetReasonCode() ReasonCode {
 
 type PrepareLocalAppLaunchRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Runtime-generated management handle resolving an active local_development
-	// authorization. Ordinary package profiles are deferred and absent.
-	// It is not a principal id, app id, account selector, path, or credential.
+	// Runtime-generated management handle resolving an active development
+	// registration. It is not the Registered App Subject, an account selector,
+	// an access decision, a path, or a credential.
 	LocalAppHandle []byte `protobuf:"bytes,1,opt,name=local_app_handle,json=localAppHandle,proto3" json:"local_app_handle,omitempty"`
 	// Required only for a live local_development supervisor run.
 	SupervisorRunId []byte `protobuf:"bytes,2,opt,name=supervisor_run_id,json=supervisorRunId,proto3" json:"supervisor_run_id,omitempty"`

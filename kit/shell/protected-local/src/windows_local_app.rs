@@ -2,7 +2,6 @@ mod app_ai_config;
 mod artifact;
 mod configure;
 mod conversation;
-mod permission;
 mod realm_world_core;
 mod shared_agent_ai_config;
 mod storage;
@@ -32,8 +31,7 @@ use crate::{
     LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
     LocalAppConversationSendRequest, LocalAppConversationSendResult,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppPermissionRequest,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppConversationSubscriptionReceiver, LocalAppOperationError, LocalAppReasonCode,
     LocalAppSessionState, LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppSharedAgentAIProfileRequest, LocalAppStorageDocument, LocalAppStorageReadRequest,
     LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
@@ -123,38 +121,6 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     > {
         Box::pin(self.renew_session())
-    }
-
-    fn permission_status(
-        &self,
-        request: LocalAppPermissionStatusRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppPermissionStatus, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    > {
-        Box::pin(async move {
-            let _operation = self.operation_gate.read().await;
-            permission::local_app_permission_status(self.checked_channel()?, request).await
-        })
-    }
-
-    fn permission_request(
-        &self,
-        request: LocalAppPermissionRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppPermissionStatus, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    > {
-        Box::pin(async move {
-            let _operation = self.operation_gate.read().await;
-            permission::request_local_app_permission(self.checked_channel()?, request).await
-        })
     }
 
     fn generate_text_candidate(

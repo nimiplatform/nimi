@@ -21,7 +21,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
-	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -36,7 +35,6 @@ type ProductionConfig struct {
 	HTTPClient          *http.Client
 	AppRegistry         *appregistry.Registry
 	AppSessionValidator AppSessionValidator
-	LocalAppKernel      *localappkernel.Kernel
 	AuditStore          *auditlog.Store
 }
 
@@ -96,7 +94,6 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 		WithRealmBaseURL(resolved.RealmBaseURL),
 		WithAppRegistry(resolved.AppRegistry),
 		WithAppSessionValidator(resolved.AppSessionValidator),
-		WithLocalAppKernel(resolved.LocalAppKernel),
 		WithAuditStore(resolved.AuditStore),
 	)
 }
@@ -152,7 +149,6 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		HTTPClient:          httpClient,
 		AppRegistry:         cfg.AppRegistry,
 		AppSessionValidator: cfg.AppSessionValidator,
-		LocalAppKernel:      cfg.LocalAppKernel,
 		AuditStore:          cfg.AuditStore,
 	}
 }

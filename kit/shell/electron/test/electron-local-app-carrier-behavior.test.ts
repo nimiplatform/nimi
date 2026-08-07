@@ -8,8 +8,6 @@ import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-t
 
 const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.sessionStatus',
-  'nimi.shell.localApp.permissionStatus',
-  'nimi.shell.localApp.permissionRequest',
   'nimi.shell.localApp.aiConfigGet',
   'nimi.shell.localApp.aiConfigOverwrite',
   'nimi.shell.localApp.textGenerateCandidate',
@@ -148,7 +146,7 @@ describe('Electron local-app carrier behavior', () => {
       expect(error).toBeInstanceOf(Error);
       expect(error).not.toMatchObject({ reasonCode: 'electron-standard-capability-not-in-host-set' });
       expect(String((error as { reasonCode?: unknown }).reasonCode || '')).toMatch(
-        /^(protected-carrier-required|runtime-service-unavailable|runtime-service-untrusted|runtime-service-error-unclassified|runtime-unauthenticated|permission-unavailable|invalid-payload)$/,
+        /^(protected-carrier-required|runtime-service-unavailable|runtime-service-untrusted|runtime-service-error-unclassified|runtime-unauthenticated|local-app-operation-unavailable|invalid-payload)$/,
       );
     }
   });
@@ -181,7 +179,7 @@ describe('Electron local-app carrier behavior', () => {
     expect(operation?.negativeStates).toContain((error as { code: string }).code);
   });
 
-  it('denies protected Agent operations until a public permission is admitted', async () => {
+  it('denies undeclared protected Agent commands outside the admitted App surface', async () => {
     const { ipcMain, event } = createBridge();
     await expect(invokeBridge(ipcMain, event, {
       command: 'nimi.shell.localApp.agent.sendTurn',

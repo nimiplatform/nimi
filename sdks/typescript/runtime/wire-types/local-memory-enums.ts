@@ -15,24 +15,6 @@ export enum LocalAppAgentAutonomyMode {
   HIGH = 4,
 }
 
-export enum LocalAppPermissionOwnerPosture {
-  UNSPECIFIED = 0,
-  PENDING = 1,
-  GRANTED = 2,
-  DENIED = 3,
-  EXPIRED = 4,
-  REVOKED = 5,
-}
-
-export enum LocalAppPermissionPosture {
-  UNSPECIFIED = 0,
-  PROMPT = 1,
-  PENDING = 2,
-  GRANTED = 3,
-  DENIED = 4,
-  UNAVAILABLE = 5,
-}
-
 export enum LocalAppSessionState {
   UNSPECIFIED = 0,
   READY = 1,
@@ -120,32 +102,10 @@ export enum LocalCapabilityRequirementRole {
   COMPANION = 2,
 }
 
-export enum LocalDevelopmentAuthorizationState {
-  UNSPECIFIED = 0,
-  CONFIRMATION_REQUIRED = 1,
-  ACTIVE = 2,
-  REAPPROVAL_REQUIRED = 3,
-  DENIED = 4,
-  REVOKED = 5,
-}
-
-export enum LocalDevelopmentDecision {
-  UNSPECIFIED = 0,
-  DENY = 1,
-  ALLOW_RUN_ONCE = 2,
-  ALLOW_PROJECT = 3,
-}
-
 export enum LocalDevelopmentShellKind {
   UNSPECIFIED = 0,
   ELECTRON = 1,
   TAURI = 2,
-}
-
-export enum LocalDevelopmentSummaryAvailability {
-  UNSPECIFIED = 0,
-  AVAILABLE = 1,
-  UNAVAILABLE = 2,
 }
 
 export enum LocalEngineRuntimeMode {

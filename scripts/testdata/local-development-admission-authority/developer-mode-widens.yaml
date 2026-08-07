@@ -1,7 +1,0 @@
-target: policy
-expected_issue: LOCAL_DEVELOPMENT_DEVELOPER_MODE_INVALID
-mutations:
-  - path: developer_mode.default_enabled
-    value: true
-  - path: developer_mode.global_toggle_grants_capability
-    value: true

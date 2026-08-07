@@ -79,7 +79,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   useEffect(() => {
     let active = true;
     let inFlight = false;
-    const refreshPermissionProjection = async () => {
+    const refreshAgentInventory = async () => {
       if (!active || inFlight) return;
       inFlight = true;
       try {
@@ -93,13 +93,13 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       }
     };
     const handleWindowFocus = () => {
-      void refreshPermissionProjection();
+      void refreshAgentInventory();
     };
     const interval = window.setInterval(() => {
-      void refreshPermissionProjection();
+      void refreshAgentInventory();
     }, 2_000);
     window.addEventListener('focus', handleWindowFocus);
-    void refreshPermissionProjection();
+    void refreshAgentInventory();
     return () => {
       active = false;
       window.clearInterval(interval);
@@ -259,8 +259,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         submittedConversation,
         signal: activeChatAbort.signal,
       });
-    // Re-read the account permission projection immediately before submit so
-    // revoke, ownership transfer, or Agent deletion cannot use a stale handle.
+    // Re-read Runtime inventory immediately before submit so source changes or
+    // Agent deletion cannot use a stale handle.
     const {
       inventory: refreshedInventory,
       turn: refreshedTurn,
@@ -626,10 +626,6 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       onSelectLocalAgent={handleSelectLocalAgent}
       onRefreshLocalAgentInventory={() => {
         setSelectedLocalAgentRefreshKey((current) => current + 1);
-      }}
-      onRequestAgentInteractionPermission={async () => {
-        const inventory = await bindings.app.commands.requestAgentInteractionPermission();
-        setEvidence((current) => ({ ...current, inventory }));
       }}
       onDesktopOpenAgentConfig={bindings.app.commands.openDesktopAgentConfig}
       onDesktopOpenSelectPartner={bindings.app.commands.openDesktopSelectPartner}

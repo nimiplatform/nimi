@@ -8,7 +8,6 @@ import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import {
   probeZhiyuRuntimeAgentInventory,
-  requestZhiyuAgentInteractionPermission,
 } from '../shell/agent/agent-inventory.js';
 import { probeZhiyuRuntimeCompanionState } from '../shell/agent/companion-state.js';
 import { probeZhiyuRuntimeConversationHome } from '../shell/agent/conversation-home.js';
@@ -131,7 +130,6 @@ export function createZhiyuProductionBindings(
           });
           return current.companion;
         },
-        requestAgentInteractionPermission: requestZhiyuAgentInteractionPermission,
         async openDesktopAgentConfig() {
           await requestZhiyuDesktopOpenAgentConfig();
         },

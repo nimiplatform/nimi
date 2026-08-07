@@ -195,8 +195,8 @@ func validLocalAppArtifactDecision(decision accountservice.LocalAppCallerDecisio
 		strings.TrimSpace(decision.RealmEnvironmentID) != "" && decision.AccountGeneration > 0 &&
 		decision.Operation == accountservice.LocalAppOperationReadArtifactBytes && decision.OperationCapability == "data.scope.read#runtime.artifacts" &&
 		decision.TrustClass == accountservice.LocalAppTrustClassDevelopment &&
-		decision.AuthorizationID != (protectedlocal.Identifier{}) && decision.AuthorizationGeneration > 0 &&
-		decision.CapabilityFingerprint != (protectedlocal.Identifier{})
+		decision.RegistrationHandle != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.RegisteredAppSubject) != "" &&
+		decision.SourceGeneration > 0 && decision.DeclarationGeneration > 0
 	if !commonValid {
 		return false
 	}
@@ -236,6 +236,7 @@ func artifactAudienceMatches(audience *ArtifactAudience, decision accountservice
 		return false
 	}
 	return decision.TrustClass == accountservice.LocalAppTrustClassDevelopment && audience.TrustClass == "local_development" &&
-		audience.AuthorizationID == decision.AuthorizationID && audience.AuthorizationGeneration == decision.AuthorizationGeneration &&
-		audience.ProjectRoot == decision.ProjectRoot && audience.CapabilityFingerprint == decision.CapabilityFingerprint
+		audience.RegistrationHandle == decision.RegistrationHandle && audience.RegisteredAppSubject == decision.RegisteredAppSubject &&
+		audience.SourceGeneration == decision.SourceGeneration && audience.DeclarationGeneration == decision.DeclarationGeneration &&
+		audience.ProjectRoot == decision.ProjectRoot
 }

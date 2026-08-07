@@ -109,11 +109,10 @@ func TestProtectedLocalAppStorageFailsClosedWithSanitizedReasons(t *testing.T) {
 
 func localAppStorageTestContext(operation accountservice.LocalAppOperation, principalID string) context.Context {
 	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
-		LocalAppPrincipalID: principalID,
-		LocalAppRecordID:    "record-a",
-		Operation:           operation,
-		AuthorityClass:      localappop.AuthorityClassBaseEntitlement,
-		OperationCapability: appstorage.LocalAppPrivateStorageEntitlement,
-		ExpiresAt:           time.Now().Add(time.Minute),
+		RegisteredAppSubject: principalID,
+		Operation:            operation,
+		AuthorityClass:       localappop.AuthorityClassBase,
+		OperationCapability:  appstorage.LocalAppPrivateStorageEntitlement,
+		ExpiresAt:            time.Now().Add(time.Minute),
 	})
 }

@@ -11,21 +11,6 @@ import {
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
-  it('dispatches product permission status without creating an ordinary gRPC client', async () => {
-    const ipcMain = new FakeIpcMain();
-    const calls: unknown[] = [];
-    registerBridge(ipcMain, calls);
-
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'],
-      payload: { payload: { permissionId: 'agents.interact' } },
-    })).resolves.toEqual({
-      state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
-      reasonCode: 'local-app-operation-unavailable', agents: [],
-    });
-    expect(calls).toEqual([['permissionStatus', { permissionId: 'agents.interact' }]]);
-  });
-
   it('rejects renderer authority before invoking the protected host', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
@@ -63,17 +48,6 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'],
       payload: { payload: { capabilities: [{ owner: { appId: 'forged' } }] } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-  });
-
-  it('rejects a permission reason beyond 240 UTF-8 bytes before invoking the protected host', async () => {
-    const ipcMain = new FakeIpcMain();
-    const calls: unknown[] = [];
-    registerBridge(ipcMain, calls);
-    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'],
-      payload: { payload: { permissionId: 'agents.interact', reason: '需'.repeat(81), requestId: 'permission-request-electron-long-reason' } },
-    })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
-    expect(calls).toEqual([]);
   });
 
   it('routes only the two exact WorldCore operations without a renderer method selector', async () => {
@@ -427,20 +401,6 @@ function registerBridge(ipcMain: FakeIpcMain, calls: unknown[]) {
 function localAppHost(calls: unknown[]) {
   return {
     sessionStatus: async () => ({ state: 'ready', reasonCode: 'action-executed', retryable: false }),
-    permissionStatus: async (input: unknown) => {
-      calls.push(['permissionStatus', input]);
-      return {
-        state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
-        reasonCode: 'local-app-operation-unavailable', agents: [],
-      };
-    },
-    permissionRequest: async (input: unknown) => {
-      calls.push(['permissionRequest', input]);
-      return {
-        state: 'unavailable', permissionId: 'agents.interact', canRequest: false,
-        reasonCode: 'local-app-operation-unavailable', agents: [],
-      };
-    },
     aiConfigGet: async () => {
       calls.push(['aiConfigGet']);
       return { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] };

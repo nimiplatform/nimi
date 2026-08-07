@@ -15,7 +15,6 @@ import type { TesterCapabilityRunResult } from './tester-runtime.js';
 import type { TesterPreferences } from './tester-preferences.js';
 import { testerTestIds } from './tester-test-ids.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
-import { TesterLocalAppPermissionLab } from './local-app-permission-lab.js';
 import { SectionAITesting } from './workbench/section-ai-testing.js';
 import type { WorkbenchView } from './workbench/workbench-context.js';
 
@@ -275,7 +274,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           view={view}
           onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
           onSelectRecipes={() => setView({ kind: 'ui-recipes' })}
-          onSelectPermissionLab={() => setView({ kind: 'permission-lab' })}
           accountSlot={(
             <NimiLabAccountMenu onOpenSettings={() => setView({ kind: 'settings' })} />
           )}
@@ -286,8 +284,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
               <Suspense fallback={null}>
                 <SettingsRoute />
               </Suspense>
-            ) : view.kind === 'permission-lab' ? (
-              <TesterLocalAppPermissionLab />
             ) : view.kind === 'ui-recipes' ? (
               <Suspense fallback={null}>
                 <KitComponentGallery

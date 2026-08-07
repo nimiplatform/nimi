@@ -1,7 +1,0 @@
-target: policy
-expected_issue: LOCAL_DEVELOPMENT_TECHNICAL_SESSION_INVALID
-mutations:
-  - path: technical_launch_and_session.renderer_cli_terminal_visibility
-    value: allowed
-  - path: technical_launch_and_session.new_process_requires_new_lease_and_session
-    value: false

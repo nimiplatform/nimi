@@ -39,13 +39,13 @@ function localDevelopmentCdpArguments(value: number): string[] {
 
 export async function resolveLocalAppUserDataArguments(input: {
   readonly homeDirectory: string;
-  readonly authorizationId: string;
+  readonly registrationHandle: string;
   readonly platform?: NodeJS.Platform;
   readonly uid?: number;
 }): Promise<string[]> {
   const platform = input.platform ?? process.platform;
   if (platform !== 'darwin' && platform !== 'win32') failPartition();
-  const authorizationId = requiredPartitionText(input.authorizationId);
+  const registrationHandle = requiredPartitionText(input.registrationHandle);
   const uid = platform === 'darwin' ? input.uid ?? process.getuid?.() : undefined;
   if (platform === 'darwin' && (!Number.isSafeInteger(uid) || Number(uid) < 0)) failPartition();
   const requestedHome = path.resolve(requiredPartitionText(input.homeDirectory));
@@ -54,7 +54,7 @@ export async function resolveLocalAppUserDataArguments(input: {
 
   const leaf = createHash('sha256')
     .update('nimi-local-app-user-data-v1\0', 'utf8')
-    .update(authorizationId, 'utf8')
+    .update(registrationHandle, 'utf8')
     .digest('hex');
   const segments = platform === 'darwin'
     ? ['Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1', leaf]
@@ -68,7 +68,7 @@ export async function resolveLocalAppUserDataArguments(input: {
     });
     await requirePrivateUserDataDirectory(current, platform, uid);
   }
-  if (!current.startsWith(`${canonicalHome}${path.sep}`) || current.includes(authorizationId)) {
+  if (!current.startsWith(`${canonicalHome}${path.sep}`) || current.includes(registrationHandle)) {
     failPartition();
   }
   return [`--user-data-dir=${current}`];

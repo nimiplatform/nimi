@@ -128,6 +128,8 @@ pub enum ReasonCode {
     AiConnectorLimitExceeded = 315,
     AiConnectorIdRequired = 316,
     AiLocalConnectorRetired = 317,
+    AiConnectorGrantSelectionRequired = 318,
+    AiConnectorGrantRevoked = 319,
     /// REQUEST_CREDENTIAL family (330)
     AiRequestCredentialConflict = 330,
     /// APP family (340+)
@@ -265,7 +267,6 @@ pub enum ReasonCode {
     AppOpenPackageNotVerified = 607,
     AppOpenLibraryStateInvalid = 608,
     AppOpenAppDataInvalid = 609,
-    AppOpenPermissionNotGranted = 610,
     AppOpenAiconfigUnresolved = 611,
     AppOpenManifestRequirementUnsatisfied = 612,
     AppOpenLaunchFailed = 613,
@@ -310,15 +311,11 @@ pub enum ReasonCode {
     LocalAppLaunchLeaseReplay = 648,
     LocalAppProcessMismatch = 649,
     LocalAppSessionRevoked = 650,
-    LocalAppPermissionRequired = 651,
-    LocalAppPermissionDenied = 652,
-    LocalAppPermissionRevoked = 653,
     LocalAppAccountChanged = 654,
     LocalAppOperationUnavailable = 655,
     LocalAppPresenceRequired = 656,
     LocalAppPresenceExpired = 657,
     LocalAppDeveloperModeDisabled = 658,
-    LocalAppRiskDisclosureRequired = 660,
     /// Realm broker (661-667): account-owned Realm transport/application results.
     RealmUnavailable = 661,
     RealmNotFound = 662,
@@ -327,11 +324,6 @@ pub enum ReasonCode {
     RealmRequestRejected = 665,
     RealmContractInvalid = 666,
     RealmOperationFailed = 667,
-    /// Permission admission precision and agents.configure optimistic
-    /// concurrency. These values preserve reserved/unknown distinction across
-    /// protected-local carriers without exposing owner-internal records.
-    LocalAppPermissionReservedNotAdmitted = 668,
-    LocalAppPermissionUnknown = 669,
     AgentAiConfigRevisionConflict = 670,
     AgentAutonomyRevisionConflict = 671,
     /// Runtime-owned presentation asset intake validation. These reasons remain
@@ -370,6 +362,22 @@ pub enum ReasonCode {
     AiConfigInvalid = 694,
     AiConfigNotFound = 695,
     AiConfigPersistenceUnavailable = 696,
+    /// Machine-local selection and job-time composition failures. Selection is
+    /// independent from configured/executable state, so these reasons remain
+    /// distinct from exact-binding mutation failures.
+    AiLocalSelectionNotFound = 697,
+    AiLocalCapabilityMismatch = 698,
+    AiLocalConfigurationNotConfigured = 699,
+    AiLocalSelectionInvalid = 700,
+    /// Captured local execution outcomes. Load is process/model activation;
+    /// inference is a request failure while the worker remains healthy; process
+    /// crash is loss of the resident worker; canceled is explicit termination.
+    /// None mutates selection/exact bindings or admits fallback.
+    AiLocalExecutionLoadFailed = 701,
+    AiLocalExecutionInferenceFailed = 702,
+    AiLocalExecutionCanceled = 703,
+    AiLocalExecutionProcessCrashed = 704,
+    AiLocalExecutionContentMismatch = 705,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -428,6 +436,10 @@ impl ReasonCode {
             Self::AiConnectorLimitExceeded => "AI_CONNECTOR_LIMIT_EXCEEDED",
             Self::AiConnectorIdRequired => "AI_CONNECTOR_ID_REQUIRED",
             Self::AiLocalConnectorRetired => "AI_LOCAL_CONNECTOR_RETIRED",
+            Self::AiConnectorGrantSelectionRequired => {
+                "AI_CONNECTOR_GRANT_SELECTION_REQUIRED"
+            }
+            Self::AiConnectorGrantRevoked => "AI_CONNECTOR_GRANT_REVOKED",
             Self::AiRequestCredentialConflict => "AI_REQUEST_CREDENTIAL_CONFLICT",
             Self::AiAppIdRequired => "AI_APP_ID_REQUIRED",
             Self::AiAppIdConflict => "AI_APP_ID_CONFLICT",
@@ -566,7 +578,6 @@ impl ReasonCode {
             Self::AppOpenPackageNotVerified => "APP_OPEN_PACKAGE_NOT_VERIFIED",
             Self::AppOpenLibraryStateInvalid => "APP_OPEN_LIBRARY_STATE_INVALID",
             Self::AppOpenAppDataInvalid => "APP_OPEN_APP_DATA_INVALID",
-            Self::AppOpenPermissionNotGranted => "APP_OPEN_PERMISSION_NOT_GRANTED",
             Self::AppOpenAiconfigUnresolved => "APP_OPEN_AICONFIG_UNRESOLVED",
             Self::AppOpenManifestRequirementUnsatisfied => {
                 "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED"
@@ -623,15 +634,11 @@ impl ReasonCode {
             Self::LocalAppLaunchLeaseReplay => "LOCAL_APP_LAUNCH_LEASE_REPLAY",
             Self::LocalAppProcessMismatch => "LOCAL_APP_PROCESS_MISMATCH",
             Self::LocalAppSessionRevoked => "LOCAL_APP_SESSION_REVOKED",
-            Self::LocalAppPermissionRequired => "LOCAL_APP_PERMISSION_REQUIRED",
-            Self::LocalAppPermissionDenied => "LOCAL_APP_PERMISSION_DENIED",
-            Self::LocalAppPermissionRevoked => "LOCAL_APP_PERMISSION_REVOKED",
             Self::LocalAppAccountChanged => "LOCAL_APP_ACCOUNT_CHANGED",
             Self::LocalAppOperationUnavailable => "LOCAL_APP_OPERATION_UNAVAILABLE",
             Self::LocalAppPresenceRequired => "LOCAL_APP_PRESENCE_REQUIRED",
             Self::LocalAppPresenceExpired => "LOCAL_APP_PRESENCE_EXPIRED",
             Self::LocalAppDeveloperModeDisabled => "LOCAL_APP_DEVELOPER_MODE_DISABLED",
-            Self::LocalAppRiskDisclosureRequired => "LOCAL_APP_RISK_DISCLOSURE_REQUIRED",
             Self::RealmUnavailable => "REALM_UNAVAILABLE",
             Self::RealmNotFound => "REALM_NOT_FOUND",
             Self::RealmConflict => "REALM_CONFLICT",
@@ -639,10 +646,6 @@ impl ReasonCode {
             Self::RealmRequestRejected => "REALM_REQUEST_REJECTED",
             Self::RealmContractInvalid => "REALM_CONTRACT_INVALID",
             Self::RealmOperationFailed => "REALM_OPERATION_FAILED",
-            Self::LocalAppPermissionReservedNotAdmitted => {
-                "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED"
-            }
-            Self::LocalAppPermissionUnknown => "LOCAL_APP_PERMISSION_UNKNOWN",
             Self::AgentAiConfigRevisionConflict => "AGENT_AI_CONFIG_REVISION_CONFLICT",
             Self::AgentAutonomyRevisionConflict => "AGENT_AUTONOMY_REVISION_CONFLICT",
             Self::AgentPresentationAssetTypeInvalid => {
@@ -688,6 +691,21 @@ impl ReasonCode {
             Self::AiConfigInvalid => "AI_CONFIG_INVALID",
             Self::AiConfigNotFound => "AI_CONFIG_NOT_FOUND",
             Self::AiConfigPersistenceUnavailable => "AI_CONFIG_PERSISTENCE_UNAVAILABLE",
+            Self::AiLocalSelectionNotFound => "AI_LOCAL_SELECTION_NOT_FOUND",
+            Self::AiLocalCapabilityMismatch => "AI_LOCAL_CAPABILITY_MISMATCH",
+            Self::AiLocalConfigurationNotConfigured => {
+                "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED"
+            }
+            Self::AiLocalSelectionInvalid => "AI_LOCAL_SELECTION_INVALID",
+            Self::AiLocalExecutionLoadFailed => "AI_LOCAL_EXECUTION_LOAD_FAILED",
+            Self::AiLocalExecutionInferenceFailed => {
+                "AI_LOCAL_EXECUTION_INFERENCE_FAILED"
+            }
+            Self::AiLocalExecutionCanceled => "AI_LOCAL_EXECUTION_CANCELED",
+            Self::AiLocalExecutionProcessCrashed => "AI_LOCAL_EXECUTION_PROCESS_CRASHED",
+            Self::AiLocalExecutionContentMismatch => {
+                "AI_LOCAL_EXECUTION_CONTENT_MISMATCH"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -751,6 +769,10 @@ impl ReasonCode {
             "AI_CONNECTOR_LIMIT_EXCEEDED" => Some(Self::AiConnectorLimitExceeded),
             "AI_CONNECTOR_ID_REQUIRED" => Some(Self::AiConnectorIdRequired),
             "AI_LOCAL_CONNECTOR_RETIRED" => Some(Self::AiLocalConnectorRetired),
+            "AI_CONNECTOR_GRANT_SELECTION_REQUIRED" => {
+                Some(Self::AiConnectorGrantSelectionRequired)
+            }
+            "AI_CONNECTOR_GRANT_REVOKED" => Some(Self::AiConnectorGrantRevoked),
             "AI_REQUEST_CREDENTIAL_CONFLICT" => Some(Self::AiRequestCredentialConflict),
             "AI_APP_ID_REQUIRED" => Some(Self::AiAppIdRequired),
             "AI_APP_ID_CONFLICT" => Some(Self::AiAppIdConflict),
@@ -907,7 +929,6 @@ impl ReasonCode {
             "APP_OPEN_PACKAGE_NOT_VERIFIED" => Some(Self::AppOpenPackageNotVerified),
             "APP_OPEN_LIBRARY_STATE_INVALID" => Some(Self::AppOpenLibraryStateInvalid),
             "APP_OPEN_APP_DATA_INVALID" => Some(Self::AppOpenAppDataInvalid),
-            "APP_OPEN_PERMISSION_NOT_GRANTED" => Some(Self::AppOpenPermissionNotGranted),
             "APP_OPEN_AICONFIG_UNRESOLVED" => Some(Self::AppOpenAiconfigUnresolved),
             "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED" => {
                 Some(Self::AppOpenManifestRequirementUnsatisfied)
@@ -976,18 +997,12 @@ impl ReasonCode {
             "LOCAL_APP_LAUNCH_LEASE_REPLAY" => Some(Self::LocalAppLaunchLeaseReplay),
             "LOCAL_APP_PROCESS_MISMATCH" => Some(Self::LocalAppProcessMismatch),
             "LOCAL_APP_SESSION_REVOKED" => Some(Self::LocalAppSessionRevoked),
-            "LOCAL_APP_PERMISSION_REQUIRED" => Some(Self::LocalAppPermissionRequired),
-            "LOCAL_APP_PERMISSION_DENIED" => Some(Self::LocalAppPermissionDenied),
-            "LOCAL_APP_PERMISSION_REVOKED" => Some(Self::LocalAppPermissionRevoked),
             "LOCAL_APP_ACCOUNT_CHANGED" => Some(Self::LocalAppAccountChanged),
             "LOCAL_APP_OPERATION_UNAVAILABLE" => Some(Self::LocalAppOperationUnavailable),
             "LOCAL_APP_PRESENCE_REQUIRED" => Some(Self::LocalAppPresenceRequired),
             "LOCAL_APP_PRESENCE_EXPIRED" => Some(Self::LocalAppPresenceExpired),
             "LOCAL_APP_DEVELOPER_MODE_DISABLED" => {
                 Some(Self::LocalAppDeveloperModeDisabled)
-            }
-            "LOCAL_APP_RISK_DISCLOSURE_REQUIRED" => {
-                Some(Self::LocalAppRiskDisclosureRequired)
             }
             "REALM_UNAVAILABLE" => Some(Self::RealmUnavailable),
             "REALM_NOT_FOUND" => Some(Self::RealmNotFound),
@@ -996,10 +1011,6 @@ impl ReasonCode {
             "REALM_REQUEST_REJECTED" => Some(Self::RealmRequestRejected),
             "REALM_CONTRACT_INVALID" => Some(Self::RealmContractInvalid),
             "REALM_OPERATION_FAILED" => Some(Self::RealmOperationFailed),
-            "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED" => {
-                Some(Self::LocalAppPermissionReservedNotAdmitted)
-            }
-            "LOCAL_APP_PERMISSION_UNKNOWN" => Some(Self::LocalAppPermissionUnknown),
             "AGENT_AI_CONFIG_REVISION_CONFLICT" => {
                 Some(Self::AgentAiConfigRevisionConflict)
             }
@@ -1058,6 +1069,23 @@ impl ReasonCode {
             "AI_CONFIG_NOT_FOUND" => Some(Self::AiConfigNotFound),
             "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => {
                 Some(Self::AiConfigPersistenceUnavailable)
+            }
+            "AI_LOCAL_SELECTION_NOT_FOUND" => Some(Self::AiLocalSelectionNotFound),
+            "AI_LOCAL_CAPABILITY_MISMATCH" => Some(Self::AiLocalCapabilityMismatch),
+            "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED" => {
+                Some(Self::AiLocalConfigurationNotConfigured)
+            }
+            "AI_LOCAL_SELECTION_INVALID" => Some(Self::AiLocalSelectionInvalid),
+            "AI_LOCAL_EXECUTION_LOAD_FAILED" => Some(Self::AiLocalExecutionLoadFailed),
+            "AI_LOCAL_EXECUTION_INFERENCE_FAILED" => {
+                Some(Self::AiLocalExecutionInferenceFailed)
+            }
+            "AI_LOCAL_EXECUTION_CANCELED" => Some(Self::AiLocalExecutionCanceled),
+            "AI_LOCAL_EXECUTION_PROCESS_CRASHED" => {
+                Some(Self::AiLocalExecutionProcessCrashed)
+            }
+            "AI_LOCAL_EXECUTION_CONTENT_MISMATCH" => {
+                Some(Self::AiLocalExecutionContentMismatch)
             }
             _ => None,
         }
@@ -2335,201 +2363,6 @@ pub struct RevokeWorkspaceBindingResponse {
     #[prost(bool, tag = "5")]
     pub production_inert: bool,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppPermissionProjection {
-    #[prost(string, tag = "1")]
-    pub permission_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAppPermissionPosture", tag = "2")]
-    pub posture: i32,
-    #[prost(bool, tag = "3")]
-    pub can_request: bool,
-    #[prost(enumeration = "ReasonCode", tag = "4")]
-    pub reason_code: i32,
-    #[prost(message, repeated, tag = "7")]
-    pub agents: ::prost::alloc::vec::Vec<LocalAppPermissionAgentHandle>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppPermissionAgentHandle {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub display_name: ::prost::alloc::string::String,
-    /// Nullable display-only metadata. Runtime first uses the admitted canonical
-    /// external avatar resource when one is present, and otherwise resolves the
-    /// bound Character's WorldPublic media (avatar, portrait, then reference
-    /// image). Only a stable HTTPS URI is emitted; otherwise this is empty.
-    #[prost(string, tag = "3")]
-    pub avatar_url: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetLocalAppPermissionStatusRequest {
-    #[prost(string, tag = "1")]
-    pub permission_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetLocalAppPermissionStatusResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppPermissionProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestLocalAppPermissionRequest {
-    #[prost(string, tag = "1")]
-    pub permission_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub reason: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RequestLocalAppPermissionResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<LocalAppPermissionProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppPermissionPendingRequest {
-    #[prost(string, tag = "1")]
-    pub local_app_principal_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub display_app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub permission_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "5")]
-    pub requested_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(uint64, tag = "6")]
-    pub owner_revision: u64,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListLocalAppPermissionRequestsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListLocalAppPermissionRequestsResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(message, repeated, tag = "2")]
-    pub requests: ::prost::alloc::vec::Vec<LocalAppPermissionPendingRequest>,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubscribeLocalAppPermissionRequestsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppPermissionInboxEvent {
-    #[prost(uint64, tag = "1")]
-    pub sequence: u64,
-    #[prost(message, optional, tag = "2")]
-    pub emitted_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, repeated, tag = "3")]
-    pub requests: ::prost::alloc::vec::Vec<LocalAppPermissionPendingRequest>,
-    #[prost(bool, tag = "4")]
-    pub accepted: bool,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppPermissionCoveredAgent {
-    #[prost(string, tag = "1")]
-    pub local_agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub display_name: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppPermissionOwnerProjection {
-    #[prost(string, tag = "1")]
-    pub local_app_principal_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub display_app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub permission_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAppPermissionOwnerPosture", tag = "4")]
-    pub posture: i32,
-    #[prost(uint64, tag = "6")]
-    pub owner_revision: u64,
-    #[prost(message, optional, tag = "7")]
-    pub requested_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub decided_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, repeated, tag = "9")]
-    pub covered_agents: ::prost::alloc::vec::Vec<LocalAppPermissionCoveredAgent>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetLocalAppPermissionOwnerProjectionRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-    #[prost(string, tag = "2")]
-    pub local_app_principal_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetLocalAppPermissionOwnerProjectionResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(message, repeated, tag = "2")]
-    pub permissions: ::prost::alloc::vec::Vec<LocalAppPermissionOwnerProjection>,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListLocalAppPermissionOwnerProjectionsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListLocalAppPermissionOwnerProjectionsResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(message, repeated, tag = "2")]
-    pub permissions: ::prost::alloc::vec::Vec<LocalAppPermissionOwnerProjection>,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DecideLocalAppPermissionRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-    #[prost(string, tag = "2")]
-    pub local_app_principal_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub permission_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "5")]
-    pub approved: bool,
-    #[prost(uint64, tag = "6")]
-    pub expected_owner_revision: u64,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DecideLocalAppPermissionResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(enumeration = "LocalAppPermissionPosture", tag = "2")]
-    pub posture: i32,
-    #[prost(uint64, tag = "3")]
-    pub owner_revision: u64,
-    #[prost(enumeration = "ReasonCode", tag = "4")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RevokeLocalAppPermissionRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-    #[prost(string, tag = "2")]
-    pub local_app_principal_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub permission_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RevokeLocalAppPermissionResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(enumeration = "LocalAppPermissionPosture", tag = "2")]
-    pub posture: i32,
-    #[prost(uint64, tag = "3")]
-    pub owner_revision: u64,
-    #[prost(enumeration = "ReasonCode", tag = "4")]
-    pub reason_code: i32,
-}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AccountSessionState {
@@ -3097,85 +2930,6 @@ impl WorkspaceBindingState {
         }
     }
 }
-/// Product-facing third-party app permission posture. Internal grant lifecycle,
-/// operation identity, selector fingerprints, and owner policy never cross this
-/// projection.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppPermissionPosture {
-    Unspecified = 0,
-    Prompt = 1,
-    Pending = 2,
-    Granted = 3,
-    Denied = 4,
-    Unavailable = 5,
-}
-impl LocalAppPermissionPosture {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED",
-            Self::Prompt => "LOCAL_APP_PERMISSION_POSTURE_PROMPT",
-            Self::Pending => "LOCAL_APP_PERMISSION_POSTURE_PENDING",
-            Self::Granted => "LOCAL_APP_PERMISSION_POSTURE_GRANTED",
-            Self::Denied => "LOCAL_APP_PERMISSION_POSTURE_DENIED",
-            Self::Unavailable => "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_APP_PERMISSION_POSTURE_PROMPT" => Some(Self::Prompt),
-            "LOCAL_APP_PERMISSION_POSTURE_PENDING" => Some(Self::Pending),
-            "LOCAL_APP_PERMISSION_POSTURE_GRANTED" => Some(Self::Granted),
-            "LOCAL_APP_PERMISSION_POSTURE_DENIED" => Some(Self::Denied),
-            "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE" => Some(Self::Unavailable),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppPermissionOwnerPosture {
-    Unspecified = 0,
-    Pending = 1,
-    Granted = 2,
-    Denied = 3,
-    Expired = 4,
-    Revoked = 5,
-}
-impl LocalAppPermissionOwnerPosture {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED",
-            Self::Pending => "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING",
-            Self::Granted => "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED",
-            Self::Denied => "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED",
-            Self::Expired => "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED",
-            Self::Revoked => "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING" => Some(Self::Pending),
-            "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED" => Some(Self::Granted),
-            "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED" => Some(Self::Denied),
-            "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED" => Some(Self::Expired),
-            "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED" => Some(Self::Revoked),
-            _ => None,
-        }
-    }
-}
 /// Generated client implementations.
 pub mod runtime_account_service_client {
     #![allow(
@@ -3551,248 +3305,6 @@ pub mod runtime_account_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn get_local_app_permission_status(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetLocalAppPermissionStatusRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetLocalAppPermissionStatusResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "GetLocalAppPermissionStatus",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn request_local_app_permission(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RequestLocalAppPermissionRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RequestLocalAppPermissionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "RequestLocalAppPermission",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_local_app_permission_requests(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::ListLocalAppPermissionRequestsRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::ListLocalAppPermissionRequestsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "ListLocalAppPermissionRequests",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn subscribe_local_app_permission_requests(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::SubscribeLocalAppPermissionRequestsRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<
-                tonic::codec::Streaming<super::LocalAppPermissionInboxEvent>,
-            >,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "SubscribeLocalAppPermissionRequests",
-                    ),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
-        pub async fn get_local_app_permission_owner_projection(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::GetLocalAppPermissionOwnerProjectionRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::GetLocalAppPermissionOwnerProjectionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "GetLocalAppPermissionOwnerProjection",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_local_app_permission_owner_projections(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::ListLocalAppPermissionOwnerProjectionsRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::ListLocalAppPermissionOwnerProjectionsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "ListLocalAppPermissionOwnerProjections",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn decide_local_app_permission(
-            &mut self,
-            request: impl tonic::IntoRequest<super::DecideLocalAppPermissionRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::DecideLocalAppPermissionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "DecideLocalAppPermission",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn revoke_local_app_permission(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RevokeLocalAppPermissionRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RevokeLocalAppPermissionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "RevokeLocalAppPermission",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
     }
 }
 /// K-SCHED-003: Occupancy snapshot at peek time.
@@ -3935,6 +3447,12 @@ pub struct LocalCapabilityRequirement {
     pub preferred_verified_content_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "6")]
     pub compatibility_constraints: ::core::option::Option<::prost_types::Struct>,
+    /// Zero denotes an unordered or singleton role occurrence. Positive values
+    /// are one-based and carry only an order explicitly declared by the Driver.
+    #[prost(uint32, tag = "7")]
+    pub occurrence_ordinal: u32,
+    #[prost(string, tag = "8")]
+    pub display_label: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAssetExactBinding {
@@ -3942,6 +3460,9 @@ pub struct LocalAssetExactBinding {
     pub requirement_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub local_asset_id: ::prost::alloc::string::String,
+    /// For a single-file occurrence these identify the verified entry bytes. For
+    /// an explicitly sharded bundle they identify the canonical SHA-256 over its
+    /// ordered LocalBundleEntryDigest values.
     #[prost(string, tag = "3")]
     pub verified_content_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
@@ -4121,6 +3642,32 @@ pub struct AddLocalCapabilityConfigurationResponse {
     #[prost(message, optional, tag = "1")]
     pub configuration: ::core::option::Option<LocalCapabilityConfiguration>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SelectLocalCapabilityConfigurationRequest {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub configuration_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SelectLocalCapabilityConfigurationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub selection: ::core::option::Option<LocalCapabilitySelection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ClearLocalCapabilitySelectionRequest {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ClearLocalCapabilitySelectionResponse {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteLocalCapabilityConfigurationRequest {
+    #[prost(string, tag = "1")]
+    pub configuration_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteLocalCapabilityConfigurationResponse {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReprojectLocalCapabilityRequirementsRequest {
     #[prost(string, tag = "1")]
@@ -4400,104 +3947,6 @@ impl LocalCapabilityReason {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeDurableLocalTargetRef {
-    #[prost(string, tag = "1")]
-    pub version: ::prost::alloc::string::String,
-    #[prost(oneof = "runtime_durable_local_target_ref::Ref", tags = "2, 3")]
-    pub r#ref: ::core::option::Option<runtime_durable_local_target_ref::Ref>,
-}
-/// Nested message and enum types in `RuntimeDurableLocalTargetRef`.
-pub mod runtime_durable_local_target_ref {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Ref {
-        #[prost(string, tag = "2")]
-        ProfileBindingId(::prost::alloc::string::String),
-        #[prost(string, tag = "3")]
-        ReadinessRef(::prost::alloc::string::String),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeDurableCloudTargetRef {
-    #[prost(string, tag = "1")]
-    pub version: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub connector_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub remote_model_catalog_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub provider_model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub provider: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeDurableTargetRef {
-    #[prost(oneof = "runtime_durable_target_ref::Target", tags = "1, 2")]
-    pub target: ::core::option::Option<runtime_durable_target_ref::Target>,
-}
-/// Nested message and enum types in `RuntimeDurableTargetRef`.
-pub mod runtime_durable_target_ref {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Target {
-        #[prost(message, tag = "1")]
-        LocalRuntime(super::RuntimeDurableLocalTargetRef),
-        #[prost(message, tag = "2")]
-        Cloud(super::RuntimeDurableCloudTargetRef),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeResolvedLocalExecutionBinding {
-    #[prost(string, tag = "1")]
-    pub profile_binding_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub readiness_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub local_asset_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub execution_profile_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub resolved_model_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeResolvedCloudExecutionBinding {
-    #[prost(string, tag = "1")]
-    pub connector_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub remote_model_catalog_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub provider_model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub provider: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub endpoint_profile_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub connector_snapshot_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeResolvedExecutionBinding {
-    #[prost(string, tag = "1")]
-    pub binding_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub resolved_binding_ref: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub source_target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
-    #[prost(string, tag = "5")]
-    pub route_metadata_ref: ::prost::alloc::string::String,
-    #[prost(oneof = "runtime_resolved_execution_binding::Binding", tags = "10, 11")]
-    pub binding: ::core::option::Option<runtime_resolved_execution_binding::Binding>,
-}
-/// Nested message and enum types in `RuntimeResolvedExecutionBinding`.
-pub mod runtime_resolved_execution_binding {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Binding {
-        #[prost(message, tag = "10")]
-        LocalRuntime(super::RuntimeResolvedLocalExecutionBinding),
-        #[prost(message, tag = "11")]
-        Cloud(super::RuntimeResolvedCloudExecutionBinding),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VoiceReference {
     #[prost(enumeration = "VoiceReferenceKind", tag = "1")]
     pub kind: i32,
@@ -4554,10 +4003,8 @@ pub struct VoiceAsset {
     #[prost(string, tag = "5")]
     pub provider: ::prost::alloc::string::String,
     /// model_id / target_model_id are post-resolve provider / catalog / audit /
-    /// voice asset compatibility facts only (allowed_non_identity_fact,
-    /// K-RTARGET-008, K-VOICE-000). They must be guarded so they cannot mint or
-    /// persist durable target identity. Durable identity is target_ref /
-    /// voice_asset_target_ref below.
+    /// voice asset compatibility facts only. Exact execution identity remains
+    /// Runtime-private and is never projected through this artifact response.
     #[prost(string, tag = "6")]
     pub model_id: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
@@ -4576,15 +4023,6 @@ pub struct VoiceAsset {
     pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "14")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
-    /// Durable v2 target identity for the resolved synthesis route the asset
-    /// executes against (K-VOICE-004, K-RTARGET-002/008).
-    #[prost(message, optional, tag = "15")]
-    pub target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
-    /// Durable v2 target identity bound to the voice asset at creation
-    /// (voice_asset_target_ref, K-VOICE-004/K-VOICE-007). tts_synthesize requests
-    /// whose target ref conflicts fail with AI_VOICE_TARGET_MODEL_MISMATCH.
-    #[prost(message, optional, tag = "16")]
-    pub voice_asset_target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VoiceV2vInput {
@@ -5067,18 +4505,8 @@ pub struct ScenarioRequestHead {
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "4")]
-    pub route_policy: i32,
-    #[prost(enumeration = "FallbackPolicy", tag = "5")]
-    pub fallback: i32,
     #[prost(int32, tag = "6")]
     pub timeout_ms: i32,
-    #[prost(string, tag = "7")]
-    pub connector_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "8")]
-    pub target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioExtension {
@@ -5492,10 +4920,6 @@ pub struct ExecuteScenarioResponse {
     pub trace_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "7")]
     pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
-    #[prost(message, optional, tag = "8")]
-    pub resolved_execution_binding: ::core::option::Option<
-        RuntimeResolvedExecutionBinding,
-    >,
 }
 /// Exact third-party Local App foreground text-candidate contract. Runtime
 /// derives account, App identity, permission and managed local route from the
@@ -5546,10 +4970,6 @@ pub struct ScenarioStreamStarted {
     pub model_resolved: ::prost::alloc::string::String,
     #[prost(enumeration = "RoutePolicy", tag = "2")]
     pub route_decision: i32,
-    #[prost(message, optional, tag = "3")]
-    pub resolved_execution_binding: ::core::option::Option<
-        RuntimeResolvedExecutionBinding,
-    >,
     /// Positive selected output-truth for SPEECH_SYNTHESIZE streams
     /// (K-STREAM-004, K-VOICE-019). Populated only for speech scenario streams,
     /// where it declares NATIVE_STREAM vs SIMULATED_STREAM at route decision;
@@ -6164,35 +5584,6 @@ impl RoutePolicy {
             "ROUTE_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
             "ROUTE_POLICY_LOCAL" => Some(Self::Local),
             "ROUTE_POLICY_CLOUD" => Some(Self::Cloud),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum FallbackPolicy {
-    Unspecified = 0,
-    Deny = 1,
-    Allow = 2,
-}
-impl FallbackPolicy {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "FALLBACK_POLICY_UNSPECIFIED",
-            Self::Deny => "FALLBACK_POLICY_DENY",
-            Self::Allow => "FALLBACK_POLICY_ALLOW",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "FALLBACK_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
-            "FALLBACK_POLICY_DENY" => Some(Self::Deny),
-            "FALLBACK_POLICY_ALLOW" => Some(Self::Allow),
             _ => None,
         }
     }
@@ -7394,6 +6785,20 @@ pub struct LocalHostRequirements {
     #[prost(string, repeated, tag = "4")]
     pub required_backends: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
+/// LocalBundleEntryDigest is the LocalAsset-owned manifest for one explicitly
+/// sharded resource. Ordinals are one-based, contiguous, and retained in the
+/// declared order; sha256 is the lowercase hexadecimal per-entry digest. The
+/// canonical bundle SHA-256 hashes the concatenated decoded 32-byte digests in
+/// this exact order.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalBundleEntryDigest {
+    #[prost(uint32, tag = "1")]
+    pub ordinal: u32,
+    #[prost(string, tag = "2")]
+    pub relative_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub sha256: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAssetRecord {
     #[prost(string, tag = "1")]
@@ -7440,8 +6845,6 @@ pub struct LocalAssetRecord {
     pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(enumeration = "LocalBundleState", tag = "26")]
     pub bundle_state: i32,
-    #[prost(enumeration = "LocalWarmState", tag = "27")]
-    pub warm_state: i32,
     #[prost(message, optional, tag = "28")]
     pub host_requirements: ::core::option::Option<LocalHostRequirements>,
     #[prost(string, tag = "29")]
@@ -7463,28 +6866,10 @@ pub struct LocalAssetRecord {
     pub source_file_name: ::prost::alloc::string::String,
     #[prost(string, tag = "43")]
     pub import_instance_id: ::prost::alloc::string::String,
-    /// Runtime-issued v2 execution identity and its target-specific readiness.
-    /// The target is opaque to consumers and never derived from asset_id,
-    /// local_asset_id, or logical_model_id outside Runtime.
-    #[prost(message, optional, tag = "44")]
-    pub durable_target_ref: ::core::option::Option<RuntimeDurableLocalTargetRef>,
-    #[prost(enumeration = "LocalAssetStatus", tag = "45")]
-    pub durable_target_status: i32,
-    #[prost(enumeration = "ReasonCode", tag = "46")]
-    pub durable_target_reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAssetHealth {
-    #[prost(string, tag = "1")]
-    pub local_asset_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAssetStatus", tag = "2")]
-    pub status: i32,
-    #[prost(string, tag = "3")]
-    pub detail: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
+    /// Empty preserves single-file entry identity. A non-empty list declares one
+    /// sharded occurrence whose content identity covers every ordered entry.
+    #[prost(message, repeated, tag = "47")]
+    pub bundle_entries: ::prost::alloc::vec::Vec<LocalBundleEntryDigest>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalVerifiedAssetDescriptor {
@@ -7908,41 +7293,6 @@ impl LocalBundleState {
             "LOCAL_BUNDLE_STATE_DEGRADED" => Some(Self::Degraded),
             "LOCAL_BUNDLE_STATE_INVALID" => Some(Self::Invalid),
             "LOCAL_BUNDLE_STATE_REMOVED" => Some(Self::Removed),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalWarmState {
-    Unspecified = 0,
-    Cold = 1,
-    Warming = 2,
-    Ready = 3,
-    Failed = 4,
-}
-impl LocalWarmState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_WARM_STATE_UNSPECIFIED",
-            Self::Cold => "LOCAL_WARM_STATE_COLD",
-            Self::Warming => "LOCAL_WARM_STATE_WARMING",
-            Self::Ready => "LOCAL_WARM_STATE_READY",
-            Self::Failed => "LOCAL_WARM_STATE_FAILED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_WARM_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_WARM_STATE_COLD" => Some(Self::Cold),
-            "LOCAL_WARM_STATE_WARMING" => Some(Self::Warming),
-            "LOCAL_WARM_STATE_READY" => Some(Self::Ready),
-            "LOCAL_WARM_STATE_FAILED" => Some(Self::Failed),
             _ => None,
         }
     }
@@ -9337,6 +8687,10 @@ pub struct ImportLocalAssetBundleRequest {
     pub engine: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub endpoint: ::prost::alloc::string::String,
+    /// Explicit one-based content order for a sharded resource. Empty retains
+    /// the existing single-entry digest semantics even when sidecar files exist.
+    #[prost(string, repeated, tag = "6")]
+    pub ordered_bundle_entries: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ImportLocalAssetBundleResponse {
@@ -9490,42 +8844,6 @@ pub struct StopLocalAssetRequest {
 pub struct StopLocalAssetResponse {
     #[prost(message, optional, tag = "1")]
     pub asset: ::core::option::Option<LocalAssetRecord>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CheckLocalAssetHealthRequest {
-    #[prost(string, tag = "1")]
-    pub local_asset_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CheckLocalAssetHealthResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub assets: ::prost::alloc::vec::Vec<LocalAssetHealth>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WarmLocalAssetRequest {
-    #[prost(string, tag = "1")]
-    pub local_asset_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "2")]
-    pub timeout_ms: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WarmLocalAssetResponse {
-    #[prost(string, tag = "1")]
-    pub local_asset_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub asset_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub model_resolved: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(bool, tag = "6")]
-    pub already_warm: bool,
-    #[prost(int64, tag = "7")]
-    pub latency_ms: i64,
-    #[prost(string, tag = "8")]
-    pub trace_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ScanUnregisteredAssetsRequest {}
@@ -10320,6 +9638,97 @@ pub mod runtime_local_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn select_local_capability_configuration(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SelectLocalCapabilityConfigurationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::SelectLocalCapabilityConfigurationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/SelectLocalCapabilityConfiguration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "SelectLocalCapabilityConfiguration",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn clear_local_capability_selection(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ClearLocalCapabilitySelectionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ClearLocalCapabilitySelectionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ClearLocalCapabilitySelection",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ClearLocalCapabilitySelection",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_local_capability_configuration(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::DeleteLocalCapabilityConfigurationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteLocalCapabilityConfigurationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/DeleteLocalCapabilityConfiguration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "DeleteLocalCapabilityConfiguration",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn reproject_local_capability_requirements(
             &mut self,
             request: impl tonic::IntoRequest<
@@ -10936,64 +10345,6 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "StopLocalAsset",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn check_local_asset_health(
-            &mut self,
-            request: impl tonic::IntoRequest<super::CheckLocalAssetHealthRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::CheckLocalAssetHealthResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeLocalService",
-                        "CheckLocalAssetHealth",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn warm_local_asset(
-            &mut self,
-            request: impl tonic::IntoRequest<super::WarmLocalAssetRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::WarmLocalAssetResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeLocalService",
-                        "WarmLocalAsset",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -12290,8 +11641,6 @@ pub struct ModelDescriptor {
     pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(enumeration = "LocalBundleState", tag = "12")]
     pub bundle_state: i32,
-    #[prost(enumeration = "LocalWarmState", tag = "13")]
-    pub warm_state: i32,
     #[prost(message, optional, tag = "14")]
     pub host_requirements: ::core::option::Option<LocalHostRequirements>,
 }
@@ -13384,9 +12733,9 @@ pub struct RemoveLocalAppStorageJsonResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PrepareLocalAppLaunchRequest {
-    /// Runtime-generated management handle resolving an active local_development
-    /// authorization. Ordinary package profiles are deferred and absent.
-    /// It is not a principal id, app id, account selector, path, or credential.
+    /// Runtime-generated management handle resolving an active development
+    /// registration. It is not the Registered App Subject, an account selector,
+    /// an access decision, a path, or a credential.
     #[prost(bytes = "vec", tag = "1")]
     pub local_app_handle: ::prost::alloc::vec::Vec<u8>,
     /// Required only for a live local_development supervisor run.
@@ -14667,8 +14016,6 @@ pub struct MemoryEmbeddingProfile {
     pub migration_policy: i32,
     #[prost(message, optional, tag = "7")]
     pub cloud_binding: ::core::option::Option<MemoryEmbeddingCloudBindingRef>,
-    #[prost(message, optional, tag = "8")]
-    pub local_binding: ::core::option::Option<MemoryEmbeddingLocalBindingRef>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MemoryEmbeddingCloudBindingRef {
@@ -14680,21 +14027,6 @@ pub struct MemoryEmbeddingCloudBindingRef {
     pub provider_model_id: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub provider: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryEmbeddingLocalBindingRef {
-    #[prost(oneof = "memory_embedding_local_binding_ref::Ref", tags = "2, 3")]
-    pub r#ref: ::core::option::Option<memory_embedding_local_binding_ref::Ref>,
-}
-/// Nested message and enum types in `MemoryEmbeddingLocalBindingRef`.
-pub mod memory_embedding_local_binding_ref {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Ref {
-        #[prost(string, tag = "2")]
-        ProfileBindingId(::prost::alloc::string::String),
-        #[prost(string, tag = "3")]
-        ReadinessRef(::prost::alloc::string::String),
-    }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MemoryEmbeddingOperationReadiness {

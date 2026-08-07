@@ -218,7 +218,7 @@ func TestPutArtifactRequiresAuthorizedCaller(t *testing.T) {
 	}
 }
 
-func TestPutArtifactLocalAppOwnerReadAuthorization(t *testing.T) {
+func TestPutArtifactRegisteredAppOwnerReadAccess(t *testing.T) {
 	store := NewMemoryStore()
 	svc := newPutArtifactTestService(store, putArtifactTestAuthorizer{decision: putArtifactTestDecision()})
 	response, err := svc.PutArtifact(context.Background(), &runtimev1.PutArtifactRequest{

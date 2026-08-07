@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { resolveAppAccessDeclaration } from '../lib/app-access-declaration.mjs';
 import { createAppScaffold } from '../lib/app-scaffold.mjs';
 import { initApp } from '../lib/app-doctor-update.mjs';
 import { resolveAppSource } from '../scripts/sync-app-source.mjs';
@@ -274,7 +275,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.match(generated.read('src-tauri/Cargo.toml'), /name = "acme-widget-shell"/);
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = "0\.1\.0"/);
     assert.match(generated.read('src-tauri/Cargo.toml'), /time = "=0\.3\.47"/);
-    assert.match(generated.read('nimi.app.yaml'), /^permissions: \[\]$/m);
+    assert.match(generated.read('nimi.app.yaml'), /^app_access: \[\]$/m);
     assert.doesNotMatch(generated.read('nimi.app.yaml'), /scope:|qualifier:|operation_id:|resource_ref:/);
 
     const identityScannedFiles = [
@@ -364,18 +365,16 @@ test('tester-reference scaffold keeps the full reference app explicit', () => {
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
     const testerRuntime = generated.read('src/tester/tester-runtime.ts');
     assert.match(testerRuntime, /protected local-app identity session is bound/);
-    assert.match(testerRuntime, /foreground text generation/);
+    assert.match(testerRuntime, /protected foreground text candidate/);
     assert.match(testerRuntime, /canonical Runtime execution path/);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     const localAppPlatform = generated.read('src/shell/local-app-runtime-platform.ts');
-    const permissionLab = generated.read('src/tester/local-app-permission-lab.tsx');
     const productionBindings = generated.read('src/renderer/production-bindings.ts');
     assert.match(runtimePlatform, /testerLocalAppClient\.auth\.status\(\)/);
     assert.match(runtimePlatform, /!status\.sessionBound/);
     assert.match(localAppPlatform, /createNimiClient/);
     assert.match(localAppPlatform, /createNimiLocalAppStandardShellSurface/);
-    assert.match(permissionLab, /rendererHost\.app\.commands\.localAppStorageRoundTrip/);
-    assert.doesNotMatch(permissionLab, /testerLocalAppClient/);
+    assertGeneratedPathMissing(generated, 'src/tester/local-app-permission-lab.tsx');
     assert.match(productionBindings, /testerLocalAppClient\.storage\.writeJson/);
     assert.doesNotMatch(runtimePlatform, /testerInstalledAppBootstrap|bootstrapArtifactId/);
     assert.match(generated.read('src/tester/workbench/tester-ai-config-settings-panel.tsx'), /TesterAiConfigSettingsPanel/);
@@ -748,41 +747,24 @@ test('doctor fails closed on managed drift and update preserves app-owned produc
   }
 });
 
-test('update regenerates an empty admitted permission requirement list from scaffold intent', () => {
-  const generated = cliScaffold('standalone');
-  try {
-    const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
-    const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
-    intent.permissionRequirements = [];
-    writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
-
-    let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
-    assert.equal(result.status, 0, result.stderr);
-    result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(generated.read('nimi.app.yaml'), /^permissions: \[\]$/m);
-    const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
-    assert.deepEqual(lock.permissionRequirements, intent.permissionRequirements);
-  } finally {
-    generated.cleanup();
-  }
+test('App access declaration accepts empty input and keeps unknown items inert', () => {
+  assert.deepEqual(resolveAppAccessDeclaration([]), { rawItems: [], activatedDomains: [] });
+  assert.deepEqual(resolveAppAccessDeclaration([
+    'runtime.consume',
+    'future.experimental',
+    'agent.local',
+  ]), {
+    rawItems: ['runtime.consume', 'future.experimental', 'agent.local'],
+    activatedDomains: ['runtime.consume', 'agent.local'],
+  });
 });
 
-test('update regenerates canonical admitted Agent permission requirements', () => {
+test('update regenerates raw App access items without activating unknown domains', () => {
   const generated = cliScaffold('standalone', [], testDir);
   try {
     const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
     const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
-    intent.permissionRequirements = [
-      {
-        id: 'agents.interact',
-        reason: 'Talk with an Agent selected by me.',
-      },
-      {
-        id: 'agents.configure',
-        reason: 'Configure an Agent selected by me.',
-      },
-    ];
+    intent.appAccessItems = ['realm.data', 'future.experimental', 'agent.local'];
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
     let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
@@ -790,22 +772,16 @@ test('update regenerates canonical admitted Agent permission requirements', () =
     assert.equal(result.status, 0, result.stderr);
     assert.match(
       generated.read('nimi.app.yaml'),
-      /^permissions:\n  - id: "agents\.interact"\n    reason: "Talk with an Agent selected by me\."\n  - id: "agents\.configure"\n    reason: "Configure an Agent selected by me\."$/m,
+      /^app_access:\n  - "realm\.data"\n  - "future\.experimental"\n  - "agent\.local"$/m,
     );
     const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
-    assert.deepEqual(lock.permissionRequirements, intent.permissionRequirements);
+    assert.deepEqual(lock.appAccessItems, intent.appAccessItems);
+    assert.deepEqual(resolveAppAccessDeclaration(lock.appAccessItems).activatedDomains, ['realm.data', 'agent.local']);
 
     const validatorPath = path.join(generated.target, 'scripts/validate.mjs');
-    let validation = runGeneratedNodeScript(generated, validatorPath);
+    const validation = runGeneratedNodeScript(generated, validatorPath);
     assert.equal(validation.status, 0, validation.stderr);
     assert.match(validation.stdout, /validate local-development checks passed/);
-
-    const manifestPath = path.join(generated.target, 'nimi.app.yaml');
-    const unknownManifest = generated.read('nimi.app.yaml').replace('agents.interact', 'agents.unknown');
-    writeFileSync(manifestPath, unknownManifest);
-    validation = runGeneratedNodeScript(generated, validatorPath);
-    assert.notEqual(validation.status, 0);
-    assert.match(validation.stderr, /unknown permission id: agents\.unknown/);
   } finally {
     generated.cleanup();
   }
@@ -835,7 +811,7 @@ test('doctor audits an existing submitted app without converting it into a manag
       'display_name: Existing App',
       'profile: standalone',
       'manifest_role: submitted-input',
-      'permissions: []',
+      'app_access: []',
       'local_development:',
       '  electron:',
       '    renderer_origin: http://127.0.0.1:1468',
@@ -875,7 +851,6 @@ test('scaffold omissions are explicit tester-reference input and do not shrink t
     intent.scaffoldOmissions = [
       'dev-preview.html',
       'src/dev-preview.tsx',
-      'src/shell/ai/**',
       'src/shell/routes/settings-route.tsx',
       'src/shell/routes/settings/**',
       'src/tester/**',
@@ -884,7 +859,6 @@ test('scaffold omissions are explicit tester-reference input and do not shrink t
       'test/tsc-build.mjs',
     ];
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
-    rmSync(path.join(generated.target, 'src/shell/ai'), { recursive: true, force: true });
     rmSync(path.join(generated.target, 'src/shell/routes/settings-route.tsx'), { force: true });
     rmSync(path.join(generated.target, 'src/shell/routes/settings'), { recursive: true, force: true });
     rmSync(path.join(generated.target, 'src/tester'), { recursive: true, force: true });
@@ -901,7 +875,6 @@ test('scaffold omissions are explicit tester-reference input and do not shrink t
       ...lock.managedFileTaxonomy.scaffoldManagedGlue,
       ...lock.managedFileTaxonomy.appOwnedProductCode,
     ];
-    assert.equal(taxonomy.some((file) => file.startsWith('src/shell/ai/')), false);
     assert.equal(taxonomy.some((file) => file === 'src/shell/routes/settings-route.tsx' || file.startsWith('src/shell/routes/settings/')), false);
     assert.equal(taxonomy.some((file) => file.startsWith('src/tester/')), false);
   } finally {
@@ -1026,22 +999,22 @@ test('doctor requires official Desktop-supervised development scripts', () => {
   }
 });
 
-test('doctor fails closed on legacy, unknown, and authority-bearing permission requirements', () => {
+test('doctor rejects malformed App access declaration items', () => {
   const cases = [
     {
-      replace: 'permissions: []',
-      with: 'permissions:\n  declared_nimi_api_scopes: []',
-      pattern: /permissions must be an array/,
+      replace: 'app_access: []',
+      with: 'app_access:\n  domain: realm.data',
+      pattern: /App access declaration must be an array/,
     },
     {
-      replace: 'permissions: []',
-      with: 'permissions:\n  - id: agents.unknown\n    reason: Request an unknown capability.',
-      pattern: /unknown permission id: agents\.unknown/,
+      replace: 'app_access: []',
+      with: 'app_access:\n  - realm.data\n  - realm.data',
+      pattern: /Duplicate App access declaration item/,
     },
     {
-      replace: 'permissions: []',
-      with: 'permissions:\n  - id: agents.interact\n    reason: Talk with an Agent selected by me.\n    grant_id: forged',
-      pattern: /fields must be exactly id and reason/,
+      replace: 'app_access: []',
+      with: 'app_access:\n  - " realm.data"',
+      pattern: /Invalid App access declaration item/,
     },
   ];
   for (const testCase of cases) {

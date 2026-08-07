@@ -81,13 +81,12 @@ function unavailableFromError(error: unknown): RuntimePlatformUnavailableProject
 
 function messageFor(reasonCode: string): string {
   switch (reasonCode) {
-    case 'local-development-authorization-required':
-    case 'local-development-reapproval-required':
-      return 'This development project needs approval in Nimi Desktop.';
+    case 'local-development-registration-required':
+      return 'This development project must be registered through Nimi Desktop.';
     case 'local-development-session-revoked':
-      return 'This development authorization was revoked in Nimi Desktop.';
+      return 'Nimi access for this running App is unavailable.';
     case 'local-development-project-changed':
-      return 'The project identity no longer matches the approved project.';
+      return 'The project identity no longer matches its current registration.';
     default:
       return 'The protected Nimi local-app carrier is unavailable.';
   }
@@ -95,13 +94,12 @@ function messageFor(reasonCode: string): string {
 
 function actionHintFor(reasonCode: string): string {
   switch (reasonCode) {
-    case 'local-development-authorization-required':
-    case 'local-development-reapproval-required':
-      return 'approve_project_in_nimi_desktop';
-    case 'local-development-session-revoked':
+    case 'local-development-registration-required':
       return 'restart_official_nimi_app_dev_command';
+    case 'local-development-session-revoked':
+      return 'retry_when_nimi_access_is_available';
     case 'local-development-project-changed':
-      return 'restore_authorized_project_identity';
+      return 'restore_registered_project_identity';
     default:
       return 'open_nimi_desktop_and_retry';
   }

@@ -773,28 +773,6 @@ const (
 	LOCALAPPAGENTAUTONOMYMODEHIGH LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"
 )
 
-type LocalAppPermissionOwnerPosture string
-
-const (
-	LOCALAPPPERMISSIONOWNERPOSTUREUNSPECIFIED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_UNSPECIFIED"
-	LOCALAPPPERMISSIONOWNERPOSTUREPENDING LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_PENDING"
-	LOCALAPPPERMISSIONOWNERPOSTUREGRANTED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_GRANTED"
-	LOCALAPPPERMISSIONOWNERPOSTUREDENIED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_DENIED"
-	LOCALAPPPERMISSIONOWNERPOSTUREEXPIRED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_EXPIRED"
-	LOCALAPPPERMISSIONOWNERPOSTUREREVOKED LocalAppPermissionOwnerPosture = "LOCAL_APP_PERMISSION_OWNER_POSTURE_REVOKED"
-)
-
-type LocalAppPermissionPosture string
-
-const (
-	LOCALAPPPERMISSIONPOSTUREUNSPECIFIED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED"
-	LOCALAPPPERMISSIONPOSTUREPROMPT LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_PROMPT"
-	LOCALAPPPERMISSIONPOSTUREPENDING LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_PENDING"
-	LOCALAPPPERMISSIONPOSTUREGRANTED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_GRANTED"
-	LOCALAPPPERMISSIONPOSTUREDENIED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_DENIED"
-	LOCALAPPPERMISSIONPOSTUREUNAVAILABLE LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"
-)
-
 type LocalAppSessionState string
 
 const (
@@ -902,40 +880,12 @@ const (
 	LOCALCAPABILITYREQUIREMENTROLECOMPANION LocalCapabilityRequirementRole = "LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION"
 )
 
-type LocalDevelopmentAuthorizationState string
-
-const (
-	LOCALDEVELOPMENTAUTHORIZATIONSTATEUNSPECIFIED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_UNSPECIFIED"
-	LOCALDEVELOPMENTAUTHORIZATIONSTATECONFIRMATIONREQUIRED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED"
-	LOCALDEVELOPMENTAUTHORIZATIONSTATEACTIVE LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE"
-	LOCALDEVELOPMENTAUTHORIZATIONSTATEREAPPROVALREQUIRED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED"
-	LOCALDEVELOPMENTAUTHORIZATIONSTATEDENIED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED"
-	LOCALDEVELOPMENTAUTHORIZATIONSTATEREVOKED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED"
-)
-
-type LocalDevelopmentDecision string
-
-const (
-	LOCALDEVELOPMENTDECISIONUNSPECIFIED LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED"
-	LOCALDEVELOPMENTDECISIONDENY LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_DENY"
-	LOCALDEVELOPMENTDECISIONALLOWRUNONCE LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE"
-	LOCALDEVELOPMENTDECISIONALLOWPROJECT LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT"
-)
-
 type LocalDevelopmentShellKind string
 
 const (
 	LOCALDEVELOPMENTSHELLKINDUNSPECIFIED LocalDevelopmentShellKind = "LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED"
 	LOCALDEVELOPMENTSHELLKINDELECTRON LocalDevelopmentShellKind = "LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON"
 	LOCALDEVELOPMENTSHELLKINDTAURI LocalDevelopmentShellKind = "LOCAL_DEVELOPMENT_SHELL_KIND_TAURI"
-)
-
-type LocalDevelopmentSummaryAvailability string
-
-const (
-	LOCALDEVELOPMENTSUMMARYAVAILABILITYUNSPECIFIED LocalDevelopmentSummaryAvailability = "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNSPECIFIED"
-	LOCALDEVELOPMENTSUMMARYAVAILABILITYAVAILABLE LocalDevelopmentSummaryAvailability = "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_AVAILABLE"
-	LOCALDEVELOPMENTSUMMARYAVAILABILITYUNAVAILABLE LocalDevelopmentSummaryAvailability = "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNAVAILABLE"
 )
 
 type LocalEngineRuntimeMode string
@@ -1390,7 +1340,6 @@ const (
 	APPOPENPACKAGENOTVERIFIED ReasonCode = "APP_OPEN_PACKAGE_NOT_VERIFIED"
 	APPOPENLIBRARYSTATEINVALID ReasonCode = "APP_OPEN_LIBRARY_STATE_INVALID"
 	APPOPENAPPDATAINVALID ReasonCode = "APP_OPEN_APP_DATA_INVALID"
-	APPOPENPERMISSIONNOTGRANTED ReasonCode = "APP_OPEN_PERMISSION_NOT_GRANTED"
 	APPOPENAICONFIGUNRESOLVED ReasonCode = "APP_OPEN_AICONFIG_UNRESOLVED"
 	APPOPENMANIFESTREQUIREMENTUNSATISFIED ReasonCode = "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED"
 	APPOPENLAUNCHFAILED ReasonCode = "APP_OPEN_LAUNCH_FAILED"
@@ -1425,15 +1374,11 @@ const (
 	LOCALAPPLAUNCHLEASEREPLAY ReasonCode = "LOCAL_APP_LAUNCH_LEASE_REPLAY"
 	LOCALAPPPROCESSMISMATCH ReasonCode = "LOCAL_APP_PROCESS_MISMATCH"
 	LOCALAPPSESSIONREVOKED ReasonCode = "LOCAL_APP_SESSION_REVOKED"
-	LOCALAPPPERMISSIONREQUIRED ReasonCode = "LOCAL_APP_PERMISSION_REQUIRED"
-	LOCALAPPPERMISSIONDENIED ReasonCode = "LOCAL_APP_PERMISSION_DENIED"
-	LOCALAPPPERMISSIONREVOKED ReasonCode = "LOCAL_APP_PERMISSION_REVOKED"
 	LOCALAPPACCOUNTCHANGED ReasonCode = "LOCAL_APP_ACCOUNT_CHANGED"
 	LOCALAPPOPERATIONUNAVAILABLE ReasonCode = "LOCAL_APP_OPERATION_UNAVAILABLE"
 	LOCALAPPPRESENCEREQUIRED ReasonCode = "LOCAL_APP_PRESENCE_REQUIRED"
 	LOCALAPPPRESENCEEXPIRED ReasonCode = "LOCAL_APP_PRESENCE_EXPIRED"
 	LOCALAPPDEVELOPERMODEDISABLED ReasonCode = "LOCAL_APP_DEVELOPER_MODE_DISABLED"
-	LOCALAPPRISKDISCLOSUREREQUIRED ReasonCode = "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"
 	REALMUNAVAILABLE ReasonCode = "REALM_UNAVAILABLE"
 	REALMNOTFOUND ReasonCode = "REALM_NOT_FOUND"
 	REALMCONFLICT ReasonCode = "REALM_CONFLICT"
@@ -1441,8 +1386,6 @@ const (
 	REALMREQUESTREJECTED ReasonCode = "REALM_REQUEST_REJECTED"
 	REALMCONTRACTINVALID ReasonCode = "REALM_CONTRACT_INVALID"
 	REALMOPERATIONFAILED ReasonCode = "REALM_OPERATION_FAILED"
-	LOCALAPPPERMISSIONRESERVEDNOTADMITTED ReasonCode = "LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED"
-	LOCALAPPPERMISSIONUNKNOWN ReasonCode = "LOCAL_APP_PERMISSION_UNKNOWN"
 	AGENTAICONFIGREVISIONCONFLICT ReasonCode = "AGENT_AI_CONFIG_REVISION_CONFLICT"
 	AGENTAUTONOMYREVISIONCONFLICT ReasonCode = "AGENT_AUTONOMY_REVISION_CONFLICT"
 	AGENTPRESENTATIONASSETTYPEINVALID ReasonCode = "AGENT_PRESENTATION_ASSET_TYPE_INVALID"
@@ -3020,32 +2963,6 @@ type CreateKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
 }
 
-type DecideLocalAppPermissionRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
-	PermissionId string `json:"permission_id,omitempty"`
-	Approved bool `json:"approved,omitempty"`
-	ExpectedOwnerRevision uint64 `json:"expected_owner_revision,omitempty"`
-}
-
-type DecideLocalAppPermissionResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	Posture LocalAppPermissionPosture `json:"posture,omitempty"`
-	OwnerRevision uint64 `json:"owner_revision,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type DecideLocalDevelopmentProjectRequest struct {
-	EvaluationId []byte `json:"evaluation_id,omitempty"`
-	Decision LocalDevelopmentDecision `json:"decision,omitempty"`
-	RiskDisclosureAcknowledged bool `json:"risk_disclosure_acknowledged,omitempty"`
-}
-
-type DecideLocalDevelopmentProjectResponse struct {
-	Authorization *LocalDevelopmentAuthorizationProjection `json:"authorization,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type DelegatedApprovalRequest struct {
 	ApprovalRequestId string `json:"approval_request_id,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -3262,7 +3179,7 @@ type EnableAutonomyResponse struct {
 }
 
 type EndLocalDevelopmentRunRequest struct {
-	AuthorizationId []byte `json:"authorization_id,omitempty"`
+	RegistrationHandle []byte `json:"registration_handle,omitempty"`
 	SupervisorRunId []byte `json:"supervisor_run_id,omitempty"`
 }
 
@@ -3293,23 +3210,6 @@ type ErrorInfo struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	ActionHint string `json:"action_hint,omitempty"`
 	Message string `json:"message,omitempty"`
-}
-
-type EvaluateLocalDevelopmentProjectRequest struct {
-	ExpectedAppId string `json:"expected_app_id,omitempty"`
-	ProjectRoot string `json:"project_root,omitempty"`
-	ShellKind LocalDevelopmentShellKind `json:"shell_kind,omitempty"`
-	SupervisorRunId []byte `json:"supervisor_run_id,omitempty"`
-}
-
-type EvaluateLocalDevelopmentProjectResponse struct {
-	EvaluationId []byte `json:"evaluation_id,omitempty"`
-	Project *LocalDevelopmentProjectProjection `json:"project,omitempty"`
-	State LocalDevelopmentAuthorizationState `json:"state,omitempty"`
-	ConfirmationRequired bool `json:"confirmation_required,omitempty"`
-	Authorization *LocalDevelopmentAuthorizationProjection `json:"authorization,omitempty"`
-	EvaluationExpiresAt string `json:"evaluation_expires_at,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type ExecuteLocalStateCutoverRequest struct {
@@ -3620,7 +3520,6 @@ type GetDeveloperModeStatusRequest struct {
 type GetDeveloperModeStatusResponse struct {
 	State DeveloperModeState `json:"state,omitempty"`
 	Revision uint64 `json:"revision,omitempty"`
-	AccountGeneration uint64 `json:"account_generation,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
@@ -3658,25 +3557,6 @@ type GetLocalAppAgentPresentationSnapshotRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 }
 
-type GetLocalAppPermissionOwnerProjectionRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
-}
-
-type GetLocalAppPermissionOwnerProjectionResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	Permissions []LocalAppPermissionOwnerProjection `json:"permissions,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type GetLocalAppPermissionStatusRequest struct {
-	PermissionId string `json:"permission_id,omitempty"`
-}
-
-type GetLocalAppPermissionStatusResponse struct {
-	Projection *LocalAppPermissionProjection `json:"projection,omitempty"`
-}
-
 type GetLocalAppSharedLocalAgentAIConfigRequest struct {
 
 }
@@ -3691,16 +3571,6 @@ type GetLocalCapabilityConfigurationRequest struct {
 
 type GetLocalCapabilityConfigurationResponse struct {
 	Configuration *LocalCapabilityConfiguration `json:"configuration,omitempty"`
-}
-
-type GetLocalDevelopmentAuthoritySummaryRequest struct {
-
-}
-
-type GetLocalDevelopmentAuthoritySummaryResponse struct {
-	DeveloperMode *LocalDevelopmentDeveloperModeSummary `json:"developer_mode,omitempty"`
-	ProjectAuthorization *LocalDevelopmentProjectAuthorizationSummary `json:"project_authorization,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type GetMachineLocalAIConfigurationRequest struct {
@@ -4355,26 +4225,6 @@ type ListLinksResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
-type ListLocalAppPermissionOwnerProjectionsRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-}
-
-type ListLocalAppPermissionOwnerProjectionsResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	Permissions []LocalAppPermissionOwnerProjection `json:"permissions,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type ListLocalAppPermissionRequestsRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-}
-
-type ListLocalAppPermissionRequestsResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	Requests []LocalAppPermissionPendingRequest `json:"requests,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type ListLocalAssetsRequest struct {
 	StatusFilter LocalAssetStatus `json:"status_filter,omitempty"`
 	KindFilter LocalAssetKind `json:"kind_filter,omitempty"`
@@ -4408,12 +4258,12 @@ type ListLocalAuditsResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
-type ListLocalDevelopmentAuthorizationsRequest struct {
+type ListLocalDevelopmentRegistrationsRequest struct {
 
 }
 
-type ListLocalDevelopmentAuthorizationsResponse struct {
-	Authorizations []LocalDevelopmentAuthorizationProjection `json:"authorizations,omitempty"`
+type ListLocalDevelopmentRegistrationsResponse struct {
+	Registrations []LocalDevelopmentRegistrationProjection `json:"registrations,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
@@ -4687,53 +4537,6 @@ type LocalAppAgentUpdateAutonomyResponse struct {
 	Projection *LocalAppAgentAutonomyProjection `json:"projection,omitempty"`
 }
 
-type LocalAppPermissionAgentHandle struct {
-	AgentHandle string `json:"agent_handle,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	AvatarUrl string `json:"avatar_url,omitempty"`
-}
-
-type LocalAppPermissionCoveredAgent struct {
-	LocalAgentId string `json:"local_agent_id,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-}
-
-type LocalAppPermissionInboxEvent struct {
-	Sequence uint64 `json:"sequence,omitempty"`
-	EmittedAt string `json:"emitted_at,omitempty"`
-	Requests []LocalAppPermissionPendingRequest `json:"requests,omitempty"`
-	Accepted bool `json:"accepted,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type LocalAppPermissionOwnerProjection struct {
-	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
-	DisplayAppId string `json:"display_app_id,omitempty"`
-	PermissionId string `json:"permission_id,omitempty"`
-	Posture LocalAppPermissionOwnerPosture `json:"posture,omitempty"`
-	OwnerRevision uint64 `json:"owner_revision,omitempty"`
-	RequestedAt string `json:"requested_at,omitempty"`
-	DecidedAt string `json:"decided_at,omitempty"`
-	CoveredAgents []LocalAppPermissionCoveredAgent `json:"covered_agents,omitempty"`
-}
-
-type LocalAppPermissionPendingRequest struct {
-	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
-	DisplayAppId string `json:"display_app_id,omitempty"`
-	PermissionId string `json:"permission_id,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	RequestedAt string `json:"requested_at,omitempty"`
-	OwnerRevision uint64 `json:"owner_revision,omitempty"`
-}
-
-type LocalAppPermissionProjection struct {
-	PermissionId string `json:"permission_id,omitempty"`
-	Posture LocalAppPermissionPosture `json:"posture,omitempty"`
-	CanRequest bool `json:"can_request,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	Agents []LocalAppPermissionAgentHandle `json:"agents,omitempty"`
-}
-
 type LocalAppSharedLocalAgentAIConfigProjection struct {
 	Config *AIConfig `json:"config,omitempty"`
 }
@@ -4904,46 +4707,24 @@ type LocalCatalogVariantDescriptor struct {
 	Sha256 string `json:"sha256,omitempty"`
 }
 
-type LocalDevelopmentAuthorizationProjection struct {
-	AuthorizationId []byte `json:"authorization_id,omitempty"`
-	Project *LocalDevelopmentProjectProjection `json:"project,omitempty"`
-	State LocalDevelopmentAuthorizationState `json:"state,omitempty"`
-	Persistence LocalDevelopmentDecision `json:"persistence,omitempty"`
-	AuthorizationGeneration uint64 `json:"authorization_generation,omitempty"`
-	ApprovedAt string `json:"approved_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type LocalDevelopmentDeveloperModeSummary struct {
-	Availability LocalDevelopmentSummaryAvailability `json:"availability,omitempty"`
-	State DeveloperModeState `json:"state,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type LocalDevelopmentPermissionRequirement struct {
-	PermissionId string `json:"permission_id,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
-type LocalDevelopmentProjectAuthorizationSummary struct {
-	Availability LocalDevelopmentSummaryAvailability `json:"availability,omitempty"`
-	ActiveCount uint64 `json:"active_count,omitempty"`
-	DeniedCount uint64 `json:"denied_count,omitempty"`
-	RevokedCount uint64 `json:"revoked_count,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type LocalDevelopmentProjectProjection struct {
 	AppId string `json:"app_id,omitempty"`
 	DisplayName string `json:"display_name,omitempty"`
 	CanonicalProjectRoot string `json:"canonical_project_root,omitempty"`
 	CanonicalManifestPath string `json:"canonical_manifest_path,omitempty"`
 	ShellKind LocalDevelopmentShellKind `json:"shell_kind,omitempty"`
-	AccountId string `json:"account_id,omitempty"`
-	PermissionRequirements []LocalDevelopmentPermissionRequirement `json:"permission_requirements,omitempty"`
-	PermissionRequirementFingerprint []byte `json:"permission_requirement_fingerprint,omitempty"`
+	AppAccess []string `json:"app_access,omitempty"`
 	TrustClass string `json:"trust_class,omitempty"`
+	SourceGeneration uint64 `json:"source_generation,omitempty"`
+	DeclarationGeneration uint64 `json:"declaration_generation,omitempty"`
+}
+
+type LocalDevelopmentRegistrationProjection struct {
+	RegistrationHandle []byte `json:"registration_handle,omitempty"`
+	Project *LocalDevelopmentProjectProjection `json:"project,omitempty"`
+	RegisteredAt string `json:"registered_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type LocalDeviceProfile struct {
@@ -6277,6 +6058,18 @@ type RegisterExternalPrincipalResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type RegisterLocalDevelopmentProjectRequest struct {
+	ExpectedAppId string `json:"expected_app_id,omitempty"`
+	ProjectRoot string `json:"project_root,omitempty"`
+	ShellKind LocalDevelopmentShellKind `json:"shell_kind,omitempty"`
+	SupervisorRunId []byte `json:"supervisor_run_id,omitempty"`
+}
+
+type RegisterLocalDevelopmentProjectResponse struct {
+	Registration *LocalDevelopmentRegistrationProjection `json:"registration,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type RemoveLinkRequest struct {
 	Context *KnowledgeRequestContext `json:"context,omitempty"`
 	BankId string `json:"bank_id,omitempty"`
@@ -6302,6 +6095,14 @@ type RemoveLocalAssetRequest struct {
 
 type RemoveLocalAssetResponse struct {
 	Asset *LocalAssetRecord `json:"asset,omitempty"`
+}
+
+type RemoveLocalDevelopmentRegistrationRequest struct {
+	RegistrationHandle []byte `json:"registration_handle,omitempty"`
+}
+
+type RemoveLocalDevelopmentRegistrationResponse struct {
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type RemoveLocalServiceRequest struct {
@@ -6388,15 +6189,6 @@ type RequestCompanionParticipationRequest struct {
 
 type RequestCompanionParticipationResponse struct {
 	Projection *CompanionParticipationProjection `json:"projection,omitempty"`
-}
-
-type RequestLocalAppPermissionRequest struct {
-	PermissionId string `json:"permission_id,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
-type RequestLocalAppPermissionResponse struct {
-	Projection *LocalAppPermissionProjection `json:"projection,omitempty"`
 }
 
 type RequestMemoryEmbeddingRuntimeBindRequest struct {
@@ -6591,28 +6383,6 @@ type RevokeConnectorGrantResponse struct {
 
 type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
-}
-
-type RevokeLocalAppPermissionRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-	LocalAppPrincipalId string `json:"local_app_principal_id,omitempty"`
-	PermissionId string `json:"permission_id,omitempty"`
-}
-
-type RevokeLocalAppPermissionResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	Posture LocalAppPermissionPosture `json:"posture,omitempty"`
-	OwnerRevision uint64 `json:"owner_revision,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type RevokeLocalDevelopmentAuthorizationRequest struct {
-	AuthorizationId []byte `json:"authorization_id,omitempty"`
-}
-
-type RevokeLocalDevelopmentAuthorizationResponse struct {
-	Authorization *LocalDevelopmentAuthorizationProjection `json:"authorization,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type RevokeSessionRequest struct {
@@ -6927,7 +6697,6 @@ type SetDeveloperModeRequest struct {
 type SetDeveloperModeResponse struct {
 	State DeveloperModeState `json:"state,omitempty"`
 	Revision uint64 `json:"revision,omitempty"`
-	AccountGeneration uint64 `json:"account_generation,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
@@ -7143,10 +6912,6 @@ type SubscribeAppMessagesRequest struct {
 	FromAppIds []string `json:"from_app_ids,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-}
-
-type SubscribeLocalAppPermissionRequestsRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
 }
 
 type SubscribeMemoryEventsRequest struct {
@@ -7790,36 +7555,12 @@ func (c RuntimeTypedClient) CompleteLogin(ctx context.Context, request CompleteL
 	return decodeRuntimeTypedResponse[CompleteLoginResponse](raw, "CompleteLoginResponse")
 }
 
-func (c RuntimeTypedClient) DecideLocalAppPermission(ctx context.Context, request DecideLocalAppPermissionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DecideLocalAppPermissionResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission", request, metadata, timeoutMS)
-	if err != nil {
-		return DecideLocalAppPermissionResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DecideLocalAppPermissionResponse](raw, "DecideLocalAppPermissionResponse")
-}
-
 func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request GetAccountSessionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountSessionStatusResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAccountSessionStatusResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetAccountSessionStatusResponse](raw, "GetAccountSessionStatusResponse")
-}
-
-func (c RuntimeTypedClient) GetLocalAppPermissionOwnerProjection(ctx context.Context, request GetLocalAppPermissionOwnerProjectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppPermissionOwnerProjectionResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection", request, metadata, timeoutMS)
-	if err != nil {
-		return GetLocalAppPermissionOwnerProjectionResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetLocalAppPermissionOwnerProjectionResponse](raw, "GetLocalAppPermissionOwnerProjectionResponse")
-}
-
-func (c RuntimeTypedClient) GetLocalAppPermissionStatus(ctx context.Context, request GetLocalAppPermissionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppPermissionStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus", request, metadata, timeoutMS)
-	if err != nil {
-		return GetLocalAppPermissionStatusResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetLocalAppPermissionStatusResponse](raw, "GetLocalAppPermissionStatusResponse")
 }
 
 func (c RuntimeTypedClient) InvokeRealmUnary(ctx context.Context, request InvokeRealmUnaryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InvokeRealmUnaryResponse, error) {
@@ -7838,22 +7579,6 @@ func (c RuntimeTypedClient) IssueWorkspaceBinding(ctx context.Context, request I
 	return decodeRuntimeTypedResponse[IssueWorkspaceBindingResponse](raw, "IssueWorkspaceBindingResponse")
 }
 
-func (c RuntimeTypedClient) ListLocalAppPermissionOwnerProjections(ctx context.Context, request ListLocalAppPermissionOwnerProjectionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppPermissionOwnerProjectionsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections", request, metadata, timeoutMS)
-	if err != nil {
-		return ListLocalAppPermissionOwnerProjectionsResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListLocalAppPermissionOwnerProjectionsResponse](raw, "ListLocalAppPermissionOwnerProjectionsResponse")
-}
-
-func (c RuntimeTypedClient) ListLocalAppPermissionRequests(ctx context.Context, request ListLocalAppPermissionRequestsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppPermissionRequestsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests", request, metadata, timeoutMS)
-	if err != nil {
-		return ListLocalAppPermissionRequestsResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListLocalAppPermissionRequestsResponse](raw, "ListLocalAppPermissionRequestsResponse")
-}
-
 func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LogoutResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/Logout", request, metadata, timeoutMS)
 	if err != nil {
@@ -7862,28 +7587,12 @@ func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, m
 	return decodeRuntimeTypedResponse[LogoutResponse](raw, "LogoutResponse")
 }
 
-func (c RuntimeTypedClient) RequestLocalAppPermission(ctx context.Context, request RequestLocalAppPermissionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestLocalAppPermissionResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission", request, metadata, timeoutMS)
-	if err != nil {
-		return RequestLocalAppPermissionResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RequestLocalAppPermissionResponse](raw, "RequestLocalAppPermissionResponse")
-}
-
 func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, request RequestPresenceVerificationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestPresenceVerificationResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification", request, metadata, timeoutMS)
 	if err != nil {
 		return RequestPresenceVerificationResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RequestPresenceVerificationResponse](raw, "RequestPresenceVerificationResponse")
-}
-
-func (c RuntimeTypedClient) RevokeLocalAppPermission(ctx context.Context, request RevokeLocalAppPermissionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeLocalAppPermissionResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission", request, metadata, timeoutMS)
-	if err != nil {
-		return RevokeLocalAppPermissionResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RevokeLocalAppPermissionResponse](raw, "RevokeLocalAppPermissionResponse")
 }
 
 func (c RuntimeTypedClient) RevokeWorkspaceBinding(ctx context.Context, request RevokeWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeWorkspaceBindingResponse, error) {
@@ -7900,14 +7609,6 @@ func (c RuntimeTypedClient) SubscribeAccountSessionEvents(ctx context.Context, r
 		return nil, err
 	}
 	return &RuntimeTypedStream[AccountSessionEvent]{reader: reader}, nil
-}
-
-func (c RuntimeTypedClient) SubscribeLocalAppPermissionRequests(ctx context.Context, request SubscribeLocalAppPermissionRequestsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppPermissionInboxEvent], error) {
-	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests", request, metadata, timeoutMS)
-	if err != nil {
-		return nil, err
-	}
-	return &RuntimeTypedStream[LocalAppPermissionInboxEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAccountRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SwitchAccountResponse, error) {
@@ -9122,28 +8823,12 @@ func (c RuntimeTypedClient) UpsertModelCatalogProvider(ctx context.Context, requ
 	return decodeRuntimeTypedResponse[UpsertModelCatalogProviderResponse](raw, "UpsertModelCatalogProviderResponse")
 }
 
-func (c RuntimeTypedClient) DecideLocalDevelopmentProject(ctx context.Context, request DecideLocalDevelopmentProjectRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DecideLocalDevelopmentProjectResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject", request, metadata, timeoutMS)
-	if err != nil {
-		return DecideLocalDevelopmentProjectResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DecideLocalDevelopmentProjectResponse](raw, "DecideLocalDevelopmentProjectResponse")
-}
-
 func (c RuntimeTypedClient) EndLocalDevelopmentRun(ctx context.Context, request EndLocalDevelopmentRunRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EndLocalDevelopmentRunResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun", request, metadata, timeoutMS)
 	if err != nil {
 		return EndLocalDevelopmentRunResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[EndLocalDevelopmentRunResponse](raw, "EndLocalDevelopmentRunResponse")
-}
-
-func (c RuntimeTypedClient) EvaluateLocalDevelopmentProject(ctx context.Context, request EvaluateLocalDevelopmentProjectRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EvaluateLocalDevelopmentProjectResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject", request, metadata, timeoutMS)
-	if err != nil {
-		return EvaluateLocalDevelopmentProjectResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[EvaluateLocalDevelopmentProjectResponse](raw, "EvaluateLocalDevelopmentProjectResponse")
 }
 
 func (c RuntimeTypedClient) GetDeveloperModeStatus(ctx context.Context, request GetDeveloperModeStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetDeveloperModeStatusResponse, error) {
@@ -9154,28 +8839,28 @@ func (c RuntimeTypedClient) GetDeveloperModeStatus(ctx context.Context, request 
 	return decodeRuntimeTypedResponse[GetDeveloperModeStatusResponse](raw, "GetDeveloperModeStatusResponse")
 }
 
-func (c RuntimeTypedClient) GetLocalDevelopmentAuthoritySummary(ctx context.Context, request GetLocalDevelopmentAuthoritySummaryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalDevelopmentAuthoritySummaryResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) ListLocalDevelopmentRegistrations(ctx context.Context, request ListLocalDevelopmentRegistrationsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalDevelopmentRegistrationsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations", request, metadata, timeoutMS)
 	if err != nil {
-		return GetLocalDevelopmentAuthoritySummaryResponse{}, err
+		return ListLocalDevelopmentRegistrationsResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[GetLocalDevelopmentAuthoritySummaryResponse](raw, "GetLocalDevelopmentAuthoritySummaryResponse")
+	return decodeRuntimeTypedResponse[ListLocalDevelopmentRegistrationsResponse](raw, "ListLocalDevelopmentRegistrationsResponse")
 }
 
-func (c RuntimeTypedClient) ListLocalDevelopmentAuthorizations(ctx context.Context, request ListLocalDevelopmentAuthorizationsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalDevelopmentAuthorizationsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) RegisterLocalDevelopmentProject(ctx context.Context, request RegisterLocalDevelopmentProjectRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterLocalDevelopmentProjectResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject", request, metadata, timeoutMS)
 	if err != nil {
-		return ListLocalDevelopmentAuthorizationsResponse{}, err
+		return RegisterLocalDevelopmentProjectResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[ListLocalDevelopmentAuthorizationsResponse](raw, "ListLocalDevelopmentAuthorizationsResponse")
+	return decodeRuntimeTypedResponse[RegisterLocalDevelopmentProjectResponse](raw, "RegisterLocalDevelopmentProjectResponse")
 }
 
-func (c RuntimeTypedClient) RevokeLocalDevelopmentAuthorization(ctx context.Context, request RevokeLocalDevelopmentAuthorizationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeLocalDevelopmentAuthorizationResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) RemoveLocalDevelopmentRegistration(ctx context.Context, request RemoveLocalDevelopmentRegistrationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalDevelopmentRegistrationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration", request, metadata, timeoutMS)
 	if err != nil {
-		return RevokeLocalDevelopmentAuthorizationResponse{}, err
+		return RemoveLocalDevelopmentRegistrationResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[RevokeLocalDevelopmentAuthorizationResponse](raw, "RevokeLocalDevelopmentAuthorizationResponse")
+	return decodeRuntimeTypedResponse[RemoveLocalDevelopmentRegistrationResponse](raw, "RemoveLocalDevelopmentRegistrationResponse")
 }
 
 func (c RuntimeTypedClient) SetDeveloperMode(ctx context.Context, request SetDeveloperModeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetDeveloperModeResponse, error) {

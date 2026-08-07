@@ -60,7 +60,7 @@ What each file demonstrates:
 
 Advanced examples live under `examples/sdk/advanced/`:
 
-- `app-auth.ts`: process-bound session → zero-prompt app-private storage → reserved product permission fails closed
+- `app-access.ts`: session posture remains independent while protected App Access fails closed until ingress is available
 - `knowledge.ts`: private knowledge bank/page CRUD + keyword search
 - `custom-runtime.ts`: explicit Runtime transport configuration
 

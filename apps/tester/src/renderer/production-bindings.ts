@@ -1,6 +1,5 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
 import type { NimiCapabilityAIConfigIntent } from '@nimiplatform/sdk/ai';
-import type { PermissionID } from '@nimiplatform/sdk/app';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import {
@@ -212,12 +211,6 @@ export function createTesterProductionBindings(
         async localAppSessionStatus() {
           const status = await testerLocalAppClient.auth.status();
           return { state: status.state, sessionBound: status.sessionBound };
-        },
-        async localAppPermissionStatus(permissionId: PermissionID) {
-          return testerLocalAppClient.permissions.status(permissionId);
-        },
-        async localAppPermissionRequest(input: { readonly permissionId: PermissionID; readonly reason: string }) {
-          return testerLocalAppClient.permissions.request(input);
         },
         async localAppConversationJourney(input: Parameters<TesterRendererCommandPort['localAppConversationJourney']>[0]) {
           return runTesterConversationJourney({

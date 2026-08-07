@@ -1,40 +1,38 @@
 {
   "title": "Apps",
-  "description": "See connected local apps in one place, including their status, folder, and permissions.",
+  "description": "See registered local apps, project roots, and declared App Access in one place.",
   "collectionEyebrow": "App management",
   "inventoryTitle": "Connected apps",
-  "inventoryDescription": "Apps connected to Nimi appear here. Open details to quickly confirm the project folder and permission needs.",
+  "inventoryDescription": "Registered local development projects appear here with their exact project roots and raw App Access declarations.",
   "inventoryCount": "{{count}} apps",
   "overview": {
     "connected": "Connected",
     "connectedDetail": "connected now",
-    "active": "Enabled",
-    "activeDetail": "available now",
-    "permissions": "Extra permissions",
-    "permissionsDetail": "review before opening"
+    "accessDeclarations": "App Access declarations",
+    "accessDeclarationsDetail": "declared by projects"
   },
   "listTitle": "App list",
-  "listDescription": "Filter by status to find the apps that need attention first.",
+  "listDescription": "Filter registered apps by whether they declare App Access domains.",
   "filter": {
     "label": "Filter apps",
     "all": "All",
-    "active": "Enabled",
-    "permissions": "Extra permissions",
     "empty": "No apps match this filter.",
-    "reset": "Show all apps"
+    "reset": "Show all apps",
+    "access": "Declares App Access"
   },
   "developerCard": {
     "title": "Connect or manage a local app",
-    "description": "Need to connect a new local project or adjust development authorization? Continue in Developer Mode.",
+    "description": "Connect a new local project or manage existing registrations in Developer Mode.",
     "action": "Open Developer Mode"
   },
   "emptyConnectedTitle": "No apps connected yet",
-  "emptyConnectedDescription": "Once you connect a local development project, it will appear here with its status, folder, and permissions.",
+  "emptyConnectedDescription": "Once you register a local development project, it will appear here with its project root and App Access declaration.",
   "card": {
     "local": "Local development",
     "projectRoot": "Project folder",
-    "permissions": "Extra permissions",
-    "noExtraPermissions": "No extra permissions"
+    "registered": "Registered",
+    "appAccess": "Declared App Access",
+    "noAppAccess": "No App Access domains declared"
   },
   "emptyTitle": "No apps in inventory",
   "empty": "Install an account app or connect a local app.",
@@ -79,7 +77,6 @@
     "installRequired": "Install Required",
     "updateRequired": "Update Required",
     "repairRequired": "Repair Required",
-    "permissionRequired": "Permission Required",
     "blockedByMasterGate": "Sign in required",
     "unsupported": "Unsupported",
     "signInRequired": "Sign in required",
@@ -107,7 +104,6 @@
     "installedReady": "Ready",
     "updateAvailable": "Update Available",
     "updateRequired": "Update Required",
-    "permissionRequired": "Permission Required",
     "repairRequired": "Repair Required",
     "unsupportedOnThisDevice": "Unsupported",
     "blockedByPolicy": "Blocked",
@@ -126,7 +122,6 @@
     "removeLocalAdoption": "Remove local link",
     "signIn": "Sign in",
     "deleteAppData": "Delete App Data",
-    "reviewPermissions": "Review Permissions",
     "details": "Details",
     "close": "Close"
   },

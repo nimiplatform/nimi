@@ -4,8 +4,6 @@ Host-only Node-API projection of the shared Nimi protected carrier for Electron
 main processes. The addon exposes exact Local App operations, including:
 
 - `localAppSessionStatus`
-- `localAppPermissionStatus`
-- `localAppPermissionRequest`
 - `localAppAIConfigGet`
 - `localAppAIConfigOverwrite`
 - `localAppSharedAgentAIConfigGet`

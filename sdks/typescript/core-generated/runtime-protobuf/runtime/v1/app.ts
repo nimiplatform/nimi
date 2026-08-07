@@ -301,9 +301,9 @@ export interface RemoveLocalAppStorageJsonResponse {
  */
 export interface PrepareLocalAppLaunchRequest {
     /**
-     * Runtime-generated management handle resolving an active local_development
-     * authorization. Ordinary package profiles are deferred and absent.
-     * It is not a principal id, app id, account selector, path, or credential.
+     * Runtime-generated management handle resolving an active development
+     * registration. It is not the Registered App Subject, an account selector,
+     * an access decision, a path, or a credential.
      *
      * @generated from protobuf field: bytes local_app_handle = 1
      */

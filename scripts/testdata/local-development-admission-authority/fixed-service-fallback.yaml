@@ -1,7 +1,0 @@
-target: transportMatrix
-expected_issue: LOCAL_DEVELOPMENT_TRANSPORT_BOUNDARY_INVALID
-mutations:
-  - path: platform_admission.windows
-    value: caller_selected_daemon
-  - path: platform_admission.forbidden_fallbacks.0
-    value: localhost_grpc_allowed

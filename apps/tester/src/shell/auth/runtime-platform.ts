@@ -79,15 +79,15 @@ function unavailableFromError(error: unknown): RuntimePlatformUnavailableProject
 function messageForState(state: NimiAppAuthProjection['state'], reasonCode: string): string {
   switch (state) {
     case 'action-required':
-      return 'This local development project needs approval in Nimi Desktop.';
+      return 'Protected App Access is currently unavailable.';
     case 'revoked':
-      return 'This local-app authorization was revoked in Nimi Desktop.';
+      return 'This protected local-app session ended.';
     case 'project-changed':
       return 'The project identity no longer matches the admitted local development project.';
     case 'process-replaced':
       return 'This process was replaced; restart the app through the verified Desktop supervisor.';
     case 'account-changed':
-      return 'The Nimi account changed; authorize this project for the current account.';
+      return 'The Nimi account changed; reopen the protected local-app session.';
     case 'runtime-restarted':
       return 'Runtime restarted; reopen the protected local-app session.';
     default:
@@ -106,20 +106,19 @@ function messageFor(reasonCode: string): string {
     case 'process-replaced':
       return 'This process no longer matches the admitted local-app process.';
     case 'account-changed':
-      return 'The active Nimi account changed; the local-app session must be authorized again.';
+      return 'The active Nimi account changed; reopen the protected local-app session.';
     case 'runtime-restarted':
       return 'Runtime restarted; reopen the protected local-app session.';
     case 'revoked':
-      return 'This local-app authorization was revoked.';
+      return 'This protected local-app session ended.';
     case 'project-changed':
-      return 'The local development project no longer matches its admitted identity.';
-    case 'local-development-authorization-required':
-    case 'local-development-reapproval-required':
-      return 'This development project needs your approval in Nimi Desktop.';
-    case 'local-development-session-revoked':
-      return 'This development authorization was revoked in Nimi Desktop.';
+      return 'The local development project no longer matches its current registration.';
+    case 'local-app-operation-unavailable':
+      return 'Protected App Access is unavailable until Runtime admits a fresh access session.';
+    case 'local-development-registration-not-found':
+      return 'This local development registration no longer exists.';
     case 'local-development-project-changed':
-      return 'The project identity no longer matches the approved development project.';
+      return 'The project identity no longer matches the registered development project.';
     default:
       return 'The protected Nimi local-app carrier is unavailable.';
   }
@@ -134,18 +133,16 @@ function actionHintFor(reasonCode: string): string {
     case 'runtime-restarted':
       return 'reopen_local_app_session';
     case 'account-changed':
-      return 'reauthorize_for_current_account';
+      return 'reopen_local_app_session';
     case 'revoked':
       return 'reopen_local_app_session';
     case 'project-changed':
-      return 'readmit_local_development_project';
-    case 'local-development-authorization-required':
-    case 'local-development-reapproval-required':
-      return 'complete_local_app_authorization';
-    case 'local-development-session-revoked':
-      return 'restart_through_verified_desktop_supervisor';
+      return 'register_local_development_project';
+    case 'local-app-operation-unavailable':
+      return 'wait_for_app_access_admission';
+    case 'local-development-registration-not-found':
     case 'local-development-project-changed':
-      return 'readmit_local_development_project';
+      return 'register_local_development_project';
     default:
       return 'start_fixed_runtime_service';
   }

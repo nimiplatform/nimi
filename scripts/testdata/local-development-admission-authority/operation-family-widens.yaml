@@ -1,7 +1,0 @@
-target: policy
-expected_issue: LOCAL_DEVELOPMENT_OPERATION_POSTURE_INVALID
-mutations:
-  - path: operation_posture.missing_families
-    value: generic_runtime_forwarding
-  - path: operation_posture.generic_protected_proxy
-    value: allowed

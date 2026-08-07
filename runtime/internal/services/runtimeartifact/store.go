@@ -59,19 +59,20 @@ const ArtifactUseReadBytes ArtifactUse = "read_bytes"
 // artifact. A nil audience denotes an internal-only historical or producer
 // record and can never authorize ReadArtifactBytes.
 type ArtifactAudience struct {
-	ProducerJobID           string
-	OwnerAccountID          string
-	AppID                   string
-	ReleaseDigest           protectedlocal.Identifier
-	SessionID               protectedlocal.Identifier
-	AccountGeneration       uint64
-	AllowedUse              ArtifactUse
-	ExpiresAt               time.Time
-	TrustClass              string
-	AuthorizationID         protectedlocal.Identifier
-	AuthorizationGeneration uint64
-	ProjectRoot             string
-	CapabilityFingerprint   protectedlocal.Identifier
+	ProducerJobID         string
+	OwnerAccountID        string
+	AppID                 string
+	ReleaseDigest         protectedlocal.Identifier
+	SessionID             protectedlocal.Identifier
+	AccountGeneration     uint64
+	AllowedUse            ArtifactUse
+	ExpiresAt             time.Time
+	TrustClass            string
+	RegistrationHandle    protectedlocal.Identifier
+	RegisteredAppSubject  string
+	SourceGeneration      uint64
+	DeclarationGeneration uint64
+	ProjectRoot           string
 }
 
 // GeneratedVoiceArtifactMetadata is the durable cleanup index for assistant
@@ -308,8 +309,10 @@ func normalizeArtifactAudience(input ArtifactAudience, createdAt time.Time) (Art
 	}
 	switch input.TrustClass {
 	case "local_development":
-		if input.AuthorizationID == (protectedlocal.Identifier{}) || input.AuthorizationGeneration == 0 ||
-			!protectedlocal.IsAbsolutePlatformPath(input.ProjectRoot) || input.CapabilityFingerprint == (protectedlocal.Identifier{}) {
+		input.RegisteredAppSubject = strings.TrimSpace(input.RegisteredAppSubject)
+		if input.RegistrationHandle == (protectedlocal.Identifier{}) || input.RegisteredAppSubject == "" ||
+			input.SourceGeneration == 0 || input.DeclarationGeneration == 0 ||
+			!protectedlocal.IsAbsolutePlatformPath(input.ProjectRoot) {
 			return ArtifactAudience{}, ErrInvalidArtifactRecord
 		}
 	default:
@@ -355,8 +358,9 @@ func artifactAudiencesEqual(left, right *ArtifactAudience) bool {
 	return left.ProducerJobID == right.ProducerJobID && left.OwnerAccountID == right.OwnerAccountID && left.AppID == right.AppID &&
 		left.ReleaseDigest == right.ReleaseDigest && left.SessionID == right.SessionID && left.AccountGeneration == right.AccountGeneration &&
 		left.AllowedUse == right.AllowedUse && left.ExpiresAt.Equal(right.ExpiresAt) && left.TrustClass == right.TrustClass &&
-		left.AuthorizationID == right.AuthorizationID && left.AuthorizationGeneration == right.AuthorizationGeneration &&
-		left.ProjectRoot == right.ProjectRoot && left.CapabilityFingerprint == right.CapabilityFingerprint
+		left.RegistrationHandle == right.RegistrationHandle && left.RegisteredAppSubject == right.RegisteredAppSubject &&
+		left.SourceGeneration == right.SourceGeneration && left.DeclarationGeneration == right.DeclarationGeneration &&
+		left.ProjectRoot == right.ProjectRoot
 }
 
 func normalizeGeneratedVoiceArtifactMetadata(input GeneratedVoiceArtifactMetadata, payload []byte) GeneratedVoiceArtifactMetadata {

@@ -26,7 +26,6 @@ function accountBinding(
     desktopAccountSessionEventsOpen: ok,
     desktopAccountSessionEventsNext: ok,
     desktopAccountSessionEventsClose: ok,
-    desktopPermissionOwnerUnary: async () => ({ status: 'ok', value: new Uint8Array() }),
     desktopAccountBeginLogin: ok,
     desktopAccountCompleteLogin: ok,
     desktopAccountInvokeRealmUnary: ok,
@@ -65,7 +64,6 @@ describe('Electron protected Desktop account host', () => {
       'runtime_account_session_status',
       'runtime_account_session_events_open',
       'runtime_account_session_events_close',
-      'runtime_account_permission_owner_unary',
       'runtime_account_begin_login',
       'runtime_account_complete_login',
       'runtime_account_invoke_realm_unary',
@@ -74,30 +72,9 @@ describe('Electron protected Desktop account host', () => {
     ]) {
       expect(isElectronDesktopAccountCommand(command)).toBe(true);
     }
+    expect(isElectronDesktopAccountCommand('runtime_account_permission_owner_unary')).toBe(false);
     expect(isElectronDesktopAccountCommand('runtime_bridge_unary')).toBe(false);
     expect(isElectronDesktopAccountCommand('runtime_account_issue_binding')).toBe(false);
-  });
-
-  it('routes permission-owner protobuf only through the bounded account-control command', async () => {
-    const unary = vi.fn(async () => ({ status: 'ok' as const, value: Uint8Array.from([1, 2]) }));
-    const host = createNimiElectronDesktopAccountHostForBinding(accountBinding({
-      desktopPermissionOwnerUnary: unary,
-    }));
-    await expect(host.invoke('runtime_account_permission_owner_unary', {
-      methodId: '/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests',
-      requestBytesBase64: 'AA==',
-      timeoutMs: 10_000,
-    })).resolves.toEqual({ responseBytesBase64: 'AQI=' });
-    expect(unary).toHaveBeenCalledWith({
-      methodId: '/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests',
-      requestBytes: Uint8Array.from([0]),
-      timeoutMs: 10_000,
-    });
-    await expect(host.invoke('runtime_account_permission_owner_unary', {
-      methodId: '/nimi.runtime.v1.RuntimeAccountService/BeginLogin',
-      requestBytesBase64: 'AA==',
-      timeoutMs: 10_000,
-    })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
   });
 
   it('cancels a native stream that finishes opening after host shutdown', async () => {
@@ -319,7 +296,6 @@ describe('Electron Developer Mode host', () => {
         state: enabled ? 'enabled' : 'disabled',
         enabled,
         revision: 2,
-        accountGeneration: 1,
         reasonCode: 'action-executed',
         retryable: false,
       },
@@ -338,59 +314,31 @@ describe('Electron Developer Mode host', () => {
 });
 
 describe('Electron local-development protected control', () => {
-  const evaluationId = '55'.repeat(32);
-  const authorizationId = '66'.repeat(32);
+  const registrationHandle = '66'.repeat(32);
   const supervisorRunId = '77'.repeat(32);
-  const permissionRequirementFingerprint = '88'.repeat(32);
   const project = {
     appId: 'com.nimi.zhiyu.dev',
     displayName: 'Zhiyu Development',
     canonicalProjectRoot: 'D:\\workspace\\nimi\\apps\\zhiyu',
     canonicalManifestPath: 'D:\\workspace\\nimi\\apps\\zhiyu\\nimi.app.yaml',
     shell: 'electron',
-    accountId: 'account-a',
-    permissionRequirements: [],
-    permissionRequirementFingerprint,
+    appAccess: ['realm.data', 'future.unknown'],
+    sourceGeneration: 2,
+    declarationGeneration: 3,
   };
-  const authorization = {
-    authorizationId,
+  const registration = {
+    registrationHandle,
     project,
-    state: 'active',
-    persistence: 'allow-project',
-    authorizationGeneration: 1,
-    approvedAtUnixMs: 1_800_000_000_000,
+    registeredAtUnixMs: 1_800_000_000_000,
     updatedAtUnixMs: 1_800_000_000_100,
-  };
-  const authoritySummary = {
-    developerMode: {
-      availability: 'available',
-      state: 'enabled',
-      unavailableReason: null,
-    },
-    projectAuthorization: {
-      availability: 'available',
-      activeCount: 1,
-      deniedCount: 3,
-      revokedCount: 4,
-      unavailableReason: null,
-    },
   };
 
   function binding(overrides: Partial<NimiElectronLocalDevelopmentBinding> = {}): NimiElectronLocalDevelopmentBinding {
     const ok = async (value: unknown) => ({ status: 'ok' as const, value });
     return {
-      desktopGetLocalDevelopmentAuthoritySummary: async () => ok(authoritySummary),
-      desktopEvaluateLocalDevelopmentProject: async () => ok({
-        evaluationId,
-        project,
-        state: 'confirmation-required',
-        confirmationRequired: true,
-        authorization: null,
-        evaluationExpiresAtUnixMs: 1_800_000_030_000,
-      }),
-      desktopDecideLocalDevelopmentProject: async () => ok(authorization),
-      desktopListLocalDevelopmentAuthorizations: async () => ok([authorization]),
-      desktopRevokeLocalDevelopmentAuthorization: async () => ok({ ...authorization, state: 'revoked' }),
+      desktopRegisterLocalDevelopmentProject: async () => ok(registration),
+      desktopListLocalDevelopmentRegistrations: async () => ok([registration]),
+      desktopRemoveLocalDevelopmentRegistration: async () => ok({ removed: true }),
       desktopLaunchLocalDevelopmentHost: async () => ok({ processId: 4242, bindDeadlineUnixMs: Date.now() + 5_000 }),
       desktopLocalDevelopmentHostRunning: async () => ok({ running: true }),
       desktopTerminateLocalDevelopmentHost: async () => ok({ terminated: true }),
@@ -399,30 +347,30 @@ describe('Electron local-development protected control', () => {
     };
   }
 
-  it('carries private Runtime identifiers only through the main-process typed control', async () => {
-    const evaluate = vi.fn(binding().desktopEvaluateLocalDevelopmentProject);
+  it('carries private registration handles only through the main-process typed control', async () => {
+    const register = vi.fn(binding().desktopRegisterLocalDevelopmentProject);
     const launch = vi.fn(binding().desktopLaunchLocalDevelopmentHost);
     const control = createNimiElectronLocalDevelopmentControlForBinding(binding({
-      desktopEvaluateLocalDevelopmentProject: evaluate,
+      desktopRegisterLocalDevelopmentProject: register,
       desktopLaunchLocalDevelopmentHost: launch,
     }));
-    const result = await control.evaluate({
+    const result = await control.register({
       expectedAppId: project.appId,
       projectRoot: project.canonicalProjectRoot,
       shell: 'electron',
       supervisorRunId,
     });
-    expect(result.evaluationId).toBe(evaluationId);
-    expect(result.project.permissionRequirementFingerprint).toBe(permissionRequirementFingerprint);
-    expect(evaluate).toHaveBeenCalledWith({
+    expect(result.registrationHandle).toBe(registrationHandle);
+    expect(result.project.appAccess).toEqual(['realm.data', 'future.unknown']);
+    expect(register).toHaveBeenCalledWith({
       expectedAppId: project.appId,
       projectRoot: project.canonicalProjectRoot,
       shell: 'electron',
       supervisorRunId,
     });
-    await expect(control.listAuthorizations()).resolves.toHaveLength(1);
+    await expect(control.listRegistrations()).resolves.toHaveLength(1);
     await expect(control.launch({
-      authorizationId,
+      registrationHandle,
       supervisorRunId,
       shell: 'electron',
       hostExecutablePath: 'D:\\electron.exe',
@@ -430,32 +378,25 @@ describe('Electron local-development protected control', () => {
       hostArguments: ['D:\\main.js'],
       workingDirectory: project.canonicalProjectRoot,
     })).resolves.toMatchObject({ processId: 4242 });
-    expect(launch).toHaveBeenCalledWith(expect.objectContaining({ authorizationId, supervisorRunId }));
-    await expect(control.getAuthoritySummary()).resolves.toEqual(authoritySummary);
+    expect(launch).toHaveBeenCalledWith(expect.objectContaining({ registrationHandle, supervisorRunId }));
   });
 
-  it('rejects malformed native projections before Desktop can create a selector', async () => {
+  it('rejects malformed native registration projections', async () => {
     const control = createNimiElectronLocalDevelopmentControlForBinding(binding({
-      desktopListLocalDevelopmentAuthorizations: async () => ({
+      desktopListLocalDevelopmentRegistrations: async () => ({
         status: 'ok' as const,
-        value: [{ ...authorization, bearer: 'forbidden' }],
+        value: [{ ...registration, bearer: 'forbidden' }],
       }),
     }));
-    await expect(control.listAuthorizations()).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    await expect(control.listRegistrations()).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
   });
 
-  it('rejects malformed or authority-bearing summary projections', async () => {
+  it('removes registrations without returning deleted identity material', async () => {
+    const remove = vi.fn(binding().desktopRemoveLocalDevelopmentRegistration);
     const control = createNimiElectronLocalDevelopmentControlForBinding(binding({
-      desktopGetLocalDevelopmentAuthoritySummary: async () => ({
-        status: 'ok' as const,
-        value: {
-          ...authoritySummary,
-          grantSummary: { grantedCount: 1, grantId: 'forbidden' },
-        },
-      }),
+      desktopRemoveLocalDevelopmentRegistration: remove,
     }));
-    await expect(control.getAuthoritySummary()).rejects.toMatchObject({
-      reasonCode: 'runtime-service-untrusted',
-    });
+    await expect(control.removeRegistration(registrationHandle)).resolves.toBeUndefined();
+    expect(remove).toHaveBeenCalledWith({ registrationHandle });
   });
 });

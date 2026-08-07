@@ -166,7 +166,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     appOriginProtocol.register();
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
       homeDirectory: app.getPath('home'),
-      focusMainWindow: focusDesktopMainWindow,
     });
     desktopOpenIntentHost = await createDesktopElectronOpenIntentHost({
       homeDirectory: app.getPath('home'),

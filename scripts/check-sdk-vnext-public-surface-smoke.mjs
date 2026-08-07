@@ -143,10 +143,6 @@ const appClient = createNimiAppClient({
 });
 const localAppStandardShell: NimiLocalAppStandardShell = {
   session: { async status() { return { state: 'ready', reasonCode: 'ACTION_EXECUTED', retryable: false }; } },
-  permission: {
-    async status() { return {}; },
-    async request() { return {}; },
-  },
   ai: {
     text: {
       async generateCandidate() { return {}; },

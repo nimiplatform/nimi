@@ -387,24 +387,12 @@ export class NimiRuntimeUnavailableError extends Error {
   }
 }
 
-export type NimiDesktopPermissionOwnerRuntimeClient = Pick<
-  RuntimeTypedClient,
-  | 'listLocalAppPermissionRequests'
-  | 'subscribeLocalAppPermissionRequests'
-  | 'getLocalAppPermissionOwnerProjection'
-  | 'listLocalAppPermissionOwnerProjections'
-  | 'decideLocalAppPermission'
-  | 'revokeLocalAppPermission'
->;
-
 export class Runtime {
   readonly #core: CoreClient;
   readonly #appId: string;
   readonly #getSubjectUserId: () => string | Promise<string | undefined> | undefined;
   readonly #materializeRealmSource: RuntimeTypedClient['materializeRealmSource'];
   readonly generated: RuntimePublicGeneratedClient;
-  /** Protected Desktop owner plane; present only for host-owned Runtime clients. */
-  readonly desktopPermissionOwner?: NimiDesktopPermissionOwnerRuntimeClient;
   /** Exact machine product profile; present only for host-owned Runtime clients. */
   readonly desktopMachineProduct?: DesktopMachineProductRuntimeMethods;
   readonly account: RuntimeAccountModule;
@@ -435,14 +423,6 @@ export class Runtime {
     this.#materializeRealmSource = generated.materializeRealmSource.bind(generated);
     this.generated = createPublicRuntimeGeneratedClient(generated);
     if (options.hostOwnedIdentity === true) {
-      this.desktopPermissionOwner = bindRuntimeModule(generated, [
-        'listLocalAppPermissionRequests',
-        'subscribeLocalAppPermissionRequests',
-        'getLocalAppPermissionOwnerProjection',
-        'listLocalAppPermissionOwnerProjections',
-        'decideLocalAppPermission',
-        'revokeLocalAppPermission',
-      ] as const);
       this.desktopMachineProduct = bindRuntimeModule(
         generated,
         NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS.desktop_machine_product_v1,

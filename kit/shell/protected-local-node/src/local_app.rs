@@ -51,50 +51,6 @@ pub async fn local_app_session_renew() -> NativeJsonOutcome {
     }
 }
 
-#[napi(js_name = "localAppPermissionStatus")]
-pub async fn local_app_permission_status(input: NativePermissionStatusInput) -> NativeJsonOutcome {
-    let session = match current_or_open_session().await {
-        Ok(session) => session,
-        Err(error) => return NativeJsonOutcome::error(error),
-    };
-    match session
-        .permission_status(LocalAppPermissionStatusRequest {
-            permission_id: input.permission_id,
-        })
-        .await
-    {
-        Ok(status) => NativeJsonOutcome::success(project_permission_status(status)),
-        Err(error) => {
-            clear_session_on_transport_failure(&session, &error).await;
-            NativeJsonOutcome::error(error)
-        }
-    }
-}
-
-#[napi(js_name = "localAppPermissionRequest")]
-pub async fn local_app_permission_request(
-    input: NativePermissionRequestInput,
-) -> NativeJsonOutcome {
-    let session = match current_or_open_session().await {
-        Ok(session) => session,
-        Err(error) => return NativeJsonOutcome::error(error),
-    };
-    match session
-        .permission_request(LocalAppPermissionRequest {
-            permission_id: input.permission_id,
-            reason: input.reason,
-            request_id: input.request_id,
-        })
-        .await
-    {
-        Ok(status) => NativeJsonOutcome::success(project_permission_status(status)),
-        Err(error) => {
-            clear_session_on_transport_failure(&session, &error).await;
-            NativeJsonOutcome::error(error)
-        }
-    }
-}
-
 #[napi(js_name = "localAppAIConfigGet")]
 pub async fn local_app_ai_config_get() -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.app_ai_config_get().await }).await

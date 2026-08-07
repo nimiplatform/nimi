@@ -22,24 +22,24 @@ func (peer DirectLocalAppPeer) valid() bool {
 // DirectLocalAppLaunch is the one-time Runtime-owned association needed to
 // join a Desktop-prepared launch to a Unix socket peer. It is in-memory only.
 type DirectLocalAppLaunch struct {
-	LaunchID                Identifier
-	AuthorizationID         Identifier
-	SupervisorRunID         Identifier
-	AccountGeneration       uint64
-	AuthorizationGeneration uint64
-	DesktopPID              uint32
-	ExpectedUID             uint32
-	ChildPID                uint32
-	ExpiresAt               time.Time
-	BindDeadline            time.Time
+	LaunchID              Identifier
+	RegistrationHandle    Identifier
+	SupervisorRunID       Identifier
+	SourceGeneration      uint64
+	DeclarationGeneration uint64
+	DesktopPID            uint32
+	ExpectedUID           uint32
+	ChildPID              uint32
+	ExpiresAt             time.Time
+	BindDeadline          time.Time
 }
 
 func (launch DirectLocalAppLaunch) valid() bool {
 	return launch.LaunchID != (Identifier{}) &&
-		launch.AuthorizationID != (Identifier{}) &&
+		launch.RegistrationHandle != (Identifier{}) &&
 		launch.SupervisorRunID != (Identifier{}) &&
-		launch.AccountGeneration != 0 &&
-		launch.AuthorizationGeneration != 0 &&
+		launch.SourceGeneration != 0 &&
+		launch.DeclarationGeneration != 0 &&
 		launch.DesktopPID != 0 &&
 		launch.ExpectedUID != 0 &&
 		!launch.ExpiresAt.IsZero()
@@ -64,16 +64,16 @@ func NewDirectLocalAppLaunches() *DirectLocalAppLaunches {
 }
 
 func (launches *DirectLocalAppLaunches) Prepare(
-	authorizationID Identifier,
+	registrationHandle Identifier,
 	supervisorRunID Identifier,
-	accountGeneration uint64,
-	authorizationGeneration uint64,
+	sourceGeneration uint64,
+	declarationGeneration uint64,
 	desktopPID uint32,
 	expectedUID uint32,
 	expiresAt time.Time,
 ) (DirectLocalAppLaunch, error) {
-	if launches == nil || authorizationID == (Identifier{}) || supervisorRunID == (Identifier{}) ||
-		accountGeneration == 0 || authorizationGeneration == 0 || desktopPID == 0 || expectedUID == 0 ||
+	if launches == nil || registrationHandle == (Identifier{}) || supervisorRunID == (Identifier{}) ||
+		sourceGeneration == 0 || declarationGeneration == 0 || desktopPID == 0 || expectedUID == 0 ||
 		expiresAt.IsZero() {
 		return DirectLocalAppLaunch{}, fmt.Errorf("complete direct local-app launch authority is required")
 	}
@@ -87,8 +87,8 @@ func (launches *DirectLocalAppLaunches) Prepare(
 		return DirectLocalAppLaunch{}, fmt.Errorf("generate direct local-app launch identifier: %w", err)
 	}
 	launch := DirectLocalAppLaunch{
-		LaunchID: launchID, AuthorizationID: authorizationID, SupervisorRunID: supervisorRunID,
-		AccountGeneration: accountGeneration, AuthorizationGeneration: authorizationGeneration,
+		LaunchID: launchID, RegistrationHandle: registrationHandle, SupervisorRunID: supervisorRunID,
+		SourceGeneration: sourceGeneration, DeclarationGeneration: declarationGeneration,
 		DesktopPID: desktopPID, ExpectedUID: expectedUID, ExpiresAt: expiresAt,
 	}
 	launches.mu.Lock()
@@ -160,14 +160,14 @@ func (launches *DirectLocalAppLaunches) Revoke(launchID Identifier) {
 	}
 }
 
-func (launches *DirectLocalAppLaunches) RevokeRun(authorizationID Identifier, supervisorRunID Identifier) {
-	if launches == nil || authorizationID == (Identifier{}) || supervisorRunID == (Identifier{}) {
+func (launches *DirectLocalAppLaunches) RevokeRun(registrationHandle Identifier, supervisorRunID Identifier) {
+	if launches == nil || registrationHandle == (Identifier{}) || supervisorRunID == (Identifier{}) {
 		return
 	}
 	launches.mu.Lock()
 	defer launches.mu.Unlock()
 	for launchID, pending := range launches.byLaunch {
-		if pending.AuthorizationID != authorizationID || pending.SupervisorRunID != supervisorRunID {
+		if pending.RegistrationHandle != registrationHandle || pending.SupervisorRunID != supervisorRunID {
 			continue
 		}
 		delete(launches.byLaunch, launchID)
@@ -177,14 +177,14 @@ func (launches *DirectLocalAppLaunches) RevokeRun(authorizationID Identifier, su
 	}
 }
 
-func (launches *DirectLocalAppLaunches) RevokeAuthorization(authorizationID Identifier) {
-	if launches == nil || authorizationID == (Identifier{}) {
+func (launches *DirectLocalAppLaunches) RevokeRegistration(registrationHandle Identifier) {
+	if launches == nil || registrationHandle == (Identifier{}) {
 		return
 	}
 	launches.mu.Lock()
 	defer launches.mu.Unlock()
 	for launchID, pending := range launches.byLaunch {
-		if pending.AuthorizationID != authorizationID {
+		if pending.RegistrationHandle != registrationHandle {
 			continue
 		}
 		delete(launches.byLaunch, launchID)

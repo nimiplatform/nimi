@@ -1,20 +1,12 @@
-import {
-  hasElectronInvoke,
-} from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeChecked } from '../../bridge/runtime-bridge/invoke';
+import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import type {
-  LocalDevelopmentApproval,
-  LocalDevelopmentAuthorization,
-  LocalDevelopmentDecision,
-  LocalDevelopmentPermissionRequirement,
+  LocalDevelopmentRegistration,
   LocalDevelopmentRun,
 } from './local-development-types.js';
 
 export type {
-  LocalDevelopmentApproval,
-  LocalDevelopmentAuthorization,
-  LocalDevelopmentDecision,
-  LocalDevelopmentPermissionRequirement,
+  LocalDevelopmentRegistration,
   LocalDevelopmentRun,
 } from './local-development-types.js';
 
@@ -22,225 +14,131 @@ export function localDevelopmentBridgeAvailable(): boolean {
   return hasElectronInvoke();
 }
 
-export async function listPendingLocalDevelopmentApprovals(): Promise<LocalDevelopmentApproval[]> {
-  return invokeChecked(
-    'local_development_pending_approvals',
+export async function listLocalDevelopmentRegistrations(): Promise<LocalDevelopmentRegistration[]> {
+  const response = await invokeChecked(
+    'local_development_registrations_list',
     {},
-    (value) => requireArray(value).map(parseApproval),
+    (value) => value,
   );
+  if (!Array.isArray(response)) throw new Error('Local development registrations response is invalid');
+  return response.map(parseRegistration);
 }
 
-export async function decideLocalDevelopmentApproval(
-  requestId: string,
-  decision: LocalDevelopmentDecision,
-  riskDisclosureAcknowledged: boolean,
-): Promise<void> {
-  await invokeChecked(
-    'local_development_decide',
-    { payload: { requestId, decision, riskDisclosureAcknowledged } },
-    (value) => {
-      const record = requireRecord(value);
-      requireText(record.state, 'state');
-      requireText(record.runId, 'runId');
-    },
+export async function removeLocalDevelopmentRegistration(selector: string): Promise<void> {
+  const response = await invokeChecked(
+    'local_development_registration_remove',
+    { payload: { selector: requireSelector(selector) } },
+    (value) => value,
   );
-}
-
-export async function subscribeLocalDevelopmentApprovals(
-  onApproval: (approval: LocalDevelopmentApproval) => void,
-): Promise<() => void> {
-  if (!hasElectronInvoke()) throw new Error('local-development-protected-carrier-required');
-  let disposed = false;
-  let inFlight = false;
-  const observed = new Set<string>();
-  const poll = async () => {
-    if (disposed || inFlight) return;
-    inFlight = true;
-    try {
-      for (const approval of await listPendingLocalDevelopmentApprovals()) {
-        if (!observed.has(approval.requestId)) {
-          observed.add(approval.requestId);
-          onApproval(approval);
-        }
-      }
-    } finally {
-      inFlight = false;
-    }
-  };
-  void poll().catch(() => undefined);
-  const timer = globalThis.setInterval(() => void poll().catch(() => undefined), 750);
-  return () => {
-    disposed = true;
-    globalThis.clearInterval(timer);
-  };
-}
-
-export async function listLocalDevelopmentAuthorizations(): Promise<LocalDevelopmentAuthorization[]> {
-  return invokeChecked(
-    'local_development_authorizations_list',
-    {},
-    (value) => requireArray(value).map(parseAuthorization),
-  );
+  const record = exactRecord(response, ['removed', 'selector']);
+  if (record.removed !== true || record.selector !== selector) {
+    throw new Error('Local development registration removal response is invalid');
+  }
 }
 
 export async function listLocalDevelopmentRuns(): Promise<LocalDevelopmentRun[]> {
-  return invokeChecked(
+  const response = await invokeChecked(
     'local_development_runs_list',
     {},
-    (value) => requireArray(value).map(parseRun),
+    (value) => value,
   );
+  if (!Array.isArray(response)) throw new Error('Local development runs response is invalid');
+  return response.map(parseRun);
 }
 
-export async function revokeLocalDevelopmentAuthorization(
-  selector: string,
-): Promise<LocalDevelopmentAuthorization> {
-  return invokeChecked(
-    'local_development_authorization_revoke',
-    { payload: { selector } },
-    parseAuthorization,
-  );
-}
-
-function parseApproval(value: unknown): LocalDevelopmentApproval {
-  const record = requireExactRecord(value, [
-    'accountId',
-    'appId',
-    'approvalState',
-    'canonicalProjectRoot',
-    'displayName',
-    'requestId',
-    'permissionRequirements',
-    'shell',
-  ]);
-  return {
-    requestId: requireSelector(record.requestId, 'dev-approval'),
-    appId: requireText(record.appId, 'appId'),
-    displayName: requireText(record.displayName, 'displayName'),
-    canonicalProjectRoot: requireText(record.canonicalProjectRoot, 'canonicalProjectRoot'),
-    shell: requireShell(record.shell),
-    accountId: requireText(record.accountId, 'accountId'),
-    permissionRequirements: requirePermissionRequirements(record.permissionRequirements),
-    approvalState: requireText(record.approvalState, 'approvalState'),
-  };
-}
-
-function parseAuthorization(value: unknown): LocalDevelopmentAuthorization {
-  const record = requireExactRecord(value, [
-    'accountId',
+function parseRegistration(value: unknown): LocalDevelopmentRegistration {
+  const record = exactRecord(value, [
+    'appAccess',
     'appId',
     'canonicalProjectRoot',
+    'declarationGeneration',
     'displayName',
-    'persistence',
-    'permissionRequirements',
+    'registeredAtUnixMs',
     'selector',
     'shell',
-    'state',
+    'sourceGeneration',
     'updatedAtUnixMs',
   ]);
-  const updatedAtUnixMs = Number(record.updatedAtUnixMs);
-  if (!Number.isSafeInteger(updatedAtUnixMs) || updatedAtUnixMs <= 0) {
-    throw new Error('Local development authorization has an invalid timestamp.');
+  if (record.shell !== 'electron' || !Array.isArray(record.appAccess)) {
+    throw new Error('Local development registration response is invalid');
   }
   return {
-    selector: requireSelector(record.selector, 'dev-project'),
-    appId: requireText(record.appId, 'appId'),
-    displayName: requireText(record.displayName, 'displayName'),
-    canonicalProjectRoot: requireText(record.canonicalProjectRoot, 'canonicalProjectRoot'),
-    shell: requireShell(record.shell),
-    accountId: requireText(record.accountId, 'accountId'),
-    permissionRequirements: requirePermissionRequirements(record.permissionRequirements),
-    persistence: requireText(record.persistence, 'persistence'),
-    state: requireText(record.state, 'state'),
-    updatedAtUnixMs,
+    selector: requireSelector(record.selector),
+    appId: requireText(record.appId),
+    displayName: requireText(record.displayName),
+    canonicalProjectRoot: requireText(record.canonicalProjectRoot),
+    shell: 'electron',
+    appAccess: record.appAccess.map(requireText),
+    sourceGeneration: requireInteger(record.sourceGeneration, 1),
+    declarationGeneration: requireInteger(record.declarationGeneration, 1),
+    registeredAtUnixMs: requireInteger(record.registeredAtUnixMs, 1),
+    updatedAtUnixMs: requireInteger(record.updatedAtUnixMs, 1),
   };
 }
 
 function parseRun(value: unknown): LocalDevelopmentRun {
-  const loose = requireRecord(value);
-  const keys = [
+  const record = requiredRecord(value);
+  const expectedKeys = [
     'appId',
     'canonicalProjectRoot',
     'displayName',
     'hostGeneration',
     'message',
-    ...(loose.reasonCode === undefined ? [] : ['reasonCode']),
     'retryable',
+    ...(Object.hasOwn(record, 'reasonCode') ? ['reasonCode'] : []),
     'shell',
     'state',
   ];
-  const record = requireExactRecord(value, keys);
-  const hostGeneration = Number(record.hostGeneration);
-  if (!Number.isSafeInteger(hostGeneration) || hostGeneration < 0 || typeof record.retryable !== 'boolean') {
-    throw new Error('Local development run status is invalid.');
+  exactRecord(record, expectedKeys);
+  if (record.shell !== 'electron' || typeof record.retryable !== 'boolean') {
+    throw new Error('Local development run response is invalid');
   }
   return {
-    appId: requireText(record.appId, 'appId'),
-    displayName: requireText(record.displayName, 'displayName'),
-    canonicalProjectRoot: requireText(record.canonicalProjectRoot, 'canonicalProjectRoot'),
-    shell: requireShell(record.shell),
-    state: requireText(record.state, 'state'),
-    message: requireText(record.message, 'message'),
-    ...(record.reasonCode === undefined ? {} : { reasonCode: requireText(record.reasonCode, 'reasonCode') }),
+    appId: requireText(record.appId),
+    displayName: requireText(record.displayName),
+    canonicalProjectRoot: requireText(record.canonicalProjectRoot),
+    shell: 'electron',
+    state: requireText(record.state),
+    message: requireText(record.message),
+    ...(record.reasonCode === undefined ? {} : { reasonCode: requireText(record.reasonCode) }),
     retryable: record.retryable,
-    hostGeneration,
+    hostGeneration: requireInteger(record.hostGeneration, 0),
   };
 }
 
-function requireShell(value: unknown): 'electron' {
-  if (value !== 'electron') {
-    throw new Error('Local development shell is invalid.');
-  }
-  return value;
-}
-
-function requirePermissionRequirements(value: unknown): LocalDevelopmentPermissionRequirement[] {
-  if (!Array.isArray(value)) throw new Error('Local development permission requirements are invalid.');
-  const requirements = value.map((entry) => {
-    const record = requireExactRecord(entry, ['permissionId', 'reason']);
-    const permissionId = requireText(record.permissionId, 'permissionId');
-    const reason = requireText(record.reason, 'permission reason');
-    if (new TextEncoder().encode(reason).byteLength > 240) {
-      throw new Error('Local development permission reason is too long.');
-    }
-    return { permissionId, reason };
-  });
-  if (new Set(requirements.map(({ permissionId }) => permissionId)).size !== requirements.length) {
-    throw new Error('Local development permission requirements are invalid.');
-  }
-  return requirements;
-}
-
-function requireSelector(value: unknown, prefix: string): string {
-  const text = requireText(value, prefix);
-  if (!text.startsWith(`${prefix}-`) || text.length > 160 || !/^[a-zA-Z0-9_-]+$/.test(text)) {
-    throw new Error(`Local development ${prefix} selector is invalid.`);
-  }
-  return text;
-}
-
-function requireText(value: unknown, field: string): string {
-  if (typeof value !== 'string' || !value || value.trim() !== value) {
-    throw new Error(`Local development ${field} is invalid.`);
-  }
-  return value;
-}
-
-function requireRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('Local development response is invalid.');
-  }
-  return value as Record<string, unknown>;
-}
-
-function requireExactRecord(value: unknown, keys: readonly string[]): Record<string, unknown> {
-  const record = requireRecord(value);
-  if (JSON.stringify(Object.keys(record).sort()) !== JSON.stringify([...keys].sort())) {
-    throw new Error('Local development response contains forbidden fields.');
+function exactRecord(value: unknown, keys: readonly string[]): Record<string, unknown> {
+  const record = requiredRecord(value);
+  if (Object.keys(record).sort().join('|') !== [...keys].sort().join('|')) {
+    throw new Error('Local development response is invalid');
   }
   return record;
 }
 
-function requireArray(value: unknown): unknown[] {
-  if (!Array.isArray(value)) throw new Error('Local development response must be an array.');
+function requiredRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Local development response is invalid');
+  }
+  return value as Record<string, unknown>;
+}
+
+function requireSelector(value: unknown): string {
+  const selected = requireText(value);
+  if (!selected.startsWith('dev-project-') || selected.length > 160 || !/^[A-Za-z0-9_-]+$/u.test(selected)) {
+    throw new Error('Local development selector is invalid');
+  }
+  return selected;
+}
+
+function requireText(value: unknown): string {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 4096 || value.trim() !== value) {
+    throw new Error('Local development text is invalid');
+  }
   return value;
+}
+
+function requireInteger(value: unknown, minimum: number): number {
+  if (!Number.isSafeInteger(value) || Number(value) < minimum) {
+    throw new Error('Local development integer is invalid');
+  }
+  return Number(value);
 }

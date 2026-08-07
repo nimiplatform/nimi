@@ -1,17 +1,17 @@
 // Current Desktop Apps projection.
 //
-// Runtime owns the authorization records. Desktop preserves the typed
+// Runtime owns local-development registrations. Desktop preserves the typed
 // projection for presentation and never derives registry, package, install,
-// update, repair, or launch truth.
+// update, repair, launch, or App Access admission truth.
 
-import type { LocalDevelopmentAuthorization } from '../local-development/local-development-types.js';
+import type { LocalDevelopmentRegistration } from '../local-development/local-development-types.js';
 
 export interface DesktopAppsProjectionSource {
-  listAuthorizations(): Promise<readonly LocalDevelopmentAuthorization[]>;
+  listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
 }
 
 export interface DesktopAppsEntry {
-  readonly authorization: LocalDevelopmentAuthorization;
+  readonly registration: LocalDevelopmentRegistration;
 }
 
 export type DesktopAppsPanelProjection =
@@ -21,20 +21,20 @@ export type DesktopAppsPanelProjection =
 export async function projectAppsPanel(
   source: DesktopAppsProjectionSource,
 ): Promise<DesktopAppsPanelProjection> {
-  if (!source || typeof source.listAuthorizations !== 'function') {
+  if (!source || typeof source.listRegistrations !== 'function') {
     return { status: 'error', detail: 'projectAppsPanel: local-development source is required' };
   }
 
   try {
-    const authorizations = await source.listAuthorizations();
+    const registrations = await source.listRegistrations();
     return {
       status: 'loaded',
-      entries: [...authorizations]
+      entries: [...registrations]
         .sort((left, right) => {
           const byUpdatedAt = right.updatedAtUnixMs - left.updatedAtUnixMs;
           return byUpdatedAt || left.appId.localeCompare(right.appId);
         })
-        .map((authorization) => ({ authorization })),
+        .map((registration) => ({ registration })),
     };
   } catch (error) {
     return {

@@ -333,11 +333,10 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
-	accountID := strings.TrimSpace(s.projection.GetAccountId())
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
 	s.revokeWorkspaceBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
-	failureReason := s.revokeAccountAuthorityAndClearCustody(ctx, accountID)
+	failureReason := s.clearCustody(ctx)
 	s.mu.Lock()
 	s.clearAuthenticatedRuntimeIdentityLocked()
 	if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
@@ -562,11 +561,10 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 		return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
-	accountID := strings.TrimSpace(s.projection.GetAccountId())
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason, "")
 	s.revokeWorkspaceBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
-	failureReason := s.revokeAccountAuthorityAndClearCustody(ctx, accountID)
+	failureReason := s.clearCustody(ctx)
 	s.mu.Lock()
 	s.clearAuthenticatedRuntimeIdentityLocked()
 	if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
@@ -586,16 +584,9 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 	return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: reason}, nil
 }
 
-func (s *Service) revokeAccountAuthorityAndClearCustody(ctx context.Context, accountID string) runtimev1.AccountReasonCode {
-	revocationFailed := false
-	if s.accountAuthorityRevoker != nil && accountID != "" {
-		revocationFailed = s.accountAuthorityRevoker.RevokeAccountAuthority(ctx, accountID) != nil
-	}
+func (s *Service) clearCustody(ctx context.Context) runtimev1.AccountReasonCode {
 	if err := s.custody.Clear(ctx, s.partition); err != nil {
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE
-	}
-	if revocationFailed {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE
 	}
 	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED
 }

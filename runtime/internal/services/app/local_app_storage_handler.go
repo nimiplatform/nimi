@@ -22,7 +22,7 @@ func (s *Service) ReadLocalAppStorageJson(ctx context.Context, req *runtimev1.Re
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 	}
 	s.localAppStorageMu.RLock()
-	document, readErr := appstorage.ReadLocalAppJSON(s.appStorageDataRoot, decision.LocalAppPrincipalID, req.GetRelativePath())
+	document, readErr := appstorage.ReadLocalAppJSON(s.appStorageDataRoot, decision.RegisteredAppSubject, req.GetRelativePath())
 	s.localAppStorageMu.RUnlock()
 	if readErr != nil {
 		return nil, localAppStorageFailure(readErr)
@@ -43,7 +43,7 @@ func (s *Service) WriteLocalAppStorageJson(ctx context.Context, req *runtimev1.W
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	s.localAppStorageMu.Lock()
-	document, writeErr := appstorage.WriteLocalAppJSON(s.appStorageDataRoot, decision.LocalAppPrincipalID, req.GetRelativePath(), req.GetJsonValue())
+	document, writeErr := appstorage.WriteLocalAppJSON(s.appStorageDataRoot, decision.RegisteredAppSubject, req.GetRelativePath(), req.GetJsonValue())
 	s.localAppStorageMu.Unlock()
 	if writeErr != nil {
 		return nil, localAppStorageFailure(writeErr)
@@ -64,7 +64,7 @@ func (s *Service) RemoveLocalAppStorageJson(ctx context.Context, req *runtimev1.
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 	}
 	s.localAppStorageMu.Lock()
-	removed, removeErr := appstorage.RemoveLocalAppJSON(s.appStorageDataRoot, decision.LocalAppPrincipalID, req.GetRelativePath())
+	removed, removeErr := appstorage.RemoveLocalAppJSON(s.appStorageDataRoot, decision.RegisteredAppSubject, req.GetRelativePath())
 	s.localAppStorageMu.Unlock()
 	if removeErr != nil {
 		return nil, localAppStorageFailure(removeErr)
@@ -77,9 +77,9 @@ func (s *Service) localAppStorageDecision(ctx context.Context, operation account
 		return accountservice.LocalAppCallerDecision{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	if !ok || decision.Operation != operation || decision.AuthorityClass != localappop.AuthorityClassBaseEntitlement ||
+	if !ok || decision.Operation != operation || decision.AuthorityClass != localappop.AuthorityClassBase ||
 		decision.OperationCapability != appstorage.LocalAppPrivateStorageEntitlement ||
-		strings.TrimSpace(decision.LocalAppPrincipalID) == "" || decision.LocalAppPrincipalID != strings.TrimSpace(decision.LocalAppPrincipalID) ||
+		strings.TrimSpace(decision.RegisteredAppSubject) == "" || decision.RegisteredAppSubject != strings.TrimSpace(decision.RegisteredAppSubject) ||
 		decision.ExpiresAt.IsZero() || !s.now().UTC().Before(decision.ExpiresAt.UTC()) {
 		return accountservice.LocalAppCallerDecision{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}

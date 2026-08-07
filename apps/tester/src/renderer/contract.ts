@@ -9,11 +9,7 @@ import type {
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
 } from '@nimiplatform/sdk/ai';
-import type {
-  NimiLocalAppAgent,
-  NimiLocalAppAgentHandle,
-  PermissionID,
-} from '@nimiplatform/sdk/app';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
 import type {
   AnyNimiCanonicalRendererHostBindingsV1,
@@ -77,8 +73,6 @@ export interface TesterRendererCommandPort {
   claimWorldTourViewerLaunch(input: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture>;
   saveWorldTourViewerPreset(input: { readonly manifestPath: string; readonly presetJson: string }): Promise<{ readonly manifestPath: string; readonly presetPath: string }>;
   localAppSessionStatus(): Promise<{ readonly state: string; readonly sessionBound: boolean }>;
-  localAppPermissionStatus(permissionId: PermissionID): Promise<{ readonly posture: string; readonly canRequest: boolean; readonly agents: readonly NimiLocalAppAgent[]; readonly detail?: string }>;
-  localAppPermissionRequest(input: { readonly permissionId: PermissionID; readonly reason: string }): Promise<{ readonly posture: string }>;
   localAppConversationJourney(input: { readonly agentHandle: NimiLocalAppAgentHandle; readonly text: string }): Promise<TesterConversationJourneyResult>;
   localAppConversationSnapshot(input: { readonly agentHandle: NimiLocalAppAgentHandle; readonly conversationAnchorId: string }): Promise<Readonly<Record<string, unknown>>>;
   localAppStorageRoundTrip(input: { readonly relativePath: string; readonly value: Readonly<Record<string, string | number>> }): Promise<{ readonly sizeBytes: number; readonly removed: boolean }>;

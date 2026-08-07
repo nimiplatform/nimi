@@ -41,12 +41,11 @@ function writeConsumerFiles() {
 
   writeFileSync(path.join(tempRoot, 'consumer.mjs'), `
 import assert from 'node:assert/strict';
+import * as appModule from '@nimiplatform/sdk/app';
 import {
   NimiAppClient,
-  PermissionClient,
   createAppScopeRef,
   createNimiAppClient,
-  createPermissionClient,
 } from '@nimiplatform/sdk/app';
 
 function entryFor(appId = 'nimi.example-app') {
@@ -77,30 +76,16 @@ assert.equal((await appClient.list())[0].appId, 'nimi.example-app');
 assert.equal((await appClient.status('nimi.example-app')).launchReadiness, 'ready');
 
 const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
-const permission = createPermissionClient({
-  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
-  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
-  subscribe(permissionId, callback) {
-    callback({ status: { permissionId, posture: 'unavailable', canRequest: false, agents: [] } });
-    return () => {};
-  },
-});
-assert(permission instanceof PermissionClient);
-assert.equal((await permission.status('agents.interact')).posture, 'unavailable');
-await assert.rejects(
-  permission.request({ permissionId: 'agents.voice', reason: 'consumer smoke' }),
-  (error) => error?.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED',
-);
 assert.equal(scopeRef.ownerId, 'tester.app');
+assert.equal('PermissionClient' in appModule, false);
+assert.equal('createPermissionClient' in appModule, false);
 `);
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
 import {
   NimiAppClient,
-  PermissionClient,
   createAppScopeRef,
   createNimiAppClient,
-  createPermissionClient,
   type NimiAppInventoryEntry,
   type NimiAppScopeRef,
   type NimiAppStatus,
@@ -131,17 +116,8 @@ const appClient: NimiAppClient = createNimiAppClient({
   async status() { return status; },
 });
 const scopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
-const permissionClient: PermissionClient = createPermissionClient({
-  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
-  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
-  subscribe(permissionId, callback) {
-    callback({ status: { permissionId, posture: 'unavailable', canRequest: false, agents: [] } });
-    return () => {};
-  },
-});
 void appClient;
 void scopeRef;
-void permissionClient;
 `);
 
   writeFileSync(path.join(tempRoot, 'tsconfig.json'), JSON.stringify({

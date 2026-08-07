@@ -4,7 +4,6 @@ import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { deriveIconGlyph } from './apps-card-fields.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
-import { LocalAppPermissionSettings } from './local-app-permission-settings.js';
 
 export interface AppsDetailViewProps {
   readonly entry: DesktopAppsEntry | null;
@@ -12,14 +11,11 @@ export interface AppsDetailViewProps {
   readonly onClose: () => void;
 }
 
-export function AppsDetailView({
-  entry,
-  onClose,
-}: AppsDetailViewProps): ReactElement | null {
+export function AppsDetailView({ entry, onClose }: AppsDetailViewProps): ReactElement | null {
   const { t } = useTranslation();
   if (!entry) return null;
 
-  const { authorization } = entry;
+  const { registration } = entry;
   return (
     <OverlayShell
       open
@@ -28,49 +24,41 @@ export function AppsDetailView({
       title={
         <span data-testid="apps-detail-title" className="flex items-center gap-2">
           <span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)] text-xs font-semibold">
-            {deriveIconGlyph(authorization.displayName)}
+            {deriveIconGlyph(registration.displayName)}
           </span>
-          {authorization.displayName}
+          {registration.displayName}
         </span>
       }
       footer={<Button tone="secondary" onClick={onClose}>{t('Apps.action.close')}</Button>}
     >
       <div data-testid="apps-detail-body" className="flex flex-col gap-4 text-sm">
         <dl className="flex flex-col gap-2">
-          <DetailRow label={t('LocalDevelopment.field.app')} value={authorization.appId} />
+          <DetailRow label={t('LocalDevelopment.field.app')} value={registration.appId} />
           <DetailRow
             label={t('LocalDevelopment.field.shell')}
-            value={t(`LocalDevelopment.shell.${authorization.shell}`, { defaultValue: authorization.shell })}
+            value={t(`LocalDevelopment.shell.${registration.shell}`, { defaultValue: registration.shell })}
           />
-          <DetailRow
-            label={t('Apps.detail.openReadiness')}
-            value={t(`LocalDevelopment.state.${authorization.state}`, { defaultValue: authorization.state })}
-          />
-          <DetailRow label={t('LocalDevelopment.field.projectRoot')} value={authorization.canonicalProjectRoot} />
+          <DetailRow label={t('LocalDevelopment.field.projectRoot')} value={registration.canonicalProjectRoot} />
+          <DetailRow label={t('LocalDevelopment.field.sourceGeneration')} value={String(registration.sourceGeneration)} />
+          <DetailRow label={t('LocalDevelopment.field.declarationGeneration')} value={String(registration.declarationGeneration)} />
         </dl>
 
-        <div data-testid="apps-detail-permissions" className="flex flex-col gap-1">
+        <div data-testid="apps-detail-app-access" className="flex flex-col gap-1">
           <span className="text-xs font-semibold uppercase text-[color:var(--nimi-text-muted)]">
-            {t('LocalDevelopment.field.permissions')}
+            {t('LocalDevelopment.field.appAccess')}
           </span>
-          {authorization.permissionRequirements.length === 0 ? (
+          {registration.appAccess.length === 0 ? (
             <p className="text-xs leading-5 text-[color:var(--nimi-text-secondary)]">
-              {t('LocalDevelopment.field.noExtraPermissions')}
+              {t('LocalDevelopment.field.noAppAccess')}
             </p>
           ) : (
             <ul className="flex flex-col gap-1 text-xs text-[color:var(--nimi-text-secondary)]">
-              {authorization.permissionRequirements.map((requirement) => (
-                <li key={requirement.permissionId} data-permission-id={requirement.permissionId}>
-                  <span className="font-mono">{requirement.permissionId}</span>
-                  {' · '}
-                  {requirement.reason}
-                </li>
+              {registration.appAccess.map((domain) => (
+                <li key={domain} data-app-access={domain} className="font-mono">{domain}</li>
               ))}
             </ul>
           )}
         </div>
-
-        <LocalAppPermissionSettings displayAppId={authorization.appId} />
       </div>
     </OverlayShell>
   );

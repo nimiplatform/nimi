@@ -2,7 +2,7 @@
  * Developer Tools surface sub-area enumeration (`D-DEV-003`).
  *
  * The `Developer Tools` developer-group surface hosts only developer-mode
- * technical content: local-development authorization posture/activity and a
+ * technical content: local-development registration/activity and a
  * diagnostics route into Support. It MUST NOT host ordinary-user product
  * functionality (`D-DEV-003` MUST NOT).
  */

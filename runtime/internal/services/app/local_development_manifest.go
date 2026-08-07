@@ -8,25 +8,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/nimiplatform/nimi/runtime/internal/appaccess"
 	"gopkg.in/yaml.v3"
 )
 
 type localAppManifest struct {
-	AppID            string                              `json:"app_id" yaml:"app_id"`
-	AppIDCamel       string                              `json:"appId" yaml:"appId"`
-	DisplayName      string                              `json:"display_name" yaml:"display_name"`
-	DisplayNameCamel string                              `json:"displayName" yaml:"displayName"`
-	Permissions      []localAppManifestPermissionRequest `json:"permissions" yaml:"permissions"`
-	LocalDevelopment localAppManifestLocalDevelopment    `json:"local_development" yaml:"local_development"`
-}
-
-type localAppManifestLocalDevelopment struct {
-	LegacyRuntimeScopedBindingRequests any `json:"runtime_scoped_binding_requests" yaml:"runtime_scoped_binding_requests"`
-}
-
-type localAppManifestPermissionRequest struct {
-	PermissionID string `json:"id" yaml:"id"`
-	Reason       string `json:"reason" yaml:"reason"`
+	AppID            string    `json:"app_id" yaml:"app_id"`
+	AppIDCamel       string    `json:"appId" yaml:"appId"`
+	DisplayName      string    `json:"display_name" yaml:"display_name"`
+	DisplayNameCamel string    `json:"displayName" yaml:"displayName"`
+	AppAccess        *[]string `json:"app_access" yaml:"app_access"`
 }
 
 func loadLocalAppManifest(rootPath string) (string, string, localAppManifest, error) {
@@ -39,11 +30,8 @@ func loadLocalAppManifest(rootPath string) (string, string, localAppManifest, er
 		return "", "", localAppManifest{}, fmt.Errorf("resolve local app rootPath: %w", err)
 	}
 	info, err := os.Stat(absRoot)
-	if err != nil {
-		return "", "", localAppManifest{}, fmt.Errorf("local app rootPath is not readable: %w", err)
-	}
-	if !info.IsDir() {
-		return "", "", localAppManifest{}, errors.New("local app rootPath must be a directory")
+	if err != nil || !info.IsDir() {
+		return "", "", localAppManifest{}, errors.New("local app rootPath must be a readable directory")
 	}
 	canonicalRoot, err := filepath.EvalSymlinks(absRoot)
 	if err != nil {
@@ -59,14 +47,35 @@ func loadLocalAppManifest(rootPath string) (string, string, localAppManifest, er
 			}
 			return "", "", localAppManifest{}, fmt.Errorf("%s is not readable: %w", name, readErr)
 		}
+		var rawShape map[string]any
 		var manifest localAppManifest
 		if strings.HasSuffix(name, ".json") {
-			err = json.Unmarshal(raw, &manifest)
+			err = json.Unmarshal(raw, &rawShape)
+			if err == nil {
+				err = json.Unmarshal(raw, &manifest)
+			}
 		} else {
-			err = yaml.Unmarshal(raw, &manifest)
+			err = yaml.Unmarshal(raw, &rawShape)
+			if err == nil {
+				err = yaml.Unmarshal(raw, &manifest)
+			}
 		}
 		if err != nil {
 			return "", "", localAppManifest{}, fmt.Errorf("%s is invalid: %w", name, err)
+		}
+		if _, legacy := rawShape["permissions"]; legacy {
+			return "", "", localAppManifest{}, errors.New("legacy permissions are not admitted")
+		}
+		if local, ok := rawShape["local_development"].(map[string]any); ok {
+			if _, legacy := local["runtime_scoped_binding_requests"]; legacy {
+				return "", "", localAppManifest{}, errors.New("legacy runtime scoped bindings are not admitted")
+			}
+		}
+		if manifest.AppAccess == nil {
+			return "", "", localAppManifest{}, errors.New("local app manifest requires app_access")
+		}
+		if _, _, err := appaccess.ResolveDeclaration(*manifest.AppAccess); err != nil {
+			return "", "", localAppManifest{}, err
 		}
 		return absRoot, path, manifest, nil
 	}

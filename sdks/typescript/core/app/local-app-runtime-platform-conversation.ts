@@ -1,5 +1,5 @@
 import type { JsonObject, JsonValue } from '../../types/index.js';
-import type { NimiLocalAppAgentHandle } from './permission-types.js';
+import type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 import {
   asRecord,
   assertExactKeys,
@@ -12,7 +12,7 @@ import {
   requireText,
 } from './local-app-runtime-platform-validation.js';
 
-export type { NimiLocalAppAgentHandle } from './permission-types.js';
+export type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
 
 export type NimiLocalAppConversationOpenInput = {
   readonly agentHandle: NimiLocalAppAgentHandle;
@@ -97,95 +97,33 @@ export type NimiLocalAppConversationShell = {
   }) => Promise<unknown>;
 };
 
-export function createNimiLocalAppConversationClient(shell: NimiLocalAppConversationShell) {
+export type NimiLocalAppConversationClient = {
+  readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
+  readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
+  readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationInterruptResult>;
+  readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
+  readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
+};
+
+export function createNimiLocalAppConversationClient(
+  _shell: NimiLocalAppConversationShell,
+): NimiLocalAppConversationClient {
+  const unavailable = async (): Promise<never> => protectedAppAccessUnavailable();
   return Object.freeze({
-    open: async (input: NimiLocalAppConversationOpenInput): Promise<NimiLocalAppConversationOpenResult> => {
-      assertExactKeys(input, ['agentHandle'], 'local-app conversation open input');
-      assertNoAuthorityMaterial(input);
-      const agentHandle = requireText(input.agentHandle, 'agentHandle');
-      return projectOpen(await shell.open({ agentHandle }));
-    },
-    send: async (input: NimiLocalAppConversationSendInput): Promise<NimiLocalAppConversationSendResult> => {
-      assertExactKeys(
-        input,
-        ['agentHandle', 'conversationAnchorId', 'requestId', 'text', 'attachments'],
-        'local-app conversation send input',
-      );
-      assertNoAuthorityMaterial(input);
-      const attachments = validateConversationAttachments(input.attachments);
-      if (typeof input.text !== 'string' || input.text.trim() !== input.text || (!input.text && attachments.length === 0)) {
-        return localAppError(
-          'Local-app conversation text is invalid.',
-          'SDK_LOCAL_APP_INPUT_INVALID',
-          'provide_text',
-        );
-      }
-      const text = input.text;
-      if (new TextEncoder().encode(text).byteLength > 64 * 1024) {
-        return localAppError(
-          'Local-app conversation text exceeds 65536 UTF-8 bytes.',
-          'SDK_LOCAL_APP_INPUT_INVALID',
-          'shorten_conversation_text',
-        );
-      }
-      const value = await shell.send({
-        agentHandle: requireText(input.agentHandle, 'agentHandle'),
-        conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-        requestId: requireText(input.requestId, 'requestId'),
-        text,
-        attachments,
-      });
-      const record = asRecord(value);
-      assertExactProjectionKeys(record, ['messageId'], 'conversation send');
-      return Object.freeze({ messageId: projectionText(record.messageId, 'messageId') });
-    },
-    interruptTurn: async (
-      input: NimiLocalAppConversationScopeInput,
-    ): Promise<NimiLocalAppConversationInterruptResult> => {
-      const value = await shell.interruptTurn(conversationScope(input, 'interrupt turn'));
-      const record = asRecord(value);
-      assertExactProjectionKeys(record, ['messageId'], 'conversation interrupt turn');
-      return Object.freeze({ messageId: projectionText(record.messageId, 'messageId') });
-    },
-    subscribe: async (
-      input: NimiLocalAppConversationScopeInput,
-    ): Promise<NimiLocalAppConversationSubscription> => {
-      const scope = conversationScope(input, 'subscribe');
-      const subscription = await shell.subscribe(scope);
-      if (!subscription || typeof subscription !== 'object'
-        || typeof subscription.cancel !== 'function'
-        || !subscription.events
-        || typeof subscription.events[Symbol.asyncIterator] !== 'function') {
-        return localAppProjectionError('conversation subscription');
-      }
-      let cancelled = false;
-      const cancel = async (): Promise<void> => {
-        if (cancelled) return;
-        cancelled = true;
-        await subscription.cancel();
-      };
-      const events = async function* (): AsyncGenerator<NimiLocalAppConversationEvent> {
-        try {
-          for await (const event of subscription.events) {
-            yield projectEvent(event);
-          }
-        } finally {
-          await cancel();
-        }
-      };
-      return Object.freeze({
-        [Symbol.asyncIterator]: events,
-        cancel,
-      });
-    },
-    snapshot: async (input: NimiLocalAppConversationScopeInput): Promise<NimiLocalAppConversationSnapshot> => {
-      const value = await shell.snapshot(conversationScope(input, 'snapshot'));
-      assertSafeProjection(value);
-      const record = asRecord(value);
-      if (!record) return localAppProjectionError('conversation snapshot');
-      return Object.freeze({ ...record }) as NimiLocalAppConversationSnapshot;
-    },
+    open: unavailable,
+    send: unavailable,
+    interruptTurn: unavailable,
+    subscribe: unavailable,
+    snapshot: unavailable,
   });
+}
+
+function protectedAppAccessUnavailable(): never {
+  return localAppError(
+    'Protected App operations are unavailable until Runtime establishes a fresh App Access session.',
+    'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
+    'retry_after_protected_session_establishment',
+  );
 }
 
 function validateConversationAttachments(

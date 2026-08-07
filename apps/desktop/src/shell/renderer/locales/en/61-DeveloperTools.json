@@ -8,7 +8,7 @@
   "diagnosticsLinkAction": "Open Support diagnostics",
   "navLabel": "Developer Tools",
   "developerModeTitle": "Developer Mode",
-  "developerModeDescription": "Developer Mode lets this production account approve isolated local-development projects. It grants no Nimi permission by itself. App-owned data needs no Nimi permission; protected access is evaluated separately when used.",
+  "developerModeDescription": "Developer Mode lets Desktop register and supervise exact local-development projects. Registration does not grant protected App Access.",
   "developerModeStatusOn": "Developer Mode is on",
   "developerModeStatusOff": "Developer Mode is off",
   "developerModeStatusLoading": "Checking Nimi Runtime…",

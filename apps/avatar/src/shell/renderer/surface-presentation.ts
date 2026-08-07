@@ -78,14 +78,14 @@ function formatRuntimeBindingReason(reason: string): {
   }
   if (lowered.includes('local_app_session')
     || lowered.includes('local_app_operation')
-    || lowered.includes('local_app_permission')
+    || lowered.includes('local_app_access')
     || lowered.includes('local_app_launch_lease')
     || lowered.includes('local_app_process_mismatch')
     || lowered.includes('protected_local')
     || lowered.includes('protected_origin_role_mismatch')) {
     return {
-      label: 'Runtime rejected the current Avatar authorization',
-      recovery: 'Restore the current session, launch lease, and operation permission in Desktop, then relaunch this surface.',
+      label: 'Runtime rejected the current Avatar access context',
+      recovery: 'Restore the current session and launch context in Desktop, then relaunch this surface.',
     };
   }
   if (lowered.includes('conversation_context')) {

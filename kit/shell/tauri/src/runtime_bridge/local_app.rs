@@ -5,8 +5,7 @@ use nimi_shell_protected_local::MacOsLocalAppCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
-    LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppPermissionRequest,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppReasonCode,
     LocalAppSessionStatus, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppSharedAgentAIProfileRequest, LocalAppStorageDocument, LocalAppStorageReadRequest,
     LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult, LocalAppStorageWriteRequest,
@@ -61,34 +60,6 @@ impl RuntimeBridgeLocalAppHost {
         let session = self.current_or_open_session().await?;
         match session.renew_technical_session().await {
             Ok(status) => Ok(status),
-            Err(error) => {
-                self.clear_on_transport_failure(&session, &error).await;
-                Err(error)
-            }
-        }
-    }
-
-    pub async fn permission_status(
-        &self,
-        request: LocalAppPermissionStatusRequest,
-    ) -> Result<LocalAppPermissionStatus, LocalAppOperationError> {
-        let session = self.current_or_open_session().await?;
-        match session.permission_status(request).await {
-            Ok(value) => Ok(value),
-            Err(error) => {
-                self.clear_on_transport_failure(&session, &error).await;
-                Err(error)
-            }
-        }
-    }
-
-    pub async fn permission_request(
-        &self,
-        request: LocalAppPermissionRequest,
-    ) -> Result<LocalAppPermissionStatus, LocalAppOperationError> {
-        let session = self.current_or_open_session().await?;
-        match session.permission_request(request).await {
-            Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;
                 Err(error)

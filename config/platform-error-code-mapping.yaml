@@ -298,19 +298,13 @@ mappings:
   - { platform_error: LOCAL_APP_LAUNCH_LEASE_REPLAY, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_LAUNCH_LEASE_REPLAY, runtime_code_number: 648, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_PROCESS_MISMATCH, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PROCESS_MISMATCH, runtime_code_number: 649, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_SESSION_REVOKED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_SESSION_REVOKED, runtime_code_number: 650, runtime_source: K-ERR-012, category: mapped }
-  - { platform_error: LOCAL_APP_PERMISSION_REQUIRED, platform_source: P-PROTO-040, runtime_reason_code: LOCAL_APP_PERMISSION_REQUIRED, runtime_code_number: 651, runtime_source: K-ERR-012, category: mapped }
-  - { platform_error: LOCAL_APP_PERMISSION_DENIED, platform_source: P-PROTO-040, runtime_reason_code: LOCAL_APP_PERMISSION_DENIED, runtime_code_number: 652, runtime_source: K-ERR-012, category: mapped }
-  - { platform_error: LOCAL_APP_PERMISSION_REVOKED, platform_source: P-PROTO-040, runtime_reason_code: LOCAL_APP_PERMISSION_REVOKED, runtime_code_number: 653, runtime_source: K-ERR-012, category: mapped }
-  - { platform_error: LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED, platform_source: P-PROTO-040, runtime_reason_code: LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED, runtime_code_number: 668, runtime_source: K-ERR-012, category: mapped }
-  - { platform_error: LOCAL_APP_PERMISSION_UNKNOWN, platform_source: P-PROTO-040, runtime_reason_code: LOCAL_APP_PERMISSION_UNKNOWN, runtime_code_number: 669, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_ACCOUNT_CHANGED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_ACCOUNT_CHANGED, runtime_code_number: 654, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_OPERATION_UNAVAILABLE, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_OPERATION_UNAVAILABLE, runtime_code_number: 655, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_PRESENCE_REQUIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PRESENCE_REQUIRED, runtime_code_number: 656, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_PRESENCE_EXPIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PRESENCE_EXPIRED, runtime_code_number: 657, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_DEVELOPER_MODE_DISABLED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_DEVELOPER_MODE_DISABLED, runtime_code_number: 658, runtime_source: K-ERR-012, category: mapped }
-  - { platform_error: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, runtime_code_number: 660, runtime_source: K-ERR-012, category: mapped }
 
-  # ── unmapped_v1: Permission errors ──
+  # ── unmapped_v1: generic action denial ──
   - platform_error: ACTION_FORBIDDEN
     platform_source: P-PROTO-020
     runtime_reason_code: null

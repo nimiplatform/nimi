@@ -80,12 +80,6 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
     methods: {
       "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig": { kind: "unary" },
-      "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests": { kind: "unary" },
-      "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests": { kind: "server_stream" },
-      "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection": { kind: "unary" },
-      "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections": { kind: "unary" },
-      "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission": { kind: "unary" },
-      "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ListAgents": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/GetAgent": { kind: "unary" },

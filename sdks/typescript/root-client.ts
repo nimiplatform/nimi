@@ -9,11 +9,8 @@ import {
 import { Realm, createRealm, type RealmOptions } from './realm';
 import {
   NimiAppClient,
-  PermissionClient,
   createNimiAppClient,
-  createPermissionClient,
   type NimiAppTransport,
-  type PermissionTransport,
 } from './core/app';
 import {
   createNimiLocalAppClient,
@@ -55,7 +52,6 @@ export interface NimiDirectClientConfig {
   readonly runtime?: Runtime | RuntimeOptions;
   readonly realm?: Realm | RealmOptions | false;
   readonly app?: NimiAppClient | NimiAppTransport | false;
-  readonly permissions?: PermissionClient | PermissionTransport | false;
 }
 
 export interface NimiClientLocalAppConfig {
@@ -147,7 +143,6 @@ export class NimiClient {
   readonly runtime: Runtime;
   readonly realm?: Realm;
   readonly app?: NimiAppClient;
-  readonly permissions?: PermissionClient;
   readonly ai: NimiClientAiSurface;
   readonly localAgent: NimiClientLocalAgentSurface;
   readonly features: NimiClientFeatureSurface;
@@ -157,7 +152,6 @@ export class NimiClient {
     this.runtime = config.runtime instanceof Runtime ? config.runtime : createRuntime(config.runtime ?? {});
     this.realm = createOptionalRealm(config.realm);
     this.app = createOptionalAppClient(config.app);
-    this.permissions = createOptionalPermissionClient(config.permissions);
     this.ai = createAiSurface(this);
     this.localAgent = createLocalAgentSurface(this);
     this.features = createFeatureSurface(this);
@@ -175,13 +169,6 @@ export class NimiClient {
       throwClientConfigurationError('SDK_CLIENT_APP_REQUIRED', 'NimiClient app access requires explicit app transport', 'provide_app_transport');
     }
     return this.app;
-  }
-
-  requirePermissions(): PermissionClient {
-    if (!this.permissions) {
-      throwClientConfigurationError('SDK_CLIENT_PERMISSIONS_REQUIRED', 'NimiClient permissions access requires explicit permission transport', 'provide_permission_transport');
-    }
-    return this.permissions;
   }
 
 }
@@ -327,13 +314,6 @@ function createOptionalRealm(config: NimiDirectClientConfig['realm']): Realm | u
 function createOptionalAppClient(config: NimiDirectClientConfig['app']): NimiAppClient | undefined {
   if (!config) return undefined;
   return config instanceof NimiAppClient ? config : createNimiAppClient(config);
-}
-
-function createOptionalPermissionClient(
-  config: NimiDirectClientConfig['permissions'],
-): PermissionClient | undefined {
-  if (!config) return undefined;
-  return config instanceof PermissionClient ? config : createPermissionClient(config);
 }
 
 function resolveAppId(client: NimiClient, override: unknown, actionHint: string): string {

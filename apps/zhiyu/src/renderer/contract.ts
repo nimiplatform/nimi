@@ -63,7 +63,6 @@ export interface ZhiyuRendererCommandPort {
     readonly onStateChange: (state: ZhiyuVoiceCaptureEvidence) => void;
   }): ZhiyuVoiceCaptureControllerPort;
   runVoicePlayback(evidence: ZhiyuEvidence): Promise<ZhiyuEvidence['companion']>;
-  requestAgentInteractionPermission(): Promise<ZhiyuEvidence['inventory']>;
   openDesktopAgentConfig(): Promise<void>;
   openDesktopSelectPartner(): Promise<ZhiyuDesktopOpenActionResult>;
   launchAvatar(input: {

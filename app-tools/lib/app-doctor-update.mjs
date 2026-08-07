@@ -11,7 +11,7 @@ import {
   SCAFFOLD_VERSION,
   SUPPORTED_APP_SCAFFOLD_PROFILES,
 } from './app-scaffold.mjs';
-import { assertManifestPermissionRequirements } from './app-manifest-permissions.mjs';
+import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
 import { validateSimulatorAppSource } from './simulator-conformance.mjs';
 
 const SCAN_EXCLUDED_DIRS = new Set([
@@ -178,7 +178,7 @@ function expectedSnapshotFromLock(lock, versions, intent = null) {
     packageName: lock.packageName,
     author: lock.packageAuthor || '',
     accentPack: lock.accentPack || lock.appIdentity?.accentPack || 'nimi-accent',
-    permissionRequirements: intent?.permissionRequirements || lock.permissionRequirements || lock.appIdentity?.permissionRequirements,
+    appAccessItems: intent?.appAccessItems || lock.appAccessItems || lock.appIdentity?.appAccessItems,
     scaffoldOmissions: intent?.scaffoldOmissions || lock.scaffoldOmissions || lock.appIdentity?.scaffoldOmissions,
   });
 }
@@ -195,7 +195,7 @@ function ensureLockMatchesCurrentGenerator(lock, snapshot) {
   assertSameJson(lock.cargoPackageName, snapshot.lock.cargoPackageName, 'Cargo package name');
   assertSameJson(lock.tauriIdentifier, snapshot.lock.tauriIdentifier, 'Tauri identifier');
   assertSameJson(lock.accentPack, snapshot.lock.accentPack, 'Accent pack');
-  assertSameJson(lock.permissionRequirements, snapshot.lock.permissionRequirements, 'Permission requirements');
+  assertSameJson(lock.appAccessItems, snapshot.lock.appAccessItems, 'App access items');
   assertSameJson(lock.scaffoldOmissions, snapshot.lock.scaffoldOmissions, 'Scaffold omissions');
   assertSameJson(lock.managedFileTaxonomy, snapshot.lock.managedFileTaxonomy, 'Managed file taxonomy');
   assertSameJson(lock.dependencyMatrix, snapshot.lock.dependencyMatrix, 'Dependency matrix');
@@ -402,7 +402,7 @@ function assertRequiredSupportFiles(targetDir, snapshot) {
 function assertProjectConfiguration(targetDir, parsedManifest = null) {
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
   const manifest = readFileSync(manifestPath, 'utf8');
-  assertManifestPermissionRequirements(manifest, manifestPath);
+  assertManifestAppAccessDeclaration(manifest, manifestPath);
   let document = parsedManifest;
   if (!document) {
     try {

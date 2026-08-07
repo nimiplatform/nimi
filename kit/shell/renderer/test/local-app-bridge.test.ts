@@ -81,60 +81,11 @@ describe('renderer local-app standard-shell surface', () => {
     });
   });
 
-  it('emits only product permission ids and declared request fields', async () => {
-    const invocations: Array<{ command: string; payload: unknown }> = [];
-    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async (command: string, payload: unknown) => {
-        invocations.push({ command, payload });
-        return {
-          state: 'granted',
-          permissionId: 'agents.interact',
-          canRequest: false,
-          reasonCode: 'action-executed',
-          agents: [{
-            agentHandle: 'lash_owner_issued',
-            displayName: 'Owned Agent',
-            avatarUrl: 'https://assets.example.test/owned-agent.png',
-          }],
-        };
-      },
-      listen: () => () => {},
-    };
-    const surface = createNimiLocalAppStandardShellSurface();
-    await expect(surface.permission.status({ permissionId: 'agents.interact' })).resolves.toMatchObject({
-      state: 'granted',
-      agents: [{
-        agentHandle: 'lash_owner_issued',
-        displayName: 'Owned Agent',
-        avatarUrl: 'https://assets.example.test/owned-agent.png',
-      }],
-    });
-    await surface.permission.request({ permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-renderer-1' });
-    expect(invocations).toEqual([
-      {
-        command: 'nimi.shell.localApp.permissionStatus',
-        payload: { payload: { permissionId: 'agents.interact' } },
-      },
-      {
-        command: 'nimi.shell.localApp.permissionRequest',
-        payload: { payload: { permissionId: 'agents.interact', reason: 'Continue the conversation', requestId: 'permission-request-renderer-1' } },
-      },
-    ]);
-    expect(surface).not.toHaveProperty('agent');
-  });
-
-  it('rejects a permission reason beyond 240 UTF-8 bytes before host invocation', () => {
-    const invocations: unknown[] = [];
-    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async (...args: unknown[]) => { invocations.push(args); return {}; },
-      listen: () => () => {},
-    };
-    expect(() => createNimiLocalAppStandardShellSurface().permission.request({
-      permissionId: 'agents.interact',
-      reason: '需'.repeat(81),
-      requestId: 'permission-request-renderer-long-reason',
-    })).toThrowError(/reason is invalid/u);
-    expect(invocations).toEqual([]);
+  it('physically omits the retired access-workflow namespace', () => {
+    const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
+    expect(Object.keys(surface).sort()).toEqual([
+      'session', 'ai', 'aiConfig', 'storage', 'realm', 'conversation', 'agentConfigure', 'artifacts',
+    ].sort());
   });
 
   it('forwards one exact bounded text-candidate request', async () => {
@@ -167,49 +118,6 @@ describe('renderer local-app standard-shell surface', () => {
         maxTokens: 512,
       } },
     }]);
-  });
-
-  it('rejects protected authority material in a permission projection', async () => {
-    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async () => ({
-        state: 'unavailable',
-        permissionId: 'agents.interact',
-        canRequest: false,
-        reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
-        agents: [],
-        grantId: 'forbidden',
-      }),
-      listen: () => () => {},
-    };
-    await expect(createNimiLocalAppStandardShellSurface().permission.status({
-      permissionId: 'agents.interact',
-    })).rejects.toMatchObject({
-      code: 'invalid-payload',
-      reasonCode: 'renderer-standard-shell-result-invalid',
-    });
-  });
-
-  it('rejects a non-HTTPS Agent display avatar projection', async () => {
-    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async () => ({
-        state: 'granted',
-        permissionId: 'agents.interact',
-        canRequest: false,
-        reasonCode: 'ACTION_EXECUTED',
-        agents: [{
-          agentHandle: 'lash_owner_issued',
-          displayName: 'Owned Agent',
-          avatarUrl: 'http://assets.example.test/owned-agent.png',
-        }],
-      }),
-      listen: () => () => {},
-    };
-    await expect(createNimiLocalAppStandardShellSurface().permission.status({
-      permissionId: 'agents.interact',
-    })).rejects.toMatchObject({
-      code: 'invalid-payload',
-      reasonCode: 'renderer-standard-shell-result-invalid',
-    });
   });
 
   it('projects exact WorldCore list/create commands without transport authority fields', async () => {

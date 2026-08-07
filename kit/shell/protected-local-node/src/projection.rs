@@ -8,20 +8,6 @@ pub(super) fn project_session_status(status: LocalAppSessionStatus) -> JsonValue
     })
 }
 
-pub(super) fn project_permission_status(status: LocalAppPermissionStatus) -> JsonValue {
-    json!({
-        "state": status.state.as_str(),
-        "permissionId": status.permission_id,
-        "canRequest": status.can_request,
-        "reasonCode": status.reason_code.as_str(),
-        "agents": status.agents.into_iter().map(|agent| json!({
-            "agentHandle": agent.agent_handle,
-            "displayName": agent.display_name,
-            "avatarUrl": agent.avatar_url,
-        })).collect::<Vec<_>>(),
-    })
-}
-
 pub(super) fn project_account_projection(projection: DesktopAccountProjection) -> JsonValue {
     json!({
         "accountId": projection.account_id,
@@ -110,68 +96,19 @@ pub(super) fn project_developer_mode_status(
         "state": status.state.as_str(),
         "enabled": status.state == nimi_shell_protected_local::DeveloperModeState::Enabled,
         "revision": status.revision,
-        "accountGeneration": status.account_generation,
         "reasonCode": "action-executed",
         "retryable": false,
     })
 }
 
-pub(super) fn project_local_development_authority_summary(
-    summary: LocalDevelopmentAuthoritySummary,
+pub(super) fn project_local_development_registration(
+    registration: LocalDevelopmentRegistration,
 ) -> JsonValue {
     json!({
-        "developerMode": {
-            "availability": project_summary_availability(summary.developer_mode.availability),
-            "state": summary.developer_mode.state.as_str(),
-            "unavailableReason": project_summary_unavailable_reason(summary.developer_mode.unavailable_reason),
-        },
-        "projectAuthorization": {
-            "availability": project_summary_availability(summary.project_authorization.availability),
-            "activeCount": summary.project_authorization.active_count,
-            "deniedCount": summary.project_authorization.denied_count,
-            "revokedCount": summary.project_authorization.revoked_count,
-            "unavailableReason": project_summary_unavailable_reason(summary.project_authorization.unavailable_reason),
-        },
-    })
-}
-
-fn project_summary_availability(value: LocalDevelopmentSummaryAvailability) -> &'static str {
-    match value {
-        LocalDevelopmentSummaryAvailability::Available => "available",
-        LocalDevelopmentSummaryAvailability::Unavailable => "unavailable",
-    }
-}
-
-fn project_summary_unavailable_reason(value: Option<NimiHostErrorReasonCode>) -> JsonValue {
-    value
-        .map(|reason| JsonValue::String(reason.as_str().to_string()))
-        .unwrap_or(JsonValue::Null)
-}
-
-pub(super) fn project_local_development_evaluation(
-    evaluation: LocalDevelopmentEvaluation,
-) -> JsonValue {
-    json!({
-        "evaluationId": evaluation.evaluation_id.map(|value| encode_identifier(&value)),
-        "project": project_local_development_project(evaluation.project),
-        "state": evaluation.state.as_str(),
-        "confirmationRequired": evaluation.confirmation_required,
-        "authorization": evaluation.authorization.map(project_local_development_authorization),
-        "evaluationExpiresAtUnixMs": evaluation.evaluation_expires_at_unix_ms,
-    })
-}
-
-pub(super) fn project_local_development_authorization(
-    authorization: LocalDevelopmentAuthorization,
-) -> JsonValue {
-    json!({
-        "authorizationId": encode_identifier(&authorization.authorization_id),
-        "project": project_local_development_project(authorization.project),
-        "state": authorization.state.as_str(),
-        "persistence": authorization.persistence.as_str(),
-        "authorizationGeneration": authorization.authorization_generation,
-        "approvedAtUnixMs": authorization.approved_at_unix_ms,
-        "updatedAtUnixMs": authorization.updated_at_unix_ms,
+        "registrationHandle": encode_identifier(&registration.registration_handle),
+        "project": project_local_development_project(registration.project),
+        "registeredAtUnixMs": registration.registered_at_unix_ms,
+        "updatedAtUnixMs": registration.updated_at_unix_ms,
     })
 }
 
@@ -184,12 +121,9 @@ pub(super) fn project_local_development_project(
         "canonicalProjectRoot": project.canonical_project_root.to_string_lossy(),
         "canonicalManifestPath": project.canonical_manifest_path.to_string_lossy(),
         "shell": project.shell_kind.as_str(),
-        "accountId": project.account_id,
-        "permissionRequirements": project.permission_requirements.into_iter().map(|requirement| json!({
-            "permissionId": requirement.permission_id,
-            "reason": requirement.reason,
-        })).collect::<Vec<_>>(),
-        "permissionRequirementFingerprint": encode_identifier(&project.permission_requirement_fingerprint),
+        "appAccess": project.app_access,
+        "sourceGeneration": project.source_generation,
+        "declarationGeneration": project.declaration_generation,
     })
 }
 
@@ -197,15 +131,6 @@ pub(super) fn local_development_shell(value: &str) -> Option<LocalDevelopmentShe
     match value {
         "electron" => Some(LocalDevelopmentShellKind::Electron),
         "tauri" => Some(LocalDevelopmentShellKind::Tauri),
-        _ => None,
-    }
-}
-
-pub(super) fn local_development_decision(value: &str) -> Option<LocalDevelopmentDecision> {
-    match value {
-        "deny" => Some(LocalDevelopmentDecision::Deny),
-        "allow-run-once" => Some(LocalDevelopmentDecision::AllowRunOnce),
-        "allow-project" => Some(LocalDevelopmentDecision::AllowProject),
         _ => None,
     }
 }
@@ -377,7 +302,7 @@ fn project_reason_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nimi_shell_protected_local::{LocalAppPermissionState, LocalAppSessionState};
+    use nimi_shell_protected_local::LocalAppSessionState;
 
     #[test]
     pub(super) fn errors_project_only_admitted_reason_and_retryability() {
@@ -396,13 +321,10 @@ mod tests {
 
         let error =
             LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceErrorUnclassified, false)
-                .with_reason_metadata(
-                    None,
-                    std::collections::BTreeMap::from([(
-                        "grpc_status_code".to_string(),
-                        "13".to_string(),
-                    )]),
-                );
+                .with_reason_metadata(std::collections::BTreeMap::from([(
+                    "grpc_status_code".to_string(),
+                    "13".to_string(),
+                )]));
         let outcome = NativeJsonOutcome::error(error);
         assert_eq!(
             outcome.reason_code.as_deref(),
@@ -415,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    pub(super) fn session_status_is_ready_without_authority_material() {
+    pub(super) fn session_status_is_ready_without_access_material() {
         let value = project_session_status(LocalAppSessionStatus {
             state: LocalAppSessionState::Ready,
             reason_code: LocalAppReasonCode::ActionExecuted,
@@ -432,31 +354,7 @@ mod tests {
     }
 
     #[test]
-    pub(super) fn permission_projection_keeps_only_product_permission_fields() {
-        let value = project_permission_status(LocalAppPermissionStatus {
-            state: LocalAppPermissionState::Granted,
-            permission_id: "agents.interact".to_string(),
-            can_request: false,
-            reason_code: LocalAppReasonCode::ActionExecuted,
-            agents: vec![nimi_shell_protected_local::LocalAppAgentHandle {
-                agent_handle: "lash_owner_issued".to_string(),
-                display_name: "Owned Agent".to_string(),
-                avatar_url: Some("https://assets.example.test/owned-agent.png".to_string()),
-            }],
-        });
-        assert_eq!(value["permissionId"], "agents.interact");
-        assert_eq!(value["canRequest"], false);
-        assert_eq!(value["state"], "granted");
-        assert_eq!(
-            value["agents"][0]["avatarUrl"],
-            "https://assets.example.test/owned-agent.png"
-        );
-        assert!(value.get("operationId").is_none());
-        assert!(value.get("resourceRef").is_none());
-    }
-
-    #[test]
-    pub(super) fn first_party_product_bytes_outcome_exposes_no_authority_material() {
+    pub(super) fn first_party_product_bytes_outcome_exposes_no_access_material() {
         let outcome = NativeBytesOutcome::success(vec![1, 2, 3]);
         assert_eq!(outcome.status, "ok");
         assert_eq!(outcome.value.as_ref().map(|value| value.len()), Some(3));
@@ -473,41 +371,5 @@ mod tests {
         assert_eq!(decode_identifier(&encoded), Some(identifier));
         assert_eq!(decode_identifier(&"AB".repeat(32)), None);
         assert_eq!(decode_identifier("short"), None);
-    }
-
-    #[test]
-    fn authority_summary_projection_is_bounded_and_identifier_free() {
-        use nimi_shell_protected_local::{
-            DeveloperModeState, LocalDevelopmentDeveloperModeSummary,
-            LocalDevelopmentProjectAuthorizationSummary,
-        };
-
-        let value = project_local_development_authority_summary(LocalDevelopmentAuthoritySummary {
-            developer_mode: LocalDevelopmentDeveloperModeSummary {
-                availability: LocalDevelopmentSummaryAvailability::Available,
-                state: DeveloperModeState::Enabled,
-                unavailable_reason: None,
-            },
-            project_authorization: LocalDevelopmentProjectAuthorizationSummary {
-                availability: LocalDevelopmentSummaryAvailability::Available,
-                active_count: 2,
-                denied_count: 5,
-                revoked_count: 7,
-                unavailable_reason: None,
-            },
-        });
-        assert_eq!(value["developerMode"]["state"], "enabled");
-        assert_eq!(value["projectAuthorization"]["activeCount"], 2);
-        let encoded = value.to_string();
-        for forbidden in [
-            "accountId",
-            "authorizationId",
-            "grantId",
-            "token",
-            "credential",
-            "canonicalProjectRoot",
-        ] {
-            assert!(!encoded.contains(forbidden));
-        }
     }
 }

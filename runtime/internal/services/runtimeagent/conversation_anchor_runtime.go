@@ -98,7 +98,7 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		RuntimeSourceRef:     identity.RuntimeSourceRef,
 		LocalAgentRef:        localAgentRef,
 		CallerAppID:          callerAppID,
-		LocalAppPrincipalID:  decision.LocalAppPrincipalID,
+		RegisteredAppSubject: decision.RegisteredAppSubject,
 		SubjectUserID:        subjectUserID,
 		ThreadID:             threadID,
 		Status:               runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
@@ -212,21 +212,8 @@ func (s *Service) openConversationAnchorResponse(anchor *publicChatAnchorState) 
 	return &runtimev1.OpenConversationAnchorResponse{Snapshot: s.buildConversationAnchorSnapshotLocked(anchor, metadata)}, nil
 }
 
-func (s *Service) ValidateLocalAppConversationScope(ctx context.Context, agentID string, anchorID string) error {
-	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	if !ok || strings.TrimSpace(agentID) == "" || strings.TrimSpace(anchorID) == "" {
-		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
-	}
-	s.chatSurfaceMu.Lock()
-	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
-	valid := anchor != nil && anchor.AgentID == strings.TrimSpace(agentID) &&
-		anchor.LocalAgentRef == strings.TrimSpace(agentID) && anchor.OwnerUserID == decision.AccountID &&
-		anchor.SubjectUserID == decision.AccountID
-	s.chatSurfaceMu.Unlock()
-	if !valid {
-		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED)
-	}
-	return nil
+func (s *Service) ValidateLocalAppConversationScope(context.Context, string, string) error {
+	return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 }
 
 // GetConversationAnchorSnapshot returns the committed runtime-owned anchor

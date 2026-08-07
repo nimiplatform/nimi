@@ -1219,38 +1219,6 @@ impl Default for LocalAppAgentAutonomyMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalAppPermissionOwnerPosture {
-    LOCALAPPPERMISSIONOWNERPOSTUREUNSPECIFIED,
-    LOCALAPPPERMISSIONOWNERPOSTUREPENDING,
-    LOCALAPPPERMISSIONOWNERPOSTUREGRANTED,
-    LOCALAPPPERMISSIONOWNERPOSTUREDENIED,
-    LOCALAPPPERMISSIONOWNERPOSTUREEXPIRED,
-    LOCALAPPPERMISSIONOWNERPOSTUREREVOKED,
-}
-
-impl Default for LocalAppPermissionOwnerPosture {
-    fn default() -> Self {
-        Self::LOCALAPPPERMISSIONOWNERPOSTUREUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalAppPermissionPosture {
-    LOCALAPPPERMISSIONPOSTUREUNSPECIFIED,
-    LOCALAPPPERMISSIONPOSTUREPROMPT,
-    LOCALAPPPERMISSIONPOSTUREPENDING,
-    LOCALAPPPERMISSIONPOSTUREGRANTED,
-    LOCALAPPPERMISSIONPOSTUREDENIED,
-    LOCALAPPPERMISSIONPOSTUREUNAVAILABLE,
-}
-
-impl Default for LocalAppPermissionPosture {
-    fn default() -> Self {
-        Self::LOCALAPPPERMISSIONPOSTUREUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppSessionState {
     LOCALAPPSESSIONSTATEUNSPECIFIED,
     LOCALAPPSESSIONSTATEREADY,
@@ -1408,36 +1376,6 @@ impl Default for LocalCapabilityRequirementRole {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalDevelopmentAuthorizationState {
-    LOCALDEVELOPMENTAUTHORIZATIONSTATEUNSPECIFIED,
-    LOCALDEVELOPMENTAUTHORIZATIONSTATECONFIRMATIONREQUIRED,
-    LOCALDEVELOPMENTAUTHORIZATIONSTATEACTIVE,
-    LOCALDEVELOPMENTAUTHORIZATIONSTATEREAPPROVALREQUIRED,
-    LOCALDEVELOPMENTAUTHORIZATIONSTATEDENIED,
-    LOCALDEVELOPMENTAUTHORIZATIONSTATEREVOKED,
-}
-
-impl Default for LocalDevelopmentAuthorizationState {
-    fn default() -> Self {
-        Self::LOCALDEVELOPMENTAUTHORIZATIONSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalDevelopmentDecision {
-    LOCALDEVELOPMENTDECISIONUNSPECIFIED,
-    LOCALDEVELOPMENTDECISIONDENY,
-    LOCALDEVELOPMENTDECISIONALLOWRUNONCE,
-    LOCALDEVELOPMENTDECISIONALLOWPROJECT,
-}
-
-impl Default for LocalDevelopmentDecision {
-    fn default() -> Self {
-        Self::LOCALDEVELOPMENTDECISIONUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalDevelopmentShellKind {
     LOCALDEVELOPMENTSHELLKINDUNSPECIFIED,
     LOCALDEVELOPMENTSHELLKINDELECTRON,
@@ -1447,19 +1385,6 @@ pub enum LocalDevelopmentShellKind {
 impl Default for LocalDevelopmentShellKind {
     fn default() -> Self {
         Self::LOCALDEVELOPMENTSHELLKINDUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalDevelopmentSummaryAvailability {
-    LOCALDEVELOPMENTSUMMARYAVAILABILITYUNSPECIFIED,
-    LOCALDEVELOPMENTSUMMARYAVAILABILITYAVAILABLE,
-    LOCALDEVELOPMENTSUMMARYAVAILABILITYUNAVAILABLE,
-}
-
-impl Default for LocalDevelopmentSummaryAvailability {
-    fn default() -> Self {
-        Self::LOCALDEVELOPMENTSUMMARYAVAILABILITYUNSPECIFIED
     }
 }
 
@@ -2059,7 +1984,6 @@ pub enum ReasonCode {
     APPOPENPACKAGENOTVERIFIED,
     APPOPENLIBRARYSTATEINVALID,
     APPOPENAPPDATAINVALID,
-    APPOPENPERMISSIONNOTGRANTED,
     APPOPENAICONFIGUNRESOLVED,
     APPOPENMANIFESTREQUIREMENTUNSATISFIED,
     APPOPENLAUNCHFAILED,
@@ -2094,15 +2018,11 @@ pub enum ReasonCode {
     LOCALAPPLAUNCHLEASEREPLAY,
     LOCALAPPPROCESSMISMATCH,
     LOCALAPPSESSIONREVOKED,
-    LOCALAPPPERMISSIONREQUIRED,
-    LOCALAPPPERMISSIONDENIED,
-    LOCALAPPPERMISSIONREVOKED,
     LOCALAPPACCOUNTCHANGED,
     LOCALAPPOPERATIONUNAVAILABLE,
     LOCALAPPPRESENCEREQUIRED,
     LOCALAPPPRESENCEEXPIRED,
     LOCALAPPDEVELOPERMODEDISABLED,
-    LOCALAPPRISKDISCLOSUREREQUIRED,
     REALMUNAVAILABLE,
     REALMNOTFOUND,
     REALMCONFLICT,
@@ -2110,8 +2030,6 @@ pub enum ReasonCode {
     REALMREQUESTREJECTED,
     REALMCONTRACTINVALID,
     REALMOPERATIONFAILED,
-    LOCALAPPPERMISSIONRESERVEDNOTADMITTED,
-    LOCALAPPPERMISSIONUNKNOWN,
     AGENTAICONFIGREVISIONCONFLICT,
     AGENTAUTONOMYREVISIONCONFLICT,
     AGENTPRESENTATIONASSETTYPEINVALID,
@@ -8012,137 +7930,6 @@ impl CreateKnowledgeBankResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct DecideLocalAppPermissionRequest {
-    pub caller: Option<Box<AccountCaller>>,
-    pub local_app_principal_id: Option<String>,
-    pub permission_id: Option<String>,
-    pub approved: Option<bool>,
-    pub expected_owner_revision: Option<u64>,
-}
-
-impl DecideLocalAppPermissionRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        if let Some(value) = &self.local_app_principal_id { pairs.push(format!("local_app_principal_id={}", value)); }
-        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
-        if let Some(value) = &self.approved { pairs.push(format!("approved={}", value)); }
-        if let Some(value) = &self.expected_owner_revision { pairs.push(format!("expected_owner_revision={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["caller"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.local_app_principal_id = pairs.get("local_app_principal_id").cloned();
-        out.permission_id = pairs.get("permission_id").cloned();
-        out.approved = pairs.get("approved").and_then(|value| value.parse().ok());
-        out.expected_owner_revision = pairs.get("expected_owner_revision").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DecideLocalAppPermissionResponse {
-    pub accepted: Option<bool>,
-    pub posture: Option<LocalAppPermissionPosture>,
-    pub owner_revision: Option<u64>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl DecideLocalAppPermissionResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.posture { pairs.push(format!("posture={:?}", value)); }
-        if let Some(value) = &self.owner_revision { pairs.push(format!("owner_revision={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["posture", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.owner_revision = pairs.get("owner_revision").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DecideLocalDevelopmentProjectRequest {
-    pub evaluation_id: Option<Vec<u8>>,
-    pub decision: Option<LocalDevelopmentDecision>,
-    pub risk_disclosure_acknowledged: Option<bool>,
-}
-
-impl DecideLocalDevelopmentProjectRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.evaluation_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode evaluation_id"); }
-        if let Some(value) = &self.decision { pairs.push(format!("decision={:?}", value)); }
-        if let Some(value) = &self.risk_disclosure_acknowledged { pairs.push(format!("risk_disclosure_acknowledged={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["evaluation_id", "decision"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.risk_disclosure_acknowledged = pairs.get("risk_disclosure_acknowledged").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DecideLocalDevelopmentProjectResponse {
-    pub authorization: Option<Box<LocalDevelopmentAuthorizationProjection>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl DecideLocalDevelopmentProjectResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.authorization.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["authorization", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DelegatedApprovalRequest {
     pub approval_request_id: Option<String>,
     pub agent_id: Option<String>,
@@ -9189,14 +8976,14 @@ impl EnableAutonomyResponse {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct EndLocalDevelopmentRunRequest {
-    pub authorization_id: Option<Vec<u8>>,
+    pub registration_handle: Option<Vec<u8>>,
     pub supervisor_run_id: Option<Vec<u8>>,
 }
 
 impl EndLocalDevelopmentRunRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let pairs: Vec<String> = Vec::new();
-        if self.authorization_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization_id"); }
+        if self.registration_handle.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode registration_handle"); }
         if self.supervisor_run_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode supervisor_run_id"); }
         pairs.join(";").into_bytes()
     }
@@ -9204,7 +8991,7 @@ impl EndLocalDevelopmentRunRequest {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["authorization_id", "supervisor_run_id"] {
+        for key in ["registration_handle", "supervisor_run_id"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -9372,78 +9159,6 @@ impl ErrorInfo {
 
         out.action_hint = pairs.get("action_hint").cloned();
         out.message = pairs.get("message").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct EvaluateLocalDevelopmentProjectRequest {
-    pub expected_app_id: Option<String>,
-    pub project_root: Option<String>,
-    pub shell_kind: Option<LocalDevelopmentShellKind>,
-    pub supervisor_run_id: Option<Vec<u8>>,
-}
-
-impl EvaluateLocalDevelopmentProjectRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.expected_app_id { pairs.push(format!("expected_app_id={}", value)); }
-        if let Some(value) = &self.project_root { pairs.push(format!("project_root={}", value)); }
-        if let Some(value) = &self.shell_kind { pairs.push(format!("shell_kind={:?}", value)); }
-        if self.supervisor_run_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode supervisor_run_id"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["shell_kind", "supervisor_run_id"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.expected_app_id = pairs.get("expected_app_id").cloned();
-        out.project_root = pairs.get("project_root").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct EvaluateLocalDevelopmentProjectResponse {
-    pub evaluation_id: Option<Vec<u8>>,
-    pub project: Option<Box<LocalDevelopmentProjectProjection>>,
-    pub state: Option<LocalDevelopmentAuthorizationState>,
-    pub confirmation_required: Option<bool>,
-    pub authorization: Option<Box<LocalDevelopmentAuthorizationProjection>>,
-    pub evaluation_expires_at: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl EvaluateLocalDevelopmentProjectResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.evaluation_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode evaluation_id"); }
-        if self.project.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode project"); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.confirmation_required { pairs.push(format!("confirmation_required={}", value)); }
-        if self.authorization.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization"); }
-        if let Some(value) = &self.evaluation_expires_at { pairs.push(format!("evaluation_expires_at={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["evaluation_id", "project", "state", "authorization", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.confirmation_required = pairs.get("confirmation_required").and_then(|value| value.parse().ok());
-        out.evaluation_expires_at = pairs.get("evaluation_expires_at").cloned();
         out
     }
 }
@@ -11025,7 +10740,6 @@ impl GetDeveloperModeStatusRequest {
 pub struct GetDeveloperModeStatusResponse {
     pub state: Option<DeveloperModeState>,
     pub revision: Option<u64>,
-    pub account_generation: Option<u64>,
     pub reason_code: Option<ReasonCode>,
 }
 
@@ -11034,7 +10748,6 @@ impl GetDeveloperModeStatusResponse {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
         if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
-        if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -11049,7 +10762,6 @@ impl GetDeveloperModeStatusResponse {
         }
 
         out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
-        out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -11261,114 +10973,6 @@ impl GetLocalAppAgentPresentationSnapshotRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalAppPermissionOwnerProjectionRequest {
-    pub caller: Option<Box<AccountCaller>>,
-    pub local_app_principal_id: Option<String>,
-}
-
-impl GetLocalAppPermissionOwnerProjectionRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        if let Some(value) = &self.local_app_principal_id { pairs.push(format!("local_app_principal_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["caller"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.local_app_principal_id = pairs.get("local_app_principal_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalAppPermissionOwnerProjectionResponse {
-    pub accepted: Option<bool>,
-    pub permissions: Vec<Box<LocalAppPermissionOwnerProjection>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl GetLocalAppPermissionOwnerProjectionResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if !self.permissions.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode permissions"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["permissions", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalAppPermissionStatusRequest {
-    pub permission_id: Option<String>,
-}
-
-impl GetLocalAppPermissionStatusRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.permission_id = pairs.get("permission_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalAppPermissionStatusResponse {
-    pub projection: Option<Box<LocalAppPermissionProjection>>,
-}
-
-impl GetLocalAppPermissionStatusResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["projection"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppSharedLocalAgentAIConfigRequest {
 
 }
@@ -11452,57 +11056,6 @@ impl GetLocalCapabilityConfigurationResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["configuration"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalDevelopmentAuthoritySummaryRequest {
-
-}
-
-impl GetLocalDevelopmentAuthoritySummaryRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalDevelopmentAuthoritySummaryResponse {
-    pub developer_mode: Option<Box<LocalDevelopmentDeveloperModeSummary>>,
-    pub project_authorization: Option<Box<LocalDevelopmentProjectAuthorizationSummary>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl GetLocalDevelopmentAuthoritySummaryResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.developer_mode.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode developer_mode"); }
-        if self.project_authorization.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode project_authorization"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["developer_mode", "project_authorization", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -14772,124 +14325,6 @@ impl ListLinksResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppPermissionOwnerProjectionsRequest {
-    pub caller: Option<Box<AccountCaller>>,
-}
-
-impl ListLocalAppPermissionOwnerProjectionsRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["caller"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppPermissionOwnerProjectionsResponse {
-    pub accepted: Option<bool>,
-    pub permissions: Vec<Box<LocalAppPermissionOwnerProjection>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl ListLocalAppPermissionOwnerProjectionsResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if !self.permissions.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode permissions"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["permissions", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppPermissionRequestsRequest {
-    pub caller: Option<Box<AccountCaller>>,
-}
-
-impl ListLocalAppPermissionRequestsRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["caller"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppPermissionRequestsResponse {
-    pub accepted: Option<bool>,
-    pub requests: Vec<Box<LocalAppPermissionPendingRequest>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl ListLocalAppPermissionRequestsResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if !self.requests.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode requests"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["requests", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAssetsRequest {
     pub status_filter: Option<LocalAssetStatus>,
     pub kind_filter: Option<LocalAssetKind>,
@@ -15040,11 +14475,11 @@ impl ListLocalAuditsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalDevelopmentAuthorizationsRequest {
+pub struct ListLocalDevelopmentRegistrationsRequest {
 
 }
 
-impl ListLocalDevelopmentAuthorizationsRequest {
+impl ListLocalDevelopmentRegistrationsRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         Vec::new()
     }
@@ -15058,15 +14493,15 @@ impl ListLocalDevelopmentAuthorizationsRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalDevelopmentAuthorizationsResponse {
-    pub authorizations: Vec<Box<LocalDevelopmentAuthorizationProjection>>,
+pub struct ListLocalDevelopmentRegistrationsResponse {
+    pub registrations: Vec<Box<LocalDevelopmentRegistrationProjection>>,
     pub reason_code: Option<ReasonCode>,
 }
 
-impl ListLocalDevelopmentAuthorizationsResponse {
+impl ListLocalDevelopmentRegistrationsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if !self.authorizations.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorizations"); }
+        if !self.registrations.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode registrations"); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -15074,7 +14509,7 @@ impl ListLocalDevelopmentAuthorizationsResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let out = Self::default();
-        for key in ["authorizations", "reason_code"] {
+        for key in ["registrations", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -16425,209 +15860,6 @@ impl LocalAppAgentUpdateAutonomyResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppPermissionAgentHandle {
-    pub agent_handle: Option<String>,
-    pub display_name: Option<String>,
-    pub avatar_url: Option<String>,
-}
-
-impl LocalAppPermissionAgentHandle {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
-        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
-        if let Some(value) = &self.avatar_url { pairs.push(format!("avatar_url={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.agent_handle = pairs.get("agent_handle").cloned();
-        out.display_name = pairs.get("display_name").cloned();
-        out.avatar_url = pairs.get("avatar_url").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppPermissionCoveredAgent {
-    pub local_agent_id: Option<String>,
-    pub display_name: Option<String>,
-}
-
-impl LocalAppPermissionCoveredAgent {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.local_agent_id { pairs.push(format!("local_agent_id={}", value)); }
-        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.local_agent_id = pairs.get("local_agent_id").cloned();
-        out.display_name = pairs.get("display_name").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppPermissionInboxEvent {
-    pub sequence: Option<u64>,
-    pub emitted_at: Option<String>,
-    pub requests: Vec<Box<LocalAppPermissionPendingRequest>>,
-    pub accepted: Option<bool>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl LocalAppPermissionInboxEvent {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
-        if let Some(value) = &self.emitted_at { pairs.push(format!("emitted_at={}", value)); }
-        if !self.requests.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode requests"); }
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["requests", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
-        out.emitted_at = pairs.get("emitted_at").cloned();
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppPermissionOwnerProjection {
-    pub local_app_principal_id: Option<String>,
-    pub display_app_id: Option<String>,
-    pub permission_id: Option<String>,
-    pub posture: Option<LocalAppPermissionOwnerPosture>,
-    pub owner_revision: Option<u64>,
-    pub requested_at: Option<String>,
-    pub decided_at: Option<String>,
-    pub covered_agents: Vec<Box<LocalAppPermissionCoveredAgent>>,
-}
-
-impl LocalAppPermissionOwnerProjection {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.local_app_principal_id { pairs.push(format!("local_app_principal_id={}", value)); }
-        if let Some(value) = &self.display_app_id { pairs.push(format!("display_app_id={}", value)); }
-        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
-        if let Some(value) = &self.posture { pairs.push(format!("posture={:?}", value)); }
-        if let Some(value) = &self.owner_revision { pairs.push(format!("owner_revision={}", value)); }
-        if let Some(value) = &self.requested_at { pairs.push(format!("requested_at={}", value)); }
-        if let Some(value) = &self.decided_at { pairs.push(format!("decided_at={}", value)); }
-        if !self.covered_agents.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode covered_agents"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["posture", "covered_agents"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.local_app_principal_id = pairs.get("local_app_principal_id").cloned();
-        out.display_app_id = pairs.get("display_app_id").cloned();
-        out.permission_id = pairs.get("permission_id").cloned();
-        out.owner_revision = pairs.get("owner_revision").and_then(|value| value.parse().ok());
-        out.requested_at = pairs.get("requested_at").cloned();
-        out.decided_at = pairs.get("decided_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppPermissionPendingRequest {
-    pub local_app_principal_id: Option<String>,
-    pub display_app_id: Option<String>,
-    pub permission_id: Option<String>,
-    pub reason: Option<String>,
-    pub requested_at: Option<String>,
-    pub owner_revision: Option<u64>,
-}
-
-impl LocalAppPermissionPendingRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.local_app_principal_id { pairs.push(format!("local_app_principal_id={}", value)); }
-        if let Some(value) = &self.display_app_id { pairs.push(format!("display_app_id={}", value)); }
-        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        if let Some(value) = &self.requested_at { pairs.push(format!("requested_at={}", value)); }
-        if let Some(value) = &self.owner_revision { pairs.push(format!("owner_revision={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.local_app_principal_id = pairs.get("local_app_principal_id").cloned();
-        out.display_app_id = pairs.get("display_app_id").cloned();
-        out.permission_id = pairs.get("permission_id").cloned();
-        out.reason = pairs.get("reason").cloned();
-        out.requested_at = pairs.get("requested_at").cloned();
-        out.owner_revision = pairs.get("owner_revision").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppPermissionProjection {
-    pub permission_id: Option<String>,
-    pub posture: Option<LocalAppPermissionPosture>,
-    pub can_request: Option<bool>,
-    pub reason_code: Option<ReasonCode>,
-    pub agents: Vec<Box<LocalAppPermissionAgentHandle>>,
-}
-
-impl LocalAppPermissionProjection {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
-        if let Some(value) = &self.posture { pairs.push(format!("posture={:?}", value)); }
-        if let Some(value) = &self.can_request { pairs.push(format!("can_request={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if !self.agents.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode agents"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["posture", "reason_code", "agents"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.permission_id = pairs.get("permission_id").cloned();
-        out.can_request = pairs.get("can_request").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppSharedLocalAgentAIConfigProjection {
     pub config: Option<Box<AIConfig>>,
 }
@@ -17278,151 +16510,16 @@ impl LocalCatalogVariantDescriptor {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalDevelopmentAuthorizationProjection {
-    pub authorization_id: Option<Vec<u8>>,
-    pub project: Option<Box<LocalDevelopmentProjectProjection>>,
-    pub state: Option<LocalDevelopmentAuthorizationState>,
-    pub persistence: Option<LocalDevelopmentDecision>,
-    pub authorization_generation: Option<u64>,
-    pub approved_at: Option<String>,
-    pub updated_at: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl LocalDevelopmentAuthorizationProjection {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.authorization_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization_id"); }
-        if self.project.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode project"); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.persistence { pairs.push(format!("persistence={:?}", value)); }
-        if let Some(value) = &self.authorization_generation { pairs.push(format!("authorization_generation={}", value)); }
-        if let Some(value) = &self.approved_at { pairs.push(format!("approved_at={}", value)); }
-        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["authorization_id", "project", "state", "persistence", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.authorization_generation = pairs.get("authorization_generation").and_then(|value| value.parse().ok());
-        out.approved_at = pairs.get("approved_at").cloned();
-        out.updated_at = pairs.get("updated_at").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalDevelopmentDeveloperModeSummary {
-    pub availability: Option<LocalDevelopmentSummaryAvailability>,
-    pub state: Option<DeveloperModeState>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl LocalDevelopmentDeveloperModeSummary {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.availability { pairs.push(format!("availability={:?}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["availability", "state", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalDevelopmentPermissionRequirement {
-    pub permission_id: Option<String>,
-    pub reason: Option<String>,
-}
-
-impl LocalDevelopmentPermissionRequirement {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.permission_id = pairs.get("permission_id").cloned();
-        out.reason = pairs.get("reason").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalDevelopmentProjectAuthorizationSummary {
-    pub availability: Option<LocalDevelopmentSummaryAvailability>,
-    pub active_count: Option<u64>,
-    pub denied_count: Option<u64>,
-    pub revoked_count: Option<u64>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl LocalDevelopmentProjectAuthorizationSummary {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.availability { pairs.push(format!("availability={:?}", value)); }
-        if let Some(value) = &self.active_count { pairs.push(format!("active_count={}", value)); }
-        if let Some(value) = &self.denied_count { pairs.push(format!("denied_count={}", value)); }
-        if let Some(value) = &self.revoked_count { pairs.push(format!("revoked_count={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["availability", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.active_count = pairs.get("active_count").and_then(|value| value.parse().ok());
-        out.denied_count = pairs.get("denied_count").and_then(|value| value.parse().ok());
-        out.revoked_count = pairs.get("revoked_count").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalDevelopmentProjectProjection {
     pub app_id: Option<String>,
     pub display_name: Option<String>,
     pub canonical_project_root: Option<String>,
     pub canonical_manifest_path: Option<String>,
     pub shell_kind: Option<LocalDevelopmentShellKind>,
-    pub account_id: Option<String>,
-    pub permission_requirements: Vec<Box<LocalDevelopmentPermissionRequirement>>,
-    pub permission_requirement_fingerprint: Option<Vec<u8>>,
+    pub app_access: Vec<String>,
     pub trust_class: Option<String>,
+    pub source_generation: Option<u64>,
+    pub declaration_generation: Option<u64>,
 }
 
 impl LocalDevelopmentProjectProjection {
@@ -17433,17 +16530,17 @@ impl LocalDevelopmentProjectProjection {
         if let Some(value) = &self.canonical_project_root { pairs.push(format!("canonical_project_root={}", value)); }
         if let Some(value) = &self.canonical_manifest_path { pairs.push(format!("canonical_manifest_path={}", value)); }
         if let Some(value) = &self.shell_kind { pairs.push(format!("shell_kind={:?}", value)); }
-        if let Some(value) = &self.account_id { pairs.push(format!("account_id={}", value)); }
-        if !self.permission_requirements.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode permission_requirements"); }
-        if self.permission_requirement_fingerprint.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode permission_requirement_fingerprint"); }
+        for value in &self.app_access { pairs.push(format!("app_access={}", value)); }
         if let Some(value) = &self.trust_class { pairs.push(format!("trust_class={}", value)); }
+        if let Some(value) = &self.source_generation { pairs.push(format!("source_generation={}", value)); }
+        if let Some(value) = &self.declaration_generation { pairs.push(format!("declaration_generation={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["shell_kind", "permission_requirements", "permission_requirement_fingerprint"] {
+        for key in ["shell_kind"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -17453,8 +16550,45 @@ impl LocalDevelopmentProjectProjection {
         out.display_name = pairs.get("display_name").cloned();
         out.canonical_project_root = pairs.get("canonical_project_root").cloned();
         out.canonical_manifest_path = pairs.get("canonical_manifest_path").cloned();
-        out.account_id = pairs.get("account_id").cloned();
+        out.app_access = parse_repeated_string(raw, "app_access");
         out.trust_class = pairs.get("trust_class").cloned();
+        out.source_generation = pairs.get("source_generation").and_then(|value| value.parse().ok());
+        out.declaration_generation = pairs.get("declaration_generation").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalDevelopmentRegistrationProjection {
+    pub registration_handle: Option<Vec<u8>>,
+    pub project: Option<Box<LocalDevelopmentProjectProjection>>,
+    pub registered_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl LocalDevelopmentRegistrationProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.registration_handle.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode registration_handle"); }
+        if self.project.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode project"); }
+        if let Some(value) = &self.registered_at { pairs.push(format!("registered_at={}", value)); }
+        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["registration_handle", "project", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.registered_at = pairs.get("registered_at").cloned();
+        out.updated_at = pairs.get("updated_at").cloned();
         out
     }
 }
@@ -23311,6 +22445,70 @@ impl RegisterExternalPrincipalResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RegisterLocalDevelopmentProjectRequest {
+    pub expected_app_id: Option<String>,
+    pub project_root: Option<String>,
+    pub shell_kind: Option<LocalDevelopmentShellKind>,
+    pub supervisor_run_id: Option<Vec<u8>>,
+}
+
+impl RegisterLocalDevelopmentProjectRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.expected_app_id { pairs.push(format!("expected_app_id={}", value)); }
+        if let Some(value) = &self.project_root { pairs.push(format!("project_root={}", value)); }
+        if let Some(value) = &self.shell_kind { pairs.push(format!("shell_kind={:?}", value)); }
+        if self.supervisor_run_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode supervisor_run_id"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["shell_kind", "supervisor_run_id"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.expected_app_id = pairs.get("expected_app_id").cloned();
+        out.project_root = pairs.get("project_root").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RegisterLocalDevelopmentProjectResponse {
+    pub registration: Option<Box<LocalDevelopmentRegistrationProjection>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl RegisterLocalDevelopmentProjectResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.registration.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode registration"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["registration", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RemoveLinkRequest {
     pub context: Option<Box<KnowledgeRequestContext>>,
     pub bank_id: Option<String>,
@@ -23456,6 +22654,64 @@ impl RemoveLocalAssetResponse {
         let pairs = parse_pairs(raw);
         let out = Self::default();
         for key in ["asset"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoveLocalDevelopmentRegistrationRequest {
+    pub registration_handle: Option<Vec<u8>>,
+}
+
+impl RemoveLocalDevelopmentRegistrationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let pairs: Vec<String> = Vec::new();
+        if self.registration_handle.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode registration_handle"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["registration_handle"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoveLocalDevelopmentRegistrationResponse {
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl RemoveLocalDevelopmentRegistrationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let out = Self::default();
+        for key in ["reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -23887,59 +23143,6 @@ impl RequestCompanionParticipationResponse {
             panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: companion participation projection is missing");
         }
         panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: companion participation projection requires an admitted strict response decoder");
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestLocalAppPermissionRequest {
-    pub permission_id: Option<String>,
-    pub reason: Option<String>,
-}
-
-impl RequestLocalAppPermissionRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.permission_id = pairs.get("permission_id").cloned();
-        out.reason = pairs.get("reason").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestLocalAppPermissionResponse {
-    pub projection: Option<Box<LocalAppPermissionProjection>>,
-}
-
-impl RequestLocalAppPermissionResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["projection"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
     }
 }
 
@@ -24962,130 +24165,6 @@ impl RevokeExternalPrincipalSessionRequest {
         let mut out = Self::default();
 
         out.external_session_id = pairs.get("external_session_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeLocalAppPermissionRequest {
-    pub caller: Option<Box<AccountCaller>>,
-    pub local_app_principal_id: Option<String>,
-    pub permission_id: Option<String>,
-}
-
-impl RevokeLocalAppPermissionRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        if let Some(value) = &self.local_app_principal_id { pairs.push(format!("local_app_principal_id={}", value)); }
-        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["caller"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.local_app_principal_id = pairs.get("local_app_principal_id").cloned();
-        out.permission_id = pairs.get("permission_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeLocalAppPermissionResponse {
-    pub accepted: Option<bool>,
-    pub posture: Option<LocalAppPermissionPosture>,
-    pub owner_revision: Option<u64>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl RevokeLocalAppPermissionResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.posture { pairs.push(format!("posture={:?}", value)); }
-        if let Some(value) = &self.owner_revision { pairs.push(format!("owner_revision={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["posture", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.owner_revision = pairs.get("owner_revision").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeLocalDevelopmentAuthorizationRequest {
-    pub authorization_id: Option<Vec<u8>>,
-}
-
-impl RevokeLocalDevelopmentAuthorizationRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let pairs: Vec<String> = Vec::new();
-        if self.authorization_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization_id"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["authorization_id"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeLocalDevelopmentAuthorizationResponse {
-    pub authorization: Option<Box<LocalDevelopmentAuthorizationProjection>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl RevokeLocalDevelopmentAuthorizationResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.authorization.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["authorization", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
         out
     }
 }
@@ -26512,7 +25591,6 @@ impl SetDeveloperModeRequest {
 pub struct SetDeveloperModeResponse {
     pub state: Option<DeveloperModeState>,
     pub revision: Option<u64>,
-    pub account_generation: Option<u64>,
     pub reason_code: Option<ReasonCode>,
 }
 
@@ -26521,7 +25599,6 @@ impl SetDeveloperModeResponse {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
         if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
-        if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -26536,7 +25613,6 @@ impl SetDeveloperModeResponse {
         }
 
         out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
-        out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -27614,35 +26690,6 @@ impl SubscribeAppMessagesRequest {
         out.from_app_ids = parse_repeated_string(raw, "from_app_ids");
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubscribeLocalAppPermissionRequestsRequest {
-    pub caller: Option<Box<AccountCaller>>,
-}
-
-impl SubscribeLocalAppPermissionRequestsRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let out = Self::default();
-        for key in ["caller"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
         out
     }
 }
@@ -30997,30 +30044,6 @@ impl From<Vec<u8>> for CreateKnowledgeBankResponse {
     }
 }
 
-impl From<Vec<u8>> for DecideLocalAppPermissionRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for DecideLocalAppPermissionResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for DecideLocalDevelopmentProjectRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for DecideLocalDevelopmentProjectResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for DelegatedApprovalRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -31244,18 +30267,6 @@ impl From<Vec<u8>> for EpisodicMemoryRecord {
 }
 
 impl From<Vec<u8>> for ErrorInfo {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for EvaluateLocalDevelopmentProjectRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for EvaluateLocalDevelopmentProjectResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -31621,30 +30632,6 @@ impl From<Vec<u8>> for GetLocalAppAgentPresentationSnapshotRequest {
     }
 }
 
-impl From<Vec<u8>> for GetLocalAppPermissionOwnerProjectionRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetLocalAppPermissionOwnerProjectionResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetLocalAppPermissionStatusRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetLocalAppPermissionStatusResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for GetLocalAppSharedLocalAgentAIConfigRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -31664,18 +30651,6 @@ impl From<Vec<u8>> for GetLocalCapabilityConfigurationRequest {
 }
 
 impl From<Vec<u8>> for GetLocalCapabilityConfigurationResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetLocalDevelopmentAuthoritySummaryRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for GetLocalDevelopmentAuthoritySummaryResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -32299,30 +31274,6 @@ impl From<Vec<u8>> for ListLinksResponse {
     }
 }
 
-impl From<Vec<u8>> for ListLocalAppPermissionOwnerProjectionsRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListLocalAppPermissionOwnerProjectionsResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListLocalAppPermissionRequestsRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListLocalAppPermissionRequestsResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ListLocalAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32347,13 +31298,13 @@ impl From<Vec<u8>> for ListLocalAuditsResponse {
     }
 }
 
-impl From<Vec<u8>> for ListLocalDevelopmentAuthorizationsRequest {
+impl From<Vec<u8>> for ListLocalDevelopmentRegistrationsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for ListLocalDevelopmentAuthorizationsResponse {
+impl From<Vec<u8>> for ListLocalDevelopmentRegistrationsResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -32611,42 +31562,6 @@ impl From<Vec<u8>> for LocalAppAgentUpdateAutonomyResponse {
     }
 }
 
-impl From<Vec<u8>> for LocalAppPermissionAgentHandle {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalAppPermissionCoveredAgent {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalAppPermissionInboxEvent {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalAppPermissionOwnerProjection {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalAppPermissionPendingRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalAppPermissionProjection {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for LocalAppSharedLocalAgentAIConfigProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32737,31 +31652,13 @@ impl From<Vec<u8>> for LocalCatalogVariantDescriptor {
     }
 }
 
-impl From<Vec<u8>> for LocalDevelopmentAuthorizationProjection {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalDevelopmentDeveloperModeSummary {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalDevelopmentPermissionRequirement {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalDevelopmentProjectAuthorizationSummary {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for LocalDevelopmentProjectProjection {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalDevelopmentRegistrationProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33721,6 +32618,18 @@ impl From<Vec<u8>> for RegisterExternalPrincipalResponse {
     }
 }
 
+impl From<Vec<u8>> for RegisterLocalDevelopmentProjectRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RegisterLocalDevelopmentProjectResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RemoveLinkRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -33752,6 +32661,18 @@ impl From<Vec<u8>> for RemoveLocalAssetRequest {
 }
 
 impl From<Vec<u8>> for RemoveLocalAssetResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RemoveLocalDevelopmentRegistrationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RemoveLocalDevelopmentRegistrationResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33836,18 +32757,6 @@ impl From<Vec<u8>> for RequestCompanionParticipationRequest {
 }
 
 impl From<Vec<u8>> for RequestCompanionParticipationResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RequestLocalAppPermissionRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RequestLocalAppPermissionResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34046,30 +32955,6 @@ impl From<Vec<u8>> for RevokeConnectorGrantResponse {
 }
 
 impl From<Vec<u8>> for RevokeExternalPrincipalSessionRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RevokeLocalAppPermissionRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RevokeLocalAppPermissionResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RevokeLocalDevelopmentAuthorizationRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RevokeLocalDevelopmentAuthorizationResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34538,12 +33423,6 @@ impl From<Vec<u8>> for SubscribeAgentVoiceStreamRequest {
 }
 
 impl From<Vec<u8>> for SubscribeAppMessagesRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for SubscribeLocalAppPermissionRequestsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35030,16 +33909,6 @@ where
         Ok(CompleteLoginResponse::from_transport(&raw))
     }
 
-    pub fn decide_local_app_permission(&self, request: DecideLocalAppPermissionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DecideLocalAppPermissionResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(DecideLocalAppPermissionResponse::from_transport(&raw))
-    }
-
     pub fn get_account_session_status(&self, request: GetAccountSessionStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountSessionStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
@@ -35048,26 +33917,6 @@ where
             timeout,
         })?;
         Ok(GetAccountSessionStatusResponse::from_transport(&raw))
-    }
-
-    pub fn get_local_app_permission_owner_projection(&self, request: GetLocalAppPermissionOwnerProjectionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppPermissionOwnerProjectionResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(GetLocalAppPermissionOwnerProjectionResponse::from_transport(&raw))
-    }
-
-    pub fn get_local_app_permission_status(&self, request: GetLocalAppPermissionStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppPermissionStatusResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(GetLocalAppPermissionStatusResponse::from_transport(&raw))
     }
 
     pub fn invoke_realm_unary(&self, request: InvokeRealmUnaryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InvokeRealmUnaryResponse, T::Error> {
@@ -35090,26 +33939,6 @@ where
         Ok(IssueWorkspaceBindingResponse::from_transport(&raw))
     }
 
-    pub fn list_local_app_permission_owner_projections(&self, request: ListLocalAppPermissionOwnerProjectionsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppPermissionOwnerProjectionsResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ListLocalAppPermissionOwnerProjectionsResponse::from_transport(&raw))
-    }
-
-    pub fn list_local_app_permission_requests(&self, request: ListLocalAppPermissionRequestsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppPermissionRequestsResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ListLocalAppPermissionRequestsResponse::from_transport(&raw))
-    }
-
     pub fn logout(&self, request: LogoutRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<LogoutResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/Logout".to_string(),
@@ -35120,16 +33949,6 @@ where
         Ok(LogoutResponse::from_transport(&raw))
     }
 
-    pub fn request_local_app_permission(&self, request: RequestLocalAppPermissionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestLocalAppPermissionResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RequestLocalAppPermissionResponse::from_transport(&raw))
-    }
-
     pub fn request_presence_verification(&self, request: RequestPresenceVerificationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestPresenceVerificationResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification".to_string(),
@@ -35138,16 +33957,6 @@ where
             timeout,
         })?;
         Ok(RequestPresenceVerificationResponse::from_transport(&raw))
-    }
-
-    pub fn revoke_local_app_permission(&self, request: RevokeLocalAppPermissionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeLocalAppPermissionResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RevokeLocalAppPermissionResponse::from_transport(&raw))
     }
 
     pub fn revoke_workspace_binding(&self, request: RevokeWorkspaceBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeWorkspaceBindingResponse, T::Error> {
@@ -35166,19 +33975,6 @@ where
     {
         let inner = self.core.server_stream(CoreStreamRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
-    }
-
-    pub fn subscribe_local_app_permission_requests(&self, request: SubscribeLocalAppPermissionRequestsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, LocalAppPermissionInboxEvent>, T::Error>
-    where
-        T::Stream: CoreTypedStream,
-    {
-        let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -36730,16 +35526,6 @@ where
         Ok(UpsertModelCatalogProviderResponse::from_transport(&raw))
     }
 
-    pub fn decide_local_development_project(&self, request: DecideLocalDevelopmentProjectRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DecideLocalDevelopmentProjectResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(DecideLocalDevelopmentProjectResponse::from_transport(&raw))
-    }
-
     pub fn end_local_development_run(&self, request: EndLocalDevelopmentRunRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<EndLocalDevelopmentRunResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun".to_string(),
@@ -36748,16 +35534,6 @@ where
             timeout,
         })?;
         Ok(EndLocalDevelopmentRunResponse::from_transport(&raw))
-    }
-
-    pub fn evaluate_local_development_project(&self, request: EvaluateLocalDevelopmentProjectRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<EvaluateLocalDevelopmentProjectResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(EvaluateLocalDevelopmentProjectResponse::from_transport(&raw))
     }
 
     pub fn get_developer_mode_status(&self, request: GetDeveloperModeStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetDeveloperModeStatusResponse, T::Error> {
@@ -36770,34 +35546,34 @@ where
         Ok(GetDeveloperModeStatusResponse::from_transport(&raw))
     }
 
-    pub fn get_local_development_authority_summary(&self, request: GetLocalDevelopmentAuthoritySummaryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalDevelopmentAuthoritySummaryResponse, T::Error> {
+    pub fn list_local_development_registrations(&self, request: ListLocalDevelopmentRegistrationsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalDevelopmentRegistrationsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(GetLocalDevelopmentAuthoritySummaryResponse::from_transport(&raw))
+        Ok(ListLocalDevelopmentRegistrationsResponse::from_transport(&raw))
     }
 
-    pub fn list_local_development_authorizations(&self, request: ListLocalDevelopmentAuthorizationsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalDevelopmentAuthorizationsResponse, T::Error> {
+    pub fn register_local_development_project(&self, request: RegisterLocalDevelopmentProjectRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RegisterLocalDevelopmentProjectResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(ListLocalDevelopmentAuthorizationsResponse::from_transport(&raw))
+        Ok(RegisterLocalDevelopmentProjectResponse::from_transport(&raw))
     }
 
-    pub fn revoke_local_development_authorization(&self, request: RevokeLocalDevelopmentAuthorizationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeLocalDevelopmentAuthorizationResponse, T::Error> {
+    pub fn remove_local_development_registration(&self, request: RemoveLocalDevelopmentRegistrationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalDevelopmentRegistrationResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(RevokeLocalDevelopmentAuthorizationResponse::from_transport(&raw))
+        Ok(RemoveLocalDevelopmentRegistrationResponse::from_transport(&raw))
     }
 
     pub fn set_developer_mode(&self, request: SetDeveloperModeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetDeveloperModeResponse, T::Error> {

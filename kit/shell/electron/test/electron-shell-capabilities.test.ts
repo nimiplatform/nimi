@@ -86,14 +86,12 @@ describe('Electron standard shell capability catalog', () => {
       appPackageKind: 'nimi-app',
       launchResolution: 'runtime_prepare_local_app_launch_and_verified_process_binding',
       authBinding: 'runtime_owned_request_empty_local_app_session',
-      authorityStatus: 'permission_model_v1_with_exact_admitted_operation_families',
+      authorityStatus: 'app_access_declarations_with_protected_operations_unavailable_until_admission',
       plannedOperationsDisposition: 'deny_until_separate_operation_admission',
       sourceRule: 'P-KIT-044',
     });
     expect(localAppSet?.allowedOperations).toEqual([
       'local-app.sessionStatus',
-      'local-app.permissionStatus',
-      'local-app.permissionRequest',
       'local-app.aiConfigGet',
       'local-app.aiConfigOverwrite',
       'local-app.textGenerateCandidate',
@@ -121,8 +119,6 @@ describe('Electron standard shell capability catalog', () => {
     ]);
     expect(localAppSet?.allowedCommands).toEqual([
       'nimi.shell.localApp.sessionStatus',
-      'nimi.shell.localApp.permissionStatus',
-      'nimi.shell.localApp.permissionRequest',
       'nimi.shell.localApp.aiConfigGet',
       'nimi.shell.localApp.aiConfigOverwrite',
       'nimi.shell.localApp.textGenerateCandidate',

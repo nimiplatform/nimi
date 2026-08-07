@@ -25,11 +25,11 @@ export function chatBlockedHint(evidence: ZhiyuEvidence): string {
     return conversationReadinessHint(evidence.conversation);
   }
   if (!evidence.turn.ready) {
-    if (evidence.turn.reasonCode.includes('permission')) {
-      return '请先完成账户级 Agent 交互授权。';
+    if (evidence.turn.reasonCode.includes('ACCESS_UNAVAILABLE')) {
+      return '受保护的 App Access 当前不可用。';
     }
     if (evidence.turn.reasonCode === 'zhiyu-agent-handle-not-covered') {
-      return '当前伙伴已不在账户授权范围内，请刷新伙伴列表。';
+      return '当前伙伴已不在 Runtime 清单中，请刷新伙伴列表。';
     }
     return '当前会话暂时不能发送，请刷新伙伴或重新打开会话。';
   }

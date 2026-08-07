@@ -5,6 +5,6 @@ Windows x64 Node-API binary used internally by
 expose Runtime credentials, session material, endpoint selection, or a generic
 RPC proxy.
 
-The binary exports exactly the Local App session-status, read-only
-permission-posture, explicit permission-request, artifact-read, and four selected RuntimeAgent conversation methods declared by
-the parent protected-local-node package.
+The binary exports only the bounded Desktop control and Local App operations
+declared by the parent protected-local-node package. Protected App operations
+remain fail-closed while App Access admission is unavailable.

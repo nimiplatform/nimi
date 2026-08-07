@@ -66,7 +66,7 @@ test('agents.interact journey uses one current Agent handle as the operation tar
 test('journey cancels subscription when a later operation returns typed denial', async () => {
   const { runTesterConversationJourney } = await importBehaviorModule('tester/local-app-conversation-journey.js');
   let cancelled = 0;
-  const denied = Object.assign(new Error('permission revoked'), { reasonCode: 'local-app-permission-revoked' });
+  const denied = Object.assign(new Error('App operation unavailable'), { reasonCode: 'local-app-operation-unavailable' });
   await assert.rejects(() => runTesterConversationJourney({
     agentHandle: 'opaque-revoked-handle',
     requestId: 'request-2',
@@ -77,7 +77,7 @@ test('journey cancels subscription when a later operation returns typed denial',
       async send() { throw denied; },
       async snapshot() { return {}; },
     },
-  }), (error) => error.reasonCode === 'local-app-permission-revoked');
+  }), (error) => error.reasonCode === 'local-app-operation-unavailable');
   assert.equal(cancelled, 1);
 });
 

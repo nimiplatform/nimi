@@ -142,8 +142,6 @@ mod tests {
             names,
             vec![
                 "local_app_session_status",
-                "local_app_permission_status",
-                "local_app_permission_request",
                 "local_app_ai_config_get",
                 "local_app_ai_config_overwrite",
                 "local_app_shared_agent_ai_config_get",
@@ -318,8 +316,6 @@ mod tests {
             names,
             vec![
                 "local_app_session_status",
-                "local_app_permission_status",
-                "local_app_permission_request",
                 "local_app_ai_config_get",
                 "local_app_ai_config_overwrite",
                 "local_app_shared_agent_ai_config_get",

@@ -1,16 +1,14 @@
 use nimi_shell_protected_local::{
-    LocalAppAIConfigOverwriteRequest, LocalAppOperationError, LocalAppPermissionRequest,
-    LocalAppPermissionStatusRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
-    LocalAppSharedAgentAIProfileRequest, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageWriteRequest, LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
+    LocalAppAIConfigOverwriteRequest, LocalAppOperationError,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppSharedAgentAIProfileRequest,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
+    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::runtime_bridge::RuntimeBridgeLocalAppHost;
 
-const MAX_IDENTIFIER_LENGTH: usize = 512;
-const MAX_PERMISSION_REASON_BYTES: usize = 240;
 const MAX_TEXT_CANDIDATE_MESSAGES: usize = 8;
 const MAX_TEXT_CANDIDATE_MESSAGE_BYTES: usize = 32 * 1024;
 const MAX_TEXT_CANDIDATE_PROMPT_BYTES: usize = 64 * 1024;
@@ -18,20 +16,6 @@ const MAX_TEXT_CANDIDATE_TOKENS: i32 = 4096;
 const MAX_AI_PROFILE_JSON_BYTES: usize = 4 * 1024 * 1024;
 const MAX_JSON_DEPTH: usize = 32;
 const MAX_JSON_NODES: usize = 100_000;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LocalAppPermissionStatusPayload {
-    permission_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LocalAppPermissionRequestPayload {
-    permission_id: String,
-    reason: String,
-    request_id: String,
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -86,72 +70,6 @@ pub async fn session_status_for_host(host: &RuntimeBridgeLocalAppHost) -> Result
         "state": status.state.as_str(),
         "reasonCode": status.reason_code.as_str(),
         "retryable": status.retryable,
-    }))
-}
-
-pub async fn permission_status_for_host(
-    host: &RuntimeBridgeLocalAppHost,
-    payload: Value,
-) -> Result<Value, String> {
-    let payload: LocalAppPermissionStatusPayload =
-        parse_payload(payload, "local_app_permission_status")?;
-    let permission_id = required_text(
-        payload.permission_id,
-        MAX_IDENTIFIER_LENGTH,
-        "local_app_permission_status",
-    )?;
-    let posture = host
-        .permission_status(LocalAppPermissionStatusRequest { permission_id })
-        .await
-        .map_err(map_local_app_error)?;
-    Ok(json!({
-        "state": posture.state.as_str(),
-        "permissionId": posture.permission_id,
-        "canRequest": posture.can_request,
-        "reasonCode": posture.reason_code.as_str(),
-        "agents": posture.agents.into_iter().map(|agent| json!({
-            "agentHandle": agent.agent_handle,
-            "displayName": agent.display_name,
-        })).collect::<Vec<_>>(),
-    }))
-}
-
-pub async fn permission_request_for_host(
-    host: &RuntimeBridgeLocalAppHost,
-    payload: Value,
-) -> Result<Value, String> {
-    let payload: LocalAppPermissionRequestPayload =
-        parse_payload(payload, "local_app_permission_request")?;
-    let request = LocalAppPermissionRequest {
-        permission_id: required_text(
-            payload.permission_id,
-            MAX_IDENTIFIER_LENGTH,
-            "local_app_permission_request",
-        )?,
-        reason: required_text(
-            payload.reason,
-            MAX_PERMISSION_REASON_BYTES,
-            "local_app_permission_request",
-        )?,
-        request_id: required_text(
-            payload.request_id,
-            MAX_IDENTIFIER_LENGTH,
-            "local_app_permission_request",
-        )?,
-    };
-    let posture = host
-        .permission_request(request)
-        .await
-        .map_err(map_local_app_error)?;
-    Ok(json!({
-        "state": posture.state.as_str(),
-        "permissionId": posture.permission_id,
-        "canRequest": posture.can_request,
-        "reasonCode": posture.reason_code.as_str(),
-        "agents": posture.agents.into_iter().map(|agent| json!({
-            "agentHandle": agent.agent_handle,
-            "displayName": agent.display_name,
-        })).collect::<Vec<_>>(),
     }))
 }
 
@@ -478,7 +396,6 @@ fn action_hint(reason: &str) -> &'static str {
         "runtime-service-unavailable" => "start_fixed_runtime_service",
         "runtime-service-error-unclassified" => "inspect_runtime_service_error",
         "runtime-unauthenticated" => "open_request_empty_local_app_session",
-        "permission-unavailable" => "continue_without_optional_permission",
         _ => "refresh_local_app_runtime_projection",
     }
 }
@@ -489,29 +406,12 @@ mod tests {
 
     #[test]
     fn payloads_reject_extra_authority_fields() {
-        for payload in [
+        let error = parse_payload::<LocalAppStorageReadPayload>(
             json!({"relativePath": "state.json", "sessionProof": "forged"}),
-            json!({"permissionId": "agents.interact", "token": "forged"}),
-        ] {
-            let error = if payload.get("relativePath").is_some() {
-                parse_payload::<LocalAppStorageReadPayload>(payload, "storage").unwrap_err()
-            } else {
-                parse_payload::<LocalAppPermissionStatusPayload>(payload, "permission").unwrap_err()
-            };
-            assert!(error.contains("invalid-payload"));
-        }
-    }
-
-    #[test]
-    fn permission_reason_uses_utf8_byte_limit_without_whitespace_aliases() {
-        assert!(required_text("需".repeat(80), MAX_PERMISSION_REASON_BYTES, "permission").is_ok());
-        assert!(required_text("需".repeat(81), MAX_PERMISSION_REASON_BYTES, "permission").is_err());
-        assert!(required_text(
-            " needs permission".to_string(),
-            MAX_PERMISSION_REASON_BYTES,
-            "permission"
+            "storage",
         )
-        .is_err());
+        .unwrap_err();
+        assert!(error.contains("invalid-payload"));
     }
 
     #[test]

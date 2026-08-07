@@ -27,35 +27,6 @@ impl DeveloperModeState {
 pub struct DeveloperModeStatus {
     pub state: DeveloperModeState,
     pub revision: u64,
-    pub account_generation: u64,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LocalDevelopmentSummaryAvailability {
-    Available,
-    Unavailable,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentDeveloperModeSummary {
-    pub availability: LocalDevelopmentSummaryAvailability,
-    pub state: DeveloperModeState,
-    pub unavailable_reason: Option<NimiHostErrorReasonCode>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentProjectAuthorizationSummary {
-    pub availability: LocalDevelopmentSummaryAvailability,
-    pub active_count: u64,
-    pub denied_count: u64,
-    pub revoked_count: u64,
-    pub unavailable_reason: Option<NimiHostErrorReasonCode>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentAuthoritySummary {
-    pub developer_mode: LocalDevelopmentDeveloperModeSummary,
-    pub project_authorization: LocalDevelopmentProjectAuthorizationSummary,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -80,52 +51,6 @@ impl LocalDevelopmentShellKind {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LocalDevelopmentDecision {
-    Deny,
-    AllowRunOnce,
-    AllowProject,
-}
-
-impl LocalDevelopmentDecision {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Deny => "deny",
-            Self::AllowRunOnce => "allow-run-once",
-            Self::AllowProject => "allow-project",
-        }
-    }
-
-    pub(crate) const fn proto_value(self) -> i32 {
-        match self {
-            Self::Deny => 1,
-            Self::AllowRunOnce => 2,
-            Self::AllowProject => 3,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LocalDevelopmentAuthorizationState {
-    ConfirmationRequired,
-    Active,
-    ReapprovalRequired,
-    Denied,
-    Revoked,
-}
-
-impl LocalDevelopmentAuthorizationState {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::ConfirmationRequired => "confirmation-required",
-            Self::Active => "active",
-            Self::ReapprovalRequired => "reapproval-required",
-            Self::Denied => "denied",
-            Self::Revoked => "revoked",
-        }
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalDevelopmentProject {
     pub app_id: String,
@@ -133,30 +58,21 @@ pub struct LocalDevelopmentProject {
     pub canonical_project_root: PathBuf,
     pub canonical_manifest_path: PathBuf,
     pub shell_kind: LocalDevelopmentShellKind,
-    pub account_id: String,
-    pub permission_requirements: Vec<LocalDevelopmentPermissionRequirement>,
-    pub permission_requirement_fingerprint: [u8; 32],
+    pub app_access: Vec<String>,
+    pub source_generation: u64,
+    pub declaration_generation: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentPermissionRequirement {
-    pub permission_id: String,
-    pub reason: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentAuthorization {
-    pub authorization_id: [u8; 32],
+pub struct LocalDevelopmentRegistration {
+    pub registration_handle: [u8; 32],
     pub project: LocalDevelopmentProject,
-    pub state: LocalDevelopmentAuthorizationState,
-    pub persistence: LocalDevelopmentDecision,
-    pub authorization_generation: u64,
-    pub approved_at_unix_ms: i64,
+    pub registered_at_unix_ms: i64,
     pub updated_at_unix_ms: i64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentEvaluationRequest {
+pub struct LocalDevelopmentRegistrationRequest {
     pub expected_app_id: String,
     pub project_root: PathBuf,
     pub shell_kind: LocalDevelopmentShellKind,
@@ -164,25 +80,8 @@ pub struct LocalDevelopmentEvaluationRequest {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentEvaluation {
-    pub evaluation_id: Option<[u8; 32]>,
-    pub project: LocalDevelopmentProject,
-    pub state: LocalDevelopmentAuthorizationState,
-    pub confirmation_required: bool,
-    pub authorization: Option<LocalDevelopmentAuthorization>,
-    pub evaluation_expires_at_unix_ms: Option<i64>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentDecisionRequest {
-    pub evaluation_id: [u8; 32],
-    pub decision: LocalDevelopmentDecision,
-    pub risk_disclosure_acknowledged: bool,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalDevelopmentLaunchRequest {
-    pub authorization_id: [u8; 32],
+    pub registration_handle: [u8; 32],
     pub supervisor_run_id: [u8; 32],
     pub shell_kind: LocalDevelopmentShellKind,
     pub host_executable_path: PathBuf,
@@ -199,7 +98,7 @@ pub struct LocalDevelopmentLaunchOutcome {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalDevelopmentEndRunRequest {
-    pub authorization_id: [u8; 32],
+    pub registration_handle: [u8; 32],
     pub supervisor_run_id: [u8; 32],
 }
 
@@ -215,21 +114,13 @@ pub enum NimiHostErrorReasonCode {
     AccountChanged,
     SessionRevoked,
     PrincipalUnauthorized,
-    LocalDevelopmentAuthorizationRequired,
-    LocalDevelopmentReapprovalRequired,
     LocalDevelopmentProjectChanged,
     LocalDevelopmentSupervisorRequired,
     LocalDevelopmentSessionRevoked,
     LocalDevelopmentPlatformUnsupported,
     LocalDevelopmentOperationForbidden,
     LocalDevelopmentDevServerUncontrolled,
-    LocalDevelopmentApprovalDenied,
     LocalAppDeveloperModeDisabled,
-    LocalAppPermissionRequired,
-    LocalAppPermissionDenied,
-    LocalAppPermissionRevoked,
-    LocalAppPermissionReservedNotAdmitted,
-    LocalAppPermissionUnknown,
     AiVoiceTargetModelMismatch,
     AgentAiConfigRevisionConflict,
     AgentAiConfigInvalid,
@@ -258,10 +149,6 @@ impl NimiHostErrorReasonCode {
             Self::AccountChanged => "account-changed",
             Self::SessionRevoked => "session-revoked",
             Self::PrincipalUnauthorized => "principal-unauthorized",
-            Self::LocalDevelopmentAuthorizationRequired => {
-                "local-development-authorization-required"
-            }
-            Self::LocalDevelopmentReapprovalRequired => "local-development-reapproval-required",
             Self::LocalDevelopmentProjectChanged => "local-development-project-changed",
             Self::LocalDevelopmentSupervisorRequired => "local-development-supervisor-required",
             Self::LocalDevelopmentSessionRevoked => "local-development-session-revoked",
@@ -270,15 +157,7 @@ impl NimiHostErrorReasonCode {
             Self::LocalDevelopmentDevServerUncontrolled => {
                 "local-development-dev-server-uncontrolled"
             }
-            Self::LocalDevelopmentApprovalDenied => "local-development-approval-denied",
             Self::LocalAppDeveloperModeDisabled => "local-app-developer-mode-disabled",
-            Self::LocalAppPermissionRequired => "local-app-permission-required",
-            Self::LocalAppPermissionDenied => "local-app-permission-denied",
-            Self::LocalAppPermissionRevoked => "local-app-permission-revoked",
-            Self::LocalAppPermissionReservedNotAdmitted => {
-                "local-app-permission-reserved-not-admitted"
-            }
-            Self::LocalAppPermissionUnknown => "local-app-permission-unknown",
             Self::AiVoiceTargetModelMismatch => "ai-voice-target-model-mismatch",
             Self::AgentAiConfigRevisionConflict => "agent-ai-config-revision-conflict",
             Self::AgentAiConfigInvalid => "agent-ai-config-invalid",
@@ -300,7 +179,6 @@ impl NimiHostErrorReasonCode {
 pub struct NimiHostError {
     reason_code: NimiHostErrorReasonCode,
     retryable: bool,
-    permission_id: Option<String>,
     reason_metadata: BTreeMap<String, String>,
 }
 
@@ -309,17 +187,11 @@ impl NimiHostError {
         Self {
             reason_code,
             retryable,
-            permission_id: None,
             reason_metadata: BTreeMap::new(),
         }
     }
 
-    pub fn with_reason_metadata(
-        mut self,
-        permission_id: Option<String>,
-        reason_metadata: BTreeMap<String, String>,
-    ) -> Self {
-        self.permission_id = permission_id;
+    pub fn with_reason_metadata(mut self, reason_metadata: BTreeMap<String, String>) -> Self {
         self.reason_metadata = reason_metadata;
         self
     }
@@ -327,15 +199,9 @@ impl NimiHostError {
     pub const fn reason_code(&self) -> NimiHostErrorReasonCode {
         self.reason_code
     }
-
     pub const fn retryable(&self) -> bool {
         self.retryable
     }
-
-    pub fn permission_id(&self) -> Option<&str> {
-        self.permission_id.as_deref()
-    }
-
     pub const fn reason_metadata(&self) -> &BTreeMap<String, String> {
         &self.reason_metadata
     }

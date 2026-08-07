@@ -8,12 +8,10 @@ use crate::{
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
     DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
-    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest,
-    DesktopPermissionOwnerUnaryRequest, DesktopPermissionOwnerUnaryResponse, DeveloperModeStatus,
-    FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, NimiHostError, ProtectedCarrierError,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
+    FixedRuntimeServiceControl, LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentRegistration,
+    LocalDevelopmentRegistrationRequest, NimiHostError, ProtectedCarrierError,
     RuntimeServiceActionOutcome,
 };
 use serde_json::Value as JsonValue;
@@ -37,13 +35,8 @@ pub enum LocalAppReasonCode {
     RuntimeRestarted,
     Revoked,
     ProjectChanged,
-    PermissionRequired,
-    PermissionDenied,
-    PermissionRevoked,
-    PermissionReservedNotAdmitted,
-    PermissionUnknown,
     PresenceExpired,
-    RuntimePermissionDenied,
+    RuntimeAccessDenied,
     AiModelNotFound,
     AiModelNotReady,
     AiProviderUnavailable,
@@ -94,13 +87,8 @@ impl LocalAppReasonCode {
             Self::RuntimeRestarted => "runtime-restarted",
             Self::Revoked => "revoked",
             Self::ProjectChanged => "project-changed",
-            Self::PermissionRequired => "permission-required",
-            Self::PermissionDenied => "permission-denied",
-            Self::PermissionRevoked => "permission-revoked",
-            Self::PermissionReservedNotAdmitted => "permission-reserved-not-admitted",
-            Self::PermissionUnknown => "permission-unknown",
             Self::PresenceExpired => "presence-expired",
-            Self::RuntimePermissionDenied => "runtime-permission-denied",
+            Self::RuntimeAccessDenied => "runtime-access-denied",
             Self::AiModelNotFound => "ai-model-not-found",
             Self::AiModelNotReady => "ai-model-not-ready",
             Self::AiProviderUnavailable => "ai-provider-unavailable",
@@ -142,7 +130,6 @@ impl LocalAppReasonCode {
 pub struct LocalAppOperationError {
     reason_code: LocalAppReasonCode,
     retryable: bool,
-    permission_id: Option<String>,
     reason_metadata: BTreeMap<String, String>,
 }
 
@@ -151,17 +138,11 @@ impl LocalAppOperationError {
         Self {
             reason_code,
             retryable,
-            permission_id: None,
             reason_metadata: BTreeMap::new(),
         }
     }
 
-    pub fn with_reason_metadata(
-        mut self,
-        permission_id: Option<String>,
-        reason_metadata: BTreeMap<String, String>,
-    ) -> Self {
-        self.permission_id = permission_id;
+    pub fn with_reason_metadata(mut self, reason_metadata: BTreeMap<String, String>) -> Self {
         self.reason_metadata = reason_metadata;
         self
     }
@@ -172,10 +153,6 @@ impl LocalAppOperationError {
 
     pub const fn retryable(&self) -> bool {
         self.retryable
-    }
-
-    pub fn permission_id(&self) -> Option<&str> {
-        self.permission_id.as_deref()
     }
 
     pub const fn reason_metadata(&self) -> &BTreeMap<String, String> {
@@ -209,55 +186,6 @@ pub struct LocalAppSessionStatus {
     pub state: LocalAppSessionState,
     pub reason_code: LocalAppReasonCode,
     pub retryable: bool,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalAppPermissionStatusRequest {
-    pub permission_id: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalAppPermissionRequest {
-    pub permission_id: String,
-    pub reason: String,
-    pub request_id: String,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LocalAppPermissionState {
-    Prompt,
-    Pending,
-    Granted,
-    Denied,
-    Unavailable,
-}
-
-impl LocalAppPermissionState {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Prompt => "prompt",
-            Self::Pending => "pending",
-            Self::Granted => "granted",
-            Self::Denied => "denied",
-            Self::Unavailable => "unavailable",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalAppAgentHandle {
-    pub agent_handle: String,
-    pub display_name: String,
-    pub avatar_url: Option<String>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalAppPermissionStatus {
-    pub state: LocalAppPermissionState,
-    pub permission_id: String,
-    pub can_request: bool,
-    pub reason_code: LocalAppReasonCode,
-    pub agents: Vec<LocalAppAgentHandle>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -554,17 +482,6 @@ pub trait NimiDesktopControl: Send + Sync {
         >,
     >;
 
-    fn invoke_permission_owner_unary(
-        &self,
-        request: DesktopPermissionOwnerUnaryRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<DesktopPermissionOwnerUnaryResponse, NimiHostError>>
-                + Send
-                + '_,
-        >,
-    >;
-
     fn begin_account_login(
         &self,
         request: DesktopAccountBeginLoginRequest,
@@ -612,49 +529,32 @@ pub trait NimiDesktopControl: Send + Sync {
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>>;
 
-    fn get_local_development_authority_summary(
-        &self,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalDevelopmentAuthoritySummary, NimiHostError>>
-                + Send
-                + '_,
-        >,
-    >;
-
     fn set_developer_mode(
         &self,
         enabled: bool,
     ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>>;
 
-    fn evaluate_local_development_project(
+    fn register_local_development_project(
         &self,
-        request: LocalDevelopmentEvaluationRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalDevelopmentEvaluation, NimiHostError>> + Send + '_>>;
-
-    fn decide_local_development_project(
-        &self,
-        request: LocalDevelopmentDecisionRequest,
+        request: LocalDevelopmentRegistrationRequest,
     ) -> Pin<
-        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
+        Box<dyn Future<Output = Result<LocalDevelopmentRegistration, NimiHostError>> + Send + '_>,
     >;
 
-    fn list_local_development_authorizations(
+    fn list_local_development_registrations(
         &self,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<Vec<LocalDevelopmentAuthorization>, NimiHostError>>
+            dyn Future<Output = Result<Vec<LocalDevelopmentRegistration>, NimiHostError>>
                 + Send
                 + '_,
         >,
     >;
 
-    fn revoke_local_development_authorization(
+    fn remove_local_development_registration(
         &self,
-        authorization_id: [u8; 32],
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
-    >;
+        registration_handle: [u8; 32],
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>>;
 
     fn launch_local_development_host(
         &self,
@@ -695,28 +595,6 @@ pub trait NimiLocalAppSession: Send + Sync {
         &self,
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
-    >;
-
-    fn permission_status(
-        &self,
-        request: LocalAppPermissionStatusRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppPermissionStatus, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn permission_request(
-        &self,
-        request: LocalAppPermissionRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppPermissionStatus, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
     >;
 
     fn generate_text_candidate(

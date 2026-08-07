@@ -35,14 +35,10 @@ export function RuntimeUnavailablePage({ projection, message, offlineTier, onRet
 
 function userAction(actionHint: string | undefined): string {
   switch (actionHint) {
-    case 'approve_project_in_nimi_desktop':
-    case 'complete_local_app_authorization':
-      return 'Review and approve this project in Nimi Desktop.';
     case 'restart_official_nimi_app_dev_command':
       return 'Run the official development command again.';
-    case 'restore_authorized_project_identity':
-    case 'readmit_local_development_project':
-      return 'Restore the approved app ID, project root, shell, and capabilities.';
+    case 'register_local_development_project':
+      return 'Register the current App ID, project root, shell, and App Access declaration through Nimi Desktop.';
     case 'open_nimi_desktop_and_retry':
     case 'start_fixed_runtime_service':
       return 'Open Nimi Desktop, confirm Runtime is available, then retry.';
@@ -50,8 +46,8 @@ function userAction(actionHint: string | undefined): string {
       return 'Close this process and relaunch the project through Nimi Desktop.';
     case 'reopen_local_app_session':
       return 'Reopen the protected local-app session through Nimi Desktop.';
-    case 'reauthorize_for_current_account':
-      return 'Authorize this project for the current Nimi account.';
+    case 'wait_for_app_access_admission':
+      return 'Protected App Access is not available in this Runtime phase.';
     default:
       return '';
   }

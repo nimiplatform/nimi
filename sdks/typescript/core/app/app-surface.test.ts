@@ -1,33 +1,20 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import * as appSurface from './index.js';
 import {
-  createNimiAIScopeRef,
-} from '../ai/index';
-import {
-  ADMITTED_PERMISSION_IDS,
-  KNOWN_PERMISSION_IDS,
-  RESERVED_PERMISSION_IDS,
   NimiAppClient,
-  PermissionClient,
   createAppScopeRef,
   createNimiAppClient,
-  createPermissionClient,
   isAdmittedNimiFirstRunLocalBaseline,
-  isReservedPermissionID,
   selectNimiAppFactoryAIProfileForFirstRun,
   type NimiAppAIProfileFactoryRow,
   type NimiAppInventoryEntry,
-  type NimiLocalAppAgentHandle,
   type NimiAppLocalRecordRow,
   type NimiAppScopeRef,
   type NimiAppStatus,
   type NimiAppTransport,
-  type PermissionPostureEvent,
-  type PermissionID,
-  type PermissionStatus,
-  type PermissionTransport,
-} from './index';
+} from './index.js';
 
 const localAppId = 'nimi.example-app';
 
@@ -60,86 +47,34 @@ function inventoryEntry(row: NimiAppLocalRecordRow = localRecord()): NimiAppInve
 
 class StubAppTransport implements NimiAppTransport {
   constructor(private readonly behavior: {
-    readonly list?: readonly NimiAppInventoryEntry[] | Error | null;
-    readonly get?: NimiAppInventoryEntry | Error | null;
-    readonly status?: NimiAppStatus | Error | null;
+    readonly list?: readonly NimiAppInventoryEntry[] | null;
+    readonly status?: NimiAppStatus | null;
   } = {}) {}
 
   async list(): Promise<readonly NimiAppInventoryEntry[]> {
-    if (this.behavior.list instanceof Error) throw this.behavior.list;
-    if (this.behavior.list === null) return null as unknown as readonly NimiAppInventoryEntry[];
-    return this.behavior.list ?? [inventoryEntry()];
+    return this.behavior.list === undefined ? [inventoryEntry()] : this.behavior.list as readonly NimiAppInventoryEntry[];
   }
+
   async get(appId: string): Promise<NimiAppInventoryEntry> {
-    if (this.behavior.get instanceof Error) throw this.behavior.get;
-    if (this.behavior.get === null) return null as unknown as NimiAppInventoryEntry;
-    return this.behavior.get ?? inventoryEntry(localRecord({ appId }));
+    return inventoryEntry(localRecord({ appId }));
   }
+
   async status(appId: string): Promise<NimiAppStatus> {
-    if (this.behavior.status instanceof Error) throw this.behavior.status;
-    if (this.behavior.status === null) return null as unknown as NimiAppStatus;
-    return this.behavior.status ?? {
-      appId,
-      launchReadiness: 'ready',
-    };
+    return this.behavior.status === undefined
+      ? { appId, launchReadiness: 'ready' }
+      : this.behavior.status as NimiAppStatus;
   }
 }
 
 const scopeRef: NimiAppScopeRef = { kind: 'app', ownerId: 'tester.app', surfaceId: 'settings' };
-function permissionStatus(overrides: Partial<PermissionStatus> = {}): PermissionStatus {
-  return {
-    permissionId: 'agents.interact',
-    posture: 'unavailable',
-    canRequest: false,
-    agents: [],
-    ...overrides,
-  };
-}
-
-class StubPermissionTransport implements PermissionTransport {
-  constructor(private readonly behavior: {
-    readonly status?: PermissionStatus;
-    readonly request?: PermissionStatus;
-    readonly subscribe?: PermissionPostureEvent;
-  } = {}) {}
-  async status(): Promise<PermissionStatus> { return this.behavior.status ?? permissionStatus(); }
-  async request(): Promise<PermissionStatus> {
-    return this.behavior.request ?? permissionStatus({ posture: 'pending' });
-  }
-  subscribe(_permissionId: PermissionID, callback: (event: PermissionPostureEvent) => void): () => void {
-    callback(this.behavior.subscribe ?? { status: permissionStatus() });
-    return () => undefined;
-  }
-}
 
 describe('vNext app surface', () => {
-  it('exports the full public permission catalog with an exact admitted/reserved partition', () => {
-    const expectedReserved = [
-      'agents.voice',
-      'agents.delegate',
-      'artifacts.open',
-      'account.profile.read',
-      'memory.read',
-      'memory.write',
-      'knowledge.read',
-      'knowledge.write',
-      'notifications.send',
-      'notifications.receive',
-      'files.open',
-      'files.save',
-      'realm.library.read',
-      'realm.library.manage',
-      'realm.publish',
-      'ai.background',
-      'shared_resources.open',
-    ];
-    assert.deepEqual(ADMITTED_PERMISSION_IDS, ['agents.interact', 'agents.configure', 'ai.text.generate']);
-    assert.deepEqual(RESERVED_PERMISSION_IDS, expectedReserved);
-    assert.deepEqual(KNOWN_PERMISSION_IDS, ['agents.interact', 'agents.configure', 'ai.text.generate', ...expectedReserved]);
-    assert.equal(isReservedPermissionID('agents.configure'), false);
-    assert.equal(isReservedPermissionID('agents.voice'), true);
-    assert.equal(isReservedPermissionID('agents.delegate'), true);
-    assert.equal(KNOWN_PERMISSION_IDS.includes('realm_source.snapshot.consume' as never), false);
+  it('contains no third-party access workflow exports', () => {
+    assert.deepEqual(
+      Object.keys(appSurface).filter((key) => key.toLowerCase().includes('permission')),
+      [],
+    );
+    assert.deepEqual(createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' }), scopeRef);
   });
 
   it('exposes read projections without package lifecycle methods', async () => {
@@ -153,13 +88,11 @@ describe('vNext app surface', () => {
     }
   });
 
-  it('keeps future Platform catalog metadata out of current local-development entries', async () => {
+  it('keeps account and package metadata out of local-development inventory', async () => {
     const [entry] = await createNimiAppClient(new StubAppTransport()).list();
-    assert.equal('catalog' in (entry ?? {}), false);
-    assert.equal('account' in (entry ?? {}), false);
-    assert.equal('packageReadiness' in (entry ?? {}), false);
-    assert.equal('activeJobs' in (entry ?? {}), false);
-    assert.equal('releaseDescriptorRef' in (entry ?? {}), false);
+    for (const field of ['catalog', 'account', 'packageReadiness', 'activeJobs', 'releaseDescriptorRef']) {
+      assert.equal(field in (entry ?? {}), false);
+    }
   });
 
   it('fails closed on malformed app transport projections', async () => {
@@ -175,93 +108,6 @@ describe('vNext app surface', () => {
       })).status(localAppId),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_APP_RESPONSE_INVALID',
     );
-  });
-
-  it('uses explicit permission transport for admitted posture and requests', async () => {
-    const client = createPermissionClient(new StubPermissionTransport());
-    assert.equal(client instanceof PermissionClient, true);
-    assert.deepEqual(createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' }), scopeRef);
-    assert.equal((await client.status('agents.interact')).posture, 'unavailable');
-    const events: PermissionPostureEvent[] = [];
-    client.subscribe('agents.interact', (event) => events.push(event))();
-    assert.equal(events[0]?.status.posture, 'unavailable');
-    assert.equal((await client.request({
-      permissionId: 'agents.interact',
-      reason: 'Talk with an Agent selected by me',
-    })).posture, 'pending');
-  });
-
-  it('admits configure requests while reserved permissions fail before transport', async () => {
-    let requestCalls = 0;
-    const client = createPermissionClient({
-      status: async (permissionId) => permissionStatus({ permissionId }),
-      request: async (input) => {
-        requestCalls += 1;
-        return permissionStatus({ permissionId: input.permissionId, posture: 'pending' });
-      },
-      subscribe: () => () => undefined,
-    });
-
-    assert.equal((await client.status('agents.configure')).posture, 'unavailable');
-    assert.equal((await client.request({
-      permissionId: 'agents.configure',
-      reason: 'Configure selected Agents',
-    })).posture, 'pending');
-    assert.equal(requestCalls, 1);
-
-    await assert.rejects(
-      client.request({
-        permissionId: 'agents.voice',
-        reason: 'Use Agent voice',
-      }),
-      (error: unknown) => {
-        const typed = error as { reasonCode?: string; actionHint?: string; message?: string };
-        return typed.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED'
-          && typed.actionHint === 'wait_for_permission_admission'
-          && String(typed.message).includes('agents.voice');
-      },
-    );
-    assert.equal(requestCalls, 1);
-
-    await assert.rejects(
-      createPermissionClient(new StubPermissionTransport({
-        status: permissionStatus({
-          permissionId: 'agents.voice',
-          posture: 'granted',
-        }),
-      })).status('agents.voice'),
-      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_RESPONSE_INVALID',
-    );
-  });
-
-  it('accepts a granted account permission with no current Agents', async () => {
-    const status = await createPermissionClient(new StubPermissionTransport({
-      status: permissionStatus({ posture: 'granted' }),
-    })).status('agents.interact');
-    assert.equal(status.posture, 'granted');
-    assert.deepEqual(status.agents, []);
-  });
-
-  it('fails closed on duplicate Agent handles and Agents attached to non-granted posture', async () => {
-    const handle = 'lash_runtime_materialized' as NimiLocalAppAgentHandle;
-    for (const status of [
-      permissionStatus({
-        posture: 'granted',
-        agents: [
-          { agentHandle: handle, displayName: 'One', avatarUrl: null },
-          { agentHandle: handle, displayName: 'Two', avatarUrl: null },
-        ],
-      }),
-      permissionStatus({
-        posture: 'denied',
-        agents: [{ agentHandle: handle, displayName: 'One', avatarUrl: null }],
-      }),
-    ]) {
-      await assert.rejects(
-        createPermissionClient(new StubPermissionTransport({ status })).status('agents.interact'),
-        (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_RESPONSE_INVALID',
-      );
-    }
   });
 
   it('selects admitted first-run local baselines only', () => {
@@ -282,5 +128,4 @@ describe('vNext app surface', () => {
     assert.equal(isAdmittedNimiFirstRunLocalBaseline(local), true);
     assert.equal(selectNimiAppFactoryAIProfileForFirstRun([local])?.alias, 'local-small');
   });
-
 });

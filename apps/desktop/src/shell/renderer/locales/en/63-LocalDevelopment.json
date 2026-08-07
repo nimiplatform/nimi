@@ -1,62 +1,49 @@
 {
   "trustClass": "Local development",
-  "approval": {
-    "title": "Allow this development project?",
-    "subtitle": "Nimi will supervise this project's build, dev server, and native host. Project approval does not grant access to protected Nimi resources.",
-    "warning": "Only approve a project you are actively developing. This authorization cannot become a store listing or production release.",
-    "nativeRiskAcknowledgement": "I understand this project can build and run native code with my user privileges. I have reviewed and trust this exact project root.",
-    "queue": "{{count}} development requests are waiting."
-  },
   "field": {
     "app": "App",
     "projectRoot": "Project root",
     "shell": "Shell",
-    "account": "Current account",
-    "permissions": "Additional Nimi permissions",
-    "noExtraPermissions": "No additional Nimi permissions. App-owned storage, SQLite, media, settings, and routes do not require Nimi approval."
+    "appAccess": "Declared App Access",
+    "noAppAccess": "No App Access domains declared.",
+    "sourceGeneration": "Source generation",
+    "declarationGeneration": "Declaration generation"
   },
   "shell": {
     "electron": "Electron"
   },
   "state": {
-    "active": "Active",
     "preparing": "Preparing",
-    "pending-approval": "Waiting for approval",
     "building": "Building",
     "starting": "Starting",
     "running": "Running",
     "restarting": "Restarting",
     "build-failed": "Build failed",
     "runtime-unavailable": "Runtime unavailable",
-    "authorization-required": "Authorization required",
+    "registration-unavailable": "Registration unavailable",
+    "registration-removed": "Registration removed",
     "project-changed": "Project changed",
     "failed": "Failed",
-    "stopped": "Stopped",
-    "revoked": "Revoked",
-    "denied": "Denied",
-    "reapproval-required": "Reapproval required",
-    "confirmation-required": "Confirmation required"
+    "stopped": "Stopped"
   },
   "action": {
-    "deny": "Deny",
-    "allowOnce": "Only this run",
-    "allowProject": "Always allow this project",
     "refresh": "Refresh",
-    "revoke": "Revoke",
-    "confirmRevoke": "Revoke now",
+    "remove": "Remove registration",
+    "confirmRemove": "Remove now",
     "cancel": "Cancel"
   },
   "activity": {
     "title": "Development activity",
-    "description": "Live supervised runs and recent fail-closed states. No token, ticket, session, credential, or Runtime endpoint is exposed here.",
+    "description": "Live supervised runs and recent fail-closed states. No session, credential, or Runtime endpoint is exposed here.",
     "empty": "No local development activity has been recorded in this Desktop session.",
     "hostGeneration": "Host generation {{count}}",
     "retryable": "Desktop will retry while this command remains active."
   },
   "management": {
-    "title": "Authorized development projects",
-    "description": "Always-allowed projects are bound to the exact project root, app ID, shell, permission requirements, and Nimi account. Project approval does not create a Nimi permission decision. Revocation immediately closes active development access.",
-    "empty": "No development projects are authorized for this account.",
-    "revokeConfirm": "The running development host will lose access immediately."
+    "title": "Registered development projects",
+    "description": "Registrations identify exact local project roots and preserve their raw App Access declarations. Registration does not grant protected access.",
+    "empty": "No local development projects are registered.",
+    "removeConfirm": "The running development host will stop and this registration cannot be reused.",
+    "generations": "Source generation {{source}} · declaration generation {{declaration}}"
   }
 }

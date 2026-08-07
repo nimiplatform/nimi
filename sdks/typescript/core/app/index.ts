@@ -4,26 +4,12 @@ import {
   validateNimiAppStatus,
 } from './inventory-types.js';
 import type { NimiAppAIProfileFactoryRow } from './ai-profile-factory.generated.js';
+import type { NimiAppScopeRef } from './app-scope.js';
 import type {
   NimiAppInventoryEntry,
   NimiAppStatus,
   NimiAppTransport,
 } from './inventory-types.js';
-import {
-  isAdmittedPermissionID,
-  isKnownPermissionID,
-  isPermissionPosture,
-  isReservedPermissionID,
-} from './permission-types.js';
-import type {
-  AdmittedPermissionRequestInput,
-  NimiAppScopeRef,
-  PermissionID,
-  PermissionPostureEvent,
-  PermissionRequestInput,
-  PermissionStatus,
-  PermissionTransport,
-} from './permission-types.js';
 
 export {
   NIMI_DESKTOP_OPEN_RESULT_REASON_CODES,
@@ -77,19 +63,7 @@ export {
   type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm.js';
 export {
-  NIMI_AGENT_CAPABILITY_GROUPS,
-  materializeNimiAgentCapabilityPosture,
-} from './agent-capability-posture.js';
-export type {
-  NimiAgentCapabilityGroup,
-  NimiAgentCapabilityPosture,
-  NimiAgentCapabilityPostureEntry,
-  NimiAgentCapabilityPostureReason,
-  NimiPermissionStatusReader,
-} from './agent-capability-posture.js';
-export {
   createNimiLocalAppAgentConfigureClient,
-  mapNimiLocalAppConfigureError,
 } from './local-app-runtime-platform-configure.js';
 export type * from './local-app-runtime-platform-configure.js';
 export type {
@@ -97,9 +71,6 @@ export type {
   NimiAppAuthProjection,
   NimiAppAuthUnavailable,
   NimiAppLocalSessionProjection,
-  NimiAppPermissionRequestInput,
-  NimiAppPermissionStatus,
-  NimiAppPermissionStatusInput,
   NimiLocalAppClient,
   NimiLocalAppClientInput,
   NimiLocalAppAIConfigClient,
@@ -116,7 +87,6 @@ export type {
   NimiLocalAppConversationShellSubscription,
   NimiLocalAppConversationSnapshot,
   NimiLocalAppConversationSubscription,
-  NimiLocalAppAgent,
   NimiLocalAppAgentHandle,
   NimiLocalAppArtifactBytes,
   NimiLocalAppArtifactPutInput,
@@ -135,29 +105,7 @@ export {
 } from './ai-profile-factory.generated.js';
 export type { NimiAppAIProfileFactoryRow } from './ai-profile-factory.generated.js';
 export * from './inventory-types.js';
-export {
-  ADMITTED_PERMISSION_IDS,
-  KNOWN_PERMISSION_IDS,
-  RESERVED_PERMISSION_IDS,
-  PERMISSION_POSTURES,
-  isAdmittedPermissionID,
-  isKnownPermissionID,
-  isPermissionPosture,
-  isReservedPermissionID,
-} from './permission-types.js';
-export type {
-  AdmittedPermissionID,
-  AdmittedPermissionRequestInput,
-  NimiAppScopeKind,
-  NimiAppScopeRef,
-  PermissionID,
-  PermissionPosture,
-  PermissionPostureEvent,
-  PermissionRequestInput,
-  PermissionStatus,
-  PermissionTransport,
-  ReservedPermissionID,
-} from './permission-types.js';
+export type { NimiAppScopeKind, NimiAppScopeRef } from './app-scope.js';
 export type NimiFirstRunInstallLevel = 'minimal' | 'recommended';
 
 export class NimiAppClient {
@@ -208,60 +156,8 @@ export class NimiAppClient {
   }
 }
 
-export class PermissionClient {
-  constructor(private readonly transport: PermissionTransport) {
-    if (!isPermissionTransport(transport)) {
-      appError('SDK_PERMISSION_TRANSPORT_INVALID', 'PermissionClient requires an explicit protected posture transport', 'provide_permission_transport');
-    }
-  }
-
-  async status(permissionId: PermissionID): Promise<PermissionStatus> {
-    validateKnownPermissionID(permissionId);
-    try {
-      const status = await this.transport.status(permissionId);
-      validatePermissionStatus(status, permissionId);
-      return status;
-    } catch (error) {
-      throw wrapPermissionTransportError(error, 'read permission posture');
-    }
-  }
-
-  async request(input: PermissionRequestInput): Promise<PermissionStatus> {
-    const request = validatePermissionRequest(input);
-    try {
-      const status = await this.transport.request(request);
-      validatePermissionStatus(status, request.permissionId);
-      return status;
-    } catch (error) {
-      throw wrapPermissionTransportError(error, 'request permission');
-    }
-  }
-
-  subscribe(permissionId: PermissionID, callback: (event: PermissionPostureEvent) => void): () => void {
-    validateKnownPermissionID(permissionId);
-    if (typeof callback !== 'function') {
-      appError('SDK_PERMISSION_CALLBACK_INVALID', 'permission subscribe callback is required', 'provide_permission_callback');
-    }
-    try {
-      return this.transport.subscribe(permissionId, (event) => {
-        if (!event || typeof event !== 'object') {
-          appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission posture event is missing', 'fix_permission_transport_response');
-        }
-        validatePermissionStatus(event.status, permissionId);
-        callback(event);
-      });
-    } catch (error) {
-      throw wrapPermissionTransportError(error, 'subscribe permission posture');
-    }
-  }
-}
-
 export function createNimiAppClient(transport: NimiAppTransport): NimiAppClient {
   return new NimiAppClient(transport);
-}
-
-export function createPermissionClient(transport: PermissionTransport): PermissionClient {
-  return new PermissionClient(transport);
 }
 
 export function createAppScopeRef(input: {
@@ -297,90 +193,6 @@ export function selectNimiAppFactoryAIProfileForFirstRun(
   return candidates[0] ?? null;
 }
 
-function validateKnownPermissionID(value: unknown): asserts value is PermissionID {
-  if (!isKnownPermissionID(value)) {
-    appError('SDK_PERMISSION_ID_UNKNOWN', `permission id "${String(value)}" is not in the public catalog`, 'use_known_permission_id');
-  }
-}
-
-function validatePermissionRequest(input: PermissionRequestInput | null | undefined): AdmittedPermissionRequestInput {
-  if (!input || typeof input !== 'object') {
-    appError('SDK_PERMISSION_REQUEST_INVALID', 'permission request is required', 'provide_permission_request');
-  }
-  const fields = Object.keys(input as object);
-  if (fields.some((field) => field !== 'permissionId' && field !== 'reason')) {
-    appError('SDK_PERMISSION_REQUEST_INVALID', 'permission request accepts only permissionId and reason', 'remove_permission_authority_fields');
-  }
-  validateKnownPermissionID(input.permissionId);
-  if (isReservedPermissionID(input.permissionId)) {
-    appError('SDK_PERMISSION_NOT_ADMITTED', `permission "${input.permissionId}" is reserved and cannot be requested`, 'wait_for_permission_admission');
-  }
-  if (!isAdmittedPermissionID(input.permissionId)) {
-    appError('SDK_PERMISSION_NOT_ADMITTED', `permission "${input.permissionId}" is not admitted and cannot be requested`, 'wait_for_permission_admission');
-  }
-  const reason = normalizeText(input.reason);
-  if (reason !== input.reason || new TextEncoder().encode(reason).length === 0 || new TextEncoder().encode(reason).length > 240) {
-    appError('SDK_PERMISSION_REQUEST_INVALID', 'permission reason must be canonical and at most 240 UTF-8 bytes', 'provide_permission_reason');
-  }
-  return { permissionId: input.permissionId, reason, requestId: createPermissionRequestID() };
-}
-
-function createPermissionRequestID(): string {
-  const requestId = globalThis.crypto?.randomUUID?.();
-  if (!requestId) {
-    appError('SDK_PERMISSION_REQUEST_INVALID', 'permission request-id generation is unavailable', 'restore_secure_random_source');
-  }
-  return requestId;
-}
-
-function validatePermissionStatus(status: PermissionStatus | null | undefined, expectedPermissionId: PermissionID): void {
-  if (!status || typeof status !== 'object') {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission status is missing', 'fix_permission_transport_response');
-  }
-  if (status.permissionId !== expectedPermissionId || !isKnownPermissionID(status.permissionId)) {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission response id does not match request', 'fix_permission_transport_response');
-  }
-  const seenAgentHandles = new Set<string>();
-  if (!isPermissionPosture(status.posture) || typeof status.canRequest !== 'boolean'
-    || !Array.isArray(status.agents)
-    || status.agents.some((agent) => {
-      const fields = agent && typeof agent === 'object' ? Object.keys(agent) : [];
-      if (!agent || typeof agent !== 'object'
-        || fields.length !== 2
-        || !fields.includes('agentHandle')
-        || !fields.includes('displayName')
-        || typeof agent.agentHandle !== 'string'
-        || agent.agentHandle.trim() !== agent.agentHandle
-        || new TextEncoder().encode(agent.agentHandle).length === 0
-        || new TextEncoder().encode(agent.agentHandle).length > 240
-        || seenAgentHandles.has(agent.agentHandle)
-        || typeof agent.displayName !== 'string'
-        || agent.displayName.trim() !== agent.displayName
-        || new TextEncoder().encode(agent.displayName).length === 0
-        || new TextEncoder().encode(agent.displayName).length > 240) {
-        return true;
-      }
-      seenAgentHandles.add(agent.agentHandle);
-      return false;
-    })) {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission response posture is not canonical', 'fix_permission_transport_response');
-  }
-  if (status.canRequest !== (status.posture === 'prompt')
-    || (status.posture !== 'granted' && status.agents.length > 0)) {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission Agent projection does not match posture', 'fix_permission_transport_response');
-  }
-  if (isReservedPermissionID(status.permissionId) && (status.posture !== 'unavailable' || status.canRequest)) {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'reserved permission must remain unavailable', 'fix_permission_transport_response');
-  }
-}
-
-function isPermissionTransport(value: unknown): value is PermissionTransport {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Record<string, unknown>;
-  return ['request', 'status', 'subscribe']
-    .every((method) => typeof candidate[method] === 'function');
-}
-
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -398,13 +210,6 @@ function wrapTransportError(error: unknown, action: string): never {
     throw error;
   }
   appError('SDK_APP_TRANSPORT_FAILED', `failed to ${action}`, 'check_app_transport', error);
-}
-
-function wrapPermissionTransportError(error: unknown, action: string): never {
-  if (isNimiSdkError(error)) {
-    throw error;
-  }
-  appError('SDK_PERMISSION_TRANSPORT_FAILED', `failed to ${action}`, 'check_permission_transport', error);
 }
 
 function isNimiSdkError(error: unknown): boolean {

@@ -70,23 +70,14 @@ const transport = {
   async *serverStream() {},
 };
 
-const permissionTransport = {
-  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
-  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
-  subscribe(permissionId, callback) {
-    callback({ status: { permissionId, posture: 'unavailable', canRequest: false, agents: [] } });
-    return () => {};
-  },
-};
-
 const client = sdk.createNimiClient({
   appId: 'dev.nimi.consumer',
   runtime: { transport },
-  permissions: permissionTransport,
 });
 assert(client instanceof sdk.NimiClient);
 assert.equal('scopes' in client, false);
-assert.equal((await client.requirePermissions().status('agents.interact')).posture, 'unavailable');
+assert.equal('permissions' in client, false);
+assert.equal('requirePermissions' in client, false);
 
 const model = client.ai.createRuntimeModel({});
 const generated = await model.generateText({
@@ -108,7 +99,6 @@ import {
   NimiClient,
   createNimiClient,
   type NimiDirectClientConfig,
-  type PermissionTransport,
 } from '@nimiplatform/sdk';
 import type { CoreTransport } from '@nimiplatform/sdk/runtime';
 
@@ -120,18 +110,9 @@ const transport: CoreTransport = {
     yield { status: 3 } as Response;
   },
 };
-const permissions: PermissionTransport = {
-  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
-  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false, agents: [] }; },
-  subscribe(permissionId, callback) {
-    callback({ status: { permissionId, posture: 'unavailable', canRequest: false, agents: [] } });
-    return () => {};
-  },
-};
 const config: NimiDirectClientConfig = {
   appId: 'dev.nimi.consumer',
   runtime: { transport },
-  permissions,
 };
 const client: NimiClient = createNimiClient(config);
 client.ai.createRuntimeModel({});
@@ -139,7 +120,6 @@ client.features.generation.createRuntimeClient({
   head: {},
 });
 client.features.knowledge.createRuntimeContextClient({});
-client.requirePermissions().status('agents.interact');
 `);
 }
 

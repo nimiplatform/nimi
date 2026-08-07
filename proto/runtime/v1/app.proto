@@ -139,9 +139,9 @@ message RemoveLocalAppStorageJsonResponse {
 // === Shared local-app protected launch (K-APP-017 / K-PLOCAL-008) ===
 
 message PrepareLocalAppLaunchRequest {
-  // Runtime-generated management handle resolving an active local_development
-  // authorization. Ordinary package profiles are deferred and absent.
-  // It is not a principal id, app id, account selector, path, or credential.
+  // Runtime-generated management handle resolving an active development
+  // registration. It is not the Registered App Subject, an account selector,
+  // an access decision, a path, or a credential.
   bytes local_app_handle = 1;
   // Required only for a live local_development supervisor run.
   bytes supervisor_run_id = 2;

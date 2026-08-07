@@ -252,14 +252,6 @@ export function createDesktopSimulatorBindings(
         ),
         localModelProgress: createMemoryDesktopRendererLocalModelProgressPort(),
         virtualization: createDeterministicDesktopVirtualizationPort(),
-        localAppPermissions: Object.freeze({
-          async listPending() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
-          async approve() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
-          async deny() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
-          async revoke() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
-          async getProjection() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
-          async listProjections() { throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED'); },
-        }),
         avatarHandoff: createUnavailableDesktopRendererAvatarHandoffPort(
           'DESKTOP_SIMULATOR_AVATAR_HANDOFF_UNADMITTED',
         ),
@@ -363,19 +355,13 @@ export function createDesktopSimulatorBindings(
         async startWindowDrag() {
           throw new Error('DESKTOP_SIMULATOR_WINDOW_DRAG_UNADMITTED');
         },
-        async listLocalDevelopmentApprovals() {
-          throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
-        },
-        async listLocalDevelopmentAuthorizations() {
+        async listLocalDevelopmentRegistrations() {
           throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
         },
         async listLocalDevelopmentRuns() {
           throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
         },
-        async revokeLocalDevelopmentAuthorization() {
-          throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
-        },
-        async decideLocalDevelopmentApproval() {
+        async removeLocalDevelopmentRegistration() {
           throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
         },
         async refreshDeveloperMode() {
@@ -397,12 +383,6 @@ export function createDesktopSimulatorBindings(
         observeIntersection: () => () => undefined,
         subscribeAttention: () => () => undefined,
         subscribeDeveloperMode: () => () => undefined,
-        async subscribeLocalDevelopmentApprovals() {
-          throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
-        },
-        async subscribeLocalAppPermissionRequests() {
-          throw new Error('DESKTOP_SIMULATOR_PERMISSION_OWNER_UNADMITTED');
-        },
         subscribeProductControlRecord(listener: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['subscribeProductControlRecord']
         >[0]) {

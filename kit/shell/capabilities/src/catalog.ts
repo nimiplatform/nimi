@@ -32,11 +32,7 @@ export type NimiStandardShellNegativeState =
   | 'process-replaced'
   | 'account-changed'
   | 'runtime-restarted'
-  | 'revoked'
-  | 'permission-unavailable'
-  | 'permission-denied'
-  | 'permission-revoked'
-  | 'request-pending';
+  | 'revoked';
 
 export interface NimiStandardShellOperation {
   id: string;
@@ -151,28 +147,26 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     id: 'local-app',
     operations: [
       { id: 'sessionStatus', command: 'nimi.shell.localApp.sessionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'revoked'] },
-      { id: 'permissionStatus', command: 'nimi.shell.localApp.permissionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'permission-unavailable', 'account-changed', 'runtime-restarted'] },
-      { id: 'permissionRequest', command: 'nimi.shell.localApp.permissionRequest', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'invalid-payload', 'permission-unavailable', 'request-pending', 'account-changed', 'runtime-restarted'] },
       { id: 'aiConfigGet', command: 'nimi.shell.localApp.aiConfigGet', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'not-found', 'host-internal-error'] },
       { id: 'aiConfigOverwrite', command: 'nimi.shell.localApp.aiConfigOverwrite', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'host-internal-error'] },
-      { id: 'textGenerateCandidate', command: 'nimi.shell.localApp.textGenerateCandidate', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-denied', 'permission-revoked', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'textGenerateCandidate', command: 'nimi.shell.localApp.textGenerateCandidate', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
       { id: 'realmWorldCoreList', command: 'nimi.shell.localApp.realmWorldCoreList', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
       { id: 'realmWorldCoreCreate', command: 'nimi.shell.localApp.realmWorldCoreCreate', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'invalid-payload', 'not-found', 'resource-exhausted', 'host-internal-error'] },
-      { id: 'conversationOpen', command: 'nimi.shell.localApp.conversationOpen', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
-      { id: 'conversationSendTurn', command: 'nimi.shell.localApp.conversationSendTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
-      { id: 'conversationInterruptTurn', command: 'nimi.shell.localApp.conversationInterruptTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'not-found', 'host-internal-error'] },
-      { id: 'conversationSubscribe', command: 'nimi.shell.localApp.conversationSubscribe', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'resource-exhausted', 'not-found', 'host-internal-error'] },
-      { id: 'conversationSnapshot', command: 'nimi.shell.localApp.conversationSnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'not-found', 'host-internal-error'] },
-      { id: 'artifactPut', command: 'nimi.shell.localApp.artifactPut', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
-      { id: 'artifactReadBytes', command: 'nimi.shell.localApp.artifactReadBytes', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload', 'not-found', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'conversationOpen', command: 'nimi.shell.localApp.conversationOpen', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'conversationSendTurn', command: 'nimi.shell.localApp.conversationSendTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'conversationInterruptTurn', command: 'nimi.shell.localApp.conversationInterruptTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'not-found', 'host-internal-error'] },
+      { id: 'conversationSubscribe', command: 'nimi.shell.localApp.conversationSubscribe', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'not-found', 'host-internal-error'] },
+      { id: 'conversationSnapshot', command: 'nimi.shell.localApp.conversationSnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'not-found', 'host-internal-error'] },
+      { id: 'artifactPut', command: 'nimi.shell.localApp.artifactPut', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'artifactReadBytes', command: 'nimi.shell.localApp.artifactReadBytes', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'not-found', 'resource-exhausted', 'host-internal-error'] },
       { id: 'sharedAgentAIConfigGet', command: 'nimi.shell.localApp.sharedAgentAIConfigGet', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'host-internal-error'] },
       { id: 'sharedAgentAIConfigOverwrite', command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'host-internal-error'] },
       { id: 'sharedAgentAIProfilePreview', command: 'nimi.shell.localApp.sharedAgentAIProfilePreview', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'host-internal-error'] },
       { id: 'sharedAgentAIProfileApply', command: 'nimi.shell.localApp.sharedAgentAIProfileApply', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'host-internal-error'] },
-      { id: 'agentAutonomySnapshot', command: 'nimi.shell.localApp.agentAutonomySnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload'] },
-      { id: 'agentUpdateAutonomy', command: 'nimi.shell.localApp.agentUpdateAutonomy', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload'] },
-      { id: 'agentPresentationSnapshot', command: 'nimi.shell.localApp.agentPresentationSnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload'] },
-      { id: 'agentCommitPresentation', command: 'nimi.shell.localApp.agentCommitPresentation', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'permission-unavailable', 'permission-denied', 'permission-revoked', 'invalid-payload'] },
+      { id: 'agentAutonomySnapshot', command: 'nimi.shell.localApp.agentAutonomySnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload'] },
+      { id: 'agentUpdateAutonomy', command: 'nimi.shell.localApp.agentUpdateAutonomy', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload'] },
+      { id: 'agentPresentationSnapshot', command: 'nimi.shell.localApp.agentPresentationSnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload'] },
+      { id: 'agentCommitPresentation', command: 'nimi.shell.localApp.agentCommitPresentation', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload'] },
     ],
   },
   {
@@ -267,8 +261,6 @@ const LOCAL_APP_PLANNED_OPERATIONS = [
 
 const LOCAL_APP_ALLOWED_OPERATIONS = [
   'local-app.sessionStatus',
-  'local-app.permissionStatus',
-  'local-app.permissionRequest',
   'local-app.aiConfigGet',
   'local-app.aiConfigOverwrite',
   'local-app.textGenerateCandidate',
@@ -476,7 +468,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
     appPackageKind: 'nimi-app',
     launchResolution: 'runtime_prepare_local_app_launch_and_verified_process_binding',
     authBinding: 'runtime_owned_request_empty_local_app_session',
-    authorityStatus: 'permission_model_v1_with_exact_admitted_operation_families',
+    authorityStatus: 'app_access_declarations_with_protected_operations_unavailable_until_admission',
     allowedOperations: LOCAL_APP_ALLOWED_OPERATIONS,
     plannedOperations: LOCAL_APP_PLANNED_OPERATIONS,
     plannedOperationsDisposition: 'deny_until_separate_operation_admission',
@@ -487,7 +479,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
       .filter((command): command is string => Boolean(command)),
     negativeTests: [
       'local-app-session-does-not-imply-protected-operation-authority',
-      'local-app-reserved-permission-request-fails-closed',
+      'local-app-protected-operation-fails-closed-while-access-is-unavailable',
       'local-app-denies-runtime-lifecycle',
       'local-app-denies-generic-runtime-proxy',
       'local-app-denies-auth-session-custody',
@@ -498,7 +490,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
       'local-app-denies-file-system-handoff',
       'local-app-denies-floating-window',
       'local-app-process-mismatch_denied',
-      'local-app-reserved-permission-unavailable-on-protected-operation',
+      'local-app-access-unavailable-on-protected-operation',
     ],
     sourceRule: 'P-KIT-044',
   },

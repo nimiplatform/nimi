@@ -16,9 +16,9 @@ export async function probeZhiyuRuntimeConversationHome(
   if (!identity) {
     return conversationUnavailable({
       reasonCode: 'zhiyu-local-agent-required',
-      actionHint: localAgent.actionHint || 'request_agents_interact_permission',
+      actionHint: localAgent.actionHint || 'wait_for_app_access_admission',
       source: localAgent.source,
-      message: 'Zhiyu requires an owner-granted Agent before opening a conversation.',
+      message: 'Zhiyu requires a Runtime-inventory Agent before opening a conversation.',
       agentHandle: localAgent.agentHandle,
       ownerUserId: localAgent.ownerUserId,
       runtimeSourceRef: localAgent.runtimeSourceRef,

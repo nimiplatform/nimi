@@ -1,7 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { NimiElectronLocalDevelopmentDecision } from '@nimiplatform/kit/shell/electron/main';
-
 const MAX_REQUEST_BYTES = 32 * 1024;
 
 export async function readLocalDevelopmentJsonBody(request: IncomingMessage): Promise<unknown> {
@@ -62,13 +60,6 @@ export function localDevelopmentSelector(value: unknown, prefix: string): string
     throw new Error('local-development-selector-invalid');
   }
   return selected;
-}
-
-export function localDevelopmentDecision(value: unknown): NimiElectronLocalDevelopmentDecision {
-  if (value !== 'deny' && value !== 'allow-run-once' && value !== 'allow-project') {
-    throw new Error('local-development-approval-decision-invalid');
-  }
-  return value;
 }
 
 function localDevelopmentRecord(value: unknown): Record<string, unknown> {

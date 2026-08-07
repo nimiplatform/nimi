@@ -4,9 +4,6 @@ import { testerLocalAppClient } from '../shell/local-app-runtime-platform.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable } from './tester-unavailable.js';
 
-const TEXT_GENERATE_PERMISSION_ID = 'ai.text.generate' as const;
-const TEXT_GENERATE_PERMISSION_REASON = 'Nimi Lab needs foreground text generation to verify the protected Nimi Runtime AI execution journey.';
-
 export type TesterTrace = {
   traceId?: string;
   simulated?: boolean;
@@ -84,22 +81,6 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
     }
 
     try {
-      let permission = await testerLocalAppClient.permissions.status(TEXT_GENERATE_PERMISSION_ID);
-      if (permission.posture === 'prompt' && permission.canRequest) {
-        permission = await testerLocalAppClient.permissions.request({
-          permissionId: TEXT_GENERATE_PERMISSION_ID,
-          reason: TEXT_GENERATE_PERMISSION_REASON,
-        });
-      }
-      if (permission.posture !== 'granted') {
-        const detail = permission.detail?.trim();
-        return capabilityUnavailable(
-          capability,
-          'permission-required',
-          `The ai.text.generate permission is ${permission.posture}. Approve it in Nimi Desktop, then run this request again.${detail ? ` Runtime detail: ${detail}.` : ''}`,
-        );
-      }
-
       const result = await testerLocalAppClient.ai.text.generateCandidate({
         messages: [{ role: 'user', text: prompt }],
         temperature: 0.7,

@@ -1,40 +1,38 @@
 {
   "title": "Apps",
-  "description": "在一个地方查看已接入的本地应用，确认状态、目录和权限。",
+  "description": "集中查看已注册的本地应用、项目根目录和声明的 App Access。",
   "collectionEyebrow": "应用管理",
   "inventoryTitle": "已接入的应用",
-  "inventoryDescription": "已连接到 Nimi 的应用会显示在这里。打开详情，可以快速确认它的项目目录和权限需求。",
+  "inventoryDescription": "已注册的本地开发项目会显示其确切项目根目录和原始 App Access 声明。",
   "inventoryCount": "{{count}} 个 App",
   "overview": {
     "connected": "已接入",
     "connectedDetail": "当前已连接",
-    "active": "已启用",
-    "activeDetail": "当前可用",
-    "permissions": "需要额外权限",
-    "permissionsDetail": "打开前建议确认"
+    "accessDeclarations": "App Access 声明",
+    "accessDeclarationsDetail": "由项目声明"
   },
   "listTitle": "应用列表",
-  "listDescription": "按状态筛选，优先找到需要处理的应用。",
+  "listDescription": "按是否声明 App Access 域筛选已注册应用。",
   "filter": {
     "label": "筛选应用",
     "all": "全部",
-    "active": "已启用",
-    "permissions": "有额外权限",
     "empty": "没有符合当前筛选条件的应用。",
-    "reset": "显示全部应用"
+    "reset": "显示全部应用",
+    "access": "声明了 App Access"
   },
   "developerCard": {
     "title": "接入或管理本地应用",
-    "description": "需要接入新的本地项目，或调整开发授权？前往开发者模式继续。",
+    "description": "在开发者模式中连接新的本地项目或管理现有注册。",
     "action": "打开开发者模式"
   },
   "emptyConnectedTitle": "还没有接入应用",
-  "emptyConnectedDescription": "接入本地开发项目后，它们会出现在这里，方便你查看状态、目录和权限。",
+  "emptyConnectedDescription": "注册本地开发项目后，它会连同项目根目录和 App Access 声明显示在这里。",
   "card": {
     "local": "本地开发",
     "projectRoot": "项目目录",
-    "permissions": "额外权限",
-    "noExtraPermissions": "无需额外权限"
+    "registered": "已注册",
+    "appAccess": "已声明的 App Access",
+    "noAppAccess": "未声明 App Access 域"
   },
   "emptyTitle": "库存中暂无 App",
   "empty": "安装账号 App，或接入一个本地 App。",
@@ -79,7 +77,6 @@
     "installRequired": "需要安装",
     "updateRequired": "需要更新",
     "repairRequired": "需要修复",
-    "permissionRequired": "需要授权",
     "blockedByMasterGate": "需要登录",
     "unsupported": "不支持",
     "signInRequired": "需要登录",
@@ -107,7 +104,6 @@
     "installedReady": "可用",
     "updateAvailable": "有更新",
     "updateRequired": "需要更新",
-    "permissionRequired": "需要授权",
     "repairRequired": "需要修复",
     "unsupportedOnThisDevice": "当前设备不支持",
     "blockedByPolicy": "已阻止",
@@ -126,7 +122,6 @@
     "removeLocalAdoption": "移除本地链接",
     "signIn": "登录",
     "deleteAppData": "删除应用数据",
-    "reviewPermissions": "查看权限",
     "details": "详情",
     "close": "关闭"
   },

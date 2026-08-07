@@ -25,31 +25,29 @@ type StorageShell = {
   readonly removeJson: (relativePath: string) => Promise<unknown>;
 };
 
-export function createNimiAppRuntimeStorageClient(standardShell: StorageShell) {
+export type NimiAppRuntimeStorageClient = {
+  readonly readJson: (relativePath: string) => Promise<NimiAppRuntimeStorageDocument>;
+  readonly writeJson: (relativePath: string, value: JsonValue) => Promise<NimiAppRuntimeStorageDocument>;
+  readonly removeJson: (relativePath: string) => Promise<NimiAppRuntimeStorageRemoveResult>;
+};
+
+export function createNimiAppRuntimeStorageClient(
+  _standardShell: StorageShell,
+): NimiAppRuntimeStorageClient {
+  const unavailable = async (): Promise<never> => protectedAppAccessUnavailable();
   return Object.freeze({
-    readJson: async (relativePath: string) => projectStorageDocument(
-      await standardShell.readJson(requireStorageRelativePath(relativePath)),
-    ),
-    writeJson: async (relativePath: string, value: JsonValue) => {
-      const path = requireStorageRelativePath(relativePath);
-      assertStorageJsonValue(value);
-      const encoded = JSON.stringify(value);
-      if (
-        encoded === undefined
-        || new TextEncoder().encode(encoded).byteLength > MAX_LOCAL_APP_STORAGE_DOCUMENT_BYTES
-      ) {
-        return localAppError(
-          'Local-app storage document exceeds the admitted bound.',
-          'SDK_LOCAL_APP_STORAGE_DOCUMENT_TOO_LARGE',
-          'reduce_storage_document_size',
-        );
-      }
-      return projectStorageDocument(await standardShell.writeJson(path, value));
-    },
-    removeJson: async (relativePath: string) => projectStorageRemoveResult(
-      await standardShell.removeJson(requireStorageRelativePath(relativePath)),
-    ),
+    readJson: unavailable,
+    writeJson: unavailable,
+    removeJson: unavailable,
   });
+}
+
+function protectedAppAccessUnavailable(): never {
+  return localAppError(
+    'Protected App operations are unavailable until Runtime establishes a fresh App Access session.',
+    'SDK_LOCAL_APP_ACCESS_UNAVAILABLE',
+    'retry_after_protected_session_establishment',
+  );
 }
 
 function projectStorageDocument(value: unknown): NimiAppRuntimeStorageDocument {

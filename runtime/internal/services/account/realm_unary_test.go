@@ -102,9 +102,8 @@ func TestInvokeRealmUnaryMediatesExactProtectedLocalAppWorldCoreOperations(t *te
 		},
 	} {
 		ctx := ContextWithAuthorizedLocalAppDecision(context.Background(), LocalAppCallerDecision{
-			LocalAppPrincipalID: "lap_world_studio",
-			LocalAppRecordID:    "lar_world_studio",
-			Operation:           test.operation,
+			RegisteredAppSubject: "lap_world_studio",
+			Operation:            test.operation,
 		})
 		resp, err := svc.InvokeRealmUnary(ctx, &runtimev1.InvokeRealmUnaryRequest{
 			MethodId:    test.methodID,
@@ -128,9 +127,8 @@ func TestInvokeRealmUnaryRejectsProtectedLocalAppAuthorityAndOperationSelection(
 	svc := newRealmUnaryHarnessService(t, "https://realm.example.test")
 	completeLogin(t, svc)
 	ctx := ContextWithAuthorizedLocalAppDecision(context.Background(), LocalAppCallerDecision{
-		LocalAppPrincipalID: "lap_world_studio",
-		LocalAppRecordID:    "lar_world_studio",
-		Operation:           LocalAppOperationRealmWorldCoreList,
+		RegisteredAppSubject: "lap_world_studio",
+		Operation:            LocalAppOperationRealmWorldCoreList,
 	})
 	for name, request := range map[string]*runtimev1.InvokeRealmUnaryRequest{
 		"caller": {

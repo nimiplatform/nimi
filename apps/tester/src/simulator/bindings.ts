@@ -15,7 +15,6 @@ import {
   type NimiTestingAiMethodMap,
   type NimiTestingHostPort,
 } from '@nimiplatform/sdk/testing';
-import type { PermissionID } from '@nimiplatform/sdk/app';
 
 import type { TesterCanonicalRendererBindings } from '../renderer/contract.js';
 import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
@@ -366,13 +365,6 @@ function createCommandPort(context: TesterSimulatorPrepareContext) {
         throw hostError('The Simulator local-app unavailability projection is invalid.', 'TESTER_SIMULATED_SESSION_INVALID');
       }
       return { state: 'unavailable', sessionBound: false };
-    },
-    async localAppPermissionStatus(_permissionId: PermissionID) {
-      return { posture: 'unavailable', canRequest: false, agents: [], detail: 'Permission is unavailable in the selected simulation.' };
-    },
-    async localAppPermissionRequest(input: { readonly permissionId: PermissionID; readonly reason: string }) {
-      await recordAction(context, 'permission-request', input.permissionId, { reason: input.reason, admitted: false });
-      throw hostError('Reserved permission request rejected by the simulated host.', 'TESTER_SIMULATED_PERMISSION_UNAVAILABLE');
     },
     async localAppConversationJourney() {
       return unmodeledEffect('Local-app conversation journey');

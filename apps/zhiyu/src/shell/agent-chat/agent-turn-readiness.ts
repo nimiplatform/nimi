@@ -4,8 +4,8 @@ import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
 export type ZhiyuRuntimeTurnStatus = ZhiyuEvidence['turn'];
 
 // The admitted local-app conversation surface is the execution boundary.
-// Readiness depends only on the current account permission projection and the
-// opaque Agent/conversation handles materialized by that surface.
+// Readiness depends on the App Access inventory projection and the opaque
+// Agent/conversation handles materialized by the protected surface.
 export function probeZhiyuAgentTurnReadiness(
   conversation: ZhiyuConversationHomeStatus,
   inventory: ZhiyuEvidence['inventory'],
@@ -40,9 +40,9 @@ export function probeZhiyuAgentTurnReadiness(
   if (!inventory.localAgents.some((agent) => agent.agentHandle === identity.agentHandle)) {
     return turnUnavailable({
       reasonCode: 'zhiyu-agent-handle-not-covered',
-      actionHint: 'refresh_agents_interact_permission',
+      actionHint: 'refresh_runtime_local_agent_inventory',
       source: 'runtime',
-      message: 'The active Agent handle is no longer covered by the account permission projection.',
+      message: 'The active Agent handle is no longer present in the Runtime inventory projection.',
       ...identity,
     });
   }

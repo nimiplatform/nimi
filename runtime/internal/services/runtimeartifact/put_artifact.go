@@ -111,8 +111,8 @@ func validLocalAppArtifactPutDecision(decision accountservice.LocalAppCallerDeci
 		strings.TrimSpace(decision.RealmEnvironmentID) != "" && decision.AccountGeneration > 0 &&
 		decision.Operation == accountservice.LocalAppOperationSendConversationTurn && decision.OperationCapability == "agents.interact" &&
 		decision.TrustClass == accountservice.LocalAppTrustClassDevelopment &&
-		decision.AuthorizationID != (protectedlocal.Identifier{}) && decision.AuthorizationGeneration > 0 &&
-		decision.CapabilityFingerprint != (protectedlocal.Identifier{})
+		decision.RegistrationHandle != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.RegisteredAppSubject) != "" &&
+		decision.SourceGeneration > 0 && decision.DeclarationGeneration > 0
 	if !commonValid {
 		return false
 	}

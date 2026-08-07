@@ -28,7 +28,7 @@ export function chatStatusFromSubmitRefreshFailure({
     ready: false,
     state: 'failed',
     reasonCode: 'zhiyu-submit-turn-refresh-blocked',
-    actionHint: turn.actionHint || 'refresh_agents_interact_permission',
+    actionHint: turn.actionHint || 'refresh_runtime_local_agent_inventory',
     source: turn.source,
     message: `The direct local-app conversation became unavailable before submit. ${turn.message}`,
     ownerUserId: conversation.ownerUserId,

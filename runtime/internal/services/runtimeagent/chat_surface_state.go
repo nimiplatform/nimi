@@ -39,7 +39,7 @@ type persistedPublicChatAnchor struct {
 	OwnerUserID            string                                      `json:"ownerUserId"`
 	RuntimeSourceRef       string                                      `json:"runtimeSourceRef"`
 	CallerAppID            string                                      `json:"callerAppId"`
-	LocalAppPrincipalID    string                                      `json:"localAppPrincipalId,omitempty"`
+	RegisteredAppSubject   string                                      `json:"registeredAppSubject,omitempty"`
 	SubjectUserID          string                                      `json:"subjectUserId"`
 	ThreadID               string                                      `json:"threadId"`
 	Binding                publicChatExecutionBinding                  `json:"binding"`
@@ -194,7 +194,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			OwnerUserID:            session.OwnerUserID,
 			RuntimeSourceRef:       session.RuntimeSourceRef,
 			CallerAppID:            session.CallerAppID,
-			LocalAppPrincipalID:    session.LocalAppPrincipalID,
+			RegisteredAppSubject:   session.RegisteredAppSubject,
 			SubjectUserID:          session.SubjectUserID,
 			ThreadID:               session.ThreadID,
 			Binding:                session.Binding,
@@ -531,7 +531,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			OwnerUserID:            item.OwnerUserID,
 			RuntimeSourceRef:       item.RuntimeSourceRef,
 			CallerAppID:            item.CallerAppID,
-			LocalAppPrincipalID:    item.LocalAppPrincipalID,
+			RegisteredAppSubject:   item.RegisteredAppSubject,
 			SubjectUserID:          item.SubjectUserID,
 			ThreadID:               item.ThreadID,
 			Binding:                binding,

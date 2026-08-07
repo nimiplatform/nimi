@@ -3,8 +3,8 @@ import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/
 
 /**
  * The sole Tester entry point into the 0K local-app carrier. The SDK owns all
- * projection validation; the app never receives principal, permission-decision,
- * session, or transport authority material.
+ * projection validation; the App never receives a registration handle,
+ * Registered App Subject, session proof, or transport authority material.
  */
 export const testerLocalAppClient = createNimiClient({
   localApp: {

@@ -7,7 +7,6 @@ import {
 import { NimiElectronShellHostError } from './types.js';
 
 const MAX_IDENTIFIER_LENGTH = 512;
-const MAX_PERMISSION_REASON_BYTES = 240;
 const MAX_TEXT_CANDIDATE_MESSAGES = 8;
 const MAX_TEXT_CANDIDATE_MESSAGE_BYTES = 32 * 1024;
 const MAX_TEXT_CANDIDATE_PROMPT_BYTES = 64 * 1024;
@@ -31,8 +30,6 @@ const ACTIVE_CONVERSATION_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<st
 
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'], 'permissionStatus'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'], 'aiConfigGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'], 'aiConfigOverwrite'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'], 'textGenerateCandidate'],
@@ -139,15 +136,6 @@ function validatePayload(
     case 'sharedAgentAIProfileApply':
       assertExactKeys(payload, ['profileJson'], command);
       return { profileJson: validateAIProfileJson(payload.profileJson, command) };
-    case 'permissionStatus':
-      return identifiers(payload, ['permissionId'], command);
-    case 'permissionRequest':
-      assertExactKeys(payload, ['permissionId', 'reason', 'requestId'], command);
-      return {
-        permissionId: requiredText(payload.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH),
-        reason: requiredUtf8Text(payload.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
-        requestId: requiredText(payload.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
-      };
     case 'textGenerateCandidate':
       return textCandidatePayload(payload, command);
     case 'realmWorldCoreList': {
@@ -636,7 +624,6 @@ function actionHint(reasonCode: string): string {
     case 'runtime-service-error-unclassified': return 'inspect_runtime_service_error';
     case 'runtime-service-repair-required': return 'repair_fixed_runtime_service';
     case 'runtime-unauthenticated': return 'open_request_empty_local_app_session';
-    case 'permission-unavailable': return 'continue_without_optional_permission';
     default: return 'refresh_local_app_runtime_projection';
   }
 }

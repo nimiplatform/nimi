@@ -30,7 +30,7 @@ var errPublicChatStateUninitialized = errors.New("Runtime public-chat state is n
 
 var latestProjectionFields = []string{
 	"callerAppId",
-	"localAppPrincipalId",
+	"registeredAppSubject",
 	"subjectUserId",
 	"threadId",
 	"binding",

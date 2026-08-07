@@ -6,8 +6,6 @@ const MACOS_ARM64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-darwin-ar
 const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionStatus',
   'localAppSessionRenew',
-  'localAppPermissionStatus',
-  'localAppPermissionRequest',
   'localAppAIConfigGet',
   'localAppAIConfigOverwrite',
   'localAppTextGenerateCandidate',
@@ -47,13 +45,8 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'runtime-restarted',
   'revoked',
   'project-changed',
-  'permission-unavailable',
-  'permission-required',
-  'permission-denied',
-  'permission-revoked',
   'presence-expired',
-  'request-pending',
-  'runtime-permission-denied',
+  'runtime-access-denied',
   'ai-model-not-found',
   'ai-model-not-ready',
   'ai-provider-unavailable',
@@ -70,8 +63,6 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-provider-rate-limited',
   'ai-provider-timeout',
   'local-app-operation-unavailable',
-  'permission-reserved-not-admitted',
-  'permission-unknown',
   'ai-voice-target-model-mismatch',
   'agent-ai-config-revision-conflict',
   'agent-ai-config-invalid',
@@ -92,22 +83,11 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
 ] as const);
 
 const ADMITTED_REASON_METADATA_KEYS: ReadonlySet<string> = new Set([
-  'permission_id',
-  'permission_reason',
-  'permission_admission',
   'diagnostic_stage',
   'local_development_reason_code',
   'capability',
   'grpc_status_code',
 ]);
-
-const PERMISSION_STATES: ReadonlySet<string> = new Set([
-  'prompt',
-  'pending',
-  'granted',
-  'denied',
-  'unavailable',
-] as const);
 
 const FORBIDDEN_PROJECTION_KEYS: ReadonlySet<string> = new Set([
   'endpoint',
@@ -139,20 +119,6 @@ export type NimiElectronLocalAppRecord = {
   readonly [key: string]: NimiElectronLocalAppJson;
 };
 
-export type NimiElectronLocalAppAgentHandle = NimiElectronLocalAppRecord & {
-  readonly agentHandle: string;
-  readonly displayName: string;
-  readonly avatarUrl: string | null;
-};
-
-export type NimiElectronLocalAppPermissionStatus = NimiElectronLocalAppRecord & {
-  readonly state: 'prompt' | 'pending' | 'granted' | 'denied' | 'unavailable';
-  readonly permissionId: string;
-  readonly canRequest: boolean;
-  readonly reasonCode: string;
-  readonly agents: readonly NimiElectronLocalAppAgentHandle[];
-};
-
 type NativeLocalAppOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | {
@@ -165,8 +131,6 @@ type NativeLocalAppOutcome =
 export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionStatus: () => Promise<NativeLocalAppOutcome>;
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
-  readonly localAppPermissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppPermissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigGet: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -197,8 +161,6 @@ export type NimiElectronProtectedLocalBinding = {
 export type NimiElectronLocalAppHost = {
   readonly sessionStatus: () => Promise<NimiElectronLocalAppRecord>;
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
-  readonly permissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
-  readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppPermissionStatus>;
   readonly aiConfigGet: () => Promise<NimiElectronLocalAppRecord>;
   readonly aiConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -260,20 +222,6 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   renewTechnicalSession(): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppSessionRenew());
-  }
-
-  permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
-    return invokePermissionStatus(
-      () => this.binding.localAppPermissionStatus(input),
-      exactText(input.permissionId),
-    );
-  }
-
-  permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
-    return invokePermissionStatus(
-      () => this.binding.localAppPermissionRequest(input),
-      exactText(input.permissionId),
-    );
   }
 
   aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
@@ -392,14 +340,6 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   renewTechnicalSession(): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().renewTechnicalSession();
-  }
-
-  permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
-    return this.resolve().permissionStatus(input);
-  }
-
-  permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppPermissionStatus> {
-    return this.resolve().permissionRequest(input);
   }
 
   aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
@@ -632,49 +572,6 @@ async function invokeRecord(call: () => Promise<NativeLocalAppOutcome>): Promise
   return validateProjection(await invoke(call));
 }
 
-async function invokePermissionStatus(
-  call: () => Promise<NativeLocalAppOutcome>,
-  requestedPermissionId: string,
-): Promise<NimiElectronLocalAppPermissionStatus> {
-  const value = await invoke(call);
-  if (!isPlainRecord(value)
-    || !hasExactKeys(value, ['state', 'permissionId', 'canRequest', 'reasonCode', 'agents'])
-    || typeof value.state !== 'string'
-    || !PERMISSION_STATES.has(value.state)
-    || value.permissionId !== requestedPermissionId
-    || typeof value.canRequest !== 'boolean'
-    || value.canRequest !== (value.state === 'prompt')
-    || typeof value.reasonCode !== 'string'
-    || !value.reasonCode
-    || value.reasonCode.trim() !== value.reasonCode
-    || value.reasonCode.length > 512
-    || !Array.isArray(value.agents)
-    || (value.state !== 'granted' && value.agents.length > 0)) {
-    throw untrustedRuntimeError();
-  }
-  const seen = new Set<string>();
-  const agents = value.agents.map((entry) => {
-    if (!isPlainRecord(entry) || !hasExactKeys(entry, ['agentHandle', 'displayName', 'avatarUrl'])) {
-      throw untrustedRuntimeError();
-    }
-    const agentHandle = exactText(entry.agentHandle);
-    const displayName = exactText(entry.displayName);
-    const avatarUrl = exactStableAvatarUrl(entry.avatarUrl);
-    if (Buffer.byteLength(displayName, 'utf8') > 240 || seen.has(agentHandle)) {
-      throw untrustedRuntimeError();
-    }
-    seen.add(agentHandle);
-    return Object.freeze({ agentHandle, displayName, avatarUrl });
-  });
-  return Object.freeze({
-    state: value.state as NimiElectronLocalAppPermissionStatus['state'],
-    permissionId: requestedPermissionId,
-    canRequest: value.canRequest,
-    reasonCode: value.reasonCode,
-    agents: Object.freeze(agents),
-  });
-}
-
 async function invokeTextCandidate(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
@@ -838,23 +735,6 @@ function exactText(value: unknown): string {
 function optionalExactText(value: unknown): string | null {
   if (value === null) return null;
   return exactText(value);
-}
-
-function exactStableAvatarUrl(value: unknown): string | null {
-  if (value === null) return null;
-  if (typeof value !== 'string' || !value || value.trim() !== value || Buffer.byteLength(value, 'utf8') > 4096) {
-    throw untrustedRuntimeError();
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    throw untrustedRuntimeError();
-  }
-  if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password || parsed.hash) {
-    throw untrustedRuntimeError();
-  }
-  return value;
 }
 
 function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): void {

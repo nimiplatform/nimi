@@ -2,7 +2,7 @@
 
 Profile: `standalone`
 
-This repository is a local-development Nimi App reference. `nimi.app.yaml` carries the app identity and permission declarations used by the supervised development path. Development commands do not constitute product acceptance.
+This repository is a local-development Nimi App reference. `nimi.app.yaml` carries App identity and a raw `app_access` declaration used by the supervised development path. Development commands do not constitute product acceptance.
 
 ## Development
 
@@ -19,13 +19,13 @@ pnpm run update
 
 `dev` uses the same official launcher as every generated local app and selects
 Electron for the current local-development path. `pnpm dev:electron` is the
-explicit equivalent. Nimi Desktop owns the confirmation, dev server, and native
-host. Renderer HMR and Desktop-controlled native rebuilds reuse an unchanged
-project authorization; app id, root, shell, account, or capability changes
-require a new decision.
+explicit equivalent. Nimi Desktop owns project registration, the dev server,
+and the native host. Renderer HMR and Desktop-controlled native rebuilds reuse
+an unchanged registration; source and declaration changes advance their own
+independent generations.
 
-The Tester local-development manifest declares the account-scope `agents.interact` permission for all current and future Agents plus the foreground `ai.text.generate` permission. Its standard Local App carrier reads and whole-object overwrites exactly one Runtime-owned App AIConfig for `nimi.tester`; the renderer never submits an owner, scope, model, asset binding, readiness reference, route fallback, or machine selection. Selecting Local stores only the empty Local consumer intent and preserves unrelated capability intents. Text Studio calls `testerLocalAppClient.ai.text.generateCandidate`, which remains typed fail-closed until the canonical Runtime Job path is admitted. The Local app boundary lab requests `agents.interact`, uses a current opaque Agent handle only as the target of a conversation journey, and verifies app-private JSON storage independently. Other reserved permissions and unadmitted Account, Realm, generic AI streaming, embedding, lifecycle, realtime, media, and Nimi-owned artifact calls remain fail-closed. No Runtime credential or protected session material enters the app, renderer, or terminal. Paths not run in the current development environment remain `NOT-VERIFIED`.
+The Tester manifest declares the raw App Access domains `realm.data`, `runtime.consume`, and `agent.local`. Unknown valid declaration items remain preserved but inert. Registration, source generation, declaration generation, identity-session posture, account posture, and protected App Access availability are independent facts. During IMP1 every protected operation returns typed `SDK_LOCAL_APP_ACCESS_UNAVAILABLE` before touching a shell carrier; the App does not prompt, request, or fabricate access. No Runtime credential, registration handle, Registered App Subject, or protected session material enters the renderer or terminal. Paths not run in the current development environment remain `NOT-VERIFIED`.
 
-`doctor` and `update` are developer scaffold checks for this source repository. They do not update a product release, publish admission truth, create release descriptors, or grant permissions.
+`doctor` and `update` are developer scaffold checks for this source repository. They do not update a product release, publish admission truth, create release descriptors, or establish App Access.
 
-Public distribution, listing, release descriptors, ordinary visibility, install truth, and scope authorization are deferred platform contracts. This reference app neither generates nor validates their inputs or outcomes.
+Public distribution, listing, release descriptors, ordinary visibility, install truth, and protected ingress are deferred platform contracts. This reference App neither generates nor validates their inputs or outcomes.

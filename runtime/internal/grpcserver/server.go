@@ -487,7 +487,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			Custody:             protected.AccountCustody,
 			AppRegistry:         appRegistry,
 			AppSessionValidator: authSvc,
-			LocalAppKernel:      localAppKernel,
 			AuditStore:          auditStore,
 		})
 	}
@@ -795,8 +794,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	authSvc.SetLocalAppSessionOpener(appSvc)
-	accountSvc.SetLocalAppSessionResolver(appSvc)
-	accountSvc.SetAccountAuthorityRevoker(appSvc)
 	artifactSvc := runtimeartifactservice.New(
 		artifactStore,
 		logger,

@@ -2,7 +2,6 @@ package runtimeagent
 
 import (
 	"context"
-	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
@@ -12,41 +11,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func localAppConfigurePermissionFailure(reason runtimev1.ReasonCode, permissionReason string) error {
-	metadata := map[string]string{"permission_id": "agents.configure"}
-	if permissionReason != "" {
-		metadata["permission_reason"] = permissionReason
-	}
-	return grpcerr.WithReasonCodeOptions(codes.PermissionDenied, reason, grpcerr.ReasonOptions{Metadata: metadata})
+func localAppConfigureUnavailable() error {
+	return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 }
 
-// authorizedLocalAppConfigureAgent is reserved for the per-Agent autonomy and
-// presentation planes. Shared LocalAgent AIConfig actions never call it.
-func (s *Service) authorizedLocalAppConfigureAgent(ctx context.Context, operation accountservice.LocalAppOperation, handle string) (accountservice.LocalAppCallerDecision, *agentEntry, localAgentIdentity, error) {
-	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	if !ok || decision.Operation != operation || decision.OperationCapability != "agents.configure" ||
-		handle == "" || handle != strings.TrimSpace(handle) || strings.TrimSpace(decision.LocalAgentID) == "" {
-		return accountservice.LocalAppCallerDecision{}, nil, localAgentIdentity{}, localAppConfigurePermissionFailure(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED, "denied")
-	}
-	entry, err := s.agentByID(decision.LocalAgentID)
-	if err != nil || entry == nil || entry.Agent == nil || strings.TrimSpace(entry.Agent.GetOwnerUserId()) != decision.AccountID {
-		return accountservice.LocalAppCallerDecision{}, nil, localAgentIdentity{}, localAppConfigurePermissionFailure(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED, "denied")
-	}
-	identity, err := validateLocalAgentIdentity(entry.Agent.GetOwnerUserId(), entry.Agent.GetRuntimeSourceRef(), entry.Agent.GetLocalAgentRef())
-	if err != nil || identity.OwnerUserID != decision.AccountID {
-		return accountservice.LocalAppCallerDecision{}, nil, localAgentIdentity{}, localAppConfigurePermissionFailure(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED, "denied")
-	}
-	return decision, entry, identity, nil
+// These rich third-party configure surfaces remain owner-internal while their
+// public carrier is absent. They fail closed until the admitted operation map
+// is rebuilt in a later phase.
+func (s *Service) authorizedLocalAppConfigureAgent(context.Context, accountservice.LocalAppOperation, string) (accountservice.LocalAppCallerDecision, *agentEntry, localAgentIdentity, error) {
+	return accountservice.LocalAppCallerDecision{}, nil, localAgentIdentity{}, localAppConfigureUnavailable()
 }
 
-func (s *Service) authorizedLocalAppSharedAIConfig(ctx context.Context, operation accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error) {
-	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	if !ok || decision.Operation != operation || decision.OperationCapability != "agents.configure" ||
-		!exactSharedAIConfigIdentity(decision.AccountID) || !exactSharedAIConfigIdentity(decision.AppID) ||
-		strings.TrimSpace(decision.LocalAgentID) != "" {
-		return accountservice.LocalAppCallerDecision{}, localAppConfigurePermissionFailure(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED, "denied")
-	}
-	return decision, nil
+func (s *Service) authorizedLocalAppSharedAIConfig(context.Context, accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error) {
+	return accountservice.LocalAppCallerDecision{}, localAppConfigureUnavailable()
 }
 
 func (s *Service) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, req *runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest) (*runtimev1.GetLocalAppSharedLocalAgentAIConfigResponse, error) {
@@ -166,7 +143,7 @@ func (s *Service) UpdateLocalAppAgentAutonomy(ctx context.Context, req *runtimev
 	})
 	if err != nil {
 		if status.Code(err) == codes.NotFound || status.Code(err) == codes.FailedPrecondition {
-			return nil, localAppConfigurePermissionFailure(runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED, "denied")
+			return nil, localAppConfigureUnavailable()
 		}
 		return nil, err
 	}

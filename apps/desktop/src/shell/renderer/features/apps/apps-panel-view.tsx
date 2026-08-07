@@ -20,7 +20,7 @@ export interface AppsPanelViewProps {
   readonly actionError: string | null;
 }
 
-type AppsFilter = 'all' | 'active' | 'permissions';
+type AppsFilter = 'all' | 'access';
 
 export function AppsPanelView({
   projection,
@@ -55,13 +55,10 @@ export function AppsPanelView({
     );
   }
 
-  const activeCount = projection.entries.filter((entry) => entry.authorization.state === 'active').length;
-  const permissionCount = projection.entries.filter((entry) => entry.authorization.permissionRequirements.length > 0).length;
-  const visibleEntries = projection.entries.filter((entry) => {
-    if (filter === 'active') return entry.authorization.state === 'active';
-    if (filter === 'permissions') return entry.authorization.permissionRequirements.length > 0;
-    return true;
-  });
+  const accessDeclarationCount = projection.entries.filter((entry) => entry.registration.appAccess.length > 0).length;
+  const visibleEntries = projection.entries.filter((entry) => (
+    filter === 'all' || entry.registration.appAccess.length > 0
+  ));
 
   return (
     <section data-testid="apps-view" aria-labelledby="apps-view-title" className="flex h-full flex-col gap-4">
@@ -82,7 +79,7 @@ export function AppsPanelView({
         </Button>
       </div>
 
-      <div data-testid="apps-overview" className="grid gap-3 sm:grid-cols-3">
+      <div data-testid="apps-overview" className="grid gap-3 sm:grid-cols-2">
         <OverviewStat
           icon={<Code2 className="h-5 w-5" />}
           label={t('Apps.overview.connected')}
@@ -90,16 +87,10 @@ export function AppsPanelView({
           detail={t('Apps.overview.connectedDetail')}
         />
         <OverviewStat
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          label={t('Apps.overview.active')}
-          value={activeCount}
-          detail={t('Apps.overview.activeDetail')}
-        />
-        <OverviewStat
           icon={<ShieldCheck className="h-5 w-5" />}
-          label={t('Apps.overview.permissions')}
-          value={permissionCount}
-          detail={t('Apps.overview.permissionsDetail')}
+          label={t('Apps.overview.accessDeclarations')}
+          value={accessDeclarationCount}
+          detail={t('Apps.overview.accessDeclarationsDetail')}
         />
       </div>
 
@@ -112,8 +103,7 @@ export function AppsPanelView({
         </div>
         <div role="group" aria-label={t('Apps.filter.label')} className="flex w-fit flex-wrap gap-1 rounded-full border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_68%,transparent)] p-1">
           <FilterButton filter="all" activeFilter={filter} onSelect={setFilter} label={t('Apps.filter.all')} />
-          <FilterButton filter="active" activeFilter={filter} onSelect={setFilter} label={t('Apps.filter.active')} />
-          <FilterButton filter="permissions" activeFilter={filter} onSelect={setFilter} label={t('Apps.filter.permissions')} />
+          <FilterButton filter="access" activeFilter={filter} onSelect={setFilter} label={t('Apps.filter.access')} />
         </div>
       </div>
 
@@ -123,7 +113,7 @@ export function AppsPanelView({
         <ul data-testid="apps-entry-list" className="grid gap-3 md:grid-cols-2">
           {visibleEntries.map((entry) => (
             <AppCard
-              key={entry.authorization.selector}
+              key={entry.registration.selector}
               entry={entry}
               onCardAction={onCardAction}
             />
@@ -244,16 +234,16 @@ function AppCard({ entry, onCardAction }: {
 }): ReactElement {
   const { t } = useTranslation();
   const cardMotion = useDesktopCardMotion();
-  const { authorization } = entry;
+  const { registration } = entry;
   const plan = actionPlanForLocalDevelopmentEntry();
 
   return (
     <motion.li
       layout
-      data-testid={`apps-entry-${authorization.appId}`}
-      data-local-development-state={authorization.state}
-      data-local-development-shell={authorization.shell}
-      data-local-development-persistence={authorization.persistence}
+      data-testid={`apps-entry-${registration.appId}`}
+      data-local-development-shell={registration.shell}
+      data-source-generation={registration.sourceGeneration}
+      data-declaration-generation={registration.declarationGeneration}
       whileHover={cardMotion.whileHover}
       whileTap={cardMotion.whileTap}
       transition={cardMotion.transition}
@@ -261,23 +251,20 @@ function AppCard({ entry, onCardAction }: {
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span data-testid={`apps-entry-${authorization.appId}-icon`} aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-active))] text-base font-semibold text-[color:var(--nimi-text-primary)]">
-            {deriveIconGlyph(authorization.displayName)}
+          <span data-testid={`apps-entry-${registration.appId}-icon`} aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-active))] text-base font-semibold text-[color:var(--nimi-text-primary)]">
+            {deriveIconGlyph(registration.displayName)}
           </span>
           <div className="min-w-0">
-            <span data-testid={`apps-entry-${authorization.appId}-name`} className="block break-words text-base font-semibold text-[color:var(--nimi-text-primary)]">{authorization.displayName}</span>
-            <span data-testid={`apps-entry-${authorization.appId}-kind`} className="mt-1 block text-xs text-[color:var(--nimi-text-muted)]">{t('Apps.card.local')}</span>
+            <span data-testid={`apps-entry-${registration.appId}-name`} className="block break-words text-base font-semibold text-[color:var(--nimi-text-primary)]">{registration.displayName}</span>
+            <span data-testid={`apps-entry-${registration.appId}-kind`} className="mt-1 block text-xs text-[color:var(--nimi-text-muted)]">{t('Apps.card.local')}</span>
           </div>
         </div>
         <div className="flex flex-wrap justify-end gap-1.5">
-          <StatusBadge
-            data-testid={`apps-entry-${authorization.appId}-state`}
-            tone={authorizationStateTone(authorization.state)}
-          >
-            {t(`LocalDevelopment.state.${authorization.state}`, { defaultValue: authorization.state })}
+          <StatusBadge data-testid={`apps-entry-${registration.appId}-state`} tone="success">
+            {t('Apps.card.registered')}
           </StatusBadge>
-          <StatusBadge data-testid={`apps-entry-${authorization.appId}-shell`} tone="info">
-            {t(`LocalDevelopment.shell.${authorization.shell}`, { defaultValue: authorization.shell })}
+          <StatusBadge data-testid={`apps-entry-${registration.appId}-shell`} tone="info">
+            {t(`LocalDevelopment.shell.${registration.shell}`, { defaultValue: registration.shell })}
           </StatusBadge>
         </div>
       </div>
@@ -287,36 +274,36 @@ function AppCard({ entry, onCardAction }: {
           <FolderOpen className="h-3.5 w-3.5" aria-hidden="true" />
           {t('Apps.card.projectRoot')}
         </div>
-        <p data-testid={`apps-entry-${authorization.appId}-project-root`} title={authorization.canonicalProjectRoot} className="mt-1 truncate font-mono text-xs leading-5 text-[color:var(--nimi-text-secondary)]">
-          {authorization.canonicalProjectRoot}
+        <p data-testid={`apps-entry-${registration.appId}-project-root`} title={registration.canonicalProjectRoot} className="mt-1 truncate font-mono text-xs leading-5 text-[color:var(--nimi-text-secondary)]">
+          {registration.canonicalProjectRoot}
         </p>
       </div>
 
-      <div data-testid={`apps-entry-${authorization.appId}-permissions`} className="mt-4 min-h-8">
-        {authorization.permissionRequirements.length === 0 ? (
+      <div data-testid={`apps-entry-${registration.appId}-app-access`} className="mt-4 min-h-8">
+        {registration.appAccess.length === 0 ? (
           <span className="inline-flex items-center gap-1.5 text-xs text-[color:var(--nimi-text-muted)]">
             <CheckCircle2 className="h-3.5 w-3.5 text-[var(--nimi-status-success)]" aria-hidden="true" />
-            {t('Apps.card.noExtraPermissions')}
+            {t('Apps.card.noAppAccess')}
           </span>
         ) : (
           <div>
-            <p className="mb-2 text-[11px] font-semibold text-[color:var(--nimi-text-muted)]">{t('Apps.card.permissions')}</p>
+            <p className="mb-2 text-[11px] font-semibold text-[color:var(--nimi-text-muted)]">{t('Apps.card.appAccess')}</p>
             <div className="flex flex-wrap gap-1.5">
-              {authorization.permissionRequirements.map((requirement) => (
-                <span key={requirement.permissionId} data-permission-id={requirement.permissionId} title={requirement.reason} className="max-w-full truncate rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-2 py-1 text-xs font-medium text-[color:var(--nimi-text-secondary)]">
-                  {requirement.permissionId}
-                </span>
+              {registration.appAccess.map((domain) => (
+                <code key={domain} data-app-access={domain} className="max-w-full truncate rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-2 py-1 text-xs font-medium text-[color:var(--nimi-text-secondary)]">
+                  {domain}
+                </code>
               ))}
             </div>
           </div>
         )}
       </div>
 
-      <div data-testid={`apps-entry-${authorization.appId}-actions`} className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-[color:var(--nimi-border-subtle)] pt-3">
+      <div data-testid={`apps-entry-${registration.appId}-actions`} className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-[color:var(--nimi-border-subtle)] pt-3">
         {plan.secondary.map((action) => (
           <CardActionButton
             key={action.id}
-            appId={authorization.appId}
+            appId={registration.appId}
             action={action}
             onCardAction={onCardAction}
           />
@@ -337,11 +324,4 @@ function CardActionButton({ appId, action, onCardAction }: {
       {t('Apps.action.details')}
     </Button>
   );
-}
-
-function authorizationStateTone(state: string): 'success' | 'warning' | 'danger' | 'neutral' {
-  if (state === 'active' || state === 'running') return 'success';
-  if (['denied', 'revoked', 'failed', 'build-failed', 'project-changed'].includes(state)) return 'danger';
-  if (['preparing', 'pending-approval', 'building', 'starting', 'restarting', 'runtime-unavailable', 'authorization-required', 'reapproval-required', 'confirmation-required'].includes(state)) return 'warning';
-  return 'neutral';
 }

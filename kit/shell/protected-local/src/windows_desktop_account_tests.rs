@@ -42,27 +42,6 @@ fn account_status_request_rejects_non_metadata_safe_host_identity() {
 }
 
 #[test]
-fn permission_owner_request_binds_account_product_profile() {
-    let request =
-        protected_account_product_request(ListLocalAppPermissionRequestsRequest::default())
-            .expect("permission-owner request");
-    assert_eq!(
-        request
-            .metadata()
-            .get("x-nimi-protected-first-party-profile")
-            .and_then(|value| value.to_str().ok()),
-        Some(DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER),
-    );
-    assert_eq!(
-        request
-            .metadata()
-            .get("x-nimi-source-host")
-            .and_then(|value| value.to_str().ok()),
-        Some(DESKTOP_ACCOUNT_SOURCE_HOST),
-    );
-}
-
-#[test]
 fn realm_unary_carrier_deadline_preserves_runtime_timeout_classification_margin() {
     assert_eq!(
         realm_unary_carrier_timeout(1),

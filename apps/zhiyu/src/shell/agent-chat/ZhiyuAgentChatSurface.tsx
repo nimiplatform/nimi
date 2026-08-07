@@ -81,7 +81,6 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onVoicePlayback: () => Promise<void> | void;
   readonly onSelectLocalAgent: (agentHandle: string) => void;
   readonly onRefreshLocalAgentInventory: () => void;
-  readonly onRequestAgentInteractionPermission: () => Promise<void> | void;
   readonly onDesktopOpenAgentConfig: () => Promise<void> | void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
@@ -103,7 +102,6 @@ export function ZhiyuAgentChatSurface({
   onVoicePlayback,
   onSelectLocalAgent,
   onRefreshLocalAgentInventory,
-  onRequestAgentInteractionPermission,
   onDesktopOpenAgentConfig,
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
@@ -112,14 +110,12 @@ export function ZhiyuAgentChatSurface({
   const currentPartnerAvatar = currentPartnerAvatarUrl(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
-  const agentPermissionRequestable = evidence.inventory.actionHint === 'request_agents_interact_permission';
   const localAgentSourceNotReady = !hasCurrentPartner
     && evidence.localAgent.reasonCode === 'zhiyu-runtime-local-agent-source-not-ready';
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
   const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
   const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
   const [desktopOpenPending, setDesktopOpenPending] = useState(false);
-  const [permissionRequestPending, setPermissionRequestPending] = useState(false);
   const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
   const emptyTitle = hasCurrentPartner
     ? '开始一段对话'
@@ -188,34 +184,22 @@ export function ZhiyuAgentChatSurface({
       <div className="zhiyu-no-local-partner-empty__inner">
         <p className="zhiyu-no-local-partner-empty__eyebrow">ZHI YU</p>
         <h2>还没有本地伙伴</h2>
-        <p className="zhiyu-no-local-partner-empty__copy">
-          {agentPermissionRequestable
-            ? '由你在 Nimi 桌面端选择并授予可与织羽交互的 Agent。'
-            : evidence.inventory.message}
-        </p>
+        <p className="zhiyu-no-local-partner-empty__copy">{evidence.inventory.message}</p>
         <button
           type="button"
           className="zhiyu-no-local-partner-empty__action"
-          data-zhiyu-no-local-partner-action={agentPermissionRequestable ? 'request-agents-interact-permission' : 'desktop-open-select-partner'}
-          data-zhiyu-desktop-open-action={agentPermissionRequestable ? undefined : 'desktop_open_select_partner'}
-          data-zhiyu-no-local-partner-action-state={(desktopOpenPending || permissionRequestPending) ? 'pending' : desktopOpenResult?.state ?? (showNoPartnerGuidance ? 'expanded' : 'idle')}
+          data-zhiyu-no-local-partner-action="desktop-open-select-partner"
+          data-zhiyu-desktop-open-action="desktop_open_select_partner"
+          data-zhiyu-no-local-partner-action-state={desktopOpenPending ? 'pending' : desktopOpenResult?.state ?? (showNoPartnerGuidance ? 'expanded' : 'idle')}
           aria-expanded={showNoPartnerGuidance}
           aria-controls="zhiyu-no-local-partner-guidance"
           onClick={() => {
             setShowNoPartnerGuidance(true);
-            if (agentPermissionRequestable) {
-              setPermissionRequestPending(true);
-              void Promise.resolve(onRequestAgentInteractionPermission()).finally(() => {
-                setPermissionRequestPending(false);
-                onRefreshLocalAgentInventory();
-              });
-            } else {
-              void handleDesktopOpenSelectPartner();
-            }
+            void handleDesktopOpenSelectPartner();
           }}
-          disabled={desktopOpenPending || permissionRequestPending}
+          disabled={desktopOpenPending}
         >
-          <span>{permissionRequestPending ? '请求中' : desktopOpenPending ? '打开中' : agentPermissionRequestable ? '请求授权' : '去探索伙伴'}</span>
+          <span>{desktopOpenPending ? '打开中' : '去探索伙伴'}</span>
           <ChevronRight size={16} aria-hidden="true" />
         </button>
         <p className="zhiyu-no-local-partner-empty__assurance">

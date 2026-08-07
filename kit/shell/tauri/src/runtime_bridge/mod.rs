@@ -41,13 +41,9 @@ pub use local_app::RuntimeBridgeLocalAppHost;
 pub use metadata::{RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata};
 pub use nimi_shell_protected_local::{
     DesktopAccountSessionStatusRequest, DeveloperModeState, DeveloperModeStatus,
-    LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
-    LocalDevelopmentAuthorizationState, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
-    LocalDevelopmentDeveloperModeSummary, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
-    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentShellKind,
-    LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
+    LocalDevelopmentProject, LocalDevelopmentRegistration, LocalDevelopmentRegistrationRequest,
+    LocalDevelopmentShellKind, NimiHostError, NimiHostErrorReasonCode,
 };
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::{
@@ -323,12 +319,6 @@ fn set_action_in_flight_hook(app: &AppHandle, action: Option<&'static str>) {
     }
 }
 
-pub(crate) fn resolve_nimi_dir_hook() -> Option<Result<PathBuf, String>> {
-    host_hooks()
-        .and_then(|hooks| hooks.resolve_nimi_dir.clone())
-        .map(|hook| hook())
-}
-
 pub(crate) fn resolve_nimi_data_dir_hook() -> Option<Result<PathBuf, String>> {
     host_hooks()
         .and_then(|hooks| hooks.resolve_nimi_data_dir.clone())
@@ -585,40 +575,29 @@ pub async fn current_daemon_status_async() -> RuntimeBridgeDaemonStatus {
     service_control::status_async().await
 }
 
-pub async fn evaluate_local_development_project(
-    request: LocalDevelopmentEvaluationRequest,
-) -> Result<LocalDevelopmentEvaluation, NimiHostError> {
-    service_control::evaluate_local_development_project(request).await
+pub async fn register_local_development_project(
+    request: LocalDevelopmentRegistrationRequest,
+) -> Result<LocalDevelopmentRegistration, NimiHostError> {
+    service_control::register_local_development_project(request).await
 }
 
 pub async fn get_developer_mode_status() -> Result<DeveloperModeStatus, NimiHostError> {
     service_control::get_developer_mode_status().await
 }
 
-pub async fn get_local_development_authority_summary(
-) -> Result<LocalDevelopmentAuthoritySummary, NimiHostError> {
-    service_control::get_local_development_authority_summary().await
-}
-
 pub async fn set_developer_mode(enabled: bool) -> Result<DeveloperModeStatus, NimiHostError> {
     service_control::set_developer_mode(enabled).await
 }
 
-pub async fn decide_local_development_project(
-    request: LocalDevelopmentDecisionRequest,
-) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
-    service_control::decide_local_development_project(request).await
+pub async fn list_local_development_registrations(
+) -> Result<Vec<LocalDevelopmentRegistration>, NimiHostError> {
+    service_control::list_local_development_registrations().await
 }
 
-pub async fn list_local_development_authorizations(
-) -> Result<Vec<LocalDevelopmentAuthorization>, NimiHostError> {
-    service_control::list_local_development_authorizations().await
-}
-
-pub async fn revoke_local_development_authorization(
-    authorization_id: [u8; 32],
-) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
-    service_control::revoke_local_development_authorization(authorization_id).await
+pub async fn remove_local_development_registration(
+    registration_handle: [u8; 32],
+) -> Result<(), NimiHostError> {
+    service_control::remove_local_development_registration(registration_handle).await
 }
 
 pub async fn launch_local_development_host(

@@ -4,17 +4,13 @@ version: 1
 methods:
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary
-    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun
     posture: protected_origin_required
@@ -38,22 +34,6 @@ methods:
     posture: blocked_pending_authority
   - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding
     posture: blocked_pending_authority
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission
-    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
     posture: authenticated_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages

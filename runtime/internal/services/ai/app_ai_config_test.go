@@ -208,11 +208,10 @@ func localAppAIConfigContext(
 	operation accountservice.LocalAppOperation,
 ) context.Context {
 	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
-		AccountID:           accountID,
-		AppID:               appID,
-		Operation:           operation,
-		LocalAppPrincipalID: "principal-record",
-		LocalAppRecordID:    "app-record",
+		AccountID:            accountID,
+		AppID:                appID,
+		Operation:            operation,
+		RegisteredAppSubject: "principal-record",
 	})
 }
 

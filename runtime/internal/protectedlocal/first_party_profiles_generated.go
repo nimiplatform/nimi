@@ -162,18 +162,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests":
-			return FirstPartyMethodServerStream, true
-		case "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission":
-			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ListAgents":
@@ -419,12 +407,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 		return []FirstPartyProfileMethodEntry{
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests", Kind: FirstPartyMethodServerStream},
-			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListAgents", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetAgent", Kind: FirstPartyMethodUnary},

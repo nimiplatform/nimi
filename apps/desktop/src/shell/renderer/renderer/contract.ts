@@ -14,9 +14,7 @@ import type { ChatThinkingPreference } from '../features/chat/chat-shared-thinki
 import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
 import type { DesktopRendererSdkPort } from './sdk-port.js';
 import type {
-  LocalDevelopmentApproval,
-  LocalDevelopmentAuthorization,
-  LocalDevelopmentDecision,
+  LocalDevelopmentRegistration,
   LocalDevelopmentRun,
 } from '../features/local-development/local-development-types.js';
 import type { DeveloperModeProjection } from '../features/developer/developer-mode-types.js';
@@ -34,10 +32,6 @@ import type { DesktopRendererSupportLogsPort } from './support-logs-port.js';
 import type { DesktopRendererLocalModelProgressPort } from './local-model-progress-port.js';
 import type { DesktopRendererAvatarHandoffPort } from './avatar-handoff-port.js';
 import type { DesktopRendererVirtualizationPort } from './virtualization-port.js';
-import type {
-  DesktopLocalAppPermissionOwnerPort,
-  DesktopLocalAppPermissionRequest,
-} from '../features/apps/local-app-permission-owner.js';
 import type { DesktopOpenIntentStore } from '../infra/desktop-open/desktop-open-intent-navigation.js';
 
 export type DesktopRendererInitialState = {
@@ -80,7 +74,6 @@ export interface DesktopRendererCommandPort {
   readonly localModelProgress: DesktopRendererLocalModelProgressPort;
   readonly avatarHandoff: DesktopRendererAvatarHandoffPort;
   readonly virtualization: DesktopRendererVirtualizationPort;
-  readonly localAppPermissions: Omit<DesktopLocalAppPermissionOwnerPort, 'subscribePending'>;
   readonly connectorAuth: Pick<
     NimiConnectorAuthAcquisitionHost,
     'proxyHttp' | 'oauthTokenExchange'
@@ -114,15 +107,9 @@ export interface DesktopRendererCommandPort {
   }): Promise<{ readonly clearAuthSession: boolean }>;
   reloadApplication(): void;
   startWindowDrag(): Promise<void>;
-  listLocalDevelopmentApprovals(): Promise<readonly LocalDevelopmentApproval[]>;
-  listLocalDevelopmentAuthorizations(): Promise<LocalDevelopmentAuthorization[]>;
+  listLocalDevelopmentRegistrations(): Promise<LocalDevelopmentRegistration[]>;
   listLocalDevelopmentRuns(): Promise<LocalDevelopmentRun[]>;
-  revokeLocalDevelopmentAuthorization(selector: string): Promise<LocalDevelopmentAuthorization>;
-  decideLocalDevelopmentApproval(input: {
-    readonly requestId: string;
-    readonly decision: LocalDevelopmentDecision;
-    readonly riskDisclosureAcknowledged: boolean;
-  }): Promise<void>;
+  removeLocalDevelopmentRegistration(selector: string): Promise<void>;
   refreshDeveloperMode(): Promise<DeveloperModeProjection>;
   setDeveloperMode(enabled: boolean): Promise<DeveloperModeProjection>;
 }
@@ -145,13 +132,6 @@ export interface DesktopRendererEventPort {
     listener: (isIntersecting: boolean) => void,
   ): () => void;
   subscribeAttention(listener: () => void): () => void;
-  subscribeLocalDevelopmentApprovals(
-    listener: (approval: LocalDevelopmentApproval) => void,
-  ): Promise<() => void>;
-  subscribeLocalAppPermissionRequests(input: {
-    readonly onRequests: (requests: readonly DesktopLocalAppPermissionRequest[]) => void;
-    readonly onError: (error: unknown) => void;
-  }): Promise<() => void>;
   subscribeDeveloperMode(listener: (enabled: boolean) => void): () => void;
   subscribeProductControlRecord(
     listener: (result:

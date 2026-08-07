@@ -349,30 +349,6 @@ services:
       - name: SwitchAccount
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount
-      - name: GetLocalAppPermissionStatus
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus
-      - name: RequestLocalAppPermission
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission
-      - name: ListLocalAppPermissionRequests
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionRequests
-      - name: SubscribeLocalAppPermissionRequests
-        type: server_stream
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/SubscribeLocalAppPermissionRequests
-      - name: GetLocalAppPermissionOwnerProjection
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionOwnerProjection
-      - name: ListLocalAppPermissionOwnerProjections
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/ListLocalAppPermissionOwnerProjections
-      - name: DecideLocalAppPermission
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppPermission
-      - name: RevokeLocalAppPermission
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppPermission
       - name: IssueWorkspaceBinding
         type: unary
         authority_status: blocked_pending_separate_authority
@@ -528,26 +504,18 @@ services:
       - name: GetDeveloperModeStatus
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus
-      - name: GetLocalDevelopmentAuthoritySummary
-        type: unary
-        authority_status: admitted_exact_bounded_diagnostic_projection
-        transport_disposition: protected_desktop_control_only
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary
       - name: SetDeveloperMode
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode
-      - name: EvaluateLocalDevelopmentProject
+      - name: RegisterLocalDevelopmentProject
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject
-      - name: DecideLocalDevelopmentProject
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject
+      - name: ListLocalDevelopmentRegistrations
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject
-      - name: ListLocalDevelopmentAuthorizations
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations
+      - name: RemoveLocalDevelopmentRegistration
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
-      - name: RevokeLocalDevelopmentAuthorization
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration
       - name: EndLocalDevelopmentRun
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun

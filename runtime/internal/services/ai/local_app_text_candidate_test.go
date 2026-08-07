@@ -58,13 +58,12 @@ func TestGenerateLocalAppTextCandidatePreservesPermissionAndInputValidation(t *t
 
 func localAppTextCandidateContext() context.Context {
 	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
-		AccountID:           "account-1",
-		AppID:               "nimi.realm-persona-studio",
-		LocalAppPrincipalID: "principal-1",
-		LocalAppRecordID:    "record-1",
-		Operation:           accountservice.LocalAppOperationTextCandidateGenerate,
-		AuthorityClass:      localappop.AuthorityClassUserPermission,
-		OperationCapability: "ai.text.generate",
+		AccountID:            "account-1",
+		AppID:                "nimi.realm-persona-studio",
+		RegisteredAppSubject: "principal-1",
+		Operation:            accountservice.LocalAppOperationTextCandidateGenerate,
+		AuthorityClass:       localappop.AuthorityClassAppAccess,
+		OperationCapability:  "ai.text.generate",
 	})
 }
 

@@ -40,7 +40,7 @@ export function AppsPanel(): ReactElement {
 
   const detailEntry =
     projection?.status === 'loaded' && detailAppId
-      ? projection.entries.find((entry) => entry.authorization.appId === detailAppId) ?? null
+      ? projection.entries.find((entry) => entry.registration.appId === detailAppId) ?? null
       : null;
 
   return (

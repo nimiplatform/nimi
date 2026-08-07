@@ -7,7 +7,6 @@ import {
   findLegacyCarrierRows,
   runDevDoctor,
   validateFixedRuntimeService,
-  validateLocalDevelopmentAuthoritySummary,
   validateLocalDevelopmentPresence,
 } from './doctor-dev.mjs';
 
@@ -20,24 +19,6 @@ const validPresence = {
   startedAt: '2026-07-16T07:59:00.000Z',
   lastHeartbeatAt: '2026-07-16T07:59:55.000Z',
 };
-const validAuthoritySummary = {
-  schemaVersion: 1,
-  desktopAppId: 'nimi.desktop',
-  desktopPid: 100,
-  capturedAt: '2026-07-16T07:59:56.000Z',
-  developerMode: {
-    availability: 'available',
-    state: 'enabled',
-    reasonCode: 'action-executed',
-  },
-  projectAuthorization: {
-    availability: 'available',
-    activeCount: 2,
-    deniedCount: 5,
-    revokedCount: 7,
-    reasonCode: 'action-executed',
-  },
-};
 
 test('presence validation accepts only the exact fresh loopback descriptor', () => {
   assert.equal(validateLocalDevelopmentPresence(validPresence, nowUnixMs).state, 'ok');
@@ -47,73 +28,6 @@ test('presence validation accepts only the exact fresh loopback descriptor', () 
     ...validPresence,
     lastHeartbeatAt: '2026-07-16T07:59:40.000Z',
   }, nowUnixMs).reason, 'desktop-presence-stale');
-});
-
-test('authority summary validation accepts only fresh, PID-bound, bounded fields', () => {
-  const result = validateLocalDevelopmentAuthoritySummary(
-    validAuthoritySummary,
-    validPresence.desktopPid,
-    nowUnixMs,
-  );
-  assert.equal(result.state, 'ok');
-  assert.deepEqual(result.tier2, [
-    {
-      id: 'developer-mode',
-      state: 'ok',
-      reason: 'developer-mode-enabled',
-      developerMode: 'enabled',
-    },
-    {
-      id: 'project-authorization',
-      state: 'ok',
-      reason: 'bounded-project-authorization-summary-available',
-      activeCount: 2,
-      deniedCount: 5,
-      revokedCount: 7,
-    },
-  ]);
-
-  assert.equal(validateLocalDevelopmentAuthoritySummary(
-    { ...validAuthoritySummary, token: 'forbidden' },
-    100,
-    nowUnixMs,
-  ).reason, 'desktop-authority-summary-shape-invalid');
-  assert.equal(validateLocalDevelopmentAuthoritySummary(
-    { ...validAuthoritySummary, capturedAt: '2026-07-16T07:59:40.000Z' },
-    100,
-    nowUnixMs,
-  ).reason, 'desktop-authority-summary-stale');
-  assert.equal(validateLocalDevelopmentAuthoritySummary(
-    { ...validAuthoritySummary, capturedAt: 0 },
-    100,
-    nowUnixMs,
-  ).reason, 'desktop-authority-summary-shape-invalid');
-  assert.equal(validateLocalDevelopmentAuthoritySummary(
-    validAuthoritySummary,
-    101,
-    nowUnixMs,
-  ).reason, 'desktop-authority-summary-pid-mismatch');
-
-  const unknownReason = structuredClone(validAuthoritySummary);
-  unknownReason.developerMode = {
-    availability: 'unavailable',
-    state: 'unavailable',
-    reasonCode: 'runtime-service-unavailable',
-  };
-  assert.equal(validateLocalDevelopmentAuthoritySummary(
-    unknownReason,
-    100,
-    nowUnixMs,
-  ).reason, 'desktop-authority-summary-shape-invalid');
-
-  const unavailableWithCount = structuredClone(validAuthoritySummary);
-  unavailableWithCount.projectAuthorization.availability = 'unavailable';
-  unavailableWithCount.projectAuthorization.reasonCode = 'principal-unauthorized';
-  assert.equal(validateLocalDevelopmentAuthoritySummary(
-    unavailableWithCount,
-    100,
-    nowUnixMs,
-  ).reason, 'desktop-authority-summary-shape-invalid');
 });
 
 test('fixed service validation fails closed on any missing protected-service invariant', () => {
@@ -139,37 +53,27 @@ test('carrier detection excludes only the active Desktop process tree', () => {
   assert.deepEqual(findLegacyCarrierRows(rows, repo, 0).map((row) => row.processId), [100, 101, 200]);
 });
 
-test('doctor consumes the admitted bounded Tier-2 projection', async () => {
+test('doctor does not infer registration or App Access from Desktop presence', async () => {
   const report = await runDevDoctor({
     nowUnixMs,
     probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
     queryService: async () => ({ status: 'absent' }),
     readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
-    readAuthoritySummary: async () => ({ state: 'ok', value: validAuthoritySummary }),
     queryProcesses: async () => [],
   });
   assert.equal(report.ok, false);
   assert.equal(report.tier1.find((row) => row.id === 'fixed-runtime-service')?.state, 'error');
-  assert.deepEqual(report.tier2.map((row) => row.state), ['ok', 'ok']);
-  assert.equal(report.tier2.find((row) => row.id === 'project-authorization')?.activeCount, 2);
-  assert.equal(report.tier2.find((row) => row.id === 'grant-summary'), undefined);
-});
-
-test('doctor keeps Tier-2 explicitly unavailable when the projection cannot be read', async () => {
-  const report = await runDevDoctor({
-    nowUnixMs,
-    probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
-    queryService: async () => ({ status: 'absent' }),
-    readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
-    readAuthoritySummary: async () => ({
-      state: 'error', reason: 'desktop-authority-summary-missing',
-    }),
-    queryProcesses: async () => [],
-  });
-  assert.deepEqual(report.tier2.map((row) => ({ state: row.state, reason: row.reason })), [
-    { state: 'unavailable', reason: 'desktop-authority-summary-missing' },
-    { state: 'unavailable', reason: 'desktop-authority-summary-missing' },
-    { state: 'unavailable', reason: 'desktop-authority-summary-missing' },
+  assert.deepEqual(report.tier2, [
+    {
+      id: 'registration',
+      state: 'not-observed',
+      reason: 'desktop-presence-does-not-project-registration',
+    },
+    {
+      id: 'app-access',
+      state: 'not-observed',
+      reason: 'desktop-presence-does-not-project-app-access',
+    },
   ]);
 });
 
@@ -210,7 +114,6 @@ test('doctor http probes survive a blocking service query', async (context) => {
       return { status: 'absent' };
     },
     readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
-    readAuthoritySummary: async () => ({ state: 'ok', value: validAuthoritySummary }),
     queryProcesses: async () => [],
   });
 

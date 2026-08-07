@@ -76,7 +76,7 @@ export const simulatorConformanceFixture = {
         properties: {
           kind: {
             kind: 'stringEnum',
-            values: ['permission-request', 'telemetry-runtime', 'telemetry-renderer'],
+            values: ['telemetry-runtime', 'telemetry-renderer'],
           },
           subject: { kind: 'string', maxLength: 512 },
           details: { kind: 'json' },

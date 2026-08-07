@@ -123,8 +123,6 @@ test('Realm facade blocks direct packet issuance and privileged permission lifec
   const realm = new Realm({ transport });
   const generated = realm.generated as unknown as Record<string, unknown>;
   assert.equal(await realm.generated.getMe({ path: {} }).then((value) => (value as { id?: string }).id), 'user-1');
-  assert.equal(typeof generated.requestMyAppPermissionGrant, 'undefined');
-  assert.equal(typeof generated.grantMyAppPermissionGrant, 'undefined');
   assert.equal(typeof generated.getSourceMaterializationJwks, 'undefined');
   assert.equal(typeof generated.issueRuntimeRealmGrant, 'undefined');
   assert.equal(typeof generated.worldCoreControllerCreateSourceMaterializationPacket, 'undefined');

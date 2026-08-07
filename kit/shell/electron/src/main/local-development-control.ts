@@ -1,9 +1,5 @@
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
-import {
-  parseNimiElectronLocalDevelopmentAuthoritySummary,
-  type NimiElectronLocalDevelopmentAuthoritySummary,
-} from './local-development-authority-summary.js';
 import { NimiElectronShellHostError } from './types.js';
 
 type NativeJsonOutcome =
@@ -13,12 +9,6 @@ type NativeJsonOutcome =
 const NATIVE_CONTROL_DEADLINE_MS = 20_000;
 
 export type NimiElectronLocalDevelopmentShell = 'electron' | 'tauri';
-export type NimiElectronLocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-project';
-
-export type NimiElectronLocalDevelopmentPermissionRequirement = {
-  readonly permissionId: string;
-  readonly reason: string;
-};
 
 export type NimiElectronLocalDevelopmentProject = {
   readonly appId: string;
@@ -26,39 +16,23 @@ export type NimiElectronLocalDevelopmentProject = {
   readonly canonicalProjectRoot: string;
   readonly canonicalManifestPath: string;
   readonly shell: NimiElectronLocalDevelopmentShell;
-  readonly accountId: string;
-  readonly permissionRequirements: readonly NimiElectronLocalDevelopmentPermissionRequirement[];
-  /** Main-process private integrity material. Never project to a renderer. */
-  readonly permissionRequirementFingerprint: string;
+  readonly appAccess: readonly string[];
+  readonly sourceGeneration: number;
+  readonly declarationGeneration: number;
 };
 
-export type NimiElectronLocalDevelopmentAuthorization = {
-  /** Main-process private Runtime identifier. Never project to a renderer. */
-  readonly authorizationId: string;
+export type NimiElectronLocalDevelopmentRegistration = {
+  /** Main-process private management selector. Never project to a renderer. */
+  readonly registrationHandle: string;
   readonly project: NimiElectronLocalDevelopmentProject;
-  readonly state: 'confirmation-required' | 'active' | 'reapproval-required' | 'denied' | 'revoked';
-  readonly persistence: NimiElectronLocalDevelopmentDecision;
-  readonly authorizationGeneration: number;
-  readonly approvedAtUnixMs: number;
+  readonly registeredAtUnixMs: number;
   readonly updatedAtUnixMs: number;
 };
 
-export type NimiElectronLocalDevelopmentEvaluation = {
-  /** Main-process private Runtime identifier. Never project to a renderer. */
-  readonly evaluationId: string | null;
-  readonly project: NimiElectronLocalDevelopmentProject;
-  readonly state: NimiElectronLocalDevelopmentAuthorization['state'];
-  readonly confirmationRequired: boolean;
-  readonly authorization: NimiElectronLocalDevelopmentAuthorization | null;
-  readonly evaluationExpiresAtUnixMs: number | null;
-};
-
 export type NimiElectronLocalDevelopmentBinding = {
-  readonly desktopGetLocalDevelopmentAuthoritySummary: () => Promise<NativeJsonOutcome>;
-  readonly desktopEvaluateLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
-  readonly desktopDecideLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
-  readonly desktopListLocalDevelopmentAuthorizations: () => Promise<NativeJsonOutcome>;
-  readonly desktopRevokeLocalDevelopmentAuthorization: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
+  readonly desktopRegisterLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
+  readonly desktopListLocalDevelopmentRegistrations: () => Promise<NativeJsonOutcome>;
+  readonly desktopRemoveLocalDevelopmentRegistration: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopLaunchLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopLocalDevelopmentHostRunning: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopTerminateLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
@@ -66,22 +40,16 @@ export type NimiElectronLocalDevelopmentBinding = {
 };
 
 export type NimiElectronLocalDevelopmentControl = {
-  readonly getAuthoritySummary: () => Promise<NimiElectronLocalDevelopmentAuthoritySummary>;
-  readonly evaluate: (input: {
+  readonly register: (input: {
     readonly expectedAppId: string;
     readonly projectRoot: string;
     readonly shell: NimiElectronLocalDevelopmentShell;
     readonly supervisorRunId: string;
-  }) => Promise<NimiElectronLocalDevelopmentEvaluation>;
-  readonly decide: (input: {
-    readonly evaluationId: string;
-    readonly decision: NimiElectronLocalDevelopmentDecision;
-    readonly riskDisclosureAcknowledged: boolean;
-  }) => Promise<NimiElectronLocalDevelopmentAuthorization>;
-  readonly listAuthorizations: () => Promise<readonly NimiElectronLocalDevelopmentAuthorization[]>;
-  readonly revokeAuthorization: (authorizationId: string) => Promise<NimiElectronLocalDevelopmentAuthorization>;
+  }) => Promise<NimiElectronLocalDevelopmentRegistration>;
+  readonly listRegistrations: () => Promise<readonly NimiElectronLocalDevelopmentRegistration[]>;
+  readonly removeRegistration: (registrationHandle: string) => Promise<void>;
   readonly launch: (input: {
-    readonly authorizationId: string;
+    readonly registrationHandle: string;
     readonly supervisorRunId: string;
     readonly shell: NimiElectronLocalDevelopmentShell;
     readonly hostExecutablePath: string;
@@ -91,71 +59,47 @@ export type NimiElectronLocalDevelopmentControl = {
   }) => Promise<{ readonly processId: number; readonly bindDeadlineUnixMs: number }>;
   readonly hostRunning: (supervisorRunId: string) => Promise<boolean>;
   readonly terminateHost: (supervisorRunId: string) => Promise<void>;
-  readonly endRun: (authorizationId: string, supervisorRunId: string) => Promise<void>;
+  readonly endRun: (registrationHandle: string, supervisorRunId: string) => Promise<void>;
 };
 
 class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentControl {
   constructor(private readonly binding: NimiElectronLocalDevelopmentBinding) {}
 
-  async getAuthoritySummary() {
-    const value = await invokeNative(
-      () => this.binding.desktopGetLocalDevelopmentAuthoritySummary(),
-      'get_local_development_authority_summary',
-    );
-    try {
-      return parseNimiElectronLocalDevelopmentAuthoritySummary(value);
-    } catch {
-      throw controlError(
-        'runtime-service-untrusted',
-        false,
-        'get_local_development_authority_summary',
-      );
-    }
-  }
-
-  async evaluate(input: Parameters<NimiElectronLocalDevelopmentControl['evaluate']>[0]) {
-    return parseEvaluation(await invokeNative(
-      () => this.binding.desktopEvaluateLocalDevelopmentProject({
+  async register(input: Parameters<NimiElectronLocalDevelopmentControl['register']>[0]) {
+    return parseRegistration(await invokeNative(
+      () => this.binding.desktopRegisterLocalDevelopmentProject({
         expectedAppId: boundedText(input.expectedAppId),
         projectRoot: boundedText(input.projectRoot),
         shell: shell(input.shell),
         supervisorRunId: identifier(input.supervisorRunId),
       }),
-      'evaluate_local_development_project',
+      'register_local_development_project',
     ));
   }
 
-  async decide(input: Parameters<NimiElectronLocalDevelopmentControl['decide']>[0]) {
-    return parseAuthorization(await invokeNative(
-      () => this.binding.desktopDecideLocalDevelopmentProject({
-        evaluationId: identifier(input.evaluationId),
-        decision: decision(input.decision),
-        riskDisclosureAcknowledged: Boolean(input.riskDisclosureAcknowledged),
-      }),
-      'decide_local_development_project',
-    ));
-  }
-
-  async listAuthorizations() {
+  async listRegistrations() {
     const value = await invokeNative(
-      () => this.binding.desktopListLocalDevelopmentAuthorizations(),
-      'list_local_development_authorizations',
+      () => this.binding.desktopListLocalDevelopmentRegistrations(),
+      'list_local_development_registrations',
     );
-    if (!Array.isArray(value)) throw controlError('runtime-service-untrusted', false, 'list_local_development_authorizations');
-    return value.map(parseAuthorization);
+    if (!Array.isArray(value)) invalid();
+    return value.map(parseRegistration);
   }
 
-  async revokeAuthorization(authorizationId: string) {
-    return parseAuthorization(await invokeNative(
-      () => this.binding.desktopRevokeLocalDevelopmentAuthorization({ authorizationId: identifier(authorizationId) }),
-      'revoke_local_development_authorization',
-    ));
+  async removeRegistration(registrationHandle: string) {
+    const value = exact(await invokeNative(
+      () => this.binding.desktopRemoveLocalDevelopmentRegistration({
+        registrationHandle: identifier(registrationHandle),
+      }),
+      'remove_local_development_registration',
+    ), ['removed']);
+    if (value.removed !== true) invalid();
   }
 
   async launch(input: Parameters<NimiElectronLocalDevelopmentControl['launch']>[0]) {
     const value = exact(await invokeNative(
       () => this.binding.desktopLaunchLocalDevelopmentHost({
-        authorizationId: identifier(input.authorizationId),
+        registrationHandle: identifier(input.registrationHandle),
         supervisorRunId: identifier(input.supervisorRunId),
         shell: shell(input.shell),
         hostExecutablePath: boundedText(input.hostExecutablePath),
@@ -165,9 +109,10 @@ class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentCon
       }),
       'launch_local_development_host',
     ), ['bindDeadlineUnixMs', 'processId']);
-    const processId = integer(value.processId, 1);
-    const bindDeadlineUnixMs = integer(value.bindDeadlineUnixMs, Date.now() + 1);
-    return { processId, bindDeadlineUnixMs };
+    return {
+      processId: integer(value.processId, 1),
+      bindDeadlineUnixMs: integer(value.bindDeadlineUnixMs, Date.now() + 1),
+    };
   }
 
   async hostRunning(supervisorRunId: string) {
@@ -175,7 +120,7 @@ class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentCon
       () => this.binding.desktopLocalDevelopmentHostRunning({ supervisorRunId: identifier(supervisorRunId) }),
       'local_development_host_running',
     ), ['running']);
-    if (typeof value.running !== 'boolean') throw controlError('runtime-service-untrusted', false, 'local_development_host_running');
+    if (typeof value.running !== 'boolean') invalid();
     return value.running;
   }
 
@@ -184,18 +129,18 @@ class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentCon
       () => this.binding.desktopTerminateLocalDevelopmentHost({ supervisorRunId: identifier(supervisorRunId) }),
       'terminate_local_development_host',
     ), ['terminated']);
-    if (value.terminated !== true) throw controlError('runtime-service-untrusted', false, 'terminate_local_development_host');
+    if (value.terminated !== true) invalid();
   }
 
-  async endRun(authorizationId: string, supervisorRunId: string) {
+  async endRun(registrationHandle: string, supervisorRunId: string) {
     const value = exact(await invokeNative(
       () => this.binding.desktopEndLocalDevelopmentRun({
-        authorizationId: identifier(authorizationId),
+        registrationHandle: identifier(registrationHandle),
         supervisorRunId: identifier(supervisorRunId),
       }),
       'end_local_development_run',
     ), ['ended']);
-    if (value.ended !== true) throw controlError('runtime-service-untrusted', false, 'end_local_development_run');
+    if (value.ended !== true) invalid();
   }
 }
 
@@ -207,15 +152,13 @@ class LazyElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmen
     return this.control;
   }
 
-  getAuthoritySummary: NimiElectronLocalDevelopmentControl['getAuthoritySummary'] = () => this.resolve().getAuthoritySummary();
-  evaluate: NimiElectronLocalDevelopmentControl['evaluate'] = (input) => this.resolve().evaluate(input);
-  decide: NimiElectronLocalDevelopmentControl['decide'] = (input) => this.resolve().decide(input);
-  listAuthorizations: NimiElectronLocalDevelopmentControl['listAuthorizations'] = () => this.resolve().listAuthorizations();
-  revokeAuthorization: NimiElectronLocalDevelopmentControl['revokeAuthorization'] = (id) => this.resolve().revokeAuthorization(id);
+  register: NimiElectronLocalDevelopmentControl['register'] = (input) => this.resolve().register(input);
+  listRegistrations: NimiElectronLocalDevelopmentControl['listRegistrations'] = () => this.resolve().listRegistrations();
+  removeRegistration: NimiElectronLocalDevelopmentControl['removeRegistration'] = (handle) => this.resolve().removeRegistration(handle);
   launch: NimiElectronLocalDevelopmentControl['launch'] = (input) => this.resolve().launch(input);
   hostRunning: NimiElectronLocalDevelopmentControl['hostRunning'] = (id) => this.resolve().hostRunning(id);
   terminateHost: NimiElectronLocalDevelopmentControl['terminateHost'] = (id) => this.resolve().terminateHost(id);
-  endRun: NimiElectronLocalDevelopmentControl['endRun'] = (authorizationId, runId) => this.resolve().endRun(authorizationId, runId);
+  endRun: NimiElectronLocalDevelopmentControl['endRun'] = (handle, runId) => this.resolve().endRun(handle, runId);
 }
 
 export function createNimiElectronLocalDevelopmentControl(): NimiElectronLocalDevelopmentControl {
@@ -256,64 +199,32 @@ async function invokeNative(invoke: () => Promise<NativeJsonOutcome>, operation:
   return outcome.value;
 }
 
-function parseEvaluation(value: unknown): NimiElectronLocalDevelopmentEvaluation {
-  const row = exact(value, [
-    'authorization', 'confirmationRequired', 'evaluationExpiresAtUnixMs', 'evaluationId', 'project', 'state',
-  ]);
-  if (typeof row.confirmationRequired !== 'boolean') invalid();
-  const evaluationId = row.evaluationId === null ? null : identifier(row.evaluationId);
-  const authorization = row.authorization === null ? null : parseAuthorization(row.authorization);
-  const evaluationExpiresAtUnixMs = row.evaluationExpiresAtUnixMs === null
-    ? null
-    : integer(row.evaluationExpiresAtUnixMs, 1);
+function parseRegistration(value: unknown): NimiElectronLocalDevelopmentRegistration {
+  const row = exact(value, ['project', 'registeredAtUnixMs', 'registrationHandle', 'updatedAtUnixMs']);
   return {
-    evaluationId,
+    registrationHandle: identifier(row.registrationHandle),
     project: parseProject(row.project),
-    state: authorizationState(row.state),
-    confirmationRequired: row.confirmationRequired,
-    authorization,
-    evaluationExpiresAtUnixMs,
-  };
-}
-
-function parseAuthorization(value: unknown): NimiElectronLocalDevelopmentAuthorization {
-  const row = exact(value, [
-    'approvedAtUnixMs', 'authorizationGeneration', 'authorizationId', 'persistence', 'project', 'state', 'updatedAtUnixMs',
-  ]);
-  return {
-    authorizationId: identifier(row.authorizationId),
-    project: parseProject(row.project),
-    state: authorizationState(row.state),
-    persistence: decision(row.persistence),
-    authorizationGeneration: integer(row.authorizationGeneration, 1),
-    approvedAtUnixMs: integer(row.approvedAtUnixMs, 1),
+    registeredAtUnixMs: integer(row.registeredAtUnixMs, 1),
     updatedAtUnixMs: integer(row.updatedAtUnixMs, 1),
   };
 }
 
 function parseProject(value: unknown): NimiElectronLocalDevelopmentProject {
   const row = exact(value, [
-    'accountId', 'appId', 'canonicalManifestPath', 'canonicalProjectRoot', 'displayName',
-    'permissionRequirementFingerprint', 'permissionRequirements', 'shell',
+    'appAccess', 'appId', 'canonicalManifestPath', 'canonicalProjectRoot',
+    'declarationGeneration', 'displayName', 'shell', 'sourceGeneration',
   ]);
-  if (!Array.isArray(row.permissionRequirements)) invalid();
-  const permissionRequirements = row.permissionRequirements.map((value) => {
-    const requirement = exact(value, ['permissionId', 'reason']);
-    const permissionId = boundedText(requirement.permissionId);
-    const reason = boundedText(requirement.reason);
-    if (Buffer.byteLength(reason, 'utf8') > 240) invalid();
-    return { permissionId, reason };
-  });
-  if (new Set(permissionRequirements.map(({ permissionId }) => permissionId)).size !== permissionRequirements.length) invalid();
+  if (!Array.isArray(row.appAccess)) invalid();
+  const appAccess = row.appAccess.map(boundedText);
   return {
     appId: boundedText(row.appId),
     displayName: boundedText(row.displayName),
     canonicalProjectRoot: boundedText(row.canonicalProjectRoot),
     canonicalManifestPath: boundedText(row.canonicalManifestPath),
     shell: shell(row.shell),
-    accountId: boundedText(row.accountId),
-    permissionRequirements,
-    permissionRequirementFingerprint: identifier(row.permissionRequirementFingerprint),
+    appAccess,
+    sourceGeneration: integer(row.sourceGeneration, 1),
+    declarationGeneration: integer(row.declarationGeneration, 1),
   };
 }
 
@@ -343,23 +254,11 @@ function shell(value: unknown): NimiElectronLocalDevelopmentShell {
   return value;
 }
 
-function decision(value: unknown): NimiElectronLocalDevelopmentDecision {
-  if (value !== 'deny' && value !== 'allow-run-once' && value !== 'allow-project') invalid();
-  return value;
-}
-
-function authorizationState(value: unknown): NimiElectronLocalDevelopmentAuthorization['state'] {
-  if (!['confirmation-required', 'active', 'reapproval-required', 'denied', 'revoked'].includes(String(value))) invalid();
-  return value as NimiElectronLocalDevelopmentAuthorization['state'];
-}
-
 function validateBinding(value: unknown): NimiElectronLocalDevelopmentBinding {
   const methods = [
-    'desktopGetLocalDevelopmentAuthoritySummary',
-    'desktopEvaluateLocalDevelopmentProject',
-    'desktopDecideLocalDevelopmentProject',
-    'desktopListLocalDevelopmentAuthorizations',
-    'desktopRevokeLocalDevelopmentAuthorization',
+    'desktopRegisterLocalDevelopmentProject',
+    'desktopListLocalDevelopmentRegistrations',
+    'desktopRemoveLocalDevelopmentRegistration',
     'desktopLaunchLocalDevelopmentHost',
     'desktopLocalDevelopmentHostRunning',
     'desktopTerminateLocalDevelopmentHost',

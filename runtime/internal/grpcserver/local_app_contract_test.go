@@ -40,12 +40,10 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
 	}
 	for _, method := range desktopMethods {
@@ -63,8 +61,6 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 	assertProtectedLocalAppMethodPolicy(t, protectedOpenLocalAppSessionMethod, protectedlocal.TransportLocalAppBootstrap, protectedlocal.RoleLocalAppProcess)
 	for _, method := range []string{
 		protectedRenewLocalAppSessionMethod,
-		protectedGetLocalAppPermissionStatusMethod,
-		protectedRequestLocalAppPermissionMethod,
 		protectedReadLocalAppStorageJSONMethod,
 		protectedWriteLocalAppStorageJSONMethod,
 		protectedRemoveLocalAppStorageJSONMethod,

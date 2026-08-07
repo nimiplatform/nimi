@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"unicode/utf8"
 )
 
 const realmCharacterPublicAvatarOperationID = "WorldPublicController_getCharacterSource"
@@ -148,13 +150,24 @@ func decodeRealmCharacterPublicAvatar(raw string, expectedSourceRef any) (*strin
 		if candidate == nil || *candidate == "" {
 			continue
 		}
-		if !canonicalLocalAppAgentAvatarURL(candidate) {
+		if !canonicalPublicAvatarURL(candidate) {
 			return nil, fmt.Errorf("resolve Realm character public avatar: public media URL is not canonical HTTPS")
 		}
 		avatarURL := *candidate
 		return &avatarURL, nil
 	}
 	return nil, nil
+}
+
+func canonicalPublicAvatarURL(value *string) bool {
+	if value == nil {
+		return true
+	}
+	if *value == "" || strings.TrimSpace(*value) != *value || !utf8.ValidString(*value) || len([]byte(*value)) > 4096 {
+		return false
+	}
+	parsed, err := url.Parse(*value)
+	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil && parsed.Fragment == ""
 }
 
 func realmCharacterPublicAssetURL(asset *realmCharacterPublicAsset) *string {

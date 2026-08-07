@@ -1,62 +1,49 @@
 {
   "trustClass": "本地开发",
-  "approval": {
-    "title": "允许这个开发项目吗？",
-    "subtitle": "Nimi 将监管此项目的构建、开发服务器和原生宿主。批准项目不会授予受保护的 Nimi 资源访问权。",
-    "warning": "仅批准你正在开发并且信任的项目。此开发授权不能转化为商店上架或生产发布。",
-    "nativeRiskAcknowledgement": "我了解此项目可以使用我的当前用户权限构建并运行原生代码；我已检查并信任这个确切的项目目录。",
-    "queue": "当前有 {{count}} 个开发请求等待处理。"
-  },
   "field": {
     "app": "应用",
     "projectRoot": "项目根目录",
     "shell": "Shell 类型",
-    "account": "当前账号",
-    "permissions": "额外的 Nimi 权限",
-    "noExtraPermissions": "没有额外的 Nimi 权限。应用自有的存储、SQLite、媒体、设置和路由不需要 Nimi 批准。"
+    "appAccess": "已声明的 App Access",
+    "noAppAccess": "未声明 App Access 域。",
+    "sourceGeneration": "源代码代次",
+    "declarationGeneration": "声明代次"
   },
   "shell": {
     "electron": "Electron"
   },
   "state": {
-    "active": "已启用",
     "preparing": "准备中",
-    "pending-approval": "等待确认",
     "building": "构建中",
     "starting": "启动中",
     "running": "运行中",
     "restarting": "正在重启",
     "build-failed": "构建失败",
     "runtime-unavailable": "Runtime 不可用",
-    "authorization-required": "需要重新授权",
+    "registration-unavailable": "注册不可用",
+    "registration-removed": "注册已移除",
     "project-changed": "项目已变更",
     "failed": "运行失败",
-    "stopped": "已停止",
-    "revoked": "已撤销",
-    "denied": "已拒绝",
-    "reapproval-required": "需要重新确认",
-    "confirmation-required": "等待确认"
+    "stopped": "已停止"
   },
   "action": {
-    "deny": "拒绝",
-    "allowOnce": "仅本次运行",
-    "allowProject": "始终允许此项目",
     "refresh": "刷新",
-    "revoke": "撤销授权",
-    "confirmRevoke": "立即撤销",
+    "remove": "移除注册",
+    "confirmRemove": "立即移除",
     "cancel": "取消"
   },
   "activity": {
     "title": "开发活动",
-    "description": "查看受监管的实时运行与最近的拒绝状态。此处不会显示 Token、Ticket、Session、凭据或 Runtime endpoint。",
+    "description": "查看受监管的实时运行与最近的关闭状态。此处不会显示会话、凭据或 Runtime endpoint。",
     "empty": "本次 Desktop 会话中尚无本地开发活动。",
     "hostGeneration": "宿主第 {{count}} 代",
     "retryable": "只要当前命令保持运行，Desktop 就会继续自动重试。"
   },
   "management": {
-    "title": "已授权的开发项目",
-    "description": "记住的项目会绑定确切的项目根目录、应用 ID、Shell、权限需求和 Nimi 账号。项目批准不会创建 Nimi 权限决定。撤销后，正在运行的开发访问会立即失效。",
-    "empty": "当前账号尚未授权任何开发项目。",
-    "revokeConfirm": "正在运行的开发宿主将立即失去访问权。"
+    "title": "已注册的开发项目",
+    "description": "注册用于标识确切的本地项目根目录，并保留原始 App Access 声明。注册不会授予受保护访问。",
+    "empty": "尚未注册本地开发项目。",
+    "removeConfirm": "正在运行的开发宿主将停止，且此注册不可复用。",
+    "generations": "源代码代次 {{source}} · 声明代次 {{declaration}}"
   }
 }
