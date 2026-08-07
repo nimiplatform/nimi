@@ -63,6 +63,7 @@ import {
 } from './menu-bar-host.js';
 import {
   createDesktopAppOriginProtocol,
+  desktopRendererOrigin,
   NIMI_DESKTOP_APP_PROTOCOL_PRIVILEGES,
   NIMI_DESKTOP_APP_PROTOCOL_SCHEME,
 } from './app-origin-protocol.js';
@@ -483,7 +484,7 @@ function secureDesktopWindow(window: BrowserWindow): void {
 function allowedRendererOrigins(): string[] {
   const origins = new Set<string>();
   for (const url of allowedRendererUrls()) {
-    origins.add(originForRendererUrl(url));
+    origins.add(desktopRendererOrigin(url));
   }
   const configured = ELECTRON_DEVELOPMENT_BUILD
     ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_ORIGINS)
@@ -509,11 +510,6 @@ function allowedRendererUrls(): string[] {
     }
   }
   return [...urls];
-}
-
-function originForRendererUrl(url: string): string {
-  const parsed = new URL(url);
-  return parsed.protocol === 'file:' ? 'file://' : parsed.origin;
 }
 
 function isDesktopRendererUrl(url: string): boolean {

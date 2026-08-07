@@ -7,7 +7,8 @@ export const MACOS_LOCAL_APP_HOST_EXECUTABLE = '/Applications/Nimi.app/Contents/
 
 export function resolveMacOSLocalAppHostLaunch(input) {
   const argv = Array.isArray(input?.argv) ? input.argv.map(exactText) : fail();
-  if (argv.length !== 4) fail();
+  const cdpPort = optionalCdpPort(argv);
+  if (argv.length !== (cdpPort === undefined ? 4 : 6)) fail();
   const executable = canonicalFile(exactAbsolute(input?.executable));
   const expectedExecutable = input?.contractTestExpectedExecutable === undefined
     ? MACOS_LOCAL_APP_HOST_EXECUTABLE
@@ -30,7 +31,21 @@ export function resolveMacOSLocalAppHostLaunch(input) {
     rendererOrigin,
     userDataDirectory,
     workingDirectory,
+    ...(cdpPort === undefined ? {} : { cdpPort }),
   });
+}
+
+function optionalCdpPort(argv) {
+  const addressArguments = argv.filter((argument) => argument.startsWith('--remote-debugging-address='));
+  const portArguments = argv.filter((argument) => argument.startsWith('--remote-debugging-port='));
+  if (addressArguments.length === 0 && portArguments.length === 0) return undefined;
+  if (addressArguments.length !== 1 || addressArguments[0] !== '--remote-debugging-address=127.0.0.1'
+    || portArguments.length !== 1) fail();
+  const value = portArguments[0].slice('--remote-debugging-port='.length);
+  if (!/^(?:0|[1-9][0-9]*)$/u.test(value)) fail();
+  const port = Number(value);
+  if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) fail();
+  return port;
 }
 
 function canonicalPrivateUserDataDirectory(candidate, homeDirectory, rawUID) {
@@ -82,7 +97,6 @@ function isForbiddenChromiumArgument(value) {
     '--js-flags',
     '--no-sandbox',
     '--remote-allow-origins',
-    '--remote-debugging',
   ].some((prefix) => value === prefix || value.startsWith(`${prefix}=`));
 }
 

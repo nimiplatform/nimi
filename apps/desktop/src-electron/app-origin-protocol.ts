@@ -11,6 +11,14 @@ export const NIMI_DESKTOP_APP_PROTOCOL_PRIVILEGES = {
   stream: true,
 } as const;
 
+export function desktopRendererOrigin(rendererUrl: string): string {
+  const parsed = new URL(rendererUrl);
+  if (parsed.protocol === 'file:') return 'file://';
+  return parsed.origin === 'null' && parsed.host
+    ? `${parsed.protocol}//${parsed.host}`
+    : parsed.origin;
+}
+
 type AppHost = 'desktop' | 'avatar';
 
 export function createDesktopAppOriginProtocol(input: {

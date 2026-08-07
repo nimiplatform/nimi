@@ -3,7 +3,10 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { createDesktopAppOriginProtocol } from '../src-electron/app-origin-protocol.js';
+import {
+  createDesktopAppOriginProtocol,
+  desktopRendererOrigin,
+} from '../src-electron/app-origin-protocol.js';
 
 const roots: string[] = [];
 test.after(async () => Promise.all(roots.map((root) => rm(root, { recursive: true, force: true }))));
@@ -31,6 +34,12 @@ function protocolCapture() {
     },
   };
 }
+
+test('packaged Desktop protocol projects the custom renderer origin used by Electron', () => {
+  assert.equal(desktopRendererOrigin('nimi-app://desktop/index.html'), 'nimi-app://desktop');
+  assert.equal(desktopRendererOrigin('https://127.0.0.1:1420/index.html'), 'https://127.0.0.1:1420');
+  assert.equal(desktopRendererOrigin('file:///tmp/index.html'), 'file://');
+});
 
 test('packaged Desktop protocol serves only controlled Desktop and Avatar app origins', async () => {
   const roots = await fixture();
