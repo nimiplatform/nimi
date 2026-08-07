@@ -27,17 +27,32 @@ type safetensorsTensorHeader struct {
 }
 
 func managedImagePassiveProjectionForAsset(kind runtimev1.LocalAssetKind, entryPath string) (managedImagePassiveProjection, bool) {
-	if kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE:
+		family, ok := managedImageVAEFamilyFromPath(entryPath)
+		if !ok {
+			return managedImagePassiveProjection{}, false
+		}
+		return managedImagePassiveProjection{
+			Family:        family,
+			ArtifactRoles: []string{"vae"},
+		}, true
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA:
+		// LoRA safetensors carry no runtime-readable family metadata, so the
+		// family is inferred from the entry file name — the same name-based
+		// inference used for artifact roles elsewhere. Unknown names fail
+		// closed with no projection.
+		family := normalizeManagedImageProjectionFamily(filepath.Base(strings.TrimSpace(entryPath)))
+		if family == "" {
+			return managedImagePassiveProjection{}, false
+		}
+		return managedImagePassiveProjection{
+			Family:        family,
+			ArtifactRoles: []string{"lora"},
+		}, true
+	default:
 		return managedImagePassiveProjection{}, false
 	}
-	family, ok := managedImageVAEFamilyFromPath(entryPath)
-	if !ok {
-		return managedImagePassiveProjection{}, false
-	}
-	return managedImagePassiveProjection{
-		Family:        family,
-		ArtifactRoles: []string{"vae"},
-	}, true
 }
 
 func managedImageVAEFamilyFromPath(path string) (string, bool) {
@@ -121,14 +136,19 @@ func readSafetensorsTensorHeaders(path string) (map[string]safetensorsTensorHead
 	return tensors, nil
 }
 
-func healManagedImageVAEProjection(modelsRoot string, record *runtimev1.LocalAssetRecord, logger *slog.Logger) bool {
-	if record == nil || effectiveAssetKind(record.GetKind(), record.GetCapabilities()) != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
+func healManagedImagePassiveProjection(modelsRoot string, record *runtimev1.LocalAssetRecord, logger *slog.Logger) bool {
+	if record == nil {
+		return false
+	}
+	switch effectiveAssetKind(record.GetKind(), record.GetCapabilities()) {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA:
+	default:
 		return false
 	}
 	entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, record)
 	if err != nil {
 		if logger != nil {
-			logger.Warn("skip managed image vae projection self-heal: resolve entry failed",
+			logger.Warn("skip managed image passive projection self-heal: resolve entry failed",
 				"local_asset_id", record.GetLocalAssetId(),
 				"error", err,
 			)
@@ -169,10 +189,10 @@ func managedImageVAEFamilyCompatibleWithImageFamily(imageFamily string, vaeFamil
 	normalizedVAEFamily := normalizeManagedImageVAEFamily(vaeFamily)
 	switch normalizedImageFamily {
 	case "z-image", "z-image-turbo":
-		// The admitted Comfy-Org/z_image_turbo ae.safetensors has the
-		// 32-channel latent shape projected above as flux2-vae, which is also
-		// the shape consumed by the stable-diffusion.cpp Z-Image backend.
-		return normalizedVAEFamily == "flux2-vae"
+		// The admitted Comfy-Org/z_image_turbo ae.safetensors is the FLUX.1
+		// VAE: its 16-channel latent shape projects above as flux1-vae, which
+		// is the shape consumed by the stable-diffusion.cpp Z-Image backend.
+		return normalizedVAEFamily == "flux1-vae"
 	case "ideogram4":
 		return normalizedVAEFamily == "flux2-vae"
 	default:

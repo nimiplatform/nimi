@@ -371,7 +371,7 @@ func seedProfileRuntimeLocalAssetForService(t *testing.T, svc *Service, localAss
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
 		family = normalizeManagedImageProjectionFamily(assetID)
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE:
-		family = "flux2-vae"
+		family = "flux1-vae"
 		artifactRoles = []string{"vae"}
 	}
 	svc.mu.Lock()
@@ -477,7 +477,7 @@ func seedProfileRuntimePortableSelectedSourcesForService(
 			asset.Family = normalizeManagedImageProjectionFamily(binding.ExpectedIdentity)
 		}
 		if asset.Kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
-			asset.Family = "flux2-vae"
+			asset.Family = "flux1-vae"
 			asset.ArtifactRoles = []string{"vae"}
 		}
 		svc.mu.Lock()
@@ -888,7 +888,7 @@ func TestPrepareProfileRuntimeDescriptorForAIConfigAcceptsPortableInstalledCompo
 			asset.Family = "z-image"
 			asset.Capabilities = []string{"image.generate"}
 		case "ae":
-			asset.Family = "flux2-vae"
+			asset.Family = "flux1-vae"
 			asset.ArtifactRoles = []string{"vae"}
 		}
 		svc.assets[asset.GetLocalAssetId()] = asset

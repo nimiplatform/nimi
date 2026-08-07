@@ -534,7 +534,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 	assertGRPCReasonCode(t, err, "duplicate engineSlot binding", runtimev1.ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT)
 }
 
-func TestResolveManagedMediaImageProfileRejectsFlux1VAEForZImage(t *testing.T) {
+func TestResolveManagedMediaImageProfileRejectsFlux2VAEForZImage(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
@@ -563,7 +563,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux1VAEForZImage(t *testing.T) {
 		Kind:          runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 		Engine:        "media",
 		Entry:         "ae.safetensors",
-		Family:        "flux1-vae",
+		Family:        "flux2-vae",
 		ArtifactRoles: []string{"vae"},
 		Status:        runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 		Source:        &runtimev1.LocalAssetSource{},
@@ -616,7 +616,7 @@ func TestResolveManagedMediaImageProfileRejectsFlux1VAEForZImage(t *testing.T) {
 		t.Fatal("expected incompatible z-image vae family to fail closed")
 	}
 	assertGRPCReasonCode(t, err, "incompatible vae family", runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
-	if !strings.Contains(err.Error(), "flux1-vae") || !strings.Contains(err.Error(), "z-image-turbo") {
+	if !strings.Contains(err.Error(), "flux2-vae") || !strings.Contains(err.Error(), "z-image-turbo") {
 		t.Fatalf("expected incompatible family detail, got %v", err)
 	}
 }

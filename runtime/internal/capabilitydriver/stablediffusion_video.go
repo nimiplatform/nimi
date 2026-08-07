@@ -96,14 +96,16 @@ func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.
 	requirements := make([]*runtimev1.LocalCapabilityRequirement, 0, len(stableDiffusionVideoSlots))
 	for _, slot := range stableDiffusionVideoSlots {
 		constraintValues := map[string]any{
-			"asset_kind":   slot.resourceKind,
-			"engine":       "stable-diffusion.cpp",
-			"format":       slot.format,
-			"model_family": "minimax-h3",
+			"asset_kind": slot.resourceKind,
+			"format":     slot.format,
 		}
+		// Constraints stay limited to generic facts that asset projection can
+		// actually produce: imported assets carry engines such as media/llama
+		// and no minimax-h3 family projection exists, so engine/model_family
+		// constraints would be unsatisfiable. Exact H3 admission is owned by
+		// the bounded content probe in stableDiffusionVideoSlotFormatValid.
 		// Passive VAE file imports project no artifact roles. DiT and encoder
-		// requirements use only the generic roles produced by formal import;
-		// exact H3 slot admission is owned by the bounded content probe below.
+		// requirements use only the generic roles produced by formal import.
 		if slot.artifactRole != "" {
 			constraintValues["artifact_role"] = slot.artifactRole
 		}
@@ -220,10 +222,8 @@ func validStableDiffusionVideoRequirement(requirement *runtimev1.LocalCapability
 	}
 	constraints := requirement.GetCompatibilityConstraints()
 	want := map[string]string{
-		"asset_kind":   slot.resourceKind,
-		"engine":       "stable-diffusion.cpp",
-		"format":       slot.format,
-		"model_family": "minimax-h3",
+		"asset_kind": slot.resourceKind,
+		"format":     slot.format,
 	}
 	if slot.artifactRole != "" {
 		want["artifact_role"] = slot.artifactRole

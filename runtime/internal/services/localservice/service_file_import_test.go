@@ -527,6 +527,31 @@ func TestImportLocalPassiveVAEFileProjectsFlux2VAEFamilyFromTensorShape(t *testi
 	}
 }
 
+func TestImportLocalPassiveLoRAFileProjectsFamilyFromFileName(t *testing.T) {
+	svc := newTestService(t)
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "z-image-turbo-ink-lora.safetensors")
+	if err := os.WriteFile(sourcePath, []byte("lora"), 0o644); err != nil {
+		t.Fatalf("write source lora: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath: sourcePath,
+		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA,
+		Engine:   "media",
+	})
+	if err != nil {
+		t.Fatalf("expected lora import to succeed, got %v", err)
+	}
+	if got := resp.GetAsset().GetFamily(); got != "z-image-turbo" {
+		t.Fatalf("family mismatch: got=%q want=z-image-turbo", got)
+	}
+	if got := resp.GetAsset().GetArtifactRoles(); !stringSliceContains(got, "lora") {
+		t.Fatalf("expected lora artifact role, got %#v", got)
+	}
+}
+
 func TestRestoreStateHealsImportedIdeogram4UncondProjection(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
 	modelsRoot := t.TempDir()

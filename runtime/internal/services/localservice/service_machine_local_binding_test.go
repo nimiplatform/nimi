@@ -80,7 +80,7 @@ func TestStableDiffusionOccurrenceProjectionReprojectBindAndResolve(t *testing.T
 
 	mainDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-main", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, "z-image")
 	textDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-text", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, "")
-	vaeDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-vae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, "flux2-vae")
+	vaeDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-vae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, "flux1-vae")
 	loraDigest := seedStableDiffusionMachineAssetForTest(t, service, "sd-shared-lora", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA, "z-image")
 	bindings := []struct {
 		requirementID string

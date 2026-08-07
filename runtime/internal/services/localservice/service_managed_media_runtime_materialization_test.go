@@ -172,7 +172,7 @@ func testResolveManagedMediaImageProfileDescriptorAcrossRestart(t *testing.T) {
 		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 		Engine:         "media",
 		Entry:          "ae.safetensors",
-		Family:         "flux2-vae",
+		Family:         "flux1-vae",
 		ArtifactRoles:  []string{"vae"},
 		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 		Source:         &runtimev1.LocalAssetSource{},

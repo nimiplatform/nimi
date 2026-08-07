@@ -236,7 +236,7 @@ func (s *Service) restoreState() error {
 		if healed := healManagedImageNativeProjection(modelsRoot, record, s.logger); healed {
 			healedSnapshot = true
 		}
-		if healed := healManagedImageVAEProjection(modelsRoot, record, s.logger); healed {
+		if healed := healManagedImagePassiveProjection(modelsRoot, record, s.logger); healed {
 			healedSnapshot = true
 		}
 	}

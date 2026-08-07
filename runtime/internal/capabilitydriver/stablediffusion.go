@@ -51,12 +51,18 @@ type stableDiffusionFamilySpec struct {
 func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	normalized = strings.ReplaceAll(normalized, "_", "-")
-	if normalized == "z-image-base" {
+	switch normalized {
+	case "z-image-base", "z-image-turbo":
+		// Z-Image base and turbo GGUFs share the lumina2 architecture; GGUF
+		// metadata cannot distinguish the variants, so both collapse to the
+		// canonical z-image family.
 		normalized = "z-image"
 	}
 	switch normalized {
-	case "z-image", "z-image-turbo":
-		return stableDiffusionFamilySpec{name: normalized, compatibleVAEs: []string{"flux2-vae"}}, true
+	case "z-image":
+		// Z-Image consumes the FLUX.1 VAE (ae.safetensors): its decoder conv_in
+		// weight projects the 16-channel latent shape as flux1-vae.
+		return stableDiffusionFamilySpec{name: normalized, compatibleVAEs: []string{"flux1-vae"}}, true
 	case "ideogram4":
 		return stableDiffusionFamilySpec{name: normalized, requiresUncond: true, compatibleVAEs: []string{"flux2-vae"}}, true
 	default:
@@ -431,7 +437,7 @@ func normalizeStableDiffusionAssetFamily(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	normalized = strings.ReplaceAll(normalized, "_", "-")
 	switch normalized {
-	case "z-image-base":
+	case "z-image-base", "z-image-turbo":
 		return "z-image"
 	case "flux", "flux2", "flux-2", "flux-2-vae", "ideogram4-vae", "ideogram-4-vae":
 		return "flux2-vae"

@@ -72,7 +72,7 @@ func TestLiveStableDiffusionLocalJourney(t *testing.T) {
 
 	main := registerLiveSDAsset(t, localSvc, modelsRoot, "main", mainPath, "image", "z-image-turbo", "media", []string{"image.generate"})
 	textEncoder := registerLiveSDAsset(t, localSvc, modelsRoot, "text-encoder", textPath, "chat", "", "llama", []string{"chat"})
-	vae := registerLiveSDAsset(t, localSvc, modelsRoot, "vae", vaePath, "vae", "flux2-vae", "media", nil)
+	vae := registerLiveSDAsset(t, localSvc, modelsRoot, "vae", vaePath, "vae", "flux1-vae", "media", nil)
 	configuration := addBindAndSelectLiveSDConfiguration(t, localSvc, main, textEncoder, vae)
 
 	manager, err := engine.NewManager(logger, engine.ManagedRoots{

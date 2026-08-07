@@ -99,7 +99,7 @@ func TestStableDiffusionInterpretOrderedLoRAsAndAllowsRepeatedExactAsset(t *test
 			family = "z-image"
 		}
 		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
-			family = "flux2-vae"
+			family = "flux1-vae"
 		}
 		if requirement.GetResourceKind() == "lora" {
 			localAssetID = "asset-shared-lora"
@@ -123,7 +123,7 @@ func TestStableDiffusionInterpretOrderedLoRAsAndAllowsRepeatedExactAsset(t *test
 		t.Fatalf("repeated LoRA asset combination reason = %v", reason)
 	}
 	wrongVAE := append([]AssetDescriptor(nil), assets...)
-	wrongVAE[2].Family = "flux1-vae"
+	wrongVAE[2].Family = "flux2-vae"
 	if reason := driver.ValidateCombination(requirements, bindings, wrongVAE); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
 		t.Fatalf("incompatible VAE family reason = %v", reason)
 	}

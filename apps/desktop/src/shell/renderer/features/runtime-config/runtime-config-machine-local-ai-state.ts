@@ -454,6 +454,7 @@ function normalizeModelFamily(value: unknown): string {
   const normalized = textValue(value).toLowerCase().replaceAll('_', '-');
   switch (normalized) {
     case 'z-image-base':
+    case 'z-image-turbo':
       return 'z-image';
     case 'flux':
     case 'flux2':

@@ -76,7 +76,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 		Engine:       "media",
 		Entry:        "vae/diffusion_pytorch_model.safetensors",
-		Family:       "flux2-vae",
+		Family:       "flux1-vae",
 		ArtifactRoles: []string{
 			"vae",
 		},
