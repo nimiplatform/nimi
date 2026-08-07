@@ -35,7 +35,7 @@ const (
 	liveLlamaJourneyBinaryEnv  = "NIMI_LIVE_LLAMA_SERVER_PATH"
 	liveLlamaJourneyVersionEnv = "NIMI_LIVE_LLAMA_VERSION"
 
-	defaultLiveLlamaJourneyModel  = "/Users/snwozy/Nimi/models/resolved/nimi/local-import-qwen3-4b-q4-k-m/Qwen3-4B-Q4_K_M.gguf"
+	defaultLiveLlamaJourneyModel  = "/Users/snwozy/Nimi/models/resolved/nimi/local-import-qwen3-4b-q4-k-m-01kzd4fwjd0z5wkcdx5m9qtgsb/Qwen3-4B-Q4_K_M.gguf"
 	defaultLiveLlamaJourneyBinary = "/Users/snwozy/Nimi/environments/llama/b8645/llama-server"
 )
 

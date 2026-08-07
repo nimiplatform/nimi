@@ -33,9 +33,9 @@ const (
 	liveSDTextEncoderEnv    = "NIMI_LIVE_SD_TEXT_ENCODER_PATH"
 	liveSDVAEEnv            = "NIMI_LIVE_SD_VAE_PATH"
 	defaultLiveSDBackendDir = "/Users/snwozy/Nimi/environments/managed-image-backends/metal-stablediffusion-ggml"
-	defaultLiveSDMainModel  = "/Users/snwozy/Nimi/models/resolved/nimi/local-import-z-image-turbo-q4-k-m/z-image-turbo-Q4_K_M.gguf"
-	defaultLiveSDTextModel  = "/Users/snwozy/Nimi/models/resolved/nimi/local-import-qwen3-4b-q4-k-m/Qwen3-4B-Q4_K_M.gguf"
-	defaultLiveSDVAE        = "/Users/snwozy/Nimi/models/resolved/local-import-ae/ae.safetensors"
+	defaultLiveSDMainModel  = "/Users/snwozy/Nimi/models/resolved/nimi/local-import-z-image-turbo-q4-k-m-01kzd4jhznm7p9rpyfr7chky34/z-image-turbo-Q4_K_M.gguf"
+	defaultLiveSDTextModel  = "/Users/snwozy/Nimi/models/resolved/nimi/local-import-qwen3-4b-q4-k-m-01kzd4fwjd0z5wkcdx5m9qtgsb/Qwen3-4B-Q4_K_M.gguf"
+	defaultLiveSDVAE        = "/Users/snwozy/Nimi/models/resolved/local-import-ae-01kzd4gay1qvw8mc0hkmc9m65e/ae.safetensors"
 )
 
 type liveSDRegisteredAsset struct {
